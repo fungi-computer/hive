@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>hive POC</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0d1f0c;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace;
+      }
+      #stage {
+        position: relative;
+      }
+      canvas {
+        display: block;
+        border: 1px solid #000;
+      }
+      #overlay {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        color: #d9e8d2;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 8px 12px;
+        border-radius: 4px;
+        min-width: 300px;
+      }
+      #overlay .poc {
+        color: #ffd23f;
+        font-weight: bold;
+      }
+      #overlay #referee {
+        margin-top: 6px;
+        font-size: 15px;
+        color: #ffffff;
+      }
+      #overlay #tick {
+        margin-top: 2px;
+        color: #9fe39c;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <div id="overlay">
+        <div class="poc">POC — ticker emulating BirdDog (wired to nothing real)</div>
+        <div id="referee">settled 6 / executing 0</div>
+        <div id="tick">tick 1 — idle</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
