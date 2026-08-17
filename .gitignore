@@ -1,2 +1,4 @@
-node_modules
-dist
+.ttl-probe
+.write-trigger-probe
+node_modules/
+dist/

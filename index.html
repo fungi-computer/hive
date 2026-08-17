@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>hive POC</title>
+    <title>THE HIVE — Worldbox MVP (chop · logs)</title>
     <style>
       html,
       body {
@@ -25,18 +25,24 @@
         border: 1px solid #000;
       }
       #overlay {
-        position: absolute;
+        position: fixed;
         top: 8px;
         left: 8px;
+        z-index: 100;
         color: #d9e8d2;
         background: rgba(0, 0, 0, 0.5);
         padding: 8px 12px;
         border-radius: 4px;
-        min-width: 300px;
+        min-width: 340px;
       }
       #overlay .poc {
         color: #ffd23f;
         font-weight: bold;
+      }
+      #overlay .hint {
+        margin-top: 4px;
+        color: #8fae8a;
+        font-size: 11px;
       }
       #overlay #referee {
         margin-top: 6px;
@@ -47,14 +53,53 @@
         margin-top: 2px;
         color: #9fe39c;
       }
+      #metrics {
+        position: fixed;
+        bottom: 8px;
+        left: 8px;
+        z-index: 100;
+        color: #b8ecd0;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 210, 63, 0.25);
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        line-height: 1.55;
+        min-width: 380px;
+      }
+      #metrics b {
+        color: #ffd23f;
+        font-weight: bold;
+      }
+        color: #b8ecd0;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 210, 63, 0.25);
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        line-height: 1.55;
+        display: none;
+        min-width: 380px;
+      }
+      #metrics b {
+        color: #ffd23f;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
     <div id="stage">
       <div id="overlay">
-        <div class="poc">POC — ticker emulating BirdDog (wired to nothing real)</div>
-        <div id="referee">settled 6 / executing 0</div>
-        <div id="tick">tick 1 — idle</div>
+        <div class="poc">THE HIVE — Worldbox MVP · date-based BirdDog-driven · trees chop · logs stack · seed 42</div>
+        <div id="referee">day — · this week — · today: — · world: — · logs — · seed 42</div>
+        <div id="tick">the world moves on COMPLETED days, never ticks</div>
+        <div class="hint">one real input: fleet busy/idle per day · one real clock: calendar date · RNG dresses below the direction line · tiles: manifest pending → painted markers</div>
+      </div>
+      <div id="metrics">
+        <div><b>render</b> FPS — · frame ms — (min — / max —)</div>
+        <div><b>sim</b> step — · day — · phase — · tod — · steps/s — · acc —ms</div>
+        <div><b>tasks</b> executing — · settled — · requeued — · queued — · walks —</div>
+        <div><b>render</b> display objects —</div>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>

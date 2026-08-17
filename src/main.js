@@ -1,222 +1,273 @@
-// hive POC — plain Pixi.js + Vite. Colored squares only.
-// Two states, and only two: SETTLED (sitting in the party group) / EXECUTING (beside a tree).
-// Deterministic in-page ticker emulating BirdDog (POC only, wired to nothing real).
+// main.js — THE WORLDBOX MVP boot. Date-based BirdDog-driven: ONE real input
+// (fleet busy/idle per DAY), ONE real clock (calendar DATE — the pane closes, real
+// time passes, the world answers on reopen), prosperity = a pure function of
+// (daysWorked, daysIdle); RNG dresses everything below the direction line.
+//
+// Persistence: ONLY { seed, lastSeen, days[], prosperity } — terrain, trees and
+// piles are deterministic projections of (seed + days[]) and re-derive on boot;
+// nothing else is stored (the mesh can never drift from truth).
 
-import { Application, Graphics } from "pixi.js";
+import { createGlade, initWorld, renderGlade, playChop } from "./glade.js";
+import { createWorld, advanceWorld, derived, checkInvariants, logsOf, todaySignal } from "./world.js";
+import { resolveGap, pickBirddogSource, createDayFeed } from "./feed.js";
+import { dayKey, addDays } from "./date.js";
+import { SEEDS, MAX_GAP, TILE, STACK, POC_TIMESCALE, TIMESCALE_REAL, dayMsFor } from "./tables.js";
+import { createMetrics, sampleMetrics } from "./metrics.js";
 
-// ---------------------------------------------------------------- constants
-const GLADE = 0x2f6b3f; // the empty glade is the canvas background
-const WIDTH = 960;
-const HEIGHT = 600;
+const STORE_KEY = "worldbox.v1";
 
-const PARTY_SIZE = 6;
-const COLONIST_SIZE = 26;
-const COLONIST_COLORS = [
-  0xff5b4d, // red
-  0x4da6ff, // blue
-  0xffd23f, // yellow
-  0xb06aff, // purple
-  0xff8c3b, // orange
-  0x3fe0d0, // cyan
-];
-
-const TREE_COUNT = 8;
-const TREE_SIZE = 34;
-const TREE_COLOR = 0x155c31; // darker green than the glade
-
-const TICK_MS = 1000; // one tick event per second
-const WALK_MS = 700; // how long a square takes to move
-const DWELL = 3; // a dispatched colonist stands by its tree for 3 ticks
-const N_TASKS = 14; // tasks per schedule cycle
-const SEED = 42;
-
-// ---------------------------------------------------------------- helpers
-// mulberry32 — seeded PRNG so every load plays the exact same schedule.
-function mulberry32(a) {
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function square(size, color) {
-  const g = new Graphics();
-  g.rect(-size / 2, -size / 2, size, size).fill(color);
-  return g;
-}
-
-// ---------------------------------------------------------------- app / glade
-const app = new Application();
-await app.init({
-  width: WIDTH,
-  height: HEIGHT,
-  background: GLADE,
-  antialias: false,
-});
-document.getElementById("stage").prepend(app.canvas);
-
-// ---------------------------------------------------------------- trees
-// Fixed scattered squares (kept clear of the party area and canvas edges).
-const TREES = [
-  { x: 90, y: 110 },
-  { x: 262, y: 74 },
-  { x: 520, y: 96 },
-  { x: 852, y: 96 },
-  { x: 744, y: 232 },
-  { x: 888, y: 384 },
-  { x: 736, y: 500 },
-  { x: 470, y: 524 },
-];
-const treeSquares = TREES.map((t) => {
-  const s = square(TREE_SIZE, TREE_COLOR);
-  s.position.set(t.x, t.y);
-  app.stage.addChild(s);
-  return s;
-});
-
-// ---------------------------------------------------------------- party
-// A group of colonist squares sitting together in a small cluster.
-const GAP = 40;
-const groupX = 168; // party cluster center
-const groupY = 436;
-const homes = PARTY_SIZE.map((_, i) => {
-  const col = i % 3;
-  const row = Math.floor(i / 3);
-  return {
-    x: groupX + (col - 1) * GAP,
-    y: groupY + (row - 0.5) * GAP,
-  };
-});
-
-const colonists = PARTY_SIZE.map((_, i) => {
-  const gfx = square(COLONIST_SIZE, COLONIST_COLORS[i]);
-  gfx.position.set(homes[i].x, homes[i].y);
-  app.stage.addChild(gfx);
-  return {
-    id: i,
-    gfx,
-    state: "SETTLED", // the only two states: "SETTLED" | "EXECUTING"
-    tree: -1, // tree index when EXECUTING
-    busy: false, // an in-flight walk is happening
-  };
-});
-
-// Beside-position: stand just to the left of the tree square.
-function beside(treeIndex) {
-  const t = TREES[treeIndex];
-  return {
-    x: t.x - (TREE_SIZE / 2 + COLONIST_SIZE / 2 + 8),
-    y: t.y,
-  };
-}
-
-// ---------------------------------------------------------------- schedule
-// Deterministic: a seeded RNG builds the same dispatch/return script every
-// load. Tick N dispatches a colonist to a tree; a return event at tick N+3
-// sends the same square back to the group.
-const rand = mulberry32(SEED);
-const eventsByTick = new Map();
-let cursor = 1;
-for (let k = 0; k < N_TASKS; k++) {
-  const ci = k % PARTY_SIZE; // round-robin colonist pick
-  const ti = Math.floor(rand() * TREE_COUNT); // seeded tree pick
-  const push = (tick, ev) => {
-    if (!eventsByTick.has(tick)) eventsByTick.set(tick, []);
-    eventsByTick.get(tick).push(ev);
-  };
-  push(cursor, { kind: "dispatch", colonist: ci, tree: ti });
-  push(cursor + DWELL, { kind: "return", colonist: ci });
-  cursor += 1;
-}
-const TOTAL_TICKS = cursor - 1 + DWELL; // schedule loops forever after this
-
-// ---------------------------------------------------------------- motions
-function tweenTo(colonist, toX, toY, ms, onDone) {
-  const fromX = colonist.gfx.x;
-  const fromY = colonist.gfx.y;
-  let t = 0;
-  const step = (ticker) => {
-    t += ticker.deltaMS;
-    const k = Math.min(t / ms, 1);
-    colonist.gfx.x = fromX + (toX - fromX) * k;
-    colonist.gfx.y = fromY + (toY - fromY) * k;
-    if (k >= 1) {
-      app.ticker.remove(step);
-      colonist.busy = false;
-      onDone();
-    }
-  };
-  colonist.busy = true;
-  app.ticker.add(step);
-}
-
-// ---------------------------------------------------------------- referee (no secrets)
-const refereeEl = document.getElementById("referee");
-const tickerEl = document.getElementById("tick");
-let lastEvent = "idle";
-
-function updateReferee() {
-  let settled = 0;
-  for (const c of colonists) if (c.state === "SETTLED") settled++;
-  const executing = PARTY_SIZE - settled;
-  refereeEl.textContent = `settled ${settled} / executing ${executing}`;
-}
-
-function applyEvent(ev) {
-  const c = colonists[ev.colonist];
-  if (ev.kind === "dispatch") {
-    // A tick event picks a colonist to execute → they move over and stand
-    // beside a tree. As of this moment they are NOT sitting with the group,
-    // so the two-state rule makes them EXECUTING until they sit back down.
-    c.state = "EXECUTING";
-    c.tree = ev.tree;
-    const target = beside(ev.tree);
-    lastEvent = `dispatch colonist ${c.id + 1} → tree ${ev.tree + 1}`;
-    tweenTo(c, target.x, target.y, WALK_MS, () => {});
-    updateReferee();
-  } else if (ev.kind === "return") {
-    // Completion: the same square comes back and sits with the group.
-    lastEvent = `colonist ${c.id + 1} returns to the party`;
-    tweenTo(c, homes[c.id].x, homes[c.id].y, WALK_MS, () => {
-      c.state = "SETTLED";
-      c.tree = -1;
-      updateReferee();
-    });
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null; // private mode / storage blocked — the world still lives for the session
   }
 }
 
-// ---------------------------------------------------------------- ticker (POC)
-let tickNumber = 0;
-setInterval(() => {
-  tickNumber += 1;
-  const n = ((tickNumber - 1) % TOTAL_TICKS) + 1; // loop the script forever
-  const evs = eventsByTick.get(n) || [];
-  for (const ev of evs) applyEvent(ev);
-  tickerEl.textContent = `tick ${tickNumber} — ${lastEvent}`;
-}, TICK_MS);
+function saveWorld(world) {
+  try {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        seed: world._seed,
+        lastSeen: world.clock.lastSeen,
+        days: world.days,
+        prosperity: world.prosperity,
+      })
+    );
+  } catch {
+    /* session-only, honest */
+  }
+}
 
-updateReferee();
+// ---------------------------------------------------------------- boot: the reopen gap
+const today = dayKey();
+const saved = loadSaved();
+const world = createWorld((saved && saved.seed) || SEEDS.worldSeed);
 
-// Debug handle so a headless smoke test can read the exact same state.
-window.__HIVEPOC = {
-  seed: SEED,
-  ticksPerLoop: TOTAL_TICKS,
-  colonists: colonists.map((c) => ({
-    id: c.id + 1,
-    state: c.state,
-    tree: c.tree + 1,
-    x: Math.round(c.gfx.x),
-    y: Math.round(c.gfx.y),
-  })),
-  get count() {
-    let settled = 0;
-    for (const c of colonists) if (c.state === "SETTLED") settled++;
-    return { settled, executing: PARTY_SIZE - settled };
-  },
-  get tick() {
-    return tickNumber;
-  },
+// replay persisted days (idempotent by construction — the reopen gate)
+if (saved && Array.isArray(saved.days) && saved.days.length > 0) {
+  for (const d of saved.days) advanceWorld(world, d);
+  const drift = Math.abs(world.prosperity - (typeof saved.prosperity === "number" ? saved.prosperity : -1));
+  if (drift > 1e-9) console.warn("[worldbox] stored prosperity ≠ replay — store tampered? rebuilt from days[], honesty kept");
+  world.choreQueue.length = 0; // the montage only plays NEW days' chores, never re-enacts history
+}
+
+// ---- clock mode: FAST POC (scaled days) vs REAL (1:1). Compress the CLOCK, never the RULES.
+const clockFast = currentTimescale() > TIMESCALE_REAL;
+let gap = [];
+let compacted = false;
+let danceBudget = 1; // fast: every rolled day earns its one chop on stage
+if (clockFast) {
+  // the VIRTUAL clock takes over: anchor to the ledger — today (or the last session's
+  // anchor day) completes first; further days roll one per dayMsFor() of real time.
+  world.clock.lastSeen = world.clock.lastSeen || today;
+} else {
+  // REAL 1:1 (the production reopen-gap, unchanged): integrate the closed gap.
+  const lastSeen = (saved && saved.lastSeen) || today;
+  gap = resolveGap(lastSeen, today);
+  compacted = gap.length > MAX_GAP;
+  if (compacted) gap = gap.slice(gap.length - MAX_GAP);
+  for (const d of gap) advanceWorld(world, d);
+  world.clock.lastSeen = today;
+  danceBudget = Math.min(3, gap.reduce((s, d) => s + d.chops, 0));
+}
+
+// today is a LOOK, never scored
+function todayF() {
+  const d = resolveGap(addDays(today, -1), addDays(today, 1)); // the emulated feed's deterministic schedule
+  return d[0] ? d[0].f : null;
+}
+
+// ---------------------------------------------------------------- render boot
+const glade = await createGlade(document.getElementById("stage"));
+initWorld(glade, world);
+
+const refereeEl = document.getElementById("referee");
+const tickEl = document.getElementById("tick");
+
+// ---- METRICS (always-on — Levi's ruling): the zero-dep sampler lives, re-aimed at
+// the date world. One windowed FPS/frame-ms snapshot per second; every number traces
+// to measured frame time (performance.now) and derived(world) — never invented.
+const metrics = createMetrics(1000);
+const metricHook = { steps: 0 }; // the date world has no fixed-step sim counter — steps stay 0, honestly
+let metricsSnap = null;
+const r1 = (x) => Math.round(x * 10) / 10;
+
+function countWeeds() {
+  let n = 0;
+  for (const v of world.grid) if (v === TILE.weed) n++;
+  return n;
+}
+function countNodes(c) {
+  let n = c.children.length;
+  for (const ch of c.children) n += countNodes(ch);
+  return n;
+}
+function updateMetricsSurface(d, snap) {
+  const el = document.getElementById("metrics");
+  if (!el || !snap) return;
+  const standing = d.trees.filter((t) => t.state === "standing").length;
+  const saplings = d.trees.filter((t) => t.state === "sapling").length;
+  const stumps = d.trees.length - standing - saplings;
+  const pixiFps = typeof glade.app.ticker.FPS === "number" ? ` · pixi FPS ${r1(glade.app.ticker.FPS)}` : "";
+  el.innerHTML =
+    `<div><b>render</b> FPS ${snap.fps} · frame ms ${snap.frameMs.avg} (min ${snap.frameMs.min} / max ${snap.frameMs.max})${pixiFps} · display objects ${countNodes(glade.app.stage)}</div>` +
+    `<div><b>day</b> ${d.clock.dayKey} · now ${dayKey()} · lastSeen ${d.clock.lastSeen || "—"} · ${isFast() ? "next" : "today"} ${todaySignal(isFast() ? nextDayF() : todayF())} · this week ${d.week.worked}/${Math.max(1, d.week.days - d.week.unobserved)} worked · birddog ${pickBirddogSource()} · timescale x${currentTimescale()} (${dayMs()}ms/day)</div>` +
+    `<div><b>world</b> prosperity ${d.prosperity} · tier ${d.tier} · logs ${d.logs} · pile pool ${Math.min(d.logs, STACK.pool)} · stumps ${stumps} · saplings ${saplings} · standing ${standing} · weeds ${countWeeds()}</div>`;
+}
+(() => {
+  const el = document.getElementById("metrics");
+  if (el) el.style.display = "block"; // always-on (Levi), not a debug toggle
+})();
+
+function updateReferee(d) {
+  const wk = d.week;
+  const scale = currentTimescale();
+  const tSig = isFast() ? `next: ${todaySignal(nextDayF())}` : `today: ${todaySignal(todayF())}`;
+  const notes = [];
+  if (compacted) notes.push("older history compacted");
+  if (wk.unobserved > 0) notes.push(`unobserved ${wk.unobserved}d`);
+  refereeEl.textContent =
+    `day ${d.clock.dayKey} · this week ${wk.worked}/${Math.max(1, wk.days - wk.unobserved)} worked · ` +
+    `${tSig} · world: ${d.tier} · logs ${d.logs} · seed ${world._seed} · ` +
+    `${scale > 1 ? `POC x${scale} (${dayMs()}ms/day)` : "real 1:1"}` +
+    (notes.length ? ` · ${notes.join(" · ")}` : "");
+}
+
+// ---------------------------------------------------------------- chore → montage
+function processQueue(glade, world) {
+  if (glade.busy) return;
+  const chore = world.choreQueue.shift();
+  if (!chore) return;
+  if (chore.kind === "stack") return; // pile already shows the derived count — synchronized
+  if (danceBudget <= 0) return; // consumed silently: stumps/weeds are already in the state
+  danceBudget--;
+  playChop(glade, world, chore);
+}
+
+// ------------------------------------------------ the date clock — POC SPEED KNOB
+// Compress the CLOCK, never the RULES: a world-day completes every dayMsFor(scale) of
+// REAL wall time and is then scored through the SAME pure advanceWorld (a COMPLETED day
+// — busy:+1/chop/logs, idle:decay). FAST by default (one day per ~3s) so chops, logs,
+// weeds and the montage visibly happen within seconds of opening the pane; 1:1 is the
+// real product; live override: window.__TIMESCALE = <number ≥ 1>.
+function currentTimescale() {
+  const w = typeof window !== "undefined" ? window.__TIMESCALE : undefined;
+  if (typeof w === "number" && Number.isFinite(w) && w >= 1) return w;
+  return POC_TIMESCALE;
+}
+function dayMs() {
+  return dayMsFor(currentTimescale());
+}
+const isFast = () => currentTimescale() > TIMESCALE_REAL;
+
+let virtualToday = world.clock.lastSeen || dayKey(); // fast: continues from the ledger, never rewinds
+let dayAcc = 0;
+let clockLast = performance.now();
+
+// the next day's LOOK (fast mode) — a look, never scored
+function nextDayF() {
+  const base = world.clock.dayKey || virtualToday;
+  const d = resolveGap(base, addDays(base, 2)); // completed days in [base+1 .. base+1]
+  return d[0] ? d[0].f : null;
+}
+
+// roll on the VIRTUAL clock (fast): RAW wall time accumulates into dayAcc — hidden
+// time counts, so opening the pane after a minute shows a minute's worth of days.
+// Each roll integrates exactly ONE just-completed day via the same feed contract.
+function rollAccumulated(nowRaw) {
+  dayAcc += nowRaw - clockLast;
+  clockLast = nowRaw;
+  const msDay = dayMs();
+  let rolled = 0;
+  let guard = 0;
+  while (dayAcc >= msDay && guard++ < 5000) {
+    dayAcc -= msDay;
+    const ds = createDayFeed({ from: virtualToday, to: virtualToday }); // exactly 1 seeded day
+    for (const d of ds) {
+      advanceWorld(world, d);
+      danceBudget = 1; // each rolled day earns its one chop on stage
+      rolled++;
+    }
+    world.clock.lastSeen = virtualToday;
+    virtualToday = addDays(virtualToday, 1);
+  }
+  if (rolled > 0) saveWorld(world);
+  return rolled;
+}
+
+// REAL 1:1 path — the real-midnight roll (production semantics, unchanged)
+function msToNextMidnight() {
+  const n = new Date();
+  const nn = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1);
+  return nn.getTime() - n.getTime() + 250;
+}
+let rollTimer = null;
+function scheduleRoll() {
+  clearTimeout(rollTimer);
+  rollTimer = setTimeout(dayCheck, msToNextMidnight());
+}
+function dayCheck() {
+  const t2 = dayKey();
+  const g2 = resolveGap(world.clock.lastSeen, t2); // at most [yesterday], integrated ONCE
+  if (g2.length) {
+    for (const d of g2) advanceWorld(world, d);
+    world.clock.lastSeen = t2;
+    danceBudget = 1; // a live day earns its one chop on stage
+    saveWorld(world);
+  }
+  scheduleRoll();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    clearTimeout(rollTimer);
+    saveWorld(world);
+  } else if (!isFast()) {
+    dayCheck(); // real mode re-anchors on sight; fast mode just resumes accumulating raw time
+  }
+});
+
+// ---------------------------------------------------------------- animation loop
+// The ticker animates ONLY — it NEVER calls advanceWorld directly; the world moves
+// on COMPLETED days (fast: the virtual-clock accumulator; real: the midnight roll).
+let animLast = performance.now();
+glade.app.ticker.add(() => {
+  const now = performance.now();
+  const dt = Math.min(100, now - animLast); // render dt clamped (animation only)
+  animLast = now;
+
+  if (isFast()) rollAccumulated(now); // raw wall time accumulates the virtual clock
+  processQueue(glade, world);
+  const d = derived(world);
+  renderGlade(glade, d, { t: now / 1000, dt: dt / 1000, grid: world.grid });
+  updateReferee(d);
+  metricsSnap = sampleMetrics(metrics, metricHook);
+  if (metricsSnap) updateMetricsSurface(d, metricsSnap); // one rendered panel line-set per closed window
+});
+
+const d0 = derived(world);
+renderGlade(glade, d0, { t: 0, dt: 0, grid: world.grid });
+updateReferee(d0);
+saveWorld(world);
+if (tickEl) tickEl.textContent = isFast() ? `POC speed x${currentTimescale()} — a day every ${dayMs()}ms` : "real 1:1 — a day per local midnight";
+if (!isFast()) scheduleRoll();
+
+// ---------------------------------------------------------------- debug handle
+window.__BIRDDOG = window.__BIRDDOG || { source: "fake" }; // the knob — flip to "real" in console, then reopen
+window.__WORLDBOX = {
+  seed: world._seed,
+  today: dayKey(),
+  get days() { return world.days.map((d) => ({ ...d })); },
+  get prosperity() { return world.prosperity; },
+  get tier() { return derived(world).tier; },
+  get logs() { return logsOf(world); },
+  get trees() { return derived(world).trees; },
+  get lastSeen() { return world.clock.lastSeen; },
+  get invariants() { return checkInvariants(world); },
+  get choreQueue() { return derived(world).choreQueue; },
+  get birddog() { return pickBirddogSource(); },
+  get timescale() { return currentTimescale(); },
+  get dayMs() { return dayMs(); },
 };
