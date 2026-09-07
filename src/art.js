@@ -70,6 +70,8 @@ export async function bakeArt() {
     "chop",
     "build",
     "carry",
+    "carry-herb",
+    "pickup-herb",
     "pickup",
     "deliver",
     "sleep",
@@ -107,7 +109,11 @@ export async function bakeArt() {
     art.herbs.mugwort[stage] = bake(renderer, mugwort(stage), prop, 112, 112);
   for (const type of Object.keys(BUILDINGS)) {
     art.buildings[type] = {};
-    for (const stage of ["stakes", "frame", "finished"])
+    const stages =
+      type === "shelf"
+        ? ["stakes", "frame", "finished", "filled"]
+        : ["stakes", "frame", "finished"];
+    for (const stage of stages)
       art.buildings[type][stage] = [0, 1].map((direction) =>
         bake(renderer, building(type, stage, direction), prop, 112, 112),
       );

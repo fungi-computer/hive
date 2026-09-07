@@ -1,14 +1,8 @@
 // Original silhouette studies. Geometry and poses are authored here; reference
 // pictures and Pilgrimage's models never enter the bake.
 import * as THREE from "three";
-import {
-  scene,
-  box,
-  ball,
-  cylinder,
-  mesh,
-  group,
-} from "./geometry.js";
+import { scene, box, ball, cylinder, mesh, group } from "./geometry.js";
+import { mugwortBundle } from "./herbs.js";
 
 const SKIN = "#c59a76";
 const GREEN = "#8ba74e";
@@ -61,6 +55,9 @@ function arms(
   moving,
   { shoulder, spread, length, sleeve, hand, action = "idle" },
 ) {
+  const carryingHerb = action === "carry-herb";
+  if (action === "carry-herb") action = "carry";
+  if (action === "pickup-herb") action = "pickup";
   const hands = [];
   for (const side of [-1, 1]) {
     const arm = group(parent, side * spread, shoulder, 0);
@@ -77,10 +74,14 @@ function arms(
       arm.rotation.x = side < 0 ? stroke[Math.floor(phase * 8) % 8] : -0.2;
       arm.rotation.z = side < 0 ? -0.04 : 0.22;
     }
-    if (action === "carry") arm.rotation.x = -1.15;
+    if (action === "carry") arm.rotation.x = carryingHerb ? -0.55 : -1.15;
     limb(arm, sleeve, length, 0.14);
     const elbow = group(arm, 0, -length, 0);
-    elbow.rotation.x = action === "build" ? -0.45 : -0.12;
+    elbow.rotation.x = carryingHerb
+      ? -0.95
+      : action === "build"
+        ? -0.45
+        : -0.12;
     limb(elbow, sleeve, length * 0.85, 0.105);
     const palm = group(elbow, 0, -length * 0.9, 0.015);
     ball(palm, hand, 0, -0.025, 0, 0.057, 0.075, 0.06);
@@ -155,7 +156,23 @@ function rowan(body, phase, moving, pose) {
   workGear(body, hands, pose);
 }
 
+function carryHerb(body, hands) {
+  // This parcel follows the two palms; it is the same geometry as the ground bundle.
+  const palms = hands.map((hand) =>
+    body.worldToLocal(hand.getWorldPosition(new THREE.Vector3())),
+  );
+  const middle = palms[0].clone().add(palms[1]).multiplyScalar(0.5);
+  const parcel = group(body, middle.x, middle.y - 0.07, middle.z + 0.025);
+  parcel.rotation.y = Math.PI / 2;
+  mugwortBundle(parcel);
+}
+
 function workGear(body, hands, pose) {
+  if (pose === "carry-herb") {
+    carryHerb(body, hands);
+    return;
+  }
+  if (pose === "pickup-herb") return;
   if (pose === "carry") {
     for (const z of [0.32, 0.47]) {
       const log = cylinder(body, "#9b754b", 0, 1.02, z, 0.085, 0.085, 0.77, 7);
@@ -534,7 +551,13 @@ function witchRunner(body, phase, moving, pose) {
 // authored from the bake phase; no hair simulation or wall-clock owner.
 function copperHair(body, phase, moving, pose) {
   const angle = phase * Math.PI * 2;
-  const working = ["chop", "build", "pickup", "deliver"].includes(pose);
+  const working = [
+    "chop",
+    "build",
+    "pickup",
+    "pickup-herb",
+    "deliver",
+  ].includes(pose);
   const sway = moving ? 0.18 : working ? 0.1 : 0.035;
   const root = group(body, 0, 1.62, -0.12);
   root.scale.set(0.9, 0.86, 0.9);
@@ -648,7 +671,7 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
   const s = scene();
   const puppet = group(s);
   puppet.rotation.y = direction;
-  const moving = pose === "walk" || pose === "carry";
+  const moving = pose === "walk" || pose === "carry" || pose === "carry-herb";
   const body = group(
     puppet,
     0,

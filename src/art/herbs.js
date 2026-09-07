@@ -130,7 +130,7 @@ function ready(parent) {
     shoot(parent, x, z, height, angle, true);
 }
 
-function bundle(parent) {
+export function mugwortBundle(parent) {
   const tied = group(parent, 0, 0.085, 0);
   tied.rotation.y = -0.58;
   for (let i = 0; i < 5; i++) {
@@ -170,7 +170,7 @@ function bundle(parent) {
   leaf(knot, 0.09, "#ccb985");
 }
 
-const STAGES = { planted, growing, ready, bundle };
+const STAGES = { planted, growing, ready, bundle: mugwortBundle };
 export function mugwort(stage) {
   const build = STAGES[stage];
   if (!build) throw new Error(`Unknown mugwort art stage: ${stage}`);
