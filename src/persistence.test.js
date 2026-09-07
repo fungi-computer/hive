@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createClearing, step as advance } from "./clearing.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { BUILDINGS } from "./construction.js";
+import { stairCells } from "./world.js";
 import {
   decideReplaceRevision,
   decideSaveRevision,
@@ -101,7 +102,7 @@ test("Garden work toggles validate in the v4 live command history", () => {
   assert.equal(validateClearing(state).commands[0].work, "garden");
 });
 
-test("schema 5 persists drafted state and typed draft/Go replay history", () => {
+test("schema 6 persists drafted state and typed draft/Go replay history", () => {
   const state = createClearing();
   state.actors.rowan.drafted = true;
   state.actors.rowan.mode = "walk";
@@ -118,7 +119,7 @@ test("schema 5 persists drafted state and typed draft/Go replay history", () => 
   );
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 5);
+  assert.equal(envelope.schema, 6);
   assert.equal(envelope.savedState.actors.rowan.drafted, true);
   const restored = restoreSnapshot(envelope).state;
   assert.equal(restored.actors.rowan.drafted, true);
@@ -130,6 +131,300 @@ test("schema 5 persists drafted state and typed draft/Go replay history", () => 
     delete missing.savedState.actors.rowan.drafted;
     validateSaveEnvelope(missing);
   }, /Invalid input/);
+});
+
+function supportedUpperState() {
+  const state = structuredClone(createClearing());
+  state.tick = 20;
+  state.felled = 2;
+  for (const tree of state.trees.slice(0, 2)) {
+    tree.work = CHOP_TICKS;
+    tree.felledAt = 8;
+  }
+  state.sites.push(
+    {
+      id: "site-1",
+      type: "wall",
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: 1,
+      work: BUILDINGS.wall.ticks,
+      finishedAt: 10,
+    },
+    {
+      id: "site-2",
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS.stair.wood,
+      work: BUILDINGS.stair.ticks,
+      finishedAt: 10,
+    },
+    {
+      id: "site-3",
+      type: "floor",
+      x: 8,
+      z: 5,
+      level: 1,
+      direction: 0,
+      delivered: BUILDINGS.floor.wood,
+      work: BUILDINGS.floor.ticks,
+      finishedAt: 10,
+    },
+  );
+  state.piles.push({ id: "wood-4", x: 4, z: 5, level: 0, amount: 7 });
+  state.nextId = 20;
+  return state;
+}
+
+test("v6 validates stair/floor topology, level-aware paths, and v5 restore", () => {
+  const state = supportedUpperState();
+  state.commands.push(
+    {
+      kind: "build",
+      party: "home",
+      actors: null,
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+      tick: 20,
+    },
+    {
+      kind: "build",
+      party: "home",
+      actors: null,
+      type: "floor",
+      x: 8,
+      z: 5,
+      level: 1,
+      direction: 0,
+      tick: 20,
+    },
+  );
+  validateClearing(state);
+  const envelope = snapshotFor(state);
+  assert.equal(envelope.schema, 6);
+  assert.equal(restoreSnapshot(envelope).state.sites[1].type, "stair");
+
+  const secondStair = structuredClone(state);
+  secondStair.sites.push({
+    ...secondStair.sites[1],
+    id: "site-4",
+    x: 10,
+    z: 2,
+  });
+  secondStair.piles[0].amount -= BUILDINGS.stair.wood;
+  assert.throws(() => validateClearing(secondStair), /multiple stair/);
+
+  const wrongLevelStair = structuredClone(state);
+  wrongLevelStair.sites[1].level = 1;
+  assert.throws(() => validateClearing(wrongLevelStair), /stair .* level 0/);
+
+  const v5 = structuredClone(envelope);
+  v5.schema = 5;
+  v5.savedState.sites = v5.savedState.sites.filter(
+    (site) => site.type !== "stair" && site.type !== "floor",
+  );
+  v5.savedState.piles[0].amount += 4;
+  const restoredV5 = restoreSnapshot(v5).state;
+  assert.equal(restoredV5.paused, true);
+  assert.equal(restoredV5.sites.length, 1);
+
+  const blockedOrdinaryPath = structuredClone(state);
+  blockedOrdinaryPath.actors.rowan.x = 7;
+  blockedOrdinaryPath.actors.rowan.z = 1;
+  blockedOrdinaryPath.actors.rowan.path = [{ x: 8, z: 1, level: 0 }];
+  blockedOrdinaryPath.sites.push({
+    id: "site-4",
+    type: "wall",
+    x: 8,
+    z: 1,
+    level: 0,
+    direction: 0,
+    delivered: 1,
+    work: BUILDINGS.wall.ticks,
+    finishedAt: 10,
+  });
+  blockedOrdinaryPath.piles[0].amount--;
+  validateClearing(blockedOrdinaryPath);
+
+  const missingStairEdge = structuredClone(state);
+  missingStairEdge.sites = missingStairEdge.sites.filter(
+    (site) => site.type !== "stair",
+  );
+  missingStairEdge.actors.rowan.x = 8;
+  missingStairEdge.actors.rowan.z = 2;
+  missingStairEdge.actors.rowan.path = [{ x: 8, z: 4, level: 1 }];
+  assert.throws(
+    () => validateClearing(missingStairEdge),
+    /illegal edge|not on an upper surface/,
+  );
+
+  const unsupportedFloor = structuredClone(state);
+  unsupportedFloor.sites = unsupportedFloor.sites.filter(
+    (site) => site.id !== "site-1",
+  );
+  unsupportedFloor.piles[0].amount++;
+  assert.throws(() => validateClearing(unsupportedFloor), /no lower support/);
+
+  const landingDoor = structuredClone(state);
+  landingDoor.sites.push({
+    id: "site-4",
+    type: "door",
+    x: 8,
+    z: 4,
+    level: 1,
+    direction: 0,
+    delivered: BUILDINGS.door.wood,
+    work: BUILDINGS.door.ticks,
+    finishedAt: 10,
+  });
+  landingDoor.piles[0].amount -= BUILDINGS.door.wood;
+  validateClearing(landingDoor);
+
+  const floorInLanding = structuredClone(state);
+  floorInLanding.sites.push({
+    id: "site-4",
+    type: "floor",
+    x: 8,
+    z: 4,
+    level: 1,
+    direction: 0,
+    delivered: BUILDINGS.floor.wood,
+    work: BUILDINGS.floor.ticks,
+    finishedAt: 10,
+  });
+  floorInLanding.piles[0].amount -= BUILDINGS.floor.wood;
+  assert.throws(() => validateClearing(floorInLanding), /headroom/);
+
+  const roofOnRamp = structuredClone(state);
+  roofOnRamp.sites.push({
+    id: "site-4",
+    type: "roof",
+    x: 8,
+    z: 3,
+    level: 1,
+    direction: 0,
+    delivered: BUILDINGS.roof.wood,
+    work: BUILDINGS.roof.ticks,
+    finishedAt: 10,
+  });
+  roofOnRamp.piles[0].amount -= BUILDINGS.roof.wood;
+  assert.throws(() => validateClearing(roofOnRamp), /headroom/);
+
+  for (const type of ["wall", "door", "roof"]) {
+    const blueprintOnRamp = structuredClone(state);
+    const ramp = stairCells(
+      blueprintOnRamp.sites.find((site) => site.type === "stair"),
+    );
+    blueprintOnRamp.sites.push({
+      id: "site-4",
+      type,
+      x: ramp[1].x,
+      z: ramp[1].z,
+      level: 0,
+      direction: 0,
+      delivered: 0,
+      work: 0,
+      finishedAt: null,
+    });
+    assert.throws(
+      () => validateClearing(blueprintOnRamp),
+      /blocked lower ramp cell/,
+    );
+  }
+
+  for (const type of ["roof", "door"]) {
+    const lowerConflict = structuredClone(state);
+    lowerConflict.sites.push({
+      id: "site-4",
+      type,
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS[type].wood,
+      work: BUILDINGS[type].ticks,
+      finishedAt: null,
+    });
+    assert.throws(
+      () => validateClearing(lowerConflict),
+      /cross-level|no lower support/,
+    );
+
+    const coverFirst = structuredClone(state);
+    coverFirst.sites = coverFirst.sites.filter((site) => site.type !== "floor");
+    coverFirst.sites.push({
+      id: "site-4",
+      type,
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS[type].wood,
+      work: BUILDINGS[type].ticks,
+      finishedAt: null,
+    });
+    coverFirst.sites.push({
+      id: "site-5",
+      type: "floor",
+      x: 8,
+      z: 5,
+      level: 1,
+      direction: 0,
+      delivered: BUILDINGS.floor.wood,
+      work: BUILDINGS.floor.ticks,
+      finishedAt: null,
+    });
+    assert.throws(
+      () => validateClearing(coverFirst),
+      /cross-level|no lower support/,
+    );
+  }
+
+  const landingWall = structuredClone(state);
+  landingWall.sites.push({
+    id: "site-5",
+    type: "wall",
+    x: 8,
+    z: 4,
+    level: 1,
+    direction: 0,
+    delivered: BUILDINGS.wall.wood,
+    work: BUILDINGS.wall.ticks,
+    finishedAt: 10,
+  });
+  landingWall.piles[0].amount -= BUILDINGS.wall.wood;
+  assert.throws(
+    () => validateClearing(landingWall),
+    /not allowed on stair landing/,
+  );
+
+  const upperBundle = structuredClone(state);
+  upperBundle.herbBundles.push({
+    id: "herb-bundle-20",
+    kind: "mugwort",
+    amount: 1,
+    location: { kind: "ground", x: 7, z: 5, level: 1 },
+  });
+  upperBundle.harvestedHerbs = 1;
+  assert.throws(() => validateClearing(upperBundle), /not on an upper surface/);
+
+  const unsupportedUpperPath = structuredClone(state);
+  unsupportedUpperPath.actors.rowan.x = 8;
+  unsupportedUpperPath.actors.rowan.z = 4;
+  unsupportedUpperPath.actors.rowan.level = 1;
+  unsupportedUpperPath.actors.rowan.path = [{ x: 8, z: 3, level: 1 }];
+  assert.throws(
+    () => validateClearing(unsupportedUpperPath),
+    /path 0 is not on an upper surface/,
+  );
 });
 
 test("strict schema 1 through 3 normalize garden, herbs, and drafted state", () => {
@@ -162,7 +457,7 @@ test("strict schema 1 through 3 normalize garden, herbs, and drafted state", () 
   const restoredV3 = restoreSnapshot(v3);
   assert.equal(restoredV3.state.actors.rowan.allowedWork.garden, true);
   const rewritten = snapshotFor(restoredV1.state);
-  assert.equal(rewritten.schema, 5);
+  assert.equal(rewritten.schema, 6);
   assert.equal(rewritten.savedState.consumedWood, 0);
   assert.equal(rewritten.savedState.actors.rowan.drafted, false);
   assert.equal(rewritten.savedState.actors.rowan.allowedWork.garden, true);
@@ -220,7 +515,7 @@ test("strict v4 ground bundles normalize to v5 locations without mutating the ol
   assert.deepEqual(restored.herbStorageClaims, {});
 });
 
-test("Store command history is strictly shared-only in v5", () => {
+test("Store command history is strictly shared-only in v6", () => {
   const base = createClearing();
   const valid = structuredClone(base);
   valid.commands.push({
@@ -297,7 +592,7 @@ test("herb persistence accepts planted elapsed zero and rejects an orphaned orde
   assert.throws(() => validateClearing(ordered), /no sow job/);
 });
 
-test("schema 5 snapshot restores ordered, growing, ready, and bundled herb facts", () => {
+test("schema 6 snapshot restores ordered, growing, ready, and bundled herb facts", () => {
   const ordered = structuredClone(createClearing());
   ordered.herbs.push({
     id: "herb-1",
@@ -377,7 +672,7 @@ test("schema 5 snapshot restores ordered, growing, ready, and bundled herb facts
   assert.equal(readyRestored.jobs[0].kind, "harvest");
 });
 
-test("schema 5 accepts a finished target and deconstruction job", () => {
+test("schema 6 accepts a finished target and deconstruction job", () => {
   const state = structuredClone(createClearing());
   state.tick = 10;
   state.felled = 1;
@@ -418,7 +713,7 @@ test("schema 5 accepts a finished target and deconstruction job", () => {
   state.actors.rowan.mode = "walk";
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 5);
+  assert.equal(envelope.schema, 6);
   assert.equal(restoreSnapshot(envelope).state.jobs[0].kind, "deconstruct");
 
   const draftedWorker = structuredClone(envelope);
@@ -564,6 +859,14 @@ test("schema preserves active cargo, claims, progress, path and ordered jobs", (
   assert.deepEqual(restored.claims.rowan, state.claims.rowan);
   assert.equal(restored.sites[0].work, 0);
   assert.equal(restored.feed.nextAt, 300);
+
+  const badLeg = structuredClone(state);
+  badLeg.actors.rowan.leg = 6;
+  assert.throws(() => validateClearing(badLeg), /invalid leg/);
+  const emptyPathLeg = structuredClone(state);
+  emptyPathLeg.actors.rowan.path = [];
+  emptyPathLeg.actors.rowan.leg = 1;
+  assert.throws(() => validateClearing(emptyPathLeg), /leg without a path/);
 });
 
 function activeBuildState() {

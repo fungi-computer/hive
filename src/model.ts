@@ -6,7 +6,8 @@ export type JobId = string;
 export type HerbId = string;
 export type HerbBundleId = string;
 export type Cell = { x: number; z: number; level: number };
-export type BuildingKind = "wall" | "door" | "roof" | "bed" | "shelf";
+export type BuildingKind =
+  "wall" | "door" | "roof" | "bed" | "shelf" | "floor" | "stair";
 export type WorkType = "chop" | "haul" | "build" | "garden";
 export type AllowedWork = Record<WorkType, boolean>;
 export type Scope = { party: PartyId; actors: ActorId[] | null };

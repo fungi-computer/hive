@@ -1,7 +1,21 @@
 // Logical positions stay on cells. Only the renderer interpolates between them.
-import { cellKey, inside, neighbors } from "./world.js";
+import { cellKey, inside, neighbors, topologyNeighbors } from "./world.js";
 export const WALK_TICKS = 6;
-export function route(from, to, blocked) {
+export const STAIR_TICKS = 18;
+export function edgeTicks(from, to) {
+  return from.level === to.level ? WALK_TICKS : STAIR_TICKS;
+}
+export function pathTicks(from, path) {
+  let current = from;
+  let ticks = 0;
+  for (const next of path) {
+    ticks += edgeTicks(current, next);
+    current = next;
+  }
+  return ticks;
+}
+/** @param {import("./model.ts").Clearing|null} [state] */
+export function route(from, to, blocked, state = null) {
   if (!inside(to) || blocked.has(cellKey(to))) return null;
   const start = { x: from.x, z: from.z, level: from.level ?? 0 };
   const queue = [start],
@@ -14,7 +28,9 @@ export function route(from, to, blocked) {
         path.unshift(p);
       return path;
     }
-    for (const next of neighbors(cell)) {
+    for (const next of state
+      ? topologyNeighbors(state, cell)
+      : neighbors(cell)) {
       const key = cellKey(next);
       if (!inside(next) || blocked.has(key) || previous.has(key)) continue;
       previous.set(key, cell);
@@ -23,12 +39,13 @@ export function route(from, to, blocked) {
   }
   return null;
 }
-export function approach(from, target, blocked) {
+/** @param {import("./model.ts").Clearing|null} [state] */
+export function approach(from, target, blocked, state = null) {
   return (
     neighbors(target)
-      .map((p) => route(from, p, blocked))
+      .map((p) => route(from, p, blocked, state))
       .filter((p) => p !== null)
-      .sort((a, b) => a.length - b.length)[0] ?? null
+      .sort((a, b) => pathTicks(from, a) - pathTicks(from, b))[0] ?? null
   );
 }
 export function face(pawn, target) {
@@ -41,16 +58,22 @@ export function beginWalk(pawn, path) {
   pawn.leg = 0;
   pawn.mode = "walk";
 }
-export function walk(pawn, blocked) {
+/** @param {import("./model.ts").Clearing|null} [state] */
+export function walk(pawn, blocked, state = null) {
   if (!pawn.path.length) return "arrived";
   const next = pawn.path[0];
-  if (blocked.has(cellKey(next))) {
+  const edgeStillOpen =
+    !state ||
+    topologyNeighbors(state, pawn).some(
+      (candidate) => cellKey(candidate) === cellKey(next),
+    );
+  if (blocked.has(cellKey(next)) || !edgeStillOpen) {
     pawn.path = [];
     pawn.leg = 0;
     return "blocked";
   }
   face(pawn, next);
-  if (++pawn.leg < WALK_TICKS) return "moving";
+  if (++pawn.leg < edgeTicks(pawn, next)) return "moving";
   Object.assign(pawn, next);
   pawn.path.shift();
   pawn.leg = 0;
@@ -59,10 +82,10 @@ export function walk(pawn, blocked) {
 export function visualPosition(pawn) {
   const next = pawn.path[0];
   if (!next || !pawn.leg) return pawn;
-  const fraction = pawn.leg / WALK_TICKS;
+  const fraction = pawn.leg / edgeTicks(pawn, next);
   return {
     x: pawn.x + (next.x - pawn.x) * fraction,
     z: pawn.z + (next.z - pawn.z) * fraction,
-    level: pawn.level,
+    level: pawn.level + (next.level - pawn.level) * fraction,
   };
 }

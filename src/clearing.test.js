@@ -4,11 +4,11 @@ import vm from "node:vm";
 import { readFileSync } from "node:fs";
 import { createClearing, step as advance } from "./clearing.ts";
 import { cellKey, blockedCells, sameCell } from "./world.js";
-import { route } from "./movement.js";
+import { beginWalk, route, STAIR_TICKS, walk } from "./movement.js";
 import { DAY_TICKS } from "./routine.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { looseWood } from "./resources.ts";
-import { BUILDINGS, shelteredBeds } from "./construction.js";
+import { BUILDINGS, placementProblem, shelteredBeds } from "./construction.js";
 import { createTicker, push } from "./ticker.js";
 import {
   restoreSnapshot,
@@ -162,6 +162,596 @@ function homeOrders() {
     for (const z of [6, 7]) commands.push(build("roof", x, z));
   return commands;
 }
+
+function upstairsFixture() {
+  const state = createClearing(117);
+  state.tick = 100;
+  state.felled = 7;
+  for (const tree of state.trees.slice(0, 7)) {
+    tree.work = CHOP_TICKS;
+    tree.felledAt = 20;
+  }
+  let nextSite = 1;
+  const addSite = (type, x, z, level, direction = 0) => {
+    state.sites.push({
+      id: `site-${nextSite++}`,
+      type,
+      x,
+      z,
+      level,
+      direction,
+      delivered: BUILDINGS[type].wood,
+      work: BUILDINGS[type].ticks,
+      finishedAt: 50,
+    });
+  };
+  addSite("stair", 8, 2, 0);
+  for (let x = 6; x <= 9; x++)
+    for (let z = 4; z <= 6; z++)
+      if (!(x === 8 && z === 4)) addSite("wall", x, z, 0);
+  for (let x = 6; x <= 9; x++)
+    for (let z = 4; z <= 6; z++)
+      if (!(x === 8 && z === 4)) addSite("floor", x, z, 1);
+  for (let x = 6; x <= 9; x++)
+    for (const z of [4, 6])
+      addSite(x === 8 && z === 4 ? "door" : "wall", x, z, 1);
+  for (const x of [6, 9]) addSite("wall", x, 5, 1);
+  addSite("bed", 7, 5, 1, 1);
+  addSite("roof", 7, 5, 1);
+  addSite("roof", 8, 5, 1);
+  state.piles.push({ id: "wood-99", x: 4, z: 5, level: 0, amount: 2 });
+  state.nextId = 100;
+  state.actors.rowan.x = 7;
+  state.actors.rowan.z = 2;
+  state.actors.rowan.level = 0;
+  state.paused = true;
+  return state;
+}
+
+test("the sole stair uses an 18-tick edge and upstairs rest persists through v6", () => {
+  const state = upstairsFixture();
+  validateClearing(state);
+  assert.equal(shelteredBeds(state).length, 1);
+  const rowan = state.actors.rowan;
+  rowan.x = 8;
+  const path = route(
+    rowan,
+    { x: 8, z: 4, level: 1 },
+    blockedCells(state),
+    state,
+  );
+  assert.deepEqual(path, [{ x: 8, z: 4, level: 1 }]);
+  beginWalk(rowan, path);
+  for (let i = 0; i < STAIR_TICKS - 1; i++) {
+    assert.equal(walk(rowan, blockedCells(state), state), "moving");
+    assert.equal(rowan.level, 0);
+  }
+  assert.equal(walk(rowan, blockedCells(state), state), "arrived");
+  assert.equal(rowan.level, 1);
+  rowan.mode = "idle";
+  rowan.path = [];
+  rowan.leg = 0;
+
+  state.paused = false;
+  step(state, colony, [{ kind: "rest", actors: ["rowan"] }]);
+  until(state, (candidate) => candidate.actors.rowan.mode === "sleep");
+  assert.equal(state.actors.rowan.level, 1);
+  assert.equal(state.jobs[0]?.kind, "rest");
+
+  const restored = restoreSnapshot(snapshotFor(state));
+  assert.equal(restored.revision, 0);
+  assert.equal(restored.state.paused, true);
+  assert.equal(restored.state.actors.rowan.level, 1);
+  assert.equal(
+    restored.state.sites.find((site) => site.type === "stair").level,
+    0,
+  );
+  validateClearing(restored.state);
+});
+
+test("stair headroom reserves the ramp while its landing admits the upper doorway", () => {
+  const state = createClearing(118);
+  state.sites.push({
+    id: "site-1",
+    type: "stair",
+    x: 8,
+    z: 2,
+    level: 0,
+    direction: 0,
+    delivered: BUILDINGS.stair.wood,
+    work: BUILDINGS.stair.ticks,
+    finishedAt: 1,
+  });
+  for (const z of [2, 3, 4])
+    assert.match(
+      placementProblem(state, {
+        type: "floor",
+        x: 8,
+        z,
+        level: 1,
+        direction: 0,
+      }),
+      /lower support/,
+    );
+  assert.equal(
+    placementProblem(state, {
+      type: "door",
+      x: 8,
+      z: 4,
+      level: 1,
+      direction: 0,
+    }),
+    "",
+  );
+  assert.equal(
+    placementProblem(state, {
+      type: "roof",
+      x: 8,
+      z: 4,
+      level: 1,
+      direction: 0,
+    }),
+    "",
+  );
+  const blockedStair = createClearing(120);
+  blockedStair.sites.push({
+    id: "site-1",
+    type: "roof",
+    x: 8,
+    z: 3,
+    level: 1,
+    direction: 0,
+    delivered: BUILDINGS.roof.wood,
+    work: BUILDINGS.roof.ticks,
+    finishedAt: 1,
+  });
+  assert.match(
+    placementProblem(blockedStair, {
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+    }),
+    /headroom/,
+  );
+  blockedStair.piles.push({ id: "wood-1", x: 8, z: 3, level: 0, amount: 1 });
+  assert.match(
+    placementProblem(blockedStair, {
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+    }),
+    /clear ground/,
+  );
+  const bodyBlocked = createClearing(122);
+  bodyBlocked.actors.rowan.x = 8;
+  bodyBlocked.actors.rowan.z = 3;
+  assert.match(
+    placementProblem(bodyBlocked, {
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+    }),
+    /stair ramp clear/,
+  );
+  const blueprint = createClearing(123);
+  blueprint.sites.push({
+    id: "site-1",
+    type: "stair",
+    x: 8,
+    z: 2,
+    level: 0,
+    direction: 0,
+    delivered: 0,
+    work: 0,
+    finishedAt: null,
+  });
+  const blueprintBlocked = blockedCells(blueprint);
+  assert.equal(blueprintBlocked.has("8,2,0"), false);
+  assert.equal(blueprintBlocked.has("8,3,0"), true);
+  assert.equal(
+    route(
+      { x: 8, z: 2, level: 0 },
+      { x: 8, z: 3, level: 0 },
+      blueprintBlocked,
+      blueprint,
+    ),
+    null,
+  );
+  assert.equal(
+    route(
+      { x: 8, z: 2, level: 0 },
+      { x: 8, z: 4, level: 1 },
+      blueprintBlocked,
+      blueprint,
+    ),
+    null,
+  );
+  const rampBlocked = blockedCells(state);
+  assert.equal(rampBlocked.has("8,2,0"), false);
+  assert.equal(rampBlocked.has("8,3,0"), true);
+  assert.equal(
+    route(
+      { x: 8, z: 2, level: 0 },
+      { x: 8, z: 3, level: 0 },
+      rampBlocked,
+      state,
+    ),
+    null,
+  );
+  assert.deepEqual(
+    route(
+      { x: 8, z: 2, level: 0 },
+      { x: 8, z: 4, level: 1 },
+      rampBlocked,
+      state,
+    ),
+    [{ x: 8, z: 4, level: 1 }],
+  );
+  for (const type of ["wall", "bed", "shelf"])
+    assert.match(
+      placementProblem(state, {
+        type,
+        x: 8,
+        z: 4,
+        level: 1,
+        direction: 0,
+      }),
+      /Only a doorway or roof/,
+    );
+});
+
+test("lower cover and upper floor conflict in either placement order", () => {
+  for (const type of ["roof", "door"]) {
+    const floorFirst = createClearing(124);
+    floorFirst.sites.push({
+      id: "site-1",
+      type: "wall",
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS.wall.wood,
+      work: BUILDINGS.wall.ticks,
+      finishedAt: 1,
+    });
+    floorFirst.sites.push({
+      id: "site-2",
+      type: "floor",
+      x: 8,
+      z: 5,
+      level: 1,
+      direction: 0,
+      delivered: BUILDINGS.floor.wood,
+      work: BUILDINGS.floor.ticks,
+      finishedAt: 1,
+    });
+    assert.match(
+      placementProblem(floorFirst, {
+        type,
+        x: 8,
+        z: 5,
+        level: 0,
+        direction: 0,
+      }),
+      /cross-level|cannot share/,
+    );
+    const coverFirst = createClearing(125);
+    coverFirst.sites.push({
+      id: "site-1",
+      type,
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: 0,
+      work: 0,
+      finishedAt: null,
+    });
+    assert.match(
+      placementProblem(coverFirst, {
+        type: "floor",
+        x: 8,
+        z: 5,
+        level: 1,
+        direction: 0,
+      }),
+      /cross-level|cannot share|lower support/,
+    );
+  }
+});
+
+test("an upper floor covers a lower room for shelter without a lower roof", () => {
+  const state = createClearing(121);
+  const add = (type, x, z, level, direction = 0) =>
+    state.sites.push({
+      id: `site-${state.sites.length + 1}`,
+      type,
+      x,
+      z,
+      level,
+      direction,
+      delivered: BUILDINGS[type].wood,
+      work: BUILDINGS[type].ticks,
+      finishedAt: 1,
+    });
+  for (let x = 6; x <= 9; x++) for (const z of [5, 7]) add("wall", x, z, 0);
+  for (const x of [6, 9]) add("wall", x, 6, 0);
+  add("door", 8, 7, 0, 0);
+  add("bed", 7, 6, 0, 1);
+  add("floor", 7, 6, 1);
+  add("floor", 8, 6, 1);
+  assert.equal(shelteredBeds(state).length, 1);
+});
+
+test("upper travel candidates charge the stair edge instead of cell count", () => {
+  const state = upstairsFixture();
+  const landingDoor = state.sites.find(
+    (site) => site.type === "door" && site.x === 8 && site.z === 4,
+  );
+  landingDoor.finishedAt = null;
+  landingDoor.work = 0;
+  state.jobs.push({
+    id: "job-101",
+    kind: "build",
+    target: landingDoor.id,
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  state.paused = false;
+  const travel = [];
+  const observed = {
+    ...colony,
+    compute_cost(input) {
+      travel.push(input.travel_time);
+      return colony.compute_cost(input);
+    },
+  };
+  step(state, observed);
+  assert.ok(travel.some((ticks) => ticks >= STAIR_TICKS));
+  assert.ok(travel.every((ticks) => ticks % 6 === 0));
+  assert.ok(travel.some((ticks) => ticks % 6 === 0 && ticks / 6 !== 1));
+});
+
+test("upper dependencies keep floor and stair teardown queued before work starts", () => {
+  const state = upstairsFixture();
+  state.paused = true;
+  const floor = state.sites.find(
+    (site) => site.type === "floor" && site.x === 7 && site.z === 5,
+  );
+  step(state, colony, [{ kind: "deconstruct", site: floor.id }]);
+  state.paused = false;
+  step(state, colony);
+  assert.equal(state.actors.rowan.task, null);
+  assert.match(state.jobs[0].reason, /upper surface/);
+  assert.equal(
+    state.sites.some((site) => site.id === floor.id),
+    true,
+  );
+  conserved(state);
+
+  const stairJob = state.jobs.find((job) => job.kind === "deconstruct");
+  state.paused = true;
+  step(state, colony, [{ kind: "cancel", job: stairJob.id }]);
+  step(state, colony, [{ kind: "deconstruct", site: "site-1" }]);
+  state.paused = false;
+  step(state, colony);
+  assert.equal(
+    state.sites.some((site) => site.type === "stair"),
+    true,
+  );
+  assert.match(state.jobs.at(-1).reason, /upstairs/);
+  conserved(state);
+});
+
+test("a valid upstairs build keeps cargo and job when its stair route closes", () => {
+  const state = createClearing(126);
+  state.felled = 2;
+  for (const tree of state.trees.slice(0, 2)) {
+    tree.work = CHOP_TICKS;
+    tree.felledAt = 0;
+  }
+  state.piles.push({ id: "wood-4", x: 4, z: 5, level: 0, amount: 7 });
+  state.sites.push(
+    {
+      id: "site-1",
+      type: "wall",
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: 1,
+      work: BUILDINGS.wall.ticks,
+      finishedAt: 1,
+    },
+    {
+      id: "site-2",
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS.stair.wood,
+      work: BUILDINGS.stair.ticks,
+      finishedAt: 1,
+    },
+    {
+      id: "site-3",
+      type: "floor",
+      x: 8,
+      z: 5,
+      level: 1,
+      direction: 0,
+      delivered: BUILDINGS.floor.wood,
+      work: BUILDINGS.floor.ticks,
+      finishedAt: 1,
+    },
+  );
+  state.nextId = 10;
+  state.actors.rowan.x = 4;
+  state.actors.rowan.z = 5;
+  step(state, colony, [
+    { kind: "build", type: "door", x: 8, z: 4, level: 1, direction: 0 },
+  ]);
+  until(state, (candidate) => candidate.actors.rowan.cargo !== null);
+  until(state, (candidate) => candidate.actors.rowan.task?.kind === "deliver");
+  const job = state.jobs.find((candidate) => candidate.kind === "build");
+  assert.ok(job);
+  assert.equal(state.actors.rowan.cargo?.job, job.id);
+  const lowerApproaches = [
+    { x: 7, z: 2, level: 0 },
+    { x: 9, z: 2, level: 0 },
+    { x: 8, z: 1, level: 0 },
+  ];
+  until(state, (candidate) =>
+    lowerApproaches.some((cell) =>
+      sameCell(candidate.actors.rowan.path[0] || candidate.actors.rowan, cell),
+    ),
+  );
+  state.rocks.push(...lowerApproaches);
+  const before = {
+    loose: looseWood(state),
+    cargo: state.actors.rowan.cargo.amount,
+    delivered: state.sites.find((site) => site.id === job.target).delivered,
+  };
+  run(state, 1);
+  assert.equal(state.actors.rowan.cargo, null);
+  assert.equal(state.actors.rowan.task, null);
+  assert.equal(
+    state.jobs.some((candidate) => candidate.id === job.id),
+    true,
+  );
+  assert.equal(looseWood(state), before.loose + before.cargo);
+  assert.equal(
+    state.sites.find((site) => site.id === job.target).delivered,
+    before.delivered,
+  );
+  assert.match(job.reason, /reachable wood|route/);
+  conserved(state);
+  validateClearing({ ...state, commands: [] });
+});
+
+test("upper floor salvage drops on supported stair landing and restores", () => {
+  const state = createClearing(119);
+  state.tick = 20;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 8;
+  state.sites.push(
+    {
+      id: "site-1",
+      type: "wall",
+      x: 8,
+      z: 5,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS.wall.wood,
+      work: BUILDINGS.wall.ticks,
+      finishedAt: 10,
+    },
+    {
+      id: "site-2",
+      type: "stair",
+      x: 8,
+      z: 2,
+      level: 0,
+      direction: 0,
+      delivered: BUILDINGS.stair.wood,
+      work: BUILDINGS.stair.ticks,
+      finishedAt: 10,
+    },
+    {
+      id: "site-3",
+      type: "floor",
+      x: 8,
+      z: 5,
+      level: 1,
+      direction: 0,
+      delivered: BUILDINGS.floor.wood,
+      work: BUILDINGS.floor.ticks,
+      finishedAt: 10,
+    },
+  );
+  state.piles.push({ id: "wood-4", x: 4, z: 5, level: 0, amount: 1 });
+  state.nextId = 5;
+  state.actors.rowan.x = 8;
+  state.actors.rowan.z = 4;
+  state.actors.rowan.level = 1;
+  state.actors.rowan.path = [];
+  state.actors.rowan.mode = "idle";
+  state.paused = true;
+  validateClearing(state);
+  step(state, colony, [{ kind: "deconstruct", site: "site-3" }]);
+  state.paused = false;
+  until(state, (candidate) => !candidate.sites.some((s) => s.id === "site-3"));
+  const salvage = state.piles.find((pile) => pile.level === 1);
+  assert.deepEqual(
+    {
+      x: salvage.x,
+      z: salvage.z,
+      level: salvage.level,
+      amount: salvage.amount,
+    },
+    { x: 8, z: 4, level: 1, amount: BUILDINGS.floor.salvageWood },
+  );
+  validateClearing({ ...state, commands: [] });
+  const restored = restoreSnapshot(snapshotFor(state)).state;
+  assert.deepEqual(
+    restored.piles.find((pile) => pile.level === 1),
+    salvage,
+  );
+  conserved(state);
+});
+
+test("a supported upper floor builds from below before the stair exists", () => {
+  const state = createClearing(118);
+  state.felled = 3;
+  for (const tree of state.trees.slice(0, 3)) {
+    tree.work = CHOP_TICKS;
+    tree.felledAt = 0;
+  }
+  state.piles.push({ id: "wood-4", x: 4, z: 5, level: 0, amount: 17 });
+  state.sites.push({
+    id: "site-1",
+    type: "wall",
+    x: 8,
+    z: 5,
+    level: 0,
+    direction: 0,
+    delivered: 1,
+    work: BUILDINGS.wall.ticks,
+    finishedAt: 0,
+  });
+  state.nextId = 10;
+  step(state, colony, [
+    { kind: "build", type: "floor", x: 8, z: 5, level: 1, direction: 0 },
+  ]);
+  until(state, (candidate) =>
+    candidate.sites.some(
+      (site) => site.type === "floor" && site.finishedAt !== null,
+    ),
+  );
+  assert.equal(state.sites.find((site) => site.type === "floor").level, 1);
+  assert.equal(
+    state.sites.some((site) => site.type === "stair"),
+    false,
+  );
+  assert.equal(state.actors.rowan.level, 0);
+  step(state, colony, [build("stair", 8, 2)]);
+  until(state, (candidate) =>
+    candidate.sites.some(
+      (site) => site.type === "stair" && site.finishedAt !== null,
+    ),
+  );
+  conserved(state);
+  validateClearing(state);
+});
 test("only authorized work runs; a waiting blueprint resumes through real colony hauling and building", () => {
   const state = run(createClearing(), 70);
   assert.equal(state.felled, 0);

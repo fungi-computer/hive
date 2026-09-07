@@ -1,6 +1,8 @@
 // Original timber joinery, woven bedroll and thatch, baked with the pawn camera.
 import { scene, box, cylinder, group } from "./geometry.js";
 import { shelf } from "./shelf.js";
+import { floor } from "./floor.js";
+import { stair } from "./stair.js";
 function plank(parent, x, y, z, w, h, d) {
   box(parent, "#8e6a43", x, y, z, w, h, d);
   box(
@@ -103,7 +105,7 @@ function bed(parent, stage) {
       box(parent, "#678e83", 0, 0.305, z, 0.64, 0.012, 0.028);
   }
 }
-const TYPES = { wall, door, roof, bed, shelf };
+const TYPES = { wall, door, roof, bed, shelf, floor, stair };
 export function building(type, stage, direction = 0) {
   const s = scene(),
     model = group(s);

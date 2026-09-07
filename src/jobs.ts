@@ -19,8 +19,14 @@ import type {
 import { inScope } from "./actors.ts";
 import { optimizeEligible } from "./matching.ts";
 import { blockedCells } from "./world.js";
-import { approach, route, beginWalk, WALK_TICKS } from "./movement.js";
-import { BUILDINGS, roofSupported, shelteredBeds } from "./construction.js";
+import { approach, pathTicks, route, beginWalk } from "./movement.js";
+import {
+  BUILDINGS,
+  removalProblem,
+  roofSupported,
+  shelteredBeds,
+  workApproach,
+} from "./construction.js";
 import { availableWood, neededWood, reserveWood } from "./resources.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
@@ -39,11 +45,12 @@ function candidate(
   target: string,
   path: Cell[],
   duration: number,
+  travel: number,
 ): Candidate {
   return {
     activity: { job: job.id, kind, target, duration },
     path,
-    travel: path.length,
+    travel,
   };
 }
 function buildOption(
@@ -55,7 +62,7 @@ function buildOption(
   const site = state.sites.find((s) => s.id === job.target)!;
   if (site.type === "roof" && !roofSupported(state, site))
     return unavailable("Waiting for enclosing walls and a doorway");
-  const path = approach(person, site, blocked);
+  const path = workApproach(state, person, site, blocked);
   if (path === null) return unavailable("No route to this site");
   const recipe = BUILDINGS[site.type];
   if (site.delivered === recipe.wood)
@@ -67,19 +74,27 @@ function buildOption(
         site.id,
         path,
         recipe.ticks - site.work,
+        pathTicks(person, path),
       ),
     };
   if (neededWood(state, site) <= 0) return unavailable("Wood is on its way");
   let best: Candidate | null = null;
   for (const pile of state.piles) {
     if (availableWood(state, pile) <= 0) continue;
-    const pickup = route(person, pile, blocked),
-      delivery = approach(pile, site, blocked);
+    const pickup = route(person, pile, blocked, state),
+      delivery = workApproach(state, pile, site, blocked);
     if (pickup === null || delivery === null) continue;
     const next = {
-      ...candidate(job, "pickup", pile.id, pickup, 8),
+      ...candidate(
+        job,
+        "pickup",
+        pile.id,
+        pickup,
+        8,
+        pathTicks(person, pickup),
+      ),
       site: site.id,
-      travel: pickup.length + delivery.length,
+      travel: pathTicks(person, pickup) + pathTicks(pile, delivery),
     };
     if (!best || next.travel < best.travel) best = next;
   }
@@ -97,7 +112,9 @@ function deconstructOption(
   const site = state.sites.find((candidate) => candidate.id === job.target);
   if (!site || site.finishedAt === null)
     return unavailable("Waiting for a finished structure");
-  const path = approach(person, site, blocked);
+  const problem = removalProblem(state, site, person);
+  if (problem) return unavailable(problem);
+  const path = workApproach(state, person, site, blocked, "deconstruct");
   return path === null
     ? unavailable("No route to this structure")
     : {
@@ -108,6 +125,7 @@ function deconstructOption(
           site.id,
           path,
           BUILDINGS[site.type].deconstructTicks,
+          pathTicks(person, path),
         ),
       };
 }
@@ -120,12 +138,19 @@ function sowOption(
   const herb = state.herbs.find((candidate) => candidate.id === job.target);
   if (!herb || herb.stage !== "ordered")
     return unavailable("Waiting for a mugwort planting target");
-  const path = approach(person, herb, blocked);
+  const path = approach(person, herb, blocked, state);
   return path === null
     ? unavailable("No route to this mugwort")
     : {
         reason: "Ready to sow mugwort",
-        candidate: candidate(job, "sow", herb.id, path, SOW_TICKS - herb.work),
+        candidate: candidate(
+          job,
+          "sow",
+          herb.id,
+          path,
+          SOW_TICKS - herb.work,
+          pathTicks(person, path),
+        ),
       };
 }
 function harvestOption(
@@ -137,7 +162,7 @@ function harvestOption(
   const herb = state.herbs.find((candidate) => candidate.id === job.target);
   if (!herb || herb.stage !== "ready")
     return unavailable("Waiting for ready mugwort");
-  const path = approach(person, herb, blocked);
+  const path = approach(person, herb, blocked, state);
   return path === null
     ? unavailable("No route to this mugwort")
     : {
@@ -148,6 +173,7 @@ function harvestOption(
           herb.id,
           path,
           HARVEST_TICKS - herb.work,
+          pathTicks(person, path),
         ),
       };
 }
@@ -178,9 +204,9 @@ function storeHerbOption(
     return unavailable("Waiting for a finished mugwort shelf");
   if (storedBundleAt(state, shelf.id) || shelfClaimed(state, shelf.id))
     return unavailable("Waiting for shelf space");
-  const pickup = route(person, bundle.location, blocked);
+  const pickup = route(person, bundle.location, blocked, state);
   if (pickup === null) return unavailable("No route to this mugwort bundle");
-  const delivery = approach(bundle.location, shelf, blocked);
+  const delivery = workApproach(state, bundle.location, shelf, blocked);
   if (delivery === null) return unavailable("No route to this shelf");
   return {
     reason: "Ready to store mugwort",
@@ -192,7 +218,7 @@ function storeHerbOption(
         duration: 8,
       },
       path: pickup,
-      travel: pickup.length + delivery.length,
+      travel: pathTicks(person, pickup) + pathTicks(bundle.location, delivery),
       site: shelf.id,
     },
   };
@@ -221,7 +247,7 @@ function jobOption(
       return storeHerbOption(state, person, job, blocked);
     case "chop": {
       const tree = state.trees.find((t) => t.id === job.target)!;
-      const path = approach(person, tree, blocked);
+      const path = approach(person, tree, blocked, state);
       return path === null
         ? unavailable("No route to this tree")
         : {
@@ -232,6 +258,7 @@ function jobOption(
               tree.id,
               path,
               CHOP_TICKS - tree.work,
+              pathTicks(person, path),
             ),
           };
     }
@@ -239,9 +266,16 @@ function jobOption(
       let best: Candidate | null = null;
       for (const bed of shelteredBeds(state) as Site[]) {
         if (!bedFree(state, bed)) continue;
-        const path = route(person, bed, blocked);
-        if (path !== null && (!best || path.length < best.path.length))
-          best = candidate(job, "sleep", bed.id, path, 80);
+        const path = route(person, bed, blocked, state);
+        if (path !== null && (!best || pathTicks(person, path) < best.travel))
+          best = candidate(
+            job,
+            "sleep",
+            bed.id,
+            path,
+            80,
+            pathTicks(person, path),
+          );
       }
       return {
         reason: best
@@ -295,8 +329,16 @@ function deliveryOption(
   const cargo = person.cargo!;
   const site = state.sites.find((s) => s.id === cargo.site);
   const job = state.jobs.find((j) => j.id === cargo.job);
-  const path = site && job ? approach(person, site, blocked) : null;
-  if (path !== null) return candidate(job!, "deliver", site!.id, path, 8);
+  const path = site && job ? workApproach(state, person, site, blocked) : null;
+  if (path !== null)
+    return candidate(
+      job!,
+      "deliver",
+      site!.id,
+      path,
+      8,
+      pathTicks(person, path),
+    );
   interruptWork(state, person);
   state.notice = `${person.name} set the wood down safely. The way to its site closed.`;
   return null;
@@ -318,9 +360,16 @@ function herbDeliveryOption(
       candidate.kind === "store-herb" && candidate.id === claim?.job,
   );
   const shelf = state.sites.find((candidate) => candidate.id === claim?.shelf);
-  const path = shelf ? approach(person, shelf, blocked) : null;
+  const path = shelf ? workApproach(state, person, shelf, blocked) : null;
   if (path !== null && job && shelf)
-    return candidate(job, "store-herb", shelf.id, path, 8);
+    return candidate(
+      job,
+      "store-herb",
+      shelf.id,
+      path,
+      8,
+      pathTicks(person, path),
+    );
   interruptWork(state, person);
   state.notice = `${person.name} set the mugwort bundle down safely. The way to its shelf closed.`;
   return null;
@@ -414,7 +463,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
       character: person.id,
       task: job,
       cost: colony.compute_cost({
-        travel_time: next.travel * WALK_TICKS,
+        travel_time: next.travel,
         work_time: next.activity.duration,
         priority: 1,
       }),

@@ -83,7 +83,7 @@ export function refundWood(state: Clearing, at: Cell, amount: number): void {
     seen.add(key);
     if (
       !blocked.has(key) &&
-      people.some((person) => route(person, cell, blocked) !== null)
+      people.some((person) => route(person, cell, blocked, state) !== null)
     ) {
       dropWood(state, cell, amount);
       return;

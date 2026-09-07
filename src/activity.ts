@@ -16,7 +16,12 @@ import type {
 } from "./model.ts";
 import { blockedCells, sameCell } from "./world.js";
 import { walk, face } from "./movement.js";
-import { BUILDINGS, shelteredBeds } from "./construction.js";
+import {
+  BUILDINGS,
+  removalProblem,
+  shelteredBeds,
+  workPosition,
+} from "./construction.js";
 import { dropWood, dropCarried } from "./resources.ts";
 import { isNight } from "./routine.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
@@ -204,10 +209,20 @@ function workOnDeconstruction(
   person.work++;
   if (person.work < BUILDINGS[site.type].deconstructTicks) return;
 
+  const problem = removalProblem(state, site, person);
+  if (problem) {
+    interruptWork(state, person);
+    state.notice = `${person.name} cannot finish deconstruction. ${problem}.`;
+    return;
+  }
   const prospectiveSites = state.sites.filter(
     (candidate) => candidate.id !== site.id,
   );
   const prospectiveState = { ...state, sites: prospectiveSites };
+  const salvageCell =
+    site.type === "floor"
+      ? { x: person.x, z: person.z, level: person.level }
+      : { x: site.x, z: site.z, level: site.level };
   const beds = new Set(
     shelteredBeds(prospectiveState).map((bed: Site) => bed.id),
   );
@@ -233,7 +248,7 @@ function workOnDeconstruction(
   );
   state.sites = prospectiveSites;
   finishJob(state, person, task.job);
-  dropWood(state, site, recipe.salvageWood);
+  dropWood(state, salvageCell, recipe.salvageWood);
   state.consumedWood += recipe.wood - recipe.salvageWood;
   state.notice = `${recipe.label} deconstructed. ${recipe.salvageWood} wood recovered.`;
 }
@@ -323,7 +338,7 @@ export function advanceWork(state: Clearing, person: Actor): void {
     return;
   }
   if (person.mode === "walk") {
-    const result = walk(person, blockedCells(state));
+    const result = walk(person, blockedCells(state), state);
     if (result === "blocked") interruptWork(state, person);
     if (result !== "arrived") return;
     person.mode = task.kind;
@@ -338,8 +353,12 @@ export function advanceWork(state: Clearing, person: Actor): void {
     task.kind === "sleep";
   const reachable = onTarget
     ? sameCell(person, target)
-    : person.level === target.level &&
-      Math.abs(person.x - target.x) + Math.abs(person.z - target.z) === 1;
+    : task.kind === "build" ||
+        task.kind === "deconstruct" ||
+        task.kind === "deliver"
+      ? workPosition(state, person, target, task.kind)
+      : person.level === target.level &&
+        Math.abs(person.x - target.x) + Math.abs(person.z - target.z) === 1;
   if (!reachable) {
     interruptWork(state, person);
     return;

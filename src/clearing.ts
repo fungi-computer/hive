@@ -63,7 +63,7 @@ function advanceCat(state: Clearing): void {
     rowan = state.actors.rowan,
     blocked = blockedCells(state);
   if (cat.mode === "walk") {
-    if (walk(cat, blocked) !== "moving") cat.mode = "idle";
+    if (walk(cat, blocked, state) !== "moving") cat.mode = "idle";
     return;
   }
   if (state.tick < cat.nextMove) return;
@@ -91,7 +91,7 @@ function advanceDrafted(
   person: Clearing["actors"][string],
 ): void {
   if (!person.drafted || person.mode !== "walk") return;
-  const result = walk(person, blockedCells(state));
+  const result = walk(person, blockedCells(state), state);
   if (result === "blocked") {
     person.mode = "idle";
     person.path = [];

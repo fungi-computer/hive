@@ -1,17 +1,35 @@
 import { openDB } from "idb";
 import { z } from "zod";
 import type { Clearing } from "./model.ts";
-import { cellKey, inside, placementOccupant } from "./world.js";
+import {
+  cellKey,
+  inside,
+  placementOccupant,
+  sameCell,
+  stairCells,
+  stairHeadroom,
+  stairLanding,
+  topologyNeighbors,
+  upperSurface,
+} from "./world.js";
 import { CHOP_TICKS } from "./activity.ts";
-import { BUILDINGS } from "./construction.js";
+import { edgeTicks } from "./movement.js";
+import {
+  BUILDINGS,
+  crossLevelSurfaceConflict,
+  floorSupported,
+  footprint,
+  sitesConflict,
+} from "./construction.js";
 import { HARVEST_TICKS, SOW_TICKS, mugwortStage } from "./herbs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 5 as const;
+const SAVE_SCHEMA = 6 as const;
 const SAVE_SCHEMA_V1 = 1 as const;
 const SAVE_SCHEMA_V2 = 2 as const;
 const SAVE_SCHEMA_V3 = 3 as const;
 const SAVE_SCHEMA_V4 = 4 as const;
+const SAVE_SCHEMA_V5 = 5 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -250,6 +268,16 @@ const siteSchema = cellSchema
     finishedAt: nonNegative.nullable(),
   })
   .strict();
+const siteSchemaV6 = cellSchema
+  .extend({
+    id,
+    type: z.enum(["wall", "door", "roof", "bed", "shelf", "floor", "stair"]),
+    direction: integer.min(0).max(1),
+    delivered: nonNegative,
+    work: nonNegative,
+    finishedAt: nonNegative.nullable(),
+  })
+  .strict();
 const pileSchema = cellSchema.extend({ id, amount: nonNegative }).strict();
 const claimSchema = z
   .object({ job: id, pile: id, site: id, amount: positive.max(2) })
@@ -373,6 +401,11 @@ const buildCommandSchema = workCommandSchema
 const buildCommandSchemaV5 = buildCommandSchema
   .extend({ type: z.enum(["wall", "door", "roof", "bed", "shelf"]) })
   .strict();
+const buildCommandSchemaV6 = buildCommandSchema
+  .extend({
+    type: z.enum(["wall", "door", "roof", "bed", "shelf", "floor", "stair"]),
+  })
+  .strict();
 const deconstructCommandSchema = workCommandSchema
   .extend({ kind: z.literal("deconstruct"), site: id })
   .strict();
@@ -493,8 +526,26 @@ const commandSchemaV5WithoutStore = z.union([
   sowCommandSchema,
   harvestCommandSchema,
 ]);
-const commandSchema = z.union([
+const commandSchemaV5 = z.union([
   commandSchemaV5WithoutStore,
+  storeHerbCommandSchema,
+]);
+const commandSchemaV6WithoutStore = z.union([
+  chopCommandSchema,
+  buildCommandSchemaV6,
+  deconstructCommandSchema,
+  restCommandSchema,
+  queueCommandSchema,
+  routineCommandSchema,
+  workCommandSchemaWithToggleV4,
+  recruitCommandSchema,
+  draftCommandSchema,
+  goCommandSchema,
+  sowCommandSchema,
+  harvestCommandSchema,
+]);
+const commandSchemaV6 = z.union([
+  commandSchemaV6WithoutStore,
   storeHerbCommandSchema,
 ]);
 const commandHistorySchemaV1 = z.intersection(
@@ -513,18 +564,26 @@ const commandHistorySchemaV4 = z.intersection(
   commandSchemaV4,
   z.object({ tick: nonNegative }).strict(),
 );
-const storeHerbCommandHistorySchema = z.intersection(
-  storeHerbCommandSchema,
-  z.object({ tick: nonNegative }).strict(),
-);
-const commandHistorySchema = z.union([
+const commandHistorySchemaV5 = z.union([
   z.intersection(
     commandSchemaV5WithoutStore,
     z.object({ tick: nonNegative }).strict(),
   ),
-  storeHerbCommandHistorySchema,
+  z.intersection(
+    storeHerbCommandSchema,
+    z.object({ tick: nonNegative }).strict(),
+  ),
 ]);
-
+const commandHistorySchemaV6 = z.union([
+  z.intersection(
+    commandSchemaV6WithoutStore,
+    z.object({ tick: nonNegative }).strict(),
+  ),
+  z.intersection(
+    storeHerbCommandSchema,
+    z.object({ tick: nonNegative }).strict(),
+  ),
+]);
 const clearingFields = {
   seed: finite,
   tick: nonNegative,
@@ -628,12 +687,23 @@ const clearingSchemaV4 = makeClearingSchema(
   true,
   false,
 );
-const clearingSchema = makeClearingSchema(
+const clearingSchemaV5 = makeClearingSchema(
   actorSchema,
   bodySchema,
   jobSchema,
-  commandHistorySchema,
+  commandHistorySchemaV5,
   siteSchema,
+  herbBundleSchema,
+  true,
+  true,
+  true,
+);
+const clearingSchemaV6 = makeClearingSchema(
+  actorSchema,
+  bodySchema,
+  jobSchema,
+  commandHistorySchemaV6,
+  siteSchemaV6,
   herbBundleSchema,
   true,
   true,
@@ -643,7 +713,8 @@ const savedClearingSchemaV1 = clearingSchemaV1.omit({ commands: true });
 const savedClearingSchemaV2 = clearingSchemaV2.omit({ commands: true });
 const savedClearingSchemaV3 = clearingSchemaV3.omit({ commands: true });
 const savedClearingSchemaV4 = clearingSchemaV4.omit({ commands: true });
-const savedClearingSchema = clearingSchema.omit({ commands: true });
+const savedClearingSchemaV5 = clearingSchemaV5.omit({ commands: true });
+const savedClearingSchema = clearingSchemaV6.omit({ commands: true });
 const saveEnvelopeSchemaV1 = z
   .object({
     kind: z.literal(SAVE_KIND),
@@ -679,6 +750,14 @@ const saveEnvelopeSchemaV4 = z
 const saveEnvelopeSchemaV5 = z
   .object({
     kind: z.literal(SAVE_KIND),
+    schema: z.literal(SAVE_SCHEMA_V5),
+    revision: nonNegative,
+    savedState: savedClearingSchemaV5,
+  })
+  .strict();
+const saveEnvelopeSchemaV6 = z
+  .object({
+    kind: z.literal(SAVE_KIND),
     schema: z.literal(SAVE_SCHEMA),
     revision: nonNegative,
     savedState: savedClearingSchema,
@@ -690,9 +769,10 @@ const saveEnvelopeSchema = z.union([
   saveEnvelopeSchemaV3,
   saveEnvelopeSchemaV4,
   saveEnvelopeSchemaV5,
+  saveEnvelopeSchemaV6,
 ]);
 
-export type SerializedClearing = z.infer<typeof clearingSchema>;
+export type SerializedClearing = z.infer<typeof clearingSchemaV6>;
 type SavedClearing = z.infer<typeof savedClearingSchema>;
 export type SaveEnvelope = z.infer<typeof saveEnvelopeSchema>;
 
@@ -711,6 +791,13 @@ function checkCell(
   label: string,
 ): void {
   if (!inside(cell)) throw new Error(`${label} is outside the clearing`);
+}
+function checkGroundCell(
+  cell: { x: number; z: number; level: number },
+  label: string,
+): void {
+  checkCell(cell, label);
+  if (cell.level !== 0) throw new Error(`${label} must be on the ground`);
 }
 
 function assertNever(value: never): never {
@@ -766,13 +853,19 @@ function checkIdentityAndParties(state: Clearing): void {
 }
 
 function checkCellsAndTreeProgress(state: Clearing): void {
-  for (const tree of state.trees) checkCell(tree, `tree ${tree.id}`);
-  for (const rock of state.rocks) checkCell(rock, "rock");
+  for (const tree of state.trees) checkGroundCell(tree, `tree ${tree.id}`);
+  for (const rock of state.rocks) checkGroundCell(rock, "rock");
   for (const site of state.sites) checkCell(site, `site ${site.id}`);
-  for (const pile of state.piles) checkCell(pile, `pile ${pile.id}`);
-  checkCell(state.cat, "cat");
-  state.cat.path.forEach((cell, index) => checkCell(cell, `cat path ${index}`));
-  checkCell(state.watcher, "watcher");
+  for (const pile of state.piles) {
+    checkCell(pile, `pile ${pile.id}`);
+    if (pile.level === 1 && !upperSurface(state, pile))
+      throw new Error(`pile ${pile.id} has no supported upper surface`);
+  }
+  checkGroundCell(state.cat, "cat");
+  state.cat.path.forEach((cell, index) =>
+    checkGroundCell(cell, `cat path ${index}`),
+  );
+  checkGroundCell(state.watcher, "watcher");
   const felledTrees = state.trees.filter((tree) => tree.felledAt !== null);
   if (state.felled !== felledTrees.length)
     throw new Error("felled count disagrees with felled trees");
@@ -784,6 +877,155 @@ function checkCellsAndTreeProgress(state: Clearing): void {
       throw new Error(
         `tree ${tree.id} has completed work without a felled tick`,
       );
+    }
+  }
+}
+
+function checkSiteTopology(state: Clearing): void {
+  const stairs = state.sites.filter((site) => site.type === "stair");
+  if (stairs.length > 1) throw new Error("clearing has multiple stair ramps");
+  for (const site of state.sites) {
+    if (
+      !Number.isInteger(site.direction) ||
+      site.direction < 0 ||
+      site.direction > 1
+    )
+      throw new Error(`site ${site.id} has invalid direction`);
+    const cells = footprint(site);
+    if (crossLevelSurfaceConflict(state, site))
+      throw new Error(`site ${site.id} has a cross-level surface conflict`);
+    cells.forEach((cell, index) =>
+      checkCell(cell, `site ${site.id} cell ${index}`),
+    );
+    if (site.type === "stair") {
+      if (site.level !== 0)
+        throw new Error(`stair ${site.id} must be on level 0`);
+      if (!inside(stairLanding(site)))
+        throw new Error(`stair ${site.id} has an invalid upper landing`);
+      for (const cell of cells) {
+        if (
+          state.sites.some(
+            (other) =>
+              other.id !== site.id &&
+              other.level === 0 &&
+              other.x === cell.x &&
+              other.z === cell.z &&
+              (other.type === "wall" ||
+                other.type === "door" ||
+                other.type === "roof"),
+          )
+        )
+          throw new Error(`stair ${site.id} has a blocked lower ramp cell`);
+        if (
+          state.trees.some(
+            (tree) => tree.felledAt === null && cellKey(tree) === cellKey(cell),
+          ) ||
+          state.rocks.some((rock) => cellKey(rock) === cellKey(cell)) ||
+          cellKey(state.watcher) === cellKey(cell) ||
+          state.piles.some(
+            (pile) => pile.amount > 0 && cellKey(pile) === cellKey(cell),
+          ) ||
+          state.herbs.some((herb) => cellKey(herb) === cellKey(cell)) ||
+          state.herbBundles.some(
+            (bundle) =>
+              bundle.location.kind === "ground" &&
+              cellKey(bundle.location) === cellKey(cell),
+          )
+        )
+          throw new Error(`stair ${site.id} overlaps ground occupancy`);
+      }
+      if (
+        state.sites.some(
+          (other) =>
+            other.id !== site.id &&
+            other.level === 1 &&
+            (other.type === "floor" ||
+              (other.type === "roof" &&
+                stairHeadroom(site)
+                  .slice(0, 2)
+                  .some((ramp) =>
+                    footprint(other).some((cell) => sameCell(cell, ramp)),
+                  ))) &&
+            footprint(other).some((cell) =>
+              stairHeadroom(site).some((headroom) => sameCell(cell, headroom)),
+            ),
+        )
+      )
+        throw new Error(`stair ${site.id} has blocked upper headroom`);
+    } else if (site.type === "floor") {
+      if (site.level !== 1)
+        throw new Error(`floor ${site.id} must be on level 1`);
+      if (
+        state.sites.some(
+          (other) =>
+            other.type === "stair" &&
+            stairHeadroom(other).some((headroom) => sameCell(headroom, site)),
+        )
+      )
+        throw new Error(`floor ${site.id} occupies stair headroom`);
+      if (!floorSupported(state, site))
+        throw new Error(`floor ${site.id} has no lower support`);
+    } else if (site.level === 1) {
+      if (
+        cells.some((cell) =>
+          state.sites.some(
+            (other) =>
+              other.type === "stair" &&
+              sameCell(stairLanding(other), cell) &&
+              site.type !== "door" &&
+              site.type !== "roof",
+          ),
+        )
+      )
+        throw new Error(`site ${site.id} is not allowed on stair landing`);
+      if (
+        site.type === "roof" &&
+        state.sites.some(
+          (other) =>
+            other.type === "stair" &&
+            stairHeadroom(other)
+              .slice(0, 2)
+              .some((headroom) =>
+                footprint(site).some((cell) => sameCell(cell, headroom)),
+              ),
+        )
+      )
+        throw new Error(`roof ${site.id} occupies stair headroom`);
+      if (!cells.every((cell) => upperSurface(state, cell)))
+        throw new Error(`site ${site.id} has no finished floor support`);
+    }
+  }
+  for (let i = 0; i < state.sites.length; i++)
+    for (let j = i + 1; j < state.sites.length; j++)
+      if (sitesConflict(state.sites[i], state.sites[j]))
+        throw new Error(
+          `sites ${state.sites[i].id} and ${state.sites[j].id} overlap`,
+        );
+}
+
+function checkActorPaths(state: Clearing): void {
+  for (const actor of Object.values(state.actors)) {
+    if (actor.level === 1 && !upperSurface(state, actor))
+      throw new Error(`actor ${actor.id} is not on an upper surface`);
+    if (!actor.path.length) {
+      if (actor.leg !== 0)
+        throw new Error(`actor ${actor.id} has a leg without a path`);
+    } else if (actor.leg >= edgeTicks(actor, actor.path[0])) {
+      throw new Error(`actor ${actor.id} has an invalid leg`);
+    }
+    let from = { x: actor.x, z: actor.z, level: actor.level };
+    for (const [index, next] of actor.path.entries()) {
+      if (next.level === 1 && !upperSurface(state, next))
+        throw new Error(
+          `actor ${actor.id} path ${index} is not on an upper surface`,
+        );
+      if (
+        !topologyNeighbors(state, from).some(
+          (candidate) => cellKey(candidate) === cellKey(next),
+        )
+      )
+        throw new Error(`actor ${actor.id} path ${index} has an illegal edge`);
+      from = next;
     }
   }
 }
@@ -1327,9 +1569,11 @@ function checkHerbs(state: Clearing): void {
       throw new Error(`herb ${herb.id} has completed harvest work`);
   }
   for (const bundle of state.herbBundles) {
-    if (bundle.location.kind === "ground")
+    if (bundle.location.kind === "ground") {
       checkCell(bundle.location, `herb bundle ${bundle.id}`);
-    else if (bundle.location.kind === "carried") {
+      if (bundle.location.level === 1 && !upperSurface(state, bundle.location))
+        throw new Error(`herb bundle ${bundle.id} is not on an upper surface`);
+    } else if (bundle.location.kind === "carried") {
       if (!state.actors[bundle.location.actor])
         throw new Error(`herb bundle ${bundle.id} has missing carrier`);
     } else {
@@ -1402,6 +1646,8 @@ function checkHerbs(state: Clearing): void {
 function checkInvariants(state: Clearing): void {
   checkIdentityAndParties(state);
   checkCellsAndTreeProgress(state);
+  checkSiteTopology(state);
+  checkActorPaths(state);
   const context = createValidationContext(state);
   checkJobTargetsAndScope(state, context);
   checkActorTaskAssignmentAndCargo(state, context);
@@ -1414,7 +1660,7 @@ function checkInvariants(state: Clearing): void {
 }
 
 export function validateClearing(value: unknown): SerializedClearing {
-  const parsed = clearingSchema.parse(value);
+  const parsed = clearingSchemaV6.parse(value);
   checkInvariants(parsed as unknown as Clearing);
   return parsed;
 }
@@ -1454,14 +1700,16 @@ function normalizeSavedState(envelope: SaveEnvelope): Record<string, unknown> {
             level: bundle.level,
           },
         }))
-      : envelope.schema === SAVE_SCHEMA
+      : envelope.schema === SAVE_SCHEMA_V5 || envelope.schema === SAVE_SCHEMA
         ? saved.herbBundles
         : [];
   return {
     ...saved,
     actors,
     ...(envelope.schema === SAVE_SCHEMA_V1 ? { consumedWood: 0 } : {}),
-    ...(envelope.schema === SAVE_SCHEMA_V4 || envelope.schema === SAVE_SCHEMA
+    ...(envelope.schema === SAVE_SCHEMA_V4 ||
+    envelope.schema === SAVE_SCHEMA_V5 ||
+    envelope.schema === SAVE_SCHEMA
       ? {
           herbs: saved.herbs,
           herbBundles,
@@ -1472,7 +1720,7 @@ function normalizeSavedState(envelope: SaveEnvelope): Record<string, unknown> {
           herbBundles: [],
           harvestedHerbs: 0,
         }),
-    ...(envelope.schema === SAVE_SCHEMA
+    ...(envelope.schema === SAVE_SCHEMA_V5 || envelope.schema === SAVE_SCHEMA
       ? { herbStorageClaims: saved.herbStorageClaims }
       : { herbStorageClaims: {} }),
   };

@@ -1,4 +1,5 @@
-// One finite clearing. Cell elevation is explicit; this slice navigates level 0.
+// One finite clearing. Logical storeys are explicit; rendering may interpolate
+// between them, but simulation positions remain integer cells.
 export const SIZE = 15;
 export const WATCHER = { x: 13, z: 2, level: 0 };
 export const ROCKS = [
@@ -23,14 +24,36 @@ export function inside(p) {
   return (
     Number.isInteger(p.x) &&
     Number.isInteger(p.z) &&
+    Number.isInteger(p.level ?? 0) &&
     p.x >= 0 &&
     p.z >= 0 &&
     p.x < SIZE &&
     p.z < SIZE &&
-    (p.level ?? 0) === 0
+    (p.level ?? 0) >= 0 &&
+    (p.level ?? 0) <= 1
   );
 }
+export function stairCells(site) {
+  return [0, 1, 2].map((distance) => ({
+    x: site.x + (site.direction === 1 ? distance : 0),
+    z: site.z + (site.direction === 1 ? 0 : distance),
+    level: 0,
+  }));
+}
+export function stairLanding(site) {
+  const cells = stairCells(site);
+  const top = cells[2];
+  return { x: top.x, z: top.z, level: 1 };
+}
+export function stairHeadroom(site) {
+  return stairCells(site).map((cell) => ({
+    x: cell.x,
+    z: cell.z,
+    level: 1,
+  }));
+}
 function siteCells(site) {
+  if (site.type === "stair") return stairCells(site);
   const cells = [{ x: site.x, z: site.z, level: site.level }];
   if (site.type === "bed")
     cells.push({
@@ -74,8 +97,29 @@ export function neighbors(p) {
     [0, -1],
   ].map(([x, z]) => ({ x: p.x + x, z: p.z + z, level: p.level ?? 0 }));
 }
+export function upperSurface(state, at) {
+  if (at.level !== 1) return false;
+  return state.sites.some(
+    (site) =>
+      site.finishedAt !== null &&
+      ((site.type === "floor" && sameCell(site, at)) ||
+        (site.type === "stair" && sameCell(stairLanding(site), at))),
+  );
+}
+export function topologyNeighbors(state, p) {
+  const next = neighbors(p);
+  const stair = state.sites.find(
+    (site) => site.type === "stair" && site.finishedAt !== null,
+  );
+  if (!stair) return next;
+  const lower = stairCells(stair)[0];
+  const upper = stairLanding(stair);
+  if (sameCell(p, lower)) next.push(upper);
+  else if (sameCell(p, upper)) next.push(lower);
+  return next;
+}
 export function blockedCells(state) {
-  return new Set(
+  const blocked = new Set(
     [
       ...state.rocks,
       state.watcher,
@@ -84,4 +128,13 @@ export function blockedCells(state) {
       ...state.sites.filter((s) => s.type === "wall"),
     ].map(cellKey),
   );
+  for (const stair of state.sites)
+    if (stair.type === "stair")
+      for (const cell of stairCells(stair).slice(1)) blocked.add(cellKey(cell));
+  for (let x = 0; x < SIZE; x++)
+    for (let z = 0; z < SIZE; z++) {
+      const cell = { x, z, level: 1 };
+      if (!upperSurface(state, cell)) blocked.add(cellKey(cell));
+    }
+  return blocked;
 }
