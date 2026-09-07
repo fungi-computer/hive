@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createClearing } from "./clearing.ts";
+import { createClearing, step as advance } from "./clearing.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { BUILDINGS } from "./construction.js";
 import {
@@ -84,7 +84,24 @@ test("snapshot omits command history and restores a paused fresh trace", () => {
   ]);
 });
 
-test("schema 3 persists drafted state and typed draft/Go replay history", () => {
+test("Garden work toggles validate in the v4 live command history", () => {
+  const state = createClearing();
+  state.paused = true;
+  const [result] = advance(state, {}, [
+    {
+      kind: "work",
+      party: "home",
+      actors: null,
+      work: "garden",
+      enabled: false,
+    },
+  ]);
+  assert.deepEqual(result, { status: "applied" });
+  assert.equal(state.commands[0].work, "garden");
+  assert.equal(validateClearing(state).commands[0].work, "garden");
+});
+
+test("schema 4 persists drafted state and typed draft/Go replay history", () => {
   const state = createClearing();
   state.actors.rowan.drafted = true;
   state.actors.rowan.mode = "walk";
@@ -101,7 +118,7 @@ test("schema 3 persists drafted state and typed draft/Go replay history", () => 
   );
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 3);
+  assert.equal(envelope.schema, 4);
   assert.equal(envelope.savedState.actors.rowan.drafted, true);
   const restored = restoreSnapshot(envelope).state;
   assert.equal(restored.actors.rowan.drafted, true);
@@ -115,8 +132,15 @@ test("schema 3 persists drafted state and typed draft/Go replay history", () => 
   }, /Invalid input/);
 });
 
-test("strict schema 1 and 2 saves normalize drafted false and write schema 3", () => {
-  const v3 = snapshotFor(createClearing());
+test("strict schema 1 through 3 normalize garden, herbs, and drafted state", () => {
+  const v4 = snapshotFor(createClearing());
+  const v3 = structuredClone(v4);
+  v3.schema = 3;
+  delete v3.savedState.herbs;
+  delete v3.savedState.herbBundles;
+  delete v3.savedState.harvestedHerbs;
+  for (const actor of Object.values(v3.savedState.actors))
+    delete actor.allowedWork.garden;
   const v2 = structuredClone(v3);
   v2.schema = 2;
   for (const actor of Object.values(v2.savedState.actors)) delete actor.drafted;
@@ -127,18 +151,148 @@ test("strict schema 1 and 2 saves normalize drafted false and write schema 3", (
   const restoredV1 = restoreSnapshot(v1);
   assert.equal(restoredV1.state.consumedWood, 0);
   assert.equal(restoredV1.state.actors.rowan.drafted, false);
+  assert.equal(restoredV1.state.actors.rowan.allowedWork.garden, true);
+  assert.deepEqual(restoredV1.state.herbs, []);
+  assert.deepEqual(restoredV1.state.herbBundles, []);
+  assert.equal(restoredV1.state.harvestedHerbs, 0);
   assert.equal(restoredV1.state.paused, true);
   const restoredV2 = restoreSnapshot(v2);
   assert.equal(restoredV2.state.actors.rowan.drafted, false);
+  const restoredV3 = restoreSnapshot(v3);
+  assert.equal(restoredV3.state.actors.rowan.allowedWork.garden, true);
   const rewritten = snapshotFor(restoredV1.state);
-  assert.equal(rewritten.schema, 3);
+  assert.equal(rewritten.schema, 4);
   assert.equal(rewritten.savedState.consumedWood, 0);
   assert.equal(rewritten.savedState.actors.rowan.drafted, false);
+  assert.equal(rewritten.savedState.actors.rowan.allowedWork.garden, true);
   assert.equal(validateSaveEnvelope(v1).schema, 1);
   assert.equal(validateSaveEnvelope(v2).schema, 2);
+  assert.equal(validateSaveEnvelope(v3).schema, 3);
 });
 
-test("schema 3 accepts a finished target and deconstruction job", () => {
+test("herb persistence accepts planted elapsed zero and rejects an orphaned order", () => {
+  const planted = structuredClone(createClearing());
+  planted.herbs.push({
+    id: "herb-1",
+    kind: "mugwort",
+    x: 7,
+    z: 9,
+    level: 0,
+    stage: "planted",
+    work: 0,
+    plantedAt: 0,
+  });
+  planted.nextId = 2;
+  validateClearing(planted);
+
+  const ordered = structuredClone(createClearing());
+  ordered.herbs.push({
+    id: "herb-1",
+    kind: "mugwort",
+    x: 7,
+    z: 9,
+    level: 0,
+    stage: "ordered",
+    work: 0,
+    plantedAt: null,
+  });
+  ordered.jobs.push({
+    id: "job-2",
+    kind: "sow",
+    target: "herb-1",
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  ordered.nextId = 3;
+  validateClearing(ordered);
+  ordered.jobs = [];
+  assert.throws(() => validateClearing(ordered), /no sow job/);
+});
+
+test("schema 4 snapshot restores ordered, growing, ready, and bundled herb facts", () => {
+  const ordered = structuredClone(createClearing());
+  ordered.herbs.push({
+    id: "herb-1",
+    kind: "mugwort",
+    x: 7,
+    z: 9,
+    level: 0,
+    stage: "ordered",
+    work: 7,
+    plantedAt: null,
+  });
+  ordered.jobs.push({
+    id: "job-2",
+    kind: "sow",
+    target: "herb-1",
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  ordered.nextId = 3;
+  const orderedRestored = restoreSnapshot(snapshotFor(ordered)).state;
+  assert.equal(orderedRestored.herbs[0].stage, "ordered");
+  assert.equal(orderedRestored.herbs[0].work, 7);
+  assert.equal(orderedRestored.jobs[0].target, "herb-1");
+
+  const growing = structuredClone(createClearing());
+  growing.tick = 100;
+  growing.herbs.push({
+    id: "herb-1",
+    kind: "mugwort",
+    x: 7,
+    z: 9,
+    level: 0,
+    stage: "growing",
+    work: 0,
+    plantedAt: 0,
+  });
+  growing.nextId = 2;
+  assert.equal(
+    restoreSnapshot(snapshotFor(growing)).state.herbs[0].stage,
+    "growing",
+  );
+
+  const ready = structuredClone(createClearing());
+  ready.tick = 240;
+  ready.herbs.push({
+    id: "herb-1",
+    kind: "mugwort",
+    x: 7,
+    z: 9,
+    level: 0,
+    stage: "ready",
+    work: 4,
+    plantedAt: 0,
+  });
+  ready.herbBundles.push({
+    id: "herb-bundle-2",
+    kind: "mugwort",
+    amount: 1,
+    x: 8,
+    z: 9,
+    level: 0,
+  });
+  ready.harvestedHerbs = 1;
+  ready.nextId = 4;
+  ready.jobs.push({
+    id: "job-3",
+    kind: "harvest",
+    target: "herb-1",
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  const readyRestored = restoreSnapshot(snapshotFor(ready)).state;
+  assert.equal(readyRestored.herbs[0].stage, "ready");
+  assert.equal(readyRestored.herbs[0].work, 4);
+  assert.equal(readyRestored.herbBundles[0].amount, 1);
+  assert.equal(readyRestored.harvestedHerbs, 1);
+  assert.equal(readyRestored.jobs[0].kind, "harvest");
+});
+
+test("schema 4 accepts a finished target and deconstruction job", () => {
   const state = structuredClone(createClearing());
   state.tick = 10;
   state.felled = 1;
@@ -179,7 +333,7 @@ test("schema 3 accepts a finished target and deconstruction job", () => {
   state.actors.rowan.mode = "walk";
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 3);
+  assert.equal(envelope.schema, 4);
   assert.equal(restoreSnapshot(envelope).state.jobs[0].kind, "deconstruct");
 
   const draftedWorker = structuredClone(envelope);
@@ -191,7 +345,13 @@ test("schema 3 accepts a finished target and deconstruction job", () => {
 
   const v2 = structuredClone(envelope);
   v2.schema = 2;
-  for (const actor of Object.values(v2.savedState.actors)) delete actor.drafted;
+  delete v2.savedState.herbs;
+  delete v2.savedState.herbBundles;
+  delete v2.savedState.harvestedHerbs;
+  for (const actor of Object.values(v2.savedState.actors)) {
+    delete actor.drafted;
+    delete actor.allowedWork.garden;
+  }
   assert.equal(restoreSnapshot(v2).state.jobs[0].kind, "deconstruct");
 
   const duplicate = structuredClone(envelope);

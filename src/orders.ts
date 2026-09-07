@@ -1,9 +1,16 @@
-import type { Clearing, Command, Job, Scope, WorkCommand } from "./model.ts";
+import type {
+  Clearing,
+  Command,
+  Herb,
+  Job,
+  Scope,
+  WorkCommand,
+} from "./model.ts";
 import { inScope, scopeProblem } from "./actors.ts";
 import { placementProblem } from "./construction.js";
 import { interruptWork } from "./activity.ts";
 import { refundWood } from "./resources.ts";
-import { blockedCells, cellKey, inside } from "./world.js";
+import { blockedCells, cellKey, inside, placementOccupant } from "./world.js";
 import { route, beginWalk } from "./movement.js";
 
 export type CommandResult =
@@ -49,6 +56,19 @@ export function commandProblem(state: Clearing, command: Command): string {
   if (problem) return problem;
   if ("direct" in command && command.direct && command.actors === null)
     return "Select the people for a direct order.";
+  if (command.kind === "sow") {
+    if (!inside(command)) return "Choose clear ground inside the clearing.";
+    if (placementOccupant(state, command)) return "Choose clear ground.";
+  }
+  if (command.kind === "harvest") {
+    const herb = state.herbs.find((candidate) => candidate.id === command.herb);
+    if (!herb) return "That mugwort is no longer here.";
+    if (herb.stage !== "ready") return "Only ready mugwort can be harvested.";
+    if (
+      state.jobs.some((job) => job.kind === "harvest" && job.target === herb.id)
+    )
+      return "That mugwort is already marked for harvest.";
+  }
   if (command.kind === "build") return placementProblem(state, command);
   if (command.kind === "deconstruct") {
     const site = state.sites.find((candidate) => candidate.id === command.site);
@@ -100,13 +120,17 @@ function cancelJob(state: Clearing, id: string): void {
       break;
     case "deconstruct":
       break;
+    case "sow":
+      state.herbs = state.herbs.filter((herb) => herb.id !== job.target);
+      break;
+    case "harvest":
+      break;
     default:
       assertNever(job);
   }
   state.jobs = state.jobs.filter((j) => j.id !== id);
   state.workDirty = true;
-  state.notice =
-    "Order canceled. All wood kept; completed work stays completed.";
+  state.notice = "Order canceled. Completed work stays completed.";
 }
 function assertNever(value: never): never {
   throw new Error(`Unhandled order kind: ${JSON.stringify(value)}`);
@@ -166,6 +190,39 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       if (command.direct) state.jobs.unshift(job);
       else state.jobs.push(job);
     }
+  } else if (command.kind === "sow") {
+    const herb: Herb = {
+      id: `herb-${state.nextId++}`,
+      kind: "mugwort",
+      x: command.x,
+      z: command.z,
+      level: command.level,
+      stage: "ordered",
+      work: 0,
+      plantedAt: null,
+    };
+    state.herbs.push(herb);
+    const job: Job = {
+      id: `job-${state.nextId++}`,
+      kind: "sow",
+      target: herb.id,
+      scope,
+      reason: "Ordered",
+      routine: false,
+    };
+    if (command.direct) state.jobs.unshift(job);
+    else state.jobs.push(job);
+  } else if (command.kind === "harvest") {
+    const job: Job = {
+      id: `job-${state.nextId++}`,
+      kind: "harvest",
+      target: command.herb,
+      scope,
+      reason: "Ordered",
+      routine: false,
+    };
+    if (command.direct) state.jobs.unshift(job);
+    else state.jobs.push(job);
   } else if (command.kind === "build") {
     const site = {
       id: `site-${state.nextId++}`,
@@ -203,18 +260,19 @@ function orderWork(state: Clearing, command: WorkCommand): void {
   }
   state.workDirty = true;
   state.notice =
-    command.kind === "build"
-      ? "Blueprint placed. Wood will be brought when it is available."
-      : command.kind === "deconstruct"
-        ? "Deconstruction ordered. The structure will remain until the work is complete."
-        : command.direct
-          ? "Direct order received. Earlier unfinished orders are kept."
-          : "Work added to the orders.";
+    command.kind === "sow"
+      ? "Mugwort ordered. A home member will plant it on clear ground."
+      : command.kind === "harvest"
+        ? "Mugwort harvest ordered."
+        : command.kind === "build"
+          ? "Blueprint placed. Wood will be brought when it is available."
+          : command.kind === "deconstruct"
+            ? "Deconstruction ordered. The structure will remain until the work is complete."
+            : command.direct
+              ? "Direct order received. Earlier unfinished orders are kept."
+              : "Work added to the orders.";
 }
-function acceptCommand(
-  state: Clearing,
-  command: Command,
-): CommandResult {
+function acceptCommand(state: Clearing, command: Command): CommandResult {
   const problem = commandProblem(state, command);
   if (problem) return { status: "rejected", reason: problem };
   switch (command.kind) {
@@ -292,6 +350,8 @@ function acceptCommand(
     case "chop":
     case "build":
     case "deconstruct":
+    case "sow":
+    case "harvest":
     case "rest":
       orderWork(state, command);
       return { status: "applied" };

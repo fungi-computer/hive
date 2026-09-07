@@ -5,6 +5,7 @@ import { Texture } from "pixi.js";
 import { camera, worldCamera, WIDTH, HEIGHT } from "./art/scale.js";
 import { clearing, tree } from "./art/clearing.js";
 import { figure } from "./art/figures.js";
+import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
 import { building, woodPile, wallJoint } from "./art/home.js";
 import { BUILDINGS } from "./construction.js";
 
@@ -56,6 +57,7 @@ export async function bakeArt() {
     ground: bake(renderer, clearing(), worldCamera, WIDTH, HEIGHT, false),
     figures: {},
     tree: {},
+    herbs: { mugwort: {} },
     buildings: {},
     wood: {},
     wallJoints: {},
@@ -101,6 +103,8 @@ export async function bakeArt() {
   }
   for (const stage of ["standing", "notched", "stump"])
     art.tree[stage] = bake(renderer, tree(stage), prop, 112, 112);
+  for (const stage of MUGWORT_STAGES)
+    art.herbs.mugwort[stage] = bake(renderer, mugwort(stage), prop, 112, 112);
   for (const type of Object.keys(BUILDINGS)) {
     art.buildings[type] = {};
     for (const stage of ["stakes", "frame", "finished"])

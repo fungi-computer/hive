@@ -6,8 +6,10 @@ import type {
   Clearing,
   DeconstructActivity,
   DeliverActivity,
+  HarvestActivity,
   PickupActivity,
   SleepActivity,
+  SowActivity,
   Site,
 } from "./model.ts";
 import { blockedCells, sameCell } from "./world.js";
@@ -15,6 +17,7 @@ import { walk, face } from "./movement.js";
 import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { dropWood, dropCarried } from "./resources.ts";
 import { isNight } from "./routine.ts";
+import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 
 export const CHOP_TICKS = 80;
 
@@ -133,6 +136,41 @@ function workOnDeconstruction(
   state.consumedWood += recipe.wood - recipe.salvageWood;
   state.notice = `${recipe.label} deconstructed. ${recipe.salvageWood} wood recovered.`;
 }
+function workOnHerb(
+  state: Clearing,
+  person: Actor,
+  task: SowActivity | HarvestActivity,
+): void {
+  const herb = state.herbs.find((candidate) => candidate.id === task.target);
+  const expected = task.kind === "sow" ? "ordered" : "ready";
+  if (!herb || herb.stage !== expected) {
+    interruptWork(state, person);
+    return;
+  }
+  const limit = task.kind === "sow" ? SOW_TICKS : HARVEST_TICKS;
+  person.work = ++herb.work;
+  if (person.work < limit) return;
+  if (task.kind === "sow") {
+    herb.stage = "planted";
+    herb.work = 0;
+    herb.plantedAt = state.tick;
+    state.notice = "Mugwort planted. It will grow on fixed ticks.";
+    finishJob(state, person, task.job);
+    return;
+  }
+  state.herbs = state.herbs.filter((candidate) => candidate.id !== herb.id);
+  state.herbBundles.push({
+    id: `herb-bundle-${state.nextId++}`,
+    kind: "mugwort",
+    amount: 1,
+    x: herb.x,
+    z: herb.z,
+    level: herb.level,
+  });
+  state.harvestedHerbs++;
+  state.notice = "Mugwort harvested. One bundle is on the ground.";
+  finishJob(state, person, task.job);
+}
 function rest(state: Clearing, person: Actor, task: SleepActivity): void {
   person.work++;
   person.rest = Math.min(100, person.rest + 0.3);
@@ -154,6 +192,9 @@ function targetFor(state: Clearing, task: Activity) {
     case "sleep":
     case "deconstruct":
       return state.sites.find((site) => site.id === task.target);
+    case "sow":
+    case "harvest":
+      return state.herbs.find((herb) => herb.id === task.target);
     default:
       return assertNever(task);
   }
@@ -198,6 +239,10 @@ export function advanceWork(state: Clearing, person: Actor): void {
       break;
     case "deconstruct":
       workOnDeconstruction(state, person, task);
+      break;
+    case "sow":
+    case "harvest":
+      workOnHerb(state, person, task);
       break;
     case "sleep":
       rest(state, person, task);

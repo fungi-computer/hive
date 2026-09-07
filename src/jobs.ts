@@ -9,8 +9,10 @@ import type {
   Colony,
   BuildJob,
   DeconstructJob,
+  HarvestJob,
   Job,
   Site,
+  SowJob,
   WorkType,
 } from "./model.ts";
 import { inScope } from "./actors.ts";
@@ -20,6 +22,7 @@ import { approach, route, beginWalk, WALK_TICKS } from "./movement.js";
 import { BUILDINGS, roofSupported, shelteredBeds } from "./construction.js";
 import { availableWood, neededWood, reserveWood } from "./resources.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
+import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 
 type Candidate = {
   activity: Activity;
@@ -107,6 +110,46 @@ function deconstructOption(
         ),
       };
 }
+function sowOption(
+  state: Clearing,
+  person: Actor,
+  job: SowJob,
+  blocked: Set<string>,
+): Options {
+  const herb = state.herbs.find((candidate) => candidate.id === job.target);
+  if (!herb || herb.stage !== "ordered")
+    return unavailable("Waiting for a mugwort planting target");
+  const path = approach(person, herb, blocked);
+  return path === null
+    ? unavailable("No route to this mugwort")
+    : {
+        reason: "Ready to sow mugwort",
+        candidate: candidate(job, "sow", herb.id, path, SOW_TICKS - herb.work),
+      };
+}
+function harvestOption(
+  state: Clearing,
+  person: Actor,
+  job: HarvestJob,
+  blocked: Set<string>,
+): Options {
+  const herb = state.herbs.find((candidate) => candidate.id === job.target);
+  if (!herb || herb.stage !== "ready")
+    return unavailable("Waiting for ready mugwort");
+  const path = approach(person, herb, blocked);
+  return path === null
+    ? unavailable("No route to this mugwort")
+    : {
+        reason: "Ready to harvest mugwort",
+        candidate: candidate(
+          job,
+          "harvest",
+          herb.id,
+          path,
+          HARVEST_TICKS - herb.work,
+        ),
+      };
+}
 function bedFree(state: Clearing, bed: Site): boolean {
   return !Object.values(state.actors).some(
     (person) => person.task?.kind === "sleep" && person.task.target === bed.id,
@@ -123,6 +166,10 @@ function jobOption(
       return buildOption(state, person, job, blocked);
     case "deconstruct":
       return deconstructOption(state, person, job, blocked);
+    case "sow":
+      return sowOption(state, person, job, blocked);
+    case "harvest":
+      return harvestOption(state, person, job, blocked);
     case "chop": {
       const tree = state.trees.find((t) => t.id === job.target)!;
       const path = approach(person, tree, blocked);
@@ -169,6 +216,9 @@ function automaticWork(activity: Activity): WorkType | null {
       return "build";
     case "deconstruct":
       return "build";
+    case "sow":
+    case "harvest":
+      return "garden";
     case "deliver":
     case "sleep":
       return null;
@@ -224,6 +274,8 @@ function claimCandidate(
     case "chop":
     case "build":
     case "deconstruct":
+    case "sow":
+    case "harvest":
     case "deliver":
       return true;
     default:

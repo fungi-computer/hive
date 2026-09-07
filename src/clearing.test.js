@@ -66,6 +66,10 @@ function conserved(state) {
       state.consumedWood,
     state.felled * 6,
   );
+  assert.equal(
+    state.herbBundles.reduce((total, bundle) => total + bundle.amount, 0),
+    state.harvestedHerbs,
+  );
 }
 function run(state, ticks, commands = new Map()) {
   for (let i = 0; i < ticks; i++) {
@@ -98,6 +102,8 @@ const build = (type, x, z, direction = 0) => ({
   z,
   direction,
 });
+const sow = (x, z) => ({ kind: "sow", x, z, level: 0 });
+const harvest = (herb) => ({ kind: "harvest", herb });
 function homeOrders() {
   const commands = [];
   for (let x = 6; x <= 9; x++)
@@ -590,6 +596,117 @@ test("paused commands admit shared work in order without advancing the world", (
   assert.equal(state.tick, 1);
   assert.ok(state.actors.rowan.assignment);
   assert.deepEqual(state, replay);
+});
+
+test("shared sow uses real garden work, fixed growth thresholds, and one harvest bundle", () => {
+  const state = createClearing(73);
+  state.paused = true;
+  const [sowResult] = step(state, colony, [sow(7, 9)]);
+  assert.deepEqual(sowResult, { status: "applied" });
+  assert.equal(state.tick, 0);
+  assert.equal(state.herbs[0].stage, "ordered");
+  assert.equal(state.jobs[0].kind, "sow");
+
+  state.paused = false;
+  until(state, (candidate) => candidate.herbs[0]?.stage === "planted");
+  const plantedAt = state.herbs[0].plantedAt;
+  assert.equal(state.herbs[0].work, 0);
+  run(state, 79);
+  assert.equal(state.herbs[0].stage, "planted");
+  run(state, 1);
+  assert.equal(state.herbs[0].stage, "growing");
+  run(state, 159);
+  assert.equal(state.herbs[0].stage, "growing");
+  run(state, 1);
+  assert.equal(state.herbs[0].stage, "ready");
+  assert.equal(state.tick - plantedAt, 240);
+
+  state.paused = true;
+  const [harvestResult] = step(state, colony, [harvest(state.herbs[0].id)]);
+  assert.deepEqual(harvestResult, { status: "applied" });
+  assert.equal(state.tick - plantedAt, 240);
+  state.paused = false;
+  until(state, (candidate) => candidate.herbBundles.length === 1);
+  assert.equal(state.herbs.length, 0);
+  assert.equal(state.harvestedHerbs, 1);
+  assert.equal(state.herbBundles[0].amount, 1);
+  assert.equal(state.jobs.length, 0);
+});
+
+test("sow cancellation removes only its ordered herb, while interruption retains work", () => {
+  const state = createClearing(74);
+  state.paused = true;
+  step(state, colony, [sow(7, 9), sow(8, 9)]);
+  const canceled = state.herbs[0].id;
+  const canceledJob = state.jobs[0].id;
+  step(state, colony, [{ kind: "cancel", job: canceledJob }]);
+  assert.deepEqual(
+    state.herbs.map((herb) => herb.id),
+    ["herb-3"],
+  );
+  assert.deepEqual(
+    state.jobs.map((job) => job.target),
+    ["herb-3"],
+  );
+  assert.equal(
+    state.herbs.some((herb) => herb.id === canceled),
+    false,
+  );
+  assert.match(state.notice, /Order canceled/);
+  assert.doesNotMatch(state.notice, /wood/);
+
+  state.paused = false;
+  until(
+    state,
+    (candidate) =>
+      candidate.actors.rowan.task?.kind === "sow" &&
+      candidate.herbs[0].work > 0,
+  );
+  const workingHerb = state.herbs[0];
+  const work = workingHerb.work;
+  assert.ok(work > 0);
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  assert.equal(state.actors.rowan.task, null);
+  assert.equal(state.herbs[0].work, work);
+  assert.equal(state.jobs[0].target, workingHerb.id);
+});
+
+test("herb occupancy is shared with construction and harvest cancellation preserves ready mugwort", () => {
+  const state = createClearing(75);
+  state.paused = true;
+  const [treeSow, clearSow] = step(state, colony, [sow(3, 4), sow(7, 9)]);
+  assert.equal(treeSow.status, "rejected");
+  assert.equal(clearSow.status, "applied");
+  const [overlapBuild] = step(state, colony, [build("wall", 7, 9)]);
+  assert.equal(overlapBuild.status, "rejected");
+  assert.equal(state.herbs.length, 1);
+
+  state.paused = false;
+  until(state, (candidate) => candidate.herbs[0]?.stage === "planted");
+  run(state, 240);
+  assert.equal(state.herbs[0].stage, "ready");
+  state.paused = true;
+  const [orderedHarvest] = step(state, colony, [harvest(state.herbs[0].id)]);
+  assert.deepEqual(orderedHarvest, { status: "applied" });
+  state.paused = false;
+  until(
+    state,
+    (candidate) =>
+      candidate.actors.rowan.task?.kind === "harvest" &&
+      candidate.herbs[0].work > 0,
+  );
+  const harvestWork = state.herbs[0].work;
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  assert.equal(state.actors.rowan.task, null);
+  assert.equal(state.herbs[0].stage, "ready");
+  assert.equal(state.herbs[0].work, harvestWork);
+  const harvestJob = state.jobs[0].id;
+  step(state, colony, [{ kind: "cancel", job: harvestJob }]);
+  assert.equal(state.herbs[0].stage, "ready");
+  assert.equal(state.herbBundles.length, 0);
+  assert.equal(state.harvestedHerbs, 0);
 });
 test("automatic work settings split hauling from building and personal orders override them", () => {
   const state = createClearing(37);

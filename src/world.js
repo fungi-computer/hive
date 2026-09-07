@@ -30,6 +30,39 @@ export function inside(p) {
     (p.level ?? 0) === 0
   );
 }
+function siteCells(site) {
+  const cells = [{ x: site.x, z: site.z, level: site.level }];
+  if (site.type === "bed")
+    cells.push({
+      x: site.x + (site.direction === 1 ? 1 : 0),
+      z: site.z + (site.direction === 1 ? 0 : 1),
+      level: site.level,
+    });
+  return cells;
+}
+/** @param {string|null} [excludeId] */
+export function placementOccupant(state, at, excludeId = null) {
+  if (state.trees.some((tree) => sameCell(tree, at))) return "tree";
+  if (state.rocks.some((rock) => sameCell(rock, at))) return "rock";
+  if (
+    state.sites.some((site) =>
+      siteCells(site).some((cell) => sameCell(cell, at)),
+    )
+  )
+    return "site";
+  if (sameCell(state.watcher, at)) return "watcher";
+  if (state.piles.some((pile) => pile.amount > 0 && sameCell(pile, at)))
+    return "pile";
+  if (state.herbs?.some((herb) => herb.id !== excludeId && sameCell(herb, at)))
+    return "herb";
+  if (
+    state.herbBundles?.some(
+      (bundle) => bundle.id !== excludeId && sameCell(bundle, at),
+    )
+  )
+    return "herb-bundle";
+  return null;
+}
 export function neighbors(p) {
   return [
     [1, 0],

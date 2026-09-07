@@ -3,9 +3,11 @@
 export type ActorId = string;
 export type PartyId = string;
 export type JobId = string;
+export type HerbId = string;
+export type HerbBundleId = string;
 export type Cell = { x: number; z: number; level: number };
 export type BuildingKind = "wall" | "door" | "roof" | "bed";
-export type WorkType = "chop" | "haul" | "build";
+export type WorkType = "chop" | "haul" | "build" | "garden";
 export type AllowedWork = Record<WorkType, boolean>;
 export type Scope = { party: PartyId; actors: ActorId[] | null };
 
@@ -13,6 +15,8 @@ export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "chop"; tree: string }
     | ({ kind: "build"; type: BuildingKind; direction: number } & Cell)
     | { kind: "deconstruct"; site: string }
+    | ({ kind: "sow" } & Cell)
+    | { kind: "harvest"; herb: HerbId }
     | { kind: "rest" }
   );
 export type Command =
@@ -34,8 +38,11 @@ type JobBase = {
 export type ChopJob = JobBase & { kind: "chop"; target: string };
 export type BuildJob = JobBase & { kind: "build"; target: string };
 export type DeconstructJob = JobBase & { kind: "deconstruct"; target: string };
+export type SowJob = JobBase & { kind: "sow"; target: HerbId };
+export type HarvestJob = JobBase & { kind: "harvest"; target: HerbId };
 export type RestJob = JobBase & { kind: "rest"; target: ActorId };
-export type Job = ChopJob | BuildJob | DeconstructJob | RestJob;
+export type Job =
+  ChopJob | BuildJob | DeconstructJob | SowJob | HarvestJob | RestJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -45,6 +52,8 @@ type ActivityBase = {
 export type ChopActivity = ActivityBase & { kind: "chop" };
 export type BuildActivity = ActivityBase & { kind: "build" };
 export type DeconstructActivity = ActivityBase & { kind: "deconstruct" };
+export type SowActivity = ActivityBase & { kind: "sow" };
+export type HarvestActivity = ActivityBase & { kind: "harvest" };
 export type PickupActivity = ActivityBase & { kind: "pickup" };
 export type DeliverActivity = ActivityBase & { kind: "deliver" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
@@ -52,6 +61,8 @@ export type Activity =
   | ChopActivity
   | BuildActivity
   | DeconstructActivity
+  | SowActivity
+  | HarvestActivity
   | PickupActivity
   | DeliverActivity
   | SleepActivity;
@@ -83,6 +94,19 @@ export type WoodClaim = {
   amount: number;
 };
 export type Tree = Cell & { id: string; work: number; felledAt: number | null };
+export type HerbStage = "ordered" | "planted" | "growing" | "ready";
+export type Herb = Cell & {
+  id: HerbId;
+  kind: "mugwort";
+  stage: HerbStage;
+  work: number;
+  plantedAt: number | null;
+};
+export type HerbBundle = Cell & {
+  id: HerbBundleId;
+  kind: "mugwort";
+  amount: 1;
+};
 export type Site = Cell & {
   id: string;
   type: BuildingKind;
@@ -107,6 +131,8 @@ export type Clearing = {
   parties: Record<PartyId, { id: PartyId; members: ActorId[] }>;
   cat: Body & { nextMove: number };
   trees: Tree[];
+  herbs: Herb[];
+  herbBundles: HerbBundle[];
   rocks: Cell[];
   watcher: Cell;
   piles: Pile[];
@@ -120,6 +146,7 @@ export type Clearing = {
   finishedJobs: number;
   rested: number;
   consumedWood: number;
+  harvestedHerbs: number;
   commands: (Command & { tick: number })[];
   feed: {
     seed: number;

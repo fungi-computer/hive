@@ -5,6 +5,7 @@ import {
   neighbors,
   SIZE,
   blockedCells,
+  placementOccupant,
 } from "./world.js";
 import { route } from "./movement.js";
 
@@ -61,6 +62,13 @@ export function placementProblem(state, at) {
     )
   )
     return "There is already a building or blueprint here.";
+  if (
+    footprint(at).some((cell) => {
+      const occupant = placementOccupant(state, cell);
+      return occupant === "herb" || occupant === "herb-bundle";
+    })
+  )
+    return "Choose clear ground.";
   if (
     state.trees.some((t) => t.felledAt === null && overlaps(t)) ||
     state.rocks.some(overlaps) ||

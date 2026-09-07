@@ -15,6 +15,7 @@ import { advanceWork } from "./activity.ts";
 import { updateRoutine } from "./routine.ts";
 import { admitCommands, type CommandResult } from "./orders.ts";
 import { route, beginWalk, walk } from "./movement.js";
+import { mugwortStage } from "./herbs.ts";
 
 export function createClearing(seed = 42): Clearing {
   return {
@@ -36,6 +37,8 @@ export function createClearing(seed = 42): Clearing {
       work: 0,
       felledAt: null,
     })),
+    herbs: [],
+    herbBundles: [],
     rocks: structuredClone(ROCKS),
     watcher: { ...WATCHER },
     piles: [],
@@ -47,6 +50,7 @@ export function createClearing(seed = 42): Clearing {
     finishedJobs: 0,
     rested: 0,
     consumedWood: 0,
+    harvestedHerbs: 0,
     commands: [],
     feed: createFeed(seed),
     demand: null,
@@ -100,6 +104,16 @@ function advanceDrafted(
     state.notice = `${person.name} reached the clear ground and is holding position.`;
   }
 }
+function advanceHerbGrowth(state: Clearing): void {
+  for (const herb of state.herbs) {
+    if (herb.plantedAt === null || herb.stage === "ready") continue;
+    const stage = mugwortStage(state.tick - herb.plantedAt);
+    if (stage === herb.stage) continue;
+    herb.stage = stage;
+    herb.work = 0;
+    state.workDirty = true;
+  }
+}
 export function step(
   state: Clearing,
   colony: Colony,
@@ -115,6 +129,7 @@ export function step(
     advanceWork(state, person);
     advanceDrafted(state, person);
   }
+  advanceHerbGrowth(state);
   assignWork(state, colony);
   advanceCat(state);
   const event = nextEvent(state.feed, state.tick, shelteredBeds(state).length);

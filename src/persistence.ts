@@ -1,14 +1,16 @@
 import { openDB } from "idb";
 import { z } from "zod";
 import type { Clearing } from "./model.ts";
-import { inside } from "./world.js";
+import { inside, placementOccupant } from "./world.js";
 import { CHOP_TICKS } from "./activity.ts";
 import { BUILDINGS } from "./construction.js";
+import { HARVEST_TICKS, SOW_TICKS, mugwortStage } from "./herbs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 3 as const;
+const SAVE_SCHEMA = 4 as const;
 const SAVE_SCHEMA_V1 = 1 as const;
 const SAVE_SCHEMA_V2 = 2 as const;
+const SAVE_SCHEMA_V3 = 3 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -21,8 +23,11 @@ const id = z.string().min(1);
 const cellSchema = z
   .object({ x: integer, z: integer, level: integer })
   .strict();
-const allowedWorkSchema = z
+const allowedWorkSchemaV3 = z
   .object({ chop: z.boolean(), haul: z.boolean(), build: z.boolean() })
+  .strict();
+const allowedWorkSchema = allowedWorkSchemaV3
+  .extend({ garden: z.boolean() })
   .strict();
 const scopeSchema = z
   .object({ party: id, actors: z.array(id).min(1).nullable() })
@@ -58,6 +63,20 @@ const activitySchemaV1 = z.discriminatedUnion("kind", [
   deliverActivitySchema,
   sleepActivitySchema,
 ]);
+const activitySchemaV2 = z.discriminatedUnion("kind", [
+  chopActivitySchema,
+  buildActivitySchema,
+  pickupActivitySchema,
+  deliverActivitySchema,
+  sleepActivitySchema,
+  deconstructActivitySchema,
+]);
+const sowActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("sow") })
+  .strict();
+const harvestActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("harvest") })
+  .strict();
 const activitySchema = z.discriminatedUnion("kind", [
   chopActivitySchema,
   buildActivitySchema,
@@ -65,6 +84,8 @@ const activitySchema = z.discriminatedUnion("kind", [
   deliverActivitySchema,
   sleepActivitySchema,
   deconstructActivitySchema,
+  sowActivitySchema,
+  harvestActivitySchema,
 ]);
 
 const assignmentSchema = z
@@ -111,25 +132,50 @@ const bodySchemaV2 = z
     ]),
   })
   .strict();
-const actorFields = {
+const bodySchema = z
+  .object({
+    ...bodyFields,
+    mode: z.enum([
+      "idle",
+      "walk",
+      "chop",
+      "build",
+      "deconstruct",
+      "sow",
+      "harvest",
+      "pickup",
+      "deliver",
+      "sleep",
+    ]),
+  })
+  .strict();
+const actorFieldsV3 = {
   id,
   name: z.string(),
   figure: z.string(),
   rest: finite.min(0).max(100),
   routine: z.boolean(),
-  allowedWork: allowedWorkSchema,
+  allowedWork: allowedWorkSchemaV3,
   assignment: assignmentSchema.nullable(),
   cargo: cargoSchema.nullable(),
 };
 const actorSchemaV1 = bodySchemaV1
-  .extend({ ...actorFields, task: activitySchemaV1.nullable() })
+  .extend({ ...actorFieldsV3, task: activitySchemaV1.nullable() })
   .strict();
 const actorSchemaV2 = bodySchemaV2
-  .extend({ ...actorFields, task: activitySchema.nullable() })
+  .extend({ ...actorFieldsV3, task: activitySchemaV2.nullable() })
   .strict();
-const actorSchema = bodySchemaV2
+const actorSchemaV3 = bodySchemaV2
   .extend({
-    ...actorFields,
+    ...actorFieldsV3,
+    drafted: z.boolean(),
+    task: activitySchemaV2.nullable(),
+  })
+  .strict();
+const actorSchema = bodySchema
+  .extend({
+    ...actorFieldsV3,
+    allowedWork: allowedWorkSchema,
     drafted: z.boolean(),
     task: activitySchema.nullable(),
   })
@@ -160,6 +206,18 @@ const eventSchema = z
     text: z.string(),
   })
   .strict();
+const herbSchema = cellSchema
+  .extend({
+    id,
+    kind: z.literal("mugwort"),
+    stage: z.enum(["ordered", "planted", "growing", "ready"]),
+    work: nonNegative,
+    plantedAt: nonNegative.nullable(),
+  })
+  .strict();
+const herbBundleSchema = cellSchema
+  .extend({ id, kind: z.literal("mugwort"), amount: z.literal(1) })
+  .strict();
 
 const jobBase = {
   id,
@@ -176,6 +234,12 @@ const buildJobSchema = z
 const deconstructJobSchema = z
   .object({ ...jobBase, kind: z.literal("deconstruct"), target: id })
   .strict();
+const sowJobSchema = z
+  .object({ ...jobBase, kind: z.literal("sow"), target: id })
+  .strict();
+const harvestJobSchema = z
+  .object({ ...jobBase, kind: z.literal("harvest"), target: id })
+  .strict();
 const restJobSchema = z
   .object({ ...jobBase, kind: z.literal("rest"), target: id })
   .strict();
@@ -184,10 +248,18 @@ const jobSchemaV1 = z.discriminatedUnion("kind", [
   buildJobSchema,
   restJobSchema,
 ]);
+const jobSchemaV3 = z.discriminatedUnion("kind", [
+  chopJobSchema,
+  buildJobSchema,
+  deconstructJobSchema,
+  restJobSchema,
+]);
 const jobSchema = z.discriminatedUnion("kind", [
   chopJobSchema,
   buildJobSchema,
   deconstructJobSchema,
+  sowJobSchema,
+  harvestJobSchema,
   restJobSchema,
 ]);
 
@@ -214,6 +286,12 @@ const buildCommandSchema = workCommandSchema
 const deconstructCommandSchema = workCommandSchema
   .extend({ kind: z.literal("deconstruct"), site: id })
   .strict();
+const sowCommandSchema = workCommandSchema
+  .extend({ kind: z.literal("sow"), x: integer, z: integer, level: integer })
+  .strict();
+const harvestCommandSchema = workCommandSchema
+  .extend({ kind: z.literal("harvest"), herb: id })
+  .strict();
 const restCommandSchema = workCommandSchema
   .extend({ kind: z.literal("rest") })
   .strict();
@@ -233,7 +311,7 @@ const routineCommandSchema = z
     enabled: z.boolean(),
   })
   .strict();
-const workCommandSchemaWithToggle = z
+const workCommandSchemaWithToggleV3 = z
   .object({
     party: id,
     actors: z.array(id).min(1).nullable(),
@@ -241,6 +319,9 @@ const workCommandSchemaWithToggle = z
     work: z.enum(["chop", "haul", "build"]),
     enabled: z.boolean(),
   })
+  .strict();
+const workCommandSchemaWithToggleV4 = workCommandSchemaWithToggleV3
+  .extend({ work: z.enum(["chop", "haul", "build", "garden"]) })
   .strict();
 const recruitCommandSchema = z
   .object({ kind: z.literal("recruit"), party: id, actor: id })
@@ -251,7 +332,7 @@ const commandSchemasV1 = [
   restCommandSchema,
   queueCommandSchema,
   routineCommandSchema,
-  workCommandSchemaWithToggle,
+  workCommandSchemaWithToggleV3,
   recruitCommandSchema,
 ] as const;
 const commandSchemaV1 = z.union(commandSchemasV1);
@@ -262,7 +343,7 @@ const commandSchemasV2 = [
   restCommandSchema,
   queueCommandSchema,
   routineCommandSchema,
-  workCommandSchemaWithToggle,
+  workCommandSchemaWithToggleV3,
   recruitCommandSchema,
 ] as const;
 const commandSchemaV2 = z.union(commandSchemasV2);
@@ -272,10 +353,32 @@ const draftCommandSchema = z
 const goCommandSchema = z
   .object({ kind: z.literal("go"), party: id, actor: id, target: cellSchema })
   .strict();
-const commandSchema = z.union([
-  ...commandSchemasV2,
+const commandSchemasV3 = [
+  chopCommandSchema,
+  buildCommandSchema,
+  deconstructCommandSchema,
+  restCommandSchema,
+  queueCommandSchema,
+  routineCommandSchema,
+  workCommandSchemaWithToggleV3,
+  recruitCommandSchema,
   draftCommandSchema,
   goCommandSchema,
+] as const;
+const commandSchemaV3 = z.union(commandSchemasV3);
+const commandSchema = z.union([
+  chopCommandSchema,
+  buildCommandSchema,
+  deconstructCommandSchema,
+  restCommandSchema,
+  queueCommandSchema,
+  routineCommandSchema,
+  workCommandSchemaWithToggleV4,
+  recruitCommandSchema,
+  draftCommandSchema,
+  goCommandSchema,
+  sowCommandSchema,
+  harvestCommandSchema,
 ]);
 const commandHistorySchemaV1 = z.intersection(
   commandSchemaV1,
@@ -283,6 +386,10 @@ const commandHistorySchemaV1 = z.intersection(
 );
 const commandHistorySchemaV2 = z.intersection(
   commandSchemaV2,
+  z.object({ tick: nonNegative }).strict(),
+);
+const commandHistorySchemaV3 = z.intersection(
+  commandSchemaV3,
   z.object({ tick: nonNegative }).strict(),
 );
 const commandHistorySchema = z.intersection(
@@ -323,6 +430,7 @@ function makeClearingSchema(
   job: any,
   commandHistory: any,
   withConsumedWood: boolean,
+  withHerbs: boolean,
 ) {
   return z
     .object({
@@ -332,6 +440,13 @@ function makeClearingSchema(
       jobs: z.array(job),
       commands: z.array(commandHistory),
       ...(withConsumedWood ? { consumedWood: nonNegative } : {}),
+      ...(withHerbs
+        ? {
+            herbs: z.array(herbSchema),
+            herbBundles: z.array(herbBundleSchema),
+            harvestedHerbs: nonNegative,
+          }
+        : {}),
     })
     .strict();
 }
@@ -341,23 +456,35 @@ const clearingSchemaV1 = makeClearingSchema(
   jobSchemaV1,
   commandHistorySchemaV1,
   false,
+  false,
 );
 const clearingSchemaV2 = makeClearingSchema(
   actorSchemaV2,
   bodySchemaV2,
-  jobSchema,
+  jobSchemaV3,
   commandHistorySchemaV2,
   true,
+  false,
+);
+const clearingSchemaV3 = makeClearingSchema(
+  actorSchemaV3,
+  bodySchemaV2,
+  jobSchemaV3,
+  commandHistorySchemaV3,
+  true,
+  false,
 );
 const clearingSchema = makeClearingSchema(
   actorSchema,
-  bodySchemaV2,
+  bodySchema,
   jobSchema,
   commandHistorySchema,
+  true,
   true,
 );
 const savedClearingSchemaV1 = clearingSchemaV1.omit({ commands: true });
 const savedClearingSchemaV2 = clearingSchemaV2.omit({ commands: true });
+const savedClearingSchemaV3 = clearingSchemaV3.omit({ commands: true });
 const savedClearingSchema = clearingSchema.omit({ commands: true });
 const saveEnvelopeSchemaV1 = z
   .object({
@@ -378,6 +505,14 @@ const saveEnvelopeSchemaV2 = z
 const saveEnvelopeSchemaV3 = z
   .object({
     kind: z.literal(SAVE_KIND),
+    schema: z.literal(SAVE_SCHEMA_V3),
+    revision: nonNegative,
+    savedState: savedClearingSchemaV3,
+  })
+  .strict();
+const saveEnvelopeSchemaV4 = z
+  .object({
+    kind: z.literal(SAVE_KIND),
     schema: z.literal(SAVE_SCHEMA),
     revision: nonNegative,
     savedState: savedClearingSchema,
@@ -387,6 +522,7 @@ const saveEnvelopeSchema = z.union([
   saveEnvelopeSchemaV1,
   saveEnvelopeSchemaV2,
   saveEnvelopeSchemaV3,
+  saveEnvelopeSchemaV4,
 ]);
 
 export type SerializedClearing = z.infer<typeof clearingSchema>;
@@ -399,7 +535,7 @@ function uniqueIds(values: string[], label: string): void {
 }
 
 function generatedIdNumber(value: string): number | null {
-  const match = /^(?:job|site|wood)-(\d+)$/.exec(value);
+  const match = /^(?:job|site|wood|herb-bundle|herb)-(\d+)$/.exec(value);
   return match ? Number(match[1]) : null;
 }
 
@@ -657,6 +793,9 @@ function checkActorTaskAssignmentAndCargo(
             );
           break;
         }
+        case "sow":
+        case "harvest":
+          break;
         default:
           assertNever(actor.task);
       }
@@ -796,6 +935,103 @@ function checkFeedAndNextId(state: Clearing): void {
     throw new Error("nextId can collide with a generated id");
 }
 
+function checkHerbs(state: Clearing): void {
+  const herbIds = state.herbs.map((herb) => herb.id);
+  const bundleIds = state.herbBundles.map((bundle) => bundle.id);
+  uniqueIds(herbIds, "herbs");
+  uniqueIds(bundleIds, "herb bundles");
+  const cells = new Set<string>();
+  const jobs = new Map(state.jobs.map((job) => [job.id, job]));
+  const sowTargets = new Set<string>();
+  const harvestTargets = new Set<string>();
+  for (const herb of state.herbs) {
+    checkCell(herb, `herb ${herb.id}`);
+    const key = `${herb.x},${herb.z},${herb.level}`;
+    if (cells.has(key)) throw new Error(`herbs contain duplicate cells`);
+    cells.add(key);
+    const occupant = placementOccupant(state, herb, herb.id);
+    if (occupant) throw new Error(`herb ${herb.id} overlaps ${occupant}`);
+    if (herb.stage === "ordered") {
+      if (herb.plantedAt !== null || herb.work >= SOW_TICKS)
+        throw new Error(`herb ${herb.id} has inconsistent ordered progress`);
+      continue;
+    }
+    if (
+      herb.plantedAt === null ||
+      herb.plantedAt > state.tick ||
+      herb.stage !== mugwortStage(state.tick - herb.plantedAt)
+    )
+      throw new Error(`herb ${herb.id} has inconsistent growth stage`);
+    if (herb.stage !== "ready" && herb.work !== 0)
+      throw new Error(`herb ${herb.id} has nonzero growth work`);
+    if (herb.stage === "ready" && herb.work >= HARVEST_TICKS)
+      throw new Error(`herb ${herb.id} has completed harvest work`);
+  }
+  for (const bundle of state.herbBundles) {
+    checkCell(bundle, `herb bundle ${bundle.id}`);
+    const key = `${bundle.x},${bundle.z},${bundle.level}`;
+    if (cells.has(key)) throw new Error(`herb bundles overlap a herb cell`);
+    cells.add(key);
+    const occupant = placementOccupant(state, bundle, bundle.id);
+    if (occupant)
+      throw new Error(`herb bundle ${bundle.id} overlaps ${occupant}`);
+  }
+  for (const job of state.jobs) {
+    if (job.kind !== "sow" && job.kind !== "harvest") continue;
+    const herb = state.herbs.find((candidate) => candidate.id === job.target);
+    if (!herb) throw new Error(`job ${job.id} has missing herb`);
+    if (job.kind === "sow") {
+      if (herb.stage !== "ordered")
+        throw new Error(`job ${job.id} targets a non-ordered herb`);
+      if (sowTargets.has(herb.id))
+        throw new Error(`herb ${herb.id} has duplicate sow jobs`);
+      sowTargets.add(herb.id);
+    } else {
+      if (herb.stage !== "ready")
+        throw new Error(`job ${job.id} targets a non-ready herb`);
+      if (harvestTargets.has(herb.id))
+        throw new Error(`herb ${herb.id} has duplicate harvest jobs`);
+      harvestTargets.add(herb.id);
+    }
+  }
+  for (const herb of state.herbs) {
+    if (herb.stage === "ordered" && !sowTargets.has(herb.id))
+      throw new Error(`ordered herb ${herb.id} has no sow job`);
+  }
+  for (const actor of Object.values(state.actors)) {
+    if (
+      !actor.task ||
+      (actor.task.kind !== "sow" && actor.task.kind !== "harvest")
+    )
+      continue;
+    const herb = state.herbs.find(
+      (candidate) => candidate.id === actor.task!.target,
+    );
+    const job = jobs.get(actor.task.job);
+    const expected = actor.task.kind === "sow" ? "ordered" : "ready";
+    if (
+      !herb ||
+      !job ||
+      job.kind !== actor.task.kind ||
+      job.target !== herb.id ||
+      herb.stage !== expected
+    )
+      throw new Error(
+        `actor ${actor.id} ${actor.task.kind} task disagrees with herb`,
+      );
+  }
+  if (
+    state.herbBundles.reduce((sum, bundle) => sum + bundle.amount, 0) !==
+    state.harvestedHerbs
+  )
+    throw new Error("harvested herbs do not match herb bundles");
+  const generated = [...herbIds, ...bundleIds]
+    .map(generatedIdNumber)
+    .filter((value): value is number => value !== null);
+  if (generated.some((value) => value >= state.nextId))
+    throw new Error("nextId can collide with a generated id");
+}
+
 function checkInvariants(state: Clearing): void {
   checkIdentityAndParties(state);
   checkCellsAndTreeProgress(state);
@@ -806,6 +1042,7 @@ function checkInvariants(state: Clearing): void {
   checkSitesAndProgress(state, context);
   checkMaterialConservation(state, context);
   checkFeedAndNextId(state);
+  checkHerbs(state);
 }
 
 export function validateClearing(value: unknown): SerializedClearing {
@@ -824,13 +1061,28 @@ function normalizeSavedState(envelope: SaveEnvelope): Record<string, unknown> {
   const actors = Object.fromEntries(
     Object.entries(envelope.savedState.actors).map(([id, actor]) => [
       id,
-      { ...actor, drafted: "drafted" in actor ? actor.drafted : false },
+      {
+        ...actor,
+        allowedWork: {
+          ...actor.allowedWork,
+          garden:
+            "garden" in actor.allowedWork ? actor.allowedWork.garden : true,
+        },
+        drafted: "drafted" in actor ? actor.drafted : false,
+      },
     ]),
   );
   return {
     ...envelope.savedState,
     actors,
     ...(envelope.schema === SAVE_SCHEMA_V1 ? { consumedWood: 0 } : {}),
+    ...(envelope.schema !== SAVE_SCHEMA
+      ? {
+          herbs: [],
+          herbBundles: [],
+          harvestedHerbs: 0,
+        }
+      : {}),
   };
 }
 
