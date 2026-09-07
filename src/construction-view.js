@@ -122,6 +122,16 @@ export function createConstructionView(world, art, bodies, input) {
         finished = site.finishedAt !== null;
       const activeLevel = site.level === selection.level;
       const supportContext = selection.level === 1 && site.level === 0;
+      const cutawayWall =
+        site.type === "wall" &&
+        selection.cutaway &&
+        finished &&
+        indoorActors.some(
+          (actor) =>
+            site.x + site.z >= actor.x + actor.z &&
+            Math.abs(at.x - projectCell({ ...actor, level: site.level }).x) <
+              45,
+        );
       const stored = state.herbBundles.some(
         (bundle) =>
           bundle.location.kind === "stored" && bundle.location.site === site.id,
@@ -139,7 +149,8 @@ export function createConstructionView(world, art, bodies, input) {
           : art.buildings[site.type][stage][site.direction];
       view.visible = activeLevel || supportContext;
       view.position.set(at.x, at.y);
-      view.eventMode = finished && activeLevel ? "static" : "none";
+      view.eventMode =
+        finished && activeLevel && !cutawayWall ? "static" : "none";
       view.cursor = finished ? "pointer" : "default";
       view.zIndex =
         site.x +
@@ -158,18 +169,7 @@ export function createConstructionView(world, art, bodies, input) {
             ? 0.85
             : 0.42;
       view.tint = finished || site.delivered ? 0xffffff : 0xc6e9dd;
-      if (
-        site.type === "wall" &&
-        selection.cutaway &&
-        indoorActors.some(
-          (actor) =>
-            site.x + site.z >= actor.x + actor.z &&
-            Math.abs(at.x - projectCell({ ...actor, level: site.level }).x) <
-              45,
-        ) &&
-        finished
-      )
-        view.alpha = 0.28;
+      if (cutawayWall) view.alpha = 0.28;
       if (site.type === "roof" && selection.cutaway)
         view.alpha = finished ? 0.12 : 0.24;
       if (!finished) {
