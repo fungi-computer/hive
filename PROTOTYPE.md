@@ -46,6 +46,9 @@ The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapp
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
 resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
+The future [home-between-realms synthesis](docs/decisions/a-home-between-realms.md)
+and [Glomzy palette/night-lighting study](docs/decisions/glomzy-palette-and-night-lighting.md)
+remain deferred proposals; neither reorders upstairs → brewing or enters the current sprint.
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna
