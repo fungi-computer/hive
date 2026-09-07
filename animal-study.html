@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="mocha">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Good company on a long road · Goblin Bed & Breakfast</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      main {
+        max-width: 1024px;
+        margin: auto;
+      }
+      h1 {
+        font-size: 27px;
+        line-height: 1.25;
+        margin: 12px 0;
+      }
+      p {
+        margin: 8px 0 16px;
+        line-height: 1.5;
+      }
+      .eyebrow,
+      footer {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+      .stage {
+        overflow-x: auto;
+        border-radius: 8px;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+      #pasture,
+      #lineup {
+        width: 1024px;
+        height: auto;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 16px 0;
+      }
+      .controls label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 8px;
+      }
+      footer {
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: 14px;
+        }
+        #pasture {
+          width: 512px;
+        }
+        #lineup {
+          width: 512px;
+        }
+        h1 {
+          font-size: 23px;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <main>
+      <div class="eyebrow">GOBLIN BED & BREAKFAST · ORIGINAL ANIMAL STUDY</div>
+      <h1>Good company on a long road.</h1>
+      <p>
+        A patient donkey, a suspicious llama, and a little life around the
+        homestead.
+      </p>
+      <p id="loading" role="status">Opening the pasture…</p>
+      <div class="stage bg-base-200">
+        <canvas
+          id="pasture"
+          width="512"
+          height="256"
+          aria-label="Five original farm and pack animals with Rowan and Bramble in a small pasture"
+        ></canvas>
+      </div>
+      <div class="controls" aria-label="Animal study controls">
+        <button class="btn btn-sm" id="play">Pause motion</button>
+        <button
+          class="btn btn-sm btn-primary"
+          id="pose-idle"
+          data-pose="idle"
+          aria-pressed="true"
+        >
+          Idle
+        </button>
+        <button
+          class="btn btn-sm"
+          id="pose-walk"
+          data-pose="walk"
+          aria-pressed="false"
+        >
+          Walk
+        </button>
+        <button
+          class="btn btn-sm"
+          id="pose-graze"
+          data-pose="graze"
+          aria-pressed="false"
+        >
+          Graze & peck
+        </button>
+        <button class="btn btn-sm" id="turn">Turn animals</button
+        ><span id="facing">1 / 4</span>
+        <label
+          ><input class="checkbox checkbox-sm" id="pack" type="checkbox" />
+          Pack-animal walk</label
+        >
+      </div>
+      <div class="stage">
+        <canvas
+          id="lineup"
+          width="512"
+          height="112"
+          aria-label="Same-scale lineup of Rowan, donkey, llama, cow, sheep, hen and Bramble"
+        ></canvas>
+      </div>
+      <footer>
+        Original geometry → fixed 80px bake → Pixi, using the game's 32×16 tile
+        scale.<br />
+        An art and motion study. Feeding, milking, eggs, wool and caravan cargo
+        are planned gameplay. Pack toggle shows an authored load, not a working
+        inventory.<br />
+        <a class="link" href="/">Back to the playable home</a>
+      </footer>
+    </main>
+    <script type="module" src="./animal-study.js"></script>
+  </body>
+</html>

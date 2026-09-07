@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>An invitation · Goblin Bed & Breakfast</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Georgia, serif;
+        color: #e6d5b7;
+        background: #25232c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 26px 24px 32px;
+      }
+      main {
+        max-width: 1000px;
+        margin: auto;
+      }
+      .eyebrow {
+        color: #ae968f;
+        font: 11px system-ui;
+        letter-spacing: 0.18em;
+      }
+      h1 {
+        font-size: 34px;
+        font-weight: 400;
+        margin: 10px 0 8px;
+      }
+      p {
+        color: #bfb1a5;
+        line-height: 1.5;
+        margin: 8px 0 18px;
+      }
+      .stage {
+        background: #34323c;
+        border: 1px solid #625562;
+        border-radius: 9px;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+        height: auto;
+        max-width: 100%;
+      }
+      #court {
+        width: 960px;
+        margin: auto;
+      }
+      .speech {
+        border-top: 1px solid #625562;
+        padding: 13px 20px;
+        margin: 0;
+        color: #ddc7a4;
+      }
+      .speech strong {
+        color: #d19283;
+        font-weight: 400;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0 12px;
+      }
+      button {
+        background: #463943;
+        color: #e9d3ae;
+        border: 1px solid #857073;
+        border-radius: 5px;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      button[aria-pressed="true"] {
+        background: #80605e;
+        border-color: #cfaa82;
+      }
+      button:focus-visible {
+        outline: 2px solid #e6c380;
+        outline-offset: 3px;
+      }
+      #lineup {
+        width: 960px;
+        margin: auto;
+        border-radius: 6px;
+      }
+      footer {
+        color: #a79c98;
+        font: 12px/1.5 system-ui;
+        margin-top: 14px;
+      }
+      #loading {
+        color: #d8c79d;
+      }
+      @media (max-width: 620px) {
+        body {
+          padding: 18px 10px;
+        }
+        h1 {
+          font-size: 27px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">
+        GOBLIN BED & BREAKFAST · ORIGINAL CHARACTER STUDY
+      </div>
+      <h1>An invitation to a very small game.</h1>
+      <p>
+        The Devil has brought company. Bramble is keeping an eye on the board.
+      </p>
+      <p id="loading">Preparing the pieces…</p>
+      <section class="stage">
+        <canvas
+          id="court"
+          width="480"
+          height="260"
+          aria-label="The Devil and two demons beside an original miniature chess table"
+        ></canvas>
+        <p class="speech">
+          <strong>The Devil, to you:</strong> “You may keep the pieces. Do try
+          not to lose yourself.”
+        </p>
+      </section>
+      <div class="controls" aria-label="Character study controls">
+        <button id="play">Pause motion</button>
+        <button id="pose-idle" data-pose="idle" aria-pressed="true">
+          Idle
+        </button>
+        <button id="pose-walk" data-pose="walk" aria-pressed="false">
+          Walk
+        </button>
+        <button id="pose-offer" data-pose="offer" aria-pressed="false">
+          A small gesture
+        </button>
+        <button id="turn">Turn the visitors</button>
+        <span id="facing" class="eyebrow">1 / 4</span>
+      </div>
+      <canvas
+        id="lineup"
+        width="480"
+        height="120"
+        aria-label="Rowan, the Devil, Moth page, Cinder porter and Bramble compared at the same pixel scale"
+      ></canvas>
+      <footer>
+        Controls animate the three visitors. Rowan and Bramble are still scale
+        references.<br />
+        Original Three geometry → fixed 80px bake → Pixi · shown at game 2×.<br />Character
+        and motion study; the board and dialogue illustrate direction. Chess and
+        encounters are not playable here.
+      </footer>
+    </main>
+    <script type="module" src="./devil-study.js"></script>
+  </body>
+</html>
