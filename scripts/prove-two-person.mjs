@@ -93,6 +93,40 @@ try {
   assert.deepEqual((await ui()).selectedIds, ["rowan", "sedge"]);
   await screenshot("03-both-selected");
 
+  await clickCell(12, 6, 1.5);
+  assert.deepEqual((await ui()).selectedIds, ["rowan", "sedge"]);
+  assert.equal((await ui()).tree, "oak-8");
+  await page.evaluate(() => {
+    window.__orderClickEvents = [];
+    for (const type of ["pointerdown", "pointerup", "click"])
+      document.addEventListener(
+        type,
+        (event) =>
+          window.__orderClickEvents.push({
+            type,
+            target: event.target.id || event.target.tagName,
+          }),
+        true,
+      );
+  });
+  await page.locator("#chop-queued").click();
+  await page.waitForTimeout(1_000);
+  evidence.orderClick = await page.evaluate(() => ({
+    events: window.__orderClickEvents,
+    commands: window.__GOBLIN.state.commands,
+    selection: window.__GOBLIN.selection,
+  }));
+  assert.equal(evidence.orderClick.commands.length, 2);
+  const personal = (await state()).jobs.find((job) => job.target === "oak-8");
+  assert.deepEqual(personal.scope.actors, ["rowan", "sedge"]);
+  await page.getByRole("button", { name: /^Orders/ }).click();
+  await page
+    .locator(`[data-action="cancel"][data-job="${personal.id}"]`)
+    .click();
+  await wait(
+    () => !window.__GOBLIN.state.jobs.some((job) => job.target === "oak-8"),
+  );
+
   await openBuild();
   await page.locator("#chop-tool").click();
   await dragCells([3, 3], [10, 4]);
@@ -172,6 +206,8 @@ try {
 } catch (error) {
   evidence.success = false;
   evidence.failure = String(error.stack || error);
+  evidence.failureState = await state().catch(() => null);
+  evidence.failureUi = await ui().catch(() => null);
   await screenshot("failure").catch(() => {});
   process.exitCode = 1;
 } finally {

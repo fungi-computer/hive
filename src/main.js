@@ -352,7 +352,7 @@ async function startGame() {
     },
     cancelDrag() {
       const current = hud.view();
-      if (current.phase === "fixed" && current.tool === "chop") return;
+      if (current.phase !== "dragging") return;
       hud.dispatch({ kind: "escape" });
     },
   });

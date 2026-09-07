@@ -54,6 +54,7 @@ export function createView(app, world, camera, art, initial, input) {
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
     view.container.hitArea = new Rectangle(-22, -62, 44, 66);
+    view.container.on("pointerdown", (event) => event.stopPropagation());
     const choose = (event) => {
       event.stopPropagation();
       input.tree(tree.id, event.global);
@@ -73,6 +74,7 @@ export function createView(app, world, camera, art, initial, input) {
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
     view.container.hitArea = new Rectangle(-13, -45, 26, 48);
+    view.container.on("pointerdown", (event) => event.stopPropagation());
     view.container.on("pointertap", (event) => {
       event.stopPropagation();
       input.actor(
@@ -134,19 +136,24 @@ export function createView(app, world, camera, art, initial, input) {
   app.stage.addChild(selectionBox);
   app.stage.eventMode = "static";
   app.stage.hitArea = app.screen;
+  const fromCanvas = (event) => event.nativeEvent?.target === app.canvas;
   app.stage.on("globalpointermove", (e) => {
-    if (e.nativeEvent?.target !== app.canvas) return;
+    if (!fromCanvas(e)) return;
     const cell = camera.cell(e.global);
     if (inside(cell)) input.move(cell, e.global);
   });
   app.stage.on("pointerdown", (e) => {
-    if (e.button === 0) input.down(camera.cell(e.global), e.global);
+    if (fromCanvas(e) && e.button === 0)
+      input.down(camera.cell(e.global), e.global);
   });
   app.stage.on("pointerup", (e) => {
-    if (e.button === 0) input.up(camera.cell(e.global), e.global);
+    if (fromCanvas(e) && e.button === 0)
+      input.up(camera.cell(e.global), e.global);
   });
   app.stage.on("pointerupoutside", input.cancelDrag);
-  app.stage.on("pointertap", input.ground);
+  app.stage.on("pointertap", (e) => {
+    if (fromCanvas(e)) input.ground();
+  });
 
   function drawPiles(state) {
     for (const [id, view] of piles) {
