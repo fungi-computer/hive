@@ -290,6 +290,37 @@ with one location.
 This is enough data orientation for these slices. A generic ECS, job language,
 plugin registry or event-sourcing engine has no demonstrated consumer yet.
 
+## Future definitions, knowledge and physical content
+
+When a real workstation, culture or craft chain exists, its authored definition
+may reference assets, recipe inputs/outputs and already-supported behavior or
+animation. Admission validates schema and cross-references. Adding an ordinary
+recipe must not require a new engine branch; adding a genuinely new behavior must
+extend the closed command/job/activity owners exhaustively and prove one
+producer-to-completion path. The current `BUILDINGS` map and chop/build/rest
+variants are the concrete baseline, not evidence that a workstation-config or
+general scripting system exists.
+
+Physical storage is a location/capacity owner alongside piles, cargo and sites.
+Its filters decide admission, while claims reserve a concrete free slot or
+quantity; linked shelves may share policy but never capacity or material. Books
+are movable item instances carrying identified practices/provenance, while an
+actor, faction or institution's learned knowledge is separate state. The future
+product loop is discovery → learning → recording/teaching/trade → application;
+visibility remains grant-scoped, so an ID is neither universal knowledge nor
+permission to read another faction's secret. Mushroom batches/strains and a
+later greenhouse culture are consumers of this same seam, not a second discovery
+engine. Exact literacy, practice, secrecy, cultivation and storage policy await
+their first concrete consumer.
+
+Before an ECS decision, measure deterministic 5/50/100 actor fixtures separately
+for dirty assignment/path/topology work, ordinary activity ticks, mutation churn,
+render projection and allocation. First compare small pass-local derived indexes
+and topology-revision caches while preserving replay, claims and material totals;
+only then compare a thin Miniplex or bitECS adapter if component-membership cost
+is material. Neither library owns spatial topology, pathing, ordered priority,
+claims or command authority, and no ECS dependency is selected now.
+
 ## Parties and composable work
 
 Commands capture their party and selected actor scope. A person can work only
@@ -501,6 +532,15 @@ on observed outcomes, not fixed delays. Allow dismissal/replay and avoid repeate
 interruptions. This is deterministic presentation over existing facts, not an
 LLM/chat integration, another job queue or a second tutorial simulation.
 
+Future drawing keeps tool lifetime apart from one gesture and geometry apart
+from the action applied to resolved targets. Wall lines, room outlines/fills,
+area designations and selection boxes may share level-aware preview/cancellation
+rules without becoming a new UI state system. A room blueprint stores only a
+relative layout and definition references; each placement resolves current
+requirements and creates fresh sites/jobs. It cannot copy delivered materials,
+claims, actors or construction progress, and it never silently demolishes a
+blocked footprint. First prove one-storey stamping before multi-level copies.
+
 ## Next-round art and inventory notes
 
 Levi requests painterly animated grass/leaves. Start with a small original
@@ -625,6 +665,18 @@ different costs. Pricing and entitlements are product work after measuring the
 service; no payment or model integration belongs in the first local milestone.
 AI actors issue the same authorized commands as humans. Shiitake remains the
 future storyteller; its event delivery timing never owns movement or resources.
+
+Autonomous factions retain identity, memory, loyalties and history independently
+of controller/model provider. Controller, player account, actor, species, culture,
+faction and knowledge remain distinct records: player-directed, player-delegated
+and world-directed name authority rather than species; elves can originate nature
+practices and dwarves machine practices without a global racial unlock. A future
+game-tool adapter exposes only bounded, revisioned, grant-filtered observations
+and typed idempotent commands, plus bounded long-work readback. It does not dump
+world state or let model code mutate it. Familiar, faction and storyteller grants
+are separately authorized but settle through the same world command authority.
+This is a host/product boundary for a future persistent world, not an MCP/DO
+implementation or authorization for live AI in the home candidate.
 
 ## Implementation sequence and evidence
 

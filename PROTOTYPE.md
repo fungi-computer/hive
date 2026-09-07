@@ -172,6 +172,16 @@ and planning marks are distinct player modes. Planning marks have no wood or
 work commitment until converted to actual blueprints; hiding foliage never removes
 its collision. Four camera views follow the first usable floor controls.
 
+Later drawing tools should keep shape, selected level, target filter, preview,
+commit and cancellation separate: actor boxes select people; area tools select
+work targets; wall strokes select a line; room tools can select hollow rectangles
+or filled floors. A saved room blueprint is a reusable relative layout (including
+relative storey, definition references and orientation), not a copied world
+snapshot. Stamping previews current material/blocked/support reasons and creates
+new ordinary sites/jobs—never cloned delivered stock, occupants, assignments or
+progress. Personal layout saving is a building convenience; exchanging a plan
+through a book/trade path is a later proposal and does not grant unknown recipes.
+
 Levi's excavation/water destination is a personally built Zen garden and fishing
 pond. The first water target is diverting a stream into a pond with flow control
 and a drain. Avoid manual source-block or bucket puzzles: use a finite conserved amount,
@@ -195,6 +205,38 @@ universal graft-anything claim. Small cultivation and recipe work can be proved
 independently; pond-driven moisture joins after the water conservation proof.
 Neither expands the current home goal.
 
+## Consolidated later content and knowledge direction
+
+Levi directs one reusable loop for future strains, techniques, recipes, spells,
+grafting and crafted goods: **discovery → learning → recording, teaching or
+trade → application**. A book is durable, movable know-how with a subject and
+provenance; learning stays with its reader, while practice can affect execution
+without making ownership of a book a global unlock. A physical book and an
+actor's learned practice express the same discovery rather than competing
+mushroom-only or book-only truth. What literacy, partial learning, secrecy,
+attribution, permissions and institutional ownership mean remains unresolved.
+
+Levi also directs cozy physical storage and authored craft content: chests and
+shelves visibly hold stock, and bookcases visibly hold books. Storage capacity,
+filters and claims constrain hauling but do not create another inventory or
+duplicate material; linked storage, if later useful, shares policy rather than
+ownership. A future authored definition may combine asset references, a recipe
+and supported behavior/animation references, but only a concrete workstation or
+practice may establish that schema. New ordinary content should be data over
+exhaustive supported behavior, with admission/cross-reference validation; it is
+not permission for a script engine, generic job language or current-home work.
+
+Mushroom cultures are one concrete application. Levi directs procedurally
+generated batches whose sampled appearance/effect is fixed before it is learned;
+stored harvests retain their batch identity rather than changing at midnight.
+Known strains can later be propagated with a sample/culture, suitable medium,
+conditions and horticultural work, preserving the strain while producing new
+physical batches. Astra recommends recording an authoritative harvest epoch or
+seed rather than reading client wall time in deterministic ticks. Timezone,
+world-versus-global sharing, regrowth, gift identification and exact cultivation
+thresholds remain unresolved. None makes a real botanical/safety claim or enters
+the active home candidate.
+
 ## Loose occult-world and card direction
 
 Levi adds Null Tale's art, [Chess of Death / Fate Chess](https://nulltale.itch.io/chess-of-death)
@@ -211,6 +253,22 @@ Keep collectible physical ownership consistent with later inventory and caravans
 a shrine trip would use the same cross-world identity transfer and destination
 permission as other visits. No separate teleport authority or live model scheduler
 is requested. Original art only; references and uploaded images are inspiration.
+
+Levi's specific minichess direction is a 4×4 board with capture-the-king
+(regicide) loss, not an assumed orthodox checkmate rule: a threatened king may
+remain threatened until captured. Fair-but-imperfect opponents, opening
+positions, puzzles and reward structure are future design choices. The inspected
+Fate Chess reference established narrative interaction and named asymmetric
+Card/Dice/Direct roles, not an observed board move or a rule set to copy.
+
+Bramble is the first otherworldly familiar: an awkward companion/tutorial who
+can address the human player, play minichess and later receive bounded delegated
+activity. Levi also directs a recurring Devil and demons as distinct player-facing
+otherworldly characters around chess, tarot and possible magic learning. These
+relationship grants are separate from one another and from the privileged
+world-storyteller grant: storyteller intent enters deterministic world authority
+as events, while no speaker receives unrestricted simulation mutation. Exact
+encounters, bargains, rewards and delegated familiar authority remain proposals.
 
 Tarot may also call distinctive people into the world or party. A starting Fool
 could introduce the first person; a later Lovers card could introduce a bonded
@@ -269,7 +327,9 @@ authoritative ammunition and hit settlement remain separate world facts.
 The existing static-preview custody and all no-main/production/backend/purchase
 limits remain in force.
 
-The two-person controls candidate now uses React 18.3.1, Caps, derived Jotai
+The two-person controls direction is accepted under game-delivery custody, but
+is not a shipped claim until the joined candidate's source and hosted proof are
+accepted. Its current candidate uses React 18.3.1, Caps, derived Jotai
 display facts, one small XState tool/gesture lifecycle, and the actual
 `@opentui/keymap/html` 0.5.10 adapter. Bindings and displayed hints share the
 keymap definition. Rowan can recruit Sedge, select either or both people, issue
