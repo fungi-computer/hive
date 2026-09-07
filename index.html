@@ -2,106 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#202d2b" />
-    <title>Goblin Bed & Breakfast · A Home for Rowan</title>
+    <title>Goblin Bed & Breakfast</title>
   </head>
   <body>
-    <main id="inn">
-      <header>
-        <div>
-          <p class="eyebrow">A LITTLE HIVE EXPERIMENT</p>
-          <h1>Goblin Bed <i>&</i> Breakfast</h1>
-        </div>
-        <div class="inn-sign">
-          <span class="sign-mark">✦</span
-          ><span
-            >GOBLIN COUNTRY<small>Stay useful. Stay off the menu.</small></span
-          >
-        </div>
-      </header>
-      <section id="game" aria-label="Isometric survival clearing">
-        <div class="scene-top">
-          <span class="location"
-            >BRAMBLE CLEARING <span>·</span> <b id="day">DAY 1</b></span
-          ><span id="feed">FAKE SHIITAKE · seeded event pending</span>
-        </div>
-        <div id="stage">
-          <div id="loading">Finding a patch of daylight…</div>
-        </div>
-        <div id="demand" hidden></div>
-        <div class="scene-bottom">
-          <span id="notice" role="status">A borrowed axe. No home.</span
-          ><span id="score">0 wood on ground</span>
-        </div>
-      </section>
-      <footer>
-        <button
-          id="select"
-          class="portrait"
-          aria-label="Select Rowan the outsider"
-        >
-          <span class="portrait-icon">♟</span
-          ><span
-            ><strong>Rowan</strong
-            ><small id="rest-level">HUMAN · OUTSIDER</small></span
-          >
-        </button>
-        <div class="task-copy">
-          <strong id="activity">Stranded in goblin country</strong
-          ><span id="hint">Select Rowan, then choose work.</span>
-        </div>
-        <button id="task" disabled>Order chopping</button>
-        <div class="controls">
-          <button id="pause" aria-label="Pause">Ⅱ</button
-          ><button id="speed" aria-label="Change simulation speed">1×</button
-          ><button id="reset" aria-label="Reset clearing">↻</button>
-        </div>
-      </footer>
-      <section class="workbench" aria-label="Building and work orders">
-        <div class="build-panel">
-          <p class="eyebrow">MAKE YOURSELF A HOME</p>
-          <div id="palette">
-            <button data-build="wall" disabled>
-              Wall <small>1 wood</small></button
-            ><button data-build="door" disabled>
-              Doorway <small>2 wood</small></button
-            ><button data-build="roof" disabled>
-              Roof tile <small>1 wood</small></button
-            ><button data-build="bed" disabled>
-              Bedroll <small>2 wood · 1×2</small></button
-            ><button id="rotate" disabled>Rotate ↻</button>
-          </div>
-          <p class="building-help">
-            Click a tile or drag a row. Leave a doorway in your walls. Roofs
-            wait for enclosing walls; the bedroll needs two indoor tiles.
-          </p>
-          <div class="routine">
-            <label
-              ><input id="cutaway" type="checkbox" checked /> Cutaway
-              view</label
-            ><label
-              ><input id="routine" type="checkbox" disabled /> Work by day,
-              sleep by night</label
-            ><button id="rest" disabled>Rest now</button>
-          </div>
-          <p id="home-status">A home starts with an order.</p>
-        </div>
-        <div class="order-panel">
-          <div class="orders-heading">
-            <span class="eyebrow">ROWAN’S ORDERS</span
-            ><small id="order-count">0 waiting</small>
-          </div>
-          <ol id="orders"></ol>
-        </div>
-      </section>
-      <p class="instructions">
-        CHOP <b>→</b> CARRY <b>→</b> BUILD <b>→</b> REST
+    <main id="game" aria-label="Goblin Bed and Breakfast">
+      <div id="stage" aria-label="Isometric survival clearing"></div>
+      <div id="hud"></div>
+      <div id="loading" role="status">
         <span
-          >Every piece of wood has somewhere to go.
-          <a href="/study">Character study</a></span
+          >Goblin Bed & Breakfast<small
+            >Finding a patch of daylight…</small
+          ></span
         >
-      </p>
+      </div>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>

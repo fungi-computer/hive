@@ -27,15 +27,10 @@ const state = () => page.evaluate(() => window.__GOBLIN.state);
 const wait = (condition) =>
   page.waitForFunction(condition, null, { timeout: 120000 });
 async function point(x, z, y = 0) {
-  const at = await page.evaluate(
+  return page.evaluate(
     ([x, z, y]) => window.__GOBLIN.project(x, z, y),
     [x, z, y],
   );
-  const box = await page.locator("#stage canvas").boundingBox();
-  return {
-    x: box.x + (at.x * box.width) / 640,
-    y: box.y + (at.y * box.height) / 400,
-  };
 }
 async function click(x, z, y = 0) {
   const at = await point(x, z, y);
@@ -53,6 +48,7 @@ try {
   assert.equal(initial.sites.length, 0);
   await shot("01-clearing");
   await click(7, 10, 1); // Select the actual approved Rowan in the scene.
+  await page.getByRole("button", { name: "Build", exact: true }).click();
   await page.locator('[data-build="wall"]').click();
   const at = await point(7, 5);
   await page.mouse.move(at.x, at.y);
@@ -65,15 +61,17 @@ try {
   assert.equal(waiting.sites[0].delivered, 0);
   assert.equal(waiting.sites[0].work, 0);
   await shot("03-waiting-for-wood");
+  await page.getByRole("button", { name: /^Orders\b/ }).click();
   await page.locator('#orders [data-action="cancel"]').click();
   await wait(() => window.__GOBLIN.state.sites.length === 0);
   const canceledBlueprint = await state();
   assert.equal(canceledBlueprint.piles.length, 0);
+  await page.getByRole("button", { name: "Build", exact: true }).click();
   await page.locator('[data-build="wall"]').click();
   await click(7, 5);
   await page.locator("#task").click();
   await click(3, 4, 1.5);
-  await page.locator("#task").click();
+  await page.locator("#chop").click();
   await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
   await page.waitForTimeout(1100);
   const chopping = await state();
@@ -101,9 +99,11 @@ try {
   );
   await shot("07-wall-finished");
   // The complete home is laid out through the same visible placement controls.
+  await page.getByRole("button", { name: "Open game menu" }).click();
   await page.locator("#reset").click();
   await click(7, 10, 1);
   await page.locator("#speed").click();
+  await page.getByRole("button", { name: "Build", exact: true }).click();
   async function row(type, from, to = from) {
     await page.locator(`[data-build="${type}"]`).click();
     const a = await point(...from),
@@ -140,7 +140,7 @@ try {
     [11, 10],
   ]) {
     await click(x, z, 1.9);
-    await page.locator("#task").click();
+    await page.locator("#chop").click();
   }
   await wait(
     () =>
@@ -166,6 +166,7 @@ try {
   await shot("10-home-roof");
   await page.locator("#cutaway").check();
   await shot("11-home-cutaway");
+  await page.locator("#select").click();
   await page.locator("#rest").click();
   await wait(() => window.__GOBLIN.state.pawn.mode === "sleep");
   await page.locator("#pause").click();
@@ -176,7 +177,7 @@ try {
   await shot("12-sleep-paused");
   await page.locator("#pause").click();
   await click(6, 2, 1.9);
-  await page.locator("#task").click();
+  await page.locator("#chop").click();
   await wait(() => window.__GOBLIN.state.rested === 1);
   await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
   const resumed = await state();
@@ -193,6 +194,7 @@ try {
     11,
   );
   // The standing schedule is real browser input; the simulation clock reaches night.
+  await page.locator("#select").click();
   await page.locator("#routine").check();
   await wait(() => window.__GOBLIN.state.pawn.mode === "sleep");
   await shot("14-night-routine");
@@ -203,6 +205,7 @@ try {
   );
   const morning = await state();
   await shot("15-morning");
+  await page.getByRole("button", { name: "Open game menu" }).click();
   await page.locator("#reset").click();
   await page.locator("#pause").click();
   const reset = await state();

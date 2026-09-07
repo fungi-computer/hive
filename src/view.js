@@ -1,5 +1,5 @@
 import { Sprite, Container, Graphics, Rectangle, Text } from "pixi.js";
-import { project, groundCell, WIDTH, HEIGHT } from "./art/scale.js";
+import { project, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.js";
 import { WATCHER } from "./world.js";
 import { CHOP_TICKS, isNight } from "./jobs.js";
@@ -37,14 +37,14 @@ function body(texture, anchor, radius) {
   container.addChild(sprite);
   return { container, sprite };
 }
-export function createView(app, art, initial, input) {
-  app.stage.addChild(new Sprite(art.ground));
+export function createView(app, world, camera, art, initial, input) {
+  world.addChild(new Sprite(art.ground));
   const route = new Graphics(),
     marks = new Graphics(),
     bodies = new Container();
   route.eventMode = marks.eventMode = "none";
   bodies.sortableChildren = true;
-  app.stage.addChild(route, marks, bodies);
+  world.addChild(route, marks, bodies);
   const trees = new Map();
   for (const tree of initial.trees) {
     const view = body(art.tree.standing, art.propAnchor, 13);
@@ -53,10 +53,12 @@ export function createView(app, art, initial, input) {
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
     view.container.hitArea = new Rectangle(-22, -62, 44, 66);
-    view.container.on("pointertap", (event) => {
+    const choose = (event) => {
       event.stopPropagation();
-      input.tree(tree.id);
-    });
+      input.tree(tree.id, event.global);
+    };
+    view.container.on("pointertap", choose);
+    view.container.on("rightclick", choose);
     trees.set(tree.id, view);
   }
   const pawn = body(art.pawn.idle[0][0], art.pawnAnchor, 6);
@@ -74,31 +76,50 @@ export function createView(app, art, initial, input) {
   const ring = new Graphics()
     .ellipse(0, 0, 9, 4)
     .stroke({ width: 1, color: 0xf0d28a });
-  const name = label("ROWAN", 7);
-  name.y = -48;
+  const name = new Text({
+    text: "Rowan",
+    style: {
+      fontFamily: "sans-serif",
+      fontSize: 13,
+      fontWeight: "600",
+      fill: 0xf7e9cb,
+    },
+  });
+  name.anchor.set(0.5);
+  const namePlate = new Container();
+  namePlate.eventMode = "none";
+  namePlate.addChild(
+    new Graphics()
+      .roundRect(-28, -11, 56, 22, 4)
+      .fill({ color: 0x1b2b24, alpha: 0.94 })
+      .stroke({ color: 0xb7b585, width: 1 }),
+    name,
+  );
   const progress = new Graphics();
   ring.eventMode = name.eventMode = progress.eventMode = "none";
   pawn.container.addChildAt(ring, 1);
-  pawn.container.addChild(name, progress);
+  pawn.container.addChild(progress);
   const piles = new Map();
-  const construction = createConstructionView(app, art, bodies);
+  const construction = createConstructionView(world, art, bodies);
   const dusk = new Graphics()
     .rect(0, 0, WIDTH, HEIGHT)
     .fill({ color: 0x252342, alpha: 0.3 });
   dusk.eventMode = "none";
-  app.stage.addChild(dusk);
+  world.addChild(dusk);
+  app.stage.addChild(namePlate);
   app.stage.eventMode = "static";
-  app.stage.hitArea = new Rectangle(0, 0, WIDTH, HEIGHT);
-  app.stage.on("globalpointermove", (e) =>
-    input.hover(groundCell(e.global.x, e.global.y)),
+  app.stage.hitArea = app.screen;
+  app.stage.on("globalpointermove", (e) => input.hover(camera.cell(e.global)));
+  app.stage.on(
+    "pointerdown",
+    (e) => e.button === 0 && input.down(camera.cell(e.global)),
   );
-  app.stage.on("pointerdown", (e) =>
-    input.down(groundCell(e.global.x, e.global.y)),
-  );
-  app.stage.on("pointerup", (e) =>
-    input.up(groundCell(e.global.x, e.global.y)),
+  app.stage.on(
+    "pointerup",
+    (e) => e.button === 0 && input.up(camera.cell(e.global)),
   );
   app.stage.on("pointerupoutside", input.cancelDrag);
+  app.stage.on("pointertap", input.ground);
   function drawPiles(state) {
     for (const [id, view] of piles)
       if (!state.piles.some((p) => p.id === id && p.amount)) {
@@ -180,7 +201,9 @@ export function createView(app, art, initial, input) {
     const pose = p.mode === "walk" && p.carry ? "carry" : p.mode;
     const frames = art.pawn[pose][p.dir];
     pawn.sprite.texture = frames[Math.floor(state.tick / 2) % frames.length];
-    ring.visible = name.visible = selected;
+    ring.visible = namePlate.visible = selected;
+    const labelAt = camera.project(pos.x, pos.z, 2.6);
+    namePlate.position.set(Math.round(labelAt.x), Math.round(labelAt.y));
     route.clear();
     progress.clear();
     if (selected && p.path.length) {
@@ -202,7 +225,7 @@ export function createView(app, art, initial, input) {
       pawn.container.eventMode = selection.tool ? "none" : "static";
       drawTrees(state, selection);
       drawPiles(state);
-      drawPawn(state, selection.pawn);
+      drawPawn(state, !!selection.actor);
       put(cat.container, visualPosition(state.cat));
       cat.container.zIndex += 0.4;
       const catFrames = art.cat[state.cat.mode][state.cat.dir];

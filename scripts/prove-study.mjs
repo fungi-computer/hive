@@ -129,12 +129,8 @@ try {
   });
   await page.locator("#select").click();
   const tree = await page.evaluate(() => window.__GOBLIN.project(3, 4, 1.8));
-  const canvas = await page.locator("canvas").boundingBox();
-  await page.mouse.click(
-    canvas.x + (tree.x * canvas.width) / 640,
-    canvas.y + (tree.y * canvas.height) / 400,
-  );
-  await page.locator("#task").click();
+  await page.mouse.click(tree.x, tree.y);
+  await page.locator("#chop").click();
   await page.waitForFunction(
     () => window.__GOBLIN.state.pawn.mode === "chop",
     null,

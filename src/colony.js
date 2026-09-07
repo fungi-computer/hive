@@ -1,4 +1,5 @@
-// The unmodified, pinned upstream browser release owns assignment optimization.
+// The pinned upstream optimizer/wrapper, rebuilt with a smaller Wasm memory.
+// Source, compiler flags and generated hashes are recorded in vendor provenance.
 export function loadColony() {
   return new Promise((resolve, reject) => {
     window.Module = {

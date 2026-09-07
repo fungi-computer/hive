@@ -34,11 +34,62 @@ code/assets or expand this goal into combat, multiplayer or a world framework.
 The existing static-preview custody and all no-main/production/backend/purchase
 limits remain in force.
 
+CTO accepted the single-person controls interim after personally reviewing
+normal/narrow pixels, source and the successful built-browser proof. It may be
+committed/pushed/published now; recruitment is still goal work. The controls use
+React 19.2.8 over read-only UI snapshots and the actual
+`@opentui/keymap/html` 0.5.10 adapter. Bindings and displayed hints share the
+keymap definition. Use `npm run prove:controls -- URL EVIDENCE_DIRECTORY` through
+the shared host's proof runner. The original header/boxed workbench UI and
+whole-list `innerHTML` updates have been removed.
+
+The interim's actual controls proof covers contextual chopping, waiting wood,
+hauling/construction, retained order focus across a real status change, focus
+after closing a window, zero paused HUD mutations, camera-aware picking, drag
+cancellation on camera changes, held-key handling, native checkbox behavior and
+narrow layout. The reviewed vendor build exposes 16,777,216 bytes in-browser.
+Root's independent Fallow evidence remains visible: inherited `drawSites`
+cognitive 41; `hudModel` cognitive 33 mixes guidance/notice/display derivation
+and must be separated by concept before the second actor is added. Flat action
+routing and declarative JSX are understood shapes, not blanket clean metrics.
+The upstream wrapper is both an external `em++ --post-js` input and part of the
+generated runtime; that reported clone is retained with its original bytes.
+
+Levi's notes for the next round, recorded without expanding this interim:
+
+- Sims-like floor up/down controls with visible active storey, distinct wall/roof
+  visibility controls and later four quarter-turn views. Camera rotation changes
+  projection/picking/depth and selects matching original directional bakes; it
+  does not rotate the saved world or tasks. The usable floor selector accompanies
+  actual upstairs construction.
+- Soft, painterly wind in original animated grass clumps and separate leaf
+  canopies, baked from a few Three geometry poses with staggered phases. Begin
+  with a small visual study; decorative wind is not a simulation scheduler.
+- Diablo-like backpack packing with rotatable item footprints. Backpack contents,
+  equipped gear and visible hauling cargo are distinct locations with one owner
+  per physical item. Large logs may occupy the arms without occupying backpack
+  cells. Item-grid size is independent of world-tile size; weight and fit are
+  separate constraints. No duplicate inventory ledger or general container engine
+  is introduced into the controls interim.
+- A paper-doll equipment panel: drag a helmet onto the head, gloves onto hands,
+  and other gear into readable compatible slots. Backpacks and belts can provide
+  distinct storage areas; removing one must preserve its contents. Equipped gear,
+  packed items and arm-carried logs retain one physical owner.
+- Deep authored craftable gear and material processing, beginning with simple
+  leather work and later refined methods. Physical books can carry knowledge
+  between people and caravans. Research relevant RimWorld mods before choosing
+  the first small crafting/knowledge loop; no crafting engine is added now.
+- NullTale/LutLight2D is a lighting reference for spooky magical color at night.
+  Investigate authored palette ramps and a light field within the existing
+  original sprite pipeline; the Unity package is not a browser dependency.
+
 Levi correctly challenged libcolony's release memory size. Its pinned source
 uses the Hungarian algorithm and hard-codes a 327,680,000-byte initial memory
 with a 160,000,000-byte stack inside it. A 16 MiB source build with a 1 MiB stack
-has passed the actual five-person/100-task API in local workerd; browser/current
-game integration and hosted deployment of that build have not yet been proved.
+has passed the actual five-person/100-task API in local workerd. That source build
+is now integrated in the browser game: seven simulation tests and the reviewed
+built controls proof pass, with a measured 16,777,216-byte heap. Hosted browser
+parity is the interim release gate; DO service capacity is still unproved.
 Preserve the actual selected algorithm/API and record toolchain/build provenance.
 Do not replace the optimizer or call local runtime success hosted memory proof.
 

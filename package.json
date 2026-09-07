@@ -10,10 +10,14 @@
     "preview": "wrangler preview",
     "format": "prettier --write src scripts index.html study.html vite.config.js wrangler.jsonc",
     "prove": "node scripts/prove.mjs",
+    "prove:controls": "node scripts/prove-controls.mjs",
     "prove:study": "node scripts/prove-study.mjs"
   },
   "dependencies": {
+    "@opentui/keymap": "0.5.10",
     "pixi.js": "^8.11.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "three": "^0.185.1"
   },
   "devDependencies": {

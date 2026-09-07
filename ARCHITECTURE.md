@@ -229,6 +229,19 @@ do not stretch the fixed 640 by 400 art into a different aspect ratio. Names and
 controls remain readable when the view changes. Ordinary play fills `100dvh`;
 browser Fullscreen API remains optional and user-triggered.
 
+Levi explicitly selects OpenTUI Keymap for hotkeys. The interim uses the pinned
+`@opentui/keymap@0.5.10` HTML adapter, one binding definition and its active-binding
+formatting for HUD hints. The retained Botanical browser integration was inspected
+at `366dc8c1339cf5f5fbd07ffefc6eba8c8fa42c9d`; current Botanical-next has the accepted
+physical/semantic ownership ADR, not a claimed already-integrated keymap caller.
+Game actions remain local; no Whistle/runtime migration is part of this game.
+
+The requested floor controls should distinguish active storey from cutaway/roof
+visibility. Four quarter-turn views are the intended later rotation interface.
+Rotating projection requires inverse picking, view-relative depth sorting and
+matching directional bakes for props, joins and figures. It never mutates world
+positions. The original Three geometry is the source for those extra views.
+
 Click a person or roster portrait to inspect/select them. A target context menu
 offers valid actions for that selection. Capture actor IDs when an order is
 submitted, so later selection cannot retarget it. Distinguish an immediate direct
@@ -263,6 +276,48 @@ use the bed; later explain the floor selector/stairs when relevant. Advance hint
 on observed outcomes, not fixed delays. Allow dismissal/replay and avoid repeated
 interruptions. This is deterministic presentation over existing facts, not an
 LLM/chat integration, another job queue or a second tutorial simulation.
+
+## Next-round art and inventory notes
+
+Levi requests painterly animated grass/leaves. Start with a small original
+Three-to-sprite wind study: grass clumps and leaf canopies have a few authored
+wind poses, staggered phases and stable placement. Trunks can stay still while
+canopies move. Keep pixel scale, depth, overhang and transparent sorting readable;
+do not add a general foliage engine before the motion looks good in the game.
+
+He also requests Diablo-style rotatable backpack packing, with hand-held work
+cargo separate from that grid. Stable item instances eventually have exactly one
+location: ground, backpack placement, equipment/hand slot, construction/work input,
+or explicit consumed output. Rotation and footprint determine packing; mass is a
+separate rule. World tile size does not determine inventory-grid size. Large logs
+can occupy hauling capacity/arms without being compressed into backpack squares.
+The current quantity-based wood transfers and future item movement share the same
+conservation rule; claims promise transfers and never create a second item. This
+direction does not require nested bags, equipment balance, ammo varieties or a
+general container framework in the current two-person home.
+
+Equipment should have a readable paper-doll panel with compatible drop targets:
+head, body, hands and feet, plus worn storage such as a backpack and belt. A bag
+provides its own storage layout rather than silently increasing a global integer.
+Removing it must move the bag with its contents or explain why that move cannot
+fit; never discard overflow. Gear definitions describe slots, footprints and
+effects; particular items retain identity, material and condition. UI drag ghosts
+are proposals until one simulation command transfers the item successfully.
+
+Levi wants deep authored crafting, early leather processing followed by refined
+methods, and knowledge exchanged through physical books. Research actual mod
+mechanics before choosing a small first chain. A book, recipe knowledge and a
+person's skill are distinct facts; copying, teaching and use should become
+explicit work rather than a global unlock triggered by owning a book. These are
+future product considerations, not a new crafting system in the controls release.
+
+NullTale/LutLight2D is a requested lighting reference. Its Unity URP implementation
+uses authored color ramps/LUTs and lighting intensity for palette replacement.
+Explore that technique with the existing original baked sprites and a separate
+world-light field; keep UI colors and simulation visibility independent of the
+presentation shader. Spooky moonlight, emissive mushrooms and magical lanterns
+should first be a small rendered night study.
+[Upstream reference](https://github.com/NullTale/LutLight2D).
 
 ## Persistence and future multiplayer hosting
 
@@ -418,7 +473,10 @@ For the local caravan slice, the required proof includes:
 
 The existing seven-test/home/study evidence remains the accepted baseline, not
 a new full-suite run. The source review found the roof-refund and HUD-focus
-defects recorded in ignored `.botanical/foundation-review/`; both remain open.
+defects recorded in ignored `.botanical/foundation-review/`. The controls interim
+now fixes HUD focus through keyed React updates and removed-control focus return,
+proved across a real job-status change. The roof-refund defect remains for the
+shared-material work in the active two-person goal.
 Fallow's 27 complexity advisories, three clone groups, `drawSites` cognitive 41
 and shared art-bundle warning remain disclosed. Decompose appearance, lifetime
 and topology by concept when extending those responsibilities; do not hide
@@ -455,11 +513,14 @@ The unchanged header, Embind bridge and JS post-wrapper have now been rebuilt
 with portable Emscripten 3.1.46, `INITIAL_MEMORY=16777216`,
 `TOTAL_STACK=1048576`, `ALLOW_MEMORY_GROWTH=0` and `STACK_OVERFLOW_CHECK=2`.
 Local workerd accepted the actual five-person/100-task caller, running 100
-assignments with a constant 16 MiB linear memory. This proves a smaller build at
-that workload; it does not establish browser-game regression or hosted service
-capacity. The rebuild, setup command, runtime caller and result are preserved in
-ignored `.botanical/architecture-pass/libcolony-rebuild/`. The shipped vendor
-bytes remain unchanged pending game integration and its actual consumer proof.
+assignments with a constant 16 MiB linear memory. The controls interim integrates
+those exact generated bytes; seven simulation tests and the actual built-browser
+chop/haul/build input proof pass with the 16 MiB heap. This does not establish
+hosted DO service capacity. The rebuild, setup command, runtime caller and result
+are preserved in ignored `.botanical/architecture-pass/libcolony-rebuild/`.
+Unchanged upstream sources are retained in `vendor/libcolony/`; the reproducible
+compiler command is `scripts/build-colony.sh`. Current and original release
+hashes are recorded in `public/vendor/libcolony/PROVENANCE.md`.
 [Pinned Makefile](https://github.com/mafik/libcolony/blob/867b2147fc0e8bfa28e873d576c5e4b186ec3b2f/Makefile#L6-L7),
 [algorithm source](https://github.com/mafik/libcolony/blob/867b2147fc0e8bfa28e873d576c5e4b186ec3b2f/src/colony.h#L64-L72).
 

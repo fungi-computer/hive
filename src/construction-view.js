@@ -49,13 +49,13 @@ function wallMask(site, sites) {
   });
   return mask || (site.direction ? 10 : 5);
 }
-export function createConstructionView(app, art, bodies) {
+export function createConstructionView(world, art, bodies) {
   const grid = new Graphics(),
     bars = new Graphics(),
     ghostLayer = new Container();
   grid.eventMode = bars.eventMode = ghostLayer.eventMode = "none";
-  app.stage.addChildAt(grid, 1);
-  app.stage.addChild(ghostLayer, bars);
+  world.addChildAt(grid, 1);
+  world.addChild(ghostLayer, bars);
   const sites = new Map();
   const caption = new Text({
     text: "",
@@ -63,7 +63,7 @@ export function createConstructionView(app, art, bodies) {
   });
   caption.anchor.set(0.5);
   caption.eventMode = "none";
-  app.stage.addChild(caption);
+  world.addChild(caption);
   let ghosts = [];
   function sprite(texture) {
     const s = new Sprite(texture);
