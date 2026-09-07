@@ -24,6 +24,18 @@ export function commandProblem(state: Clearing, command: Command): string {
   if ("direct" in command && command.direct && command.actors === null)
     return "Select the people for a direct order.";
   if (command.kind === "build") return placementProblem(state, command);
+  if (command.kind === "deconstruct") {
+    const site = state.sites.find((candidate) => candidate.id === command.site);
+    if (!site) return "That structure is no longer here.";
+    if (site.finishedAt === null)
+      return "Only a finished structure can be deconstructed.";
+    if (
+      state.jobs.some(
+        (job) => job.kind === "deconstruct" && job.target === site.id,
+      )
+    )
+      return "That structure is already marked for deconstruction.";
+  }
   if (command.kind === "chop") {
     const tree = state.trees.find((t) => t.id === command.tree);
     if (!tree) return "Select an oak tree first.";
@@ -59,6 +71,8 @@ export function cancelJob(state: Clearing, id: string): void {
     }
     case "chop":
     case "rest":
+      break;
+    case "deconstruct":
       break;
     default:
       assertNever(job);
@@ -126,7 +140,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       if (command.direct) state.jobs.unshift(job);
       else state.jobs.push(job);
     }
-  } else {
+  } else if (command.kind === "build") {
     const site = {
       id: `site-${state.nextId++}`,
       type: command.type,
@@ -149,14 +163,27 @@ function orderWork(state: Clearing, command: WorkCommand): void {
     };
     if (command.direct) state.jobs.unshift(job);
     else state.jobs.push(job);
+  } else {
+    const job: Job = {
+      id: `job-${state.nextId++}`,
+      kind: "deconstruct",
+      target: command.site,
+      scope,
+      reason: "Ordered",
+      routine: false,
+    };
+    if (command.direct) state.jobs.unshift(job);
+    else state.jobs.push(job);
   }
   state.workDirty = true;
   state.notice =
     command.kind === "build"
       ? "Blueprint placed. Wood will be brought when it is available."
-      : command.direct
-        ? "Direct order received. Earlier unfinished orders are kept."
-        : "Work added to the orders.";
+      : command.kind === "deconstruct"
+        ? "Deconstruction ordered. The structure will remain until the work is complete."
+        : command.direct
+          ? "Direct order received. Earlier unfinished orders are kept."
+          : "Work added to the orders.";
 }
 export function acceptCommand(
   state: Clearing,
@@ -204,6 +231,7 @@ export function acceptCommand(
     }
     case "chop":
     case "build":
+    case "deconstruct":
     case "rest":
       orderWork(state, command);
       return { status: "applied" };

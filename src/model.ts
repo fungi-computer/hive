@@ -12,6 +12,7 @@ export type Scope = { party: PartyId; actors: ActorId[] | null };
 export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "chop"; tree: string }
     | ({ kind: "build"; type: BuildingKind; direction: number } & Cell)
+    | { kind: "deconstruct"; site: string }
     | { kind: "rest" }
   );
 export type Command =
@@ -29,8 +30,9 @@ type JobBase = {
 };
 export type ChopJob = JobBase & { kind: "chop"; target: string };
 export type BuildJob = JobBase & { kind: "build"; target: string };
+export type DeconstructJob = JobBase & { kind: "deconstruct"; target: string };
 export type RestJob = JobBase & { kind: "rest"; target: ActorId };
-export type Job = ChopJob | BuildJob | RestJob;
+export type Job = ChopJob | BuildJob | DeconstructJob | RestJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -39,12 +41,14 @@ type ActivityBase = {
 };
 export type ChopActivity = ActivityBase & { kind: "chop" };
 export type BuildActivity = ActivityBase & { kind: "build" };
+export type DeconstructActivity = ActivityBase & { kind: "deconstruct" };
 export type PickupActivity = ActivityBase & { kind: "pickup" };
 export type DeliverActivity = ActivityBase & { kind: "deliver" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
 export type Activity =
   | ChopActivity
   | BuildActivity
+  | DeconstructActivity
   | PickupActivity
   | DeliverActivity
   | SleepActivity;
@@ -111,6 +115,7 @@ export type Clearing = {
   felled: number;
   finishedJobs: number;
   rested: number;
+  consumedWood: number;
   commands: (Command & { tick: number })[];
   feed: {
     seed: number;

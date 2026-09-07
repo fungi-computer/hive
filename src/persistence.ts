@@ -6,7 +6,8 @@ import { CHOP_TICKS } from "./activity.ts";
 import { BUILDINGS } from "./construction.js";
 
 export const SAVE_KIND = "hive-local-world" as const;
-export const SAVE_SCHEMA = 1 as const;
+export const SAVE_SCHEMA = 2 as const;
+export const SAVE_SCHEMA_V1 = 1 as const;
 export const SAVE_DB_NAME = "hive-local-world";
 export const SAVE_STORE = "world";
 export const SAVE_KEY = "current";
@@ -31,12 +32,38 @@ const activityBase = {
   target: id,
   duration: positive,
 };
+const chopActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("chop") })
+  .strict();
+const buildActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("build") })
+  .strict();
+const pickupActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("pickup") })
+  .strict();
+const deliverActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("deliver") })
+  .strict();
+const sleepActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("sleep") })
+  .strict();
+const deconstructActivitySchema = z
+  .object({ ...activityBase, kind: z.literal("deconstruct") })
+  .strict();
+const activitySchemaV1 = z.discriminatedUnion("kind", [
+  chopActivitySchema,
+  buildActivitySchema,
+  pickupActivitySchema,
+  deliverActivitySchema,
+  sleepActivitySchema,
+]);
 const activitySchema = z.discriminatedUnion("kind", [
-  z.object({ ...activityBase, kind: z.literal("chop") }).strict(),
-  z.object({ ...activityBase, kind: z.literal("build") }).strict(),
-  z.object({ ...activityBase, kind: z.literal("pickup") }).strict(),
-  z.object({ ...activityBase, kind: z.literal("deliver") }).strict(),
-  z.object({ ...activityBase, kind: z.literal("sleep") }).strict(),
+  chopActivitySchema,
+  buildActivitySchema,
+  pickupActivitySchema,
+  deliverActivitySchema,
+  sleepActivitySchema,
+  deconstructActivitySchema,
 ]);
 
 const assignmentSchema = z
@@ -45,12 +72,18 @@ const assignmentSchema = z
 const cargoSchema = z
   .object({ job: id, site: id, amount: positive.max(2) })
   .strict();
-const bodySchema = z
+const bodyFields = {
+  x: integer,
+  z: integer,
+  level: integer,
+  dir: integer.min(0).max(3),
+  path: z.array(cellSchema),
+  leg: nonNegative,
+  work: nonNegative,
+};
+const bodySchemaV1 = z
   .object({
-    x: integer,
-    z: integer,
-    level: integer,
-    dir: integer.min(0).max(3),
+    ...bodyFields,
     mode: z.enum([
       "idle",
       "walk",
@@ -60,23 +93,38 @@ const bodySchema = z
       "deliver",
       "sleep",
     ]),
-    path: z.array(cellSchema),
-    leg: nonNegative,
-    work: nonNegative,
   })
   .strict();
-const actorSchema = bodySchema
-  .extend({
-    id,
-    name: z.string(),
-    figure: z.string(),
-    rest: finite.min(0).max(100),
-    routine: z.boolean(),
-    allowedWork: allowedWorkSchema,
-    task: activitySchema.nullable(),
-    assignment: assignmentSchema.nullable(),
-    cargo: cargoSchema.nullable(),
+const bodySchema = z
+  .object({
+    ...bodyFields,
+    mode: z.enum([
+      "idle",
+      "walk",
+      "chop",
+      "build",
+      "deconstruct",
+      "pickup",
+      "deliver",
+      "sleep",
+    ]),
   })
+  .strict();
+const actorFields = {
+  id,
+  name: z.string(),
+  figure: z.string(),
+  rest: finite.min(0).max(100),
+  routine: z.boolean(),
+  allowedWork: allowedWorkSchema,
+  assignment: assignmentSchema.nullable(),
+  cargo: cargoSchema.nullable(),
+};
+const actorSchemaV1 = bodySchemaV1
+  .extend({ ...actorFields, task: activitySchemaV1.nullable() })
+  .strict();
+const actorSchema = bodySchema
+  .extend({ ...actorFields, task: activitySchema.nullable() })
   .strict();
 const partySchema = z.object({ id, members: z.array(id) }).strict();
 const treeSchema = cellSchema
@@ -111,10 +159,28 @@ const jobBase = {
   reason: z.string(),
   routine: z.boolean(),
 };
+const chopJobSchema = z
+  .object({ ...jobBase, kind: z.literal("chop"), target: id })
+  .strict();
+const buildJobSchema = z
+  .object({ ...jobBase, kind: z.literal("build"), target: id })
+  .strict();
+const deconstructJobSchema = z
+  .object({ ...jobBase, kind: z.literal("deconstruct"), target: id })
+  .strict();
+const restJobSchema = z
+  .object({ ...jobBase, kind: z.literal("rest"), target: id })
+  .strict();
+const jobSchemaV1 = z.discriminatedUnion("kind", [
+  chopJobSchema,
+  buildJobSchema,
+  restJobSchema,
+]);
 const jobSchema = z.discriminatedUnion("kind", [
-  z.object({ ...jobBase, kind: z.literal("chop"), target: id }).strict(),
-  z.object({ ...jobBase, kind: z.literal("build"), target: id }).strict(),
-  z.object({ ...jobBase, kind: z.literal("rest"), target: id }).strict(),
+  chopJobSchema,
+  buildJobSchema,
+  deconstructJobSchema,
+  restJobSchema,
 ]);
 
 const workCommandSchema = z
@@ -124,87 +190,152 @@ const workCommandSchema = z
     direct: z.boolean().optional(),
   })
   .strict();
+const chopCommandSchema = workCommandSchema
+  .extend({ kind: z.literal("chop"), tree: id })
+  .strict();
+const buildCommandSchema = workCommandSchema
+  .extend({
+    kind: z.literal("build"),
+    type: z.enum(["wall", "door", "roof", "bed"]),
+    direction: integer,
+    x: integer,
+    z: integer,
+    level: integer,
+  })
+  .strict();
+const deconstructCommandSchema = workCommandSchema
+  .extend({ kind: z.literal("deconstruct"), site: id })
+  .strict();
+const restCommandSchema = workCommandSchema
+  .extend({ kind: z.literal("rest") })
+  .strict();
+const queueCommandSchema = z
+  .object({
+    party: id,
+    actors: z.array(id).min(1).nullable(),
+    kind: z.enum(["cancel", "next"]),
+    job: id,
+  })
+  .strict();
+const routineCommandSchema = z
+  .object({
+    party: id,
+    actors: z.array(id).min(1).nullable(),
+    kind: z.literal("routine"),
+    enabled: z.boolean(),
+  })
+  .strict();
+const workCommandSchemaWithToggle = z
+  .object({
+    party: id,
+    actors: z.array(id).min(1).nullable(),
+    kind: z.literal("work"),
+    work: z.enum(["chop", "haul", "build"]),
+    enabled: z.boolean(),
+  })
+  .strict();
+const recruitCommandSchema = z
+  .object({ kind: z.literal("recruit"), party: id, actor: id })
+  .strict();
+const commandSchemasV1 = [
+  chopCommandSchema,
+  buildCommandSchema,
+  restCommandSchema,
+  queueCommandSchema,
+  routineCommandSchema,
+  workCommandSchemaWithToggle,
+  recruitCommandSchema,
+] as const;
+const commandSchemaV1 = z.union(commandSchemasV1);
 const commandSchema = z.union([
-  workCommandSchema.extend({ kind: z.literal("chop"), tree: id }).strict(),
-  workCommandSchema
-    .extend({
-      kind: z.literal("build"),
-      type: z.enum(["wall", "door", "roof", "bed"]),
-      direction: integer,
-      x: integer,
-      z: integer,
-      level: integer,
-    })
-    .strict(),
-  workCommandSchema.extend({ kind: z.literal("rest") }).strict(),
-  z
-    .object({
-      party: id,
-      actors: z.array(id).min(1).nullable(),
-      kind: z.enum(["cancel", "next"]),
-      job: id,
-    })
-    .strict(),
-  z
-    .object({
-      party: id,
-      actors: z.array(id).min(1).nullable(),
-      kind: z.literal("routine"),
-      enabled: z.boolean(),
-    })
-    .strict(),
-  z
-    .object({
-      party: id,
-      actors: z.array(id).min(1).nullable(),
-      kind: z.literal("work"),
-      work: z.enum(["chop", "haul", "build"]),
-      enabled: z.boolean(),
-    })
-    .strict(),
-  z.object({ kind: z.literal("recruit"), party: id, actor: id }).strict(),
+  chopCommandSchema,
+  buildCommandSchema,
+  deconstructCommandSchema,
+  restCommandSchema,
+  queueCommandSchema,
+  routineCommandSchema,
+  workCommandSchemaWithToggle,
+  recruitCommandSchema,
 ]);
+const commandHistorySchemaV1 = z.intersection(
+  commandSchemaV1,
+  z.object({ tick: nonNegative }).strict(),
+);
 const commandHistorySchema = z.intersection(
   commandSchema,
   z.object({ tick: nonNegative }).strict(),
 );
 
-const clearingSchema = z
+const clearingFields = {
+  seed: finite,
+  tick: nonNegative,
+  paused: z.boolean(),
+  nextId: positive,
+  parties: z.record(id, partySchema),
+  trees: z.array(treeSchema),
+  rocks: z.array(cellSchema),
+  watcher: cellSchema,
+  piles: z.array(pileSchema),
+  sites: z.array(siteSchema),
+  claims: z.record(id, claimSchema),
+  workDirty: z.boolean(),
+  felled: nonNegative,
+  finishedJobs: nonNegative,
+  rested: nonNegative,
+  feed: z
+    .object({
+      seed: finite,
+      sequence: nonNegative,
+      nextAt: nonNegative,
+      last: eventSchema.nullable(),
+    })
+    .strict(),
+  demand: eventSchema.nullable(),
+  notice: z.string(),
+};
+function makeClearingSchema(
+  actor: any,
+  body: any,
+  job: any,
+  commandHistory: any,
+  withConsumedWood: boolean,
+) {
+  return z
+    .object({
+      ...clearingFields,
+      actors: z.record(id, actor),
+      cat: body.extend({ nextMove: nonNegative }).strict(),
+      jobs: z.array(job),
+      commands: z.array(commandHistory),
+      ...(withConsumedWood ? { consumedWood: nonNegative } : {}),
+    })
+    .strict();
+}
+const clearingSchemaV1 = makeClearingSchema(
+  actorSchemaV1,
+  bodySchemaV1,
+  jobSchemaV1,
+  commandHistorySchemaV1,
+  false,
+);
+const clearingSchema = makeClearingSchema(
+  actorSchema,
+  bodySchema,
+  jobSchema,
+  commandHistorySchema,
+  true,
+);
+const savedClearingSchemaV1 = clearingSchemaV1.omit({ commands: true });
+const savedClearingSchema = clearingSchema.omit({ commands: true });
+const saveEnvelopeSchemaV1 = z
   .object({
-    seed: finite,
-    tick: nonNegative,
-    paused: z.boolean(),
-    nextId: positive,
-    actors: z.record(id, actorSchema),
-    parties: z.record(id, partySchema),
-    cat: bodySchema.extend({ nextMove: nonNegative }).strict(),
-    trees: z.array(treeSchema),
-    rocks: z.array(cellSchema),
-    watcher: cellSchema,
-    piles: z.array(pileSchema),
-    sites: z.array(siteSchema),
-    jobs: z.array(jobSchema),
-    claims: z.record(id, claimSchema),
-    workDirty: z.boolean(),
-    felled: nonNegative,
-    finishedJobs: nonNegative,
-    rested: nonNegative,
-    commands: z.array(commandHistorySchema),
-    feed: z
-      .object({
-        seed: finite,
-        sequence: nonNegative,
-        nextAt: nonNegative,
-        last: eventSchema.nullable(),
-      })
-      .strict(),
-    demand: eventSchema.nullable(),
-    notice: z.string(),
+    kind: z.literal(SAVE_KIND),
+    schema: z.literal(SAVE_SCHEMA_V1),
+    revision: nonNegative,
+    savedState: savedClearingSchemaV1,
   })
   .strict();
-
-const savedClearingSchema = clearingSchema.omit({ commands: true });
-const saveEnvelopeSchema = z
+const saveEnvelopeSchemaV2 = z
   .object({
     kind: z.literal(SAVE_KIND),
     schema: z.literal(SAVE_SCHEMA),
@@ -212,6 +343,10 @@ const saveEnvelopeSchema = z
     savedState: savedClearingSchema,
   })
   .strict();
+const saveEnvelopeSchema = z.union([
+  saveEnvelopeSchemaV1,
+  saveEnvelopeSchemaV2,
+]);
 
 export type SerializedClearing = z.infer<typeof clearingSchema>;
 export type SavedClearing = z.infer<typeof savedClearingSchema>;
@@ -283,6 +418,7 @@ function checkInvariants(state: Clearing): void {
   const felledTrees = state.trees.filter((tree) => tree.felledAt !== null);
   if (state.felled !== felledTrees.length)
     throw new Error("felled count disagrees with felled trees");
+  const deconstructTargets = new Set<string>();
   for (const tree of state.trees) {
     if (tree.felledAt !== null) {
       if (tree.work !== CHOP_TICKS || tree.felledAt > state.tick)
@@ -311,6 +447,15 @@ function checkInvariants(state: Clearing): void {
       if (!site) throw new Error(`job ${job.id} has missing site`);
       if (site.finishedAt !== null)
         throw new Error(`job ${job.id} targets a finished site`);
+    }
+    if (job.kind === "deconstruct") {
+      const site = state.sites.find((candidate) => candidate.id === job.target);
+      if (!site) throw new Error(`job ${job.id} has missing site`);
+      if (site.finishedAt === null)
+        throw new Error(`job ${job.id} targets an unfinished site`);
+      if (deconstructTargets.has(site.id))
+        throw new Error(`site ${site.id} has duplicate deconstruction jobs`);
+      deconstructTargets.add(site.id);
     }
     if (job.kind === "rest" && !state.actors[job.target])
       throw new Error(`job ${job.id} has missing actor`);
@@ -368,6 +513,21 @@ function checkInvariants(state: Clearing): void {
               `actor ${actor.id} build task disagrees with job target`,
             );
           break;
+        case "deconstruct": {
+          const site = sites.get(actor.task.target);
+          if (
+            job.kind !== "deconstruct" ||
+            job.target !== actor.task.target ||
+            !site ||
+            site.finishedAt === null ||
+            state.claims[actor.id] !== undefined ||
+            actor.cargo !== null
+          )
+            throw new Error(
+              `actor ${actor.id} deconstruct task disagrees with site`,
+            );
+          break;
+        }
         case "pickup": {
           const claim = state.claims[actor.id];
           if (
@@ -512,7 +672,8 @@ function checkInvariants(state: Clearing): void {
   const physicalWood =
     state.piles.reduce((total, pile) => total + pile.amount, 0) +
     state.sites.reduce((total, site) => total + site.delivered, 0) +
-    [...cargoBySite.values()].reduce((total, amount) => total + amount, 0);
+    [...cargoBySite.values()].reduce((total, amount) => total + amount, 0) +
+    state.consumedWood;
   if (physicalWood !== state.felled * 6)
     throw new Error("physical wood does not match felled oaks");
   if (state.feed.seed !== state.seed)
@@ -532,7 +693,9 @@ export function validateClearing(value: unknown): SerializedClearing {
 
 export function validateSaveEnvelope(value: unknown): SaveEnvelope {
   const parsed = saveEnvelopeSchema.parse(value);
-  validateSavedClearing(parsed.savedState);
+  if (parsed.schema === SAVE_SCHEMA_V1)
+    validateSavedClearing({ ...parsed.savedState, consumedWood: 0 });
+  else validateSavedClearing(parsed.savedState);
   return parsed;
 }
 
@@ -558,9 +721,13 @@ export function restoreSnapshot(value: unknown): {
   revision: number;
 } {
   const envelope = validateSaveEnvelope(value);
+  const savedState =
+    envelope.schema === SAVE_SCHEMA_V1
+      ? { ...envelope.savedState, consumedWood: 0 }
+      : envelope.savedState;
   return {
     state: structuredClone({
-      ...envelope.savedState,
+      ...savedState,
       commands: [],
       paused: true,
     }) as Clearing,

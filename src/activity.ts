@@ -4,13 +4,15 @@ import type {
   BuildActivity,
   ChopActivity,
   Clearing,
+  DeconstructActivity,
   DeliverActivity,
   PickupActivity,
   SleepActivity,
+  Site,
 } from "./model.ts";
 import { blockedCells, sameCell } from "./world.js";
 import { walk, face } from "./movement.js";
-import { BUILDINGS } from "./construction.js";
+import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { dropWood, dropCarried } from "./resources.ts";
 import { isNight } from "./routine.ts";
 
@@ -98,6 +100,39 @@ function workOnBuilding(
   state.notice = `${BUILDINGS[site.type].label} finished. A little less wilderness.`;
   finishJob(state, person, task.job);
 }
+function workOnDeconstruction(
+  state: Clearing,
+  person: Actor,
+  task: DeconstructActivity,
+): void {
+  const site = state.sites.find((candidate) => candidate.id === task.target);
+  if (!site || site.finishedAt === null) {
+    interruptWork(state, person);
+    return;
+  }
+  person.work++;
+  if (person.work < BUILDINGS[site.type].deconstructTicks) return;
+
+  const prospectiveSites = state.sites.filter(
+    (candidate) => candidate.id !== site.id,
+  );
+  const prospectiveState = { ...state, sites: prospectiveSites };
+  const beds = new Set(
+    shelteredBeds(prospectiveState).map((bed: Site) => bed.id),
+  );
+  for (const sleeper of Object.values(state.actors)) {
+    if (sleeper.task?.kind !== "sleep") continue;
+    if (sleeper.task.target === site.id || !beds.has(sleeper.task.target))
+      interruptWork(state, sleeper);
+  }
+
+  const recipe = BUILDINGS[site.type];
+  state.sites = prospectiveSites;
+  finishJob(state, person, task.job);
+  dropWood(state, site, recipe.salvageWood);
+  state.consumedWood += recipe.wood - recipe.salvageWood;
+  state.notice = `${recipe.label} deconstructed. ${recipe.salvageWood} wood recovered.`;
+}
 function rest(state: Clearing, person: Actor, task: SleepActivity): void {
   person.work++;
   person.rest = Math.min(100, person.rest + 0.3);
@@ -117,6 +152,7 @@ function targetFor(state: Clearing, task: Activity) {
     case "build":
     case "deliver":
     case "sleep":
+    case "deconstruct":
       return state.sites.find((site) => site.id === task.target);
     default:
       return assertNever(task);
@@ -159,6 +195,9 @@ export function advanceWork(state: Clearing, person: Actor): void {
       break;
     case "build":
       workOnBuilding(state, person, task);
+      break;
+    case "deconstruct":
+      workOnDeconstruction(state, person, task);
       break;
     case "sleep":
       rest(state, person, task);

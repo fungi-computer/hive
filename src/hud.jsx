@@ -24,6 +24,7 @@ const ACTIVITIES = {
   pickup: "Picking up wood",
   deliver: "Delivering wood",
   build: "Building",
+  deconstruct: "Deconstructing",
   sleep: "Sleeping in the bedroll",
 };
 
@@ -233,7 +234,9 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     type: site.type,
     x: site.x,
     z: site.z,
+    direction: site.direction,
     delivered: site.delivered,
+    work: site.work,
     finished: site.finishedAt !== null,
   }));
   const trees =
@@ -323,8 +326,7 @@ function orderModel(display, job) {
 const worldFactsAtom = atom(null);
 const selectionAtom = atom({
   selectedIds: [],
-  inspectedId: null,
-  treeId: null,
+  inspectedTarget: null,
   context: null,
   panel: null,
   designationTargetIds: [],
@@ -381,13 +383,19 @@ const rosterAtom = atom((get) => {
     selected,
     work,
     focused:
-      selected[0] || facts.actors[selection.inspectedId] || facts.actors.rowan,
-    inspected: selection.inspectedId
-      ? facts.actors[selection.inspectedId]
-      : null,
+      selected[0] ||
+      (selection.inspectedTarget?.kind === "actor"
+        ? facts.actors[selection.inspectedTarget.id]
+        : null) ||
+      facts.actors.rowan,
+    inspected:
+      selection.inspectedTarget?.kind === "actor"
+        ? facts.actors[selection.inspectedTarget.id]
+        : null,
     visitor:
-      selection.inspectedId && !facts.homeIds.includes(selection.inspectedId)
-        ? facts.actors[selection.inspectedId]
+      selection.inspectedTarget?.kind === "actor" &&
+      !facts.homeIds.includes(selection.inspectedTarget.id)
+        ? facts.actors[selection.inspectedTarget.id]
         : null,
     carry: selected.reduce((total, actor) => total + actor.cargoAmount, 0),
     routine: selected.length
@@ -409,7 +417,18 @@ const ordersAtom = atom((get) => {
 const targetAtom = atom((get) => {
   const facts = get(worldFactsAtom);
   const selection = get(selectionAtom);
-  return facts?.trees.find((tree) => tree.id === selection.treeId) || null;
+  const target = selection.inspectedTarget;
+  if (!facts || !target) return null;
+  if (target.kind === "actor") {
+    const actor = facts.actors[target.id];
+    return actor ? { kind: "actor", ...actor } : null;
+  }
+  if (target.kind === "tree") {
+    const tree = facts.trees.find((candidate) => candidate.id === target.id);
+    return tree ? { kind: "tree", ...tree } : null;
+  }
+  const site = facts.sites.find((candidate) => candidate.id === target.id);
+  return site ? { kind: "site", ...site } : null;
 });
 const buildAtom = atom((get) => {
   const facts = get(worldFactsAtom);
@@ -428,7 +447,7 @@ const tutorialAtom = atom((get) => {
   const roster = get(rosterAtom);
   const selection = get(selectionAtom);
   if (!facts || !roster) return "";
-  if (!selection.selectedIds.length && !selection.inspectedId)
+  if (!selection.selectedIds.length && !selection.inspectedTarget)
     return "Click a home member, shift-click to add one, or drag a box around both.";
   if (roster.visitor)
     return "Sedge is a visitor. Inspect her, then recruit her into the home.";
@@ -480,7 +499,12 @@ function Orders({ model: m, send }) {
     <ol id="orders">
       {m.orders.length ? (
         m.orders.map((job) => (
-          <li key={job.id} className={job.active ? "active-order" : ""}>
+          <li
+            key={job.id}
+            className={job.active ? "active-order" : ""}
+            data-job-kind={job.kind}
+            data-job={job.id}
+          >
             <span>
               <strong>{job.title}</strong>
               <small>{job.detail}</small>
@@ -775,8 +799,56 @@ function Build({ model: m, send }) {
 }
 
 function Target({ model: m, send }) {
-  if (!m.context || !m.tree) return null;
-  const targetProblem = m.tree.felled ? "That tree is already a stump." : "";
+  if (!m.context || !m.target) return null;
+  if (m.target.kind === "site") {
+    const label = BUILDINGS[m.target.type].label;
+    return (
+      <Card
+        variant="outline"
+        role="region"
+        className="window target-window"
+        aria-label="Structure actions"
+        style={{
+          left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
+          top: Math.max(80, Math.min(innerHeight - 190, m.context.y + 12)),
+        }}
+      >
+        <div className="window-heading">
+          <h2>{label}</h2>
+          <Button
+            className="close"
+            variant="ghost"
+            size="icon"
+            aria-label="Close structure actions"
+            onClick={() => send({ kind: "close-target" })}
+          >
+            ×
+          </Button>
+        </div>
+        <p className="muted">
+          Finished structure · {m.target.x}, {m.target.z}
+        </p>
+        <Button
+          id="deconstruct"
+          data-action="deconstruct"
+          data-site={m.target.id}
+          variant="primary"
+          aria-label={`Deconstruct ${label}`}
+          onClick={() =>
+            send({
+              kind: "command",
+              command: { kind: "deconstruct", site: m.target.id },
+            })
+          }
+        >
+          Deconstruct
+        </Button>
+      </Card>
+    );
+  }
+  if (m.target.kind !== "tree") return null;
+  const tree = m.target;
+  const targetProblem = tree.felled ? "That tree is already a stump." : "";
   const personalProblem = !m.selectedIds.length
     ? "Select one or more home members for a personal order."
     : targetProblem;
@@ -792,7 +864,7 @@ function Target({ model: m, send }) {
       }}
     >
       <div className="window-heading">
-        <h2>{m.tree.felled ? "Oak stump" : "Oak tree"}</h2>
+        <h2>{tree.felled ? "Oak stump" : "Oak tree"}</h2>
         <Button
           className="close"
           variant="ghost"
@@ -804,7 +876,7 @@ function Target({ model: m, send }) {
         </Button>
       </div>
       <p className="muted">
-        {m.tree.felled
+        {tree.felled
           ? "Six logs earned. The stump stays."
           : `6 wood · ${m.selectedIds.length ? `${m.selectedIds.length} selected` : "shared colony work"}`}
       </p>
@@ -817,7 +889,7 @@ function Target({ model: m, send }) {
             kind: "command",
             command: {
               kind: "chop",
-              tree: m.tree.id,
+              tree: tree.id,
               direct: false,
               actors: null,
             },
@@ -836,7 +908,7 @@ function Target({ model: m, send }) {
               kind: "command",
               command: {
                 kind: "chop",
-                tree: m.tree.id,
+                tree: tree.id,
                 direct: true,
                 actors: [...m.selectedIds],
               },
@@ -854,7 +926,7 @@ function Target({ model: m, send }) {
               kind: "command",
               command: {
                 kind: "chop",
-                tree: m.tree.id,
+                tree: tree.id,
                 direct: false,
                 actors: [...m.selectedIds],
               },
@@ -970,7 +1042,8 @@ function Hud({ machineSnapshot, send, portraits }) {
     ...build,
     orders,
     tutorial,
-    tree: target,
+    target,
+    tree: target?.kind === "tree" ? target : null,
     panel: selection.panel,
     context: selection.context,
     tool,
@@ -1280,11 +1353,10 @@ export function createHud(host, art, effect) {
         if (!facts?.homeIds.includes(action.actor)) {
           setSelection((value) => ({
             ...value,
-            inspectedId: action.actor,
+            inspectedTarget: { kind: "actor", id: action.actor },
             panel: "character",
             selectedIds: [],
             context: null,
-            treeId: null,
             designationTargetIds: [],
           }));
           effect({
@@ -1304,10 +1376,9 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           selectedIds: [...selected],
-          inspectedId: null,
+          inspectedTarget: { kind: "actor", id: action.actor },
           panel: "character",
           context: null,
-          treeId: null,
           designationTargetIds: [],
         }));
         return;
@@ -1317,10 +1388,9 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           selectedIds: [...action.ids],
-          inspectedId: null,
+          inspectedTarget: null,
           panel: "character",
           context: null,
-          treeId: null,
           designationTargetIds: [],
         }));
         return;
@@ -1328,10 +1398,19 @@ export function createHud(host, art, effect) {
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
           ...value,
-          treeId: action.id,
+          inspectedTarget: { kind: "tree", id: action.id, point: action.point },
           context: { ...action.point },
           panel: null,
-          inspectedId: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "inspect-site":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          inspectedTarget: { kind: "site", id: action.id, point: action.point },
+          context: { ...action.point },
+          panel: null,
           designationTargetIds: [],
         }));
         return;
@@ -1340,13 +1419,17 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           panel: value.panel === action.panel ? null : action.panel,
-          treeId: null,
+          inspectedTarget: null,
           context: null,
           designationTargetIds: [],
         }));
         return;
       case "close-target":
-        setSelection((value) => ({ ...value, treeId: null, context: null }));
+        setSelection((value) => ({
+          ...value,
+          inspectedTarget: null,
+          context: null,
+        }));
         return;
       case "close":
         const keepBuild = !!machine.getSnapshot().context.tool;
@@ -1355,7 +1438,7 @@ export function createHud(host, art, effect) {
           ...value,
           panel: keepBuild ? "build" : null,
           context: null,
-          treeId: null,
+          inspectedTarget: null,
           designationTargetIds: [],
         }));
         return;
@@ -1364,7 +1447,7 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           panel: "build",
-          treeId: null,
+          inspectedTarget: null,
           context: null,
           designationTargetIds: [],
         }));
@@ -1417,7 +1500,7 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           context: null,
-          treeId: null,
+          inspectedTarget: null,
           designationTargetIds: [],
         }));
         return;
@@ -1425,8 +1508,7 @@ export function createHud(host, art, effect) {
         machine.send({ type: "RESET" });
         setSelection(() => ({
           selectedIds: [],
-          inspectedId: null,
-          treeId: null,
+          inspectedTarget: null,
           context: null,
           panel: null,
           designationTargetIds: [],
@@ -1473,7 +1555,8 @@ export function createHud(host, art, effect) {
         else if (
           command.kind === "cancel" ||
           command.kind === "next" ||
-          command.kind === "build"
+          command.kind === "build" ||
+          command.kind === "deconstruct"
         )
           command.actors = null;
         else if (command.actors === undefined)
@@ -1506,8 +1589,22 @@ export function createHud(host, art, effect) {
     const snapshot = machine.getSnapshot();
     return {
       selectedIds: [...value.selectedIds],
-      inspectedId: value.inspectedId,
-      tree: value.treeId,
+      inspectedTarget: value.inspectedTarget
+        ? {
+            ...value.inspectedTarget,
+            point: value.inspectedTarget.point
+              ? { ...value.inspectedTarget.point }
+              : undefined,
+          }
+        : null,
+      tree:
+        value.inspectedTarget?.kind === "tree"
+          ? value.inspectedTarget.id
+          : null,
+      site:
+        value.inspectedTarget?.kind === "site"
+          ? value.inspectedTarget.id
+          : null,
       context: value.context && { ...value.context },
       designationTargetIds: [...value.designationTargetIds],
       cutaway: preferences.cutaway,

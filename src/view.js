@@ -137,7 +137,7 @@ export function createView(app, world, camera, art, initial, input) {
   bodies.addChild(cat.container, goblin.container);
 
   const piles = new Map();
-  const construction = createConstructionView(world, art, bodies);
+  const construction = createConstructionView(world, art, bodies, input);
   const dusk = new Graphics()
     .rect(0, 0, WIDTH, HEIGHT)
     .fill({ color: 0x252342, alpha: 0.3 });

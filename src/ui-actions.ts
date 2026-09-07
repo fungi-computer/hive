@@ -14,6 +14,7 @@ export type UiCommand =
       z: number;
       level: number;
     }
+  | { kind: "deconstruct"; site: string }
   | { kind: "rest"; actors?: string[] }
   | { kind: "routine"; enabled: boolean; actors?: string[] }
   | {
@@ -28,6 +29,7 @@ export type UiAction =
   | { kind: "select"; actor: string; toggle?: boolean }
   | { kind: "select-many"; ids: string[] }
   | { kind: "tree"; id: string; point: { x: number; y: number } }
+  | { kind: "inspect-site"; id: string; point: { x: number; y: number } }
   | {
       kind: "panel";
       panel: "build" | "work" | "orders" | "menu" | "character";
@@ -102,6 +104,7 @@ export function routeUiAction(
     case "select":
     case "select-many":
     case "tree":
+    case "inspect-site":
     case "panel":
     case "close-target":
     case "close":

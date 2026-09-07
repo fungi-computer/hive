@@ -10,10 +10,34 @@ import { route } from "./movement.js";
 
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
-  wall: { label: "Timber wall", wood: 1, ticks: 32 },
-  door: { label: "Doorway", wood: 2, ticks: 48 },
-  roof: { label: "Thatch roof", wood: 1, ticks: 24 },
-  bed: { label: "Bedroll", wood: 2, ticks: 48 },
+  wall: {
+    label: "Timber wall",
+    wood: 1,
+    ticks: 32,
+    deconstructTicks: 32,
+    salvageWood: 1,
+  },
+  door: {
+    label: "Doorway",
+    wood: 2,
+    ticks: 48,
+    deconstructTicks: 48,
+    salvageWood: 1,
+  },
+  roof: {
+    label: "Thatch roof",
+    wood: 1,
+    ticks: 24,
+    deconstructTicks: 24,
+    salvageWood: 1,
+  },
+  bed: {
+    label: "Bedroll",
+    wood: 2,
+    ticks: 48,
+    deconstructTicks: 48,
+    salvageWood: 1,
+  },
 };
 export function footprint(at) {
   const cells = [{ x: at.x, z: at.z, level: at.level ?? 0 }];

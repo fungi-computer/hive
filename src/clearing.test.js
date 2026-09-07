@@ -6,8 +6,9 @@ import { createClearing, step as advance } from "./clearing.ts";
 import { cellKey, blockedCells, sameCell } from "./world.js";
 import { route } from "./movement.js";
 import { DAY_TICKS } from "./routine.ts";
+import { CHOP_TICKS } from "./activity.ts";
 import { looseWood } from "./resources.ts";
-import { shelteredBeds } from "./construction.js";
+import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { createTicker, push } from "./ticker.js";
 
 // Run the exact shipped JS and WASM, without a substitute assignment function.
@@ -59,7 +60,8 @@ function conserved(state) {
         (n, person) => n + (person.cargo?.amount ?? 0),
         0,
       ) +
-      state.sites.reduce((n, s) => n + s.delivered, 0),
+      state.sites.reduce((n, s) => n + s.delivered, 0) +
+      state.consumedWood,
     state.felled * 6,
   );
 }
@@ -231,6 +233,140 @@ test("pause freezes active cargo and every subsystem; reset restores the seeded 
   assert.equal(reset.sites.length, 0);
   assert.equal(reset.feed.sequence, 0);
   assert.equal(reset.actors.rowan.routine, false);
+});
+
+function finishedStructure(type, id = "site-1") {
+  return {
+    id,
+    type,
+    x: 5,
+    z: 5,
+    level: 0,
+    direction: 0,
+    delivered: BUILDINGS[type].wood,
+    work: BUILDINGS[type].ticks,
+    finishedAt: 9,
+  };
+}
+
+test("all building types deconstruct with their declared salvage and sink", () => {
+  const expected = [
+    ["wall", 1, 0],
+    ["door", 1, 1],
+    ["roof", 1, 0],
+    ["bed", 1, 1],
+  ];
+  for (const [type, salvage, sink] of expected) {
+    const state = createClearing();
+    state.tick = 10;
+    state.felled = 1;
+    state.trees[0].work = CHOP_TICKS;
+    state.trees[0].felledAt = 8;
+    state.nextId = 3;
+    state.sites.push(finishedStructure(type));
+    state.piles.push({
+      id: "wood-2",
+      x: 4,
+      z: 5,
+      level: 0,
+      amount: 6 - BUILDINGS[type].wood,
+    });
+    state.paused = false;
+    const result = step(state, colony, [
+      { kind: "deconstruct", site: "site-1" },
+    ]);
+    assert.deepEqual(result, [{ status: "applied" }]);
+    assert.equal(state.sites.length, 1);
+    assert.equal(state.consumedWood, 0);
+    until(state, (s) => s.sites.length === 0);
+    assert.equal(state.jobs.length, 0);
+    assert.equal(looseWood(state), 6 - BUILDINGS[type].wood + salvage);
+    assert.equal(state.consumedWood, sink);
+    conserved(state);
+  }
+});
+
+test("deconstructing an occupied bed wakes the sleeper but retains rest and routine", () => {
+  const state = createClearing();
+  step(state, colony, [
+    ...homeOrders(),
+    chop("oak-1"),
+    chop("oak-2"),
+    chop("oak-3"),
+    chop("oak-4"),
+  ]);
+  until(state, (s) => s.jobs.length === 0);
+  const bed = state.sites.find((site) => site.type === "bed");
+  const otherSiteIds = new Set(
+    state.sites.filter((site) => site.id !== bed.id).map((site) => site.id),
+  );
+  step(state, colony, [{ kind: "recruit", actor: "sedge" }]);
+  state.actors.rowan.routine = true;
+  step(state, colony, [{ kind: "rest", actors: ["rowan"] }]);
+  until(state, (s) => s.actors.rowan.mode === "sleep");
+  const restJob = state.jobs.find(
+    (job) => job.kind === "rest" && job.target === "rowan",
+  );
+  assert.ok(restJob);
+  step(state, colony, [{ kind: "deconstruct", site: bed.id }]);
+  until(state, (s) => !s.sites.some((site) => site.id === bed.id));
+  assert.equal(state.actors.rowan.mode, "idle");
+  assert.equal(state.actors.rowan.task, null);
+  assert.equal(state.actors.rowan.routine, true);
+  assert.ok(
+    state.jobs.some(
+      (job) =>
+        job.id === restJob.id && job.kind === "rest" && job.target === "rowan",
+    ),
+  );
+  assert.deepEqual(new Set(state.sites.map((site) => site.id)), otherSiteIds);
+  conserved(state);
+});
+
+test("an unreachable deconstruction stays queued and leaves its site intact", () => {
+  const state = createClearing();
+  state.tick = 10;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 8;
+  state.nextId = 3;
+  state.sites.push(finishedStructure("wall"));
+  state.piles.push({ id: "wood-2", x: 4, z: 5, level: 0, amount: 5 });
+  state.rocks.push(
+    { x: 4, z: 5, level: 0 },
+    { x: 6, z: 5, level: 0 },
+    { x: 5, z: 4, level: 0 },
+    { x: 5, z: 6, level: 0 },
+  );
+  state.paused = false;
+  step(state, colony, [{ kind: "deconstruct", site: "site-1" }]);
+  assert.equal(state.jobs.length, 1);
+  assert.equal(state.sites.length, 1);
+  assert.match(state.jobs[0].reason, /route/);
+  run(state, 10);
+  assert.equal(state.jobs.length, 1);
+  assert.equal(state.sites.length, 1);
+  assert.equal(state.consumedWood, 0);
+  conserved(state);
+});
+
+test("canceling deconstruction keeps the finished structure and material unchanged", () => {
+  const state = createClearing();
+  state.tick = 10;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 8;
+  state.nextId = 3;
+  state.sites.push(finishedStructure("wall"));
+  state.piles.push({ id: "wood-2", x: 4, z: 5, level: 0, amount: 5 });
+  state.paused = true;
+  step(state, colony, [{ kind: "deconstruct", site: "site-1" }]);
+  step(state, colony, [{ kind: "cancel", job: state.jobs[0].id }]);
+  assert.equal(state.sites.length, 1);
+  assert.equal(state.piles[0].amount, 5);
+  assert.equal(state.consumedWood, 0);
+  assert.equal(state.jobs.length, 0);
+  conserved(state);
 });
 test("paused commands admit shared work in order without advancing the world", () => {
   const state = createClearing(31);

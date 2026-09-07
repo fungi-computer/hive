@@ -115,15 +115,20 @@ async function startGame() {
     const context = current.machine.context;
     const start = context.start?.cell || null;
     const end = context.end?.cell || start;
+    const inspectedTarget = current.inspectedTarget;
     return {
       selectedActors: current.selectedIds,
       followActorIds: [
         ...new Set(
-          [...current.selectedIds, current.inspectedId].filter(Boolean),
+          [
+            ...current.selectedIds,
+            inspectedTarget?.kind === "actor" ? inspectedTarget.id : null,
+          ].filter(Boolean),
         ),
       ],
-      inspected: current.inspectedId,
-      tree: current.tree,
+      inspected: inspectedTarget?.kind === "actor" ? inspectedTarget.id : null,
+      tree: inspectedTarget?.kind === "tree" ? inspectedTarget.id : null,
+      site: inspectedTarget?.kind === "site" ? inspectedTarget.id : null,
       tool: current.tool,
       phase: current.phase,
       drag: start,
@@ -326,7 +331,8 @@ async function startGame() {
     } else if (
       command.kind === "cancel" ||
       command.kind === "next" ||
-      command.kind === "build"
+      command.kind === "build" ||
+      command.kind === "deconstruct"
     ) {
       scoped = { party: "home", actors: null, ...command };
     } else {
@@ -522,6 +528,16 @@ async function startGame() {
         return;
       }
       hud.dispatch({ kind: "tree", id, point: pointAt });
+    },
+    site(id, pointAt) {
+      const current = hud.view();
+      if (
+        current.tool ||
+        current.panMode ||
+        current.machine.context.gesture === "box"
+      )
+        return;
+      hud.dispatch({ kind: "inspect-site", id, point: pointAt });
     },
     down(at, screen) {
       const current = hud.view();

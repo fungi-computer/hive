@@ -46,6 +46,7 @@ export function createClearing(seed = 42): Clearing {
     felled: 0,
     finishedJobs: 0,
     rested: 0,
+    consumedWood: 0,
     commands: [],
     feed: createFeed(seed),
     demand: null,

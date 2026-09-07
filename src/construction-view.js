@@ -49,7 +49,7 @@ function wallMask(site, sites) {
   });
   return mask || (site.direction ? 10 : 5);
 }
-export function createConstructionView(world, art, bodies) {
+export function createConstructionView(world, art, bodies, input) {
   const grid = new Graphics(),
     bars = new Graphics(),
     ghostLayer = new Container();
@@ -87,6 +87,11 @@ export function createConstructionView(world, art, bodies) {
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
+        s.on("pointerdown", (event) => event.stopPropagation());
+        s.on("pointertap", (event) => {
+          event.stopPropagation();
+          input.site(site.id, event.global);
+        });
         sites.set(site.id, s);
         bodies.addChild(s);
       }
@@ -99,6 +104,8 @@ export function createConstructionView(world, art, bodies) {
           ? art.wallJoints[stage][wallMask(site, state.sites)]
           : art.buildings[site.type][stage][site.direction];
       view.position.set(at.x, at.y);
+      view.eventMode = finished ? "static" : "none";
+      view.cursor = finished ? "pointer" : "default";
       view.zIndex = site.x + site.z + (site.type === "roof" ? 50 : 0.15);
       view.alpha = finished ? 1 : site.delivered ? 0.85 : 0.42;
       view.tint = finished || site.delivered ? 0xffffff : 0xc6e9dd;

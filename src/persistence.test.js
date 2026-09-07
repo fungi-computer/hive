@@ -84,6 +84,92 @@ test("snapshot omits command history and restores a paused fresh trace", () => {
   ]);
 });
 
+test("strict schema 1 saves normalize the consumed wood sink and write schema 2", () => {
+  const v2 = snapshotFor(createClearing());
+  const v1 = structuredClone(v2);
+  v1.schema = 1;
+  delete v1.savedState.consumedWood;
+
+  const restored = restoreSnapshot(v1);
+  assert.equal(restored.state.consumedWood, 0);
+  assert.equal(restored.state.paused, true);
+  const rewritten = snapshotFor(restored.state);
+  assert.equal(rewritten.schema, 2);
+  assert.equal(rewritten.savedState.consumedWood, 0);
+  assert.equal(validateSaveEnvelope(v1).schema, 1);
+});
+
+test("schema 2 accepts a finished target and deconstruction job", () => {
+  const state = structuredClone(createClearing());
+  state.tick = 10;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 8;
+  state.nextId = 3;
+  state.piles.push({ id: "wood-2", x: 4, z: 5, level: 0, amount: 5 });
+  state.sites.push({
+    id: "site-1",
+    type: "wall",
+    x: 5,
+    z: 5,
+    level: 0,
+    direction: 0,
+    delivered: 1,
+    work: BUILDINGS.wall.ticks,
+    finishedAt: 9,
+  });
+  state.jobs.push({
+    id: "job-2",
+    kind: "deconstruct",
+    target: "site-1",
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  state.actors.rowan.task = {
+    kind: "deconstruct",
+    job: "job-2",
+    target: "site-1",
+    duration: BUILDINGS.wall.deconstructTicks,
+  };
+  state.actors.rowan.assignment = {
+    character: "rowan",
+    task: "job-2",
+    cost: 4,
+  };
+  state.actors.rowan.mode = "walk";
+  validateClearing(state);
+  const envelope = snapshotFor(state);
+  assert.equal(envelope.schema, 2);
+  assert.equal(restoreSnapshot(envelope).state.jobs[0].kind, "deconstruct");
+
+  const duplicate = structuredClone(envelope);
+  duplicate.savedState.jobs.push({
+    ...duplicate.savedState.jobs[0],
+    id: "job-3",
+  });
+  assert.throws(
+    () => restoreSnapshot(duplicate),
+    /duplicate deconstruction jobs/,
+  );
+
+  const withCargo = structuredClone(state);
+  withCargo.actors.rowan.cargo = {
+    job: "job-2",
+    site: "site-1",
+    amount: 1,
+  };
+  assert.throws(() => validateClearing(withCargo), /deconstruct task/);
+  const withClaim = structuredClone(state);
+  withClaim.claims.rowan = {
+    job: "job-2",
+    pile: "wood-2",
+    site: "site-1",
+    amount: 1,
+  };
+  assert.throws(() => validateClearing(withClaim), /deconstruct task/);
+});
+
 test("schema rejects unknown versions and broken cross references", () => {
   const envelope = snapshotFor(createClearing());
   assert.throws(

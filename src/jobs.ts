@@ -8,6 +8,7 @@ import type {
   Clearing,
   Colony,
   BuildJob,
+  DeconstructJob,
   Job,
   Site,
   WorkType,
@@ -83,6 +84,29 @@ function buildOption(
     candidate: best,
   };
 }
+function deconstructOption(
+  state: Clearing,
+  person: Actor,
+  job: DeconstructJob,
+  blocked: Set<string>,
+): Options {
+  const site = state.sites.find((candidate) => candidate.id === job.target);
+  if (!site || site.finishedAt === null)
+    return unavailable("Waiting for a finished structure");
+  const path = approach(person, site, blocked);
+  return path === null
+    ? unavailable("No route to this structure")
+    : {
+        reason: "Ready to deconstruct",
+        candidate: candidate(
+          job,
+          "deconstruct",
+          site.id,
+          path,
+          BUILDINGS[site.type].deconstructTicks,
+        ),
+      };
+}
 function bedFree(state: Clearing, bed: Site): boolean {
   return !Object.values(state.actors).some(
     (person) => person.task?.kind === "sleep" && person.task.target === bed.id,
@@ -97,6 +121,8 @@ function jobOption(
   switch (job.kind) {
     case "build":
       return buildOption(state, person, job, blocked);
+    case "deconstruct":
+      return deconstructOption(state, person, job, blocked);
     case "chop": {
       const tree = state.trees.find((t) => t.id === job.target)!;
       const path = approach(person, tree, blocked);
@@ -140,6 +166,8 @@ function automaticWork(activity: Activity): WorkType | null {
     case "pickup":
       return "haul";
     case "build":
+      return "build";
+    case "deconstruct":
       return "build";
     case "deliver":
     case "sleep":
@@ -195,6 +223,7 @@ function claimCandidate(
     }
     case "chop":
     case "build":
+    case "deconstruct":
     case "deliver":
       return true;
     default:
