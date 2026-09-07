@@ -414,7 +414,16 @@ function assertNever(value: never): never {
   throw new Error(`Unhandled persisted task kind: ${JSON.stringify(value)}`);
 }
 
-function checkInvariants(state: Clearing): void {
+type ValidationContext = {
+  jobs: Map<string, Clearing["jobs"][number]>;
+  sites: Map<string, Clearing["sites"][number]>;
+  piles: Map<string, Clearing["piles"][number]>;
+  claimsByPile: Map<string, number>;
+  claimsBySite: Map<string, number>;
+  cargoBySite: Map<string, number>;
+};
+
+function checkIdentityAndParties(state: Clearing): void {
   const actorIds = Object.keys(state.actors);
   const partyIds = Object.keys(state.parties);
   const treeIds = state.trees.map((tree) => tree.id);
@@ -449,6 +458,9 @@ function checkInvariants(state: Clearing): void {
       memberParty.set(member, party.id);
     }
   }
+}
+
+function checkCellsAndTreeProgress(state: Clearing): void {
   for (const tree of state.trees) checkCell(tree, `tree ${tree.id}`);
   for (const rock of state.rocks) checkCell(rock, "rock");
   for (const site of state.sites) checkCell(site, `site ${site.id}`);
@@ -459,7 +471,6 @@ function checkInvariants(state: Clearing): void {
   const felledTrees = state.trees.filter((tree) => tree.felledAt !== null);
   if (state.felled !== felledTrees.length)
     throw new Error("felled count disagrees with felled trees");
-  const deconstructTargets = new Set<string>();
   for (const tree of state.trees) {
     if (tree.felledAt !== null) {
       if (tree.work !== CHOP_TICKS || tree.felledAt > state.tick)
@@ -470,6 +481,24 @@ function checkInvariants(state: Clearing): void {
       );
     }
   }
+}
+
+function createValidationContext(state: Clearing): ValidationContext {
+  return {
+    jobs: new Map(state.jobs.map((job) => [job.id, job])),
+    sites: new Map(state.sites.map((site) => [site.id, site])),
+    piles: new Map(state.piles.map((pile) => [pile.id, pile])),
+    claimsByPile: new Map(),
+    claimsBySite: new Map(),
+    cargoBySite: new Map(),
+  };
+}
+
+function checkJobTargetsAndScope(
+  state: Clearing,
+  context: ValidationContext,
+): void {
+  const deconstructTargets = new Set<string>();
   for (const job of state.jobs) {
     const party = state.parties[job.scope.party];
     if (!party) throw new Error(`job ${job.id} has missing party`);
@@ -484,13 +513,13 @@ function checkInvariants(state: Clearing): void {
         throw new Error(`job ${job.id} targets a felled tree`);
     }
     if (job.kind === "build") {
-      const site = state.sites.find((candidate) => candidate.id === job.target);
+      const site = context.sites.get(job.target);
       if (!site) throw new Error(`job ${job.id} has missing site`);
       if (site.finishedAt !== null)
         throw new Error(`job ${job.id} targets a finished site`);
     }
     if (job.kind === "deconstruct") {
-      const site = state.sites.find((candidate) => candidate.id === job.target);
+      const site = context.sites.get(job.target);
       if (!site) throw new Error(`job ${job.id} has missing site`);
       if (site.finishedAt === null)
         throw new Error(`job ${job.id} targets an unfinished site`);
@@ -510,12 +539,12 @@ function checkInvariants(state: Clearing): void {
         throw new Error(`rest job ${job.id} is not personal to its target`);
     }
   }
-  const jobs = new Map(state.jobs.map((job) => [job.id, job]));
-  const sites = new Map(state.sites.map((site) => [site.id, site]));
-  const piles = new Map(state.piles.map((pile) => [pile.id, pile]));
-  const claimsByPile = new Map<string, number>();
-  const claimsBySite = new Map<string, number>();
-  const cargoBySite = new Map<string, number>();
+}
+
+function checkActorTaskAssignmentAndCargo(
+  state: Clearing,
+  context: ValidationContext,
+): void {
   for (const actor of Object.values(state.actors)) {
     if (
       actor.drafted &&
@@ -532,7 +561,7 @@ function checkInvariants(state: Clearing): void {
     )
       throw new Error(`actor ${actor.id} has a mode without a task`);
     if (actor.task) {
-      const job = jobs.get(actor.task.job);
+      const job = context.jobs.get(actor.task.job);
       if (!job) throw new Error(`actor ${actor.id} has missing task job`);
       const party = state.parties[job.scope.party];
       if (
@@ -562,14 +591,14 @@ function checkInvariants(state: Clearing): void {
           if (
             job.kind !== "build" ||
             job.target !== actor.task.target ||
-            !sites.has(actor.task.target)
+            !context.sites.has(actor.task.target)
           )
             throw new Error(
               `actor ${actor.id} build task disagrees with job target`,
             );
           break;
         case "deconstruct": {
-          const site = sites.get(actor.task.target);
+          const site = context.sites.get(actor.task.target);
           if (
             job.kind !== "deconstruct" ||
             job.target !== actor.task.target ||
@@ -587,8 +616,8 @@ function checkInvariants(state: Clearing): void {
           const claim = state.claims[actor.id];
           if (
             job.kind !== "build" ||
-            !sites.has(job.target) ||
-            !piles.has(actor.task.target) ||
+            !context.sites.has(job.target) ||
+            !context.piles.has(actor.task.target) ||
             !claim ||
             claim.job !== job.id ||
             claim.pile !== actor.task.target ||
@@ -604,7 +633,7 @@ function checkInvariants(state: Clearing): void {
           if (
             job.kind !== "build" ||
             job.target !== actor.task.target ||
-            !sites.has(actor.task.target) ||
+            !context.sites.has(actor.task.target) ||
             state.claims[actor.id] !== undefined ||
             !actor.cargo ||
             actor.cargo.job !== job.id ||
@@ -615,7 +644,7 @@ function checkInvariants(state: Clearing): void {
             );
           break;
         case "sleep": {
-          const bed = sites.get(actor.task.target);
+          const bed = context.sites.get(actor.task.target);
           if (
             job.kind !== "rest" ||
             job.target !== actor.id ||
@@ -641,8 +670,8 @@ function checkInvariants(state: Clearing): void {
         throw new Error(`actor ${actor.id} assignment has no matching task`);
     }
     if (actor.cargo) {
-      const job = jobs.get(actor.cargo.job);
-      const site = sites.get(actor.cargo.site);
+      const job = context.jobs.get(actor.cargo.job);
+      const site = context.sites.get(actor.cargo.site);
       if (
         !job ||
         job.kind !== "build" ||
@@ -654,17 +683,23 @@ function checkInvariants(state: Clearing): void {
         throw new Error(`actor ${actor.id} has invalid cargo reference`);
       if (state.claims[actor.id])
         throw new Error(`actor ${actor.id} has claim and cargo`);
-      cargoBySite.set(
+      context.cargoBySite.set(
         actor.cargo.site,
-        (cargoBySite.get(actor.cargo.site) ?? 0) + actor.cargo.amount,
+        (context.cargoBySite.get(actor.cargo.site) ?? 0) + actor.cargo.amount,
       );
     }
   }
+}
+
+function checkClaimsAndReservations(
+  state: Clearing,
+  context: ValidationContext,
+): void {
   for (const [actorId, claim] of Object.entries(state.claims)) {
     const actor = state.actors[actorId];
-    const job = jobs.get(claim.job);
-    const pile = piles.get(claim.pile);
-    const site = sites.get(claim.site);
+    const job = context.jobs.get(claim.job);
+    const pile = context.piles.get(claim.pile);
+    const site = context.sites.get(claim.site);
     if (
       !actor ||
       !actor.task ||
@@ -680,33 +715,39 @@ function checkInvariants(state: Clearing): void {
       claim.amount > pile.amount
     )
       throw new Error(`claim for ${actorId} has no matching pickup task`);
-    claimsByPile.set(
+    context.claimsByPile.set(
       claim.pile,
-      (claimsByPile.get(claim.pile) ?? 0) + claim.amount,
+      (context.claimsByPile.get(claim.pile) ?? 0) + claim.amount,
     );
-    claimsBySite.set(
+    context.claimsBySite.set(
       claim.site,
-      (claimsBySite.get(claim.site) ?? 0) + claim.amount,
+      (context.claimsBySite.get(claim.site) ?? 0) + claim.amount,
     );
   }
-  for (const [pileId, claimed] of claimsByPile) {
-    const pile = piles.get(pileId);
+  for (const [pileId, claimed] of context.claimsByPile) {
+    const pile = context.piles.get(pileId);
     if (!pile || claimed > pile.amount)
       throw new Error(`claims exceed pile ${pileId}`);
   }
+}
+
+function checkSitesAndProgress(
+  state: Clearing,
+  context: ValidationContext,
+): void {
   for (const site of state.sites) {
     const recipe = BUILDINGS[site.type];
     const committed =
       site.delivered +
-      (claimsBySite.get(site.id) ?? 0) +
-      (cargoBySite.get(site.id) ?? 0);
+      (context.claimsBySite.get(site.id) ?? 0) +
+      (context.cargoBySite.get(site.id) ?? 0);
     if (site.delivered > recipe.wood || committed > recipe.wood)
       throw new Error(`site ${site.id} exceeds its wood recipe`);
     if (
       site.work > 0 &&
       (site.delivered !== recipe.wood ||
-        (claimsBySite.get(site.id) ?? 0) > 0 ||
-        (cargoBySite.get(site.id) ?? 0) > 0)
+        (context.claimsBySite.get(site.id) ?? 0) > 0 ||
+        (context.cargoBySite.get(site.id) ?? 0) > 0)
     )
       throw new Error(
         `site ${site.id} has work before its delivery is settled`,
@@ -724,20 +765,47 @@ function checkInvariants(state: Clearing): void {
       );
     }
   }
+}
+
+function checkMaterialConservation(
+  state: Clearing,
+  context: ValidationContext,
+): void {
   const physicalWood =
     state.piles.reduce((total, pile) => total + pile.amount, 0) +
     state.sites.reduce((total, site) => total + site.delivered, 0) +
-    [...cargoBySite.values()].reduce((total, amount) => total + amount, 0) +
+    [...context.cargoBySite.values()].reduce(
+      (total, amount) => total + amount,
+      0,
+    ) +
     state.consumedWood;
   if (physicalWood !== state.felled * 6)
     throw new Error("physical wood does not match felled oaks");
+}
+
+function checkFeedAndNextId(state: Clearing): void {
   if (state.feed.seed !== state.seed)
     throw new Error("feed seed disagrees with clearing seed");
+  const jobIds = state.jobs.map((job) => job.id);
+  const siteIds = state.sites.map((site) => site.id);
+  const pileIds = state.piles.map((pile) => pile.id);
   const generated = [...jobIds, ...siteIds, ...pileIds]
     .map(generatedIdNumber)
     .filter((value): value is number => value !== null);
   if (generated.some((value) => value >= state.nextId))
     throw new Error("nextId can collide with a generated id");
+}
+
+function checkInvariants(state: Clearing): void {
+  checkIdentityAndParties(state);
+  checkCellsAndTreeProgress(state);
+  const context = createValidationContext(state);
+  checkJobTargetsAndScope(state, context);
+  checkActorTaskAssignmentAndCargo(state, context);
+  checkClaimsAndReservations(state, context);
+  checkSitesAndProgress(state, context);
+  checkMaterialConservation(state, context);
+  checkFeedAndNextId(state);
 }
 
 export function validateClearing(value: unknown): SerializedClearing {
