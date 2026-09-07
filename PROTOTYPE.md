@@ -57,6 +57,12 @@ integration after the explicit handoff and escalates actual architecture choices
 Inspect small working results before adding more work; keep source and render
 proof proportional. No new management tier or status framework is required.
 
+Deferred future-art direction only: retain Levi's many biblical references,
+including an original Joseph in a technicolor dream coat, skinny cows, and loose
+dream/famine/abundance ideas. This is backlog inspiration, not a current sprint,
+art delivery, or gameplay implication; it does not displace upstairs, World Lab,
+brewing, or the husbandry study.
+
 ## Superseding near-term priority (Levi, 2026-09-07)
 
 Keep the map deliberately tiny until a repeatable everyday home loop is fun:
