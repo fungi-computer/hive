@@ -135,6 +135,28 @@ export function workPositions(state, site, operation = "build") {
     return [lower, ...neighbors(lower)].filter(inside);
   }
   const positions = neighbors(site).filter(inside);
+  // A dragged closed outline must not strand its last corner behind its two
+  // finished neighbors. Construction can reach that corner from the interior
+  // diagonal, and delivery must revalidate that same work position. Movement
+  // and deconstruction keep their cardinal topology.
+  if (
+    operation !== "deconstruct" &&
+    site.level === 1 &&
+    (site.type === "wall" || site.type === "door")
+  )
+    for (const [x, z] of [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ]) {
+      const diagonal = {
+        x: site.x + x,
+        z: site.z + z,
+        level: site.level,
+      };
+      if (inside(diagonal)) positions.push(diagonal);
+    }
   if (
     site.type === "floor" &&
     site.level === 1 &&

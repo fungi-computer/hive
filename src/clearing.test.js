@@ -752,6 +752,39 @@ test("a supported upper floor builds from below before the stair exists", () => 
   conserved(state);
   validateClearing(state);
 });
+test("a complete upstairs wall outline remains buildable at its corners", () => {
+  const state = upstairsFixture();
+  state.sites = state.sites.filter(
+    (site) => site.level === 0 || site.type === "floor",
+  );
+  state.piles[0].amount = 17;
+  state.jobs = [];
+  state.actors.rowan.x = 3;
+  state.actors.rowan.z = 11;
+  state.actors.rowan.level = 0;
+  state.nextId = 100;
+  state.paused = false;
+  const outline = [];
+  for (let x = 6; x <= 9; x++)
+    for (const z of [4, 6])
+      outline.push(build(x === 8 && z === 4 ? "door" : "wall", x, z));
+  for (const x of [6, 9]) outline.push(build("wall", x, 5));
+  step(
+    state,
+    colony,
+    outline.map((command) => ({ ...command, level: 1 })),
+  );
+  until(state, (candidate) => candidate.jobs.length === 0);
+  assert.equal(
+    state.sites.filter(
+      (site) =>
+        site.level === 1 && (site.type === "wall" || site.type === "door"),
+    ).length,
+    10,
+  );
+  conserved(state);
+  validateClearing(state);
+});
 test("only authorized work runs; a waiting blueprint resumes through real colony hauling and building", () => {
   const state = run(createClearing(), 70);
   assert.equal(state.felled, 0);
