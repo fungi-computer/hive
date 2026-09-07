@@ -677,156 +677,195 @@ function checkJobTargetsAndScope(
   }
 }
 
+function checkActorActivity(
+  state: Clearing,
+  actor: Clearing["actors"][string],
+): void {
+  if (
+    actor.drafted &&
+    (actor.task ||
+      actor.assignment ||
+      actor.cargo ||
+      state.claims[actor.id] !== undefined)
+  )
+    throw new Error(`drafted actor ${actor.id} retains ordinary work`);
+  if (
+    !actor.task &&
+    actor.mode !== "idle" &&
+    !(actor.drafted && actor.mode === "walk")
+  )
+    throw new Error(`actor ${actor.id} has a mode without a task`);
+}
+
+function checkActorTaskReference(
+  state: Clearing,
+  actor: Clearing["actors"][string],
+  context: ValidationContext,
+): void {
+  if (!actor.task) return;
+  const job = context.jobs.get(actor.task.job);
+  if (!job) throw new Error(`actor ${actor.id} has missing task job`);
+  const party = state.parties[job.scope.party];
+  if (
+    !party.members.includes(actor.id) ||
+    (job.scope.actors !== null && !job.scope.actors.includes(actor.id))
+  )
+    throw new Error(`actor ${actor.id} task job is not in actor scope`);
+}
+
+function checkActorTaskAssignment(actor: Clearing["actors"][string]): void {
+  if (!actor.task) return;
+  if (!actor.assignment)
+    throw new Error(`actor ${actor.id} task has no assignment`);
+  if (
+    actor.assignment.character !== actor.id ||
+    actor.assignment.task !== actor.task.job
+  )
+    throw new Error(`actor ${actor.id} assignment does not match task`);
+}
+
+function checkActorTaskTarget(
+  state: Clearing,
+  actor: Clearing["actors"][string],
+  context: ValidationContext,
+): void {
+  const task = actor.task;
+  if (!task) return;
+  const job = context.jobs.get(task.job)!;
+  switch (task.kind) {
+    case "chop":
+      if (
+        job.kind !== "chop" ||
+        job.target !== task.target ||
+        !state.trees.some((tree) => tree.id === task.target)
+      )
+        throw new Error(
+          `actor ${actor.id} chop task disagrees with job target`,
+        );
+      break;
+    case "build":
+      if (
+        job.kind !== "build" ||
+        job.target !== task.target ||
+        !context.sites.has(task.target)
+      )
+        throw new Error(
+          `actor ${actor.id} build task disagrees with job target`,
+        );
+      break;
+    case "deconstruct": {
+      const site = context.sites.get(task.target);
+      if (
+        job.kind !== "deconstruct" ||
+        job.target !== task.target ||
+        !site ||
+        site.finishedAt === null ||
+        state.claims[actor.id] !== undefined ||
+        actor.cargo !== null
+      )
+        throw new Error(
+          `actor ${actor.id} deconstruct task disagrees with site`,
+        );
+      break;
+    }
+    case "pickup": {
+      const claim = state.claims[actor.id];
+      if (
+        job.kind !== "build" ||
+        !context.sites.has(job.target) ||
+        !context.piles.has(task.target) ||
+        !claim ||
+        claim.job !== job.id ||
+        claim.pile !== task.target ||
+        claim.site !== job.target ||
+        actor.cargo !== null
+      )
+        throw new Error(`actor ${actor.id} pickup task disagrees with claim`);
+      break;
+    }
+    case "deliver":
+      if (
+        job.kind !== "build" ||
+        job.target !== task.target ||
+        !context.sites.has(task.target) ||
+        state.claims[actor.id] !== undefined ||
+        !actor.cargo ||
+        actor.cargo.job !== job.id ||
+        actor.cargo.site !== task.target
+      )
+        throw new Error(`actor ${actor.id} deliver task disagrees with cargo`);
+      break;
+    case "sleep": {
+      const bed = context.sites.get(task.target);
+      if (
+        job.kind !== "rest" ||
+        job.target !== actor.id ||
+        !bed ||
+        bed.type !== "bed" ||
+        bed.finishedAt === null
+      )
+        throw new Error(
+          `actor ${actor.id} sleep task disagrees with job or bed`,
+        );
+      break;
+    }
+    case "sow":
+    case "harvest":
+      break;
+    default:
+      assertNever(task);
+  }
+  if (actor.mode !== "walk" && actor.mode !== task.kind)
+    throw new Error(`actor ${actor.id} mode disagrees with task`);
+}
+
+function checkActorAssignmentReference(
+  actor: Clearing["actors"][string],
+): void {
+  if (actor.assignment) {
+    if (actor.assignment.character !== actor.id)
+      throw new Error(`actor ${actor.id} assignment owner mismatch`);
+    if (!actor.task || actor.assignment.task !== actor.task.job)
+      throw new Error(`actor ${actor.id} assignment has no matching task`);
+  }
+}
+
+function checkActorWoodCargo(
+  state: Clearing,
+  actor: Clearing["actors"][string],
+  context: ValidationContext,
+): void {
+  if (!actor.cargo) return;
+  const job = context.jobs.get(actor.cargo.job);
+  const site = context.sites.get(actor.cargo.site);
+  if (
+    !job ||
+    job.kind !== "build" ||
+    !site ||
+    job.target !== site.id ||
+    !state.parties[job.scope.party].members.includes(actor.id) ||
+    (job.scope.actors !== null && !job.scope.actors.includes(actor.id))
+  )
+    throw new Error(`actor ${actor.id} has invalid cargo reference`);
+  if (state.claims[actor.id])
+    throw new Error(`actor ${actor.id} has claim and cargo`);
+  context.cargoBySite.set(
+    actor.cargo.site,
+    (context.cargoBySite.get(actor.cargo.site) ?? 0) + actor.cargo.amount,
+  );
+}
+
 function checkActorTaskAssignmentAndCargo(
   state: Clearing,
   context: ValidationContext,
 ): void {
   for (const actor of Object.values(state.actors)) {
-    if (
-      actor.drafted &&
-      (actor.task ||
-        actor.assignment ||
-        actor.cargo ||
-        state.claims[actor.id] !== undefined)
-    )
-      throw new Error(`drafted actor ${actor.id} retains ordinary work`);
-    if (
-      !actor.task &&
-      actor.mode !== "idle" &&
-      !(actor.drafted && actor.mode === "walk")
-    )
-      throw new Error(`actor ${actor.id} has a mode without a task`);
-    if (actor.task) {
-      const job = context.jobs.get(actor.task.job);
-      if (!job) throw new Error(`actor ${actor.id} has missing task job`);
-      const party = state.parties[job.scope.party];
-      if (
-        !party.members.includes(actor.id) ||
-        (job.scope.actors !== null && !job.scope.actors.includes(actor.id))
-      )
-        throw new Error(`actor ${actor.id} task job is not in actor scope`);
-      if (!actor.assignment)
-        throw new Error(`actor ${actor.id} task has no assignment`);
-      if (
-        actor.assignment.character !== actor.id ||
-        actor.assignment.task !== actor.task.job
-      )
-        throw new Error(`actor ${actor.id} assignment does not match task`);
-      switch (actor.task.kind) {
-        case "chop":
-          if (
-            job.kind !== "chop" ||
-            job.target !== actor.task.target ||
-            !state.trees.some((tree) => tree.id === actor.task!.target)
-          )
-            throw new Error(
-              `actor ${actor.id} chop task disagrees with job target`,
-            );
-          break;
-        case "build":
-          if (
-            job.kind !== "build" ||
-            job.target !== actor.task.target ||
-            !context.sites.has(actor.task.target)
-          )
-            throw new Error(
-              `actor ${actor.id} build task disagrees with job target`,
-            );
-          break;
-        case "deconstruct": {
-          const site = context.sites.get(actor.task.target);
-          if (
-            job.kind !== "deconstruct" ||
-            job.target !== actor.task.target ||
-            !site ||
-            site.finishedAt === null ||
-            state.claims[actor.id] !== undefined ||
-            actor.cargo !== null
-          )
-            throw new Error(
-              `actor ${actor.id} deconstruct task disagrees with site`,
-            );
-          break;
-        }
-        case "pickup": {
-          const claim = state.claims[actor.id];
-          if (
-            job.kind !== "build" ||
-            !context.sites.has(job.target) ||
-            !context.piles.has(actor.task.target) ||
-            !claim ||
-            claim.job !== job.id ||
-            claim.pile !== actor.task.target ||
-            claim.site !== job.target ||
-            actor.cargo !== null
-          )
-            throw new Error(
-              `actor ${actor.id} pickup task disagrees with claim`,
-            );
-          break;
-        }
-        case "deliver":
-          if (
-            job.kind !== "build" ||
-            job.target !== actor.task.target ||
-            !context.sites.has(actor.task.target) ||
-            state.claims[actor.id] !== undefined ||
-            !actor.cargo ||
-            actor.cargo.job !== job.id ||
-            actor.cargo.site !== actor.task.target
-          )
-            throw new Error(
-              `actor ${actor.id} deliver task disagrees with cargo`,
-            );
-          break;
-        case "sleep": {
-          const bed = context.sites.get(actor.task.target);
-          if (
-            job.kind !== "rest" ||
-            job.target !== actor.id ||
-            !bed ||
-            bed.type !== "bed" ||
-            bed.finishedAt === null
-          )
-            throw new Error(
-              `actor ${actor.id} sleep task disagrees with job or bed`,
-            );
-          break;
-        }
-        case "sow":
-        case "harvest":
-          break;
-        default:
-          assertNever(actor.task);
-      }
-      if (actor.mode !== "walk" && actor.mode !== actor.task.kind)
-        throw new Error(`actor ${actor.id} mode disagrees with task`);
-    }
-    if (actor.assignment) {
-      if (actor.assignment.character !== actor.id)
-        throw new Error(`actor ${actor.id} assignment owner mismatch`);
-      if (!actor.task || actor.assignment.task !== actor.task.job)
-        throw new Error(`actor ${actor.id} assignment has no matching task`);
-    }
-    if (actor.cargo) {
-      const job = context.jobs.get(actor.cargo.job);
-      const site = context.sites.get(actor.cargo.site);
-      if (
-        !job ||
-        job.kind !== "build" ||
-        !site ||
-        job.target !== site.id ||
-        !state.parties[job.scope.party].members.includes(actor.id) ||
-        (job.scope.actors !== null && !job.scope.actors.includes(actor.id))
-      )
-        throw new Error(`actor ${actor.id} has invalid cargo reference`);
-      if (state.claims[actor.id])
-        throw new Error(`actor ${actor.id} has claim and cargo`);
-      context.cargoBySite.set(
-        actor.cargo.site,
-        (context.cargoBySite.get(actor.cargo.site) ?? 0) + actor.cargo.amount,
-      );
-    }
+    checkActorActivity(state, actor);
+    checkActorTaskReference(state, actor, context);
+    checkActorTaskAssignment(actor);
+    checkActorTaskTarget(state, actor, context);
+    checkActorAssignmentReference(actor);
+    checkActorWoodCargo(state, actor, context);
   }
 }
 
