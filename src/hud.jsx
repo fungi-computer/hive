@@ -37,8 +37,20 @@ function actorActivity(actor) {
   return actor.mode === "walk" ? "Drafted · Going" : "Drafted · Holding";
 }
 
+function levelName(level) {
+  return level === 1 ? "Upper" : "Ground";
+}
+
 const clearGesture = assign(() => ({
   tool: null,
+  gesture: null,
+  start: null,
+  end: null,
+  commitRequested: false,
+}));
+
+const clearGestureKeepTool = assign(({ context }) => ({
+  tool: context.tool,
   gesture: null,
   start: null,
   end: null,
@@ -81,6 +93,14 @@ const toolMachine = createMachine({
     CAMERA_MOVE: { target: ".idle", actions: clearGesture },
     ESCAPE: { target: ".idle", actions: clearGesture },
     RESET: { target: ".idle", actions: clearGesture },
+    LEVEL_CHANGE: [
+      {
+        target: ".ready",
+        guard: ({ context }) => !!context.tool,
+        actions: clearGestureKeepTool,
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
   },
   states: {
     idle: {
@@ -264,6 +284,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     type: site.type,
     x: site.x,
     z: site.z,
+    level: site.level,
     direction: site.direction,
     delivered: site.delivered,
     work: site.work,
@@ -386,15 +407,15 @@ function orderModel(display, job) {
             : job.kind === "store-herb"
               ? "Store mugwort"
               : site
-                ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z}`
+                ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
                 : "Work order";
   const detail =
     job.kind === "store-herb"
       ? site
-        ? ` · Shelf ${site.x}, ${site.z}`
+        ? ` · Shelf ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
         : ""
       : site
-        ? ` · ${site.delivered}/${BUILDINGS[site.type].wood} wood`
+        ? ` · ${site.delivered}/${BUILDINGS[site.type].wood} wood · ${site.level ? "Upper" : "Ground"}`
         : "";
   return {
     id: job.id,
@@ -426,6 +447,7 @@ const preferencesAtom = atom({
   panMode: false,
   help: true,
   direction: 0,
+  level: 0,
 });
 const statusAtom = atom((get) => {
   const facts = get(worldFactsAtom);
@@ -882,6 +904,9 @@ function Build({ model: m, send }) {
           </>
         )}
       </div>
+      <div className="level-readout" aria-live="polite">
+        Working level: <strong>{levelName(m.level)}</strong>
+      </div>
       <div id="palette">
         <Button
           id="herb-tool"
@@ -905,7 +930,14 @@ function Build({ model: m, send }) {
           >
             <span>{recipe.label}</span>
             <small>
-              {recipe.wood} wood{type === "bed" ? " · 1×2" : ""}
+              {recipe.wood} wood
+              {type === "floor"
+                ? " · 1×1 upper"
+                : type === "stair"
+                  ? " · 3-cell ramp"
+                  : type === "bed"
+                    ? " · 1×2"
+                    : ""}
             </small>
           </Button>
         ))}
@@ -965,7 +997,7 @@ function Target({ model: m, send }) {
     );
     const locationText =
       m.target.location.kind === "ground"
-        ? `Loose bundle · ${m.target.location.x}, ${m.target.location.z}`
+        ? `Loose bundle · ${m.target.location.x}, ${m.target.location.z} · ${levelName(m.target.location.level)}`
         : m.target.location.kind === "carried"
           ? "Carried by a home member"
           : "Stored on a mugwort shelf";
@@ -1055,7 +1087,9 @@ function Target({ model: m, send }) {
         }}
       >
         <div className="window-heading">
-          <h2>{label}</h2>
+          <h2>
+            {label} · {levelName(m.target.level)}
+          </h2>
           <Button
             className="close"
             variant="ghost"
@@ -1069,7 +1103,7 @@ function Target({ model: m, send }) {
         <p className="muted">
           {m.target.type === "shelf"
             ? `Mugwort ${m.target.bundleCount}/1`
-            : `Finished structure · ${m.target.x}, ${m.target.z}`}
+            : `Finished structure · ${m.target.x}, ${m.target.z} · ${levelName(m.target.level)}`}
         </p>
         <Button
           id="deconstruct"
@@ -1131,7 +1165,7 @@ function Target({ model: m, send }) {
         </div>
         <p className="muted">
           {m.target.stage[0].toUpperCase() + m.target.stage.slice(1)} ·{" "}
-          {m.target.x}, {m.target.z}
+          {m.target.x}, {m.target.z} · {levelName(m.target.level)}
         </p>
         {m.target.stage === "ready" && (
           <Button
@@ -1365,6 +1399,7 @@ function Hud({ machineSnapshot, send, portraits }) {
     phase,
     cutaway: preferences.cutaway,
     panMode: preferences.panMode,
+    level: preferences.level,
     help: preferences.help,
     notice: status.paused
       ? `Paused · ${status.notice || "time is frozen; orders remain available."}`
@@ -1548,6 +1583,20 @@ function Hud({ machineSnapshot, send, portraits }) {
           Orders <span>{m.orders.length}</span>{" "}
           <Key model={m} name="panel.orders" />
         </Button>
+        <div className="level-controls" role="group" aria-label="Logical level">
+          {[0, 1].map((level) => (
+            <Button
+              key={level}
+              data-level={level}
+              variant={m.level === level ? "secondary" : "ghost"}
+              size="sm"
+              aria-pressed={m.level === level}
+              onClick={() => send({ kind: "level", level })}
+            >
+              {levelName(level)}
+            </Button>
+          ))}
+        </div>
         <label className="cutaway-control">
           <Checkbox
             id="cutaway"
@@ -1660,6 +1709,7 @@ export function createHud(host, art, effect) {
   }
   function runAction(action) {
     const current = store.get(selectionAtom);
+    const preferences = store.get(preferencesAtom);
     const facts = store.get(worldFactsAtom);
     switch (action.kind) {
       case "select": {
@@ -1785,9 +1835,29 @@ export function createHud(host, art, effect) {
         return;
       case "tool":
         machine.send({ type: "TOOL", tool: action.tool });
+        if (
+          action.tool === "floor" ||
+          action.tool === "stair" ||
+          action.tool === "chop" ||
+          action.tool === "herb"
+        )
+          setPreferences((value) => ({
+            ...value,
+            level: action.tool === "floor" ? 1 : 0,
+          }));
         setSelection((value) => ({
           ...value,
           panel: "build",
+          inspectedTarget: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "level":
+        if (action.level === preferences.level) return;
+        machine.send({ type: "LEVEL_CHANGE" });
+        setPreferences((value) => ({ ...value, level: action.level }));
+        setSelection((value) => ({
+          ...value,
           inspectedTarget: null,
           designationTargetIds: [],
         }));
@@ -1856,6 +1926,7 @@ export function createHud(host, art, effect) {
           panMode: false,
           help: true,
           direction: 0,
+          level: 0,
         }));
         effect(action);
         return;
@@ -1993,6 +2064,7 @@ export function createHud(host, art, effect) {
       cutaway: preferences.cutaway,
       panMode: preferences.panMode,
       direction: preferences.direction,
+      level: preferences.level,
       tool: snapshot.context.tool,
       phase: snapshot.value,
       gesture: snapshot.context.gesture,

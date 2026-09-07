@@ -299,6 +299,15 @@ meter::-webkit-meter-optimum-value {
   margin-top: 3px;
   font-size: 10px;
 }
+.level-readout {
+  margin: 9px 0;
+  color: var(--stipe-fg-muted);
+  font-size: 11px;
+}
+.level-readout strong {
+  color: var(--color-warning);
+  font-weight: 500;
+}
 .muted {
   color: var(--stipe-fg-muted);
   font-size: 11px;
@@ -451,6 +460,12 @@ meter::-webkit-meter-optimum-value {
   margin-left: 4px;
   font-size: 0.75rem;
   color: var(--stipe-fg-muted);
+}
+.level-controls {
+  display: flex;
+  gap: 2px;
+  padding: 0 2px;
+  border-left: 1px solid var(--color-base-300);
 }
 .cutaway-control {
   display: flex;

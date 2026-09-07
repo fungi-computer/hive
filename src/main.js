@@ -135,7 +135,8 @@ async function startGame() {
       tool: current.tool,
       phase: current.phase,
       drag: start,
-      at: end || { x: 7, z: 7, level: 0 },
+      at: end || { x: 7, z: 7, level: current.level },
+      level: current.level,
       designationTargetIds: current.designationTargetIds,
       direction: current.direction,
       box:
@@ -530,6 +531,9 @@ async function startGame() {
     groundPointerOwns() {
       return !!hud.view().tool;
     },
+    level() {
+      return hud.view().level;
+    },
     actor(id, pointAt, toggle) {
       hud.dispatch({ kind: "select", actor: id, toggle });
     },
@@ -641,8 +645,9 @@ async function startGame() {
         const bottom = Math.max(box.start.screen.y, box.end.screen.y);
         const ids = state.parties.home.members.filter((id) => {
           const person = state.actors[id];
-          const projected = camera.project(person.x, person.z, 2);
+          const projected = camera.project(person.x, person.z, 2, person.level);
           return (
+            person.level === fixed.level &&
             projected.x >= left &&
             projected.x <= right &&
             projected.y >= top &&
@@ -653,7 +658,10 @@ async function startGame() {
         hud.dispatch({ kind: "escape" });
         return;
       }
-      const cells = fixed.tool === "bed" ? [end] : dragCells(start, end);
+      const cells =
+        fixed.tool === "bed" || fixed.tool === "stair"
+          ? [end]
+          : dragCells(start, end);
       for (const cell of cells)
         request({
           kind: "build",

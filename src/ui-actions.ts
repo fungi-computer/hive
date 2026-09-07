@@ -67,6 +67,7 @@ export type UiAction =
   | { kind: "commit-designation" }
   | { kind: "commit-result"; accepted: number }
   | { kind: "cutaway"; value: boolean }
+  | { kind: "level"; level: 0 | 1 }
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
   | { kind: "go"; point: GesturePoint }
@@ -141,6 +142,7 @@ export function routeUiAction(
     case "commit-designation":
     case "commit-result":
     case "cutaway":
+    case "level":
     case "command":
     case "recruit":
     case "go":

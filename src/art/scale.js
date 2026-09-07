@@ -30,6 +30,9 @@ export function project(x, z, y = 0) {
     y: Math.round(((1 - point.y) * HEIGHT) / 2),
   };
 }
+export function projectCell(cell, height = 0) {
+  return project(cell.x, cell.z, height + (cell.level ?? 0) * STOREY_HEIGHT);
+}
 export function groundCell(x, y) {
   const origin = project(0, 0),
     dx = x - origin.x,

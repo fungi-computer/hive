@@ -1,4 +1,11 @@
-import { project, groundCell, WIDTH, HEIGHT } from "./art/scale.js";
+import {
+  project,
+  projectCell,
+  groundCell,
+  STOREY_HEIGHT,
+  WIDTH,
+  HEIGHT,
+} from "./art/scale.js";
 
 // Presentation coordinates only. Baked pixels and simulation cells stay fixed.
 export function createCamera(app, host, world) {
@@ -25,13 +32,18 @@ export function createCamera(app, host, world) {
     get zoom() {
       return zoom;
     },
-    project(x, z, height = 0) {
-      const p = project(x, z, height);
+    project(x, z, height = 0, level = 0) {
+      const p = project(x, z, height + level * STOREY_HEIGHT);
       return { x: p.x * zoom + world.x, y: p.y * zoom + world.y };
     },
-    cell(point) {
+    cell(point, level = 0) {
       const p = local(point);
-      return groundCell(p.x, p.y);
+      const ground = projectCell({ x: 0, z: 0, level: 0 });
+      const surface = projectCell({ x: 0, z: 0, level });
+      return {
+        ...groundCell(p.x, p.y - (surface.y - ground.y)),
+        level,
+      };
     },
     pan(dx, dy) {
       center.x -= dx / zoom;
@@ -49,7 +61,7 @@ export function createCamera(app, host, world) {
       update();
     },
     focus(at, screenY = app.screen.height / 2) {
-      Object.assign(center, project(at.x, at.z));
+      Object.assign(center, projectCell(at));
       center.y -= (screenY - app.screen.height / 2) / zoom;
       update();
     },

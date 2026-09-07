@@ -1,5 +1,5 @@
 import { Sprite, Container, Graphics, Rectangle, Text } from "pixi.js";
-import { project, WIDTH, HEIGHT } from "./art/scale.js";
+import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.js";
 import { WATCHER, inside } from "./world.js";
 import { CHOP_TICKS } from "./activity.ts";
@@ -16,10 +16,14 @@ function label(text, size = 8) {
   return result;
 }
 
-function put(display, at) {
-  const point = project(at.x, at.z);
+function depthKey(at, layer = 0) {
+  return at.x + at.z + (at.level ?? 0) * 0.35 + layer;
+}
+
+function put(display, at, layer = 0) {
+  const point = projectCell(at);
   display.position.set(point.x, point.y);
-  display.zIndex = at.x + at.z;
+  display.zIndex = depthKey(at, layer);
 }
 
 function body(texture, anchor, radius) {
@@ -55,7 +59,7 @@ export function createView(app, world, camera, art, initial, input) {
   const trees = new Map();
   for (const tree of initial.trees) {
     const view = body(art.tree.standing, art.propAnchor, 13);
-    put(view.container, tree);
+    put(view.container, tree, 0.95);
     bodies.addChild(view.container);
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
@@ -143,7 +147,7 @@ export function createView(app, world, camera, art, initial, input) {
 
   const cat = body(art.figures.cat.idle[0][0], art.pawnAnchor, 5);
   const goblin = body(art.figures.goblin.idle[0][0], art.pawnAnchor, 7);
-  put(goblin.container, WATCHER);
+  put(goblin.container, WATCHER, 0.8);
   bodies.addChild(cat.container, goblin.container);
 
   const piles = new Map();
@@ -161,26 +165,27 @@ export function createView(app, world, camera, art, initial, input) {
   const fromCanvas = (event) => event.nativeEvent?.target === app.canvas;
   app.stage.on("globalpointermove", (e) => {
     if (!fromCanvas(e)) return;
-    const cell = camera.cell(e.global);
+    const cell = camera.cell(e.global, input.level());
     if (inside(cell)) input.move(cell, e.global);
   });
   app.stage.on("pointerdown", (e) => {
     if (fromCanvas(e) && e.button === 0)
-      input.down(camera.cell(e.global), e.global);
+      input.down(camera.cell(e.global, input.level()), e.global);
   });
   app.stage.on("pointerup", (e) => {
     if (fromCanvas(e) && e.button === 0)
-      input.up(camera.cell(e.global), e.global);
+      input.up(camera.cell(e.global, input.level()), e.global);
   });
   app.stage.on("pointerupoutside", input.cancelDrag);
   app.stage.on("pointertap", (e) => {
     if (fromCanvas(e)) input.ground();
   });
   app.stage.on("rightclick", (e) => {
-    if (fromCanvas(e)) input.groundRight(camera.cell(e.global), e.global);
+    if (fromCanvas(e))
+      input.groundRight(camera.cell(e.global, input.level()), e.global);
   });
 
-  function drawPiles(state) {
+  function drawPiles(state, selection) {
     for (const [id, view] of piles) {
       if (!state.piles.some((p) => p.id === id && p.amount)) {
         view.container.destroy({ children: true });
@@ -202,8 +207,10 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = piles.get(pile.id);
-      put(view.container, pile);
-      view.container.zIndex += 0.1;
+      view.container.visible = pile.level === selection.level;
+      view.container.eventMode =
+        pile.level === selection.level && !selection.tool ? "static" : "none";
+      put(view.container, pile, 0.22);
       view.sprite.texture = art.wood[Math.min(6, pile.amount)];
       view.count.text = String(pile.amount);
     }
@@ -232,7 +239,13 @@ export function createView(app, world, camera, art, initial, input) {
           ? new Rectangle(-9, -10, 18, 15)
           : new Rectangle(-22, -62, 44, 66);
       view.sprite.rotation = active ? Math.sin(state.tick * 0.6) * 0.013 : 0;
-      const at = project(tree.x, tree.z);
+      const at = projectCell(tree);
+      view.container.visible = true;
+      view.container.alpha = selection.level === 0 ? 1 : 0.18;
+      view.container.eventMode =
+        selection.level === 0 && !selection.tool && !selection.box
+          ? "static"
+          : "none";
       if (selection.tree === tree.id || preview.has(tree.id))
         marks.ellipse(at.x, at.y, 14, 7).stroke({
           width: 2,
@@ -302,12 +315,17 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = herbs.get(herb.id);
-      const projected = project(herb.x, herb.z);
-      put(view.container, herb);
-      view.container.zIndex = herb.x + herb.z + 0.18;
+      const projected = projectCell(herb);
+      put(view.container, herb, 0.18);
+      view.container.visible = herb.level === selection.level;
       view.container.eventMode =
-        interactive && herb.stage !== "ordered" ? "static" : "none";
-      view.container.visible = herb.stage !== "ordered";
+        interactive &&
+        herb.level === selection.level &&
+        herb.stage !== "ordered"
+          ? "static"
+          : "none";
+      view.container.visible =
+        herb.level === selection.level && herb.stage !== "ordered";
       if (herb.stage !== "ordered")
         view.sprite.texture = art.herbs.mugwort[herb.stage];
       if (herb.stage === "ordered") {
@@ -357,19 +375,19 @@ export function createView(app, world, camera, art, initial, input) {
       }
       const view = bundles.get(bundle.id);
       const ground = bundle.location.kind === "ground";
-      view.container.visible = ground;
+      const active = ground && bundle.location.level === selection.level;
+      view.container.visible = active;
       view.container.eventMode =
-        ground && !selection.tool && !selection.panMode && !selection.box
+        active && !selection.tool && !selection.panMode && !selection.box
           ? "static"
           : "none";
       if (!ground) continue;
-      put(view.container, bundle.location);
-      view.container.zIndex = bundle.location.x + bundle.location.z + 0.2;
+      put(view.container, bundle.location, 0.2);
       if (selection.bundle === bundle.id)
         marks
           .ellipse(
-            project(bundle.location.x, bundle.location.z).x,
-            project(bundle.location.x, bundle.location.z).y,
+            projectCell(bundle.location).x,
+            projectCell(bundle.location).y,
             12,
             6,
           )
@@ -382,8 +400,10 @@ export function createView(app, world, camera, art, initial, input) {
     for (const person of Object.values(state.actors)) {
       const view = actors.get(person.id);
       const pos = visualPosition(person);
-      put(view.container, pos);
-      view.container.zIndex += 0.3;
+      put(view.container, pos, pos.level >= 1 ? 0.45 : 0.1);
+      const activeLevel = Math.round(pos.level) === selection.level;
+      view.container.alpha = activeLevel ? 1 : 0.18;
+      view.container.eventMode = activeLevel ? "static" : "none";
       const carryingHerb = state.herbBundles.some(
         (bundle) =>
           bundle.location.kind === "carried" &&
@@ -404,8 +424,8 @@ export function createView(app, world, camera, art, initial, input) {
       const selected = selection.selectedActors.includes(person.id);
       const visitor = !state.parties.home.members.includes(person.id);
       view.ring.visible = selected;
-      view.plate.visible = selected || visitor;
-      const labelAt = camera.project(pos.x, pos.z, 2.6);
+      view.plate.visible = activeLevel && (selected || visitor);
+      const labelAt = camera.project(pos.x, pos.z, 2.6, pos.level);
       view.plate.position.set(Math.round(labelAt.x), Math.round(labelAt.y));
       view.progress.clear();
       if (person.mode === "chop") {
@@ -416,10 +436,10 @@ export function createView(app, world, camera, art, initial, input) {
           .fill(0xefcb7b);
       }
       if (selected && person.path.length) {
-        const start = project(pos.x, pos.z);
+        const start = projectCell(pos);
         route.moveTo(start.x, start.y);
         for (const cell of person.path) {
-          const point = project(cell.x, cell.z);
+          const point = projectCell(cell);
           route.lineTo(point.x, point.y);
         }
         route.stroke({ width: 1, color: 0xe4c278, alpha: 0.65 });
@@ -444,16 +464,17 @@ export function createView(app, world, camera, art, initial, input) {
     render(state, selection) {
       drawTrees(state, selection);
       drawHerbs(state, selection);
-      drawPiles(state);
+      drawPiles(state, selection);
       drawActors(state, selection);
       drawSelectionBox(selection);
       cat.container.eventMode = goblin.container.eventMode = "none";
-      put(cat.container, visualPosition(state.cat));
-      cat.container.zIndex += 0.4;
+      put(cat.container, visualPosition(state.cat), 0.4);
+      cat.container.alpha = selection.level === 0 ? 1 : 0.18;
       const catFrames = art.figures.cat[state.cat.mode][state.cat.dir];
       cat.sprite.texture =
         catFrames[animationFrame(state.tick, state.cat.mode, catFrames)];
       goblin.container.visible = !!state.demand;
+      goblin.container.alpha = selection.level === 0 ? 1 : 0.18;
       construction.render(
         state,
         selection.tool === "chop" ? { ...selection, tool: null } : selection,

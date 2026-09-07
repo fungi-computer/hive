@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite, Text } from "pixi.js";
-import { project } from "./art/scale.js";
+import { projectCell } from "./art/scale.js";
 import {
   SIZE,
   cellKey,
@@ -22,7 +22,7 @@ export function dragCells(start, end) {
     (_, i) => ({
       x: start.x + (horizontal ? Math.sign(length) * i : 0),
       z: start.z + (horizontal ? 0 : Math.sign(length) * i),
-      level: 0,
+      level: start.level ?? 0,
     }),
   );
 }
@@ -33,7 +33,10 @@ function tile(graphics, cell, color, alpha) {
     [0.5, 0.5],
     [-0.5, 0.5],
   ].flatMap(([x, z]) => {
-    const p = project(cell.x + x, cell.z + z, 0.02);
+    const p = projectCell(
+      { x: cell.x + x, z: cell.z + z, level: cell.level },
+      0.02,
+    );
     return [p.x, p.y];
   });
   graphics
@@ -88,9 +91,12 @@ export function createConstructionView(world, art, bodies, input) {
     const followActors = (selection.followActorIds || ["rowan"])
       .map((id) => state.actors[id])
       .filter(Boolean);
-    const interior = indoors(state);
+    const interiors = new Map([
+      [0, indoors(state, 0)],
+      [1, indoors(state, 1)],
+    ]);
     const indoorActors = followActors.filter((actor) =>
-      interior.has(cellKey(actor)),
+      interiors.get(actor.level)?.has(cellKey(actor)),
     );
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
@@ -112,8 +118,10 @@ export function createConstructionView(world, art, bodies, input) {
         bodies.addChild(s);
       }
       const view = sites.get(site.id),
-        at = project(site.x, site.z),
+        at = projectCell(site),
         finished = site.finishedAt !== null;
+      const activeLevel = site.level === selection.level;
+      const supportContext = selection.level === 1 && site.level === 0;
       const stored = state.herbBundles.some(
         (bundle) =>
           bundle.location.kind === "stored" && bundle.location.site === site.id,
@@ -129,11 +137,26 @@ export function createConstructionView(world, art, bodies, input) {
         site.type === "wall"
           ? art.wallJoints[stage][wallMask(site, state.sites)]
           : art.buildings[site.type][stage][site.direction];
+      view.visible = activeLevel || supportContext;
       view.position.set(at.x, at.y);
-      view.eventMode = finished ? "static" : "none";
+      view.eventMode = finished && activeLevel ? "static" : "none";
       view.cursor = finished ? "pointer" : "default";
-      view.zIndex = site.x + site.z + (site.type === "roof" ? 50 : 0.15);
-      view.alpha = finished ? 1 : site.delivered ? 0.85 : 0.42;
+      view.zIndex =
+        site.x +
+        site.z +
+        (site.level ?? 0) * 0.35 +
+        (site.level === 1 ? 0.2 : site.type === "roof" ? 0.6 : 0.15);
+      view.alpha = !activeLevel
+        ? site.type === "roof" || site.type === "floor"
+          ? selection.cutaway
+            ? 0.08
+            : 0.2
+          : 0.24
+        : finished
+          ? 1
+          : site.delivered
+            ? 0.85
+            : 0.42;
       view.tint = finished || site.delivered ? 0xffffff : 0xc6e9dd;
       if (
         site.type === "wall" &&
@@ -141,7 +164,8 @@ export function createConstructionView(world, art, bodies, input) {
         indoorActors.some(
           (actor) =>
             site.x + site.z >= actor.x + actor.z &&
-            Math.abs(at.x - project(actor.x, actor.z).x) < 45,
+            Math.abs(at.x - projectCell({ ...actor, level: site.level }).x) <
+              45,
         ) &&
         finished
       )
@@ -178,7 +202,7 @@ export function createConstructionView(world, art, bodies, input) {
           !cell || !inside(cell) || !!placementOccupant(state, cell);
         if (cell) tile(grid, cell, problem ? 0xe48b78 : 0xbee0aa, 0.3);
         if (cell) {
-          const projected = project(cell.x, cell.z);
+          const projected = projectCell(cell);
           herbPreview
             .moveTo(projected.x, projected.y)
             .lineTo(projected.x, projected.y - 17)
@@ -199,11 +223,14 @@ export function createConstructionView(world, art, bodies, input) {
       }
       herbPreview.clear();
       for (let x = 0; x < SIZE; x++)
-        for (let z = 0; z < SIZE; z++) tile(grid, { x, z }, 0xb3c696, 0.025);
+        for (let z = 0; z < SIZE; z++)
+          tile(grid, { x, z, level: selection.level }, 0xb3c696, 0.025);
       const cells =
         selection.tool === "bed"
           ? [selection.at]
-          : dragCells(selection.drag, selection.at);
+          : selection.tool === "stair"
+            ? [selection.at]
+            : dragCells(selection.drag, selection.at);
       while (ghosts.length < cells.length) {
         const s = sprite(art.buildings[selection.tool].finished[0]);
         ghostLayer.addChild(s);
@@ -222,14 +249,14 @@ export function createConstructionView(world, art, bodies, input) {
         if (!problem) valid++;
         for (const p of footprint(at)) tile(grid, p, color, 0.3);
         const ghost = ghosts[i],
-          projected = project(cell.x, cell.z);
+          projected = projectCell(cell);
         ghost.texture =
           art.buildings[selection.tool].finished[selection.direction];
         ghost.position.set(projected.x, projected.y);
         ghost.alpha = 0.45;
         ghost.tint = color;
       });
-      const at = project(selection.at.x, selection.at.z);
+      const at = projectCell(selection.at);
       caption.text = valid
         ? `${valid * BUILDINGS[selection.tool].wood} WOOD · RELEASE TO ORDER`
         : "FOOTPRINT OCCUPIED";
