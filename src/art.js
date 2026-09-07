@@ -21,7 +21,7 @@ function outline(ctx, w, h) {
     }
   ctx.putImageData(out, 0, 0);
 }
-function bake(renderer, s, c, w, h, ink = true) {
+export function bake(renderer, s, c, w, h, ink = true) {
   renderer.setSize(w, h, false);
   renderer.render(s, c);
   const canvas = document.createElement("canvas");
@@ -37,7 +37,7 @@ function bake(renderer, s, c, w, h, ink = true) {
   texture.source.scaleMode = "nearest";
   return texture;
 }
-function anchor(c) {
+export function anchor(c) {
   const foot = new THREE.Vector3(0, 0, 0).project(c);
   return { x: 0.5, y: (1 - foot.y) / 2 };
 }

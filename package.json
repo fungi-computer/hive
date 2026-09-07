@@ -8,8 +8,9 @@
     "build": "vite build",
     "test": "node --test src/clearing.test.js",
     "preview": "wrangler preview",
-    "format": "prettier --write src scripts index.html vite.config.js wrangler.jsonc",
-    "prove": "node scripts/prove.mjs"
+    "format": "prettier --write src scripts index.html study.html vite.config.js wrangler.jsonc",
+    "prove": "node scripts/prove.mjs",
+    "prove:study": "node scripts/prove-study.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.11.0",

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#202d2b" />
+    <title>Goblin Country · People & Proportion</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">GOBLIN BED & BREAKFAST · ART STUDY</p>
+          <h1>People <i>&</i> proportion</h1>
+        </div>
+        <a href="/">Back to the clearing ↗</a>
+      </header>
+      <p class="intro">
+        A tired outsider. A strange little world. And a cat with better
+        prospects.
+      </p>
+      <section
+        class="workbench"
+        aria-label="Original character proportion study"
+      >
+        <div class="toolbar">
+          <div role="group" aria-label="Animation">
+            <button data-pose="idle" aria-pressed="false">Standing</button
+            ><button data-pose="walk" aria-pressed="true">Walking</button
+            ><button id="play" aria-pressed="true">Pause</button>
+          </div>
+          <div role="group" aria-label="Direction">
+            <button id="turn">Turn figures ↻</button
+            ><button id="zoom">Native pixels</button>
+          </div>
+        </div>
+        <div
+          class="scene-scroll"
+          tabindex="0"
+          role="region"
+          aria-label="Figure lineup; scroll to see all figures at native size"
+        >
+          <div class="scene-content" id="scene-content">
+            <div id="stage"><p id="loading">Putting on a brave face…</p></div>
+            <div class="captions">
+              <div><strong>Rowan</strong><span>Human · patched coat</span></div>
+              <div><strong>Rustwatch</strong><span>Armor silhouette</span></div>
+              <div>
+                <strong>Fen wizard</strong><span>Robe & crooked hat</span>
+              </div>
+              <div>
+                <strong>Goblin</strong><span>Wiry limbs · long ears</span>
+              </div>
+              <div>
+                <strong>Bramble</strong><span>Cat · no known loyalties</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="details" aria-label="Enlarged original sprites"></section>
+      <p class="notes">
+        Proposed scale: one ground cell per figure. The doorway gives Rowan
+        headroom. Hats and ears can extend past a body's footprint.
+      </p>
+      <p class="small">
+        Original Three geometry → fixed low-resolution bake → Pixi. This is an
+        art study; the accepted chop/build game is linked above.
+      </p>
+    </main>
+    <script type="module" src="/src/study.js"></script>
+  </body>
+</html>

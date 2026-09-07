@@ -1,4 +1,49 @@
-# Goblin Bed & Breakfast — clearing to shelter
+# Goblin Bed & Breakfast — survival colony prototype
+
+## Current art study (2026-09-07)
+
+The clearing/chop/wood/shelter milestone was accepted at
+`6733700a6489930ed12cd70ae36667bf48e654e2`. Levi subsequently authorized
+improvements and supplied more direction for proportions: Pilgrimage's human
+figures, articulated knight armor, a robed wizard, wiry long-eared goblins, and
+cream-and-dark cats. Personally author an original proportion study with idle
+and walk poses, different facings, and a doorway for scale. Present actual baked
+pixels at native/game/detail sizes before carrying this change into the game.
+The study is available at `/study.html`; the accepted game remains at `/`.
+Run `npm run dev` and open that path. Browser verification is
+`npm run prove:study -- URL EVIDENCE_DIRECTORY` (with the local Chromium
+environment configured). On this host, launch automated proofs through the
+CTO's existing `run-proof.sh` scope runner; leave human preview servers alone.
+
+The current study uses 48×64 padded sprite frames. Measured Rowan silhouettes
+span 38–41 native pixels across poses/facings. Its proposed ground diamond is
+32×16 pixels; one vertical world unit projects to about 19.6 pixels. This is a
+visual study, not a change to the accepted clearing's larger camera scale or
+an implementation of vertical collision. Native view preserves 1:1 pixels on
+small screens through horizontal scrolling; fitted view adapts to the viewport.
+
+The uploaded `/home/levi/grass-tile.aseprite` was inspected and its supplied hash
+verified. Its 64×64 document contains smaller padded block drawings. Levi
+explicitly says these are general art/sizing ideas, not a required tile size,
+canvas size or replacement asset set. The five original references and later
+close-ups remain inspiration; all shipped study figures are original geometry.
+Do not force a character's silhouette to fill its ground-cell footprint.
+
+The broader direction is a witchy, darkly comic colony world: the stranded human
+innkeeper may eventually prey on goblin guests and feed them to other guests.
+Levi wants deeper resource/work/sleep loops, arbitrary walls and workstations,
+schedules, vertical navigation and eventual multiplayer/world stitching. These
+are future considerations, not claims about this art study or authorization to
+invent a live storyteller backend. Keep the fixed-step game and selected
+libcolony responsibility intact. No simulation expansion is part of this study.
+
+Pilgrimage was inspected at `eabb8d18e771dec490ab037f1fdae04a62238613` as
+reference. Its finite maps, shared art scale and in-context asset review are
+useful examples; its source is not a completed chunk-streaming, multiplayer or
+multi-floor colony engine. Read-only research and visual evidence are ignored
+under `.botanical/`.
+
+## Accepted clearing milestone
 
 Levi authorized this next playable milestone on 2026-09-07 after accepting the
 inn MVP at `403f886c58429fec6711aa5747006a658d72da78`. That inn remains recoverable
@@ -67,11 +112,12 @@ meaningful final logic complements personal Astra authorship and CTO art review.
 
 - Owned clone: `/home/levi/src/hive`.
 - Only branch: `feat/goblin-bed-and-breakfast-mvp`.
-- Accepted starting point: `403f886c58429fec6711aa5747006a658d72da78`, clean.
+- Accepted current game: `6733700a6489930ed12cd70ae36667bf48e654e2`.
   The actual caller is `index.html` → `src/main.js`, with `art.js` baking,
-  `inn.js` state/work/navigation, `feed.js`, `ticker.js` and `colony.js`.
-  Adapt these actual responsibilities for the clearing; the inn need not remain
-  as a second engine. Read source before design.
+  `clearing.js` state/work, `movement.js`, `construction.js`, `feed.js`,
+  `ticker.js` and `colony.js`. The inn remains recoverable at `403f886c`.
+  The art study has its own small view caller, reusing the existing bake and
+  geometry helpers; it does not add another game simulation.
 - Original public demo: `8caba6cf0303437e7b6a2678d120f6587d812ec7`.
 - Retained `origin/worldbox-mvp`: `14cfa809480dec9b7f4586a9993354925345fa38`.
   Its ticker/sim/feed/tables/date/world/glade and tests supplied useful timing,
