@@ -17,6 +17,7 @@ export type UiCommand =
       level: number;
     }
   | { kind: "deconstruct"; site: string }
+  | { kind: "store-herb"; bundle: string; shelf: string }
   | { kind: "rest"; actors?: string[] }
   | { kind: "routine"; enabled: boolean; actors?: string[] }
   | {
@@ -34,6 +35,7 @@ export type UiAction =
   | { kind: "select-many"; ids: string[] }
   | { kind: "tree"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-herb"; id: string; point: { x: number; y: number } }
+  | { kind: "inspect-bundle"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-site"; id: string; point: { x: number; y: number } }
   | {
       kind: "panel";
@@ -111,6 +113,7 @@ export function routeUiAction(
     case "select-many":
     case "tree":
     case "inspect-herb":
+    case "inspect-bundle":
     case "inspect-site":
     case "panel":
     case "close-target":

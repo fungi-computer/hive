@@ -114,7 +114,17 @@ export function createConstructionView(world, art, bodies, input) {
       const view = sites.get(site.id),
         at = project(site.x, site.z),
         finished = site.finishedAt !== null;
-      const stage = finished ? "finished" : site.work > 0 ? "frame" : "stakes";
+      const stored = state.herbBundles.some(
+        (bundle) =>
+          bundle.location.kind === "stored" && bundle.location.site === site.id,
+      );
+      const stage = finished
+        ? site.type === "shelf" && stored
+          ? "filled"
+          : "finished"
+        : site.work > 0
+          ? "frame"
+          : "stakes";
       view.texture =
         site.type === "wall"
           ? art.wallJoints[stage][wallMask(site, state.sites)]

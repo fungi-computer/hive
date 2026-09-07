@@ -130,6 +130,7 @@ async function startGame() {
       inspected: inspectedTarget?.kind === "actor" ? inspectedTarget.id : null,
       tree: inspectedTarget?.kind === "tree" ? inspectedTarget.id : null,
       herb: inspectedTarget?.kind === "herb" ? inspectedTarget.id : null,
+      bundle: inspectedTarget?.kind === "bundle" ? inspectedTarget.id : null,
       site: inspectedTarget?.kind === "site" ? inspectedTarget.id : null,
       tool: current.tool,
       phase: current.phase,
@@ -343,7 +344,8 @@ async function startGame() {
       command.kind === "build" ||
       command.kind === "deconstruct" ||
       command.kind === "sow" ||
-      command.kind === "harvest"
+      command.kind === "harvest" ||
+      command.kind === "store-herb"
     ) {
       scoped = { party: "home", actors: null, ...command };
     } else {
@@ -552,6 +554,16 @@ async function startGame() {
       )
         return;
       hud.dispatch({ kind: "inspect-herb", id, point: pointAt });
+    },
+    bundle(id, pointAt) {
+      const current = hud.view();
+      if (
+        current.tool ||
+        current.panMode ||
+        current.machine.context.gesture === "box"
+      )
+        return;
+      hud.dispatch({ kind: "inspect-bundle", id, point: pointAt });
     },
     site(id, pointAt) {
       const current = hud.view();

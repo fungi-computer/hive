@@ -338,13 +338,42 @@ export function createView(app, world, camera, art, initial, input) {
     for (const bundle of state.herbBundles) {
       if (!bundles.has(bundle.id)) {
         const view = body(art.herbs.mugwort.bundle, art.propAnchor, 7);
+        view.container.eventMode = "static";
+        view.container.cursor = "pointer";
+        view.container.hitArea = new Rectangle(-18, -30, 36, 34);
+        view.container.on("pointerdown", (event) => {
+          if (!input.groundPointerOwns()) event.stopPropagation();
+        });
+        view.container.on("pointertap", (event) => {
+          if (input.groundPointerOwns()) return;
+          event.stopPropagation();
+          input.bundle(bundle.id, event.global);
+        });
+        view.container.on("rightclick", (event) => {
+          if (!input.groundPointerOwns()) event.stopPropagation();
+        });
         bundles.set(bundle.id, view);
         bodies.addChild(view.container);
       }
       const view = bundles.get(bundle.id);
-      put(view.container, bundle);
-      view.container.zIndex = bundle.x + bundle.z + 0.2;
-      view.container.eventMode = "none";
+      const ground = bundle.location.kind === "ground";
+      view.container.visible = ground;
+      view.container.eventMode =
+        ground && !selection.tool && !selection.panMode && !selection.box
+          ? "static"
+          : "none";
+      if (!ground) continue;
+      put(view.container, bundle.location);
+      view.container.zIndex = bundle.location.x + bundle.location.z + 0.2;
+      if (selection.bundle === bundle.id)
+        marks
+          .ellipse(
+            project(bundle.location.x, bundle.location.z).x,
+            project(bundle.location.x, bundle.location.z).y,
+            12,
+            6,
+          )
+          .stroke({ width: 2, color: 0xe6c477 });
     }
   }
 
@@ -355,11 +384,23 @@ export function createView(app, world, camera, art, initial, input) {
       const pos = visualPosition(person);
       put(view.container, pos);
       view.container.zIndex += 0.3;
-      const pose =
-        person.mode === "walk" && person.cargo ? "carry" : person.mode;
+      const carryingHerb = state.herbBundles.some(
+        (bundle) =>
+          bundle.location.kind === "carried" &&
+          bundle.location.actor === person.id,
+      );
+      const pose = carryingHerb
+        ? "carry-herb"
+        : person.mode === "walk" && person.cargo
+          ? "carry"
+          : person.mode;
       const frames = (art.figures[person.figure][pose] ||
         art.figures[person.figure].idle)[person.dir];
-      view.sprite.texture = frames[animationFrame(state.tick, pose, frames)];
+      const frame =
+        pose === "carry-herb" && person.mode !== "walk"
+          ? 0
+          : animationFrame(state.tick, pose, frames);
+      view.sprite.texture = frames[frame];
       const selected = selection.selectedActors.includes(person.id);
       const visitor = !state.parties.home.members.includes(person.id);
       view.ring.visible = selected;

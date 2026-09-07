@@ -25,6 +25,8 @@ const ACTIVITIES = {
   deliver: "Delivering wood",
   build: "Building",
   deconstruct: "Deconstructing",
+  "pickup-herb": "Picking up mugwort",
+  "store-herb": "Storing mugwort",
   sow: "Planting mugwort",
   harvest: "Harvesting mugwort",
   sleep: "Sleeping in the bedroll",
@@ -139,7 +141,7 @@ const toolMachine = createMachine({
   },
 });
 
-function actorFact(actor) {
+function actorFact(actor, herbClaimJob) {
   return {
     id: actor.id,
     name: actor.name,
@@ -153,7 +155,7 @@ function actorFact(actor) {
     buildAllowed: actor.allowedWork.build,
     gardenAllowed: actor.allowedWork.garden,
     cargoAmount: actor.cargo?.amount ?? 0,
-    activeJobId: actor.task?.job ?? actor.cargo?.job ?? null,
+    activeJobId: actor.task?.job ?? actor.cargo?.job ?? herbClaimJob ?? null,
     x: actor.x,
     z: actor.z,
     level: actor.level,
@@ -175,6 +177,20 @@ function sameObject(a, b) {
   );
 }
 
+function sameBundle(a, b) {
+  if (!a || !b || a.id !== b.id || a.kind !== b.kind || a.amount !== b.amount)
+    return false;
+  const left = a.location;
+  const right = b.location;
+  if (!left || !right || left.kind !== right.kind) return false;
+  if (left.kind === "ground")
+    return (
+      left.x === right.x && left.z === right.z && left.level === right.level
+    );
+  if (left.kind === "carried") return left.actor === right.actor;
+  return left.site === right.site;
+}
+
 function sameKeys(a, b) {
   const names = Object.keys(a);
   return (
@@ -188,7 +204,10 @@ function sameKeys(a, b) {
 
 function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   const nextActors = Object.fromEntries(
-    Object.values(state.actors).map((actor) => [actor.id, actorFact(actor)]),
+    Object.values(state.actors).map((actor) => [
+      actor.id,
+      actorFact(actor, state.herbStorageClaims[actor.id]?.job ?? null),
+    ]),
   );
   const actors =
     previous &&
@@ -232,7 +251,9 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   const jobsNext = state.jobs.map((job) => ({
     id: job.id,
     kind: job.kind,
-    target: job.target,
+    target: "target" in job ? job.target : null,
+    bundle: job.kind === "store-herb" ? job.bundle : null,
+    shelf: job.kind === "store-herb" ? job.shelf : null,
     reason: job.reason,
     routine: job.routine,
     actors: job.scope.actors ? [...job.scope.actors] : null,
@@ -247,6 +268,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     delivered: site.delivered,
     work: site.work,
     finished: site.finishedAt !== null,
+    bundleCount: state.herbBundles.filter(
+      (bundle) =>
+        bundle.location.kind === "stored" && bundle.location.site === site.id,
+    ).length,
   }));
   const herbsNext = state.herbs.map((herb) => ({
     id: herb.id,
@@ -259,11 +284,14 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   }));
   const herbBundlesNext = state.herbBundles.map((bundle) => ({
     id: bundle.id,
-    x: bundle.x,
-    z: bundle.z,
-    level: bundle.level,
     kind: bundle.kind,
     amount: bundle.amount,
+    location:
+      bundle.location.kind === "ground"
+        ? { ...bundle.location }
+        : bundle.location.kind === "carried"
+          ? { ...bundle.location }
+          : { ...bundle.location },
   }));
   const trees =
     previous &&
@@ -293,7 +321,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     previous &&
     herbBundlesNext.length === previous.herbBundles.length &&
     herbBundlesNext.every((bundle, index) =>
-      sameObject(bundle, previous.herbBundles[index]),
+      sameBundle(bundle, previous.herbBundles[index]),
     )
       ? previous.herbBundles
       : herbBundlesNext;
@@ -337,7 +365,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
 }
 
 function orderModel(display, job) {
-  const site = display.sites.find((candidate) => candidate.id === job.target);
+  const site = display.sites.find(
+    (candidate) =>
+      candidate.id === (job.kind === "store-herb" ? job.shelf : job.target),
+  );
   const active = Object.values(display.actors).filter(
     (actor) => actor.activeJobId === job.id,
   );
@@ -352,14 +383,26 @@ function orderModel(display, job) {
             ? job.routine
               ? "Sleep until morning"
               : "Rest in bedroll"
-            : `${BUILDINGS[site.type].label} · ${site.x}, ${site.z}`;
-  const detail = site
-    ? ` · ${site.delivered}/${BUILDINGS[site.type].wood} wood`
-    : "";
+            : job.kind === "store-herb"
+              ? "Store mugwort"
+              : site
+                ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z}`
+                : "Work order";
+  const detail =
+    job.kind === "store-herb"
+      ? site
+        ? ` · Shelf ${site.x}, ${site.z}`
+        : ""
+      : site
+        ? ` · ${site.delivered}/${BUILDINGS[site.type].wood} wood`
+        : "";
   return {
     id: job.id,
     kind: job.kind,
     target: job.target,
+    bundle: job.bundle,
+    shelf: job.shelf,
+    reason: job.reason,
     title,
     active: active.length > 0,
     detail:
@@ -477,6 +520,19 @@ const targetAtom = atom((get) => {
   if (target.kind === "herb") {
     const herb = facts.herbs.find((candidate) => candidate.id === target.id);
     return herb ? { kind: "herb", ...herb } : null;
+  }
+  if (target.kind === "bundle") {
+    const bundle = facts.herbBundles.find(
+      (candidate) => candidate.id === target.id,
+    );
+    if (!bundle) return null;
+    return {
+      ...bundle,
+      kind: "bundle",
+      shelves: facts.sites
+        .filter((site) => site.type === "shelf" && site.finished)
+        .map((site) => ({ id: site.id, x: site.x, z: site.z })),
+    };
   }
   const site = facts.sites.find((candidate) => candidate.id === target.id);
   return site ? { kind: "site", ...site } : null;
@@ -903,6 +959,80 @@ function Build({ model: m, send }) {
 
 function Target({ model: m, send }) {
   if (!m.context || !m.target) return null;
+  if (m.target.kind === "bundle") {
+    const storeJob = m.orders.find(
+      (job) => job.kind === "store-herb" && job.bundle === m.target.id,
+    );
+    const locationText =
+      m.target.location.kind === "ground"
+        ? `Loose bundle · ${m.target.location.x}, ${m.target.location.z}`
+        : m.target.location.kind === "carried"
+          ? "Carried by a home member"
+          : "Stored on a mugwort shelf";
+    return (
+      <Card
+        variant="outline"
+        role="region"
+        className="window target-window"
+        aria-label="Mugwort bundle actions"
+        style={{
+          left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
+          top: Math.max(80, Math.min(innerHeight - 230, m.context.y + 12)),
+        }}
+      >
+        <div className="window-heading">
+          <h2>Mugwort bundle</h2>
+          <Button
+            className="close"
+            variant="ghost"
+            size="icon"
+            aria-label="Close mugwort bundle actions"
+            onClick={() => send({ kind: "close-target" })}
+          >
+            ×
+          </Button>
+        </div>
+        <p className="muted">{locationText} · 1 bundle</p>
+        {storeJob ? (
+          <small className="action-reason" data-status="store-herb">
+            {storeJob.active
+              ? "A home member is storing this bundle."
+              : storeJob.reason || "Waiting for storage availability."}
+          </small>
+        ) : m.target.location.kind !== "ground" ? (
+          <small className="action-reason">
+            This bundle is not on the ground.
+          </small>
+        ) : m.target.shelves.length ? (
+          <div className="button-column">
+            {m.target.shelves.map((shelf) => (
+              <Button
+                key={shelf.id}
+                data-action="store-herb"
+                data-bundle={m.target.id}
+                data-site={shelf.id}
+                variant="primary"
+                onClick={() =>
+                  send({
+                    kind: "command",
+                    command: {
+                      kind: "store-herb",
+                      bundle: m.target.id,
+                      shelf: shelf.id,
+                    },
+                  })
+                }
+              >
+                Store on shelf · {shelf.x}, {shelf.z}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <small className="action-reason">Build a mugwort shelf first.</small>
+        )}
+      </Card>
+    );
+  }
   if (m.target.kind === "site") {
     const label = BUILDINGS[m.target.type].label;
     const deconstructJob = m.orders.find(
@@ -937,7 +1067,9 @@ function Target({ model: m, send }) {
           </Button>
         </div>
         <p className="muted">
-          Finished structure · {m.target.x}, {m.target.z}
+          {m.target.type === "shelf"
+            ? `Mugwort ${m.target.bundleCount}/1`
+            : `Finished structure · ${m.target.x}, ${m.target.z}`}
         </p>
         <Button
           id="deconstruct"
@@ -1600,6 +1732,19 @@ export function createHud(host, art, effect) {
           designationTargetIds: [],
         }));
         return;
+      case "inspect-bundle":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          inspectedTarget: {
+            kind: "bundle",
+            id: action.id,
+            point: { x: action.point.x, y: action.point.y },
+          },
+          panel: null,
+          designationTargetIds: [],
+        }));
+        return;
       case "inspect-site":
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
@@ -1757,7 +1902,8 @@ export function createHud(host, art, effect) {
           command.kind === "build" ||
           command.kind === "deconstruct" ||
           command.kind === "sow" ||
-          command.kind === "harvest"
+          command.kind === "harvest" ||
+          command.kind === "store-herb"
         )
           command.actors = null;
         else if (command.actors === undefined)
@@ -1830,6 +1976,10 @@ export function createHud(host, art, effect) {
           : null,
       herb:
         value.inspectedTarget?.kind === "herb"
+          ? value.inspectedTarget.id
+          : null,
+      bundle:
+        value.inspectedTarget?.kind === "bundle"
           ? value.inspectedTarget.id
           : null,
       site:
