@@ -20,6 +20,7 @@
     "@fungi.computer/caps": "file:vendor/caps/fungi.computer-caps-0.0.0.tgz",
     "@fungi.computer/stipe": "file:vendor/caps/fungi.computer-stipe-0.0.0.tgz",
     "@opentui/keymap": "0.5.10",
+    "idb": "8.0.3",
     "jotai": "2.20.3",
     "pixi.js": "^8.11.0",
     "react": "18.3.1",
