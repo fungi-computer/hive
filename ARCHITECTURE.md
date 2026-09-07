@@ -137,6 +137,14 @@ yeast, water, fuel, quantities and timings remain unresolved proposals; no free
 stock, fluid/weather engine or backend is implied. The shelf direction is mixed
 contents shown as a simple grouped item/count list, never backpack packing;
 bulk/filter/priority/weight are proposals and pawn carry weight remains separate.
+Later hygiene may draw on medieval wells, carried water, basins, latrines/waste,
+then baths, shaving/barber service and Dwarven pumps/pipes. Preserve the narrow
+utility seam: shallow trench + lay pipe + backfill in one top-ground cell, with
+Expose/Repair/Remove/Cover; cover removal preserves pipe/content and the normal
+surface returns. A Utilities/X-ray view reveals network/floor/flow/breaks without
+altering simulation. Current levels are logical storeys, not volumetric terrain;
+this remains future direction after brewing, not an upstairs/runtime/framework
+requirement.
 
 Presentation needs Sims-like front-wall cutaway modes, separate roofs/storeys,
 and optional tree/canopy fading during construction. Terrain editing, building,

@@ -105,6 +105,14 @@ or backend. Future shelf presentation is mixed contents as a simple grouped
 item/count list, never backpack packing; bulk/filter/priority/weight policies are
 proposals, and pawn carry weight remains separate.
 
+Deferred household utility direction: medieval dark-funny wells, carried water,
+basins, latrines and waste can later lead to baths, shaving/barber service, and
+Dwarven pumps/pipes. The latest narrow seam is one shallow top-ground cell: lay
+pipe, trench, backfill, then Expose/Repair/Remove/Cover; digging cover preserves
+the pipe and contents and restores the ordinary surface. Utilities/X-ray may
+reveal network, floor, flow and breaks without changing simulation. Current
+levels are logical storeys, not volumetric diggable terrain; brewing remains next.
+
 Performance and satisfying pacing are core, but not a license for artificial
 waits. One authoritative world clock must eventually serve every visitor; the
 current local speed control remains a prototype convenience until multiplayer
