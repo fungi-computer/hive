@@ -3,6 +3,7 @@ import { project, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.js";
 import { WATCHER, inside } from "./world.js";
 import { CHOP_TICKS } from "./activity.ts";
+import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
 import { createConstructionView } from "./construction-view.js";
 
@@ -146,6 +147,8 @@ export function createView(app, world, camera, art, initial, input) {
   bodies.addChild(cat.container, goblin.container);
 
   const piles = new Map();
+  const herbs = new Map();
+  const bundles = new Map();
   const construction = createConstructionView(world, art, bodies, input);
   const dusk = new Graphics()
     .rect(0, 0, WIDTH, HEIGHT)
@@ -257,6 +260,94 @@ export function createView(app, world, camera, art, initial, input) {
     }
   }
 
+  function createHerbView(herb) {
+    const view = body(
+      art.herbs.mugwort[herb.stage === "ordered" ? "planted" : herb.stage],
+      art.propAnchor,
+      7,
+    );
+    view.container.eventMode = "static";
+    view.container.cursor = "pointer";
+    view.container.hitArea = new Rectangle(-18, -34, 36, 38);
+    view.container.on("pointerdown", (event) => {
+      if (!input.groundPointerOwns()) event.stopPropagation();
+    });
+    view.container.on("pointertap", (event) => {
+      if (input.groundPointerOwns()) return;
+      event.stopPropagation();
+      input.herb(herb.id, event.global);
+    });
+    view.container.on("rightclick", (event) => {
+      if (!input.groundPointerOwns()) event.stopPropagation();
+    });
+    return view;
+  }
+
+  function drawHerbs(state, selection) {
+    for (const [id, view] of herbs)
+      if (!state.herbs.some((herb) => herb.id === id)) {
+        view.container.destroy({ children: true });
+        herbs.delete(id);
+      }
+    for (const [id, view] of bundles)
+      if (!state.herbBundles.some((bundle) => bundle.id === id)) {
+        view.container.destroy({ children: true });
+        bundles.delete(id);
+      }
+    const interactive = !selection.tool && !selection.panMode && !selection.box;
+    for (const herb of state.herbs) {
+      if (!herbs.has(herb.id)) {
+        const view = createHerbView(herb);
+        herbs.set(herb.id, view);
+        bodies.addChild(view.container);
+      }
+      const view = herbs.get(herb.id);
+      const projected = project(herb.x, herb.z);
+      put(view.container, herb);
+      view.container.zIndex = herb.x + herb.z + 0.18;
+      view.container.eventMode =
+        interactive && herb.stage !== "ordered" ? "static" : "none";
+      view.container.visible = herb.stage !== "ordered";
+      if (herb.stage !== "ordered")
+        view.sprite.texture = art.herbs.mugwort[herb.stage];
+      if (herb.stage === "ordered") {
+        marks
+          .moveTo(projected.x, projected.y)
+          .lineTo(projected.x, projected.y - 17)
+          .stroke({ width: 2, color: 0xb7c77d });
+        marks
+          .ellipse(projected.x, projected.y, 8, 4)
+          .fill({ color: 0x8cae7d, alpha: 0.3 });
+      }
+      if (selection.herb === herb.id)
+        marks.ellipse(projected.x, projected.y, 12, 6).stroke({
+          width: 2,
+          color: 0xe6c477,
+        });
+      const progress =
+        herb.stage === "ordered"
+          ? herb.work / SOW_TICKS
+          : herb.stage === "ready"
+            ? herb.work / HARVEST_TICKS
+            : Math.min(1, (state.tick - herb.plantedAt) / HERB_READY_TICKS);
+      marks.rect(projected.x - 10, projected.y + 7, 20, 2).fill(0x21362e);
+      marks
+        .rect(projected.x - 10, projected.y + 7, 20 * progress, 1)
+        .fill(herb.stage === "ready" ? 0xe8c679 : 0x9bc99a);
+    }
+    for (const bundle of state.herbBundles) {
+      if (!bundles.has(bundle.id)) {
+        const view = body(art.herbs.mugwort.bundle, art.propAnchor, 7);
+        bundles.set(bundle.id, view);
+        bodies.addChild(view.container);
+      }
+      const view = bundles.get(bundle.id);
+      put(view.container, bundle);
+      view.container.zIndex = bundle.x + bundle.z + 0.2;
+      view.container.eventMode = "none";
+    }
+  }
+
   function drawActors(state, selection) {
     route.clear();
     for (const person of Object.values(state.actors)) {
@@ -311,6 +402,7 @@ export function createView(app, world, camera, art, initial, input) {
   return {
     render(state, selection) {
       drawTrees(state, selection);
+      drawHerbs(state, selection);
       drawPiles(state);
       drawActors(state, selection);
       drawSelectionBox(selection);

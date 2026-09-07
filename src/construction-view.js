@@ -1,6 +1,12 @@
 import { Container, Graphics, Sprite, Text } from "pixi.js";
 import { project } from "./art/scale.js";
-import { SIZE, cellKey, neighbors } from "./world.js";
+import {
+  SIZE,
+  cellKey,
+  inside,
+  neighbors,
+  placementOccupant,
+} from "./world.js";
 import {
   BUILDINGS,
   footprint,
@@ -52,10 +58,12 @@ function wallMask(site, sites) {
 export function createConstructionView(world, art, bodies, input) {
   const grid = new Graphics(),
     bars = new Graphics(),
-    ghostLayer = new Container();
+    ghostLayer = new Container(),
+    herbPreview = new Graphics();
   grid.eventMode = bars.eventMode = ghostLayer.eventMode = "none";
   world.addChildAt(grid, 1);
   world.addChild(ghostLayer, bars);
+  ghostLayer.addChild(herbPreview);
   const sites = new Map();
   const caption = new Text({
     text: "",
@@ -152,6 +160,34 @@ export function createConstructionView(world, art, bodies, input) {
       drawSites(state, selection);
       ghostLayer.visible = caption.visible = !!selection.tool;
       if (!selection.tool) return;
+      if (selection.tool === "herb") {
+        ghosts.forEach((ghost) => (ghost.visible = false));
+        herbPreview.clear();
+        const cell = selection.at;
+        const problem =
+          !cell || !inside(cell) || !!placementOccupant(state, cell);
+        if (cell) tile(grid, cell, problem ? 0xe48b78 : 0xbee0aa, 0.3);
+        if (cell) {
+          const projected = project(cell.x, cell.z);
+          herbPreview
+            .moveTo(projected.x, projected.y)
+            .lineTo(projected.x, projected.y - 17)
+            .stroke({ width: 2, color: problem ? 0xe48b78 : 0xb7c77d });
+          herbPreview.ellipse(projected.x, projected.y, 8, 4).fill({
+            color: problem ? 0xe48b78 : 0x8cae7d,
+            alpha: 0.35,
+          });
+          caption.text = problem
+            ? "GROUND OCCUPIED"
+            : "PLANT MUGWORT · RELEASE TO SOW";
+          caption.position.set(
+            Math.max(90, Math.min(550, projected.x)),
+            Math.min(370, projected.y + 27),
+          );
+        }
+        return;
+      }
+      herbPreview.clear();
       for (let x = 0; x < SIZE; x++)
         for (let z = 0; z < SIZE; z++) tile(grid, { x, z }, 0xb3c696, 0.025);
       const cells =

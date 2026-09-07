@@ -8,6 +8,7 @@ import { createView } from "./view.js";
 import { createCamera } from "./camera.js";
 import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
+import { inside, placementOccupant } from "./world.js";
 import { createHud } from "./hud.jsx";
 import {
   backupJson,
@@ -128,6 +129,7 @@ async function startGame() {
       ],
       inspected: inspectedTarget?.kind === "actor" ? inspectedTarget.id : null,
       tree: inspectedTarget?.kind === "tree" ? inspectedTarget.id : null,
+      herb: inspectedTarget?.kind === "herb" ? inspectedTarget.id : null,
       site: inspectedTarget?.kind === "site" ? inspectedTarget.id : null,
       tool: current.tool,
       phase: current.phase,
@@ -339,7 +341,9 @@ async function startGame() {
       command.kind === "cancel" ||
       command.kind === "next" ||
       command.kind === "build" ||
-      command.kind === "deconstruct"
+      command.kind === "deconstruct" ||
+      command.kind === "sow" ||
+      command.kind === "harvest"
     ) {
       scoped = { party: "home", actors: null, ...command };
     } else {
@@ -539,6 +543,16 @@ async function startGame() {
       }
       hud.dispatch({ kind: "tree", id, point: pointAt });
     },
+    herb(id, pointAt) {
+      const current = hud.view();
+      if (
+        current.tool ||
+        current.panMode ||
+        current.machine.context.gesture === "box"
+      )
+        return;
+      hud.dispatch({ kind: "inspect-herb", id, point: pointAt });
+    },
     site(id, pointAt) {
       const current = hud.view();
       if (
@@ -590,6 +604,21 @@ async function startGame() {
             ? { kind: "commit-designation" }
             : { kind: "commit-result", accepted: 0 },
         );
+        return;
+      }
+      if (fixed.tool === "herb") {
+        const cell = end;
+        if (!inside(cell) || placementOccupant(state, cell)) {
+          notice = "Choose clear ground for mugwort.";
+          publish();
+          hud.dispatch({
+            kind: "placement-result",
+            point: point(cell, screen),
+          });
+          return;
+        }
+        request({ kind: "sow", ...cell });
+        hud.dispatch({ kind: "placement-result", point: point(cell, screen) });
         return;
       }
       if (fixed.gesture === "box") {

@@ -1,5 +1,7 @@
 import type { BuildingKind, Cell, Command } from "./model.ts";
 
+export type ToolKind = "chop" | BuildingKind | "herb";
+
 export type GesturePoint = {
   cell: { x: number; z: number; level: number };
   screen: { x: number; y: number };
@@ -19,7 +21,7 @@ export type UiCommand =
   | { kind: "routine"; enabled: boolean; actors?: string[] }
   | {
       kind: "work";
-      work: "chop" | "haul" | "build";
+      work: "chop" | "haul" | "build" | "garden";
       enabled: boolean;
       actors: string[];
     }
@@ -31,6 +33,7 @@ export type UiAction =
   | { kind: "select"; actor: string; toggle?: boolean }
   | { kind: "select-many"; ids: string[] }
   | { kind: "tree"; id: string; point: { x: number; y: number } }
+  | { kind: "inspect-herb"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-site"; id: string; point: { x: number; y: number } }
   | {
       kind: "panel";
@@ -55,7 +58,7 @@ export type UiAction =
         | "focus"
         | "fullscreen";
     }
-  | { kind: "tool"; tool: string | null }
+  | { kind: "tool"; tool: ToolKind | null }
   | { kind: "begin" | "move" | "end"; point: GesturePoint }
   | { kind: "placement-result"; point: GesturePoint }
   | { kind: "set-designation"; ids: string[] }
@@ -107,6 +110,7 @@ export function routeUiAction(
     case "select":
     case "select-many":
     case "tree":
+    case "inspect-herb":
     case "inspect-site":
     case "panel":
     case "close-target":

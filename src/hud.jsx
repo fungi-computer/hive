@@ -25,6 +25,8 @@ const ACTIVITIES = {
   deliver: "Delivering wood",
   build: "Building",
   deconstruct: "Deconstructing",
+  sow: "Planting mugwort",
+  harvest: "Harvesting mugwort",
   sleep: "Sleeping in the bedroll",
 };
 
@@ -149,6 +151,7 @@ function actorFact(actor) {
     chopAllowed: actor.allowedWork.chop,
     haulAllowed: actor.allowedWork.haul,
     buildAllowed: actor.allowedWork.build,
+    gardenAllowed: actor.allowedWork.garden,
     cargoAmount: actor.cargo?.amount ?? 0,
     activeJobId: actor.task?.job ?? actor.cargo?.job ?? null,
     x: actor.x,
@@ -245,6 +248,23 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     work: site.work,
     finished: site.finishedAt !== null,
   }));
+  const herbsNext = state.herbs.map((herb) => ({
+    id: herb.id,
+    x: herb.x,
+    z: herb.z,
+    level: herb.level,
+    stage: herb.stage,
+    work: herb.work,
+    plantedAt: herb.plantedAt,
+  }));
+  const herbBundlesNext = state.herbBundles.map((bundle) => ({
+    id: bundle.id,
+    x: bundle.x,
+    z: bundle.z,
+    level: bundle.level,
+    kind: bundle.kind,
+    amount: bundle.amount,
+  }));
   const trees =
     previous &&
     treesNext.length === previous.trees.length &&
@@ -263,6 +283,20 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     sitesNext.every((site, index) => sameObject(site, previous.sites[index]))
       ? previous.sites
       : sitesNext;
+  const herbs =
+    previous &&
+    herbsNext.length === previous.herbs.length &&
+    herbsNext.every((herb, index) => sameObject(herb, previous.herbs[index]))
+      ? previous.herbs
+      : herbsNext;
+  const herbBundles =
+    previous &&
+    herbBundlesNext.length === previous.herbBundles.length &&
+    herbBundlesNext.every((bundle, index) =>
+      sameObject(bundle, previous.herbBundles[index]),
+    )
+      ? previous.herbBundles
+      : herbBundlesNext;
   const demand =
     state.demand &&
     previous?.demand &&
@@ -287,6 +321,8 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     trees,
     jobs,
     sites,
+    herbs,
+    herbBundles,
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
     time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
     feed,
@@ -308,11 +344,15 @@ function orderModel(display, job) {
   const title =
     job.kind === "chop"
       ? `Chop oak ${job.target.split("-")[1]}`
-      : job.kind === "rest"
-        ? job.routine
-          ? "Sleep until morning"
-          : "Rest in bedroll"
-        : `${BUILDINGS[site.type].label} · ${site.x}, ${site.z}`;
+      : job.kind === "sow"
+        ? "Plant mugwort"
+        : job.kind === "harvest"
+          ? "Harvest mugwort"
+          : job.kind === "rest"
+            ? job.routine
+              ? "Sleep until morning"
+              : "Rest in bedroll"
+            : `${BUILDINGS[site.type].label} · ${site.x}, ${site.z}`;
   const detail = site
     ? ` · ${site.delivered}/${BUILDINGS[site.type].wood} wood`
     : "";
@@ -433,6 +473,10 @@ const targetAtom = atom((get) => {
   if (target.kind === "tree") {
     const tree = facts.trees.find((candidate) => candidate.id === target.id);
     return tree ? { kind: "tree", ...tree } : null;
+  }
+  if (target.kind === "herb") {
+    const herb = facts.herbs.find((candidate) => candidate.id === target.id);
+    return herb ? { kind: "herb", ...herb } : null;
   }
   const site = facts.sites.find((candidate) => candidate.id === target.id);
   return site ? { kind: "site", ...site } : null;
@@ -557,7 +601,7 @@ function Orders({ model: m, send }) {
   );
 }
 
-const WORK_TYPES = ["chop", "haul", "build"];
+const WORK_TYPES = ["chop", "haul", "build", "garden"];
 
 function Work({ model: m, send }) {
   return (
@@ -783,6 +827,18 @@ function Build({ model: m, send }) {
         )}
       </div>
       <div id="palette">
+        <Button
+          id="herb-tool"
+          data-tool="herb"
+          variant={m.tool === "herb" ? "secondary" : "outline"}
+          aria-pressed={m.tool === "herb"}
+          onClick={() =>
+            send({ kind: "tool", tool: m.tool === "herb" ? null : "herb" })
+          }
+        >
+          <span>Plant mugwort</span>
+          <small>single cell · shared Garden work</small>
+        </Button>
         {Object.entries(BUILDINGS).map(([type, recipe]) => (
           <Button
             key={type}
@@ -799,28 +855,42 @@ function Build({ model: m, send }) {
         ))}
       </div>
       <p className="muted">
-        Mark a tile or drag a row. A blueprint can wait for wood. Leave room for
-        a doorway.
+        {m.tool === "herb"
+          ? "Hover a clear tile and release to sow. Escape, right-click, or camera movement cancels."
+          : "Mark a tile or drag a row. A blueprint can wait for wood. Leave room for a doorway."}
       </p>
       <div className="button-row">
-        <Button
-          id="rotate"
-          variant="outline"
-          size="sm"
-          disabled={!m.tool}
-          onClick={() => send({ kind: "rotate" })}
-        >
-          Rotate footprint ↻ <Key model={m} name="build.rotate" />
-        </Button>
-        <Button
-          id="task"
-          variant="primary"
-          size="sm"
-          disabled={!m.tool}
-          onClick={() => send({ kind: "finish-placement" })}
-        >
-          Done placing
-        </Button>
+        {m.tool !== "herb" ? (
+          <>
+            <Button
+              id="rotate"
+              variant="outline"
+              size="sm"
+              disabled={!m.tool}
+              onClick={() => send({ kind: "rotate" })}
+            >
+              Rotate footprint ↻ <Key model={m} name="build.rotate" />
+            </Button>
+            <Button
+              id="task"
+              variant="primary"
+              size="sm"
+              disabled={!m.tool}
+              onClick={() => send({ kind: "finish-placement" })}
+            >
+              Done placing
+            </Button>
+          </>
+        ) : (
+          <Button
+            id="cancel-herb"
+            variant="ghost"
+            size="sm"
+            onClick={() => send({ kind: "close" })}
+          >
+            Cancel planting
+          </Button>
+        )}
       </div>
       <p id="home-status" className="home-status">
         {m.felled
@@ -890,6 +960,70 @@ function Target({ model: m, send }) {
             {deconstructJob.active
               ? "A home member is working on this structure."
               : "This structure is already in the work queue."}
+          </small>
+        )}
+      </Card>
+    );
+  }
+  if (m.target.kind === "herb") {
+    const harvestJob = m.orders.find(
+      (job) => job.kind === "harvest" && job.target === m.target.id,
+    );
+    const actionLabel = harvestJob
+      ? harvestJob.active
+        ? "Harvest in progress"
+        : "Harvest queued"
+      : "Harvest mugwort";
+    return (
+      <Card
+        variant="outline"
+        role="region"
+        className="window target-window"
+        aria-label="Mugwort actions"
+        style={{
+          left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
+          top: Math.max(80, Math.min(innerHeight - 190, m.context.y + 12)),
+        }}
+      >
+        <div className="window-heading">
+          <h2>Mugwort</h2>
+          <Button
+            className="close"
+            variant="ghost"
+            size="icon"
+            aria-label="Close mugwort actions"
+            onClick={() => send({ kind: "close-target" })}
+          >
+            ×
+          </Button>
+        </div>
+        <p className="muted">
+          {m.target.stage[0].toUpperCase() + m.target.stage.slice(1)} ·{" "}
+          {m.target.x}, {m.target.z}
+        </p>
+        {m.target.stage === "ready" && (
+          <Button
+            id="harvest-herb"
+            data-action="harvest"
+            data-herb={m.target.id}
+            variant="primary"
+            disabled={!!harvestJob}
+            aria-label={actionLabel}
+            onClick={() =>
+              send({
+                kind: "command",
+                command: { kind: "harvest", herb: m.target.id },
+              })
+            }
+          >
+            {actionLabel}
+          </Button>
+        )}
+        {harvestJob && (
+          <small className="action-reason" data-status="harvest">
+            {harvestJob.active
+              ? "A home member is harvesting this mugwort."
+              : "This mugwort is already in the shared work queue."}
           </small>
         )}
       </Card>
@@ -1449,6 +1583,15 @@ export function createHud(host, art, effect) {
           designationTargetIds: [],
         }));
         return;
+      case "inspect-herb":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          inspectedTarget: { kind: "herb", id: action.id, point: action.point },
+          panel: null,
+          designationTargetIds: [],
+        }));
+        return;
       case "inspect-site":
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
@@ -1600,7 +1743,9 @@ export function createHud(host, art, effect) {
           command.kind === "cancel" ||
           command.kind === "next" ||
           command.kind === "build" ||
-          command.kind === "deconstruct"
+          command.kind === "deconstruct" ||
+          command.kind === "sow" ||
+          command.kind === "harvest"
         )
           command.actors = null;
         else if (command.actors === undefined)
@@ -1669,6 +1814,10 @@ export function createHud(host, art, effect) {
         : null,
       tree:
         value.inspectedTarget?.kind === "tree"
+          ? value.inspectedTarget.id
+          : null,
+      herb:
+        value.inspectedTarget?.kind === "herb"
           ? value.inspectedTarget.id
           : null,
       site:
