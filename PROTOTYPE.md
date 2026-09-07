@@ -51,17 +51,23 @@ proof proportional. No new management tier or status framework is required.
 ## Superseding near-term priority (Levi, 2026-09-07)
 
 Keep the map deliberately tiny until a repeatable everyday home loop is fun:
-depth before area. Local Save/Continue/New/downloadable backup is now shipped on
-the same preview. This release adds Draft/Undraft plus reachable Go/hold for one
+depth before area. Versioned local Save/Continue/New/downloadable backup is
+shipped on the feature preview. Draft/Undraft plus reachable Go/hold for one
 selected home member, with paused admission and ordinary-work resumption after
-Undraft. Its strict Zod schema v3 persists that intent at
-the untrusted persistence boundary and reads existing v1/v2 saves without
-rewriting them merely on load; restore is paused and never advances the world
-offline. Deconstruction and the optional Devil, animal, and fire studies are also
-shipped. The next playable choice remains another bounded everyday-home outcome,
-not automatic map growth. Draft/Go adds neither combat nor a framework. Generated chunks and the
+Undraft, and deconstruction are also shipped there. Its strict Zod schema v4
+persists that intent at the untrusted persistence boundary and reads existing
+v1/v2/v3 saves without rewriting them merely on load; restore is paused and
+never advances the world offline. The optional Devil, animal, and fire studies
+are also shipped. The next playable choice remains another bounded everyday-home
+outcome, not automatic map growth. Draft/Go adds neither combat nor a framework.
+Generated chunks and the
 local caravan remain later direction; the tiny-map-fun gate changes sequencing,
 not their durable value.
+
+The one-mugwort candidate—explicit shared Sow, fixed-tick planted/growing/ready
+stages, then Harvest into a real bundle—has local source/browser proof and is
+shipped on that feature preview. Weather, gases, breeding, grafting, and a
+generic farming framework remain outside this slice.
 
 Later expansion order, only after the tiny-map-fun gate is satisfied: deepen the
 two-person home, then stairs/upstairs bed, then
