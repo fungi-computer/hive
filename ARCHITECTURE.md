@@ -146,6 +146,14 @@ altering simulation. Current levels are logical storeys, not volumetric terrain;
 this remains future direction after brewing, not an upstairs/runtime/framework
 requirement.
 
+Future living-landscape work keeps geographic climate potential separate from
+persisted ecological condition and coarse map aggregates. Water, heat and
+material stores stay finite; trees, grafts, fungi and derived goods retain
+identity/provenance; lifecycle behavior is composed from typed dimensions, not
+a giant FSM. Decay may invalidate or adjust reservations atomically with a
+visible job reason rather than freezing the material. Local saves remain paused
+and do not advance growth offline; no ecology runtime is selected here.
+
 Presentation needs Sims-like front-wall cutaway modes, separate roofs/storeys,
 and optional tree/canopy fading during construction. Terrain editing, building,
 and planning marks are distinct player modes. Planning marks have no wood or

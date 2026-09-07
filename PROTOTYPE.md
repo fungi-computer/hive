@@ -113,6 +113,16 @@ the pipe and contents and restores the ordinary surface. Utilities/X-ray may
 reveal network, floor, flow and breaks without changing simulation. Current
 levels are logical storeys, not volumetric diggable terrain; brewing remains next.
 
+Deferred living-landscape direction: Levi wants durable food forests, seasonal
+water and heat/material loops, ancient garden provenance, and animals that can
+shape local conditions. Keep geographic climate potential distinct from
+persistent ecological condition and map aggregates; use finite water, heat and
+materials, stable identities/provenance/graft attachments, and lifecycle
+dimensions rather than a universal FSM. Reservations cannot freeze decay:
+atomic settlement must adjust or invalidate claims/jobs with a visible reason.
+Current local saves remain paused with no offline growth; these are future
+directions, not a current ecology or runtime commitment.
+
 Performance and satisfying pacing are core, but not a license for artificial
 waits. One authoritative world clock must eventually serve every visitor; the
 current local speed control remains a prototype convenience until multiplayer

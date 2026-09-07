@@ -57,6 +57,30 @@ are logical storeys, not volumetric diggable terrain. Keep upstairs first and
 brewing next; no solver, plumbing framework, or runtime implementation is chosen
 by this evidence record.
 
+Future compost-air and Naturhus-inspired utility direction remains a typed,
+finite composition: direct process air may pass through active compost,
+biofilter, greenhouse and vent, while a sealed heat exchanger transfers energy
+to a separate air/water circuit without exchanging gases, water, or nutrients.
+Power, heat, water, feedstock, nutrients, and storage remain accounted balances;
+separation, storage, pumping, and biological treatment are distinct owners.
+Water quantity, nutrient inventory, and quality/contamination stay distinct, with
+no automatic potable flag. Pumps and separators are supported future mechanisms.
+For the specifically identified Torpadal house, the corroborated cutting pump
+does supersede the earlier grinder-unverified wording; other Aquatron examples
+remain separate evidence and do not inherit that machinery. This remains later
+utility and hygiene direction after upstairs then brewing, not a current runtime
+choice.
+
+Deferred cute/gross goblin hospitality direction: inn piss, shit, and vomit
+cleanup/collection can feed separated finite wastewater/compost treatment,
+gardens, and more food for goblins without killing them. Collection, transport,
+treatment, water, solids, nutrients, and contamination remain distinct facts
+owned by ordinary shared jobs and their typed resource/environment owners; no
+immunity or free-food conversion follows. The deployed generated Goblin
+hospitality concept approves ROOM/environment/filth tone as inspiration, but its
+generated CHARACTERS are not Hive art direction: retain the accepted figure style
+and do not modify pinned HTML/PNG. This is future direction only.
+
 ## Scale and boundary constraints
 
 Only active environmental regions and changing boundaries earn detailed work;
