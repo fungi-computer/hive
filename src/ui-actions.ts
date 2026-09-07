@@ -46,6 +46,7 @@ export type UiAction =
         | "close-target"
         | "close"
         | "finish-placement"
+        | "cancel-stroke"
         | "camera-move"
         | "escape"
         | "reset"
@@ -120,6 +121,7 @@ export function routeUiAction(
     case "close-target":
     case "close":
     case "finish-placement":
+    case "cancel-stroke":
     case "camera-move":
     case "escape":
     case "reset":

@@ -101,6 +101,14 @@ const toolMachine = createMachine({
       },
       { target: ".idle", actions: clearGesture },
     ],
+    CANCEL_STROKE: [
+      {
+        target: ".ready",
+        guard: ({ context }) => !!context.tool,
+        actions: clearGestureKeepTool,
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
   },
   states: {
     idle: {
@@ -1859,6 +1867,13 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           inspectedTarget: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "cancel-stroke":
+        machine.send({ type: "CANCEL_STROKE" });
+        setSelection((value) => ({
+          ...value,
           designationTargetIds: [],
         }));
         return;

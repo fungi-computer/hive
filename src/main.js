@@ -692,7 +692,7 @@ async function startGame() {
     cancelDrag() {
       const current = hud.view();
       if (current.phase !== "dragging") return;
-      hud.dispatch({ kind: "escape" });
+      hud.dispatch({ kind: "cancel-stroke" });
     },
   });
 
