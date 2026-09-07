@@ -46,6 +46,11 @@ const HOME_POSES = [
 ];
 const HOME_LABELS = { rowan: "Rowan", "witch-runner": "Sedge" };
 const imageUrls = new WeakMap();
+function animationFrame(length, pose, elapsed, activeFrameMs) {
+  if (length === 1) return 0;
+  const frameMs = pose === "idle" ? 400 : activeFrameMs;
+  return Math.floor(elapsed / frameMs) % length;
+}
 function plinth() {
   const s = scene();
   for (let x = -1; x <= 1; x++)
@@ -144,10 +149,12 @@ async function studyArt() {
     for (let direction = 0; direction < 4; direction++) {
       for (const pose of ["idle", "walk"]) {
         const frames = [];
-        for (let frame = 0; frame < (pose === "walk" ? 8 : 1); frame++) {
+        const count =
+          pose === "walk" || (pose === "idle" && kind === "cat") ? 8 : 1;
+        for (let frame = 0; frame < count; frame++) {
           const texture = bake(
             renderer,
-            figure(kind, frame / 8, (direction * Math.PI) / 2, pose),
+            figure(kind, frame / count, (direction * Math.PI) / 2, pose),
             portrait,
             FRAME_WIDTH,
             FRAME_HEIGHT,
@@ -232,14 +239,25 @@ async function start() {
     pose = "walk",
     playing = true,
     elapsed = 0,
-    previous = "";
+    previous = "",
+    displayedFrame = 0;
+  function lineupFrame() {
+    const kinds = currentKinds();
+    const frameCount = Math.max(
+      ...kinds.map((kind) => art.figures[kind][pose][direction].length),
+    );
+    return animationFrame(frameCount, pose, elapsed, 125);
+  }
   function render() {
-    const frame = pose === "walk" ? Math.floor(elapsed / 125) % 8 : 0;
+    const kinds = currentKinds();
+    const frame = lineupFrame();
+    displayedFrame = frame;
     const key = `${direction},${pose},${frame}`;
     if (key === previous) return;
     previous = key;
-    currentKinds().forEach((kind, i) => {
-      const texture = art.figures[kind][pose][direction][frame];
+    kinds.forEach((kind, i) => {
+      const sequence = art.figures[kind][pose][direction];
+      const texture = sequence[frame % sequence.length];
       figures[i].texture = texture;
       detailImages[kind].src = imageUrl(texture);
     });
@@ -355,7 +373,8 @@ async function start() {
     homePlaying = false,
     homeElapsed = 0,
     homePrevious = "",
-    homeSheetPrevious = "";
+    homeSheetPrevious = "",
+    homeDisplayedFrame = 0;
   function homeSequence() {
     return homeArt.figures[homeActor][homePose][homeDirection];
   }
@@ -394,8 +413,8 @@ async function start() {
   }
   function renderHome() {
     const sequence = homeSequence();
-    const frame =
-      sequence.length === 1 ? 0 : Math.floor(homeElapsed / 125) % sequence.length;
+    const frame = animationFrame(sequence.length, homePose, homeElapsed, 100);
+    homeDisplayedFrame = frame;
     const key = `${homeActor},${homePose},${homeDirection},${homeScale},${frame}`;
     renderHomeSheet(sequence, frame);
     if (key === homePrevious) return;
@@ -404,7 +423,9 @@ async function start() {
     homeSprite.scale.set(homeScale);
     homeSheet
       .querySelectorAll(".home-frame")
-      .forEach((card, index) => card.classList.toggle("current", index === frame));
+      .forEach((card, index) =>
+        card.classList.toggle("current", index === frame),
+      );
   }
   function resetHomeView() {
     homeElapsed = 0;
@@ -484,17 +505,14 @@ async function start() {
         pose,
         playing,
         lineup,
-        frame: pose === "walk" ? Math.floor(elapsed / 125) % 8 : 0,
+        frame: displayedFrame,
         home: {
           actor: homeActor,
           pose: homePose,
           direction: homeDirection,
           scale: homeScale,
           playing: homePlaying,
-          frame:
-            homeSequence().length === 1
-              ? 0
-              : Math.floor(homeElapsed / 125) % homeSequence().length,
+          frame: homeDisplayedFrame,
         },
       };
     },

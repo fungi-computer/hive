@@ -16,7 +16,7 @@ const homePoses = [
   "sleep",
 ];
 const expectedFrames = Object.fromEntries(
-  homePoses.map((pose) => [pose, pose === "idle" || pose === "sleep" ? 1 : 8]),
+  homePoses.map((pose) => [pose, pose === "sleep" ? 1 : 8]),
 );
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
@@ -71,9 +71,9 @@ const homeSheet = () =>
     },
   }));
 const visitorImages = () =>
-  page.locator(".detail:not([hidden]) img").evaluateAll((images) =>
-    images.map((image) => image.src),
-  );
+  page
+    .locator(".detail:not([hidden]) img")
+    .evaluateAll((images) => images.map((image) => image.src));
 
 async function selectHome({ actor, pose, direction = 0, scale = 1 }) {
   await page.locator(`button[data-home-actor="${actor}"]`).click();
@@ -91,7 +91,12 @@ async function selectHome({ actor, pose, direction = 0, scale = 1 }) {
           current.scale === expectedScale
         );
       },
-      { expectedActor: actor, expectedPose: pose, expectedDirection: direction, expectedScale: scale },
+      {
+        expectedActor: actor,
+        expectedPose: pose,
+        expectedDirection: direction,
+        expectedScale: scale,
+      },
     );
   } catch (error) {
     const current = await homeState();
@@ -124,16 +129,21 @@ async function collectHomeMotion(actor, pose) {
   }
   const distinctImages = new Set(samples.map((sample) => sample.image)).size;
   assert.ok(distinctImages > 1, `${actor} ${pose} does not visibly change`);
-  return { sampledFrames: samples.map((sample) => sample.frame), distinctImages };
+  return {
+    sampledFrames: samples.map((sample) => sample.frame),
+    distinctImages,
+  };
 }
 
 let proof;
 try {
+  const startedAt = performance.now();
   const response = await page.goto(url);
   assert.equal(response?.status(), 200);
   await page.waitForFunction(() => window.__STUDY?.ready, null, {
     timeout: 60000,
   });
+  const artReadyMs = Math.round(performance.now() - startedAt);
 
   const homeMetrics = await page.evaluate(() => window.__STUDY.homeMetrics);
   const homeCounts = {};
@@ -204,10 +214,10 @@ try {
     homeCaptures.push({ actor, scale: 2, sheet: await homeSheet() });
   }
 
-  const idleSleepSingleFrame = {};
+  const sleepSingleFrame = {};
   for (const actor of homeKinds) {
-    idleSleepSingleFrame[actor] = {};
-    for (const pose of ["idle", "sleep"]) {
+    sleepSingleFrame[actor] = {};
+    for (const pose of ["sleep"]) {
       await selectHome({ actor, pose });
       const before = await homeState();
       await page.waitForTimeout(500);
@@ -215,18 +225,40 @@ try {
       assert.equal(before.frame, 0);
       assert.equal(after.frame, 0);
       assert.equal((await homeSheet()).count, 1);
-      idleSleepSingleFrame[actor][pose] = { frames: 1, frame: after.frame };
+      sleepSingleFrame[actor][pose] = { frames: 1, frame: after.frame };
     }
   }
 
   const motion = {};
   for (const actor of homeKinds) {
     motion[actor] = {};
-    for (const pose of ["walk", "chop", "build", "carry", "pickup", "deliver"]) {
+    for (const pose of [
+      "idle",
+      "walk",
+      "chop",
+      "build",
+      "carry",
+      "pickup",
+      "deliver",
+    ]) {
       console.log(JSON.stringify({ checkingHomeMotion: { actor, pose } }));
       motion[actor][pose] = await collectHomeMotion(actor, pose);
     }
   }
+  await selectHome({ actor: "witch-runner", pose: "idle", scale: 2 });
+  await setHomePlaying(true);
+  const idleBeforePause = await homeState();
+  await page.waitForFunction(
+    (frame) => window.__STUDY.state.home.frame !== frame,
+    idleBeforePause.frame,
+    { timeout: 10000 },
+  );
+  await setHomePlaying(false);
+  const idlePaused = await homeState();
+  const idlePausedImages = await homeImages();
+  await page.waitForTimeout(500);
+  assert.deepEqual(await homeState(), idlePaused);
+  assert.deepEqual(await homeImages(), idlePausedImages);
   await setHomePlaying(false);
   await selectHome({ actor: "rowan", pose: "walk", scale: 2 });
   await shot("05-home-rowan-walk-playing", page.locator("#home-review"));
@@ -235,6 +267,45 @@ try {
   await page.waitForTimeout(400);
   await shot("06-home-sedge-carry-playing", page.locator("#home-review"));
   await setHomePlaying(false);
+
+  await page
+    .getByRole("button", { name: "Original five", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Standing", exact: true }).click();
+  if (!(await state()).playing)
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+  const catIdleFrames = new Set();
+  const catIdleImages = [];
+  let previousCatIdleFrame = (await state()).frame;
+  while (catIdleFrames.size < 8) {
+    await page.waitForFunction(
+      (frame) => window.__STUDY.state.frame !== frame,
+      previousCatIdleFrame,
+      { timeout: 10000 },
+    );
+    const current = await state();
+    previousCatIdleFrame = current.frame;
+    if (catIdleFrames.has(current.frame)) continue;
+    const images = await visitorImages();
+    assert.equal(images.length, 5);
+    catIdleFrames.add(current.frame);
+    catIdleImages.push(images[4]);
+  }
+  assert.deepEqual(
+    [...catIdleFrames].sort((a, b) => a - b),
+    [0, 1, 2, 3, 4, 5, 6, 7],
+  );
+  assert.ok(
+    new Set(catIdleImages).size > 1,
+    "Bramble idle does not visibly change",
+  );
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  const catIdlePaused = await state();
+  const catIdlePausedImages = await visitorImages();
+  await page.waitForTimeout(500);
+  assert.deepEqual(await state(), catIdlePaused);
+  assert.deepEqual(await visitorImages(), catIdlePausedImages);
+  await shot("07-bramble-idle-paused", page.locator(".workbench"));
 
   await page.getByRole("button", { name: "Visitors", exact: true }).click();
   await page.getByRole("button", { name: "Standing", exact: true }).click();
@@ -281,10 +352,15 @@ try {
     ({ images }) => new Set(images).size,
   );
   assert.ok(visitorDistinctPerPhase.every((count) => count === 5));
-  const visitorDistinctPerFigure = Array.from({ length: 5 }, (_, index) =>
-    new Set(visitorWalk.map(({ images }) => images[index])).size,
+  const visitorDistinctPerFigure = Array.from(
+    { length: 5 },
+    (_, index) => new Set(visitorWalk.map(({ images }) => images[index])).size,
   );
-  assert.deepEqual(visitorDistinctPerFigure, [5, 5, 5, 5, 5]);
+  assert.deepEqual(
+    visitorDistinctPerFigure.filter((_, index) => index !== 2),
+    [5, 5, 5, 5],
+  );
+  assert.ok(visitorDistinctPerFigure[2] >= 5);
   const visitorDistinctImages = new Set(
     visitorWalk.flatMap(({ images }) => images),
   ).size;
@@ -299,7 +375,9 @@ try {
   assert.deepEqual(await visitorImages(), pausedImages);
   await shot("visitor-paused-image", page.locator(".workbench"));
 
-  await page.getByRole("button", { name: "Native pixels", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Native pixels", exact: true })
+    .click();
   assert.equal(
     Math.round((await page.locator(".workbench canvas").boundingBox()).width),
     640,
@@ -313,7 +391,9 @@ try {
   assert.equal(await page.evaluate(() => document.body.scrollWidth), 390);
   await shot("visitor-narrow-390", page.locator(".workbench"));
   await page.getByRole("button", { name: "Fit view", exact: true }).click();
-  assert.ok((await page.locator(".workbench canvas").boundingBox()).width < 390);
+  assert.ok(
+    (await page.locator(".workbench canvas").boundingBox()).width < 390,
+  );
   await shot("visitor-narrow-fit", page.locator(".workbench"));
   await page.setViewportSize({ width: 1440, height: 1100 });
 
@@ -321,14 +401,26 @@ try {
   proof = {
     url,
     actualArt: {
+      artReadyMs,
       frame: [80, 80],
       pawnAnchor,
       poses: homePoses,
       phaseCounts: homeCounts,
       alpha,
     },
-    homeReview: { sheetCoverage, captures: homeCaptures, idleSleepSingleFrame, motion },
+    homeReview: {
+      sheetCoverage,
+      captures: homeCaptures,
+      sleepSingleFrame,
+      motion,
+      idlePause: { state: idlePaused, images: idlePausedImages },
+    },
     visitors: {
+      catIdle: {
+        frames: [...catIdleFrames].sort((a, b) => a - b),
+        distinctImages: new Set(catIdleImages).size,
+        paused: catIdlePaused,
+      },
       idleFacings,
       walkFrames: [...visitorFrames].sort((a, b) => a - b),
       visitorDistinctPerPhase,
@@ -342,7 +434,10 @@ try {
     screenshots,
     errors,
   };
-  await writeFile(`${output}/proof.json`, JSON.stringify(proof, null, 2) + "\n");
+  await writeFile(
+    `${output}/proof.json`,
+    JSON.stringify(proof, null, 2) + "\n",
+  );
   console.log(
     JSON.stringify({
       url,
@@ -351,7 +446,10 @@ try {
         Object.entries(motion).map(([actor, poses]) => [
           actor,
           Object.fromEntries(
-            Object.entries(poses).map(([pose, result]) => [pose, result.distinctImages]),
+            Object.entries(poses).map(([pose, result]) => [
+              pose,
+              result.distinctImages,
+            ]),
           ),
         ]),
       ),
@@ -369,6 +467,9 @@ try {
 const videos = (await readdir(output)).filter((name) => name.endsWith(".webm"));
 if (proof) {
   proof.video = videos;
-  await writeFile(`${output}/proof.json`, JSON.stringify(proof, null, 2) + "\n");
+  await writeFile(
+    `${output}/proof.json`,
+    JSON.stringify(proof, null, 2) + "\n",
+  );
   console.log(JSON.stringify({ evidence: output, videos }));
 }

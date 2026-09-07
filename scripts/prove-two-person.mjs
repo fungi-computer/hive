@@ -69,10 +69,12 @@ async function openBuild() {
 }
 
 try {
+  const startedAt = performance.now();
   assert.equal((await page.goto(url))?.status(), 200);
   await page.waitForFunction(() => window.__GOBLIN?.artReady, null, {
     timeout: 90_000,
   });
+  evidence.artReadyMs = Math.round(performance.now() - startedAt);
   await viewportFits();
   const initial = await state();
   assert.deepEqual(Object.keys(initial.actors).sort(), ["rowan", "sedge"]);
@@ -209,9 +211,25 @@ try {
   assert.equal(await page.locator(".roster button").count(), 2);
   await screenshot("05-narrow-two-person");
 
+  await page.getByRole("button", { name: "Open game menu" }).click();
+  await page.locator("#reset").click();
+  await wait(() => window.__GOBLIN.state.parties.home.members.length === 1);
+  const reset = await state();
+  assert.ok(reset.tick < 20);
+  assert.equal(reset.paused, false);
+  assert.equal(reset.sites.length, 0);
+  assert.equal(reset.jobs.length, 0);
+  assert.equal(reset.felled, 0);
+  assert.equal(reset.rested, 0);
+  assert.equal(reset.commands.length, 0);
+  assert.deepEqual(reset.parties.home.members, ["rowan"]);
+  assert.deepEqual((await ui()).selectedIds, []);
+  assert.equal((await ui()).tool, null);
+
   evidence.initial = initial;
   evidence.designated = designated;
   evidence.paused = paused;
+  evidence.reset = reset;
   evidence.success = true;
   assert.deepEqual(evidence.errors, []);
 } catch (error) {

@@ -154,7 +154,6 @@ async function startGame() {
     notice = "";
     lastNotice = state.notice;
     camera.reset();
-    hud.dispatch({ kind: "reset" });
     publish();
   }
   function clearCameraIntent() {

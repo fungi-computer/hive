@@ -1216,31 +1216,33 @@ export function createHud(host, art, effect) {
         return;
       case "camera-move":
       case "escape":
-      case "reset":
         machine.send({
-          type:
-            action.kind === "camera-move"
-              ? "CAMERA_MOVE"
-              : action.kind === "escape"
-                ? "ESCAPE"
-                : "RESET",
+          type: action.kind === "camera-move" ? "CAMERA_MOVE" : "ESCAPE",
         });
         setSelection((value) => ({
           ...value,
           context: null,
           treeId: null,
           designationTargetIds: [],
-          ...(action.kind === "reset"
-            ? { selectedIds: [], inspectedId: null, panel: null }
-            : {}),
         }));
-        if (action.kind === "reset")
-          setPreferences(() => ({
-            cutaway: true,
-            panMode: false,
-            help: true,
-            direction: 0,
-          }));
+        return;
+      case "reset":
+        machine.send({ type: "RESET" });
+        setSelection(() => ({
+          selectedIds: [],
+          inspectedId: null,
+          treeId: null,
+          context: null,
+          panel: null,
+          designationTargetIds: [],
+        }));
+        setPreferences(() => ({
+          cutaway: true,
+          panMode: false,
+          help: true,
+          direction: 0,
+        }));
+        effect(action);
         return;
       case "cutaway":
         setPreferences((value) => ({ ...value, cutaway: action.value }));

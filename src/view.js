@@ -36,6 +36,11 @@ function body(texture, anchor, radius) {
   return { container, sprite };
 }
 
+function animationFrame(tick, pose, frames) {
+  const ticksPerFrame = pose === "idle" ? 8 : 2;
+  return Math.floor(tick / ticksPerFrame) % frames.length;
+}
+
 export function createView(app, world, camera, art, initial, input) {
   world.addChild(new Sprite(art.ground));
   const route = new Graphics();
@@ -251,7 +256,7 @@ export function createView(app, world, camera, art, initial, input) {
         person.mode === "walk" && person.cargo ? "carry" : person.mode;
       const frames = (art.figures[person.figure][pose] ||
         art.figures[person.figure].idle)[person.dir];
-      view.sprite.texture = frames[Math.floor(state.tick / 2) % frames.length];
+      view.sprite.texture = frames[animationFrame(state.tick, pose, frames)];
       const selected = selection.selectedActors.includes(person.id);
       const visitor = !state.parties.home.members.includes(person.id);
       view.ring.visible = selected;
@@ -302,7 +307,7 @@ export function createView(app, world, camera, art, initial, input) {
       cat.container.zIndex += 0.4;
       const catFrames = art.figures.cat[state.cat.mode][state.cat.dir];
       cat.sprite.texture =
-        catFrames[Math.floor(state.tick / 2) % catFrames.length];
+        catFrames[animationFrame(state.tick, state.cat.mode, catFrames)];
       goblin.container.visible = !!state.demand;
       construction.render(
         state,

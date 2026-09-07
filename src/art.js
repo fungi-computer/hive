@@ -82,7 +82,8 @@ export async function bakeArt() {
     for (const pose of poses) {
       target[pose] = [];
       for (let direction = 0; direction < 4; direction++) {
-        const count = ["idle", "sleep"].includes(pose) ? 1 : 8;
+        const count =
+          pose === "sleep" || (pose === "idle" && kind === "goblin") ? 1 : 8;
         target[pose].push(
           Array.from({ length: count }, (_, frame) =>
             bake(

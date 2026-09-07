@@ -1,7 +1,14 @@
 // Original silhouette studies. Geometry and poses are authored here; reference
 // pictures and Pilgrimage's models never enter the bake.
 import * as THREE from "three";
-import { scene, box, ball, cylinder, mesh, group } from "./geometry.js";
+import {
+  scene,
+  box,
+  ball,
+  cylinder,
+  mesh,
+  group,
+} from "./geometry.js";
 
 const SKIN = "#c59a76";
 const GREEN = "#8ba74e";
@@ -10,17 +17,41 @@ function limb(parent, color, length, width, depth = width) {
   return box(parent, color, 0, -length / 2, 0, width, length, depth);
 }
 
-function legs(parent, phase, moving, { hip, spread, width, cloth, boots }) {
+function legs(
+  parent,
+  phase,
+  moving,
+  { hip, spread, width, cloth, boots, action = "idle" },
+) {
   const length = (hip - 0.1) / 2;
   for (const side of [-1, 1]) {
     const swing = moving ? Math.sin(phase * Math.PI * 2) * side : 0;
     const thigh = group(parent, spread * side, hip, 0);
-    thigh.rotation.x = swing * 0.42;
+    thigh.rotation.x =
+      action === "build" ? (side < 0 ? 0 : -1.45) : swing * 0.42;
     limb(thigh, cloth, length, width);
     const knee = group(thigh, 0, -length, 0);
-    knee.rotation.x = Math.max(0, -swing) * 0.62 + 0.04;
+    knee.rotation.x =
+      action === "build"
+        ? side < 0
+          ? Math.PI / 2
+          : 1.45
+        : Math.max(0, -swing) * 0.62 + 0.04;
     limb(knee, boots, length, width * 0.82);
-    box(knee, boots, 0, -length, 0.045, width * 1.08, 0.1, width * 1.8);
+    const foot = box(
+      knee,
+      boots,
+      0,
+      -length,
+      0.045,
+      width * 1.08,
+      0.1,
+      width * 1.8,
+    );
+    if (action === "build" && side < 0) {
+      foot.rotation.x = -Math.PI / 2;
+      foot.position.z = 0;
+    }
   }
 }
 
@@ -39,12 +70,17 @@ function arms(
       : -0.05;
     if (action === "chop")
       arm.rotation.x = -1.2 + Math.sin(phase * Math.PI * 2) * 0.95;
-    if (["build", "pickup", "deliver"].includes(action))
+    if (["pickup", "deliver"].includes(action))
       arm.rotation.x = -0.9 + Math.sin(phase * Math.PI * 2) * 0.3;
+    if (action === "build") {
+      const stroke = [-1.8, -2.05, -1.45, -0.78, -0.84, -1.0, -1.28, -1.6];
+      arm.rotation.x = side < 0 ? stroke[Math.floor(phase * 8) % 8] : -0.2;
+      arm.rotation.z = side < 0 ? -0.04 : 0.22;
+    }
     if (action === "carry") arm.rotation.x = -1.15;
     limb(arm, sleeve, length, 0.14);
     const elbow = group(arm, 0, -length, 0);
-    elbow.rotation.x = -0.12;
+    elbow.rotation.x = action === "build" ? -0.45 : -0.12;
     limb(elbow, sleeve, length * 0.85, 0.105);
     const palm = group(elbow, 0, -length * 0.9, 0.015);
     ball(palm, hand, 0, -0.025, 0, 0.057, 0.075, 0.06);
@@ -95,6 +131,7 @@ function rowan(body, phase, moving, pose) {
     width: 0.145,
     cloth: "#5e6354",
     boots: "#554536",
+    action: pose,
   });
   coat(body, "#537e79", 0.96, 1.4, 0.75, 0.34);
   box(body, "#344f4c", 0, 0.96, 0, 0.32, 0.055, 0.24);
@@ -113,7 +150,8 @@ function rowan(body, phase, moving, pose) {
   box(body, "#c8b689", 0.222, 1.13, 0.025, 0.03, 0.13, 0.1);
   ball(body, "#79563d", 0.16, 0.86, -0.12, 0.1, 0.15, 0.09);
   cylinder(body, SKIN, 0, 1.44, 0, 0.06, 0.065, 0.1, 6);
-  humanHead(body, 1.59);
+  const head = humanHead(body, 1.59);
+  if (pose === "idle") head.rotation.y = Math.sin(phase * Math.PI * 2) * 0.08;
   workGear(body, hands, pose);
 }
 
@@ -138,6 +176,13 @@ function workGear(body, hands, pose) {
     return;
   }
   if (pose === "sleep") return;
+  if (pose === "build") {
+    const mallet = group(hands[0], 0, -0.14, 0.04);
+    cylinder(mallet, "#a17b4d", 0, 0, 0, 0.023, 0.023, 0.36, 6);
+    box(mallet, "#ae8656", 0, 0.14, 0, 0.21, 0.115, 0.105);
+    box(mallet, "#dac192", -0.11, 0.14, 0, 0.025, 0.105, 0.098);
+    return;
+  }
   const axe = group(hands[0], 0, -0.15, 0.04);
   axe.rotation.x = 0.12;
   cylinder(axe, "#a17b4d", 0, 0, 0, 0.022, 0.022, 0.44, 6);
@@ -337,31 +382,54 @@ function cat(body, phase, moving) {
   ball(body, cream, 0, 0.46, 0.225, 0.14, 0.15, 0.12);
   ball(body, patch, -0.08, 0.505, 0.225, 0.075, 0.1, 0.105);
   for (const side of [-1, 1]) {
+    const earRoot = group(body, side * 0.09, 0.54, 0.19);
+    earRoot.rotation.z =
+      !moving && phase >= 0.625 && phase < 0.75 ? side * 0.18 : 0;
     const ear = new THREE.Shape();
     ear.moveTo(side * 0.025, 0.545);
     ear.lineTo(side * 0.11, 0.745);
     ear.lineTo(side * 0.15, 0.53);
     mesh(
-      body,
-      new THREE.ExtrudeGeometry(ear, { depth: 0.055, bevelEnabled: false }),
+      earRoot,
+      new THREE.ExtrudeGeometry(ear, {
+        depth: 0.055,
+        bevelEnabled: false,
+      }).translate(-side * 0.09, -0.54, 0),
       patch,
       0,
       0,
-      0.19,
+      0,
     );
     const inner = new THREE.Shape();
     inner.moveTo(side * 0.057, 0.56);
     inner.lineTo(side * 0.108, 0.675);
     inner.lineTo(side * 0.126, 0.55);
-    mesh(body, new THREE.ShapeGeometry(inner), "#c89384", 0, 0, 0.248);
-    box(body, "#bf9954", side * 0.067, 0.485, 0.335, 0.04, 0.03, 0.02);
+    mesh(
+      earRoot,
+      new THREE.ShapeGeometry(inner).translate(-side * 0.09, -0.54, 0),
+      "#c89384",
+      0,
+      0,
+      0.058,
+    );
+    const blink = !moving && phase >= 0.625 && phase < 0.75;
+    box(
+      body,
+      "#bf9954",
+      side * 0.067,
+      0.485,
+      0.335,
+      0.04,
+      blink ? 0.007 : 0.03,
+      0.02,
+    );
   }
   ball(body, cream, 0, 0.42, 0.325, 0.075, 0.052, 0.06);
   box(body, "#b77e71", 0, 0.445, 0.383, 0.035, 0.024, 0.018);
-  const sway = moving ? Math.sin(phase * Math.PI * 2) * 0.05 : 0;
+  const sway = Math.sin(phase * Math.PI * 2) * (moving ? 0.05 : 0.11);
   const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, 0.35, -0.24),
-    new THREE.Vector3(0.02, 0.47, -0.46),
+    new THREE.Vector3(0.02 + sway * 0.25, 0.47, -0.46),
     new THREE.Vector3(0.16 + sway, 0.69, -0.55),
     new THREE.Vector3(0.25 + sway, 0.67, -0.51),
   ]);
@@ -442,6 +510,7 @@ function witchRunner(body, phase, moving, pose) {
     width: 0.115,
     cloth: "#343040",
     boots: "#3a3030",
+    action: pose,
   });
   // A short jacket and separated trousers make this silhouette read as practical.
   box(body, "#403a4b", 0, 1.08, 0, 0.37, 0.36, 0.25);
@@ -455,9 +524,66 @@ function witchRunner(body, phase, moving, pose) {
     action: pose,
   });
   witchHead(body, "#9a5443", { tilt: -0.2, accent: "#6f9f8b" });
-  box(body, "#9a5443", 0.15, 1.37, -0.03, 0.1, 0.4, 0.11).rotation.z = 0.18;
+  copperHair(body, phase, moving, pose);
   box(body, "#d09b62", 0.2, 1.1, 0.16, 0.06, 0.12, 0.03);
   workGear(body, hands, pose);
+}
+
+// Broad tapered locks read as a single generous silhouette at 1x. Motion is
+// authored from the bake phase; no hair simulation or wall-clock owner.
+function copperHair(body, phase, moving, pose) {
+  const angle = phase * Math.PI * 2;
+  const working = ["chop", "build", "pickup", "deliver"].includes(pose);
+  const sway = moving ? 0.22 : working ? 0.12 : 0.045;
+  const root = group(body, 0, 1.62, -0.12);
+  root.rotation.x = (moving ? 0.48 : 0.18) + Math.sin(angle - 0.9) * sway;
+  root.rotation.z = Math.sin(angle - 0.7) * sway * 0.75;
+  root.rotation.y = Math.sin(angle - 1.2) * sway * 0.65;
+  if (pose === "sleep") {
+    root.position.z = 0.03;
+    root.scale.z = 0.28;
+    root.rotation.set(0, 0, 0);
+  }
+  const profile = new THREE.Shape();
+  profile.moveTo(-0.12, 0);
+  profile.lineTo(0.11, 0.01);
+  profile.lineTo(0.24, -0.24);
+  profile.lineTo(0.27, -0.56);
+  profile.lineTo(0.1, -0.96);
+  profile.lineTo(0.015, -0.76);
+  profile.lineTo(-0.11, -1.03);
+  profile.lineTo(-0.17, -0.83);
+  profile.lineTo(-0.23, -0.58);
+  profile.lineTo(-0.24, -0.24);
+  profile.closePath();
+  for (const [x, z, scale, color, delay] of [
+    [-0.1, -0.1, 1.03, "#743e35", 0],
+    [0.1, -0.12, 1.1, "#ac6247", 0.55],
+    [-0.09, -0.22, 0.88, "#c47b55", 1.05],
+  ]) {
+    const lock = group(root, x, 0, z);
+    lock.rotation.z = Math.sin(angle - 1.1 - delay) * sway * 0.35;
+    lock.scale.set(scale, scale, 1);
+    mesh(
+      lock,
+      new THREE.ExtrudeGeometry(profile, {
+        depth: 0.13,
+        bevelEnabled: false,
+      }),
+      color,
+      0,
+      0,
+      0,
+    );
+    // Broken long streaks and separated tips prevent the back view reading as
+    // one smooth oval, while keeping the palette and polygon count restrained.
+    box(lock, "#db9664", -0.06, -0.23, -0.012, 0.035, 0.28, 0.024).rotation.z =
+      -0.12;
+    box(lock, "#8d4d39", 0.04, -0.6, -0.012, 0.045, 0.32, 0.024).rotation.z =
+      0.12;
+  }
+  // A short face-framing lock leaves the working arm and palms visible.
+  box(body, "#b66b4c", 0.16, 1.43, 0.03, 0.075, 0.28, 0.12).rotation.z = 0.13;
 }
 
 function childCloth(body, phase, moving) {
@@ -527,6 +653,12 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
     moving ? Math.abs(Math.sin(phase * Math.PI * 2)) * 0.025 : 0,
     0,
   );
+  if (pose === "build" && ["rowan", "witch-runner"].includes(kind))
+    body.position.y = -0.39;
+  if (pose === "idle" && ["rowan", "witch-runner", "cat"].includes(kind)) {
+    body.scale.y = 1 + Math.sin(phase * Math.PI * 2) * 0.012;
+    if (kind !== "cat") body.rotation.z = Math.sin(phase * Math.PI * 2) * 0.008;
+  }
   if (pose === "sleep" && kind === "cat") {
     ball(body, "#e4ddbb", 0, 0.16, 0, 0.26, 0.15, 0.23);
     ball(body, "#465c57", -0.06, 0.24, -0.06, 0.18, 0.055, 0.16);
