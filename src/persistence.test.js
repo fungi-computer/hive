@@ -101,7 +101,7 @@ test("Garden work toggles validate in the v4 live command history", () => {
   assert.equal(validateClearing(state).commands[0].work, "garden");
 });
 
-test("schema 4 persists drafted state and typed draft/Go replay history", () => {
+test("schema 5 persists drafted state and typed draft/Go replay history", () => {
   const state = createClearing();
   state.actors.rowan.drafted = true;
   state.actors.rowan.mode = "walk";
@@ -118,7 +118,7 @@ test("schema 4 persists drafted state and typed draft/Go replay history", () => 
   );
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 4);
+  assert.equal(envelope.schema, 5);
   assert.equal(envelope.savedState.actors.rowan.drafted, true);
   const restored = restoreSnapshot(envelope).state;
   assert.equal(restored.actors.rowan.drafted, true);
@@ -139,6 +139,7 @@ test("strict schema 1 through 3 normalize garden, herbs, and drafted state", () 
   delete v3.savedState.herbs;
   delete v3.savedState.herbBundles;
   delete v3.savedState.harvestedHerbs;
+  delete v3.savedState.herbStorageClaims;
   for (const actor of Object.values(v3.savedState.actors))
     delete actor.allowedWork.garden;
   const v2 = structuredClone(v3);
@@ -161,13 +162,99 @@ test("strict schema 1 through 3 normalize garden, herbs, and drafted state", () 
   const restoredV3 = restoreSnapshot(v3);
   assert.equal(restoredV3.state.actors.rowan.allowedWork.garden, true);
   const rewritten = snapshotFor(restoredV1.state);
-  assert.equal(rewritten.schema, 4);
+  assert.equal(rewritten.schema, 5);
   assert.equal(rewritten.savedState.consumedWood, 0);
   assert.equal(rewritten.savedState.actors.rowan.drafted, false);
   assert.equal(rewritten.savedState.actors.rowan.allowedWork.garden, true);
   assert.equal(validateSaveEnvelope(v1).schema, 1);
   assert.equal(validateSaveEnvelope(v2).schema, 2);
   assert.equal(validateSaveEnvelope(v3).schema, 3);
+});
+
+test("strict v4 ground bundles normalize to v5 locations without mutating the old envelope", () => {
+  const state = structuredClone(createClearing());
+  state.tick = 20;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 8;
+  state.piles.push({ id: "wood-2", x: 8, z: 9, level: 0, amount: 6 });
+  state.herbs.push({
+    id: "herb-1",
+    kind: "mugwort",
+    x: 8,
+    z: 9,
+    level: 0,
+    stage: "planted",
+    work: 0,
+    plantedAt: 20,
+  });
+  state.herbBundles.push({
+    id: "herb-bundle-2",
+    kind: "mugwort",
+    amount: 1,
+    location: { kind: "ground", x: 8, z: 9, level: 0 },
+  });
+  state.harvestedHerbs = 1;
+  state.nextId = 3;
+  const v5 = snapshotFor(state);
+  const v4 = structuredClone(v5);
+  v4.schema = 4;
+  delete v4.savedState.herbStorageClaims;
+  v4.savedState.herbBundles = v4.savedState.herbBundles.map((bundle) => ({
+    id: bundle.id,
+    kind: bundle.kind,
+    amount: bundle.amount,
+    x: bundle.location.x,
+    z: bundle.location.z,
+    level: bundle.location.level,
+  }));
+  const beforeLoad = structuredClone(v4);
+  const restored = restoreSnapshot(v4).state;
+  assert.deepEqual(v4, beforeLoad);
+  assert.deepEqual(restored.herbBundles[0].location, {
+    kind: "ground",
+    x: 8,
+    z: 9,
+    level: 0,
+  });
+  assert.deepEqual(restored.herbStorageClaims, {});
+});
+
+test("Store command history is strictly shared-only in v5", () => {
+  const base = createClearing();
+  const valid = structuredClone(base);
+  valid.commands.push({
+    kind: "store-herb",
+    party: "home",
+    actors: null,
+    bundle: "herb-bundle-1",
+    shelf: "site-1",
+    tick: 0,
+  });
+  validateClearing(valid);
+
+  const personal = structuredClone(base);
+  personal.commands.push({
+    kind: "store-herb",
+    party: "home",
+    actors: ["rowan"],
+    bundle: "herb-bundle-1",
+    shelf: "site-1",
+    tick: 0,
+  });
+  assert.throws(() => validateClearing(personal), /Invalid input/);
+
+  const direct = structuredClone(base);
+  direct.commands.push({
+    kind: "store-herb",
+    party: "home",
+    actors: null,
+    direct: true,
+    bundle: "herb-bundle-1",
+    shelf: "site-1",
+    tick: 0,
+  });
+  assert.throws(() => validateClearing(direct), /direct/);
 });
 
 test("herb persistence accepts planted elapsed zero and rejects an orphaned order", () => {
@@ -210,7 +297,7 @@ test("herb persistence accepts planted elapsed zero and rejects an orphaned orde
   assert.throws(() => validateClearing(ordered), /no sow job/);
 });
 
-test("schema 4 snapshot restores ordered, growing, ready, and bundled herb facts", () => {
+test("schema 5 snapshot restores ordered, growing, ready, and bundled herb facts", () => {
   const ordered = structuredClone(createClearing());
   ordered.herbs.push({
     id: "herb-1",
@@ -270,9 +357,7 @@ test("schema 4 snapshot restores ordered, growing, ready, and bundled herb facts
     id: "herb-bundle-2",
     kind: "mugwort",
     amount: 1,
-    x: 8,
-    z: 9,
-    level: 0,
+    location: { kind: "ground", x: 8, z: 9, level: 0 },
   });
   ready.harvestedHerbs = 1;
   ready.nextId = 4;
@@ -292,7 +377,7 @@ test("schema 4 snapshot restores ordered, growing, ready, and bundled herb facts
   assert.equal(readyRestored.jobs[0].kind, "harvest");
 });
 
-test("schema 4 accepts a finished target and deconstruction job", () => {
+test("schema 5 accepts a finished target and deconstruction job", () => {
   const state = structuredClone(createClearing());
   state.tick = 10;
   state.felled = 1;
@@ -333,7 +418,7 @@ test("schema 4 accepts a finished target and deconstruction job", () => {
   state.actors.rowan.mode = "walk";
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 4);
+  assert.equal(envelope.schema, 5);
   assert.equal(restoreSnapshot(envelope).state.jobs[0].kind, "deconstruct");
 
   const draftedWorker = structuredClone(envelope);
@@ -348,6 +433,7 @@ test("schema 4 accepts a finished target and deconstruction job", () => {
   delete v2.savedState.herbs;
   delete v2.savedState.herbBundles;
   delete v2.savedState.harvestedHerbs;
+  delete v2.savedState.herbStorageClaims;
   for (const actor of Object.values(v2.savedState.actors)) {
     delete actor.drafted;
     delete actor.allowedWork.garden;
@@ -593,6 +679,188 @@ test("actor continuation rejects sleep/build target and claim/cargo mismatches",
   assert.throws(
     () => validateClearing(personalScopeMismatch),
     /not in actor scope/,
+  );
+});
+
+function activeHerbStorageState(location = "ground") {
+  const state = structuredClone(createClearing());
+  state.tick = 30;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 8;
+  state.nextId = 4;
+  state.piles.push({ id: "wood-3", x: 4, z: 5, level: 0, amount: 5 });
+  state.sites.push({
+    id: "site-1",
+    type: "shelf",
+    x: 7,
+    z: 10,
+    level: 0,
+    direction: 0,
+    delivered: 1,
+    work: BUILDINGS.shelf.ticks,
+    finishedAt: 24,
+  });
+  state.jobs.push({
+    id: "job-2",
+    kind: "store-herb",
+    bundle: "herb-bundle-3",
+    shelf: "site-1",
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  state.herbBundles.push({
+    id: "herb-bundle-3",
+    kind: "mugwort",
+    amount: 1,
+    location:
+      location === "ground"
+        ? { kind: "ground", x: 8, z: 10, level: 0 }
+        : { kind: "carried", actor: "rowan" },
+  });
+  state.harvestedHerbs = 1;
+  state.herbStorageClaims.rowan = {
+    job: "job-2",
+    bundle: "herb-bundle-3",
+    shelf: "site-1",
+  };
+  if (location === "ground") {
+    state.actors.rowan.task = {
+      kind: "pickup-herb",
+      job: "job-2",
+      target: "herb-bundle-3",
+      duration: 8,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-2",
+      cost: 4,
+    };
+    state.actors.rowan.mode = "walk";
+  }
+  return state;
+}
+
+test("v5 restores a herb with a loose bundle and wood pile on one cell", () => {
+  const state = activeHerbStorageState();
+  state.piles[0].amount = 4;
+  state.piles.push({ id: "wood-4", x: 8, z: 10, level: 0, amount: 1 });
+  state.herbs.push({
+    id: "herb-2",
+    kind: "mugwort",
+    x: 8,
+    z: 10,
+    level: 0,
+    stage: "planted",
+    work: 0,
+    plantedAt: state.tick,
+  });
+  state.nextId = 5;
+  const restored = restoreSnapshot(snapshotFor(state)).state;
+  assert.deepEqual(restored.herbs[0], state.herbs[0]);
+  assert.deepEqual(restored.herbBundles[0].location, {
+    kind: "ground",
+    x: 8,
+    z: 10,
+    level: 0,
+  });
+  assert.equal(restored.piles[1].amount, 1);
+});
+
+test("v5 herb storage claims require the matching continuation boundary", () => {
+  const ground = activeHerbStorageState();
+  validateClearing(ground);
+  const restoredGround = restoreSnapshot(snapshotFor(ground)).state;
+  assert.equal(restoredGround.herbBundles[0].location.kind, "ground");
+
+  const carried = activeHerbStorageState("carried");
+  validateClearing(carried);
+  const restoredCarried = restoreSnapshot(snapshotFor(carried)).state;
+  assert.equal(restoredCarried.herbBundles[0].location.kind, "carried");
+  assert.equal(restoredCarried.actors.rowan.task, null);
+
+  const carriedActive = activeHerbStorageState("carried");
+  carriedActive.actors.rowan.task = {
+    kind: "store-herb",
+    job: "job-2",
+    target: "site-1",
+    duration: 8,
+  };
+  carriedActive.actors.rowan.assignment = {
+    character: "rowan",
+    task: "job-2",
+    cost: 4,
+  };
+  carriedActive.actors.rowan.mode = "store-herb";
+  const activeRestored = restoreSnapshot(snapshotFor(carriedActive)).state;
+  assert.equal(activeRestored.actors.rowan.task?.kind, "store-herb");
+
+  const groundWithoutPickup = activeHerbStorageState();
+  groundWithoutPickup.actors.rowan.task = null;
+  groundWithoutPickup.actors.rowan.assignment = null;
+  groundWithoutPickup.actors.rowan.mode = "idle";
+  assert.throws(
+    () => validateClearing(groundWithoutPickup),
+    /ground herb claim.*pickup task/,
+  );
+
+  const carriedWithUnrelatedTask = activeHerbStorageState("carried");
+  carriedWithUnrelatedTask.sites.push({
+    id: "site-2",
+    type: "wall",
+    x: 6,
+    z: 10,
+    level: 0,
+    direction: 0,
+    delivered: 0,
+    work: 0,
+    finishedAt: null,
+  });
+  carriedWithUnrelatedTask.jobs.push({
+    id: "job-3",
+    kind: "build",
+    target: "site-2",
+    scope: { party: "home", actors: null },
+    reason: "Ordered",
+    routine: false,
+  });
+  carriedWithUnrelatedTask.actors.rowan.task = {
+    kind: "build",
+    job: "job-3",
+    target: "site-2",
+    duration: BUILDINGS.wall.ticks,
+  };
+  carriedWithUnrelatedTask.actors.rowan.assignment = {
+    character: "rowan",
+    task: "job-3",
+    cost: 4,
+  };
+  carriedWithUnrelatedTask.actors.rowan.mode = "build";
+  assert.throws(
+    () => validateClearing(carriedWithUnrelatedTask),
+    /carried herb claim.*unrelated task/,
+  );
+
+  const drafted = activeHerbStorageState();
+  drafted.actors.rowan.drafted = true;
+  assert.throws(
+    () => validateClearing(drafted),
+    /drafted actor rowan retains ordinary work/,
+  );
+
+  const fullShelfWithClaim = activeHerbStorageState();
+  fullShelfWithClaim.herbBundles.push({
+    id: "herb-bundle-4",
+    kind: "mugwort",
+    amount: 1,
+    location: { kind: "stored", site: "site-1" },
+  });
+  fullShelfWithClaim.harvestedHerbs = 2;
+  fullShelfWithClaim.nextId = 5;
+  assert.throws(
+    () => validateClearing(fullShelfWithClaim),
+    /storage claim while full/,
   );
 });
 

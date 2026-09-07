@@ -57,7 +57,10 @@ export function placementOccupant(state, at, excludeId = null) {
     return "herb";
   if (
     state.herbBundles?.some(
-      (bundle) => bundle.id !== excludeId && sameCell(bundle, at),
+      (bundle) =>
+        bundle.id !== excludeId &&
+        bundle.location?.kind === "ground" &&
+        sameCell(bundle.location, at),
     )
   )
     return "herb-bundle";

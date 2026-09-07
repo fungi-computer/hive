@@ -45,6 +45,7 @@ export function createClearing(seed = 42): Clearing {
     sites: [],
     jobs: [],
     claims: {},
+    herbStorageClaims: {},
     workDirty: true,
     felled: 0,
     finishedJobs: 0,

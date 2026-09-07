@@ -4,6 +4,7 @@ import type {
   Herb,
   Job,
   Scope,
+  StoreHerbCommand,
   WorkCommand,
 } from "./model.ts";
 import { inScope, scopeProblem } from "./actors.ts";
@@ -52,6 +53,11 @@ export function commandProblem(state: Clearing, command: Command): string {
       ? "That ground is unreachable."
       : "";
   }
+  if (
+    command.kind === "store-herb" &&
+    (command.actors !== null || "direct" in command)
+  )
+    return "Mugwort storage orders are shared and cannot be direct.";
   const problem = scopeProblem(state, command);
   if (problem) return problem;
   if ("direct" in command && command.direct && command.actors === null)
@@ -68,6 +74,32 @@ export function commandProblem(state: Clearing, command: Command): string {
       state.jobs.some((job) => job.kind === "harvest" && job.target === herb.id)
     )
       return "That mugwort is already marked for harvest.";
+  }
+  if (command.kind === "store-herb") {
+    const bundle = state.herbBundles.find(
+      (candidate) => candidate.id === command.bundle,
+    );
+    if (!bundle) return "That mugwort bundle is no longer here.";
+    if (bundle.location.kind !== "ground")
+      return "That mugwort bundle is not on the ground.";
+    const shelf = state.sites.find(
+      (candidate) => candidate.id === command.shelf,
+    );
+    if (!shelf) return "That mugwort shelf is no longer here.";
+    if (shelf.type !== "shelf" || shelf.finishedAt === null)
+      return "That mugwort shelf is not finished.";
+    if (
+      state.jobs.some(
+        (job) => job.kind === "store-herb" && job.bundle === bundle.id,
+      )
+    )
+      return "That mugwort bundle is already marked for storage.";
+    if (
+      state.jobs.some(
+        (job) => job.kind === "store-herb" && job.shelf === shelf.id,
+      )
+    )
+      return "That mugwort shelf already has a storage order.";
   }
   if (command.kind === "build") return placementProblem(state, command);
   if (command.kind === "deconstruct") {
@@ -104,8 +136,13 @@ function cancelJob(state: Clearing, id: string): void {
   const job = state.jobs.find((j) => j.id === id);
   if (!job) return;
   for (const person of Object.values(state.actors)) {
-    if (job.routine && person.id === job.target) person.routine = false;
-    if (person.task?.job === id || person.cargo?.job === id)
+    if (job.routine && job.kind === "rest" && person.id === job.target)
+      person.routine = false;
+    if (
+      person.task?.job === id ||
+      person.cargo?.job === id ||
+      state.herbStorageClaims[person.id]?.job === id
+    )
       interruptWork(state, person);
   }
   switch (job.kind) {
@@ -125,6 +162,8 @@ function cancelJob(state: Clearing, id: string): void {
       break;
     case "harvest":
       break;
+    case "store-herb":
+      break;
     default:
       assertNever(job);
   }
@@ -139,15 +178,19 @@ function prioritize(state: Clearing, job: Job): void {
   state.jobs = [job, ...state.jobs.filter((j) => j.id !== job.id)];
   state.workDirty = true;
 }
-function orderWork(state: Clearing, command: WorkCommand): void {
-  const scope: Scope = {
-    party: command.party,
-    actors: command.actors && [...command.actors],
-  };
+function orderWork(
+  state: Clearing,
+  command: WorkCommand | StoreHerbCommand,
+): void {
+  const scope: Scope =
+    command.kind === "store-herb"
+      ? { party: command.party, actors: null }
+      : { party: command.party, actors: command.actors && [...command.actors] };
+  const direct = "direct" in command && command.direct === true;
   const people = Object.values(state.actors).filter((person) =>
     inScope(state, person, scope),
   );
-  if (command.direct) for (const person of people) interruptWork(state, person);
+  if (direct) for (const person of people) interruptWork(state, person);
   if (command.kind === "rest") {
     for (const person of people) {
       const previous = state.jobs.find(
@@ -155,7 +198,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       );
       if (previous) {
         previous.routine = false;
-        if (command.direct) prioritize(state, previous);
+        if (direct) prioritize(state, previous);
         continue;
       }
       const job: Job = {
@@ -166,7 +209,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
         reason: "Ordered",
         routine: false,
       };
-      if (command.direct) state.jobs.unshift(job);
+      if (direct) state.jobs.unshift(job);
       else state.jobs.push(job);
     }
   } else if (command.kind === "chop") {
@@ -187,7 +230,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
         reason: "Ordered",
         routine: false,
       };
-      if (command.direct) state.jobs.unshift(job);
+      if (direct) state.jobs.unshift(job);
       else state.jobs.push(job);
     }
   } else if (command.kind === "sow") {
@@ -210,7 +253,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       reason: "Ordered",
       routine: false,
     };
-    if (command.direct) state.jobs.unshift(job);
+    if (direct) state.jobs.unshift(job);
     else state.jobs.push(job);
   } else if (command.kind === "harvest") {
     const job: Job = {
@@ -221,8 +264,19 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       reason: "Ordered",
       routine: false,
     };
-    if (command.direct) state.jobs.unshift(job);
+    if (direct) state.jobs.unshift(job);
     else state.jobs.push(job);
+  } else if (command.kind === "store-herb") {
+    const job: Job = {
+      id: `job-${state.nextId++}`,
+      kind: "store-herb",
+      bundle: command.bundle,
+      shelf: command.shelf,
+      scope,
+      reason: "Ordered",
+      routine: false,
+    };
+    state.jobs.push(job);
   } else if (command.kind === "build") {
     const site = {
       id: `site-${state.nextId++}`,
@@ -244,7 +298,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       reason: "Ordered",
       routine: false,
     };
-    if (command.direct) state.jobs.unshift(job);
+    if (direct) state.jobs.unshift(job);
     else state.jobs.push(job);
   } else {
     const job: Job = {
@@ -255,7 +309,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
       reason: "Ordered",
       routine: false,
     };
-    if (command.direct) state.jobs.unshift(job);
+    if (direct) state.jobs.unshift(job);
     else state.jobs.push(job);
   }
   state.workDirty = true;
@@ -268,7 +322,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
           ? "Blueprint placed. Wood will be brought when it is available."
           : command.kind === "deconstruct"
             ? "Deconstruction ordered. The structure will remain until the work is complete."
-            : command.direct
+            : direct
               ? "Direct order received. Earlier unfinished orders are kept."
               : "Work added to the orders.";
 }
@@ -330,7 +384,7 @@ function acceptCommand(state: Clearing, command: Command): CommandResult {
         person.routine = command.enabled;
         if (!command.enabled)
           for (const job of state.jobs.filter(
-            (j) => j.routine && j.target === person.id,
+            (j) => j.kind === "rest" && j.routine && j.target === person.id,
           ))
             cancelJob(state, job.id);
       }
@@ -352,6 +406,7 @@ function acceptCommand(state: Clearing, command: Command): CommandResult {
     case "deconstruct":
     case "sow":
     case "harvest":
+    case "store-herb":
     case "rest":
       orderWork(state, command);
       return { status: "applied" };

@@ -6,7 +6,7 @@ export type JobId = string;
 export type HerbId = string;
 export type HerbBundleId = string;
 export type Cell = { x: number; z: number; level: number };
-export type BuildingKind = "wall" | "door" | "roof" | "bed";
+export type BuildingKind = "wall" | "door" | "roof" | "bed" | "shelf";
 export type WorkType = "chop" | "haul" | "build" | "garden";
 export type AllowedWork = Record<WorkType, boolean>;
 export type Scope = { party: PartyId; actors: ActorId[] | null };
@@ -19,8 +19,16 @@ export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "harvest"; herb: HerbId }
     | { kind: "rest" }
   );
+export type StoreHerbCommand = {
+  kind: "store-herb";
+  party: PartyId;
+  actors: null;
+  bundle: HerbBundleId;
+  shelf: string;
+};
 export type Command =
   | WorkCommand
+  | StoreHerbCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
@@ -40,9 +48,20 @@ export type BuildJob = JobBase & { kind: "build"; target: string };
 export type DeconstructJob = JobBase & { kind: "deconstruct"; target: string };
 export type SowJob = JobBase & { kind: "sow"; target: HerbId };
 export type HarvestJob = JobBase & { kind: "harvest"; target: HerbId };
+export type StoreHerbJob = JobBase & {
+  kind: "store-herb";
+  bundle: HerbBundleId;
+  shelf: string;
+};
 export type RestJob = JobBase & { kind: "rest"; target: ActorId };
 export type Job =
-  ChopJob | BuildJob | DeconstructJob | SowJob | HarvestJob | RestJob;
+  | ChopJob
+  | BuildJob
+  | DeconstructJob
+  | SowJob
+  | HarvestJob
+  | StoreHerbJob
+  | RestJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -56,6 +75,8 @@ export type SowActivity = ActivityBase & { kind: "sow" };
 export type HarvestActivity = ActivityBase & { kind: "harvest" };
 export type PickupActivity = ActivityBase & { kind: "pickup" };
 export type DeliverActivity = ActivityBase & { kind: "deliver" };
+export type PickupHerbActivity = ActivityBase & { kind: "pickup-herb" };
+export type StoreHerbActivity = ActivityBase & { kind: "store-herb" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
 export type Activity =
   | ChopActivity
@@ -65,6 +86,8 @@ export type Activity =
   | HarvestActivity
   | PickupActivity
   | DeliverActivity
+  | PickupHerbActivity
+  | StoreHerbActivity
   | SleepActivity;
 export type Body = Cell & {
   dir: number;
@@ -93,6 +116,11 @@ export type WoodClaim = {
   site: string;
   amount: number;
 };
+export type HerbStorageClaim = {
+  job: JobId;
+  bundle: HerbBundleId;
+  shelf: string;
+};
 export type Tree = Cell & { id: string; work: number; felledAt: number | null };
 export type HerbStage = "ordered" | "planted" | "growing" | "ready";
 export type Herb = Cell & {
@@ -102,10 +130,15 @@ export type Herb = Cell & {
   work: number;
   plantedAt: number | null;
 };
-export type HerbBundle = Cell & {
+export type HerbBundleLocation =
+  | ({ kind: "ground" } & Cell)
+  | { kind: "carried"; actor: ActorId }
+  | { kind: "stored"; site: string };
+export type HerbBundle = {
   id: HerbBundleId;
   kind: "mugwort";
   amount: 1;
+  location: HerbBundleLocation;
 };
 export type Site = Cell & {
   id: string;
@@ -141,6 +174,7 @@ export type Clearing = {
   // additional mutable status/index store would add no needed behavior here.
   jobs: Job[];
   claims: Record<ActorId, WoodClaim>;
+  herbStorageClaims: Record<ActorId, HerbStorageClaim>;
   workDirty: boolean;
   felled: number;
   finishedJobs: number;

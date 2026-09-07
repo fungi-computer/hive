@@ -39,6 +39,13 @@ export const BUILDINGS = {
     deconstructTicks: 48,
     salvageWood: 1,
   },
+  shelf: {
+    label: "Mugwort shelf",
+    wood: 1,
+    ticks: 24,
+    deconstructTicks: 24,
+    salvageWood: 1,
+  },
 };
 export function footprint(at) {
   const cells = [{ x: at.x, z: at.z, level: at.level ?? 0 }];

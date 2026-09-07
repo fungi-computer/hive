@@ -10,6 +10,11 @@ import { CHOP_TICKS } from "./activity.ts";
 import { looseWood } from "./resources.ts";
 import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { createTicker, push } from "./ticker.js";
+import {
+  restoreSnapshot,
+  snapshotFor,
+  validateClearing,
+} from "./persistence.ts";
 
 // Run the exact shipped JS and WASM, without a substitute assignment function.
 const colony = await new Promise((resolve, reject) => {
@@ -104,6 +109,40 @@ const build = (type, x, z, direction = 0) => ({
 });
 const sow = (x, z) => ({ kind: "sow", x, z, level: 0 });
 const harvest = (herb) => ({ kind: "harvest", herb });
+const storeHerb = (bundle, shelf) => ({
+  kind: "store-herb",
+  bundle,
+  shelf,
+});
+
+function storageFixture({ bundleCell = { x: 8, z: 10, level: 0 } } = {}) {
+  const state = createClearing(91);
+  state.paused = true;
+  state.felled = 1;
+  state.trees[0].work = CHOP_TICKS;
+  state.trees[0].felledAt = 0;
+  state.piles.push({ id: "wood-1", x: 4, z: 5, level: 0, amount: 5 });
+  state.sites.push({
+    id: "site-1",
+    type: "shelf",
+    x: 9,
+    z: 10,
+    level: 0,
+    direction: 0,
+    delivered: 1,
+    work: BUILDINGS.shelf.ticks,
+    finishedAt: 0,
+  });
+  state.herbBundles.push({
+    id: "herb-bundle-2",
+    kind: "mugwort",
+    amount: 1,
+    location: { kind: "ground", ...bundleCell },
+  });
+  state.harvestedHerbs = 1;
+  state.nextId = 3;
+  return state;
+}
 function homeOrders() {
   const commands = [];
   for (let x = 6; x <= 9; x++)
@@ -631,6 +670,310 @@ test("shared sow uses real garden work, fixed growth thresholds, and one harvest
   assert.equal(state.harvestedHerbs, 1);
   assert.equal(state.herbBundles[0].amount, 1);
   assert.equal(state.jobs.length, 0);
+});
+
+test("shared Store claims before walking and finishes its carried continuation", () => {
+  const state = storageFixture();
+  const [result] = step(state, colony, [storeHerb("herb-bundle-2", "site-1")]);
+  assert.deepEqual(result, { status: "applied" });
+  assert.equal(state.tick, 0);
+  assert.deepEqual(state.herbStorageClaims, {});
+  assert.equal(state.herbBundles[0].location.kind, "ground");
+
+  state.paused = false;
+  step(state, colony);
+  assert.equal(state.tick, 1);
+  assert.deepEqual(state.herbStorageClaims.rowan, {
+    job: state.jobs[0].id,
+    bundle: "herb-bundle-2",
+    shelf: "site-1",
+  });
+  assert.equal(state.actors.rowan.task?.kind, "pickup-herb");
+  until(
+    state,
+    (candidate) => candidate.herbBundles[0].location.kind === "carried",
+  );
+  assert.equal(state.herbStorageClaims.rowan.bundle, "herb-bundle-2");
+  assert.equal(state.actors.rowan.task?.kind, "store-herb");
+
+  state.parties.home.members.push("sedge");
+  state.actors.rowan.allowedWork.haul = false;
+  state.jobs.push({
+    id: "job-3",
+    kind: "chop",
+    target: "oak-2",
+    scope: { party: "home", actors: null },
+    reason: "Cheap alternate",
+    routine: false,
+  });
+  state.nextId = 4;
+  state.workDirty = true;
+  step(state, colony);
+  assert.equal(state.actors.rowan.task?.kind, "store-herb");
+  until(
+    state,
+    (candidate) => candidate.herbBundles[0].location.kind === "stored",
+  );
+  assert.equal(state.herbBundles[0].location.site, "site-1");
+  assert.equal(state.herbStorageClaims.rowan, undefined);
+  assert.equal(
+    state.jobs.some((job) => job.kind === "store-herb"),
+    false,
+  );
+  conserved(state);
+});
+
+test("full and unreachable shelves wait without claiming a bundle", () => {
+  const full = storageFixture();
+  const [personal] = step(full, colony, [
+    {
+      ...storeHerb("herb-bundle-2", "site-1"),
+      actors: ["rowan"],
+      direct: true,
+    },
+  ]);
+  assert.equal(personal.status, "rejected");
+  assert.equal(full.jobs.length, 0);
+  full.herbBundles.push({
+    id: "herb-bundle-3",
+    kind: "mugwort",
+    amount: 1,
+    location: { kind: "stored", site: "site-1" },
+  });
+  full.harvestedHerbs = 2;
+  full.nextId = 4;
+  const [fullResult] = step(full, colony, [
+    storeHerb("herb-bundle-2", "site-1"),
+  ]);
+  assert.deepEqual(fullResult, { status: "applied" });
+  full.paused = false;
+  step(full, colony);
+  assert.match(full.jobs[0].reason, /Waiting for shelf space/);
+  assert.deepEqual(full.herbStorageClaims, {});
+  assert.equal(full.herbBundles[0].location.kind, "ground");
+
+  const unreachable = storageFixture({ bundleCell: { x: 10, z: 3, level: 0 } });
+  const [routeResult] = step(unreachable, colony, [
+    storeHerb("herb-bundle-2", "site-1"),
+  ]);
+  assert.deepEqual(routeResult, { status: "applied" });
+  unreachable.paused = false;
+  step(unreachable, colony);
+  assert.match(unreachable.jobs[0].reason, /No route/);
+  assert.deepEqual(unreachable.herbStorageClaims, {});
+  assert.deepEqual(unreachable.herbBundles[0].location, {
+    kind: "ground",
+    x: 10,
+    z: 3,
+    level: 0,
+  });
+});
+
+function claimedStorageState() {
+  const state = storageFixture();
+  step(state, colony, [storeHerb("herb-bundle-2", "site-1")]);
+  state.paused = false;
+  step(state, colony);
+  assert.equal(state.actors.rowan.task?.kind, "pickup-herb");
+  return state;
+}
+
+function carriedStorageState() {
+  const state = claimedStorageState();
+  until(
+    state,
+    (candidate) => candidate.herbBundles[0].location.kind === "carried",
+  );
+  assert.equal(state.herbStorageClaims.rowan.bundle, "herb-bundle-2");
+  return state;
+}
+
+test("Store cancellation, Draft, and direct interruption preserve the right job boundary", () => {
+  for (const kind of ["cancel", "draft", "direct"]) {
+    const state = claimedStorageState();
+    const job = state.jobs.find((candidate) => candidate.kind === "store-herb");
+    if (kind === "cancel")
+      step(state, colony, [{ kind: "cancel", job: job.id }]);
+    else if (kind === "draft")
+      step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+    else
+      step(state, colony, [
+        {
+          kind: "chop",
+          tree: "oak-2",
+          actors: ["rowan"],
+          direct: true,
+        },
+      ]);
+    assert.equal(state.herbStorageClaims.rowan, undefined);
+    assert.equal(state.herbBundles[0].location.kind, "ground");
+    assert.equal(
+      state.jobs.some((candidate) => candidate.id === job.id),
+      kind !== "cancel",
+    );
+  }
+
+  for (const kind of ["cancel", "draft", "direct"]) {
+    const state = carriedStorageState();
+    const job = state.jobs.find((candidate) => candidate.kind === "store-herb");
+    const actorCell = {
+      x: state.actors.rowan.x,
+      z: state.actors.rowan.z,
+      level: state.actors.rowan.level,
+    };
+    if (kind === "cancel")
+      step(state, colony, [{ kind: "cancel", job: job.id }]);
+    else if (kind === "draft")
+      step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+    else
+      step(state, colony, [
+        {
+          kind: "chop",
+          tree: "oak-2",
+          actors: ["rowan"],
+          direct: true,
+        },
+      ]);
+    assert.equal(state.herbStorageClaims.rowan, undefined);
+    assert.deepEqual(state.herbBundles[0].location, {
+      kind: "ground",
+      ...actorCell,
+    });
+    assert.equal(
+      state.jobs.some((candidate) => candidate.id === job.id),
+      kind !== "cancel",
+    );
+  }
+});
+
+test("Store completion revalidation drops the same bundle and retains its job", () => {
+  const state = carriedStorageState();
+  step(state, colony);
+  assert.equal(state.actors.rowan.task?.kind, "store-herb");
+  state.herbBundles.push({
+    id: "herb-bundle-3",
+    kind: "mugwort",
+    amount: 1,
+    location: { kind: "stored", site: "site-1" },
+  });
+  state.harvestedHerbs = 2;
+  state.nextId = 4;
+  run(state, 8);
+  assert.equal(state.herbBundles[0].id, "herb-bundle-2");
+  assert.equal(state.herbBundles[0].location.kind, "ground");
+  assert.equal(state.herbStorageClaims.rowan, undefined);
+  assert.equal(
+    state.jobs.some((job) => job.kind === "store-herb"),
+    true,
+  );
+  assert.match(state.notice, /shelf changed/);
+  state.commands = state.commands.map(
+    ({ level: _level, ...command }) => command,
+  );
+  validateClearing(state);
+  const restored = restoreSnapshot(snapshotFor(state)).state;
+  assert.deepEqual(restored.herbBundles[0].location, {
+    kind: "ground",
+    x: state.actors.rowan.x,
+    z: state.actors.rowan.z,
+    level: state.actors.rowan.level,
+  });
+  assert.deepEqual(restored.herbBundles[1].location, {
+    kind: "stored",
+    site: "site-1",
+  });
+});
+
+test("deconstructing a shelf ejects bundles and handles an in-flight Store claim", () => {
+  const storeFirst = carriedStorageState();
+  storeFirst.parties.home.members.push("sedge");
+  step(storeFirst, colony, [
+    { kind: "deconstruct", site: "site-1", actors: ["sedge"] },
+  ]);
+  until(
+    storeFirst,
+    (candidate) => candidate.herbBundles[0].location.kind === "stored",
+  );
+  assert.equal(storeFirst.sites.length, 1);
+  assert.equal(
+    storeFirst.jobs.some((job) => job.kind === "store-herb"),
+    false,
+  );
+  until(storeFirst, (candidate) => candidate.sites.length === 0);
+  assert.equal(storeFirst.herbBundles[0].id, "herb-bundle-2");
+  assert.deepEqual(storeFirst.herbBundles[0].location, {
+    kind: "ground",
+    x: 9,
+    z: 10,
+    level: 0,
+  });
+  assert.equal(
+    storeFirst.piles.some((pile) => sameCell(pile, { x: 9, z: 10, level: 0 })),
+    true,
+  );
+  storeFirst.commands = storeFirst.commands.map(
+    ({ level: _level, ...command }) => command,
+  );
+  validateClearing(storeFirst);
+  const storedRestored = restoreSnapshot(snapshotFor(storeFirst)).state;
+  assert.deepEqual(
+    storedRestored.herbBundles[0].location,
+    storeFirst.herbBundles[0].location,
+  );
+  conserved(storeFirst);
+
+  const deconstructFirst = carriedStorageState();
+  deconstructFirst.parties.home.members = ["sedge", "rowan"];
+  deconstructFirst.paused = true;
+  step(deconstructFirst, colony, [
+    { kind: "deconstruct", site: "site-1", actors: ["sedge"] },
+  ]);
+  deconstructFirst.actors.sedge.x = 9;
+  deconstructFirst.actors.sedge.z = 11;
+  deconstructFirst.actors.sedge.level = 0;
+  deconstructFirst.actors.sedge.path = [];
+  deconstructFirst.actors.sedge.mode = "idle";
+  deconstructFirst.paused = false;
+  step(deconstructFirst, colony);
+  assert.equal(deconstructFirst.actors.sedge.task?.kind, "deconstruct");
+  deconstructFirst.actors.sedge.work = BUILDINGS.shelf.deconstructTicks - 1;
+  step(deconstructFirst, colony);
+  assert.equal(deconstructFirst.actors.sedge.mode, "deconstruct");
+  const droppedAt = {
+    x: deconstructFirst.actors.rowan.x,
+    z: deconstructFirst.actors.rowan.z,
+    level: deconstructFirst.actors.rowan.level,
+  };
+  step(deconstructFirst, colony);
+  assert.equal(deconstructFirst.sites.length, 0);
+  assert.equal(deconstructFirst.herbStorageClaims.rowan, undefined);
+  assert.equal(
+    deconstructFirst.jobs.some((job) => job.kind === "store-herb"),
+    false,
+  );
+  assert.equal(deconstructFirst.herbBundles[0].id, "herb-bundle-2");
+  assert.deepEqual(deconstructFirst.herbBundles[0].location, {
+    kind: "ground",
+    ...droppedAt,
+  });
+  assert.equal(
+    deconstructFirst.piles.some((pile) =>
+      sameCell(pile, { x: 9, z: 10, level: 0 }),
+    ),
+    true,
+  );
+  deconstructFirst.commands = deconstructFirst.commands.map(
+    ({ level: _level, ...command }) => command,
+  );
+  validateClearing(deconstructFirst);
+  const deconstructRestored = restoreSnapshot(
+    snapshotFor(deconstructFirst),
+  ).state;
+  assert.deepEqual(
+    deconstructRestored.herbBundles[0].location,
+    deconstructFirst.herbBundles[0].location,
+  );
+  conserved(deconstructFirst);
 });
 
 test("sow cancellation removes only its ordered herb, while interruption retains work", () => {

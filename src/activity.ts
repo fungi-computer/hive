@@ -8,9 +8,11 @@ import type {
   DeliverActivity,
   HarvestActivity,
   PickupActivity,
+  PickupHerbActivity,
   SleepActivity,
   SowActivity,
   Site,
+  StoreHerbActivity,
 } from "./model.ts";
 import { blockedCells, sameCell } from "./world.js";
 import { walk, face } from "./movement.js";
@@ -20,6 +22,25 @@ import { isNight } from "./routine.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 
 export const CHOP_TICKS = 80;
+
+function dropHerbStorage(state: Clearing, person: Actor): void {
+  const claim = state.herbStorageClaims[person.id];
+  if (!claim) return;
+  const bundle = state.herbBundles.find(
+    (candidate) => candidate.id === claim.bundle,
+  );
+  if (
+    bundle?.location.kind === "carried" &&
+    bundle.location.actor === person.id
+  )
+    bundle.location = {
+      kind: "ground",
+      x: person.x,
+      z: person.z,
+      level: person.level,
+    };
+  delete state.herbStorageClaims[person.id];
+}
 
 export function finishActivity(state: Clearing, person: Actor): void {
   delete state.claims[person.id];
@@ -35,6 +56,7 @@ export function finishActivity(state: Clearing, person: Actor): void {
 }
 export function interruptWork(state: Clearing, person: Actor): void {
   dropCarried(state, person);
+  dropHerbStorage(state, person);
   finishActivity(state, person);
 }
 function finishJob(state: Clearing, person: Actor, job: string): void {
@@ -80,6 +102,72 @@ function transferWood(
     state.notice = `${person.name} delivered the wood. Now the building can take shape.`;
   }
   finishActivity(state, person);
+}
+function transferHerb(
+  state: Clearing,
+  person: Actor,
+  task: PickupHerbActivity | StoreHerbActivity,
+): void {
+  const claim = state.herbStorageClaims[person.id];
+  const bundle = state.herbBundles.find(
+    (candidate) => candidate.id === claim?.bundle,
+  );
+  if (
+    !claim ||
+    !bundle ||
+    claim.job !== task.job ||
+    (task.kind === "pickup-herb"
+      ? bundle.location.kind !== "ground" ||
+        bundle.id !== task.target ||
+        claim.bundle !== task.target
+      : bundle.location.kind !== "carried" ||
+        bundle.location.actor !== person.id ||
+        claim.shelf !== task.target)
+  ) {
+    interruptWork(state, person);
+    return;
+  }
+  if (task.kind === "pickup-herb") {
+    bundle.location = { kind: "carried", actor: person.id };
+    state.notice = `${person.name} picked up the mugwort bundle.`;
+    delete state.claims[person.id];
+    Object.assign(person, {
+      mode: "idle",
+      task: null,
+      assignment: null,
+      path: [],
+      leg: 0,
+      work: 0,
+    });
+    state.workDirty = true;
+    return;
+  }
+  const shelf = state.sites.find((candidate) => candidate.id === claim.shelf);
+  const competingClaim = Object.entries(state.herbStorageClaims).some(
+    ([actorId, candidate]) =>
+      actorId !== person.id && candidate.shelf === claim.shelf,
+  );
+  const competingBundle = state.herbBundles.some(
+    (candidate) =>
+      candidate.id !== bundle.id &&
+      candidate.location.kind === "stored" &&
+      candidate.location.site === claim.shelf,
+  );
+  if (
+    !shelf ||
+    shelf.type !== "shelf" ||
+    shelf.finishedAt === null ||
+    competingClaim ||
+    competingBundle
+  ) {
+    interruptWork(state, person);
+    state.notice = `${person.name} could not store the mugwort bundle. The shelf changed; the order is waiting.`;
+    return;
+  }
+  bundle.location = { kind: "stored", site: claim.shelf };
+  delete state.herbStorageClaims[person.id];
+  state.notice = `${person.name} stored the mugwort bundle.`;
+  finishJob(state, person, task.job);
 }
 function workOnTree(state: Clearing, person: Actor, task: ChopActivity): void {
   const tree = state.trees.find((t) => t.id === task.target)!;
@@ -130,6 +218,19 @@ function workOnDeconstruction(
   }
 
   const recipe = BUILDINGS[site.type];
+  for (const [actorId, claim] of Object.entries(state.herbStorageClaims))
+    if (claim.shelf === site.id) interruptWork(state, state.actors[actorId]);
+  for (const bundle of state.herbBundles)
+    if (bundle.location.kind === "stored" && bundle.location.site === site.id)
+      bundle.location = {
+        kind: "ground",
+        x: site.x,
+        z: site.z,
+        level: site.level,
+      };
+  state.jobs = state.jobs.filter(
+    (job) => !(job.kind === "store-herb" && job.shelf === site.id),
+  );
   state.sites = prospectiveSites;
   finishJob(state, person, task.job);
   dropWood(state, site, recipe.salvageWood);
@@ -163,9 +264,12 @@ function workOnHerb(
     id: `herb-bundle-${state.nextId++}`,
     kind: "mugwort",
     amount: 1,
-    x: herb.x,
-    z: herb.z,
-    level: herb.level,
+    location: {
+      kind: "ground",
+      x: herb.x,
+      z: herb.z,
+      level: herb.level,
+    },
   });
   state.harvestedHerbs++;
   state.notice = "Mugwort harvested. One bundle is on the ground.";
@@ -187,10 +291,17 @@ function targetFor(state: Clearing, task: Activity) {
       return state.trees.find((tree) => tree.id === task.target);
     case "pickup":
       return state.piles.find((pile) => pile.id === task.target);
+    case "pickup-herb": {
+      const bundle = state.herbBundles.find(
+        (candidate) => candidate.id === task.target,
+      );
+      return bundle?.location.kind === "ground" ? bundle.location : undefined;
+    }
     case "build":
     case "deliver":
     case "sleep":
     case "deconstruct":
+    case "store-herb":
       return state.sites.find((site) => site.id === task.target);
     case "sow":
     case "harvest":
@@ -221,7 +332,10 @@ export function advanceWork(state: Clearing, person: Actor): void {
       person.dir = target.direction;
     return;
   }
-  const onTarget = task.kind === "pickup" || task.kind === "sleep";
+  const onTarget =
+    task.kind === "pickup" ||
+    task.kind === "pickup-herb" ||
+    task.kind === "sleep";
   const reachable = onTarget
     ? sameCell(person, target)
     : person.level === target.level &&
@@ -250,6 +364,10 @@ export function advanceWork(state: Clearing, person: Actor): void {
     case "pickup":
     case "deliver":
       if (++person.work >= task.duration) transferWood(state, person, task);
+      break;
+    case "pickup-herb":
+    case "store-herb":
+      if (++person.work >= task.duration) transferHerb(state, person, task);
       break;
     default:
       assertNever(task);

@@ -10,6 +10,7 @@ import type {
   BuildJob,
   DeconstructJob,
   HarvestJob,
+  StoreHerbJob,
   Job,
   Site,
   SowJob,
@@ -150,6 +151,52 @@ function harvestOption(
         ),
       };
 }
+function storedBundleAt(state: Clearing, shelf: string): boolean {
+  return state.herbBundles.some(
+    (bundle) =>
+      bundle.location.kind === "stored" && bundle.location.site === shelf,
+  );
+}
+function shelfClaimed(state: Clearing, shelf: string): boolean {
+  return Object.values(state.herbStorageClaims).some(
+    (claim) => claim.shelf === shelf,
+  );
+}
+function storeHerbOption(
+  state: Clearing,
+  person: Actor,
+  job: StoreHerbJob,
+  blocked: Set<string>,
+): Options {
+  const bundle = state.herbBundles.find(
+    (candidate) => candidate.id === job.bundle,
+  );
+  const shelf = state.sites.find((site) => site.id === job.shelf);
+  if (!bundle || bundle.location.kind !== "ground")
+    return unavailable("Waiting for a ground mugwort bundle");
+  if (!shelf || shelf.finishedAt === null || shelf.type !== "shelf")
+    return unavailable("Waiting for a finished mugwort shelf");
+  if (storedBundleAt(state, shelf.id) || shelfClaimed(state, shelf.id))
+    return unavailable("Waiting for shelf space");
+  const pickup = route(person, bundle.location, blocked);
+  if (pickup === null) return unavailable("No route to this mugwort bundle");
+  const delivery = approach(bundle.location, shelf, blocked);
+  if (delivery === null) return unavailable("No route to this shelf");
+  return {
+    reason: "Ready to store mugwort",
+    candidate: {
+      activity: {
+        job: job.id,
+        kind: "pickup-herb",
+        target: bundle.id,
+        duration: 8,
+      },
+      path: pickup,
+      travel: pickup.length + delivery.length,
+      site: shelf.id,
+    },
+  };
+}
 function bedFree(state: Clearing, bed: Site): boolean {
   return !Object.values(state.actors).some(
     (person) => person.task?.kind === "sleep" && person.task.target === bed.id,
@@ -170,6 +217,8 @@ function jobOption(
       return sowOption(state, person, job, blocked);
     case "harvest":
       return harvestOption(state, person, job, blocked);
+    case "store-herb":
+      return storeHerbOption(state, person, job, blocked);
     case "chop": {
       const tree = state.trees.find((t) => t.id === job.target)!;
       const path = approach(person, tree, blocked);
@@ -212,6 +261,9 @@ function automaticWork(activity: Activity): WorkType | null {
       return "chop";
     case "pickup":
       return "haul";
+    case "pickup-herb":
+    case "store-herb":
+      return "haul";
     case "build":
       return "build";
     case "deconstruct":
@@ -249,6 +301,30 @@ function deliveryOption(
   state.notice = `${person.name} set the wood down safely. The way to its site closed.`;
   return null;
 }
+function herbDeliveryOption(
+  state: Clearing,
+  person: Actor,
+  blocked: Set<string>,
+): Candidate | null {
+  const bundle = state.herbBundles.find(
+    (candidate) =>
+      candidate.location.kind === "carried" &&
+      candidate.location.actor === person.id,
+  );
+  if (!bundle) return null;
+  const claim = state.herbStorageClaims[person.id];
+  const job = state.jobs.find(
+    (candidate): candidate is StoreHerbJob =>
+      candidate.kind === "store-herb" && candidate.id === claim?.job,
+  );
+  const shelf = state.sites.find((candidate) => candidate.id === claim?.shelf);
+  const path = shelf ? approach(person, shelf, blocked) : null;
+  if (path !== null && job && shelf)
+    return candidate(job, "store-herb", shelf.id, path, 8);
+  interruptWork(state, person);
+  state.notice = `${person.name} set the mugwort bundle down safely. The way to its shelf closed.`;
+  return null;
+}
 function claimCandidate(
   state: Clearing,
   person: Actor,
@@ -266,6 +342,40 @@ function claimCandidate(
       return (
         !!job && !!pile && !!site && reserveWood(state, person, job, pile, site)
       );
+    }
+    case "pickup-herb": {
+      const job = state.jobs.find(
+        (candidate): candidate is StoreHerbJob =>
+          candidate.id === task.job && candidate.kind === "store-herb",
+      );
+      const bundle = state.herbBundles.find(
+        (candidate) => candidate.id === task.target,
+      );
+      const shelf = state.sites.find((site) => site.id === next.site);
+      if (
+        !job ||
+        !bundle ||
+        bundle.location.kind !== "ground" ||
+        !shelf ||
+        shelf.type !== "shelf" ||
+        shelf.finishedAt === null ||
+        storedBundleAt(state, shelf.id) ||
+        shelfClaimed(state, shelf.id) ||
+        state.herbStorageClaims[person.id] ||
+        state.claims[person.id] ||
+        person.cargo
+      )
+        return false;
+      state.herbStorageClaims[person.id] = {
+        job: job.id,
+        bundle: bundle.id,
+        shelf: shelf.id,
+      };
+      return true;
+    }
+    case "store-herb": {
+      const claim = state.herbStorageClaims[person.id];
+      return !!claim && claim.job === task.job && claim.shelf === task.target;
     }
     case "sleep": {
       const bed = state.sites.find((s) => s.id === task.target);
@@ -311,8 +421,12 @@ export function assignWork(state: Clearing, colony: Colony): void {
     });
   }
   for (const person of idle) {
-    if (!person.cargo) continue;
-    const next = deliveryOption(state, person, blocked);
+    if (person.cargo) {
+      const next = deliveryOption(state, person, blocked);
+      if (next) offer(person, next);
+      continue;
+    }
+    const next = herbDeliveryOption(state, person, blocked);
     if (next) offer(person, next);
   }
   const busyJobs = new Set(
@@ -320,11 +434,13 @@ export function assignWork(state: Clearing, colony: Colony): void {
       person.task ? [person.task.job] : person.cargo ? [person.cargo.job] : [],
     ),
   );
+  for (const claim of Object.values(state.herbStorageClaims))
+    busyJobs.add(claim.job);
   // Personal orders are a person's explicit queue, ahead of shared designations.
   // Offer only its first ready activity, so cost can never undo a direct order.
   const personal = new Set<string>();
   for (const person of idle) {
-    if (person.cargo) continue;
+    if (person.cargo || state.herbStorageClaims[person.id]) continue;
     for (const job of state.jobs) {
       if (
         job.scope.actors === null ||
@@ -346,6 +462,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
     const workers = idle.filter(
       (person) =>
         !person.cargo &&
+        !state.herbStorageClaims[person.id] &&
         !personal.has(person.id) &&
         party.members.includes(person.id),
     );
