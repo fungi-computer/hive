@@ -43,7 +43,7 @@ export function createKeys(root, read, send, changed) {
     {
       name: "camera.focus",
       key: "f",
-      title: "Center on Rowan",
+      title: "Center on selection",
       action: () => ({ kind: "focus" }),
     },
     {

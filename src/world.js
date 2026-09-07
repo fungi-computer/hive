@@ -41,8 +41,8 @@ export function neighbors(p) {
 export function blockedCells(state) {
   return new Set(
     [
-      ...ROCKS,
-      WATCHER,
+      ...state.rocks,
+      state.watcher,
       ...state.trees.filter((t) => t.felledAt === null),
       // A wall blueprint reserves its cell, keeping routes out of future walls.
       ...state.sites.filter((s) => s.type === "wall"),

@@ -8,6 +8,151 @@ Levi has now opened the full-viewport, two-person polish goal described below.
 It does not claim implementation of multiplayer, streaming, upper floors or a backend.
 The accepted game and character study remain the regression baseline.
 
+## Delivery ownership
+
+Levi appoints Astra as peer Game CTO: game direction, difficult architecture,
+staffing and direct product discussion, with personal review of changed original
+art. The visible Sol/high `game-delivery` lead owns the ready queue, file custody,
+PM briefs, source/caller review, routine corrections/final acceptance, proof
+scheduling, serial integration and same-preview releases. At the reviewed
+15-test typed-core checkpoint over `016b1a02`, Astra transfers Git/deployment and
+ordinary source custody; the dirty candidate is retained in the ignored recovery
+archive. `src/art.js` and `src/art/figures.js` remain Astra's until the Sedge work
+poses are reviewed. One writer owns each coupled seam; routine acceptance does
+not wait on a second CTO acknowledgment. Delivery brings actual design decisions,
+changed-art batches and meaningful playable results to Astra.
+
+Luna carries bounded execution, Terra checks direction/final candidates, and Sol
+handles harder correctness. Substantial PMs report to game-delivery and carry
+bounded persistent delivery goals; root's existing goal remains active. Use the
+separate `Game CTO + Delivery` and `Game Lanes` Herdr tabs, preserving live agents
+and focus. The Sol Codex lead is an explicit temporary fallback: the landing
+Shiitake one-shot path lacks PM goal/mail continuity. Supported new workers use
+Shiitake without inventing integration in Hive. Existing issues/docs/logs carry
+coordination; no new board or reporting framework. Broader resource, backend,
+production and cross-repo decisions retain their authorization limits.
+
+Baseline controls at `016b1a02b009e798165bd4ba11653093cf4ee1c6` remain
+playable on the authorized preview while the next source slice develops.
+Independent work begins with separating HUD display from guidance/notice logic,
+and the requested original adult-witch/child lineup study. Their outputs join
+through direct source/render inspection; game state remains the single simulation.
+
+## Durable work issues
+
+These issues preserve Levi's direction; an open issue is not a shipped feature.
+
+- [Two-person home with real shared work](https://github.com/fungi-computer/hive/issues/1)
+- [Adult witch and child character study](https://github.com/fungi-computer/hive/issues/2)
+- [Upper-floor home and camera views](https://github.com/fungi-computer/hive/issues/3)
+- [Chunk-loaded world with local save and caravan return](https://github.com/fungi-computer/hive/issues/4)
+- [Persistent homelands, offline helpers, and nations](https://github.com/fungi-computer/hive/issues/5)
+- [Measure colony scale to 50–100 people](https://github.com/fungi-computer/hive/issues/6)
+- [Paper-doll gear, rotatable packs, and hauling arms](https://github.com/fungi-computer/hive/issues/7)
+- [Leather processing and physical knowledge books](https://github.com/fungi-computer/hive/issues/8)
+- [Crafted arrows with swept multi-level collision](https://github.com/fungi-computer/hive/issues/9)
+- [Zen garden and fishing pond from excavated terrain](https://github.com/fungi-computer/hive/issues/10)
+- [Authored magical palette, lighting, grass, and leaves](https://github.com/fungi-computer/hive/issues/11)
+
+- [Colony controls and Caps UI: selection, work designation, and planning](https://github.com/fungi-computer/hive/issues/12) — active UX/source pass
+
+- [Loose world direction: occult chess, tarot, magic, shrines, and cults](https://github.com/fungi-computer/hive/issues/13)
+- [Witch gardens, greenhouses, grafting, and brewed ingredients](https://github.com/fungi-computer/hive/issues/14)
+- [Land, factions, offices, and physical roleplay authority](https://github.com/fungi-computer/hive/issues/15)
+- [Versioned composable domain capabilities for modded servers](https://github.com/fungi-computer/hive/issues/16)
+- [Cultural knowledge transfer and controller authority](https://github.com/fungi-computer/hive/issues/17)
+
+## Latest direct Levi direction
+
+Game delivery reports and playable feedback now go directly to Levi; routine
+Botanical CTO reporting and checkpoint waits are retired. Astra personally
+reviews all delegated 3D models at native/game scale, across facings and in motion
+before they reach the preview. Lower-model execution never delegates art acceptance.
+
+Levi selects **Caps as it exists** for the HUD; Caps improvements await his
+separate direction. Hive consumes pinned local Caps/Stipe tarballs with React
+18.3.1, satisfying Caps' declared peers. Caps owns Button/Checkbox behavior,
+OpenTUI owns physical keyboard matching, and Hive owns world selection,
+designation and scoped commands. Joined-game proof owns focus and disabled-
+activation claims; the earlier locator-only probe does not.
+
+Controls need a deeper colony/tycoon UX pass: distinguish multi-person selection
+(normal, modified and box selection) from click-drag work designations such as
+Chop. Designations become shared jobs; direct contextual orders and queued orders
+capture selected actor IDs. Keep inspectors for detail, rather than requiring
+an inspector for every task. Check primary references and a small real interaction
+before broad UI expansion. No desktop/window framework is implied.
+
+Multiple floors are the next playable foundation after the active two-person
+home: build stairs and an upstairs bed and actually use it. The Sweeney Todd
+barber shop above a meat kitchen gives vertical openings a concrete later use.
+Keep shared floor/opening geometry ready for traversal, falling objects and later
+projectiles; the chair and processing chain do not gate the first upstairs room.
+
+Presentation needs Sims-like front-wall cutaway modes, separate roofs/storeys,
+and optional tree/canopy fading during construction. Terrain editing, building,
+and planning marks are distinct player modes. Planning marks have no wood or
+work commitment until converted to actual blueprints; hiding foliage never removes
+its collision. Four camera views follow the first usable floor controls.
+
+Levi's excavation/water destination is a personally built Zen garden and fishing
+pond. The first water target is diverting a stream into a pond with flow control
+and a drain. Avoid manual source-block or bucket puzzles: use a finite conserved amount,
+gravity, connected-surface leveling, and a pond fill-level order that creates
+real hauling work, with later inlet, drain, and pump options. A candidate model
+is active wet-cell simulation with sleeping settled regions and actual cross-Z
+openings; explicit sources and sinks own all additions/removals, and unloaded
+boundaries never silently discard or duplicate water. Pressure/connected vessels,
+stable levels, chunk crossing, and offline accounting require proof. First prove
+basin/fill/breach/drain plus conservation and reload; only then broaden fluids,
+fishing, or garden presentation. The simple CA discussion at
+[W-shadow](https://w-shadow.com/blog/2009/09/01/simple-fluid-simulation/) and
+[Red Blob Games terrain from noise](https://www.redblobgames.com/maps/terrain-from-noise/)
+are references, not selected or copied implementations.
+
+Rich nature and witch gardening remain connected future hypotheses: deep plant
+cultivation, grafting, greenhouses, mint, and gathered animal ingredients such
+as eye of newt could feed a chain of conditions → growth → harvest → storage/
+hauling → recipe. Rootstock/cutting compatibility needs design; there is no
+universal graft-anything claim. Small cultivation and recipe work can be proved
+independently; pond-driven moisture joins after the water conservation proof.
+Neither expands the current home goal.
+
+## Loose occult-world and card direction
+
+Levi adds Null Tale's art, [Chess of Death / Fate Chess](https://nulltale.itch.io/chess-of-death)
+and LutLight2D as inspiration beside the accepted original references. The
+Witcher’s Gwent is the reference for a memorable game within a game. Possibilities:
+a small occult chess-like guest game; collectible pieces and tarot; winning
+matches to earn cards; cards granting/teaching magic; Major Arcana causing powerful,
+hard-to-recruit people to appear. Shrines, teleporting to another player's shrine
+and cult-building belong to this loose world direction. These are connected
+hypotheses, not locked mechanics or additions to the active home goal.
+
+A possible loop is chess → cards/pieces → magic/encounters → recruits/shrines/cults.
+Keep collectible physical ownership consistent with later inventory and caravans;
+a shrine trip would use the same cross-world identity transfer and destination
+permission as other visits. No separate teleport authority or live model scheduler
+is requested. Original art only; references and uploaded images are inspiration.
+
+Tarot can be one explicit character-arrival path without becoming the sole
+recruitment authority. Candidate prototypes include a starting Fool introducing
+the first person, a later Lovers card introducing a bonded pair, and rare Arcana
+creating opportunities to recruit powerful people. The card creates an arrival
+or opportunity through the same identity/party admission boundaries; it does not
+silently bypass consent, capacity or physical-world rules. Exact card effects and
+future family/children dynamics remain separate later design questions.
+
+Levi's [Technonomicon cards](https://technonomicon-red.vercel.app/) and
+[repository](https://github.com/technomancy-dev/technonomicon) are a further
+presentation reference. Start with one original Three-authored Major Arcana
+subject scene, bake it through the fixed low-resolution path, and render it in
+one shared readable card layout with title/number, illustration, symbols, and
+short text. Prove one card at native and enlarged presentation before authoring
+a whole set; card UI uses Caps as-is where its components apply. This does not
+add an Astro app or a second art engine to the game. Deployment/repository age
+parity is still unverified.
+
 ## The experience we are building toward
 
 A player develops a persistent witchy homeland with roughly five controlled
@@ -21,6 +166,80 @@ by travel. A continuously shared geography is not required for the first visit.
 Within a homeland, terrain can expand through chunk generation and loading.
 Five people is the initial player-roster target, not a hard limit on all entities
 or a fixed-size data representation.
+
+Levi explicitly extends the ambition to 50–100 controlled people and small
+AI-managed nations spanning many chunks. Retain stable identities and party/job
+scope without a five-entry array or a five-person global acceptance ceiling.
+Higher population is a benchmark and control-design requirement, not a measured
+capacity claim today. Squads, standing orders and settlement-level intent should
+eventually reduce command burden; they still feed the existing game authority.
+
+Pacing has three connected bands: immediate colony decisions in seconds;
+visible jobs, building/crafting and optional short chess matches in minutes; and
+standing-order/offline projects over longer spans. Chess remains interruptible
+so the player can return to the colony, and connects to guests, knowledge, cards,
+spells and recruiting rather than owning a separate clock. One authoritative
+world clock serves every multiplayer client; the current local speed control is
+only a prototype convenience. Profile input/render responsiveness separately
+from assignment/path/state work and offline scheduling, and never infer
+50/100-person capacity from the two-person correctness fixture.
+
+Pacing experiments should test an approximately 30-minute preparation/downtime
+→ tension → exciting-event → recovery arc, with a compelling first ten minutes:
+Bramble orientation, one useful crafted or built outcome, a visitor choice and
+a visible preparation payoff. This is not a fixed raid alarm, a periodic reset
+or a second clock. Raids, visitors, storms, caravans and rituals are alternative
+event pressures; lulls support building, gardening and interruptible chess or
+cards. Keep exact timings as measured playtest hypotheses.
+
+Future GTA-RP-inspired land and faction play keeps account/character identity,
+party membership and organization membership distinct. Realm offices are local
+organization records rather than global actor flags. Property title, physical
+control and use/build/access permission are separate, and parcels may span both
+terrain chunks and simulation regions without becoming either one's mutable
+authority. Laws and recognized authority are local. Arrests eventually compose
+reachable restraint, escort and confinement actions with existing identity and
+physical ownership; they are not remote teleport commands. Persist meaningful
+transfers, arrests and relationships without ticking every dormant political
+record. Leasing/rent/fiefs are hypotheses, while offline captivity,
+release/escape and abuse limits remain unresolved later product decisions.
+
+Elixir Plug supplies a useful API-shape reference only: small consistent typed
+feature interfaces compose explicit accepted/short-circuit results. It is not a
+selected language, runtime or service. For example, territory/warrant rules and
+later court policy can decide an arrest request before the existing authorized
+escort activity; each module retains its state and transition ownership. Wait
+for concrete consumers before extracting the seam. A universal per-tick
+middleware bus or general plugin framework would blur the simulation hot path
+and domain authority, and arbitrary mods may still require core changes.
+When a real save, network or mod-data serialization boundary exists, one selected
+Zod discriminated schema may validate those untrusted bytes and provide the
+inferred TypeScript type. Trusted in-process jobs and activities remain native
+discriminated unions with exhaustive real handlers; no hostile-object parser,
+parallel internal schema or Zod dependency belongs in the current candidate.
+
+Levi accepts dependable basic guard/retreat/shelter standing orders and offline
+protection for everyone. Paid AI may add richer stewardship, custom instructions,
+situational planning, diplomacy and alerts, but receives only the information,
+permissions, actions and authoritative world time available to human control.
+Service failure or exhausted budget falls back to ordinary orders. Pricing and
+practical-advantage tuning remain unresolved economy work; no paid service,
+billing, model call or backend is authorized by this direction.
+
+Future population identity reserves humans for player-controlled characters or
+characters delegated to that player's AI stewardship. Autonomous nonplayer
+populations use other peoples such as goblins, ghouls and elves. Original elf
+art belongs in a later bounded visitor study; neither population enforcement nor
+elf assets enter the current home release.
+
+Name controller authority independently of species: **player-directed** means
+live player input, **player-delegated** means a player's AI steward acting with
+that player's authority, and **world-directed** means simulation-owned control.
+Controller, species, culture, faction and knowledge remain orthogonal records.
+Elven cultures can specialize in nature practices and dwarven cultures in machine
+practices, but knowledge transfer should record the learned practice, source and
+transfer event instead of mutating a global racial unlock. Teaching, trade,
+observation and durable media are candidate transfer paths for later prototypes.
 
 Levi also requests a readable Rowan name label, Bramble guiding early play, and
 an early demonstration of constructing and using a second-floor bedroom.
@@ -59,8 +278,9 @@ writers. Persistence and transport do not reimplement job settlement.
 
 Record rows describe field ownership under that one writer, not separate
 services. Loading a chunk never gives it authority over a person.
-Use typed ID records/maps for actors, parties, jobs and target lookup; keep
-explicit ordered job IDs for priority. Chunk membership and occupancy indexes
+Use typed ID records/maps for actor and party lookup. The first two-person
+implementation keeps one typed ordered job array as both storage and priority;
+add a job lookup index only when a measured caller needs it. Chunk membership and occupancy indexes
 are derived references. Do not store the same actor in two mutable records.
 Introduce unique item instances when equipment needs individual identity; learned
 spells can reference stable definitions and actor-owned learning progress without
@@ -151,11 +371,15 @@ prove actual data eviction; do not require eviction of a chunk still needed by
 the person working at home.
 
 Generate only absent base terrain, using world seed, generator version and
-stable coordinate-based randomness. Neighbor request order must not affect the
-result. Border sampling/feature ownership prevents seams and duplicated trees.
-Start with original grass, oaks and rocks; a biome/world-history generator is
-not needed. Saves override generated baselines and preserve removals/tombstones,
-so revisiting cannot restore chopped trees or collected wood.
+stable coordinate-based randomness. A future visual/performance experiment may
+combine layered/fractal noise with separate elevation, moisture, climate,
+terrain, and water-connectivity signals; the recipe is not fixed. Neighbor
+request order must not affect the result. Border sampling/feature ownership
+prevents seams and duplicated trees. Player edits override deterministic base
+terrain and preserve removals/tombstones, so revisiting cannot restore chopped
+trees or collected wood. Caves require volumetric data rather than a painted
+surface. Global seed/coordinates, edits, and cave representation must be proved
+before treating this as a worldgen implementation.
 
 World queries distinguish known walkable, known blocked and missing data.
 Pathfinding searches a bounded loaded corridor and returns a route segment,
@@ -444,6 +668,12 @@ multiplayer clients can display predicted motion, but only the world host settle
 ammunition and impacts. Chunk residency must cover an active projectile's bounded
 flight; physics never silently advances through unknown terrain. These are
 ownership constraints, not a new network protocol in the local demo.
+
+Only after that real arrow caller exists, a projectile pool may reuse a bounded
+set of storage/display slots. Every launch still gets a fresh logical shot ID and
+resets all transient position, velocity, swept-collision and trail state. Pooling,
+renderer batching and visible culling answer different measured costs; none may
+merge authoritative ammunition consumption or hit settlement into sprite state.
 
 Slice 3 has three internal checkpoints: first global coordinates, deterministic
 border generation and correct camera/depth/picking; then atomic save and eviction

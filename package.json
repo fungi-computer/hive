@@ -11,19 +11,26 @@
     "format": "prettier --write src scripts index.html study.html vite.config.js wrangler.jsonc",
     "prove": "node scripts/prove.mjs",
     "prove:controls": "node scripts/prove-controls.mjs",
-    "prove:study": "node scripts/prove-study.mjs"
+    "prove:two-person": "node scripts/prove-two-person.mjs",
+    "prove:study": "node scripts/prove-study.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@opentui/keymap": "0.5.10",
+    "jotai": "2.20.3",
     "pixi.js": "^8.11.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "@fungi.computer/caps": "file:vendor/caps/fungi.computer-caps-0.0.0.tgz",
+    "@fungi.computer/stipe": "file:vendor/caps/fungi.computer-stipe-0.0.0.tgz",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "xstate": "5.32.6",
     "three": "^0.185.1"
   },
   "devDependencies": {
     "playwright": "^1.63.0",
     "prettier": "3.9.6",
     "vite": "^7.0.0",
-    "wrangler": "4.127.1"
+    "wrangler": "4.127.1",
+    "typescript": "5.9.3"
   }
 }

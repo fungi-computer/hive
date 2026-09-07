@@ -1,0 +1,192 @@
+import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import { chromium } from "playwright";
+
+const url = process.argv[2] || "http://127.0.0.1:5187/";
+const output = process.argv[3] || ".botanical/two-person-home";
+await mkdir(output, { recursive: true });
+
+const evidence = { url, errors: [], screenshots: [] };
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: process.env.CHROMIUM_PATH,
+  args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
+});
+const context = await browser.newContext({
+  viewport: { width: 1440, height: 900 },
+  deviceScaleFactor: 1,
+  recordVideo: { dir: output, size: { width: 1440, height: 900 } },
+});
+const page = await context.newPage();
+page.setDefaultTimeout(20_000);
+page.on("pageerror", (error) => evidence.errors.push(String(error)));
+page.on("console", (message) => {
+  if (message.type() === "error") evidence.errors.push(message.text());
+});
+page.on("requestfailed", (request) =>
+  evidence.errors.push(`${request.url()}: ${request.failure()?.errorText}`),
+);
+
+const state = () => page.evaluate(() => window.__GOBLIN.state);
+const ui = () => page.evaluate(() => window.__GOBLIN.selection);
+const wait = (condition) =>
+  page.waitForFunction(condition, null, { timeout: 60_000 });
+const project = (x, z, height = 0) =>
+  page.evaluate(
+    ([px, pz, ph]) => window.__GOBLIN.project(px, pz, ph),
+    [x, z, height],
+  );
+async function clickCell(x, z, height = 0) {
+  const point = await project(x, z, height);
+  await page.mouse.click(point.x, point.y);
+}
+async function dragCells(from, to) {
+  const start = await project(...from);
+  const end = await project(...to);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 8 });
+  await page.mouse.up();
+}
+async function screenshot(name) {
+  evidence.screenshots.push(`${name}.png`);
+  await page.screenshot({ path: `${output}/${name}.png` });
+}
+async function viewportFits() {
+  assert.equal(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <= innerWidth &&
+        document.documentElement.scrollHeight <= innerHeight,
+    ),
+    true,
+  );
+}
+async function openBuild() {
+  if (!(await page.locator("#chop-tool").isVisible()))
+    await page.getByRole("button", { name: /^Build/ }).click();
+  await page.locator("#chop-tool").waitFor();
+}
+
+try {
+  assert.equal((await page.goto(url))?.status(), 200);
+  await page.waitForFunction(() => window.__GOBLIN?.artReady, null, {
+    timeout: 90_000,
+  });
+  await viewportFits();
+  const initial = await state();
+  assert.deepEqual(Object.keys(initial.actors).sort(), ["rowan", "sedge"]);
+  assert.deepEqual(initial.parties.home.members, ["rowan"]);
+  assert.equal(await page.locator(".roster button").count(), 1);
+  await screenshot("01-visible-visitor");
+
+  await clickCell(10, 12, 1);
+  await page.getByRole("region", { name: "Character" }).waitFor();
+  await page.locator("#recruit").click();
+  await wait(() => window.__GOBLIN.state.parties.home.members.length === 2);
+  assert.deepEqual((await state()).parties.home.members, ["rowan", "sedge"]);
+  assert.equal(await page.locator(".roster button").count(), 2);
+  await screenshot("02-sedge-recruited");
+
+  await page.locator("#select-rowan").click();
+  await page.locator("#select-sedge").click({ modifiers: ["Shift"] });
+  assert.deepEqual((await ui()).selectedIds, ["rowan", "sedge"]);
+  await screenshot("03-both-selected");
+
+  await openBuild();
+  await page.locator("#chop-tool").click();
+  await dragCells([3, 3], [10, 4]);
+  const fixed = await ui();
+  assert.equal(fixed.phase, "fixed");
+  assert.deepEqual(fixed.designationTargetIds, ["oak-1", "oak-2"]);
+  const unrelated = await project(12, 10);
+  await page.mouse.move(unrelated.x, unrelated.y);
+  assert.deepEqual(
+    (await ui()).designationTargetIds,
+    fixed.designationTargetIds,
+  );
+
+  await page.locator("#commit-chop").evaluate((button) => {
+    button.click();
+    button.click();
+  });
+  await wait(
+    () =>
+      window.__GOBLIN.state.jobs.filter((job) => job.kind === "chop").length ===
+      2,
+  );
+  const designated = await state();
+  assert.deepEqual(
+    designated.jobs
+      .filter((job) => job.kind === "chop")
+      .map((job) => job.target),
+    fixed.designationTargetIds,
+  );
+  assert.equal((await ui()).phase, "idle");
+  await screenshot("04-shared-rectangle-applied");
+
+  await openBuild();
+  await page.locator("#chop-tool").click();
+  const staleStart = await project(3, 8);
+  const staleEnd = await project(4, 10);
+  await page.mouse.move(staleStart.x, staleStart.y);
+  await page.mouse.down();
+  await page.mouse.move(staleEnd.x, staleEnd.y, { steps: 4 });
+  await page.keyboard.press("ArrowLeft");
+  await page.mouse.up();
+  assert.equal((await ui()).phase, "idle");
+  assert.deepEqual((await ui()).designationTargetIds, []);
+
+  await openBuild();
+  await page.locator("#chop-tool").click();
+  await dragCells([3, 8], [4, 10]);
+  assert.deepEqual((await ui()).designationTargetIds, ["oak-3"]);
+  await page.locator("#cancel-chop").click();
+  assert.equal((await ui()).phase, "idle");
+  assert.deepEqual((await ui()).designationTargetIds, []);
+
+  await page.locator("#pause").click();
+  const paused = await state();
+  const commandsBeforeDisabledRest = paused.commands.length;
+  await page.locator("#select-rowan").click();
+  await page.getByRole("button", { name: "Rest in bedroll" }).click({
+    force: true,
+  });
+  await page.waitForTimeout(300);
+  assert.equal((await state()).commands.length, commandsBeforeDisabledRest);
+  await page.waitForTimeout(400);
+  assert.deepEqual(await state(), paused);
+  evidence.disabledCapsActivationBlocked = true;
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(200);
+  await viewportFits();
+  assert.equal(await page.locator(".roster button").count(), 2);
+  await screenshot("05-narrow-two-person");
+
+  evidence.initial = initial;
+  evidence.designated = designated;
+  evidence.paused = paused;
+  evidence.success = true;
+  assert.deepEqual(evidence.errors, []);
+} catch (error) {
+  evidence.success = false;
+  evidence.failure = String(error.stack || error);
+  await screenshot("failure").catch(() => {});
+  process.exitCode = 1;
+} finally {
+  await context.close();
+  await browser.close();
+  await writeFile(
+    `${output}/proof.json`,
+    `${JSON.stringify(evidence, null, 2)}\n`,
+  );
+  console.log(
+    JSON.stringify({
+      success: evidence.success,
+      failure: evidence.failure,
+      errors: evidence.errors,
+      output,
+    }),
+  );
+}

@@ -45,8 +45,10 @@ export function placementProblem(state, at) {
     return "Choose clear ground.";
   if (
     at.type === "wall" &&
-    (sameCell(state.pawn, at) ||
-      state.pawn.path.some((p) => sameCell(p, at)) ||
+    (Object.values(state.actors).some(
+      (person) =>
+        sameCell(person, at) || person.path.some((p) => sameCell(p, at)),
+    ) ||
       sameCell(state.cat, at) ||
       state.cat.path.some((p) => sameCell(p, at)))
   )

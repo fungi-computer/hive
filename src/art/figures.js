@@ -114,6 +114,10 @@ function rowan(body, phase, moving, pose) {
   ball(body, "#79563d", 0.16, 0.86, -0.12, 0.1, 0.15, 0.09);
   cylinder(body, SKIN, 0, 1.44, 0, 0.06, 0.065, 0.1, 6);
   humanHead(body, 1.59);
+  workGear(body, hands, pose);
+}
+
+function workGear(body, hands, pose) {
   if (pose === "carry") {
     for (const z of [0.32, 0.47]) {
       const log = cylinder(body, "#9b754b", 0, 1.02, z, 0.085, 0.085, 0.77, 7);
@@ -371,7 +375,146 @@ function cat(body, phase, moving) {
   );
 }
 
-const FIGURES = { rowan, knight, wizard, goblin, cat };
+function witchHat(parent, { tilt = 0.16, accent = "#c98259" } = {}) {
+  const hat = group(parent, 0, 1.78, 0);
+  cylinder(hat, "#302b42", 0, 0, 0.02, 0.27, 0.29, 0.055, 8);
+  const crown = mesh(
+    hat,
+    new THREE.ConeGeometry(0.19, 0.48, 7),
+    "#393249",
+    -0.06,
+    0.25,
+    0,
+  );
+  crown.rotation.z = tilt;
+  const tip = mesh(
+    hat,
+    new THREE.ConeGeometry(0.07, 0.21, 6),
+    "#393249",
+    -0.06 - Math.sin(tilt) * 0.24,
+    0.46,
+    0,
+  );
+  tip.rotation.z = tilt + 0.85;
+  box(hat, accent, 0, 0.07, 0.2, 0.19, 0.035, 0.028).rotation.z = tilt;
+  return hat;
+}
+
+function witchHead(parent, hair, hat) {
+  humanHead(parent, 1.57, hair);
+  witchHat(parent, hat);
+}
+
+function witchCrooked(body, phase, moving) {
+  legs(body, phase, moving, {
+    hip: 0.9,
+    spread: 0.1,
+    width: 0.13,
+    cloth: "#373346",
+    boots: "#282938",
+  });
+  coat(body, "#343044", 0.96, 1.4, 0.48, 0.43);
+  const hands = arms(body, phase, moving, {
+    shoulder: 1.34,
+    spread: 0.22,
+    length: 0.25,
+    sleeve: "#39334a",
+    hand: SKIN,
+    action: "idle",
+  });
+  witchHead(body, "#c9c6ab", { tilt: 0.38, accent: "#6aafa5" });
+  // A long hair lock and a small teal charm separate the profile from the robe.
+  const hair = group(body, -0.08, 1.57, -0.09);
+  hair.rotation.x = moving ? Math.sin(phase * Math.PI * 2) * 0.12 - 0.12 : 0;
+  box(hair, "#c9c6ab", -0.06, -0.3, 0, 0.19, 0.58, 0.13).rotation.z = -0.16;
+  box(hair, "#a7b3a0", 0.07, -0.24, -0.05, 0.09, 0.5, 0.1).rotation.z = 0.12;
+  box(body, "#4b9a9a", 0.22, 1.24, 0.12, 0.045, 0.14, 0.045);
+  const wand = group(hands[1], 0, -0.08, 0.08);
+  wand.rotation.x = -0.25;
+  cylinder(wand, "#76533e", 0, 0, 0, 0.018, 0.025, 0.62, 6);
+  ball(wand, "#6cb5ae", 0, 0.31, 0, 0.06, 0.06, 0.06);
+}
+
+function witchRunner(body, phase, moving, pose) {
+  legs(body, phase, moving, {
+    hip: 0.88,
+    spread: 0.13,
+    width: 0.115,
+    cloth: "#343040",
+    boots: "#3a3030",
+  });
+  // A short jacket and separated trousers make this silhouette read as practical.
+  box(body, "#403a4b", 0, 1.08, 0, 0.37, 0.36, 0.25);
+  box(body, "#b36c52", 0, 0.99, 0.14, 0.28, 0.055, 0.04);
+  const hands = arms(body, phase, moving, {
+    shoulder: 1.35,
+    spread: 0.22,
+    length: 0.24,
+    sleeve: "#403a4b",
+    hand: SKIN,
+    action: pose,
+  });
+  witchHead(body, "#9a5443", { tilt: -0.2, accent: "#6f9f8b" });
+  box(body, "#9a5443", 0.15, 1.37, -0.03, 0.1, 0.4, 0.11).rotation.z = 0.18;
+  box(body, "#d09b62", 0.2, 1.1, 0.16, 0.06, 0.12, 0.03);
+  workGear(body, hands, pose);
+}
+
+function childCloth(body, phase, moving) {
+  legs(body, phase, moving, {
+    hip: 0.53,
+    spread: 0.09,
+    width: 0.1,
+    cloth: "#4b4658",
+    boots: "#3c3b43",
+  });
+  coat(body, "#4b4658", 0.6, 0.9, 0.4, 0.31);
+  arms(body, phase, moving, {
+    shoulder: 0.88,
+    spread: 0.16,
+    length: 0.19,
+    sleeve: "#4b4658",
+    hand: SKIN,
+  });
+  humanHead(body, 1.08, "#6f5549");
+  box(body, "#75a8a0", 0, 1.24, 0.13, 0.23, 0.055, 0.035);
+  box(body, "#c07a59", 0.16, 0.91, 0.13, 0.055, 0.08, 0.035);
+}
+
+function childApprentice(body, phase, moving) {
+  legs(body, phase, moving, {
+    hip: 0.5,
+    spread: 0.1,
+    width: 0.095,
+    cloth: "#3f4650",
+    boots: "#514536",
+  });
+  box(body, "#3f4650", 0, 0.72, 0, 0.33, 0.35, 0.24);
+  box(body, "#d19a63", 0, 0.87, 0.14, 0.2, 0.05, 0.035);
+  arms(body, phase, moving, {
+    shoulder: 0.91,
+    spread: 0.17,
+    length: 0.18,
+    sleeve: "#3f4650",
+    hand: SKIN,
+  });
+  humanHead(body, 1.1, "#3c353b");
+  const cap = new THREE.ConeGeometry(0.13, 0.22, 6);
+  mesh(body, cap, "#537f85", 0, 1.31, 0.01).rotation.z = -0.22;
+  box(body, "#e0b66f", -0.16, 0.82, 0.15, 0.045, 0.15, 0.035);
+}
+
+const FIGURES = {
+  rowan,
+  knight,
+  wizard,
+  goblin,
+  cat,
+  "witch-crooked": witchCrooked,
+  "witch-runner": witchRunner,
+  "child-cloth": childCloth,
+  "child-apprentice": childApprentice,
+};
 
 export function figure(kind, phase = 0, direction = 0, pose = "idle") {
   const s = scene();

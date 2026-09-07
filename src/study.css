@@ -147,6 +147,9 @@ a:focus-visible {
   padding: 12px 8px;
   overflow: hidden;
 }
+.detail[hidden] {
+  display: none;
+}
 .detail img {
   width: 192px;
   height: 256px;
@@ -168,6 +171,109 @@ a:focus-visible {
   color: #8f9f8d;
   font-size: 11px;
   line-height: 1.6;
+}
+.home-review {
+  margin-top: 24px;
+  background: #20322a;
+  border: 1px solid #53664c;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.home-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+  padding: 18px 20px 12px;
+}
+.home-heading h2 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 400;
+}
+.home-heading > p {
+  max-width: 280px;
+  margin: 0;
+  color: #b2bba6;
+  font: 12px/1.5 system-ui, sans-serif;
+  text-align: right;
+}
+.home-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: #293c31;
+  border-top: 1px solid #405341;
+  border-bottom: 1px solid #4e5e42;
+}
+.home-toolbar > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.home-display {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+#home-stage {
+  align-self: start;
+  background: #17241f;
+  border: 1px solid #3d5042;
+  border-radius: 5px;
+  overflow: hidden;
+}
+#home-stage canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+.home-status {
+  min-height: 18px;
+  margin: 0 0 8px;
+  color: #d8c896;
+  font: 12px system-ui, sans-serif;
+}
+.home-sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  align-items: start;
+  gap: 8px;
+}
+.home-sheet[data-home-scale="2"] {
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+}
+.home-frame {
+  min-width: 0;
+  margin: 0;
+  padding: 6px;
+  text-align: center;
+  background: #1a2a23;
+  border: 1px solid #385044;
+  border-radius: 4px;
+}
+.home-frame.current {
+  border-color: #d5bd72;
+  box-shadow: inset 0 0 0 1px #d5bd72;
+}
+.home-frame img {
+  display: block;
+  width: 80px;
+  max-width: none;
+  height: auto;
+  margin: auto;
+  image-rendering: pixelated;
+}
+.home-sheet[data-home-scale="2"] .home-frame img {
+  width: 160px;
+}
+.home-frame figcaption {
+  margin-top: 4px;
+  color: #9cac92;
+  font: 10px system-ui, sans-serif;
 }
 @media (max-width: 650px) {
   main {
@@ -195,6 +301,20 @@ a:focus-visible {
   }
   .details {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .home-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .home-heading > p {
+    text-align: left;
+  }
+  .home-display {
+    grid-template-columns: 1fr;
+  }
+  .home-sheet {
+    grid-template-columns: repeat(4, minmax(70px, 1fr));
   }
   #stage {
     min-height: 150px;

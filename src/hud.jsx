@@ -1,9 +1,21 @@
-import React, { useLayoutEffect } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { createRoot } from "react-dom/client";
-import { BUILDINGS, placementProblem, shelteredBeds } from "./construction.js";
-import { commandProblem } from "./clearing.js";
-import { looseWood } from "./resources.js";
-import { DAY_TICKS, hour } from "./jobs.js";
+import { atom, createStore, Provider, useAtomValue } from "jotai";
+import { assign, createActor, createMachine } from "xstate";
+import { Button } from "@fungi.computer/caps/components/button";
+import { Checkbox } from "@fungi.computer/caps/components/checkbox";
+import "@fungi.computer/stipe/styles.css";
+import "@fungi.computer/caps/styles.css";
+import { BUILDINGS, shelteredBeds } from "./construction.js";
+import { commandProblem } from "./orders.ts";
+import { looseWood } from "./resources.ts";
+import { DAY_TICKS, hour } from "./routine.ts";
+import { routeUiAction } from "./ui-actions.ts";
 
 const ACTIVITIES = {
   idle: "Waiting for work",
@@ -15,9 +27,260 @@ const ACTIVITIES = {
   sleep: "Sleeping in the bedroll",
 };
 
-function orderModel(state, job) {
-  const site = state.sites.find((s) => s.id === job.target);
-  const active = state.pawn.task?.job === job.id;
+const clearGesture = assign(() => ({
+  tool: null,
+  gesture: null,
+  start: null,
+  end: null,
+  commitRequested: false,
+}));
+
+// This machine owns every tool/gesture phase. It has no simulation state,
+// actors, clocks, or timers; those remain in main.js and the typed core.
+export const toolMachine = createMachine({
+  id: "tool-gesture",
+  initial: "idle",
+  context: {
+    tool: null,
+    gesture: null,
+    start: null,
+    end: null,
+    commitRequested: false,
+  },
+  on: {
+    TOOL: [
+      {
+        target: ".ready",
+        actions: [clearGesture, assign(({ event }) => ({ tool: event.tool }))],
+        guard: ({ event }) => !!event.tool,
+      },
+      {
+        target: ".idle",
+        actions: clearGesture,
+      },
+    ],
+    CANCEL: { target: ".idle", actions: clearGesture },
+    CAMERA_MOVE: { target: ".idle", actions: clearGesture },
+    ESCAPE: { target: ".idle", actions: clearGesture },
+    RESET: { target: ".idle", actions: clearGesture },
+  },
+  states: {
+    idle: {
+      on: {
+        BEGIN: {
+          target: "dragging",
+          actions: assign(({ event }) => ({
+            tool: null,
+            gesture: "box",
+            start: event.point,
+            end: event.point,
+            commitRequested: false,
+          })),
+        },
+      },
+    },
+    ready: {
+      on: {
+        BEGIN: {
+          target: "dragging",
+          actions: assign(({ context, event }) => ({
+            gesture: "tool",
+            start: event.point,
+            end: event.point,
+            tool: context.tool,
+            commitRequested: false,
+          })),
+        },
+      },
+    },
+    dragging: {
+      on: {
+        MOVE: { actions: assign(({ event }) => ({ end: event.point })) },
+        END: {
+          target: "fixed",
+          actions: assign(({ event }) => ({ end: event.point })),
+        },
+      },
+    },
+    fixed: {
+      on: {
+        COMMIT: {
+          actions: assign(() => ({ commitRequested: true })),
+          guard: ({ context }) => !context.commitRequested,
+        },
+        COMMIT_RESULT: [
+          {
+            target: "idle",
+            guard: ({ event }) => event.accepted > 0,
+            actions: clearGesture,
+          },
+          { actions: assign(() => ({ commitRequested: false })) },
+        ],
+      },
+    },
+  },
+});
+
+function actorFact(actor) {
+  return {
+    id: actor.id,
+    name: actor.name,
+    figure: actor.figure,
+    mode: actor.mode,
+    rest: actor.rest,
+    routine: actor.routine,
+    cargoAmount: actor.cargo?.amount ?? 0,
+    activeJobId: actor.task?.job ?? actor.cargo?.job ?? null,
+    x: actor.x,
+    z: actor.z,
+    level: actor.level,
+  };
+}
+
+// This is a small display projection, not a whole-world clone. React receives
+// only immutable facts it renders and never observes mutable simulation actors.
+function sameArray(a, b) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function sameObject(a, b) {
+  if (!a || !b) return a === b;
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((key) => a[key] === b[key])
+  );
+}
+
+function sameKeys(a, b) {
+  const names = Object.keys(a);
+  return (
+    names.length === Object.keys(b).length &&
+    names.every(
+      (name) =>
+        a[name]?.key === b[name]?.key && a[name]?.title === b[name]?.title,
+    )
+  );
+}
+
+function displayFacts(state, notice, speed, zoom, keys, previous) {
+  const nextActors = Object.fromEntries(
+    Object.values(state.actors).map((actor) => [actor.id, actorFact(actor)]),
+  );
+  const actors =
+    previous &&
+    Object.keys(nextActors).every((id) =>
+      sameObject(nextActors[id], previous.actors[id]),
+    )
+      ? previous.actors
+      : Object.fromEntries(
+          Object.entries(nextActors).map(([id, fact]) => [
+            id,
+            previous?.actors[id] && sameObject(fact, previous.actors[id])
+              ? previous.actors[id]
+              : fact,
+          ]),
+        );
+  const beds = shelteredBeds(state).length;
+  const time = hour(state);
+  const nextRestProblems = Object.fromEntries(
+    state.parties.home.members.map((id) => {
+      const problem = commandProblem(state, {
+        party: "home",
+        actors: [id],
+        kind: "rest",
+      });
+      return [id, problem];
+    }),
+  );
+  const restProblems =
+    previous && sameObject(nextRestProblems, previous.restProblems)
+      ? previous.restProblems
+      : nextRestProblems;
+  const homeIds = [...state.parties.home.members];
+  const treesNext = state.trees.map((tree) => ({
+    id: tree.id,
+    x: tree.x,
+    z: tree.z,
+    level: tree.level,
+    felled: tree.felledAt !== null,
+    work: tree.work,
+  }));
+  const jobsNext = state.jobs.map((job) => ({
+    id: job.id,
+    kind: job.kind,
+    target: job.target,
+    reason: job.reason,
+    routine: job.routine,
+    actors: job.scope.actors ? [...job.scope.actors] : null,
+  }));
+  const sitesNext = state.sites.map((site) => ({
+    id: site.id,
+    type: site.type,
+    x: site.x,
+    z: site.z,
+    delivered: site.delivered,
+    finished: site.finishedAt !== null,
+  }));
+  const trees =
+    previous &&
+    treesNext.length === previous.trees.length &&
+    treesNext.every((tree, index) => sameObject(tree, previous.trees[index]))
+      ? previous.trees
+      : treesNext;
+  const jobs =
+    previous &&
+    jobsNext.length === previous.jobs.length &&
+    jobsNext.every((job, index) => sameObject(job, previous.jobs[index]))
+      ? previous.jobs
+      : jobsNext;
+  const sites =
+    previous &&
+    sitesNext.length === previous.sites.length &&
+    sitesNext.every((site, index) => sameObject(site, previous.sites[index]))
+      ? previous.sites
+      : sitesNext;
+  const demand =
+    state.demand &&
+    previous?.demand &&
+    sameObject(state.demand, previous.demand)
+      ? previous.demand
+      : state.demand && { ...state.demand };
+  const feed = `FAKE SHIITAKE · ${state.paused ? "paused" : state.demand ? `event ${state.feed.sequence} · simulated` : "seeded event pending"}`;
+  const stableKeys =
+    previous && sameKeys(keys, previous.keys) ? previous.keys : keys;
+  return {
+    paused: state.paused,
+    tick: state.tick,
+    speed,
+    zoom,
+    keys: stableKeys,
+    homeIds:
+      previous && sameArray(homeIds, previous.homeIds)
+        ? previous.homeIds
+        : homeIds,
+    actors,
+    trees,
+    jobs,
+    sites,
+    day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
+    time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
+    feed,
+    demand,
+    wood: looseWood(state),
+    felled: state.felled,
+    rested: state.rested,
+    beds,
+    restProblems,
+    notice,
+  };
+}
+
+function orderModel(display, job) {
+  const site = display.sites.find((candidate) => candidate.id === job.target);
+  const active = Object.values(display.actors).filter(
+    (actor) => actor.activeJobId === job.id,
+  );
   const title =
     job.kind === "chop"
       ? `Chop oak ${job.target.split("-")[1]}`
@@ -32,74 +295,124 @@ function orderModel(state, job) {
   return {
     id: job.id,
     title,
-    active,
+    active: active.length > 0,
     detail:
-      (active ? ACTIVITIES[state.pawn.mode] : job.reason || "Ordered") + detail,
+      (active.length
+        ? `${active.map((actor) => actor.name).join(" + ")} · ${ACTIVITIES[active[0].mode]}`
+        : job.reason || "Ordered") + detail,
   };
 }
 
-// Snapshot only the facts the UI displays. React never reads mutable game state
-// during a deferred render and never owns a simulation or resource transition.
-function hudModel(state, ui, notice, speed, zoom, keys) {
-  const time = hour(state);
-  const tree = state.trees.find((t) => t.id === ui.tree);
-  const beds = shelteredBeds(state).length;
+const worldFactsAtom = atom(null);
+const selectionAtom = atom({
+  selectedIds: [],
+  inspectedId: null,
+  treeId: null,
+  context: null,
+  panel: null,
+  designationTargetIds: [],
+});
+const preferencesAtom = atom({
+  cutaway: true,
+  panMode: false,
+  help: true,
+  direction: 0,
+});
+const statusAtom = atom((get) => {
+  const facts = get(worldFactsAtom);
+  return (
+    facts && {
+      paused: facts.paused,
+      day: facts.day,
+      time: facts.time,
+      speed: facts.speed,
+      zoom: facts.zoom,
+      keys: facts.keys,
+      feed: facts.feed,
+      demand: facts.demand,
+      wood: facts.wood,
+      notice: facts.notice,
+      felled: facts.felled,
+      rested: facts.rested,
+      beds: facts.beds,
+    }
+  );
+});
+const rosterAtom = atom((get) => {
+  const facts = get(worldFactsAtom);
+  const selection = get(selectionAtom);
+  if (!facts) return null;
+  const selected = selection.selectedIds
+    .map((id) => facts.actors[id])
+    .filter(Boolean);
   return {
-    ...ui,
-    keys,
-    at: { ...ui.at },
-    context: ui.context && { ...ui.context },
-    speed,
-    zoom,
-    paused: state.paused,
-    day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
-    time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
-    feed: `FAKE SHIITAKE · ${state.paused ? "paused" : state.demand ? `event ${state.feed.sequence} · simulated` : "seeded event pending"}`,
-    demand: state.demand && { ...state.demand },
-    wood: looseWood(state),
-    carry: state.pawn.carry,
-    rest: Math.round(state.pawn.rest),
-    activity: ACTIVITIES[state.pawn.mode],
-    routine: state.routine,
-    restProblem: commandProblem(state, { kind: "rest" }),
-    tree: tree && {
-      id: tree.id,
-      felled: tree.felledAt !== null,
-      work: tree.work,
-    },
-    chopProblem: !ui.actor
-      ? "Select Rowan to give work."
-      : commandProblem(state, { kind: "chop", tree: ui.tree }),
-    orders: state.jobs.map((job) => orderModel(state, job)),
-    home: state.rested
-      ? "Home used. Rested and ready for more."
-      : beds
-        ? "A dry bedroll. Order rest or follow a night routine."
-        : "Enclose a room, roof the bedroll, then rest.",
-    notice: state.paused
-      ? "Paused · the world waits."
-      : ui.tool
-        ? placementProblem(state, {
-            ...ui.at,
-            type: ui.tool,
-            direction: ui.direction,
-          }) || "Click or drag a straight row. Wood arrives through hauling."
-        : notice || state.notice,
-    tutorial: !ui.actor
-      ? "Click Rowan or his portrait. He has the axe; I supervise."
-      : !state.felled
-        ? state.jobs.some((j) => j.kind === "build")
-          ? "That blueprint needs wood. Click an oak and give Rowan a chopping order."
-          : "Click an oak, then choose Chop. Rowan will walk there himself."
-        : !state.sites.some((s) => s.finishedAt !== null)
-          ? "Lovely wood. Open Build and place a wall. He will carry the logs over."
-          : !beds
-            ? "A room needs walls and a doorway. Put a bedroll inside and roof both its tiles."
-            : !state.rested
-              ? "A roof, a bed. Click Rowan and order a rest. You have earned it."
-              : "There. A home. I suppose we can stay a little longer.",
+    roster: facts.homeIds.map((id) => facts.actors[id]).filter(Boolean),
+    selectedIds: [...selection.selectedIds],
+    selected,
+    focused:
+      selected[0] || facts.actors[selection.inspectedId] || facts.actors.rowan,
+    inspected: selection.inspectedId
+      ? facts.actors[selection.inspectedId]
+      : null,
+    visitor:
+      selection.inspectedId && !facts.homeIds.includes(selection.inspectedId)
+        ? facts.actors[selection.inspectedId]
+        : null,
+    carry: selected.reduce((total, actor) => total + actor.cargoAmount, 0),
+    routine: selected.length
+      ? selected.every((actor) => actor.routine)
+      : !!facts.actors.rowan?.routine,
+    routineMixed:
+      selected.length > 1 &&
+      selected.some((actor) => actor.routine !== selected[0].routine),
+    restProblem: selected.length
+      ? selected.map((actor) => facts.restProblems[actor.id]).find(Boolean) ||
+        ""
+      : "Select a home member for a personal order.",
   };
-}
+});
+const ordersAtom = atom((get) => {
+  const facts = get(worldFactsAtom);
+  return facts ? facts.jobs.map((job) => orderModel(facts, job)) : [];
+});
+const targetAtom = atom((get) => {
+  const facts = get(worldFactsAtom);
+  const selection = get(selectionAtom);
+  return facts?.trees.find((tree) => tree.id === selection.treeId) || null;
+});
+const buildAtom = atom((get) => {
+  const facts = get(worldFactsAtom);
+  const selection = get(selectionAtom);
+  const preferences = get(preferencesAtom);
+  return {
+    designationTargets: [...selection.designationTargetIds],
+    direction: preferences.direction,
+    homeStatus: facts?.felled
+      ? "Oaks marked. Wood will arrive through hauling."
+      : "Designate oaks before building.",
+  };
+});
+const tutorialAtom = atom((get) => {
+  const facts = get(worldFactsAtom);
+  const roster = get(rosterAtom);
+  const selection = get(selectionAtom);
+  if (!facts || !roster) return "";
+  if (!selection.selectedIds.length && !selection.inspectedId)
+    return "Click a home member, shift-click to add one, or drag a box around both.";
+  if (roster.visitor)
+    return "Sedge is a visitor. Inspect her, then recruit her into the home.";
+  if (!facts.felled)
+    return facts.jobs.some((job) => job.kind === "build")
+      ? "That blueprint needs wood. Designate oaks or give the selected people a chopping order."
+      : "Click an oak for personal orders, or choose Chop designation for shared work.";
+  if (!facts.sites.some((site) => site.finished))
+    return "Lovely wood. Open Build and place a wall. He will carry the logs over.";
+  if (!facts.beds)
+    return "A room needs walls and a doorway. Put a bedroll inside and roof both its tiles.";
+  if (!facts.rested)
+    return "A roof, a bed. Click Rowan and order a rest. You have earned it.";
+  return "There. A home. I suppose we can stay a little longer.";
+});
 
 function Key({ model, name }) {
   const hint = model.keys[name];
@@ -111,13 +424,13 @@ function Panel({ title, name, send, children, className = "" }) {
     <section className={`window ${className}`} aria-label={name || title}>
       <div className="window-heading">
         <h2>{title}</h2>
-        <button
+        <Button
           className="close"
           aria-label={`Close ${name || title}`}
           onClick={() => send({ kind: "close" })}
         >
           ×
-        </button>
+        </Button>
       </div>
       {children}
     </section>
@@ -134,7 +447,7 @@ function Orders({ model: m, send }) {
               <strong>{job.title}</strong>
               <small>{job.detail}</small>
             </span>
-            <button
+            <Button
               data-action="next"
               data-job={job.id}
               aria-label={`Move ${job.title} next`}
@@ -147,8 +460,8 @@ function Orders({ model: m, send }) {
               }
             >
               ↑
-            </button>
-            <button
+            </Button>
+            <Button
               data-action="cancel"
               data-job={job.id}
               aria-label={`Cancel ${job.title}`}
@@ -161,7 +474,7 @@ function Orders({ model: m, send }) {
               }
             >
               ×
-            </button>
+            </Button>
           </li>
         ))
       ) : (
@@ -174,62 +487,90 @@ function Orders({ model: m, send }) {
 }
 
 function Character({ model: m, send, portraits }) {
+  const person = m.visitor || m.focused;
+  if (!person) return null;
+  const visitor = !!m.visitor;
   return (
     <Panel
-      title="Rowan"
+      title={person.name}
       name="Character"
       send={send}
       className="character-window"
     >
       <div className="character-summary">
-        <img src={portraits.rowan} alt="Rowan" />
+        <img src={portraits[person.id]} alt={person.name} />
         <div>
-          <p className="eyebrow">HUMAN · OUTSIDER</p>
-          <strong>{m.activity}</strong>
+          <p className="eyebrow">{visitor ? "VISITOR" : "HOME MEMBER"}</p>
+          <strong>
+            {visitor ? "Stranded outsider" : ACTIVITIES[person.mode]}
+          </strong>
           <small>
-            {m.carry
-              ? `${m.carry} wood in hand`
-              : "A borrowed axe. A chance to stay alive."}
+            {visitor
+              ? "She has found the clearing but not a bed."
+              : m.carry
+                ? `${m.carry} wood in hand`
+                : "A borrowed axe. A chance to stay alive."}
           </small>
         </div>
       </div>
-      <div className="rest-meter">
-        <label htmlFor="rest-meter">
-          Rest <b>{m.rest}%</b>
-        </label>
-        <meter id="rest-meter" min="0" max="100" value={m.rest} />
-      </div>
-      <div className="button-row">
-        <button
-          id="rest"
-          disabled={!!m.restProblem}
-          onClick={() => send({ kind: "command", command: { kind: "rest" } })}
-        >
-          Rest in bedroll
-        </button>
-        <button onClick={() => send({ kind: "focus" })}>Find Rowan</button>
-      </div>
-      <label className="toggle">
-        <input
-          id="routine"
-          type="checkbox"
-          checked={m.routine}
-          disabled={m.paused}
-          onChange={(e) =>
-            send({
-              kind: "command",
-              command: { kind: "routine", enabled: e.target.checked },
-            })
-          }
-        />{" "}
-        Work by day, sleep by night
-      </label>
-      <button
-        className="text-button"
-        onClick={() => send({ kind: "panel", panel: "orders" })}
-      >
-        Work orders <span>{m.orders.length} →</span>
-      </button>
+      {visitor ? (
+        <div className="button-row">
+          <Button
+            id="recruit"
+            variant="primary"
+            onClick={() => send({ kind: "recruit", actor: person.id })}
+          >
+            Recruit Sedge
+          </Button>
+          <Button onClick={() => send({ kind: "focus" })}>Find Sedge</Button>
+        </div>
+      ) : (
+        <>
+          <div className="rest-meter">
+            <label htmlFor="rest-meter">
+              Rest <b>{Math.round(person.rest)}%</b>
+            </label>
+            <meter id="rest-meter" min="0" max="100" value={person.rest} />
+          </div>
+          <div className="button-row">
+            <Button
+              id="rest"
+              disabled={!!m.restProblem}
+              onClick={() =>
+                send({ kind: "command", command: { kind: "rest" } })
+              }
+            >
+              Rest in bedroll
+            </Button>
+            <Button onClick={() => send({ kind: "focus" })}>
+              Center selection
+            </Button>
+          </div>
+          <label className="toggle">
+            <Checkbox
+              id="routine"
+              type="checkbox"
+              checked={m.routine}
+              disabled={m.paused}
+              onChange={(e) =>
+                send({
+                  kind: "command",
+                  command: { kind: "routine", enabled: e.target.checked },
+                })
+              }
+            />{" "}
+            {m.routineMixed
+              ? "Mixed routine · Space applies to selected"
+              : "Work by day, sleep by night"}
+          </label>
+          <Button
+            className="text-button"
+            onClick={() => send({ kind: "panel", panel: "orders" })}
+          >
+            Work orders <span>{m.orders.length} →</span>
+          </Button>
+        </>
+      )}
     </Panel>
   );
 }
@@ -242,20 +583,50 @@ function Build({ model: m, send }) {
       send={send}
       className="build-window"
     >
+      <div className="designation-tools">
+        <Button
+          id="chop-tool"
+          variant="secondary"
+          aria-pressed={m.tool === "chop"}
+          disabled={m.paused}
+          onClick={() =>
+            send({ kind: "tool", tool: m.tool === "chop" ? null : "chop" })
+          }
+        >
+          Chop designation
+        </Button>
+        {m.tool === "chop" && (
+          <>
+            <small>{m.designationTargets.length} oak target(s) previewed</small>
+            <Button
+              id="commit-chop"
+              disabled={
+                m.phase !== "fixed" || !m.designationTargets.length || m.paused
+              }
+              onClick={() => send({ kind: "commit-designation" })}
+            >
+              Commit shared chop
+            </Button>
+            <Button id="cancel-chop" onClick={() => send({ kind: "close" })}>
+              Cancel
+            </Button>
+          </>
+        )}
+      </div>
       <div id="palette">
         {Object.entries(BUILDINGS).map(([type, recipe]) => (
-          <button
+          <Button
             key={type}
             data-build={type}
             aria-pressed={m.tool === type}
-            disabled={!m.actor || m.paused}
+            disabled={m.paused}
             onClick={() => send({ kind: "tool", tool: type })}
           >
             <span>{recipe.label}</span>
             <small>
               {recipe.wood} wood{type === "bed" ? " · 1×2" : ""}
             </small>
-          </button>
+          </Button>
         ))}
       </div>
       <p className="muted">
@@ -263,24 +634,25 @@ function Build({ model: m, send }) {
         a doorway.
       </p>
       <div className="button-row">
-        <button
+        <Button
           id="rotate"
           disabled={!m.tool}
           onClick={() => send({ kind: "rotate" })}
         >
-          Rotate footprint ↻
-          <Key model={m} name="build.rotate" />
-        </button>
-        <button
+          Rotate footprint ↻ <Key model={m} name="build.rotate" />
+        </Button>
+        <Button
           id="task"
           disabled={!m.tool}
           onClick={() => send({ kind: "finish-placement" })}
         >
           Done placing
-        </button>
+        </Button>
       </div>
       <p id="home-status" className="home-status">
-        {m.home}
+        {m.felled
+          ? "Oaks marked. Wood will arrive through hauling."
+          : "Designate oaks before building."}
       </p>
     </Panel>
   );
@@ -288,6 +660,11 @@ function Build({ model: m, send }) {
 
 function Target({ model: m, send }) {
   if (!m.context || !m.tree) return null;
+  const problem = !m.selectedIds.length
+    ? "Select one or more home members for a personal order."
+    : m.tree.felled
+      ? "That tree is already a stump."
+      : "";
   return (
     <section
       className="window target-window"
@@ -299,33 +676,58 @@ function Target({ model: m, send }) {
     >
       <div className="window-heading">
         <h2>{m.tree.felled ? "Oak stump" : "Oak tree"}</h2>
-        <button
+        <Button
           className="close"
           aria-label="Close oak actions"
           onClick={() => send({ kind: "close-target" })}
         >
           ×
-        </button>
+        </Button>
       </div>
       <p className="muted">
         {m.tree.felled
           ? "Six logs earned. The stump stays."
-          : "6 wood · Rowan works with his axe"}
+          : `6 wood · ${m.selectedIds.length ? `${m.selectedIds.length} selected` : "select a home member"}`}
       </p>
-      <button
-        id="chop"
-        className="primary"
-        disabled={!!m.chopProblem}
-        onClick={() =>
-          send({ kind: "command", command: { kind: "chop", tree: m.tree.id } })
-        }
-      >
-        Chop oak
-        <Key model={m} name="tree.chop" />
-      </button>
-      {m.chopProblem && (
-        <small className="action-reason">{m.chopProblem}</small>
-      )}
+      <div className="button-row">
+        <Button
+          id="chop-now"
+          variant="primary"
+          disabled={!!problem}
+          onClick={() =>
+            send({
+              kind: "command",
+              command: {
+                kind: "chop",
+                tree: m.tree.id,
+                direct: true,
+                actors: [...m.selectedIds],
+              },
+            })
+          }
+        >
+          Chop now <Key model={m} name="tree.chop" />
+        </Button>
+        <Button
+          id="chop-queued"
+          variant="secondary"
+          disabled={!!problem}
+          onClick={() =>
+            send({
+              kind: "command",
+              command: {
+                kind: "chop",
+                tree: m.tree.id,
+                direct: false,
+                actors: [...m.selectedIds],
+              },
+            })
+          }
+        >
+          Queue chop
+        </Button>
+      </div>
+      {problem && <small className="action-reason">{problem}</small>}
     </section>
   );
 }
@@ -340,14 +742,14 @@ function Menu({ model: m, send }) {
     >
       <p className="muted">Stay useful. Stay off the menu.</p>
       <div className="menu-actions">
-        <button onClick={() => send({ kind: "fullscreen" })}>
+        <Button onClick={() => send({ kind: "fullscreen" })}>
           Browser fullscreen
-        </button>
-        <button onClick={() => send({ kind: "help" })}>Bramble's advice</button>
+        </Button>
+        <Button onClick={() => send({ kind: "help" })}>Bramble's advice</Button>
         <a href="/study">Character study ↗</a>
-        <button id="reset" onClick={() => send({ kind: "reset" })}>
+        <Button id="reset" onClick={() => send({ kind: "reset" })}>
           Start a fresh clearing
-        </button>
+        </Button>
       </div>
       <p className="muted">
         Drag with the middle mouse button to pan. Mouse wheel zooms. On touch,
@@ -369,8 +771,42 @@ function Menu({ model: m, send }) {
   );
 }
 
-function Hud({ model: m, send, portraits, restoreRemovedFocus }) {
-  useLayoutEffect(restoreRemovedFocus);
+function Hud({ machineSnapshot, send, portraits }) {
+  const status = useAtomValue(statusAtom);
+  const roster = useAtomValue(rosterAtom);
+  const selection = useAtomValue(selectionAtom);
+  const preferences = useAtomValue(preferencesAtom);
+  const orders = useAtomValue(ordersAtom);
+  const target = useAtomValue(targetAtom);
+  const build = useAtomValue(buildAtom);
+  const tutorial = useAtomValue(tutorialAtom);
+  if (!status || !roster) return null;
+  const tool = machineSnapshot.context.tool;
+  const phase = machineSnapshot.value;
+  const m = {
+    ...status,
+    ...roster,
+    ...build,
+    orders,
+    tutorial,
+    tree: target,
+    panel: selection.panel,
+    context: selection.context,
+    tool,
+    phase,
+    cutaway: preferences.cutaway,
+    panMode: preferences.panMode,
+    help: preferences.help,
+    notice: status.paused
+      ? "Paused · the world waits."
+      : tool === "chop"
+        ? phase === "fixed"
+          ? "Preview fixed. Commit the shared Chop designation or cancel it."
+          : phase === "dragging"
+            ? "Drag across standing oaks; release to freeze the preview."
+            : "Chop designation active · drag across one or more standing oaks."
+        : status.notice,
+  };
   return (
     <>
       <div className="world-heading">
@@ -380,33 +816,43 @@ function Hud({ model: m, send, portraits, restoreRemovedFocus }) {
         </span>
       </div>
       <div className="time-controls">
-        <button
+        <Button
           id="pause"
           aria-label={m.paused ? "Resume" : "Pause"}
           onClick={() => send({ kind: "pause" })}
         >
           {m.paused ? "▶" : "Ⅱ"}
-        </button>
-        <button
+        </Button>
+        <Button
           id="speed"
           aria-label="Change simulation speed"
           onClick={() => send({ kind: "speed" })}
         >
           {m.speed}×
-        </button>
+        </Button>
       </div>
       <nav className="roster" aria-label="Your people">
-        <button
-          id="select"
-          aria-label="Select Rowan"
-          aria-pressed={!!m.actor}
-          onClick={() => send({ kind: "select", actor: "rowan" })}
-        >
-          <img src={portraits.rowan} alt="" />
-          <span>
-            Rowan<small>{m.activity}</small>
-          </span>
-        </button>
+        {m.roster.map((person) => (
+          <Button
+            key={person.id}
+            id={`select-${person.id}`}
+            aria-label={`Select ${person.name}`}
+            aria-pressed={m.selectedIds.includes(person.id)}
+            onClick={(event) =>
+              send({
+                kind: "select",
+                actor: person.id,
+                toggle: event.shiftKey || event.ctrlKey || event.metaKey,
+              })
+            }
+          >
+            <img src={portraits[person.id]} alt="" />
+            <span>
+              {person.name}
+              <small>{ACTIVITIES[person.mode]}</small>
+            </span>
+          </Button>
+        ))}
       </nav>
       <aside className="story">
         <span id="feed">{m.feed}</span>
@@ -417,27 +863,27 @@ function Hud({ model: m, send, portraits, restoreRemovedFocus }) {
         )}
       </aside>
       <div className="view-controls">
-        <button
+        <Button
           aria-label="Zoom out"
           disabled={m.zoom === 1}
           onClick={() => send({ kind: "zoom", delta: -1 })}
         >
           −
-        </button>
+        </Button>
         <span>{m.zoom}×</span>
-        <button
+        <Button
           aria-label="Zoom in"
           disabled={m.zoom === 4}
           onClick={() => send({ kind: "zoom", delta: 1 })}
         >
           +
-        </button>
-        <button
+        </Button>
+        <Button
           aria-pressed={m.panMode}
           onClick={() => send({ kind: "pan-mode" })}
         >
           Pan view
-        </button>
+        </Button>
       </div>
       {m.panel === "character" && (
         <Character model={m} send={send} portraits={portraits} />
@@ -468,13 +914,13 @@ function Hud({ model: m, send, portraits, restoreRemovedFocus }) {
             <strong>Bramble</strong>
             <p>{m.tutorial}</p>
           </div>
-          <button
+          <Button
             className="close"
             aria-label="Dismiss Bramble's advice"
             onClick={() => send({ kind: "help" })}
           >
             ×
-          </button>
+          </Button>
         </aside>
       )}
       <div className="status-line">
@@ -486,22 +932,21 @@ function Hud({ model: m, send, portraits, restoreRemovedFocus }) {
         </span>
       </div>
       <nav className="command-bar" aria-label="Colony controls">
-        <button
+        <Button
           aria-pressed={m.panel === "build"}
           onClick={() => send({ kind: "panel", panel: "build" })}
         >
-          Build
-          <Key model={m} name="panel.build" />
-        </button>
-        <button
+          Build <Key model={m} name="panel.build" />
+        </Button>
+        <Button
           aria-pressed={m.panel === "orders"}
           onClick={() => send({ kind: "panel", panel: "orders" })}
         >
-          Orders <span>{m.orders.length}</span>
+          Orders <span>{m.orders.length}</span>{" "}
           <Key model={m} name="panel.orders" />
-        </button>
+        </Button>
         <label className="cutaway-control">
-          <input
+          <Checkbox
             id="cutaway"
             type="checkbox"
             checked={m.cutaway}
@@ -509,23 +954,22 @@ function Hud({ model: m, send, portraits, restoreRemovedFocus }) {
           />{" "}
           Cutaway
         </label>
-        <button
-          aria-label="Center on Rowan"
+        <Button
+          aria-label="Center on selection"
           onClick={() => send({ kind: "focus" })}
         >
-          Center
-          <Key model={m} name="camera.focus" />
-        </button>
-        <button aria-pressed={m.help} onClick={() => send({ kind: "help" })}>
+          Center <Key model={m} name="camera.focus" />
+        </Button>
+        <Button aria-pressed={m.help} onClick={() => send({ kind: "help" })}>
           Bramble
-        </button>
-        <button
+        </Button>
+        <Button
           aria-label="Open game menu"
           aria-pressed={m.panel === "menu"}
           onClick={() => send({ kind: "panel", panel: "menu" })}
         >
           ☰
-        </button>
+        </Button>
       </nav>
     </>
   );
@@ -540,33 +984,317 @@ function portrait(texture, crop) {
   context.drawImage(texture.source.resource, ...crop, 0, 0, 48, 56);
   return canvas.toDataURL();
 }
-export function createHud(host, art, send) {
+
+function equalIds(a, b) {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+function HudHost({ machine, send, portraits }) {
+  const lastFocused = useRef(null);
+  const snapshot = useSyncExternalStore(
+    (listener) => {
+      const subscription = machine.subscribe(listener);
+      return () => subscription.unsubscribe();
+    },
+    () => machine.getSnapshot(),
+    () => machine.getSnapshot(),
+  );
+  useEffect(() => {
+    const remember = (event) => {
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.matches(
+          "button, a, input, textarea, select, [contenteditable]",
+        )
+      )
+        lastFocused.current = event.target;
+    };
+    document.addEventListener("focusin", remember);
+    return () => document.removeEventListener("focusin", remember);
+  }, []);
+  useLayoutEffect(() => {
+    const lost = lastFocused.current;
+    if (!lost || lost.isConnected || document.activeElement !== document.body)
+      return;
+    const fallback =
+      document.querySelector(".orders-window .window-heading button") ||
+      document.querySelector(".orders-window h2") ||
+      document.querySelector("#game");
+    if (!fallback) return;
+    if (fallback instanceof HTMLElement && fallback.tagName === "H2")
+      fallback.tabIndex = -1;
+    fallback.focus({ preventScroll: true });
+  });
+  return <Hud machineSnapshot={snapshot} send={send} portraits={portraits} />;
+}
+
+export function createHud(host, art, effect) {
+  const store = createStore();
+  const machine = createActor(toolMachine).start();
   const root = createRoot(host);
   const portraits = {
-    rowan: portrait(art.pawn.idle[0][0], [28, 16, 24, 28]),
-    cat: portrait(art.cat.idle[0][0], [24, 34, 30, 35]),
+    rowan: portrait(art.figures.rowan.idle[0][0], [28, 16, 24, 28]),
+    sedge: portrait(art.figures["witch-runner"].idle[0][0], [28, 16, 24, 28]),
+    cat: portrait(art.figures.cat.idle[0][0], [24, 34, 30, 35]),
   };
+  function setSelection(update) {
+    store.set(selectionAtom, update);
+  }
+  function setPreferences(update) {
+    store.set(preferencesAtom, update);
+  }
+  function dispatch(action) {
+    routeUiAction(action, runAction);
+  }
+  function runAction(action) {
+    const current = store.get(selectionAtom);
+    const facts = store.get(worldFactsAtom);
+    switch (action.kind) {
+      case "select": {
+        machine.send({ type: "ESCAPE" });
+        const selected = new Set(current.selectedIds);
+        if (!facts?.homeIds.includes(action.actor)) {
+          setSelection((value) => ({
+            ...value,
+            inspectedId: action.actor,
+            panel: "character",
+            selectedIds: [],
+            context: null,
+            treeId: null,
+            designationTargetIds: [],
+          }));
+          effect({
+            kind: "notice",
+            text: "Sedge is stranded here. Inspect her, then invite her home.",
+          });
+          return;
+        }
+        if (action.toggle)
+          selected.has(action.actor)
+            ? selected.delete(action.actor)
+            : selected.add(action.actor);
+        else {
+          selected.clear();
+          selected.add(action.actor);
+        }
+        setSelection((value) => ({
+          ...value,
+          selectedIds: [...selected],
+          inspectedId: null,
+          panel: "character",
+          context: null,
+          treeId: null,
+          designationTargetIds: [],
+        }));
+        return;
+      }
+      case "select-many":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          selectedIds: [...action.ids],
+          inspectedId: null,
+          panel: "character",
+          context: null,
+          treeId: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "tree":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          treeId: action.id,
+          context: { ...action.point },
+          panel: null,
+          inspectedId: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "panel":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          panel: value.panel === action.panel ? null : action.panel,
+          treeId: null,
+          context: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "close-target":
+        setSelection((value) => ({ ...value, treeId: null, context: null }));
+        return;
+      case "close":
+        const keepBuild = !!machine.getSnapshot().context.tool;
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          panel: keepBuild ? "build" : null,
+          context: null,
+          treeId: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "tool":
+        machine.send({ type: "TOOL", tool: action.tool });
+        setSelection((value) => ({
+          ...value,
+          panel: "build",
+          treeId: null,
+          context: null,
+          designationTargetIds: [],
+        }));
+        return;
+      case "finish-placement":
+        machine.send({ type: "CANCEL" });
+        setSelection((value) => ({ ...value, designationTargetIds: [] }));
+        return;
+      case "begin":
+        machine.send({ type: "BEGIN", point: action.point });
+        return;
+      case "move":
+        machine.send({ type: "MOVE", point: action.point });
+        return;
+      case "end":
+        machine.send({ type: "END", point: action.point });
+        return;
+      case "set-designation":
+        setSelection((value) =>
+          equalIds(value.designationTargetIds, action.ids)
+            ? value
+            : { ...value, designationTargetIds: [...action.ids] },
+        );
+        return;
+      case "commit-designation": {
+        const snapshot = machine.getSnapshot();
+        if (
+          snapshot.value !== "fixed" ||
+          snapshot.context.commitRequested ||
+          !current.designationTargetIds.length
+        )
+          return;
+        machine.send({ type: "COMMIT" });
+        effect({
+          kind: "commit-designation",
+          targetIds: [...current.designationTargetIds],
+        });
+        return;
+      }
+      case "commit-result":
+        machine.send({ type: "COMMIT_RESULT", accepted: action.accepted });
+        if (action.accepted > 0)
+          setSelection((value) => ({ ...value, designationTargetIds: [] }));
+        return;
+      case "camera-move":
+      case "escape":
+      case "reset":
+        machine.send({
+          type:
+            action.kind === "camera-move"
+              ? "CAMERA_MOVE"
+              : action.kind === "escape"
+                ? "ESCAPE"
+                : "RESET",
+        });
+        setSelection((value) => ({
+          ...value,
+          context: null,
+          treeId: null,
+          designationTargetIds: [],
+          ...(action.kind === "reset"
+            ? { selectedIds: [], inspectedId: null, panel: null }
+            : {}),
+        }));
+        if (action.kind === "reset")
+          setPreferences(() => ({
+            cutaway: true,
+            panMode: false,
+            help: true,
+            direction: 0,
+          }));
+        return;
+      case "cutaway":
+        setPreferences((value) => ({ ...value, cutaway: action.value }));
+        return;
+      case "pan-mode":
+        machine.send({ type: "CAMERA_MOVE" });
+        setPreferences((value) => ({ ...value, panMode: !value.panMode }));
+        setSelection((value) => ({ ...value, designationTargetIds: [] }));
+        return;
+      case "help":
+        setPreferences((value) => ({ ...value, help: !value.help }));
+        return;
+      case "rotate":
+        setPreferences((value) => ({
+          ...value,
+          direction: value.direction === 0 ? 1 : 0,
+        }));
+        return;
+      case "command": {
+        const command = { ...action.command };
+        if (command.kind === "recruit") delete command.actors;
+        else if (
+          command.kind === "cancel" ||
+          command.kind === "next" ||
+          command.kind === "build"
+        )
+          command.actors = null;
+        else if (command.actors === undefined)
+          command.actors = [...current.selectedIds];
+        effect({ kind: "command", command });
+        return;
+      }
+      case "recruit":
+        effect({ kind: "recruit", actor: action.actor });
+        return;
+      default:
+        effect(action);
+    }
+  }
+  function update(state, notice, speed, zoom, keys) {
+    const facts = displayFacts(
+      state,
+      notice,
+      speed,
+      zoom,
+      keys,
+      store.get(worldFactsAtom),
+    );
+    store.set(worldFactsAtom, facts);
+  }
+  function view() {
+    const value = store.get(selectionAtom);
+    const preferences = store.get(preferencesAtom);
+    const snapshot = machine.getSnapshot();
+    return {
+      selectedIds: [...value.selectedIds],
+      inspectedId: value.inspectedId,
+      tree: value.treeId,
+      context: value.context && { ...value.context },
+      designationTargetIds: [...value.designationTargetIds],
+      cutaway: preferences.cutaway,
+      panMode: preferences.panMode,
+      direction: preferences.direction,
+      tool: snapshot.context.tool,
+      phase: snapshot.value,
+      gesture: snapshot.context.gesture,
+      machine: snapshot,
+    };
+  }
+  // React mounts once. Subsequent display/selection updates are Jotai writes;
+  // tool/gesture updates are delivered by the one XState subscription.
+  root.render(
+    <Provider store={store}>
+      <HudHost machine={machine} send={dispatch} portraits={portraits} />
+    </Provider>,
+  );
   return {
-    render(state, ui, notice, speed, zoom, keys) {
-      const focused = document.activeElement;
-      const ownedFocus = host.contains(focused);
-      root.render(
-        <Hud
-          model={hudModel(state, ui, notice, speed, zoom, keys)}
-          send={send}
-          portraits={portraits}
-          restoreRemovedFocus={() => {
-            if (
-              ownedFocus &&
-              !focused.isConnected &&
-              document.activeElement === document.body
-            )
-              host.parentElement.focus({ preventScroll: true });
-          }}
-        />,
-      );
-    },
+    dispatch,
+    update,
+    view,
+    machine,
     destroy() {
+      machine.stop();
       root.unmount();
     },
   };

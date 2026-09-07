@@ -77,7 +77,13 @@ export function createConstructionView(world, art, bodies) {
         view.destroy();
         sites.delete(id);
       }
-    const pawnIndoors = indoors(state).has(cellKey(state.pawn));
+    const followActors = (selection.followActorIds || ["rowan"])
+      .map((id) => state.actors[id])
+      .filter(Boolean);
+    const interior = indoors(state);
+    const indoorActors = followActors.filter((actor) =>
+      interior.has(cellKey(actor)),
+    );
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
@@ -99,10 +105,12 @@ export function createConstructionView(world, art, bodies) {
       if (
         site.type === "wall" &&
         selection.cutaway &&
-        pawnIndoors &&
-        finished &&
-        site.x + site.z >= state.pawn.x + state.pawn.z &&
-        Math.abs(at.x - project(state.pawn.x, state.pawn.z).x) < 45
+        indoorActors.some(
+          (actor) =>
+            site.x + site.z >= actor.x + actor.z &&
+            Math.abs(at.x - project(actor.x, actor.z).x) < 45,
+        ) &&
+        finished
       )
         view.alpha = 0.28;
       if (site.type === "roof" && selection.cutaway)

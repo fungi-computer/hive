@@ -34,6 +34,13 @@
             <button id="turn">Turn figures ↻</button
             ><button id="zoom">Native pixels</button>
           </div>
+          <div role="group" aria-label="Lineup">
+            <button data-lineup="original" aria-pressed="true">
+              Original five</button
+            ><button data-lineup="visitors" aria-pressed="false">
+              Visitors
+            </button>
+          </div>
         </div>
         <div
           class="scene-scroll"
@@ -56,6 +63,64 @@
                 <strong>Bramble</strong><span>Cat · no known loyalties</span>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+      <section
+        class="home-review"
+        id="home-review"
+        aria-label="Home actors art review"
+      >
+        <div class="home-heading">
+          <div>
+            <p class="eyebrow">HOME ACTORS · CURRENT GAME BAKE</p>
+            <h2>Rowan &amp; Sedge</h2>
+          </div>
+          <p>Actual 80×80 textures, shown at native pixels and game 2×.</p>
+        </div>
+        <div class="home-toolbar">
+          <div role="group" aria-label="Home actor">
+            <button data-home-actor="rowan" aria-pressed="true">Rowan</button
+            ><button data-home-actor="witch-runner" aria-pressed="false">
+              Sedge
+            </button>
+          </div>
+          <div role="group" aria-label="Home pose">
+            <button data-home-pose="idle" aria-pressed="true">Idle</button
+            ><button data-home-pose="walk" aria-pressed="false">Walk</button
+            ><button data-home-pose="chop" aria-pressed="false">Chop</button
+            ><button data-home-pose="build" aria-pressed="false">Build</button
+            ><button data-home-pose="carry" aria-pressed="false">Carry</button
+            ><button data-home-pose="pickup" aria-pressed="false">
+              Pickup</button
+            ><button data-home-pose="deliver" aria-pressed="false">
+              Deliver</button
+            ><button data-home-pose="sleep" aria-pressed="false">Sleep</button>
+          </div>
+          <div role="group" aria-label="Home facing">
+            <button data-home-direction="0" aria-pressed="true">Facing 1</button
+            ><button data-home-direction="1" aria-pressed="false">
+              Facing 2</button
+            ><button data-home-direction="2" aria-pressed="false">
+              Facing 3</button
+            ><button data-home-direction="3" aria-pressed="false">
+              Facing 4</button
+            ><button id="home-play" aria-pressed="false">Play</button>
+          </div>
+          <div role="group" aria-label="Home scale">
+            <button data-home-scale="1" aria-pressed="true">Native 1×</button
+            ><button data-home-scale="2" aria-pressed="false">Game 2×</button>
+          </div>
+        </div>
+        <div class="home-display">
+          <div id="home-stage" aria-label="Home actor preview"></div>
+          <div>
+            <p id="home-status" class="home-status"></p>
+            <div
+              id="home-sheet"
+              class="home-sheet"
+              aria-label="Home actor phase contact sheet"
+            ></div>
           </div>
         </div>
       </section>

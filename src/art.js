@@ -54,8 +54,7 @@ export async function bakeArt() {
     prop = camera(112, 112, 1.1);
   const art = {
     ground: bake(renderer, clearing(), worldCamera, WIDTH, HEIGHT, false),
-    pawn: {},
-    cat: {},
+    figures: {},
     tree: {},
     buildings: {},
     wood: {},
@@ -63,20 +62,23 @@ export async function bakeArt() {
     pawnAnchor: anchor(portrait),
     propAnchor: anchor(prop),
   };
+  const workPoses = [
+    "idle",
+    "walk",
+    "chop",
+    "build",
+    "carry",
+    "pickup",
+    "deliver",
+    "sleep",
+  ];
   for (const [kind, poses] of [
-    [
-      "rowan",
-      ["idle", "walk", "chop", "build", "carry", "pickup", "deliver", "sleep"],
-    ],
+    ["rowan", workPoses],
+    ["witch-runner", workPoses],
     ["cat", ["idle", "walk", "sleep"]],
     ["goblin", ["idle"]],
   ]) {
-    const target =
-      kind === "rowan"
-        ? art.pawn
-        : kind === "cat"
-          ? art.cat
-          : (art.goblin = {});
+    const target = (art.figures[kind] = {});
     for (const pose of poses) {
       target[pose] = [];
       for (let direction = 0; direction < 4; direction++) {

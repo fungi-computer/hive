@@ -1,12 +1,10 @@
 # Goblin Bed & Breakfast
 
-An original isometric survival experiment in Hive. Rowan is a human outsider
-stranded in goblin country. Select Rowan, select an oak tree, and give the chop
-order. Rowan finds a route and works automatically; the tree becomes a stump
-and earns six wood. Choose **Build shelter**, position its two-by-two footprint
-on clear ground, then click to spend that wood. Rowan walks over and builds a
-timber lean-to through visible framing and roofing work. The locals would like
-a roof before supper. Stay useful.
+An original isometric survival experiment in Hive. Rowan begins alone with
+Sedge visibly stranded nearby. Recruit her, select either or both people, issue
+personal direct or queued work, or drag a shared rectangular Chop designation.
+They route, chop, reserve and haul physical wood, construct a shared home, and
+use its sheltered bedroll without duplicating material. Bramble offers guidance.
 
 [Stable branch preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev).
 The earlier accepted inn at commit `403f886` remains recoverable in Git. This
@@ -18,17 +16,14 @@ With Node 24.20.0 and dependencies installed (`npm ci`), run:
 npm run dev
 ```
 
-Open http://127.0.0.1:5187/ . Click Rowan (or the portrait), click an oak, then
-**Chop tree**. Movement is automatic. Pause freezes work, travel and events;
-reset restarts the same seed with zero wood, standing trees and no shelters.
-Placement previews cost nothing; Escape or **Cancel placement** keeps your wood.
-Occupied ground, insufficient wood and unreachable sites cannot begin a build.
-After the first shelter, chop another oak and repeat.
-The 480×320 scene is intended to display at 960×640 in a desktop WebGL browser.
+Open http://127.0.0.1:5187/ . Click Sedge in the clearing and recruit her, then
+use the roster or box selection. Click an oak for a personal order, or open
+Build and drag the Chop tool across several oaks for shared work. Movement and
+hauling are automatic. Pause freezes the world; reset restores the same seed.
 
-`npm test` exercises explicit commands, actual libcolony assignments, one-time
-wood credit, occupied placement, resource spending, two construction cycles,
-pause/reset and deterministic command replay.
+`npm test` runs 15 actual-libcolony laws covering scoped two-person assignment,
+physical wood conservation, cancellation, direct/queued priority, shared rest,
+pause/reset and deterministic replay.
 `npm run build` produces `dist/`. With the authorized Cloudflare CLI environment
 loaded, `npm run preview -- --name goblin-mvp` uploads that build using native
 Wrangler 4.127.1. It does not merge to main or enable a production workers.dev route.
@@ -36,12 +31,12 @@ Wrangler 4.127.1. It does not merge to main or enable a production workers.dev r
 Original Three geometry and poses in `src/art/` are baked by `src/art.js` to fixed
 low-resolution textures at startup; Pixi renders them in `src/view.js`. The five
 reference images are inspiration only, neither tracked nor shipped.
-`src/clearing.js` owns gameplay state, work and resources; `src/movement.js`
-retains the inn's deterministic grid navigation and travel. `src/construction.js`
-owns the one shelter's footprint, cost and placement rules, shared with the
-preview in `src/construction-view.js`. The pinned real
-libcolony JS/WASM owns task assignment, constrained to the explicitly commanded
-pawn/task pair. Its license, upstream release and hashes are recorded in
+The typed core in `src/clearing.ts`, `src/orders.ts`, `src/jobs.ts`, and
+`src/activity.ts` owns commands, jobs, assignment and physical transfers;
+`src/movement.js` retains deterministic navigation. `src/construction.js`
+shares placement rules with `src/construction-view.js`. The pinned real
+libcolony JS/WASM optimizes the eligible scoped assignment rectangle. Its
+license, upstream release and hashes are recorded in
 `public/vendor/libcolony/PROVENANCE.md`. Vendor bytes are unmodified.
 
 `src/main.js` collects input and advances the fixed-step ticker, adapted from
@@ -52,20 +47,18 @@ carry intent; deterministic simulation owns outcomes. SSE delivery timing is
 not the simulation clock. No SSE schema, backend, model scheduler or live
 platform connection exists in this slice.
 
-To repeat browser proof, serve `dist/` with Vite's ordinary static preview
-(`npx vite preview --host 127.0.0.1 --port 5188`) and run:
+To repeat the current browser proof, serve `dist/` with Vite's ordinary static
+preview (`npx vite preview --host 127.0.0.1 --port 5188`) and run:
 
 ```sh
-node scripts/prove.mjs http://127.0.0.1:5188/ .botanical/play-proof
+npm run prove:two-person -- http://127.0.0.1:5188/ .botanical/play-proof
 ```
 
-The command also accepts the hosted URL. It uses actual scene/button clicks and
-records two chop/build cycles, invalid/free placement previews, an order paused
-before its first simulation step, construction pause and reset, with screenshots,
-JSON state evidence and uncut WebM. Playwright Chromium is
-required; `CHROMIUM_PATH` and `LD_LIBRARY_PATH` can select existing host tooling.
-Evidence stays in ignored `.botanical/`. The authoritative current milestone and
-review gates are in `PROTOTYPE.md`.
+The command also accepts the hosted URL. It proves recruitment, either/both
+selection, shared rectangular targets, frozen preview, exact applied IDs,
+double-commit prevention, cancellation, pause, Caps disabled activation and
+narrow layout, with screenshots, JSON and WebM. Evidence stays ignored under
+`.botanical/`; `PROTOTYPE.md` owns the full milestone and review gates.
 
 This is a small learning slice, not a combat, needs/death, economy or world-growth
 engine. The threatening goblin demand establishes the premise; it does not
