@@ -40,6 +40,9 @@ export type UiAction =
         | "camera-move"
         | "escape"
         | "reset"
+        | "continue"
+        | "download-backup"
+        | "download-raw-save"
         | "pan-mode"
         | "help"
         | "rotate"
@@ -60,6 +63,29 @@ export type UiAction =
   | { kind: "notice"; text: string }
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number };
+
+export type UiEffect =
+  | { kind: "notice"; text: string }
+  | { kind: "command"; command: UiCommand | Command }
+  | { kind: "recruit"; actor: string }
+  | { kind: "submit-designation"; targetIds: string[] }
+  | {
+      kind:
+        | "pause"
+        | "speed"
+        | "focus"
+        | "reset"
+        | "continue"
+        | "download-backup"
+        | "download-raw-save"
+        | "fullscreen";
+    }
+  | { kind: "zoom"; delta: number }
+  | { kind: "pan"; x: number; y: number };
+
+export function submitDesignation(targetIds: string[]): UiEffect {
+  return { kind: "submit-designation", targetIds: [...targetIds] };
+}
 
 function neverAction(value: never): never {
   throw new Error(`Unhandled UI action: ${String(value)}`);
@@ -83,6 +109,9 @@ export function routeUiAction(
     case "camera-move":
     case "escape":
     case "reset":
+    case "continue":
+    case "download-backup":
+    case "download-raw-save":
     case "pan-mode":
     case "help":
     case "rotate":

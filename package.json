@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5187 --strictPort",
     "build": "vite build",
-    "test": "node --test src/clearing.test.js",
+    "test": "node --test src/clearing.test.js src/persistence.test.js",
     "preview": "wrangler preview",
     "format": "prettier --write src scripts index.html study.html vite.config.js wrangler.jsonc",
     "prove": "node scripts/prove.mjs",

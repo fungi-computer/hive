@@ -9,6 +9,13 @@ import { createCamera } from "./camera.js";
 import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
 import { createHud } from "./hud.jsx";
+import {
+  backupJson,
+  loadWorld,
+  rawBackupJson,
+  replaceWorld,
+  saveWorld,
+} from "./persistence.ts";
 import "./style.css";
 
 function point(cell, screen) {
@@ -40,7 +47,11 @@ export function rectangleTargetIds(state, start, end) {
 
 async function startGame() {
   const host = document.querySelector("#stage");
-  const [art, colony] = await Promise.all([bakeArt(), loadColony()]);
+  const [art, colony, loaded] = await Promise.all([
+    bakeArt(),
+    loadColony(),
+    loadWorld(),
+  ]);
   const app = new Application();
   await app.init({
     width: host.clientWidth,
@@ -58,13 +69,46 @@ async function startGame() {
   const world = new Container();
   app.stage.addChild(world);
   const camera = createCamera(app, host, world);
-  let state = createClearing();
+  let state = loaded.kind === "loaded" ? loaded.state : createClearing();
+  state.paused = true;
   let clock = createTicker();
   let pending = [];
   let pendingMeta = [];
   let speed = 1;
   let notice = "";
   let lastNotice = state.notice;
+  let saveRevision = loaded.kind === "loaded" ? loaded.revision : 0;
+  let autosaveEnabled = loaded.kind === "missing" || loaded.kind === "loaded";
+  let worldEpoch = 0;
+  let saveLoop = false;
+  let queuedSnapshot = null;
+  let queuedReplacements = [];
+  let lastSimulationSaveAt = performance.now();
+  let recoveryRaw = loaded.kind === "invalid" ? loaded.raw : null;
+  let hasRecoveryRaw = loaded.kind === "invalid";
+  let saveStatus = {
+    slot:
+      loaded.kind === "loaded"
+        ? "valid"
+        : loaded.kind === "invalid"
+          ? "invalid"
+          : loaded.kind === "failed"
+            ? "failed"
+            : "missing",
+    phase: loaded.kind === "loaded" ? "loaded" : "unsaved",
+    revision: loaded.kind === "loaded" ? loaded.revision : null,
+    tick: state.tick,
+    startup: true,
+    rawAvailable: hasRecoveryRaw,
+    message:
+      loaded.kind === "loaded"
+        ? `Loaded revision ${loaded.revision} at tick ${state.tick}; paused for review.`
+        : loaded.kind === "invalid"
+          ? "Local save could not load. Download the raw save or choose New clearing; the old slot is untouched."
+          : loaded.kind === "failed"
+            ? "Local save storage is unavailable. This fallback is unsaved until recovery or New clearing."
+            : "Fresh clearing ready. Continue when you are ready; no time has advanced.",
+  };
 
   function selection() {
     const current = hud.view();
@@ -96,7 +140,130 @@ async function startGame() {
   }
 
   function publish() {
-    hud.update(state, notice, speed, camera.zoom, keys.hints());
+    hud.update(state, notice, speed, camera.zoom, keys.hints(), saveStatus);
+  }
+
+  function setSaveStatus(update) {
+    saveStatus = { ...saveStatus, ...update };
+    publish();
+  }
+
+  async function drainSaves() {
+    if (saveLoop) return;
+    saveLoop = true;
+    try {
+      while (queuedReplacements.length || queuedSnapshot) {
+        const operation = queuedReplacements.length
+          ? queuedReplacements.shift()
+          : queuedSnapshot;
+        if (!queuedReplacements.length && operation === queuedSnapshot)
+          queuedSnapshot = null;
+        if (operation.epoch !== worldEpoch) continue;
+        setSaveStatus({
+          phase: "saving",
+          tick: operation.state.tick,
+          message:
+            operation.kind === "replace"
+              ? "Saving new clearing…"
+              : `Saving tick ${operation.state.tick}…`,
+        });
+        try {
+          const result =
+            operation.kind === "replace"
+              ? await replaceWorld(
+                  operation.state,
+                  saveRevision,
+                  operation.mode,
+                )
+              : await saveWorld(operation.state, saveRevision);
+          saveRevision = result.revision;
+          if (operation.epoch !== worldEpoch) continue;
+          autosaveEnabled = true;
+          if (operation.kind === "replace") {
+            recoveryRaw = null;
+            hasRecoveryRaw = false;
+          }
+          setSaveStatus({
+            slot: "valid",
+            phase: "saved",
+            revision: result.revision,
+            tick: operation.state.tick,
+            startup: false,
+            rawAvailable: hasRecoveryRaw,
+            message: `Saved revision ${result.revision} at tick ${operation.state.tick}.`,
+          });
+        } catch (error) {
+          if (operation.epoch !== worldEpoch) continue;
+          autosaveEnabled = false;
+          queuedSnapshot = null;
+          queuedReplacements = [];
+          setSaveStatus({
+            phase: "unsaved",
+            tick: state.tick,
+            message:
+              error?.name === "StaleRevisionError"
+                ? "Unsaved: another tab changed the slot; its newer world was preserved. Choose New clearing to retry."
+                : "Unsaved: local storage failed; the last committed slot was preserved. Choose New clearing to retry.",
+          });
+        }
+      }
+    } finally {
+      saveLoop = false;
+      if (queuedReplacements.length || queuedSnapshot) drainSaves();
+    }
+  }
+
+  function scheduleSave(reason) {
+    if (!autosaveEnabled) return;
+    queuedSnapshot = {
+      kind: "snapshot",
+      epoch: worldEpoch,
+      reason,
+      state: structuredClone(state),
+    };
+    setSaveStatus({
+      phase: "saving",
+      tick: state.tick,
+      message: `Saving tick ${state.tick}…`,
+    });
+    drainSaves();
+  }
+
+  function scheduleReplacement() {
+    queuedSnapshot = null;
+    queuedReplacements = [
+      {
+        kind: "replace",
+        epoch: worldEpoch,
+        mode: saveStatus.slot === "invalid" ? "discardMalformed" : "cas",
+        state: structuredClone(state),
+      },
+    ];
+    drainSaves();
+  }
+
+  function downloadBackup() {
+    const data = backupJson(state, saveRevision);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "hive-local-world.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadRawSave() {
+    if (!hasRecoveryRaw) return;
+    const blob = new Blob([rawBackupJson(recoveryRaw)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "hive-local-world-corrupt.json";
+    link.click();
+    URL.revokeObjectURL(url);
   }
   function selectedIds() {
     return hud.view().selectedIds;
@@ -147,6 +314,8 @@ async function startGame() {
     }
     lastNotice = state.notice;
     publish();
+    if (results.some((result) => result.status === "applied"))
+      scheduleSave("admission");
     return results;
   }
   function request(command, meta = {}) {
@@ -178,14 +347,40 @@ async function startGame() {
     return { submitted: true };
   }
   function reset() {
+    worldEpoch += 1;
+    autosaveEnabled = false;
+    queuedSnapshot = null;
+    queuedReplacements = [];
     state = createClearing();
+    state.paused = true;
     clock = createTicker();
     pending = [];
     pendingMeta = [];
     speed = 1;
     notice = "";
     lastNotice = state.notice;
+    lastSimulationSaveAt = performance.now();
+    saveStatus = {
+      ...saveStatus,
+      phase: "saving",
+      revision: null,
+      tick: state.tick,
+      startup: false,
+      message: "Saving new clearing…",
+    };
     camera.reset();
+    publish();
+    scheduleReplacement();
+  }
+
+  function continueClearing() {
+    state.paused = false;
+    clock = createTicker();
+    pending = [];
+    pendingMeta = [];
+    speed = 1;
+    lastSimulationSaveAt = performance.now();
+    saveStatus = { ...saveStatus, startup: false };
     publish();
   }
   function clearCameraIntent() {
@@ -205,7 +400,7 @@ async function startGame() {
         request({ kind: "recruit", party: "home", actor: action.actor });
         if (state.paused) flushPending();
         break;
-      case "commit-designation": {
+      case "submit-designation": {
         let submitted = 0;
         for (const id of action.targetIds)
           if (
@@ -226,7 +421,11 @@ async function startGame() {
       case "pause":
         state.paused = !state.paused;
         clock.acc = 0;
-        if (state.paused) flushPending();
+        if (state.paused) {
+          const results = flushPending();
+          if (!results.some((result) => result.status === "applied"))
+            scheduleSave("pause");
+        }
         publish();
         break;
       case "speed":
@@ -250,6 +449,15 @@ async function startGame() {
       case "reset":
         reset();
         break;
+      case "continue":
+        continueClearing();
+        break;
+      case "download-backup":
+        downloadBackup();
+        break;
+      case "download-raw-save":
+        downloadRawSave();
+        break;
       case "fullscreen":
         (document.fullscreenElement
           ? document.exitFullscreen()
@@ -260,7 +468,7 @@ async function startGame() {
         });
         break;
       default:
-        break;
+        throw new Error(`Unhandled effect action: ${action.kind}`);
     }
   }
 
@@ -463,6 +671,9 @@ async function startGame() {
     clock.acc = 0;
     if (document.hidden) {
       state.paused = true;
+      const results = flushPending();
+      if (!results.some((result) => result.status === "applied"))
+        scheduleSave("visibility");
       publish();
     }
   });
@@ -480,7 +691,14 @@ async function startGame() {
           step(state, colony, []);
         }
       }
-      if (count) publish();
+      if (count) {
+        publish();
+        const now = performance.now();
+        if (now - lastSimulationSaveAt >= 1000) {
+          lastSimulationSaveAt = now;
+          scheduleSave("simulation");
+        }
+      }
     }
     if (lastNotice !== state.notice) {
       notice = state.notice;
@@ -489,6 +707,7 @@ async function startGame() {
     }
     view.render(state, selection());
   });
+  hud.dispatch({ kind: "panel", panel: "menu" });
   publish();
   document.querySelector("#loading").remove();
   window.__GOBLIN = {
@@ -505,6 +724,18 @@ async function startGame() {
     },
     get height() {
       return app.screen.height;
+    },
+    get persistence() {
+      return structuredClone({
+        slot: saveStatus.slot,
+        phase: saveStatus.phase,
+        autosaveEnabled,
+        revision: saveRevision,
+        tick: state.tick,
+        paused: state.paused,
+        startup: saveStatus.startup,
+        message: saveStatus.message,
+      });
     },
     project: camera.project,
     colony,

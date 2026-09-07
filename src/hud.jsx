@@ -15,7 +15,7 @@ import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { commandProblem } from "./orders.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
-import { routeUiAction } from "./ui-actions.ts";
+import { routeUiAction, submitDesignation } from "./ui-actions.ts";
 
 const ACTIVITIES = {
   idle: "Waiting for work",
@@ -176,7 +176,7 @@ function sameKeys(a, b) {
   );
 }
 
-function displayFacts(state, notice, speed, zoom, keys, previous) {
+function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   const nextActors = Object.fromEntries(
     Object.values(state.actors).map((actor) => [actor.id, actorFact(actor)]),
   );
@@ -269,6 +269,7 @@ function displayFacts(state, notice, speed, zoom, keys, previous) {
     speed,
     zoom,
     keys: stableKeys,
+    save: previous?.save === save ? previous.save : save,
     homeIds:
       previous && sameArray(homeIds, previous.homeIds)
         ? previous.homeIds
@@ -351,6 +352,7 @@ const statusAtom = atom((get) => {
       felled: facts.felled,
       rested: facts.rested,
       beds: facts.beds,
+      save: facts.save,
     }
   );
 });
@@ -870,6 +872,14 @@ function Target({ model: m, send }) {
 }
 
 function Menu({ model: m, send }) {
+  const save = m.save;
+  const canContinue = save?.startup || m.paused;
+  const continueLabel =
+    save?.slot === "valid"
+      ? "Continue saved clearing"
+      : save?.slot === "missing"
+        ? "Continue clearing"
+        : "Resume fallback clearing";
   return (
     <Panel
       title="Goblin Bed & Breakfast"
@@ -878,7 +888,35 @@ function Menu({ model: m, send }) {
       className="menu-window"
     >
       <p className="muted">Stay useful. Stay off the menu.</p>
+      {save && (
+        <p id="save-status" role="status" className="muted">
+          {save.message}
+        </p>
+      )}
       <div className="menu-actions">
+        {canContinue && (
+          <Button
+            id="continue"
+            variant="primary"
+            onClick={() => send({ kind: "continue" })}
+          >
+            {continueLabel}
+          </Button>
+        )}
+        {save?.rawAvailable && (
+          <Button
+            variant="outline"
+            onClick={() => send({ kind: "download-raw-save" })}
+          >
+            Download raw local save
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          onClick={() => send({ kind: "download-backup" })}
+        >
+          Download backup
+        </Button>
         <Button variant="outline" onClick={() => send({ kind: "fullscreen" })}>
           Browser fullscreen
         </Button>
@@ -891,7 +929,7 @@ function Menu({ model: m, send }) {
           variant="destructive"
           onClick={() => send({ kind: "reset" })}
         >
-          Start a fresh clearing
+          New clearing
         </Button>
       </div>
       <p className="muted">
@@ -1363,10 +1401,7 @@ export function createHud(host, art, effect) {
         )
           return;
         machine.send({ type: "COMMIT" });
-        effect({
-          kind: "commit-designation",
-          targetIds: [...current.designationTargetIds],
-        });
+        effect(submitDesignation(current.designationTargetIds));
         return;
       }
       case "commit-result":
@@ -1402,6 +1437,17 @@ export function createHud(host, art, effect) {
           help: true,
           direction: 0,
         }));
+        effect(action);
+        return;
+      case "continue":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({ ...value, panel: null }));
+        effect(action);
+        return;
+      case "download-backup":
+        effect(action);
+        return;
+      case "download-raw-save":
         effect(action);
         return;
       case "cutaway":
@@ -1442,13 +1488,14 @@ export function createHud(host, art, effect) {
         effect(action);
     }
   }
-  function update(state, notice, speed, zoom, keys) {
+  function update(state, notice, speed, zoom, keys, save) {
     const facts = displayFacts(
       state,
       notice,
       speed,
       zoom,
       keys,
+      save,
       store.get(worldFactsAtom),
     );
     store.set(worldFactsAtom, facts);
