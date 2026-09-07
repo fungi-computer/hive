@@ -61,32 +61,38 @@ export function createKeys(root, read, send, changed) {
     {
       name: "tree.chop",
       key: "c",
-      title: "Chop selected oak",
+      title: "Prioritize or mark oak",
       enabled: () => !!read().context && read().chopAllowed,
-      action: () => ({
-        kind: "command",
-        command: {
-          kind: "chop",
-          tree: read().tree,
-          direct: true,
-          actors: [...read().selectedIds],
-        },
-      }),
+      action: () => {
+        const selected = read().selectedIds;
+        return {
+          kind: "command",
+          command: {
+            kind: "chop",
+            tree: read().tree,
+            direct: !!selected.length,
+            actors: selected.length ? [...selected] : null,
+          },
+        };
+      },
     },
     {
       name: "tree.chop-queued",
       key: "shift+c",
-      title: "Queue selected oak",
+      title: "Queue or mark oak",
       enabled: () => !!read().context && read().chopAllowed,
-      action: () => ({
-        kind: "command",
-        command: {
-          kind: "chop",
-          tree: read().tree,
-          direct: false,
-          actors: [...read().selectedIds],
-        },
-      }),
+      action: () => {
+        const selected = read().selectedIds;
+        return {
+          kind: "command",
+          command: {
+            kind: "chop",
+            tree: read().tree,
+            direct: false,
+            actors: selected.length ? [...selected] : null,
+          },
+        };
+      },
     },
     {
       name: "camera.left",

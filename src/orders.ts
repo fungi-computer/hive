@@ -8,7 +8,6 @@ export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
 
 export function commandProblem(state: Clearing, command: Command): string {
-  if (state.paused) return "Resume to give work.";
   if (command.kind === "recruit") {
     if (!state.parties[command.party]) return "That party is not here.";
     if (!state.actors[command.actor]) return "That person is not here.";
@@ -164,10 +163,7 @@ export function acceptCommand(
   command: Command,
 ): CommandResult {
   const problem = commandProblem(state, command);
-  if (problem) {
-    state.notice = problem;
-    return { status: "rejected", reason: problem };
-  }
+  if (problem) return { status: "rejected", reason: problem };
   switch (command.kind) {
     case "recruit":
       state.parties[command.party].members.push(command.actor);
@@ -201,4 +197,19 @@ export function acceptCommand(
       orderWork(state, command);
       return { status: "applied" };
   }
+}
+
+// Commands are admitted in array order at the current completed tick. Only
+// applied transitions enter replay history; rejected attempts remain results
+// for the caller to display.
+export function admitCommands(
+  state: Clearing,
+  commands: Command[],
+): CommandResult[] {
+  return commands.map((command) => {
+    const result = acceptCommand(state, command);
+    if (result.status === "applied")
+      state.commands.push({ ...structuredClone(command), tick: state.tick });
+    return result;
+  });
 }

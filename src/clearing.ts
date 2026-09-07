@@ -13,7 +13,7 @@ import { actor, body, members } from "./actors.ts";
 import { assignWork } from "./jobs.ts";
 import { advanceWork } from "./activity.ts";
 import { updateRoutine } from "./routine.ts";
-import { acceptCommand, type CommandResult } from "./orders.ts";
+import { admitCommands, type CommandResult } from "./orders.ts";
 import { route, beginWalk, walk } from "./movement.js";
 
 export function createClearing(seed = 42): Clearing {
@@ -85,17 +85,9 @@ export function step(
   colony: Colony,
   commands: Command[] = [],
 ): CommandResult[] {
-  if (state.paused)
-    return commands.map(() => ({
-      status: "rejected",
-      reason: "Resume to give work.",
-    }));
+  const results = admitCommands(state, commands);
+  if (state.paused) return results;
   state.tick++;
-  const results: CommandResult[] = [];
-  for (const command of commands) {
-    state.commands.push({ ...structuredClone(command), tick: state.tick });
-    results.push(acceptCommand(state, command));
-  }
   for (const person of members(state))
     if (person.mode !== "sleep") person.rest = Math.max(0, person.rest - 0.012);
   updateRoutine(state);

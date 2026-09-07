@@ -2,7 +2,7 @@ import { Application, Container } from "pixi.js";
 import { bakeArt } from "./art.js";
 import { loadColony } from "./colony.js";
 import { createClearing, step } from "./clearing.ts";
-import { commandProblem } from "./orders.ts";
+import { admitCommands, commandProblem } from "./orders.ts";
 import { createTicker, push } from "./ticker.js";
 import { createView } from "./view.js";
 import { createCamera } from "./camera.js";
@@ -111,6 +111,44 @@ async function startGame() {
     pending.push(command);
     pendingMeta.push(meta);
   }
+  function flushPending() {
+    if (!pending.length) return [];
+    const batch = pending;
+    const meta = pendingMeta;
+    pending = [];
+    pendingMeta = [];
+    const results = admitCommands(state, batch).map((result, index) => ({
+      command: batch[index],
+      meta: meta[index],
+      ...result,
+    }));
+    const designation = results.filter((result) => result.meta.designationId);
+    if (designation.length) {
+      const acceptedIds = designation
+        .filter((result) => result.status === "applied")
+        .map((result) => result.meta.designationId);
+      hud.dispatch({
+        kind: "commit-result",
+        accepted: acceptedIds.length,
+      });
+      notice = acceptedIds.length
+        ? `Applied ${acceptedIds.length} shared oak designation${acceptedIds.length === 1 ? "" : "s"}; ${designation.length - acceptedIds.length} rejected.`
+        : "Chop designation rejected; no target was applied.";
+    } else if (results.some((result) => result.status === "rejected")) {
+      const applied = results.filter(
+        (result) => result.status === "applied",
+      ).length;
+      const firstRejection = results.find(
+        (result) => result.status === "rejected",
+      );
+      notice = `${applied} command${applied === 1 ? "" : "s"} applied; ${results.length - applied} rejected: ${firstRejection.reason}`;
+    } else {
+      notice = state.notice;
+    }
+    lastNotice = state.notice;
+    publish();
+    return results;
+  }
   function request(command, meta = {}) {
     let scoped;
     if (command.kind === "recruit") {
@@ -129,19 +167,13 @@ async function startGame() {
         ...command,
       };
     }
-    const problem = commandProblem(state, scoped);
-    if (problem) {
-      notice = problem;
-      publish();
-      return { submitted: false, reason: problem };
-    }
     queue(scoped, meta);
     notice =
       scoped.kind === "recruit"
-        ? "Invitation submitted for the next fixed step."
+        ? "Invitation submitted."
         : scoped.kind === "build"
-          ? "Blueprint submitted for the next fixed step."
-          : "Order submitted for the next fixed step.";
+          ? "Blueprint submitted."
+          : "Order submitted.";
     publish();
     return { submitted: true };
   }
@@ -167,9 +199,11 @@ async function startGame() {
         break;
       case "command":
         request(action.command);
+        if (state.paused) flushPending();
         break;
       case "recruit":
         request({ kind: "recruit", party: "home", actor: action.actor });
+        if (state.paused) flushPending();
         break;
       case "commit-designation": {
         let submitted = 0;
@@ -185,12 +219,14 @@ async function startGame() {
           ? `Submitted ${submitted} shared oak designation${submitted === 1 ? "" : "s"}; waiting for the fixed step.`
           : "No standing, unassigned oaks were submitted.";
         if (!submitted) hud.dispatch({ kind: "commit-result", accepted: 0 });
+        if (state.paused) flushPending();
         publish();
         break;
       }
       case "pause":
         state.paused = !state.paused;
         clock.acc = 0;
+        if (state.paused) flushPending();
         publish();
         break;
       case "speed":
@@ -240,12 +276,12 @@ async function startGame() {
         ...current,
         chopAllowed:
           !!current.tree &&
-          !!current.selectedIds.length &&
           !commandProblem(state, {
             party: "home",
-            actors: current.selectedIds,
+            actors: current.selectedIds.length ? current.selectedIds : null,
             kind: "chop",
             tree: current.tree,
+            direct: !!current.selectedIds.length,
           }),
       };
     },
@@ -267,7 +303,7 @@ async function startGame() {
     actor(id, pointAt, toggle) {
       hud.dispatch({ kind: "select", actor: id, toggle });
     },
-    tree(id, pointAt, secondary, queued) {
+    tree(id, pointAt, secondary) {
       const current = hud.view();
       if (
         current.tool ||
@@ -275,15 +311,6 @@ async function startGame() {
         current.machine.context.gesture === "box"
       ) {
         if (secondary) hud.dispatch({ kind: "close" });
-        return;
-      }
-      if (secondary && current.selectedIds.length) {
-        request({
-          kind: "chop",
-          tree: id,
-          direct: !queued,
-          actors: [...current.selectedIds],
-        });
         return;
       }
       hud.dispatch({ kind: "tree", id, point: pointAt });
@@ -445,49 +472,18 @@ async function startGame() {
   });
   app.ticker.maxFPS = 60;
   app.ticker.add((ticker) => {
+    if (pending.length) flushPending();
     if (!state.paused) {
       const count = push(clock, ticker.deltaMS);
       for (let frame = 0; frame < count; frame++) {
         for (let i = 0; i < speed; i++) {
-          if (!pending.length) {
-            step(state, colony, []);
-            continue;
-          }
-          const batch = pending;
-          const meta = pendingMeta;
-          pending = [];
-          pendingMeta = [];
-          const results = step(state, colony, batch).map((result, index) => ({
-            command: batch[index],
-            meta: meta[index],
-            ...result,
-          }));
-          const designation = results.filter(
-            (result) => result.meta.designationId,
-          );
-          if (designation.length) {
-            const acceptedIds = designation
-              .filter((result) => result.status === "applied")
-              .map((result) => result.meta.designationId);
-            hud.dispatch({
-              kind: "commit-result",
-              accepted: acceptedIds.length,
-            });
-            notice = acceptedIds.length
-              ? `Applied ${acceptedIds.length} shared oak designation${acceptedIds.length === 1 ? "" : "s"}; ${designation.length - acceptedIds.length} rejected.`
-              : "Chop designation rejected; no target was applied.";
-          } else if (results.some((result) => result.status === "rejected")) {
-            const applied = results.filter(
-              (result) => result.status === "applied",
-            ).length;
-            notice = `${applied} command${applied === 1 ? "" : "s"} applied; ${results.length - applied} rejected at the fixed step.`;
-          }
+          step(state, colony, []);
         }
       }
       if (count) publish();
     }
     if (lastNotice !== state.notice) {
-      if (!notice) notice = "";
+      notice = state.notice;
       lastNotice = state.notice;
       publish();
     }

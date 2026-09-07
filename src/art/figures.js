@@ -177,16 +177,17 @@ function workGear(body, hands, pose) {
   }
   if (pose === "sleep") return;
   if (pose === "build") {
-    const mallet = group(hands[0], 0, -0.14, 0.04);
-    cylinder(mallet, "#a17b4d", 0, 0, 0, 0.023, 0.023, 0.36, 6);
-    box(mallet, "#ae8656", 0, 0.14, 0, 0.21, 0.115, 0.105);
-    box(mallet, "#dac192", -0.11, 0.14, 0, 0.025, 0.105, 0.098);
+    // Tool origin is the grip inside the palm; the head sits beyond the fist.
+    const mallet = group(hands[0], 0, -0.025, 0);
+    cylinder(mallet, "#a17b4d", 0, -0.1, 0, 0.023, 0.023, 0.36, 6);
+    box(mallet, "#ae8656", 0, -0.25, 0, 0.21, 0.115, 0.105);
+    box(mallet, "#dac192", -0.11, -0.25, 0, 0.025, 0.105, 0.098);
     return;
   }
-  const axe = group(hands[0], 0, -0.15, 0.04);
+  const axe = group(hands[0], 0, -0.025, 0);
   axe.rotation.x = 0.12;
-  cylinder(axe, "#a17b4d", 0, 0, 0, 0.022, 0.022, 0.44, 6);
-  box(axe, "#91a4a0", 0.06, 0.14, 0, 0.18, 0.12, 0.045);
+  cylinder(axe, "#a17b4d", 0, -0.14, 0, 0.022, 0.022, 0.44, 6);
+  box(axe, "#91a4a0", 0.06, -0.33, 0, 0.18, 0.12, 0.045);
 }
 
 function knight(body, phase, moving) {
@@ -534,14 +535,15 @@ function witchRunner(body, phase, moving, pose) {
 function copperHair(body, phase, moving, pose) {
   const angle = phase * Math.PI * 2;
   const working = ["chop", "build", "pickup", "deliver"].includes(pose);
-  const sway = moving ? 0.22 : working ? 0.12 : 0.045;
+  const sway = moving ? 0.18 : working ? 0.1 : 0.035;
   const root = group(body, 0, 1.62, -0.12);
-  root.rotation.x = (moving ? 0.48 : 0.18) + Math.sin(angle - 0.9) * sway;
+  root.scale.set(0.9, 0.86, 0.9);
+  root.rotation.x = (moving ? 0.38 : 0.16) + Math.sin(angle - 0.9) * sway;
   root.rotation.z = Math.sin(angle - 0.7) * sway * 0.75;
   root.rotation.y = Math.sin(angle - 1.2) * sway * 0.65;
   if (pose === "sleep") {
     root.position.z = 0.03;
-    root.scale.z = 0.28;
+    root.scale.z *= 0.28;
     root.rotation.set(0, 0, 0);
   }
   const profile = new THREE.Shape();

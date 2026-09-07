@@ -40,7 +40,7 @@ const colony = await new Promise((resolve, reject) => {
 });
 
 function step(state, colony, commands = []) {
-  advance(
+  return advance(
     state,
     colony,
     commands.map((command) => ({
@@ -65,7 +65,7 @@ function conserved(state) {
 }
 function run(state, ticks, commands = new Map()) {
   for (let i = 0; i < ticks; i++) {
-    step(state, colony, commands.get(state.tick + 1) || []);
+    step(state, colony, commands.get(state.tick) || []);
     conserved(state);
     for (const person of Object.values(state.actors))
       for (const cell of person.path)
@@ -226,6 +226,60 @@ test("pause freezes active cargo and every subsystem; reset restores the seeded 
   assert.equal(reset.feed.sequence, 0);
   assert.equal(reset.actors.rowan.routine, false);
 });
+test("paused commands admit shared work in order without advancing the world", () => {
+  const state = createClearing(31);
+  state.paused = true;
+  const before = {
+    tick: state.tick,
+    actors: structuredClone(state.actors),
+    cat: structuredClone(state.cat),
+    trees: structuredClone(state.trees),
+    feed: structuredClone(state.feed),
+  };
+  let optimizerCalls = 0;
+  const observed = {
+    compute_cost: colony.compute_cost.bind(colony),
+    optimize(assignments) {
+      optimizerCalls++;
+      return colony.optimize(assignments);
+    },
+  };
+  const commands = [chop("oak-1"), chop("oak-1"), build("wall", 7, 5)];
+  const results = step(state, observed, commands);
+
+  assert.deepEqual(
+    results.map((result) => result.status),
+    ["applied", "rejected", "applied"],
+  );
+  assert.match(results[1].reason, /already ordered/);
+  assert.equal(optimizerCalls, 0);
+  assert.equal(state.tick, before.tick);
+  assert.deepEqual(state.actors, before.actors);
+  assert.deepEqual(state.cat, before.cat);
+  assert.deepEqual(state.trees, before.trees);
+  assert.deepEqual(state.feed, before.feed);
+  assert.equal(state.jobs.length, 2);
+  assert.equal(state.sites.length, 1);
+  assert.deepEqual(
+    state.commands.map((command) => command.tick),
+    [0, 0],
+  );
+
+  const admitted = structuredClone(state);
+  const replay = createClearing(31);
+  replay.paused = true;
+  step(replay, colony, commands);
+  assert.deepEqual(replay, admitted);
+
+  state.paused = false;
+  replay.paused = false;
+  step(state, observed);
+  step(replay, colony);
+  assert.ok(optimizerCalls > 0);
+  assert.equal(state.tick, 1);
+  assert.ok(state.actors.rowan.assignment);
+  assert.deepEqual(state, replay);
+});
 test("fixed-tick command replay preserves resources, cancellation and order priority across render cadences", () => {
   const commands = new Map([
     [2, [build("wall", 7, 5), chop("oak-1"), chop("oak-2")]],
@@ -345,15 +399,20 @@ test("queued rest waits behind personal work and an explicit rest survives dawn 
 test("recruitment is one-time and work scope rejects outsiders", () => {
   const state = createClearing();
   step(state, colony, [{ kind: "recruit", party: "home", actor: "sedge" }]);
-  step(state, colony, [{ kind: "recruit", party: "home", actor: "sedge" }]);
+  const duplicate = step(state, colony, [
+    { kind: "recruit", party: "home", actor: "sedge" },
+  ]);
   assert.deepEqual(state.parties.home.members, ["rowan", "sedge"]);
-  assert.match(state.notice, /already joined/);
-  step(state, colony, [
+  assert.match(duplicate[0].reason, /already joined/);
+  const outsiders = step(state, colony, [
     { kind: "chop", tree: "oak-1", party: "home", actors: ["witch"] },
     { kind: "chop", tree: "oak-2", party: "away", actors: null },
   ]);
   assert.equal(state.jobs.length, 0);
-  assert.match(state.notice, /party is not here|belong to this party/);
+  assert.match(
+    outsiders.map((result) => result.reason).join(" "),
+    /party is not here|belong to this party/,
+  );
 });
 
 test("one optimizer batch respects a pinned first job and assigns the shared next job", () => {
@@ -528,7 +587,7 @@ test("two-person pause, reset and equal-tick replay preserve the full roster sta
   const state = createClearing(seed);
   const commands = new Map([
     [
-      1,
+      0,
       [
         { kind: "recruit", party: "home", actor: "sedge" },
         chop("oak-1"),
@@ -558,7 +617,7 @@ test("two-person pause, reset and equal-tick replay preserve the full roster sta
     if (!recorded.has(tick)) recorded.set(tick, []);
     recorded.get(tick).push(command);
   }
-  assert.equal(recorded.get(1).length, 3);
+  assert.equal(recorded.get(0).length, 3);
   assert.deepEqual(run(createClearing(seed), state.tick, recorded), state);
   assert.deepEqual(createClearing(seed), initial);
   assert.deepEqual(createClearing(seed).parties.home.members, ["rowan"]);

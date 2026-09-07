@@ -477,7 +477,6 @@ function Orders({ model: m, send }) {
               data-action="next"
               data-job={job.id}
               aria-label={`Move ${job.title} next`}
-              disabled={m.paused}
               onClick={() =>
                 send({
                   kind: "command",
@@ -491,7 +490,6 @@ function Orders({ model: m, send }) {
               data-action="cancel"
               data-job={job.id}
               aria-label={`Cancel ${job.title}`}
-              disabled={m.paused}
               onClick={() =>
                 send({
                   kind: "command",
@@ -586,7 +584,6 @@ function Character({ model: m, send, portraits }) {
               id="routine"
               type="checkbox"
               checked={m.routine}
-              disabled={m.paused}
               onChange={(e) =>
                 send({
                   kind: "command",
@@ -623,7 +620,6 @@ function Build({ model: m, send }) {
           id="chop-tool"
           variant="secondary"
           aria-pressed={m.tool === "chop"}
-          disabled={m.paused}
           onClick={() =>
             send({ kind: "tool", tool: m.tool === "chop" ? null : "chop" })
           }
@@ -645,7 +641,6 @@ function Build({ model: m, send }) {
             key={type}
             data-build={type}
             aria-pressed={m.tool === type}
-            disabled={m.paused}
             onClick={() => send({ kind: "tool", tool: type })}
           >
             <span>{recipe.label}</span>
@@ -686,11 +681,10 @@ function Build({ model: m, send }) {
 
 function Target({ model: m, send }) {
   if (!m.context || !m.tree) return null;
-  const problem = !m.selectedIds.length
+  const targetProblem = m.tree.felled ? "That tree is already a stump." : "";
+  const personalProblem = !m.selectedIds.length
     ? "Select one or more home members for a personal order."
-    : m.tree.felled
-      ? "That tree is already a stump."
-      : "";
+    : targetProblem;
   return (
     <section
       className="window target-window"
@@ -713,13 +707,31 @@ function Target({ model: m, send }) {
       <p className="muted">
         {m.tree.felled
           ? "Six logs earned. The stump stays."
-          : `6 wood · ${m.selectedIds.length ? `${m.selectedIds.length} selected` : "select a home member"}`}
+          : `6 wood · ${m.selectedIds.length ? `${m.selectedIds.length} selected` : "shared colony work"}`}
       </p>
+      <Button
+        id="mark-chop"
+        variant="primary"
+        disabled={!!targetProblem}
+        onClick={() =>
+          send({
+            kind: "command",
+            command: {
+              kind: "chop",
+              tree: m.tree.id,
+              direct: false,
+              actors: null,
+            },
+          })
+        }
+      >
+        Mark for chopping <Key model={m} name="tree.chop" />
+      </Button>
       <div className="button-row">
         <Button
           id="chop-now"
-          variant="primary"
-          disabled={!!problem}
+          variant="secondary"
+          disabled={!!personalProblem}
           onClick={() =>
             send({
               kind: "command",
@@ -732,12 +744,12 @@ function Target({ model: m, send }) {
             })
           }
         >
-          Chop now <Key model={m} name="tree.chop" />
+          Prioritize selected
         </Button>
         <Button
           id="chop-queued"
           variant="secondary"
-          disabled={!!problem}
+          disabled={!!personalProblem}
           onClick={() =>
             send({
               kind: "command",
@@ -750,10 +762,12 @@ function Target({ model: m, send }) {
             })
           }
         >
-          Queue chop
+          Queue for selected
         </Button>
       </div>
-      {problem && <small className="action-reason">{problem}</small>}
+      {personalProblem && (
+        <small className="action-reason">{personalProblem}</small>
+      )}
     </section>
   );
 }
@@ -824,7 +838,7 @@ function Hud({ machineSnapshot, send, portraits }) {
     panMode: preferences.panMode,
     help: preferences.help,
     notice: status.paused
-      ? "Paused · the world waits."
+      ? `Paused · ${status.notice || "time is frozen; orders remain available."}`
       : tool === "chop"
         ? phase === "fixed"
           ? "Submitting the shared Chop designation at the fixed step."
