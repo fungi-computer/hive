@@ -12,6 +12,8 @@ The accepted future product/source boundary is in the
 [home, expeditions, and living world ADR](docs/decisions/home-expeditions-and-living-world.md).
 Further accepted future seams are recorded in
 [modular character art and technology gates](docs/decisions/modular-art-and-technology-gates.md).
+The future environment/opening proof boundary is in
+[environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
 
 ## Delivery ownership
 
