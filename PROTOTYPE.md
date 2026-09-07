@@ -57,12 +57,14 @@ recovery rules await the separate design note. Generated chunks and the local
 caravan remain later direction; this priority changes sequencing, not their
 durable value.
 
-Next playable order: two-person home, then stairs/upstairs bed, then generated
-chunks and a local caravan returning to a persistent home while another person
-works. Gear/crafting/magic variety can grow after those foundations. Five people
-is the first roster target, not an engine cap: Levi also wants eventual 50–100
-people and AI-managed nations. Those scales require measured active-simulation,
-pathfinding, assignment and rendering budgets; they are not proved by this demo.
+Later expansion order, only after the tiny-map-fun gate and near-term browser
+save/resume priority are satisfied: two-person home, then stairs/upstairs bed,
+then generated chunks and a local caravan returning to a persistent home while
+another person works. Gear/crafting/magic variety can grow after those
+foundations. Five people is the first roster target, not an engine cap: Levi also
+wants eventual 50–100 people and AI-managed nations. Those scales require
+measured active-simulation, pathfinding, assignment and rendering budgets; they
+are not proved by this demo.
 
 Performance and satisfying pacing are core, but not a license for artificial
 waits. One authoritative world clock must eventually serve every visitor; the
