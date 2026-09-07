@@ -312,6 +312,8 @@ function orderModel(display, job) {
     : "";
   return {
     id: job.id,
+    kind: job.kind,
+    target: job.target,
     title,
     active: active.length > 0,
     detail:
@@ -802,6 +804,14 @@ function Target({ model: m, send }) {
   if (!m.context || !m.target) return null;
   if (m.target.kind === "site") {
     const label = BUILDINGS[m.target.type].label;
+    const deconstructJob = m.orders.find(
+      (job) => job.kind === "deconstruct" && job.target === m.target.id,
+    );
+    const actionLabel = deconstructJob
+      ? deconstructJob.active
+        ? "Deconstruction in progress"
+        : "Deconstruction queued"
+      : "Deconstruct";
     return (
       <Card
         variant="outline"
@@ -833,7 +843,8 @@ function Target({ model: m, send }) {
           data-action="deconstruct"
           data-site={m.target.id}
           variant="primary"
-          aria-label={`Deconstruct ${label}`}
+          disabled={!!deconstructJob}
+          aria-label={`${actionLabel} ${label}`}
           onClick={() =>
             send({
               kind: "command",
@@ -841,8 +852,15 @@ function Target({ model: m, send }) {
             })
           }
         >
-          Deconstruct
+          {actionLabel}
         </Button>
+        {deconstructJob && (
+          <small className="action-reason" data-status="deconstruct">
+            {deconstructJob.active
+              ? "A home member is working on this structure."
+              : "This structure is already in the work queue."}
+          </small>
+        )}
       </Card>
     );
   }

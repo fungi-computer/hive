@@ -561,6 +561,22 @@ meter::-webkit-meter-optimum-value {
     padding: 0 3px;
   }
 }
+@media (max-width: 480px) {
+  .roster {
+    width: 150px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .roster button {
+    width: 100%;
+    max-width: none;
+  }
+  .story {
+    left: 170px;
+    right: 10px;
+    width: auto;
+  }
+}
 @media (max-height: 600px) {
   .window {
     bottom: 82px;

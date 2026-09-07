@@ -351,6 +351,16 @@ try {
       ),
     wall.id,
   );
+  await waitForState(
+    () =>
+      document.querySelector('[data-action="deconstruct"]')?.disabled === true,
+  );
+  assert.equal(await deconstruct.isDisabled(), true);
+  assert.equal(await deconstruct.textContent(), "Deconstruction queued");
+  assert.match(
+    await structureActions.locator('[data-status="deconstruct"]').textContent(),
+    /already in the work queue/,
+  );
   const ordered = await state();
   const deconstructJob = ordered.jobs.find(
     (job) => job.kind === "deconstruct" && job.target === wall.id,
@@ -383,17 +393,19 @@ try {
     15_000,
   );
   await waitForState(
-    () =>
-      Object.values(window.__GOBLIN.state.actors).some(
+    () => {
+      const started = Object.values(window.__GOBLIN.state.actors).some(
         (actor) =>
           actor.task?.kind === "deconstruct" &&
           actor.mode === "deconstruct" &&
           actor.work > 0,
-      ),
+      );
+      if (started) document.querySelector("#pause").click();
+      return started;
+    },
     null,
     15_000,
   );
-  await page.locator("#pause").click();
   await waitForState(() => window.__GOBLIN.state.paused === true);
   const working = await state();
   assert.deepEqual(materialSnapshot(working), beforeWork);
@@ -485,11 +497,21 @@ try {
   await page.waitForFunction(() => innerWidth === 390, null, {
     timeout: 5_000,
   });
-  const narrow = await page.evaluate(() => ({
-    innerWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-    bodyScrollWidth: document.body.scrollWidth,
-  }));
+  const narrow = await page.evaluate(() => {
+    const story = document.querySelector(".story").getBoundingClientRect();
+    const roster = [...document.querySelectorAll(".roster button")].map(
+      (node) => node.getBoundingClientRect(),
+    );
+    return {
+      innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      rosterStorySeparated: roster.every(
+        (box) => box.right <= story.left || story.right <= box.left,
+      ),
+      rosterCount: roster.length,
+    };
+  });
   const commandBar = page.locator('[aria-label="Colony controls"]');
   const commandBox = await commandBar.boundingBox();
   assert.equal(narrow.innerWidth, 390);
@@ -501,6 +523,8 @@ try {
     narrow.bodyScrollWidth <= 390,
     "body overflow: " + narrow.bodyScrollWidth,
   );
+  assert.equal(narrow.rosterCount, 2);
+  assert.equal(narrow.rosterStorySeparated, true);
   assert.ok(
     commandBox && commandBox.x >= 0 && commandBox.x + commandBox.width <= 390,
   );
