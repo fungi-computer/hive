@@ -30,6 +30,33 @@ sunlight can warm it, overheating changes one growing condition, and venting can
 improve it. This does not select illness, death, seasons, breeding, every gas or
 full weather content.
 
+## Evidence and implication boundary
+
+The reviewed ONI evidence now includes a Klei developer interview, official
+historical patches covering energy/conductivity/phase change, crops/overlays and
+automation, plus the narrow public `Grid.Mass` mod API. It supports coupled,
+inspectable quantities and failure feedback; it does **not** establish ONI's
+mixture solver, active-cell scheduling, update order, or deterministic replay.
+Future Hive experiments and the separate 5/25/50/100-actor benchmark remain
+independent of World Lab geography work.
+
+Four water references stay distinct: Tikal's filtered Corriental reservoir;
+Xochimilco raised-field/canal agriculture; Hawaiian `auwai`/loʻi gravity
+allocation and maintenance; and Roman gravity conveyance/distribution through
+routes, tanks, and branches. They support authored source/route/capacity,
+storage, upkeep, and downstream consequences—not one generic ancient system.
+Hive's product direction is early/middle gravity channels, cisterns, and
+terraces, with later Dwarven pumps and controls as an efficiency/progression
+choice rather than a gate on all water. Transfers must be actual source → route
+→ capacity changes, never decorative timers.
+
+The accepted shallow utility clarification remains: one buried pipe segment may
+share a top-ground cell with its cover; Lay/Expose/Repair/Remove/Cover work must
+preserve pipe contents and restore normal surface presentation. Current levels
+are logical storeys, not volumetric diggable terrain. Keep upstairs first and
+brewing next; no solver, plumbing framework, or runtime implementation is chosen
+by this evidence record.
+
 ## Scale and boundary constraints
 
 Only active environmental regions and changing boundaries earn detailed work;
