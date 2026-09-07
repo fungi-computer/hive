@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" data-theme="mocha">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Somewhere warm · Goblin Bed & Breakfast</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      main {
+        max-width: 960px;
+        margin: auto;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 12px 0;
+      }
+      p {
+        line-height: 1.5;
+        margin: 8px 0 16px;
+      }
+      .eyebrow,
+      footer {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+      .stage {
+        overflow-x: auto;
+        border-radius: 8px;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+      #court,
+      #strip {
+        width: 960px;
+        height: auto;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 16px 0;
+      }
+      footer {
+        line-height: 1.5;
+        margin-top: 16px;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: 14px;
+        }
+        #court,
+        #strip {
+          width: 480px;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <main>
+      <div class="eyebrow">GOBLIN BED & BREAKFAST · ORIGINAL FIRE STUDY</div>
+      <h1>Somewhere warm. Mostly.</h1>
+      <p>
+        Embers for the road, a light on the wall, and something strange in the
+        hearth.
+      </p>
+      <p id="loading" role="status">Lighting the courtyard…</p>
+      <div class="stage bg-base-200">
+        <canvas
+          id="court"
+          width="480"
+          height="256"
+          aria-label="An original campfire, brazier and stone hearth cast light on a courtyard at night"
+        ></canvas>
+      </div>
+      <div class="controls" aria-label="Fire study controls">
+        <button class="btn btn-sm" id="play">Pause motion</button
+        ><button
+          class="btn btn-sm btn-primary"
+          data-color="hearth"
+          aria-pressed="true"
+        >
+          Hearthfire</button
+        ><button class="btn btn-sm" data-color="witch" aria-pressed="false">
+          Witchflame</button
+        ><button class="btn btn-sm" data-color="omen" aria-pressed="false">
+          An ill omen
+        </button>
+      </div>
+      <div class="stage">
+        <canvas
+          id="strip"
+          width="480"
+          height="138"
+          aria-label="Three animated original fire props at matching pixel scale"
+        ></canvas>
+      </div>
+      <footer>
+        Original Three geometry, flames, smoke and point lighting → fixed
+        low-resolution bake → Pixi.<br />Twelve authored frames per cycle. This
+        is an art study; spreading fire, fuel, heat and smoke exposure are
+        planned simulation.<br /><a class="link" href="/"
+          >Back to the playable home</a
+        >
+      </footer>
+    </main>
+    <script type="module" src="./fire-study.js"></script>
+  </body>
+</html>

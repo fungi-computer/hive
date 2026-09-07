@@ -8,6 +8,7 @@ export default defineConfig({
         study: "study.html",
         devilStudy: "devil-study.html",
         animalStudy: "animal-study.html",
+        fireStudy: "fire-study.html",
       },
     },
   },
