@@ -31,6 +31,8 @@ integration in Hive. Preserve live authors and user focus.
 
 The accepted future product/source boundary is in the
 [home, expeditions, and living world ADR](docs/decisions/home-expeditions-and-living-world.md).
+Further accepted future seams are recorded in
+[modular character art and technology gates](docs/decisions/modular-art-and-technology-gates.md).
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna

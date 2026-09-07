@@ -10,6 +10,8 @@ The accepted game and character study remain the regression baseline.
 
 The accepted future product/source boundary is in the
 [home, expeditions, and living world ADR](docs/decisions/home-expeditions-and-living-world.md).
+Further accepted future seams are recorded in
+[modular character art and technology gates](docs/decisions/modular-art-and-technology-gates.md).
 
 ## Delivery ownership
 
