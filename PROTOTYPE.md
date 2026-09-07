@@ -37,6 +37,15 @@ The future environment/opening proof boundary is in
 [environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
 The current local-save/later durable-AI boundary is in
 [local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
+The accepted architecture-proof sprint keeps tiny-map play and a separate
+[World Lab/proof track](docs/decisions/architecture-proof-sprint.md) independent:
+upstairs remains the active home seam, brewing remains the next playable slice,
+and world expansion waits for measured first consumers rather than automatic
+sequencing.
+The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
+keeps chunk crossing invisible, separates minimap loading from discovery, and
+requires one footprint-aware geography source across local, atlas, and globe
+resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna
@@ -77,6 +86,18 @@ people is the first roster target, not an engine cap: Levi also wants eventual
 50–100 people and AI-managed nations. Those scales require measured
 active-simulation, pathfinding, assignment and rendering budgets; they are not
 proved by this demo.
+
+After the active upstairs outcome, the first workstation direction is one brew
+station: a kettle plus fermentation vessel producing one honest herbal ale. A
+visible fixed-clock work/fermentation chain consumes real ingredients and yields
+one physical keg/output that can be stored and served. Mugwort is flavouring, not
+fermentable grain. Preserve the specific inspiration “Fig Leaf Bi-Carbonate”
+(an MF DOOM MM..FOOD nod) through authored names, recipe art, and menu details;
+additional concrete recipes remain proposals. Grain, yeast, water, fuel, quantities
+and timings remain unresolved proposals; this direction adds no free stock, fluid/weather engine,
+or backend. Future shelf presentation is mixed contents as a simple grouped
+item/count list, never backpack packing; bulk/filter/priority/weight policies are
+proposals, and pawn carry weight remains separate.
 
 Performance and satisfying pacing are core, but not a license for artificial
 waits. One authoritative world clock must eventually serve every visitor; the

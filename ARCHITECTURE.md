@@ -16,6 +16,13 @@ The future environment/opening proof boundary is in
 [environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
 The current local-save/later durable-AI boundary is in
 [local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
+The accepted [architecture-proof sprint](docs/decisions/architecture-proof-sprint.md)
+records the current status boundary: keep the tiny clearing fun, finish the
+active upstairs seam, and prove any separate World Lab and scale measurements
+before treating expansion as playable. Brewing remains next after upstairs.
+The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
+adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
+ridge identity and seam proof precede any larger region or finite-globe choice.
 
 ## Delivery ownership
 
@@ -119,6 +126,17 @@ and actually use it. The Sweeney Todd
 barber shop above a meat kitchen gives vertical openings a concrete later use.
 Keep shared floor/opening geometry ready for traversal, falling objects and later
 projectiles; the chair and processing chain do not gate the first upstairs room.
+
+After the active upstairs outcome, the first workstation is one kettle plus
+fermentation vessel for one honest herbal ale: visible ingredient/work/fermentation
+state, deterministic fixed-clock fermentation, and one physical keg/output that
+can be stored and served. Mugwort is flavouring, not fermentable grain. Preserve
+the specific “Fig Leaf Bi-Carbonate” MF DOOM MM..FOOD nod through authored names,
+recipe art, and menu details; additional concrete recipes remain proposals. Grain,
+yeast, water, fuel, quantities and timings remain unresolved proposals; no free
+stock, fluid/weather engine or backend is implied. The shelf direction is mixed
+contents shown as a simple grouped item/count list, never backpack packing;
+bulk/filter/priority/weight are proposals and pawn carry weight remains separate.
 
 Presentation needs Sims-like front-wall cutaway modes, separate roofs/storeys,
 and optional tree/canopy fading during construction. Terrain editing, building,
