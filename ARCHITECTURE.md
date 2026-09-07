@@ -45,6 +45,17 @@ Independent work begins with separating HUD display from guidance/notice logic,
 and the requested original adult-witch/child lineup study. Their outputs join
 through direct source/render inspection; game state remains the single simulation.
 
+## Superseding near-term priority (Levi, 2026-09-07)
+
+After the shipped Work/Caps slice, keep the map deliberately tiny until a
+repeatable everyday home loop is fun: depth before area. The next direct priority
+is semi-persistent browser save/resume: a versioned local snapshot supports
+Continue, New Clearing, and a downloadable backup; restore resumes paused and
+never advances the world offline. Exact snapshot invariants, migration and
+recovery rules await the separate design note. Generated chunks and the local
+caravan remain later direction; this priority changes sequencing, not their
+durable value.
+
 ## Durable work issues
 
 These issues preserve Levi's direction; an open issue is not a shipped feature.
