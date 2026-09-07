@@ -3,60 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>hive POC</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        background: #0d1f0c;
-      }
-      body {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace;
-      }
-      #stage {
-        position: relative;
-      }
-      canvas {
-        display: block;
-        border: 1px solid #000;
-      }
-      #overlay {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        color: #d9e8d2;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 8px 12px;
-        border-radius: 4px;
-        min-width: 300px;
-      }
-      #overlay .poc {
-        color: #ffd23f;
-        font-weight: bold;
-      }
-      #overlay #referee {
-        margin-top: 6px;
-        font-size: 15px;
-        color: #ffffff;
-      }
-      #overlay #tick {
-        margin-top: 2px;
-        color: #9fe39c;
-      }
-    </style>
+    <meta name="theme-color" content="#202d2b" />
+    <title>Goblin Bed & Breakfast · The Moss & Ladle</title>
   </head>
   <body>
-    <div id="stage">
-      <div id="overlay">
-        <div class="poc">POC — ticker emulating BirdDog (wired to nothing real)</div>
-        <div id="referee">settled 6 / executing 0</div>
-        <div id="tick">tick 1 — idle</div>
-      </div>
-    </div>
+    <main id="inn">
+      <header>
+        <div>
+          <p class="eyebrow">A LITTLE HIVE EXPERIMENT</p>
+          <h1>Goblin Bed <i>&</i> Breakfast</h1>
+        </div>
+        <div class="inn-sign">
+          <span class="sign-mark">✦</span
+          ><span>THE MOSS & LADLE<small>A warm bowl. A soft bed.</small></span>
+        </div>
+      </header>
+      <section id="game" aria-label="Isometric goblin inn">
+        <div class="scene-top">
+          <span class="location"
+            >THE COMMON ROOM <span>·</span> EARLY EVENING</span
+          ><span id="feed">FAKE SHIITAKE · arrivals coming next</span>
+        </div>
+        <div id="stage"><div id="loading">Lighting the hearth…</div></div>
+        <div class="scene-bottom">
+          <span id="notice" role="status"
+            >Click the goblin to select your innkeeper.</span
+          ><span id="score">0 happy guests</span>
+        </div>
+      </section>
+      <footer>
+        <button
+          id="select"
+          class="portrait"
+          aria-label="Select Pip the innkeeper"
+        >
+          <span class="portrait-icon">♟</span
+          ><span><strong>Pip</strong><small>YOUR INNKEEPER</small></span>
+        </button>
+        <div class="task-copy">
+          <strong id="activity">A quiet moment by the fire</strong
+          ><span id="hint">Select Pip, then choose something in the room.</span>
+        </div>
+        <div id="actions">
+          <button id="task" disabled>Stir the pot <span>↗</span></button>
+        </div>
+        <div class="controls">
+          <button id="pause" aria-label="Pause">Ⅱ</button
+          ><button id="reset" aria-label="Reset inn">↻</button>
+        </div>
+      </footer>
+      <p class="instructions">
+        SELECT AN INNKEEPER <b>→</b> CLICK A STATION OR GUEST <b>→</b> GIVE A
+        TASK <span>They’ll find their own way.</span>
+      </p>
+    </main>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

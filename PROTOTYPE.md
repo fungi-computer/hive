@@ -44,9 +44,19 @@ asset editor, general procedural architecture system or bake service is not a
 prerequisite. Exact tile/camera numbers must earn their choice in the rendered
 scene rather than copying another game's recipe blindly.
 
-Prefer one straightforward deterministic simulation step over plain data,
-separate from presentation. Seeded guest events and recorded player commands
-should be reproducible. Renderer frame timing must not become order truth.
+Levi's latest correction: **the loop uses [mafik/libcolony](https://github.com/mafik/libcolony)
+and the useful existing Hive decisions.** This selected C++/browser-WASM library
+owns task assignment through `Module.optimize(assignments)`; it does not own
+gameplay state, movement, animation or the fake guest feed. Read its README,
+public wrapper and example; pin the browser release and prove the actual API
+before integrating. Explicit player commands constrain eligible assignments.
+No replacement optimizer or speculative task framework. This requirement
+supersedes the earlier suggestion to author a replacement plain simulation.
+The historical user selection is recorded near the opening of retained
+`plans/briefs/livelyledger-quorum-interview.md`; the original URL is in
+`plans/briefs/king-livedledger.md` under the read-only historical Botanical tree.
+Seeded guest events and recorded player commands should be reproducible.
+Renderer frame timing must not become order truth.
 Choose the smallest navigation that actually routes the pawn around the room's
 furniture. Inspect maintained libraries' real interfaces before adopting them.
 There is no requirement to add an ECS framework, generic task scheduler, new
@@ -58,6 +68,13 @@ colony-wide labor system. Future growth should not obstruct a playable room.
 - Repository: `/home/levi/src/hive`.
 - Branch: `feat/goblin-bed-and-breakfast-mvp`.
 - Retained upstream starting point: `8caba6cf0303437e7b6a2678d120f6587d812ec7`.
+- Retained `origin/worldbox-mvp`: `14cfa809480dec9b7f4586a9993354925345fa38`.
+  Its `ticker.js`, `sim.js`, `feed.js`, `tables.js`, `date.js`, `world.js`,
+  `glade.js` and tests supply useful fixed-step/feed/render separation, seeded
+  behavior and invariants. Neither Hive snapshot actually integrated libcolony.
+  Inspect with `git show`; retain only useful bytes without switching/resetting
+  this branch. Calendar/prosperity/world growth and obsolete visual rules are
+  outside this small inn.
 - Read `package.json`, `index.html`, and all of `src/main.js` yourself. The
   existing path is index.html -> main.js -> Pixi scene -> synthetic schedule ->
   tween callbacks. It has no real game/task model, and calls `.map` on numeric
@@ -65,8 +82,16 @@ colony-wide labor system. Future growth should not obstruct a playable room.
   game to that broken demo. Original bytes remain in Git.
 - You own this clone's game source, manifest/lock, local prototype docs and
   original assets. Do not edit Botanical-next, its worktrees, Wiki, PR or shared
-  manifests. Local feature-branch commits are authorized; push/publication and
-  remote deployment are not part of this handoff.
+  manifests. Levi subsequently authorized committing and pushing exactly
+  `feat/goblin-bed-and-breakfast-mvp` and publishing its static playable branch
+  preview after the first candidate review. Ordinary preview refreshes are then
+  authorized. Deliver a stable branch URL and a small native deploy command.
+  No merge to main, production cutover, model services or purchased resources.
+  Cloudflare CLI authentication is verified; the prototype owner now owns
+  initial and subsequent native static preview deployment to `fungi-goblin-bnb`,
+  preview `goblin-mvp`. Use the already-authorized private CLI environment in
+  the subprocess; never inspect/copy credential values or commit their path.
+  No infrastructure framework or CI workflow is needed.
 - Use the repo's ordinary npm/Vite tooling, with only demonstrated dependencies.
   Choose a free local loopback port; don't disrupt another preview. Browser
   recordings and scratch artifacts live under ignored `.botanical/`.

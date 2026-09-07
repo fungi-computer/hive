@@ -1,222 +1,226 @@
-// hive POC — plain Pixi.js + Vite. Colored squares only.
-// Two states, and only two: SETTLED (sitting in the party group) / EXECUTING (beside a tree).
-// Deterministic in-page ticker emulating BirdDog (POC only, wired to nothing real).
+import {
+  Application,
+  Sprite,
+  Container,
+  Graphics,
+  Rectangle,
+  Text,
+} from "pixi.js";
+import { bakeArt, project } from "./art.js";
+import { loadColony } from "./colony.js";
+import { createInn, step, HEARTH, TABLE, PREP_TICKS } from "./inn.js";
+import { createTicker, push } from "./ticker.js";
+import "./style.css";
 
-import { Application, Graphics } from "pixi.js";
-
-// ---------------------------------------------------------------- constants
-const GLADE = 0x2f6b3f; // the empty glade is the canvas background
-const WIDTH = 960;
-const HEIGHT = 600;
-
-const PARTY_SIZE = 6;
-const COLONIST_SIZE = 26;
-const COLONIST_COLORS = [
-  0xff5b4d, // red
-  0x4da6ff, // blue
-  0xffd23f, // yellow
-  0xb06aff, // purple
-  0xff8c3b, // orange
-  0x3fe0d0, // cyan
-];
-
-const TREE_COUNT = 8;
-const TREE_SIZE = 34;
-const TREE_COLOR = 0x155c31; // darker green than the glade
-
-const TICK_MS = 1000; // one tick event per second
-const WALK_MS = 700; // how long a square takes to move
-const DWELL = 3; // a dispatched colonist stands by its tree for 3 ticks
-const N_TASKS = 14; // tasks per schedule cycle
-const SEED = 42;
-
-// ---------------------------------------------------------------- helpers
-// mulberry32 — seeded PRNG so every load plays the exact same schedule.
-function mulberry32(a) {
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function square(size, color) {
-  const g = new Graphics();
-  g.rect(-size / 2, -size / 2, size, size).fill(color);
-  return g;
-}
-
-// ---------------------------------------------------------------- app / glade
+const $ = (selector) => document.querySelector(selector);
+const [art, colony] = await Promise.all([bakeArt(), loadColony()]);
 const app = new Application();
 await app.init({
-  width: WIDTH,
-  height: HEIGHT,
-  background: GLADE,
+  width: 480,
+  height: 320,
+  background: 0x293931,
   antialias: false,
+  resolution: 1,
+  preference: "webgl",
 });
-document.getElementById("stage").prepend(app.canvas);
-
-// ---------------------------------------------------------------- trees
-// Fixed scattered squares (kept clear of the party area and canvas edges).
-const TREES = [
-  { x: 90, y: 110 },
-  { x: 262, y: 74 },
-  { x: 520, y: 96 },
-  { x: 852, y: 96 },
-  { x: 744, y: 232 },
-  { x: 888, y: 384 },
-  { x: 736, y: 500 },
-  { x: 470, y: 524 },
-];
-const treeSquares = TREES.map((t) => {
-  const s = square(TREE_SIZE, TREE_COLOR);
-  s.position.set(t.x, t.y);
-  app.stage.addChild(s);
-  return s;
+$("#stage").append(app.canvas);
+$("#loading").remove();
+app.stage.addChild(new Sprite(art.room));
+const routeView = new Graphics();
+app.stage.addChild(routeView);
+const bodies = new Container();
+bodies.sortableChildren = true;
+app.stage.addChild(bodies);
+const table = new Sprite(art.table);
+table.anchor.set(art.anchor.x, art.anchor.y);
+const tp = project(TABLE.x, TABLE.z);
+table.position.set(tp.x, tp.y);
+table.zIndex = tp.y;
+bodies.addChild(table);
+const pawn = new Container();
+bodies.addChild(pawn);
+pawn.addChild(
+  new Graphics().ellipse(0, 0, 10, 4).fill({ color: 0x17201c, alpha: 0.3 }),
+);
+const ring = new Graphics()
+  .ellipse(0, 0, 14, 7)
+  .stroke({ width: 1, color: 0xe9cf81 });
+pawn.addChild(ring);
+const sprite = new Sprite(art.pawn.keeper.idle[0][0]);
+sprite.anchor.set(art.anchor.x, art.anchor.y);
+pawn.addChild(sprite);
+pawn.eventMode = "static";
+pawn.cursor = "pointer";
+pawn.hitArea = new Rectangle(-23, -50, 46, 57);
+const label = new Text({
+  text: "PIP",
+  style: {
+    fontFamily: "sans-serif",
+    fontSize: 7,
+    fill: 0xf4db94,
+    letterSpacing: 1,
+  },
 });
-
-// ---------------------------------------------------------------- party
-// A group of colonist squares sitting together in a small cluster.
-const GAP = 40;
-const groupX = 168; // party cluster center
-const groupY = 436;
-const homes = PARTY_SIZE.map((_, i) => {
-  const col = i % 3;
-  const row = Math.floor(i / 3);
-  return {
-    x: groupX + (col - 1) * GAP,
-    y: groupY + (row - 0.5) * GAP,
-  };
-});
-
-const colonists = PARTY_SIZE.map((_, i) => {
-  const gfx = square(COLONIST_SIZE, COLONIST_COLORS[i]);
-  gfx.position.set(homes[i].x, homes[i].y);
-  app.stage.addChild(gfx);
-  return {
-    id: i,
-    gfx,
-    state: "SETTLED", // the only two states: "SETTLED" | "EXECUTING"
-    tree: -1, // tree index when EXECUTING
-    busy: false, // an in-flight walk is happening
-  };
-});
-
-// Beside-position: stand just to the left of the tree square.
-function beside(treeIndex) {
-  const t = TREES[treeIndex];
-  return {
-    x: t.x - (TREE_SIZE / 2 + COLONIST_SIZE / 2 + 8),
-    y: t.y,
-  };
+label.anchor.set(0.5);
+label.y = -55;
+pawn.addChild(label);
+const workBar = new Graphics();
+pawn.addChild(workBar);
+const hearthPoint = project(1, 0.65, 1.45);
+const hearth = new Graphics()
+  .ellipse(hearthPoint.x, hearthPoint.y, 26, 15)
+  .fill({ color: 0xf4cf75, alpha: 0.001 });
+hearth.eventMode = "static";
+hearth.cursor = "pointer";
+app.stage.addChild(hearth);
+const steam = new Graphics();
+app.stage.addChild(steam);
+let inn = createInn(),
+  clock = createTicker(),
+  selected = false,
+  pending = [];
+function select() {
+  selected = true;
+  inn.notice = "Pip selected. Click the hearth or choose Prepare soup.";
+  render();
 }
-
-// ---------------------------------------------------------------- schedule
-// Deterministic: a seeded RNG builds the same dispatch/return script every
-// load. Tick N dispatches a colonist to a tree; a return event at tick N+3
-// sends the same square back to the group.
-const rand = mulberry32(SEED);
-const eventsByTick = new Map();
-let cursor = 1;
-for (let k = 0; k < N_TASKS; k++) {
-  const ci = k % PARTY_SIZE; // round-robin colonist pick
-  const ti = Math.floor(rand() * TREE_COUNT); // seeded tree pick
-  const push = (tick, ev) => {
-    if (!eventsByTick.has(tick)) eventsByTick.set(tick, []);
-    eventsByTick.get(tick).push(ev);
-  };
-  push(cursor, { kind: "dispatch", colonist: ci, tree: ti });
-  push(cursor + DWELL, { kind: "return", colonist: ci });
-  cursor += 1;
-}
-const TOTAL_TICKS = cursor - 1 + DWELL; // schedule loops forever after this
-
-// ---------------------------------------------------------------- motions
-function tweenTo(colonist, toX, toY, ms, onDone) {
-  const fromX = colonist.gfx.x;
-  const fromY = colonist.gfx.y;
-  let t = 0;
-  const step = (ticker) => {
-    t += ticker.deltaMS;
-    const k = Math.min(t / ms, 1);
-    colonist.gfx.x = fromX + (toX - fromX) * k;
-    colonist.gfx.y = fromY + (toY - fromY) * k;
-    if (k >= 1) {
-      app.ticker.remove(step);
-      colonist.busy = false;
-      onDone();
-    }
-  };
-  colonist.busy = true;
-  app.ticker.add(step);
-}
-
-// ---------------------------------------------------------------- referee (no secrets)
-const refereeEl = document.getElementById("referee");
-const tickerEl = document.getElementById("tick");
-let lastEvent = "idle";
-
-function updateReferee() {
-  let settled = 0;
-  for (const c of colonists) if (c.state === "SETTLED") settled++;
-  const executing = PARTY_SIZE - settled;
-  refereeEl.textContent = `settled ${settled} / executing ${executing}`;
-}
-
-function applyEvent(ev) {
-  const c = colonists[ev.colonist];
-  if (ev.kind === "dispatch") {
-    // A tick event picks a colonist to execute → they move over and stand
-    // beside a tree. As of this moment they are NOT sitting with the group,
-    // so the two-state rule makes them EXECUTING until they sit back down.
-    c.state = "EXECUTING";
-    c.tree = ev.tree;
-    const target = beside(ev.tree);
-    lastEvent = `dispatch colonist ${c.id + 1} → tree ${ev.tree + 1}`;
-    tweenTo(c, target.x, target.y, WALK_MS, () => {});
-    updateReferee();
-  } else if (ev.kind === "return") {
-    // Completion: the same square comes back and sits with the group.
-    lastEvent = `colonist ${c.id + 1} returns to the party`;
-    tweenTo(c, homes[c.id].x, homes[c.id].y, WALK_MS, () => {
-      c.state = "SETTLED";
-      c.tree = -1;
-      updateReferee();
-    });
+pawn.on("pointertap", select);
+$("#select").onclick = select;
+function prepare() {
+  if (!selected) {
+    inn.notice = "Select Pip first, then give the hearth task.";
+    render();
+    return;
   }
+  if (!inn.paused && inn.keeper.mode === "idle" && !inn.keeper.carrying)
+    pending.push("prepare");
 }
-
-// ---------------------------------------------------------------- ticker (POC)
-let tickNumber = 0;
-setInterval(() => {
-  tickNumber += 1;
-  const n = ((tickNumber - 1) % TOTAL_TICKS) + 1; // loop the script forever
-  const evs = eventsByTick.get(n) || [];
-  for (const ev of evs) applyEvent(ev);
-  tickerEl.textContent = `tick ${tickNumber} — ${lastEvent}`;
-}, TICK_MS);
-
-updateReferee();
-
-// Debug handle so a headless smoke test can read the exact same state.
-window.__HIVEPOC = {
-  seed: SEED,
-  ticksPerLoop: TOTAL_TICKS,
-  colonists: colonists.map((c) => ({
-    id: c.id + 1,
-    state: c.state,
-    tree: c.tree + 1,
-    x: Math.round(c.gfx.x),
-    y: Math.round(c.gfx.y),
-  })),
-  get count() {
-    let settled = 0;
-    for (const c of colonists) if (c.state === "SETTLED") settled++;
-    return { settled, executing: PARTY_SIZE - settled };
+hearth.on("pointertap", prepare);
+$("#task").onclick = prepare;
+const portrait = document.createElement("canvas");
+portrait.width = 48;
+portrait.height = 50;
+portrait
+  .getContext("2d")
+  .drawImage(
+    art.pawn.keeper.idle[0][0].source.resource,
+    24,
+    20,
+    48,
+    50,
+    0,
+    0,
+    48,
+    50,
+  );
+$(".portrait-icon").innerHTML = `<img alt="Pip" src="${portrait.toDataURL()}">`;
+$("#pause").onclick = () => {
+  inn.paused = !inn.paused;
+  clock.acc = 0;
+  pending = [];
+  render();
+};
+$("#reset").onclick = () => {
+  inn = createInn();
+  clock = createTicker();
+  selected = false;
+  pending = [];
+  render();
+};
+document.addEventListener("visibilitychange", () => {
+  clock.acc = 0;
+  if (document.hidden) {
+    inn.paused = true;
+    pending = [];
+    render();
+  }
+});
+function render() {
+  const p = inn.keeper,
+    pos = project(p.x, p.z);
+  pawn.position.set(pos.x, pos.y);
+  pawn.zIndex = pos.y;
+  const pose = p.carrying
+    ? "carry"
+    : p.mode === "walk"
+      ? "walk"
+      : p.mode === "work"
+        ? "work"
+        : "idle";
+  const frames = art.pawn.keeper[pose][p.dir];
+  sprite.texture = frames[Math.floor(inn.tick / 3) % frames.length];
+  ring.visible = label.visible = selected;
+  routeView.clear();
+  if (selected && p.path.length) {
+    routeView.moveTo(pos.x, pos.y);
+    for (const point of p.path) {
+      const q = project(point.x, point.z);
+      routeView.lineTo(q.x, q.y);
+    }
+    routeView.stroke({ width: 1, color: 0xe5c777, alpha: 0.5 });
+  }
+  workBar.clear();
+  if (p.mode === "work") {
+    workBar.roundRect(-16, -48, 32, 4, 1).fill(0x253b2f);
+    workBar.rect(-15, -47, (30 * p.work) / PREP_TICKS, 2).fill(0xedd08a);
+  }
+  steam.clear();
+  if (p.mode === "work" || p.carrying)
+    for (let i = 0; i < 3; i++) {
+      const phase = (inn.tick + i * 12) % 35;
+      steam
+        .circle(
+          hearthPoint.x - 6 + i * 5 + Math.sin(phase * 0.2) * 2,
+          hearthPoint.y - 4 - phase * 0.55,
+          1.3,
+        )
+        .fill({ color: 0xf2e2b7, alpha: (1 - phase / 35) * 0.65 });
+    }
+  $("#select").classList.toggle("selected", selected);
+  $("#activity").textContent =
+    p.mode === "walk"
+      ? "Walking to the hearth"
+      : p.mode === "work"
+        ? "Preparing mushroom soup…"
+        : p.carrying
+          ? "A warm bowl, ready to serve"
+          : "A quiet moment by the fire";
+  $("#hint").textContent = p.carrying
+    ? "Reset the inn to cook again. Guest service is coming next."
+    : selected
+      ? "Pip follows your task and finds the route."
+      : "Select Pip, then choose something in the room.";
+  $("#notice").textContent = inn.paused
+    ? "Paused · the inn can wait."
+    : inn.notice;
+  $("#task").textContent =
+    p.mode === "work"
+      ? "Stirring…"
+      : p.carrying
+        ? "Soup ready ✓"
+        : "Prepare soup ↗";
+  $("#task").disabled =
+    !selected || inn.paused || p.mode !== "idle" || p.carrying;
+  $("#pause").textContent = inn.paused ? "▶" : "Ⅱ";
+  $("#pause").setAttribute("aria-label", inn.paused ? "Resume" : "Pause");
+}
+app.ticker.maxFPS = 60;
+app.ticker.add((t) => {
+  if (!inn.paused) {
+    const count = push(clock, t.deltaMS);
+    for (let i = 0; i < count; i++) {
+      step(inn, colony, pending);
+      pending = [];
+    }
+  }
+  render();
+});
+render();
+window.__GOBLIN = {
+  artReady: true,
+  get state() {
+    return structuredClone(inn);
   },
-  get tick() {
-    return tickNumber;
-  },
+  project,
+  colony,
 };
