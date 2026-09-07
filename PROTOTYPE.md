@@ -1,5 +1,76 @@
 # Goblin Bed & Breakfast — survival colony prototype
 
+## Active polish goal (Levi, 2026-09-07)
+
+Levi requests a pacing goal and authorizes polishing the game into a full-screen
+colony experience. The persistent goal is **a full-viewport, two-person home**:
+recruit a visible outsider, select either person, issue direct or queued orders,
+and have both share real chopping, hauling, construction and rest. Replace the
+surrounding page chrome with a compact roster, build controls and contextual
+character/target windows over the world. Preserve pixel proportions; resizing
+must transform camera, picking, placement and labels together. Browser fullscreen
+is an optional user action; the ordinary page itself fills the viewport.
+
+The first rendered checkpoint is the new game surface, a readable Rowan label,
+character inspection and an actual contextual chop command reaching earned wood.
+The joined milestone adds stable actor/job identities, explicit order scope,
+scarce-material claims, recruitment and Bramble's dismissible outcome-based
+guidance. Check real input, keyboard focus, narrow layout, cancellation/refunds,
+pause/reset/replay, built dist and hosted parity. Root reviews product/art;
+Astra owns source/art and preview delivery with a bounded source review.
+
+Levi explicitly requests periodic preview refreshes so he can play and give
+feedback during this goal. Publish coherent playable checkpoints on the SAME
+authorized preview, beginning with the new controls before recruitment is done.
+Report the exact pushed commit, changes and suggested interactions each time;
+prove the built candidate and hosted interaction. Do not wait for the entire
+goal to finish or request repeated deployment permission. Initial source/art
+review and later final acceptance remain scoped to what was actually reviewed.
+
+An upstairs bedroom remains the next playable milestone. Levi also selects
+Combat Extended as a research reference for later physical projectiles: crafted
+arrows, aim/trajectory and collision with bodies/cover. This does not adopt its
+code/assets or expand this goal into combat, multiplayer or a world framework.
+The existing static-preview custody and all no-main/production/backend/purchase
+limits remain in force.
+
+Levi correctly challenged libcolony's release memory size. Its pinned source
+uses the Hungarian algorithm and hard-codes a 327,680,000-byte initial memory
+with a 160,000,000-byte stack inside it. A 16 MiB source build with a 1 MiB stack
+has passed the actual five-person/100-task API in local workerd; browser/current
+game integration and hosted deployment of that build have not yet been proved.
+Preserve the actual selected algorithm/API and record toolchain/build provenance.
+Do not replace the optimizer or call local runtime success hosted memory proof.
+
+## Current architecture direction (Levi, 2026-09-07)
+
+The home demo at `cb80c55fe9932c2e01c7570ed855266d03cb9695` is fully accepted
+for its bounded slice. Levi authorized the architecture pass preceding the polish
+goal above. [ARCHITECTURE.md](ARCHITECTURE.md) records the proposed
+source changes, order of work, focused evidence and unresolved hosting fit.
+That pass changed planning documents, not the accepted game or preview.
+
+Near-term foundations must accommodate roughly five controlled people, multiple
+parties, caravans and chunk-loaded expanding terrain. The intended multiplayer
+experience is a wife's caravan visiting her husband's persistent homeland with
+the same people, possessions and learned spells. Stable identity, command scope,
+resource claims and world locations now belong in the foundation plan; they are
+not deferred merely because the accepted home has one pawn.
+
+Levi also requests a readable ROWAN name label above the character, Bramble
+guiding early play, and an early resource-built second floor with stairs and a
+bed that a person can reach, construct and use. Current ground-only placement
+and navigation do not implement that behavior. Tutorial guidance should observe
+real outcomes; it is not permission for an LLM/chat integration.
+
+Cloudflare Durable Objects are a proposed future simulation/storage host.
+Terrain chunks, active simulation regions and camera visibility remain separate.
+Background world progress, paid timers and AI command issuers are product
+directions to plan, not authorization to deploy a backend, billing or model
+services. Real Shiitake remains future storyteller input; SSE timing is not
+simulation time. Preserve the actual libcolony owner and original Three-to-Pixi
+art. No main merge, purchased resources or Botanical runtime edits.
+
 ## Active home demo (Levi, 2026-09-07)
 
 Levi personally approved the study at `755f873cdc7ad499716a54212952c8253f6b566a`
