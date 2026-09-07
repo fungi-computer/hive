@@ -1,7 +1,7 @@
 import type { HerbStage } from "./model.ts";
 
 export const SOW_TICKS = 20;
-export const HERB_GROWING_TICKS = 80;
+const HERB_GROWING_TICKS = 80;
 export const HERB_READY_TICKS = 240;
 export const HARVEST_TICKS = 20;
 
