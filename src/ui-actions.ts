@@ -16,13 +16,22 @@ export type UiCommand =
     }
   | { kind: "rest"; actors?: string[] }
   | { kind: "routine"; enabled: boolean; actors?: string[] }
+  | {
+      kind: "work";
+      work: "chop" | "haul" | "build";
+      enabled: boolean;
+      actors: string[];
+    }
   | { kind: "cancel" | "next"; job: string };
 
 export type UiAction =
   | { kind: "select"; actor: string; toggle?: boolean }
   | { kind: "select-many"; ids: string[] }
   | { kind: "tree"; id: string; point: { x: number; y: number } }
-  | { kind: "panel"; panel: "build" | "orders" | "menu" | "character" }
+  | {
+      kind: "panel";
+      panel: "build" | "work" | "orders" | "menu" | "character";
+    }
   | {
       kind:
         | "close-target"

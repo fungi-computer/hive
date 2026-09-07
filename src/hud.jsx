@@ -8,8 +8,8 @@ import { createRoot } from "react-dom/client";
 import { atom, createStore, Provider, useAtomValue } from "jotai";
 import { assign, createActor, createMachine } from "xstate";
 import { Button } from "@fungi.computer/caps/components/button";
+import { Card } from "@fungi.computer/caps/components/card";
 import { Checkbox } from "@fungi.computer/caps/components/checkbox";
-import "@fungi.computer/stipe/styles.css";
 import "@fungi.computer/caps/styles.css";
 import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { commandProblem } from "./orders.ts";
@@ -139,6 +139,9 @@ function actorFact(actor) {
     mode: actor.mode,
     rest: actor.rest,
     routine: actor.routine,
+    chopAllowed: actor.allowedWork.chop,
+    haulAllowed: actor.allowedWork.haul,
+    buildAllowed: actor.allowedWork.build,
     cargoAmount: actor.cargo?.amount ?? 0,
     activeJobId: actor.task?.job ?? actor.cargo?.job ?? null,
     x: actor.x,
@@ -447,11 +450,18 @@ function Key({ model, name }) {
 
 function Panel({ title, name, send, children, className = "" }) {
   return (
-    <section className={`window ${className}`} aria-label={name || title}>
+    <Card
+      variant="outline"
+      role="region"
+      className={`window ${className}`}
+      aria-label={name || title}
+    >
       <div className="window-heading">
         <h2>{title}</h2>
         <Button
           className="close"
+          variant="ghost"
+          size="icon"
           aria-label={`Close ${name || title}`}
           onClick={() => send({ kind: "close" })}
         >
@@ -459,7 +469,7 @@ function Panel({ title, name, send, children, className = "" }) {
         </Button>
       </div>
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -476,6 +486,8 @@ function Orders({ model: m, send }) {
             <Button
               data-action="next"
               data-job={job.id}
+              variant="ghost"
+              size="icon"
               aria-label={`Move ${job.title} next`}
               onClick={() =>
                 send({
@@ -489,6 +501,8 @@ function Orders({ model: m, send }) {
             <Button
               data-action="cancel"
               data-job={job.id}
+              variant="ghost"
+              size="icon"
               aria-label={`Cancel ${job.title}`}
               onClick={() =>
                 send({
@@ -507,6 +521,69 @@ function Orders({ model: m, send }) {
         </li>
       )}
     </ol>
+  );
+}
+
+const WORK_TYPES = ["chop", "haul", "build"];
+
+function Work({ model: m, send }) {
+  return (
+    <Panel
+      title="Work priorities"
+      name="Work"
+      send={send}
+      className="work-window"
+    >
+      <p className="muted">
+        Choose the colony work each person may take automatically. A direct
+        Prioritize or Queue order can still override these preferences.
+      </p>
+      <table className="work-grid">
+        <caption className="sr-only">Automatic work by home member</caption>
+        <thead>
+          <tr>
+            <th scope="col">Person</th>
+            {WORK_TYPES.map((work) => (
+              <th key={work} scope="col">
+                {work[0].toUpperCase() + work.slice(1)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {m.roster.map((person) => (
+            <tr key={person.id}>
+              <th scope="row">{person.name}</th>
+              {WORK_TYPES.map((work) => (
+                <td key={work}>
+                  <Checkbox
+                    id={`work-${person.id}-${work}`}
+                    type="checkbox"
+                    checked={person[`${work}Allowed`]}
+                    aria-label={`${person.name} may ${work}`}
+                    onChange={(event) =>
+                      send({
+                        kind: "command",
+                        command: {
+                          kind: "work",
+                          work,
+                          enabled: event.target.checked,
+                          actors: [person.id],
+                        },
+                      })
+                    }
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="muted">
+        Haul covers pickup and delivery. Build covers work at a supplied site. A
+        carried log is always delivered safely.
+      </p>
+    </Panel>
   );
 }
 
@@ -546,7 +623,9 @@ function Character({ model: m, send, portraits }) {
           >
             Recruit Sedge
           </Button>
-          <Button onClick={() => send({ kind: "focus" })}>Find Sedge</Button>
+          <Button variant="secondary" onClick={() => send({ kind: "focus" })}>
+            Find Sedge
+          </Button>
         </div>
       ) : (
         <>
@@ -568,6 +647,7 @@ function Character({ model: m, send, portraits }) {
           <div className="button-row">
             <Button
               id="rest"
+              variant="primary"
               disabled={!!m.restProblem}
               onClick={() =>
                 send({ kind: "command", command: { kind: "rest" } })
@@ -575,7 +655,7 @@ function Character({ model: m, send, portraits }) {
             >
               Rest in bedroll
             </Button>
-            <Button onClick={() => send({ kind: "focus" })}>
+            <Button variant="secondary" onClick={() => send({ kind: "focus" })}>
               Center selection
             </Button>
           </div>
@@ -597,6 +677,8 @@ function Character({ model: m, send, portraits }) {
           </label>
           <Button
             className="text-button"
+            variant="ghost"
+            size="sm"
             onClick={() => send({ kind: "panel", panel: "orders" })}
           >
             Work orders <span>{m.orders.length} →</span>
@@ -619,6 +701,7 @@ function Build({ model: m, send }) {
         <Button
           id="chop-tool"
           variant="secondary"
+          size="sm"
           aria-pressed={m.tool === "chop"}
           onClick={() =>
             send({ kind: "tool", tool: m.tool === "chop" ? null : "chop" })
@@ -629,7 +712,12 @@ function Build({ model: m, send }) {
         {m.tool === "chop" && (
           <>
             <small>{m.designationTargets.length} oak target(s) previewed</small>
-            <Button id="cancel-chop" onClick={() => send({ kind: "close" })}>
+            <Button
+              id="cancel-chop"
+              variant="ghost"
+              size="sm"
+              onClick={() => send({ kind: "close" })}
+            >
               Cancel
             </Button>
           </>
@@ -640,6 +728,7 @@ function Build({ model: m, send }) {
           <Button
             key={type}
             data-build={type}
+            variant={m.tool === type ? "secondary" : "outline"}
             aria-pressed={m.tool === type}
             onClick={() => send({ kind: "tool", tool: type })}
           >
@@ -657,6 +746,8 @@ function Build({ model: m, send }) {
       <div className="button-row">
         <Button
           id="rotate"
+          variant="outline"
+          size="sm"
           disabled={!m.tool}
           onClick={() => send({ kind: "rotate" })}
         >
@@ -664,6 +755,8 @@ function Build({ model: m, send }) {
         </Button>
         <Button
           id="task"
+          variant="primary"
+          size="sm"
           disabled={!m.tool}
           onClick={() => send({ kind: "finish-placement" })}
         >
@@ -686,7 +779,9 @@ function Target({ model: m, send }) {
     ? "Select one or more home members for a personal order."
     : targetProblem;
   return (
-    <section
+    <Card
+      variant="outline"
+      role="region"
       className="window target-window"
       aria-label="Oak actions"
       style={{
@@ -698,6 +793,8 @@ function Target({ model: m, send }) {
         <h2>{m.tree.felled ? "Oak stump" : "Oak tree"}</h2>
         <Button
           className="close"
+          variant="ghost"
+          size="icon"
           aria-label="Close oak actions"
           onClick={() => send({ kind: "close-target" })}
         >
@@ -730,7 +827,7 @@ function Target({ model: m, send }) {
       <div className="button-row">
         <Button
           id="chop-now"
-          variant="secondary"
+          variant="primary"
           disabled={!!personalProblem}
           onClick={() =>
             send({
@@ -748,7 +845,7 @@ function Target({ model: m, send }) {
         </Button>
         <Button
           id="chop-queued"
-          variant="secondary"
+          variant="outline"
           disabled={!!personalProblem}
           onClick={() =>
             send({
@@ -768,7 +865,7 @@ function Target({ model: m, send }) {
       {personalProblem && (
         <small className="action-reason">{personalProblem}</small>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -782,12 +879,18 @@ function Menu({ model: m, send }) {
     >
       <p className="muted">Stay useful. Stay off the menu.</p>
       <div className="menu-actions">
-        <Button onClick={() => send({ kind: "fullscreen" })}>
+        <Button variant="outline" onClick={() => send({ kind: "fullscreen" })}>
           Browser fullscreen
         </Button>
-        <Button onClick={() => send({ kind: "help" })}>Bramble's advice</Button>
+        <Button variant="outline" onClick={() => send({ kind: "help" })}>
+          Bramble's advice
+        </Button>
         <a href="/study">Character study ↗</a>
-        <Button id="reset" onClick={() => send({ kind: "reset" })}>
+        <Button
+          id="reset"
+          variant="destructive"
+          onClick={() => send({ kind: "reset" })}
+        >
           Start a fresh clearing
         </Button>
       </div>
@@ -858,6 +961,8 @@ function Hud({ machineSnapshot, send, portraits }) {
       <div className="time-controls">
         <Button
           id="pause"
+          variant="ghost"
+          size="icon"
           aria-label={m.paused ? "Resume" : "Pause"}
           onClick={() => send({ kind: "pause" })}
         >
@@ -865,6 +970,8 @@ function Hud({ machineSnapshot, send, portraits }) {
         </Button>
         <Button
           id="speed"
+          variant="ghost"
+          size="sm"
           aria-label="Change simulation speed"
           onClick={() => send({ kind: "speed" })}
         >
@@ -876,6 +983,8 @@ function Hud({ machineSnapshot, send, portraits }) {
           <Button
             key={person.id}
             id={`select-${person.id}`}
+            variant="ghost"
+            size="sm"
             aria-label={`Select ${person.name}`}
             aria-pressed={m.selectedIds.includes(person.id)}
             onClick={(event) =>
@@ -905,6 +1014,8 @@ function Hud({ machineSnapshot, send, portraits }) {
       <div className="view-controls">
         <Button
           aria-label="Zoom out"
+          variant="ghost"
+          size="icon"
           disabled={m.zoom === 1}
           onClick={() => send({ kind: "zoom", delta: -1 })}
         >
@@ -913,12 +1024,16 @@ function Hud({ machineSnapshot, send, portraits }) {
         <span>{m.zoom}×</span>
         <Button
           aria-label="Zoom in"
+          variant="ghost"
+          size="icon"
           disabled={m.zoom === 4}
           onClick={() => send({ kind: "zoom", delta: 1 })}
         >
           +
         </Button>
         <Button
+          variant="outline"
+          size="sm"
           aria-pressed={m.panMode}
           onClick={() => send({ kind: "pan-mode" })}
         >
@@ -929,6 +1044,7 @@ function Hud({ machineSnapshot, send, portraits }) {
         <Character model={m} send={send} portraits={portraits} />
       )}
       {m.panel === "build" && <Build model={m} send={send} />}
+      {m.panel === "work" && <Work model={m} send={send} />}
       {m.panel === "orders" && (
         <Panel
           title="Work orders"
@@ -945,7 +1061,9 @@ function Hud({ machineSnapshot, send, portraits }) {
       {m.panel === "menu" && <Menu model={m} send={send} />}
       <Target model={m} send={send} />
       {m.help && (
-        <aside
+        <Card
+          role="complementary"
+          variant="outline"
           className={`bramble-advice ${m.panel ? "with-panel" : ""}`}
           aria-label="Bramble's advice"
         >
@@ -956,12 +1074,14 @@ function Hud({ machineSnapshot, send, portraits }) {
           </div>
           <Button
             className="close"
+            variant="ghost"
+            size="icon"
             aria-label="Dismiss Bramble's advice"
             onClick={() => send({ kind: "help" })}
           >
             ×
           </Button>
-        </aside>
+        </Card>
       )}
       <div className="status-line">
         <span id="notice" role="status">
@@ -971,14 +1091,31 @@ function Hud({ machineSnapshot, send, portraits }) {
           {m.wood} wood · {m.carry} carried
         </span>
       </div>
-      <nav className="command-bar" aria-label="Colony controls">
+      <Card
+        role="navigation"
+        variant="outline"
+        className="command-bar"
+        aria-label="Colony controls"
+      >
         <Button
+          variant={m.panel === "build" ? "secondary" : "outline"}
+          size="sm"
           aria-pressed={m.panel === "build"}
           onClick={() => send({ kind: "panel", panel: "build" })}
         >
           Build <Key model={m} name="panel.build" />
         </Button>
         <Button
+          variant={m.panel === "work" ? "secondary" : "outline"}
+          size="sm"
+          aria-pressed={m.panel === "work"}
+          onClick={() => send({ kind: "panel", panel: "work" })}
+        >
+          Work
+        </Button>
+        <Button
+          variant={m.panel === "orders" ? "secondary" : "outline"}
+          size="sm"
           aria-pressed={m.panel === "orders"}
           onClick={() => send({ kind: "panel", panel: "orders" })}
         >
@@ -995,22 +1132,31 @@ function Hud({ machineSnapshot, send, portraits }) {
           Cutaway
         </label>
         <Button
+          variant="ghost"
+          size="sm"
           aria-label="Center on selection"
           onClick={() => send({ kind: "focus" })}
         >
           Center <Key model={m} name="camera.focus" />
         </Button>
-        <Button aria-pressed={m.help} onClick={() => send({ kind: "help" })}>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-pressed={m.help}
+          onClick={() => send({ kind: "help" })}
+        >
           Bramble
         </Button>
         <Button
+          variant="ghost"
+          size="icon"
           aria-label="Open game menu"
           aria-pressed={m.panel === "menu"}
           onClick={() => send({ kind: "panel", panel: "menu" })}
         >
           ☰
         </Button>
-      </nav>
+      </Card>
     </>
   );
 }
