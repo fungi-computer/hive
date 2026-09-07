@@ -1578,7 +1578,11 @@ export function createHud(host, art, effect) {
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
           ...value,
-          inspectedTarget: { kind: "tree", id: action.id, point: action.point },
+          inspectedTarget: {
+            kind: "tree",
+            id: action.id,
+            point: { x: action.point.x, y: action.point.y },
+          },
           panel: null,
           designationTargetIds: [],
         }));
@@ -1587,7 +1591,11 @@ export function createHud(host, art, effect) {
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
           ...value,
-          inspectedTarget: { kind: "herb", id: action.id, point: action.point },
+          inspectedTarget: {
+            kind: "herb",
+            id: action.id,
+            point: { x: action.point.x, y: action.point.y },
+          },
           panel: null,
           designationTargetIds: [],
         }));
@@ -1596,7 +1604,11 @@ export function createHud(host, art, effect) {
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
           ...value,
-          inspectedTarget: { kind: "site", id: action.id, point: action.point },
+          inspectedTarget: {
+            kind: "site",
+            id: action.id,
+            point: { x: action.point.x, y: action.point.y },
+          },
           panel: null,
           designationTargetIds: [],
         }));
