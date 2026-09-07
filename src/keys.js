@@ -65,7 +65,27 @@ export function createKeys(root, read, send, changed) {
       enabled: () => !!read().context && read().chopAllowed,
       action: () => ({
         kind: "command",
-        command: { kind: "chop", tree: read().tree },
+        command: {
+          kind: "chop",
+          tree: read().tree,
+          direct: true,
+          actors: [...read().selectedIds],
+        },
+      }),
+    },
+    {
+      name: "tree.chop-queued",
+      key: "shift+c",
+      title: "Queue selected oak",
+      enabled: () => !!read().context && read().chopAllowed,
+      action: () => ({
+        kind: "command",
+        command: {
+          kind: "chop",
+          tree: read().tree,
+          direct: false,
+          actors: [...read().selectedIds],
+        },
       }),
     },
     {

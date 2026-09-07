@@ -129,35 +129,47 @@ try {
 
   await openBuild();
   await page.locator("#chop-tool").click();
-  await dragCells([3, 3], [10, 4]);
-  const fixed = await ui();
-  assert.equal(fixed.phase, "fixed");
-  assert.deepEqual(fixed.designationTargetIds, ["oak-1", "oak-2"]);
+  const designationStart = await project(3, 3);
+  const designationEnd = await project(10, 4);
+  await page.mouse.move(designationStart.x, designationStart.y);
+  await page.mouse.down();
+  await page.mouse.move(designationEnd.x, designationEnd.y, { steps: 8 });
+  const preview = await ui();
+  assert.equal(preview.phase, "dragging");
+  assert.deepEqual(preview.designationTargetIds, ["oak-1", "oak-2"]);
+  await page.mouse.up();
   const unrelated = await project(12, 10);
   await page.mouse.move(unrelated.x, unrelated.y);
-  assert.deepEqual(
-    (await ui()).designationTargetIds,
-    fixed.designationTargetIds,
-  );
-
-  await page.locator("#commit-chop").evaluate((button) => {
-    button.click();
-    button.click();
-  });
   await wait(
     () =>
       window.__GOBLIN.state.jobs.filter((job) => job.kind === "chop").length ===
       2,
   );
+  await page.mouse.up();
+  await page.waitForTimeout(250);
   const designated = await state();
   assert.deepEqual(
     designated.jobs
       .filter((job) => job.kind === "chop")
       .map((job) => job.target),
-    fixed.designationTargetIds,
+    preview.designationTargetIds,
   );
-  assert.equal((await ui()).phase, "idle");
+  assert.equal(
+    designated.jobs.filter((job) => job.kind === "chop").length,
+    preview.designationTargetIds.length,
+  );
+  assert.equal((await ui()).phase, "ready");
+  assert.equal((await ui()).tool, "chop");
+  assert.deepEqual((await ui()).designationTargetIds, []);
   await screenshot("04-shared-rectangle-applied");
+
+  const jobsBeforeArmedOakCancel = (await state()).jobs.length;
+  const armedOak = await project(3, 8, 1.5);
+  await page.mouse.click(armedOak.x, armedOak.y, { button: "right" });
+  await page.waitForTimeout(250);
+  assert.equal((await ui()).phase, "idle");
+  assert.equal((await ui()).tool, null);
+  assert.equal((await state()).jobs.length, jobsBeforeArmedOakCancel);
 
   await openBuild();
   await page.locator("#chop-tool").click();
@@ -173,9 +185,8 @@ try {
 
   await openBuild();
   await page.locator("#chop-tool").click();
-  await dragCells([3, 8], [4, 10]);
-  assert.deepEqual((await ui()).designationTargetIds, ["oak-3"]);
-  await page.locator("#cancel-chop").click();
+  const cancelAt = await project(3, 8);
+  await page.mouse.click(cancelAt.x, cancelAt.y, { button: "right" });
   assert.equal((await ui()).phase, "idle");
   assert.deepEqual((await ui()).designationTargetIds, []);
 

@@ -68,14 +68,45 @@ try {
     }),
     { x: 5, z: 5, level: 0, direction: 1 },
   );
+  assert.deepEqual(
+    await page.evaluate(() => {
+      const selection = window.__GOBLIN.selection;
+      return {
+        tool: selection.tool,
+        phase: selection.phase,
+        direction: selection.direction,
+        hoverCell: selection.hoverCell,
+      };
+    }),
+    {
+      tool: "wall",
+      phase: "ready",
+      direction: 1,
+      hoverCell: { x: 5, z: 5, level: 0 },
+    },
+  );
 
-  await page.locator('[data-build="wall"]').click();
-  const start = await project(6, 5);
-  const end = await project(8, 5);
-  await page.mouse.move(start.x, start.y);
-  await page.mouse.down();
-  await page.mouse.move(end.x, end.y, { steps: 6 });
-  await page.mouse.up();
+  for (const x of [6, 7, 8]) {
+    const next = await project(x, 5);
+    await page.mouse.move(next.x, next.y);
+    assert.deepEqual(
+      await page.evaluate(() => window.__GOBLIN.selection.hoverCell),
+      { x, z: 5, level: 0 },
+    );
+    await page.mouse.click(next.x, next.y);
+    await page.waitForFunction(
+      (count) => window.__GOBLIN.state.sites.length === count,
+      x - 4,
+    );
+    assert.equal(
+      await page.evaluate(() => window.__GOBLIN.selection.tool),
+      "wall",
+    );
+    assert.equal(
+      await page.evaluate(() => window.__GOBLIN.selection.direction),
+      1,
+    );
+  }
   await page.waitForFunction(() => window.__GOBLIN.state.sites.length === 4);
   assert.deepEqual(
     await page.evaluate(() =>
@@ -87,10 +118,33 @@ try {
       [8, 5],
     ],
   );
+
+  const duplicate = await project(8, 5);
+  await page.mouse.click(duplicate.x, duplicate.y);
+  await page.waitForTimeout(250);
+  assert.equal((await page.evaluate(() => window.__GOBLIN.state.sites.length)), 4);
+  assert.equal(
+    await page.evaluate(() => window.__GOBLIN.selection.tool),
+    "wall",
+  );
+  assert.match(await page.locator("#notice").innerText(), /already|occupied/i);
+
+  await page.locator("#task").click();
   assert.equal(
     await page.evaluate(() => window.__GOBLIN.selection.phase),
     "idle",
   );
+  assert.equal(await page.evaluate(() => window.__GOBLIN.selection.tool), null);
+
+  await page.locator('[data-build="wall"]').click();
+  await page.keyboard.press("Escape");
+  assert.equal(await page.evaluate(() => window.__GOBLIN.selection.tool), null);
+
+  await page.locator('[data-build="wall"]').click();
+  const cancelAt = await project(10, 5);
+  await page.mouse.click(cancelAt.x, cancelAt.y, { button: "right" });
+  assert.equal(await page.evaluate(() => window.__GOBLIN.selection.tool), null);
+  assert.equal(await page.evaluate(() => window.__GOBLIN.state.sites.length), 4);
   assert.deepEqual(result.errors, []);
   result.success = true;
 } catch (error) {

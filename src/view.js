@@ -55,12 +55,17 @@ export function createView(app, world, camera, art, initial, input) {
     view.container.cursor = "pointer";
     view.container.hitArea = new Rectangle(-22, -62, 44, 66);
     view.container.on("pointerdown", (event) => event.stopPropagation());
-    const choose = (event) => {
+    const choose = (event, secondary = false) => {
       event.stopPropagation();
-      input.tree(tree.id, event.global);
+      input.tree(
+        tree.id,
+        event.global,
+        secondary,
+        !!(event.shiftKey || event.originalEvent?.shiftKey),
+      );
     };
     view.container.on("pointertap", choose);
-    view.container.on("rightclick", choose);
+    view.container.on("rightclick", (event) => choose(event, true));
     trees.set(tree.id, view);
   }
 

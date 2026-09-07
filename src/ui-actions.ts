@@ -41,6 +41,7 @@ export type UiAction =
     }
   | { kind: "tool"; tool: string | null }
   | { kind: "begin" | "move" | "end"; point: GesturePoint }
+  | { kind: "placement-result"; point: GesturePoint }
   | { kind: "set-designation"; ids: string[] }
   | { kind: "commit-designation" }
   | { kind: "commit-result"; accepted: number }
@@ -84,6 +85,7 @@ export function routeUiAction(
     case "begin":
     case "move":
     case "end":
+    case "placement-result":
     case "set-designation":
     case "commit-designation":
     case "commit-result":

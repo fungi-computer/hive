@@ -35,6 +35,14 @@ const clearGesture = assign(() => ({
   commitRequested: false,
 }));
 
+const keepToolReady = assign(({ context, event }) => ({
+  tool: context.tool,
+  gesture: null,
+  start: null,
+  end: event.point ?? context.end,
+  commitRequested: false,
+}));
+
 // This machine owns every tool/gesture phase. It has no simulation state,
 // actors, clocks, or timers; those remain in main.js and the typed core.
 export const toolMachine = createMachine({
@@ -105,17 +113,18 @@ export const toolMachine = createMachine({
     },
     fixed: {
       on: {
+        PLACED: { target: "ready", actions: keepToolReady },
         COMMIT: {
           actions: assign(() => ({ commitRequested: true })),
           guard: ({ context }) => !context.commitRequested,
         },
         COMMIT_RESULT: [
           {
-            target: "idle",
+            target: "ready",
             guard: ({ event }) => event.accepted > 0,
-            actions: clearGesture,
+            actions: keepToolReady,
           },
-          { actions: assign(() => ({ commitRequested: false })) },
+          { target: "ready", actions: keepToolReady },
         ],
       },
     },
@@ -214,6 +223,7 @@ function displayFacts(state, notice, speed, zoom, keys, previous) {
     reason: job.reason,
     routine: job.routine,
     actors: job.scope.actors ? [...job.scope.actors] : null,
+    party: job.scope.party,
   }));
   const sitesNext = state.sites.map((site) => ({
     id: site.id,
@@ -298,9 +308,11 @@ function orderModel(display, job) {
     title,
     active: active.length > 0,
     detail:
+      `${job.actors ? `Personal (${job.actors.map((id) => display.actors[id]?.name || id).join(" + ")})` : "Shared (home)"} · ` +
       (active.length
         ? `${active.map((actor) => actor.name).join(" + ")} · ${ACTIVITIES[active[0].mode]}`
-        : job.reason || "Ordered") + detail,
+        : job.reason || "Ordered") +
+      detail,
   };
 }
 
@@ -346,10 +358,23 @@ const rosterAtom = atom((get) => {
   const selected = selection.selectedIds
     .map((id) => facts.actors[id])
     .filter(Boolean);
+  const work = selected.map((actor) => {
+    const active = facts.jobs.find((job) => job.id === actor.activeJobId);
+    const next = facts.jobs.find(
+      (job) => job.id !== actor.activeJobId && job.actors?.includes(actor.id),
+    );
+    return {
+      id: actor.id,
+      name: actor.name,
+      now: active ? orderModel(facts, active).title : ACTIVITIES[actor.mode],
+      next: next ? orderModel(facts, next).title : "Nothing queued",
+    };
+  });
   return {
     roster: facts.homeIds.map((id) => facts.actors[id]).filter(Boolean),
     selectedIds: [...selection.selectedIds],
     selected,
+    work,
     focused:
       selected[0] || facts.actors[selection.inspectedId] || facts.actors.rowan,
     inspected: selection.inspectedId
@@ -527,6 +552,15 @@ function Character({ model: m, send, portraits }) {
         </div>
       ) : (
         <>
+          <div className="work-status" aria-label="Current and queued work">
+            {m.work.map((work) => (
+              <p key={work.id}>
+                <strong>{work.name}</strong>
+                <span>Now · {work.now}</span>
+                <span>Next · {work.next}</span>
+              </p>
+            ))}
+          </div>
           <div className="rest-meter">
             <label htmlFor="rest-meter">
               Rest <b>{Math.round(person.rest)}%</b>
@@ -599,15 +633,6 @@ function Build({ model: m, send }) {
         {m.tool === "chop" && (
           <>
             <small>{m.designationTargets.length} oak target(s) previewed</small>
-            <Button
-              id="commit-chop"
-              disabled={
-                m.phase !== "fixed" || !m.designationTargets.length || m.paused
-              }
-              onClick={() => send({ kind: "commit-designation" })}
-            >
-              Commit shared chop
-            </Button>
             <Button id="cancel-chop" onClick={() => send({ kind: "close" })}>
               Cancel
             </Button>
@@ -802,9 +827,9 @@ function Hud({ machineSnapshot, send, portraits }) {
       ? "Paused · the world waits."
       : tool === "chop"
         ? phase === "fixed"
-          ? "Preview fixed. Commit the shared Chop designation or cancel it."
+          ? "Submitting the shared Chop designation at the fixed step."
           : phase === "dragging"
-            ? "Drag across standing oaks; release to freeze the preview."
+            ? "Drag across standing oaks; release once to submit."
             : "Chop designation active · drag across one or more standing oaks."
         : status.notice,
   };
@@ -1158,6 +1183,9 @@ export function createHud(host, art, effect) {
         return;
       case "end":
         machine.send({ type: "END", point: action.point });
+        return;
+      case "placement-result":
+        machine.send({ type: "PLACED", point: action.point });
         return;
       case "set-designation":
         setSelection((value) =>

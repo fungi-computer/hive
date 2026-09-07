@@ -285,6 +285,26 @@ h2 {
 .rest-meter {
   margin: 13px 0;
 }
+.work-status {
+  display: grid;
+  gap: 5px;
+  margin: 12px 0;
+}
+.work-status p {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  margin: 0;
+  padding: 6px 7px;
+  background: #314034;
+  font-size: 10px;
+}
+.work-status strong {
+  grid-row: 1 / 3;
+  color: var(--gold);
+}
+.work-status span {
+  color: var(--muted);
+}
 .rest-meter label {
   display: flex;
   justify-content: space-between;

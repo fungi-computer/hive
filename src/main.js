@@ -268,14 +268,25 @@ async function startGame() {
     actor(id, pointAt, toggle) {
       hud.dispatch({ kind: "select", actor: id, toggle });
     },
-    tree(id, pointAt) {
+    tree(id, pointAt, secondary, queued) {
       const current = hud.view();
       if (
         current.tool ||
         current.panMode ||
         current.machine.context.gesture === "box"
-      )
+      ) {
+        if (secondary) hud.dispatch({ kind: "close" });
         return;
+      }
+      if (secondary && current.selectedIds.length) {
+        request({
+          kind: "chop",
+          tree: id,
+          direct: !queued,
+          actors: [...current.selectedIds],
+        });
+        return;
+      }
       hud.dispatch({ kind: "tree", id, point: pointAt });
     },
     down(at, screen) {
@@ -309,10 +320,16 @@ async function startGame() {
       const start = fixed.machine.context.start?.cell;
       const end = fixed.machine.context.end?.cell || start;
       if (fixed.tool === "chop") {
+        const ids = rectangleTargetIds(state, start, end);
         hud.dispatch({
           kind: "set-designation",
-          ids: rectangleTargetIds(state, start, end),
+          ids,
         });
+        hud.dispatch(
+          ids.length
+            ? { kind: "commit-designation" }
+            : { kind: "commit-result", accepted: 0 },
+        );
         return;
       }
       if (fixed.gesture === "box") {
@@ -343,7 +360,7 @@ async function startGame() {
           direction: fixed.direction,
           ...cell,
         });
-      hud.dispatch({ kind: "finish-placement" });
+      hud.dispatch({ kind: "placement-result", point: point(end, screen) });
     },
     ground() {
       const current = hud.view();
@@ -358,7 +375,16 @@ async function startGame() {
   });
 
   let cameraDrag = null;
-  app.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  app.canvas.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    const current = hud.view();
+    if (
+      current.tool ||
+      current.phase === "dragging" ||
+      current.phase === "fixed"
+    )
+      hud.dispatch({ kind: "close" });
+  });
   app.canvas.addEventListener(
     "pointerdown",
     (event) => {
