@@ -81,6 +81,7 @@ export const toolMachine = createMachine({
     },
     ready: {
       on: {
+        MOVE: { actions: assign(({ event }) => ({ end: event.point })) },
         BEGIN: {
           target: "dragging",
           actions: assign(({ context, event }) => ({
@@ -1278,6 +1279,9 @@ export function createHud(host, art, effect) {
       tool: snapshot.context.tool,
       phase: snapshot.value,
       gesture: snapshot.context.gesture,
+      hoverCell: snapshot.context.end?.cell
+        ? { ...snapshot.context.end.cell }
+        : null,
       machine: snapshot,
     };
   }

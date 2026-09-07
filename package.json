@@ -11,6 +11,7 @@
     "format": "prettier --write src scripts index.html study.html vite.config.js wrangler.jsonc",
     "prove": "node scripts/prove.mjs",
     "prove:controls": "node scripts/prove-controls.mjs",
+    "prove:build-hover": "node scripts/prove-build-hover.mjs",
     "prove:two-person": "node scripts/prove-two-person.mjs",
     "prove:study": "node scripts/prove-study.mjs",
     "typecheck": "tsc --noEmit"

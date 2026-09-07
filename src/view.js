@@ -1,7 +1,7 @@
 import { Sprite, Container, Graphics, Rectangle, Text } from "pixi.js";
 import { project, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.js";
-import { WATCHER } from "./world.js";
+import { WATCHER, inside } from "./world.js";
 import { CHOP_TICKS } from "./activity.ts";
 import { isNight } from "./routine.ts";
 import { createConstructionView } from "./construction-view.js";
@@ -135,7 +135,9 @@ export function createView(app, world, camera, art, initial, input) {
   app.stage.eventMode = "static";
   app.stage.hitArea = app.screen;
   app.stage.on("globalpointermove", (e) => {
-    input.move(camera.cell(e.global), e.global);
+    if (e.nativeEvent?.target !== app.canvas) return;
+    const cell = camera.cell(e.global);
+    if (inside(cell)) input.move(cell, e.global);
   });
   app.stage.on("pointerdown", (e) => {
     if (e.button === 0) input.down(camera.cell(e.global), e.global);

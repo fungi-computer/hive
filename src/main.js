@@ -287,8 +287,9 @@ async function startGame() {
     },
     move(at, screen) {
       const current = hud.view();
-      if (current.phase !== "dragging") return;
+      if (current.phase !== "dragging" && !current.tool) return;
       hud.dispatch({ kind: "move", point: point(at, screen) });
+      if (current.phase !== "dragging") return;
       const next = hud.view();
       if (next.tool === "chop")
         hud.dispatch({
