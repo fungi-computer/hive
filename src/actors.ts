@@ -17,6 +17,7 @@ export function actor(
     figure,
     rest: 80,
     routine: false,
+    allowedWork: { chop: true, haul: true, build: true },
     task: null,
     assignment: null,
     cargo: null,

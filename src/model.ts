@@ -5,6 +5,8 @@ export type PartyId = string;
 export type JobId = string;
 export type Cell = { x: number; z: number; level: number };
 export type BuildingKind = "wall" | "door" | "roof" | "bed";
+export type WorkType = "chop" | "haul" | "build";
+export type AllowedWork = Record<WorkType, boolean>;
 export type Scope = { party: PartyId; actors: ActorId[] | null };
 
 export type WorkCommand = Scope & { direct?: boolean } & (
@@ -16,6 +18,7 @@ export type Command =
   | WorkCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
+  | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
   | { kind: "recruit"; party: PartyId; actor: ActorId };
 
 type JobBase = {
@@ -58,6 +61,7 @@ export type Actor = Body & {
   figure: string;
   rest: number;
   routine: boolean;
+  allowedWork: AllowedWork;
   task: Activity | null;
   assignment: Assignment | null;
   cargo: { job: JobId; site: string; amount: number } | null;

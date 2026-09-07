@@ -10,6 +10,7 @@ import type {
   BuildJob,
   Job,
   Site,
+  WorkType,
 } from "./model.ts";
 import { inScope } from "./actors.ts";
 import { optimizeEligible } from "./matching.ts";
@@ -130,6 +131,27 @@ function jobOption(
     default:
       return assertNever(job);
   }
+}
+
+function automaticWork(activity: Activity): WorkType | null {
+  switch (activity.kind) {
+    case "chop":
+      return "chop";
+    case "pickup":
+      return "haul";
+    case "build":
+      return "build";
+    case "deliver":
+    case "sleep":
+      return null;
+    default:
+      return assertNever(activity);
+  }
+}
+
+function allowsAutomaticWork(person: Actor, activity: Activity): boolean {
+  const work = automaticWork(activity);
+  return work === null || person.allowedWork[work];
 }
 
 function assertNever(value: never): never {
@@ -254,9 +276,18 @@ export function assignWork(state: Clearing, colony: Colony): void {
       )
         continue;
       let ready = false;
+      let disallowed: WorkType | null = null;
+      let waitingReason = "";
       for (const person of workers) {
         const options = jobOption(state, person, job, blocked);
-        if (!ready) job.reason = options.reason;
+        if (!waitingReason) waitingReason = options.reason;
+        if (
+          options.candidate &&
+          !allowsAutomaticWork(person, options.candidate.activity)
+        ) {
+          disallowed = automaticWork(options.candidate.activity);
+          continue;
+        }
         if (
           !options.candidate ||
           (shared.size >= workers.length && !shared.has(job.id))
@@ -266,6 +297,10 @@ export function assignWork(state: Clearing, colony: Colony): void {
         shared.add(job.id);
         ready = true;
       }
+      if (!ready)
+        job.reason = disallowed
+          ? `Waiting for a home member allowed to ${disallowed}`
+          : waitingReason;
     }
   }
   if (!offered.length) return;

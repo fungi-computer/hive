@@ -81,6 +81,12 @@ function until(state, predicate, limit = DAY_TICKS * 2) {
   );
 }
 const chop = (tree) => ({ kind: "chop", tree });
+const allow = (actors, work, enabled) => ({
+  kind: "work",
+  actors,
+  work,
+  enabled,
+});
 const build = (type, x, z, direction = 0) => ({
   kind: "build",
   type,
@@ -279,6 +285,86 @@ test("paused commands admit shared work in order without advancing the world", (
   assert.equal(state.tick, 1);
   assert.ok(state.actors.rowan.assignment);
   assert.deepEqual(state, replay);
+});
+test("automatic work settings split hauling from building and personal orders override them", () => {
+  const state = createClearing(37);
+  step(state, colony, [{ kind: "recruit", party: "home", actor: "sedge" }]);
+  step(state, colony, [chop("oak-1")]);
+  until(state, (candidate) => candidate.jobs.length === 0);
+  assert.equal(state.felled, 1);
+
+  step(state, colony, [
+    build("wall", 7, 5),
+    allow(["rowan"], "build", false),
+    allow(["sedge"], "haul", false),
+  ]);
+  const site = state.sites[0];
+  const job = state.jobs.find((candidate) => candidate.kind === "build");
+  assert.equal(state.actors.rowan.task?.kind, "pickup");
+  assert.equal(state.actors.sedge.task, null);
+  assert.equal(state.actors.rowan.task.job, job.id);
+
+  state.paused = true;
+  const frozen = {
+    tick: state.tick,
+    task: structuredClone(state.actors.rowan.task),
+    assignment: structuredClone(state.actors.rowan.assignment),
+    path: structuredClone(state.actors.rowan.path),
+    leg: state.actors.rowan.leg,
+    mode: state.actors.rowan.mode,
+    claim: structuredClone(state.claims.rowan),
+    cargo: structuredClone(state.actors.rowan.cargo),
+    site: structuredClone(site),
+  };
+  step(state, colony, [allow(["rowan"], "haul", false)]);
+  assert.equal(state.actors.rowan.allowedWork.haul, false);
+  assert.deepEqual(
+    {
+      tick: state.tick,
+      task: state.actors.rowan.task,
+      assignment: state.actors.rowan.assignment,
+      path: state.actors.rowan.path,
+      leg: state.actors.rowan.leg,
+      mode: state.actors.rowan.mode,
+      claim: state.claims.rowan,
+      cargo: state.actors.rowan.cargo,
+      site,
+    },
+    frozen,
+  );
+  state.paused = false;
+
+  for (let i = 0; i < 1_000 && state.actors.sedge.task?.kind !== "build"; i++)
+    step(state, colony);
+  assert.equal(site.delivered, 1);
+  assert.equal(state.actors.sedge.task?.kind, "build");
+  assert.equal(state.actors.sedge.task.job, job.id);
+  for (let i = 0; i < 1_000 && site.finishedAt === null; i++)
+    step(state, colony);
+  assert.ok(site.finishedAt !== null);
+
+  step(state, colony, [
+    allow(["rowan"], "chop", false),
+    allow(["sedge"], "chop", false),
+    chop("oak-2"),
+  ]);
+  const waiting = state.jobs.find((candidate) => candidate.target === "oak-2");
+  assert.match(waiting.reason, /allowed to chop/);
+  assert.equal(state.actors.rowan.assignment, null);
+  assert.equal(state.actors.sedge.assignment, null);
+
+  step(state, colony, [{ ...chop("oak-3"), actors: ["rowan"], direct: false }]);
+  const personal = state.jobs.find((candidate) => candidate.target === "oak-3");
+  assert.deepEqual(personal.scope.actors, ["rowan"]);
+  assert.equal(state.actors.rowan.task?.job, personal.id);
+
+  const recorded = new Map();
+  for (const { tick, ...command } of state.commands) {
+    if (!recorded.has(tick)) recorded.set(tick, []);
+    recorded.get(tick).push(command);
+  }
+  assert.deepEqual(run(createClearing(37), state.tick, recorded), state);
+  conserved(state);
 });
 test("fixed-tick command replay preserves resources, cancellation and order priority across render cadences", () => {
   const commands = new Map([

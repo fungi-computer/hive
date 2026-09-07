@@ -191,11 +191,24 @@ export function acceptCommand(
       }
       state.workDirty = true;
       return { status: "applied" };
+    case "work": {
+      let changed = 0;
+      for (const person of Object.values(state.actors)) {
+        if (!inScope(state, person, command)) continue;
+        person.allowedWork[command.work] = command.enabled;
+        changed++;
+      }
+      state.workDirty = true;
+      state.notice = `Automatic ${command.work} work ${command.enabled ? "enabled" : "disabled"} for ${changed} home member${changed === 1 ? "" : "s"}.`;
+      return { status: "applied" };
+    }
     case "chop":
     case "build":
     case "rest":
       orderWork(state, command);
       return { status: "applied" };
+    default:
+      return assertNever(command);
   }
 }
 
