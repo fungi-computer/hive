@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Text } from "pixi.js";
+import { Container, Graphics, Polygon, Sprite, Text } from "pixi.js";
 import { projectCell } from "./art/scale.js";
 import {
   SIZE,
@@ -101,6 +101,8 @@ export function createConstructionView(world, art, bodies, input) {
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
+        if (site.type === "floor")
+          s.hitArea = new Polygon([0, -8, 16, 0, 0, 8, -16, 0]);
         s.on("pointerdown", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
         });
