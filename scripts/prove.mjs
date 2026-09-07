@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 const url = process.argv[2] || "http://127.0.0.1:5188/";
-const output = process.argv[3] || ".botanical/play-proof";
+const output = process.argv[3] || ".botanical/home-checkpoint";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -10,189 +10,257 @@ const browser = await chromium.launch({
   args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
 });
 const context = await browser.newContext({
-  viewport: { width: 1120, height: 900 },
+  viewport: { width: 1440, height: 1320 },
   deviceScaleFactor: 1,
-  recordVideo: { dir: output, size: { width: 1120, height: 900 } },
+  recordVideo: { dir: output, size: { width: 1440, height: 1320 } },
 });
 const page = await context.newPage(),
   errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
+page.on("console", (message) => {
+  if (message.type() === "error") errors.push(message.text());
+});
 page.on("requestfailed", (r) =>
   errors.push(`${r.url()}: ${r.failure()?.errorText}`),
 );
 const state = () => page.evaluate(() => window.__GOBLIN.state);
 const wait = (condition) =>
-  page.waitForFunction(condition, null, { timeout: 30000 });
-async function worldPoint(x, z, y = 0) {
-  const p = await page.evaluate(
+  page.waitForFunction(condition, null, { timeout: 120000 });
+async function point(x, z, y = 0) {
+  const at = await page.evaluate(
     ([x, z, y]) => window.__GOBLIN.project(x, z, y),
     [x, z, y],
   );
-  const b = await page.locator("canvas").boundingBox();
-  return { x: b.x + (p.x * b.width) / 480, y: b.y + (p.y * b.height) / 320 };
+  const box = await page.locator("#stage canvas").boundingBox();
+  return {
+    x: box.x + (at.x * box.width) / 640,
+    y: box.y + (at.y * box.height) / 400,
+  };
 }
-async function clickWorld(x, z, y = 0) {
-  const p = await worldPoint(x, z, y);
-  await page.mouse.click(p.x, p.y);
+async function click(x, z, y = 0) {
+  const at = await point(x, z, y);
+  await page.mouse.click(at.x, at.y);
 }
-async function hoverWorld(x, z) {
-  const p = await worldPoint(x, z);
-  await page.mouse.move(p.x, p.y);
-  await page.waitForTimeout(150);
-}
-const screenshot = (name) => page.screenshot({ path: `${output}/${name}.png` });
+const shot = (name) => page.screenshot({ path: `${output}/${name}.png` });
 try {
-  const response = await page.goto(url);
-  assert.equal(response.status(), 200);
+  assert.equal((await page.goto(url)).status(), 200);
   await page.waitForFunction(() => window.__GOBLIN?.artReady, null, {
-    timeout: 60000,
+    timeout: 90000,
   });
   await wait(() => !!window.__GOBLIN.state.demand);
   const initial = await state();
-  assert.equal(initial.wood, 0);
-  assert.deepEqual(initial.shelters, []);
-  assert.equal(initial.pawn.mode, "idle");
-  assert.equal(await page.locator("#task").isDisabled(), true);
-  await screenshot("01-clearing");
-  await clickWorld(3, 4, 0.7);
-  // Preview is inspectable with no resources, but cannot mint a shelter.
-  await page.locator("#build").click();
-  await hoverWorld(2, 2);
-  assert.match(await page.locator("#hint").textContent(), /Needs 6 wood/);
-  await screenshot("02-needs-wood");
-  await clickWorld(2, 2);
-  assert.equal((await state()).shelters.length, 0);
-  assert.equal((await state()).wood, 0);
-  await page.locator("#task").click(); // Cancel the placement.
-  const iterations = [];
-  let orderPaused;
-  for (const [index, tree, x, z, bx, bz] of [
-    [1, "oak-1", 1, 1, 2, 3],
-    [2, "oak-2", 5, 1, 4, 3],
-  ]) {
-    await clickWorld(x, z, 1.8);
-    assert.equal(await page.locator("#task").isDisabled(), false);
-    if (index === 1) {
-      // Exercise Sol's actual pause-boundary defect through DOM button clicks.
-      // No state mutation or direct simulation call is used by this proof.
-      await page.locator("#task").evaluate((button) => {
-        button.click();
-        document.querySelector("#pause").click();
-      });
-      const pausedOrder = await state();
-      orderPaused = pausedOrder;
-      assert.equal(pausedOrder.paused, true);
-      assert.equal(pausedOrder.commands.length, 0);
-      await page.waitForTimeout(600);
-      assert.deepEqual(await state(), pausedOrder);
-      await screenshot("03-order-paused");
-      await page.locator("#pause").click();
-    } else await page.locator("#task").click();
-    await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
-    const chopAssignment = await state();
-    assert.equal(chopAssignment.assignment.task, `chop-${tree}`);
-    await page.waitForTimeout(1700);
-    await screenshot(`cycle-${index}-chop`);
-    await wait(() => window.__GOBLIN.state.wood === 6);
-    const harvested = await state();
-    assert.equal(harvested.felled, index);
-    assert.notEqual(harvested.trees.find((t) => t.id === tree).felledAt, null);
-    await screenshot(`cycle-${index}-wood`);
-    await page.locator("#build").click();
-    if (index === 1) {
-      await hoverWorld(1, 1);
-      await screenshot("04-blocked-footprint");
-      await clickWorld(1, 1);
-      assert.equal((await state()).wood, 6);
-      assert.equal((await state()).shelters.length, 0);
-    }
-    await hoverWorld(bx, bz);
-    await screenshot(`cycle-${index}-preview`);
-    // Inspect/cancel is free. Re-enter and confirm using the actual ground click.
-    await page.locator("#task").click();
-    assert.equal((await state()).wood, 6);
-    await page.locator("#build").click();
-    await hoverWorld(bx, bz);
-    await clickWorld(bx, bz);
-    await page.waitForFunction(
-      (n) => window.__GOBLIN.state.shelters.length === n,
-      index,
-    );
-    const committed = await state();
-    assert.equal(committed.wood, 0);
-    assert.equal(committed.completed, index - 1);
-    assert.equal(committed.assignment.task, `build-shelter-${index}`);
-    await screenshot(`cycle-${index}-committed`);
-    await wait(() => window.__GOBLIN.state.pawn.mode === "build");
-    await wait(() => window.__GOBLIN.state.pawn.work >= 35);
-    await screenshot(`cycle-${index}-frame`);
-    let constructionPaused = null;
-    if (index === 1) {
-      await page.locator("#pause").click();
-      const frozen = await state();
-      constructionPaused = frozen;
-      assert.equal(frozen.pawn.mode, "build");
-      await page.waitForTimeout(800);
-      assert.deepEqual(await state(), frozen);
-      await screenshot("05-construction-paused");
-      await page.locator("#pause").click();
-    }
-    await page.waitForFunction(
-      (n) => window.__GOBLIN.state.completed === n,
-      index,
-    );
-    const finished = await state();
-    assert.equal(finished.shelters[index - 1].work, 100);
-    assert.notEqual(finished.shelters[index - 1].finishedAt, null);
-    assert.equal(finished.wood, 0);
-    assert.equal(finished.demand.kind, "approval");
-    await screenshot(`cycle-${index}-shelter`);
-    await page.waitForTimeout(650);
-    iterations.push({
-      chopAssignment,
-      harvested,
-      committed,
-      constructionPaused,
-      finished,
-    });
-  }
-  const completed = await state();
-  assert.equal(completed.felled, 2);
-  assert.equal(completed.completed, 2);
-  assert.deepEqual(
-    completed.commands.map((c) => c.kind),
-    ["chop", "build", "chop", "build"],
+  assert.equal(initial.piles.length, 0);
+  assert.equal(initial.sites.length, 0);
+  await shot("01-clearing");
+  await click(7, 10, 1); // Select the actual approved Rowan in the scene.
+  await page.locator('[data-build="wall"]').click();
+  const at = await point(7, 5);
+  await page.mouse.move(at.x, at.y);
+  await page.waitForTimeout(200);
+  await shot("02-wall-ghost");
+  await click(7, 5);
+  await page.locator("#task").click();
+  await wait(() => window.__GOBLIN.state.jobs[0]?.reason?.includes("wood"));
+  const waiting = await state();
+  assert.equal(waiting.sites[0].delivered, 0);
+  assert.equal(waiting.sites[0].work, 0);
+  await shot("03-waiting-for-wood");
+  await page.locator('#orders [data-action="cancel"]').click();
+  await wait(() => window.__GOBLIN.state.sites.length === 0);
+  const canceledBlueprint = await state();
+  assert.equal(canceledBlueprint.piles.length, 0);
+  await page.locator('[data-build="wall"]').click();
+  await click(7, 5);
+  await page.locator("#task").click();
+  await click(3, 4, 1.5);
+  await page.locator("#task").click();
+  await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
+  await page.waitForTimeout(1100);
+  const chopping = await state();
+  assert.equal(chopping.assignment.character, "rowan");
+  await shot("04-chopping");
+  await wait(() => window.__GOBLIN.state.pawn.carry > 0);
+  const carrying = await state();
+  assert.equal(carrying.felled, 1);
+  assert.equal(carrying.sites[0].delivered, 0);
+  await shot("05-carrying");
+  await wait(
+    () =>
+      window.__GOBLIN.state.pawn.mode === "build" &&
+      window.__GOBLIN.state.sites[0].work > 8,
   );
-  assert.equal(completed.feed.sequence, 2);
-  assert.equal(completed.trees[2].felledAt, null);
+  const building = await state();
+  assert.equal(building.sites[0].delivered, 1);
+  await shot("06-building");
+  await wait(() => window.__GOBLIN.state.sites[0].finishedAt !== null);
+  const finished = await state();
+  assert.equal(finished.jobs.length, 0);
+  assert.equal(
+    finished.piles.reduce((n, p) => n + p.amount, 0),
+    5,
+  );
+  await shot("07-wall-finished");
+  // The complete home is laid out through the same visible placement controls.
+  await page.locator("#reset").click();
+  await click(7, 10, 1);
+  await page.locator("#speed").click();
+  async function row(type, from, to = from) {
+    await page.locator(`[data-build="${type}"]`).click();
+    const a = await point(...from),
+      b = await point(...to);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(80);
+  }
+  await row("wall", [6, 5], [9, 5]);
+  await row("wall", [6, 8]);
+  await row("wall", [8, 8], [9, 8]);
+  await page.locator("#rotate").click();
+  await row("wall", [6, 6], [6, 7]);
+  await row("wall", [9, 6], [9, 7]);
+  await page.locator("#rotate").click();
+  await row("door", [7, 8]);
+  await row("bed", [7, 6]);
+  await row("roof", [7, 6], [8, 6]);
+  await row("roof", [7, 7], [8, 7]);
+  await page.locator("#task").click();
+  await wait(() => window.__GOBLIN.state.sites.length === 17);
+  const plan = await state();
+  assert.equal(
+    plan.sites.every((s) => s.delivered === 0 && s.work === 0),
+    true,
+  );
+  await shot("08-home-blueprints");
+  for (const [x, z] of [
+    [3, 4],
+    [10, 3],
+    [3, 9],
+    [11, 10],
+  ]) {
+    await click(x, z, 1.9);
+    await page.locator("#task").click();
+  }
+  await wait(
+    () =>
+      window.__GOBLIN.state.sites.filter((s) => s.finishedAt !== null).length >=
+      3,
+  );
+  const inProgress = await state();
+  await shot("09-home-in-progress");
+  await wait(() => window.__GOBLIN.state.jobs.length === 0);
+  const home = await state();
+  assert.equal(home.felled, 4);
+  assert.equal(home.sites.length, 17);
+  assert.equal(
+    home.sites.every((s) => s.finishedAt !== null),
+    true,
+  );
+  assert.equal(
+    home.piles.reduce((n, p) => n + p.amount, 0),
+    5,
+  );
+  assert.equal(home.demand.kind, "approval");
+  await page.locator("#cutaway").uncheck();
+  await shot("10-home-roof");
+  await page.locator("#cutaway").check();
+  await shot("11-home-cutaway");
+  await page.locator("#rest").click();
+  await wait(() => window.__GOBLIN.state.pawn.mode === "sleep");
+  await page.locator("#pause").click();
+  const sleeping = await state();
+  assert.deepEqual([sleeping.pawn.x, sleeping.pawn.z], [7, 6]);
+  await page.waitForTimeout(650);
+  assert.deepEqual(await state(), sleeping);
+  await shot("12-sleep-paused");
+  await page.locator("#pause").click();
+  await click(6, 2, 1.9);
+  await page.locator("#task").click();
+  await wait(() => window.__GOBLIN.state.rested === 1);
+  await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
+  const resumed = await state();
+  assert.equal(resumed.pawn.task.target, "oak-5");
+  await shot("13-work-resumed");
+  await wait(
+    () =>
+      window.__GOBLIN.state.felled === 5 &&
+      window.__GOBLIN.state.jobs.length === 0,
+  );
+  const used = await state();
+  assert.equal(
+    used.piles.reduce((n, p) => n + p.amount, 0),
+    11,
+  );
+  // The standing schedule is real browser input; the simulation clock reaches night.
+  await page.locator("#routine").check();
+  await wait(() => window.__GOBLIN.state.pawn.mode === "sleep");
+  await shot("14-night-routine");
+  await wait(
+    () =>
+      window.__GOBLIN.state.rested >= 2 &&
+      window.__GOBLIN.state.pawn.mode !== "sleep",
+  );
+  const morning = await state();
+  await shot("15-morning");
   await page.locator("#reset").click();
   await page.locator("#pause").click();
   const reset = await state();
-  assert.equal(reset.wood, 0);
-  assert.equal(reset.completed, 0);
-  assert.deepEqual(reset.shelters, []);
-  assert.deepEqual(reset.commands, []);
+  assert.equal(reset.sites.length, 0);
+  assert.equal(reset.piles.length, 0);
+  assert.equal(reset.jobs.length, 0);
+  assert.equal(reset.felled, 0);
+  assert.equal(reset.rested, 0);
+  assert.equal(reset.routine, false);
+  assert.equal(reset.commands.length, 0);
   assert.equal(reset.feed.sequence, 0);
-  assert.equal(reset.demand, null);
-  assert.equal(reset.pawn.mode, "idle");
+  await shot("16-reset");
+  await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(
-    reset.trees.every((t) => t.felledAt === null),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
     true,
   );
-  assert.equal(await page.locator("#task").isDisabled(), true);
-  await screenshot("06-reset");
+  await shot("17-mobile");
+  for (const sample of [
+    waiting,
+    carrying,
+    building,
+    finished,
+    plan,
+    home,
+    sleeping,
+    resumed,
+    used,
+    morning,
+  ]) {
+    assert.equal(
+      sample.piles.reduce((n, pile) => n + pile.amount, 0) +
+        sample.pawn.carry +
+        sample.sites.reduce((n, site) => n + site.delivered, 0),
+      sample.felled * 6,
+    );
+  }
   assert.deepEqual(errors, []);
   await writeFile(
     `${output}/proof.json`,
     JSON.stringify(
       {
         url,
-        viewport: { width: 1120, height: 900 },
-        canvas: { width: 480, height: 320, display: "960×640" },
         initial,
-        orderPaused,
-        iterations,
-        completed,
+        waiting,
+        chopping,
+        carrying,
+        building,
+        finished,
+        plan,
+        inProgress,
+        home,
+        sleeping,
+        resumed,
+        used,
+        morning,
         reset,
         errors,
       },
@@ -201,21 +269,14 @@ try {
     ),
   );
   console.log(
-    JSON.stringify({
-      output,
-      felled: completed.felled,
-      wood: completed.wood,
-      shelters: completed.completed,
-      commands: completed.commands,
-      errors,
-    }),
+    JSON.stringify({ output, finished: finished.sites[0], wood: 5, errors }),
   );
 } catch (error) {
-  await screenshot("failure");
+  await shot("failure");
   await writeFile(
     `${output}/failure.json`,
     JSON.stringify(
-      { state: await state().catch(() => null), errors, error: String(error) },
+      { error: String(error), state: await state().catch(() => null), errors },
       null,
       2,
     ),

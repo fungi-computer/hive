@@ -1,109 +1,108 @@
-import { commandProblem, blockedCells } from "./clearing.js";
-import { placementProblem, BUILD_TICKS } from "./construction.js";
+import { commandProblem } from "./clearing.js";
+import { BUILDINGS, placementProblem, shelteredBeds } from "./construction.js";
+import { looseWood } from "./resources.js";
+import { DAY_TICKS, hour } from "./jobs.js";
 const $ = (selector) => document.querySelector(selector);
-function taskCopy(state, selection) {
-  if (selection.placing)
-    return [
-      "Timber shelter · 2 × 2",
-      placementProblem(state, selection.at, blockedCells(state)) ||
-        "Click the footprint to spend 6 wood and start building.",
-      "Cancel placement",
-    ];
-  if (selection.pending)
-    return [
-      "Order received",
-      "Rowan will begin when time moves again.",
-      "Ordered",
-    ];
-  if (state.pawn.mode === "walk")
-    return [
-      state.pawn.task.kind === "build"
-        ? "Walking to the shelter site"
-        : "Walking to the marked tree",
-      "Rowan finds a route and carries out your order.",
-      "On the way…",
-    ];
-  if (state.pawn.mode === "chop")
-    return [
-      "Chopping oak…",
-      "Each swing gets you closer to a roof.",
-      "Chopping…",
-    ];
-  if (state.pawn.mode === "build")
-    return [
-      `Building shelter · ${Math.floor((state.pawn.work / BUILD_TICKS) * 100)}%`,
-      "Six wood committed. Posts, braces, then a roof.",
-      "Building…",
-    ];
-  const tree = state.trees.find((t) => t.id === selection.tree);
-  if (tree?.felledAt !== null && tree)
-    return [
-      "A stump, and a little hope",
-      "Choose Build shelter, or select another oak to gather more.",
-      "Tree felled",
-    ];
-  if (tree)
-    return [
-      "Oak tree · yields 6 wood",
-      "Give Rowan the order when you're ready.",
-      "Chop tree · +6 wood",
-    ];
-  if (state.completed)
-    return [
-      "A foothold in goblin country",
-      "Chop another oak and build again. Stay off the menu.",
-      "Choose a tree",
-    ];
-  return [
-    "Rowan · stranded outsider",
-    "Select Rowan, then click an oak tree.",
-    "Choose a tree",
-  ];
+const ACTIVITIES = {
+  idle: "Waiting for work",
+  walk: "Walking",
+  chop: "Chopping oak",
+  pickup: "Picking up wood",
+  deliver: "Delivering wood",
+  build: "Building",
+  sleep: "Sleeping in the bedroll",
+};
+function jobTitle(state, job) {
+  if (job.kind === "chop") return `Chop oak ${job.target.split("-")[1]}`;
+  if (job.kind === "rest")
+    return job.routine ? "Sleep until morning" : "Rest in the bedroll";
+  const site = state.sites.find((s) => s.id === job.target);
+  return `${BUILDINGS[site.type].label} · ${site.x}, ${site.z}`;
 }
-function renderActions(state, selection, action) {
+let lastOrders = "";
+function renderOrders(state) {
+  const entries =
+    state.jobs
+      .map((job) => {
+        const active = state.pawn.task?.job === job.id;
+        const site = state.sites.find((s) => s.id === job.target);
+        const detail = site
+          ? `${site.delivered}/${BUILDINGS[site.type].wood} wood delivered`
+          : "";
+        return `<li class="${active ? "active-order" : ""}"><span><strong>${jobTitle(state, job)}</strong><small>${active ? ACTIVITIES[state.pawn.mode] : job.reason || "Ordered"}${detail ? ` · ${detail}` : ""}</small></span><button data-action="next" data-job="${job.id}" aria-label="Move ${jobTitle(state, job)} next" ${state.paused ? "disabled" : ""}>↑</button><button data-action="cancel" data-job="${job.id}" aria-label="Cancel ${jobTitle(state, job)}" ${state.paused ? "disabled" : ""}>×</button></li>`;
+      })
+      .join("") ||
+    '<li class="empty-orders">Mark a tree or place a blueprint to give Rowan work.</li>';
+  if (entries !== lastOrders) {
+    $("#orders").innerHTML = entries;
+    lastOrders = entries;
+  }
+  $("#order-count").textContent = `${state.jobs.length} waiting / working`;
+}
+function renderActions(state, selection) {
   $("#select").classList.toggle("selected", selection.pawn);
-  $("#task").textContent = action;
+  $("#task").textContent = selection.tool ? "Finish placing" : "Order chopping";
   $("#task").disabled =
-    !selection.placing &&
+    !selection.tool &&
     (!selection.pawn ||
-      selection.pending ||
       !!commandProblem(state, { kind: "chop", tree: selection.tree }));
-  $("#build").hidden = selection.placing;
-  $("#build").disabled =
+  for (const button of document.querySelectorAll("[data-build]")) {
+    button.disabled = !selection.pawn || state.paused;
+    button.classList.toggle(
+      "selected",
+      selection.tool === button.dataset.build,
+    );
+  }
+  $("#rotate").disabled = !selection.tool;
+  $("#rest").disabled =
     !selection.pawn ||
-    selection.pending ||
     state.paused ||
-    state.pawn.mode !== "idle";
-  $("#build").textContent = "Build shelter · 6 wood";
+    state.jobs.some((j) => j.kind === "rest");
+  $("#routine").disabled = !selection.pawn || state.paused;
+  $("#routine").checked = state.routine;
   $("#pause").textContent = state.paused ? "▶" : "Ⅱ";
   $("#pause").setAttribute("aria-label", state.paused ? "Resume" : "Pause");
 }
 function renderStory(state) {
-  let status = `first event in ${Math.ceil((state.feed.nextAt - state.tick) / 20)}s`;
-  if (state.demand)
-    status = `#${state.feed.sequence} · ${state.demand.kind === "approval" ? "roof approved" : "roof demand"}`;
-  if (state.paused) status = "paused";
-  $("#feed").textContent = `FAKE SHIITAKE · ${status}`;
+  $("#feed").textContent =
+    `FAKE SHIITAKE · ${state.paused ? "paused" : state.demand ? `event ${state.feed.sequence} · simulated` : "seeded event pending"}`;
   $("#demand").hidden = !state.demand;
   $("#demand").textContent = state.demand
     ? `${state.demand.name.toUpperCase()}: “${state.demand.text}”`
     : "";
+  $("#day").textContent =
+    `DAY ${1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS)} · ${String(Math.floor(hour(state))).padStart(2, "0")}:${String(Math.floor((hour(state) % 1) * 60)).padStart(2, "0")}`;
 }
 export function renderHud(state, selection, notice) {
-  const [activity, hint, action] = taskCopy(state, selection);
-  $("#activity").textContent = activity;
-  $("#hint").textContent = selection.pawn
-    ? hint
-    : "Select Rowan to give work. Movement is automatic.";
+  const p = state.pawn,
+    beds = shelteredBeds(state).length;
+  $("#activity").textContent =
+    `${ACTIVITIES[p.mode]}${p.carry ? ` · carrying ${p.carry} wood` : ""}`;
+  $("#hint").textContent = !selection.pawn
+    ? "Select Rowan, then choose work. He travels automatically."
+    : selection.tool
+      ? `${BUILDINGS[selection.tool].label} · ${BUILDINGS[selection.tool].wood} wood · ${selection.direction ? "rotated" : "front facing"}`
+      : "First ready order runs. Waiting orders resume when materials arrive.";
   $("#notice").textContent = state.paused
-    ? "Paused · even the goblins can wait."
-    : selection.placing
-      ? placementProblem(state, selection.at, blockedCells(state)) ||
-        "Shelter site clear · Click to spend six wood and build."
+    ? "Paused · work, wood and the world wait."
+    : selection.tool
+      ? placementProblem(state, {
+          ...selection.at,
+          type: selection.tool,
+          direction: selection.direction,
+        }) ||
+        "Click or drag to order blueprints. R rotates. Escape finishes placement."
       : notice || state.notice;
   $("#score").textContent =
-    `${state.wood} wood · ${state.completed} ${state.completed === 1 ? "shelter" : "shelters"}`;
-  renderActions(state, selection, action);
+    `${looseWood(state)} wood on ground · ${p.carry} carried`;
+  $("#rest-level").textContent = `REST ${Math.round(p.rest)}%`;
+  $("#home-status").textContent = state.rested
+    ? "Home used. Rowan has slept here; queued work continues."
+    : beds
+      ? "A dry bedroll. Order rest, or let the night schedule take over."
+      : "Make an enclosed room, cover the bedroll's two cells with roof, then rest.";
+  renderActions(state, selection);
+  renderOrders(state);
   renderStory(state);
 }
 export function showPortrait(texture) {
@@ -112,7 +111,7 @@ export function showPortrait(texture) {
   portrait.height = 50;
   portrait
     .getContext("2d")
-    .drawImage(texture.source.resource, 24, 14, 48, 50, 0, 0, 48, 50);
+    .drawImage(texture.source.resource, 16, 12, 48, 50, 0, 0, 48, 50);
   $(".portrait-icon").innerHTML =
     `<img alt="Rowan, a human outsider" src="${portrait.toDataURL()}">`;
 }

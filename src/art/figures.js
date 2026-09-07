@@ -28,7 +28,7 @@ function arms(
   parent,
   phase,
   moving,
-  { shoulder, spread, length, sleeve, hand },
+  { shoulder, spread, length, sleeve, hand, action = "idle" },
 ) {
   const hands = [];
   for (const side of [-1, 1]) {
@@ -37,6 +37,11 @@ function arms(
     arm.rotation.x = moving
       ? -Math.sin(phase * Math.PI * 2) * side * 0.3
       : -0.05;
+    if (action === "chop")
+      arm.rotation.x = -1.2 + Math.sin(phase * Math.PI * 2) * 0.95;
+    if (["build", "pickup", "deliver"].includes(action))
+      arm.rotation.x = -0.9 + Math.sin(phase * Math.PI * 2) * 0.3;
+    if (action === "carry") arm.rotation.x = -1.15;
     limb(arm, sleeve, length, 0.14);
     const elbow = group(arm, 0, -length, 0);
     elbow.rotation.x = -0.12;
@@ -83,7 +88,7 @@ function humanHead(parent, y, hair = "#6a4938") {
   return head;
 }
 
-function rowan(body, phase, moving) {
+function rowan(body, phase, moving, pose) {
   legs(body, phase, moving, {
     hip: 0.91,
     spread: 0.095,
@@ -100,6 +105,7 @@ function rowan(body, phase, moving) {
     length: 0.245,
     sleeve: "#537e79",
     hand: SKIN,
+    action: pose,
   });
   box(body, "#e3bd70", 0, 1.365, 0.04, 0.3, 0.07, 0.28);
   box(body, "#b98243", -0.07, 1.225, 0.17, 0.085, 0.27, 0.045).rotation.z =
@@ -108,6 +114,26 @@ function rowan(body, phase, moving) {
   ball(body, "#79563d", 0.16, 0.86, -0.12, 0.1, 0.15, 0.09);
   cylinder(body, SKIN, 0, 1.44, 0, 0.06, 0.065, 0.1, 6);
   humanHead(body, 1.59);
+  if (pose === "carry") {
+    for (const z of [0.32, 0.47]) {
+      const log = cylinder(body, "#9b754b", 0, 1.02, z, 0.085, 0.085, 0.77, 7);
+      log.rotation.z = Math.PI / 2;
+      const end = cylinder(
+        body,
+        "#d4b37a",
+        0.392,
+        1.02,
+        z,
+        0.07,
+        0.07,
+        0.016,
+        7,
+      );
+      end.rotation.z = Math.PI / 2;
+    }
+    return;
+  }
+  if (pose === "sleep") return;
   const axe = group(hands[0], 0, -0.15, 0.04);
   axe.rotation.x = 0.12;
   cylinder(axe, "#a17b4d", 0, 0, 0, 0.022, 0.022, 0.44, 6);
@@ -351,13 +377,24 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
   const s = scene();
   const puppet = group(s);
   puppet.rotation.y = direction;
-  const moving = pose === "walk";
+  const moving = pose === "walk" || pose === "carry";
   const body = group(
     puppet,
     0,
     moving ? Math.abs(Math.sin(phase * Math.PI * 2)) * 0.025 : 0,
     0,
   );
-  FIGURES[kind](body, phase, moving);
+  if (pose === "sleep" && kind === "cat") {
+    ball(body, "#e4ddbb", 0, 0.16, 0, 0.26, 0.15, 0.23);
+    ball(body, "#465c57", -0.06, 0.24, -0.06, 0.18, 0.055, 0.16);
+    ball(body, "#e4ddbb", 0.1, 0.2, 0.16, 0.1, 0.09, 0.09);
+    box(body, "#465c57", 0.11, 0.26, 0.18, 0.1, 0.07, 0.08);
+  } else {
+    FIGURES[kind](body, phase, moving, pose);
+    if (pose === "sleep") {
+      body.rotation.x = -Math.PI / 2;
+      body.position.set(0, 0.25, 1.45);
+    }
+  }
   return s;
 }

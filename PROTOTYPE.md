@@ -1,6 +1,50 @@
 # Goblin Bed & Breakfast — survival colony prototype
 
-## Current art study (2026-09-07)
+## Active home demo (Levi, 2026-09-07)
+
+Levi personally approved the study at `755f873cdc7ad499716a54212952c8253f6b566a`
+and now authorizes interlocking systems toward a home demo. This section
+supersedes the earlier study-only and fixed-shelter slice boundaries below.
+He supplied three further witch references for female characters: expressive
+crooked hats, distinct hair/garment silhouettes, readable running and casting
+poses, restrained dark cloth with small bright accents. They are art direction,
+not shipped assets or a new character-content milestone.
+
+The working home slice joins player-authorized persistent orders, chopped wood
+piles, carrying, delivered construction materials, modular walls and doorways,
+roof tiles, a two-cell bedroll and a small rest routine. Blueprints can wait for
+wood while other authorized work runs; canceling an order preserves materials.
+A home must be walkable and used. Nothing constructs a room by swapping scenes.
+Keep the approved original Rowan and Bramble proportions in gameplay, with
+original work/carry/sleep poses and the same Three -> fixed bake -> Pixi path.
+
+The ground diamond is 32×16 native pixels; the game canvas is 640×400,
+shown at up to 2× with nearest-neighbor pixels. One demo day is eight minutes
+at 1×. The 4× control advances the same 50 ms simulation steps more quickly.
+
+The smallest composition lives in the existing game: `main.js` accepts player
+commands, `clearing.js` applies them on fixed ticks, `jobs.js` derives the next
+activity from actual world state, `resources.js` owns wood transfers, and
+`construction.js` owns footprint/room/recipe rules. libcolony receives eligible
+pairs for the first ready player order; waiting orders remain visible. These
+are concrete colony responsibilities, not a generic job engine or a replacement
+optimizer. Logical cells have an explicit level; this demo only navigates level
+zero. Multi-floor navigation, multiplayer, chunk streaming and a full ECS are
+future work, not claimed implemented because the data is serializable.
+
+The accepted study stays recoverable at `/study` and the old games stay in Git.
+The same branch and static preview custody continues. CTO confirmed the first
+review checkpoint is actual queued build -> waiting wood -> haul -> construction
+with readable source, intended-scale pixels and motion. CTO personally accepted
+the first queued-work stills and the subsequent complete-home/cutaway stills.
+That art verdict does not itself claim motion or final hosted acceptance.
+Final proof covers a resource-built home entered and used, resumed work,
+pause/reset, deterministic replay and material conservation; artifact integrity
+is recorded separately from hosted gameplay. Automated proof uses the existing
+host scope runner with its 10-minute deadline. No live Shiitake/SSE integration,
+Botanical source edits, provider changes or main merge.
+
+## Accepted art study (2026-09-07)
 
 The clearing/chop/wood/shelter milestone was accepted at
 `6733700a6489930ed12cd70ae36667bf48e654e2`. Levi subsequently authorized
@@ -18,8 +62,8 @@ CTO's existing `run-proof.sh` scope runner; leave human preview servers alone.
 The current study uses 48×64 padded sprite frames. Measured Rowan silhouettes
 span 38–41 native pixels across poses/facings. Its proposed ground diamond is
 32×16 pixels; one vertical world unit projects to about 19.6 pixels. This is a
-visual study, not a change to the accepted clearing's larger camera scale or
-an implementation of vertical collision. Native view preserves 1:1 pixels on
+visual study. At its acceptance the earlier clearing retained a larger camera;
+the home demo now adopts this scale. Vertical collision is not implemented. Native view preserves 1:1 pixels on
 small screens through horizontal scrolling; fitted view adapts to the viewport.
 
 The uploaded `/home/levi/grass-tile.aseprite` was inspected and its supplied hash

@@ -1,76 +1,67 @@
 import { Application } from "pixi.js";
-import { bakeArt, project } from "./art.js";
+import { bakeArt } from "./art.js";
+import { project, WIDTH, HEIGHT } from "./art/scale.js";
 import { loadColony } from "./colony.js";
 import { createClearing, commandProblem, step } from "./clearing.js";
 import { createTicker, push } from "./ticker.js";
 import { createView } from "./view.js";
+import { dragCells } from "./construction-view.js";
 import { renderHud, showPortrait } from "./hud.js";
 import "./style.css";
+const $ = (selector) => document.querySelector(selector);
+const newSelection = () => ({
+  pawn: false,
+  tree: null,
+  tool: null,
+  at: { x: 7, z: 7 },
+  direction: 0,
+  drag: null,
+  cutaway: true,
+});
 
-// Keep bootstrap inside a normal async function: Pixi's production dynamic
-// renderer imports must not participate in a top-level-await cycle.
+// Ordinary async bootstrap avoids Pixi's production dynamic-import/TLA cycle.
 async function startGame() {
   const [art, colony] = await Promise.all([bakeArt(), loadColony()]);
   const app = new Application();
   await app.init({
-    width: 480,
-    height: 320,
+    width: WIDTH,
+    height: HEIGHT,
     background: 0x293931,
     antialias: false,
     resolution: 1,
     preference: "webgl",
   });
-  document.querySelector("#stage").append(app.canvas);
-  document.querySelector("#loading").remove();
+  $("#stage").append(app.canvas);
   app.canvas.setAttribute(
     "aria-label",
-    "A clearing in goblin country. Select Rowan, select a tree, then choose Chop tree.",
+    "Goblin country. Select Rowan, order trees chopped, and place walls, a doorway, roof tiles and a bedroll.",
   );
   let state = createClearing(),
     clock = createTicker(),
-    selection = { pawn: false, tree: null, placing: false, at: { x: 2, z: 2 } },
+    selection = newSelection(),
     pending = [],
-    notice = "",
+    speed = 1;
+  let notice = "",
     lastNotice = state.notice;
-  const render = () => {
+  function render() {
     if (lastNotice !== state.notice) {
       notice = "";
       lastNotice = state.notice;
     }
     view.render(state, selection);
-    renderHud(state, { ...selection, pending: pending.length > 0 }, notice);
-  };
-  const selectPawn = () => {
+    renderHud(
+      state,
+      selection,
+      pending.length ? "Orders received; waiting for the next step." : notice,
+    );
+  }
+  function selectPawn() {
     selection.pawn = true;
-    notice = "Rowan selected. Click a tree, then give the chopping order.";
+    notice = "Rowan selected. Mark work; he will find his own way.";
     render();
-  };
-  const view = createView(app, art, state.trees, {
-    pawn: selectPawn,
-    tree(id) {
-      if (selection.placing) return;
-      selection.tree = id;
-      notice = selection.pawn
-        ? "Tree selected. Choose Chop tree to give Rowan the task."
-        : "Tree selected. Select Rowan to assign the work.";
-      render();
-    },
-    hover(at) {
-      if (!selection.placing) return;
-      selection.at = at;
-    },
-    place(at) {
-      if (!selection.placing) return;
-      selection.at = at;
-      if (request({ kind: "build", ...at })) {
-        selection.placing = false;
-        selection.tree = null;
-      }
-      render();
-    },
-  });
+  }
   function request(command) {
-    if (!selection.pawn || pending.length) return false;
+    if (!selection.pawn) return false;
     const problem = commandProblem(state, command);
     if (problem) {
       notice = problem;
@@ -78,37 +69,103 @@ async function startGame() {
       return false;
     }
     pending.push(command);
-    notice = "Order received.";
-    render();
     return true;
   }
-  document.querySelector("#build").onclick = () => {
-    selection.placing = true;
-    notice = "Choose a clear 2 × 2 footprint. Click to commit six wood.";
+  const view = createView(app, art, state, {
+    pawn: selectPawn,
+    tree(id) {
+      if (selection.tool) return;
+      selection.tree = id;
+      notice = "Oak selected. Add it to Rowan's work orders.";
+      render();
+    },
+    hover(at) {
+      selection.at = at;
+    },
+    down(at) {
+      if (selection.tool) {
+        selection.drag = at;
+        selection.at = at;
+      }
+    },
+    up(at) {
+      if (!selection.tool || !selection.drag) return;
+      for (const cell of selection.tool === "bed"
+        ? [at]
+        : dragCells(selection.drag, at))
+        request({
+          kind: "build",
+          type: selection.tool,
+          direction: selection.direction,
+          ...cell,
+        });
+      selection.drag = null;
+      selection.at = at;
+      render();
+    },
+    cancelDrag() {
+      selection.drag = null;
+    },
+  });
+  $("#select").onclick = selectPawn;
+  $("#task").onclick = () => {
+    if (selection.tool) {
+      selection.tool = null;
+      selection.drag = null;
+      notice = "Placement finished. Queued work continues.";
+    } else request({ kind: "chop", tree: selection.tree });
     render();
   };
-  document.querySelector("#select").onclick = selectPawn;
-  document.querySelector("#task").onclick = () => {
-    if (selection.placing) {
-      selection.placing = false;
-      notice = "Placement canceled. Wood kept.";
+  for (const button of document.querySelectorAll("[data-build]"))
+    button.onclick = () => {
+      selection.tool = button.dataset.build;
+      selection.drag = null;
+      notice =
+        "Click to place a blueprint, or drag a straight row. R rotates it. Wood arrives through hauling.";
       render();
-      return;
-    }
-    request({ kind: "chop", tree: selection.tree });
+    };
+  $("#rotate").onclick = () => {
+    selection.direction = 1 - selection.direction;
+    render();
   };
-  document.querySelector("#pause").onclick = () => {
+  $("#cutaway").onchange = (event) => {
+    selection.cutaway = event.target.checked;
+    render();
+  };
+  $("#rest").onclick = () => {
+    request({ kind: "rest" });
+    render();
+  };
+  $("#routine").onchange = (event) => {
+    request({ kind: "routine", enabled: event.target.checked });
+    render();
+  };
+  $("#orders").onclick = (event) => {
+    const button = event.target.closest("button[data-job]");
+    if (button) {
+      request({ kind: button.dataset.action, job: button.dataset.job });
+      render();
+    }
+  };
+  $("#pause").onclick = () => {
     state.paused = !state.paused;
     clock.acc = 0;
     render();
   };
-  document.querySelector("#reset").onclick = () => {
+  $("#speed").onclick = () => {
+    speed = speed === 1 ? 4 : 1;
+    $("#speed").textContent = `${speed}×`;
+  };
+  $("#reset").onclick = () => {
     state = createClearing();
     clock = createTicker();
-    selection = { pawn: false, tree: null, placing: false, at: { x: 2, z: 2 } };
+    selection = newSelection();
     pending = [];
     notice = "";
     lastNotice = state.notice;
+    speed = 1;
+    $("#speed").textContent = "1×";
+    $("#cutaway").checked = true;
     render();
   };
   document.addEventListener("visibilitychange", () => {
@@ -119,23 +176,39 @@ async function startGame() {
     }
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && selection.placing) {
-      selection.placing = false;
-      notice = "Placement canceled. Wood kept.";
+    if (event.key === "Escape") {
+      selection.tool = null;
+      selection.drag = null;
+      render();
+    }
+    if (event.key.toLowerCase() === "r" && selection.tool) {
+      selection.direction = 1 - selection.direction;
       render();
     }
   });
   showPortrait(art.pawn.idle[0][0]);
   app.ticker.maxFPS = 60;
-  app.ticker.add((t) => {
+  app.ticker.add((ticker) => {
     if (!state.paused)
-      for (let i = 0, count = push(clock, t.deltaMS); i < count; i++) {
-        step(state, colony, pending);
-        pending = [];
-      }
+      for (
+        let frame = 0, count = push(clock, ticker.deltaMS);
+        frame < count;
+        frame++
+      )
+        for (let i = 0; i < speed; i++) {
+          step(state, colony, pending);
+          pending = [];
+        }
     render();
   });
   render();
+  $("#loading").remove();
+  const centerViewport = () => {
+    $("#stage").scrollLeft =
+      ($("#stage").scrollWidth - $("#stage").clientWidth) / 2;
+  };
+  centerViewport();
+  window.addEventListener("resize", centerViewport);
   window.__GOBLIN = {
     artReady: true,
     get state() {
@@ -143,11 +216,13 @@ async function startGame() {
     },
     project,
     colony,
+    width: WIDTH,
+    height: HEIGHT,
   };
 }
 startGame().catch((error) => {
   console.error(error);
-  const loading = document.querySelector("#loading");
-  if (loading)
-    loading.textContent = "The clearing could not open. Reload to try again.";
+  if ($("#loading"))
+    $("#loading").textContent =
+      "The clearing could not open. Reload to try again.";
 });

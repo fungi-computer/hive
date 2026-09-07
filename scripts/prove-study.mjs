@@ -128,11 +128,11 @@ try {
     timeout: 60000,
   });
   await page.locator("#select").click();
-  const tree = await page.evaluate(() => window.__GOBLIN.project(1, 1, 1.8));
+  const tree = await page.evaluate(() => window.__GOBLIN.project(3, 4, 1.8));
   const canvas = await page.locator("canvas").boundingBox();
   await page.mouse.click(
-    canvas.x + (tree.x * canvas.width) / 480,
-    canvas.y + (tree.y * canvas.height) / 320,
+    canvas.x + (tree.x * canvas.width) / 640,
+    canvas.y + (tree.y * canvas.height) / 400,
   );
   await page.locator("#task").click();
   await page.waitForFunction(
@@ -143,12 +143,19 @@ try {
   const assignment = await page.evaluate(
     () => window.__GOBLIN.state.assignment,
   );
-  assert.equal(assignment.task, "chop-oak-1");
-  await page.waitForFunction(() => window.__GOBLIN.state.wood === 6, null, {
-    timeout: 30000,
-  });
+  assert.match(assignment.task, /:chop:oak-1$/);
+  await page.waitForFunction(
+    () => window.__GOBLIN.state.piles.reduce((n, p) => n + p.amount, 0) === 6,
+    null,
+    {
+      timeout: 30000,
+    },
+  );
   const game = await page.evaluate(() => window.__GOBLIN.state);
-  assert.equal(game.wood, 6);
+  assert.equal(
+    game.piles.reduce((n, p) => n + p.amount, 0),
+    6,
+  );
   assert.equal(game.assignment, null);
   assert.equal(game.felled, 1);
   await page.locator("#pause").click();

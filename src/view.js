@@ -1,181 +1,216 @@
 import { Sprite, Container, Graphics, Rectangle, Text } from "pixi.js";
-import { project } from "./art.js";
+import { project, groundCell, WIDTH, HEIGHT } from "./art/scale.js";
+import { visualPosition } from "./movement.js";
+import { WATCHER } from "./world.js";
+import { CHOP_TICKS, isNight } from "./jobs.js";
 import { createConstructionView } from "./construction-view.js";
-import { groundCell } from "./art/geometry.js";
-import { CHOP_TICKS, WATCHER } from "./clearing.js";
 
-function label(text, size = 7, color = 0xeee0ba) {
+function label(text, size = 8) {
   const result = new Text({
     text,
     style: {
       fontFamily: "sans-serif",
       fontSize: size,
-      fill: color,
+      fill: 0xf3dfad,
       align: "center",
-      lineHeight: 10,
     },
   });
   result.anchor.set(0.5);
   return result;
 }
-function atWorld(display, at) {
+function put(display, at) {
   const point = project(at.x, at.z);
   display.position.set(point.x, point.y);
-  display.zIndex = point.y;
-  return point;
+  display.zIndex = at.x + at.z;
 }
-function spriteBody(texture, anchor, radius) {
-  const body = new Container(),
+function body(texture, anchor, radius) {
+  const container = new Container(),
     sprite = new Sprite(texture);
-  body.addChild(
+  container.eventMode = "none";
+  container.addChild(
     new Graphics()
       .ellipse(0, 0, radius, radius / 3)
-      .fill({ color: 0x243324, alpha: 0.25 }),
+      .fill({ color: 0x213322, alpha: 0.3 }),
   );
   sprite.anchor.set(anchor.x, anchor.y);
-  body.addChild(sprite);
-  return { body, sprite };
+  sprite.eventMode = "none";
+  container.addChild(sprite);
+  return { container, sprite };
 }
-export function createView(app, art, trees, input) {
+export function createView(app, art, initial, input) {
   app.stage.addChild(new Sprite(art.ground));
   const route = new Graphics(),
-    targetRing = new Graphics();
-  app.stage.addChild(route, targetRing);
-  const bodies = new Container();
+    marks = new Graphics(),
+    bodies = new Container();
+  route.eventMode = marks.eventMode = "none";
   bodies.sortableChildren = true;
-  app.stage.addChild(bodies);
-  const treeViews = trees.map((t) => {
-    const view = spriteBody(art.tree.standing, art.treeAnchor, 25);
-    atWorld(view.body, t);
-    bodies.addChild(view.body);
-    view.body.eventMode = "static";
-    view.body.cursor = "pointer";
-    view.body.on("pointertap", () => input.tree(t.id));
-    return view;
+  app.stage.addChild(route, marks, bodies);
+  const trees = new Map();
+  for (const tree of initial.trees) {
+    const view = body(art.tree.standing, art.propAnchor, 13);
+    put(view.container, tree);
+    bodies.addChild(view.container);
+    view.container.eventMode = "static";
+    view.container.cursor = "pointer";
+    view.container.hitArea = new Rectangle(-22, -62, 44, 66);
+    view.container.on("pointertap", (event) => {
+      event.stopPropagation();
+      input.tree(tree.id);
+    });
+    trees.set(tree.id, view);
+  }
+  const pawn = body(art.pawn.idle[0][0], art.pawnAnchor, 6);
+  const cat = body(art.cat.idle[0][0], art.pawnAnchor, 5);
+  const goblin = body(art.goblin.idle[0][0], art.pawnAnchor, 7);
+  put(goblin.container, WATCHER);
+  bodies.addChild(pawn.container, cat.container, goblin.container);
+  pawn.container.eventMode = "static";
+  pawn.container.cursor = "pointer";
+  pawn.container.hitArea = new Rectangle(-11, -42, 22, 45);
+  pawn.container.on("pointertap", (event) => {
+    event.stopPropagation();
+    input.pawn();
   });
-  const pawn = spriteBody(art.pawn.idle[0][0], art.pawnAnchor, 9);
-  bodies.addChild(pawn.body);
-  pawn.body.eventMode = "static";
-  pawn.body.cursor = "pointer";
-  pawn.body.hitArea = new Rectangle(-17, -57, 34, 62);
-  pawn.body.on("pointertap", input.pawn);
   const ring = new Graphics()
-    .ellipse(0, 0, 13, 6)
-    .stroke({ width: 1, color: 0xe9cf81 });
-  pawn.body.addChildAt(ring, 1);
-  const name = label("ROWAN", 7, 0xf4db94);
-  name.y = -59;
-  const work = new Graphics();
-  pawn.body.addChild(name, work);
-  const goblin = spriteBody(art.goblin[0], art.pawnAnchor, 10);
-  atWorld(goblin.body, WATCHER);
-  bodies.addChild(goblin.body);
-  const effects = new Graphics(),
-    reward = label("+6 WOOD", 8, 0xf4da95);
-  app.stage.addChild(effects, reward);
+    .ellipse(0, 0, 9, 4)
+    .stroke({ width: 1, color: 0xf0d28a });
+  const name = label("ROWAN", 7);
+  name.y = -48;
+  const progress = new Graphics();
+  ring.eventMode = name.eventMode = progress.eventMode = "none";
+  pawn.container.addChildAt(ring, 1);
+  pawn.container.addChild(name, progress);
+  const piles = new Map();
   const construction = createConstructionView(app, art, bodies);
+  const dusk = new Graphics()
+    .rect(0, 0, WIDTH, HEIGHT)
+    .fill({ color: 0x252342, alpha: 0.3 });
+  dusk.eventMode = "none";
+  app.stage.addChild(dusk);
   app.stage.eventMode = "static";
-  app.stage.hitArea = new Rectangle(0, 0, 480, 320);
-  app.stage.on("globalpointermove", (event) =>
-    input.hover(groundCell(event.global.x, event.global.y)),
+  app.stage.hitArea = new Rectangle(0, 0, WIDTH, HEIGHT);
+  app.stage.on("globalpointermove", (e) =>
+    input.hover(groundCell(e.global.x, e.global.y)),
   );
-  app.stage.on("pointertap", (event) =>
-    input.place(groundCell(event.global.x, event.global.y)),
+  app.stage.on("pointerdown", (e) =>
+    input.down(groundCell(e.global.x, e.global.y)),
   );
-  function drawTrees(state, target) {
-    targetRing.clear();
-    state.trees.forEach((t, i) => {
-      const view = treeViews[i],
-        active = state.pawn.task?.tree === t.id;
-      const damaged = active && state.pawn.work > CHOP_TICKS / 3;
+  app.stage.on("pointerup", (e) =>
+    input.up(groundCell(e.global.x, e.global.y)),
+  );
+  app.stage.on("pointerupoutside", input.cancelDrag);
+  function drawPiles(state) {
+    for (const [id, view] of piles)
+      if (!state.piles.some((p) => p.id === id && p.amount)) {
+        view.container.destroy({ children: true });
+        piles.delete(id);
+      }
+    for (const pile of state.piles.filter((p) => p.amount)) {
+      if (!piles.has(pile.id)) {
+        const view = body(
+          art.wood[Math.min(6, pile.amount)],
+          art.propAnchor,
+          7,
+        );
+        const count = label(String(pile.amount), 7);
+        count.position.set(10, 0);
+        view.container.addChild(count);
+        view.count = count;
+        piles.set(pile.id, view);
+        bodies.addChild(view.container);
+      }
+      const view = piles.get(pile.id);
+      put(view.container, pile);
+      view.container.zIndex += 0.1;
+      view.sprite.texture = art.wood[Math.min(6, pile.amount)];
+      view.count.text = String(pile.amount);
+    }
+  }
+  function drawTrees(state, selection) {
+    marks.clear();
+    for (const tree of state.trees) {
+      const view = trees.get(tree.id),
+        active = state.pawn.task?.target === tree.id;
+      view.container.eventMode = selection.tool ? "none" : "static";
       view.sprite.texture =
         art.tree[
-          t.felledAt !== null ? "stump" : damaged ? "notched" : "standing"
+          tree.felledAt !== null
+            ? "stump"
+            : tree.work > CHOP_TICKS / 3
+              ? "notched"
+              : "standing"
         ];
-      view.body.hitArea =
-        t.felledAt !== null
-          ? new Rectangle(-16, -20, 32, 26)
-          : new Rectangle(-39, -99, 78, 102);
+      view.container.hitArea =
+        tree.felledAt !== null
+          ? new Rectangle(-9, -10, 18, 15)
+          : new Rectangle(-22, -62, 44, 66);
       view.sprite.rotation =
         active && state.pawn.mode === "chop"
-          ? Math.sin(state.tick * 0.5) * 0.009
+          ? Math.sin(state.tick * 0.6) * 0.013
           : 0;
-      if (target === t.id) {
-        const at = project(t.x, t.z);
-        targetRing
-          .ellipse(at.x, at.y, 20, 10)
-          .stroke({ width: 1, color: 0xebce83 });
-      }
-    });
+      const at = project(tree.x, tree.z);
+      if (selection.tree === tree.id)
+        marks.ellipse(at.x, at.y, 14, 7).stroke({ width: 1, color: 0xe6c477 });
+      if (state.jobs.some((j) => j.target === tree.id))
+        marks
+          .moveTo(at.x - 3, at.y - 14)
+          .lineTo(at.x + 3, at.y - 8)
+          .moveTo(at.x + 3, at.y - 14)
+          .lineTo(at.x - 3, at.y - 8)
+          .stroke({ width: 1, color: 0xffdd83 });
+      if (active && state.pawn.mode === "chop")
+        for (let i = 0; i < 3; i++) {
+          const t = (state.tick + i * 5) % 18;
+          marks
+            .rect(
+              at.x + t * (i - 1) * 0.35,
+              at.y - 9 - Math.sin((t / 18) * Math.PI) * 8,
+              2,
+              1,
+            )
+            .fill(0xe4bd7a);
+        }
+    }
   }
   function drawPawn(state, selected) {
     const p = state.pawn,
-      at = atWorld(pawn.body, p);
-    const frames = art.pawn[p.mode][p.dir];
-    pawn.sprite.texture = frames[Math.floor(state.tick / 3) % frames.length];
+      pos = visualPosition(p);
+    put(pawn.container, pos);
+    pawn.container.zIndex += 0.3;
+    const pose = p.mode === "walk" && p.carry ? "carry" : p.mode;
+    const frames = art.pawn[pose][p.dir];
+    pawn.sprite.texture = frames[Math.floor(state.tick / 2) % frames.length];
     ring.visible = name.visible = selected;
     route.clear();
+    progress.clear();
     if (selected && p.path.length) {
-      route.moveTo(at.x, at.y);
+      const start = project(pos.x, pos.z);
+      route.moveTo(start.x, start.y);
       for (const cell of p.path) {
         const q = project(cell.x, cell.z);
         route.lineTo(q.x, q.y);
       }
-      route.stroke({ width: 1, color: 0xe5c777, alpha: 0.6 });
+      route.stroke({ width: 1, color: 0xe4c278, alpha: 0.65 });
     }
-    work.clear();
     if (p.mode === "chop") {
-      work.roundRect(-17, -51, 34, 4, 1).fill(0x253b2f);
-      work.rect(-16, -50, (32 * p.work) / CHOP_TICKS, 2).fill(0xedd08a);
-    }
-  }
-  function drawChips(state) {
-    effects.clear();
-    reward.visible = false;
-    const active = state.trees.find((t) => t.id === state.pawn.task?.tree);
-    if (active && state.pawn.mode === "chop") {
-      const at = project(active.x, active.z, 0.65),
-        phase = state.tick % 24;
-      for (let i = 0; i < 4; i++)
-        effects
-          .rect(
-            at.x + phase * (i - 1.5) * 0.35,
-            at.y - Math.sin((phase / 24) * Math.PI) * 10 + i,
-            2,
-            1,
-          )
-          .fill({ color: 0xe5b76e, alpha: 1 - phase / 24 });
-    }
-    for (const tree of state.trees) {
-      if (tree.felledAt === null) continue;
-      const age = state.tick - tree.felledAt;
-      if (age > 65) continue;
-      const at = project(tree.x, tree.z);
-      reward.visible = true;
-      reward.position.set(at.x, at.y - 27 - age * 0.25);
-      reward.alpha = Math.min(1, (65 - age) / 20);
-      for (let i = 0; i < 9; i++)
-        effects
-          .rect(
-            at.x + Math.sin(i * 2.4) * (12 + age * 0.5),
-            at.y - 20 - age * 0.3 + Math.cos(i * 3) * 12,
-            3,
-            2,
-          )
-          .fill({ color: i % 2 ? 0xc4b56c : 0x809947, alpha: 1 - age / 65 });
+      progress.rect(-11, -43, 22, 3).fill(0x253a2d);
+      progress.rect(-10, -42, (20 * p.work) / CHOP_TICKS, 1).fill(0xefcb7b);
     }
   }
   return {
     render(state, selection) {
-      pawn.body.eventMode = selection.placing ? "none" : "static";
-      for (const view of treeViews)
-        view.body.eventMode = selection.placing ? "none" : "static";
-      drawTrees(state, selection.tree);
+      pawn.container.eventMode = selection.tool ? "none" : "static";
+      drawTrees(state, selection);
+      drawPiles(state);
       drawPawn(state, selection.pawn);
-      drawChips(state);
+      put(cat.container, visualPosition(state.cat));
+      cat.container.zIndex += 0.4;
+      const catFrames = art.cat[state.cat.mode][state.cat.dir];
+      cat.sprite.texture =
+        catFrames[Math.floor(state.tick / 2) % catFrames.length];
+      goblin.container.visible = !!state.demand;
       construction.render(state, selection);
-      goblin.body.visible = !!state.demand;
-      goblin.sprite.texture = art.goblin[Math.floor(state.tick / 12) % 2];
+      dusk.visible = isNight(state);
     },
   };
 }

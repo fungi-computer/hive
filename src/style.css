@@ -14,6 +14,7 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
+  grid-template-columns: minmax(0, 1fr);
   background: radial-gradient(
     ellipse at 50% 35%,
     #35433a 0,
@@ -324,4 +325,183 @@ button:disabled {
   color: #f0d89b;
   background: #514f32;
   border-color: #8c8454;
+}
+/* A wider clearing at the approved study scale, with the orders beside tools. */
+#inn {
+  min-width: 0;
+  width: min(100%, 1360px);
+  padding: 22px 40px;
+}
+#stage {
+  aspect-ratio: 8 / 5;
+  overflow-x: auto;
+}
+#stage canvas {
+  min-width: 768px;
+  height: auto;
+}
+#day {
+  font-weight: 400;
+}
+.portrait-icon {
+  flex: 0 0 42px;
+}
+.portrait-icon img {
+  width: 48px;
+  height: 50px;
+}
+.workbench {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  border: 1px solid #52604a;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: #202f29;
+}
+footer {
+  border-radius: 0;
+  min-height: 92px;
+}
+.build-panel,
+.order-panel {
+  padding: 16px 20px;
+  min-width: 0;
+}
+.order-panel {
+  border-left: 1px solid #43523e;
+}
+#palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#palette button {
+  padding: 7px 11px;
+  font-size: 12px;
+}
+#palette small {
+  display: block;
+  color: #b4bd98;
+  font-size: 9px;
+}
+#palette .selected {
+  background: #62603d;
+  border-color: #d6bb80;
+}
+.building-help,
+#home-status {
+  font-size: 11px;
+  color: #aaba9c;
+  line-height: 1.65;
+  margin: 10px 0;
+}
+#home-status {
+  color: #dac48c;
+  margin-bottom: 0;
+}
+.routine {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.routine input {
+  accent-color: #d4b57b;
+  vertical-align: middle;
+}
+#rest {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+.orders-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.orders-heading small {
+  color: #aaba9c;
+  font-size: 10px;
+}
+#orders {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  height: 149px;
+  overflow-y: auto;
+  scrollbar-color: #788063 #25372d;
+}
+#orders li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 6px;
+  border-bottom: 1px solid #394a37;
+  font-size: 11px;
+}
+#orders li > span {
+  flex: 1;
+}
+#orders strong {
+  font-weight: 500;
+}
+#orders small {
+  display: block;
+  color: #a6b395;
+  font-size: 10px;
+}
+#orders button {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  background: transparent;
+}
+#orders .active-order {
+  border-left: 2px solid #dac07b;
+  background: #364631;
+}
+#orders .empty-orders {
+  color: #94a489;
+  border: 0;
+}
+.instructions a {
+  color: #c9b785;
+  margin-left: 10px;
+}
+@media (max-width: 900px) {
+  #inn {
+    padding: 14px 10px;
+  }
+  #stage {
+    aspect-ratio: auto;
+    height: 480px;
+  }
+  #stage canvas {
+    width: 768px;
+    max-width: none;
+  }
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+  .order-panel {
+    border-left: 0;
+    border-top: 1px solid #43523e;
+  }
+  #demand {
+    max-width: 240px;
+    font-size: 11px;
+  }
+  .scene-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  footer {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+/* Keep the portrait at its native crop even when the footer shares a row. */
+.portrait {
+  flex-shrink: 0;
 }

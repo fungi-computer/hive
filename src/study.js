@@ -7,26 +7,12 @@ import "./study.css";
 
 // One world unit projects to a 32 × 16 ground diamond. With this orthographic
 // camera a vertical world unit projects to ~19.6 px. Canvas padding has no role
-// in world scale. The gameplay camera is unchanged while this study is reviewed.
-const PIXELS_PER_UNIT = 16 * Math.SQRT2;
+// in world scale. The home demo now uses this accepted camera scale.
+import { camera } from "./art/scale.js";
 const KINDS = ["rowan", "knight", "wizard", "goblin", "cat"];
 const FRAME_WIDTH = 48,
   FRAME_HEIGHT = 64;
 const imageUrls = new WeakMap();
-function camera(width, height, targetY) {
-  const c = new THREE.OrthographicCamera(
-    -width / PIXELS_PER_UNIT / 2,
-    width / PIXELS_PER_UNIT / 2,
-    height / PIXELS_PER_UNIT / 2,
-    -height / PIXELS_PER_UNIT / 2,
-    0.1,
-    80,
-  );
-  c.position.set(12, Math.sqrt(288) * Math.tan(Math.PI / 6) + targetY, 12);
-  c.lookAt(0, targetY, 0);
-  c.updateMatrixWorld();
-  return c;
-}
 function plinth() {
   const s = scene();
   for (let x = -1; x <= 1; x++)

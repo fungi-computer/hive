@@ -9,6 +9,8 @@ import {
   group,
 } from "./geometry.js";
 
+import { SIZE, ROCKS, WATCHER } from "../world.js";
+const CENTER = (SIZE - 1) / 2;
 const greens = ["#758947", "#8f9e53", "#a7ad60", "#627b46"];
 function fern(s, x, z, size) {
   const plant = group(s, x, 0.04, z);
@@ -27,21 +29,21 @@ function fern(s, x, z, size) {
 }
 function ground() {
   const s = scene();
-  box(s, "#3b4130", 0, -0.36, 0, 7.5, 0.62, 7.5);
-  box(s, "#697e44", 0, -0.06, 0, 7.6, 0.16, 7.6);
+  box(s, "#3b4130", 0, -0.36, 0, SIZE + 0.5, 0.62, SIZE + 0.5);
+  box(s, "#697e44", 0, -0.06, 0, SIZE + 0.6, 0.16, SIZE + 0.6);
   // Soft irregular grass and a worn diagonal trail, all original geometry.
-  for (let z = 0; z < 7; z++)
-    for (let x = 0; x < 7; x++) {
+  for (let z = 0; z < SIZE; z++)
+    for (let x = 0; x < SIZE; x++) {
       const dirt =
-        Math.abs(x - z - 1) < 1.6 || (x > 1 && x < 5 && z > 2 && z < 6);
+        Math.abs(x - z - 1) < 1.6 || (x > 4 && x < 11 && z > 4 && z < 11);
       const tile = cylinder(
         s,
         dirt
           ? ["#9a895a", "#a08e62", "#96865a"][(x + z) % 3]
           : greens[(x * 3 + z) % 4],
-        x - 3,
+        x - CENTER,
         0.015,
-        z - 3,
+        z - CENTER,
         0.77,
         0.77,
         0.03,
@@ -49,39 +51,48 @@ function ground() {
       );
       tile.rotation.y = x * 2.3 + z;
     }
-  for (let i = 0; i < 58; i++) {
+  for (let i = 0; i < 110; i++) {
     const a = i * 2.399,
-      r = 3.3 + (i % 3) * 0.16;
+      r = CENTER + 0.3 + (i % 3) * 0.16;
     const x = Math.cos(a) * r,
       z = Math.sin(a) * r;
-    if (Math.abs(x) < 2.8 && Math.abs(z) < 2.8) continue;
+    if (Math.abs(x) < CENTER - 0.2 && Math.abs(z) < CENTER - 0.2) continue;
     ball(s, greens[i % 4], x, 0.08, z, 0.24, 0.12, 0.22);
     if (i % 3 === 0) fern(s, x, z, 0.28 + (i % 4) * 0.06);
     if (i % 7 === 0) mushroom(s, x, 0.1, z, 0.65);
   }
   // Exposed roots and embedded pebbles on the cut earth edge.
-  for (let i = 0; i < 12; i++) {
-    const x = -3.3 + i * 0.6;
-    box(s, "#746343", x, -0.26, 3.77, 0.06, 0.28 + (i % 3) * 0.05, 0.02);
-    ball(s, "#929078", 3.76, -0.24, x, 0.04, 0.07, 0.16);
+  for (let i = 0; i < 25; i++) {
+    const x = -CENTER - 0.3 + i * 0.6;
+    box(
+      s,
+      "#746343",
+      x,
+      -0.26,
+      CENTER + 0.77,
+      0.06,
+      0.28 + (i % 3) * 0.05,
+      0.02,
+    );
+    ball(s, "#929078", CENTER + 0.76, -0.24, x, 0.04, 0.07, 0.16);
   }
   return s;
 }
 export function clearing() {
   const s = ground();
   // These corner boulders correspond to blocked navigation cells.
-  for (const [x, z] of [
-    [0, 0],
-    [0, 6],
-    [6, 6],
-    [6, 2],
-  ]) {
-    ball(s, "#778576", x - 3, 0.23, z - 3, 0.44, 0.36, 0.4);
-    ball(s, "#92a074", x - 3 - 0.1, 0.43, z - 3, 0.28, 0.15, 0.25);
-    fern(s, x - 3 + 0.3, z - 3 + 0.25, 0.42);
+  for (const { x, z } of ROCKS) {
+    ball(s, "#778576", x - CENTER, 0.23, z - CENTER, 0.44, 0.36, 0.4);
+    ball(s, "#92a074", x - CENTER - 0.1, 0.43, z - CENTER, 0.28, 0.15, 0.25);
+    fern(s, x - CENTER + 0.3, z - CENTER + 0.25, 0.42);
   }
   // A goblin boundary marker, not a usable building or stockpile.
-  const marker = group(s, 3.3, 0, -2.8);
+  const marker = group(
+    s,
+    WATCHER.x - CENTER + 0.6,
+    0,
+    WATCHER.z - CENTER - 0.1,
+  );
   box(marker, "#66513b", 0, 0.55, 0, 0.12, 1.1, 0.12);
   const sign = box(marker, "#935b42", 0, 0.95, 0, 0.6, 0.28, 0.12);
   sign.rotation.z = -0.12;

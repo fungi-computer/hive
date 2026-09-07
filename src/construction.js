@@ -1,46 +1,132 @@
-// The one shelter type: a 2×2 timber lean-to, bought with six chopped wood.
-// Placement and reachability are shared by the preview and command admission.
-import { approach, cellKey } from "./movement.js";
-export const SHELTER_COST = 6;
-export const BUILD_TICKS = 100;
+import {
+  cellKey,
+  inside,
+  sameCell,
+  neighbors,
+  SIZE,
+  blockedCells,
+} from "./world.js";
+import { route } from "./movement.js";
+
+// Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
+export const BUILDINGS = {
+  wall: { label: "Timber wall", wood: 1, ticks: 32 },
+  door: { label: "Doorway", wood: 2, ticks: 48 },
+  roof: { label: "Thatch roof", wood: 1, ticks: 24 },
+  bed: { label: "Bedroll", wood: 2, ticks: 48 },
+};
 export function footprint(at) {
-  return [
-    { x: at.x, z: at.z },
-    { x: at.x + 1, z: at.z },
-    { x: at.x, z: at.z + 1 },
-    { x: at.x + 1, z: at.z + 1 },
-  ];
+  const cells = [{ x: at.x, z: at.z, level: at.level ?? 0 }];
+  if (at.type === "bed")
+    cells.push({
+      x: at.x + (at.direction === 1 ? 1 : 0),
+      z: at.z + (at.direction === 1 ? 0 : 1),
+      level: at.level ?? 0,
+    });
+  return cells;
 }
-export function buildRoute(pawn, at, blocked) {
-  const occupied = new Set([...blocked, ...footprint(at).map(cellKey)]);
-  return (
-    footprint(at)
-      .map((cell) => approach(pawn, cell, occupied))
-      .filter((path) => path !== null)
-      .sort((a, b) => a.length - b.length)[0] ?? null
-  );
-}
-export function placementProblem(state, at, blocked) {
+export function placementProblem(state, at) {
+  if (!at || !BUILDINGS[at.type]) return "Choose something to build.";
+  if (!footprint(at).every(inside))
+    return "Keep the footprint inside the clearing.";
+  const overlaps = (s) =>
+    footprint(s).some((a) => footprint(at).some((b) => sameCell(a, b)));
   if (
-    !at ||
-    !Number.isInteger(at.x) ||
-    !Number.isInteger(at.z) ||
-    at.x < 0 ||
-    at.z < 0 ||
-    at.x > 5 ||
-    at.z > 5
-  )
-    return "Keep the whole shelter inside the clearing.";
-  if (
-    footprint(at).some(
-      (cell) =>
-        blocked.has(cellKey(cell)) || cellKey(cell) === cellKey(state.pawn),
+    state.sites.some(
+      (s) => overlaps(s) && (s.type === "roof") === (at.type === "roof"),
     )
   )
-    return "That footprint is occupied. Choose clear ground.";
-  if (state.wood < SHELTER_COST)
-    return `Needs ${SHELTER_COST} wood. Chop an oak first.`;
-  if (!buildRoute(state.pawn, at, blocked))
-    return "Rowan cannot reach this building site.";
+    return "There is already a building or blueprint here.";
+  if (
+    state.trees.some((t) => t.felledAt === null && overlaps(t)) ||
+    state.rocks.some(overlaps) ||
+    overlaps(state.watcher)
+  )
+    return "Choose clear ground.";
+  if (
+    at.type === "wall" &&
+    (sameCell(state.pawn, at) ||
+      state.pawn.path.some((p) => sameCell(p, at)) ||
+      sameCell(state.cat, at) ||
+      state.cat.path.some((p) => sameCell(p, at)))
+  )
+    return "Let the path clear before placing a wall here.";
+  if (
+    at.type === "wall" &&
+    state.piles.some((p) => p.amount && sameCell(p, at))
+  )
+    return "Wood is lying here. Use it before building over it.";
   return "";
+}
+// A flood from the map edge finds outdoors. Doors seal a room for shelter,
+// while movement treats their opening as walkable. No room objects to sync.
+export function indoors(state) {
+  const boundary = new Set(
+    state.sites
+      .filter(
+        (s) =>
+          s.finishedAt !== null && (s.type === "wall" || s.type === "door"),
+      )
+      .map(cellKey),
+  );
+  const outside = new Set(),
+    queue = [];
+  for (let x = 0; x < SIZE; x++)
+    for (const z of [0, SIZE - 1]) queue.push({ x, z });
+  for (let z = 1; z < SIZE - 1; z++)
+    for (const x of [0, SIZE - 1]) queue.push({ x, z });
+  for (let i = 0; i < queue.length; i++) {
+    const cell = queue[i],
+      key = cellKey(cell);
+    if (!inside(cell) || boundary.has(key) || outside.has(key)) continue;
+    outside.add(key);
+    queue.push(...neighbors(cell));
+  }
+  const result = new Set();
+  for (let x = 0; x < SIZE; x++)
+    for (let z = 0; z < SIZE; z++) {
+      const key = cellKey({ x, z });
+      if (!outside.has(key) && !boundary.has(key)) result.add(key);
+    }
+  return result;
+}
+export function roofSupported(state, site, interior = indoors(state)) {
+  return (
+    interior.has(cellKey(site)) ||
+    state.sites.some(
+      (s) =>
+        sameCell(s, site) &&
+        s.finishedAt !== null &&
+        (s.type === "wall" || s.type === "door"),
+    )
+  );
+}
+export function shelteredBeds(state) {
+  const interior = indoors(state);
+  const blocked = blockedCells(state);
+  const entrances = state.sites.filter(
+    (door) =>
+      door.type === "door" &&
+      door.finishedAt !== null &&
+      neighbors(door).some(
+        (cell) =>
+          inside(cell) &&
+          !interior.has(cellKey(cell)) &&
+          !blocked.has(cellKey(cell)),
+      ),
+  );
+  return state.sites.filter(
+    (s) =>
+      s.type === "bed" &&
+      s.finishedAt !== null &&
+      entrances.some((door) => route(door, s, blocked) !== null) &&
+      footprint(s).every(
+        (cell) =>
+          interior.has(cellKey(cell)) &&
+          state.sites.some(
+            (r) =>
+              r.type === "roof" && r.finishedAt !== null && sameCell(r, cell),
+          ),
+      ),
+  );
 }

@@ -41,25 +41,6 @@ export function group(p, x = 0, y = 0, z = 0) {
   p.add(g);
   return g;
 }
-export function camera(width, height, span, targetY) {
-  const c = new THREE.OrthographicCamera(
-    -span / 2,
-    span / 2,
-    (span * height) / width / 2,
-    (-span * height) / width / 2,
-    0.1,
-    80,
-  );
-  c.position.set(12, 12 + targetY, 12);
-  c.lookAt(0, targetY, 0);
-  c.updateMatrixWorld();
-  return c;
-}
-export const worldCamera = camera(480, 320, 14, 0.5);
-export function project(x, z, y = 0) {
-  const p = new THREE.Vector3(x - 3, y, z - 3).project(worldCamera);
-  return { x: Math.round((p.x + 1) * 240), y: Math.round((1 - p.y) * 160) };
-}
 export function scene() {
   const s = new THREE.Scene();
   s.add(new THREE.HemisphereLight("#fff1cc", "#606c71", 2.15));
@@ -112,19 +93,4 @@ export function mushroom(p, x, y, z, scale = 1, color = "#ab5348") {
     0.018 * scale,
     0.04 * scale,
   );
-}
-
-export function groundCell(x, y) {
-  const point = new THREE.Vector3(x / 240 - 1, 1 - y / 160, -1).unproject(
-    worldCamera,
-  );
-  const ray = new THREE.Ray(
-    point,
-    worldCamera.getWorldDirection(new THREE.Vector3()),
-  );
-  const hit = ray.intersectPlane(
-    new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
-    new THREE.Vector3(),
-  );
-  return { x: Math.round(hit.x + 3), z: Math.round(hit.z + 3) };
 }

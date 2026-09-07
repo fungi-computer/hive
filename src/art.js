@@ -2,11 +2,11 @@
 // Reference pictures never enter this pipeline.
 import * as THREE from "three";
 import { Texture } from "pixi.js";
-import { camera, worldCamera } from "./art/geometry.js";
+import { camera, worldCamera, WIDTH, HEIGHT } from "./art/scale.js";
 import { clearing, tree } from "./art/clearing.js";
-import { shelter } from "./art/shelter.js";
-import { outsider, goblin } from "./art/pawns.js";
-export { project } from "./art/geometry.js";
+import { figure } from "./art/figures.js";
+import { building, woodPile, wallJoint } from "./art/home.js";
+import { BUILDINGS } from "./construction.js";
 
 function outline(ctx, w, h) {
   const src = ctx.getImageData(0, 0, w, h),
@@ -49,39 +49,68 @@ export async function bakeArt() {
   });
   renderer.setPixelRatio(1);
   renderer.setClearColor(0, 0);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.BasicShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  const portrait = camera(80, 80),
+    prop = camera(112, 112, 1.1);
   const art = {
-    ground: bake(renderer, clearing(), worldCamera, 480, 320, false),
+    ground: bake(renderer, clearing(), worldCamera, WIDTH, HEIGHT, false),
     pawn: {},
+    cat: {},
     tree: {},
+    buildings: {},
+    wood: {},
+    wallJoints: {},
+    pawnAnchor: anchor(portrait),
+    propAnchor: anchor(prop),
   };
-  const pawnCamera = camera(96, 96, 2.8, 0.65),
-    treeCamera = camera(160, 160, 14 / 3, 1.35);
-  art.pawnAnchor = anchor(pawnCamera);
-  art.treeAnchor = anchor(treeCamera);
-  renderer.shadowMap.enabled = false;
-  for (const pose of ["idle", "walk", "chop", "build"]) {
-    art.pawn[pose] = [];
-    for (const dir of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
-      const count = pose === "idle" ? 2 : 8;
-      art.pawn[pose].push(
-        Array.from({ length: count }, (_, f) =>
-          bake(renderer, outsider(pose, f / count, dir), pawnCamera, 96, 96),
-        ),
-      );
+  for (const [kind, poses] of [
+    [
+      "rowan",
+      ["idle", "walk", "chop", "build", "carry", "pickup", "deliver", "sleep"],
+    ],
+    ["cat", ["idle", "walk", "sleep"]],
+    ["goblin", ["idle"]],
+  ]) {
+    const target =
+      kind === "rowan"
+        ? art.pawn
+        : kind === "cat"
+          ? art.cat
+          : (art.goblin = {});
+    for (const pose of poses) {
+      target[pose] = [];
+      for (let direction = 0; direction < 4; direction++) {
+        const count = ["idle", "sleep"].includes(pose) ? 1 : 8;
+        target[pose].push(
+          Array.from({ length: count }, (_, frame) =>
+            bake(
+              renderer,
+              figure(kind, frame / count, (direction * Math.PI) / 2, pose),
+              portrait,
+              80,
+              80,
+            ),
+          ),
+        );
+      }
+      await new Promise((resolve) => requestAnimationFrame(resolve));
     }
-    await new Promise((resolve) => requestAnimationFrame(resolve));
   }
-  art.goblin = [0, 0.5].map((phase) =>
-    bake(renderer, goblin(phase), pawnCamera, 96, 96),
-  );
   for (const stage of ["standing", "notched", "stump"])
-    art.tree[stage] = bake(renderer, tree(stage), treeCamera, 160, 160);
-  art.shelter = {};
+    art.tree[stage] = bake(renderer, tree(stage), prop, 112, 112);
+  for (const type of Object.keys(BUILDINGS)) {
+    art.buildings[type] = {};
+    for (const stage of ["stakes", "frame", "finished"])
+      art.buildings[type][stage] = [0, 1].map((direction) =>
+        bake(renderer, building(type, stage, direction), prop, 112, 112),
+      );
+  }
   for (const stage of ["stakes", "frame", "finished"])
-    art.shelter[stage] = bake(renderer, shelter(stage), treeCamera, 160, 160);
+    art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
+      bake(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
+    );
+  for (let amount = 1; amount <= 6; amount++)
+    art.wood[amount] = bake(renderer, woodPile(amount), prop, 112, 112);
   renderer.dispose();
   return art;
 }
