@@ -8,6 +8,9 @@ Levi has now opened the full-viewport, two-person polish goal described below.
 It does not claim implementation of multiplayer, streaming, upper floors or a backend.
 The accepted game and character study remain the regression baseline.
 
+The accepted future product/source boundary is in the
+[home, expeditions, and living world ADR](docs/decisions/home-expeditions-and-living-world.md).
+
 ## Delivery ownership
 
 Levi appoints Astra as peer Game CTO: game direction, difficult architecture,
