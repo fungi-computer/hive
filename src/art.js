@@ -3,11 +3,8 @@
 import * as THREE from "three";
 import { Texture } from "pixi.js";
 
-export const SIZE = { width: 480, height: 320, span: 14 };
 const C = {
-  ink: "#292b2a",
   wood: "#76503b",
-  end: "#a0744c",
   lightWood: "#b78a55",
   stone: "#758575",
   plaster: "#bec39b",
@@ -335,17 +332,18 @@ function ear(parent, side) {
   mesh(parent, new THREE.ShapeGeometry(inner), "#bdad70", 0, 0, 0.141);
   return m;
 }
-function pawn(pose, phase, direction) {
+function pawn(pose, phase, direction, guest = false) {
   const s = scene();
   const puppet = group(s);
   puppet.rotation.y = direction;
-  const stride = pose === "walk" ? Math.sin(phase * Math.PI * 2) : 0;
+  const stride =
+    pose === "walk" || pose === "carryWalk" ? Math.sin(phase * Math.PI * 2) : 0;
   const lift =
-    pose === "walk"
+    pose === "walk" || pose === "carryWalk"
       ? Math.abs(stride) * 0.045
       : Math.sin(phase * Math.PI * 2) * 0.012;
   const body = group(puppet, 0, lift, 0);
-  const shirt = C.teal;
+  const shirt = guest ? C.red : C.teal;
   for (const side of [-1, 1]) {
     const leg = group(body, 0.14 * side, 0.37, 0);
     leg.rotation.x = stride * side * 0.55;
@@ -354,20 +352,27 @@ function pawn(pose, phase, direction) {
   }
   ball(body, shirt, 0, 0.62, 0, 0.32, 0.38, 0.22);
   box(body, "#654931", 0, 0.43, 0.18, 0.53, 0.09, 0.12);
-  {
+  if (!guest) {
     box(body, C.cream, 0, 0.63, 0.218, 0.37, 0.47, 0.06);
     box(body, "#c9b68a", 0.03, 0.49, 0.256, 0.23, 0.15, 0.026);
     box(body, C.cream, 0, 0.9, 0.19, 0.3, 0.18, 0.05);
+  } else {
+    box(body, C.gold, 0, 0.88, 0.22, 0.52, 0.12, 0.09);
+    box(body, C.gold, 0.18, 0.7, 0.24, 0.12, 0.33, 0.06);
+    ball(body, C.wood, 0, 0.75, -0.26, 0.27, 0.31, 0.16);
   }
   for (const side of [-1, 1]) {
     const arm = group(body, 0.29 * side, 0.83, 0);
     arm.rotation.x =
       pose === "work"
         ? -0.9 - Math.sin(phase * Math.PI * 2) * 0.35
-        : pose === "carry"
+        : pose.startsWith("carry")
           ? -0.95
           : -stride * side * 0.6;
-    arm.rotation.z = side * 0.12;
+    arm.rotation.z =
+      pose === "cheer"
+        ? side * (2.2 + Math.sin(phase * Math.PI * 2) * 0.2)
+        : side * 0.12;
     ball(arm, shirt, 0, -0.075, 0, 0.14, 0.2, 0.15);
     ball(arm, C.skin, 0, -0.29, 0.035, 0.11, 0.14, 0.11);
     if (pose === "work" && side === 1) {
@@ -416,13 +421,16 @@ function pawn(pose, phase, direction) {
     fang.rotation.x = Math.PI;
   }
   box(body, "#556039", 0, 0.938, 0.373, 0.17, 0.025, 0.025);
-  {
+  if (!guest) {
     // Floppy saffron cap, tied slightly to one side.
     cylinder(body, C.red, 0, 1.34, 0, 0.29, 0.34, 0.1, 10);
     ball(body, C.gold, -0.075, 1.43, -0.025, 0.3, 0.2, 0.25);
     ball(body, C.gold, -0.29, 1.4, -0.015, 0.15, 0.1, 0.15);
+  } else {
+    cylinder(body, "#795941", 0, 1.36, 0, 0.23, 0.39, 0.17, 8);
+    box(body, "#e4bd6d", 0, 1.41, 0.13, 0.45, 0.05, 0.32);
   }
-  if (pose === "carry") {
+  if (pose.startsWith("carry")) {
     cylinder(body, C.wood, 0, 0.71, 0.44, 0.21, 0.15, 0.13);
     cylinder(body, C.gold, 0, 0.781, 0.44, 0.19, 0.19, 0.01);
   }
@@ -489,17 +497,29 @@ export async function bakeArt() {
   art.anchor = { x: 0.5, y: (1 - foot.y) / 2 };
   const directions = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
   renderer.shadowMap.enabled = false;
-  art.pawn.keeper = {};
-  for (const pose of ["idle", "walk", "work", "carry"]) {
-    art.pawn.keeper[pose] = [];
-    for (const dir of directions) {
-      const frames = [];
-      for (let f = 0; f < (pose === "idle" ? 2 : 6); f++)
-        frames.push(bake(pawn(pose, f / 6, dir), spriteCamera, 96, 96, true));
-      art.pawn.keeper[pose].push(frames);
+  for (const kind of ["keeper", "guest"]) {
+    art.pawn[kind] = {};
+    for (const pose of kind === "keeper"
+      ? ["idle", "walk", "work", "carry", "carryWalk"]
+      : ["idle", "walk", "carry", "cheer"]) {
+      art.pawn[kind][pose] = [];
+      for (const dir of directions) {
+        const frames = [];
+        for (let f = 0; f < (pose === "idle" ? 2 : 6); f++)
+          frames.push(
+            bake(
+              pawn(pose, f / 6, dir, kind === "guest"),
+              spriteCamera,
+              96,
+              96,
+              true,
+            ),
+          );
+        art.pawn[kind][pose].push(frames);
+      }
     }
+    await new Promise((resolve) => requestAnimationFrame(resolve));
   }
-  await new Promise((resolve) => requestAnimationFrame(resolve));
   const tableScene = table();
   tableScene.scale.set(0.82, 1, 0.82);
   art.table = bake(tableScene, spriteCamera, 96, 96, true);

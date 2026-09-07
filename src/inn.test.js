@@ -41,7 +41,7 @@ function run(inn, ticks, commands = new Map()) {
 }
 
 test("Pip waits for a command, then the real libcolony assignment reaches one bowl", () => {
-  const inn = run(createInn(), 100);
+  const inn = run(createInn(), 150);
   assert.deepEqual([inn.keeper.x, inn.keeper.z], [3, 4]);
   assert.equal(inn.prepared, 0);
   step(inn, colony, ["prepare"]);
@@ -52,8 +52,8 @@ test("Pip waits for a command, then the real libcolony assignment reaches one bo
     inn,
     120,
     new Map([
-      [105, ["prepare"]],
-      [190, ["prepare"]],
+      [155, ["prepare"]],
+      [240, ["prepare"]],
     ]),
   );
   assert.equal(inn.prepared, 1);
@@ -103,4 +103,105 @@ test("recorded command ticks reproduce the same gameplay with different frame ca
       step(second, colony, commands.get(second.tick + 1) || []);
   }
   assert.deepEqual(second, first);
+});
+
+function until(inn, condition, limit = 800) {
+  for (let i = 0; i < limit && !condition(inn); i++) step(inn, colony);
+  assert.ok(condition(inn), "gameplay condition was not reached");
+}
+
+test("two fake guests receive their own bowl and leave satisfied; waiting never auto-serves", () => {
+  const inn = createInn();
+  for (let order = 1; order <= 2; order++) {
+    until(inn, (s) => s.guest?.mode === "waiting");
+    const id = inn.guest.id;
+    const admitted = inn.feed.sequence;
+    run(inn, 350);
+    assert.equal(
+      inn.feed.sequence,
+      admitted,
+      "occupied table must hold later arrivals",
+    );
+    assert.equal(
+      inn.served,
+      order - 1,
+      "waiting must not prepare or deliver automatically",
+    );
+    step(inn, colony, ["deliver"]);
+    assert.equal(inn.served, order - 1, "an empty hand cannot serve");
+    step(inn, colony, ["prepare"]);
+    until(inn, (s) => s.keeper.carrying);
+    assert.equal(inn.guest.id, id);
+    assert.equal(inn.guest.mode, "waiting");
+    step(inn, colony, ["deliver", "deliver"]);
+    until(inn, (s) => s.guest?.mode === "eating");
+    assert.equal(inn.served, order);
+    assert.equal(inn.keeper.carrying, false);
+    assert.equal(inn.guest.carrying, true);
+    inn.paused = true;
+    const stopped = structuredClone(inn);
+    run(inn, 100);
+    assert.deepEqual(structuredClone(inn), stopped);
+    inn.paused = false;
+    until(inn, (s) => s.departed === order);
+    assert.equal(inn.satisfied, order);
+    assert.equal(inn.prepared, order);
+  }
+});
+
+test("a recorded full service replays the same fake feed, movement and outcomes", () => {
+  const first = createInn();
+  until(first, (s) => s.guest?.mode === "waiting");
+  step(first, colony, ["prepare"]);
+  until(first, (s) => s.keeper.carrying);
+  step(first, colony, ["deliver"]);
+  until(first, (s) => s.departed === 1);
+  const script = new Map(first.commands.map((c) => [c.tick, [c.kind]]));
+  const second = run(createInn(), first.tick, script);
+  assert.deepEqual(second, first);
+  assert.deepEqual(createInn().feed, {
+    seed: 42,
+    sequence: 0,
+    nextAt: 50,
+    last: null,
+  });
+});
+
+test("late-farewell preparation lets the guest wait for the shared corridor", () => {
+  const inn = createInn();
+  until(inn, (s) => s.guest?.mode === "waiting");
+  step(inn, colony, ["prepare"]);
+  until(inn, (s) => s.keeper.carrying);
+  step(inn, colony, ["deliver"]);
+  until(inn, (s) => s.guest?.mode === "eating");
+  run(inn, 75);
+  assert.equal(inn.guest.mode, "happy");
+  step(inn, colony, ["prepare"]);
+  assert.equal(
+    inn.keeper.mode,
+    "walk",
+    "the explicit preparation command is respected",
+  );
+  for (let i = 0; i < 250; i++) {
+    step(inn, colony);
+    if (inn.guest) {
+      const distance = Math.hypot(
+        inn.keeper.x - inn.guest.x,
+        inn.keeper.z - inn.guest.z,
+      );
+      assert.ok(
+        distance >= 0.9,
+        `bodies overlapped at tick ${inn.tick}: ${distance}`,
+      );
+      assert.ok(
+        !(
+          inn.keeper.mode === "walk" &&
+          ["arriving", "leaving"].includes(inn.guest.mode)
+        ),
+        "only one body uses the corridor at once",
+      );
+    }
+  }
+  assert.equal(inn.departed, 1);
+  assert.equal(inn.prepared, 2);
 });
