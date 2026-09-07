@@ -3,6 +3,8 @@ import { inScope, scopeProblem } from "./actors.ts";
 import { placementProblem } from "./construction.js";
 import { interruptWork } from "./activity.ts";
 import { refundWood } from "./resources.ts";
+import { blockedCells, cellKey, inside } from "./world.js";
+import { route, beginWalk } from "./movement.js";
 
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
@@ -18,6 +20,30 @@ export function commandProblem(state: Clearing, command: Command): string {
     )
       return "That person has already joined a party.";
     return "";
+  }
+  if (command.kind === "draft" || command.kind === "undraft") {
+    const party = state.parties[command.party];
+    const person = state.actors[command.actor];
+    if (!party) return "That party is not here.";
+    if (!person || !party.members.includes(person.id))
+      return "Choose a home member.";
+    if (command.kind === "draft")
+      return person.drafted ? "That home member is already drafted." : "";
+    return person.drafted ? "" : "That home member is not drafted.";
+  }
+  if (command.kind === "go") {
+    const party = state.parties[command.party];
+    const person = state.actors[command.actor];
+    if (!party) return "That party is not here.";
+    if (!person || !party.members.includes(person.id))
+      return "Choose a home member.";
+    if (!person.drafted) return "Only a drafted home member can Go.";
+    if (!inside(command.target)) return "Choose a clear ground tile.";
+    if (blockedCells(state).has(cellKey(command.target)))
+      return "That ground is blocked.";
+    return route(person, command.target, blockedCells(state)) === null
+      ? "That ground is unreachable."
+      : "";
   }
   const problem = scopeProblem(state, command);
   if (problem) return problem;
@@ -54,7 +80,7 @@ export function commandProblem(state: Clearing, command: Command): string {
   }
   return "";
 }
-export function cancelJob(state: Clearing, id: string): void {
+function cancelJob(state: Clearing, id: string): void {
   const job = state.jobs.find((j) => j.id === id);
   if (!job) return;
   for (const person of Object.values(state.actors)) {
@@ -185,7 +211,7 @@ function orderWork(state: Clearing, command: WorkCommand): void {
           ? "Direct order received. Earlier unfinished orders are kept."
           : "Work added to the orders.";
 }
-export function acceptCommand(
+function acceptCommand(
   state: Clearing,
   command: Command,
 ): CommandResult {
@@ -197,6 +223,40 @@ export function acceptCommand(
       state.workDirty = true;
       state.notice = `${state.actors[command.actor].name} joined. Two pairs of hands, one very questionable plan.`;
       return { status: "applied" };
+    case "draft": {
+      const person = state.actors[command.actor];
+      interruptWork(state, person);
+      person.drafted = true;
+      state.notice = `${person.name} is drafted and holding position.`;
+      state.workDirty = true;
+      return { status: "applied" };
+    }
+    case "undraft": {
+      const person = state.actors[command.actor];
+      person.drafted = false;
+      if (person.mode === "walk") {
+        person.mode = "idle";
+        person.path = [];
+        person.leg = 0;
+      }
+      state.notice = `${person.name} is available for ordinary work again.`;
+      state.workDirty = true;
+      return { status: "applied" };
+    }
+    case "go": {
+      const person = state.actors[command.actor];
+      const path = route(person, command.target, blockedCells(state));
+      if (path === null)
+        return { status: "rejected", reason: "That ground is unreachable." };
+      if (path.length) beginWalk(person, path);
+      else {
+        person.mode = "idle";
+        person.path = [];
+        person.leg = 0;
+      }
+      state.notice = `${person.name} is moving to clear ground.`;
+      return { status: "applied" };
+    }
     case "cancel":
       cancelJob(state, command.job);
       return { status: "applied" };

@@ -84,22 +84,61 @@ test("snapshot omits command history and restores a paused fresh trace", () => {
   ]);
 });
 
-test("strict schema 1 saves normalize the consumed wood sink and write schema 2", () => {
-  const v2 = snapshotFor(createClearing());
+test("schema 3 persists drafted state and typed draft/Go replay history", () => {
+  const state = createClearing();
+  state.actors.rowan.drafted = true;
+  state.actors.rowan.mode = "walk";
+  state.actors.rowan.path = [{ x: 8, z: 10, level: 0 }];
+  state.commands.push(
+    { kind: "draft", party: "home", actor: "rowan", tick: 0 },
+    {
+      kind: "go",
+      party: "home",
+      actor: "rowan",
+      target: { x: 8, z: 10, level: 0 },
+      tick: 0,
+    },
+  );
+  validateClearing(state);
+  const envelope = snapshotFor(state);
+  assert.equal(envelope.schema, 3);
+  assert.equal(envelope.savedState.actors.rowan.drafted, true);
+  const restored = restoreSnapshot(envelope).state;
+  assert.equal(restored.actors.rowan.drafted, true);
+  assert.equal(restored.actors.rowan.mode, "walk");
+  assert.deepEqual(restored.actors.rowan.path, [{ x: 8, z: 10, level: 0 }]);
+  assert.deepEqual(restored.commands, []);
+  assert.throws(() => {
+    const missing = structuredClone(envelope);
+    delete missing.savedState.actors.rowan.drafted;
+    validateSaveEnvelope(missing);
+  }, /Invalid input/);
+});
+
+test("strict schema 1 and 2 saves normalize drafted false and write schema 3", () => {
+  const v3 = snapshotFor(createClearing());
+  const v2 = structuredClone(v3);
+  v2.schema = 2;
+  for (const actor of Object.values(v2.savedState.actors)) delete actor.drafted;
   const v1 = structuredClone(v2);
   v1.schema = 1;
   delete v1.savedState.consumedWood;
 
-  const restored = restoreSnapshot(v1);
-  assert.equal(restored.state.consumedWood, 0);
-  assert.equal(restored.state.paused, true);
-  const rewritten = snapshotFor(restored.state);
-  assert.equal(rewritten.schema, 2);
+  const restoredV1 = restoreSnapshot(v1);
+  assert.equal(restoredV1.state.consumedWood, 0);
+  assert.equal(restoredV1.state.actors.rowan.drafted, false);
+  assert.equal(restoredV1.state.paused, true);
+  const restoredV2 = restoreSnapshot(v2);
+  assert.equal(restoredV2.state.actors.rowan.drafted, false);
+  const rewritten = snapshotFor(restoredV1.state);
+  assert.equal(rewritten.schema, 3);
   assert.equal(rewritten.savedState.consumedWood, 0);
+  assert.equal(rewritten.savedState.actors.rowan.drafted, false);
   assert.equal(validateSaveEnvelope(v1).schema, 1);
+  assert.equal(validateSaveEnvelope(v2).schema, 2);
 });
 
-test("schema 2 accepts a finished target and deconstruction job", () => {
+test("schema 3 accepts a finished target and deconstruction job", () => {
   const state = structuredClone(createClearing());
   state.tick = 10;
   state.felled = 1;
@@ -140,8 +179,20 @@ test("schema 2 accepts a finished target and deconstruction job", () => {
   state.actors.rowan.mode = "walk";
   validateClearing(state);
   const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 2);
+  assert.equal(envelope.schema, 3);
   assert.equal(restoreSnapshot(envelope).state.jobs[0].kind, "deconstruct");
+
+  const draftedWorker = structuredClone(envelope);
+  draftedWorker.savedState.actors.rowan.drafted = true;
+  assert.throws(
+    () => restoreSnapshot(draftedWorker),
+    /drafted actor rowan retains ordinary work/,
+  );
+
+  const v2 = structuredClone(envelope);
+  v2.schema = 2;
+  for (const actor of Object.values(v2.savedState.actors)) delete actor.drafted;
+  assert.equal(restoreSnapshot(v2).state.jobs[0].kind, "deconstruct");
 
   const duplicate = structuredClone(envelope);
   duplicate.savedState.jobs.push({
@@ -187,6 +238,14 @@ test("schema rejects unknown versions and broken cross references", () => {
     routine: false,
   });
   assert.throws(() => validateClearing(broken), /missing tree/);
+
+  const tasklessWalker = structuredClone(createClearing());
+  tasklessWalker.actors.rowan.mode = "walk";
+  tasklessWalker.actors.rowan.path = [{ x: 8, z: 10, level: 0 }];
+  assert.throws(
+    () => validateClearing(tasklessWalker),
+    /actor rowan has a mode without a task/,
+  );
 });
 
 test("schema preserves active cargo, claims, progress, path and ordered jobs", () => {

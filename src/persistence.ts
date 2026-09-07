@@ -5,12 +5,13 @@ import { inside } from "./world.js";
 import { CHOP_TICKS } from "./activity.ts";
 import { BUILDINGS } from "./construction.js";
 
-export const SAVE_KIND = "hive-local-world" as const;
-export const SAVE_SCHEMA = 2 as const;
-export const SAVE_SCHEMA_V1 = 1 as const;
-export const SAVE_DB_NAME = "hive-local-world";
-export const SAVE_STORE = "world";
-export const SAVE_KEY = "current";
+const SAVE_KIND = "hive-local-world" as const;
+const SAVE_SCHEMA = 3 as const;
+const SAVE_SCHEMA_V1 = 1 as const;
+const SAVE_SCHEMA_V2 = 2 as const;
+const SAVE_DB_NAME = "hive-local-world";
+const SAVE_STORE = "world";
+const SAVE_KEY = "current";
 
 const finite = z.number().finite();
 const integer = finite.int();
@@ -95,7 +96,7 @@ const bodySchemaV1 = z
     ]),
   })
   .strict();
-const bodySchema = z
+const bodySchemaV2 = z
   .object({
     ...bodyFields,
     mode: z.enum([
@@ -123,8 +124,15 @@ const actorFields = {
 const actorSchemaV1 = bodySchemaV1
   .extend({ ...actorFields, task: activitySchemaV1.nullable() })
   .strict();
-const actorSchema = bodySchema
+const actorSchemaV2 = bodySchemaV2
   .extend({ ...actorFields, task: activitySchema.nullable() })
+  .strict();
+const actorSchema = bodySchemaV2
+  .extend({
+    ...actorFields,
+    drafted: z.boolean(),
+    task: activitySchema.nullable(),
+  })
   .strict();
 const partySchema = z.object({ id, members: z.array(id) }).strict();
 const treeSchema = cellSchema
@@ -247,7 +255,7 @@ const commandSchemasV1 = [
   recruitCommandSchema,
 ] as const;
 const commandSchemaV1 = z.union(commandSchemasV1);
-const commandSchema = z.union([
+const commandSchemasV2 = [
   chopCommandSchema,
   buildCommandSchema,
   deconstructCommandSchema,
@@ -256,9 +264,25 @@ const commandSchema = z.union([
   routineCommandSchema,
   workCommandSchemaWithToggle,
   recruitCommandSchema,
+] as const;
+const commandSchemaV2 = z.union(commandSchemasV2);
+const draftCommandSchema = z
+  .object({ kind: z.enum(["draft", "undraft"]), party: id, actor: id })
+  .strict();
+const goCommandSchema = z
+  .object({ kind: z.literal("go"), party: id, actor: id, target: cellSchema })
+  .strict();
+const commandSchema = z.union([
+  ...commandSchemasV2,
+  draftCommandSchema,
+  goCommandSchema,
 ]);
 const commandHistorySchemaV1 = z.intersection(
   commandSchemaV1,
+  z.object({ tick: nonNegative }).strict(),
+);
+const commandHistorySchemaV2 = z.intersection(
+  commandSchemaV2,
   z.object({ tick: nonNegative }).strict(),
 );
 const commandHistorySchema = z.intersection(
@@ -318,14 +342,22 @@ const clearingSchemaV1 = makeClearingSchema(
   commandHistorySchemaV1,
   false,
 );
+const clearingSchemaV2 = makeClearingSchema(
+  actorSchemaV2,
+  bodySchemaV2,
+  jobSchema,
+  commandHistorySchemaV2,
+  true,
+);
 const clearingSchema = makeClearingSchema(
   actorSchema,
-  bodySchema,
+  bodySchemaV2,
   jobSchema,
   commandHistorySchema,
   true,
 );
 const savedClearingSchemaV1 = clearingSchemaV1.omit({ commands: true });
+const savedClearingSchemaV2 = clearingSchemaV2.omit({ commands: true });
 const savedClearingSchema = clearingSchema.omit({ commands: true });
 const saveEnvelopeSchemaV1 = z
   .object({
@@ -338,6 +370,14 @@ const saveEnvelopeSchemaV1 = z
 const saveEnvelopeSchemaV2 = z
   .object({
     kind: z.literal(SAVE_KIND),
+    schema: z.literal(SAVE_SCHEMA_V2),
+    revision: nonNegative,
+    savedState: savedClearingSchemaV2,
+  })
+  .strict();
+const saveEnvelopeSchemaV3 = z
+  .object({
+    kind: z.literal(SAVE_KIND),
     schema: z.literal(SAVE_SCHEMA),
     revision: nonNegative,
     savedState: savedClearingSchema,
@@ -346,10 +386,11 @@ const saveEnvelopeSchemaV2 = z
 const saveEnvelopeSchema = z.union([
   saveEnvelopeSchemaV1,
   saveEnvelopeSchemaV2,
+  saveEnvelopeSchemaV3,
 ]);
 
 export type SerializedClearing = z.infer<typeof clearingSchema>;
-export type SavedClearing = z.infer<typeof savedClearingSchema>;
+type SavedClearing = z.infer<typeof savedClearingSchema>;
 export type SaveEnvelope = z.infer<typeof saveEnvelopeSchema>;
 
 function uniqueIds(values: string[], label: string): void {
@@ -476,6 +517,20 @@ function checkInvariants(state: Clearing): void {
   const claimsBySite = new Map<string, number>();
   const cargoBySite = new Map<string, number>();
   for (const actor of Object.values(state.actors)) {
+    if (
+      actor.drafted &&
+      (actor.task ||
+        actor.assignment ||
+        actor.cargo ||
+        state.claims[actor.id] !== undefined)
+    )
+      throw new Error(`drafted actor ${actor.id} retains ordinary work`);
+    if (
+      !actor.task &&
+      actor.mode !== "idle" &&
+      !(actor.drafted && actor.mode === "walk")
+    )
+      throw new Error(`actor ${actor.id} has a mode without a task`);
     if (actor.task) {
       const job = jobs.get(actor.task.job);
       if (!job) throw new Error(`actor ${actor.id} has missing task job`);
@@ -693,10 +748,22 @@ export function validateClearing(value: unknown): SerializedClearing {
 
 export function validateSaveEnvelope(value: unknown): SaveEnvelope {
   const parsed = saveEnvelopeSchema.parse(value);
-  if (parsed.schema === SAVE_SCHEMA_V1)
-    validateSavedClearing({ ...parsed.savedState, consumedWood: 0 });
-  else validateSavedClearing(parsed.savedState);
+  validateSavedClearing(normalizeSavedState(parsed));
   return parsed;
+}
+
+function normalizeSavedState(envelope: SaveEnvelope): Record<string, unknown> {
+  const actors = Object.fromEntries(
+    Object.entries(envelope.savedState.actors).map(([id, actor]) => [
+      id,
+      { ...actor, drafted: "drafted" in actor ? actor.drafted : false },
+    ]),
+  );
+  return {
+    ...envelope.savedState,
+    actors,
+    ...(envelope.schema === SAVE_SCHEMA_V1 ? { consumedWood: 0 } : {}),
+  };
 }
 
 export function snapshotFor(state: Clearing): SaveEnvelope {
@@ -721,16 +788,13 @@ export function restoreSnapshot(value: unknown): {
   revision: number;
 } {
   const envelope = validateSaveEnvelope(value);
-  const savedState =
-    envelope.schema === SAVE_SCHEMA_V1
-      ? { ...envelope.savedState, consumedWood: 0 }
-      : envelope.savedState;
+  const savedState = normalizeSavedState(envelope);
   return {
     state: structuredClone({
       ...savedState,
       commands: [],
       paused: true,
-    }) as Clearing,
+    }) as unknown as Clearing,
     revision: envelope.revision,
   };
 }
@@ -749,14 +813,14 @@ export type LoadResult =
   | { kind: "invalid"; raw: unknown; reason: string }
   | { kind: "failed"; error: unknown };
 
-export class StaleRevisionError extends Error {
+class StaleRevisionError extends Error {
   constructor() {
     super("The local world changed in another tab.");
     this.name = "StaleRevisionError";
   }
 }
 
-export class MalformedSaveError extends Error {
+class MalformedSaveError extends Error {
   constructor() {
     super("The local world record is malformed and was not overwritten.");
     this.name = "MalformedSaveError";

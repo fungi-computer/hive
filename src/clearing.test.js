@@ -44,12 +44,14 @@ function step(state, colony, commands = []) {
   return advance(
     state,
     colony,
-    commands.map((command) => ({
-      party: "home",
-      actors: null,
-      level: 0,
-      ...command,
-    })),
+    commands.map((command) =>
+      command.kind === "draft" ||
+      command.kind === "undraft" ||
+      command.kind === "go" ||
+      command.kind === "recruit"
+        ? { party: "home", ...command }
+        : { party: "home", actors: null, level: 0, ...command },
+    ),
   );
 }
 
@@ -209,6 +211,17 @@ test("a player-built room needs delivered wood, a doorway, covered bed cells and
   step(state, colony, [{ kind: "rest" }, chop("oak-5")]);
   until(state, (s) => s.actors.rowan.mode === "sleep");
   assert.deepEqual([state.actors.rowan.x, state.actors.rowan.z], [7, 6]);
+  const restJob = state.actors.rowan.task.job;
+  state.paused = true;
+  const sleepTick = state.tick;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  assert.equal(state.tick, sleepTick);
+  assert.equal(state.actors.rowan.mode, "idle");
+  assert.equal(state.actors.rowan.task, null);
+  assert.ok(state.jobs.some((job) => job.id === restJob));
+  step(state, colony, [{ kind: "undraft", actor: "rowan" }]);
+  state.paused = false;
+  until(state, (s) => s.actors.rowan.mode === "sleep");
   const rest = state.actors.rowan.rest;
   run(state, 20);
   assert.ok(state.actors.rowan.rest > rest);
@@ -233,6 +246,162 @@ test("pause freezes active cargo and every subsystem; reset restores the seeded 
   assert.equal(reset.sites.length, 0);
   assert.equal(reset.feed.sequence, 0);
   assert.equal(reset.actors.rowan.routine, false);
+});
+
+test("draft admits while paused, interrupts work without losing wood, and blocks ordinary assignment", () => {
+  const state = createClearing();
+  step(state, colony, [build("bed", 7, 6), chop("oak-1")]);
+  until(state, (s) => (s.actors.rowan.cargo?.amount ?? 0) > 0);
+  const before = looseWood(state) + (state.actors.rowan.cargo?.amount ?? 0);
+  const jobIds = state.jobs.map((job) => job.id);
+  state.paused = true;
+  const tick = state.tick;
+  const [draftResult] = step(state, colony, [
+    { kind: "draft", actor: "rowan" },
+  ]);
+  assert.deepEqual(draftResult, { status: "applied" });
+  assert.equal(state.tick, tick);
+  assert.equal(state.actors.rowan.drafted, true);
+  assert.equal(state.actors.rowan.task, null);
+  assert.equal(state.actors.rowan.assignment, null);
+  assert.equal(state.actors.rowan.cargo, null);
+  assert.deepEqual(
+    state.jobs.map((job) => job.id),
+    jobIds,
+  );
+  assert.equal(looseWood(state), before);
+
+  state.paused = false;
+  run(state, 1);
+  assert.equal(state.actors.rowan.task, null);
+  assert.equal(state.actors.rowan.assignment, null);
+  state.paused = true;
+  const [undraftResult] = step(state, colony, [
+    { kind: "undraft", actor: "rowan" },
+  ]);
+  assert.deepEqual(undraftResult, { status: "applied" });
+  assert.equal(state.tick, tick + 1);
+  assert.equal(state.actors.rowan.drafted, false);
+  state.paused = false;
+  run(state, 1);
+  assert.ok(state.actors.rowan.task || state.actors.rowan.assignment);
+});
+
+test("draft releases a reserved pile claim while preserving its unfinished build", () => {
+  const state = createClearing();
+  step(state, colony, [chop("oak-1")]);
+  until(state, (candidate) => candidate.felled === 1);
+  step(state, colony, [build("wall", 7, 5)]);
+  const claim = structuredClone(state.claims.rowan);
+  assert.ok(claim);
+  const loose = looseWood(state);
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  assert.equal(state.claims.rowan, undefined);
+  assert.equal(looseWood(state), loose);
+  assert.ok(state.jobs.some((job) => job.id === claim.job));
+  assert.ok(state.sites.some((site) => site.id === claim.site));
+  conserved(state);
+});
+
+test("draft excludes a member from night routine while preserving the routine flag", () => {
+  const state = createClearing();
+  step(
+    state,
+    colony,
+    homeOrders().concat([
+      chop("oak-1"),
+      chop("oak-2"),
+      chop("oak-3"),
+      chop("oak-4"),
+    ]),
+  );
+  until(state, (s) => s.jobs.length === 0);
+  state.actors.rowan.routine = true;
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  state.paused = false;
+  state.tick = DAY_TICKS / 2;
+  run(state, 1);
+  assert.equal(state.actors.rowan.drafted, true);
+  assert.equal(state.actors.rowan.routine, true);
+  assert.equal(
+    state.jobs.some((job) => job.kind === "rest" && job.target === "rowan"),
+    false,
+  );
+});
+
+test("drafted Go preflights reachability, walks, and holds without a job", () => {
+  const state = createClearing();
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  const target = { x: 8, z: 10, level: 0 };
+  const [goResult] = step(state, colony, [
+    { kind: "go", actor: "rowan", target },
+  ]);
+  assert.deepEqual(goResult, { status: "applied" });
+  assert.equal(state.tick, 0);
+  assert.equal(state.actors.rowan.mode, "walk");
+  assert.equal(state.jobs.length, 0);
+  state.paused = false;
+  until(state, (s) => s.actors.rowan.mode === "idle");
+  assert.deepEqual(
+    [state.actors.rowan.x, state.actors.rowan.z],
+    [target.x, target.z],
+  );
+  assert.equal(state.actors.rowan.drafted, true);
+
+  state.paused = true;
+  const before = structuredClone(state.actors.rowan);
+  const [unreachable] = step(state, colony, [
+    { kind: "go", actor: "rowan", target: { x: 1, z: 1, level: 0 } },
+  ]);
+  assert.equal(unreachable.status, "rejected");
+  assert.deepEqual(state.actors.rowan, before);
+});
+
+test("a later-blocked Go holds safely and Undraft cancels a pending route", () => {
+  const state = createClearing();
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  const target = { x: 8, z: 10, level: 0 };
+  step(state, colony, [{ kind: "go", actor: "rowan", target }]);
+  assert.equal(state.actors.rowan.mode, "walk");
+  state.rocks.push({ ...target });
+  state.paused = false;
+  run(state, 1);
+  assert.equal(state.actors.rowan.mode, "idle");
+  assert.deepEqual(state.actors.rowan.path, []);
+  assert.match(state.notice, /route became blocked/);
+
+  state.paused = true;
+  step(state, colony, [
+    { kind: "go", actor: "rowan", target: { x: 8, z: 9, level: 0 } },
+  ]);
+  assert.equal(state.actors.rowan.mode, "walk");
+  step(state, colony, [{ kind: "undraft", actor: "rowan" }]);
+  assert.equal(state.actors.rowan.drafted, false);
+  assert.equal(state.actors.rowan.mode, "idle");
+  assert.deepEqual(state.actors.rowan.path, []);
+});
+
+test("draft and Go commands replay at the same completed ticks", () => {
+  const state = createClearing(91);
+  state.paused = true;
+  step(state, colony, [{ kind: "draft", actor: "rowan" }]);
+  step(state, colony, [
+    { kind: "go", actor: "rowan", target: { x: 8, z: 10, level: 0 } },
+  ]);
+  state.paused = false;
+  run(state, 30);
+  const recorded = new Map();
+  for (const { tick, ...command } of state.commands) {
+    if (!recorded.has(tick)) recorded.set(tick, []);
+    recorded.get(tick).push(command);
+  }
+  const replay = createClearing(91);
+  run(replay, 30, recorded);
+  assert.deepEqual(replay, state);
 });
 
 function finishedStructure(type, id = "site-1") {

@@ -59,8 +59,11 @@ export function createView(app, world, camera, art, initial, input) {
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
     view.container.hitArea = new Rectangle(-22, -62, 44, 66);
-    view.container.on("pointerdown", (event) => event.stopPropagation());
+    view.container.on("pointerdown", (event) => {
+      if (!input.groundPointerOwns()) event.stopPropagation();
+    });
     const choose = (event, secondary = false) => {
+      if (input.groundPointerOwns()) return;
       event.stopPropagation();
       input.tree(
         tree.id,
@@ -84,8 +87,11 @@ export function createView(app, world, camera, art, initial, input) {
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
     view.container.hitArea = new Rectangle(-13, -45, 26, 48);
-    view.container.on("pointerdown", (event) => event.stopPropagation());
+    view.container.on("pointerdown", (event) => {
+      if (!input.groundPointerOwns()) event.stopPropagation();
+    });
     view.container.on("pointertap", (event) => {
+      if (input.groundPointerOwns()) return;
       event.stopPropagation();
       input.actor(
         person.id,
@@ -99,6 +105,9 @@ export function createView(app, world, camera, art, initial, input) {
           event.originalEvent?.metaKey
         ),
       );
+    });
+    view.container.on("rightclick", (event) => {
+      if (!input.groundPointerOwns()) event.stopPropagation();
     });
     bodies.addChild(view.container);
     const ring = new Graphics()
@@ -163,6 +172,9 @@ export function createView(app, world, camera, art, initial, input) {
   app.stage.on("pointerupoutside", input.cancelDrag);
   app.stage.on("pointertap", (e) => {
     if (fromCanvas(e)) input.ground();
+  });
+  app.stage.on("rightclick", (e) => {
+    if (fromCanvas(e)) input.groundRight(camera.cell(e.global), e.global);
   });
 
   function drawPiles(state) {

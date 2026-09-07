@@ -50,23 +50,27 @@ proof proportional. No new management tier or status framework is required.
 
 ## Superseding near-term priority (Levi, 2026-09-07)
 
-After the shipped Work/Caps slice, keep the map deliberately tiny until a
-repeatable everyday home loop is fun: depth before area. The next direct priority
-is semi-persistent browser save/resume: a versioned local snapshot supports
-Continue, New Clearing, and a downloadable backup; restore resumes paused and
-never advances the world offline. Exact snapshot invariants, migration and
-recovery rules await the separate design note. Generated chunks and the local
-caravan remain later direction; this priority changes sequencing, not their
-durable value.
+Keep the map deliberately tiny until a repeatable everyday home loop is fun:
+depth before area. Local Save/Continue/New/downloadable backup is now shipped on
+the same preview. This release adds Draft/Undraft plus reachable Go/hold for one
+selected home member, with paused admission and ordinary-work resumption after
+Undraft. Its strict Zod schema v3 persists that intent at
+the untrusted persistence boundary and reads existing v1/v2 saves without
+rewriting them merely on load; restore is paused and never advances the world
+offline. Deconstruction and the optional Devil, animal, and fire studies are also
+shipped. The next playable choice remains another bounded everyday-home outcome,
+not automatic map growth. Draft/Go adds neither combat nor a framework. Generated chunks and the
+local caravan remain later direction; the tiny-map-fun gate changes sequencing,
+not their durable value.
 
-Later expansion order, only after the tiny-map-fun gate and near-term browser
-save/resume priority are satisfied: two-person home, then stairs/upstairs bed,
-then generated chunks and a local caravan returning to a persistent home while
-another person works. Gear/crafting/magic variety can grow after those
-foundations. Five people is the first roster target, not an engine cap: Levi also
-wants eventual 50–100 people and AI-managed nations. Those scales require
-measured active-simulation, pathfinding, assignment and rendering budgets; they
-are not proved by this demo.
+Later expansion order, only after the tiny-map-fun gate is satisfied: deepen the
+two-person home, then stairs/upstairs bed, then
+generated chunks and a local caravan returning to a persistent home while another
+person works. Gear/crafting/magic variety can grow after those foundations. Five
+people is the first roster target, not an engine cap: Levi also wants eventual
+50–100 people and AI-managed nations. Those scales require measured
+active-simulation, pathfinding, assignment and rendering budgets; they are not
+proved by this demo.
 
 Performance and satisfying pacing are core, but not a license for artificial
 waits. One authoritative world clock must eventually serve every visitor; the
@@ -103,10 +107,11 @@ accepted or short-circuited results before existing authorized escort activity.
 Feature modules retain their own state and transition authority. Do not add a
 universal per-tick middleware bus or a plugin framework before concrete features
 establish the seam, and do not promise arbitrary mods never require core changes.
-At a future real save/network/mod-data boundary, one selected Zod schema may
-validate serialized untrusted data and supply its inferred TypeScript type.
-Trusted in-process jobs/actions stay real discriminated unions with exhaustive
-handlers; do not add an internal parser, parallel schema or Zod dependency now.
+The real local-save boundary uses one selected Zod schema to validate serialized
+untrusted data and supply its inferred TypeScript type. Future network/mod-data
+boundaries need their own selected validation shape. Trusted in-process
+jobs/actions stay real discriminated unions with exhaustive handlers; do not add
+an internal parser, parallel schema, or repeated parsing of tick state.
 
 Levi accepts dependable basic guard/retreat/shelter standing orders and offline
 protection for everyone. Paid AI may later add richer stewardship, custom
@@ -182,8 +187,9 @@ capture selected actor IDs. Keep inspectors for detail, rather than requiring
 an inspector for every task. Check primary references and a small real interaction
 before broad UI expansion. No desktop/window framework is implied.
 
-Multiple floors are the next playable foundation after the active two-person
-home: build stairs and an upstairs bed and actually use it. The Sweeney Todd
+Only after the tiny-map-fun gate and the current Draft/Undraft outcome are met,
+multiple floors are a later playable foundation: build stairs and an upstairs bed
+and actually use it. The Sweeney Todd
 barber shop above a meat kitchen gives vertical openings a concrete later use.
 Keep shared floor/opening geometry ready for traversal, falling objects and later
 projectiles; the chair and processing chain do not gate the first upstairs room.
@@ -337,7 +343,8 @@ prove the built candidate and hosted interaction. Do not wait for the entire
 goal to finish or request repeated deployment permission. Initial source/art
 review and later final acceptance remain scoped to what was actually reviewed.
 
-An upstairs bedroom remains the next playable milestone. Levi also selects
+An upstairs bedroom remains a later playable milestone, after the tiny-map-fun
+gate and current Draft/Undraft outcome. Levi also selects
 Combat Extended as a research reference for later physical projectiles: crafted
 arrows, aim/trajectory and collision with bodies/cover. This does not adopt its
 code/assets or expand this goal into combat, multiplayer or a world framework.
@@ -349,9 +356,8 @@ authoritative ammunition and hit settlement remain separate world facts.
 The existing static-preview custody and all no-main/production/backend/purchase
 limits remain in force.
 
-The two-person controls direction is accepted under game-delivery custody, but
-is not a shipped claim until the joined candidate's source and hosted proof are
-accepted. Its current candidate uses React 18.3.1, Caps, derived Jotai
+The two-person controls direction is accepted under game-delivery custody. Its
+current candidate uses React 18.3.1, Caps, derived Jotai
 display facts, one small XState tool/gesture lifecycle, and the actual
 `@opentui/keymap/html` 0.5.10 adapter. Bindings and displayed hints share the
 keymap definition. Rowan can recruit Sedge, select either or both people, issue
@@ -479,8 +485,8 @@ the first queued-work stills and the subsequent complete-home/cutaway stills.
 That art verdict does not itself claim motion or final hosted acceptance.
 Final proof covers a resource-built home entered and used, resumed work,
 pause/reset, deterministic replay and material conservation; artifact integrity
-is recorded separately from hosted gameplay. Automated proof uses the existing
-host scope runner with its 10-minute deadline. No live Shiitake/SSE integration,
+is recorded separately from hosted gameplay. The existing host scope runner has a
+10-minute kill ceiling, not an expected test duration. No live Shiitake/SSE integration,
 Botanical source edits, provider changes or main merge.
 
 ## Accepted art study (2026-09-07)

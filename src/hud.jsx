@@ -28,6 +28,11 @@ const ACTIVITIES = {
   sleep: "Sleeping in the bedroll",
 };
 
+function actorActivity(actor) {
+  if (!actor.drafted) return ACTIVITIES[actor.mode];
+  return actor.mode === "walk" ? "Drafted · Going" : "Drafted · Holding";
+}
+
 const clearGesture = assign(() => ({
   tool: null,
   gesture: null,
@@ -46,7 +51,7 @@ const keepToolReady = assign(({ context, event }) => ({
 
 // This machine owns every tool/gesture phase. It has no simulation state,
 // actors, clocks, or timers; those remain in main.js and the typed core.
-export const toolMachine = createMachine({
+const toolMachine = createMachine({
   id: "tool-gesture",
   initial: "idle",
   context: {
@@ -138,6 +143,7 @@ function actorFact(actor) {
     name: actor.name,
     figure: actor.figure,
     mode: actor.mode,
+    drafted: actor.drafted,
     rest: actor.rest,
     routine: actor.routine,
     chopAllowed: actor.allowedWork.chop,
@@ -329,7 +335,6 @@ const worldFactsAtom = atom(null);
 const selectionAtom = atom({
   selectedIds: [],
   inspectedTarget: null,
-  context: null,
   panel: null,
   designationTargetIds: [],
 });
@@ -375,7 +380,7 @@ const rosterAtom = atom((get) => {
     return {
       id: actor.id,
       name: actor.name,
-      now: active ? orderModel(facts, active).title : ACTIVITIES[actor.mode],
+      now: active ? orderModel(facts, active).title : actorActivity(actor),
       next: next ? orderModel(facts, next).title : "Nothing queued",
     };
   });
@@ -619,6 +624,8 @@ function Character({ model: m, send, portraits }) {
   const person = m.visitor || m.focused;
   if (!person) return null;
   const visitor = !!m.visitor;
+  const individuallySelected =
+    !visitor && m.selectedIds.length === 1 && m.selectedIds[0] === person.id;
   return (
     <Panel
       title={person.name}
@@ -631,7 +638,7 @@ function Character({ model: m, send, portraits }) {
         <div>
           <p className="eyebrow">{visitor ? "VISITOR" : "HOME MEMBER"}</p>
           <strong>
-            {visitor ? "Stranded outsider" : ACTIVITIES[person.mode]}
+            {visitor ? "Stranded outsider" : actorActivity(person)}
           </strong>
           <small>
             {visitor
@@ -687,7 +694,31 @@ function Character({ model: m, send, portraits }) {
               Center selection
             </Button>
           </div>
-          <label className="toggle">
+          <div className="button-row">
+            <Button
+              id="draft"
+              variant={person.drafted ? "secondary" : "outline"}
+              disabled={!individuallySelected}
+              onClick={() =>
+                send({
+                  kind: "command",
+                  command: {
+                    kind: person.drafted ? "undraft" : "draft",
+                    actor: person.id,
+                  },
+                })
+              }
+            >
+              {person.drafted ? "Undraft" : "Draft"}
+            </Button>
+          </div>
+          {person.drafted && individuallySelected && (
+            <p className="muted">
+              Right-click clear ground to Go. Arrival keeps the draft and
+              position.
+            </p>
+          )}
+          <label className="routine-toggle">
             <Checkbox
               id="routine"
               type="checkbox"
@@ -1063,7 +1094,7 @@ function Hud({ machineSnapshot, send, portraits }) {
     target,
     tree: target?.kind === "tree" ? target : null,
     panel: selection.panel,
-    context: selection.context,
+    context: selection.inspectedTarget?.point || null,
     tool,
     phase,
     cutaway: preferences.cutaway,
@@ -1127,7 +1158,7 @@ function Hud({ machineSnapshot, send, portraits }) {
             <img src={portraits[person.id]} alt="" />
             <span>
               {person.name}
-              <small>{ACTIVITIES[person.mode]}</small>
+              <small>{actorActivity(person)}</small>
             </span>
           </Button>
         ))}
@@ -1374,7 +1405,6 @@ export function createHud(host, art, effect) {
             inspectedTarget: { kind: "actor", id: action.actor },
             panel: "character",
             selectedIds: [],
-            context: null,
             designationTargetIds: [],
           }));
           effect({
@@ -1396,7 +1426,6 @@ export function createHud(host, art, effect) {
           selectedIds: [...selected],
           inspectedTarget: { kind: "actor", id: action.actor },
           panel: "character",
-          context: null,
           designationTargetIds: [],
         }));
         return;
@@ -1408,7 +1437,6 @@ export function createHud(host, art, effect) {
           selectedIds: [...action.ids],
           inspectedTarget: null,
           panel: "character",
-          context: null,
           designationTargetIds: [],
         }));
         return;
@@ -1417,7 +1445,6 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           inspectedTarget: { kind: "tree", id: action.id, point: action.point },
-          context: { ...action.point },
           panel: null,
           designationTargetIds: [],
         }));
@@ -1427,7 +1454,6 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           inspectedTarget: { kind: "site", id: action.id, point: action.point },
-          context: { ...action.point },
           panel: null,
           designationTargetIds: [],
         }));
@@ -1438,7 +1464,6 @@ export function createHud(host, art, effect) {
           ...value,
           panel: value.panel === action.panel ? null : action.panel,
           inspectedTarget: null,
-          context: null,
           designationTargetIds: [],
         }));
         return;
@@ -1446,7 +1471,6 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           inspectedTarget: null,
-          context: null,
         }));
         return;
       case "close":
@@ -1455,7 +1479,6 @@ export function createHud(host, art, effect) {
         setSelection((value) => ({
           ...value,
           panel: keepBuild ? "build" : null,
-          context: null,
           inspectedTarget: null,
           designationTargetIds: [],
         }));
@@ -1466,7 +1489,6 @@ export function createHud(host, art, effect) {
           ...value,
           panel: "build",
           inspectedTarget: null,
-          context: null,
           designationTargetIds: [],
         }));
         return;
@@ -1517,7 +1539,6 @@ export function createHud(host, art, effect) {
         });
         setSelection((value) => ({
           ...value,
-          context: null,
           inspectedTarget: null,
           designationTargetIds: [],
         }));
@@ -1527,7 +1548,6 @@ export function createHud(host, art, effect) {
         setSelection(() => ({
           selectedIds: [],
           inspectedTarget: null,
-          context: null,
           panel: null,
           designationTargetIds: [],
         }));
@@ -1571,6 +1591,12 @@ export function createHud(host, art, effect) {
         const command = { ...action.command };
         if (command.kind === "recruit") delete command.actors;
         else if (
+          command.kind === "draft" ||
+          command.kind === "undraft" ||
+          command.kind === "go"
+        )
+          delete command.actors;
+        else if (
           command.kind === "cancel" ||
           command.kind === "next" ||
           command.kind === "build" ||
@@ -1580,6 +1606,32 @@ export function createHud(host, art, effect) {
         else if (command.actors === undefined)
           command.actors = [...current.selectedIds];
         effect({ kind: "command", command });
+        return;
+      }
+      case "go": {
+        if (current.selectedIds.length !== 1) {
+          effect({
+            kind: "notice",
+            text: "Select exactly one drafted home member before Go.",
+          });
+          return;
+        }
+        const actor = facts?.actors[current.selectedIds[0]];
+        if (!actor?.drafted) {
+          effect({
+            kind: "notice",
+            text: "Only a drafted home member can Go.",
+          });
+          return;
+        }
+        effect({
+          kind: "command",
+          command: {
+            kind: "go",
+            actor: actor.id,
+            target: { ...action.point.cell },
+          },
+        });
         return;
       }
       case "recruit":
@@ -1623,7 +1675,9 @@ export function createHud(host, art, effect) {
         value.inspectedTarget?.kind === "site"
           ? value.inspectedTarget.id
           : null,
-      context: value.context && { ...value.context },
+      context: value.inspectedTarget?.point
+        ? { ...value.inspectedTarget.point }
+        : null,
       designationTargetIds: [...value.designationTargetIds],
       cutaway: preferences.cutaway,
       panMode: preferences.panMode,

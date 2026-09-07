@@ -81,6 +81,25 @@ function advanceCat(state: Clearing): void {
     }
   }
 }
+function advanceDrafted(
+  state: Clearing,
+  person: Clearing["actors"][string],
+): void {
+  if (!person.drafted || person.mode !== "walk") return;
+  const result = walk(person, blockedCells(state));
+  if (result === "blocked") {
+    person.mode = "idle";
+    person.path = [];
+    person.leg = 0;
+    state.notice = `${person.name} is holding position; the route became blocked.`;
+  } else if (result === "arrived") {
+    person.mode = "idle";
+    person.path = [];
+    person.leg = 0;
+    person.work = 0;
+    state.notice = `${person.name} reached the clear ground and is holding position.`;
+  }
+}
 export function step(
   state: Clearing,
   colony: Colony,
@@ -92,7 +111,10 @@ export function step(
   for (const person of members(state))
     if (person.mode !== "sleep") person.rest = Math.max(0, person.rest - 0.012);
   updateRoutine(state);
-  for (const person of Object.values(state.actors)) advanceWork(state, person);
+  for (const person of Object.values(state.actors)) {
+    advanceWork(state, person);
+    advanceDrafted(state, person);
+  }
   assignWork(state, colony);
   advanceCat(state);
   const event = nextEvent(state.feed, state.tick, shelteredBeds(state).length);

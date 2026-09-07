@@ -238,7 +238,8 @@ export function assignWork(state: Clearing, colony: Colony): void {
     Object.values(state.parties).flatMap((party) => party.members),
   );
   const idle = people.filter(
-    (person) => person.mode === "idle" && memberIds.has(person.id),
+    (person) =>
+      person.mode === "idle" && !person.drafted && memberIds.has(person.id),
   );
   if (!idle.length) return;
   const blocked = blockedCells(state);

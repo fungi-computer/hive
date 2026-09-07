@@ -87,8 +87,16 @@ export function createConstructionView(world, art, bodies, input) {
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
-        s.on("pointerdown", (event) => event.stopPropagation());
+        s.on("pointerdown", (event) => {
+          if (!input.groundPointerOwns()) event.stopPropagation();
+        });
         s.on("pointertap", (event) => {
+          if (input.groundPointerOwns()) return;
+          event.stopPropagation();
+          input.site(site.id, event.global);
+        });
+        s.on("rightclick", (event) => {
+          if (input.groundPointerOwns()) return;
           event.stopPropagation();
           input.site(site.id, event.global);
         });

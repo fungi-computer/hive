@@ -20,6 +20,9 @@ export type Command =
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
+  | { kind: "draft"; party: PartyId; actor: ActorId }
+  | { kind: "undraft"; party: PartyId; actor: ActorId }
+  | { kind: "go"; party: PartyId; actor: ActorId; target: Cell }
   | { kind: "recruit"; party: PartyId; actor: ActorId };
 
 type JobBase = {
@@ -63,6 +66,7 @@ export type Actor = Body & {
   id: ActorId;
   name: string;
   figure: string;
+  drafted: boolean;
   rest: number;
   routine: boolean;
   allowedWork: AllowedWork;

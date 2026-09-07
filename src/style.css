@@ -268,7 +268,7 @@ meter::-webkit-meter-optimum-value {
 .button-row > * {
   flex: 1;
 }
-.toggle {
+.routine-toggle {
   display: flex;
   align-items: center;
   gap: 7px;

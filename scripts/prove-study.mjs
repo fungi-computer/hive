@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 
 const url = process.argv[2] || "http://127.0.0.1:5187/study.html";
@@ -18,6 +19,20 @@ const homePoses = [
 const expectedFrames = Object.fromEntries(
   homePoses.map((pose) => [pose, pose === "sleep" ? 1 : 8]),
 );
+const sourceFiles = [
+  "study.html",
+  "src/study.js",
+  "src/study.css",
+  "src/art.js",
+  "src/art/figures.js",
+  "scripts/prove-study.mjs",
+];
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const sourceSha256 = Object.fromEntries(
+  await Promise.all(
+    sourceFiles.map(async (file) => [file, sha256(await readFile(file))]),
+  ),
+);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -33,6 +48,9 @@ const page = await context.newPage();
 const errors = [];
 const screenshots = [];
 page.on("pageerror", (error) => errors.push(String(error)));
+page.on("console", (message) => {
+  if (message.type() === "error") errors.push("console: " + message.text());
+});
 page.on("requestfailed", (request) =>
   errors.push(`${request.url()}: ${request.failure()?.errorText}`),
 );
@@ -74,6 +92,10 @@ const visitorImages = () =>
   page
     .locator(".detail:not([hidden]) img")
     .evaluateAll((images) => images.map((image) => image.src));
+const workbench = page.locator(".workbench");
+const visitorPlay = workbench.locator("#play");
+const visitorTurn = workbench.locator("#turn");
+const visitorZoom = workbench.locator("#zoom");
 
 async function selectHome({ actor, pose, direction = 0, scale = 1 }) {
   await page.locator(`button[data-home-actor="${actor}"]`).click();
@@ -268,12 +290,13 @@ try {
   await shot("06-home-sedge-carry-playing", page.locator("#home-review"));
   await setHomePlaying(false);
 
-  await page
+  await workbench
     .getByRole("button", { name: "Original five", exact: true })
     .click();
-  await page.getByRole("button", { name: "Standing", exact: true }).click();
-  if (!(await state()).playing)
-    await page.getByRole("button", { name: "Play", exact: true }).click();
+  await workbench
+    .getByRole("button", { name: "Standing", exact: true })
+    .click();
+  if (!(await state()).playing) await visitorPlay.click();
   const catIdleFrames = new Set();
   const catIdleImages = [];
   let previousCatIdleFrame = (await state()).frame;
@@ -299,7 +322,7 @@ try {
     new Set(catIdleImages).size > 1,
     "Bramble idle does not visibly change",
   );
-  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await visitorPlay.click();
   const catIdlePaused = await state();
   const catIdlePausedImages = await visitorImages();
   await page.waitForTimeout(500);
@@ -307,10 +330,13 @@ try {
   assert.deepEqual(await visitorImages(), catIdlePausedImages);
   await shot("07-bramble-idle-paused", page.locator(".workbench"));
 
-  await page.getByRole("button", { name: "Visitors", exact: true }).click();
-  await page.getByRole("button", { name: "Standing", exact: true }).click();
-  if ((await state()).playing)
-    await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await workbench
+    .getByRole("button", { name: "Visitors", exact: true })
+    .click();
+  await workbench
+    .getByRole("button", { name: "Standing", exact: true })
+    .click();
+  if ((await state()).playing) await visitorPlay.click();
   const idleFacings = [];
   for (let direction = 0; direction < 4; direction++) {
     const current = await state();
@@ -320,12 +346,12 @@ try {
     assert.equal(current.direction, direction);
     idleFacings.push(direction);
     await shot(`visitor-idle-facing-${direction}`, page.locator(".workbench"));
-    await page.getByRole("button", { name: "Turn figures" }).click();
+    await visitorTurn.click();
   }
   assert.deepEqual(idleFacings, [0, 1, 2, 3]);
 
-  await page.getByRole("button", { name: "Walking", exact: true }).click();
-  await page.locator("#play").click();
+  await workbench.getByRole("button", { name: "Walking", exact: true }).click();
+  await visitorPlay.click();
   const visitorWalk = [];
   const visitorFrames = new Set();
   let previousVisitorFrame = (await state()).frame;
@@ -335,10 +361,16 @@ try {
       previousVisitorFrame,
       { timeout: 10000 },
     );
-    const current = await state();
+    // Capture the label and pixels in one browser turn: the ticker can advance
+    // between separate protocol calls, even though render() itself is atomic.
+    const { current, images } = await page.evaluate(() => ({
+      current: window.__STUDY.state,
+      images: [...document.querySelectorAll(".detail:not([hidden]) img")].map(
+        (image) => image.src,
+      ),
+    }));
     previousVisitorFrame = current.frame;
     if (visitorFrames.has(current.frame)) continue;
-    const images = await visitorImages();
     assert.equal(current.playing, true);
     assert.equal(images.length, 5);
     visitorFrames.add(current.frame);
@@ -356,18 +388,16 @@ try {
     { length: 5 },
     (_, index) => new Set(visitorWalk.map(({ images }) => images[index])).size,
   );
-  assert.deepEqual(
-    visitorDistinctPerFigure.filter((_, index) => index !== 2),
-    [5, 5, 5, 5],
-  );
-  assert.ok(visitorDistinctPerFigure[2] >= 5);
+  // Four sine-driven walks repeat their five poses across eight phases. Sedge's
+  // accepted trailing hair is phase-shifted and yields eight distinct bakes.
+  assert.deepEqual(visitorDistinctPerFigure, [5, 5, 8, 5, 5]);
   const visitorDistinctImages = new Set(
     visitorWalk.flatMap(({ images }) => images),
   ).size;
   assert.ok(visitorDistinctImages >= 5);
   await shot("visitor-walk-playing", page.locator(".workbench"));
 
-  await page.locator("#play").click();
+  await visitorPlay.click();
   const paused = await state();
   const pausedImages = await visitorImages();
   await page.waitForTimeout(500);
@@ -375,9 +405,7 @@ try {
   assert.deepEqual(await visitorImages(), pausedImages);
   await shot("visitor-paused-image", page.locator(".workbench"));
 
-  await page
-    .getByRole("button", { name: "Native pixels", exact: true })
-    .click();
+  await visitorZoom.click();
   assert.equal(
     Math.round((await page.locator(".workbench canvas").boundingBox()).width),
     640,
@@ -390,7 +418,7 @@ try {
   );
   assert.equal(await page.evaluate(() => document.body.scrollWidth), 390);
   await shot("visitor-narrow-390", page.locator(".workbench"));
-  await page.getByRole("button", { name: "Fit view", exact: true }).click();
+  await visitorZoom.click();
   assert.ok(
     (await page.locator(".workbench canvas").boundingBox()).width < 390,
   );
@@ -400,6 +428,8 @@ try {
   assert.deepEqual(errors, []);
   proof = {
     url,
+    scriptSha256: sourceSha256["scripts/prove-study.mjs"],
+    sourceSha256,
     actualArt: {
       artReadyMs,
       frame: [80, 80],

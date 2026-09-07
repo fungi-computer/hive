@@ -1,4 +1,4 @@
-import type { BuildingKind, Command } from "./model.ts";
+import type { BuildingKind, Cell, Command } from "./model.ts";
 
 export type GesturePoint = {
   cell: { x: number; z: number; level: number };
@@ -23,7 +23,9 @@ export type UiCommand =
       enabled: boolean;
       actors: string[];
     }
-  | { kind: "cancel" | "next"; job: string };
+  | { kind: "cancel" | "next"; job: string }
+  | { kind: "draft" | "undraft"; actor: string }
+  | { kind: "go"; actor: string; target: Cell };
 
 export type UiAction =
   | { kind: "select"; actor: string; toggle?: boolean }
@@ -62,6 +64,7 @@ export type UiAction =
   | { kind: "cutaway"; value: boolean }
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
+  | { kind: "go"; point: GesturePoint }
   | { kind: "notice"; text: string }
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number };
@@ -133,6 +136,7 @@ export function routeUiAction(
     case "cutaway":
     case "command":
     case "recruit":
+    case "go":
     case "notice":
     case "zoom":
     case "pan":

@@ -329,6 +329,13 @@ async function startGame() {
       const { actors: ignored, ...recruit } = command;
       scoped = { party: "home", ...recruit };
     } else if (
+      command.kind === "draft" ||
+      command.kind === "undraft" ||
+      command.kind === "go"
+    ) {
+      const { actors: ignored, ...personal } = command;
+      scoped = { party: "home", ...personal };
+    } else if (
       command.kind === "cancel" ||
       command.kind === "next" ||
       command.kind === "build" ||
@@ -514,6 +521,9 @@ async function startGame() {
   root.focus({ preventScroll: true });
 
   const view = createView(app, world, camera, art, state, {
+    groundPointerOwns() {
+      return !!hud.view().tool;
+    },
     actor(id, pointAt, toggle) {
       hud.dispatch({ kind: "select", actor: id, toggle });
     },
@@ -617,6 +627,19 @@ async function startGame() {
       if (!current.tool && current.machine.context.gesture !== "box")
         hud.dispatch({ kind: "close-target" });
     },
+    groundRight(at, screen) {
+      const current = hud.view();
+      if (
+        current.tool ||
+        current.phase === "dragging" ||
+        current.phase === "fixed"
+      ) {
+        hud.dispatch({ kind: "close" });
+        return;
+      }
+      if (current.panMode) return;
+      hud.dispatch({ kind: "go", point: point(at, screen) });
+    },
     cancelDrag() {
       const current = hud.view();
       if (current.phase !== "dragging") return;
@@ -627,13 +650,6 @@ async function startGame() {
   let cameraDrag = null;
   app.canvas.addEventListener("contextmenu", (event) => {
     event.preventDefault();
-    const current = hud.view();
-    if (
-      current.tool ||
-      current.phase === "dragging" ||
-      current.phase === "fixed"
-    )
-      hud.dispatch({ kind: "close" });
   });
   app.canvas.addEventListener(
     "pointerdown",

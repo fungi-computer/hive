@@ -259,7 +259,7 @@ export function fireProp(kind, phase = 0, color = "hearth", smoky = true) {
   s.add(light);
   return s;
 }
-export function nightCourt() {
+function nightCourt() {
   const s = scene();
   s.traverse((o) => {
     if (o.isHemisphereLight) o.intensity = 0.6;

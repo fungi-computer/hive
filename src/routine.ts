@@ -30,7 +30,13 @@ export function updateRoutine(state: Clearing): void {
   }
   for (const party of Object.values(state.parties)) {
     for (const person of members(state, party.id)) {
-      if (!person.routine || person.mode !== "idle" || person.cargo) continue;
+      if (
+        !person.routine ||
+        person.drafted ||
+        person.mode !== "idle" ||
+        person.cargo
+      )
+        continue;
       if (
         state.jobs.some(
           (job) => job.kind === "rest" && job.target === person.id,

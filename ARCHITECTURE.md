@@ -49,13 +49,17 @@ through direct source/render inspection; game state remains the single simulatio
 
 ## Superseding near-term priority (Levi, 2026-09-07)
 
-After the shipped Work/Caps slice, keep the map deliberately tiny until a
-repeatable everyday home loop is fun: depth before area. The next direct priority
-is semi-persistent browser save/resume: a versioned local snapshot supports
-Continue, New Clearing, and a downloadable backup; restore resumes paused and
-never advances the world offline. Exact snapshot invariants, migration and
-recovery rules await the separate design note. Generated chunks and the local
-caravan remain later direction; this priority changes sequencing, not their
+Keep the map deliberately tiny until a repeatable everyday home loop is fun:
+depth before area. Local Save/Continue/New/downloadable backup is now shipped on
+the same preview. This release adds Draft/Undraft plus reachable Go/hold for one
+selected home member, with paused admission and ordinary-work resumption after
+Undraft. Its strict Zod schema v3 persists that intent at
+the untrusted persistence boundary and reads existing v1/v2 saves without
+rewriting them merely on load; restore is paused and never advances the world
+offline. Deconstruction and the optional Devil, animal, and fire studies are also
+shipped. The next playable choice remains another bounded everyday-home outcome,
+not automatic map growth. Draft/Go adds neither combat nor a framework. Generated chunks and the local caravan
+remain later direction; the tiny-map-fun gate changes sequencing, not their
 durable value.
 
 ## Durable work issues
@@ -103,8 +107,9 @@ capture selected actor IDs. Keep inspectors for detail, rather than requiring
 an inspector for every task. Check primary references and a small real interaction
 before broad UI expansion. No desktop/window framework is implied.
 
-Multiple floors are the next playable foundation after the active two-person
-home: build stairs and an upstairs bed and actually use it. The Sweeney Todd
+Only after the tiny-map-fun gate is met,
+multiple floors are a later playable foundation: build stairs and an upstairs bed
+and actually use it. The Sweeney Todd
 barber shop above a meat kitchen gives vertical openings a concrete later use.
 Keep shared floor/opening geometry ready for traversal, falling objects and later
 projectiles; the chair and processing chain do not gate the first upstairs room.
@@ -232,11 +237,12 @@ escort activity; each module retains its state and transition ownership. Wait
 for concrete consumers before extracting the seam. A universal per-tick
 middleware bus or general plugin framework would blur the simulation hot path
 and domain authority, and arbitrary mods may still require core changes.
-When a real save, network or mod-data serialization boundary exists, one selected
-Zod discriminated schema may validate those untrusted bytes and provide the
-inferred TypeScript type. Trusted in-process jobs and activities remain native
-discriminated unions with exhaustive real handlers; no hostile-object parser,
-parallel internal schema or Zod dependency belongs in the current candidate.
+The shipped local persistence boundary is a real untrusted-byte boundary. The
+current Draft/Go candidate writes strict Zod schema v3 and reads v1/v2 without
+rewriting them merely on load. Future network or mod-data boundaries need their
+own selected validation shape. Trusted in-process jobs and activities remain
+native discriminated unions with exhaustive real handlers; do not add a parallel
+internal parser or repeatedly parse tick state.
 
 Levi accepts dependable basic guard/retreat/shelter standing orders and offline
 protection for everyone. Paid AI may add richer stewardship, custom instructions,
