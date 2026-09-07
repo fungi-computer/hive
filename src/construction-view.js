@@ -134,6 +134,8 @@ export function createConstructionView(world, art, bodies, input) {
             Math.abs(at.x - projectCell({ ...actor, level: site.level }).x) <
               45,
         );
+      const cutawayCover =
+        cutawayWall || (site.type === "roof" && selection.cutaway && finished);
       const stored = state.herbBundles.some(
         (bundle) =>
           bundle.location.kind === "stored" && bundle.location.site === site.id,
@@ -152,7 +154,7 @@ export function createConstructionView(world, art, bodies, input) {
       view.visible = activeLevel || supportContext;
       view.position.set(at.x, at.y);
       view.eventMode =
-        finished && activeLevel && !cutawayWall ? "static" : "none";
+        finished && activeLevel && !cutawayCover ? "static" : "none";
       view.cursor = finished ? "pointer" : "default";
       view.zIndex =
         site.x +
