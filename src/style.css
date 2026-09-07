@@ -135,7 +135,7 @@ footer {
   display: flex;
   align-items: center;
   gap: 22px;
-  min-height: 95px;
+  min-height: 103px;
   background: #1a2925;
   border: 1px solid #52604a;
   border-top: 1px solid #6b6c47;
@@ -295,4 +295,33 @@ button:disabled {
     display: block;
     margin: 5px;
   }
+}
+#demand {
+  position: absolute;
+  top: 47px;
+  right: 22px;
+  max-width: 325px;
+  border-left: 2px solid #b18e5c;
+  padding: 9px 12px;
+  background: #21372bea;
+  color: #dcc5a0;
+  font:
+    italic 12px/1.5 Georgia,
+    serif;
+  pointer-events: none;
+}
+#actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#actions button {
+  padding: 7px 12px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+#build {
+  color: #f0d89b;
+  background: #514f32;
+  border-color: #8c8454;
 }

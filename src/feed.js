@@ -1,4 +1,5 @@
-// Explicitly fake Shiitake arrivals. No I/O, model call or real feed is connected.
+// Explicitly simulated storyteller intent. No SSE connection, model or backend.
+// This seeded local event is applied by the simulation on its own fixed tick.
 // mulberry32 is retained verbatim from Hive 14cfa809 src/feed.js.
 function mulberry32(a) {
   return function () {
@@ -12,17 +13,28 @@ function mulberry32(a) {
 export function createFeed(seed = 42) {
   return { seed, sequence: 0, nextAt: 50, last: null };
 }
-export function nextGuest(feed, tick, tableFree) {
-  if (!tableFree || tick < feed.nextAt) return null;
-  const random = mulberry32(feed.seed + feed.sequence);
+export function nextEvent(feed, tick, completed = 0) {
+  if (feed.sequence === 1 && completed > 0) {
+    const event = {
+      kind: "approval",
+      name: feed.last.name,
+      tick,
+      text: "A roof! Fine. You may remain inconveniently alive.",
+    };
+    feed.sequence++;
+    feed.last = event;
+    return event;
+  }
+  if (feed.sequence || tick < feed.nextAt) return null;
+  const random = mulberry32(feed.seed);
   const names = ["Morel", "Bramble", "Nettle", "Mallow", "Tansy", "Fern"];
   const event = {
-    id: `guest-${++feed.sequence}`,
+    kind: "demand",
     name: names[Math.floor(random() * names.length)],
     tick,
-    order: "Mushroom soup",
+    text: "A roof before supper, human. Or you're supper.",
   };
-  feed.nextAt = tick + 240 + Math.floor(random() * 80);
+  feed.sequence++;
   feed.last = event;
   return event;
 }

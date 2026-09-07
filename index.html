@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#202d2b" />
-    <title>Goblin Bed & Breakfast · The Moss & Ladle</title>
+    <title>Goblin Bed & Breakfast · Goblin Country</title>
   </head>
   <body>
     <main id="inn">
@@ -15,46 +15,51 @@
         </div>
         <div class="inn-sign">
           <span class="sign-mark">✦</span
-          ><span>THE MOSS & LADLE<small>A warm bowl. A soft bed.</small></span>
+          ><span
+            >GOBLIN COUNTRY<small>Stay useful. Stay off the menu.</small></span
+          >
         </div>
       </header>
-      <section id="game" aria-label="Isometric goblin inn">
+      <section id="game" aria-label="Isometric survival clearing">
         <div class="scene-top">
-          <span class="location"
-            >THE COMMON ROOM <span>·</span> EARLY EVENING</span
-          ><span id="feed">FAKE SHIITAKE · opening the inn</span>
+          <span class="location">THE CLEARING <span>·</span> FIRST DAY</span
+          ><span id="feed">FAKE SHIITAKE · first event pending</span>
         </div>
-        <div id="stage"><div id="loading">Lighting the hearth…</div></div>
+        <div id="stage">
+          <div id="loading">Finding a patch of daylight…</div>
+        </div>
+        <div id="demand" hidden></div>
         <div class="scene-bottom">
           <span id="notice" role="status"
-            >Click Pip, then the hearth to prepare a warm welcome.</span
-          ><span id="score">0 happy guests</span>
+            >Stranded. No roof. And the locals are getting hungry.</span
+          ><span id="score">0 wood</span>
         </div>
       </section>
       <footer>
         <button
           id="select"
           class="portrait"
-          aria-label="Select Pip the innkeeper"
+          aria-label="Select Rowan the outsider"
         >
           <span class="portrait-icon">♟</span
-          ><span><strong>Pip</strong><small>YOUR INNKEEPER</small></span>
+          ><span><strong>Rowan</strong><small>HUMAN · OUTSIDER</small></span>
         </button>
         <div class="task-copy">
-          <strong id="activity">A quiet moment by the fire</strong
-          ><span id="hint">Select Pip, then choose something in the room.</span>
+          <strong id="activity">Stranded in goblin country</strong
+          ><span id="hint">Select Rowan, then click an oak tree.</span>
         </div>
         <div id="actions">
-          <button id="task" disabled>Stir the pot <span>↗</span></button>
+          <button id="build" disabled>Build shelter · 6 wood</button>
+          <button id="task" disabled>Choose a tree <span>↗</span></button>
         </div>
         <div class="controls">
           <button id="pause" aria-label="Pause">Ⅱ</button
-          ><button id="reset" aria-label="Reset inn">↻</button>
+          ><button id="reset" aria-label="Reset clearing">↻</button>
         </div>
       </footer>
       <p class="instructions">
-        SELECT AN INNKEEPER <b>→</b> CLICK A STATION OR GUEST <b>→</b> GIVE A
-        TASK <span>They’ll find their own way.</span>
+        SELECT YOUR PAWN <b>→</b> CHOP AN OAK <b>→</b> BUILD A SHELTER
+        <span>They’ll find their own way.</span>
       </p>
     </main>
     <script type="module" src="/src/main.js"></script>
