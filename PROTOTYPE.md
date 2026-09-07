@@ -35,6 +35,8 @@ Further accepted future seams are recorded in
 [modular character art and technology gates](docs/decisions/modular-art-and-technology-gates.md).
 The future environment/opening proof boundary is in
 [environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
+The current local-save/later durable-AI boundary is in
+[local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna
