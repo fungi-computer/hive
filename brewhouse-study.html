@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-theme="mocha">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Copper Familiar — Brewhouse study</title>
+  </head>
+  <body>
+    <main>
+      <a href="/study" class="link">← The art studies</a>
+      <p class="eyebrow">HIVE · AN ORIGINAL BUILDING KIT</p>
+      <h1>The Copper Familiar</h1>
+      <p class="intro">
+        A little brewhouse with a bedroom above it. Copper and timber, drying
+        herbs, a warm drink, and a cat asleep upstairs.
+      </p>
+      <div class="card bg-base-200 border border-base-300">
+        <div class="card-body">
+          <div
+            id="views"
+            class="controls"
+            role="group"
+            aria-label="Building view"
+          >
+            <button
+              class="btn btn-sm btn-primary"
+              data-mode="dollhouse"
+              aria-pressed="true"
+            >
+              Cutaway
+            </button>
+            <button
+              class="btn btn-sm"
+              data-mode="exterior"
+              aria-pressed="false"
+            >
+              Exterior
+            </button>
+            <button class="btn btn-sm" data-mode="ground" aria-pressed="false">
+              Brewing floor
+            </button>
+            <button class="btn btn-sm" data-mode="upper" aria-pressed="false">
+              Upper floor
+            </button>
+            <button
+              class="btn btn-sm"
+              data-mode="exploded"
+              aria-pressed="false"
+            >
+              Separate floors
+            </button>
+            <button class="btn btn-sm" id="turn">Turn ↻</button>
+          </div>
+          <div class="stage">
+            <canvas id="house" aria-label="Pixel art brewhouse"></canvas>
+          </div>
+          <p id="status" role="status">Baking original geometry…</p>
+        </div>
+      </div>
+      <h2>A kit, down to the last tankard</h2>
+      <p>
+        Each object below is its own model. The same kettle, barrel, bookcase or
+        sign can furnish a cottage, an inn or a village brewery.
+      </p>
+      <div id="props" class="prop-grid"></div>
+      <p class="note">
+        Art and layout study. Furnishings are arranged here to review the
+        building; brewing, village generation and the room template are not
+        playable in this page.
+      </p>
+    </main>
+    <script type="module" src="/src/studies/brewhouse/main.js"></script>
+  </body>
+</html>

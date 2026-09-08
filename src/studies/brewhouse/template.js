@@ -1,0 +1,113 @@
+// Authored art-layout prototype. No random calls, callbacks or simulation mutations.
+// Fractional offsets below are prop dressing, not navigable cells or occupancy.
+export const BREWHOUSE = {
+  id: "copper-familiar-brewhouse",
+  version: 1,
+  size: [7, 5],
+  levels: [0, 1],
+  entrance: { cell: [0, 3, 0], normal: [0, 1], kind: "pedestrian-door" },
+  stair: {
+    lower: [2, -1, 0],
+    upper: [2, 1, 1],
+    run: [
+      [2, -1],
+      [2, 0],
+      [2, 1],
+    ],
+  },
+  spaces: [
+    { id: "brewing-room", level: 0 },
+    { id: "herbalist-loft", level: 1 },
+  ],
+  props: [
+    {
+      id: "copper-kettle",
+      asset: "kettle",
+      cell: [-2, -1, 0],
+      offset: [0.2, 0],
+      role: "workstation",
+    },
+    {
+      id: "barrel-a",
+      asset: "fermenter",
+      cell: [-3, 0, 0],
+      role: "fermentation-vessel",
+    },
+    {
+      id: "barrel-b",
+      asset: "fermenter",
+      cell: [-3, 1, 0],
+      role: "fermentation-vessel",
+    },
+    { id: "prep", asset: "workbench", cell: [0, -2, 0], role: "preparation" },
+    {
+      id: "grain-a",
+      asset: "grainSack",
+      cell: [-3, -2, 0],
+      role: "decorative-ingredient",
+    },
+    {
+      id: "grain-b",
+      asset: "grainSack",
+      cell: [-3, -2, 0],
+      offset: [0.4, 0.22],
+      role: "decorative-ingredient",
+    },
+    {
+      id: "water-pail",
+      asset: "bucket",
+      cell: [-1, 0, 0],
+      role: "reusable-vessel",
+    },
+    {
+      id: "counter",
+      asset: "bar",
+      cell: [-1, 1, 0],
+      offset: [-0.5, 0],
+      role: "serving",
+    },
+    {
+      id: "seat-a",
+      asset: "stool",
+      cell: [-2, 2, 0],
+      role: "seat",
+    },
+    { id: "seat-b", asset: "stool", cell: [-1, 2, 0], role: "seat" },
+    {
+      id: "seat-c",
+      asset: "stool",
+      cell: [1, -2, 0],
+      role: "seat",
+    },
+    { id: "cellar-keg", asset: "cask", cell: [3, 1, 0], role: "portable-cask" },
+    {
+      id: "ground-lamp",
+      asset: "lantern",
+      cell: [0, -2, 0],
+      offset: [-0.65, 0.1],
+      height: 0.88,
+      role: "light",
+    },
+    {
+      id: "loft-books",
+      asset: "bookcase",
+      cell: [0, -2, 1],
+      role: "bookshelf",
+    },
+    {
+      id: "drying-herbs",
+      asset: "dryingRack",
+      cell: [-3, -2, 1],
+      role: "drying",
+    },
+    { id: "loft-table", asset: "workbench", cell: [0, 1, 1], role: "desk" },
+    { id: "loft-chair", asset: "stool", cell: [0, 2, 1], role: "seat" },
+    {
+      id: "loft-lantern",
+      asset: "lantern",
+      cell: [-1, -2, 1],
+      height: 0.05,
+      role: "light",
+    },
+  ],
+};
