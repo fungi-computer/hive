@@ -1,0 +1,131 @@
+:root {
+  color-scheme: dark;
+  background: #0d1b17;
+  color: #f2e2b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button {
+  font: inherit;
+}
+
+.study-shell {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: 28px 20px 46px;
+}
+
+.study-heading p {
+  margin: 0;
+  color: #b8c6a8;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.study-heading h1 {
+  max-width: 680px;
+  margin: 8px 0;
+  font-size: clamp(25px, 5vw, 40px);
+}
+
+.study-heading span {
+  color: #b8c6a8;
+  font-size: 12px;
+}
+
+.study-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(260px, 1fr);
+  gap: 28px;
+  align-items: start;
+  margin-top: 28px;
+}
+
+.study-map-host {
+  min-height: 340px;
+  padding: 12px;
+  border: 1px solid #405947;
+  border-radius: 12px;
+  background: #10221b;
+}
+
+.level-switch {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.level-switch button {
+  border: 1px solid #657b68;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #263e31;
+  color: #f2e2b8;
+  cursor: pointer;
+}
+.level-switch button[aria-pressed="true"] {
+  background: #b68558;
+  color: #162018;
+}
+.level-switch button:focus-visible {
+  outline: 3px solid #ffe598;
+  outline-offset: 3px;
+}
+
+.study-notes {
+  border-left: 2px solid #687d5d;
+  padding: 4px 0 4px 18px;
+}
+.study-notes h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.study-notes p {
+  color: #c6d0ba;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.study-notes dl {
+  margin: 18px 0;
+}
+.study-notes dl div {
+  padding: 10px 0;
+  border-top: 1px solid #3d5847;
+}
+.study-notes dt {
+  color: #b8c6a8;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.study-notes dd {
+  margin: 5px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.study-limit {
+  color: #e4c778 !important;
+}
+
+@media (max-width: 600px) {
+  .study-shell {
+    padding: 18px 12px 32px;
+  }
+  .study-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .study-map-host {
+    min-height: 0;
+  }
+  .study-notes {
+    border-left: 0;
+    border-top: 2px solid #687d5d;
+    padding: 16px 0 0;
+  }
+}

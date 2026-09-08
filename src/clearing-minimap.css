@@ -1,0 +1,123 @@
+.clearing-minimap {
+  width: min(100%, 320px);
+  padding: 12px;
+  border: 1px solid #657b68;
+  border-radius: 10px;
+  background: #13261f;
+  color: #f2e2b8;
+  box-shadow: 0 8px 24px #06110d66;
+}
+
+.clearing-minimap header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.clearing-minimap h2,
+.clearing-minimap p {
+  margin: 0;
+}
+
+.clearing-minimap h2 {
+  font-size: 15px;
+}
+
+.clearing-minimap-eyebrow,
+.clearing-minimap-key,
+.clearing-minimap-copy,
+.clearing-minimap-status {
+  color: #b8c6a8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.clearing-minimap-eyebrow {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.clearing-minimap-key {
+  max-width: 116px;
+  text-align: right;
+}
+
+.clearing-minimap-copy {
+  margin: 10px 0 !important;
+}
+
+.clearing-minimap-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--clearing-minimap-size), minmax(0, 1fr));
+  border: 1px solid #789072;
+  background: #37533c;
+  aspect-ratio: 1;
+}
+
+.clearing-minimap-cell {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  border: 0;
+  border-right: 1px solid #5c765b55;
+  border-bottom: 1px solid #5c765b55;
+  padding: 0;
+  background: #426c4f;
+  color: #f4df9b;
+  font:
+    700 clamp(6px, 1.4vw, 10px) / 1 ui-monospace,
+    monospace;
+  cursor: pointer;
+}
+
+.clearing-minimap-cell:hover,
+.clearing-minimap-cell:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #ffe598;
+  outline-offset: -2px;
+}
+
+.clearing-minimap-cell.viewport {
+  box-shadow: inset 0 0 0 1px #d8edb1;
+}
+
+.clearing-minimap-cell.structure {
+  background: #826b55;
+}
+
+.clearing-minimap-cell.tree {
+  background: #355a43;
+}
+
+.clearing-minimap-cell.actor {
+  background: #5d7f7a;
+}
+
+.clearing-minimap-cell.actor.selected {
+  color: #fff5c7;
+  background: #b68558;
+}
+
+.clearing-minimap-cell.requested {
+  outline: 2px solid #f2cf72;
+  outline-offset: -2px;
+}
+
+.clearing-minimap-status {
+  min-height: 2.7em;
+  margin-top: 10px !important;
+}
+
+@media (max-width: 480px) {
+  .clearing-minimap {
+    width: min(100%, 288px);
+    padding: 10px;
+  }
+
+  .clearing-minimap-key {
+    max-width: 105px;
+  }
+}
