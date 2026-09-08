@@ -2,6 +2,8 @@
 import * as THREE from "three";
 import { box, ball, cylinder, mesh, group } from "../../art/geometry.js";
 import { mugwortBundle } from "../../art/herbs.js";
+import { kettleBody, kettlePaddle } from "../../art/brew-vessel.js";
+import { pail } from "../../art/pail.js";
 
 export const PALETTE = {
   wood: "#785037",
@@ -132,80 +134,9 @@ export function fermenter(p) {
   box(g, P.sage, 0, 0.64, 0.445, 0.06, 0.1, 0.016);
 }
 export function kettle(p) {
-  // Hearth and vessel are a single reusable workstation visual, not a heat solver.
-  box(p, "#555b52", 0, 0.1, 0, 1.42, 0.2, 1.32);
-  for (let row = 0; row < 3; row++) {
-    for (const side of [-1, 1])
-      for (let z = 0; z < 3; z++)
-        box(
-          p,
-          (row + z) % 2 ? "#857b65" : "#716955",
-          side * 0.55,
-          0.23 + row * 0.16,
-          -0.4 + z * 0.39,
-          0.22,
-          0.15,
-          0.37,
-        );
-    for (let x = 0; x < 3; x++)
-      box(
-        p,
-        "#8a765b",
-        -0.4 + x * 0.4,
-        0.23 + row * 0.16,
-        -0.52,
-        0.38,
-        0.15,
-        0.2,
-      );
-  }
-  for (const x of [-0.17, 0.17]) {
-    const log = cylinder(p, P.wood, x, 0.28, 0.02, 0.09, 0.09, 0.68, 7);
-    log.rotation.x = Math.PI / 2;
-    ball(p, "#de7041", x, 0.31, 0.15, 0.12, 0.08, 0.16);
-  }
-  for (let i = 0; i < 5; i++) {
-    const flame = mesh(
-      p,
-      new THREE.ConeGeometry(0.07, 0.26 + (i % 2) * 0.12, 5),
-      "#ffc468",
-      -0.3 + i * 0.15,
-      0.43,
-      0.2,
-    );
-    flame.rotation.z = (i - 2) * 0.12;
-  }
-  cylinder(p, P.copper, 0, 0.95, 0, 0.48, 0.36, 0.64, 16);
-  ball(p, P.copper, 0, 0.67, 0, 0.37, 0.14, 0.37);
-  ring(p, P.gold, 0, 1.28, 0, 0.475, 0.045);
-  cylinder(p, P.ale, 0, 1.268, 0, 0.428, 0.428, 0.013, 16);
-  for (let i = 0; i < 7; i++)
-    ball(
-      p,
-      i % 2 ? P.cream : "#d4a15a",
-      Math.sin(i * 2.4) * 0.28,
-      1.287,
-      Math.cos(i * 2.4) * 0.25,
-      0.045 + (i % 3) * 0.008,
-      0.019,
-      0.045,
-    );
-  for (const x of [-0.53, 0.53]) {
-    const handle = mesh(
-      p,
-      new THREE.TorusGeometry(0.125, 0.03, 4, 8),
-      P.iron,
-      x,
-      1.14,
-      0,
-    );
-    handle.rotation.y = Math.PI / 2;
-  }
-  beam(p, [0.24, 1.11, 0.22], [0.48, 1.85, 0.35], 0.055, P.end);
-  box(p, P.end, 0.23, 1.19, 0.22, 0.16, 0.25, 0.035);
-  const spout = cylinder(p, P.gold, 0, 0.79, 0.54, 0.04, 0.04, 0.24, 8);
-  spout.rotation.x = Math.PI / 2;
-  box(p, P.iron, 0, 0.87, 0.56, 0.17, 0.04, 0.04);
+  // The isolated template intentionally shows no liquid, fuel, or steam.
+  kettleBody(p);
+  return kettlePaddle(p);
 }
 export function bench(p, { width = 1.8, depth = 0.75, height = 0.81 } = {}) {
   for (const x of [-width / 2 + 0.15, width / 2 - 0.15])
@@ -276,19 +207,7 @@ export function grainSack(p) {
   box(p, P.wood, 0, 0.32, 0.282, 0.028, 0.1, 0.018);
 }
 export function bucket(p) {
-  cylinder(p, P.wood, 0, 0.22, 0, 0.24, 0.19, 0.4, 12);
-  cylinder(p, "#526f75", 0, 0.416, 0, 0.203, 0.203, 0.012, 12);
-  for (const y of [0.07, 0.35])
-    ring(p, P.iron, 0, y, 0, y > 0.2 ? 0.235 : 0.203, 0.024);
-  const handle = mesh(
-    p,
-    new THREE.TorusGeometry(0.24, 0.018, 4, 12, Math.PI),
-    P.iron,
-    0,
-    0.43,
-    0,
-  );
-  handle.rotation.y = Math.PI / 2;
+  return pail(p, 0);
 }
 export function dryingRack(p) {
   for (const x of [-0.62, 0.62]) box(p, P.wood, x, 0.9, 0, 0.08, 1.8, 0.08);

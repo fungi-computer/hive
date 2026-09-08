@@ -99,14 +99,14 @@ document.querySelector("#turn").addEventListener("click", () => {
 });
 draw();
 const labels = {
-  kettle: "Copper kettle & hearth",
+  kettle: "Hollow copper kettle & hearth",
   fermenter: "Fermentation tun",
   cask: "Coopered keg",
   workbench: "Herbalist’s bench",
   bar: "Serving counter",
   stool: "Three-legged stool",
   grainSack: "Open grain sack",
-  bucket: "Water pail",
+  bucket: "Open water pail",
   dryingRack: "Herb drying rack",
   bookcase: "Books & little bottles",
   lantern: "Iron lantern",
