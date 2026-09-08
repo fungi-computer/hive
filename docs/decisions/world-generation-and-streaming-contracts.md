@@ -18,6 +18,18 @@ regeneration ownership. It owns ignored evidence only; it does not alter the
 versioned generator, World Lab, live clearing or this contract until Delivery
 accepts a concrete tracked consumer.
 
+Levi's supplied Sebastian Lague landmass reference sharpens that future
+consumer: configured coherent layers and authored shaping produce one physical
+terrain height, quantization produces its voxel surface, and a fixed sea datum
+then classifies water. The current World Lab `coastDistance` colour and the old
+drainage atlas are diagnostics of the old sampler, not production sea authority.
+Changing the recipe requires revalidating named coasts, ridges and canyons. This
+adopts the source-backed ordering from Lague's
+[noise](https://github.com/SebLague/Procedural-Landmass-Generation/blob/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/Noise.cs),
+[height-map](https://github.com/SebLague/Procedural-Landmass-Generation/blob/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/HeightMapGenerator.cs)
+and [terrain-region](https://github.com/SebLague/Procedural-Landmass-Generation/blob/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E14/Assets/Scripts/MapGenerator.cs)
+callers; it does not claim a deployed generator or physical ocean simulation.
+
 ## Starting evidence and immediate corrections
 
 `src/world-lab/terrain.js` currently gives us global signed sampling, 16×16 byte-array chunks, six footprint-filtered noise scales, analytic coast/ridge markers, a 512² overview and a 25-chunk cache. `main.js` invokes it synchronously and displays terrain codes in a flat 2D canvas. The optional 1024² button does not yet report an actual duration. This is neither an isometric chunk renderer nor hydrology nor streamed Clearing state. `renderChunkBuffer` trusts window contiguity/order, and cache eviction sorts the whole small map. Correct these when their real consumer expands; do not call their present bounded cost a demonstrated crisis.

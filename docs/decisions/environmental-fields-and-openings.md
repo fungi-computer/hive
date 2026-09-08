@@ -160,6 +160,17 @@ accounting.
 
 The next production water consumer is much smaller: finite water acquired into a real vessel, carried through the common goods/transfer owner, and consumed once to establish a plant. That earns gameplay and liquid custody without requiring regional hydraulics. No new hauling branch, second clock, oxygen system or planet simulation enters the current brewing candidate.
 
+Levi's supplied Sebastian Lague fluid source adds SPH to the serious future
+three-dimensional solver comparison for ledges, pouring, splashes and stacked
+surfaces. Its useful mechanisms are bounded spatial neighbor lookup, compact
+ordered stages and separate simulation/display buffers. Adoption must correct
+the pinned hash-bucket duplicate-neighbor case, define mass/volume and units,
+use collision geometry owned by the world, separate old/new velocity buffers,
+and measure CPU/WASM or WebGPU implementations against the same fixtures. This
+is a candidate method, not a selected solver, GPU performance claim or runtime
+join. The reviewed source is Lague's MIT-licensed
+[Fluid-Sim commit `4717b725`](https://github.com/SebLague/Fluid-Sim/tree/4717b7259718d349b0001c82836f24ce5fec81d7).
+
 Evidence remains under `.botanical/research/environment-round2-20260908/`: `water/study.md`, `water/terminal-evidence.md`, `gas-heat/DIAGNOSIS.md`, `gas-heat/RUNS.md`, `coupling/ADJUDICATION.md` and `coupling/PROOF-RECORD.md`, with their executable sources/results. All owned sessions are terminal. The original finest gas group was deliberately stopped at exit143 after its retained sealed baseline; its uncompleted remote-high case is not evidence. Its separately bounded source-local run completed normally. No raw evidence needs copying into the product bundle.
 
 ## Levi's performance ambition and language direction, later 2026-09-08

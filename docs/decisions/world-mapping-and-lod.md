@@ -30,6 +30,12 @@ Do not enumerate full-detail cells and resize them, change coordinate scale, or
 renormalize amplitudes per zoom. Local authoritative terrain and pathing remain
 unchanged by map resolution; coarse colors never grant walkability.
 
+The next recipe also derives shoreline classification from the final physical
+height and fixed sea datum. An independent coast-distance colour cannot define
+water, and LOD cannot substitute a different sea or height recipe. The retained
+drainage atlas remains evidence about the old sampler until its outlets are
+recomputed against that corrected height-derived geography.
+
 The first lab baseline remains 512², with 1024² only as a measured diagnostic.
 A 4096² initial persistent region and an approximately 1000 km circumference
 planet are unmeasured size proposals, not capacity claims or save-migration
