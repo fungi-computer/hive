@@ -7,6 +7,7 @@ import { clearing, tree } from "./art/clearing.js";
 import { figure } from "./art/figures.js";
 import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
 import { building, woodPile, wallJoint } from "./art/home.js";
+import { PROFILES, mixedShelf } from "./art/mixed-shelf.js";
 import { BUILDINGS } from "./construction.js";
 import { registerVisibleTexture } from "./visual-hit-geometry.js";
 
@@ -63,6 +64,7 @@ export async function bakeArt() {
     buildings: {},
     wood: {},
     wallJoints: {},
+    mixedShelf: {},
     pawnAnchor: anchor(portrait),
     propAnchor: anchor(prop),
   };
@@ -120,6 +122,10 @@ export async function bakeArt() {
         bake(renderer, building(type, stage, direction), prop, 112, 112),
       );
   }
+  for (const profile of PROFILES)
+    art.mixedShelf[profile.key] = [0, 1].map((direction) =>
+      bake(renderer, mixedShelf(profile.key, direction), prop, 112, 112),
+    );
   for (const stage of ["stakes", "frame", "finished"])
     art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
       bake(renderer, wallJoint(stage, mask || 5), prop, 112, 112),

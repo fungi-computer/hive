@@ -45,7 +45,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   shelf: {
-    label: "Mugwort shelf",
+    label: "Storage shelf",
     wood: 1,
     ticks: 24,
     deconstructTicks: 24,
@@ -75,6 +75,7 @@ export function constructionBuffer(site) {
     id: `construction-buffer:${site.id}`,
     capacity: BUILDINGS[site.type].wood,
     accepts: ["wood"],
+    bulk: { wood: 1, mugwort: 1 },
   };
 }
 
@@ -82,25 +83,38 @@ export function constructionBuffer(site) {
 export function shelfContainer(site) {
   return {
     id: `shelf:${typeof site === "string" ? site : site.id}`,
-    capacity: 1,
-    accepts: ["mugwort"],
+    capacity: 6,
+    accepts: ["wood", "mugwort"],
+    bulk: { wood: 2, mugwort: 1 },
   };
 }
 
 // The construction consumer owns the only lifecycle-aware interpretation of a
 // material destination. Transfer mechanics receive this resolved record; they
 // never infer a destination from a structure type.
-export function resolveMaterialDestination(sites, id) {
+export function resolveMaterialEndpoint(sites, id, operation = "deposit") {
   const siteId = id.replace(/^(?:construction-buffer:|shelf:)/, "");
   const site = sites.find((candidate) => candidate.id === siteId);
   if (!site) return null;
   const construction = constructionBuffer(site);
-  if (id === construction.id && site.finishedAt === null)
+  if (
+    operation === "deposit" &&
+    id === construction.id &&
+    site.finishedAt === null
+  )
     return { site, destination: construction };
   const shelf = shelfContainer(site.id);
-  if (site.type === "shelf" && site.finishedAt !== null && id === shelf.id)
+  if (
+    site.type === "shelf" &&
+    site.finishedAt !== null &&
+    id === shelf.id &&
+    (operation === "deposit" || operation === "withdraw")
+  )
     return { site, destination: shelf };
   return null;
+}
+export function resolveMaterialDestination(sites, id) {
+  return resolveMaterialEndpoint(sites, id, "deposit");
 }
 export function footprint(at) {
   if (at.type === "stair") return stairCells(at);

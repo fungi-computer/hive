@@ -11,8 +11,18 @@ import { Button } from "@fungi.computer/caps/components/button";
 import { Card } from "@fungi.computer/caps/components/card";
 import { Checkbox } from "@fungi.computer/caps/components/checkbox";
 import "@fungi.computer/caps/styles.css";
-import { BUILDINGS, constructionBuffer, shelfContainer, shelteredBeds } from "./construction.js";
-import { carriedLot, containerContents, embeddedQuantity, transferForActor } from "./materials.ts";
+import {
+  BUILDINGS,
+  constructionBuffer,
+  shelfContainer,
+  shelteredBeds,
+} from "./construction.js";
+import {
+  carriedLot,
+  containerContents,
+  containerQuantity,
+  transferForActor,
+} from "./materials.ts";
 import { commandProblem } from "./orders.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
@@ -28,12 +38,9 @@ const ACTIVITIES = {
   idle: "Waiting for work",
   walk: "Walking",
   chop: "Chopping oak",
-  pickup: "Picking up wood",
-  deliver: "Delivering wood",
+  transfer: "Moving material",
   build: "Building",
   deconstruct: "Deconstructing",
-  "pickup-herb": "Picking up mugwort",
-  "store-herb": "Storing mugwort",
   sow: "Planting mugwort",
   harvest: "Harvesting mugwort",
   sleep: "Sleeping in the bedroll",
@@ -290,25 +297,54 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     id: job.id,
     kind: job.kind,
     target: "target" in job ? job.target : null,
-    bundle: job.kind === "store-herb" ? job.bundle : null,
-    shelf: job.kind === "store-herb" ? job.shelf : null,
+    lot: job.kind === "store" ? job.source : null,
+    shelf: job.kind === "store" ? job.destination.replace("shelf:", "") : null,
     reason: job.reason,
     routine: job.routine,
     actors: job.scope.actors ? [...job.scope.actors] : null,
     party: job.scope.party,
   }));
-  const sitesNext = state.sites.map((site) => ({
-    id: site.id,
-    type: site.type,
-    x: site.x,
-    z: site.z,
-    level: site.level,
-    direction: site.direction,
-    materialsInBuffer: embeddedQuantity(state.materials, constructionBuffer(site).id, "wood"),
-    work: site.work,
-    finished: site.finishedAt !== null,
-    bundleCount: containerContents(state.materials, shelfContainer(site.id).id).filter((lot) => lot.material === "mugwort").length,
-  }));
+  const sitesNext = state.sites.map((site) => {
+    const shelf = shelfContainer(site.id);
+    return {
+      id: site.id,
+      type: site.type,
+      x: site.x,
+      z: site.z,
+      level: site.level,
+      direction: site.direction,
+      materialsInBuffer: containerQuantity(
+        state.materials,
+        constructionBuffer(site).id,
+        "wood",
+      ),
+      work: site.work,
+      finished: site.finishedAt !== null,
+      shelfCapacity: shelf.capacity,
+      shelfWoodBulk: shelf.bulk.wood,
+      shelfMugwortBulk: shelf.bulk.mugwort,
+      contents: containerContents(state.materials, shelf.id).map((lot) => ({
+        id: lot.id,
+        material: lot.material,
+        quantity: lot.quantity,
+      })),
+      incomingBulk: state.materials.transfers
+        .filter((transfer) => transfer.request.destination === shelf.id)
+        .reduce((total, transfer) => {
+          const lot = state.materials.lots.find(
+            (candidate) =>
+              candidate.id ===
+              (transfer.phase.kind === "reserved"
+                ? transfer.phase.sourceLot
+                : transfer.phase.lot),
+          );
+          return (
+            total +
+            transfer.request.quantity * shelf.bulk[lot?.material ?? "wood"]
+          );
+        }, 0),
+    };
+  });
   const herbsNext = state.herbs.map((herb) => ({
     id: herb.id,
     x: herb.x,
@@ -318,7 +354,17 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     work: herb.work,
     plantedAt: herb.plantedAt,
   }));
-  const herbBundlesNext = state.materials.lots.filter((lot) => lot.material === "mugwort").map((lot) => ({ id: lot.id, kind: "mugwort", amount: lot.quantity, location: lot.location.kind === "container" ? { kind: "stored", site: lot.location.container.replace("shelf:", "") } : lot.location.kind === "hand" ? { kind: "carried", actor: lot.location.actor } : { ...lot.location } }));
+  const lotsNext = state.materials.lots.map((lot) => ({
+    id: lot.id,
+    material: lot.material,
+    amount: lot.quantity,
+    location:
+      lot.location.kind === "container"
+        ? { kind: "stored", site: lot.location.container.replace("shelf:", "") }
+        : lot.location.kind === "hand"
+          ? { kind: "carried", actor: lot.location.actor }
+          : { ...lot.location },
+  }));
   const trees =
     previous &&
     treesNext.length === previous.trees.length &&
@@ -343,14 +389,12 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     herbsNext.every((herb, index) => sameObject(herb, previous.herbs[index]))
       ? previous.herbs
       : herbsNext;
-  const herbBundles =
+  const lots =
     previous &&
-    herbBundlesNext.length === previous.herbBundles.length &&
-    herbBundlesNext.every((bundle, index) =>
-      sameBundle(bundle, previous.herbBundles[index]),
-    )
-      ? previous.herbBundles
-      : herbBundlesNext;
+    lotsNext.length === previous.lots.length &&
+    lotsNext.every((bundle, index) => sameBundle(bundle, previous.lots[index]))
+      ? previous.lots
+      : lotsNext;
   const demand =
     state.demand &&
     previous?.demand &&
@@ -376,7 +420,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     jobs,
     sites,
     herbs,
-    herbBundles,
+    lots,
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
     time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
     feed,
@@ -393,7 +437,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
 function orderModel(display, job) {
   const site = display.sites.find(
     (candidate) =>
-      candidate.id === (job.kind === "store-herb" ? job.shelf : job.target),
+      candidate.id === (job.kind === "store" ? job.shelf : job.target),
   );
   const active = Object.values(display.actors).filter(
     (actor) => actor.activeJobId === job.id,
@@ -409,13 +453,13 @@ function orderModel(display, job) {
             ? job.routine
               ? "Sleep until morning"
               : "Rest in bedroll"
-            : job.kind === "store-herb"
-              ? "Store mugwort"
+            : job.kind === "store"
+              ? "Store material"
               : site
                 ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
                 : "Work order";
   const detail =
-    job.kind === "store-herb"
+    job.kind === "store"
       ? site
         ? ` · Shelf ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
         : ""
@@ -426,7 +470,7 @@ function orderModel(display, job) {
     id: job.id,
     kind: job.kind,
     target: job.target,
-    bundle: job.bundle,
+    lot: job.lot,
     shelf: job.shelf,
     reason: job.reason,
     title,
@@ -549,17 +593,24 @@ const targetAtom = atom((get) => {
     const herb = facts.herbs.find((candidate) => candidate.id === target.id);
     return herb ? { kind: "herb", ...herb } : null;
   }
-  if (target.kind === "bundle") {
-    const bundle = facts.herbBundles.find(
-      (candidate) => candidate.id === target.id,
-    );
-    if (!bundle) return null;
+  if (target.kind === "lot") {
+    const lot = facts.lots.find((candidate) => candidate.id === target.id);
+    if (!lot) return null;
     return {
-      ...bundle,
-      kind: "bundle",
+      ...lot,
+      kind: "lot",
       shelves: facts.sites
         .filter((site) => site.type === "shelf" && site.finished)
-        .map((site) => ({ id: site.id, x: site.x, z: site.z })),
+        .map((site) => ({
+          id: site.id,
+          x: site.x,
+          z: site.z,
+          contents: site.contents,
+          incomingBulk: site.incomingBulk,
+          shelfCapacity: site.shelfCapacity,
+          shelfWoodBulk: site.shelfWoodBulk,
+          shelfMugwortBulk: site.shelfMugwortBulk,
+        })),
     };
   }
   const site = facts.sites.find((candidate) => candidate.id === target.id);
@@ -997,73 +1048,97 @@ function Build({ model: m, send }) {
 
 function Target({ model: m, send }) {
   if (!m.context || !m.target) return null;
-  if (m.target.kind === "bundle") {
+  if (m.target.kind === "lot") {
     const storeJob = m.orders.find(
-      (job) => job.kind === "store-herb" && job.bundle === m.target.id,
+      (job) => job.kind === "store" && job.lot === m.target.id,
     );
     const locationText =
       m.target.location.kind === "ground"
-        ? `Loose bundle · ${m.target.location.x}, ${m.target.location.z} · ${levelName(m.target.location.level)}`
+        ? `Loose on ground · ${m.target.location.x}, ${m.target.location.z} · ${levelName(m.target.location.level)}`
         : m.target.location.kind === "carried"
-          ? "Carried by a home member"
-          : "Stored on a mugwort shelf";
+          ? `Held by ${m.target.location.actor}`
+          : `Stored on shelf ${m.target.location.site}`;
     return (
       <Card
         variant="outline"
         role="region"
         className="window target-window"
-        aria-label="Mugwort bundle actions"
+        aria-label="Material lot actions"
         style={targetPosition(m.context)}
       >
         <div className="window-heading">
-          <h2>Mugwort bundle</h2>
+          <h2>{m.target.material === "wood" ? "Wood" : "Mugwort"}</h2>
           <Button
             className="close"
             variant="ghost"
             size="icon"
-            aria-label="Close mugwort bundle actions"
+            aria-label="Close material actions"
             onClick={() => send({ kind: "close-target" })}
           >
             ×
           </Button>
         </div>
-        <p className="muted">{locationText} · 1 bundle</p>
+        <p className="muted">
+          {locationText} · {m.target.amount}
+        </p>
         {storeJob ? (
-          <small className="action-reason" data-status="store-herb">
+          <small className="action-reason" data-status="store">
             {storeJob.active
-              ? "A home member is storing this bundle."
+              ? "A home member is storing this material."
               : storeJob.reason || "Waiting for storage availability."}
           </small>
         ) : m.target.location.kind !== "ground" ? (
           <small className="action-reason">
-            This bundle is not on the ground.
+            {m.target.location.kind === "carried"
+              ? "This lot is held for its active transfer."
+              : "This lot is already stored on its shelf."}
           </small>
         ) : m.target.shelves.length ? (
           <div className="button-column">
-            {m.target.shelves.map((shelf) => (
-              <Button
-                key={shelf.id}
-                data-action="store-herb"
-                data-bundle={m.target.id}
-                data-site={shelf.id}
-                variant="primary"
-                onClick={() =>
-                  send({
-                    kind: "command",
-                    command: {
-                      kind: "store-herb",
-                      bundle: m.target.id,
-                      shelf: shelf.id,
-                    },
-                  })
-                }
-              >
-                Store on shelf · {shelf.x}, {shelf.z}
-              </Button>
-            ))}
+            {m.target.shelves.map((shelf) =>
+              (() => {
+                const occupied =
+                  shelf.contents.reduce(
+                    (sum, lot) =>
+                      sum +
+                      lot.quantity *
+                        (lot.material === "wood"
+                          ? shelf.shelfWoodBulk
+                          : shelf.shelfMugwortBulk),
+                    0,
+                  ) + shelf.incomingBulk;
+                const bulk =
+                  m.target.material === "wood"
+                    ? shelf.shelfWoodBulk
+                    : shelf.shelfMugwortBulk;
+                return (
+                  <Button
+                    key={shelf.id}
+                    data-action="store"
+                    data-lot={m.target.id}
+                    data-site={shelf.id}
+                    variant="primary"
+                    disabled={occupied + bulk > shelf.shelfCapacity}
+                    onClick={() =>
+                      send({
+                        kind: "command",
+                        command: {
+                          kind: "store",
+                          lot: m.target.id,
+                          shelf: shelf.id,
+                        },
+                      })
+                    }
+                  >
+                    Store on shelf · {shelf.x}, {shelf.z} · {occupied}/
+                    {shelf.shelfCapacity} bulk
+                  </Button>
+                );
+              })(),
+            )}
           </div>
         ) : (
-          <small className="action-reason">Build a mugwort shelf first.</small>
+          <small className="action-reason">Build a shelf first.</small>
         )}
       </Card>
     );
@@ -1102,9 +1177,27 @@ function Target({ model: m, send }) {
         </div>
         <p className="muted">
           {m.target.type === "shelf"
-            ? `Mugwort ${m.target.bundleCount}/1`
+            ? (() => {
+                const wood = m.target.contents
+                  .filter((lot) => lot.material === "wood")
+                  .reduce((sum, lot) => sum + lot.quantity, 0);
+                const mugwort = m.target.contents
+                  .filter((lot) => lot.material === "mugwort")
+                  .reduce((sum, lot) => sum + lot.quantity, 0);
+                const occupied =
+                  wood * m.target.shelfWoodBulk +
+                  mugwort * m.target.shelfMugwortBulk;
+                return `Wood ${wood} · Mugwort ${mugwort} · ${occupied}/${m.target.shelfCapacity} bulk${m.target.incomingBulk ? ` · ${m.target.incomingBulk} incoming` : ""}`;
+              })()
             : `Finished structure · ${m.target.x}, ${m.target.z} · ${levelName(m.target.level)}`}
         </p>
+        {m.target.type === "shelf" && (
+          <small className="action-reason">
+            {m.target.contents.length
+              ? `Contents: ${m.target.contents.map((lot) => `${lot.material === "wood" ? "Wood" : "Mugwort"} ×${lot.quantity}`).join(", ")}. Shelf art shows up to three representatives.`
+              : "Contents: empty."}
+          </small>
+        )}
         <Button
           id="deconstruct"
           data-action="deconstruct"
@@ -1831,12 +1924,12 @@ export function createHud(host, art, effect) {
           designationTargetIds: [],
         }));
         return;
-      case "inspect-bundle":
+      case "inspect-lot":
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
           ...value,
           inspectedTarget: {
-            kind: "bundle",
+            kind: "lot",
             id: action.id,
             point: { x: action.point.x, y: action.point.y },
           },
@@ -2021,7 +2114,7 @@ export function createHud(host, art, effect) {
           command.kind === "deconstruct" ||
           command.kind === "sow" ||
           command.kind === "harvest" ||
-          command.kind === "store-herb"
+          command.kind === "store"
         )
           command.actors = null;
         else if (command.actors === undefined)
@@ -2096,10 +2189,8 @@ export function createHud(host, art, effect) {
         value.inspectedTarget?.kind === "herb"
           ? value.inspectedTarget.id
           : null,
-      bundle:
-        value.inspectedTarget?.kind === "bundle"
-          ? value.inspectedTarget.id
-          : null,
+      lot:
+        value.inspectedTarget?.kind === "lot" ? value.inspectedTarget.id : null,
       site:
         value.inspectedTarget?.kind === "site"
           ? value.inspectedTarget.id

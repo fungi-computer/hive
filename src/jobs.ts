@@ -20,15 +20,17 @@ import {
   removalProblem,
   roofSupported,
   shelfContainer,
+  resolveMaterialEndpoint,
   shelteredBeds,
   workApproach,
 } from "./construction.js";
 import {
-  availablePortions,
+  availableMaterialFacts,
   containerQuantity,
   reserveTransfer,
   transferForActor,
   type ContainerSpec,
+  type AvailableLotFact,
 } from "./materials.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
@@ -41,6 +43,8 @@ type Candidate = {
     destination: ContainerSpec;
     request: TransferRequest;
     owner: { job: string; step: string };
+    /** The resolved route exists only for this scheduling pass. */
+    destinationReachableWithPayload: boolean;
   };
 };
 type Options = { reason: string; candidate: Candidate | null };
@@ -57,121 +61,177 @@ const make = (
   path,
   travel,
 });
-function transferOption(
+function constructionTransferOption(
   state: Clearing,
   person: Actor,
-  job: Job,
+  job: Extract<Job, { kind: "build" }>,
   blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const t = state.materials.transfers.find((x) => x.owner.job === job.id);
-  if (t)
-    return no(
-      job.kind === "build" ? "Wood is on its way" : "Mugwort is on its way",
-    );
-  if (job.kind === "build") {
-    const site = state.sites.find((s) => s.id === job.target);
-    if (!site) return no("Waiting for site");
-    if (site.type === "roof" && !roofSupported(state, site))
-      return no("Waiting for enclosing walls and a doorway");
-    const destination = constructionBuffer(site);
-    const have = containerQuantity(state.materials, destination.id, "wood");
-    if (have === destination.capacity) return no("Ready to build");
-    const remaining = destination.capacity - have;
-    const choices = availablePortions(state.materials, {
-      kind: "eligible-ground",
-      material: "wood",
-    });
-    let selected:
-      | {
-          sourceLot: string;
-          path: Cell[];
-          travel: number;
-          request: TransferRequest;
-        }
-      | undefined;
-    for (const part of choices) {
-      const quantity = Math.min(2, remaining, part.quantity);
-      if (quantity < 1) continue;
-      const lot = state.materials.lots.find((l) => l.id === part.lot);
-      if (!lot || lot.location.kind !== "ground") continue;
-      const a = route(person, lot.location, blocked, state),
-        b = workApproach(state, lot.location, site, blocked);
-      if (!a || !b) continue;
-      const travel = pathTicks(person, a) + pathTicks(lot.location, b);
-      if (selected === undefined || travel < selected.travel)
-        selected = {
-          sourceLot: part.lot,
-          path: a,
-          travel,
-          request: {
-            source: { kind: "eligible-ground", material: "wood" },
-            quantityPolicy: "portion",
-            quantity: quantity as PositiveInt,
-            destination: destination.id,
-          },
-        };
-    }
-    if (!selected) return no("Waiting for reachable wood");
-    return {
-      reason: "Ready to haul wood",
-      candidate: {
-        ...make(
-          job,
-          "transfer",
-          selected.sourceLot,
-          selected.path,
-          8,
-          selected.travel,
+  if (t) return no("Wood is on its way");
+  const site = state.sites.find((s) => s.id === job.target);
+  if (!site) return no("Waiting for site");
+  if (site.type === "roof" && !roofSupported(state, site))
+    return no("Waiting for enclosing walls and a doorway");
+  const destination = constructionBuffer(site);
+  const have = containerQuantity(state.materials, destination.id, "wood");
+  if (have === destination.capacity) return no("Ready to build");
+  const remaining = destination.capacity - have;
+  const choices = [
+    ...sourceFacts.filter(
+      ({ lot }) => lot.material === "wood" && lot.location.kind === "ground",
+    ),
+    ...sourceFacts.filter(
+      ({ lot }) =>
+        lot.material === "wood" &&
+        lot.location.kind === "container" &&
+        !!resolveMaterialEndpoint(
+          state.sites,
+          lot.location.container,
+          "withdraw",
         ),
-        transfer: {
-          sourceLot: selected.sourceLot,
-          destination,
-          request: selected.request,
-          owner: { job: job.id, step: "construction-materials" },
+    ),
+  ];
+  let selected:
+    | {
+        sourceLot: string;
+        path: Cell[];
+        travel: number;
+        request: TransferRequest;
+        destinationReachableWithPayload: boolean;
+      }
+    | undefined;
+  for (const part of choices) {
+    const quantity = Math.min(2, remaining, part.quantity);
+    if (quantity < 1) continue;
+    const lot = part.lot;
+    const sourceSite =
+      lot.location.kind === "container"
+        ? resolveMaterialEndpoint(
+            state.sites,
+            lot.location.container,
+            "withdraw",
+          )?.site
+        : null;
+    const a = sourceSite
+        ? workApproach(state, person, sourceSite, blocked)
+        : route(person, lot.location, blocked, state),
+      from = a?.at(-1) ?? person,
+      b = a && workApproach(state, from, site, blocked);
+    if (!a || !b) continue;
+    const travel = pathTicks(person, a) + pathTicks(from, b);
+    if (selected === undefined || travel < selected.travel)
+      selected = {
+        sourceLot: lot.id,
+        path: a,
+        travel,
+        request: {
+          source:
+            lot.location.kind === "container"
+              ? {
+                  kind: "eligible-container",
+                  material: "wood",
+                  container: lot.location.container,
+                }
+              : { kind: "eligible-ground", material: "wood" },
+          quantityPolicy: "portion",
+          quantity: quantity as PositiveInt,
+          destination: destination.id,
         },
-      },
-    };
+        destinationReachableWithPayload: true,
+      };
   }
-  if (job.kind === "transfer") {
-    const sourceLot = job.source;
-    const destination = shelfContainer(job.destination.slice("shelf:".length));
-    const lot = state.materials.lots.find((l) => l.id === sourceLot);
-    if (!lot || lot.location.kind !== "ground" || lot.quantity !== 1)
-      return no("Waiting for mugwort or shelf");
-    const request: TransferRequest = {
-      source: { kind: "exact-lot", lot: sourceLot },
-      quantityPolicy: "whole-lot",
-      quantity: lot.quantity,
-      destination: destination.id,
-    };
-    const site = state.sites.find((s) => destination.id === `shelf:${s.id}`);
-    if (!site) return no("Waiting for mugwort or shelf");
-    const path = route(person, lot.location, blocked, state),
-      d = workApproach(state, lot.location, site, blocked);
-    if (!path || !d) return no("No route to this mugwort");
-    return {
-      reason: "Ready to store mugwort",
-      candidate: {
-        ...make(
-          job,
-          "transfer",
-          sourceLot,
-          path,
-          8,
-          pathTicks(person, path) + pathTicks(lot.location, d),
-        ),
-        transfer: {
-          sourceLot,
-          destination,
-          request,
-          owner: { job: job.id, step: "shelf-store" },
-        },
+  if (!selected) return no("Waiting for reachable wood");
+  return {
+    reason: "Ready to haul wood",
+    candidate: {
+      ...make(
+        job,
+        "transfer",
+        selected.sourceLot,
+        selected.path,
+        8,
+        selected.travel,
+      ),
+      transfer: {
+        sourceLot: selected.sourceLot,
+        destination,
+        request: selected.request,
+        owner: { job: job.id, step: "construction-materials" },
+        destinationReachableWithPayload:
+          selected.destinationReachableWithPayload,
       },
-    };
-  }
-  return no("");
+    },
+  };
 }
-function option(state: Clearing, p: Actor, j: Job, b: Set<string>): Options {
+function storageTransferOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "store" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const sourceLot = job.source;
+  const resolved = resolveMaterialEndpoint(
+    state.sites,
+    job.destination,
+    "deposit",
+  );
+  if (!resolved) return no("Waiting for material or shelf");
+  const { destination, site } = resolved;
+  const lot = sourceFacts.find((fact) => fact.lot.id === sourceLot);
+  if (!lot || lot.lot.location.kind !== "ground")
+    return no("Waiting for material or shelf");
+  const free =
+    destination.capacity -
+    containerQuantity(state.materials, destination.id, "wood") *
+      destination.bulk.wood -
+    containerQuantity(state.materials, destination.id, "mugwort") *
+      destination.bulk.mugwort;
+  const quantity = Math.min(
+    lot.lot.material === "wood" ? 2 : 1,
+    lot.quantity,
+    Math.floor(free / destination.bulk[lot.lot.material]),
+  );
+  if (quantity < 1) return no("Shelf is full");
+  const request: TransferRequest = {
+    source: { kind: "exact-lot", lot: sourceLot },
+    quantityPolicy: lot.lot.material === "mugwort" ? "whole-lot" : "portion",
+    quantity: quantity as PositiveInt,
+    destination: destination.id,
+  };
+  const path = route(person, lot.lot.location, blocked, state),
+    d = workApproach(state, lot.lot.location, site, blocked);
+  if (!path || !d) return no("No route to this material");
+  return {
+    reason: `Ready to store ${lot.lot.material}`,
+    candidate: {
+      ...make(
+        job,
+        "transfer",
+        sourceLot,
+        path,
+        8,
+        pathTicks(person, path) + pathTicks(lot.lot.location, d),
+      ),
+      transfer: {
+        sourceLot,
+        destination,
+        request,
+        owner: { job: job.id, step: "shelf-store" },
+        destinationReachableWithPayload: true,
+      },
+    },
+  };
+}
+function option(
+  state: Clearing,
+  p: Actor,
+  j: Job,
+  b: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
@@ -191,9 +251,10 @@ function option(state: Clearing, p: Actor, j: Job, b: Set<string>): Options {
           }
         : no("No route to this site");
     }
-    return transferOption(state, p, j, b);
+    return constructionTransferOption(state, p, j, b, sourceFacts);
   }
-  if (j.kind === "transfer") return transferOption(state, p, j, b);
+  if (j.kind === "store")
+    return storageTransferOption(state, p, j, b, sourceFacts);
   if (j.kind === "chop") {
     const x = state.trees.find((x) => x.id === j.target)!;
     const path = approach(p, x, b, state);
@@ -277,15 +338,44 @@ export function assignWork(state: Clearing, colony: Colony): void {
       (p) => p.mode === "idle" && !p.drafted && members.has(p.id),
     ),
     offered: Assignment[] = [],
-    choices = new Map<string, Candidate>();
+    choices = new Map<string, Candidate>(),
+    sourceFacts = availableMaterialFacts(state.materials);
+  const offer = (p: Actor, j: Job, personal = false): boolean => {
+    if (
+      state.materials.transfers.some((t) => t.owner.job === j.id) ||
+      Object.values(state.actors).some((a) => a.task?.job === j.id)
+    )
+      return false;
+    const o = option(state, p, j, blocked, sourceFacts);
+    j.reason = o.reason;
+    if (
+      !o.candidate ||
+      (!personal &&
+        automatic(o.candidate.activity) &&
+        !p.allowedWork[automatic(o.candidate.activity)!])
+    )
+      return false;
+    choices.set(`${p.id}/${j.id}`, o.candidate);
+    offered.push({
+      character: p.id,
+      task: j.id,
+      cost: colony.compute_cost({
+        travel_time: o.candidate.travel,
+        work_time: o.candidate.activity.duration,
+        priority: 1,
+      }),
+    });
+    return true;
+  };
+  const sharedWorkers: Actor[] = [];
   for (const p of idle) {
     const carry = transferForActor(state.materials, p.id);
     if (carry?.phase.kind === "carrying") {
-      const site = state.sites.find(
-        (s) =>
-          carry.request.destination === `construction-buffer:${s.id}` ||
-          carry.request.destination === `shelf:${s.id}`,
-      );
+      const site = resolveMaterialEndpoint(
+        state.sites,
+        carry.request.destination,
+        "deposit",
+      )?.site;
       const path = site && workApproach(state, p, site, blocked);
       if (path) {
         const c = make(
@@ -309,53 +399,37 @@ export function assignWork(state: Clearing, colony: Colony): void {
       } else interruptWork(state, p);
       continue;
     }
-    for (const j of state.jobs) {
-      if (
-        !inScope(state, p, j.scope) ||
-        state.materials.transfers.some((t) => t.owner.job === j.id) ||
-        Object.values(state.actors).some((a) => a.task?.job === j.id)
-      )
-        continue;
-      const o = option(state, p, j, blocked);
-      j.reason = o.reason;
-      if (
-        !o.candidate ||
-        (automatic(o.candidate.activity) &&
-          !p.allowedWork[automatic(o.candidate.activity)!])
-      )
-        continue;
-      choices.set(`${p.id}/${j.id}`, o.candidate);
-      offered.push({
-        character: p.id,
-        task: j.id,
-        cost: colony.compute_cost({
-          travel_time: o.candidate.travel,
-          work_time: o.candidate.activity.duration,
-          priority: 1,
-        }),
-      });
-      break;
-    }
+    const personal = state.jobs.filter(
+      (j) => inScope(state, p, j.scope) && j.scope.actors?.includes(p.id),
+    );
+    if (personal.some((j) => offer(p, j, true))) continue;
+    sharedWorkers.push(p);
   }
-  for (const m of optimizeEligible(colony, offered).sort((a, b) =>
-    a.character.localeCompare(b.character),
+  // Queue order selects a bounded, distinct shared-job frontier once for the
+  // party.  Every eligible worker may then compete for those jobs; a worker
+  // being unable to reach an earlier job cannot silently promote a later one.
+  let frontier = 0;
+  for (const job of state.jobs) {
+    if (frontier >= sharedWorkers.length) break;
+    if (job.scope.actors !== null) continue;
+    let viable = false;
+    for (const worker of sharedWorkers)
+      if (inScope(state, worker, job.scope))
+        viable = offer(worker, job) || viable;
+    if (viable) frontier++;
+  }
+  const committedActors = new Set<string>(),
+    committedJobs = new Set<string>();
+  const jobOrder = new Map(state.jobs.map((job, index) => [job.id, index]));
+  for (const m of optimizeEligible(colony, offered).sort(
+    (a, b) =>
+      (jobOrder.get(a.task) ?? Infinity) - (jobOrder.get(b.task) ?? Infinity) ||
+      a.character.localeCompare(b.character),
   )) {
     const p = state.actors[m.character],
       c = choices.get(`${m.character}/${m.task}`);
     if (!c) continue;
     if (c.transfer) {
-      const site = state.sites.find(
-        (s) =>
-          c.transfer!.destination.id === `construction-buffer:${s.id}` ||
-          c.transfer!.destination.id === `shelf:${s.id}`,
-      )!;
-      const delivered = workApproach(
-        state,
-        state.materials.lots.find((l) => l.id === c.transfer!.sourceLot)!
-          .location,
-        site,
-        blocked,
-      )!;
       if (
         !reserveTransfer(state.materials, {
           id: `transfer-${state.nextId++}`,
@@ -366,7 +440,8 @@ export function assignWork(state: Clearing, colony: Colony): void {
           destination: c.transfer.destination,
           access: {
             sourceReachable: true,
-            destinationReachableWithPayload: !!delivered,
+            destinationReachableWithPayload:
+              c.transfer.destinationReachableWithPayload,
           },
         }).ok
       )
@@ -375,6 +450,12 @@ export function assignWork(state: Clearing, colony: Colony): void {
     }
     p.assignment = { ...m };
     p.task = c.activity;
-    beginWalk(p, c.path);
+    beginWalk(p, [...c.path]);
+    committedActors.add(p.id);
+    committedJobs.add(m.task);
   }
+  state.workDirty = offered.some(
+    (edge) =>
+      !committedActors.has(edge.character) && !committedJobs.has(edge.task),
+  );
 }

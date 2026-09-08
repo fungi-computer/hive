@@ -3,7 +3,7 @@ import type {
   Command,
   Job,
   Scope,
-  StoreHerbCommand,
+  StoreCommand,
   WorkCommand,
 } from "./model.ts";
 import { inScope, scopeProblem } from "./actors.ts";
@@ -15,26 +15,23 @@ import { route, beginWalk } from "./movement.js";
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
 export function commandProblem(s: Clearing, c: Command): string {
-  if (c.kind === "store-herb") {
+  if (c.kind === "store") {
     const l = s.materials.lots.find(
-        (x) =>
-          x.id === c.bundle &&
-          x.material === "mugwort" &&
-          x.location.kind === "ground",
+        (x) => x.id === c.lot && x.location.kind === "ground",
       ),
       sh = s.sites.find(
         (x) => x.id === c.shelf && x.type === "shelf" && x.finishedAt !== null,
       );
     return !l
-      ? "That mugwort bundle is no longer on the ground."
+      ? "That material lot is no longer on the ground."
       : !sh
-        ? "That mugwort shelf is not finished."
+        ? "That shelf is not finished."
         : s.jobs.some(
               (j) =>
-                j.kind === "transfer" &&
-                (j.source === c.bundle || j.destination === `shelf:${c.shelf}`),
+                j.kind === "store" &&
+                (j.source === c.lot || j.destination === `shelf:${c.shelf}`),
             )
-          ? "That mugwort is already marked for storage."
+          ? "That material is already marked for storage."
           : "";
   }
   if (c.kind === "build") return placementProblem(s, c);
@@ -72,20 +69,20 @@ export function commandProblem(s: Clearing, c: Command): string {
   }
   return scopeProblem(s, c);
 }
-function scope(c: WorkCommand | StoreHerbCommand): Scope {
-  return c.kind === "store-herb"
+function scope(c: WorkCommand | StoreCommand): Scope {
+  return c.kind === "store"
     ? { party: c.party, actors: null }
     : { party: c.party, actors: c.actors && [...c.actors] };
 }
-function add(s: Clearing, c: WorkCommand | StoreHerbCommand) {
+function add(s: Clearing, c: WorkCommand | StoreCommand) {
   const sc = scope(c),
     id = `job-${s.nextId++}`;
   let j: Job;
-  if (c.kind === "store-herb")
+  if (c.kind === "store")
     j = {
       id,
-      kind: "transfer",
-      source: c.bundle,
+      kind: "store",
+      source: c.lot,
       destination: `shelf:${c.shelf}`,
       scope: sc,
       reason: "Ordered",
@@ -232,7 +229,7 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "deconstruct" ||
     c.kind === "sow" ||
     c.kind === "harvest" ||
-    c.kind === "store-herb" ||
+    c.kind === "store" ||
     c.kind === "rest"
   )
     add(s, c);

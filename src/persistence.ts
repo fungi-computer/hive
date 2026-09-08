@@ -14,7 +14,7 @@ import {
 import type { ContainerSpec } from "./materials.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 7 as const;
+const SAVE_SCHEMA = 8 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -132,7 +132,7 @@ const job = z.discriminatedUnion("kind", [
   z
     .object({
       ...jobBase,
-      kind: z.literal("transfer"),
+      kind: z.literal("store"),
       source: id,
       destination: id,
     })
@@ -160,6 +160,13 @@ const request = z
           material: z.enum(["wood", "mugwort"]),
         })
         .strict(),
+      z
+        .object({
+          kind: z.literal("eligible-container"),
+          material: z.enum(["wood", "mugwort"]),
+          container: id,
+        })
+        .strict(),
       z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
     ]),
     quantityPolicy: z.enum(["whole-lot", "portion"]),
@@ -179,6 +186,10 @@ const transfer = z
           kind: z.literal("reserved"),
           sourceLot: id,
           quantity: positive,
+          origin: z.discriminatedUnion("kind", [
+            z.object({ kind: z.literal("ground"), cell }).strict(),
+            z.object({ kind: z.literal("container"), container: id }).strict(),
+          ]),
         })
         .strict(),
       z.object({ kind: z.literal("carrying"), lot: id }).strict(),
@@ -274,7 +285,59 @@ const stateSchema = z
     notice: z.string(),
   })
   .strict();
+// Schema 7 differed only at the old transfer consumer boundary.  Reuse all
+// unchanged structural fields so this predecessor parser cannot drift into a
+// second save decoder.
+const v7Request = request.extend({
+  source: z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("eligible-ground"),
+        material: z.enum(["wood", "mugwort"]),
+      })
+      .strict(),
+    z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
+  ]),
+});
+const v7Transfer = transfer.extend({
+  request: v7Request,
+  phase: z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("reserved"),
+        sourceLot: id,
+        quantity: positive,
+      })
+      .strict(),
+    z.object({ kind: z.literal("carrying"), lot: id }).strict(),
+  ]),
+});
+const v7Job = z.discriminatedUnion("kind", [
+  z.object({ ...jobBase, kind: z.literal("chop"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("build"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("deconstruct"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("sow"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("harvest"), target: id }).strict(),
+  z
+    .object({
+      ...jobBase,
+      kind: z.literal("transfer"),
+      source: id,
+      destination: id,
+    })
+    .strict(),
+  z.object({ ...jobBase, kind: z.literal("rest"), target: id }).strict(),
+]);
+const v7Materials = stateSchema.shape.materials.extend({
+  transfers: z.array(v7Transfer),
+});
+const v7StateSchema = stateSchema
+  .extend({ materials: v7Materials, jobs: z.array(v7Job) })
+  .strict();
 type SavedClearing = Omit<Clearing, "commands">;
+type V7SavedClearing = z.infer<typeof v7StateSchema>;
+type V7Job = z.infer<typeof v7Job>;
+type V7Transfer = z.infer<typeof v7Transfer>;
 const savedSchema = stateSchema.transform((value): SavedClearing => value);
 const envelopeSchema = z
   .object({
@@ -286,8 +349,16 @@ const envelopeSchema = z
   .strict();
 export type SerializedClearing = SavedClearing;
 export type SaveEnvelope = z.infer<typeof envelopeSchema>;
+const v7EnvelopeSchema = z
+  .object({
+    kind: z.literal(SAVE_KIND),
+    schema: z.literal(7),
+    revision: nonNegative,
+    savedState: v7StateSchema,
+  })
+  .strict();
 function fail(message: string): never {
-  throw new Error(`Invalid v7 save: ${message}`);
+  throw new Error(`Invalid v8 save: ${message}`);
 }
 
 function liveState(state: SavedClearing): Clearing {
@@ -315,7 +386,7 @@ function activityMatchesJob(
       ((job.kind === "build" &&
         resolved.site.id === job.target &&
         resolved.destination.id === constructionBuffer(resolved.site).id) ||
-        (job.kind === "transfer" &&
+        (job.kind === "store" &&
           transfer.request.destination === job.destination))
     );
   }
@@ -439,25 +510,23 @@ function validateTransferOwner(
     (owner.kind === "build" &&
       (!ownerSite ||
         transfer.request.destination !== constructionBuffer(ownerSite).id)) ||
-    (owner.kind === "transfer" &&
+    (owner.kind === "store" &&
       transfer.request.destination !== owner.destination) ||
-    (owner.kind !== "build" && owner.kind !== "transfer")
+    (owner.kind !== "build" && owner.kind !== "store")
   )
     fail(`transfer ${transfer.id} does not match owner destination`);
   if (
     (owner.kind === "build" &&
-      (transfer.request.source.kind !== "eligible-ground" ||
+      (transfer.request.source.kind === "exact-lot" ||
         transfer.request.source.material !== "wood" ||
         transfer.request.quantityPolicy !== "portion")) ||
-    (owner.kind === "transfer" &&
+    (owner.kind === "store" &&
       (transfer.request.source.kind !== "exact-lot" ||
         transfer.request.source.lot !== owner.source ||
-        transfer.request.quantityPolicy !== "whole-lot" ||
-        transfer.request.quantity !== 1))
+        (transfer.request.quantityPolicy !== "whole-lot" &&
+          transfer.request.quantityPolicy !== "portion")))
   )
     fail(`transfer ${transfer.id} does not match owner request`);
-  if (transfer.request.quantity > destination.capacity)
-    fail(`transfer ${transfer.id} exceeds destination capacity`);
   return destination;
 }
 
@@ -465,18 +534,35 @@ function validateReservedTransfer(
   { state }: RelationContext,
   transfer: SavedTransfer,
   lot: SavedLot,
+  destination: ContainerSpec,
   reservedBySource: Map<string, number>,
 ): void {
   if (transfer.phase.kind !== "reserved") return;
-  if (lot.location.kind !== "ground")
-    fail(`reserved transfer ${transfer.id} source is not ground`);
+  if (!destination.accepts.includes(lot.material))
+    fail(`reserved transfer ${transfer.id} has invalid destination material`);
+  if (
+    (transfer.phase.origin.kind === "ground" &&
+      (lot.location.kind !== "ground" ||
+        lot.location.x !== transfer.phase.origin.cell.x ||
+        lot.location.z !== transfer.phase.origin.cell.z ||
+        lot.location.level !== transfer.phase.origin.cell.level)) ||
+    (transfer.phase.origin.kind === "container" &&
+      (lot.location.kind !== "container" ||
+        lot.location.container !== transfer.phase.origin.container))
+  )
+    fail(`reserved transfer ${transfer.id} source no longer matches origin`);
   if (transfer.phase.quantity !== transfer.request.quantity)
     fail(`reserved transfer ${transfer.id} has mismatched quantity`);
   if (
     (transfer.request.source.kind === "exact-lot" &&
       transfer.request.source.lot !== lot.id) ||
     (transfer.request.source.kind === "eligible-ground" &&
-      transfer.request.source.material !== lot.material)
+      (transfer.request.source.material !== lot.material ||
+        lot.location.kind !== "ground")) ||
+    (transfer.request.source.kind === "eligible-container" &&
+      (transfer.request.source.material !== lot.material ||
+        lot.location.kind !== "container" ||
+        lot.location.container !== transfer.request.source.container))
   )
     fail(`reserved transfer ${transfer.id} has invalid source`);
   const reserved =
@@ -512,6 +598,8 @@ function validateCarryingTransfer(
       transfer.request.source.lot !== lot.id) ||
     (transfer.request.source.kind === "eligible-ground" &&
       transfer.request.source.material !== lot.material) ||
+    (transfer.request.source.kind === "eligible-container" &&
+      transfer.request.source.material !== lot.material) ||
     !destination.accepts.includes(lot.material)
   )
     fail(`carrying transfer ${transfer.id} has invalid material`);
@@ -542,7 +630,18 @@ function validateTransfers(context: RelationContext): void {
     owners.add(ownerKey);
     const destination = validateTransferOwner(context, transfer);
     const lot = transferLot(state, transfer);
-    validateReservedTransfer(context, transfer, lot, reservedBySource);
+    if (
+      transfer.request.quantity * destination.bulk[lot.material] >
+      destination.capacity
+    )
+      fail(`transfer ${transfer.id} exceeds destination capacity`);
+    validateReservedTransfer(
+      context,
+      transfer,
+      lot,
+      destination,
+      reservedBySource,
+    );
     validateCarryingTransfer(transfer, lot, destination);
   }
 }
@@ -558,10 +657,19 @@ function validateContainerCapacity({
           lot.location.kind === "container" &&
           lot.location.container === destination.id,
       )
-      .reduce((sum, lot) => sum + lot.quantity, 0);
+      .reduce(
+        (sum, lot) => sum + lot.quantity * destination.bulk[lot.material],
+        0,
+      );
     const incoming = state.materials.transfers
       .filter((transfer) => transfer.request.destination === destination.id)
-      .reduce((sum, transfer) => sum + transfer.request.quantity, 0);
+      .reduce(
+        (sum, transfer) =>
+          sum +
+          transfer.request.quantity *
+            destination.bulk[transferLot(state, transfer).material],
+        0,
+      );
     if (occupied + incoming > destination.capacity)
       fail(`container ${destination.id} exceeds capacity`);
   }
@@ -677,6 +785,213 @@ function validateConservation({ state }: RelationContext): void {
     );
 }
 
+function v7ShelfContainer(siteId: string): ContainerSpec {
+  return {
+    id: `shelf:${siteId}`,
+    capacity: 1 as PositiveInt,
+    accepts: ["mugwort"],
+    bulk: { wood: 1 as PositiveInt, mugwort: 1 as PositiveInt },
+  };
+}
+
+function validateV7Relations(state: V7SavedClearing): V7SavedClearing {
+  const jobs = new Map(state.jobs.map((job) => [job.id, job]));
+  const sites = new Map(state.sites.map((site) => [site.id, site]));
+  if (jobs.size !== state.jobs.length) fail("duplicate v7 job ID");
+  if (sites.size !== state.sites.length) fail("duplicate v7 site ID");
+  for (const [partyId, party] of Object.entries(state.parties)) {
+    if (
+      party.id !== partyId ||
+      new Set(party.members).size !== party.members.length ||
+      party.members.some((member) => !state.actors[member])
+    )
+      fail(`v7 party ${partyId} has invalid members`);
+  }
+  for (const job of state.jobs) {
+    const party = state.parties[job.scope.party];
+    if (
+      !party ||
+      (job.scope.actors !== null &&
+        (new Set(job.scope.actors).size !== job.scope.actors.length ||
+          job.scope.actors.some((actor) => !party.members.includes(actor))))
+    )
+      fail(`v7 job ${job.id} has invalid scope`);
+  }
+  const containers = new Map<string, ContainerSpec>();
+  for (const site of state.sites) {
+    if (site.finishedAt === null)
+      containers.set(constructionBuffer(site).id, constructionBuffer(site));
+    if (site.type === "shelf" && site.finishedAt !== null)
+      containers.set(`shelf:${site.id}`, v7ShelfContainer(site.id));
+  }
+  const lots = new Map(state.materials.lots.map((lot) => [lot.id, lot]));
+  if (lots.size !== state.materials.lots.length)
+    fail("duplicate v7 material lot");
+  for (const lot of state.materials.lots) {
+    if (lot.location.kind === "ground" && !inside(lot.location))
+      fail(`v7 ground lot ${lot.id} is outside the clearing`);
+    if (lot.location.kind === "hand" && !state.actors[lot.location.actor])
+      fail(`v7 hand lot ${lot.id} has missing actor`);
+    if (lot.location.kind === "container") {
+      const container = containers.get(lot.location.container);
+      if (!container || !container.accepts.includes(lot.material))
+        fail(`v7 container lot ${lot.id} has invalid destination`);
+    }
+  }
+  const transferIds = new Set<string>();
+  const owners = new Set<string>();
+  const actors = new Set<string>();
+  const reserved = new Map<string, number>();
+  for (const transfer of state.materials.transfers) {
+    if (transferIds.has(transfer.id))
+      fail(`duplicate v7 transfer ${transfer.id}`);
+    transferIds.add(transfer.id);
+    if (!state.actors[transfer.actor] || actors.has(transfer.actor))
+      fail(`v7 transfer ${transfer.id} has invalid actor`);
+    actors.add(transfer.actor);
+    const owner = jobs.get(transfer.owner.job);
+    const destination = containers.get(transfer.request.destination);
+    if (!owner || !destination)
+      fail(`v7 transfer ${transfer.id} has missing owner or destination`);
+    const ownerKey = `${transfer.owner.job}/${transfer.owner.step}`;
+    if (owners.has(ownerKey)) fail(`duplicate v7 transfer owner ${ownerKey}`);
+    owners.add(ownerKey);
+    const build = owner.kind === "build";
+    const storage = owner.kind === "transfer";
+    const ownerSite = build ? sites.get(owner.target) : null;
+    if (
+      (!build && !storage) ||
+      (build &&
+        (!ownerSite ||
+          transfer.request.destination !== constructionBuffer(ownerSite).id ||
+          transfer.request.source.kind !== "eligible-ground" ||
+          transfer.request.source.material !== "wood" ||
+          transfer.request.quantityPolicy !== "portion")) ||
+      (storage &&
+        (transfer.request.destination !== owner.destination ||
+          transfer.request.source.kind !== "exact-lot" ||
+          transfer.request.source.lot !== owner.source ||
+          transfer.request.quantityPolicy !== "whole-lot" ||
+          transfer.request.quantity !== 1))
+    )
+      fail(`v7 transfer ${transfer.id} has invalid consumer request`);
+    const lot = lots.get(
+      transfer.phase.kind === "reserved"
+        ? transfer.phase.sourceLot
+        : transfer.phase.lot,
+    );
+    if (!lot || !destination.accepts.includes(lot.material))
+      fail(`v7 transfer ${transfer.id} has invalid material`);
+    if (transfer.phase.kind === "reserved") {
+      if (
+        lot.location.kind !== "ground" ||
+        transfer.phase.quantity !== transfer.request.quantity ||
+        (transfer.request.source.kind === "exact-lot" &&
+          transfer.request.source.lot !== lot.id) ||
+        (transfer.request.source.kind === "eligible-ground" &&
+          transfer.request.source.material !== lot.material)
+      )
+        fail(`v7 reserved transfer ${transfer.id} has invalid source`);
+      const total = (reserved.get(lot.id) ?? 0) + transfer.phase.quantity;
+      if (total > lot.quantity)
+        fail(`v7 reserved source ${lot.id} exceeds quantity`);
+      reserved.set(lot.id, total);
+      const actor = state.actors[transfer.actor];
+      if (
+        !actor.task ||
+        actor.task.kind !== "transfer" ||
+        actor.task.target !== transfer.id ||
+        actor.task.job !== owner.id ||
+        !actor.assignment ||
+        actor.assignment.character !== actor.id ||
+        actor.assignment.task !== owner.id
+      )
+        fail(`v7 reserved transfer ${transfer.id} lacks matching actor task`);
+    } else if (
+      lot.location.kind !== "hand" ||
+      lot.location.actor !== transfer.actor ||
+      lot.quantity !== transfer.request.quantity
+    )
+      fail(`v7 carrying transfer ${transfer.id} has invalid hand lot`);
+  }
+  for (const container of containers.values()) {
+    const occupied = state.materials.lots
+      .filter(
+        (lot) =>
+          lot.location.kind === "container" &&
+          lot.location.container === container.id,
+      )
+      .reduce((total, lot) => total + lot.quantity, 0);
+    const incoming = state.materials.transfers
+      .filter((transfer) => transfer.request.destination === container.id)
+      .reduce((total, transfer) => total + transfer.request.quantity, 0);
+    if (occupied + incoming > container.capacity)
+      fail(`v7 container ${container.id} exceeds capacity`);
+  }
+  for (const lot of state.materials.lots)
+    if (lot.location.kind === "hand") {
+      const actorId = lot.location.actor;
+      const custody = state.materials.transfers.filter(
+        (transfer) =>
+          transfer.actor === actorId &&
+          transfer.phase.kind === "carrying" &&
+          transfer.phase.lot === lot.id,
+      );
+      if (custody.length !== 1) fail(`v7 hand lot ${lot.id} lacks custody`);
+    }
+  return state;
+}
+
+function convertV7Job(job: V7Job): Job {
+  if (job.kind !== "transfer") return job;
+  return {
+    id: job.id,
+    kind: "store",
+    source: job.source,
+    destination: job.destination,
+    scope: job.scope,
+    reason: job.reason,
+    routine: job.routine,
+  };
+}
+
+function convertV7State(state: V7SavedClearing): SavedClearing {
+  const lots = new Map(state.materials.lots.map((lot) => [lot.id, lot]));
+  const transfers: SavedTransfer[] = state.materials.transfers.map(
+    (transfer): SavedTransfer => {
+      if (transfer.phase.kind === "carrying")
+        return {
+          ...transfer,
+          phase: { kind: "carrying", lot: transfer.phase.lot },
+        };
+      const lot = lots.get(transfer.phase.sourceLot)!;
+      if (lot.location.kind !== "ground")
+        throw new Error(
+          "v7 relation validation did not establish a ground source",
+        );
+      return {
+        ...transfer,
+        phase: {
+          ...transfer.phase,
+          origin: {
+            kind: "ground" as const,
+            cell: {
+              x: lot.location.x,
+              z: lot.location.z,
+              level: lot.location.level,
+            },
+          },
+        },
+      };
+    },
+  );
+  return {
+    ...state,
+    jobs: state.jobs.map(convertV7Job),
+    materials: { ...state.materials, transfers },
+  };
+}
+
 function validateRelations(state: SavedClearing): SavedClearing {
   validateMaterialLots(state);
   const context = relationContext(state);
@@ -695,8 +1010,20 @@ function validateClearing(value: unknown): SerializedClearing {
   return validateRelations(savedSchema.parse(value));
 }
 function validateSaveEnvelope(value: unknown): SaveEnvelope {
-  const parsed = envelopeSchema.parse(value);
-  return { ...parsed, savedState: validateRelations(parsed.savedState) };
+  const current = envelopeSchema.safeParse(value);
+  if (current.success)
+    return {
+      ...current.data,
+      savedState: validateRelations(current.data.savedState),
+    };
+  const predecessor = v7EnvelopeSchema.parse(value);
+  const migrated = convertV7State(validateV7Relations(predecessor.savedState));
+  return {
+    kind: SAVE_KIND,
+    schema: SAVE_SCHEMA,
+    revision: predecessor.revision,
+    savedState: validateRelations(migrated),
+  };
 }
 export function snapshotFor(state: Clearing): SaveEnvelope {
   const { commands: _commands, ...savedState } = structuredClone(state);

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { constructionBuffer, shelfContainer } from "./construction.js";
 import {
   availableQuantity,
+  containerBulk,
   containerContents,
   createGroundLot,
   deliverTransfer,
@@ -111,6 +112,7 @@ test("a one-unit wood source binds an exact one-unit portion for a two-unit dema
     kind: "reserved",
     sourceLot: "wood-one",
     quantity: 1,
+    origin: { kind: "ground", cell: cell() },
   });
   assert.equal(availableQuantity(materials, "wood-one"), 0);
   assert.equal(pickupTransfer(materials, "transfer-a", access).ok, true);
@@ -187,6 +189,81 @@ test("whole-lot shelf storage preserves mugwort identity and admits no portion",
     "mugwort-a",
   );
   assert.equal(containerContents(materials, destination.id)[0].id, "mugwort-a");
+});
+
+test("mixed shelf capacity is exact and stored wood withdraws into a normal wall", () => {
+  const shelf = shelfContainer("shelf-a");
+  const wall = constructionBuffer(site("wall-a", "wall"));
+  const materials = fresh([
+    {
+      id: "stored-wood",
+      material: "wood",
+      quantity: 2,
+      location: { kind: "container", container: shelf.id },
+    },
+    {
+      id: "stored-herb-a",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "container", container: shelf.id },
+    },
+    {
+      id: "stored-herb-b",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "container", container: shelf.id },
+    },
+    {
+      id: "loose-overflow",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "ground", ...cell(2, 2) },
+    },
+  ]);
+  assert.equal(containerBulk(materials, shelf), 6);
+  const full = reserve(materials, {
+    id: "overflow",
+    actor: "sedge",
+    owner: { job: "job-overflow", step: "shelf-store" },
+    request: {
+      source: { kind: "exact-lot", lot: "loose-overflow" },
+      quantityPolicy: "whole-lot",
+      quantity: 1,
+      destination: shelf.id,
+    },
+    sourceLot: "loose-overflow",
+    destination: shelf,
+  });
+  assert.equal(full.ok, false);
+  assert.equal(full.reason, "destination-full");
+  assert.equal(
+    reserve(materials, {
+      id: "withdraw-wall",
+      actor: "rowan",
+      owner: { job: "job-wall", step: "construction-materials" },
+      request: {
+        source: {
+          kind: "eligible-container",
+          material: "wood",
+          container: shelf.id,
+        },
+        quantityPolicy: "portion",
+        quantity: 1,
+        destination: wall.id,
+      },
+      sourceLot: "stored-wood",
+      destination: wall,
+    }).ok,
+    true,
+  );
+  assert.equal(pickupTransfer(materials, "withdraw-wall", access).ok, true);
+  assert.equal(
+    deliverTransfer(materials, "withdraw-wall", wall, true).ok,
+    true,
+  );
+  assert.equal(containerBulk(materials, shelf), 4);
+  assert.equal(embedConstruction(materials, wall, "wood").ok, true);
+  assert.equal(materialQuantity(materials, "wood").embedded, 1);
 });
 
 test("interruption releases reserved promises and drops carrying material atomically", () => {
@@ -340,7 +417,12 @@ test("material ground locations discard Site and Herb-shaped extras on every set
   );
   assertGround(interrupted.lots[0].location);
 
-  const container = { id: "container-a", capacity: 2, accepts: ["wood"] };
+  const container = {
+    id: "container-a",
+    capacity: 2,
+    accepts: ["wood"],
+    bulk: { wood: 1, mugwort: 1 },
+  };
   const released = fresh([
     {
       id: "stored",

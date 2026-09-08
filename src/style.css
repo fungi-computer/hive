@@ -358,12 +358,14 @@ meter::-webkit-meter-optimum-value {
 }
 .window.target-window {
   left: var(--target-left);
-  top: max(
+  top: clamp(
     12px,
-    min(var(--target-top, 80px), calc(100dvh - var(--hud-rail-bottom)))
+    var(--target-top, 80px),
+    calc(100dvh - var(--hud-rail-bottom) - 56px)
   );
   width: 232px;
-  bottom: var(--hud-rail-bottom);
+  bottom: auto;
+  height: fit-content;
   max-height: calc(100dvh - var(--hud-rail-bottom) - 24px);
   overflow-y: auto;
   z-index: 3;

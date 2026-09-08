@@ -12,6 +12,7 @@ import type {
   SourcePolicy,
   Transfer,
   TransferId,
+  TransferOrigin,
   TransferRequest,
 } from "./model.ts";
 
@@ -21,6 +22,7 @@ export type ContainerSpec = {
   id: ContainerId;
   capacity: PositiveInt;
   accepts: readonly Material[];
+  bulk: Readonly<Record<Material, PositiveInt>>;
 };
 
 export type TransferAccess = {
@@ -37,7 +39,7 @@ export type MaterialFailure =
   | "duplicate-transfer"
   | "lot-not-found"
   | "transfer-not-found"
-  | "source-not-ground"
+  | "source-not-available"
   | "source-ineligible"
   | "source-insufficient"
   | "source-unreachable"
@@ -77,6 +79,31 @@ function checkedAdd(a: number, b: number): number | null {
 
 function groundLocation(at: Cell): ItemLot["location"] {
   return { kind: "ground", x: at.x, z: at.z, level: at.level };
+}
+
+function originForLot(lot: ItemLot): TransferOrigin | null {
+  return lot.location.kind === "ground"
+    ? {
+        kind: "ground",
+        cell: {
+          x: lot.location.x,
+          z: lot.location.z,
+          level: lot.location.level,
+        },
+      }
+    : lot.location.kind === "container"
+      ? { kind: "container", container: lot.location.container }
+      : null;
+}
+
+function originMatches(lot: ItemLot, origin: TransferOrigin): boolean {
+  return origin.kind === "ground"
+    ? lot.location.kind === "ground" &&
+        lot.location.x === origin.cell.x &&
+        lot.location.z === origin.cell.z &&
+        lot.location.level === origin.cell.level
+    : lot.location.kind === "container" &&
+        lot.location.container === origin.container;
 }
 
 function lotById(state: MaterialsState, id: LotId): ItemLot | undefined {
@@ -141,26 +168,60 @@ function reservedQuantity(state: MaterialsState, lot: LotId): number {
 
 export function availableQuantity(state: MaterialsState, lot: LotId): number {
   const source = lotById(state, lot);
-  if (!source || source.location.kind !== "ground") return 0;
+  if (!source || source.location.kind === "hand") return 0;
   return Math.max(0, source.quantity - reservedQuantity(state, source.id));
 }
 
 export type AvailablePortion = { lot: LotId; quantity: number };
 
+/** Immutable planning facts.  They deliberately do not reserve anything: the
+ * kernel remains the only atomic admission point at commit. */
+export type AvailableLotFact = {
+  readonly lot: ItemLot;
+  readonly quantity: number;
+  readonly origin: TransferOrigin;
+};
+
+export function availableMaterialFacts(
+  state: MaterialsState,
+): readonly AvailableLotFact[] {
+  const reserved = new Map<LotId, number>();
+  for (const transfer of state.transfers)
+    if (transfer.phase.kind === "reserved")
+      reserved.set(
+        transfer.phase.sourceLot,
+        (reserved.get(transfer.phase.sourceLot) ?? 0) + transfer.phase.quantity,
+      );
+  return state.lots.flatMap((lot) => {
+    const origin = originForLot(lot);
+    const quantity = lot.quantity - (reserved.get(lot.id) ?? 0);
+    return origin && quantity > 0 ? [{ lot, quantity, origin }] : [];
+  });
+}
+
+function availableLotFacts(
+  state: MaterialsState,
+  source: SourcePolicy,
+): readonly AvailableLotFact[] {
+  return availableMaterialFacts(state).filter(({ lot }) =>
+    source.kind === "exact-lot"
+      ? source.lot === lot.id
+      : source.kind === "eligible-ground"
+        ? lot.material === source.material && lot.location.kind === "ground"
+        : lot.material === source.material &&
+          lot.location.kind === "container" &&
+          lot.location.container === source.container,
+  );
+}
+
 export function availablePortions(
   state: MaterialsState,
   source: SourcePolicy,
 ): readonly AvailablePortion[] {
-  if (source.kind === "exact-lot") {
-    const quantity = availableQuantity(state, source.lot);
-    return quantity > 0 ? [{ lot: source.lot, quantity }] : [];
-  }
-  return state.lots.flatMap((lot) => {
-    if (lot.material !== source.material || lot.location.kind !== "ground")
-      return [];
-    const quantity = availableQuantity(state, lot.id);
-    return quantity > 0 ? [{ lot: lot.id, quantity }] : [];
-  });
+  return availableLotFacts(state, source).map(({ lot, quantity }) => ({
+    lot: lot.id,
+    quantity,
+  }));
 }
 
 export function transferForActor(
@@ -267,17 +328,55 @@ function sourceMatches(
 ): boolean {
   return policy.kind === "exact-lot"
     ? policy.lot === selected
-    : lot.material === policy.material;
+    : policy.kind === "eligible-ground"
+      ? lot.material === policy.material && lot.location.kind === "ground"
+      : lot.material === policy.material &&
+        lot.location.kind === "container" &&
+        lot.location.container === policy.container;
 }
 
 function validateContainer(spec: ContainerSpec): MaterialFailure | null {
   if (!isPositiveInt(spec.capacity)) return "invalid-positive-integer";
   if (!spec.accepts.length) return "destination-mismatch";
+  if (spec.accepts.some((material) => !isPositiveInt(spec.bulk[material])))
+    return "invalid-positive-integer";
   return null;
 }
 
 function destinationAccepts(spec: ContainerSpec, material: Material): boolean {
   return spec.accepts.includes(material);
+}
+
+export function containerBulk(
+  state: MaterialsState,
+  container: ContainerSpec,
+): number {
+  return containerContents(state, container.id).reduce(
+    (total, lot) => total + lot.quantity * container.bulk[lot.material],
+    0,
+  );
+}
+
+function incomingBulk(
+  state: MaterialsState,
+  container: ContainerSpec,
+  except?: TransferId,
+): number {
+  return state.transfers.reduce(
+    (total, transfer) =>
+      total +
+      (transfer.id !== except && transfer.request.destination === container.id
+        ? transfer.request.quantity *
+          container.bulk[
+            transfer.request.source.kind === "eligible-ground" ||
+            transfer.request.source.kind === "eligible-container"
+              ? transfer.request.source.material
+              : (lotById(state, transfer.request.source.lot)?.material ??
+                "wood")
+          ]
+        : 0),
+    0,
+  );
 }
 
 function requestAllowsLot(request: TransferRequest, lot: ItemLot): boolean {
@@ -331,7 +430,8 @@ export function reserveTransfer(
   // checked by the consumer before it resolved this request and container.
   const source = lotById(state, input.sourceLot);
   if (!source) return failure("lot-not-found");
-  if (source.location.kind !== "ground") return failure("source-not-ground");
+  const origin = originForLot(source);
+  if (!origin) return failure("source-not-available");
   if (!isPositiveInt(source.quantity))
     return failure("invalid-positive-integer");
   if (!sourceMatches(source, input.request.source, input.sourceLot))
@@ -347,10 +447,11 @@ export function reserveTransfer(
   if (!input.access.sourceReachable) return failure("source-unreachable");
   if (!input.access.destinationReachableWithPayload)
     return failure("destination-unreachable");
-  const occupied = containerQuantity(state, input.destination.id);
-  const promised = incomingQuantity(state, input.destination.id);
+  const occupied = containerBulk(state, input.destination);
+  const promised = incomingBulk(state, input.destination);
   const used = checkedAdd(occupied, promised);
-  const after = used === null ? null : checkedAdd(used, input.request.quantity);
+  const bulk = input.request.quantity * input.destination.bulk[source.material];
+  const after = used === null ? null : checkedAdd(used, bulk);
   if (after === null || after > input.destination.capacity)
     return failure("destination-full");
   const transfer: Transfer = {
@@ -367,6 +468,7 @@ export function reserveTransfer(
       kind: "reserved",
       sourceLot: source.id,
       quantity: input.request.quantity,
+      origin,
     },
   };
   state.transfers.push(transfer);
@@ -383,7 +485,8 @@ export function pickupTransfer(
   if (transfer.phase.kind !== "reserved") return failure("wrong-phase");
   const source = lotById(state, transfer.phase.sourceLot);
   if (!source) return failure("lot-not-found");
-  if (source.location.kind !== "ground") return failure("source-not-ground");
+  if (!originMatches(source, transfer.phase.origin))
+    return failure("source-not-available");
   if (!isPositiveInt(source.quantity))
     return failure("invalid-positive-integer");
   if (!sourceMatches(source, transfer.request.source, source.id))
@@ -456,10 +559,13 @@ export function deliverTransfer(
     return failure("held-lot-invalid");
   if (!destinationReachableWithPayload)
     return failure("destination-unreachable");
-  const occupied = containerQuantity(state, destination.id);
-  const otherIncoming = incomingQuantity(state, destination.id, transfer.id);
+  const occupied = containerBulk(state, destination);
+  const otherIncoming = incomingBulk(state, destination, transfer.id);
   const used = checkedAdd(occupied, otherIncoming);
-  const after = used === null ? null : checkedAdd(used, held.quantity);
+  const after =
+    used === null
+      ? null
+      : checkedAdd(used, held.quantity * destination.bulk[held.material]);
   if (after === null || after > destination.capacity)
     return failure("destination-full");
 
@@ -535,7 +641,11 @@ export function releaseContainer(
   if (contents.length > 0 && !input.contentsDrop.legal)
     return failure("illegal-drop");
   const affected = state.transfers.filter(
-    (transfer) => transfer.request.destination === container.id,
+    (transfer) =>
+      transfer.request.destination === container.id ||
+      (transfer.phase.kind === "reserved" &&
+        transfer.phase.origin.kind === "container" &&
+        transfer.phase.origin.container === container.id),
   );
   const carried: { transfer: Transfer; lot: ItemLot; drop: LegalDrop }[] = [];
   for (const transfer of affected) {

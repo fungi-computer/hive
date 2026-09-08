@@ -10,7 +10,11 @@ import {
   shelfContainer,
 } from "./construction.js";
 import { assignWork } from "./jobs.ts";
-import { materialQuantity } from "./materials.ts";
+import {
+  containerQuantity,
+  embeddedQuantity,
+  materialQuantity,
+} from "./materials.ts";
 import { restoreSnapshot, snapshotFor } from "./persistence.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 
@@ -124,6 +128,7 @@ test("optimizer commits its already-resolved one-unit source, request, destinati
     kind: "reserved",
     sourceLot: "wood-one",
     quantity: 1,
+    origin: { kind: "ground", cell: cell(6, 10) },
   });
   assert.equal(state.actors.rowan.task?.target, transfer.id);
 });
@@ -175,6 +180,72 @@ test("a personal-first edge and a shared edge keep two workers distinct", () => 
   );
   assert.equal(state.actors.rowan.assignment?.task, "job-rowan");
   assert.equal(state.actors.sedge.assignment?.task, "job-sedge");
+});
+
+test("personal work bypasses preferences while shared work still honors them", () => {
+  const state = createClearing();
+  state.parties.home.members.push("sedge");
+  state.actors.rowan.allowedWork.chop = false;
+  state.actors.sedge.allowedWork.chop = false;
+  state.jobs.push(
+    {
+      id: "personal-chop",
+      kind: "chop",
+      target: "oak-1",
+      scope: personal("rowan"),
+      reason: "Ordered",
+      routine: false,
+    },
+    {
+      id: "shared-chop",
+      kind: "chop",
+      target: "oak-2",
+      scope: shared,
+      reason: "Ordered",
+      routine: false,
+    },
+  );
+  assignWork(state, colony);
+  assert.equal(state.actors.rowan.task?.job, "personal-chop");
+  assert.equal(state.actors.sedge.task, null);
+  assert.ok(state.jobs.some((job) => job.id === "shared-chop"));
+});
+
+test("queue order wins scarce-source revalidation before actor ID", () => {
+  const state = createClearing();
+  state.parties.home.members.push("sedge");
+  const early = site("site-early", "wall");
+  const late = { ...site("site-late", "wall"), x: 10, z: 10 };
+  state.sites.push(early, late);
+  state.jobs.push(
+    {
+      id: "early-sedge",
+      kind: "build",
+      target: early.id,
+      scope: personal("sedge"),
+      reason: "Ordered",
+      routine: false,
+    },
+    {
+      id: "late-rowan",
+      kind: "build",
+      target: late.id,
+      scope: personal("rowan"),
+      reason: "Ordered",
+      routine: false,
+    },
+  );
+  state.materials.lots.push({
+    id: "one-wood",
+    material: "wood",
+    quantity: 1,
+    location: { kind: "ground", ...cell(6, 10) },
+  });
+  assignWork(state, colony);
+  assert.equal(state.materials.transfers.length, 1);
+  assert.equal(state.materials.transfers[0].owner.job, "early-sedge");
+  assert.equal(state.materials.transfers[0].actor, "sedge");
+  assert.equal(state.actors.rowan.task, null);
 });
 
 test("a carrying transfer is continued by the same actor and interruption marks work dirty for retry", () => {
@@ -276,8 +347,85 @@ test("unfinished shelves accept wood through their construction buffer, not shel
       .container,
     constructionBuffer(shelf).id,
   );
+  assert.equal(
+    containerQuantity(state.materials, constructionBuffer(shelf).id, "wood"),
+    1,
+  );
+  assert.equal(
+    embeddedQuantity(state.materials, constructionBuffer(shelf).id, "wood"),
+    0,
+  );
   assert.equal(state.actors.rowan.task, null);
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+});
+
+test("a normal wall withdraws stored wood through the common transfer lifecycle", () => {
+  const state = createClearing();
+  const shelf = { ...site("shelf-a", "shelf", 1), x: 7, z: 9 };
+  const wall = { ...site("wall-a", "wall"), x: 9, z: 9 };
+  state.sites.push(shelf, wall);
+  state.jobs.push({
+    id: "build-wall",
+    kind: "build",
+    target: wall.id,
+    scope: shared,
+    reason: "Ordered",
+    routine: false,
+  });
+  state.materials.embedded.push({
+    container: constructionBuffer(shelf).id,
+    material: "wood",
+    quantity: 1,
+  });
+  state.materials.lots.push({
+    id: "shelf-wood",
+    material: "wood",
+    quantity: 1,
+    location: { kind: "container", container: shelfContainer(shelf.id).id },
+  });
+  assignWork(state, colony);
+  const transfer = state.materials.transfers[0];
+  assert.deepEqual(transfer.phase.origin, {
+    kind: "container",
+    container: shelfContainer(shelf.id).id,
+  });
+  Object.assign(state.actors.rowan, {
+    ...cell(7, 8),
+    mode: "transfer",
+    work: 7,
+    task: {
+      kind: "transfer",
+      job: "build-wall",
+      target: transfer.id,
+      duration: 8,
+    },
+    assignment: { character: "rowan", task: "build-wall", cost: 0 },
+  });
+  advanceWork(state, state.actors.rowan);
+  assignWork(state, colony);
+  wall.work = BUILDINGS.wall.ticks - 1;
+  Object.assign(state.actors.rowan, {
+    ...cell(9, 8),
+    mode: "transfer",
+    work: 7,
+  });
+  advanceWork(state, state.actors.rowan);
+  assert.equal(
+    state.materials.lots.find(
+      (lot) =>
+        lot.location.kind === "container" &&
+        lot.location.container === constructionBuffer(wall).id,
+    )?.material,
+    "wood",
+  );
+  assignWork(state, colony);
+  Object.assign(state.actors.rowan, {
+    ...cell(9, 8),
+    mode: "build",
+    work: BUILDINGS.wall.ticks - 1,
+  });
+  advanceWork(state, state.actors.rowan);
+  assert.equal(wall.finishedAt, state.tick);
 });
 
 test("wall and shelf deconstruction salvage construction buffers and eject only shelf contents", () => {
@@ -414,7 +562,7 @@ test("shelf teardown settles another actor's released transfer before the next s
   state.jobs.push(
     {
       id: "job-store",
-      kind: "transfer",
+      kind: "store",
       source: "mugwort-carry",
       destination: shelfContainer(shelf.id).id,
       scope: shared,
@@ -609,6 +757,31 @@ test("actual libcolony admits paused Work, Draft, and Go without advancing time"
   actualStep(state);
   assert.equal(state.tick, tick);
   assert.deepEqual(state.actors.rowan, frozen);
+});
+
+test("actual libcolony assigns two idle home members distinct reachable shared chops", () => {
+  const state = createClearing(76);
+  state.paused = true;
+  assert.deepEqual(
+    actualStep(state, [
+      { kind: "recruit", actor: "sedge" },
+      { kind: "chop", tree: "oak-1" },
+      { kind: "chop", tree: "oak-2" },
+    ]),
+    [{ status: "applied" }, { status: "applied" }, { status: "applied" }],
+  );
+  state.paused = false;
+  actualStep(state);
+  assert.deepEqual(
+    new Set([
+      state.actors.rowan.assignment?.task,
+      state.actors.sedge.assignment?.task,
+    ]),
+    new Set(state.jobs.map((job) => job.id)),
+  );
+  assert.equal(state.actors.rowan.task?.kind, "chop");
+  assert.equal(state.actors.sedge.task?.kind, "chop");
+  assert.equal(state.workDirty, false);
 });
 
 test("actual libcolony admits legal stairs and rejects unsupported topology", () => {

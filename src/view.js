@@ -229,16 +229,50 @@ export function createView(app, world, camera, art, initial, input) {
         count.position.set(10, 0);
         view.container.addChild(count);
         view.count = count;
+        view.target = {
+          kind: "lot",
+          id: lot.id,
+          level: lot.location.level,
+          action: "inspect-lot",
+        };
+        view.container.cursor = "pointer";
+        view.container.on("pointerdown", (event) => {
+          if (!input.groundPointerOwns()) event.stopPropagation();
+        });
+        view.container.on("pointertap", (event) => {
+          if (input.groundPointerOwns()) return;
+          const dispatched = picking.recordFor(view.container)?.target;
+          if (!dispatched) return;
+          event.stopPropagation();
+          input.lot(dispatched.id, event.global);
+        });
         piles.set(lot.id, view);
         bodies.addChild(view.container);
       }
       const view = piles.get(lot.id);
       view.container.visible = lot.location.level === selection.level;
       view.container.eventMode =
-        lot.location.level === selection.level && !selection.tool ? "static" : "none";
+        lot.location.level === selection.level && !selection.tool
+          ? "static"
+          : "none";
       put(view.container, lot.location, 0.22);
       view.sprite.texture = art.wood[Math.min(6, lot.quantity)];
       view.count.text = String(lot.quantity);
+      picking.bind(view.container, {
+        texture: view.sprite.texture,
+        anchor: art.propAnchor,
+        orientation: `wood:${lot.quantity}`,
+        target: { ...view.target, level: lot.location.level },
+      });
+      if (selection.lot === lot.id)
+        marks
+          .ellipse(
+            projectCell(lot.location).x,
+            projectCell(lot.location).y,
+            12,
+            6,
+          )
+          .stroke({ width: 2, color: 0xe6c477 });
     }
   }
 
@@ -402,10 +436,10 @@ export function createView(app, world, camera, art, initial, input) {
       if (!bundles.has(lot.id)) {
         const view = body(art.herbs.mugwort.bundle, art.propAnchor, 7);
         const target = {
-          kind: "bundle",
+          kind: "lot",
           id: lot.id,
           level: lot.location.level,
-          action: "inspect-bundle",
+          action: "inspect-lot",
         };
         view.container.eventMode = "static";
         view.container.cursor = "pointer";
@@ -417,7 +451,7 @@ export function createView(app, world, camera, art, initial, input) {
           const dispatched = picking.recordFor(view.container)?.target;
           if (!dispatched) return;
           event.stopPropagation();
-          input.bundle(dispatched.id, event.global);
+          input.lot(dispatched.id, event.global);
         });
         view.container.on("rightclick", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
@@ -439,7 +473,7 @@ export function createView(app, world, camera, art, initial, input) {
         orientation: "bundle",
         target: { ...view.target, level: lot.location.level },
       });
-      if (selection.bundle === lot.id)
+      if (selection.lot === lot.id)
         marks
           .ellipse(
             projectCell(lot.location).x,
@@ -461,11 +495,12 @@ export function createView(app, world, camera, art, initial, input) {
       view.container.alpha = activeLevel ? 1 : 0.18;
       view.container.eventMode = activeLevel ? "static" : "none";
       const hand = carriedLot(state.materials, person.id);
-      const pose = hand?.material === "mugwort"
-        ? "carry-herb"
-        : person.mode === "walk" && hand?.material === "wood"
-          ? "carry"
-          : person.mode;
+      const pose =
+        hand?.material === "mugwort"
+          ? "carry-herb"
+          : person.mode === "walk" && hand?.material === "wood"
+            ? "carry"
+            : person.mode;
       const frames = (art.figures[person.figure][pose] ||
         art.figures[person.figure].idle)[person.dir];
       const frame =

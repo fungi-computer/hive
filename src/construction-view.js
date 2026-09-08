@@ -15,7 +15,32 @@ import {
   constructionBuffer,
   shelfContainer,
 } from "./construction.js";
-import { containerContents, embeddedQuantity } from "./materials.ts";
+import { containerContents, containerQuantity } from "./materials.ts";
+
+function shelfProfile(contents) {
+  const wood = contents
+    .filter((lot) => lot.material === "wood")
+    .reduce((total, lot) => total + lot.quantity, 0);
+  const herbs = contents
+    .filter((lot) => lot.material === "mugwort")
+    .reduce((total, lot) => total + lot.quantity, 0);
+  if (!wood && !herbs) return "empty";
+  const shownWood = Math.min(wood, herbs ? 2 : 3);
+  const shownHerbs = Math.min(herbs, 3 - shownWood);
+  return (
+    {
+      "0/1": "herb",
+      "0/2": "two-herbs",
+      "0/3": "three-herbs",
+      "1/0": "wood",
+      "2/0": "two-wood",
+      "3/0": "three-wood",
+      "1/1": "wood-herb",
+      "2/1": "two-wood-herb",
+      "1/2": "wood-two-herbs",
+    }[`${shownWood}/${shownHerbs}`] ?? "wood"
+  );
+}
 export function dragCells(start, end) {
   if (!start) return [end];
   const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.z - start.z);
@@ -149,26 +174,30 @@ export function createConstructionView(world, art, bodies, input, picking) {
         );
       const cutawayCover =
         cutawayWall || (site.type === "roof" && selection.cutaway && finished);
-      const stored = containerContents(state.materials, shelfContainer(site.id).id).some((lot) => lot.material === "mugwort");
-      const delivered = embeddedQuantity(state.materials, constructionBuffer(site).id, "wood");
-      const stage = finished
-        ? site.type === "shelf" && stored
-          ? "filled"
-          : "finished"
-        : site.work > 0
-          ? "frame"
-          : "stakes";
+      const contents = containerContents(
+        state.materials,
+        shelfContainer(site.id).id,
+      );
+      const profile = site.type === "shelf" ? shelfProfile(contents) : null;
+      const delivered = containerQuantity(
+        state.materials,
+        constructionBuffer(site).id,
+        "wood",
+      );
+      const stage = finished ? "finished" : site.work > 0 ? "frame" : "stakes";
       const jointMask =
         site.type === "wall" ? wallMask(site, state.sites) : null;
       const texture =
         jointMask !== null
           ? art.wallJoints[stage][jointMask]
-          : art.buildings[site.type][stage][site.direction];
+          : profile && profile !== "empty"
+            ? art.mixedShelf[profile][site.direction]
+            : art.buildings[site.type][stage][site.direction];
       view.texture = texture;
       picking.bind(view, {
         texture,
         anchor: art.propAnchor,
-        orientation: `${stage}:${site.direction}${jointMask === null ? "" : `:joint-${jointMask}`}`,
+        orientation: `${stage}:${site.direction}${jointMask === null ? "" : `:joint-${jointMask}`}${profile ? `:${profile}` : ""}`,
         target: { ...view.visualTarget, level: site.level },
       });
       view.visible = activeLevel || supportContext;

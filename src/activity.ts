@@ -6,6 +6,7 @@ import {
   constructionBuffer,
   removalProblem,
   resolveMaterialDestination,
+  resolveMaterialEndpoint,
   shelfContainer,
   shelteredBeds,
   workPosition,
@@ -83,7 +84,8 @@ function transfer(s: Clearing, p: Actor, t: Activity) {
     return;
   }
   s.notice = `${p.name} delivered material.`;
-  if (x.owner.step === "shelf-store") finishJob(s, p, x.owner.job);
+  if (s.jobs.find((job) => job.id === x.owner.job)?.kind === "store")
+    finishJob(s, p, x.owner.job);
   else finishActivity(s, p);
 }
 function build(s: Clearing, p: Actor, t: Activity) {
@@ -129,7 +131,7 @@ function deconstruct(s: Clearing, p: Actor, t: Activity) {
     const releasedJobs = new Set(rel.value.owners.map((owner) => owner.job));
     for (const job of s.jobs)
       if (
-        job.kind === "transfer" &&
+        job.kind === "store" &&
         job.destination === shelfContainer(site.id).id
       )
         releasedJobs.add(job.id);
@@ -189,8 +191,13 @@ export function advanceWork(s: Clearing, p: Actor): void {
           const phase = x.phase;
           if (phase.kind === "carrying")
             return siteFor(s, x.request.destination);
-          const lot = s.materials.lots.find((l) => l.id === phase.sourceLot);
-          return lot?.location.kind === "ground" ? lot.location : undefined;
+          return phase.origin.kind === "ground"
+            ? phase.origin.cell
+            : resolveMaterialEndpoint(
+                s.sites,
+                phase.origin.container,
+                "withdraw",
+              )?.site;
         })()
       : t.kind === "chop"
         ? s.trees.find((x) => x.id === t.target)
@@ -209,11 +216,15 @@ export function advanceWork(s: Clearing, p: Actor): void {
     face(p, target);
     return;
   }
+  const currentTransfer =
+    t.kind === "transfer"
+      ? s.materials.transfers.find((x) => x.id === t.target)
+      : undefined;
   const okay =
-    t.kind === "transfer" &&
-    s.materials.transfers.find((x) => x.id === t.target)?.phase.kind ===
-      "reserved"
-      ? sameCell(p, target)
+    t.kind === "transfer" && currentTransfer?.phase.kind === "reserved"
+      ? currentTransfer.phase.origin.kind === "ground"
+        ? sameCell(p, target)
+        : workPosition(s, p, target, "build")
       : t.kind === "build" || t.kind === "deconstruct" || t.kind === "transfer"
         ? workPosition(
             s,

@@ -21,7 +21,15 @@ export type ItemLot = {
 };
 export type SourcePolicy =
   | { readonly kind: "eligible-ground"; readonly material: Material }
+  | {
+      readonly kind: "eligible-container";
+      readonly material: Material;
+      readonly container: ContainerId;
+    }
   | { readonly kind: "exact-lot"; readonly lot: LotId };
+export type TransferOrigin =
+  | { readonly kind: "ground"; readonly cell: Cell }
+  | { readonly kind: "container"; readonly container: ContainerId };
 export type TransferRequest = {
   readonly source: SourcePolicy;
   /** A whole request preserves one source lot; a portion may split it. */
@@ -40,6 +48,7 @@ export type Transfer = {
         kind: "reserved";
         sourceLot: LotId;
         quantity: PositiveInt;
+        origin: TransferOrigin;
       }
     | { kind: "carrying"; lot: LotId };
 };
@@ -71,10 +80,16 @@ export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "harvest"; herb: HerbId }
     | { kind: "rest" }
   );
-export type StoreHerbCommand = { kind: "store-herb"; party: PartyId; actors: null; bundle: LotId; shelf: string };
+export type StoreCommand = {
+  kind: "store";
+  party: PartyId;
+  actors: null;
+  lot: LotId;
+  shelf: string;
+};
 export type Command =
   | WorkCommand
-  | StoreHerbCommand
+  | StoreCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
@@ -94,7 +109,11 @@ export type BuildJob = JobBase & { kind: "build"; target: string };
 export type DeconstructJob = JobBase & { kind: "deconstruct"; target: string };
 export type SowJob = JobBase & { kind: "sow"; target: HerbId };
 export type HarvestJob = JobBase & { kind: "harvest"; target: HerbId };
-export type TransferJob = JobBase & { kind: "transfer"; source: LotId; destination: ContainerId };
+export type StoreJob = JobBase & {
+  kind: "store";
+  source: LotId;
+  destination: ContainerId;
+};
 export type RestJob = JobBase & { kind: "rest"; target: ActorId };
 export type Job =
   | ChopJob
@@ -102,7 +121,7 @@ export type Job =
   | DeconstructJob
   | SowJob
   | HarvestJob
-  | TransferJob
+  | StoreJob
   | RestJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {

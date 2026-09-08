@@ -53,7 +53,12 @@ function transfer(id, overrides = {}) {
       quantity: 1,
       destination: "construction-buffer:site-a",
     },
-    phase: { kind: "reserved", sourceLot: "wood-a", quantity: 1 },
+    phase: {
+      kind: "reserved",
+      sourceLot: "wood-a",
+      quantity: 1,
+      origin: { kind: "ground", cell: cell() },
+    },
     ...overrides,
   };
 }
@@ -95,7 +100,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v7 snapshots omit commands and restore paused without any historical reader", () => {
+test("v8 snapshots omit commands and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -104,14 +109,220 @@ test("v7 snapshots omit commands and restore paused without any historical reade
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 7);
+  assert.equal(saved.schema, 8);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
 });
 
-test("current-v7 revision admission distinguishes absent, malformed, and stale slots", () => {
+test("the only predecessor bridge derives a reserved v7 ground origin", () => {
+  const saved = buildSupplyEnvelope();
+  const transfer = saved.savedState.materials.transfers[0];
+  saved.savedState.materials.lots.find(
+    (lot) => lot.id === "hand-wood",
+  ).location = {
+    kind: "ground",
+    ...cell(5, 5),
+  };
+  transfer.phase = {
+    kind: "reserved",
+    sourceLot: "hand-wood",
+    quantity: 1,
+    origin: { kind: "ground", cell: cell(5, 5) },
+  };
+  const predecessor = { ...saved, schema: 7 };
+  delete transfer.phase.origin;
+  const restored = restoreSnapshot(predecessor);
+  assert.deepEqual(restored.state.materials.transfers[0].phase, {
+    kind: "reserved",
+    sourceLot: "hand-wood",
+    quantity: 1,
+    origin: { kind: "ground", cell: cell(5, 5) },
+  });
+  assert.equal(snapshotFor(restored.state).schema, 8);
+});
+
+function genuineV7StorageEnvelope() {
+  const saved = snapshotFor(createClearing());
+  saved.savedState.parties.home.members.push("sedge");
+  saved.savedState.sites.push(
+    site("shelf-a", "shelf", { finishedAt: 1 }),
+    site("shelf-b", "shelf", { finishedAt: 1, x: 6 }),
+  );
+  saved.savedState.materials.embedded.push(
+    {
+      container: "construction-buffer:shelf-a",
+      material: "wood",
+      quantity: 1,
+    },
+    {
+      container: "construction-buffer:shelf-b",
+      material: "wood",
+      quantity: 1,
+    },
+  );
+  saved.savedState.materials.lots.push(
+    {
+      id: "wood-rest",
+      material: "wood",
+      quantity: 10,
+      location: { kind: "ground", ...cell(4, 4) },
+    },
+    {
+      id: "herb-reserved",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "ground", ...cell(4, 5) },
+    },
+    {
+      id: "herb-carrying",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "hand", actor: "sedge" },
+    },
+  );
+  saved.savedState.felled = 2;
+  saved.savedState.harvestedHerbs = 2;
+  saved.savedState.jobs.push(
+    {
+      id: "store-reserved",
+      kind: "transfer",
+      source: "herb-reserved",
+      destination: "shelf:shelf-a",
+      scope,
+      reason: "Ordered",
+      routine: false,
+    },
+    {
+      id: "store-carrying",
+      kind: "transfer",
+      source: "herb-carrying",
+      destination: "shelf:shelf-b",
+      scope,
+      reason: "Ordered",
+      routine: false,
+    },
+  );
+  saved.savedState.materials.transfers.push(
+    {
+      id: "transfer-reserved",
+      actor: "rowan",
+      owner: { job: "store-reserved", step: "shelf-store" },
+      request: {
+        source: { kind: "exact-lot", lot: "herb-reserved" },
+        quantityPolicy: "whole-lot",
+        quantity: 1,
+        destination: "shelf:shelf-a",
+      },
+      phase: { kind: "reserved", sourceLot: "herb-reserved", quantity: 1 },
+    },
+    {
+      id: "transfer-carrying",
+      actor: "sedge",
+      owner: { job: "store-carrying", step: "shelf-store" },
+      request: {
+        source: { kind: "exact-lot", lot: "herb-carrying" },
+        quantityPolicy: "whole-lot",
+        quantity: 1,
+        destination: "shelf:shelf-b",
+      },
+      phase: { kind: "carrying", lot: "herb-carrying" },
+    },
+  );
+  saved.savedState.actors.rowan.task = {
+    kind: "transfer",
+    job: "store-reserved",
+    target: "transfer-reserved",
+    duration: 8,
+  };
+  saved.savedState.actors.rowan.assignment = {
+    character: "rowan",
+    task: "store-reserved",
+    cost: 1,
+  };
+  saved.savedState.actors.sedge.task = {
+    kind: "transfer",
+    job: "store-carrying",
+    target: "transfer-carrying",
+    duration: 8,
+  };
+  saved.savedState.actors.sedge.assignment = {
+    character: "sedge",
+    task: "store-carrying",
+    cost: 1,
+  };
+  return { ...saved, schema: 7 };
+}
+
+test("strict v7 preserves real reserved and carrying storage transfers", () => {
+  const restored = restoreSnapshot(genuineV7StorageEnvelope());
+  assert.deepEqual(
+    restored.state.jobs.map((job) => job.kind),
+    ["store", "store"],
+  );
+  assert.deepEqual(restored.state.materials.transfers[0].phase, {
+    kind: "reserved",
+    sourceLot: "herb-reserved",
+    quantity: 1,
+    origin: { kind: "ground", cell: cell(4, 5) },
+  });
+  assert.deepEqual(restored.state.materials.transfers[1].phase, {
+    kind: "carrying",
+    lot: "herb-carrying",
+  });
+  assert.equal(
+    restored.state.materials.lots.find((lot) => lot.id === "herb-carrying")
+      .location.actor,
+    "sedge",
+  );
+  assert.deepEqual(restored.state.materials.transfers[1].owner, {
+    job: "store-carrying",
+    step: "shelf-store",
+  });
+  const taskless = genuineV7StorageEnvelope();
+  taskless.savedState.actors.sedge.task = null;
+  taskless.savedState.actors.sedge.assignment = null;
+  assert.doesNotThrow(() => restoreSnapshot(taskless));
+});
+
+test("strict v7 rejects v8 shapes, phase origin, extras, and shelf overcapacity", () => {
+  const reject = (change) =>
+    assert.throws(() =>
+      restoreSnapshot(change(structuredClone(genuineV7StorageEnvelope()))),
+    );
+  reject((value) => {
+    value.savedState.jobs[0].kind = "store";
+    return value;
+  });
+  reject((value) => {
+    value.savedState.materials.transfers[0].request.source = {
+      kind: "eligible-container",
+      material: "mugwort",
+      container: "shelf:shelf-a",
+    };
+    return value;
+  });
+  reject((value) => {
+    value.savedState.materials.transfers[0].phase.origin = {
+      kind: "ground",
+      cell: cell(4, 5),
+    };
+    return value;
+  });
+  reject((value) => {
+    value.savedState.extra = true;
+    return value;
+  });
+  reject((value) => {
+    value.savedState.jobs[1].destination = "shelf:shelf-a";
+    value.savedState.materials.transfers[1].request.destination =
+      "shelf:shelf-a";
+    return value;
+  });
+});
+
+test("current-v8 revision admission distinguishes absent, malformed, and stale slots", () => {
   assert.deepEqual(decideSaveRevision(undefined, 0), {
     kind: "write",
     revision: 1,
@@ -341,7 +552,12 @@ rejects(
     });
     state.materials.transfers.push(
       transfer("transfer-a", {
-        phase: { kind: "reserved", sourceLot: "wood-a", quantity: 2 },
+        phase: {
+          kind: "reserved",
+          sourceLot: "wood-a",
+          quantity: 2,
+          origin: { kind: "ground", cell: cell() },
+        },
       }),
     );
   },
@@ -440,7 +656,12 @@ rejects(
           quantity: 2,
           destination: "construction-buffer:site-a",
         },
-        phase: { kind: "reserved", sourceLot: "wood-a", quantity: 2 },
+        phase: {
+          kind: "reserved",
+          sourceLot: "wood-a",
+          quantity: 2,
+          origin: { kind: "ground", cell: cell() },
+        },
       }),
     );
     state.actors.rowan.task = {
@@ -456,6 +677,33 @@ rejects(
     };
   },
   /container construction-buffer:site-a exceeds capacity/,
+);
+
+rejects(
+  "restore measures mixed shelf occupancy in bulk units",
+  (state) => {
+    state.sites.push(site("shelf-a", "shelf", { finishedAt: 1 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:shelf-a",
+      material: "wood",
+      quantity: 1,
+    });
+    state.materials.lots.push(
+      {
+        id: "shelf-wood",
+        material: "wood",
+        quantity: 3,
+        location: { kind: "container", container: "shelf:shelf-a" },
+      },
+      {
+        id: "shelf-herb",
+        material: "mugwort",
+        quantity: 1,
+        location: { kind: "container", container: "shelf:shelf-a" },
+      },
+    );
+  },
+  /container shelf:shelf-a exceeds capacity/,
 );
 
 rejects(
