@@ -5,6 +5,7 @@ import {
   brewStartAvailable,
   brewStationPresentation,
   shouldUseBrewStationPanel,
+  tapStartAvailable,
 } from "./brew-station-presentation.js";
 
 const site = {
@@ -23,6 +24,7 @@ function state({
   attending = false,
   settled = false,
   exhausted = false,
+  tap = null,
 } = {}) {
   const lots = [
     {
@@ -81,6 +83,17 @@ function state({
     materials: { lots },
     jobs: [
       { id: "job-brew", kind: "brew", target: site.id, reason: "Ordered" },
+      ...(tap
+        ? [
+            {
+              id: "job-tap",
+              kind: "tap",
+              target: site.id,
+              reason: "Ready to tap herbal ale",
+              progress: tap.progress,
+            },
+          ]
+        : []),
     ],
     processes: process
       ? [
@@ -172,4 +185,26 @@ test("an exhausted keg keeps the real spent-grain tray visible and blocks a new 
   assert.equal(exhausted.tapReady, false);
   assert.equal(exhausted.visualProfile, "settled");
   assert.equal(brewStartAvailable(exhausted), false);
+});
+
+test("Tap projects only its canonical station job and live ale without serving policy", () => {
+  const active = brewStationPresentation(
+    state({ settled: true, tap: { progress: 5 } }),
+    site,
+  );
+  assert.deepEqual(active.tapJob, {
+    id: "job-tap",
+    reason: "Ready to tap herbal ale",
+    progress: 5,
+    active: false,
+  });
+  assert.equal(tapStartAvailable(active), false);
+
+  const ready = brewStationPresentation(state({ settled: true }), site);
+  assert.equal(ready.tapReady, true);
+  assert.equal(tapStartAvailable(ready), true);
+
+  const exhausted = brewStationPresentation(state({ exhausted: true }), site);
+  assert.equal(exhausted.tapReady, false);
+  assert.equal(tapStartAvailable(exhausted), false);
 });

@@ -1,7 +1,10 @@
 import React from "react";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Card } from "@fungi.computer/caps/components/card";
-import { brewStartAvailable } from "./brew-station-presentation.js";
+import {
+  brewStartAvailable,
+  tapStartAvailable,
+} from "./brew-station-presentation.js";
 
 function jobLabel(job, action) {
   if (!job) return action;
@@ -11,6 +14,7 @@ function jobLabel(job, action) {
 export function BrewStationPanel({ station, context, deconstructJob, send }) {
   const fillLabel = jobLabel(station.fillJob, "Fill kettle");
   const brewLabel = jobLabel(station.brewJob, "Brew herbal ale");
+  const tapLabel = jobLabel(station.tapJob, "Tap herbal ale");
   const deconstructLabel = jobLabel(deconstructJob, "Deconstruct");
   const processLabel = station.process
     ? `${station.process.phase.toUpperCase()} · progress ${station.process.progress}`
@@ -18,6 +22,7 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
       ? "SETTLED · keg and tray hold the completed batch facts"
       : "No active batch.";
   const canBrew = brewStartAvailable(station);
+  const canTap = tapStartAvailable(station);
   return (
     <Card
       variant="outline"
@@ -77,9 +82,16 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
               : "The current process is unattended."
             : station.settled
               ? station.tapReady
-                ? "Tap is awaiting its core command handoff; live ale is available, but no Tap action is exposed here."
-                : "Spent grain still occupies the tray. Tap has no live ale target, and no Tap action is exposed here."
+                ? "Live ale is available for the shared Tap order."
+                : "Spent grain still occupies the tray; Tap has no live ale target."
               : "Brew admission remains the authoritative recipe check.")}
+      </small>
+      <small className="action-reason" data-status="tap">
+        {station.tapJob
+          ? `${station.tapJob.reason} · progress ${station.tapJob.progress}`
+          : station.tapReady
+            ? "Tap admission remains the authoritative serving check."
+            : "No live ale is available to tap."}
       </small>
       <div className="button-column">
         <Button
@@ -117,6 +129,22 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
           }
         >
           {brewLabel}
+        </Button>
+        <Button
+          id="tap"
+          data-action="tap"
+          data-site={station.id}
+          variant="primary"
+          disabled={!canTap}
+          aria-label={tapLabel}
+          onClick={() =>
+            send({
+              kind: "command",
+              command: { kind: "tap", station: station.id, actors: null },
+            })
+          }
+        >
+          {tapLabel}
         </Button>
         <Button
           id="deconstruct"

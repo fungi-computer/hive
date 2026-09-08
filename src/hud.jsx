@@ -63,6 +63,7 @@ const ACTIVITIES = {
   harvest: "Harvesting mugwort",
   "brew-water": "Filling brew kettle",
   brew: "Brewing herbal ale",
+  tap: "Tapping herbal ale",
   sleep: "Sleeping in the bedroll",
 };
 
@@ -553,9 +554,11 @@ function orderModel(display, job) {
                   ? "Fill brew-station kettle"
                   : job.kind === "brew"
                     ? "Brew herbal ale"
-                    : site
-                      ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
-                      : "Work order";
+                    : job.kind === "tap"
+                      ? "Tap herbal ale"
+                      : site
+                        ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
+                        : "Work order";
   const detail =
     job.kind === "store"
       ? site
@@ -2425,7 +2428,8 @@ export function createHud(host, art, effect) {
           command.kind === "harvest" ||
           command.kind === "store" ||
           command.kind === "repair-cache" ||
-          command.kind === "fill-kettle"
+          command.kind === "fill-kettle" ||
+          command.kind === "tap"
         )
           command.actors = null;
         else if (command.actors === undefined)

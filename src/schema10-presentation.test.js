@@ -44,6 +44,19 @@ test("finite-source inspection uses the checked UI action dispatcher", () => {
   assert.deepEqual(forwarded, [action]);
 });
 
+test("Tap stays a shared station-only catalog command", () => {
+  const forwarded = [];
+  const action = {
+    kind: "command",
+    command: { kind: "tap", station: "site-brew", actors: null },
+  };
+  dispatchUiAction(action, {
+    run: (received) => forwarded.push(received),
+    level: null,
+  });
+  assert.deepEqual(forwarded, [action]);
+});
+
 test("finite-source and pail art states are caller-supplied geometry", () => {
   assert.equal(named(basinScene("dry"), "basin-liquid"), null);
   assert.ok(named(basinScene("low"), "basin-liquid"));

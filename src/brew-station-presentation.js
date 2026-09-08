@@ -21,6 +21,7 @@ function jobFact(state, kind, station) {
   return Object.freeze({
     id: job.id,
     reason: job.reason,
+    progress: job.kind === "tap" ? job.progress : null,
     active: Object.values(state.actors).some(
       (actor) => actor.task?.job === job.id,
     ),
@@ -94,6 +95,7 @@ export function brewStationPresentation(state, site) {
     attending,
     fillJob: jobFact(state, "fill-kettle", site),
     brewJob,
+    tapJob: jobFact(state, "tap", site),
     // Spent grain remains an actual station occupancy after every ale portion
     // has been tapped. It is broader than a future Tap's live-ale eligibility.
     settled: !process && slots.tray.spentGrain > 0,
@@ -119,4 +121,11 @@ export function brewStartAvailable(station) {
   return (
     station.finished && !station.brewJob && !station.process && !station.settled
   );
+}
+
+/** Tap readiness and serving ownership remain in the core. The UI only avoids
+ * a duplicate submission while canonical live ale or an existing Tap job says
+ * there is nothing new to request. */
+export function tapStartAvailable(station) {
+  return station.tapReady && !station.tapJob;
 }
