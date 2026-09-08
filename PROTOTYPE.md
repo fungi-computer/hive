@@ -54,6 +54,10 @@ Further accepted future seams are recorded in
 [modular character art and technology gates](docs/decisions/modular-art-and-technology-gates.md).
 The future environment/opening proof boundary is in
 [environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
+Its latest reviewed direction provisionally prefers a new isolated Rust numerical
+core with browser-WASM/native-fixture parity; C++ remains the concrete-library or
+existing-build-path fallback. No benchmark, solver acceptance, third numerical
+sweep or production join follows from that preference.
 The current local-save/later durable-AI boundary is in
 [local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
 The current [small-world architecture-proof sprint](docs/decisions/architecture-proof-sprint.md)

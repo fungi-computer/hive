@@ -149,3 +149,62 @@ Do not start a third numerical round automatically. Before a regional-fluid game
 The next production water consumer is much smaller: finite water acquired into a real vessel, carried through the common goods/transfer owner, and consumed once to establish a plant. That earns gameplay and liquid custody without requiring regional hydraulics. No new hauling branch, second clock, oxygen system or planet simulation enters the current brewing candidate.
 
 Evidence remains under `.botanical/research/environment-round2-20260908/`: `water/study.md`, `water/terminal-evidence.md`, `gas-heat/DIAGNOSIS.md`, `gas-heat/RUNS.md`, `coupling/ADJUDICATION.md` and `coupling/PROOF-RECORD.md`, with their executable sources/results. All owned sessions are terminal. The original finest gas group was deliberately stopped at exit143 after its retained sealed baseline; its uncompleted remote-high case is not evidence. Its separately bounded source-local run completed normally. No raw evidence needs copying into the product bundle.
+
+## Levi's performance ambition and language direction, later 2026-09-08
+
+Direct Levi input: pursue a performant, good water/gas simulation ambitiously;
+failed prototypes are not an upper bound on what Astra can design. He explicitly
+welcomes WebAssembly and Rust, Go, Zig or other suitable languages. His references
+to original model-assisted mathematics motivate disciplined invention; they do
+not establish a speed, correctness or novelty claim for Hive's solvers. The
+[unit-distance result](https://openai.com/index/model-disproves-discrete-geometry-conjecture/)
+was checked at its primary source. No unverified Navier–Stokes headline is used
+as evidence for our algorithms.
+
+The bounded follow-up source reviews are `water/NEXT-METHOD-REVIEW.md` and
+`gas-heat/NEXT-METHOD-REVIEW.md`. They did not run a third numerical sweep. Root
+read both. Next surface-water work leads with full shallow water on unchanged
+stepped physical geometry, comparing reusable scratch/active dry-region work to
+the dense oracle. Next gas work compares an explicit momentum/projection model
+to the rejected algebraic-drag closure. The current gas implementation is already
+sparse: repeated Python Krylov vectors, repeated nonlinear solves and discarded
+operator work are actual optimization opportunities. Calling it dense and merely
+proposing sparse matrices would miss its source.
+
+Provisional engineering preference: **Rust for a new isolated numerical core,
+compiled to WASM for the browser and natively for the same numerical fixtures**.
+C++ remains a strong alternative when the selected numerical library or existing
+Emscripten integration supplies a concrete advantage. Hive already compiles its
+unchanged C++ libcolony optimizer (`scripts/build-colony.sh`,
+`public/vendor/libcolony/PROVENANCE.md`); that is evidence of an established build
+path, not a requirement that every new subsystem use C++. Go and Zig are viable
+WASM targets, but no measured result currently justifies adding either as another
+production toolchain here. This preference is not a language-performance result
+or authority to rewrite game rules/libcolony.
+
+Keep numerical arrays, reusable workspace and phase history behind the physics
+owner. Use a narrow bulk interface, bounded memory and explicit disposal; do not
+cross JS/WASM for each cell, duplicate canonical fields in a UI store, or use the
+optimizer's 16 MiB heap as an unmeasured physics allocation. A dedicated Web
+Worker is the first browser host candidate; WASM by itself does not move work off
+the main thread. Begin with one numerical worker, not shared-memory pthreads or
+a GPU framework. The authoritative game chooses committed intervals and
+geometry/forcing revisions; worker computation does not invent a second clock.
+Retain field values and future-affecting momentum across pause/reload. A later
+production join must specify exactly where those canonical arrays live and how
+an admissible result commits before shared game effects observe it.
+
+Use the existing JS/Python experiments as independently readable references,
+with their known failures preserved. Compare equal-error outcomes, per-interval
+latency, allocations, solve iterations, peak memory, initialization and JS/worker
+transfer costs. Language choice cannot validate the missing airflow closure or
+turn a heightfield into stacked-volume hydraulics. No speed multiplier, whole-
+world capacity, provider change or backend deployment is claimed. The pail and
+brewing release remains independent.
+
+Primary implementation references checked:
+[Rust WASM target](https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html),
+[Emscripten JS/C++ boundary](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html),
+[Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers),
+[Go WASM](https://go.dev/wiki/WebAssembly),
+[Zig WASM](https://ziglang.org/documentation/master/#WebAssembly).
