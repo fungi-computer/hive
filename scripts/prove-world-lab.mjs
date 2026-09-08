@@ -36,7 +36,7 @@ checks.globalSignedCoordinates = {
 };
 assert(checks.globalSignedCoordinates.pass, "floor division failed at negative chunk edge");
 
-const fineBounds = { minX: -1024, minZ: -1024, maxX: 1024, maxZ: 1024 };
+const fineBounds = { minX: -1024, minZ: -1024, maxXExclusive: 1024, maxZExclusive: 1024 };
 const localAuthorityPoints = [[-719, -100], [420, 320], [-1, 0], [16, 0]];
 const localBeforeOverview = localAuthorityPoints.map(([x, z]) => sampleCell(spec, x, z));
 const coarseStart = performance.now();
@@ -225,6 +225,7 @@ const visible = residency.loadWindow(0, 0);
 const generationMs = performance.now() - generationStart;
 const renderStart = performance.now();
 const render = renderChunkBuffer(spec, visible);
+const shuffledRender = renderChunkBuffer(spec, [...visible].reverse());
 const renderMs = performance.now() - renderStart;
 const beforeEviction = residency.stats();
 const distant = residency.loadWindow(37, -29);
@@ -242,13 +243,15 @@ checks.boundedLocal = {
   distantWindowCells: distant.length * spec.chunkSize * spec.chunkSize,
   returnedOriginChecksum: regenerated.checksum,
   originChecksum: firstOrder[1].checksum,
-  pass: beforeEviction.residentChunks === 25 && afterReturn.residentChunks <= 25 && regenerated.checksum === firstOrder[1].checksum,
+  shuffledRenderChecksum: shuffledRender.checksum,
+  shuffledRenderVisualChecksum: shuffledRender.visualChecksum,
+  pass: beforeEviction.residentChunks === 25 && afterReturn.residentChunks <= 25 && regenerated.checksum === firstOrder[1].checksum && shuffledRender.checksum === render.checksum && shuffledRender.visualChecksum === render.visualChecksum,
 };
 assert(checks.boundedLocal.pass, "local residency exceeded its bounded cache or failed regeneration");
 
 const mappingCells = [
   [coarseOverview.bounds.minX, coarseOverview.bounds.minZ],
-  [coarseOverview.bounds.maxX, coarseOverview.bounds.maxZ],
+  [coarseOverview.bounds.maxXExclusive - 1, coarseOverview.bounds.maxZExclusive - 1],
   [-1, 0],
   [0, 0],
   [features.coast.x, features.coast.z],
@@ -265,7 +268,7 @@ const mappingResults = mappingCells.map(([x, z]) => {
     requested: { x, z },
     pixel,
     representativeCell: mapped,
-    withinPixelFootprint: x >= pixelMinX && (x < pixelMinX + cellWidth || (pixel.column === coarseOverview.width - 1 && x <= coarseOverview.bounds.maxX)) && z >= pixelMinZ && (z < pixelMinZ + cellHeight || (pixel.row === coarseOverview.height - 1 && z <= coarseOverview.bounds.maxZ)),
+    withinPixelFootprint: x >= pixelMinX && (x < pixelMinX + cellWidth || (pixel.column === coarseOverview.width - 1 && x < coarseOverview.bounds.maxXExclusive)) && z >= pixelMinZ && (z < pixelMinZ + cellHeight || (pixel.row === coarseOverview.height - 1 && z < coarseOverview.bounds.maxZExclusive)),
     signed: x < 0 || z < 0,
   };
 });
@@ -340,6 +343,8 @@ checks.userFacingLabShape = {
   clickMapsToCell: mainSource.includes("overviewPixelToWorldCell(overview, column, row)") && mainSource.includes("focus = { label: \"Overview cell\", x: cell.x, z: cell.z }"),
   localSelectionMarker: mainSource.includes("localGridContext.strokeRect") && mainSource.includes("focus.x - viewport.minX"),
   sharedFactsPanel: mainSource.includes("sampleCell(spec, focus.x, focus.z)") && mainSource.includes("sampleTerrain(spec, focus.x, focus.z, 1)") && mainSource.includes("sharedSampler") && mainSource.includes("data-field=selection") && mainSource.includes("matchesSampler"),
+  fullDetailInspectorLaw: mainSource.includes("local.buffer.elevation[localIndex] === Math.round(selectedLocal.elevation * 255)") && mainSource.includes("local.buffer.moisture[localIndex] === Math.round(selectedLocal.moisture * 255)") && !mainSource.includes("selectedOverview.elevation === selectedLocal.elevation"),
+  halfOpenBounds: source.includes("maxXExclusive") && source.includes("maxZExclusive") && mainSource.includes("maxXExclusive") && mainSource.includes("maxZExclusive"),
   explicitOverviewScale: mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX"),
   explicitLocalScale: mainSource.includes("one pixel = one world cell") && pageSource.includes("80×80 local view at 1 pixel per world cell"),
   readableLegend: pageSource.includes("Terrain palette legend") && stylesSource.includes(".swatch.water") && stylesSource.includes(".legend"),
@@ -358,6 +363,10 @@ checks.userFacingLabShape = {
     mainSource.includes("sharedSampler") &&
     mainSource.includes("data-field=selection") &&
     mainSource.includes("matchesSampler") &&
+    mainSource.includes("local.buffer.elevation[localIndex] === Math.round(selectedLocal.elevation * 255)") &&
+    mainSource.includes("local.buffer.moisture[localIndex] === Math.round(selectedLocal.moisture * 255)") &&
+    !mainSource.includes("selectedOverview.elevation === selectedLocal.elevation") &&
+    source.includes("maxXExclusive") && source.includes("maxZExclusive") && mainSource.includes("maxXExclusive") && mainSource.includes("maxZExclusive") &&
     mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX") &&
     mainSource.includes("one pixel = one world cell") &&
     pageSource.includes("80×80 local view at 1 pixel per world cell") &&
@@ -374,6 +383,7 @@ const proof = {
     identity: spec.identity,
     chunkSize: spec.chunkSize,
     globalCoordinates: "signed integer x,z; mathematical floor division",
+    overviewBounds: "explicit half-open [minX,minZ,maxXExclusive,maxZExclusive) world bounds",
     sampleIdentity: "generatorVersion:seed/sample/x,z",
     chunkIdentity: "generatorVersion:seed/chunk/chunkX,chunkZ (cache identity only; not geography)",
     coherentRecipe: "shared smooth broad fields plus footprint-omitted fine octaves; no output resize of a fine grid",
@@ -393,7 +403,7 @@ const proof = {
   },
   checks,
   diagnostic1024: { executed: false, reason: "1024 is diagnostic only after measured 512; this bounded check stops at 512." },
-  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency", "readable elevation/moisture variation with named viewport marker", "overview pixel to signed global cell to local one-cell trace"],
+  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency", "order-independent local render buffer", "readable elevation/moisture variation with named viewport marker", "overview pixel to signed global cell to local one-cell trace"],
   nonClaims: WORLD_LAB_NON_CLAIMS,
 };
 await writeFile(`${output}/proof.json`, `${JSON.stringify(proof, null, 2)}\n`);

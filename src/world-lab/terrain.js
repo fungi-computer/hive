@@ -8,7 +8,7 @@ export const WORLD_LAB_SPEC = Object.freeze({
   overview: Object.freeze({
     width: 512,
     height: 512,
-    bounds: Object.freeze({ minX: -2048, minZ: -2048, maxX: 2047, maxZ: 2047 }),
+    bounds: Object.freeze({ minX: -2048, minZ: -2048, maxXExclusive: 2048, maxZExclusive: 2048 }),
   }),
   local: Object.freeze({ windowChunks: 5, maxResidentChunks: 25 }),
 });
@@ -286,11 +286,11 @@ function overviewBounds(spec, bounds) {
   const source = bounds || spec.overview.bounds;
   const minX = source.minX;
   const minZ = source.minZ;
-  const maxX = source.maxX;
-  const maxZ = source.maxZ;
-  if (![minX, minZ, maxX, maxZ].every(Number.isFinite) || maxX <= minX || maxZ <= minZ)
+  const maxXExclusive = source.maxXExclusive;
+  const maxZExclusive = source.maxZExclusive;
+  if (![minX, minZ, maxXExclusive, maxZExclusive].every(Number.isFinite) || maxXExclusive <= minX || maxZExclusive <= minZ)
     throw new RangeError("overview bounds must have finite positive spans");
-  return { minX, minZ, maxX, maxZ, spanX: maxX - minX, spanZ: maxZ - minZ };
+  return { minX, minZ, maxXExclusive, maxZExclusive, spanX: maxXExclusive - minX, spanZ: maxZExclusive - minZ };
 }
 
 export function sampleOverview(spec, options = {}) {
@@ -391,14 +391,17 @@ export function createResidency(spec, options = {}) {
 }
 
 export function renderChunkBuffer(spec, chunks) {
+  if (chunks.length === 0) throw new Error("chunks must not be empty");
   const size = Math.sqrt(chunks.length) * spec.chunkSize;
   if (!Number.isInteger(size)) throw new Error("chunks must form a square window");
   const pixels = new Uint8Array(size * size);
   const elevation = new Uint8Array(size * size);
   const moisture = new Uint8Array(size * size);
+  const originChunkX = Math.min(...chunks.map((chunk) => chunk.chunkX));
+  const originChunkZ = Math.min(...chunks.map((chunk) => chunk.chunkZ));
   for (const chunk of chunks) {
-    const offsetX = (chunk.chunkX - chunks[0].chunkX) * spec.chunkSize;
-    const offsetZ = (chunk.chunkZ - chunks[0].chunkZ) * spec.chunkSize;
+    const offsetX = (chunk.chunkX - originChunkX) * spec.chunkSize;
+    const offsetZ = (chunk.chunkZ - originChunkZ) * spec.chunkSize;
     for (let localZ = 0; localZ < spec.chunkSize; localZ += 1)
       for (let localX = 0; localX < spec.chunkSize; localX += 1) {
         const sourceIndex = localZ * spec.chunkSize + localX;
@@ -415,6 +418,8 @@ export function renderChunkBuffer(spec, chunks) {
     pixels,
     elevation,
     moisture,
+    originChunkX,
+    originChunkZ,
     checksum: checksumBytes(pixels),
     visualChecksum: checksumBytes(new Uint8Array([...pixels, ...elevation, ...moisture])),
   };
