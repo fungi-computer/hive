@@ -45,26 +45,51 @@ they do not authorize an Excalibur dependency or general ECS migration.
 
 ## Delivery ownership
 
-Levi appoints Astra as peer Game CTO: game direction, difficult architecture,
-staffing and direct product discussion, with personal review of changed original
-art. The visible Sol/high `game-delivery` lead owns the ready queue, file custody,
-PM briefs, source/caller review, routine corrections/final acceptance, proof
-scheduling, serial integration and same-preview releases. At the reviewed
-15-test typed-core checkpoint over `016b1a02`, Astra transfers Git/deployment and
-ordinary source custody; the dirty candidate is retained in the ignored recovery
-archive. `src/art.js` and `src/art/figures.js` remain Astra's until the Sedge work
-poses are reviewed. One writer owns each coupled seam; routine acceptance does
-not wait on a second CTO acknowledgment. Delivery brings actual design decisions,
-changed-art batches and meaningful playable results to Astra.
+Astra is peer Game CTO and owns game direction, difficult architecture, staffing
+and personal review of changed original art. The visible Sol `game-delivery` lead
+already holds ordinary source, Git, build/proof scheduling and same-preview
+publication custody. The earlier `016b1a02` transfer and Sedge art reservation are
+historical handoffs, not current pending permissions. Later explicit per-file
+art/implementation handoffs govern current writers. Routine source correction and
+unchanged accepted art do not wait for another CTO approval.
 
-Luna carries bounded execution, Terra checks direction/final candidates, and Sol
-handles harder correctness. Substantial PMs report to game-delivery and carry
-bounded persistent delivery goals; root's existing goal remains active. Use the
-separate `Game CTO + Delivery` and `Game Lanes` Herdr tabs, preserving live agents
-and focus. The Sol Codex lead is an explicit temporary fallback: the landing
-Shiitake one-shot path lacks PM goal/mail continuity. Supported new workers use
-Shiitake without inventing integration in Hive. Existing issues/docs/logs carry
-coordination; no new board or reporting framework. Broader resource, backend,
+Every substantial independent outcome has an accountable visible owner in **Game
+Lanes**. A Terra/Sol PM owns the actual source/caller read, first working-shape
+review, corrections, focused proof and final handoff to Game Delivery. Native
+workers remain appropriate for bounded supporting work under that owner; they do
+not replace the visible portfolio. Delivery coordinates ready work, conflicts and
+serial integration rather than accumulating every PM decision. Small edits do not
+need a new PM, and idle panes are not a reason to invent work.
+
+Preserve active native writers until useful checkpoints. A visible PM may inspect
+their files read-only now; when the native worker belongs to Delivery, Delivery
+relays the PM's concrete corrections. Before successor writes, record actual
+checkout/head, dirty and untracked inventory, useful evidence and remaining
+behavior; preserve valuable bytes and explicitly release the old writer's custody.
+Do not restart or transplant a working thread for appearance. Keep one writer per
+coupled seam and one Git/deploy owner. Verify the live PM model, reasoning and
+execution mode; names and successful prompt sends are insufficient. A real first
+reply identifies owned files and the next check.
+
+Levi's current restart direction allows ordinary Shiitake implementation,
+including longer work and sustained goals, on the corrected `b2a6cd8` bundle.
+Switch at natural handoffs using the existing visible owner, neutral
+`fungi run --connect`, and tracked `run-and-notify.sh` /
+`notify-herdr-agent.sh`, with the actual Hive invocation root and first response
+checked. The launcher reports completion of an accepted **run**, not necessarily
+completion of the durable goal. The goal backend landed at `e7aa4a0`; autonomous
+PM/lead recovery and goal-terminal notification remain unproved while the recorded
+mail settlement/wake gaps are open. Preserve Codex PM/Game Delivery coordination
+roles for that concrete capability boundary. Human goal/footer controls are not a
+worker-adoption gate. No new scheduler, provider, resource or Botanical source work
+belongs in Hive.
+
+Use native completion waits and meaningful source/review handoffs. After
+acceptance, integrate the result or give the released owner the next authorized
+outcome. Existing issues, PROTOTYPE/ARCHITECTURE and short custody logs retain the
+facts. Preserve the Game CTO + Delivery / Game Lanes tabs, Botanical's separate
+portfolio, live authors and user focus. Root goal status remains user-controlled;
+a pause does not mark authorized game work complete. Broader resource, backend,
 production and cross-repo decisions retain their authorization limits.
 
 Baseline controls at `016b1a02b009e798165bd4ba11653093cf4ee1c6` remain
