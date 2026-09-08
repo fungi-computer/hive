@@ -3,6 +3,31 @@ import type { BuildingKind, Cell, Command } from "./model.ts";
 export type ToolKind = "chop" | BuildingKind | "herb";
 export type LogicalLevel = 0 | 1;
 
+/** A read-only UI projection of a physical lot.  It deliberately carries no
+ * command or stock policy: callers can only find the loose goods at a cell. */
+export type LocalGoodsLot = {
+  readonly location: {
+    readonly kind: string;
+    readonly x?: number;
+    readonly z?: number;
+    readonly level?: number;
+  };
+};
+
+/** Returns projected loose lots at one exact logical cell, including level. */
+export function localGoodsAt<T extends LocalGoodsLot>(
+  lots: readonly T[],
+  at: Cell,
+): T[] {
+  return lots.filter(
+    (lot) =>
+      lot.location.kind === "ground" &&
+      lot.location.x === at.x &&
+      lot.location.z === at.z &&
+      lot.location.level === at.level,
+  );
+}
+
 export type GesturePoint = {
   cell: { x: number; z: number; level: number };
   screen: { x: number; y: number };

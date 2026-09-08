@@ -7,8 +7,29 @@ import {
   dispatchUiAction,
   dispatchLevelAction,
   LEVEL_NAVIGATION,
+  localGoodsAt,
   requiredToolLevel,
 } from "./ui-actions.ts";
+
+test("local goods projection returns only loose lots at the exact logical cell", () => {
+  const woodHere = {
+    id: "lot-wood",
+    location: { kind: "ground", x: 8, z: 3, level: 0 },
+  };
+  assert.deepEqual(
+    localGoodsAt(
+      [
+        woodHere,
+        { id: "upper", location: { kind: "ground", x: 8, z: 3, level: 1 } },
+        { id: "elsewhere", location: { kind: "ground", x: 9, z: 3, level: 0 } },
+        { id: "hand", location: { kind: "carried", actor: "rowan" } },
+        { id: "shelf", location: { kind: "stored", site: "site-1" } },
+      ],
+      { x: 8, z: 3, level: 0 },
+    ),
+    [woodHere],
+  );
+});
 
 test("picking debug uses the checked UI action catalog and normal dispatcher", () => {
   assert.deepEqual(DEBUG_PICKING_CONTROL, {

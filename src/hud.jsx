@@ -30,6 +30,7 @@ import {
   dispatchUiAction,
   DEBUG_PICKING_CONTROL,
   LEVEL_NAVIGATION,
+  localGoodsAt,
   requiredToolLevel,
   submitDesignation,
 } from "./ui-actions.ts";
@@ -587,7 +588,13 @@ const targetAtom = atom((get) => {
   }
   if (target.kind === "tree") {
     const tree = facts.trees.find((candidate) => candidate.id === target.id);
-    return tree ? { kind: "tree", ...tree } : null;
+    return tree
+      ? {
+          kind: "tree",
+          ...tree,
+          localGoods: localGoodsAt(facts.lots, tree),
+        }
+      : null;
   }
   if (target.kind === "herb") {
     const herb = facts.herbs.find((candidate) => candidate.id === target.id);
@@ -1316,6 +1323,24 @@ function Target({ model: m, send }) {
           ? "Six logs earned. The stump stays."
           : `6 wood · ${m.selectedIds.length ? `${m.selectedIds.length} selected` : "shared colony work"}`}
       </p>
+      {tree.localGoods.length > 0 && (
+        <div className="button-column" aria-label="Loose goods here">
+          <small className="action-reason">Loose goods on this cell</small>
+          {tree.localGoods.map((lot) => (
+            <Button
+              key={lot.id}
+              data-action="inspect-lot"
+              data-lot={lot.id}
+              variant="outline"
+              onClick={() =>
+                send({ kind: "inspect-lot", id: lot.id, point: m.context })
+              }
+            >
+              {lot.material === "wood" ? "Wood" : "Mugwort"} ×{lot.amount}
+            </Button>
+          ))}
+        </div>
+      )}
       <Button
         id="mark-chop"
         variant="primary"

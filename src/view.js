@@ -214,6 +214,7 @@ export function createView(app, world, camera, art, initial, input) {
     );
     for (const [id, view] of piles) {
       if (!groundWoodLots.some((lot) => lot.id === id)) {
+        picking.remove(view.container);
         view.container.destroy({ children: true });
         piles.delete(id);
       }
