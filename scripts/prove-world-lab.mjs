@@ -258,7 +258,11 @@ assert(
 );
 
 const featureProbe = {};
-for (const kind of ["coastShaping", "ridge", "canyon"]) {
+for (const [kind, expectedFeature] of [
+  ["coastShaping", "coast-shaping"],
+  ["ridge", "ridge"],
+  ["canyon", "canyon"],
+]) {
   const feature = features[kind];
   const local = sampleTerrain(spec, feature.x, feature.z, 1);
   const coarse = sampleTerrain(
@@ -274,6 +278,7 @@ for (const kind of ["coastShaping", "ridge", "canyon"]) {
     fineOverview.footprint,
   );
   featureProbe[kind] = {
+    expectedFeature,
     name: feature.name,
     coordinate: { x: feature.x, z: feature.z },
     local: {
@@ -304,8 +309,8 @@ for (const kind of ["coastShaping", "ridge", "canyon"]) {
 checks.namedFeatures = {
   features: featureProbe,
   pass: Object.entries(featureProbe).every(
-    ([kind, samples]) =>
-      samples.local.feature === kind &&
+    ([, samples]) =>
+      samples.local.feature === samples.expectedFeature &&
       samples.local.sampleId === samples.coarse.sampleId &&
       samples.local.sampleId === samples.fineSpan.sampleId,
   ),
@@ -967,14 +972,29 @@ const source = await readFile("src/world-lab/terrain.js", "utf8");
 const sectionSource = await readFile("src/world-lab/section.js", "utf8");
 const mainSource = await readFile("src/world-lab/main.js", "utf8");
 const workerSource = await readFile("src/world-lab/worker.js", "utf8");
+const controlsSource = await readFile("src/world-lab/controls.jsx", "utf8");
+const latticeHashSource = await readFile(
+  "src/world-lab/lattice-hash.mjs",
+  "utf8",
+);
 const pageSource = await readFile("world-lab.html", "utf8");
 const stylesSource = await readFile("src/world-lab/styles.css", "utf8");
-const forbiddenImport = /^\s*import\s/m.test(source);
+const terrainImports = source.match(/^\s*import[^\n]+$/gm) ?? [];
+const helperImportsRuntimeOrSimulation = /^\s*import\s/m.test(
+  latticeHashSource,
+);
 checks.isolatedSource = {
-  importsRuntimeOrSimulation: forbiddenImport,
-  pass: !forbiddenImport,
+  terrainImports,
+  helperImportsRuntimeOrSimulation,
+  pass:
+    terrainImports.length === 1 &&
+    terrainImports[0].includes("./lattice-hash.mjs") &&
+    !helperImportsRuntimeOrSimulation,
 };
-assert(checks.isolatedSource.pass, "isolated terrain must remain import-free");
+assert(
+  checks.isolatedSource.pass,
+  "isolated terrain may import only the dependency-free lattice hash helper",
+);
 checks.sectionSourceOwner = {
   importsOnlyTerrain:
     sectionSource.includes('import { sampleCell } from "./terrain.js"') &&
@@ -1032,13 +1052,11 @@ checks.userFacingLabShape = {
     `${mainSource}\n${pageSource}`,
   ),
   namedGlobalButtons:
-    [
-      'data-feature="wetDryBoundary"',
-      'data-feature="ridge"',
-      'data-feature="canyon"',
-    ].every((marker) => pageSource.includes(marker)) &&
-    mainSource.includes("const feature = features[button.dataset.feature]") &&
-    mainSource.includes("button.dataset.cell = `${feature.x},${feature.z}`"),
+    mainSource.includes('id: "wetDryBoundary"') &&
+    mainSource.includes('id: "ridge"') &&
+    mainSource.includes('id: "canyon"') &&
+    controlsSource.includes("state.locations.map((location)") &&
+    controlsSource.includes("controller.jump(location.id)"),
   markerData: {
     viewport: boundaryViewport,
     overviewRect: boundaryMarker,
@@ -1104,32 +1122,30 @@ checks.userFacingLabShape = {
     checks.exactWetDryBoundary.pass &&
     checks.crossScaleSampleFacts.pass,
   responsiveNavigation:
-    pageSource.includes('data-pan="0,-0.25"') &&
-    pageSource.includes('data-atlas-zoom="in"') &&
-    pageSource.includes('data-atlas-zoom="out"') &&
-    pageSource.includes('id="world-lab-atlas-status"') &&
+    controlsSource.includes('data-world-lab-pan="north"') &&
+    controlsSource.includes('data-world-lab-zoom="in"') &&
+    controlsSource.includes('data-world-lab-zoom="out"') &&
+    controlsSource.includes("world-lab-scale-status") &&
     mainSource.includes("function panAtlas") &&
     mainSource.includes("function zoomAtlas") &&
     mainSource.includes("boundsAround"),
   visibleScaleStatus:
-    pageSource.includes('aria-live="polite"') &&
-    pageSource.includes('id="world-lab-request-status"') &&
+    controlsSource.includes('aria-live="polite"') &&
+    controlsSource.includes("data-world-lab-requested") &&
+    controlsSource.includes("data-world-lab-displayed") &&
+    controlsSource.includes("data-world-lab-lifecycle") &&
     mainSource.includes("function scaleForBounds") &&
-    mainSource.includes("function scaleStatusLabel") &&
-    mainSource.includes(
-      "`Updating to ${requested}; showing ${scaleForBounds(overview.bounds)}`",
-    ) &&
-    mainSource.includes("`Showing ${scaleForBounds(overview.bounds)}`") &&
     mainSource.includes("cells/pixel") &&
-    stylesSource.includes(".atlas-status"),
+    stylesSource.includes(".world-lab-scale-status"),
   zoomLimitsAndNoOp:
     mainSource.includes("const MIN_ATLAS_SPAN = 512") &&
     mainSource.includes("const MAX_ATLAS_SPAN = 8192") &&
-    mainSource.includes("zoomInButton.disabled = span <= MIN_ATLAS_SPAN") &&
-    mainSource.includes("zoomOutButton.disabled = span >= MAX_ATLAS_SPAN") &&
     mainSource.includes("if (nextSpan === currentSpan)") &&
     mainSource.includes("return false") &&
-    mainSource.includes('document.querySelectorAll("[data-atlas-zoom]")'),
+    controlsSource.includes("disabled={!state.zoom.canIn}") &&
+    controlsSource.includes("disabled={!state.zoom.canOut}") &&
+    controlsSource.includes('controller.zoom("in")') &&
+    controlsSource.includes('controller.zoom("out")'),
   workerLifecycle:
     mainSource.includes('new Worker(new URL("./worker.js", import.meta.url)') &&
     mainSource.includes("activeRequest") &&
@@ -1142,103 +1158,19 @@ checks.userFacingLabShape = {
     workerSource.includes(
       "globalThis.postMessage(message, transferOverview(message))",
     ),
-  pass:
-    !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`) &&
-    [
-      'data-feature="wetDryBoundary"',
-      'data-feature="ridge"',
-      'data-feature="canyon"',
-    ].every((marker) => pageSource.includes(marker)) &&
-    mainSource.includes("const feature = features[button.dataset.feature]") &&
-    mainSource.includes("button.dataset.cell = `${feature.x},${feature.z}`") &&
-    boundaryMarker.width > 0 &&
-    boundaryMarker.height > 0 &&
-    mainSource.includes("drawViewportMarker(local.viewport)") &&
-    mainSource.includes("chunkX: floorDiv(x, spec.chunkSize)") &&
-    mainSource.includes('overviewCanvas.addEventListener("click"') &&
-    mainSource.includes("overviewPixelToWorldCell(overview, column, row)") &&
-    mainSource.includes('moveFocus("Overview cell", cell.x, cell.z)') &&
-    mainSource.includes("localGridContext.strokeRect") &&
-    mainSource.includes("focus.x - viewport.minX") &&
-    mainSource.includes("sampleCell(spec, focus.x, focus.z)") &&
-    mainSource.includes("sampleTerrain(spec, focus.x, focus.z, 1)") &&
-    mainSource.includes("sharedSampler") &&
-    mainSource.includes("data-field=selection") &&
-    mainSource.includes("matchesSampler") &&
-    /local\.buffer\.elevation\[localIndex\]\s*===\s*Math\.round\(selectedLocal\.elevation \* 255\)/.test(
-      mainSource,
-    ) &&
-    /local\.buffer\.moisture\[localIndex\]\s*===\s*Math\.round\(selectedLocal\.moisture \* 255\)/.test(
-      mainSource,
-    ) &&
-    !mainSource.includes(
-      "selectedOverview.elevation === selectedLocal.elevation",
-    ) &&
-    source.includes("maxXExclusive") &&
-    source.includes("maxZExclusive") &&
-    mainSource.includes("maxXExclusive") &&
-    mainSource.includes("maxZExclusive") &&
-    mainSource.includes("cellsPerPixel") &&
-    mainSource.includes("overview.bounds.spanX") &&
-    mainSource.includes("one pixel = one world cell") &&
-    pageSource.includes("80×80 local view at 1 pixel per world cell") &&
-    pageSource.includes("Terrain palette legend") &&
-    stylesSource.includes(".swatch.water") &&
-    stylesSource.includes(".swatch.coast") &&
-    stylesSource.includes(".swatch.land") &&
-    stylesSource.includes(".legend") &&
-    pageSource.includes('id="world-lab-section"') &&
-    pageSource.includes("Surface-only 24×16 isometric section") &&
-    mainSource.includes("sampleSectionCells(spec") &&
-    mainSource.includes("assembleSurfaceSection(sampled)") &&
-    mainSource.includes("prepareIsometricSection(section)") &&
-    mainSource.includes("data-field=section") &&
-    stylesSource.includes(".section-figure") &&
-    mainSource.includes("baseElevation: selectedShared.baseElevation") &&
-    mainSource.includes("ridgeLift: selectedShared.ridgeLift") &&
-    mainSource.includes("canyonCarve: selectedShared.canyonCarve") &&
-    checks.authoritativeLocal.pass &&
-    checks.exactWetDryBoundary.pass &&
-    checks.crossScaleSampleFacts.pass &&
-    pageSource.includes('data-pan="0,-0.25"') &&
-    pageSource.includes('data-atlas-zoom="in"') &&
-    pageSource.includes('data-atlas-zoom="out"') &&
-    pageSource.includes('id="world-lab-atlas-status"') &&
-    pageSource.includes('aria-live="polite"') &&
-    pageSource.includes('id="world-lab-request-status"') &&
-    mainSource.includes("function panAtlas") &&
-    mainSource.includes("function zoomAtlas") &&
-    mainSource.includes("boundsAround") &&
-    mainSource.includes("function scaleForBounds") &&
-    mainSource.includes("function scaleStatusLabel") &&
-    mainSource.includes(
-      "`Updating to ${requested}; showing ${scaleForBounds(overview.bounds)}`",
-    ) &&
-    mainSource.includes("`Showing ${scaleForBounds(overview.bounds)}`") &&
-    mainSource.includes("cells/pixel") &&
-    stylesSource.includes(".atlas-status") &&
-    mainSource.includes("const MIN_ATLAS_SPAN = 512") &&
-    mainSource.includes("const MAX_ATLAS_SPAN = 8192") &&
-    mainSource.includes("zoomInButton.disabled = span <= MIN_ATLAS_SPAN") &&
-    mainSource.includes("zoomOutButton.disabled = span >= MAX_ATLAS_SPAN") &&
-    mainSource.includes("if (nextSpan === currentSpan)") &&
-    mainSource.includes("return false") &&
-    mainSource.includes('document.querySelectorAll("[data-atlas-zoom]")') &&
-    mainSource.includes('new Worker(new URL("./worker.js", import.meta.url)') &&
-    mainSource.includes("activeRequest") &&
-    mainSource.includes("queuedRequest") &&
-    mainSource.includes("latestRequestId") &&
-    mainSource.includes('worker.postMessage({ type: "cancel"') &&
-    mainSource.includes('globalThis.addEventListener("pagehide", dispose') &&
-    mainSource.includes("worker.terminate()") &&
-    workerSource.includes("ROW_BATCH = 8") &&
-    workerSource.includes(
-      "globalThis.postMessage(message, transferOverview(message))",
-    ),
 };
+const { markerData: _markerData, ...userFacingAssertions } =
+  checks.userFacingLabShape;
+const userFacingFailures = Object.entries(userFacingAssertions)
+  .filter(([, value]) => value !== true)
+  .map(([name]) => name);
+checks.userFacingLabShape.pass = Object.values(userFacingAssertions).every(
+  (value) => value === true,
+);
+checks.userFacingLabShape.failures = userFacingFailures;
 assert(
   checks.userFacingLabShape.pass,
-  "World Lab page shape omitted required coordinates, marker, scale, palette, or diagnostic removal",
+  `World Lab page shape failed: ${userFacingFailures.join(", ")}`,
 );
 
 const proof = {

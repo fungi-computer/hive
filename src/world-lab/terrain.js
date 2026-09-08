@@ -1,3 +1,4 @@
+import { hashString, latticeHash2 } from "./lattice-hash.mjs";
 // Isolated World Lab terrain contract. This module deliberately has no game,
 // Clearing, command, job, actor, camera, or persistence imports.
 
@@ -90,15 +91,6 @@ export function createWorldSpec(overrides = {}) {
   });
 }
 
-function hashString(value, initial = 2166136261) {
-  let hash = initial;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
 const identityPrefixes = new WeakMap();
 function hashLattice(spec, x, z, salt) {
   let prefix = identityPrefixes.get(spec);
@@ -106,7 +98,7 @@ function hashLattice(spec, x, z, salt) {
     prefix = { identity: spec.identity, hash: hashString(`${spec.identity}|`) };
     identityPrefixes.set(spec, prefix);
   }
-  return hashString(`${x}|${z}|${salt}`, prefix.hash) / 0xffffffff;
+  return latticeHash2(prefix.hash, x, z, salt) / 0xffffffff;
 }
 
 function smooth(value) {
