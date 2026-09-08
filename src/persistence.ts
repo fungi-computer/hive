@@ -136,6 +136,14 @@ const activity = z.discriminatedUnion("kind", [
       kind: z.literal("brew"),
     })
     .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("tap"),
+    })
+    .strict(),
 ]);
 const actor = cell
   .extend({
@@ -156,6 +164,7 @@ const actor = cell
       "repair-cache",
       "brew-water",
       "brew",
+      "tap",
     ]),
     path: z.array(cell),
     leg: nonNegative,
@@ -192,6 +201,15 @@ const job = z.discriminatedUnion("kind", [
     .strict(),
   z.object({ ...jobBase, kind: z.literal("fill-kettle"), target: id }).strict(),
   z.object({ ...jobBase, kind: z.literal("brew"), target: id }).strict(),
+  z
+    .object({
+      ...jobBase,
+      kind: z.literal("tap"),
+      target: id,
+      transformation: id,
+      progress: nonNegative,
+    })
+    .strict(),
 ]);
 /** Exact schema-11 activity/job wire: Craft and Brew did not exist yet. */
 const v11Activity = z.discriminatedUnion("kind", [
@@ -581,6 +599,19 @@ const stateSchema = z
             })
             .strict(),
         ),
+        consumptions: z
+          .array(
+            z
+              .object({
+                id,
+                transformation: id,
+                role: id,
+                material,
+                quantity: positive,
+              })
+              .strict(),
+          )
+          .default([]),
         embedded: z.array(
           z
             .object({
@@ -776,6 +807,16 @@ function activityMatchesJob(
       process?.job === job.id &&
       (process.phase === "prepare" || process.phase === "keg") &&
       process.station === job.target
+    );
+  }
+  if (task.kind === "tap") {
+    const transformation = state.materials.transformations.find(
+      (entry) => entry.id === task.target && entry.settlement !== null,
+    );
+    return (
+      job.kind === "tap" &&
+      job.transformation === task.target &&
+      transformation !== undefined
     );
   }
   if (task.kind === "transfer") {
@@ -1208,6 +1249,66 @@ function validateTransformations({ state }: RelationContext): void {
         : !settledTransformationMatchesDefinition(state, transformation)
     )
       fail(`transformation ${transformation.id} does not match recipe binding`);
+  }
+}
+
+/** Settled output may move later; this durable receipt is its only tap ledger. */
+function validateRecipeConsumptions({ state }: RelationContext): void {
+  const ids = new Set<string>();
+  const consumed = new Map<string, number>();
+  for (const entry of state.materials.consumptions) {
+    if (ids.has(entry.id)) fail(`duplicate recipe consumption ${entry.id}`);
+    ids.add(entry.id);
+    const transformation = state.materials.transformations.find(
+      (candidate) => candidate.id === entry.transformation,
+    );
+    if (!transformation?.settlement)
+      fail(`recipe consumption ${entry.id} lacks settled transformation`);
+    const definition = recipeDefinition(transformation.definition);
+    const output = transformation.settlement.outputs.find(
+      (candidate) =>
+        candidate.role === entry.role && candidate.material === entry.material,
+    );
+    if (
+      !output ||
+      definition.tap.outputRole !== entry.role ||
+      definition.tap.material !== entry.material ||
+      definition.tap.quantity !== entry.quantity
+    )
+      fail(`recipe consumption ${entry.id} has invalid serving`);
+    const key = `${entry.transformation}/${entry.role}`;
+    const total = (consumed.get(key) ?? 0) + entry.quantity;
+    if (total > output.quantity)
+      fail(`recipe consumption ${entry.id} exceeds settled output`);
+    consumed.set(key, total);
+  }
+}
+
+function validateTapJobs({ state }: RelationContext): void {
+  const transformations = new Set<string>();
+  for (const job of state.jobs) {
+    if (job.kind !== "tap") continue;
+    if (transformations.has(job.transformation))
+      fail(`duplicate tap job for ${job.transformation}`);
+    transformations.add(job.transformation);
+    const transformation = state.materials.transformations.find(
+      (entry) => entry.id === job.transformation,
+    );
+    const station = state.sites.find(
+      (site) =>
+        site.id === job.target &&
+        site.type === "brew-station" &&
+        site.finishedAt !== null,
+    );
+    if (!transformation?.settlement || !station)
+      fail(`tap job ${job.id} lacks settled station receipt`);
+    const definition = recipeDefinition(transformation.definition);
+    if (
+      transformation.settlement.station !==
+        siteMaterialEndpoint(station, definition.stationSlot)?.destination.id ||
+      job.progress >= definition.timings.tap
+    )
+      fail(`tap job ${job.id} has invalid station or progress`);
   }
 }
 
@@ -1917,7 +2018,9 @@ function validateRelations(
   validateOperations(context);
   validateMaterialBindings(context);
   validateTransformations(context);
+  validateRecipeConsumptions(context);
   validateBrewProcesses(context);
+  validateTapJobs(context);
   validateTransfers(context);
   validateContainerCapacity(context);
   validateActorJobRelations(context);
@@ -1951,6 +2054,7 @@ function convertV10State(predecessor: V10SavedClearing): SavedClearing {
         vessel: use.vessel,
       })),
       transformations: [],
+      consumptions: [],
     },
   };
   validateRelations(state);
@@ -2018,6 +2122,7 @@ function convertV11State(predecessor: V11SavedClearing): SavedClearing {
           settlement: null,
         }),
       ),
+      consumptions: [],
     },
   };
   return validateRelations(state);

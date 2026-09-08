@@ -51,6 +51,8 @@ import {
   brewPrepareRemaining,
   brewProcessId,
   brewStationReadiness,
+  tapRemaining,
+  tapStationReadiness,
   admitBrew,
   type BrewSupplyRequirement,
 } from "./brewing.ts";
@@ -675,6 +677,43 @@ function brewOption(
     },
   };
 }
+
+function tapOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "tap" }>,
+  blocked: Set<string>,
+): Options {
+  const station = state.sites.find(
+    (site) =>
+      site.id === job.target &&
+      site.type === "brew-station" &&
+      site.finishedAt !== null,
+  );
+  if (!station) return no("Waiting for a finished brew station");
+  const readiness = tapStationReadiness(state, station, job.transformation);
+  if (readiness.kind === "waiting") return no(readiness.reason);
+  const path = workApproach(state, person, station, blocked);
+  const duration = tapRemaining(
+    state,
+    station,
+    job.transformation,
+    job.progress,
+  );
+  return !path || duration === null
+    ? no("Waiting for a settled ale serving")
+    : {
+        reason: "Ready to tap herbal ale",
+        candidate: make(
+          job,
+          "tap",
+          job.transformation,
+          path,
+          duration,
+          pathTicks(person, path),
+        ),
+      };
+}
 function option(
   state: Clearing,
   p: Actor,
@@ -687,6 +726,7 @@ function option(
   if (j.kind === "fill-kettle")
     return fillKettleOption(state, p, j, b, sourceFacts);
   if (j.kind === "brew") return brewOption(state, p, j, b, sourceFacts);
+  if (j.kind === "tap") return tapOption(state, p, j, b);
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
@@ -785,13 +825,15 @@ function automatic(a: Activity): WorkType | null {
         ? "haul"
         : a.kind === "brew"
           ? "craft"
-          : a.kind === "build" || a.kind === "deconstruct"
-            ? "build"
-            : a.kind === "chop"
-              ? "chop"
-              : a.kind === "sow" || a.kind === "harvest"
-                ? "garden"
-                : null;
+          : a.kind === "tap"
+            ? "craft"
+            : a.kind === "build" || a.kind === "deconstruct"
+              ? "build"
+              : a.kind === "chop"
+                ? "chop"
+                : a.kind === "sow" || a.kind === "harvest"
+                  ? "garden"
+                  : null;
 }
 export function assignWork(state: Clearing, colony: Colony): void {
   if (!state.workDirty) return;

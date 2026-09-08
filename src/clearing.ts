@@ -45,6 +45,7 @@ export function createClearing(seed = 42): Clearing {
       transfers: [],
       bindings: [],
       transformations: [],
+      consumptions: [],
       embedded: [],
       nextLotId: 1,
       consumedWood: 0,

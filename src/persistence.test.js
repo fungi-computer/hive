@@ -346,6 +346,38 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
   settledState.jobs = [];
   settledState.processes = [];
   assert.doesNotThrow(() => restoreSnapshot(settled));
+  const tapping = structuredClone(settled);
+  tapping.savedState.materials.consumptions = [
+    {
+      id: "tap-receipt",
+      transformation: "brew-process",
+      role: "ale",
+      material: "ale",
+      quantity: 1,
+    },
+  ];
+  tapping.savedState.jobs.push({
+    ...job("tap-job", "tap", "station-a"),
+    transformation: "brew-process",
+    progress: 0,
+  });
+  assert.doesNotThrow(() => restoreSnapshot(tapping));
+  const duplicateServing = structuredClone(tapping);
+  for (let index = 2; index <= 5; index++)
+    duplicateServing.savedState.materials.consumptions.push({
+      ...duplicateServing.savedState.materials.consumptions[0],
+      id: `tap-receipt-${index}`,
+    });
+  assert.throws(
+    () => restoreSnapshot(duplicateServing),
+    /exceeds settled output/,
+  );
+  const mismatchedTap = structuredClone(tapping);
+  mismatchedTap.savedState.jobs[0].transformation = "missing-receipt";
+  assert.throws(
+    () => restoreSnapshot(mismatchedTap),
+    /tap job tap-job lacks settled station receipt/,
+  );
   const mismatchedReceipt = structuredClone(settled);
   mismatchedReceipt.savedState.materials.transformations[0].settlement.outputs[0].destination =
     "brew-tray:station-a";

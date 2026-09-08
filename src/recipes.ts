@@ -45,6 +45,11 @@ export type RecipeDefinition = {
     readonly keg: PositiveInt;
     readonly tap: PositiveInt;
   };
+  readonly tap: {
+    readonly outputRole: string;
+    readonly material: Material;
+    readonly quantity: PositiveInt;
+  };
 };
 
 /** Pinned authored facts; station capacity is deliberately not recipe yield. */
@@ -116,6 +121,11 @@ export const HERBAL_ALE_V1 = {
     ferment: 240 as PositiveInt,
     keg: 20 as PositiveInt,
     tap: 12 as PositiveInt,
+  },
+  tap: {
+    outputRole: "ale",
+    material: "ale",
+    quantity: 1 as PositiveInt,
   },
 } as const satisfies RecipeDefinition;
 

@@ -15,6 +15,7 @@ import {
   containerQuantity,
   createGroundLot,
   completeRecipePrepare,
+  consumeRecipeServing,
   deliverTransfer,
   drawPailWater,
   embedConstruction,
@@ -44,6 +45,7 @@ const fresh = (lots = []) => ({
   transfers: [],
   bindings: [],
   transformations: [],
+  consumptions: [],
   embedded: [],
   nextLotId: 1,
   consumedWood: 0,
@@ -1259,4 +1261,60 @@ test("recipe settlement atomically realizes bound output receipts without replac
     false,
   );
   assert.deepEqual(materials, settled, "receipt prevents duplicate settlement");
+});
+
+test("a settled recipe receipt sinks one exact serving without pinning later output lots", () => {
+  const materials = fresh([
+    {
+      id: "ale-serving",
+      material: "ale",
+      quantity: 4,
+      location: { kind: "container", container: "vessel:keg" },
+    },
+  ]);
+  materials.transformations.push({
+    id: "settled-batch",
+    definition: HERBAL_ALE_V1.id,
+    inputs: [],
+    settlement: {
+      station: "kettle:station",
+      retained: [],
+      outputs: [
+        {
+          role: "ale",
+          destination: "vessel:keg",
+          material: "ale",
+          quantity: 4,
+        },
+      ],
+    },
+  });
+  const serving = {
+    id: "tap-1",
+    transformation: "settled-batch",
+    role: "ale",
+    material: "ale",
+    quantity: 1,
+    sourceLot: "ale-serving",
+    destination: {
+      id: "vessel:keg",
+      capacity: 4,
+      accepts: ["ale"],
+      bulk: { ale: 1 },
+    },
+  };
+  assert.equal(consumeRecipeServing(materials, serving).ok, true);
+  assert.equal(containerQuantity(materials, "vessel:keg", "ale"), 3);
+  assert.equal(consumeRecipeServing(materials, serving).ok, false);
+  for (let index = 2; index <= 4; index++)
+    assert.equal(
+      consumeRecipeServing(materials, { ...serving, id: `tap-${index}` }).ok,
+      true,
+    );
+  assert.equal(containerQuantity(materials, "vessel:keg", "ale"), 0);
+  assert.equal(
+    consumeRecipeServing(materials, { ...serving, id: "tap-5" }).ok,
+    false,
+  );
+  assert.equal(materials.consumptions.length, 4);
 });

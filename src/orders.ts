@@ -4,6 +4,7 @@ import type {
   Job,
   RepairCacheCommand,
   BrewCommand,
+  TapCommand,
   Scope,
   StoreCommand,
   WorkCommand,
@@ -12,7 +13,11 @@ import { inScope, scopeProblem } from "./actors.ts";
 import { constructionBuffer, placementProblem } from "./construction.js";
 import { cacheRepairBuffer, sourceIsOpen } from "./finite-sources.ts";
 import { interruptWork } from "./activity.ts";
-import { brewForJob, cancelPreparingBrew } from "./brewing.ts";
+import {
+  brewForJob,
+  cancelPreparingBrew,
+  tapStationReadiness,
+} from "./brewing.ts";
 import {
   containerContents,
   interruptOperationPail,
@@ -77,6 +82,25 @@ export function commandProblem(s: Clearing, c: Command): string {
     );
     return !station ? "That brew station is not finished." : scopeProblem(s, c);
   }
+  if (c.kind === "tap") {
+    const station = s.sites.find(
+      (site) =>
+        site.id === c.station &&
+        site.type === "brew-station" &&
+        site.finishedAt !== null,
+    );
+    if (!station) return "That brew station is not finished.";
+    const readiness = tapStationReadiness(s, station);
+    return readiness.kind === "waiting"
+      ? readiness.reason
+      : s.jobs.some(
+            (job) =>
+              job.kind === "tap" &&
+              job.transformation === readiness.transformation,
+          )
+        ? "That settled batch is already being tapped."
+        : scopeProblem(s, c);
+  }
   if (c.kind === "build") return placementProblem(s, c);
   if (c.kind === "harvest") {
     const h = s.herbs.find((x) => x.id === c.herb);
@@ -138,6 +162,7 @@ function scope(
     | StoreCommand
     | RepairCacheCommand
     | BrewCommand
+    | TapCommand
     | Extract<Command, { kind: "fill-kettle" }>,
 ): Scope {
   return c.kind === "store"
@@ -151,6 +176,7 @@ function add(
     | StoreCommand
     | RepairCacheCommand
     | BrewCommand
+    | TapCommand
     | Extract<Command, { kind: "fill-kettle" }>,
 ) {
   const sc = scope(c),
@@ -196,7 +222,21 @@ function add(
       reason: "Ordered",
       routine: false,
     };
-  else if (c.kind === "build") {
+  else if (c.kind === "tap") {
+    const station = s.sites.find((site) => site.id === c.station)!;
+    const readiness = tapStationReadiness(s, station);
+    if (readiness.kind !== "ready") throw new Error(readiness.reason);
+    j = {
+      id,
+      kind: "tap",
+      target: c.station,
+      transformation: readiness.transformation,
+      progress: 0,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  } else if (c.kind === "build") {
     const site = {
       id: `site-${s.nextId++}`,
       type: c.type,
@@ -375,6 +415,7 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "repair-cache" ||
     c.kind === "fill-kettle" ||
     c.kind === "brew" ||
+    c.kind === "tap" ||
     c.kind === "rest"
   )
     add(s, c);

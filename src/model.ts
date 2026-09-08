@@ -145,11 +145,20 @@ export type RecipeTransformation = {
     }[];
   };
 };
+/** A durable, receipt-scoped consumption; its physical serving may later be gone. */
+export type RecipeConsumption = {
+  readonly id: OperationId;
+  readonly transformation: OperationId;
+  readonly role: string;
+  readonly material: Material;
+  readonly quantity: PositiveInt;
+};
 export type MaterialsState = {
   lots: ItemLot[];
   transfers: Transfer[];
   bindings: MaterialBinding[];
   transformations: RecipeTransformation[];
+  consumptions: RecipeConsumption[];
   embedded: EmbeddedMaterial[];
   nextLotId: number;
   consumedWood: number;
@@ -218,12 +227,19 @@ export type BrewCommand = Scope & {
   direct?: boolean;
   station: string;
 };
+/** Tap chooses only a finished station; recipe receipt and serving stay owned below UI. */
+export type TapCommand = Scope & {
+  kind: "tap";
+  direct?: boolean;
+  station: string;
+};
 export type Command =
   | WorkCommand
   | StoreCommand
   | RepairCacheCommand
   | FillKettleCommand
   | BrewCommand
+  | TapCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
@@ -258,6 +274,12 @@ export type FillKettleJob = JobBase & {
   target: string;
 };
 export type BrewJob = JobBase & { kind: "brew"; target: string };
+export type TapJob = JobBase & {
+  kind: "tap";
+  target: string;
+  transformation: OperationId;
+  progress: number;
+};
 export type Job =
   | ChopJob
   | BuildJob
@@ -268,7 +290,8 @@ export type Job =
   | RestJob
   | RepairCacheJob
   | FillKettleJob
-  | BrewJob;
+  | BrewJob
+  | TapJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -285,6 +308,7 @@ export type SleepActivity = ActivityBase & { kind: "sleep" };
 export type BrewWaterActivity = ActivityBase & { kind: "brew-water" };
 export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
 export type BrewActivity = ActivityBase & { kind: "brew" };
+export type TapActivity = ActivityBase & { kind: "tap" };
 export type Activity =
   | ChopActivity
   | BuildActivity
@@ -295,7 +319,8 @@ export type Activity =
   | SleepActivity
   | BrewWaterActivity
   | RepairCacheActivity
-  | BrewActivity;
+  | BrewActivity
+  | TapActivity;
 export type Body = Cell & {
   dir: number;
   mode: "idle" | "walk" | Activity["kind"];

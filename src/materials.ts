@@ -1184,6 +1184,17 @@ export type ResolvedRecipeSettlement = {
   }[];
 };
 
+/** A definition-resolved serving from one settled physical output destination. */
+export type ResolvedRecipeServing = {
+  id: string;
+  transformation: string;
+  role: string;
+  material: Material;
+  quantity: PositiveInt;
+  sourceLot: LotId;
+  destination: ContainerSpec;
+};
+
 function recipePlanOwnerAvailable(
   state: MaterialsState,
   input: ResolvedRecipePlan,
@@ -1553,6 +1564,56 @@ export function settleRecipePlan(
     },
   );
   state.bindings = state.bindings.filter((candidate) => candidate !== binding);
+  return success(undefined);
+}
+
+/** Atomically sinks one exact output portion and leaves a durable receipt. */
+export function consumeRecipeServing(
+  state: MaterialsState,
+  serving: ResolvedRecipeServing,
+): MaterialResult<void> {
+  if (state.consumptions.some((entry) => entry.id === serving.id))
+    return failure("owner-busy");
+  const transformation = state.transformations.find(
+    (entry) => entry.id === serving.transformation,
+  );
+  const output = transformation?.settlement?.outputs.find(
+    (entry) =>
+      entry.role === serving.role &&
+      entry.material === serving.material &&
+      entry.destination === serving.destination.id,
+  );
+  if (!transformation?.settlement || !output) return failure("wrong-phase");
+  const consumed = state.consumptions.reduce(
+    (total, entry) =>
+      total +
+      (entry.transformation === serving.transformation &&
+      entry.role === serving.role
+        ? entry.quantity
+        : 0),
+    0,
+  );
+  if (consumed + serving.quantity > output.quantity)
+    return failure("source-insufficient");
+  const lot = lotById(state, serving.sourceLot);
+  if (
+    !lot ||
+    lot.material !== serving.material ||
+    lot.location.kind !== "container" ||
+    lot.location.container !== serving.destination.id ||
+    availableQuantity(state, lot.id) < serving.quantity
+  )
+    return failure("source-insufficient");
+  if (lot.quantity === serving.quantity)
+    state.lots = state.lots.filter((entry) => entry !== lot);
+  else lot.quantity = (lot.quantity - serving.quantity) as PositiveInt;
+  state.consumptions.push({
+    id: serving.id,
+    transformation: serving.transformation,
+    role: serving.role,
+    material: serving.material,
+    quantity: serving.quantity,
+  });
   return success(undefined);
 }
 

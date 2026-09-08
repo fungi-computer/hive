@@ -48,7 +48,7 @@ import {
 } from "./finite-sources.ts";
 import { isNight } from "./routine.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
-import { attendBrew } from "./brewing.ts";
+import { attendBrew, attendTap } from "./brewing.ts";
 export const CHOP_TICKS = 80;
 function groundCell(at: Cell): Cell {
   return { x: at.x, z: at.z, level: at.level };
@@ -499,12 +499,48 @@ function brew(s: Clearing, p: Actor, t: Activity): void {
     finishJob(s, p, t.job);
   }
 }
+function tap(s: Clearing, p: Actor, t: Activity): void {
+  const job = s.jobs.find(
+    (candidate): candidate is Extract<typeof candidate, { kind: "tap" }> =>
+      candidate.id === t.job && candidate.kind === "tap",
+  );
+  const station = job && s.sites.find((site) => site.id === job.target);
+  if (
+    !job ||
+    t.target !== job.transformation ||
+    !station ||
+    station.type !== "brew-station" ||
+    station.finishedAt === null
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!accessWork(s, p, brewStationAccessCells(station))) return;
+  const advanced = attendTap(s, {
+    id: `tap:${job.id}`,
+    station,
+    transformation: job.transformation,
+    progress: job.progress,
+  });
+  if (!advanced.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  if (advanced.value === "working") {
+    job.progress++;
+    p.work = job.progress;
+    return;
+  }
+  s.notice = "One herbal ale serving is tapped.";
+  finishJob(s, p, job.id);
+}
 export function advanceWork(s: Clearing, p: Actor): void {
   const t = p.task;
   if (!t) return;
   if (t.kind === "repair-cache") return repairCache(s, p, t);
   if (t.kind === "brew-water") return brewWater(s, p, t);
   if (t.kind === "brew") return brew(s, p, t);
+  if (t.kind === "tap") return tap(s, p, t);
   const target =
     t.kind === "transfer"
       ? (() => {

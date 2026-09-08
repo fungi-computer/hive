@@ -13,7 +13,7 @@ import {
 } from "./construction.js";
 import { cacheRepairBuffer } from "./finite-sources.ts";
 import { assignWork } from "./jobs.ts";
-import { brewPrepareRemaining } from "./brewing.ts";
+import { brewPrepareRemaining, tapStationReadiness } from "./brewing.ts";
 import { recipeDefinition } from "./recipes.ts";
 import {
   containerQuantity,
@@ -1606,6 +1606,134 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
     settledAle,
     "a retired process cannot settle a second output",
   );
+  assert.equal(
+    removalProblem(kegReloaded, station),
+    "The brew station is occupied.",
+    "the retained keg and tray continue to block station removal",
+  );
+
+  assert.deepEqual(
+    actualStep(kegReloaded, [{ kind: "tap", station: station.id }]),
+    [{ status: "applied" }],
+  );
+  assert.ok(
+    kegReloaded.jobs.some((job) => job.kind === "tap"),
+    "the admitted shared Tap job remains until its twelve attended ticks finish",
+  );
+  for (
+    let tick = 0;
+    tick < 160 &&
+    (kegReloaded.jobs.find((job) => job.kind === "tap")?.progress ?? 0) < 2;
+    tick++
+  )
+    actualStep(kegReloaded);
+  const firstTap = kegReloaded.jobs.find((job) => job.kind === "tap");
+  const tapWorker = Object.values(kegReloaded.actors).find(
+    (actor) => actor.task?.kind === "tap",
+  );
+  assert.ok(firstTap);
+  assert.equal(firstTap.scope.actors, null, "Tap is shared Craft work");
+  assert.ok(tapWorker);
+  assert.ok(firstTap.progress >= 2);
+  actualStep(kegReloaded, [{ kind: "draft", actor: tapWorker.id }]);
+  const tapReloaded = restoreSnapshot(snapshotFor(kegReloaded)).state;
+  const pausedTap = tapReloaded.jobs.find((job) => job.kind === "tap");
+  assert.equal(tapReloaded.paused, true);
+  assert.equal(pausedTap?.progress, firstTap.progress);
+  actualStep(tapReloaded, [{ kind: "undraft", actor: tapWorker.id }]);
+  tapReloaded.paused = false;
+  for (
+    let tick = 0;
+    tick < 160 &&
+    (tapReloaded.jobs.find((job) => job.kind === "tap")?.progress ?? 0) < 11;
+    tick++
+  )
+    actualStep(tapReloaded);
+  const aleLot = tapReloaded.materials.lots.find(
+    (lot) => lot.material === "ale",
+  );
+  assert.ok(aleLot);
+  const originalAleLocation = structuredClone(aleLot.location);
+  aleLot.location = { kind: "ground", ...cell(1, 1) };
+  const blockedTapMaterials = structuredClone(tapReloaded.materials);
+  actualStep(tapReloaded);
+  assert.deepEqual(
+    tapReloaded.materials,
+    blockedTapMaterials,
+    "a blocked final tap leaves the serving receipt and physical lot unchanged",
+  );
+  assert.equal(tapReloaded.materials.consumptions.length, 0);
+  tapReloaded.materials.lots.find((lot) => lot.id === aleLot.id).location =
+    originalAleLocation;
+  tapReloaded.workDirty = true;
+  for (
+    let tick = 0;
+    tick < 160 && tapReloaded.jobs.some((job) => job.kind === "tap");
+    tick++
+  )
+    actualStep(tapReloaded);
+  assert.equal(
+    containerQuantity(tapReloaded.materials, `vessel:${keg.id}`, "ale"),
+    3,
+  );
+  assert.equal(tapReloaded.materials.consumptions.length, 1);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(tapReloaded)));
+  for (let serving = 2; serving <= 4; serving++) {
+    assert.deepEqual(
+      actualStep(tapReloaded, [{ kind: "tap", station: station.id }]),
+      [{ status: "applied" }],
+    );
+    for (
+      let tick = 0;
+      tick < 160 && tapReloaded.jobs.some((job) => job.kind === "tap");
+      tick++
+    )
+      actualStep(tapReloaded);
+    assert.equal(
+      containerQuantity(tapReloaded.materials, `vessel:${keg.id}`, "ale"),
+      4 - serving,
+    );
+  }
+  assert.equal(tapReloaded.materials.consumptions.length, 4);
+  const laterBatch = structuredClone(tapReloaded);
+  const exhausted = laterBatch.materials.transformations[0];
+  assert.ok(exhausted?.settlement);
+  laterBatch.materials.transformations.push({
+    ...exhausted,
+    id: "settled-batch-after-exhaustion",
+    settlement: {
+      ...exhausted.settlement,
+      retained: exhausted.settlement.retained.map((entry) => ({ ...entry })),
+      outputs: exhausted.settlement.outputs.map((entry) => ({ ...entry })),
+    },
+  });
+  laterBatch.materials.lots.push({
+    id: "ale-from-later-batch",
+    material: "ale",
+    quantity: 4,
+    location: { kind: "container", container: `vessel:${keg.id}` },
+  });
+  assert.deepEqual(
+    tapStationReadiness(laterBatch, station),
+    { kind: "ready", transformation: "settled-batch-after-exhaustion" },
+    "an exhausted older receipt cannot shadow a later serving at the same station",
+  );
+  assert.deepEqual(
+    actualStep(tapReloaded, [{ kind: "tap", station: station.id }]),
+    [{ status: "rejected", reason: "Waiting for a settled ale serving" }],
+  );
+  actualStep(tapReloaded);
+  assert.equal(
+    tapReloaded.materials.consumptions.length,
+    4,
+    "a fifth or repeated tick cannot duplicate a serving",
+  );
+  assert.equal(
+    removalProblem(tapReloaded, station),
+    "The brew station is occupied.",
+    "spent grain retains the removal block after the keg is empty",
+  );
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(tapReloaded)));
   conserve(kegReloaded);
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(kegReloaded)));
 });
