@@ -136,6 +136,7 @@ export function ClearingMinimap({ facts, level, viewport, onRequestCenter }) {
       <div
         aria-label={`${level === 1 ? "Upper" : "Ground"} clearing map. Arrow keys move the cell cursor; Enter or Space requests a camera center.`}
         className="clearing-minimap-surface"
+        data-clearing-minimap-control
         data-testid="clearing-minimap-control"
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
