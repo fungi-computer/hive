@@ -2,9 +2,17 @@
 
 Status: Game CTO implementation direction, 2026-09-07. Companion to `architecture-implementation-plan.md`. Future names and pseudocode are contracts, not a request to prebuild every module. Current tiny-map runtime keeps its single simulation owner, actual libcolony optimizer, Jotai display/selection, XState gestures, boundary Zod and original art pipeline. No ECS, Effect conversion, second scheduler or general plugin engine is selected by this plan.
 
-The [storyteller role](rimworld-storyteller-role-20260908.md) remains a future
-game-owned incident director. Paid AI account/autoplay is separate; model output
-cannot mutate time or bypass authoritative admission.
+The [storyteller role](rimworld-storyteller-role-20260908.md) is a deterministic
+no-LLM everyday game-owned director; Shiitake may occasionally intervene through
+the same authority/history/pressure at tentative cadence. Small chat and explicit
+assistance/delegated play, plus paid AI account/autoplay, remain separate. Session
+results are not saved game actions; an `executionId` identifies an execute program,
+not each game command. Use authorized Mycelium host operations, not invented Team
+Installation or Whistle transport; Channels/Discord inputs remain explicit
+observations/authority pending Botanical anchors.
+The game itself is one channel; Hive owns its observations, context and permitted
+responses. Botanical owns Discord/shared-channel infrastructure and reconciles
+Channels anchors. No Game Discord adapter or framework is part of this contract.
 
 ## Evidence and the first consumer
 
@@ -221,8 +229,13 @@ Expose small query tools over authorized committed facts: inspect entity, list n
 
 A familiar, Devil, clerk, faction leader or storyteller is a persona plus an explicit control grant. The grant names issuer/principal, controlled entities or groups, verbs, region/space scope, resource/action budgets, expiry and revocation policy. Initial group grants pin a membership snapshot; dynamic membership is a separately explicit grant mode, with visible membership changes and per-command authorization against the current revision. Resource/action budget debit is atomic with idempotent command admission, so retry cannot spend twice and concurrent commands cannot overspend. Receipts retain grant ID/revision. An already-admitted game-owned standing policy follows its stored revocation policy; a planner's new command after grant expiry is rejected. Roles do not widen grants implicitly. Player-delegated AI and world-directed event AI use distinct permissions; an ordinary companion cannot spawn creatures or edit reputations simply by adopting the storyteller persona.
 
-Shiitake model/tool work runs outside the deterministic step. The planner chooses goals or standing policies at a bounded cadence; ordinary NPC/work routines carry out movement, hauling and repeated work cheaply. Wake a planner for meaningful exceptions/events rather than every tick. Tools submit the same commands as humans and receive accepted/rejected/pending receipts. Text in a book or dialogue is game content, not an instruction that grants new tools or access.
+Shiitake model/tool work runs outside the deterministic step. The planner chooses goals or standing policies at a bounded cadence; ordinary NPC/work routines carry out movement, hauling and repeated work cheaply. Wake a planner for meaningful exceptions/events rather than every tick. Tools submit the same commands as humans and receive accepted/rejected/pending receipts. Text in a book or dialogue is game content, not an instruction that grants new tools or access. Current Botanical durable terminals/goals/mail supersede historical idle/no-goal assumptions; Session completion still does not prove a saved game action.
 
-Watchdog may own durable external AI tasks only after its actual host transaction/claim/recovery contract is integrated. Its claimed/completed row does not prove the game action happened; reconcile the game's command receipt. Whistle or another Botanical transport can deliver observations only through its reviewed actual API; this document does not invent that integration. Reuse ordinary supported primitives at a real boundary rather than copying Botanical services into Hive.
+Historical Watchdog/Whistle guidance is superseded where it implied a game
+transport: a Watchdog claimed/completed row still does not prove the game action,
+so reconcile the game's command receipt. Whistle handled/browser proof is not a
+typed, authorized, durable game API. Use ordinary authorized Mycelium host
+operations; Channels remain pending Botanical review, with no invented Whistle
+game transport or copied Botanical service.
 
 Basic standing orders and reasonable unattended protection remain game behavior, independent of a paid model subscription. Optional AI can improve planning, explanations and convenience under the same game rules. Pricing, enforcement, online danger and shared-space hosting require explicit product decisions; no new purchases or backend deployment is authorized by these plans.

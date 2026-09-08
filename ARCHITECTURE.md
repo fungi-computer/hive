@@ -24,9 +24,15 @@ now records the current small-world sequence: trustworthy controls, one unified
 goods/transfer owner, mixed storage, the first honest brew, then one ecology
 consumer. The independent World Lab does not expand live gameplay.
 The deferred [storyteller role](docs/decisions/rimworld-storyteller-role-20260908.md)
-is an incident director rather than narration. Its first proposed proof is a
-physical visiting party with readiness/pressure-based selection, scheduling and
-defer; paid AI account/autoplay remains a separate future authority.
+is a deterministic no-LLM incident director rather than narration. Shiitake may
+occasionally direct larger interventions through the same authority/history/
+pressure, at tentative cadence. Its first proposed proof is a physical visiting
+party with readiness/pressure-based selection, scheduling and defer; chat,
+assistance/delegated play and paid AI account/autoplay remain separate future
+product directions.
+The game itself is a channel: Hive owns game observations, context and permitted
+responses; Botanical owns Discord/shared-channel infrastructure and reconciles
+Channels anchors. No Game Discord responsibility or adapter is implied.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
 ridge identity and seam proof precede any larger region or finite-globe choice.

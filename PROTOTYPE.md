@@ -61,10 +61,16 @@ keeps the tiny home and independent World Lab separate: trustworthy controls,
 one unified goods/transfer owner, mixed storage, the first honest brew, then one
 ecology consumer. World expansion still waits behind small-home playability.
 The deferred [RimWorld storyteller role](docs/decisions/rimworld-storyteller-role-20260908.md)
-means a literal incident director, not narration: its first proposed proof is a
-physical visiting party selected/scheduled/deferred from readiness and pressure,
-with persistent event identity and one game-owned lifecycle. It is not Sedge
-recruitment; paid AI account/autoplay remains separate future product direction.
+means a deterministic no-LLM incident director, not narration. Shiitake may
+occasionally direct larger interventions through the same authority, history and
+pressure; cadence is tentative. Its first proposed proof is a physical visiting
+party selected/scheduled/deferred from readiness and pressure, with persistent
+event identity and one game-owned lifecycle. It is not Sedge recruitment; small
+chat and explicit assistance/delegated play, plus paid AI accounts/autoplay,
+remain separate future product direction.
+The game itself is a channel: Hive owns game observations, context and permitted
+responses; Botanical owns Discord/shared-channel infrastructure and is reconciling
+Channels anchors. No Game Discord adapter or framework is implied.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
@@ -690,7 +696,7 @@ No full needs/death simulation, economy, world generator, generalized task or
 construction framework, broader content expansion, or second game engine is
 required. WorldBox and Dwarf Fortress inform the ambition, not this scope.
 
-## Shiitake is the future storyteller
+## Historical Shiitake storyteller wording (superseded by the incident-director decision)
 
 Shiitake's eventual role is analogous to RimWorld's storyteller: it observes
 job state and changes arriving through SSE and prompts world events. Storyteller

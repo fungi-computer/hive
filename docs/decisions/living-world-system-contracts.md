@@ -3,8 +3,10 @@
 Status: Game CTO future architecture, 2026-09-07. This incorporates Levi's water/horticulture/waste, groups/zones, social relationships, royalty/beliefs and animal-ecosystem direction. It preserves the tiny-map fun gate and upstairs → brewing. None of these later systems enters the current runtime by virtue of this document. Read with the simulation/content and world-generation contracts.
 
 The [RimWorld storyteller role](rimworld-storyteller-role-20260908.md) is the
-newer bounded incident-director precedence: persistent event identity and one
-game-owned arrival/lifecycle, not narration or Sedge recruitment.
+newer bounded incident-director precedence: deterministic no-LLM everyday
+direction, with occasional Shiitake interventions using the same authority,
+history and pressure. Its first proof is a physical visiting party/defer, with
+persistent identity and one game-owned lifecycle; it is not Sedge recruitment.
 
 ## Compose a causal world
 
