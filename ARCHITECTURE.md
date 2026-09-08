@@ -187,6 +187,19 @@ yeast, water, fuel, quantities and timings remain unresolved proposals; no free
 stock, fluid/weather engine or backend is implied. The shelf direction is mixed
 contents shown as a simple grouped item/count list, never backpack packing;
 bulk/filter/priority/weight are proposals and pawn carry weight remains separate.
+After mixed storage and the first brew, a proposed environmental-workpiece slice
+turns a standing tree into a persistent felled trunk, then applies further
+authoritative fixed-tick work to produce logs. Falling animation reads the
+simulation-owned direction, phase and impact geometry; possible crushing and the
+woodcutter skill needed to control direction remain unsettled. Logs may later
+branch into useful firewood or timber, and one bulk **fell and process**
+designation may carry the dependency chain without forcing repeated clicks.
+Intermediate workpiece identity, progress and material provenance survive
+cancel/save/reload and use the common goods/transfer owner. This is not current
+schema-v7 runtime or a new hauling branch; yields, tools and physics are open,
+and no animation callback settles impact. The sequence is a proposed useful
+consumer after storage/brewing, not a requirement that every ingredient gain a
+long production chain.
 Later hygiene may draw on medieval wells, carried water, basins, latrines/waste,
 then baths, shaving/barber service and Dwarven pumps/pipes. Preserve the narrow
 utility seam: shallow trench + lay pipe + backfill in one top-ground cell, with

@@ -146,6 +146,20 @@ or backend. Future shelf presentation is mixed contents as a simple grouped
 item/count list, never backpack packing; bulk/filter/priority/weight policies are
 proposals, and pawn carry weight remains separate.
 
+After mixed storage and the first brew, a proposed environmental-workpiece slice
+turns a standing tree into a persistent felled trunk, then applies further
+authoritative fixed-tick work to produce logs. Falling animation reads the
+simulation-owned direction, phase and impact geometry; possible crushing and the
+woodcutter skill needed to control direction remain unsettled. Logs may later
+branch into useful firewood or timber, and one bulk **fell and process**
+designation may carry the dependency chain without forcing repeated clicks.
+Intermediate workpiece identity, progress and material provenance survive
+cancel/save/reload and use the common goods/transfer owner. This is not current
+schema-v7 runtime or a new hauling branch; yields, tools and physics are open,
+and no animation callback settles impact. The sequence is a proposed useful
+consumer after storage/brewing, not a requirement that every ingredient gain a
+long production chain.
+
 Deferred household utility direction: medieval dark-funny wells, carried water,
 basins, latrines and waste can later lead to baths, shaving/barber service, and
 Dwarven pumps/pipes. The latest narrow seam is one shallow top-ground cell: lay
