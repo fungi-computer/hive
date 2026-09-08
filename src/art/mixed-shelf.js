@@ -1,8 +1,7 @@
 // Original content arrangement over the approved timber shelf and item meshes.
 // This is a bounded visual profile, not physical inventory/capacity ownership.
-import { group, scene } from "./geometry.js";
+import { box, cylinder, group, scene } from "./geometry.js";
 import { shelf } from "./shelf.js";
-import { woodPile } from "./home.js";
 import { mugwortBundle } from "./herbs.js";
 
 export const PROFILES = Object.freeze([
@@ -19,14 +18,32 @@ export const PROFILES = Object.freeze([
 ].map((profile) => Object.freeze(profile)));
 
 function log(parent) {
-  const source = woodPile(1);
-  // Reuse actual approved log/end-grain meshes, removing only pile positioning.
-  // Lighting stays with the destination scene. No second stock representation.
-  for (const child of [...source.children]) {
-    if (!child.isMesh) continue;
-    child.position.x += 0.18;
-    child.position.y -= 0.12;
-    parent.add(child);
+  // Keep each cut face solid and broad: tiny concentric rings look like straw.
+  cylinder(parent, "#65452e", 0, 0, 0, 0.162, 0.17, 0.49, 7)
+    .rotation.x = Math.PI / 2;
+  cylinder(parent, "#deb477", 0, 0, 0.25, 0.14, 0.14, 0.016, 7)
+    .rotation.x = Math.PI / 2;
+  box(parent, "#996d3d", 0.053, 0.053, 0.261, 0.023, 0.115, 0.006)
+    .rotation.z = -0.65;
+}
+
+function stackedWood(parent, count, mixed) {
+  const seats = mixed
+    ? [[-0.19, 0.826], [-0.19, 1.102]]
+    : count === 1
+      ? [[0, 0.826]]
+      : [[-0.17, 0.826], [0.17, 0.826], [0, 1.102]];
+  for (const [x, y] of seats.slice(0, count)) {
+    const holder = group(parent, x, y, 0.018);
+    log(holder);
+  }
+}
+
+function mixedHerbs(parent, count) {
+  for (let index = 0; index < count; index++) {
+    const holder = group(parent, 0.19, 0.65 + index * 0.16, 0.025);
+    holder.scale.setScalar(0.72);
+    mugwortBundle(holder);
   }
 }
 
@@ -43,19 +60,17 @@ export function mixedShelf(key, direction) {
     return s;
   }
   shelf(model, "finished");
-  const items = [
-    ...Array(profile.wood).fill("wood"),
-    ...Array(profile.herbs).fill("mugwort"),
-  ];
-  items.forEach((kind, index) => {
-    const one = items.length === 1;
-    const scale = one ? 1 : items.length === 2 ? 0.78 : 0.61;
-    const x = one ? 0 : (index - (items.length - 1) / 2) * (items.length === 2 ? 0.39 : 0.26);
-    const holder = group(model, x, kind === "wood" ? 0.67 + 0.09 * scale : 0.65, 0.025);
+  if (profile.wood > 0) {
+    stackedWood(model, profile.wood, profile.herbs > 0);
+    mixedHerbs(model, profile.herbs);
+    return s;
+  }
+  for (let index = 0; index < profile.herbs; index++) {
+    const scale = profile.herbs === 2 ? 0.78 : 0.61;
+    const x = (index - (profile.herbs - 1) / 2) * (profile.herbs === 2 ? 0.39 : 0.26);
+    const holder = group(model, x, 0.65, 0.025);
     holder.scale.setScalar(scale);
-    if (one) holder.rotation.y = Math.PI / 2;
-    if (kind === "wood") log(holder);
-    else mugwortBundle(holder);
-  });
+    mugwortBundle(holder);
+  }
   return s;
 }
