@@ -8,48 +8,7 @@
   <body>
     <div data-study-chrome data-study-id="world-lab"></div>
     <main id="study-content" tabindex="-1">
-      <h1>World Lab / deterministic terrain</h1>
-      <p class="boundary">
-        An isolated terrain and render-residency measurement page. It does not
-        load the live Clearing, create actors, or run caravan/simulation work. A
-        single bounded worker samples the atlas while the authoritative 80×80
-        local view stays responsive.
-      </p>
-      <div class="controls" aria-label="World Lab named locations">
-        <button data-cell="0,0" data-label="Origin">
-          Origin <span>(0, 0)</span>
-        </button>
-        <button data-feature="wetDryBoundary">
-          Northwater wet/dry boundary <span>(exact sampled neighbours)</span>
-        </button>
-        <button data-feature="ridge">
-          Lantern Ridge <span>(from generator)</span>
-        </button>
-        <button data-feature="canyon">
-          Mallowcut Canyon <span>(from generator)</span>
-        </button>
-        <button data-cell="-1,0" data-label="Signed cell">
-          Signed cell <span>(-1, 0)</span>
-        </button>
-      </div>
-      <div class="atlas-controls" aria-label="Atlas navigation">
-        <div class="pan-controls" aria-label="Pan atlas">
-          <button data-pan="0,-0.25" aria-label="Pan atlas north">North</button>
-          <button data-pan="-0.25,0" aria-label="Pan atlas west">West</button>
-          <button data-pan="0.25,0" aria-label="Pan atlas east">East</button>
-          <button data-pan="0,0.25" aria-label="Pan atlas south">South</button>
-        </div>
-        <div class="zoom-controls" aria-label="Zoom atlas">
-          <button data-atlas-zoom="in">Zoom in</button>
-          <button data-atlas-zoom="out">Zoom out</button>
-        </div>
-        <div class="atlas-status">
-          <output id="world-lab-atlas-status" aria-live="polite"
-            >Loading atlas scale</output
-          >
-          <small id="world-lab-request-status">Waiting for atlas worker</small>
-        </div>
-      </div>
+      <div id="world-lab-controls"></div>
       <div class="canvases">
         <figure>
           <div class="overview-stage">

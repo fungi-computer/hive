@@ -19,6 +19,8 @@ import {
   prepareIsometricSection,
   sampleSectionCells,
 } from "./section.js";
+import { zoomAvailabilityForBounds } from "./control-state.js";
+import { mountWorldLabControls } from "./controls.jsx";
 import "./styles.css";
 
 const spec = createWorldSpec();
@@ -30,8 +32,6 @@ const overviewMarkerCanvas = document.querySelector(
 const localCanvas = document.querySelector("#world-lab-local");
 const localGridCanvas = document.querySelector("#world-lab-local-grid");
 const sectionCanvas = document.querySelector("#world-lab-section");
-const atlasStatus = document.querySelector("#world-lab-atlas-status");
-const requestStatus = document.querySelector("#world-lab-request-status");
 const overviewContext = overviewCanvas.getContext("2d");
 const overviewMarkerContext = overviewMarkerCanvas.getContext("2d");
 const localContext = localCanvas.getContext("2d");
@@ -39,14 +39,18 @@ const localGridContext = localGridCanvas.getContext("2d");
 const sectionContext = sectionCanvas.getContext("2d");
 const residency = createResidency(spec);
 const features = namedFeatures(spec);
-const featureButtons = [
-  { label: "Origin", x: 0, z: 0 },
-  { label: "Northwater wet/dry boundary", ...features.wetDryBoundary },
-  { label: "Lantern Ridge", ...features.ridge },
-  { label: "Mallowcut Canyon", ...features.canyon },
-  { label: "Signed cell", x: -1, z: 0 },
+const namedLocations = [
+  { id: "origin", label: "Origin", x: 0, z: 0 },
+  {
+    id: "wetDryBoundary",
+    label: "Northwater wet/dry boundary",
+    ...features.wetDryBoundary,
+  },
+  { id: "ridge", label: "Lantern Ridge", ...features.ridge },
+  { id: "canyon", label: "Mallowcut Canyon", ...features.canyon },
+  { id: "signed", label: "Signed cell", x: -1, z: 0 },
 ];
-let focus = featureButtons[0];
+let focus = namedLocations[0];
 let center = {
   chunkX: floorDiv(focus.x, spec.chunkSize),
   chunkZ: floorDiv(focus.z, spec.chunkSize),
@@ -60,13 +64,14 @@ let queuedRequest = null;
 let latestRequestId = 0;
 let staleResults = 0;
 let disposed = false;
+let workerProblem = null;
+let controlsSnapshot = null;
+const controlListeners = new Set();
 const MIN_ATLAS_SPAN = 512;
 const MAX_ATLAS_SPAN = 8192;
 const formatNumber = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
-const zoomInButton = document.querySelector('[data-atlas-zoom="in"]');
-const zoomOutButton = document.querySelector('[data-atlas-zoom="out"]');
 
 const terrainPalette = Object.freeze({
   0: [38, 91, 132], // surface-water: bed below sea surface
@@ -281,6 +286,7 @@ function drawSurfaceSection() {
 }
 
 function lifecycleLabel() {
+  if (workerProblem) return `worker error: ${workerProblem}`;
   if (activeRequest && queuedRequest)
     return `sampling #${activeRequest.requestId}; queued newest #${queuedRequest.requestId}`;
   if (activeRequest) return `sampling request #${activeRequest.requestId}`;
@@ -299,20 +305,67 @@ function scaleForBounds(bounds) {
   return `${formatNumber.format(spanX)} × ${formatNumber.format(spanZ)} cells · ${formatNumber.format(footprint)} cells/pixel`;
 }
 
-function scaleStatusLabel() {
-  const requested = scaleForBounds(requestedBounds);
-  if (activeRequest || queuedRequest)
-    return overview
-      ? `Updating to ${requested}; showing ${scaleForBounds(overview.bounds)}`
-      : `Loading ${requested}`;
-  return overview ? `Showing ${scaleForBounds(overview.bounds)}` : requested;
+function zoomAvailability() {
+  return zoomAvailabilityForBounds(
+    requestedBounds,
+    MIN_ATLAS_SPAN,
+    MAX_ATLAS_SPAN,
+  );
 }
 
-function updateZoomAvailability() {
-  const span = requestedBounds.maxXExclusive - requestedBounds.minX;
-  zoomInButton.disabled = span <= MIN_ATLAS_SPAN;
-  zoomOutButton.disabled = span >= MAX_ATLAS_SPAN;
+function publishControls(selectedLocal) {
+  controlsSnapshot = Object.freeze({
+    locations: namedLocations,
+    focus: { id: focus.id ?? null, label: focus.label, x: focus.x, z: focus.z },
+    requested: {
+      bounds: { ...requestedBounds },
+      scale: scaleForBounds(requestedBounds),
+    },
+    displayed: overview
+      ? {
+          bounds: { ...overview.bounds },
+          scale: scaleForBounds(overview.bounds),
+        }
+      : null,
+    lifecycle: lifecycleLabel(),
+    zoom: zoomAvailability(),
+    exact: {
+      x: selectedLocal.x,
+      z: selectedLocal.z,
+      terrain: selectedLocal.terrain,
+      bedLevel: selectedLocal.bedLevel,
+      bedMetres: Number(selectedLocal.bedMetres.toFixed(2)),
+      seaSurfaceLevel: selectedLocal.seaSurfaceLevel,
+    },
+  });
+  for (const listener of controlListeners) listener();
 }
+
+const controls = Object.freeze({
+  subscribe(listener) {
+    controlListeners.add(listener);
+    return () => controlListeners.delete(listener);
+  },
+  getSnapshot() {
+    return controlsSnapshot;
+  },
+  jump(id) {
+    const location = namedLocations.find((candidate) => candidate.id === id);
+    if (!location) throw new Error(`unknown World Lab location: ${id}`);
+    moveFocus(location.label, location.x, location.z, location.id);
+    const span = requestedBounds.maxXExclusive - requestedBounds.minX;
+    requestOverview(
+      boundsAround(location.x, location.z, span),
+      "named-location",
+    );
+  },
+  pan(dx, dz) {
+    panAtlas(dx, dz);
+  },
+  zoom(direction) {
+    return zoomAtlas(direction);
+  },
+});
 
 function render() {
   const local = drawLocal();
@@ -455,9 +508,7 @@ function render() {
     null,
     2,
   );
-  atlasStatus.textContent = scaleStatusLabel();
-  requestStatus.textContent = lifecycleLabel();
-  updateZoomAvailability();
+  publishControls(selectedLocal);
 }
 
 function contractReport() {
@@ -514,10 +565,11 @@ function startQueuedRequest() {
     });
     worker.addEventListener("message", receiveOverview);
     worker.addEventListener("error", (event) => {
-      requestStatus.textContent = `worker error: ${event.message}`;
+      workerProblem = event.message;
       activeRequest = null;
       worker.terminate();
       worker = null;
+      render();
       startQueuedRequest();
     });
   }
@@ -554,7 +606,7 @@ function receiveOverview(event) {
     message.type === "error" &&
     completed.requestId === latestRequestId
   ) {
-    requestStatus.textContent = `request failed: ${message.message}`;
+    workerProblem = `request failed: ${message.message}`;
   }
   contractReport();
   render();
@@ -563,6 +615,7 @@ function receiveOverview(event) {
 
 function requestOverview(bounds, reason) {
   requestedBounds = { ...bounds };
+  workerProblem = null;
   const requestId = ++latestRequestId;
   queuedRequest = {
     requestId,
@@ -591,8 +644,8 @@ function boundsAround(x, z, spanX, spanZ = spanX) {
   };
 }
 
-function moveFocus(label, x, z) {
-  focus = { label, x, z };
+function moveFocus(label, x, z, id = null) {
+  focus = { label, x, z, id };
   center = {
     chunkX: floorDiv(x, spec.chunkSize),
     chunkZ: floorDiv(z, spec.chunkSize),
@@ -626,7 +679,7 @@ function zoomAtlas(direction) {
     Math.min(MAX_ATLAS_SPAN, Math.round(currentSpan * scale)),
   );
   if (nextSpan === currentSpan) {
-    updateZoomAvailability();
+    render();
     return false;
   }
   requestOverview(
@@ -635,34 +688,6 @@ function zoomAtlas(direction) {
   );
   return true;
 }
-
-for (const button of document.querySelectorAll("[data-feature]")) {
-  const feature = features[button.dataset.feature];
-  if (!feature)
-    throw new Error(`unknown named feature ${button.dataset.feature}`);
-  button.dataset.cell = `${feature.x},${feature.z}`;
-  button.dataset.label = feature.name;
-  button.querySelector("span").textContent = `(${feature.x}, ${feature.z})`;
-}
-
-for (const button of document.querySelectorAll("[data-cell]")) {
-  button.addEventListener("click", () => {
-    const [x, z] = button.dataset.cell.split(",").map(Number);
-    moveFocus(button.dataset.label, x, z);
-    const span = requestedBounds.maxXExclusive - requestedBounds.minX;
-    requestOverview(boundsAround(x, z, span), "named-location");
-  });
-}
-
-for (const button of document.querySelectorAll("[data-pan]")) {
-  button.addEventListener("click", () => {
-    const [dx, dz] = button.dataset.pan.split(",").map(Number);
-    panAtlas(dx, dz);
-  });
-}
-
-for (const button of document.querySelectorAll("[data-atlas-zoom]"))
-  button.addEventListener("click", () => zoomAtlas(button.dataset.atlasZoom));
 
 overviewCanvas.addEventListener("click", (event) => {
   if (!overview) return;
@@ -701,4 +726,5 @@ function dispose() {
 globalThis.addEventListener("pagehide", dispose, { once: true });
 contractReport();
 render();
+mountWorldLabControls(document.querySelector("#world-lab-controls"), controls);
 requestOverview(requestedBounds, "initial");
