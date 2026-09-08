@@ -70,8 +70,19 @@ export function groundLotsAt(state, at) {
   );
 }
 
+/** Finite sources are terrain occupants even when sealed or depleted. */
+export function sourceAt(state, at) {
+  return (state.sources ?? []).find((source) => sameCell(source, at)) ?? null;
+}
+
+/** Work never stands inside a basin/cache body. Movement owns route choice. */
+export function sourceAccessCells(source) {
+  return neighbors(source).filter(inside);
+}
+
 /** @param {string|null} [excludeId] */
 export function placementOccupant(state, at, excludeId = null) {
+  if (sourceAt(state, at)) return "source";
   if (state.trees.some((tree) => sameCell(tree, at))) return "tree";
   if (state.rocks.some((rock) => sameCell(rock, at))) return "rock";
   if (
@@ -128,6 +139,7 @@ export function blockedCells(state) {
       ...state.rocks,
       state.watcher,
       ...state.trees.filter((t) => t.felledAt === null),
+      ...(state.sources ?? []),
       // A wall blueprint reserves its cell, keeping routes out of future walls.
       ...state.sites.filter((s) => s.type === "wall"),
     ].map(cellKey),

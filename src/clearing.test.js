@@ -89,7 +89,15 @@ function site(id, type, finishedAt = null) {
 function conserve(state) {
   const wood = materialQuantity(state.materials, "wood");
   const mugwort = materialQuantity(state.materials, "mugwort");
-  assert.equal(wood.live + wood.embedded + wood.consumed, state.felled * 6);
+  const cacheWood = state.sources.some(
+    (source) => source.kind === "reclaimed-timber-cache",
+  )
+    ? 10
+    : 0;
+  assert.equal(
+    wood.live + wood.embedded + wood.consumed,
+    state.felled * 6 + cacheWood,
+  );
   assert.equal(mugwort.live + mugwort.embedded, state.harvestedHerbs);
 }
 
@@ -115,6 +123,7 @@ test("optimizer commits its already-resolved one-unit source, request, destinati
   assignWork(state, colony);
   const transfer = state.materials.transfers[0];
   assert.deepEqual(transfer.owner, {
+    kind: "job",
     job: "job-door",
     step: "construction-materials",
   });
@@ -122,6 +131,9 @@ test("optimizer commits its already-resolved one-unit source, request, destinati
     source: { kind: "eligible-ground", material: "wood" },
     quantityPolicy: "portion",
     quantity: 1,
+  });
+  assert.deepEqual(transfer.intent, {
+    kind: "deliver",
     destination: constructionBuffer(door).id,
   });
   assert.deepEqual(transfer.phase, {
@@ -269,13 +281,13 @@ test("a carrying transfer is continued by the same actor and interruption marks 
   state.materials.transfers.push({
     id: "transfer-wall",
     actor: "rowan",
-    owner: { job: "job-wall", step: "construction-materials" },
+    owner: { kind: "job", job: "job-wall", step: "construction-materials" },
     request: {
       source: { kind: "eligible-ground", material: "wood" },
       quantityPolicy: "portion",
       quantity: 1,
-      destination: constructionBuffer(wall).id,
     },
+    intent: { kind: "deliver", destination: constructionBuffer(wall).id },
     phase: { kind: "carrying", lot: "hand-wood" },
   });
   state.workDirty = true;
@@ -286,7 +298,10 @@ test("a carrying transfer is continued by the same actor and interruption marks 
   interruptWork(state, state.actors.rowan);
   assert.equal(state.workDirty, true);
   assert.equal(state.materials.transfers.length, 0);
-  assert.equal(state.materials.lots[0].location.kind, "ground");
+  assert.equal(
+    state.materials.lots.find((lot) => lot.id === "hand-wood").location.kind,
+    "ground",
+  );
 });
 
 test("unfinished shelves accept wood through their construction buffer, not shelf storage", () => {
@@ -318,13 +333,17 @@ test("unfinished shelves accept wood through their construction buffer, not shel
   state.materials.transfers.push({
     id: "transfer-shelf-wood",
     actor: "rowan",
-    owner: { job: "job-build-shelf", step: "construction-materials" },
+    owner: {
+      kind: "job",
+      job: "job-build-shelf",
+      step: "construction-materials",
+    },
     request: {
       source: { kind: "eligible-ground", material: "wood" },
       quantityPolicy: "portion",
       quantity: 1,
-      destination: constructionBuffer(shelf).id,
     },
+    intent: { kind: "deliver", destination: constructionBuffer(shelf).id },
     phase: { kind: "carrying", lot: "hand-wood" },
   });
   state.felled = 1;
@@ -581,13 +600,13 @@ test("shelf teardown settles another actor's released transfer before the next s
   state.materials.transfers.push({
     id: "transfer-store",
     actor: "sedge",
-    owner: { job: "job-store", step: "shelf-store" },
+    owner: { kind: "job", job: "job-store", step: "shelf-store" },
     request: {
       source: { kind: "exact-lot", lot: "mugwort-carry" },
       quantityPolicy: "whole-lot",
       quantity: 1,
-      destination: shelfContainer(shelf.id).id,
     },
+    intent: { kind: "deliver", destination: shelfContainer(shelf.id).id },
     phase: { kind: "carrying", lot: "mugwort-carry" },
   });
   Object.assign(state.actors.sedge, {
@@ -646,7 +665,13 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
   advanceWork(state, state.actors.rowan);
   assert.equal(state.felled, 1);
   assert.equal(
-    state.materials.lots.find((lot) => lot.material === "wood").quantity,
+    state.materials.lots.find(
+      (lot) =>
+        lot.material === "wood" &&
+        lot.location.kind === "ground" &&
+        lot.location.x === 5 &&
+        lot.location.z === 5,
+    ).quantity,
     6,
   );
 

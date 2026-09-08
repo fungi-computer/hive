@@ -1,19 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { constructionBuffer, shelfContainer } from "./construction.js";
+import {
+  BUILDINGS,
+  constructionBuffer,
+  shelfContainer,
+} from "./construction.js";
 import {
   availableQuantity,
+  acquirePailForOperation,
   containerBulk,
   containerContents,
+  containerQuantity,
   createGroundLot,
   deliverTransfer,
+  drawPailWater,
   embedConstruction,
   interruptTransfer,
   materialQuantity,
+  moveContainerPortion,
   pickupTransfer,
+  pourPailWater,
   releaseContainer,
   reserveTransfer,
   salvageConstruction,
+  sourceContainer,
   transferForActor,
 } from "./materials.ts";
 
@@ -25,6 +35,7 @@ const access = {
 const fresh = (lots = []) => ({
   lots,
   transfers: [],
+  vesselUses: [],
   embedded: [],
   nextLotId: 1,
   consumedWood: 0,
@@ -50,7 +61,15 @@ const exactMugwort = (lot, destination) => ({
   destination,
 });
 function reserve(state, input) {
-  return reserveTransfer(state, { access, ...input });
+  const { request, owner, ...rest } = input;
+  const { destination, ...requestWithoutDestination } = request;
+  return reserveTransfer(state, {
+    access,
+    ...rest,
+    owner: { kind: "job", ...owner },
+    request: requestWithoutDestination,
+    intent: { kind: "deliver", destination },
+  });
 }
 function conserved(materials, felled, harvested = 0) {
   const wood = materialQuantity(materials, "wood");
@@ -85,6 +104,44 @@ test("lots allocate collision-safe positive IDs without changing state on failur
   });
 });
 
+test("construction embedding validates the recipe amount independently of staging capacity", () => {
+  const wall = { ...constructionBuffer(site("wall-a")), capacity: 2 };
+  const materials = fresh([
+    {
+      id: "buffered-wood",
+      material: "wood",
+      quantity: BUILDINGS.wall.wood,
+      location: { kind: "container", container: wall.id },
+    },
+  ]);
+
+  const embedded = embedConstruction(
+    materials,
+    wall,
+    "wood",
+    BUILDINGS.wall.wood,
+  );
+  assert.equal(embedded.ok, true);
+  assert.deepEqual(embedded.value, {
+    container: wall.id,
+    material: "wood",
+    quantity: BUILDINGS.wall.wood,
+  });
+
+  const mismatched = fresh([
+    {
+      id: "buffered-wood",
+      material: "wood",
+      quantity: BUILDINGS.wall.wood,
+      location: { kind: "container", container: wall.id },
+    },
+  ]);
+  assert.deepEqual(embedConstruction(mismatched, wall, "wood", 2), {
+    ok: false,
+    reason: "container-incomplete",
+  });
+});
+
 test("a one-unit wood source binds an exact one-unit portion for a two-unit demand", () => {
   const materials = fresh([
     {
@@ -106,8 +163,16 @@ test("a one-unit wood source binds an exact one-unit portion for a two-unit dema
     destination,
   });
   assert.equal(reserved.ok, true);
-  assert.deepEqual(reserved.value.owner, owner);
-  assert.deepEqual(reserved.value.request, request);
+  assert.deepEqual(reserved.value.owner, { kind: "job", ...owner });
+  assert.deepEqual(reserved.value.request, {
+    source: request.source,
+    quantityPolicy: request.quantityPolicy,
+    quantity: request.quantity,
+  });
+  assert.deepEqual(reserved.value.intent, {
+    kind: "deliver",
+    destination: request.destination,
+  });
   assert.deepEqual(reserved.value.phase, {
     kind: "reserved",
     sourceLot: "wood-one",
@@ -152,7 +217,10 @@ test("portion pickup splits deterministically while preserving the resolved owne
     1,
   );
   assert.equal(picked.value.quantity, 2);
-  assert.deepEqual(transferForActor(materials, "rowan").owner, owner);
+  assert.deepEqual(transferForActor(materials, "rowan").owner, {
+    kind: "job",
+    ...owner,
+  });
   assert.equal(
     deliverTransfer(materials, "transfer-a", destination, true).ok,
     true,
@@ -262,8 +330,203 @@ test("mixed shelf capacity is exact and stored wood withdraws into a normal wall
     true,
   );
   assert.equal(containerBulk(materials, shelf), 4);
-  assert.equal(embedConstruction(materials, wall, "wood").ok, true);
+  assert.equal(
+    embedConstruction(materials, wall, "wood", BUILDINGS.wall.wood).ok,
+    true,
+  );
   assert.equal(materialQuantity(materials, "wood").embedded, 1);
+});
+
+test("an incompatible stored lot consumes nonzero physical bulk", () => {
+  const shelf = shelfContainer("shelf-a");
+  const materials = fresh([
+    {
+      id: "invalid-pail",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "container", container: shelf.id },
+    },
+    {
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    },
+  ]);
+  assert.equal(containerBulk(materials, shelf), Number.POSITIVE_INFINITY);
+  const result = reserve(materials, {
+    id: "store-wood",
+    actor: "rowan",
+    owner: { job: "job-store", step: "shelf-store" },
+    request: {
+      source: { kind: "exact-lot", lot: "wood-a" },
+      quantityPolicy: "portion",
+      quantity: 1,
+      destination: shelf.id,
+    },
+    sourceLot: "wood-a",
+    destination: shelf,
+  });
+  assert.deepEqual(result, { ok: false, reason: "destination-full" });
+});
+
+test("source eligibility is resolved before an unrelated use owner", () => {
+  const materials = fresh([
+    {
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    },
+  ]);
+  const result = reserveTransfer(materials, {
+    id: "bad-use",
+    actor: "rowan",
+    owner: { kind: "operation", operation: "unrelated" },
+    request: {
+      source: { kind: "exact-lot", lot: "missing-pail" },
+      quantityPolicy: "whole-lot",
+      quantity: 1,
+    },
+    intent: { kind: "use", operation: "unrelated" },
+    sourceLot: "wood-a",
+    access,
+  });
+  assert.deepEqual(result, { ok: false, reason: "source-ineligible" });
+});
+
+test("incoming exact-lot capacity uses its carried payload after a partial pickup", () => {
+  const herbCache = {
+    id: "herb-cache-a",
+    capacity: 3,
+    accepts: ["mugwort"],
+    bulk: { mugwort: 1 },
+  };
+  const shelf = {
+    id: "shelf-a",
+    capacity: 2,
+    accepts: ["mugwort"],
+    bulk: { mugwort: 1 },
+  };
+  const materials = fresh([
+    {
+      id: "mugwort-source",
+      material: "mugwort",
+      quantity: 2,
+      location: { kind: "container", container: herbCache.id },
+    },
+    {
+      id: "mugwort-other",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "container", container: herbCache.id },
+    },
+  ]);
+  assert.equal(
+    reserveTransfer(materials, {
+      id: "incoming-mugwort",
+      actor: "rowan",
+      owner: { kind: "job", job: "job-mugwort", step: "supply" },
+      request: {
+        source: { kind: "exact-lot", lot: "mugwort-source" },
+        quantityPolicy: "portion",
+        quantity: 1,
+      },
+      intent: { kind: "deliver", destination: shelf.id },
+      sourceLot: "mugwort-source",
+      destination: shelf,
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(pickupTransfer(materials, "incoming-mugwort", access).ok, true);
+  materials.lots = materials.lots.filter((lot) => lot.id !== "mugwort-source");
+  assert.equal(
+    moveContainerPortion(materials, {
+      source: herbCache,
+      destination: shelf,
+      sourceLot: "mugwort-other",
+      material: "mugwort",
+      quantity: 1,
+      access,
+    }).ok,
+    true,
+  );
+});
+
+test("ordinary transfers reject water hand cargo while vessel moves stay container-only", () => {
+  const spring = {
+    id: "source:spring-a",
+    capacity: 2,
+    accepts: ["water"],
+    bulk: { water: 1 },
+  };
+  const kettle = {
+    id: "kettle-a",
+    capacity: 2,
+    accepts: ["water"],
+    bulk: { water: 1 },
+  };
+  const materials = fresh([
+    {
+      id: "water-source",
+      material: "water",
+      quantity: 1,
+      location: { kind: "container", container: spring.id },
+    },
+    {
+      id: "water-other",
+      material: "water",
+      quantity: 1,
+      location: { kind: "container", container: spring.id },
+    },
+  ]);
+  const input = {
+    id: "water-transfer",
+    actor: "rowan",
+    owner: { kind: "job", job: "job-water", step: "supply" },
+    request: {
+      source: { kind: "exact-lot", lot: "water-source" },
+      quantityPolicy: "whole-lot",
+      quantity: 1,
+    },
+    intent: { kind: "deliver", destination: kettle.id },
+    sourceLot: "water-source",
+    destination: kettle,
+    access,
+  };
+  assert.deepEqual(reserveTransfer(materials, input), {
+    ok: false,
+    reason: "source-ineligible",
+  });
+
+  materials.transfers.push({
+    ...input,
+    phase: {
+      kind: "reserved",
+      sourceLot: "water-source",
+      quantity: 1,
+      origin: { kind: "container", container: spring.id },
+    },
+  });
+  assert.deepEqual(pickupTransfer(materials, input.id, access), {
+    ok: false,
+    reason: "source-ineligible",
+  });
+
+  materials.lots[0].location = { kind: "hand", actor: "rowan" };
+  materials.transfers[0].phase = { kind: "carrying", lot: "water-source" };
+  assert.deepEqual(
+    moveContainerPortion(materials, {
+      source: spring,
+      destination: kettle,
+      sourceLot: "water-other",
+      material: "water",
+      quantity: 1,
+      access,
+    }),
+    { ok: false, reason: "held-lot-invalid" },
+  );
 });
 
 test("interruption releases reserved promises and drops carrying material atomically", () => {
@@ -298,11 +561,131 @@ test("interruption releases reserved promises and drops carrying material atomic
     kind: "dropped",
     transfer: "transfer-a",
     lot: "wood-a",
-    owner: input.owner,
+    owner: { kind: "job", ...input.owner },
   });
   assert.deepEqual(materials.lots[0].location, {
     kind: "ground",
     ...cell(3, 4),
+  });
+});
+
+test("one held pail draws and pours exactly two finite water units", () => {
+  const spring = {
+    id: sourceContainer("feature:spring"),
+    capacity: 8,
+    accepts: ["water"],
+    bulk: { water: 1 },
+  };
+  const kettle = {
+    id: "kettle:future",
+    capacity: 2,
+    accepts: ["water"],
+    bulk: { water: 1 },
+  };
+  const materials = fresh([
+    {
+      id: "pail-a",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    },
+    {
+      id: "source-lot:feature:spring",
+      material: "water",
+      quantity: 8,
+      location: { kind: "container", container: spring.id },
+    },
+  ]);
+  assert.equal(
+    acquirePailForOperation(materials, {
+      id: "pail-use-a",
+      actor: "rowan",
+      operation: "fill-kettle-a",
+      vessel: "pail-a",
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(pickupTransfer(materials, "pail-use-a", access).ok, true);
+  assert.equal(
+    drawPailWater(materials, {
+      operation: "fill-kettle-a",
+      source: spring,
+      sourceLot: "source-lot:feature:spring",
+      quantity: 2,
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(containerQuantity(materials, spring.id, "water"), 6);
+  assert.equal(containerQuantity(materials, "vessel:pail-a", "water"), 2);
+  assert.equal(
+    pourPailWater(materials, {
+      operation: "fill-kettle-a",
+      destination: kettle,
+      sourceLot: "lot-1",
+      quantity: 2,
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(containerQuantity(materials, "vessel:pail-a", "water"), 0);
+  assert.equal(containerQuantity(materials, kettle.id, "water"), 2);
+  assert.equal(transferForActor(materials, "rowan").phase.kind, "carrying");
+});
+
+test("interrupting a filled held pail drops one vessel and closes its operation", () => {
+  const spring = {
+    id: sourceContainer("feature:spring"),
+    capacity: 8,
+    accepts: ["water"],
+    bulk: { water: 1 },
+  };
+  const materials = fresh([
+    {
+      id: "pail-a",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    },
+    {
+      id: "source-lot:feature:spring",
+      material: "water",
+      quantity: 8,
+      location: { kind: "container", container: spring.id },
+    },
+  ]);
+  assert.equal(
+    acquirePailForOperation(materials, {
+      id: "pail-use-a",
+      actor: "rowan",
+      operation: "fill-kettle-a",
+      vessel: "pail-a",
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(pickupTransfer(materials, "pail-use-a", access).ok, true);
+  assert.equal(
+    drawPailWater(materials, {
+      operation: "fill-kettle-a",
+      source: spring,
+      sourceLot: "source-lot:feature:spring",
+      quantity: 2,
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(
+    interruptTransfer(materials, "rowan", { cell: cell(3, 3), legal: true }).ok,
+    true,
+  );
+  assert.equal(materials.transfers.length, 0);
+  assert.deepEqual(materials.vesselUses, []);
+  assert.equal(containerQuantity(materials, "vessel:pail-a", "water"), 2);
+  assert.deepEqual(materials.lots.find((lot) => lot.id === "pail-a").location, {
+    kind: "ground",
+    ...cell(3, 3),
   });
 });
 
@@ -368,7 +751,10 @@ test("embedding and partial salvage conserve a door's two wood through its sink"
     ...site("door-a", "door"),
     finishedAt: null,
   });
-  assert.equal(embedConstruction(materials, door, "wood").ok, true);
+  assert.equal(
+    embedConstruction(materials, door, "wood", BUILDINGS.door.wood).ok,
+    true,
+  );
   const salvage = salvageConstruction(materials, door, 1, {
     cell: cell(5),
     legal: true,
@@ -407,8 +793,13 @@ test("material ground locations discard Site and Herb-shaped extras on every set
   interrupted.transfers.push({
     id: "transfer-held",
     actor: "rowan",
-    owner: { job: "job-held", step: "step" },
-    request: woodRequest("container-a", 1),
+    owner: { kind: "job", job: "job-held", step: "step" },
+    request: {
+      source: { kind: "eligible-ground", material: "wood" },
+      quantityPolicy: "portion",
+      quantity: 1,
+    },
+    intent: { kind: "deliver", destination: "container-a" },
     phase: { kind: "carrying", lot: "held" },
   });
   assert.equal(
@@ -440,8 +831,13 @@ test("material ground locations discard Site and Herb-shaped extras on every set
   released.transfers.push({
     id: "transfer-carried",
     actor: "rowan",
-    owner: { job: "job-carried", step: "step" },
-    request: woodRequest(container.id, 1),
+    owner: { kind: "job", job: "job-carried", step: "step" },
+    request: {
+      source: { kind: "eligible-ground", material: "wood" },
+      quantityPolicy: "portion",
+      quantity: 1,
+    },
+    intent: { kind: "deliver", destination: container.id },
     phase: { kind: "carrying", lot: "carried" },
   });
   assert.equal(

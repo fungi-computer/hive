@@ -8,6 +8,7 @@ import {
   blockedCells,
   neighbors,
 } from "./world.js";
+import { introduceFiniteSources } from "./finite-sources.ts";
 import { shelteredBeds } from "./construction.js";
 import { actor, body, members } from "./actors.ts";
 import { assignWork } from "./jobs.ts";
@@ -18,7 +19,7 @@ import { route, beginWalk, walk } from "./movement.js";
 import { mugwortStage } from "./herbs.ts";
 
 export function createClearing(seed = 42): Clearing {
-  return {
+  const state: Clearing = {
     seed,
     tick: 0,
     paused: false,
@@ -38,7 +39,16 @@ export function createClearing(seed = 42): Clearing {
       felledAt: null,
     })),
     herbs: [],
-    materials: { lots: [], transfers: [], embedded: [], nextLotId: 1, consumedWood: 0 },
+    materials: {
+      lots: [],
+      transfers: [],
+      vesselUses: [],
+      embedded: [],
+      nextLotId: 1,
+      consumedWood: 0,
+    },
+    sources: [],
+    pendingSources: [],
     rocks: structuredClone(ROCKS),
     watcher: { ...WATCHER },
     sites: [],
@@ -53,6 +63,8 @@ export function createClearing(seed = 42): Clearing {
     demand: null,
     notice: "A borrowed axe. No home. Bramble seems optimistic.",
   };
+  introduceFiniteSources(state);
+  return state;
 }
 function advanceCat(state: Clearing): void {
   const cat = state.cat,

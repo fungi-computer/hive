@@ -1,5 +1,6 @@
 import type {
   ActorId,
+  CarryIntent,
   Cell,
   ContainerId,
   EmbeddedMaterial,
@@ -22,7 +23,7 @@ export type ContainerSpec = {
   id: ContainerId;
   capacity: PositiveInt;
   accepts: readonly Material[];
-  bulk: Readonly<Record<Material, PositiveInt>>;
+  bulk: Readonly<Partial<Record<Material, PositiveInt>>>;
 };
 
 export type TransferAccess = {
@@ -57,7 +58,10 @@ export type MaterialFailure =
   | "container-incomplete"
   | "embedding-exists"
   | "embedding-not-found"
-  | "invalid-salvage";
+  | "invalid-salvage"
+  | "use-intent-required"
+  | "deliver-intent-required"
+  | "vessel-invalid";
 
 export type MaterialResult<T> =
   { ok: true; value: T } | { ok: false; reason: MaterialFailure };
@@ -79,6 +83,26 @@ function checkedAdd(a: number, b: number): number | null {
 
 function groundLocation(at: Cell): ItemLot["location"] {
   return { kind: "ground", x: at.x, z: at.z, level: at.level };
+}
+
+export function sourceContainer(id: string): ContainerId {
+  return `source:${id}`;
+}
+
+export function vesselContainer(lot: LotId): ContainerId {
+  return `vessel:${lot}`;
+}
+
+/** Pails are the only portable container in this bounded checkpoint. */
+export function pailInterior(lot: ItemLot): ContainerSpec | null {
+  return lot.material === "pail" && lot.quantity === 1
+    ? {
+        id: vesselContainer(lot.id),
+        capacity: 2 as PositiveInt,
+        accepts: ["water"],
+        bulk: { water: 1 as PositiveInt },
+      }
+    : null;
 }
 
 function originForLot(lot: ItemLot): TransferOrigin | null {
@@ -117,6 +141,14 @@ function transferById(
   return state.transfers.find((transfer) => transfer.id === id);
 }
 
+function sameOwner(a: Transfer["owner"], b: Transfer["owner"]): boolean {
+  return a.kind === "operation" || b.kind === "operation"
+    ? a.kind === "operation" &&
+        b.kind === "operation" &&
+        a.operation === b.operation
+    : a.job === b.job && a.step === b.step;
+}
+
 export function containerContents(
   state: MaterialsState,
   container: ContainerId,
@@ -148,7 +180,9 @@ function incomingQuantity(
   return state.transfers.reduce(
     (total, transfer) =>
       total +
-      (transfer.id !== except && transfer.request.destination === container
+      (transfer.id !== except &&
+      transfer.intent.kind === "deliver" &&
+      transfer.intent.destination === container
         ? transfer.request.quantity
         : 0),
     0,
@@ -299,6 +333,8 @@ export function createGroundLot(
   preferredId?: LotId,
 ): MaterialResult<ItemLot> {
   if (!isPositiveInt(quantity)) return failure("invalid-positive-integer");
+  if (material === "water") return failure("source-ineligible");
+  if (material === "pail" && quantity !== 1) return failure("vessel-invalid");
   let id: LotId;
   let nextLotId = state.nextLotId;
   if (preferredId !== undefined) {
@@ -315,6 +351,41 @@ export function createGroundLot(
     material,
     quantity,
     location: groundLocation(at),
+  };
+  state.lots.push(lot);
+  state.nextLotId = nextLotId;
+  return success(lot);
+}
+
+/** One-time finite-source seeding. Callers must pass the resolved source spec. */
+export function introduceFiniteSourceLot(
+  state: MaterialsState,
+  input: {
+    source: ContainerSpec;
+    material: Material;
+    quantity: number;
+    preferredId: LotId;
+  },
+): MaterialResult<ItemLot> {
+  if (!isPositiveInt(input.quantity))
+    return failure("invalid-positive-integer");
+  const problem = validateContainer(input.source);
+  if (problem) return failure(problem);
+  if (!destinationAccepts(input.source, input.material))
+    return failure("destination-mismatch");
+  if (containerContents(state, input.source.id).length > 0)
+    return failure("destination-full");
+  const bulk = bulkFor(input.source, input.material);
+  if (bulk === null || input.quantity * bulk > input.source.capacity)
+    return failure("destination-full");
+  if (state.lots.some((lot) => lot.id === input.preferredId))
+    return failure("duplicate-lot");
+  let nextLotId = state.nextLotId;
+  const lot: ItemLot = {
+    id: input.preferredId,
+    material: input.material,
+    quantity: input.quantity as PositiveInt,
+    location: { kind: "container", container: input.source.id },
   };
   state.lots.push(lot);
   state.nextLotId = nextLotId;
@@ -338,7 +409,7 @@ function sourceMatches(
 function validateContainer(spec: ContainerSpec): MaterialFailure | null {
   if (!isPositiveInt(spec.capacity)) return "invalid-positive-integer";
   if (!spec.accepts.length) return "destination-mismatch";
-  if (spec.accepts.some((material) => !isPositiveInt(spec.bulk[material])))
+  if (spec.accepts.some((material) => !isPositiveInt(spec.bulk[material] ?? 0)))
     return "invalid-positive-integer";
   return null;
 }
@@ -347,36 +418,118 @@ function destinationAccepts(spec: ContainerSpec, material: Material): boolean {
   return spec.accepts.includes(material);
 }
 
+function bulkFor(spec: ContainerSpec, material: Material): number | null {
+  const bulk = spec.bulk[material];
+  return destinationAccepts(spec, material) && isPositiveInt(bulk ?? 0)
+    ? bulk!
+    : null;
+}
+
 export function containerBulk(
   state: MaterialsState,
   container: ContainerSpec,
 ): number {
-  return containerContents(state, container.id).reduce(
-    (total, lot) => total + lot.quantity * container.bulk[lot.material],
-    0,
+  return containerContents(state, container.id).reduce((total, lot) => {
+    const bulk = bulkFor(container, lot.material);
+    return total + lot.quantity * (bulk ?? Number.POSITIVE_INFINITY);
+  }, 0);
+}
+
+function transferPayloadLot(
+  state: MaterialsState,
+  transfer: Transfer,
+): MaterialResult<ItemLot> {
+  const lot = lotById(
+    state,
+    transfer.phase.kind === "reserved"
+      ? transfer.phase.sourceLot
+      : transfer.phase.lot,
   );
+  if (!lot)
+    return failure(
+      transfer.phase.kind === "reserved" ? "lot-not-found" : "held-lot-invalid",
+    );
+  // Water travels only inside a vessel.  A generic carrying transfer must
+  // never make it actor-hand cargo, even when decoding malformed state.
+  if (lot.material === "water" && lot.location.kind === "hand")
+    return failure("held-lot-invalid");
+  return success(lot);
 }
 
 function incomingBulk(
   state: MaterialsState,
   container: ContainerSpec,
   except?: TransferId,
-): number {
-  return state.transfers.reduce(
-    (total, transfer) =>
-      total +
-      (transfer.id !== except && transfer.request.destination === container.id
-        ? transfer.request.quantity *
-          container.bulk[
-            transfer.request.source.kind === "eligible-ground" ||
-            transfer.request.source.kind === "eligible-container"
-              ? transfer.request.source.material
-              : (lotById(state, transfer.request.source.lot)?.material ??
-                "wood")
-          ]
-        : 0),
-    0,
+): MaterialResult<number> {
+  let total = 0;
+  for (const transfer of state.transfers) {
+    if (
+      transfer.id === except ||
+      transfer.intent.kind !== "deliver" ||
+      transfer.intent.destination !== container.id
+    )
+      continue;
+    const payload = transferPayloadLot(state, transfer);
+    if (!payload.ok) return payload;
+    const bulk = bulkFor(container, payload.value.material);
+    if (bulk === null) return success(Number.POSITIVE_INFINITY);
+    const next = checkedAdd(total, transfer.request.quantity * bulk);
+    if (next === null) return success(Number.POSITIVE_INFINITY);
+    total = next;
+  }
+  return success(total);
+}
+
+/** Read-only planner fact; reserveTransfer still revalidates atomically. */
+export function remainingContainerQuantity(
+  state: MaterialsState,
+  container: ContainerSpec,
+  material: Material,
+): MaterialResult<number> {
+  const problem = validateContainer(container);
+  if (problem) return failure(problem);
+  if (!destinationAccepts(container, material))
+    return failure("destination-mismatch");
+  if (embeddedQuantity(state, container.id) > 0)
+    return failure("container-embedded");
+  const promised = incomingBulk(state, container);
+  if (!promised.ok) return promised;
+  const bulk = bulkFor(container, material);
+  const used = checkedAdd(containerBulk(state, container), promised.value);
+  if (bulk === null || used === null) return success(0);
+  return success(Math.max(0, Math.floor((container.capacity - used) / bulk)));
+}
+
+/** The one checked occupancy rule for promises, delivery and direct portions. */
+function admitContainerCapacity(
+  state: MaterialsState,
+  input: {
+    destination: ContainerSpec;
+    material: Material;
+    quantity: PositiveInt;
+    except?: TransferId;
+  },
+): MaterialFailure | null {
+  const problem = validateContainer(input.destination);
+  if (problem) return problem;
+  if (!destinationAccepts(input.destination, input.material))
+    return "destination-mismatch";
+  if (embeddedQuantity(state, input.destination.id) > 0)
+    return "container-embedded";
+  const promised = incomingBulk(state, input.destination, input.except);
+  if (!promised.ok) return promised.reason;
+  const bulk = bulkFor(input.destination, input.material);
+  const used = checkedAdd(
+    containerBulk(state, input.destination),
+    promised.value,
   );
+  const after =
+    used === null || bulk === null
+      ? null
+      : checkedAdd(used, input.quantity * bulk);
+  return after === null || after > input.destination.capacity
+    ? "destination-full"
+    : null;
 }
 
 function requestAllowsLot(request: TransferRequest, lot: ItemLot): boolean {
@@ -385,49 +538,21 @@ function requestAllowsLot(request: TransferRequest, lot: ItemLot): boolean {
   );
 }
 
-export function reserveTransfer(
+type ReservationInput = {
+  id: TransferId;
+  actor: ActorId;
+  owner: Transfer["owner"];
+  request: TransferRequest;
+  intent: CarryIntent;
+  sourceLot: LotId;
+  destination?: ContainerSpec;
+  access: TransferAccess;
+};
+
+function resolveReservationSource(
   state: MaterialsState,
-  input: {
-    id: TransferId;
-    actor: ActorId;
-    owner: Transfer["owner"];
-    request: TransferRequest;
-    sourceLot: LotId;
-    destination: ContainerSpec;
-    access: TransferAccess;
-  },
-): MaterialResult<Transfer> {
-  if (!isPositiveInt(input.request.quantity))
-    return failure("invalid-positive-integer");
-  if (
-    input.request.quantityPolicy !== "whole-lot" &&
-    input.request.quantityPolicy !== "portion"
-  )
-    return failure("source-ineligible");
-  const containerProblem = validateContainer(input.destination);
-  if (containerProblem) return failure(containerProblem);
-  if (state.transfers.some((transfer) => transfer.id === input.id))
-    return failure("duplicate-transfer");
-  if (
-    state.transfers.some(
-      (transfer) =>
-        transfer.owner.job === input.owner.job &&
-        transfer.owner.step === input.owner.step,
-    )
-  )
-    return failure("owner-busy");
-  if (transferForActor(state, input.actor)) return failure("actor-busy");
-  if (
-    state.lots.some(
-      (lot) =>
-        lot.location.kind === "hand" && lot.location.actor === input.actor,
-    )
-  )
-    return failure("actor-hand-not-empty");
-  if (input.request.destination !== input.destination.id)
-    return failure("destination-mismatch");
-  // Job step identity is exclusive ownership only. Its admission policy was
-  // checked by the consumer before it resolved this request and container.
+  input: ReservationInput,
+): MaterialResult<{ source: ItemLot; origin: TransferOrigin }> {
   const source = lotById(state, input.sourceLot);
   if (!source) return failure("lot-not-found");
   const origin = originForLot(source);
@@ -438,22 +563,89 @@ export function reserveTransfer(
     return failure("source-ineligible");
   if (!requestAllowsLot(input.request, source))
     return failure("source-ineligible");
-  if (!destinationAccepts(input.destination, source.material))
-    return failure("destination-mismatch");
-  if (embeddedQuantity(state, input.destination.id) > 0)
-    return failure("container-embedded");
   if (availableQuantity(state, source.id) < input.request.quantity)
     return failure("source-insufficient");
+  return success({ source, origin });
+}
+
+function resolveReservationDestination(
+  input: ReservationInput,
+): MaterialResult<ContainerSpec | undefined> {
+  if (input.intent.kind === "deliver")
+    return input.destination &&
+      input.intent.destination === input.destination.id
+      ? success(input.destination)
+      : failure("destination-mismatch");
+  return input.destination
+    ? failure("destination-mismatch")
+    : success(undefined);
+}
+
+function validateReservationOwner(
+  state: MaterialsState,
+  input: ReservationInput,
+): MaterialFailure | null {
+  if (input.intent.kind === "deliver")
+    return input.owner.kind === "job" ? null : "deliver-intent-required";
+  const operation = input.intent.operation;
+  return input.owner.kind === "operation" &&
+    input.owner.operation === operation &&
+    state.vesselUses.some(
+      (use) =>
+        use.id === operation &&
+        use.actor === input.actor &&
+        use.vessel === input.sourceLot,
+    )
+    ? null
+    : "use-intent-required";
+}
+
+export function reserveTransfer(
+  state: MaterialsState,
+  input: ReservationInput,
+): MaterialResult<Transfer> {
+  if (!isPositiveInt(input.request.quantity))
+    return failure("invalid-positive-integer");
+  if (
+    input.request.quantityPolicy !== "whole-lot" &&
+    input.request.quantityPolicy !== "portion"
+  )
+    return failure("source-ineligible");
+  const resolved = resolveReservationSource(state, input);
+  if (!resolved.ok) return resolved;
+  const destination = resolveReservationDestination(input);
+  if (!destination.ok) return destination;
+  const ownerProblem = validateReservationOwner(state, input);
+  if (ownerProblem) return failure(ownerProblem);
+  if (state.transfers.some((transfer) => transfer.id === input.id))
+    return failure("duplicate-transfer");
+  if (
+    state.transfers.some((transfer) => sameOwner(transfer.owner, input.owner))
+  )
+    return failure("owner-busy");
+  if (transferForActor(state, input.actor)) return failure("actor-busy");
+  if (
+    state.lots.some(
+      (lot) =>
+        lot.location.kind === "hand" && lot.location.actor === input.actor,
+    )
+  )
+    return failure("actor-hand-not-empty");
+  const { source, origin } = resolved.value;
+  if (source.material === "water") return failure("source-ineligible");
+  if (input.intent.kind === "use" && source.material !== "pail")
+    return failure("vessel-invalid");
   if (!input.access.sourceReachable) return failure("source-unreachable");
-  if (!input.access.destinationReachableWithPayload)
+  if (destination.value && !input.access.destinationReachableWithPayload)
     return failure("destination-unreachable");
-  const occupied = containerBulk(state, input.destination);
-  const promised = incomingBulk(state, input.destination);
-  const used = checkedAdd(occupied, promised);
-  const bulk = input.request.quantity * input.destination.bulk[source.material];
-  const after = used === null ? null : checkedAdd(used, bulk);
-  if (after === null || after > input.destination.capacity)
-    return failure("destination-full");
+  if (destination.value) {
+    const capacityProblem = admitContainerCapacity(state, {
+      destination: destination.value,
+      material: source.material,
+      quantity: input.request.quantity,
+    });
+    if (capacityProblem) return failure(capacityProblem);
+  }
   const transfer: Transfer = {
     id: input.id,
     actor: input.actor,
@@ -462,8 +654,8 @@ export function reserveTransfer(
       source: { ...input.request.source },
       quantityPolicy: input.request.quantityPolicy,
       quantity: input.request.quantity,
-      destination: input.request.destination,
     },
+    intent: { ...input.intent },
     phase: {
       kind: "reserved",
       sourceLot: source.id,
@@ -473,6 +665,44 @@ export function reserveTransfer(
   };
   state.transfers.push(transfer);
   return success(transfer);
+}
+
+/** Atomically records the one operation that may retain this whole held pail. */
+export function acquirePailForOperation(
+  state: MaterialsState,
+  input: {
+    id: TransferId;
+    operation: string;
+    actor: ActorId;
+    vessel: LotId;
+    access: TransferAccess;
+  },
+): MaterialResult<Transfer> {
+  if (state.vesselUses.some((use) => use.id === input.operation))
+    return failure("owner-busy");
+  state.vesselUses.push({
+    id: input.operation,
+    actor: input.actor,
+    vessel: input.vessel,
+  });
+  const reserved = reserveTransfer(state, {
+    id: input.id,
+    actor: input.actor,
+    owner: { kind: "operation", operation: input.operation },
+    request: {
+      source: { kind: "exact-lot", lot: input.vessel },
+      quantityPolicy: "whole-lot",
+      quantity: 1 as PositiveInt,
+    },
+    intent: { kind: "use", operation: input.operation },
+    sourceLot: input.vessel,
+    access: input.access,
+  });
+  if (!reserved.ok)
+    state.vesselUses = state.vesselUses.filter(
+      (use) => use.id !== input.operation,
+    );
+  return reserved;
 }
 
 export function pickupTransfer(
@@ -493,10 +723,14 @@ export function pickupTransfer(
     return failure("source-ineligible");
   if (!requestAllowsLot(transfer.request, source))
     return failure("source-ineligible");
+  if (source.material === "water") return failure("source-ineligible");
   if (source.quantity < transfer.phase.quantity)
     return failure("source-insufficient");
   if (!access.sourceReachable) return failure("source-unreachable");
-  if (!access.destinationReachableWithPayload)
+  if (
+    transfer.intent.kind === "deliver" &&
+    !access.destinationReachableWithPayload
+  )
     return failure("destination-unreachable");
   if (
     state.lots.some(
@@ -539,15 +773,13 @@ export function deliverTransfer(
   const transfer = transferById(state, transferId);
   if (!transfer) return failure("transfer-not-found");
   if (transfer.phase.kind !== "carrying") return failure("wrong-phase");
-  const containerProblem = validateContainer(destination);
-  if (containerProblem) return failure(containerProblem);
+  if (transfer.intent.kind !== "deliver")
+    return failure("deliver-intent-required");
   if (
-    transfer.request.destination !== destination.id ||
+    transfer.intent.destination !== destination.id ||
     transfer.request.quantity > destination.capacity
   )
     return failure("destination-mismatch");
-  if (embeddedQuantity(state, destination.id) > 0)
-    return failure("container-embedded");
   const held = lotById(state, transfer.phase.lot);
   if (
     !held ||
@@ -559,19 +791,154 @@ export function deliverTransfer(
     return failure("held-lot-invalid");
   if (!destinationReachableWithPayload)
     return failure("destination-unreachable");
-  const occupied = containerBulk(state, destination);
-  const otherIncoming = incomingBulk(state, destination, transfer.id);
-  const used = checkedAdd(occupied, otherIncoming);
-  const after =
-    used === null
-      ? null
-      : checkedAdd(used, held.quantity * destination.bulk[held.material]);
-  if (after === null || after > destination.capacity)
-    return failure("destination-full");
+  const capacityProblem = admitContainerCapacity(state, {
+    destination,
+    material: held.material,
+    quantity: held.quantity,
+    except: transfer.id,
+  });
+  if (capacityProblem) return failure(capacityProblem);
 
   held.location = { kind: "container", container: destination.id };
   state.transfers.splice(state.transfers.indexOf(transfer), 1);
   return success(held);
+}
+
+/** Moves one exact portion between resolved containers as one mutation. */
+export function moveContainerPortion(
+  state: MaterialsState,
+  input: {
+    source: ContainerSpec;
+    destination: ContainerSpec;
+    sourceLot: LotId;
+    material: Material;
+    quantity: number;
+    access: TransferAccess;
+  },
+): MaterialResult<ItemLot> {
+  if (!isPositiveInt(input.quantity))
+    return failure("invalid-positive-integer");
+  if (input.source.id === input.destination.id)
+    return failure("destination-mismatch");
+  const sourceProblem = validateContainer(input.source);
+  if (sourceProblem) return failure(sourceProblem);
+  if (
+    !destinationAccepts(input.source, input.material) ||
+    !destinationAccepts(input.destination, input.material)
+  )
+    return failure("destination-mismatch");
+  const source = lotById(state, input.sourceLot);
+  if (
+    !source ||
+    source.material !== input.material ||
+    source.location.kind !== "container" ||
+    source.location.container !== input.source.id
+  )
+    return failure("source-ineligible");
+  if (availableQuantity(state, source.id) < input.quantity)
+    return failure("source-insufficient");
+  if (!input.access.sourceReachable) return failure("source-unreachable");
+  if (!input.access.destinationReachableWithPayload)
+    return failure("destination-unreachable");
+  const capacityProblem = admitContainerCapacity(state, {
+    destination: input.destination,
+    material: input.material,
+    quantity: input.quantity as PositiveInt,
+  });
+  if (capacityProblem) return failure(capacityProblem);
+  let allocation: MaterialResult<{ id: LotId; nextLotId: number }> | null =
+    null;
+  if (source.quantity !== input.quantity) {
+    allocation = allocateLotId(state);
+    if (!allocation.ok) return allocation;
+  }
+  if (allocation) {
+    source.quantity = (source.quantity - input.quantity) as PositiveInt;
+    const moved: ItemLot = {
+      id: allocation.value.id,
+      material: input.material,
+      quantity: input.quantity as PositiveInt,
+      location: { kind: "container", container: input.destination.id },
+    };
+    state.lots.push(moved);
+    state.nextLotId = allocation.value.nextLotId;
+    return success(moved);
+  }
+  source.location = { kind: "container", container: input.destination.id };
+  return success(source);
+}
+
+function heldUsePail(
+  state: MaterialsState,
+  operation: string,
+): MaterialResult<{ lot: ItemLot; interior: ContainerSpec }> {
+  const use = state.vesselUses.find((candidate) => candidate.id === operation);
+  if (!use) return failure("use-intent-required");
+  const transfer = transferForActor(state, use.actor);
+  if (
+    !transfer ||
+    transfer.intent.kind !== "use" ||
+    transfer.intent.operation !== use.id ||
+    transfer.owner.kind !== "operation" ||
+    transfer.owner.operation !== use.id ||
+    transfer.phase.kind !== "carrying" ||
+    transfer.phase.lot !== use.vessel
+  )
+    return failure("use-intent-required");
+  const lot = lotById(state, use.vessel);
+  const interior = lot && pailInterior(lot);
+  if (
+    !lot ||
+    !interior ||
+    lot.location.kind !== "hand" ||
+    lot.location.actor !== use.actor
+  )
+    return failure("vessel-invalid");
+  return success({ lot, interior });
+}
+
+export function drawPailWater(
+  state: MaterialsState,
+  input: {
+    operation: string;
+    source: ContainerSpec;
+    sourceLot: LotId;
+    quantity: number;
+    access: TransferAccess;
+  },
+): MaterialResult<ItemLot> {
+  const held = heldUsePail(state, input.operation);
+  if (!held.ok) return held;
+  return moveContainerPortion(state, {
+    source: input.source,
+    destination: held.value.interior,
+    sourceLot: input.sourceLot,
+    material: "water",
+    quantity: input.quantity,
+    access: input.access,
+  });
+}
+
+export function pourPailWater(
+  state: MaterialsState,
+  input: {
+    operation: string;
+    destination: ContainerSpec;
+    sourceLot: LotId;
+    quantity: number;
+    access: TransferAccess;
+  },
+): MaterialResult<ItemLot> {
+  const held = heldUsePail(state, input.operation);
+  if (!held.ok) return held;
+  return moveContainerPortion(state, {
+    source: held.value.interior,
+    destination: input.destination,
+    sourceLot: input.sourceLot,
+    material: "water",
+    quantity: input.quantity,
+    access: input.access,
+  });
 }
 
 export type InterruptResult =
@@ -584,6 +951,13 @@ export type InterruptResult =
       owner: Transfer["owner"];
     };
 
+function closeVesselUse(state: MaterialsState, transfer: Transfer): void {
+  if (transfer.intent.kind === "use") {
+    const operation = transfer.intent.operation;
+    state.vesselUses = state.vesselUses.filter((use) => use.id !== operation);
+  }
+}
+
 export function interruptTransfer(
   state: MaterialsState,
   actor: ActorId,
@@ -593,6 +967,7 @@ export function interruptTransfer(
   if (!transfer) return success({ kind: "none" });
   if (transfer.phase.kind === "reserved") {
     state.transfers.splice(state.transfers.indexOf(transfer), 1);
+    closeVesselUse(state, transfer);
     return success({
       kind: "released",
       transfer: transfer.id,
@@ -610,6 +985,7 @@ export function interruptTransfer(
   if (!drop?.legal) return failure("illegal-drop");
   held.location = groundLocation(drop.cell);
   state.transfers.splice(state.transfers.indexOf(transfer), 1);
+  closeVesselUse(state, transfer);
   return success({
     kind: "dropped",
     transfer: transfer.id,
@@ -642,7 +1018,8 @@ export function releaseContainer(
     return failure("illegal-drop");
   const affected = state.transfers.filter(
     (transfer) =>
-      transfer.request.destination === container.id ||
+      (transfer.intent.kind === "deliver" &&
+        transfer.intent.destination === container.id) ||
       (transfer.phase.kind === "reserved" &&
         transfer.phase.origin.kind === "container" &&
         transfer.phase.origin.container === container.id),
@@ -684,9 +1061,11 @@ export function embedConstruction(
   state: MaterialsState,
   container: ContainerSpec,
   material: Material,
+  quantity: number,
 ): MaterialResult<EmbeddedMaterial> {
   const containerProblem = validateContainer(container);
   if (containerProblem) return failure(containerProblem);
+  if (!isPositiveInt(quantity)) return failure("invalid-positive-integer");
   if (!destinationAccepts(container, material))
     return failure("destination-mismatch");
   if (incomingQuantity(state, container.id) > 0)
@@ -696,13 +1075,13 @@ export function embedConstruction(
   const contents = [...containerContents(state, container.id)];
   if (
     contents.some((lot) => lot.material !== material) ||
-    containerQuantity(state, container.id, material) !== container.capacity
+    containerQuantity(state, container.id, material) !== quantity
   )
     return failure("container-incomplete");
   const entry: EmbeddedMaterial = {
     container: container.id,
     material,
-    quantity: container.capacity,
+    quantity: quantity as PositiveInt,
   };
   const contentIds = new Set(contents.map((lot) => lot.id));
   state.lots = state.lots.filter((lot) => !contentIds.has(lot.id));

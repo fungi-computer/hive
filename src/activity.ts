@@ -73,7 +73,17 @@ function transfer(s: Clearing, p: Actor, t: Activity) {
     finishActivity(s, p);
     return;
   }
-  const resolved = resolveMaterialDestination(s.sites, x.request.destination);
+  if (x.intent.kind !== "deliver") {
+    s.notice = `${p.name} is holding material for its operation.`;
+    finishActivity(s, p);
+    return;
+  }
+  if (x.owner.kind !== "job") {
+    interruptWork(s, p);
+    return;
+  }
+  const owner = x.owner;
+  const resolved = resolveMaterialDestination(s.sites, x.intent.destination);
   if (!resolved) {
     interruptWork(s, p);
     return;
@@ -84,8 +94,8 @@ function transfer(s: Clearing, p: Actor, t: Activity) {
     return;
   }
   s.notice = `${p.name} delivered material.`;
-  if (s.jobs.find((job) => job.id === x.owner.job)?.kind === "store")
-    finishJob(s, p, x.owner.job);
+  if (s.jobs.find((job) => job.id === owner.job)?.kind === "store")
+    finishJob(s, p, owner.job);
   else finishActivity(s, p);
 }
 function build(s: Clearing, p: Actor, t: Activity) {
@@ -98,7 +108,12 @@ function build(s: Clearing, p: Actor, t: Activity) {
     p.work = site.work;
     return;
   }
-  const r = embedConstruction(s.materials, constructionBuffer(site), "wood");
+  const r = embedConstruction(
+    s.materials,
+    constructionBuffer(site),
+    "wood",
+    BUILDINGS[site.type].wood,
+  );
   if (!r.ok) {
     interruptWork(s, p);
     return;
@@ -128,7 +143,11 @@ function deconstruct(s: Clearing, p: Actor, t: Activity) {
       interruptWork(s, p);
       return;
     }
-    const releasedJobs = new Set(rel.value.owners.map((owner) => owner.job));
+    const releasedJobs = new Set(
+      rel.value.owners.flatMap((owner) =>
+        owner.kind === "job" ? [owner.job] : [],
+      ),
+    );
     for (const job of s.jobs)
       if (
         job.kind === "store" &&
@@ -190,7 +209,9 @@ export function advanceWork(s: Clearing, p: Actor): void {
           if (!x) return;
           const phase = x.phase;
           if (phase.kind === "carrying")
-            return siteFor(s, x.request.destination);
+            return x.intent.kind === "deliver"
+              ? siteFor(s, x.intent.destination)
+              : p;
           return phase.origin.kind === "ground"
             ? phase.origin.cell
             : resolveMaterialEndpoint(

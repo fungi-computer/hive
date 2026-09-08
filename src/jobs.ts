@@ -2,6 +2,7 @@ import type {
   Activity,
   Actor,
   Assignment,
+  CarryIntent,
   Cell,
   Clearing,
   Colony,
@@ -27,6 +28,7 @@ import {
 import {
   availableMaterialFacts,
   containerQuantity,
+  remainingContainerQuantity,
   reserveTransfer,
   transferForActor,
   type ContainerSpec,
@@ -42,7 +44,8 @@ type Candidate = {
     sourceLot: string;
     destination: ContainerSpec;
     request: TransferRequest;
-    owner: { job: string; step: string };
+    intent: CarryIntent;
+    owner: { kind: "job"; job: string; step: string };
     /** The resolved route exists only for this scheduling pass. */
     destinationReachableWithPayload: boolean;
   };
@@ -68,16 +71,19 @@ function constructionTransferOption(
   blocked: Set<string>,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
-  const t = state.materials.transfers.find((x) => x.owner.job === job.id);
+  const t = state.materials.transfers.find(
+    (x) => x.owner.kind === "job" && x.owner.job === job.id,
+  );
   if (t) return no("Wood is on its way");
   const site = state.sites.find((s) => s.id === job.target);
   if (!site) return no("Waiting for site");
   if (site.type === "roof" && !roofSupported(state, site))
     return no("Waiting for enclosing walls and a doorway");
   const destination = constructionBuffer(site);
+  const requiredWood = BUILDINGS[site.type].wood;
   const have = containerQuantity(state.materials, destination.id, "wood");
-  if (have === destination.capacity) return no("Ready to build");
-  const remaining = destination.capacity - have;
+  if (have === requiredWood) return no("Ready to build");
+  const remaining = requiredWood - have;
   const choices = [
     ...sourceFacts.filter(
       ({ lot }) => lot.material === "wood" && lot.location.kind === "ground",
@@ -137,7 +143,6 @@ function constructionTransferOption(
               : { kind: "eligible-ground", material: "wood" },
           quantityPolicy: "portion",
           quantity: quantity as PositiveInt,
-          destination: destination.id,
         },
         destinationReachableWithPayload: true,
       };
@@ -158,7 +163,8 @@ function constructionTransferOption(
         sourceLot: selected.sourceLot,
         destination,
         request: selected.request,
-        owner: { job: job.id, step: "construction-materials" },
+        intent: { kind: "deliver", destination: destination.id },
+        owner: { kind: "job", job: job.id, step: "construction-materials" },
         destinationReachableWithPayload:
           selected.destinationReachableWithPayload,
       },
@@ -183,23 +189,22 @@ function storageTransferOption(
   const lot = sourceFacts.find((fact) => fact.lot.id === sourceLot);
   if (!lot || lot.lot.location.kind !== "ground")
     return no("Waiting for material or shelf");
-  const free =
-    destination.capacity -
-    containerQuantity(state.materials, destination.id, "wood") *
-      destination.bulk.wood -
-    containerQuantity(state.materials, destination.id, "mugwort") *
-      destination.bulk.mugwort;
+  const free = remainingContainerQuantity(
+    state.materials,
+    destination,
+    lot.lot.material,
+  );
+  if (!free.ok) return no("Waiting for material or shelf");
   const quantity = Math.min(
     lot.lot.material === "wood" ? 2 : 1,
     lot.quantity,
-    Math.floor(free / destination.bulk[lot.lot.material]),
+    free.value,
   );
   if (quantity < 1) return no("Shelf is full");
   const request: TransferRequest = {
     source: { kind: "exact-lot", lot: sourceLot },
     quantityPolicy: lot.lot.material === "mugwort" ? "whole-lot" : "portion",
     quantity: quantity as PositiveInt,
-    destination: destination.id,
   };
   const path = route(person, lot.lot.location, blocked, state),
     d = workApproach(state, lot.lot.location, site, blocked);
@@ -219,7 +224,8 @@ function storageTransferOption(
         sourceLot,
         destination,
         request,
-        owner: { job: job.id, step: "shelf-store" },
+        intent: { kind: "deliver", destination: destination.id },
+        owner: { kind: "job", job: job.id, step: "shelf-store" },
         destinationReachableWithPayload: true,
       },
     },
@@ -235,7 +241,10 @@ function option(
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
-    if (containerQuantity(state.materials, c.id, "wood") === c.capacity) {
+    if (
+      containerQuantity(state.materials, c.id, "wood") ===
+      BUILDINGS[site.type].wood
+    ) {
       const path = workApproach(state, p, site, b);
       return path
         ? {
@@ -342,7 +351,9 @@ export function assignWork(state: Clearing, colony: Colony): void {
     sourceFacts = availableMaterialFacts(state.materials);
   const offer = (p: Actor, j: Job, personal = false): boolean => {
     if (
-      state.materials.transfers.some((t) => t.owner.job === j.id) ||
+      state.materials.transfers.some(
+        (t) => t.owner.kind === "job" && t.owner.job === j.id,
+      ) ||
       Object.values(state.actors).some((a) => a.task?.job === j.id)
     )
       return false;
@@ -371,15 +382,18 @@ export function assignWork(state: Clearing, colony: Colony): void {
   for (const p of idle) {
     const carry = transferForActor(state.materials, p.id);
     if (carry?.phase.kind === "carrying") {
+      if (carry.intent.kind !== "deliver") continue;
       const site = resolveMaterialEndpoint(
         state.sites,
-        carry.request.destination,
+        carry.intent.destination,
         "deposit",
       )?.site;
       const path = site && workApproach(state, p, site, blocked);
       if (path) {
         const c = make(
-          state.jobs.find((j) => j.id === carry.owner.job)!,
+          state.jobs.find(
+            (j) => carry.owner.kind === "job" && j.id === carry.owner.job,
+          )!,
           "transfer",
           carry.id,
           path,
@@ -436,6 +450,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
           actor: p.id,
           owner: c.transfer.owner,
           request: c.transfer.request,
+          intent: c.transfer.intent,
           sourceLot: c.transfer.sourceLot,
           destination: c.transfer.destination,
           access: {

@@ -15,6 +15,20 @@ function envelope(change) {
   change(saved.savedState);
   return saved;
 }
+function v8Envelope(change = () => {}) {
+  const saved = snapshotFor(createClearing());
+  const predecessor = structuredClone(saved);
+  predecessor.schema = 8;
+  delete predecessor.savedState.sources;
+  delete predecessor.savedState.pendingSources;
+  delete predecessor.savedState.materials.vesselUses;
+  predecessor.savedState.materials.lots =
+    predecessor.savedState.materials.lots.filter(
+      (lot) => !lot.id.startsWith("source-lot:"),
+    );
+  change(predecessor.savedState);
+  return predecessor;
+}
 function rejects(name, change, pattern) {
   test(name, () => {
     assert.throws(() => restoreSnapshot(envelope(change)), pattern);
@@ -46,13 +60,13 @@ function transfer(id, overrides = {}) {
   return {
     id,
     actor: "rowan",
-    owner: { job: "job-build", step: "construction-materials" },
+    owner: { kind: "job", job: "job-build", step: "construction-materials" },
     request: {
       source: { kind: "eligible-ground", material: "wood" },
       quantityPolicy: "portion",
       quantity: 1,
-      destination: "construction-buffer:site-a",
     },
+    intent: { kind: "deliver", destination: "construction-buffer:site-a" },
     phase: {
       kind: "reserved",
       sourceLot: "wood-a",
@@ -61,6 +75,31 @@ function transfer(id, overrides = {}) {
     },
     ...overrides,
   };
+}
+function heldPailUse(state, operation) {
+  state.materials.lots.push({
+    id: "pail-collision",
+    material: "pail",
+    quantity: 1,
+    location: { kind: "hand", actor: "rowan" },
+  });
+  state.materials.vesselUses.push({
+    id: operation,
+    actor: "rowan",
+    vessel: "pail-collision",
+  });
+  state.materials.transfers.push({
+    id: "pail-collision-transfer",
+    actor: "rowan",
+    owner: { kind: "operation", operation },
+    request: {
+      source: { kind: "exact-lot", lot: "pail-collision" },
+      quantityPolicy: "whole-lot",
+      quantity: 1,
+    },
+    intent: { kind: "use", operation },
+    phase: { kind: "carrying", lot: "pail-collision" },
+  });
 }
 function buildSupplyEnvelope() {
   return envelope((state) => {
@@ -100,7 +139,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v8 snapshots omit commands and restore paused", () => {
+test("v9 snapshots omit commands and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -109,217 +148,371 @@ test("v8 snapshots omit commands and restore paused", () => {
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 8);
+  assert.equal(saved.schema, 9);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
 });
 
-test("the only predecessor bridge derives a reserved v7 ground origin", () => {
-  const saved = buildSupplyEnvelope();
-  const transfer = saved.savedState.materials.transfers[0];
-  saved.savedState.materials.lots.find(
-    (lot) => lot.id === "hand-wood",
-  ).location = {
-    kind: "ground",
-    ...cell(5, 5),
-  };
-  transfer.phase = {
-    kind: "reserved",
-    sourceLot: "hand-wood",
-    quantity: 1,
-    origin: { kind: "ground", cell: cell(5, 5) },
-  };
-  const predecessor = { ...saved, schema: 7 };
-  delete transfer.phase.origin;
-  const restored = restoreSnapshot(predecessor);
-  assert.deepEqual(restored.state.materials.transfers[0].phase, {
-    kind: "reserved",
-    sourceLot: "hand-wood",
-    quantity: 1,
-    origin: { kind: "ground", cell: cell(5, 5) },
-  });
-  assert.equal(snapshotFor(restored.state).schema, 8);
-});
-
-function genuineV7StorageEnvelope() {
-  const saved = snapshotFor(createClearing());
-  saved.savedState.parties.home.members.push("sedge");
-  saved.savedState.sites.push(
-    site("shelf-a", "shelf", { finishedAt: 1 }),
-    site("shelf-b", "shelf", { finishedAt: 1, x: 6 }),
+test("valid v8 introduces finite sources once and writes schema 9", () => {
+  const restored = restoreSnapshot(v8Envelope());
+  assert.equal(snapshotFor(restored.state).schema, 9);
+  assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
+    "reclaimed-timber-cache",
+    "spring",
+  ]);
+  const spring = restored.state.sources.find(
+    (source) => source.kind === "spring",
   );
-  saved.savedState.materials.embedded.push(
+  restored.state.materials.lots.find(
+    (lot) =>
+      lot.location.kind === "container" &&
+      lot.location.container === `source:${spring.id}`,
+  ).quantity = 6;
+  restored.state.materials.lots.push(
     {
-      container: "construction-buffer:shelf-a",
-      material: "wood",
+      id: "pail-a",
+      material: "pail",
       quantity: 1,
-    },
-    {
-      container: "construction-buffer:shelf-b",
-      material: "wood",
-      quantity: 1,
-    },
-  );
-  saved.savedState.materials.lots.push(
-    {
-      id: "wood-rest",
-      material: "wood",
-      quantity: 10,
       location: { kind: "ground", ...cell(4, 4) },
     },
     {
-      id: "herb-reserved",
-      material: "mugwort",
-      quantity: 1,
-      location: { kind: "ground", ...cell(4, 5) },
-    },
-    {
-      id: "herb-carrying",
-      material: "mugwort",
-      quantity: 1,
-      location: { kind: "hand", actor: "sedge" },
+      id: "pail-water-a",
+      material: "water",
+      quantity: 2,
+      location: { kind: "container", container: "vessel:pail-a" },
     },
   );
-  saved.savedState.felled = 2;
-  saved.savedState.harvestedHerbs = 2;
-  saved.savedState.jobs.push(
-    {
-      id: "store-reserved",
-      kind: "transfer",
-      source: "herb-reserved",
-      destination: "shelf:shelf-a",
-      scope,
-      reason: "Ordered",
-      routine: false,
-    },
-    {
-      id: "store-carrying",
-      kind: "transfer",
-      source: "herb-carrying",
-      destination: "shelf:shelf-b",
-      scope,
-      reason: "Ordered",
-      routine: false,
-    },
-  );
-  saved.savedState.materials.transfers.push(
-    {
-      id: "transfer-reserved",
-      actor: "rowan",
-      owner: { job: "store-reserved", step: "shelf-store" },
-      request: {
-        source: { kind: "exact-lot", lot: "herb-reserved" },
-        quantityPolicy: "whole-lot",
-        quantity: 1,
-        destination: "shelf:shelf-a",
-      },
-      phase: { kind: "reserved", sourceLot: "herb-reserved", quantity: 1 },
-    },
-    {
-      id: "transfer-carrying",
-      actor: "sedge",
-      owner: { job: "store-carrying", step: "shelf-store" },
-      request: {
-        source: { kind: "exact-lot", lot: "herb-carrying" },
-        quantityPolicy: "whole-lot",
-        quantity: 1,
-        destination: "shelf:shelf-b",
-      },
-      phase: { kind: "carrying", lot: "herb-carrying" },
-    },
-  );
-  saved.savedState.actors.rowan.task = {
-    kind: "transfer",
-    job: "store-reserved",
-    target: "transfer-reserved",
-    duration: 8,
-  };
-  saved.savedState.actors.rowan.assignment = {
-    character: "rowan",
-    task: "store-reserved",
-    cost: 1,
-  };
-  saved.savedState.actors.sedge.task = {
-    kind: "transfer",
-    job: "store-carrying",
-    target: "transfer-carrying",
-    duration: 8,
-  };
-  saved.savedState.actors.sedge.assignment = {
-    character: "sedge",
-    task: "store-carrying",
-    cost: 1,
-  };
-  return { ...saved, schema: 7 };
-}
-
-test("strict v7 preserves real reserved and carrying storage transfers", () => {
-  const restored = restoreSnapshot(genuineV7StorageEnvelope());
-  assert.deepEqual(
-    restored.state.jobs.map((job) => job.kind),
-    ["store", "store"],
-  );
-  assert.deepEqual(restored.state.materials.transfers[0].phase, {
-    kind: "reserved",
-    sourceLot: "herb-reserved",
-    quantity: 1,
-    origin: { kind: "ground", cell: cell(4, 5) },
-  });
-  assert.deepEqual(restored.state.materials.transfers[1].phase, {
-    kind: "carrying",
-    lot: "herb-carrying",
-  });
+  const reloaded = restoreSnapshot(snapshotFor(restored.state));
   assert.equal(
-    restored.state.materials.lots.find((lot) => lot.id === "herb-carrying")
-      .location.actor,
-    "sedge",
+    reloaded.state.materials.lots.find(
+      (lot) =>
+        lot.location.kind === "container" &&
+        lot.location.container === `source:${spring.id}`,
+    ).quantity,
+    6,
   );
-  assert.deepEqual(restored.state.materials.transfers[1].owner, {
-    job: "store-carrying",
-    step: "shelf-store",
-  });
-  const taskless = genuineV7StorageEnvelope();
-  taskless.savedState.actors.sedge.task = null;
-  taskless.savedState.actors.sedge.assignment = null;
-  assert.doesNotThrow(() => restoreSnapshot(taskless));
 });
 
-test("strict v7 rejects v8 shapes, phase origin, extras, and shelf overcapacity", () => {
-  const reject = (change) =>
-    assert.throws(() =>
-      restoreSnapshot(change(structuredClone(genuineV7StorageEnvelope()))),
+test("a valid v8 with no legal feature cell persists both finite sources pending", () => {
+  const restored = restoreSnapshot(
+    v8Envelope((state) => {
+      state.trees = Array.from({ length: 15 * 15 }, (_, index) => ({
+        id: `cover-${index}`,
+        x: index % 15,
+        z: Math.floor(index / 15),
+        level: 0,
+        work: 0,
+        felledAt: 0,
+      }));
+    }),
+  );
+  assert.deepEqual(restored.state.sources, []);
+  assert.deepEqual(
+    restored.state.pendingSources.map((source) => source.kind).sort(),
+    ["reclaimed-timber-cache", "spring"],
+  );
+  assert.equal(
+    restored.state.materials.lots.some((lot) =>
+      lot.id.startsWith("source-lot:"),
+    ),
+    false,
+  );
+});
+
+test("invalid v8 transfer relations reject before finite-source introduction", () => {
+  const predecessor = v8Envelope((state) => {
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push({
+      id: "invalid-v8-transfer",
+      actor: "rowan",
+      owner: { job: "missing-job", step: "construction-materials" },
+      request: {
+        source: { kind: "eligible-ground", material: "wood" },
+        quantityPolicy: "portion",
+        quantity: 1,
+        destination: "construction-buffer:missing-site",
+      },
+      phase: {
+        kind: "reserved",
+        sourceLot: "wood-a",
+        quantity: 1,
+        origin: { kind: "ground", cell: cell() },
+      },
+    });
+  });
+  assert.throws(() => restoreSnapshot(predecessor), /missing job/);
+});
+
+test("a held pail use reloads only with its matching operation custody", () => {
+  const saved = envelope((state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    const sourceLot = state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${spring.id}`,
     );
-  reject((value) => {
-    value.savedState.jobs[0].kind = "store";
-    return value;
+    sourceLot.quantity = 6;
+    state.materials.lots.push(
+      {
+        id: "pail-a",
+        material: "pail",
+        quantity: 1,
+        location: { kind: "hand", actor: "rowan" },
+      },
+      {
+        id: "pail-water-a",
+        material: "water",
+        quantity: 2,
+        location: { kind: "container", container: "vessel:pail-a" },
+      },
+    );
+    state.materials.vesselUses.push({
+      id: "fill-kettle-a",
+      actor: "rowan",
+      vessel: "pail-a",
+    });
+    state.materials.transfers.push({
+      id: "pail-use-a",
+      actor: "rowan",
+      owner: { kind: "operation", operation: "fill-kettle-a" },
+      request: {
+        source: { kind: "exact-lot", lot: "pail-a" },
+        quantityPolicy: "whole-lot",
+        quantity: 1,
+      },
+      intent: { kind: "use", operation: "fill-kettle-a" },
+      phase: { kind: "carrying", lot: "pail-a" },
+    });
   });
-  reject((value) => {
-    value.savedState.materials.transfers[0].request.source = {
-      kind: "eligible-container",
+  const restored = restoreSnapshot(saved);
+  assert.equal(restored.state.paused, true);
+  assert.deepEqual(restored.state.materials.vesselUses, [
+    { id: "fill-kettle-a", actor: "rowan", vessel: "pail-a" },
+  ]);
+  assert.equal(
+    restored.state.materials.lots.find((lot) => lot.id === "pail-water-a")
+      .quantity,
+    2,
+  );
+
+  saved.savedState.materials.transfers[0].owner.operation = "wrong-operation";
+  assert.throws(() => restoreSnapshot(saved), /lacks unique pail custody/);
+});
+
+test("schema 8 migration retains finite source identity under existing IDs", () => {
+  const predecessor = v8Envelope((state) => {
+    state.materials.lots.push({
+      id: "feature:spring",
       material: "mugwort",
-      container: "shelf:shelf-a",
-    };
-    return value;
+      quantity: 1,
+      location: { kind: "ground", ...cell(4, 4) },
+    });
+    state.harvestedHerbs = 1;
   });
-  reject((value) => {
-    value.savedState.materials.transfers[0].phase.origin = {
-      kind: "ground",
-      cell: cell(4, 5),
-    };
-    return value;
+  const restored = restoreSnapshot(predecessor);
+  assert.notEqual(
+    restored.state.sources.find((source) => source.kind === "spring").id,
+    "feature:spring",
+  );
+});
+
+test("schema 8 source planning reserves derived lot IDs before either source mutates", () => {
+  const restored = restoreSnapshot(
+    v8Envelope((state) => {
+      state.materials.lots.push({
+        id: "source-lot:feature:spring",
+        material: "mugwort",
+        quantity: 1,
+        location: { kind: "ground", ...cell(4, 4) },
+      });
+      state.harvestedHerbs = 1;
+    }),
+  );
+  const spring = restored.state.sources.find(
+    (source) => source.kind === "spring",
+  );
+  assert.notEqual(spring.id, "feature:spring");
+  assert.equal(
+    restored.state.materials.lots.some(
+      (lot) => lot.id === `source-lot:${spring.id}` && lot.material === "water",
+    ),
+    true,
+  );
+});
+
+rejects(
+  "restore rejects a finite source occupying an actor's saved route",
+  (state) => {
+    const source = state.sources[0];
+    state.actors.rowan.path = [cell(source.x, source.z, source.level)];
+  },
+  /source .* is invalid/,
+);
+
+rejects(
+  "restore rejects finite source stock over its provider capacity",
+  (state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${spring.id}`,
+    ).quantity = 9;
+  },
+  /invalid finite contents/,
+);
+
+rejects(
+  "restore rejects a raw schema 9 finite source with the wrong access policy",
+  (state) => {
+    state.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    ).access = "open";
+  },
+  /source .* is invalid/,
+);
+
+rejects(
+  "restore rejects a finite source lot with the wrong source material",
+  (state) => {
+    const cache = state.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    );
+    state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${cache.id}`,
+    ).material = "mugwort";
+  },
+  /invalid finite contents/,
+);
+
+test("restore accepts a final source lot drawn into a dropped pail", () => {
+  const saved = envelope((state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    const sourceLot = state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${spring.id}`,
+    );
+    sourceLot.quantity = 2;
+    sourceLot.location = { kind: "container", container: "vessel:pail-last" };
+    state.materials.lots.push(
+      {
+        id: "pail-last",
+        material: "pail",
+        quantity: 1,
+        location: { kind: "ground", ...cell(4, 4) },
+      },
+      {
+        id: "pail-earlier",
+        material: "pail",
+        quantity: 1,
+        location: { kind: "ground", ...cell(5, 4) },
+      },
+      {
+        id: "pail-before",
+        material: "pail",
+        quantity: 1,
+        location: { kind: "ground", ...cell(6, 4) },
+      },
+      {
+        id: "pail-first",
+        material: "pail",
+        quantity: 1,
+        location: { kind: "ground", ...cell(7, 4) },
+      },
+      {
+        id: "drawn-water-earlier",
+        material: "water",
+        quantity: 2,
+        location: { kind: "container", container: "vessel:pail-earlier" },
+      },
+      {
+        id: "drawn-water-before",
+        material: "water",
+        quantity: 2,
+        location: { kind: "container", container: "vessel:pail-before" },
+      },
+      {
+        id: "drawn-water-first",
+        material: "water",
+        quantity: 2,
+        location: { kind: "container", container: "vessel:pail-first" },
+      },
+    );
   });
-  reject((value) => {
-    value.savedState.extra = true;
-    return value;
+  assert.doesNotThrow(() => restoreSnapshot(saved));
+});
+
+rejects(
+  "restore rejects ordinary IDs colliding with active source derivatives",
+  (state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.jobs.push(job(`source:${spring.id}`));
+  },
+  /source .* is invalid/,
+);
+
+rejects(
+  "restore rejects ordinary IDs colliding with an active source named lot",
+  (state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.jobs.push(job(`source-lot:${spring.id}`));
+  },
+  /source .* is invalid/,
+);
+
+for (const operation of [
+  "feature:spring",
+  "source:feature:spring",
+  "source-lot:feature:spring",
+])
+  rejects(
+    `restore rejects a vessel operation colliding with ${operation}`,
+    (state) => heldPailUse(state, operation),
+    /source .* is invalid/,
+  );
+
+rejects(
+  "restore rejects a pending source that collides with an active feature identity",
+  (state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.pendingSources.push({
+      id: spring.id,
+      kind: "spring",
+      preferred: cell(2, 2),
+    });
+  },
+  /pending source .* is invalid/,
+);
+
+test("restore rejects a derived container ID reserved for a pending source", () => {
+  const blocked = restoreSnapshot(
+    v8Envelope((state) => {
+      state.trees = Array.from({ length: 15 * 15 }, (_, index) => ({
+        id: `cover-${index}`,
+        x: index % 15,
+        z: Math.floor(index / 15),
+        level: 0,
+        work: 0,
+        felledAt: 0,
+      }));
+    }),
+  );
+  const saved = snapshotFor(blocked.state);
+  const pending = saved.savedState.pendingSources[0];
+  saved.savedState.jobs.push(job(`source:${pending.id}`));
+  assert.throws(() => restoreSnapshot(saved), /pending source .* is invalid/);
+});
+
+test("schema 9 accepts only strict schema 8 or schema 9 predecessors", () => {
+  const unsupported = snapshotFor(createClearing());
+  unsupported.schema = 7;
+  assert.throws(() => restoreSnapshot(unsupported));
+  const malformed = v8Envelope((state) => {
+    state.extra = true;
   });
-  reject((value) => {
-    value.savedState.jobs[1].destination = "shelf:shelf-a";
-    value.savedState.materials.transfers[1].request.destination =
-      "shelf:shelf-a";
-    return value;
-  });
+  assert.throws(() => restoreSnapshot(malformed));
 });
 
 test("current-v8 revision admission distinguishes absent, malformed, and stale slots", () => {
@@ -375,7 +568,7 @@ test("restore accepts an active build-supply transfer and rejects owner/request 
 
   const wrongRequest = buildSupplyEnvelope();
   wrongRequest.savedState.sites.push(site("site-b", "wall", { x: 6 }));
-  wrongRequest.savedState.materials.transfers[0].request.destination =
+  wrongRequest.savedState.materials.transfers[0].intent.destination =
     "construction-buffer:site-b";
   assert.throws(
     () => restoreSnapshot(wrongRequest),
@@ -422,6 +615,36 @@ rejects(
     );
   },
   /duplicate material lot lot-a/,
+);
+
+rejects(
+  "restore rejects a synthetic stacked ground pail",
+  (state) => {
+    state.materials.lots.push({
+      id: "pail-stack",
+      material: "pail",
+      quantity: 2,
+      location: { kind: "ground", ...cell(4, 4) },
+    });
+  },
+  /vessel lot pail-stack must have quantity 1/,
+);
+
+rejects(
+  "restore rejects drawn water made loose beside a depleted spring",
+  (state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${spring.id}`,
+    ).quantity = 6;
+    state.materials.lots.push({
+      id: "loose-water",
+      material: "water",
+      quantity: 2,
+      location: { kind: "ground", ...cell(4, 4) },
+    });
+  },
+  /water lot loose-water must be contained/,
 );
 
 rejects(
@@ -516,12 +739,7 @@ rejects(
     });
     state.materials.transfers.push(
       transfer("transfer-a", {
-        request: {
-          source: { kind: "eligible-ground", material: "wood" },
-          quantityPolicy: "portion",
-          quantity: 1,
-          destination: "construction-buffer:site-b",
-        },
+        intent: { kind: "deliver", destination: "construction-buffer:site-b" },
       }),
     );
     state.actors.rowan.task = {
@@ -580,23 +798,13 @@ rejects(
     });
     state.materials.transfers.push(
       transfer("transfer-a", {
-        owner: { job: "job-a", step: "one" },
-        request: {
-          source: { kind: "eligible-ground", material: "wood" },
-          quantityPolicy: "portion",
-          quantity: 1,
-          destination: "construction-buffer:site-a",
-        },
+        owner: { kind: "job", job: "job-a", step: "one" },
+        intent: { kind: "deliver", destination: "construction-buffer:site-a" },
       }),
       transfer("transfer-b", {
         actor: "sedge",
-        owner: { job: "job-b", step: "two" },
-        request: {
-          source: { kind: "eligible-ground", material: "wood" },
-          quantityPolicy: "portion",
-          quantity: 1,
-          destination: "construction-buffer:site-b",
-        },
+        owner: { kind: "job", job: "job-b", step: "two" },
+        intent: { kind: "deliver", destination: "construction-buffer:site-b" },
       }),
     );
     state.parties.home.members.push("sedge");
@@ -654,7 +862,6 @@ rejects(
           source: { kind: "eligible-ground", material: "wood" },
           quantityPolicy: "portion",
           quantity: 2,
-          destination: "construction-buffer:site-a",
         },
         phase: {
           kind: "reserved",
@@ -803,5 +1010,5 @@ rejects(
   (state) => {
     state.felled = 1;
   },
-  /wood conservation is 0, expected 6/,
+  /wood conservation is 10, expected 16/,
 );

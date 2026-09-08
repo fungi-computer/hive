@@ -8,7 +8,9 @@ export type PositiveInt = number & { readonly [positiveIntBrand]: true };
 export type LotId = string;
 export type TransferId = string;
 export type ContainerId = string;
-export type Material = "wood" | "mugwort";
+export type OperationId = string;
+/** Pails are ordinary indivisible lots; water is always contained. */
+export type Material = "wood" | "mugwort" | "water" | "pail";
 export type ItemLotLocation =
   | ({ kind: "ground" } & Cell)
   | { kind: "hand"; actor: ActorId }
@@ -35,14 +37,34 @@ export type TransferRequest = {
   /** A whole request preserves one source lot; a portion may split it. */
   readonly quantityPolicy: "whole-lot" | "portion";
   readonly quantity: PositiveInt;
-  readonly destination: ContainerId;
+};
+/** A held item is either promised to a container or retained for one operation. */
+export type CarryIntent =
+  | { readonly kind: "deliver"; readonly destination: ContainerId }
+  | { readonly kind: "use"; readonly operation: OperationId };
+export type JobTransferOwner = {
+  readonly kind: "job";
+  readonly job: JobId;
+  readonly step: string;
+};
+export type OperationTransferOwner = {
+  readonly kind: "operation";
+  readonly operation: OperationId;
+};
+export type TransferOwner = JobTransferOwner | OperationTransferOwner;
+/** The one durable authorization for a held pail; its work phases come later. */
+export type VesselUse = {
+  id: OperationId;
+  actor: ActorId;
+  vessel: LotId;
 };
 export type Transfer = {
   readonly id: TransferId;
   readonly actor: ActorId;
   /** Consumer-defined opaque identity; the material kernel never branches on it. */
-  readonly owner: { readonly job: JobId; readonly step: string };
+  readonly owner: TransferOwner;
   readonly request: TransferRequest;
+  readonly intent: CarryIntent;
   phase:
     | {
         kind: "reserved";
@@ -60,9 +82,23 @@ export type EmbeddedMaterial = {
 export type MaterialsState = {
   lots: ItemLot[];
   transfers: Transfer[];
+  vesselUses: VesselUse[];
   embedded: EmbeddedMaterial[];
   nextLotId: number;
   consumedWood: number;
+};
+export type FeatureId = string;
+export type SourceFeatureKind = "spring" | "reclaimed-timber-cache";
+export type SourceFeature = Cell & {
+  id: FeatureId;
+  kind: SourceFeatureKind;
+  /** Access is metadata. Its finite quantity is a lot in sourceContainer(id). */
+  access: "open" | "sealed";
+};
+export type PendingFeatureIntroduction = {
+  id: FeatureId;
+  kind: SourceFeatureKind;
+  preferred: Cell;
 };
 export type HerbId = string;
 export type Cell = { x: number; z: number; level: number };
@@ -195,6 +231,8 @@ export type Clearing = {
   trees: Tree[];
   herbs: Herb[];
   materials: MaterialsState;
+  sources: SourceFeature[];
+  pendingSources: PendingFeatureIntroduction[];
   rocks: Cell[];
   watcher: Cell;
   sites: Site[];

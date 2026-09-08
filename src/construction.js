@@ -346,6 +346,7 @@ export function placementProblem(state, at) {
           occupant === "tree" ||
           occupant === "rock" ||
           occupant === "watcher" ||
+          occupant === "source" ||
           occupant === "pile" ||
           occupant === "herb" ||
           occupant === "herb-bundle"
@@ -421,7 +422,11 @@ export function placementProblem(state, at) {
   if (
     footprint(at).some((cell) => {
       const occupant = placementOccupant(state, cell);
-      return occupant === "herb" || occupant === "herb-bundle";
+      return (
+        occupant === "source" ||
+        occupant === "herb" ||
+        occupant === "herb-bundle"
+      );
     })
   )
     return "Choose clear ground.";
