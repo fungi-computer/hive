@@ -89,7 +89,8 @@ canvas {
   background: #1d3028;
 }
 .overview-stage,
-.local-stage {
+.local-stage,
+.section-stage {
   position: relative;
   width: 100%;
 }
@@ -109,6 +110,13 @@ canvas {
 }
 .local-stage canvas + canvas {
   border-color: transparent;
+}
+.section-figure {
+  grid-column: 1 / -1;
+}
+.section-stage canvas {
+  aspect-ratio: 2 / 1;
+  background: #0d1613;
 }
 figcaption {
   margin-top: 6px;
@@ -145,6 +153,9 @@ figcaption {
 }
 .swatch.ridge {
   background: #6f6047;
+}
+.swatch.canyon {
+  background: #804c3a;
 }
 .swatch.land {
   background: #4b8452;

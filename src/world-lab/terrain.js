@@ -3,7 +3,7 @@
 
 export const WORLD_LAB_SPEC = Object.freeze({
   seed: "hive-world-lab-seed-20260907",
-  generatorVersion: "world-lab-terrain-lod-v3",
+  generatorVersion: "world-lab-terrain-landforms-v4",
   chunkSize: 16,
   overview: Object.freeze({
     width: 512,
@@ -108,9 +108,25 @@ function coastLine(spec, x) {
   );
 }
 
-function ridgeLine(spec, x) {
+function ridgeLine(spec, x, coast = coastLine(spec, x)) {
   const p = phase(spec, "ridge-phase");
-  return coastLine(spec, x) + 180 + 38 * Math.sin((x + p * 60) / 360);
+  return coast + 180 + 38 * Math.sin((x + p * 60) / 360);
+}
+
+function canyonLine(spec, x, coast = coastLine(spec, x)) {
+  const p = phase(spec, "canyon-phase");
+  return (
+    coast +
+    430 +
+    52 * Math.sin((x - p * 70) / 410) +
+    18 * (coherentNoise(spec, x / 560, -0.41, "canyon-warp") - 0.5)
+  );
+}
+
+function bellProfile(distance, radius) {
+  const normalized = Math.min(1, Math.abs(distance) / radius);
+  const falloff = 1 - smooth(normalized);
+  return falloff * falloff;
 }
 
 function filteredField(spec, x, z, footprint, salt) {
@@ -166,28 +182,41 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
   const chunk = chunkOf(spec, Math.floor(x), Math.floor(z));
   const broad = filteredField(spec, x, z, footprint, "elevation");
   const moisture = filteredField(spec, x + 311, z - 127, footprint, "moisture");
-  const coastDistance = z - coastLine(spec, x);
-  const ridgeDistance = z - ridgeLine(spec, x);
+  const coast = coastLine(spec, x);
+  const coastDistance = z - coast;
+  const ridgeDistance = z - ridgeLine(spec, x, coast);
+  const canyonDistance = z - canyonLine(spec, x, coast);
   const coastBand = Math.max(6, footprint * 0.75);
   const ridgeBand = Math.max(22, footprint * 0.75);
+  const canyonBand = Math.max(28, footprint * 0.75);
+  const baseElevation = Math.max(
+    0,
+    Math.min(1, 0.18 + broad * 0.82 + (coastDistance > 0 ? 0.08 : -0.1)),
+  );
+  const ridgeLift = 0.3 * bellProfile(ridgeDistance, 92);
+  const canyonCarve = 0.34 * bellProfile(canyonDistance, 82);
   const feature =
     Math.abs(coastDistance) <= coastBand
       ? "coast"
-      : Math.abs(ridgeDistance) <= ridgeBand
-        ? "ridge"
-        : null;
+      : Math.abs(canyonDistance) <= canyonBand
+        ? "canyon"
+        : Math.abs(ridgeDistance) <= ridgeBand
+          ? "ridge"
+          : null;
   const elevation = Math.max(
     0,
-    Math.min(1, 0.18 + broad * 0.82 + (coastDistance > 0 ? 0.08 : -0.1)),
+    Math.min(1, baseElevation + ridgeLift - canyonCarve),
   );
   const terrain =
     coastDistance < -coastBand
       ? "water"
       : feature === "coast"
         ? "coast"
-        : feature === "ridge"
-          ? "ridge"
-          : "land";
+        : feature === "canyon"
+          ? "canyon"
+          : feature === "ridge"
+            ? "ridge"
+            : "land";
   return {
     x,
     z,
@@ -198,6 +227,10 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
     moisture: Math.max(0, Math.min(1, moisture)),
     coastDistance,
     ridgeDistance,
+    canyonDistance,
+    baseElevation,
+    ridgeLift,
+    canyonCarve,
     feature,
     terrain,
   };
@@ -206,6 +239,7 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
 export function namedFeatures(spec) {
   const coastX = -720;
   const ridgeX = 420;
+  const canyonX = -240;
   return {
     coast: {
       name: "Northwater Coast",
@@ -216,6 +250,11 @@ export function namedFeatures(spec) {
       name: "Lantern Ridge",
       x: ridgeX,
       z: Math.round(ridgeLine(spec, ridgeX)),
+    },
+    canyon: {
+      name: "Mallowcut Canyon",
+      x: canyonX,
+      z: Math.round(canyonLine(spec, canyonX)),
     },
   };
 }
@@ -308,18 +347,26 @@ export function overviewRectForViewport(overview, viewport) {
   };
 }
 
-function terrainCode(terrain) {
+export function terrainCode(terrain) {
   return terrain === "water"
     ? 0
     : terrain === "coast"
       ? 1
       : terrain === "ridge"
         ? 2
-        : 3;
+        : terrain === "canyon"
+          ? 4
+          : 3;
 }
 
 function featureCode(feature) {
-  return feature === "coast" ? 1 : feature === "ridge" ? 2 : 0;
+  return feature === "coast"
+    ? 1
+    : feature === "ridge"
+      ? 2
+      : feature === "canyon"
+        ? 3
+        : 0;
 }
 
 export function checksumBytes(bytes) {
@@ -408,7 +455,7 @@ export function createOverviewSampler(spec, options = {}) {
   const elevation = new Uint8Array(width * height);
   const moisture = new Uint8Array(width * height);
   const footprint = Math.max(bounds.spanX / width, bounds.spanZ / height);
-  const featureCounts = { coast: 0, ridge: 0 };
+  const featureCounts = { coast: 0, ridge: 0, canyon: 0 };
   let nextRow = 0;
 
   return {

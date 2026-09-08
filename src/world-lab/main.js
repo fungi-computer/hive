@@ -11,8 +11,14 @@ import {
   renderChunkBuffer,
   sampleCell,
   sampleTerrain,
+  terrainCode,
   worldCellToOverviewPixel,
 } from "./terrain.js";
+import {
+  assembleSurfaceSection,
+  prepareIsometricSection,
+  sampleSectionCells,
+} from "./section.js";
 import "./styles.css";
 
 const spec = createWorldSpec();
@@ -23,18 +29,21 @@ const overviewMarkerCanvas = document.querySelector(
 );
 const localCanvas = document.querySelector("#world-lab-local");
 const localGridCanvas = document.querySelector("#world-lab-local-grid");
+const sectionCanvas = document.querySelector("#world-lab-section");
 const atlasStatus = document.querySelector("#world-lab-atlas-status");
 const requestStatus = document.querySelector("#world-lab-request-status");
 const overviewContext = overviewCanvas.getContext("2d");
 const overviewMarkerContext = overviewMarkerCanvas.getContext("2d");
 const localContext = localCanvas.getContext("2d");
 const localGridContext = localGridCanvas.getContext("2d");
+const sectionContext = sectionCanvas.getContext("2d");
 const residency = createResidency(spec);
 const features = namedFeatures(spec);
 const featureButtons = [
   { label: "Origin", x: 0, z: 0 },
   { label: "Northwater Coast", ...features.coast },
   { label: "Lantern Ridge", ...features.ridge },
+  { label: "Mallowcut Canyon", ...features.canyon },
   { label: "Signed cell", x: -1, z: 0 },
 ];
 let focus = featureButtons[0];
@@ -64,6 +73,7 @@ const terrainPalette = [
   [197, 168, 104],
   [111, 96, 71],
   [75, 132, 82],
+  [128, 76, 58],
 ];
 
 function channel(value) {
@@ -193,6 +203,85 @@ function drawLocal() {
   return { buffer, viewport, renderMs: performance.now() - started };
 }
 
+function polygon(context, points) {
+  context.beginPath();
+  context.moveTo(points[0].x, points[0].y);
+  for (const point of points.slice(1)) context.lineTo(point.x, point.y);
+  context.closePath();
+}
+
+function shade(color, factor) {
+  return color.map((value) => channel(value * factor));
+}
+
+function drawSurfaceSection() {
+  const sampleStarted = performance.now();
+  const sampled = sampleSectionCells(spec, {
+    focusX: focus.x,
+    focusZ: focus.z,
+    width: 24,
+    depth: 16,
+    halo: 1,
+  });
+  const sampleMs = performance.now() - sampleStarted;
+  const assemblyStarted = performance.now();
+  const section = assembleSurfaceSection(sampled);
+  const assemblyMs = performance.now() - assemblyStarted;
+  const drawPreparationStarted = performance.now();
+  const prepared = prepareIsometricSection(section);
+  const drawPreparationMs = performance.now() - drawPreparationStarted;
+  const drawStarted = performance.now();
+  sectionContext.clearRect(0, 0, sectionCanvas.width, sectionCanvas.height);
+  sectionContext.save();
+  const scale = Math.min(
+    sectionCanvas.width / prepared.width,
+    sectionCanvas.height / prepared.height,
+  );
+  sectionContext.translate(
+    (sectionCanvas.width - prepared.width * scale) / 2,
+    (sectionCanvas.height - prepared.height * scale) / 2,
+  );
+  sectionContext.scale(scale, scale);
+  sectionContext.lineWidth = 0.7 / scale;
+  for (const tile of prepared.tiles) {
+    const color = colorForCell(
+      terrainCode(tile.cell.terrain),
+      Math.round(tile.cell.elevation * 255),
+      Math.round(tile.cell.moisture * 255),
+    );
+    if (tile.eastFace) {
+      polygon(sectionContext, tile.eastFace);
+      sectionContext.fillStyle = `rgb(${shade(color, 0.58).join(",")})`;
+      sectionContext.fill();
+    }
+    if (tile.southFace) {
+      polygon(sectionContext, tile.southFace);
+      sectionContext.fillStyle = `rgb(${shade(color, 0.72).join(",")})`;
+      sectionContext.fill();
+    }
+    polygon(sectionContext, tile.top);
+    sectionContext.fillStyle = `rgb(${color.join(",")})`;
+    sectionContext.fill();
+    sectionContext.strokeStyle = tile.cell.focused
+      ? "#fff2a8"
+      : "rgba(20, 30, 25, 0.28)";
+    sectionContext.lineWidth = tile.cell.focused ? 2 / scale : 0.7 / scale;
+    sectionContext.stroke();
+  }
+  sectionContext.restore();
+  return {
+    sampled,
+    section,
+    prepared,
+    timings: {
+      sampleMs: Number(sampleMs.toFixed(3)),
+      assemblyMs: Number(assemblyMs.toFixed(3)),
+      drawPreparationMs: Number(drawPreparationMs.toFixed(3)),
+      canvasDrawMs: Number((performance.now() - drawStarted).toFixed(3)),
+    },
+  };
+}
+
 function lifecycleLabel() {
   if (activeRequest && queuedRequest)
     return `sampling #${activeRequest.requestId}; queued newest #${queuedRequest.requestId}`;
@@ -229,6 +318,7 @@ function updateZoomAvailability() {
 
 function render() {
   const local = drawLocal();
+  const sectionView = drawSurfaceSection();
   drawViewportMarker(local.viewport);
   const selectedLocal = sampleCell(spec, focus.x, focus.z);
   const selectedShared = sampleTerrain(spec, focus.x, focus.z, 1);
@@ -258,6 +348,13 @@ function render() {
         elevation: selectedShared.elevation,
         moisture: selectedShared.moisture,
         terrain: selectedShared.terrain,
+        feature: selectedShared.feature,
+        baseElevation: selectedShared.baseElevation,
+        ridgeLift: selectedShared.ridgeLift,
+        canyonCarve: selectedShared.canyonCarve,
+        coastDistance: selectedShared.coastDistance,
+        ridgeDistance: selectedShared.ridgeDistance,
+        canyonDistance: selectedShared.canyonDistance,
       },
       sharedLocalSampler: {
         footprint: selectedLocal.footprint,
@@ -297,6 +394,25 @@ function render() {
       renderChecksum: local.buffer.checksum,
       visualChecksum: local.buffer.visualChecksum,
       renderMs: Number(local.renderMs.toFixed(3)),
+    },
+    null,
+    2,
+  );
+  output.querySelector("[data-field=section]").textContent = JSON.stringify(
+    {
+      focus: sectionView.section.focus,
+      surfaceOnly: sectionView.section.surfaceOnly,
+      bounds: sectionView.section.bounds,
+      visibleCells: sectionView.section.visibleCellCount,
+      halo: sectionView.section.halo,
+      sampledCells: sectionView.section.sampleCount,
+      sampleBudget: "24x16 visible cells + one-cell halo",
+      preparedPixels: {
+        width: sectionView.prepared.width,
+        height: sectionView.prepared.height,
+      },
+      timings: sectionView.timings,
+      nonClaims: ["no caves", "no voxel volume", "no live gameplay terrain"],
     },
     null,
     2,
@@ -342,6 +458,7 @@ function contractReport() {
         "same versioned sampler requested in one lazy worker",
       filtering: overview?.filtering ?? "footprint-aware sampling pending",
       namedFeatures: overview?.featureCounts ?? null,
+      landformComponents: ["baseElevation", "ridgeLift", "canyonCarve"],
       visualChecksum: overview?.visualChecksum ?? null,
       generationMs: overviewGenerationMs,
       lifecycle:
@@ -491,6 +608,15 @@ function zoomAtlas(direction) {
     direction === "in" ? "zoom-in" : "zoom-out",
   );
   return true;
+}
+
+for (const button of document.querySelectorAll("[data-feature]")) {
+  const feature = features[button.dataset.feature];
+  if (!feature)
+    throw new Error(`unknown named feature ${button.dataset.feature}`);
+  button.dataset.cell = `${feature.x},${feature.z}`;
+  button.dataset.label = feature.name;
+  button.querySelector("span").textContent = `(${feature.x}, ${feature.z})`;
 }
 
 for (const button of document.querySelectorAll("[data-cell]")) {

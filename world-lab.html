@@ -18,11 +18,14 @@
         <button data-cell="0,0" data-label="Origin">
           Origin <span>(0, 0)</span>
         </button>
-        <button data-cell="-720,-234" data-label="Northwater Coast">
-          Northwater Coast <span>(-720, -234)</span>
+        <button data-feature="coast">
+          Northwater Coast <span>(from generator)</span>
         </button>
-        <button data-cell="420,432" data-label="Lantern Ridge">
-          Lantern Ridge <span>(420, 432)</span>
+        <button data-feature="ridge">
+          Lantern Ridge <span>(from generator)</span>
+        </button>
+        <button data-feature="canyon">
+          Mallowcut Canyon <span>(from generator)</span>
         </button>
         <button data-cell="-1,0" data-label="Signed cell">
           Signed cell <span>(-1, 0)</span>
@@ -90,11 +93,28 @@
             cache tiles; borders do not define geography.
           </figcaption>
         </figure>
+        <figure class="section-figure">
+          <div class="section-stage">
+            <canvas
+              id="world-lab-section"
+              width="720"
+              height="360"
+              aria-label="Surface-only isometric section around the selected global cell"
+            ></canvas>
+          </div>
+          <figcaption>
+            Surface-only 24×16 isometric section from the same authoritative
+            one-cell sampler, plus one-cell slope halo. Gold marks the focused
+            cell. This does not generate caves, voxel volume, or gameplay
+            terrain.
+          </figcaption>
+        </figure>
       </div>
       <div class="legend" aria-label="Terrain palette legend">
         <span><i class="swatch water"></i>water</span>
         <span><i class="swatch coast"></i>coast</span>
         <span><i class="swatch ridge"></i>ridge</span>
+        <span><i class="swatch canyon"></i>canyon</span>
         <span><i class="swatch land"></i>land</span>
         <span class="legend-note"
           >color lightness follows elevation; cyan/green lift follows
@@ -113,6 +133,10 @@
         <section>
           <h2>Local generation / render</h2>
           <pre data-field="local"></pre>
+        </section>
+        <section>
+          <h2>Surface section</h2>
+          <pre data-field="section"></pre>
         </section>
         <section>
           <h2>Boundary / scope</h2>

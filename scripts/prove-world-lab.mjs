@@ -15,13 +15,21 @@ import {
   sampleCell,
   sampleOverview,
   sampleTerrain,
+  terrainCode,
   overviewPixelToWorldCell,
   worldCellToOverviewPixel,
 } from "../src/world-lab/terrain.js";
+import {
+  SECTION_LIMITS,
+  assembleSurfaceSection,
+  prepareIsometricSection,
+  sampleSectionCells,
+} from "../src/world-lab/section.js";
 import { generateOverview } from "../src/world-lab/worker.js";
 
 const output = process.argv[2] || ".botanical/world-lab-proof";
 const spec = createWorldSpec();
+const features = namedFeatures(spec);
 const started = performance.now();
 const checks = {};
 const assert = (condition, message) => {
@@ -61,8 +69,9 @@ const fineBounds = {
   maxZExclusive: 1024,
 };
 const localAuthorityPoints = [
-  [-719, -100],
-  [420, 320],
+  [features.coast.x, features.coast.z],
+  [features.ridge.x, features.ridge.z],
+  [features.canyon.x, features.canyon.z],
   [-1, 0],
   [16, 0],
 ];
@@ -194,7 +203,7 @@ const overviewPixelFor = (overview, x, z) => {
   );
   return { column, row, index: row * overview.width + column };
 };
-const overviewFeatureCode = { coast: 1, ridge: 2 };
+const overviewFeatureCode = { coast: 1, ridge: 2, canyon: 3 };
 checks.multiscaleGeography = {
   coarse: {
     bounds: coarseOverview.bounds,
@@ -230,14 +239,15 @@ checks.multiscaleGeography = {
     coarseOverview.featureCounts.coast > 0 &&
     fineOverview.featureCounts.coast > 0 &&
     coarseOverview.featureCounts.ridge > 0 &&
-    fineOverview.featureCounts.ridge > 0,
+    fineOverview.featureCounts.ridge > 0 &&
+    coarseOverview.featureCounts.canyon > 0 &&
+    fineOverview.featureCounts.canyon > 0,
 };
 assert(
   checks.multiscaleGeography.pass,
   "multiscale geography did not preserve spans/features within bounded output work",
 );
 
-const features = namedFeatures(spec);
 const featureProbe = {};
 for (const [kind, feature] of Object.entries(features)) {
   const local = sampleTerrain(spec, feature.x, feature.z, 1);
@@ -282,12 +292,107 @@ checks.namedFeatures = {
 };
 assert(
   checks.namedFeatures.pass,
-  "named coast/ridge did not survive local and two overview spans",
+  "named coast/ridge/canyon did not survive local and two overview spans",
+);
+
+const ridgeCenter = sampleTerrain(spec, features.ridge.x, features.ridge.z, 1);
+const ridgeNorthShoulder = sampleTerrain(
+  spec,
+  features.ridge.x,
+  features.ridge.z - 110,
+  1,
+);
+const ridgeSouthShoulder = sampleTerrain(
+  spec,
+  features.ridge.x,
+  features.ridge.z + 110,
+  1,
+);
+const canyonCenter = sampleTerrain(
+  spec,
+  features.canyon.x,
+  features.canyon.z,
+  1,
+);
+const canyonNorthBank = sampleTerrain(
+  spec,
+  features.canyon.x,
+  features.canyon.z - 110,
+  1,
+);
+const canyonSouthBank = sampleTerrain(
+  spec,
+  features.canyon.x,
+  features.canyon.z + 110,
+  1,
+);
+const ridgeFootprints = [
+  1,
+  fineOverview.footprint,
+  coarseOverview.footprint,
+].map((footprint) =>
+  sampleTerrain(spec, features.ridge.x, features.ridge.z, footprint),
+);
+const canyonFootprints = [
+  1,
+  fineOverview.footprint,
+  coarseOverview.footprint,
+].map((footprint) =>
+  sampleTerrain(spec, features.canyon.x, features.canyon.z, footprint),
+);
+checks.realLandformGeometry = {
+  ridge: {
+    center: {
+      elevation: ridgeCenter.elevation,
+      baseElevation: ridgeCenter.baseElevation,
+      ridgeLift: ridgeCenter.ridgeLift,
+    },
+    shoulders: [ridgeNorthShoulder.elevation, ridgeSouthShoulder.elevation],
+    footprintSupport: ridgeFootprints.map((cell) => ({
+      footprint: cell.footprint,
+      feature: cell.feature,
+      ridgeLift: cell.ridgeLift,
+    })),
+  },
+  canyon: {
+    center: {
+      elevation: canyonCenter.elevation,
+      baseElevation: canyonCenter.baseElevation,
+      canyonCarve: canyonCenter.canyonCarve,
+    },
+    banks: [canyonNorthBank.elevation, canyonSouthBank.elevation],
+    footprintSupport: canyonFootprints.map((cell) => ({
+      footprint: cell.footprint,
+      feature: cell.feature,
+      canyonCarve: cell.canyonCarve,
+    })),
+  },
+  pass:
+    ridgeCenter.elevation > ridgeNorthShoulder.elevation &&
+    ridgeCenter.elevation > ridgeSouthShoulder.elevation &&
+    ridgeCenter.ridgeLift > 0 &&
+    canyonCenter.elevation < canyonNorthBank.elevation &&
+    canyonCenter.elevation < canyonSouthBank.elevation &&
+    canyonCenter.canyonCarve > 0 &&
+    ridgeFootprints.every(
+      (cell) =>
+        cell.feature === "ridge" && cell.ridgeLift === ridgeCenter.ridgeLift,
+    ) &&
+    canyonFootprints.every(
+      (cell) =>
+        cell.feature === "canyon" &&
+        cell.canyonCarve === canyonCenter.canyonCarve,
+    ),
+};
+assert(
+  checks.realLandformGeometry.pass,
+  "ridge lift or canyon carve failed geometry or footprint identity",
 );
 
 const authorityPoints = [
   [-719, features.coast.z],
   [420, features.ridge.z],
+  [features.canyon.x, features.canyon.z],
   [-1, 0],
   [16, 0],
 ];
@@ -359,10 +464,14 @@ for (const boundary of seamBoundaries) {
     x: {
       elevationDelta: Math.abs(xLeft.elevation - xRight.elevation),
       moistureDelta: Math.abs(xLeft.moisture - xRight.moisture),
+      ridgeLiftDelta: Math.abs(xLeft.ridgeLift - xRight.ridgeLift),
+      canyonCarveDelta: Math.abs(xLeft.canyonCarve - xRight.canyonCarve),
     },
     z: {
       elevationDelta: Math.abs(zLeft.elevation - zRight.elevation),
       moistureDelta: Math.abs(zLeft.moisture - zRight.moisture),
+      ridgeLiftDelta: Math.abs(zLeft.ridgeLift - zRight.ridgeLift),
+      canyonCarveDelta: Math.abs(zLeft.canyonCarve - zRight.canyonCarve),
     },
   });
 }
@@ -374,8 +483,12 @@ checks.signedGlobalSeams = {
     (seam) =>
       seam.x.elevationDelta < seamTolerance &&
       seam.x.moistureDelta < seamTolerance &&
+      seam.x.ridgeLiftDelta < seamTolerance &&
+      seam.x.canyonCarveDelta < seamTolerance &&
       seam.z.elevationDelta < seamTolerance &&
-      seam.z.moistureDelta < seamTolerance,
+      seam.z.moistureDelta < seamTolerance &&
+      seam.z.ridgeLiftDelta < seamTolerance &&
+      seam.z.canyonCarveDelta < seamTolerance,
   ),
 };
 assert(
@@ -383,7 +496,6 @@ assert(
   "signed seam continuity failed at a cache-tile boundary",
 );
 
-const terrainCodes = { water: 0, coast: 1, ridge: 2, land: 3 };
 const leftChunk = generateChunk(spec, 0, 0);
 const rightChunk = generateChunk(spec, 1, 0);
 const edgeMatches = [];
@@ -391,9 +503,9 @@ for (let z = 0; z < spec.chunkSize; z += 1) {
   edgeMatches.push({
     z,
     left: leftChunk.terrain[z * spec.chunkSize + 15],
-    leftExpected: terrainCodes[sampleCell(spec, 15, z).terrain],
+    leftExpected: terrainCode(sampleCell(spec, 15, z).terrain),
     right: rightChunk.terrain[z * spec.chunkSize],
-    rightExpected: terrainCodes[sampleCell(spec, 16, z).terrain],
+    rightExpected: terrainCode(sampleCell(spec, 16, z).terrain),
   });
 }
 const nearSeamLeft = sampleTerrain(spec, 15.999, 4.25, 1);
@@ -508,6 +620,7 @@ const mappingCells = [
   [0, 0],
   [features.coast.x, features.coast.z],
   [features.ridge.x, features.ridge.z],
+  [features.canyon.x, features.canyon.z],
 ];
 const mappingResults = mappingCells.map(([x, z]) => {
   const pixel = worldCellToOverviewPixel(coarseOverview, x, z);
@@ -619,7 +732,87 @@ assert(
   "terrain visualization arrays did not contain elevation/moisture variation",
 );
 
+const sectionSampleStarted = performance.now();
+const sampledSection = sampleSectionCells(spec, {
+  focusX: features.canyon.x,
+  focusZ: features.canyon.z,
+  width: SECTION_LIMITS.maxWidth,
+  depth: SECTION_LIMITS.maxDepth,
+  halo: SECTION_LIMITS.halo,
+});
+const sectionSampleMs = performance.now() - sectionSampleStarted;
+const sectionAssemblyStarted = performance.now();
+const assembledSection = assembleSurfaceSection(sampledSection);
+const sectionAssemblyMs = performance.now() - sectionAssemblyStarted;
+const sectionDrawPreparationStarted = performance.now();
+const preparedSection = prepareIsometricSection(assembledSection);
+const sectionDrawPreparationMs =
+  performance.now() - sectionDrawPreparationStarted;
+let missingHaloRejected = false;
+try {
+  sampleSectionCells(spec, {
+    focusX: features.canyon.x,
+    focusZ: features.canyon.z,
+    width: SECTION_LIMITS.maxWidth,
+    depth: SECTION_LIMITS.maxDepth,
+    halo: 0,
+  });
+} catch (error) {
+  missingHaloRejected = error instanceof RangeError;
+}
+const sectionEquality = sampledSection.samples.map((sample) => {
+  const direct = sampleCell(spec, sample.x, sample.z);
+  return {
+    x: sample.x,
+    z: sample.z,
+    exact:
+      sample.sampleId === direct.sampleId &&
+      sample.elevation === direct.elevation &&
+      sample.moisture === direct.moisture &&
+      sample.ridgeLift === direct.ridgeLift &&
+      sample.canyonCarve === direct.canyonCarve &&
+      sample.terrain === direct.terrain,
+  };
+});
+const expectedSectionSamples =
+  (SECTION_LIMITS.maxWidth + SECTION_LIMITS.halo * 2) *
+  (SECTION_LIMITS.maxDepth + SECTION_LIMITS.halo * 2);
+checks.boundedSurfaceSection = {
+  limits: SECTION_LIMITS,
+  focus: assembledSection.focus,
+  visibleCells: assembledSection.visibleCellCount,
+  sampleCount: sampledSection.sampleCount,
+  expectedSampleCount: expectedSectionSamples,
+  source: sampledSection.source,
+  prepared: {
+    width: preparedSection.width,
+    height: preparedSection.height,
+    tiles: preparedSection.tiles.length,
+    surfaceOnly: preparedSection.surfaceOnly,
+  },
+  timings: {
+    sampleMs: Number(sectionSampleMs.toFixed(3)),
+    assemblyMs: Number(sectionAssemblyMs.toFixed(3)),
+    drawPreparationMs: Number(sectionDrawPreparationMs.toFixed(3)),
+  },
+  missingHaloRejected,
+  exactSampleCellMatches: sectionEquality.filter((entry) => entry.exact).length,
+  pass:
+    sampledSection.sampleCount === 468 &&
+    sampledSection.sampleCount === expectedSectionSamples &&
+    assembledSection.visibleCellCount === 24 * 16 &&
+    preparedSection.tiles.length === 24 * 16 &&
+    preparedSection.surfaceOnly === true &&
+    missingHaloRejected &&
+    sectionEquality.every((entry) => entry.exact),
+};
+assert(
+  checks.boundedSurfaceSection.pass,
+  "surface section exceeded its 24x16+halo budget or diverged from sampleCell",
+);
+
 const source = await readFile("src/world-lab/terrain.js", "utf8");
+const sectionSource = await readFile("src/world-lab/section.js", "utf8");
 const mainSource = await readFile("src/world-lab/main.js", "utf8");
 const workerSource = await readFile("src/world-lab/worker.js", "utf8");
 const pageSource = await readFile("world-lab.html", "utf8");
@@ -630,6 +823,32 @@ checks.isolatedSource = {
   pass: !forbiddenImport,
 };
 assert(checks.isolatedSource.pass, "isolated terrain must remain import-free");
+checks.sectionSourceOwner = {
+  importsOnlyTerrain:
+    sectionSource.includes('import { sampleCell } from "./terrain.js"') &&
+    (sectionSource.match(/^import /gm)?.length ?? 0) === 1,
+  derivesFromSampleCell:
+    sectionSource.includes("sampleCell(spec, sampleMinX + localX") &&
+    sectionSource.includes("assembleSurfaceSection") &&
+    sectionSource.includes("prepareIsometricSection"),
+  noIndependentNoiseOrWorker:
+    !/(coherentNoise|hashLattice|new Worker|postMessage|cave|voxel)/i.test(
+      sectionSource,
+    ),
+  pass:
+    sectionSource.includes('import { sampleCell } from "./terrain.js"') &&
+    (sectionSource.match(/^import /gm)?.length ?? 0) === 1 &&
+    sectionSource.includes("sampleCell(spec, sampleMinX + localX") &&
+    sectionSource.includes("assembleSurfaceSection") &&
+    sectionSource.includes("prepareIsometricSection") &&
+    !/(coherentNoise|hashLattice|new Worker|postMessage|cave|voxel)/i.test(
+      sectionSource,
+    ),
+};
+assert(
+  checks.sectionSourceOwner.pass,
+  "surface section introduced a second geography, worker, or cave path",
+);
 checks.footprintAwareGenerator = {
   sameGlobalSampler: source.includes("sampleTerrain(spec, x, z, footprint)"),
   frequencyOmission: source.includes("octave.scale < footprint * 1.5"),
@@ -658,9 +877,14 @@ checks.userFacingLabShape = {
   noDiagnosticCallerOrButton: !/(1024|world-lab-diagnostic)/.test(
     `${mainSource}\n${pageSource}`,
   ),
-  namedGlobalButtons: [-720, -234, 420, 432, -1, 0].every((coordinate) =>
-    pageSource.includes(String(coordinate)),
-  ),
+  namedGlobalButtons:
+    [
+      'data-feature="coast"',
+      'data-feature="ridge"',
+      'data-feature="canyon"',
+    ].every((marker) => pageSource.includes(marker)) &&
+    mainSource.includes("const feature = features[button.dataset.feature]") &&
+    mainSource.includes("button.dataset.cell = `${feature.x},${feature.z}`"),
   markerData: {
     viewport: coastViewport,
     overviewRect: coastMarker,
@@ -706,7 +930,20 @@ checks.userFacingLabShape = {
   readableLegend:
     pageSource.includes("Terrain palette legend") &&
     stylesSource.includes(".swatch.water") &&
+    stylesSource.includes(".swatch.canyon") &&
     stylesSource.includes(".legend"),
+  surfaceSection:
+    pageSource.includes('id="world-lab-section"') &&
+    pageSource.includes("Surface-only 24×16 isometric section") &&
+    mainSource.includes("sampleSectionCells(spec") &&
+    mainSource.includes("assembleSurfaceSection(sampled)") &&
+    mainSource.includes("prepareIsometricSection(section)") &&
+    mainSource.includes("data-field=section") &&
+    stylesSource.includes(".section-figure"),
+  componentDiagnostics:
+    mainSource.includes("baseElevation: selectedShared.baseElevation") &&
+    mainSource.includes("ridgeLift: selectedShared.ridgeLift") &&
+    mainSource.includes("canyonCarve: selectedShared.canyonCarve"),
   responsiveNavigation:
     pageSource.includes('data-pan="0,-0.25"') &&
     pageSource.includes('data-atlas-zoom="in"') &&
@@ -748,9 +985,13 @@ checks.userFacingLabShape = {
     ),
   pass:
     !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`) &&
-    [-720, -234, 420, 432, -1, 0].every((coordinate) =>
-      pageSource.includes(String(coordinate)),
-    ) &&
+    [
+      'data-feature="coast"',
+      'data-feature="ridge"',
+      'data-feature="canyon"',
+    ].every((marker) => pageSource.includes(marker)) &&
+    mainSource.includes("const feature = features[button.dataset.feature]") &&
+    mainSource.includes("button.dataset.cell = `${feature.x},${feature.z}`") &&
     coastMarker.width > 0 &&
     coastMarker.height > 0 &&
     mainSource.includes("drawViewportMarker(local.viewport)") &&
@@ -784,7 +1025,18 @@ checks.userFacingLabShape = {
     pageSource.includes("80×80 local view at 1 pixel per world cell") &&
     pageSource.includes("Terrain palette legend") &&
     stylesSource.includes(".swatch.water") &&
+    stylesSource.includes(".swatch.canyon") &&
     stylesSource.includes(".legend") &&
+    pageSource.includes('id="world-lab-section"') &&
+    pageSource.includes("Surface-only 24×16 isometric section") &&
+    mainSource.includes("sampleSectionCells(spec") &&
+    mainSource.includes("assembleSurfaceSection(sampled)") &&
+    mainSource.includes("prepareIsometricSection(section)") &&
+    mainSource.includes("data-field=section") &&
+    stylesSource.includes(".section-figure") &&
+    mainSource.includes("baseElevation: selectedShared.baseElevation") &&
+    mainSource.includes("ridgeLift: selectedShared.ridgeLift") &&
+    mainSource.includes("canyonCarve: selectedShared.canyonCarve") &&
     pageSource.includes('data-pan="0,-0.25"') &&
     pageSource.includes('data-atlas-zoom="in"') &&
     pageSource.includes('data-atlas-zoom="out"') &&
@@ -841,7 +1093,7 @@ const proof = {
     chunkIdentity:
       "generatorVersion:seed/chunk/chunkX,chunkZ (cache identity only; not geography)",
     coherentRecipe:
-      "shared smooth broad fields plus footprint-omitted fine octaves; no output resize of a fine grid",
+      "shared smooth broad fields, fixed-support ridge lift and canyon carve, plus footprint-omitted fine octaves; no output resize of a fine grid",
     authoritativeLocal:
       "sampleCell uses the same footprint=1 terrain query as direct local sampling",
     overviewBudget: { width: 512, height: 512, samples: fixedOutputSamples },
@@ -850,12 +1102,17 @@ const proof = {
       "terrain, elevation, and moisture arrays come from the same sampleTerrain query",
     localVisualData:
       "terrain, elevation, and moisture arrays come from the same generated cell arrays",
+    surfaceSection:
+      "24x16 visible surface cells plus one-cell neighbor halo, derived only from authoritative sampleCell",
   },
   measurements: {
     coarse512Ms: Number(coarseMs.toFixed(3)),
     fineSpan512Ms: Number(fineMs.toFixed(3)),
     visibleGenerationMs: Number(generationMs.toFixed(3)),
     visibleRenderPreparationMs: Number(renderMs.toFixed(3)),
+    sectionSampleMs: Number(sectionSampleMs.toFixed(3)),
+    sectionAssemblyMs: Number(sectionAssemblyMs.toFixed(3)),
+    sectionDrawPreparationMs: Number(sectionDrawPreparationMs.toFixed(3)),
     totalNodeCheckMs: Number((performance.now() - started).toFixed(3)),
     note: "Render timing is bounded buffer preparation in this source-backed check; browser canvas timing remains a separate page measurement.",
   },
@@ -867,13 +1124,15 @@ const proof = {
   },
   claims: [
     "deterministic terrain query",
-    "coherent named coast/ridge across two spans",
+    "coherent named coast/ridge/canyon across two spans",
+    "numeric ridge lift and canyon carve with fixed footprint support",
     "signed global-coordinate seam continuity",
     "bounded fixed-output LOD work",
     "bounded local render residency",
     "order-independent local render buffer",
     "readable elevation/moisture variation with named viewport marker",
     "overview pixel to signed global cell to local one-cell trace",
+    "bounded surface-only isometric section derived exactly from sampleCell",
   ],
   nonClaims: WORLD_LAB_NON_CLAIMS,
 };
