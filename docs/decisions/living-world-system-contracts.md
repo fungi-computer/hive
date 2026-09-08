@@ -2,6 +2,10 @@
 
 Status: Game CTO future architecture, 2026-09-07. This incorporates Levi's water/horticulture/waste, groups/zones, social relationships, royalty/beliefs and animal-ecosystem direction. It preserves the tiny-map fun gate and upstairs → brewing. None of these later systems enters the current runtime by virtue of this document. Read with the simulation/content and world-generation contracts.
 
+The [RimWorld storyteller role](rimworld-storyteller-role-20260908.md) is the
+newer bounded incident-director precedence: persistent event identity and one
+game-owned arrival/lifecycle, not narration or Sedge recruitment.
+
 ## Compose a causal world
 
 The common chain is physical geometry → local conditions → living processes/choices → physical and social outcomes. Geometry owns a channel or opening; environmental fields own what flows through it; organisms own their growth/behavior; goods own harvested/dead material; social systems own witnessed meaning. UI, shaders and dialogue report outcomes. They never supply missing simulation facts.

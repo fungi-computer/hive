@@ -2,6 +2,10 @@
 
 Status: Game CTO implementation direction, 2026-09-07. Companion to `architecture-implementation-plan.md`. Future names and pseudocode are contracts, not a request to prebuild every module. Current tiny-map runtime keeps its single simulation owner, actual libcolony optimizer, Jotai display/selection, XState gestures, boundary Zod and original art pipeline. No ECS, Effect conversion, second scheduler or general plugin engine is selected by this plan.
 
+The [storyteller role](rimworld-storyteller-role-20260908.md) remains a future
+game-owned incident director. Paid AI account/autoplay is separate; model output
+cannot mutate time or bypass authoritative admission.
+
 ## Evidence and the first consumer
 
 Current `model.ts` has closed command/job/activity unions; `orders.ts:admitCommands` is the admission seam; `clearing.ts:step` admits before the pause return. `jobs.ts:assignWork` is guarded by workDirty and calls the selected optimizer after constructing candidates. `resources.ts` and herb storage handle commodity-specific custody. `persistence.ts` validates schemas plus substantial relational invariants; it is a real complexity hotspot. Existing display projections are not authoritative world objects.

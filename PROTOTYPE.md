@@ -60,6 +60,11 @@ The current [small-world architecture-proof sprint](docs/decisions/architecture-
 keeps the tiny home and independent World Lab separate: trustworthy controls,
 one unified goods/transfer owner, mixed storage, the first honest brew, then one
 ecology consumer. World expansion still waits behind small-home playability.
+The deferred [RimWorld storyteller role](docs/decisions/rimworld-storyteller-role-20260908.md)
+means a literal incident director, not narration: its first proposed proof is a
+physical visiting party selected/scheduled/deferred from readiness and pressure,
+with persistent event identity and one game-owned lifecycle. It is not Sedge
+recruitment; paid AI account/autoplay remains separate future product direction.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe

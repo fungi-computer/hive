@@ -23,6 +23,10 @@ The accepted [architecture-proof sprint](docs/decisions/architecture-proof-sprin
 now records the current small-world sequence: trustworthy controls, one unified
 goods/transfer owner, mixed storage, the first honest brew, then one ecology
 consumer. The independent World Lab does not expand live gameplay.
+The deferred [storyteller role](docs/decisions/rimworld-storyteller-role-20260908.md)
+is an incident director rather than narration. Its first proposed proof is a
+physical visiting party with readiness/pressure-based selection, scheduling and
+defer; paid AI account/autoplay remains a separate future authority.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
 ridge identity and seam proof precede any larger region or finite-globe choice.
