@@ -7,11 +7,14 @@ import {
 } from "./construction.js";
 import {
   availableQuantity,
+  admitHerbalAleBinding,
+  brewBindingPromiseQuantity,
   acquirePailForOperation,
   containerBulk,
   containerContents,
   containerQuantity,
   createGroundLot,
+  completeHerbalAlePrepare,
   deliverTransfer,
   drawPailWater,
   embedConstruction,
@@ -28,6 +31,7 @@ import {
   sourceContainer,
   transferForActor,
 } from "./materials.ts";
+import { HERBAL_ALE_V1 } from "./recipes.ts";
 
 const cell = (x = 0, z = 0, level = 0) => ({ x, z, level });
 const access = {
@@ -37,7 +41,8 @@ const access = {
 const fresh = (lots = []) => ({
   lots,
   transfers: [],
-  vesselUses: [],
+  bindings: [],
+  transformations: [],
   embedded: [],
   nextLotId: 1,
   consumedWood: 0,
@@ -683,8 +688,8 @@ test("interrupting a filled held pail drops one vessel but preserves its operati
     true,
   );
   assert.equal(materials.transfers.length, 0);
-  assert.deepEqual(materials.vesselUses, [
-    { id: "fill-kettle-a", vessel: "pail-a" },
+  assert.deepEqual(materials.bindings, [
+    { kind: "vessel-use", id: "fill-kettle-a", vessel: "pail-a" },
   ]);
   assert.equal(containerQuantity(materials, "vessel:pail-a", "water"), 2);
   assert.deepEqual(materials.lots.find((lot) => lot.id === "pail-a").location, {
@@ -737,7 +742,8 @@ test("an interrupted pail keeps one operation binding and can rebind", () => {
   );
   assert.equal(materials.transfers[0].phase.kind, "reserved");
   assert.equal(materials.transfers[0].actor, "sedge");
-  assert.deepEqual(materials.vesselUses[0], {
+  assert.deepEqual(materials.bindings[0], {
+    kind: "vessel-use",
     id: "fill-kettle-a",
     vessel: "pail-a",
   });
@@ -911,4 +917,186 @@ test("material ground locations discard Site and Herb-shaped extras on every set
     true,
   );
   assertGround(salvaged.lots[0].location);
+});
+
+test("herbal ale admission binds exact portions atomically and prepare records provenance", () => {
+  const materials = fresh([
+    {
+      id: "malt",
+      material: "malt",
+      quantity: 4,
+      location: { kind: "container", container: "cache" },
+    },
+    {
+      id: "water",
+      material: "water",
+      quantity: 2,
+      location: { kind: "container", container: "pail" },
+    },
+    {
+      id: "herb",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    },
+    {
+      id: "fuel",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell(1) },
+    },
+    {
+      id: "barm",
+      material: "barm",
+      quantity: 1,
+      location: { kind: "container", container: "cache" },
+    },
+    {
+      id: "keg",
+      material: "keg",
+      quantity: 1,
+      location: { kind: "container", container: "cache" },
+    },
+  ]);
+  const input = {
+    id: "brew-1",
+    station: "kettle:station",
+    portions: [
+      { lot: "malt", material: "malt", quantity: HERBAL_ALE_V1.inputs.malt },
+      { lot: "water", material: "water", quantity: HERBAL_ALE_V1.inputs.water },
+      {
+        lot: "herb",
+        material: "mugwort",
+        quantity: HERBAL_ALE_V1.inputs.mugwort,
+      },
+      { lot: "fuel", material: "wood", quantity: HERBAL_ALE_V1.inputs.wood },
+    ],
+    barm: "barm",
+    keg: "keg",
+    output: {
+      id: "vessel:keg",
+      capacity: 4,
+      accepts: ["ale"],
+      bulk: { ale: 1 },
+    },
+    tray: {
+      id: "tray:station",
+      capacity: 1,
+      accepts: ["spent-grain"],
+      bulk: { "spent-grain": 1 },
+    },
+  };
+  const before = structuredClone(materials);
+  assert.equal(
+    admitHerbalAleBinding(materials, {
+      ...input,
+      output: { ...input.output, capacity: 3 },
+    }).ok,
+    false,
+  );
+  assert.deepEqual(materials, before);
+  assert.equal(admitHerbalAleBinding(materials, input).ok, true);
+  assert.equal(availableQuantity(materials, "malt"), 2);
+  assert.equal(completeHerbalAlePrepare(materials, "brew-1").ok, true);
+  assert.deepEqual(materials.transformations[0].inputs, input.portions);
+  assert.equal(availableQuantity(materials, "malt"), 2);
+  assert.equal(brewBindingPromiseQuantity(materials, input.output.id), 4);
+  assert.equal(brewBindingPromiseQuantity(materials, input.tray.id), 1);
+  materials.lots.push(
+    {
+      id: "water-2",
+      material: "water",
+      quantity: 2,
+      location: { kind: "container", container: "pail-2" },
+    },
+    {
+      id: "herb-2",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "ground", ...cell(3) },
+    },
+    {
+      id: "fuel-2",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell(4) },
+    },
+    {
+      id: "barm-2",
+      material: "barm",
+      quantity: 1,
+      location: { kind: "ground", ...cell(5) },
+    },
+    {
+      id: "keg-2",
+      material: "keg",
+      quantity: 1,
+      location: { kind: "ground", ...cell(6) },
+    },
+  );
+  const second = {
+    ...input,
+    id: "brew-2",
+    station: "kettle:station-2",
+    portions: [
+      { lot: "malt", material: "malt", quantity: HERBAL_ALE_V1.inputs.malt },
+      {
+        lot: "water-2",
+        material: "water",
+        quantity: HERBAL_ALE_V1.inputs.water,
+      },
+      {
+        lot: "herb-2",
+        material: "mugwort",
+        quantity: HERBAL_ALE_V1.inputs.mugwort,
+      },
+      { lot: "fuel-2", material: "wood", quantity: HERBAL_ALE_V1.inputs.wood },
+    ],
+    barm: "barm-2",
+    keg: "keg-2",
+    output: {
+      id: "vessel:keg-2",
+      capacity: 4,
+      accepts: ["ale"],
+      bulk: { ale: 1 },
+    },
+    tray: {
+      id: "tray:station-2",
+      capacity: 1,
+      accepts: ["spent-grain"],
+      bulk: { "spent-grain": 1 },
+    },
+  };
+  const beforeOverbook = structuredClone(materials);
+  assert.equal(
+    admitHerbalAleBinding(materials, {
+      ...second,
+      id: "brew-shared-output",
+      output: input.output,
+    }).ok,
+    false,
+  );
+  assert.deepEqual(materials, beforeOverbook);
+  assert.equal(
+    admitHerbalAleBinding(materials, {
+      ...second,
+      id: "brew-shared-tray",
+      tray: input.tray,
+    }).ok,
+    false,
+  );
+  assert.deepEqual(materials, beforeOverbook);
+  assert.equal(admitHerbalAleBinding(materials, second).ok, true);
+  assert.equal(brewBindingPromiseQuantity(materials, input.output.id), 4);
+  assert.equal(brewBindingPromiseQuantity(materials, second.output.id), 4);
+  assert.equal(
+    admitHerbalAleBinding(materials, {
+      ...second,
+      id: "brew-3",
+      station: "kettle:station-3",
+      barm: "barm",
+      keg: "keg",
+    }).ok,
+    false,
+  );
 });

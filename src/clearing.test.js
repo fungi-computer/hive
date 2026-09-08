@@ -1107,14 +1107,14 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
   // only its pail binding, not Rowan's executor transfer.
   interruptWork(state, state.actors.rowan);
   assert.equal(state.materials.transfers.length, 0);
-  assert.equal(state.materials.vesselUses.length, 1);
+  assert.equal(state.materials.bindings.length, 1);
   assert.deepEqual(actualStep(state, [{ kind: "draft", actor: "rowan" }]), [
     { status: "applied" },
   ]);
   assert.deepEqual(actualStep(state, [{ kind: "draft", actor: "rowan" }]), [
     { status: "applied" },
   ]);
-  assert.equal(state.materials.vesselUses.length, 1);
+  assert.equal(state.materials.bindings.length, 1);
   assert.equal(state.materials.transfers.length, 0);
   const paused = restoreSnapshot(snapshotFor(state)).state;
   assert.equal(paused.paused, true);
@@ -1179,7 +1179,7 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
     containerQuantity(paused.materials, `source:${spring.id}`, "water"),
     6,
   );
-  assert.equal(paused.materials.vesselUses.length, 0);
+  assert.equal(paused.materials.bindings.length, 0);
   assert.equal(paused.materials.transfers.length, 0);
   assert.equal(
     paused.materials.lots.find((lot) => lot.id === operation.pail).location
@@ -1222,7 +1222,7 @@ test("one cache pail admits only the earlier shared fill job", () => {
   ]);
   assert.equal(state.operations.length, 1);
   assert.equal(state.operations[0].station, "station-first");
-  assert.equal(state.materials.vesselUses.length, 1);
+  assert.equal(state.materials.bindings.length, 1);
   assert.equal(state.materials.transfers.length, 1);
   assert.equal(state.materials.transfers[0].phase.kind, "reserved");
 });
@@ -1280,7 +1280,8 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     water: "cancel-water",
     phase: "pour",
   });
-  state.materials.vesselUses.push({
+  state.materials.bindings.push({
+    kind: "vessel-use",
     id: "fill-cancel",
     vessel: "cancel-pail",
   });
@@ -1313,7 +1314,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
   );
   assert.equal(state.operations.length, 0);
   assert.equal(state.materials.transfers.length, 0);
-  assert.equal(state.materials.vesselUses.length, 0);
+  assert.equal(state.materials.bindings.length, 0);
   assert.equal(
     state.materials.lots.find((lot) => lot.id === "cancel-pail").location.kind,
     "ground",

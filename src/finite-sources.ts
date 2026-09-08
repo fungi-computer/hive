@@ -33,9 +33,13 @@ export type FiniteSourceDefinition =
       access: "sealed";
       provider: { material: "wood"; capacity: PositiveInt };
       pail: { capacity: PositiveInt };
+      supplies: { capacity: PositiveInt };
       initial: readonly [
         { slot: "provider"; material: "wood"; quantity: PositiveInt },
         { slot: "pail"; material: "pail"; quantity: PositiveInt },
+        { slot: "supplies"; material: "malt"; quantity: PositiveInt },
+        { slot: "supplies"; material: "barm"; quantity: PositiveInt },
+        { slot: "supplies"; material: "keg"; quantity: PositiveInt },
       ];
     };
 
@@ -56,9 +60,13 @@ export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
     access: "sealed",
     provider: { material: "wood", capacity: 10 as PositiveInt },
     pail: { capacity: 1 as PositiveInt },
+    supplies: { capacity: 6 as PositiveInt },
     initial: [
       { slot: "provider", material: "wood", quantity: 10 as PositiveInt },
       { slot: "pail", material: "pail", quantity: 1 as PositiveInt },
+      { slot: "supplies", material: "malt", quantity: 4 as PositiveInt },
+      { slot: "supplies", material: "barm", quantity: 1 as PositiveInt },
+      { slot: "supplies", material: "keg", quantity: 1 as PositiveInt },
     ],
   },
 ];
@@ -77,6 +85,7 @@ type SourceState = Pick<
   | "jobs"
   | "sources"
   | "pendingSources"
+  | "operations"
 > & { notice: string };
 
 function sameCell(a: Cell, b: Cell): boolean {
@@ -125,8 +134,38 @@ export function sourcePailContainer(id: string): string {
   return `source-pail:${id}`;
 }
 
+export function sourceSuppliesContainer(id: string): string {
+  return `source-supplies:${id}`;
+}
+
 function sourcePailLot(id: string): string {
   return `source-pail-lot:${id}`;
+}
+
+function initialLotId(
+  id: string,
+  initial: FiniteSourceDefinition["initial"][number],
+): string {
+  return initial.slot === "provider"
+    ? `source-lot:${id}`
+    : initial.slot === "pail"
+      ? sourcePailLot(id)
+      : sourceSupplyLot(id, initial.material);
+}
+
+function sourceInitialIdentityKeys(
+  source: Pick<SourceFeature, "id" | "kind">,
+): readonly string[] {
+  const definition = sourceDefinition(source.kind);
+  return definition.initial.flatMap((initial) => {
+    const container =
+      initial.slot === "provider"
+        ? sourceContainer(source.id)
+        : initial.slot === "pail"
+          ? sourcePailContainer(source.id)
+          : sourceSuppliesContainer(source.id);
+    return [container, initialLotId(source.id, initial)];
+  });
 }
 
 export function sourcePailContainerSpec(
@@ -141,6 +180,31 @@ export function sourcePailContainerSpec(
         bulk: { pail: 1 as PositiveInt },
       }
     : null;
+}
+
+export function sourceSuppliesContainerSpec(
+  source: Pick<SourceFeature, "id" | "kind">,
+): ContainerSpec | null {
+  const definition = sourceDefinition(source.kind);
+  return "supplies" in definition
+    ? {
+        id: sourceSuppliesContainer(source.id),
+        capacity: definition.supplies.capacity,
+        accepts: ["malt", "barm", "keg"],
+        bulk: {
+          malt: 1 as PositiveInt,
+          barm: 1 as PositiveInt,
+          keg: 1 as PositiveInt,
+        },
+      }
+    : null;
+}
+
+function sourceSupplyLot(
+  id: string,
+  material: "malt" | "barm" | "keg",
+): string {
+  return `source-${material}-lot:${id}`;
 }
 
 /** Repair is a separate once-only wood consumer, never cache stock capacity. */
@@ -243,22 +307,50 @@ function identityKeys(state: SourceState): Set<string> {
         : []),
       ...(entry.intent.kind === "deliver" ? [entry.intent.destination] : []),
     ]),
-    ...state.materials.vesselUses.map((entry) => entry.id),
+    ...state.materials.bindings.map((entry) => entry.id),
+    ...state.operations.map((entry) => entry.id),
     ...state.sources.flatMap((entry) => [
       entry.id,
-      sourceContainer(entry.id),
-      `source-lot:${entry.id}`,
-      ...(sourcePailContainerSpec(entry)
-        ? [sourcePailContainer(entry.id), sourcePailLot(entry.id)]
-        : []),
+      ...sourceInitialIdentityKeys(entry),
     ]),
     ...state.pendingSources.flatMap((entry) => [
       entry.id,
-      sourceContainer(entry.id),
-      `source-lot:${entry.id}`,
-      ...("pail" in sourceDefinition(entry.kind)
-        ? [sourcePailContainer(entry.id), sourcePailLot(entry.id)]
+      ...sourceInitialIdentityKeys(entry),
+    ]),
+  ]);
+}
+
+/** IDs outside a source's own derived namespace; used by atomic v10 conversion. */
+function foreignIdentityKeys(state: SourceState): Set<string> {
+  return new Set([
+    ...Object.keys(state.actors),
+    ...Object.keys(state.parties),
+    ...state.trees.map((entry) => entry.id),
+    ...state.herbs.map((entry) => entry.id),
+    ...state.sites.flatMap((entry) => [
+      entry.id,
+      constructionBuffer(entry).id,
+      shelfContainer(entry.id).id,
+    ]),
+    ...state.jobs.map((entry) => entry.id),
+    ...state.operations.map((entry) => entry.id),
+    ...state.materials.bindings.map((entry) => entry.id),
+    ...state.materials.lots.flatMap((entry) => [
+      entry.id,
+      ...(entry.location.kind === "container"
+        ? [entry.location.container]
         : []),
+    ]),
+    ...state.materials.transfers.flatMap((entry) => [
+      entry.id,
+      ...(entry.request.source.kind === "eligible-container"
+        ? [entry.request.source.container]
+        : []),
+      ...(entry.phase.kind === "reserved" &&
+      entry.phase.origin.kind === "container"
+        ? [entry.phase.origin.container]
+        : []),
+      ...(entry.intent.kind === "deliver" ? [entry.intent.destination] : []),
     ]),
   ]);
 }
@@ -276,7 +368,7 @@ function fixedIdentityKeys(state: SourceState): Set<string> {
     ]),
     ...state.jobs.map((entry) => entry.id),
     ...state.materials.transfers.map((entry) => entry.id),
-    ...state.materials.vesselUses.map((entry) => entry.id),
+    ...state.materials.bindings.map((entry) => entry.id),
   ]);
 }
 
@@ -306,8 +398,7 @@ function nextFeatureId(kind: SourceFeatureKind, used: Set<string>): string {
       !used.has(id) &&
       !used.has(sourceContainer(id)) &&
       !used.has(`source-lot:${id}`) &&
-      !used.has(sourcePailContainer(id)) &&
-      !used.has(sourcePailLot(id))
+      !sourceInitialIdentityKeys({ id, kind }).some((key) => used.has(key))
     )
       return id;
   }
@@ -344,12 +435,9 @@ function planFiniteSources(
   fixedIds = new Map<SourceFeatureKind, string>(),
 ): SourcePlan[] | null {
   const used = identityKeys(state);
-  for (const id of fixedIds.values()) {
+  for (const [kind, id] of fixedIds) {
     used.delete(id);
-    used.delete(sourceContainer(id));
-    used.delete(`source-lot:${id}`);
-    used.delete(sourcePailContainer(id));
-    used.delete(sourcePailLot(id));
+    for (const key of sourceInitialIdentityKeys({ id, kind })) used.delete(key);
   }
   const occupied = physicalOccupancy(state);
   const plan: SourcePlan[] = [];
@@ -358,21 +446,16 @@ function planFiniteSources(
       fixedIds.get(definition.kind) ?? nextFeatureId(definition.kind, used);
     if (
       used.has(id) ||
-      used.has(sourceContainer(id)) ||
-      used.has(`source-lot:${id}`) ||
-      used.has(sourcePailContainer(id)) ||
-      used.has(sourcePailLot(id))
+      sourceInitialIdentityKeys({ id, kind: definition.kind }).some((key) =>
+        used.has(key),
+      )
     )
       return null;
     const cell = featureCell(definition.preferred, occupied);
     if (!cell) return null;
     used.add(id);
-    used.add(sourceContainer(id));
-    used.add(`source-lot:${id}`);
-    if ("pail" in definition) {
-      used.add(sourcePailContainer(id));
-      used.add(sourcePailLot(id));
-    }
+    for (const key of sourceInitialIdentityKeys({ id, kind: definition.kind }))
+      used.add(key);
     occupied.push(cell);
     plan.push({ definition, id, cell });
   }
@@ -388,14 +471,16 @@ function commitSourcePlan(
       const source =
         initial.slot === "provider"
           ? sourceContainerSpec({ id, kind: definition.kind })
-          : sourcePailContainerSpec({ id, kind: definition.kind });
-      if (!source) throw new Error("cannot introduce missing pail provider");
+          : initial.slot === "pail"
+            ? sourcePailContainerSpec({ id, kind: definition.kind })
+            : sourceSuppliesContainerSpec({ id, kind: definition.kind });
+      if (!source)
+        throw new Error("cannot introduce missing finite source slot");
       const lot = introduceFiniteSourceLot(state.materials, {
         source,
         material: initial.material,
         quantity: initial.quantity,
-        preferredId:
-          initial.slot === "provider" ? `source-lot:${id}` : sourcePailLot(id),
+        preferredId: initialLotId(id, initial),
       });
       if (!lot.ok)
         throw new Error(`cannot introduce ${definition.kind}: ${lot.reason}`);
@@ -434,12 +519,8 @@ function persistPending(
     const id =
       fixedIds.get(definition.kind) ?? nextFeatureId(definition.kind, used);
     used.add(id);
-    used.add(sourceContainer(id));
-    used.add(`source-lot:${id}`);
-    if ("pail" in definition) {
-      used.add(sourcePailContainer(id));
-      used.add(sourcePailLot(id));
-    }
+    for (const key of sourceInitialIdentityKeys({ id, kind: definition.kind }))
+      used.add(key);
     state.pendingSources.push({
       id,
       kind: definition.kind,
@@ -460,6 +541,51 @@ export function introduceFiniteSources(state: SourceState): void {
   const plan = planFiniteSources(state, missing);
   if (!plan) return persistPending(state, missing);
   commitSourcePlan(state, plan);
+}
+
+/** One schema-10→11 conversion only; normal load never calls this. */
+export function introduceRecipeCacheSupplies(state: SourceState): void {
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  if (!cache) return;
+  const definition = sourceDefinition(cache.kind);
+  const supplies = definition.initial.filter(
+    (entry) => entry.slot === "supplies",
+  );
+  if (!supplies.length) return;
+  const container = sourceSuppliesContainerSpec(cache);
+  if (!container) throw new Error("missing recipe cache supplies container");
+  const keys = [
+    container.id,
+    ...supplies.map((entry) => initialLotId(cache.id, entry)),
+  ];
+  if (keys.some((key) => foreignIdentityKeys(state).has(key)))
+    throw new Error(
+      "cannot introduce recipe cache supplies: identity collision",
+    );
+  if (
+    supplies.some((entry) =>
+      state.materials.lots.some(
+        (lot) => lot.id === initialLotId(cache.id, entry),
+      ),
+    )
+  )
+    throw new Error("cannot introduce recipe cache supplies twice");
+  const next = structuredClone(state.materials);
+  for (const entry of supplies) {
+    const result = introduceFiniteSourceLot(next, {
+      source: container,
+      material: entry.material,
+      quantity: entry.quantity,
+      preferredId: initialLotId(cache.id, entry),
+    });
+    if (!result.ok)
+      throw new Error(
+        `cannot introduce recipe cache supplies: ${result.reason}`,
+      );
+  }
+  state.materials = next;
 }
 
 /** Explicit later resolution seam; no tick/load path retries pending placement. */

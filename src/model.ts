@@ -10,7 +10,16 @@ export type TransferId = string;
 export type ContainerId = string;
 export type OperationId = string;
 /** Pails are ordinary indivisible lots; water is always contained. */
-export type Material = "wood" | "mugwort" | "water" | "pail";
+export type Material =
+  | "wood"
+  | "mugwort"
+  | "water"
+  | "pail"
+  | "malt"
+  | "barm"
+  | "keg"
+  | "ale"
+  | "spent-grain";
 export type ItemLotLocation =
   | ({ kind: "ground" } & Cell)
   | { kind: "hand"; actor: ActorId }
@@ -52,11 +61,28 @@ export type OperationTransferOwner = {
   readonly operation: OperationId;
 };
 export type TransferOwner = JobTransferOwner | OperationTransferOwner;
-/** The durable pail binding belongs to the operation, never its current worker. */
-export type VesselUse = {
-  id: OperationId;
-  vessel: LotId;
-};
+/** Durable material promises outlive the worker currently moving a lot. */
+export type MaterialBinding =
+  | {
+      readonly kind: "vessel-use";
+      readonly id: OperationId;
+      readonly vessel: LotId;
+    }
+  | {
+      readonly kind: "brew";
+      readonly id: OperationId;
+      readonly recipe: "herbal-ale-v1";
+      readonly station: ContainerId;
+      readonly portions: readonly {
+        readonly lot: LotId;
+        readonly material: "malt" | "water" | "mugwort" | "wood";
+        readonly quantity: PositiveInt;
+      }[];
+      readonly barm: LotId;
+      readonly keg: LotId;
+      readonly output: ContainerId;
+      readonly tray: ContainerId;
+    };
 export type Transfer = {
   readonly id: TransferId;
   readonly actor: ActorId;
@@ -78,10 +104,21 @@ export type EmbeddedMaterial = {
   material: Material;
   quantity: PositiveInt;
 };
+/** Immutable provenance written by the one atomic PREPARE transformation. */
+export type BrewTransformation = {
+  readonly id: OperationId;
+  readonly recipe: "herbal-ale-v1";
+  readonly inputs: readonly {
+    readonly lot: LotId;
+    readonly material: "malt" | "water" | "mugwort" | "wood";
+    readonly quantity: PositiveInt;
+  }[];
+};
 export type MaterialsState = {
   lots: ItemLot[];
   transfers: Transfer[];
-  vesselUses: VesselUse[];
+  bindings: MaterialBinding[];
+  transformations: BrewTransformation[];
   embedded: EmbeddedMaterial[];
   nextLotId: number;
   consumedWood: number;

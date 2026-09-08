@@ -15,19 +15,17 @@ function envelope(change) {
   change(saved.savedState);
   return saved;
 }
-function v8Envelope(change = () => {}) {
+function v10Envelope(change = () => {}) {
   const saved = snapshotFor(createClearing());
   const predecessor = structuredClone(saved);
-  predecessor.schema = 8;
-  delete predecessor.savedState.sources;
-  delete predecessor.savedState.pendingSources;
-  delete predecessor.savedState.operations;
-  delete predecessor.savedState.materials.vesselUses;
+  predecessor.schema = 10;
+  predecessor.savedState.materials.vesselUses = [];
+  delete predecessor.savedState.materials.bindings;
+  delete predecessor.savedState.materials.transformations;
   predecessor.savedState.materials.lots =
     predecessor.savedState.materials.lots.filter(
       (lot) =>
-        (lot.material === "wood" || lot.material === "mugwort") &&
-        !lot.id.startsWith("source-lot:"),
+        !["malt", "barm", "keg", "ale", "spent-grain"].includes(lot.material),
     );
   change(predecessor.savedState);
   return predecessor;
@@ -86,7 +84,8 @@ function heldPailUse(state, operation) {
     quantity: 1,
     location: { kind: "hand", actor: "rowan" },
   });
-  state.materials.vesselUses.push({
+  state.materials.bindings.push({
+    kind: "vessel-use",
     id: operation,
     vessel: "pail-collision",
   });
@@ -141,7 +140,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v10 snapshots omit commands and restore paused", () => {
+test("v11 snapshots omit commands and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -150,16 +149,16 @@ test("v10 snapshots omit commands and restore paused", () => {
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 10);
+  assert.equal(saved.schema, 11);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
 });
 
-test("valid v8 introduces finite sources once and writes schema 10", () => {
-  const restored = restoreSnapshot(v8Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 10);
+test("valid schema 10 converts bindings and introduces cache supplies once", () => {
+  const restored = restoreSnapshot(v10Envelope());
+  assert.equal(snapshotFor(restored.state).schema, 11);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -197,34 +196,46 @@ test("valid v8 introduces finite sources once and writes schema 10", () => {
   );
 });
 
-test("a valid v8 with no legal feature cell persists both finite sources pending", () => {
-  const restored = restoreSnapshot(
-    v8Envelope((state) => {
-      state.trees = Array.from({ length: 15 * 15 }, (_, index) => ({
-        id: `cover-${index}`,
-        x: index % 15,
-        z: Math.floor(index / 15),
-        level: 0,
-        work: 0,
-        felledAt: 0,
-      }));
-    }),
-  );
-  assert.deepEqual(restored.state.sources, []);
-  assert.deepEqual(
-    restored.state.pendingSources.map((source) => source.kind).sort(),
-    ["reclaimed-timber-cache", "spring"],
-  );
-  assert.equal(
-    restored.state.materials.lots.some((lot) =>
-      lot.id.startsWith("source-lot:"),
-    ),
-    false,
-  );
+test("schema 10 load boundary rejects schema-11 materials and transfer policies", () => {
+  const material = v10Envelope((state) => {
+    state.materials.lots.push({
+      id: "forbidden-malt",
+      material: "malt",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+  });
+  assert.throws(() => restoreSnapshot(material));
+  const request = v10Envelope((state) => {
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push({
+      id: "forbidden-request",
+      actor: "rowan",
+      owner: { kind: "job", job: "missing", step: "step" },
+      request: {
+        source: { kind: "eligible-ground", material: "malt" },
+        quantityPolicy: "portion",
+        quantity: 1,
+      },
+      intent: { kind: "deliver", destination: "construction-buffer:missing" },
+      phase: {
+        kind: "reserved",
+        sourceLot: "wood-a",
+        quantity: 1,
+        origin: { kind: "ground", cell: cell() },
+      },
+    });
+  });
+  assert.throws(() => restoreSnapshot(request));
 });
 
-test("invalid v8 transfer relations reject before finite-source introduction", () => {
-  const predecessor = v8Envelope((state) => {
+test("invalid schema 10 transfer relations reject before conversion", () => {
+  const predecessor = v10Envelope((state) => {
     state.materials.lots.push({
       id: "wood-a",
       material: "wood",
@@ -234,11 +245,18 @@ test("invalid v8 transfer relations reject before finite-source introduction", (
     state.materials.transfers.push({
       id: "invalid-v8-transfer",
       actor: "rowan",
-      owner: { job: "missing-job", step: "construction-materials" },
+      owner: {
+        kind: "job",
+        job: "missing-job",
+        step: "construction-materials",
+      },
       request: {
         source: { kind: "eligible-ground", material: "wood" },
         quantityPolicy: "portion",
         quantity: 1,
+      },
+      intent: {
+        kind: "deliver",
         destination: "construction-buffer:missing-site",
       },
       phase: {
@@ -281,7 +299,8 @@ test("a held pail use reloads only with its matching operation custody", () => {
         location: { kind: "container", container: "vessel:pail-a" },
       },
     );
-    state.materials.vesselUses.push({
+    state.materials.bindings.push({
+      kind: "vessel-use",
       id: "fill-kettle-a",
       vessel: "pail-a",
     });
@@ -321,8 +340,8 @@ test("a held pail use reloads only with its matching operation custody", () => {
   });
   const restored = restoreSnapshot(saved);
   assert.equal(restored.state.paused, true);
-  assert.deepEqual(restored.state.materials.vesselUses, [
-    { id: "fill-kettle-a", vessel: "pail-a" },
+  assert.deepEqual(restored.state.materials.bindings, [
+    { kind: "vessel-use", id: "fill-kettle-a", vessel: "pail-a" },
   ]);
   assert.equal(
     restored.state.materials.lots.find((lot) => lot.id === "pail-water-a")
@@ -336,7 +355,8 @@ test("a held pail use reloads only with its matching operation custody", () => {
 
 test("schema 10 rejects actor-bound pail bindings as an unpublished wire shape", () => {
   const saved = snapshotFor(createClearing());
-  saved.savedState.materials.vesselUses.push({
+  saved.savedState.materials.bindings.push({
+    kind: "vessel-use",
     id: "unpublished-use",
     vessel: "pail-a",
     actor: "rowan",
@@ -385,50 +405,215 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
         water: null,
         phase: "acquire",
       });
-      state.materials.vesselUses.push({ id, vessel: "parked-pail" });
+      state.materials.bindings.push({
+        kind: "vessel-use",
+        id,
+        vessel: "parked-pail",
+      });
     }
   });
   assert.throws(() => restoreSnapshot(saved), /duplicate vessel binding/);
 });
 
-test("schema 8 migration retains finite source identity under existing IDs", () => {
-  const predecessor = v8Envelope((state) => {
-    state.materials.lots.push({
-      id: "feature:spring",
-      material: "mugwort",
-      quantity: 1,
-      location: { kind: "ground", ...cell(4, 4) },
-    });
-    state.harvestedHerbs = 1;
-  });
-  const restored = restoreSnapshot(predecessor);
-  assert.notEqual(
-    restored.state.sources.find((source) => source.kind === "spring").id,
-    "feature:spring",
+test("schema 10 converts cache recipe lots exactly once", () => {
+  const restored = restoreSnapshot(v10Envelope());
+  const cache = restored.state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  assert.deepEqual(
+    restored.state.materials.lots
+      .filter(
+        (lot) =>
+          lot.location.kind === "container" &&
+          lot.location.container === `source-supplies:${cache.id}`,
+      )
+      .map((lot) => [lot.id, lot.material, lot.quantity])
+      .sort(),
+    [
+      [`source-barm-lot:${cache.id}`, "barm", 1],
+      [`source-keg-lot:${cache.id}`, "keg", 1],
+      [`source-malt-lot:${cache.id}`, "malt", 4],
+    ],
+  );
+  const reloaded = restoreSnapshot(snapshotFor(restored.state));
+  assert.equal(
+    reloaded.state.materials.lots.filter((lot) => lot.material === "malt")
+      .length,
+    1,
   );
 });
 
-test("schema 8 source planning reserves derived lot IDs before either source mutates", () => {
-  const restored = restoreSnapshot(
-    v8Envelope((state) => {
-      state.materials.lots.push({
-        id: "source-lot:feature:spring",
+test("schema 10 rejects a cross-domain cache supply identity collision before mutation", () => {
+  const predecessor = v10Envelope((state) => {
+    state.jobs.push(job("source-malt-lot:feature:reclaimed-timber-cache"));
+  });
+  assert.throws(() => restoreSnapshot(predecessor), /identity collision/);
+});
+
+test("schema 11 validates one exact brew binding and its provenance without live consumed lots", () => {
+  const saved = envelope((state) => {
+    const cache = state.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    );
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:station-a",
+      material: "wood",
+      quantity: 6,
+    });
+    state.felled = 1;
+    state.herbs.push({
+      id: "herb-a",
+      kind: "mugwort",
+      stage: "ready",
+      work: 0,
+      plantedAt: 0,
+      ...cell(2, 2),
+    });
+    state.harvestedHerbs = 1;
+    state.materials.lots.push({
+      id: "herb-lot",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "ground", ...cell(2, 2) },
+    });
+    state.materials.bindings.push({
+      kind: "brew",
+      id: "brew-a",
+      recipe: "herbal-ale-v1",
+      station: "kettle:station-a",
+      portions: [
+        { lot: `source-malt-lot:${cache.id}`, material: "malt", quantity: 2 },
+        { lot: `source-lot:${spring.id}`, material: "water", quantity: 2 },
+        { lot: "herb-lot", material: "mugwort", quantity: 1 },
+        { lot: `source-lot:${cache.id}`, material: "wood", quantity: 1 },
+      ],
+      barm: `source-barm-lot:${cache.id}`,
+      keg: `source-keg-lot:${cache.id}`,
+      output: `vessel:source-keg-lot:${cache.id}`,
+      tray: "brew-tray:station-a",
+    });
+  });
+  assert.equal(restoreSnapshot(saved).state.materials.bindings.length, 1);
+  const duplicate = structuredClone(saved);
+  duplicate.savedState.materials.bindings.push({
+    ...duplicate.savedState.materials.bindings[0],
+    id: "brew-b",
+  });
+  assert.throws(
+    () => restoreSnapshot(duplicate),
+    /duplicate brew station binding/,
+  );
+  const corrupt = structuredClone(saved);
+  corrupt.savedState.materials.bindings[0].portions[0].quantity = 1;
+  assert.throws(() => restoreSnapshot(corrupt), /invalid portion/);
+  const transformed = structuredClone(saved);
+  transformed.savedState.materials.transformations.push({
+    id: "brew-a",
+    recipe: "herbal-ale-v1",
+    inputs: structuredClone(
+      transformed.savedState.materials.bindings[0].portions,
+    ),
+  });
+  assert.equal(
+    restoreSnapshot(transformed).state.materials.transformations.length,
+    1,
+  );
+  transformed.savedState.materials.transformations[0].inputs[1] =
+    structuredClone(
+      transformed.savedState.materials.transformations[0].inputs[0],
+    );
+  assert.throws(
+    () => restoreSnapshot(transformed),
+    /does not match brew binding/,
+  );
+  const capacity = structuredClone(saved);
+  capacity.savedState.materials.lots.push({
+    id: "ale-a",
+    material: "ale",
+    quantity: 1,
+    location: {
+      kind: "container",
+      container: capacity.savedState.materials.bindings[0].output,
+    },
+  });
+  assert.throws(() => restoreSnapshot(capacity), /brew binding capacity/);
+});
+
+test("schema 11 aggregates recipe portion promises across distinct brew bindings", () => {
+  const saved = envelope((state) => {
+    const cache = state.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    );
+    const spring = state.sources.find((source) => source.kind === "spring");
+    for (const id of ["a", "b"]) {
+      state.sites.push(
+        site(`station-${id}`, "brew-station", {
+          x: id === "a" ? 4 : 8,
+          finishedAt: 0,
+        }),
+      );
+      state.materials.embedded.push({
+        container: `construction-buffer:station-${id}`,
+        material: "wood",
+        quantity: 6,
+      });
+    }
+    state.felled = 2;
+    state.herbs.push({
+      id: "herb-a",
+      kind: "mugwort",
+      stage: "ready",
+      work: 0,
+      plantedAt: 0,
+      ...cell(2, 2),
+    });
+    state.harvestedHerbs = 1;
+    state.materials.lots.push(
+      {
+        id: "herb-lot",
         material: "mugwort",
         quantity: 1,
-        location: { kind: "ground", ...cell(4, 4) },
-      });
-      state.harvestedHerbs = 1;
-    }),
-  );
-  const spring = restored.state.sources.find(
-    (source) => source.kind === "spring",
-  );
-  assert.notEqual(spring.id, "feature:spring");
-  assert.equal(
-    restored.state.materials.lots.some(
-      (lot) => lot.id === `source-lot:${spring.id}` && lot.material === "water",
-    ),
-    true,
+        location: { kind: "ground", ...cell(2, 2) },
+      },
+      {
+        id: "barm-b",
+        material: "barm",
+        quantity: 1,
+        location: { kind: "ground", ...cell(3, 3) },
+      },
+      {
+        id: "keg-b",
+        material: "keg",
+        quantity: 1,
+        location: { kind: "ground", ...cell(3, 4) },
+      },
+    );
+    const binding = (id, barm, keg) => ({
+      kind: "brew",
+      id,
+      recipe: "herbal-ale-v1",
+      station: `kettle:station-${id}`,
+      portions: [
+        { lot: `source-malt-lot:${cache.id}`, material: "malt", quantity: 2 },
+        { lot: `source-lot:${spring.id}`, material: "water", quantity: 2 },
+        { lot: "herb-lot", material: "mugwort", quantity: 1 },
+        { lot: `source-lot:${cache.id}`, material: "wood", quantity: 1 },
+      ],
+      barm,
+      keg,
+      output: `vessel:${keg}`,
+      tray: `brew-tray:station-${id}`,
+    });
+    state.materials.bindings.push(
+      binding("a", `source-barm-lot:${cache.id}`, `source-keg-lot:${cache.id}`),
+      binding("b", "barm-b", "keg-b"),
+    );
+  });
+  assert.throws(
+    () => restoreSnapshot(saved),
+    /brew portions exceed source lot/,
   );
 });
 
@@ -581,30 +766,11 @@ rejects(
   /pending source .* is invalid/,
 );
 
-test("restore rejects a derived container ID reserved for a pending source", () => {
-  const blocked = restoreSnapshot(
-    v8Envelope((state) => {
-      state.trees = Array.from({ length: 15 * 15 }, (_, index) => ({
-        id: `cover-${index}`,
-        x: index % 15,
-        z: Math.floor(index / 15),
-        level: 0,
-        work: 0,
-        felledAt: 0,
-      }));
-    }),
-  );
-  const saved = snapshotFor(blocked.state);
-  const pending = saved.savedState.pendingSources[0];
-  saved.savedState.jobs.push(job(`source:${pending.id}`));
-  assert.throws(() => restoreSnapshot(saved), /pending source .* is invalid/);
-});
-
-test("schema 9 accepts only strict schema 8 or schema 9 predecessors", () => {
+test("schema 11 accepts only strict schema 10 or schema 11 predecessors", () => {
   const unsupported = snapshotFor(createClearing());
   unsupported.schema = 7;
   assert.throws(() => restoreSnapshot(unsupported));
-  const malformed = v8Envelope((state) => {
+  const malformed = v10Envelope((state) => {
     state.extra = true;
   });
   assert.throws(() => restoreSnapshot(malformed));

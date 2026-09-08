@@ -13,20 +13,25 @@ import {
   shelfContainer,
 } from "./construction.js";
 import {
+  brewBindingPromiseQuantity,
   pailInterior,
+  kegInterior,
   sourceContainer,
   type ContainerSpec,
 } from "./materials.ts";
 import {
   finiteSourceProblem,
   introduceFiniteSources,
+  introduceRecipeCacheSupplies,
   cacheRepairBuffer,
   sourcePailContainerSpec,
+  sourceSuppliesContainerSpec,
   sourceContainerSpec,
 } from "./finite-sources.ts";
+import { herbalAleTray } from "./recipes.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 10 as const;
+const SAVE_SCHEMA = 11 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -173,12 +178,21 @@ const job = z.discriminatedUnion("kind", [
     .strict(),
   z.object({ ...jobBase, kind: z.literal("fill-kettle"), target: id }).strict(),
 ]);
-const v8Material = z.enum(["wood", "mugwort"]);
-const material = z.enum(["wood", "mugwort", "water", "pail"]);
-const v8Lot = z
+const material = z.enum([
+  "wood",
+  "mugwort",
+  "water",
+  "pail",
+  "malt",
+  "barm",
+  "keg",
+  "ale",
+  "spent-grain",
+]);
+const lot = z
   .object({
     id,
-    material: v8Material,
+    material,
     quantity: positive,
     location: z.discriminatedUnion("kind", [
       cell.extend({ kind: z.literal("ground") }).strict(),
@@ -187,6 +201,9 @@ const v8Lot = z
     ]),
   })
   .strict();
+/** Exact shipped schema-10 goods wire; do not widen predecessor admission. */
+const v10Material = z.enum(["wood", "mugwort", "water", "pail"]);
+const v10Lot = lot.extend({ material: v10Material }).strict();
 const request = z
   .object({
     source: z.discriminatedUnion("kind", [
@@ -242,28 +259,24 @@ const transfer = z
     ]),
   })
   .strict();
-const v8Request = request.extend({
-  source: z.discriminatedUnion("kind", [
-    z
-      .object({ kind: z.literal("eligible-ground"), material: v8Material })
-      .strict(),
-    z
-      .object({
-        kind: z.literal("eligible-container"),
-        material: v8Material,
-        container: id,
-      })
-      .strict(),
-    z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
-  ]),
-  destination: id,
-});
-const v8Transfer = transfer
-  .omit({ intent: true, request: true, owner: true })
+const v10Request = request
   .extend({
-    owner: z.object({ job: id, step: z.string().min(1) }).strict(),
-    request: v8Request,
-  });
+    source: z.discriminatedUnion("kind", [
+      z
+        .object({ kind: z.literal("eligible-ground"), material: v10Material })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("eligible-container"),
+          material: v10Material,
+          container: id,
+        })
+        .strict(),
+      z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
+    ]),
+  })
+  .strict();
+const v10Transfer = transfer.extend({ request: v10Request }).strict();
 const site = cell
   .extend({
     id,
@@ -315,13 +328,6 @@ const sourceFeature = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-const v9SourceFeature = cell
-  .extend({
-    id,
-    kind: z.enum(["spring", "reclaimed-timber-cache"]),
-    access: z.enum(["open", "sealed"]),
-  })
-  .strict();
 const stateSchema = z
   .object({
     seed: finite,
@@ -358,14 +364,58 @@ const stateSchema = z
     ),
     materials: z
       .object({
-        lots: z.array(v8Lot.extend({ material }).strict()),
+        lots: z.array(lot),
         transfers: z.array(transfer),
-        vesselUses: z.array(z.object({ id, vessel: id }).strict()),
+        bindings: z.array(
+          z.discriminatedUnion("kind", [
+            z
+              .object({ kind: z.literal("vessel-use"), id, vessel: id })
+              .strict(),
+            z
+              .object({
+                kind: z.literal("brew"),
+                id,
+                recipe: z.literal("herbal-ale-v1"),
+                station: id,
+                portions: z.array(
+                  z
+                    .object({
+                      lot: id,
+                      material: z.enum(["malt", "water", "mugwort", "wood"]),
+                      quantity: positive,
+                    })
+                    .strict(),
+                ),
+                barm: id,
+                keg: id,
+                output: id,
+                tray: id,
+              })
+              .strict(),
+          ]),
+        ),
+        transformations: z.array(
+          z
+            .object({
+              id,
+              recipe: z.literal("herbal-ale-v1"),
+              inputs: z.array(
+                z
+                  .object({
+                    lot: id,
+                    material: z.enum(["malt", "water", "mugwort", "wood"]),
+                    quantity: positive,
+                  })
+                  .strict(),
+              ),
+            })
+            .strict(),
+        ),
         embedded: z.array(
           z
             .object({
               container: id,
-              material: v8Material,
+              material: z.enum(["wood", "mugwort"]),
               quantity: positive,
             })
             .strict(),
@@ -407,23 +457,24 @@ const stateSchema = z
   })
   .strict();
 type SavedClearing = Omit<Clearing, "commands">;
-const v8StateSchema = stateSchema
-  .omit({ sources: true, pendingSources: true, operations: true })
+const v10StateSchema = stateSchema
+  .omit({ materials: true })
   .extend({
-    materials: stateSchema.shape.materials.omit({ vesselUses: true }).extend({
-      lots: z.array(v8Lot),
-      transfers: z.array(v8Transfer),
-    }),
+    materials: stateSchema.shape.materials
+      .omit({
+        lots: true,
+        transfers: true,
+        bindings: true,
+        transformations: true,
+      })
+      .extend({
+        lots: z.array(v10Lot),
+        transfers: z.array(v10Transfer),
+        vesselUses: z.array(z.object({ id, vessel: id }).strict()),
+      }),
   })
   .strict();
-type V8SavedClearing = z.infer<typeof v8StateSchema>;
-const v9StateSchema = stateSchema
-  .omit({ operations: true })
-  .extend({
-    sources: z.array(v9SourceFeature),
-  })
-  .strict();
-type V9SavedClearing = z.infer<typeof v9StateSchema>;
+type V10SavedClearing = z.infer<typeof v10StateSchema>;
 const savedSchema = stateSchema.transform((value): SavedClearing => value);
 const envelopeSchema = z
   .object({
@@ -435,24 +486,16 @@ const envelopeSchema = z
   .strict();
 export type SerializedClearing = SavedClearing;
 export type SaveEnvelope = z.infer<typeof envelopeSchema>;
-const v8EnvelopeSchema = z
+const v10EnvelopeSchema = z
   .object({
     kind: z.literal(SAVE_KIND),
-    schema: z.literal(8),
+    schema: z.literal(10),
     revision: nonNegative,
-    savedState: v8StateSchema,
-  })
-  .strict();
-const v9EnvelopeSchema = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(9),
-    revision: nonNegative,
-    savedState: v9StateSchema,
+    savedState: v10StateSchema,
   })
   .strict();
 function fail(message: string): never {
-  throw new Error(`Invalid v10 save: ${message}`);
+  throw new Error(`Invalid v11 save: ${message}`);
 }
 
 function liveState(state: SavedClearing): Clearing {
@@ -558,12 +601,104 @@ function validateMaterialLots(state: SavedClearing): void {
   }
 }
 
-function validateVesselUses({ state }: RelationContext): void {
+function validateMaterialBindings({
+  state,
+  containers,
+}: RelationContext): void {
   const ids = new Set<string>(),
-    vessels = new Set<string>();
-  for (const use of state.materials.vesselUses) {
-    if (ids.has(use.id)) fail(`duplicate vessel use ${use.id}`);
+    vessels = new Set<string>(),
+    stations = new Set<string>(),
+    barm = new Set<string>(),
+    kegs = new Set<string>();
+  const reservedPortions = new Map<string, number>();
+  const promisedContainers = new Set<string>();
+  for (const use of state.materials.bindings) {
+    if (ids.has(use.id)) fail(`duplicate material binding ${use.id}`);
     ids.add(use.id);
+    if (use.kind === "brew") {
+      if (stations.has(use.station))
+        fail(`duplicate brew station binding ${use.station}`);
+      if (barm.has(use.barm) || kegs.has(use.keg))
+        fail(`duplicate brew vessel binding ${use.id}`);
+      stations.add(use.station);
+      barm.add(use.barm);
+      kegs.add(use.keg);
+      const required = { malt: 2, water: 2, mugwort: 1, wood: 1 };
+      if (
+        use.portions.length !== 4 ||
+        new Set(use.portions.map((portion) => portion.material)).size !== 4
+      )
+        fail(`brew binding ${use.id} has invalid portions`);
+      const transformation = state.materials.transformations.find(
+        (entry) => entry.id === use.id,
+      );
+      for (const portion of use.portions) {
+        const lot = state.materials.lots.find(
+          (candidate) => candidate.id === portion.lot,
+        );
+        const consumed = transformation?.inputs.some(
+          (input) =>
+            input.lot === portion.lot &&
+            input.material === portion.material &&
+            input.quantity === portion.quantity,
+        );
+        if (
+          (!lot && !consumed) ||
+          (lot &&
+            (lot.material !== portion.material ||
+              lot.quantity < portion.quantity ||
+              lot.location.kind === "hand")) ||
+          portion.quantity !== required[portion.material]
+        )
+          fail(`brew binding ${use.id} has invalid portion ${portion.lot}`);
+        if (!transformation)
+          reservedPortions.set(
+            portion.lot,
+            (reservedPortions.get(portion.lot) ?? 0) + portion.quantity,
+          );
+      }
+      for (const [lotId, material] of [
+        [use.barm, "barm"],
+        [use.keg, "keg"],
+      ] as const) {
+        const lot = state.materials.lots.find(
+          (candidate) => candidate.id === lotId,
+        );
+        if (
+          !lot ||
+          lot.material !== material ||
+          lot.quantity !== 1 ||
+          lot.location.kind === "hand"
+        )
+          fail(`brew binding ${use.id} has invalid ${material}`);
+      }
+      const output = state.materials.lots.find((lot) => lot.id === use.keg);
+      const outputContainer = containers.get(use.output);
+      const tray = containers.get(use.tray);
+      const station = state.sites.find(
+        (site) =>
+          site.type === "brew-station" &&
+          site.finishedAt !== null &&
+          brewKettle(site).id === use.station,
+      );
+      if (
+        !output ||
+        use.output !== `vessel:${use.keg}` ||
+        use.tray === use.output ||
+        !station ||
+        !outputContainer ||
+        outputContainer.capacity !== 4 ||
+        !outputContainer.accepts.includes("ale") ||
+        !tray ||
+        tray.id !== herbalAleTray(station.id).id ||
+        tray.capacity !== 1 ||
+        !tray.accepts.includes("spent-grain")
+      )
+        fail(`brew binding ${use.id} has invalid output`);
+      promisedContainers.add(use.output);
+      promisedContainers.add(use.tray);
+      continue;
+    }
     if (vessels.has(use.vessel)) fail(`duplicate vessel binding ${use.vessel}`);
     vessels.add(use.vessel);
     const lot = state.materials.lots.find(
@@ -596,6 +731,73 @@ function validateVesselUses({ state }: RelationContext): void {
     )
       fail(`vessel use ${use.id} has invalid executor custody`);
   }
+  for (const [lotId, quantity] of reservedPortions) {
+    const lot = state.materials.lots.find(
+      (candidate) => candidate.id === lotId,
+    );
+    if (!lot || quantity > lot.quantity)
+      fail(`brew portions exceed source lot ${lotId}`);
+  }
+  for (const containerId of promisedContainers) {
+    const container = containers.get(containerId)!;
+    const occupied = state.materials.lots.reduce(
+      (total, lot) =>
+        total +
+        (lot.location.kind === "container" &&
+        lot.location.container === containerId
+          ? lot.quantity
+          : 0),
+      0,
+    );
+    const incoming = state.materials.transfers.reduce(
+      (total, transfer) =>
+        total +
+        (transfer.intent.kind === "deliver" &&
+        transfer.intent.destination === containerId
+          ? transfer.request.quantity
+          : 0),
+      0,
+    );
+    if (
+      occupied +
+        incoming +
+        brewBindingPromiseQuantity(state.materials, containerId) >
+      container.capacity
+    )
+      fail(`brew binding capacity exceeds ${containerId}`);
+  }
+}
+
+function validateTransformations({ state }: RelationContext): void {
+  const ids = new Set<string>();
+  for (const transformation of state.materials.transformations) {
+    if (ids.has(transformation.id))
+      fail(`duplicate transformation ${transformation.id}`);
+    ids.add(transformation.id);
+    const binding = state.materials.bindings.find(
+      (candidate): candidate is Extract<typeof candidate, { kind: "brew" }> =>
+        candidate.kind === "brew" && candidate.id === transformation.id,
+    );
+    const count = (
+      entries: readonly { lot: string; material: string; quantity: number }[],
+    ) => {
+      const result = new Map<string, number>();
+      for (const entry of entries) {
+        const key = `${entry.lot}\u0000${entry.material}\u0000${entry.quantity}`;
+        result.set(key, (result.get(key) ?? 0) + 1);
+      }
+      return result;
+    };
+    if (!binding || binding.recipe !== transformation.recipe)
+      fail(`transformation ${transformation.id} does not match brew binding`);
+    const inputs = count(transformation.inputs);
+    const portions = count(binding.portions);
+    if (
+      inputs.size !== portions.size ||
+      [...inputs].some(([key, quantity]) => portions.get(key) !== quantity)
+    )
+      fail(`transformation ${transformation.id} does not match brew binding`);
+  }
 }
 
 function validateSources(state: SavedClearing, requireAll = true): void {
@@ -616,6 +818,8 @@ function relationContext(state: SavedClearing): RelationContext {
       containers.set(shelfContainer(site.id).id, shelfContainer(site.id));
     if (site.type === "brew-station" && site.finishedAt !== null)
       containers.set(brewKettle(site).id, brewKettle(site));
+    if (site.type === "brew-station" && site.finishedAt !== null)
+      containers.set(herbalAleTray(site.id).id, herbalAleTray(site.id));
   }
   for (const feature of state.sources) {
     containers.set(sourceContainer(feature.id), sourceContainerSpec(feature));
@@ -624,10 +828,14 @@ function relationContext(state: SavedClearing): RelationContext {
       containers.set(repair!.id, repair!);
     const pail = sourcePailContainerSpec(feature);
     if (pail) containers.set(pail.id, pail);
+    const supplies = sourceSuppliesContainerSpec(feature);
+    if (supplies) containers.set(supplies.id, supplies);
   }
   for (const lot of state.materials.lots) {
     const interior = pailInterior(lot);
     if (interior) containers.set(interior.id, interior);
+    const keg = kegInterior(lot);
+    if (keg) containers.set(keg.id, keg);
   }
   return { state, jobs, sites, containers };
 }
@@ -719,8 +927,11 @@ function validateOperationCustody(
     fail(`brew operation ${operation.id} lacks fill job`);
   if (custody.length !== (active ? 1 : 0))
     fail(`brew operation ${operation.id} lacks pail custody`);
-  const use = state.materials.vesselUses.find(
-    (candidate) => candidate.id === operation.id,
+  const use = state.materials.bindings.find(
+    (
+      candidate,
+    ): candidate is Extract<typeof candidate, { kind: "vessel-use" }> =>
+      candidate.kind === "vessel-use" && candidate.id === operation.id,
   );
   if (
     !use ||
@@ -790,8 +1001,11 @@ function validateTransferOwner(
 ): ContainerSpec | null {
   if (transfer.intent.kind === "use") {
     const operation = transfer.intent.operation;
-    const use = state.materials.vesselUses.find(
-      (candidate) => candidate.id === operation,
+    const use = state.materials.bindings.find(
+      (
+        candidate,
+      ): candidate is Extract<typeof candidate, { kind: "vessel-use" }> =>
+        candidate.kind === "vessel-use" && candidate.id === operation,
     );
     if (
       !use ||
@@ -863,8 +1077,11 @@ function validateReservedTransfer(
     const operation = state.operations.find(
       (candidate) => candidate.id === operationId,
     );
-    const use = state.materials.vesselUses.find(
-      (candidate) => candidate.id === operationId,
+    const use = state.materials.bindings.find(
+      (
+        candidate,
+      ): candidate is Extract<typeof candidate, { kind: "vessel-use" }> =>
+        candidate.kind === "vessel-use" && candidate.id === operationId,
     );
     const actor = state.actors[transfer.actor];
     const active =
@@ -1185,7 +1402,8 @@ function validateRelations(
   validateJobScopes(context);
   validateContainerLots(context);
   validateOperations(context);
-  validateVesselUses(context);
+  validateMaterialBindings(context);
+  validateTransformations(context);
   validateTransfers(context);
   validateContainerCapacity(context);
   validateActorJobRelations(context);
@@ -1199,70 +1417,25 @@ function validateClearing(value: unknown): SerializedClearing {
   return validateRelations(savedSchema.parse(value));
 }
 
-/** Schema 8 had only delivery transfers and no finite source features. */
-function convertV8State(predecessor: V8SavedClearing): SavedClearing {
-  const state: Clearing = {
+/** Schema 10 is parsed and relation-checked in its shipped shape before v11 adds bindings. */
+function convertV10State(predecessor: V10SavedClearing): SavedClearing {
+  const { vesselUses, ...materials } = predecessor.materials;
+  const state: SavedClearing = {
     ...predecessor,
     materials: {
-      ...predecessor.materials,
-      vesselUses: [],
-      transfers: predecessor.materials.transfers.map((transfer) => ({
-        ...transfer,
-        owner: {
-          kind: "job" as const,
-          job: transfer.owner.job,
-          step: transfer.owner.step,
-        },
-        request: {
-          source: transfer.request.source,
-          quantityPolicy: transfer.request.quantityPolicy,
-          quantity: transfer.request.quantity,
-        },
-        intent: {
-          kind: "deliver" as const,
-          destination: transfer.request.destination,
-        },
+      ...materials,
+      bindings: vesselUses.map((use) => ({
+        kind: "vessel-use" as const,
+        id: use.id,
+        vessel: use.vessel,
       })),
+      transformations: [],
     },
-    sources: [],
-    pendingSources: [],
-    operations: [],
-    commands: [],
   };
-  const { commands: _predecessorCommands, ...beforeIntroduction } = state;
-  validateRelations(beforeIntroduction, false);
-  introduceFiniteSources(state);
-  const { commands: _commands, ...saved } = state;
-  return saved;
-}
-/** Schema 9 introduced the finite providers but predates repair/use operations. */
-function convertV9State(predecessor: V9SavedClearing): SavedClearing {
-  if (
-    predecessor.sources.some(
-      (source) =>
-        (source.kind === "spring" && source.access !== "open") ||
-        (source.kind === "reclaimed-timber-cache" &&
-          source.access !== "sealed"),
-    )
-  )
-    fail("schema 9 source has invalid access");
-  const state: Clearing = {
-    ...predecessor,
-    sources: predecessor.sources.map((source) =>
-      source.kind === "spring"
-        ? { ...source, kind: "spring" as const, access: "open" as const }
-        : {
-            ...source,
-            kind: "reclaimed-timber-cache" as const,
-            access: "sealed" as const,
-            repaired: false,
-          },
-    ),
-    operations: [],
-    commands: [],
-  };
-  const { commands: _commands, ...saved } = state;
-  validateRelations(saved);
+  validateRelations(state);
+  const live = { ...structuredClone(state), commands: [] };
+  introduceRecipeCacheSupplies(live);
+  const { commands: _commands, ...saved } = live;
   return saved;
 }
 
@@ -1283,24 +1456,17 @@ function validateSaveEnvelope(value: unknown): SaveEnvelope {
     typeof value === "object" &&
     value !== null &&
     "schema" in value &&
-    value.schema === 9
+    value.schema === 10
   ) {
-    const predecessor = v9EnvelopeSchema.parse(value);
+    const predecessor = v10EnvelopeSchema.parse(value);
     return {
       kind: SAVE_KIND,
       schema: SAVE_SCHEMA,
       revision: predecessor.revision,
-      savedState: validateRelations(convertV9State(predecessor.savedState)),
+      savedState: validateRelations(convertV10State(predecessor.savedState)),
     };
   }
-  const predecessor = v8EnvelopeSchema.parse(value);
-  const migrated = convertV8State(predecessor.savedState);
-  return {
-    kind: SAVE_KIND,
-    schema: SAVE_SCHEMA,
-    revision: predecessor.revision,
-    savedState: validateRelations(migrated),
-  };
+  throw new Error("Invalid v11 save: unsupported predecessor schema");
 }
 export function snapshotFor(state: Clearing): SaveEnvelope {
   const { commands: _commands, ...savedState } = structuredClone(state);

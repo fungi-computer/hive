@@ -389,8 +389,11 @@ function fillKettleOption(
   const phase = existing?.phase ?? "acquire";
   if (
     existing &&
-    !state.materials.vesselUses.some(
-      (use) => use.id === existing.id && use.vessel === existing.pail,
+    !state.materials.bindings.some(
+      (binding) =>
+        binding.kind === "vessel-use" &&
+        binding.id === existing.id &&
+        binding.vessel === existing.pail,
     )
   )
     return no("Waiting for its bound pail");
