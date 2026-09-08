@@ -14,6 +14,7 @@ import "@fungi.computer/caps/styles.css";
 import {
   BUILDINGS,
   constructionBuffer,
+  footprint,
   shelfContainer,
   shelteredBeds,
 } from "./construction.js";
@@ -26,6 +27,8 @@ import {
 import { commandProblem } from "./orders.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
+import { SIZE, stairLanding } from "./world.js";
+import { ClearingMinimap } from "./clearing-minimap.jsx";
 import {
   dispatchUiAction,
   DEBUG_PICKING_CONTROL,
@@ -105,7 +108,7 @@ const toolMachine = createMachine({
       },
     ],
     CANCEL: { target: ".idle", actions: clearGesture },
-    CAMERA_MOVE: { target: ".idle", actions: clearGesture },
+    CAMERA_MOVE: { target: ".idle", actions: clearGestureKeepTool },
     ESCAPE: { target: ".idle", actions: clearGesture },
     RESET: { target: ".idle", actions: clearGesture },
     LEVEL_CHANGE: [
@@ -346,6 +349,17 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
         }, 0),
     };
   });
+  const structures = state.sites.map((site) => ({
+    id: site.id,
+    type: site.type,
+    finished: site.finishedAt !== null,
+    cells: [
+      ...footprint(site),
+      ...(site.type === "stair" && site.finishedAt !== null
+        ? [stairLanding(site)]
+        : []),
+    ],
+  }));
   const herbsNext = state.herbs.map((herb) => ({
     id: herb.id,
     x: herb.x,
@@ -407,6 +421,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     previous && sameKeys(keys, previous.keys) ? previous.keys : keys;
   return {
     paused: state.paused,
+    size: SIZE,
     tick: state.tick,
     speed,
     zoom,
@@ -420,6 +435,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     trees,
     jobs,
     sites,
+    structures,
     herbs,
     lots,
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
@@ -486,6 +502,7 @@ function orderModel(display, job) {
 }
 
 const worldFactsAtom = atom(null);
+const cameraFactsAtom = atom(null);
 const selectionAtom = atom({
   selectedIds: [],
   inspectedTarget: null,
@@ -502,13 +519,14 @@ const preferencesAtom = atom({
 });
 const statusAtom = atom((get) => {
   const facts = get(worldFactsAtom);
+  const camera = get(cameraFactsAtom);
   return (
     facts && {
       paused: facts.paused,
       day: facts.day,
       time: facts.time,
       speed: facts.speed,
-      zoom: facts.zoom,
+      zoom: camera?.zoom ?? facts.zoom,
       keys: facts.keys,
       feed: facts.feed,
       demand: facts.demand,
@@ -1418,9 +1436,15 @@ function Menu({ model: m, send }) {
       title="Goblin Bed & Breakfast"
       name="Menu"
       send={send}
-      className="menu-window"
+      className="menu-window minimap-window"
     >
       <p className="muted">Stay useful. Stay off the menu.</p>
+      <ClearingMinimap
+        facts={m.minimap.facts}
+        level={m.level}
+        viewport={m.minimap.viewport}
+        onRequestCenter={(cell) => send({ kind: "recenter", cell })}
+      />
       {save && (
         <p id="save-status" role="status" className="muted">
           {save.message}
@@ -1496,6 +1520,8 @@ function Menu({ model: m, send }) {
 }
 
 function Hud({ machineSnapshot, send, portraits }) {
+  const facts = useAtomValue(worldFactsAtom);
+  const camera = useAtomValue(cameraFactsAtom);
   const status = useAtomValue(statusAtom);
   const roster = useAtomValue(rosterAtom);
   const selection = useAtomValue(selectionAtom);
@@ -1504,7 +1530,7 @@ function Hud({ machineSnapshot, send, portraits }) {
   const target = useAtomValue(targetAtom);
   const build = useAtomValue(buildAtom);
   const tutorial = useAtomValue(tutorialAtom);
-  if (!status || !roster) return null;
+  if (!facts || !camera || !status || !roster) return null;
   const tool = machineSnapshot.context.tool;
   const phase = machineSnapshot.value;
   const m = {
@@ -1523,6 +1549,16 @@ function Hud({ machineSnapshot, send, portraits }) {
     debugPicking: preferences.debugPicking,
     panMode: preferences.panMode,
     level: preferences.level,
+    minimap: {
+      facts: {
+        size: facts.size,
+        actors: Object.values(facts.actors),
+        trees: facts.trees,
+        structures: facts.structures,
+        selectedActorIds: selection.selectedIds,
+      },
+      viewport: camera.visibleAreas[preferences.level],
+    },
     help: preferences.help,
     notice: status.paused
       ? `Paused · ${status.notice || "time is frozen; orders remain available."}`
@@ -2071,6 +2107,9 @@ export function createHud(host, art, effect) {
           designationTargetIds: [],
         }));
         return;
+      case "recenter":
+        effect(action);
+        return;
       case "reset":
         machine.send({ type: "RESET" });
         setSelection(() => ({
@@ -2192,6 +2231,9 @@ export function createHud(host, art, effect) {
     );
     store.set(worldFactsAtom, facts);
   }
+  function updateCamera(camera) {
+    store.set(cameraFactsAtom, camera);
+  }
   function view() {
     const value = store.get(selectionAtom);
     const preferences = store.get(preferencesAtom);
@@ -2248,6 +2290,7 @@ export function createHud(host, art, effect) {
   return {
     dispatch,
     update,
+    updateCamera,
     view,
     machine,
     destroy() {

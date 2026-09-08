@@ -8,7 +8,7 @@ import { createView } from "./view.js";
 import { createCamera } from "./camera.js";
 import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
-import { inside, placementOccupant } from "./world.js";
+import { inside, placementOccupant, SIZE } from "./world.js";
 import { createHud } from "./hud.jsx";
 import {
   backupJson,
@@ -151,6 +151,7 @@ async function startGame() {
 
   function publish() {
     hud.update(state, notice, speed, camera.zoom, keys.hints(), saveStatus);
+    hud.updateCamera(camera.snapshot(SIZE));
   }
 
   function setSaveStatus(update) {
@@ -467,6 +468,10 @@ async function startGame() {
         camera.pan(action.x, action.y);
         publish();
         break;
+      case "recenter":
+        clearCameraIntent();
+        camera.focus(action.cell);
+        break;
       case "reset":
         reset();
         break;
@@ -494,6 +499,11 @@ async function startGame() {
   }
 
   const hud = createHud(document.querySelector("#hud"), art, effect);
+  const updateCameraPresentation = () =>
+    hud.updateCamera(camera.snapshot(SIZE));
+  updateCameraPresentation();
+  const stopCameraPresentation = camera.subscribe(updateCameraPresentation);
+  window.addEventListener("pagehide", stopCameraPresentation, { once: true });
   const root = document.querySelector("#game");
   root.tabIndex = -1;
   let keys;
@@ -521,7 +531,7 @@ async function startGame() {
     if (
       event.detail &&
       !event.target.closest(
-        "button, a, input, textarea, select, [contenteditable]",
+        "button, a, input, textarea, select, [contenteditable], [data-clearing-minimap-control]",
       )
     )
       root.focus({ preventScroll: true });

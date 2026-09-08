@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { levelNavigationOwned } from "./keys.js";
+import { quantizedVisibleArea } from "./camera.js";
+import { levelNavigationOwned, minimapInputOwned } from "./keys.js";
 import {
   DEBUG_PICKING_CONTROL,
   decideLevelTransition,
@@ -45,6 +46,62 @@ test("picking debug uses the checked UI action catalog and normal dispatcher", (
     level: null,
   });
   assert.deepEqual(forwarded, [{ kind: "debug-picking" }]);
+});
+
+test("minimap focus owns arrows and activation without taking Escape", () => {
+  const minimap = {
+    closest: (selector) =>
+      selector === "[data-clearing-minimap-control]" ? minimap : null,
+  };
+  for (const key of [
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Enter",
+    " ",
+  ])
+    assert.equal(minimapInputOwned({ key }, minimap), true);
+  assert.equal(minimapInputOwned({ key: "Escape" }, minimap), false);
+  assert.equal(minimapInputOwned({ key: "ArrowLeft" }, null), false);
+
+  const forwarded = [];
+  dispatchUiAction(
+    { kind: "recenter", cell: { x: 7, z: 6, level: 1 } },
+    { run: (action) => forwarded.push(action), level: null },
+  );
+  assert.deepEqual(forwarded, [
+    { kind: "recenter", cell: { x: 7, z: 6, level: 1 } },
+  ]);
+});
+
+test("camera visible area converts quantized cell centers to clipped grid edges", () => {
+  const visible = quantizedVisibleArea(
+    [
+      { x: 0, z: 0 },
+      { x: 3, z: 0 },
+      { x: 3, z: 3 },
+      { x: 0, z: 3 },
+    ],
+    15,
+  );
+  assert.deepEqual(visible, [
+    { x: 0.5, z: 0.5 },
+    { x: 3.5, z: 0.5 },
+    { x: 3.5, z: 3.5 },
+    { x: 0.5, z: 3.5 },
+  ]);
+  const clipped = quantizedVisibleArea(
+    [
+      { x: -5, z: -5 },
+      { x: 20, z: -5 },
+      { x: 20, z: 20 },
+      { x: -5, z: 20 },
+    ],
+    15,
+  );
+  assert.ok(clipped.every((point) => point.x >= 0 && point.x <= 15));
+  assert.ok(clipped.every((point) => point.z >= 0 && point.z <= 15));
 });
 
 test("level navigation catalog owns labels, keys, actions, and limit state", () => {

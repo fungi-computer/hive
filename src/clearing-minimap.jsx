@@ -130,13 +130,14 @@ export function ClearingMinimap({ facts, level, viewport, onRequestCenter }) {
           </h2>
         </div>
         <p className="clearing-minimap-key">
-          ◇ inverse-camera footprint · ■ structure · ♣ oak
+          ◇ Visible area · ■ structure · ♣ oak
         </p>
       </header>
       <div
         aria-label={`${level === 1 ? "Upper" : "Ground"} clearing map. Arrow keys move the cell cursor; Enter or Space requests a camera center.`}
         className="clearing-minimap-surface"
         data-testid="clearing-minimap-control"
+        onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           const cell = pointerCell(event, facts.size);
           setCursor({ ...cell, level });

@@ -101,7 +101,8 @@ export type UiAction =
   | { kind: "go"; point: GesturePoint }
   | { kind: "notice"; text: string }
   | { kind: "zoom"; delta: number }
-  | { kind: "pan"; x: number; y: number };
+  | { kind: "pan"; x: number; y: number }
+  | { kind: "recenter"; cell: Cell };
 
 export type UiEffect =
   | { kind: "notice"; text: string }
@@ -120,7 +121,8 @@ export type UiEffect =
         | "fullscreen";
     }
   | { kind: "zoom"; delta: number }
-  | { kind: "pan"; x: number; y: number };
+  | { kind: "pan"; x: number; y: number }
+  | { kind: "recenter"; cell: Cell };
 
 export type LevelNavigationControl = {
   readonly name: string;
@@ -302,6 +304,7 @@ export function dispatchUiAction(
     case "notice":
     case "zoom":
     case "pan":
+    case "recenter":
       owners.run(action);
       return;
     default:

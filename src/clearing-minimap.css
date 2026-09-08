@@ -6,6 +6,7 @@
   background: #13261f;
   color: #f2e2b8;
   box-shadow: 0 8px 24px #06110d66;
+  pointer-events: auto;
 }
 
 .clearing-minimap header {
@@ -49,6 +50,18 @@
   background: #37533c;
   cursor: crosshair;
   outline: none;
+  pointer-events: auto;
+}
+
+.minimap-window {
+  bottom: var(--hud-rail-bottom);
+  max-height: calc(100dvh - var(--hud-rail-bottom) - 24px);
+  overflow-y: auto;
+}
+
+.minimap-window .clearing-minimap {
+  width: 100%;
+  margin: 12px 0;
 }
 
 .clearing-minimap-surface:focus-visible {

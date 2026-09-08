@@ -7,6 +7,7 @@ import { DEBUG_PICKING_CONTROL, LEVEL_NAVIGATION } from "./ui-actions.ts";
 
 const LEVEL_INPUT_SELECTOR =
   "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='checkbox']";
+export const MINIMAP_INPUT_SELECTOR = "[data-clearing-minimap-control]";
 const SCROLLABLE_OVERFLOW = new Set(["auto", "scroll", "overlay"]);
 
 function actuallyScrollable(node, resolveStyle) {
@@ -35,6 +36,18 @@ export function levelNavigationOwned(
     node = node.parentElement;
   }
   return false;
+}
+
+export function minimapInputOwned(nativeEvent, activeElement) {
+  if (!activeElement?.closest?.(MINIMAP_INPUT_SELECTOR)) return false;
+  return [
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Enter",
+    " ",
+  ].includes(nativeEvent?.key);
 }
 
 // Game actions are local; OpenTUI owns physical keys, matching and hint formatting.
@@ -197,6 +210,8 @@ export function createKeys(root, read, send, changed) {
           event.originalEvent?.isComposing ||
           (event.originalEvent?.repeat && !d.repeat)
         )
+          return;
+        if (minimapInputOwned(event.originalEvent, document.activeElement))
           return;
         if (d.levelNavigation && pageNavigationOwned(event)) return;
         send(d.action());
