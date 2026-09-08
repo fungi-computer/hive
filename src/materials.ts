@@ -1163,23 +1163,25 @@ export function pourPailWater(
   });
 }
 
-/** Atomic recipe admission: binding is a promise, never a copied staging inventory. */
-export function admitHerbalAleBinding(
+export type HerbalAleBindingInput = {
+  id: string;
+  station: ContainerId;
+  portions: readonly {
+    lot: LotId;
+    material: "malt" | "water" | "mugwort" | "wood";
+    quantity: PositiveInt;
+  }[];
+  barm: LotId;
+  keg: LotId;
+  output: ContainerSpec;
+  tray: ContainerSpec;
+};
+
+/** A ready recipe plan uses the same checks as final mutation, without a promise. */
+export function checkHerbalAleBinding(
   state: MaterialsState,
-  input: {
-    id: string;
-    station: ContainerId;
-    portions: readonly {
-      lot: LotId;
-      material: "malt" | "water" | "mugwort" | "wood";
-      quantity: PositiveInt;
-    }[];
-    barm: LotId;
-    keg: LotId;
-    output: ContainerSpec;
-    tray: ContainerSpec;
-  },
-): MaterialResult<Extract<MaterialBinding, { kind: "brew" }>> {
+  input: HerbalAleBindingInput,
+): MaterialResult<void> {
   if (
     state.bindings.some(
       (binding) =>
@@ -1230,6 +1232,16 @@ export function admitHerbalAleBinding(
       input.tray.capacity
   )
     return failure("destination-full");
+  return success(undefined);
+}
+
+/** Atomic recipe admission: binding is a promise, never a copied staging inventory. */
+export function admitHerbalAleBinding(
+  state: MaterialsState,
+  input: HerbalAleBindingInput,
+): MaterialResult<Extract<MaterialBinding, { kind: "brew" }>> {
+  const checked = checkHerbalAleBinding(state, input);
+  if (!checked.ok) return checked;
   const binding: Extract<MaterialBinding, { kind: "brew" }> = {
     kind: "brew",
     id: input.id,
@@ -1279,6 +1291,21 @@ export function completeHerbalAlePrepare(
     recipe: "herbal-ale-v1",
     inputs: binding.portions.map((portion) => ({ ...portion })),
   });
+  return success(undefined);
+}
+
+/** Pre-PREPARE cancellation releases only the promise; staged physical lots stay put. */
+export function releaseUnpreparedBrewBinding(
+  state: MaterialsState,
+  id: string,
+): MaterialResult<void> {
+  const binding = state.bindings.find(
+    (candidate): candidate is Extract<MaterialBinding, { kind: "brew" }> =>
+      candidate.kind === "brew" && candidate.id === id,
+  );
+  if (!binding || state.transformations.some((entry) => entry.id === id))
+    return failure("wrong-phase");
+  state.bindings = state.bindings.filter((candidate) => candidate !== binding);
   return success(undefined);
 }
 

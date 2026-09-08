@@ -3,6 +3,7 @@ import type {
   Command,
   Job,
   RepairCacheCommand,
+  BrewCommand,
   Scope,
   StoreCommand,
   WorkCommand,
@@ -11,6 +12,7 @@ import { inScope, scopeProblem } from "./actors.ts";
 import { constructionBuffer, placementProblem } from "./construction.js";
 import { cacheRepairBuffer, sourceIsOpen } from "./finite-sources.ts";
 import { interruptWork } from "./activity.ts";
+import { brewForJob, cancelPreparingBrew } from "./brewing.ts";
 import {
   containerContents,
   interruptOperationPail,
@@ -66,6 +68,15 @@ export function commandProblem(s: Clearing, c: Command): string {
     );
     return !station ? "That brew station is not finished." : scopeProblem(s, c);
   }
+  if (c.kind === "brew") {
+    const station = s.sites.find(
+      (site) =>
+        site.id === c.station &&
+        site.type === "brew-station" &&
+        site.finishedAt !== null,
+    );
+    return !station ? "That brew station is not finished." : scopeProblem(s, c);
+  }
   if (c.kind === "build") return placementProblem(s, c);
   if (c.kind === "harvest") {
     const h = s.herbs.find((x) => x.id === c.herb);
@@ -90,6 +101,12 @@ export function commandProblem(s: Clearing, c: Command): string {
       )
         return "No legal place to release the repair wood.";
     }
+    if (
+      c.kind === "cancel" &&
+      job.kind === "brew" &&
+      brewForJob(s, job.id)?.phase === "ferment"
+    )
+      return "A fermenting batch cannot be cancelled.";
     return "";
   }
   if (c.kind === "draft" || c.kind === "undraft" || c.kind === "go") {
@@ -119,6 +136,7 @@ function scope(
     | WorkCommand
     | StoreCommand
     | RepairCacheCommand
+    | BrewCommand
     | Extract<Command, { kind: "fill-kettle" }>,
 ): Scope {
   return c.kind === "store"
@@ -131,6 +149,7 @@ function add(
     | WorkCommand
     | StoreCommand
     | RepairCacheCommand
+    | BrewCommand
     | Extract<Command, { kind: "fill-kettle" }>,
 ) {
   const sc = scope(c),
@@ -162,6 +181,15 @@ function add(
     j = {
       id,
       kind: "fill-kettle",
+      target: c.station,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  else if (c.kind === "brew")
+    j = {
+      id,
+      kind: "brew",
       target: c.station,
       scope: sc,
       reason: "Ordered",
@@ -297,6 +325,9 @@ function cancel(s: Clearing, id: string) {
       retireOperationPail(s.materials, active.id);
       s.operations = s.operations.filter((operation) => operation !== active);
     }
+  } else if (j.kind === "brew") {
+    const released = cancelPreparingBrew(s, j.id);
+    if (!released.ok) throw new Error(released.reason);
   }
   s.jobs = s.jobs.filter((x) => x.id !== id);
   s.workDirty = true;
@@ -342,6 +373,7 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "store" ||
     c.kind === "repair-cache" ||
     c.kind === "fill-kettle" ||
+    c.kind === "brew" ||
     c.kind === "rest"
   )
     add(s, c);

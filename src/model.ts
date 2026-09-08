@@ -153,7 +153,7 @@ export type BuildingKind =
   | "floor"
   | "stair"
   | "brew-station";
-export type WorkType = "chop" | "haul" | "build" | "garden";
+export type WorkType = "chop" | "haul" | "build" | "garden" | "craft";
 export type AllowedWork = Record<WorkType, boolean>;
 export type Scope = { party: PartyId; actors: ActorId[] | null };
 
@@ -181,11 +181,18 @@ export type FillKettleCommand = Scope & {
   direct?: boolean;
   station: string;
 };
+/** Recipe selection stays pinned in the process owner; the command names only its station. */
+export type BrewCommand = Scope & {
+  kind: "brew";
+  direct?: boolean;
+  station: string;
+};
 export type Command =
   | WorkCommand
   | StoreCommand
   | RepairCacheCommand
   | FillKettleCommand
+  | BrewCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
@@ -219,6 +226,7 @@ export type FillKettleJob = JobBase & {
   kind: "fill-kettle";
   target: string;
 };
+export type BrewJob = JobBase & { kind: "brew"; target: string };
 export type Job =
   | ChopJob
   | BuildJob
@@ -228,7 +236,8 @@ export type Job =
   | StoreJob
   | RestJob
   | RepairCacheJob
-  | FillKettleJob;
+  | FillKettleJob
+  | BrewJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -244,6 +253,7 @@ export type TransferActivity = ActivityBase & { kind: "transfer" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
 export type BrewWaterActivity = ActivityBase & { kind: "brew-water" };
 export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
+export type BrewActivity = ActivityBase & { kind: "brew" };
 export type Activity =
   | ChopActivity
   | BuildActivity
@@ -253,7 +263,8 @@ export type Activity =
   | TransferActivity
   | SleepActivity
   | BrewWaterActivity
-  | RepairCacheActivity;
+  | RepairCacheActivity
+  | BrewActivity;
 export type Body = Cell & {
   dir: number;
   mode: "idle" | "walk" | Activity["kind"];
@@ -306,6 +317,16 @@ export type BrewWaterOperation = {
   /** Incomplete effect phase; successful pour retires this operation. */
   phase: "acquire" | "draw" | "pour";
 };
+/** The process owner advances this one saved process; workers only attend PREPARE. */
+export type BrewProcess = {
+  id: OperationId;
+  job: JobId;
+  station: string;
+  binding: OperationId;
+  phase: "prepare" | "ferment";
+  progress: number;
+  enteredAt: number;
+};
 export type Clearing = {
   seed: number;
   tick: number;
@@ -320,6 +341,7 @@ export type Clearing = {
   sources: SourceFeature[];
   pendingSources: PendingFeatureIntroduction[];
   operations: BrewWaterOperation[];
+  processes: BrewProcess[];
   rocks: Cell[];
   watcher: Cell;
   sites: Site[];

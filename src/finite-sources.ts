@@ -267,14 +267,20 @@ export function resolveOpenFiniteSourceContainer(
   accessCells: readonly Cell[];
 } | null {
   const source = state.sources.find(
-    (candidate) => sourceContainer(candidate.id) === container,
+    (candidate) =>
+      sourceContainer(candidate.id) === container ||
+      sourcePailContainer(candidate.id) === container ||
+      sourceSuppliesContainer(candidate.id) === container,
   );
-  return source && sourceIsOpen(source)
-    ? {
-        source,
-        provider: sourceContainerSpec(source),
-        accessCells: sourceAccessCells(source),
-      }
+  if (!source || !sourceIsOpen(source)) return null;
+  const provider =
+    sourceContainer(source.id) === container
+      ? sourceContainerSpec(source)
+      : sourcePailContainer(source.id) === container
+        ? sourcePailContainerSpec(source)
+        : sourceSuppliesContainerSpec(source);
+  return provider
+    ? { source, provider, accessCells: sourceAccessCells(source) }
     : null;
 }
 

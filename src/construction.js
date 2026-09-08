@@ -13,6 +13,7 @@ import {
   upperSurface,
 } from "./world.js";
 import { pathTicks, route } from "./movement.js";
+import { herbalAleTray } from "./recipes.ts";
 
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
@@ -96,20 +97,75 @@ export function shelfContainer(site) {
   };
 }
 
-/** The first process destination: water only, independent of build staging. */
+/** Physical station slots. Recipe amounts are independent from these capacities. */
 export function brewKettle(site) {
   return {
     id: `kettle:${site.id}`,
-    capacity: /** @type {import("./model.ts").PositiveInt} */ (2),
-    accepts: /** @type {import("./model.ts").Material[]} */ (["water"]),
-    bulk: { water: /** @type {import("./model.ts").PositiveInt} */ (1) },
+    capacity: /** @type {import("./model.ts").PositiveInt} */ (5),
+    accepts: /** @type {import("./model.ts").Material[]} */ ([
+      "water",
+      "malt",
+      "mugwort",
+    ]),
+    bulk: {
+      water: /** @type {import("./model.ts").PositiveInt} */ (1),
+      malt: /** @type {import("./model.ts").PositiveInt} */ (1),
+      mugwort: /** @type {import("./model.ts").PositiveInt} */ (1),
+    },
   };
+}
+export function brewHearth(site) {
+  return {
+    id: `brew-hearth:${site.id}`,
+    capacity: /** @type {import("./model.ts").PositiveInt} */ (1),
+    accepts: /** @type {import("./model.ts").Material[]} */ (["wood"]),
+    bulk: { wood: /** @type {import("./model.ts").PositiveInt} */ (1) },
+  };
+}
+export function brewBarmSlot(site) {
+  return {
+    id: `brew-barm:${site.id}`,
+    capacity: /** @type {import("./model.ts").PositiveInt} */ (1),
+    accepts: /** @type {import("./model.ts").Material[]} */ (["barm"]),
+    bulk: { barm: /** @type {import("./model.ts").PositiveInt} */ (1) },
+  };
+}
+export function brewKegSlot(site) {
+  return {
+    id: `brew-keg:${site.id}`,
+    capacity: /** @type {import("./model.ts").PositiveInt} */ (1),
+    accepts: /** @type {import("./model.ts").Material[]} */ (["keg"]),
+    bulk: { keg: /** @type {import("./model.ts").PositiveInt} */ (1) },
+  };
+}
+export function brewStationContainers(site) {
+  return [
+    brewKettle(site),
+    brewHearth(site),
+    brewBarmSlot(site),
+    brewKegSlot(site),
+  ];
 }
 
 // The construction consumer owns the only lifecycle-aware interpretation of a
 // material destination. Transfer mechanics receive this resolved record; they
 // never infer a destination from a structure type.
 export function resolveMaterialEndpoint(sites, id, operation = "deposit") {
+  const brewStation = sites.find(
+    (candidate) =>
+      candidate.type === "brew-station" &&
+      candidate.finishedAt !== null &&
+      brewStationContainers(candidate).some(
+        (destination) => destination.id === id,
+      ),
+  );
+  if (brewStation) {
+    const destination = brewStationContainers(brewStation).find(
+      (candidate) => candidate.id === id,
+    );
+    if (operation === "deposit" && destination)
+      return { site: brewStation, destination };
+  }
   const siteId = id.replace(/^(?:construction-buffer:|shelf:)/, "");
   const site = sites.find((candidate) => candidate.id === siteId);
   if (!site) return null;
@@ -301,6 +357,60 @@ function coverAt(state, cell) {
 export function removalProblem(state, site, person = null) {
   if (!site || site.finishedAt === null)
     return "Waiting for a finished structure";
+  if (site.type === "brew-station") {
+    const slots = new Set([
+      ...brewStationContainers(site).map((container) => container.id),
+      herbalAleTray(site.id).id,
+    ]);
+    const hasContents = state.materials.lots.some(
+      (lot) =>
+        lot.location.kind === "container" && slots.has(lot.location.container),
+    );
+    const hasTransfer = state.materials.transfers.some(
+      (transfer) =>
+        (transfer.intent.kind === "deliver" &&
+          slots.has(transfer.intent.destination)) ||
+        (transfer.phase.kind === "reserved" &&
+          transfer.phase.origin.kind === "container" &&
+          slots.has(transfer.phase.origin.container)) ||
+        (transfer.request.source.kind === "eligible-container" &&
+          slots.has(transfer.request.source.container)),
+    );
+    const hasJob = state.jobs.some(
+      (job) =>
+        (job.kind === "fill-kettle" || job.kind === "brew") &&
+        job.target === site.id,
+    );
+    const hasOperation = state.operations.some(
+      (operation) => operation.station === site.id,
+    );
+    const hasBinding = state.materials.bindings.some(
+      (binding) =>
+        binding.kind === "brew" && binding.station === brewKettle(site).id,
+    );
+    const hasProcess = state.processes.some(
+      (process) => process.station === site.id,
+    );
+    const hasTransformation = state.materials.transformations.some(
+      (transformation) =>
+        state.materials.bindings.some(
+          (binding) =>
+            binding.kind === "brew" &&
+            binding.id === transformation.id &&
+            binding.station === brewKettle(site).id,
+        ),
+    );
+    if (
+      hasContents ||
+      hasTransfer ||
+      hasJob ||
+      hasOperation ||
+      hasBinding ||
+      hasProcess ||
+      hasTransformation
+    )
+      return "The brew station is occupied.";
+  }
   const prospectiveState = {
     ...state,
     sites: state.sites.filter((candidate) => candidate.id !== site.id),

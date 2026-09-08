@@ -45,6 +45,14 @@ import {
   type ContainerSpec,
   type AvailableLotFact,
 } from "./materials.ts";
+import {
+  brewForJob,
+  brewPrepareRemaining,
+  brewProcessId,
+  brewStationReadiness,
+  admitBrew,
+  type BrewSupplyRequirement,
+} from "./brewing.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 type Candidate = {
@@ -61,6 +69,11 @@ type Candidate = {
     destinationReachableWithPayload: boolean;
   };
   brew?: { station: string; spring: string; pail: string; operation?: string };
+  recipe?: {
+    id: string;
+    station: string;
+    binding: Parameters<typeof admitBrew>[1]["binding"];
+  };
 };
 type Options = { reason: string; candidate: Candidate | null };
 const no = (reason: string): Options => ({ reason, candidate: null });
@@ -483,6 +496,156 @@ function fillKettleOption(
     },
   };
 }
+
+function brewSupplyOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "brew" }>,
+  station: Clearing["sites"][number],
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+  input: BrewSupplyRequirement,
+): Options {
+  const choices = sourceFacts.filter(({ lot }) => {
+    if (lot.material !== input.material) return false;
+    if (lot.location.kind === "ground") return true;
+    return (
+      lot.location.kind === "container" &&
+      (!!resolveMaterialEndpoint(
+        state.sites,
+        lot.location.container,
+        "withdraw",
+      ) ||
+        !!resolveOpenFiniteSourceContainer(state, lot.location.container))
+    );
+  });
+  let selected:
+    { lot: AvailableLotFact["lot"]; path: Cell[]; travel: number } | undefined;
+  for (const fact of choices) {
+    if (fact.quantity < input.quantity) continue;
+    const lot = fact.lot;
+    const sourceSite =
+      lot.location.kind === "container"
+        ? resolveMaterialEndpoint(
+            state.sites,
+            lot.location.container,
+            "withdraw",
+          )?.site
+        : null;
+    const finiteSource =
+      lot.location.kind === "container"
+        ? resolveOpenFiniteSourceContainer(state, lot.location.container)
+        : null;
+    const from = sourceSite
+      ? workApproach(state, person, sourceSite, blocked)
+      : finiteSource
+        ? nearestPath(state, person, finiteSource.accessCells, blocked)
+        : lot.location.kind === "ground"
+          ? route(person, lot.location, blocked, state)
+          : null;
+    if (!from) continue;
+    const to = workApproach(state, from.at(-1) ?? person, station, blocked);
+    if (!to) continue;
+    const travel =
+      pathTicks(person, from) + pathTicks(from.at(-1) ?? person, to);
+    if (!selected || travel < selected.travel)
+      selected = { lot, path: from, travel };
+  }
+  if (!selected) return no(`Waiting for reachable ${input.material}`);
+  return {
+    reason: `Ready to haul ${input.material}`,
+    candidate: {
+      ...make(
+        job,
+        "transfer",
+        selected.lot.id,
+        selected.path,
+        8,
+        selected.travel,
+      ),
+      transfer: {
+        sourceLot: selected.lot.id,
+        destination: input.destination,
+        request: {
+          source: { kind: "exact-lot", lot: selected.lot.id },
+          quantityPolicy: input.quantityPolicy,
+          quantity: input.quantity,
+        },
+        intent: { kind: "deliver", destination: input.destination.id },
+        owner: { kind: "job", job: job.id, step: input.step },
+        destinationReachableWithPayload: true,
+      },
+    },
+  };
+}
+
+function brewOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "brew" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const station = state.sites.find(
+    (site) =>
+      site.id === job.target &&
+      site.type === "brew-station" &&
+      site.finishedAt !== null,
+  );
+  if (!station) return no("Waiting for a finished brew station");
+  const process = brewForJob(state, job.id);
+  if (process)
+    return process.phase === "ferment"
+      ? no("Fermenting")
+      : (() => {
+          const path = workApproach(state, person, station, blocked);
+          return path
+            ? {
+                reason: "Ready to prepare herbal ale",
+                candidate: make(
+                  job,
+                  "brew",
+                  process.id,
+                  path,
+                  brewPrepareRemaining(process),
+                  pathTicks(person, path),
+                ),
+              }
+            : no("No route to the brew station");
+        })();
+  const readiness = brewStationReadiness(state, station, brewProcessId(job.id));
+  if (readiness.kind === "waiting") return no(readiness.reason);
+  if (readiness.kind === "supply")
+    return brewSupplyOption(
+      state,
+      person,
+      job,
+      station,
+      blocked,
+      sourceFacts,
+      readiness.requirement,
+    );
+  const path = workApproach(state, person, station, blocked);
+  if (!path) return no("No route to the brew station");
+  return {
+    reason: "Ready to prepare herbal ale",
+    candidate: {
+      ...make(
+        job,
+        "brew",
+        brewProcessId(job.id),
+        path,
+        readiness.prepareTicks,
+        pathTicks(person, path),
+      ),
+      recipe: {
+        id: brewProcessId(job.id),
+        station: station.id,
+        binding: readiness.binding,
+      },
+    },
+  };
+}
 function option(
   state: Clearing,
   p: Actor,
@@ -494,6 +657,7 @@ function option(
     return repairCacheOption(state, p, j, b, sourceFacts);
   if (j.kind === "fill-kettle")
     return fillKettleOption(state, p, j, b, sourceFacts);
+  if (j.kind === "brew") return brewOption(state, p, j, b, sourceFacts);
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
@@ -590,13 +754,15 @@ function automatic(a: Activity): WorkType | null {
       ? "build"
       : a.kind === "brew-water"
         ? "haul"
-        : a.kind === "build" || a.kind === "deconstruct"
-          ? "build"
-          : a.kind === "chop"
-            ? "chop"
-            : a.kind === "sow" || a.kind === "harvest"
-              ? "garden"
-              : null;
+        : a.kind === "brew"
+          ? "craft"
+          : a.kind === "build" || a.kind === "deconstruct"
+            ? "build"
+            : a.kind === "chop"
+              ? "chop"
+              : a.kind === "sow" || a.kind === "harvest"
+                ? "garden"
+                : null;
 }
 export function assignWork(state: Clearing, colony: Colony): void {
   if (!state.workDirty) return;
@@ -780,6 +946,18 @@ export function assignWork(state: Clearing, colony: Colony): void {
         state.nextId++;
       }
       c.activity.target = id;
+    }
+    if (c.recipe) {
+      const admitted = admitBrew(state, {
+        id: c.recipe.id,
+        job: m.task,
+        station: c.recipe.station,
+        binding: c.recipe.binding,
+      });
+      if (!admitted.ok) {
+        state.workDirty = true;
+        continue;
+      }
     }
     p.assignment = { ...m };
     p.task = c.activity;

@@ -13,6 +13,7 @@ import { shelteredBeds } from "./construction.js";
 import { actor, body, members } from "./actors.ts";
 import { assignWork } from "./jobs.ts";
 import { advanceWork } from "./activity.ts";
+import { advanceBrewing } from "./brewing.ts";
 import { updateRoutine } from "./routine.ts";
 import { admitCommands, type CommandResult } from "./orders.ts";
 import { route, beginWalk, walk } from "./movement.js";
@@ -51,6 +52,7 @@ export function createClearing(seed = 42): Clearing {
     sources: [],
     pendingSources: [],
     operations: [],
+    processes: [],
     rocks: structuredClone(ROCKS),
     watcher: { ...WATCHER },
     sites: [],
@@ -140,6 +142,7 @@ export function step(
     advanceWork(state, person);
     advanceDrafted(state, person);
   }
+  advanceBrewing(state);
   advanceHerbGrowth(state);
   assignWork(state, colony);
   advanceCat(state);

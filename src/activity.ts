@@ -48,6 +48,7 @@ import {
 } from "./finite-sources.ts";
 import { isNight } from "./routine.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
+import { attendBrew } from "./brewing.ts";
 export const CHOP_TICKS = 80;
 function groundCell(at: Cell): Cell {
   return { x: at.x, z: at.z, level: at.level };
@@ -466,11 +467,41 @@ function brewWater(s: Clearing, p: Actor, t: Activity): void {
   if (!drawBrewWater(s, p, operation)) return;
   pourBrewWater(s, p, t, operation, station);
 }
+function brew(s: Clearing, p: Actor, t: Activity): void {
+  const process = s.processes.find((candidate) => candidate.id === t.target);
+  const job = s.jobs.find((candidate) => candidate.id === t.job);
+  const station =
+    process && s.sites.find((site) => site.id === process.station);
+  if (
+    !process ||
+    process.job !== t.job ||
+    process.phase !== "prepare" ||
+    job?.kind !== "brew" ||
+    !station ||
+    station.type !== "brew-station" ||
+    station.finishedAt === null
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!accessWork(s, p, brewStationAccessCells(station))) return;
+  const advanced = attendBrew(s, process.id);
+  if (!advanced.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  p.work = process.progress;
+  if (advanced.value === "fermenting") {
+    s.notice = "Herbal ale is fermenting.";
+    finishActivity(s, p);
+  }
+}
 export function advanceWork(s: Clearing, p: Actor): void {
   const t = p.task;
   if (!t) return;
   if (t.kind === "repair-cache") return repairCache(s, p, t);
   if (t.kind === "brew-water") return brewWater(s, p, t);
+  if (t.kind === "brew") return brew(s, p, t);
   const target =
     t.kind === "transfer"
       ? (() => {
@@ -517,26 +548,36 @@ export function advanceWork(s: Clearing, p: Actor): void {
     currentTransfer.intent.kind === "deliver"
       ? transferEndpoint(s, currentTransfer.intent.destination)?.access
       : null;
+  const reservedFiniteAccess =
+    currentTransfer?.phase.kind === "reserved" &&
+    currentTransfer.phase.origin.kind === "container"
+      ? resolveOpenFiniteSourceContainer(
+          s,
+          currentTransfer.phase.origin.container,
+        )?.accessCells
+      : null;
   const okay =
     t.kind === "transfer" && carriedRepairAccess
       ? atAny(p, carriedRepairAccess)
-      : t.kind === "transfer" && currentTransfer?.phase.kind === "reserved"
-        ? currentTransfer.phase.origin.kind === "ground"
-          ? sameCell(p, target)
-          : workPosition(s, p, target, "build")
-        : t.kind === "build" ||
-            t.kind === "deconstruct" ||
-            t.kind === "transfer"
-          ? workPosition(
-              s,
-              p,
-              target,
-              t.kind === "deconstruct" ? "deconstruct" : "build",
-            )
-          : t.kind === "sleep"
+      : t.kind === "transfer" && reservedFiniteAccess
+        ? atAny(p, reservedFiniteAccess)
+        : t.kind === "transfer" && currentTransfer?.phase.kind === "reserved"
+          ? currentTransfer.phase.origin.kind === "ground"
             ? sameCell(p, target)
-            : Math.abs(p.x - target.x) + Math.abs(p.z - target.z) === 1 &&
-              p.level === target.level;
+            : workPosition(s, p, target, "build")
+          : t.kind === "build" ||
+              t.kind === "deconstruct" ||
+              t.kind === "transfer"
+            ? workPosition(
+                s,
+                p,
+                target,
+                t.kind === "deconstruct" ? "deconstruct" : "build",
+              )
+            : t.kind === "sleep"
+              ? sameCell(p, target)
+              : Math.abs(p.x - target.x) + Math.abs(p.z - target.z) === 1 &&
+                p.level === target.level;
   if (!okay) {
     interruptWork(s, p);
     return;

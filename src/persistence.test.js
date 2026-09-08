@@ -19,6 +19,9 @@ function v10Envelope(change = () => {}) {
   const saved = snapshotFor(createClearing());
   const predecessor = structuredClone(saved);
   predecessor.schema = 10;
+  delete predecessor.savedState.processes;
+  for (const actor of Object.values(predecessor.savedState.actors))
+    delete actor.allowedWork.craft;
   predecessor.savedState.materials.vesselUses = [];
   delete predecessor.savedState.materials.bindings;
   delete predecessor.savedState.materials.transformations;
@@ -27,6 +30,15 @@ function v10Envelope(change = () => {}) {
       (lot) =>
         !["malt", "barm", "keg", "ale", "spent-grain"].includes(lot.material),
     );
+  change(predecessor.savedState);
+  return predecessor;
+}
+function v11Envelope(change = () => {}) {
+  const predecessor = structuredClone(snapshotFor(createClearing()));
+  predecessor.schema = 11;
+  delete predecessor.savedState.processes;
+  for (const actor of Object.values(predecessor.savedState.actors))
+    delete actor.allowedWork.craft;
   change(predecessor.savedState);
   return predecessor;
 }
@@ -140,7 +152,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v11 snapshots omit commands and restore paused", () => {
+test("v12 snapshots omit commands and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -149,16 +161,113 @@ test("v11 snapshots omit commands and restore paused", () => {
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 11);
+  assert.equal(saved.schema, 12);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
 });
 
+test("strict schema 11 converts Craft defaults but rejects schema-12 Brew fields", () => {
+  const restored = restoreSnapshot(v11Envelope());
+  assert.equal(restored.state.actors.rowan.allowedWork.craft, true);
+  const malformed = v11Envelope((state) => {
+    state.jobs.push(job("future-brew", "brew", "station-a"));
+  });
+  assert.throws(() => restoreSnapshot(malformed));
+});
+
+test("restore rejects a Brew process whose job targets another station", () => {
+  const saved = envelope((state) => {
+    const cache = state.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    );
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:station-a",
+      material: "wood",
+      quantity: 6,
+    });
+    state.felled = 1;
+    state.harvestedHerbs = 1;
+    state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${spring.id}`,
+    ).quantity = 6;
+    state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${cache.id}`,
+    ).quantity = 9;
+    state.materials.lots.find(
+      (lot) => lot.id === `source-malt-lot:${cache.id}`,
+    ).quantity = 2;
+    state.materials.lots.find(
+      (lot) => lot.id === `source-barm-lot:${cache.id}`,
+    ).location = { kind: "container", container: "brew-barm:station-a" };
+    state.materials.lots.find(
+      (lot) => lot.id === `source-keg-lot:${cache.id}`,
+    ).location = { kind: "container", container: "brew-keg:station-a" };
+    state.materials.lots.push(
+      {
+        id: "water-stage",
+        material: "water",
+        quantity: 2,
+        location: { kind: "container", container: "kettle:station-a" },
+      },
+      {
+        id: "malt-stage",
+        material: "malt",
+        quantity: 2,
+        location: { kind: "container", container: "kettle:station-a" },
+      },
+      {
+        id: "mugwort-stage",
+        material: "mugwort",
+        quantity: 1,
+        location: { kind: "container", container: "kettle:station-a" },
+      },
+      {
+        id: "wood-stage",
+        material: "wood",
+        quantity: 1,
+        location: { kind: "container", container: "brew-hearth:station-a" },
+      },
+    );
+    state.jobs.push(job("brew-job", "brew", "another-station"));
+    state.materials.bindings.push({
+      kind: "brew",
+      id: "brew-process",
+      recipe: "herbal-ale-v1",
+      station: "kettle:station-a",
+      portions: [
+        { lot: "malt-stage", material: "malt", quantity: 2 },
+        { lot: "water-stage", material: "water", quantity: 2 },
+        { lot: "mugwort-stage", material: "mugwort", quantity: 1 },
+        { lot: "wood-stage", material: "wood", quantity: 1 },
+      ],
+      barm: `source-barm-lot:${cache.id}`,
+      keg: `source-keg-lot:${cache.id}`,
+      output: `vessel:source-keg-lot:${cache.id}`,
+      tray: "brew-tray:station-a",
+    });
+    state.processes.push({
+      id: "brew-process",
+      job: "brew-job",
+      station: "station-a",
+      binding: "brew-process",
+      phase: "prepare",
+      progress: 0,
+      enteredAt: 0,
+    });
+  });
+  assert.throws(
+    () => restoreSnapshot(saved),
+    /brew process brew-process has invalid phase or binding/,
+  );
+});
+
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {
   const restored = restoreSnapshot(v10Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 11);
+  assert.equal(snapshotFor(restored.state).schema, 12);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -516,6 +625,23 @@ test("schema 11 validates one exact brew binding and its provenance without live
       transformed.savedState.materials.bindings[0].portions,
     ),
   });
+  const portion = (material) =>
+    transformed.savedState.materials.bindings[0].portions.find(
+      (entry) => entry.material === material,
+    ).lot;
+  transformed.savedState.materials.lots.find(
+    (lot) => lot.id === portion("malt"),
+  ).quantity = 2;
+  transformed.savedState.materials.lots.find(
+    (lot) => lot.id === portion("water"),
+  ).quantity = 6;
+  transformed.savedState.materials.lots.find(
+    (lot) => lot.id === portion("wood"),
+  ).quantity = 9;
+  transformed.savedState.materials.lots =
+    transformed.savedState.materials.lots.filter(
+      (lot) => lot.id !== "herb-lot",
+    );
   assert.equal(
     restoreSnapshot(transformed).state.materials.transformations.length,
     1,

@@ -8,6 +8,7 @@ import {
   BUILDINGS,
   brewKettle,
   constructionBuffer,
+  removalProblem,
   shelfContainer,
 } from "./construction.js";
 import { cacheRepairBuffer } from "./finite-sources.ts";
@@ -91,16 +92,30 @@ function site(id, type, finishedAt = null) {
 function conserve(state) {
   const wood = materialQuantity(state.materials, "wood");
   const mugwort = materialQuantity(state.materials, "mugwort");
+  const transformed = (material) =>
+    state.materials.transformations.reduce(
+      (sum, transformation) =>
+        sum +
+        transformation.inputs.reduce(
+          (inputs, input) =>
+            inputs + (input.material === material ? input.quantity : 0),
+          0,
+        ),
+      0,
+    );
   const cacheWood = state.sources.some(
     (source) => source.kind === "reclaimed-timber-cache",
   )
     ? 10
     : 0;
   assert.equal(
-    wood.live + wood.embedded + wood.consumed,
+    wood.live + wood.embedded + wood.consumed + transformed("wood"),
     state.felled * 6 + cacheWood,
   );
-  assert.equal(mugwort.live + mugwort.embedded, state.harvestedHerbs);
+  assert.equal(
+    mugwort.live + mugwort.embedded + transformed("mugwort"),
+    state.harvestedHerbs,
+  );
 }
 
 test("optimizer commits its already-resolved one-unit source, request, destination, and owner", () => {
@@ -1325,4 +1340,259 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     "vessel:cancel-pail",
   );
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+});
+
+function readyHerbalAleState() {
+  const state = createClearing(111);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  const spring = state.sources.find((source) => source.kind === "spring");
+  cache.repaired = true;
+  const station = {
+    id: "station-herbal-ale",
+    type: "brew-station",
+    ...cell(7, 5),
+    direction: 0,
+    work: BUILDINGS["brew-station"].ticks,
+    finishedAt: 0,
+  };
+  state.sites.push(station);
+  state.materials.embedded.push({
+    container: constructionBuffer(station).id,
+    material: "wood",
+    quantity: 6,
+  });
+  state.felled = 1;
+  state.herbs.push({
+    id: "herbal-ale-herb",
+    kind: "mugwort",
+    stage: "ready",
+    work: 0,
+    plantedAt: 0,
+    ...cell(7, 9),
+  });
+  state.harvestedHerbs = 1;
+  state.materials.lots.push(
+    {
+      id: "herbal-ale-mugwort",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "ground", ...cell(7, 9) },
+    },
+    {
+      id: "herbal-ale-water",
+      material: "water",
+      quantity: 2,
+      location: { kind: "container", container: brewKettle(station).id },
+    },
+  );
+  state.materials.lots.find(
+    (lot) => lot.id === `source-lot:${spring.id}`,
+  ).quantity = 6;
+  return { state, station };
+}
+
+test("actual libcolony leaves a shortage staged but never admits a partial herbal ale", () => {
+  const { state, station } = readyHerbalAleState();
+  state.herbs = [];
+  state.harvestedHerbs = 0;
+  state.materials.lots = state.materials.lots.filter(
+    (lot) => lot.id !== "herbal-ale-mugwort",
+  );
+  assert.deepEqual(actualStep(state, [{ kind: "brew", station: station.id }]), [
+    { status: "applied" },
+  ]);
+  for (let tick = 0; tick < 800; tick++) actualStep(state);
+  const job = state.jobs.find((candidate) => candidate.kind === "brew");
+  assert.equal(job?.reason, "Waiting for reachable mugwort");
+  assert.equal(state.processes.length, 0);
+  assert.equal(state.materials.transformations.length, 0);
+});
+
+test("actual libcolony stages, interrupts, reloads, prepares, and ferments herbal ale", () => {
+  const { state, station } = readyHerbalAleState();
+  state.parties.home.members.push("sedge");
+  assert.deepEqual(actualStep(state, [{ kind: "brew", station: station.id }]), [
+    { status: "applied" },
+  ]);
+  for (
+    let tick = 0;
+    tick < 2_000 &&
+    !(
+      state.processes[0]?.phase === "prepare" &&
+      state.processes[0].progress >= 3
+    );
+    tick++
+  )
+    actualStep(state);
+  const process = state.processes[0];
+  assert.equal(
+    process?.phase,
+    "prepare",
+    JSON.stringify({
+      reason: state.jobs.find((job) => job.kind === "brew")?.reason,
+      transfers: state.materials.transfers,
+      lots: state.materials.lots,
+    }),
+  );
+  assert.ok(process.progress >= 3);
+  const worker = Object.values(state.actors).find(
+    (actor) => actor.task?.kind === "brew",
+  );
+  assert.ok(worker);
+  assert.equal(
+    state.jobs.find((job) => job.id === process.job)?.scope.actors,
+    null,
+  );
+  assert.equal(state.materials.transformations.length, 0);
+  assert.equal(
+    containerQuantity(state.materials, brewKettle(station).id, "malt"),
+    2,
+  );
+  assert.equal(
+    containerQuantity(state.materials, brewKettle(station).id, "water"),
+    2,
+  );
+  const prepared = process.progress;
+  actualStep(state, [{ kind: "draft", actor: worker.id }]);
+  assert.equal(state.processes[0].progress, prepared);
+  assert.equal(state.materials.transformations.length, 0);
+  const restored = restoreSnapshot(snapshotFor(state)).state;
+  assert.equal(restored.paused, true);
+  assert.equal(restored.processes[0].phase, "prepare");
+  assert.equal(restored.processes[0].progress, prepared);
+  actualStep(restored, [{ kind: "undraft", actor: worker.id }]);
+  restored.paused = false;
+  for (
+    let tick = 0;
+    tick < 100 && restored.processes[0].phase !== "ferment";
+    tick++
+  )
+    actualStep(restored);
+  assert.equal(restored.processes[0].phase, "ferment");
+  assert.equal(restored.processes[0].progress, 0);
+  assert.equal(restored.materials.transformations.length, 1);
+  const transitionTick = restored.tick;
+  restored.paused = true;
+  actualStep(restored);
+  assert.equal(restored.tick, transitionTick);
+  assert.equal(restored.processes[0].progress, 0);
+  restored.paused = false;
+  actualStep(restored);
+  assert.equal(restored.processes[0].progress, 1);
+  assert.deepEqual(
+    actualStep(restored, [
+      { kind: "chop", tree: "oak-1", actors: [worker.id] },
+    ]),
+    [{ status: "applied" }],
+  );
+  for (let tick = 0; tick < 4; tick++) actualStep(restored);
+  assert.equal(restored.actors[worker.id].task?.kind, "chop");
+  assert.ok(restored.processes[0].progress > 1);
+  conserve(restored);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(restored)));
+});
+
+test("canceling PREPARE retires only its process promise and leaves staged brew lots", () => {
+  const { state, station } = readyHerbalAleState();
+  actualStep(state, [{ kind: "brew", station: station.id }]);
+  for (
+    let tick = 0;
+    tick < 2_000 &&
+    !(
+      state.processes[0]?.phase === "prepare" &&
+      state.processes[0].progress >= 1
+    );
+    tick++
+  )
+    actualStep(state);
+  const job = state.jobs.find((candidate) => candidate.kind === "brew");
+  assert.ok(job);
+  const stagedMalt = containerQuantity(
+    state.materials,
+    brewKettle(station).id,
+    "malt",
+  );
+  assert.deepEqual(actualStep(state, [{ kind: "cancel", job: job.id }]), [
+    { status: "applied" },
+  ]);
+  assert.equal(state.processes.length, 0);
+  assert.equal(
+    state.materials.bindings.some((binding) => binding.kind === "brew"),
+    false,
+  );
+  assert.equal(state.materials.transformations.length, 0);
+  assert.equal(
+    containerQuantity(state.materials, brewKettle(station).id, "malt"),
+    stagedMalt,
+  );
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+});
+
+test("brew-station removal stays blocked for staged, Fill, and fermenting ownership", () => {
+  const { state, station } = readyHerbalAleState();
+  state.materials.lots = state.materials.lots.filter(
+    (lot) => lot.id !== "herbal-ale-water",
+  );
+  state.materials.lots.find(
+    (lot) => lot.material === "water" && lot.location.kind === "container",
+  ).quantity = 8;
+  assert.equal(removalProblem(state, station), null);
+  state.materials.lots.push({
+    id: "staged-malt",
+    material: "malt",
+    quantity: 1,
+    location: { kind: "container", container: brewKettle(station).id },
+  });
+  assert.equal(removalProblem(state, station), "The brew station is occupied.");
+  state.materials.lots = state.materials.lots.filter(
+    (lot) => lot.id !== "staged-malt",
+  );
+  state.operations.push({
+    id: "fill-active",
+    job: "fill-job",
+    actor: "rowan",
+    spring: state.sources.find((source) => source.kind === "spring").id,
+    station: station.id,
+    pail: "unused-pail",
+    water: null,
+    phase: "acquire",
+  });
+  assert.equal(removalProblem(state, station), "The brew station is occupied.");
+  state.operations = [];
+  state.jobs.push({
+    id: "brew-job",
+    kind: "brew",
+    target: station.id,
+    scope: shared,
+    reason: "Fermenting",
+    routine: false,
+  });
+  state.materials.bindings.push({
+    kind: "brew",
+    id: "brew-process",
+    recipe: "herbal-ale-v1",
+    station: brewKettle(station).id,
+    portions: [],
+    barm: "none",
+    keg: "none",
+    output: "vessel:none",
+    tray: "brew-tray:station-herbal-ale",
+  });
+  state.materials.transformations.push({
+    id: "brew-process",
+    recipe: "herbal-ale-v1",
+    inputs: [],
+  });
+  state.processes.push({
+    id: "brew-process",
+    job: "brew-job",
+    station: station.id,
+    binding: "brew-process",
+    phase: "ferment",
+    progress: 0,
+    enteredAt: 0,
+  });
+  assert.equal(removalProblem(state, station), "The brew station is occupied.");
 });
