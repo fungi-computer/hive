@@ -9,16 +9,15 @@ import {
   footprint,
   resolveMaterialDestination,
   roofSupported,
-  siteMaterialEndpointFor,
+  siteMaterialEndpoint,
   siteMaterialEndpoints,
 } from "./construction.js";
 import {
-  brewBindingPromiseQuantity,
-  pailInterior,
-  kegInterior,
+  bindingPromiseQuantity,
   sourceContainer,
   type ContainerSpec,
 } from "./materials.ts";
+import { portableContainerInterior } from "./item-containers.ts";
 import {
   finiteSourceProblem,
   introduceFiniteSources,
@@ -28,7 +27,7 @@ import {
   sourceSuppliesContainerSpec,
   sourceContainerSpec,
 } from "./finite-sources.ts";
-import { HERBAL_ALE_V1 } from "./recipes.ts";
+import { recipeDefinition } from "./recipes.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
 const SAVE_SCHEMA = 12 as const;
@@ -43,6 +42,10 @@ const positive = integer
   .min(1)
   .transform((value): PositiveInt => value as PositiveInt);
 const id = z.string().min(1);
+/** Recipe identities are structurally open; definitions check supported IDs. */
+const recipeId = id.transform(
+  (value) => value as import("./model.ts").RecipeId,
+);
 const cell = z.object({ x: integer, z: integer, level: integer }).strict();
 const scope = z
   .object({ party: id, actors: z.array(id).min(1).nullable() })
@@ -505,23 +508,30 @@ const stateSchema = z
               .strict(),
             z
               .object({
-                kind: z.literal("brew"),
+                kind: z.literal("recipe"),
                 id,
-                recipe: z.literal("herbal-ale-v1"),
+                definition: recipeId,
                 station: id,
-                portions: z.array(
+                consumed: z.array(
+                  z
+                    .object({ role: id, lot: id, material, quantity: positive })
+                    .strict(),
+                ),
+                retained: z.array(
+                  z
+                    .object({ role: id, lot: id, material, quantity: positive })
+                    .strict(),
+                ),
+                promises: z.array(
                   z
                     .object({
-                      lot: id,
-                      material: z.enum(["malt", "water", "mugwort", "wood"]),
+                      role: id,
+                      destination: id,
+                      material,
                       quantity: positive,
                     })
                     .strict(),
                 ),
-                barm: id,
-                keg: id,
-                output: id,
-                tray: id,
               })
               .strict(),
           ]),
@@ -530,12 +540,13 @@ const stateSchema = z
           z
             .object({
               id,
-              recipe: z.literal("herbal-ale-v1"),
+              definition: recipeId,
               inputs: z.array(
                 z
                   .object({
+                    role: id,
                     lot: id,
-                    material: z.enum(["malt", "water", "mugwort", "wood"]),
+                    material,
                     quantity: positive,
                   })
                   .strict(),
@@ -591,11 +602,61 @@ const stateSchema = z
   .strict();
 type SavedClearing = Omit<Clearing, "commands">;
 /** Schema 11 predates Craft and saved processes; parse it strictly before filling defaults. */
+const v11LegacyBinding = z
+  .object({
+    kind: z.literal("brew"),
+    id,
+    recipe: z.literal("herbal-ale-v1"),
+    station: id,
+    portions: z.array(
+      z
+        .object({
+          lot: id,
+          material: z.enum(["malt", "water", "mugwort", "wood"]),
+          quantity: positive,
+        })
+        .strict(),
+    ),
+    barm: id,
+    keg: id,
+    output: id,
+    tray: id,
+  })
+  .strict();
+const v11LegacyTransformation = z
+  .object({
+    id,
+    recipe: z.literal("herbal-ale-v1"),
+    inputs: z.array(
+      z
+        .object({
+          lot: id,
+          material: z.enum(["malt", "water", "mugwort", "wood"]),
+          quantity: positive,
+        })
+        .strict(),
+    ),
+  })
+  .strict();
 const v11StateSchema = stateSchema
-  .omit({ actors: true, jobs: true, processes: true })
+  .omit({ actors: true, jobs: true, processes: true, materials: true })
   .extend({
     actors: z.record(id, actorV11),
     jobs: z.array(v11Job),
+    materials: stateSchema.shape.materials
+      .omit({ bindings: true, transformations: true })
+      .extend({
+        bindings: z.array(
+          z.discriminatedUnion("kind", [
+            z
+              .object({ kind: z.literal("vessel-use"), id, vessel: id })
+              .strict(),
+            v11LegacyBinding,
+          ]),
+        ),
+        transformations: z.array(v11LegacyTransformation),
+      })
+      .strict(),
   })
   .strict();
 type V11SavedClearing = z.infer<typeof v11StateSchema>;
@@ -770,27 +831,17 @@ function validateMaterialBindings({
   const ids = new Set<string>(),
     vessels = new Set<string>(),
     stations = new Set<string>(),
-    barm = new Set<string>(),
-    kegs = new Set<string>();
+    retainedLots = new Set<string>();
   const reservedPortions = new Map<string, number>();
   const promisedContainers = new Set<string>();
   for (const use of state.materials.bindings) {
     if (ids.has(use.id)) fail(`duplicate material binding ${use.id}`);
     ids.add(use.id);
-    if (use.kind === "brew") {
+    if (use.kind === "recipe") {
       if (stations.has(use.station))
-        fail(`duplicate brew station binding ${use.station}`);
-      if (barm.has(use.barm) || kegs.has(use.keg))
-        fail(`duplicate brew vessel binding ${use.id}`);
+        fail(`duplicate recipe station binding ${use.station}`);
       stations.add(use.station);
-      barm.add(use.barm);
-      kegs.add(use.keg);
-      const required = { malt: 2, water: 2, mugwort: 1, wood: 1 };
-      if (
-        use.portions.length !== 4 ||
-        new Set(use.portions.map((portion) => portion.material)).size !== 4
-      )
-        fail(`brew binding ${use.id} has invalid portions`);
+      const definition = recipeDefinition(use.definition);
       const transformation = state.materials.transformations.find(
         (entry) => entry.id === use.id,
       );
@@ -798,83 +849,137 @@ function validateMaterialBindings({
         (site) =>
           site.type === "brew-station" &&
           site.finishedAt !== null &&
-          siteMaterialEndpointFor(site, "malt")?.destination.id === use.station,
+          siteMaterialEndpoint(site, definition.stationSlot)?.destination.id ===
+            use.station,
       );
       const requiresStaging = state.processes.some(
         (process) => process.binding === use.id,
       );
-      for (const portion of use.portions) {
-        const lot = state.materials.lots.find(
-          (candidate) => candidate.id === portion.lot,
+      if (
+        use.consumed.length < definition.consumed.length ||
+        use.consumed.some(
+          (portion) =>
+            !definition.consumed.some(
+              (requirement) => requirement.role === portion.role,
+            ),
+        ) ||
+        use.retained.length !== definition.retained.length ||
+        use.promises.length !== definition.promises.length
+      )
+        fail(`recipe binding ${use.id} has invalid roles`);
+      for (const requirement of definition.consumed) {
+        const portions = use.consumed.filter(
+          (portion) => portion.role === requirement.role,
         );
-        const consumed = transformation?.inputs.some(
-          (input) =>
-            input.lot === portion.lot &&
-            input.material === portion.material &&
-            input.quantity === portion.quantity,
-        );
+        const destination =
+          station &&
+          siteMaterialEndpoint(station, requirement.slot)?.destination;
         if (
-          (!lot && !consumed) ||
-          (lot &&
-            (lot.material !== portion.material ||
-              lot.quantity < portion.quantity ||
-              lot.location.kind === "hand" ||
-              (requiresStaging &&
-                !transformation &&
-                (!station ||
-                  lot.location.kind !== "container" ||
-                  lot.location.container !==
-                    siteMaterialEndpointFor(station, portion.material)
-                      ?.destination.id)))) ||
-          portion.quantity !== required[portion.material]
+          portions.length === 0 ||
+          portions.some(
+            (portion) => portion.material !== requirement.material,
+          ) ||
+          portions.reduce((sum, portion) => sum + portion.quantity, 0) !==
+            requirement.quantity
         )
-          fail(`brew binding ${use.id} has invalid portion ${portion.lot}`);
-        if (!transformation)
-          reservedPortions.set(
-            portion.lot,
-            (reservedPortions.get(portion.lot) ?? 0) + portion.quantity,
+          fail(
+            `recipe binding ${use.id} has invalid consumed role ${requirement.role}`,
           );
+        for (const portion of portions) {
+          const lot = state.materials.lots.find(
+            (candidate) => candidate.id === portion.lot,
+          );
+          const consumed = transformation?.inputs.some(
+            (input) =>
+              input.role === portion.role &&
+              input.lot === portion.lot &&
+              input.material === portion.material &&
+              input.quantity === portion.quantity,
+          );
+          if (
+            (!lot && !consumed) ||
+            (lot &&
+              (lot.material !== portion.material ||
+                lot.quantity < portion.quantity ||
+                lot.location.kind === "hand" ||
+                (requiresStaging &&
+                  !transformation &&
+                  (!destination ||
+                    lot.location.kind !== "container" ||
+                    lot.location.container !== destination.id))))
+          )
+            fail(
+              `recipe binding ${use.id} has invalid consumed lot ${portion.lot}`,
+            );
+          if (!transformation)
+            reservedPortions.set(
+              portion.lot,
+              (reservedPortions.get(portion.lot) ?? 0) + portion.quantity,
+            );
+        }
       }
-      for (const [lotId, material] of [
-        [use.barm, "barm"],
-        [use.keg, "keg"],
-      ] as const) {
-        const lot = state.materials.lots.find(
-          (candidate) => candidate.id === lotId,
+      for (const requirement of definition.retained) {
+        const retained = use.retained.find(
+          (entry) => entry.role === requirement.role,
         );
+        const destination =
+          station &&
+          siteMaterialEndpoint(station, requirement.slot)?.destination;
+        const lot =
+          retained &&
+          state.materials.lots.find(
+            (candidate) => candidate.id === retained.lot,
+          );
         if (
+          !retained ||
+          retained.material !== requirement.material ||
+          retained.quantity !== requirement.quantity ||
+          retainedLots.has(retained.lot) ||
           !lot ||
-          lot.material !== material ||
-          lot.quantity !== 1 ||
+          lot.material !== retained.material ||
+          lot.quantity !== retained.quantity ||
           lot.location.kind === "hand" ||
           (requiresStaging &&
-            (!station ||
+            (!destination ||
               lot.location.kind !== "container" ||
-              lot.location.container !==
-                siteMaterialEndpointFor(station, material)?.destination.id))
+              lot.location.container !== destination.id))
         )
-          fail(`brew binding ${use.id} has invalid ${material}`);
+          fail(
+            `recipe binding ${use.id} has invalid retained ${retained?.lot}`,
+          );
+        retainedLots.add(retained.lot);
       }
-      const output = state.materials.lots.find((lot) => lot.id === use.keg);
-      const outputContainer = containers.get(use.output);
-      const tray = containers.get(use.tray);
-      if (
-        !output ||
-        use.output !== `vessel:${use.keg}` ||
-        use.tray === use.output ||
-        !station ||
-        !outputContainer ||
-        outputContainer.capacity !== 4 ||
-        !outputContainer.accepts.includes("ale") ||
-        !tray ||
-        tray.id !==
-          siteMaterialEndpointFor(station, "spent-grain")?.destination.id ||
-        tray.capacity !== 1 ||
-        !tray.accepts.includes("spent-grain")
-      )
-        fail(`brew binding ${use.id} has invalid output`);
-      promisedContainers.add(use.output);
-      promisedContainers.add(use.tray);
+      for (const requirement of definition.promises) {
+        const promise = use.promises.find(
+          (entry) => entry.role === requirement.role,
+        );
+        const expected =
+          station && requirement.destination.kind === "station-slot"
+            ? siteMaterialEndpoint(station, requirement.destination.slot)
+                ?.destination.id
+            : (() => {
+                const retained = use.retained.find(
+                  (entry) =>
+                    requirement.destination.kind === "retained-interior" &&
+                    entry.role === requirement.destination.role,
+                );
+                return retained ? `vessel:${retained.lot}` : null;
+              })();
+        const destination = promise && containers.get(promise.destination);
+        if (
+          !promise ||
+          promise.material !== requirement.material ||
+          promise.quantity !== requirement.quantity ||
+          !expected ||
+          promise.destination !== expected ||
+          !destination ||
+          !destination.accepts.includes(promise.material)
+        )
+          fail(
+            `recipe binding ${use.id} has invalid promise ${requirement.role}`,
+          );
+        promisedContainers.add(promise.destination);
+      }
       continue;
     }
     if (vessels.has(use.vessel)) fail(`duplicate vessel binding ${use.vessel}`);
@@ -914,7 +1019,7 @@ function validateMaterialBindings({
       (candidate) => candidate.id === lotId,
     );
     if (!lot || quantity > lot.quantity)
-      fail(`brew portions exceed source lot ${lotId}`);
+      fail(`recipe portions exceed source lot ${lotId}`);
   }
   for (const containerId of promisedContainers) {
     const container = containers.get(containerId)!;
@@ -937,12 +1042,10 @@ function validateMaterialBindings({
       0,
     );
     if (
-      occupied +
-        incoming +
-        brewBindingPromiseQuantity(state.materials, containerId) >
+      occupied + incoming + bindingPromiseQuantity(state.materials, container) >
       container.capacity
     )
-      fail(`brew binding capacity exceeds ${containerId}`);
+      fail(`recipe binding capacity exceeds ${containerId}`);
   }
 }
 
@@ -953,28 +1056,33 @@ function validateTransformations({ state }: RelationContext): void {
       fail(`duplicate transformation ${transformation.id}`);
     ids.add(transformation.id);
     const binding = state.materials.bindings.find(
-      (candidate): candidate is Extract<typeof candidate, { kind: "brew" }> =>
-        candidate.kind === "brew" && candidate.id === transformation.id,
+      (candidate): candidate is Extract<typeof candidate, { kind: "recipe" }> =>
+        candidate.kind === "recipe" && candidate.id === transformation.id,
     );
     const count = (
-      entries: readonly { lot: string; material: string; quantity: number }[],
+      entries: readonly {
+        role: string;
+        lot: string;
+        material: string;
+        quantity: number;
+      }[],
     ) => {
       const result = new Map<string, number>();
       for (const entry of entries) {
-        const key = `${entry.lot}\u0000${entry.material}\u0000${entry.quantity}`;
+        const key = `${entry.role}\u0000${entry.lot}\u0000${entry.material}\u0000${entry.quantity}`;
         result.set(key, (result.get(key) ?? 0) + 1);
       }
       return result;
     };
-    if (!binding || binding.recipe !== transformation.recipe)
-      fail(`transformation ${transformation.id} does not match brew binding`);
+    if (!binding || binding.definition !== transformation.definition)
+      fail(`transformation ${transformation.id} does not match recipe binding`);
     const inputs = count(transformation.inputs);
-    const portions = count(binding.portions);
+    const portions = count(binding.consumed);
     if (
       inputs.size !== portions.size ||
       [...inputs].some(([key, quantity]) => portions.get(key) !== quantity)
     )
-      fail(`transformation ${transformation.id} does not match brew binding`);
+      fail(`transformation ${transformation.id} does not match recipe binding`);
   }
 }
 
@@ -1003,10 +1111,8 @@ function relationContext(state: SavedClearing): RelationContext {
     if (supplies) containers.set(supplies.id, supplies);
   }
   for (const lot of state.materials.lots) {
-    const interior = pailInterior(lot);
+    const interior = portableContainerInterior(lot);
     if (interior) containers.set(interior.id, interior);
-    const keg = kegInterior(lot);
-    if (keg) containers.set(keg.id, keg);
   }
   return { state, jobs, sites, containers };
 }
@@ -1077,7 +1183,7 @@ function validateOperationEndpoints(
     !pail ||
     pail.material !== "pail" ||
     pail.quantity !== 1 ||
-    !siteMaterialEndpointFor(station, "water")
+    !siteMaterialEndpoint(station, "kettle")
   )
     fail(`brew operation ${operation.id} has invalid endpoint`);
 }
@@ -1117,7 +1223,7 @@ function validateOperationWater(
   operation: SavedClearing["operations"][number],
 ): void {
   const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
-  const interior = pail && pailInterior(pail);
+  const interior = pail && portableContainerInterior(pail);
   if (!interior) fail(`brew operation ${operation.id} has invalid pail`);
   const water = operation.water
     ? state.materials.lots.find((lot) => lot.id === operation.water)
@@ -1154,6 +1260,62 @@ function validateOperations(context: RelationContext): void {
   }
 }
 
+function brewProcessJobAndStation(
+  state: SavedClearing,
+  process: SavedClearing["processes"][number],
+) {
+  const job = state.jobs.find(
+    (
+      candidate,
+    ): candidate is Extract<(typeof state.jobs)[number], { kind: "brew" }> =>
+      candidate.id === process.job && candidate.kind === "brew",
+  );
+  const station = state.sites.find(
+    (site) =>
+      site.id === process.station &&
+      site.type === "brew-station" &&
+      site.finishedAt !== null,
+  );
+  return job && job.target === process.station && station ? station : null;
+}
+
+function brewProcessBindingDefinition(
+  state: SavedClearing,
+  process: SavedClearing["processes"][number],
+) {
+  const binding = state.materials.bindings.find(
+    (
+      candidate,
+    ): candidate is Extract<
+      (typeof state.materials.bindings)[number],
+      { kind: "recipe" }
+    > => candidate.kind === "recipe" && candidate.id === process.binding,
+  );
+  return binding
+    ? {
+        binding,
+        definition: recipeDefinition(binding.definition),
+        transformed: state.materials.transformations.some(
+          (entry) => entry.id === process.binding,
+        ),
+      }
+    : null;
+}
+
+function brewProcessPhaseValid(
+  process: SavedClearing["processes"][number],
+  transformed: boolean,
+  prepare: number,
+  ferment: number,
+): boolean {
+  return (
+    (process.phase === "prepare" &&
+      !transformed &&
+      process.progress <= prepare) ||
+    (process.phase === "ferment" && transformed && process.progress <= ferment)
+  );
+}
+
 function validateBrewProcesses({ state }: RelationContext): void {
   const ids = new Set<string>(),
     stations = new Set<string>(),
@@ -1165,41 +1327,24 @@ function validateBrewProcesses({ state }: RelationContext): void {
       fail(`duplicate brew process ownership ${process.id}`);
     stations.add(process.station);
     jobs.add(process.job);
-    const job = state.jobs.find(
-      (
-        candidate,
-      ): candidate is Extract<(typeof state.jobs)[number], { kind: "brew" }> =>
-        candidate.id === process.job && candidate.kind === "brew",
-    );
-    const station = state.sites.find(
-      (site) =>
-        site.id === process.station &&
-        site.type === "brew-station" &&
-        site.finishedAt !== null,
-    );
-    const binding = state.materials.bindings.find(
-      (
-        candidate,
-      ): candidate is Extract<
-        (typeof state.materials.bindings)[number],
-        { kind: "brew" }
-      > => candidate.kind === "brew" && candidate.id === process.binding,
-    );
-    const transformed = state.materials.transformations.some(
-      (entry) => entry.id === process.binding,
-    );
+    const station = brewProcessJobAndStation(state, process);
+    const recipe = brewProcessBindingDefinition(state, process);
+    const stationContainer =
+      station && recipe
+        ? siteMaterialEndpoint(station, recipe.definition.stationSlot)
+            ?.destination.id
+        : null;
     if (
-      !job ||
-      job.target !== process.station ||
       !station ||
-      !binding ||
-      binding.station !==
-        siteMaterialEndpointFor(station, "malt")?.destination.id ||
+      !recipe ||
+      recipe.binding.station !== stationContainer ||
       process.id !== process.binding ||
-      (process.phase === "prepare" &&
-        (transformed || process.progress > HERBAL_ALE_V1.timings.prepare)) ||
-      (process.phase === "ferment" &&
-        (!transformed || process.progress > HERBAL_ALE_V1.timings.ferment))
+      !brewProcessPhaseValid(
+        process,
+        recipe.transformed,
+        recipe.definition.timings.prepare,
+        recipe.definition.timings.ferment,
+      )
     )
       fail(`brew process ${process.id} has invalid phase or binding`);
   }
@@ -1686,7 +1831,41 @@ function convertV10State(predecessor: V10SavedClearing): SavedClearing {
 }
 
 function convertV11State(predecessor: V11SavedClearing): SavedClearing {
-  return validateRelations({
+  const role = (material: "malt" | "water" | "mugwort" | "wood") =>
+    material === "wood" ? "fuel" : material;
+  const bindings: SavedClearing["materials"]["bindings"] =
+    predecessor.materials.bindings.map((binding) =>
+      binding.kind === "vessel-use"
+        ? binding
+        : (() => {
+            const definition = recipeDefinition(binding.recipe);
+            const legacyRetained = [binding.barm, binding.keg];
+            const legacyPromises = [binding.output, binding.tray];
+            return {
+              kind: "recipe" as const,
+              id: binding.id,
+              definition: definition.id,
+              station: binding.station,
+              consumed: binding.portions.map((portion) => ({
+                role: role(portion.material),
+                ...portion,
+              })),
+              retained: definition.retained.map((requirement, index) => ({
+                role: requirement.role,
+                lot: legacyRetained[index],
+                material: requirement.material,
+                quantity: requirement.quantity,
+              })),
+              promises: definition.promises.map((requirement, index) => ({
+                role: requirement.role,
+                destination: legacyPromises[index],
+                material: requirement.material,
+                quantity: requirement.quantity,
+              })),
+            };
+          })(),
+    );
+  const state: SavedClearing = {
     ...predecessor,
     actors: Object.fromEntries(
       Object.entries(predecessor.actors).map(([actorId, actor]) => [
@@ -1695,7 +1874,22 @@ function convertV11State(predecessor: V11SavedClearing): SavedClearing {
       ]),
     ),
     processes: [],
-  });
+    materials: {
+      ...predecessor.materials,
+      bindings,
+      transformations: predecessor.materials.transformations.map(
+        (transformation) => ({
+          id: transformation.id,
+          definition: transformation.recipe,
+          inputs: transformation.inputs.map((input) => ({
+            role: role(input.material),
+            ...input,
+          })),
+        }),
+      ),
+    },
+  };
+  return validateRelations(state);
 }
 
 function validateSaveEnvelope(value: unknown): SaveEnvelope {

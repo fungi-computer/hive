@@ -89,6 +89,38 @@ function transfer(id, overrides = {}) {
     ...overrides,
   };
 }
+function recipeBinding(id, station, { malt, water, mugwort, wood, barm, keg }) {
+  return {
+    kind: "recipe",
+    id,
+    definition: "herbal-ale-v1",
+    station: `kettle:${station}`,
+    consumed: [
+      { role: "malt", lot: malt, material: "malt", quantity: 2 },
+      { role: "water", lot: water, material: "water", quantity: 2 },
+      { role: "mugwort", lot: mugwort, material: "mugwort", quantity: 1 },
+      { role: "fuel", lot: wood, material: "wood", quantity: 1 },
+    ],
+    retained: [
+      { role: "catalyst", lot: barm, material: "barm", quantity: 1 },
+      { role: "package", lot: keg, material: "keg", quantity: 1 },
+    ],
+    promises: [
+      {
+        role: "ale",
+        destination: `vessel:${keg}`,
+        material: "ale",
+        quantity: 4,
+      },
+      {
+        role: "spent-grain",
+        destination: `brew-tray:${station}`,
+        material: "spent-grain",
+        quantity: 1,
+      },
+    ],
+  };
+}
 function heldPailUse(state, operation) {
   state.materials.lots.push({
     id: "pail-collision",
@@ -233,22 +265,16 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
       },
     );
     state.jobs.push(job("brew-job", "brew", "station-a"));
-    state.materials.bindings.push({
-      kind: "brew",
-      id: "brew-process",
-      recipe: "herbal-ale-v1",
-      station: "kettle:station-a",
-      portions: [
-        { lot: "malt-stage", material: "malt", quantity: 2 },
-        { lot: "water-stage", material: "water", quantity: 2 },
-        { lot: "mugwort-stage", material: "mugwort", quantity: 1 },
-        { lot: "wood-stage", material: "wood", quantity: 1 },
-      ],
-      barm: `source-barm-lot:${cache.id}`,
-      keg: `source-keg-lot:${cache.id}`,
-      output: `vessel:source-keg-lot:${cache.id}`,
-      tray: "brew-tray:station-a",
-    });
+    state.materials.bindings.push(
+      recipeBinding("brew-process", "station-a", {
+        malt: "malt-stage",
+        water: "water-stage",
+        mugwort: "mugwort-stage",
+        wood: "wood-stage",
+        barm: `source-barm-lot:${cache.id}`,
+        keg: `source-keg-lot:${cache.id}`,
+      }),
+    );
     state.processes.push({
       id: "brew-process",
       job: "brew-job",
@@ -599,22 +625,16 @@ test("schema 11 validates one exact brew binding and its provenance without live
       quantity: 1,
       location: { kind: "ground", ...cell(2, 2) },
     });
-    state.materials.bindings.push({
-      kind: "brew",
-      id: "brew-a",
-      recipe: "herbal-ale-v1",
-      station: "kettle:station-a",
-      portions: [
-        { lot: `source-malt-lot:${cache.id}`, material: "malt", quantity: 2 },
-        { lot: `source-lot:${spring.id}`, material: "water", quantity: 2 },
-        { lot: "herb-lot", material: "mugwort", quantity: 1 },
-        { lot: `source-lot:${cache.id}`, material: "wood", quantity: 1 },
-      ],
-      barm: `source-barm-lot:${cache.id}`,
-      keg: `source-keg-lot:${cache.id}`,
-      output: `vessel:source-keg-lot:${cache.id}`,
-      tray: "brew-tray:station-a",
-    });
+    state.materials.bindings.push(
+      recipeBinding("brew-a", "station-a", {
+        malt: `source-malt-lot:${cache.id}`,
+        water: `source-lot:${spring.id}`,
+        mugwort: "herb-lot",
+        wood: `source-lot:${cache.id}`,
+        barm: `source-barm-lot:${cache.id}`,
+        keg: `source-keg-lot:${cache.id}`,
+      }),
+    );
   });
   assert.equal(restoreSnapshot(saved).state.materials.bindings.length, 1);
   const duplicate = structuredClone(saved);
@@ -624,21 +644,21 @@ test("schema 11 validates one exact brew binding and its provenance without live
   });
   assert.throws(
     () => restoreSnapshot(duplicate),
-    /duplicate brew station binding/,
+    /duplicate recipe station binding/,
   );
   const corrupt = structuredClone(saved);
-  corrupt.savedState.materials.bindings[0].portions[0].quantity = 1;
-  assert.throws(() => restoreSnapshot(corrupt), /invalid portion/);
+  corrupt.savedState.materials.bindings[0].consumed[0].quantity = 1;
+  assert.throws(() => restoreSnapshot(corrupt), /invalid consumed role/);
   const transformed = structuredClone(saved);
   transformed.savedState.materials.transformations.push({
     id: "brew-a",
-    recipe: "herbal-ale-v1",
+    definition: "herbal-ale-v1",
     inputs: structuredClone(
-      transformed.savedState.materials.bindings[0].portions,
+      transformed.savedState.materials.bindings[0].consumed,
     ),
   });
   const portion = (material) =>
-    transformed.savedState.materials.bindings[0].portions.find(
+    transformed.savedState.materials.bindings[0].consumed.find(
       (entry) => entry.material === material,
     ).lot;
   transformed.savedState.materials.lots.find(
@@ -664,7 +684,7 @@ test("schema 11 validates one exact brew binding and its provenance without live
     );
   assert.throws(
     () => restoreSnapshot(transformed),
-    /does not match brew binding/,
+    /does not match recipe binding/,
   );
   const capacity = structuredClone(saved);
   capacity.savedState.materials.lots.push({
@@ -673,10 +693,11 @@ test("schema 11 validates one exact brew binding and its provenance without live
     quantity: 1,
     location: {
       kind: "container",
-      container: capacity.savedState.materials.bindings[0].output,
+      container:
+        capacity.savedState.materials.bindings[0].promises[0].destination,
     },
   });
-  assert.throws(() => restoreSnapshot(capacity), /brew binding capacity/);
+  assert.throws(() => restoreSnapshot(capacity), /recipe binding capacity/);
 });
 
 test("schema 11 aggregates recipe portion promises across distinct brew bindings", () => {
@@ -728,22 +749,15 @@ test("schema 11 aggregates recipe portion promises across distinct brew bindings
         location: { kind: "ground", ...cell(3, 4) },
       },
     );
-    const binding = (id, barm, keg) => ({
-      kind: "brew",
-      id,
-      recipe: "herbal-ale-v1",
-      station: `kettle:station-${id}`,
-      portions: [
-        { lot: `source-malt-lot:${cache.id}`, material: "malt", quantity: 2 },
-        { lot: `source-lot:${spring.id}`, material: "water", quantity: 2 },
-        { lot: "herb-lot", material: "mugwort", quantity: 1 },
-        { lot: `source-lot:${cache.id}`, material: "wood", quantity: 1 },
-      ],
-      barm,
-      keg,
-      output: `vessel:${keg}`,
-      tray: `brew-tray:station-${id}`,
-    });
+    const binding = (id, barm, keg) =>
+      recipeBinding(id, `station-${id}`, {
+        malt: `source-malt-lot:${cache.id}`,
+        water: `source-lot:${spring.id}`,
+        mugwort: "herb-lot",
+        wood: `source-lot:${cache.id}`,
+        barm,
+        keg,
+      });
     state.materials.bindings.push(
       binding("a", `source-barm-lot:${cache.id}`, `source-keg-lot:${cache.id}`),
       binding("b", "barm-b", "keg-b"),
@@ -751,7 +765,7 @@ test("schema 11 aggregates recipe portion promises across distinct brew bindings
   });
   assert.throws(
     () => restoreSnapshot(saved),
-    /brew portions exceed source lot/,
+    /recipe portions exceed source lot/,
   );
 });
 
@@ -913,6 +927,22 @@ test("schema 11 accepts only strict schema 10 or schema 11 predecessors", () => 
   });
   assert.throws(() => restoreSnapshot(malformed));
 });
+
+rejects(
+  "current recipe records parse a generic ID then reject an unsupported definition",
+  (state) => {
+    state.materials.bindings.push({
+      kind: "recipe",
+      id: "unsupported-recipe",
+      definition: "future-recipe-v1",
+      station: "kettle:missing",
+      consumed: [],
+      retained: [],
+      promises: [],
+    });
+  },
+  /unknown recipe future-recipe-v1/,
+);
 
 test("current-v8 revision admission distinguishes absent, malformed, and stale slots", () => {
   assert.deepEqual(decideSaveRevision(undefined, 0), {

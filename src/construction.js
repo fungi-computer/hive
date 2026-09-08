@@ -13,7 +13,6 @@ import {
   upperSurface,
 } from "./world.js";
 import { pathTicks, route } from "./movement.js";
-import { herbalAleTray } from "./recipes.ts";
 
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
@@ -72,6 +71,53 @@ export const BUILDINGS = {
     ticks: 144,
     deconstructTicks: 144,
     salvageWood: 3,
+    slots: [
+      {
+        key: "kettle",
+        prefix: "kettle",
+        capacity: 5,
+        accepts: ["water", "malt", "mugwort"],
+        bulk: { water: 1, malt: 1, mugwort: 1 },
+        deposit: true,
+        withdraw: false,
+      },
+      {
+        key: "hearth",
+        prefix: "brew-hearth",
+        capacity: 1,
+        accepts: ["wood"],
+        bulk: { wood: 1 },
+        deposit: true,
+        withdraw: false,
+      },
+      {
+        key: "barm",
+        prefix: "brew-barm",
+        capacity: 1,
+        accepts: ["barm"],
+        bulk: { barm: 1 },
+        deposit: true,
+        withdraw: false,
+      },
+      {
+        key: "keg",
+        prefix: "brew-keg",
+        capacity: 1,
+        accepts: ["keg"],
+        bulk: { keg: 1 },
+        deposit: true,
+        withdraw: false,
+      },
+      {
+        key: "tray",
+        prefix: "brew-tray",
+        capacity: 1,
+        accepts: ["spent-grain"],
+        bulk: { "spent-grain": 1 },
+        deposit: false,
+        withdraw: false,
+      },
+    ],
   },
 };
 
@@ -97,54 +143,33 @@ export function shelfContainer(site) {
   };
 }
 
-/** Physical station slots. Recipe amounts are independent from these capacities. */
+/** Physical station slots come from the checked building definition. */
+/** @returns {import("./materials.ts").ContainerSpec} */
+function brewStationSlot(site, key) {
+  const definition = BUILDINGS["brew-station"].slots.find(
+    (slot) => slot.key === key,
+  );
+  if (!definition) throw new Error(`unknown brew station slot ${key}`);
+  return {
+    id: `${definition.prefix}:${site.id}`,
+    capacity: /** @type {import("./model.ts").PositiveInt} */ (
+      definition.capacity
+    ),
+    accepts: /** @type {import("./model.ts").Material[]} */ (
+      definition.accepts
+    ),
+    bulk: /** @type {import("./materials.ts").ContainerSpec["bulk"]} */ (
+      definition.bulk
+    ),
+  };
+}
 export function brewKettle(site) {
-  return {
-    id: `kettle:${site.id}`,
-    capacity: /** @type {import("./model.ts").PositiveInt} */ (5),
-    accepts: /** @type {import("./model.ts").Material[]} */ ([
-      "water",
-      "malt",
-      "mugwort",
-    ]),
-    bulk: {
-      water: /** @type {import("./model.ts").PositiveInt} */ (1),
-      malt: /** @type {import("./model.ts").PositiveInt} */ (1),
-      mugwort: /** @type {import("./model.ts").PositiveInt} */ (1),
-    },
-  };
-}
-export function brewHearth(site) {
-  return {
-    id: `brew-hearth:${site.id}`,
-    capacity: /** @type {import("./model.ts").PositiveInt} */ (1),
-    accepts: /** @type {import("./model.ts").Material[]} */ (["wood"]),
-    bulk: { wood: /** @type {import("./model.ts").PositiveInt} */ (1) },
-  };
-}
-export function brewBarmSlot(site) {
-  return {
-    id: `brew-barm:${site.id}`,
-    capacity: /** @type {import("./model.ts").PositiveInt} */ (1),
-    accepts: /** @type {import("./model.ts").Material[]} */ (["barm"]),
-    bulk: { barm: /** @type {import("./model.ts").PositiveInt} */ (1) },
-  };
-}
-export function brewKegSlot(site) {
-  return {
-    id: `brew-keg:${site.id}`,
-    capacity: /** @type {import("./model.ts").PositiveInt} */ (1),
-    accepts: /** @type {import("./model.ts").Material[]} */ (["keg"]),
-    bulk: { keg: /** @type {import("./model.ts").PositiveInt} */ (1) },
-  };
+  return brewStationSlot(site, "kettle");
 }
 export function brewStationContainers(site) {
-  return [
-    brewKettle(site),
-    brewHearth(site),
-    brewBarmSlot(site),
-    brewKegSlot(site),
-  ];
+  return BUILDINGS["brew-station"].slots.map((slot) =>
+    brewStationSlot(site, slot.key),
+  );
 }
 
 /**
@@ -173,29 +198,23 @@ export function siteMaterialEndpoints(site) {
     ];
   if (site.type === "brew-station")
     return [
-      ...brewStationContainers(site).map((destination) => ({
+      ...BUILDINGS["brew-station"].slots.map((slot) => ({
         site,
-        destination,
-        deposit: true,
-        withdraw: false,
+        slot: slot.key,
+        destination: brewStationSlot(site, slot.key),
+        deposit: slot.deposit,
+        withdraw: slot.withdraw,
       })),
-      {
-        site,
-        destination: herbalAleTray(site.id),
-        deposit: false,
-        withdraw: false,
-      },
     ];
   return [];
 }
 
-/** The content-owned slot for one accepted material and operation. */
-export function siteMaterialEndpointFor(site, material, operation = null) {
+/** The content-owned endpoint for one stable slot key and operation. */
+export function siteMaterialEndpoint(site, slot, operation = null) {
   return (
     siteMaterialEndpoints(site).find(
       (endpoint) =>
-        (operation === null || endpoint[operation]) &&
-        endpoint.destination.accepts.includes(material),
+        (operation === null || endpoint[operation]) && endpoint.slot === slot,
     ) ?? null
   );
 }
@@ -412,7 +431,7 @@ export function removalProblem(state, site, person = null) {
     );
     const hasBinding = state.materials.bindings.some(
       (binding) =>
-        binding.kind === "brew" && binding.station === brewKettle(site).id,
+        binding.kind === "recipe" && binding.station === brewKettle(site).id,
     );
     const hasProcess = state.processes.some(
       (process) => process.station === site.id,
@@ -421,7 +440,7 @@ export function removalProblem(state, site, person = null) {
       (transformation) =>
         state.materials.bindings.some(
           (binding) =>
-            binding.kind === "brew" &&
+            binding.kind === "recipe" &&
             binding.id === transformation.id &&
             binding.station === brewKettle(site).id,
         ),

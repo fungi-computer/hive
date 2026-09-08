@@ -9,6 +9,10 @@ export type LotId = string;
 export type TransferId = string;
 export type ContainerId = string;
 export type OperationId = string;
+/** Checked by the recipe definition owner; generic state carries an opaque ID. */
+export type RecipeId = string;
+/** Checked by the building/content definition owner for the resolved station. */
+export type BrewStationSlot = string;
 /** Pails are ordinary indivisible lots; water is always contained. */
 export type Material =
   | "wood"
@@ -69,19 +73,29 @@ export type MaterialBinding =
       readonly vessel: LotId;
     }
   | {
-      readonly kind: "brew";
+      /** A resolved physical plan; recipe semantics stay with its definition. */
+      readonly kind: "recipe";
       readonly id: OperationId;
-      readonly recipe: "herbal-ale-v1";
+      readonly definition: RecipeId;
       readonly station: ContainerId;
-      readonly portions: readonly {
+      readonly consumed: readonly {
+        readonly role: string;
         readonly lot: LotId;
-        readonly material: "malt" | "water" | "mugwort" | "wood";
+        readonly material: Material;
         readonly quantity: PositiveInt;
       }[];
-      readonly barm: LotId;
-      readonly keg: LotId;
-      readonly output: ContainerId;
-      readonly tray: ContainerId;
+      readonly retained: readonly {
+        readonly role: string;
+        readonly lot: LotId;
+        readonly material: Material;
+        readonly quantity: PositiveInt;
+      }[];
+      readonly promises: readonly {
+        readonly role: string;
+        readonly destination: ContainerId;
+        readonly material: Material;
+        readonly quantity: PositiveInt;
+      }[];
     };
 export type Transfer = {
   readonly id: TransferId;
@@ -105,12 +119,13 @@ export type EmbeddedMaterial = {
   quantity: PositiveInt;
 };
 /** Immutable provenance written by the one atomic PREPARE transformation. */
-export type BrewTransformation = {
+export type RecipeTransformation = {
   readonly id: OperationId;
-  readonly recipe: "herbal-ale-v1";
+  readonly definition: RecipeId;
   readonly inputs: readonly {
+    readonly role: string;
     readonly lot: LotId;
-    readonly material: "malt" | "water" | "mugwort" | "wood";
+    readonly material: Material;
     readonly quantity: PositiveInt;
   }[];
 };
@@ -118,7 +133,7 @@ export type MaterialsState = {
   lots: ItemLot[];
   transfers: Transfer[];
   bindings: MaterialBinding[];
-  transformations: BrewTransformation[];
+  transformations: RecipeTransformation[];
   embedded: EmbeddedMaterial[];
   nextLotId: number;
   consumedWood: number;

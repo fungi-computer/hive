@@ -89,6 +89,18 @@ const make = (
   path,
   travel,
 });
+/** Shared transfer demand rule: portions may converge over several lots; whole lots do not split. */
+function supplyQuantity(
+  policy: TransferRequest["quantityPolicy"],
+  remaining: number,
+  available: number,
+): number {
+  return policy === "whole-lot"
+    ? available === remaining
+      ? remaining
+      : 0
+    : Math.min(2, remaining, available);
+}
 function constructionTransferOption(
   state: Clearing,
   person: Actor,
@@ -135,7 +147,7 @@ function constructionTransferOption(
       }
     | undefined;
   for (const part of choices) {
-    const quantity = Math.min(2, remaining, part.quantity);
+    const quantity = supplyQuantity("portion", remaining, part.quantity);
     if (quantity < 1) continue;
     const lot = part.lot;
     const sourceSite =
@@ -345,7 +357,7 @@ function repairCacheOption(
       selected = { lot, quantity: fact.quantity, path, travel };
   }
   if (!selected) return no("Waiting for reachable repair wood");
-  const quantity = Math.min(2, remaining, selected.quantity);
+  const quantity = supplyQuantity("portion", remaining, selected.quantity);
   if (quantity < 1) return no("Waiting for reachable repair wood");
   return {
     reason: "Ready to haul repair wood",
@@ -520,9 +532,20 @@ function brewSupplyOption(
     );
   });
   let selected:
-    { lot: AvailableLotFact["lot"]; path: Cell[]; travel: number } | undefined;
+    | {
+        lot: AvailableLotFact["lot"];
+        path: Cell[];
+        travel: number;
+        quantity: number;
+      }
+    | undefined;
   for (const fact of choices) {
-    if (fact.quantity < input.quantity) continue;
+    const quantity = supplyQuantity(
+      input.quantityPolicy,
+      input.quantity,
+      fact.quantity,
+    );
+    if (quantity < 1) continue;
     const lot = fact.lot;
     const sourceSite =
       lot.location.kind === "container"
@@ -549,7 +572,7 @@ function brewSupplyOption(
     const travel =
       pathTicks(person, from) + pathTicks(from.at(-1) ?? person, to);
     if (!selected || travel < selected.travel)
-      selected = { lot, path: from, travel };
+      selected = { lot, path: from, travel, quantity };
   }
   if (!selected) return no(`Waiting for reachable ${input.material}`);
   return {
@@ -569,7 +592,7 @@ function brewSupplyOption(
         request: {
           source: { kind: "exact-lot", lot: selected.lot.id },
           quantityPolicy: input.quantityPolicy,
-          quantity: input.quantity,
+          quantity: selected.quantity as PositiveInt,
         },
         intent: { kind: "deliver", destination: input.destination.id },
         owner: { kind: "job", job: job.id, step: input.step },
@@ -607,7 +630,7 @@ function brewOption(
                   "brew",
                   process.id,
                   path,
-                  brewPrepareRemaining(process),
+                  brewPrepareRemaining(state, process),
                   pathTicks(person, path),
                 ),
               }

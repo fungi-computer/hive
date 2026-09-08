@@ -7,14 +7,14 @@ import {
 } from "./construction.js";
 import {
   availableQuantity,
-  admitHerbalAleBinding,
-  brewBindingPromiseQuantity,
+  admitRecipePlan,
+  bindingPromiseQuantity,
   acquirePailForOperation,
   containerBulk,
   containerContents,
   containerQuantity,
   createGroundLot,
-  completeHerbalAlePrepare,
+  completeRecipePrepare,
   deliverTransfer,
   drawPailWater,
   embedConstruction,
@@ -919,7 +919,7 @@ test("material ground locations discard Site and Herb-shaped extras on every set
   assertGround(salvaged.lots[0].location);
 });
 
-test("herbal ale admission binds exact portions atomically and prepare records provenance", () => {
+test("resolved recipe plans bind split staged portions atomically and record provenance", () => {
   const materials = fresh([
     {
       id: "malt",
@@ -932,6 +932,12 @@ test("herbal ale admission binds exact portions atomically and prepare records p
       material: "water",
       quantity: 2,
       location: { kind: "container", container: "pail" },
+    },
+    {
+      id: "malt-portion",
+      material: "malt",
+      quantity: 1,
+      location: { kind: "container", container: "cache" },
     },
     {
       id: "herb",
@@ -960,48 +966,72 @@ test("herbal ale admission binds exact portions atomically and prepare records p
   ]);
   const input = {
     id: "brew-1",
+    definition: HERBAL_ALE_V1.id,
     station: "kettle:station",
-    portions: [
-      { lot: "malt", material: "malt", quantity: HERBAL_ALE_V1.inputs.malt },
-      { lot: "water", material: "water", quantity: HERBAL_ALE_V1.inputs.water },
-      {
-        lot: "herb",
-        material: "mugwort",
-        quantity: HERBAL_ALE_V1.inputs.mugwort,
-      },
-      { lot: "fuel", material: "wood", quantity: HERBAL_ALE_V1.inputs.wood },
+    consumed: [
+      { role: "malt", lot: "malt", material: "malt", quantity: 1 },
+      { role: "malt", lot: "malt-portion", material: "malt", quantity: 1 },
+      { role: "water", lot: "water", material: "water", quantity: 2 },
+      { role: "mugwort", lot: "herb", material: "mugwort", quantity: 1 },
+      { role: "fuel", lot: "fuel", material: "wood", quantity: 1 },
     ],
-    barm: "barm",
-    keg: "keg",
-    output: {
-      id: "vessel:keg",
-      capacity: 4,
-      accepts: ["ale"],
-      bulk: { ale: 1 },
-    },
-    tray: {
-      id: "tray:station",
-      capacity: 1,
-      accepts: ["spent-grain"],
-      bulk: { "spent-grain": 1 },
-    },
+    retained: [
+      { role: "catalyst", lot: "barm", material: "barm", quantity: 1 },
+      { role: "package", lot: "keg", material: "keg", quantity: 1 },
+    ],
+    promises: [
+      {
+        role: "ale",
+        material: "ale",
+        quantity: 4,
+        destination: {
+          id: "vessel:keg",
+          capacity: 4,
+          accepts: ["ale"],
+          bulk: { ale: 1 },
+        },
+      },
+      {
+        role: "spent-grain",
+        material: "spent-grain",
+        quantity: 1,
+        destination: {
+          id: "tray:station",
+          capacity: 1,
+          accepts: ["spent-grain"],
+          bulk: { "spent-grain": 1 },
+        },
+      },
+    ],
   };
   const before = structuredClone(materials);
   assert.equal(
-    admitHerbalAleBinding(materials, {
+    admitRecipePlan(materials, {
       ...input,
-      output: { ...input.output, capacity: 3 },
+      promises: [
+        {
+          ...input.promises[0],
+          destination: { ...input.promises[0].destination, capacity: 3 },
+        },
+        input.promises[1],
+      ],
     }).ok,
     false,
   );
   assert.deepEqual(materials, before);
-  assert.equal(admitHerbalAleBinding(materials, input).ok, true);
-  assert.equal(availableQuantity(materials, "malt"), 2);
-  assert.equal(completeHerbalAlePrepare(materials, "brew-1").ok, true);
-  assert.deepEqual(materials.transformations[0].inputs, input.portions);
-  assert.equal(availableQuantity(materials, "malt"), 2);
-  assert.equal(brewBindingPromiseQuantity(materials, input.output.id), 4);
-  assert.equal(brewBindingPromiseQuantity(materials, input.tray.id), 1);
+  assert.equal(admitRecipePlan(materials, input).ok, true);
+  assert.equal(availableQuantity(materials, "malt"), 3);
+  assert.equal(completeRecipePrepare(materials, "brew-1").ok, true);
+  assert.deepEqual(materials.transformations[0].inputs, input.consumed);
+  assert.equal(availableQuantity(materials, "malt"), 3);
+  assert.equal(
+    bindingPromiseQuantity(materials, input.promises[0].destination),
+    4,
+  );
+  assert.equal(
+    bindingPromiseQuantity(materials, input.promises[1].destination),
+    1,
+  );
   materials.lots.push(
     {
       id: "water-2",
@@ -1038,64 +1068,84 @@ test("herbal ale admission binds exact portions atomically and prepare records p
     ...input,
     id: "brew-2",
     station: "kettle:station-2",
-    portions: [
-      { lot: "malt", material: "malt", quantity: HERBAL_ALE_V1.inputs.malt },
-      {
-        lot: "water-2",
-        material: "water",
-        quantity: HERBAL_ALE_V1.inputs.water,
-      },
-      {
-        lot: "herb-2",
-        material: "mugwort",
-        quantity: HERBAL_ALE_V1.inputs.mugwort,
-      },
-      { lot: "fuel-2", material: "wood", quantity: HERBAL_ALE_V1.inputs.wood },
+    consumed: [
+      { role: "malt", lot: "malt", material: "malt", quantity: 2 },
+      { role: "water", lot: "water-2", material: "water", quantity: 2 },
+      { role: "mugwort", lot: "herb-2", material: "mugwort", quantity: 1 },
+      { role: "fuel", lot: "fuel-2", material: "wood", quantity: 1 },
     ],
-    barm: "barm-2",
-    keg: "keg-2",
-    output: {
-      id: "vessel:keg-2",
-      capacity: 4,
-      accepts: ["ale"],
-      bulk: { ale: 1 },
-    },
-    tray: {
-      id: "tray:station-2",
-      capacity: 1,
-      accepts: ["spent-grain"],
-      bulk: { "spent-grain": 1 },
-    },
+    retained: [
+      { role: "catalyst", lot: "barm-2", material: "barm", quantity: 1 },
+      { role: "package", lot: "keg-2", material: "keg", quantity: 1 },
+    ],
+    promises: [
+      {
+        role: "ale",
+        material: "ale",
+        quantity: 4,
+        destination: {
+          id: "vessel:keg-2",
+          capacity: 4,
+          accepts: ["ale"],
+          bulk: { ale: 1 },
+        },
+      },
+      {
+        role: "spent-grain",
+        material: "spent-grain",
+        quantity: 1,
+        destination: {
+          id: "tray:station-2",
+          capacity: 1,
+          accepts: ["spent-grain"],
+          bulk: { "spent-grain": 1 },
+        },
+      },
+    ],
   };
   const beforeOverbook = structuredClone(materials);
   assert.equal(
-    admitHerbalAleBinding(materials, {
+    admitRecipePlan(materials, {
       ...second,
       id: "brew-shared-output",
-      output: input.output,
+      promises: [
+        { ...second.promises[0], destination: input.promises[0].destination },
+        second.promises[1],
+      ],
     }).ok,
     false,
   );
   assert.deepEqual(materials, beforeOverbook);
   assert.equal(
-    admitHerbalAleBinding(materials, {
+    admitRecipePlan(materials, {
       ...second,
       id: "brew-shared-tray",
-      tray: input.tray,
+      promises: [
+        second.promises[0],
+        { ...second.promises[1], destination: input.promises[1].destination },
+      ],
     }).ok,
     false,
   );
   assert.deepEqual(materials, beforeOverbook);
-  assert.equal(admitHerbalAleBinding(materials, second).ok, true);
-  assert.equal(brewBindingPromiseQuantity(materials, input.output.id), 4);
-  assert.equal(brewBindingPromiseQuantity(materials, second.output.id), 4);
+  assert.equal(admitRecipePlan(materials, second).ok, true);
   assert.equal(
-    admitHerbalAleBinding(materials, {
+    bindingPromiseQuantity(materials, input.promises[0].destination),
+    4,
+  );
+  assert.equal(
+    bindingPromiseQuantity(materials, second.promises[0].destination),
+    4,
+  );
+  assert.equal(
+    admitRecipePlan(materials, {
       ...second,
       id: "brew-3",
       station: "kettle:station-3",
-      barm: "barm",
-      keg: "keg",
+      retained: [
+        { role: "catalyst", lot: "barm", material: "barm", quantity: 1 },
+        { role: "package", lot: "keg", material: "keg", quantity: 1 },
+      ],
     }).ok,
     false,
   );

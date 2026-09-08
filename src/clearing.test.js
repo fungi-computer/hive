@@ -13,6 +13,8 @@ import {
 } from "./construction.js";
 import { cacheRepairBuffer } from "./finite-sources.ts";
 import { assignWork } from "./jobs.ts";
+import { brewPrepareRemaining } from "./brewing.ts";
+import { recipeDefinition } from "./recipes.ts";
 import {
   containerQuantity,
   embeddedQuantity,
@@ -1437,6 +1439,15 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
     }),
   );
   assert.ok(process.progress >= 3);
+  const binding = state.materials.bindings.find(
+    (candidate) =>
+      candidate.kind === "recipe" && candidate.id === process.binding,
+  );
+  assert.equal(
+    brewPrepareRemaining(state, process),
+    recipeDefinition(binding.definition).timings.prepare - process.progress,
+    "the live process reads the timing pinned by its recipe binding",
+  );
   const worker = Object.values(state.actors).find(
     (actor) => actor.task?.kind === "brew",
   );
@@ -1570,19 +1581,17 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
     routine: false,
   });
   state.materials.bindings.push({
-    kind: "brew",
+    kind: "recipe",
     id: "brew-process",
-    recipe: "herbal-ale-v1",
+    definition: "herbal-ale-v1",
     station: brewKettle(station).id,
-    portions: [],
-    barm: "none",
-    keg: "none",
-    output: "vessel:none",
-    tray: "brew-tray:station-herbal-ale",
+    consumed: [],
+    retained: [],
+    promises: [],
   });
   state.materials.transformations.push({
     id: "brew-process",
-    recipe: "herbal-ale-v1",
+    definition: "herbal-ale-v1",
     inputs: [],
   });
   state.processes.push({

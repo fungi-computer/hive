@@ -11,13 +11,19 @@ import type {
   MaterialBinding,
   MaterialsState,
   PositiveInt,
+  RecipeId,
   SourcePolicy,
   Transfer,
   TransferId,
   TransferOrigin,
   TransferRequest,
 } from "./model.ts";
-import { HERBAL_ALE_V1 } from "./recipes.ts";
+import {
+  portableContainerInterior,
+  vesselContainer,
+} from "./item-containers.ts";
+
+export { vesselContainer } from "./item-containers.ts";
 
 /** A resolved destination definition.  The transfer kernel only sees its
  * accepted materials and promised capacity; site/shelf rules stay with callers. */
@@ -91,10 +97,6 @@ export function sourceContainer(id: string): ContainerId {
   return `source:${id}`;
 }
 
-export function vesselContainer(lot: LotId): ContainerId {
-  return `vessel:${lot}`;
-}
-
 function vesselBinding(
   state: MaterialsState,
   operation: string,
@@ -109,11 +111,10 @@ function bindingOwnsLot(state: MaterialsState, lot: LotId): boolean {
   return state.bindings.some(
     (binding) =>
       (binding.kind === "vessel-use" && binding.vessel === lot) ||
-      (binding.kind === "brew" &&
-        (binding.barm === lot ||
-          binding.keg === lot ||
+      (binding.kind === "recipe" &&
+        (binding.retained.some((entry) => entry.lot === lot) ||
           (!state.transformations.some((entry) => entry.id === binding.id) &&
-            binding.portions.some((portion) => portion.lot === lot)))),
+            binding.consumed.some((portion) => portion.lot === lot)))),
   );
 }
 
@@ -125,40 +126,20 @@ function boundQuantity(state: MaterialsState, lot: LotId): number {
         ? binding.vessel === lot
           ? 1
           : 0
-        : (binding.barm === lot ? 1 : 0) +
-          (binding.keg === lot ? 1 : 0) +
+        : binding.retained.reduce(
+            (sum, retained) =>
+              sum + (retained.lot === lot ? retained.quantity : 0),
+            0,
+          ) +
           (state.transformations.some((entry) => entry.id === binding.id)
             ? 0
-            : binding.portions.reduce(
+            : binding.consumed.reduce(
                 (sum, portion) =>
                   sum + (portion.lot === lot ? portion.quantity : 0),
                 0,
               ))),
     0,
   );
-}
-
-/** Pails are the only portable container in this bounded checkpoint. */
-export function pailInterior(lot: ItemLot): ContainerSpec | null {
-  return lot.material === "pail" && lot.quantity === 1
-    ? {
-        id: vesselContainer(lot.id),
-        capacity: 2 as PositiveInt,
-        accepts: ["water"],
-        bulk: { water: 1 as PositiveInt },
-      }
-    : null;
-}
-
-export function kegInterior(lot: ItemLot): ContainerSpec | null {
-  return lot.material === "keg" && lot.quantity === 1
-    ? {
-        id: vesselContainer(lot.id),
-        capacity: 4 as PositiveInt,
-        accepts: ["ale"],
-        bulk: { ale: 1 as PositiveInt },
-      }
-    : null;
 }
 
 function originForLot(lot: ItemLot): TransferOrigin | null {
@@ -245,21 +226,22 @@ function incomingQuantity(
   );
 }
 
-/** Durable brew promises occupy output space before any process work begins. */
-export function brewBindingPromiseQuantity(
+/** Durable recipe promises occupy output space before process work begins. */
+export function bindingPromiseQuantity(
   state: MaterialsState,
-  container: ContainerId,
+  container: ContainerSpec,
 ): number {
   return state.bindings.reduce(
     (total, binding) =>
       total +
-      (binding.kind !== "brew"
+      (binding.kind !== "recipe"
         ? 0
-        : binding.output === container
-          ? HERBAL_ALE_V1.output.quantity
-          : binding.tray === container
-            ? HERBAL_ALE_V1.byproduct.quantity
-            : 0),
+        : binding.promises
+            .filter((promise) => promise.destination === container.id)
+            .reduce((sum, promise) => {
+              const bulk = bulkFor(container, promise.material);
+              return sum + promise.quantity * (bulk ?? Infinity);
+            }, 0)),
     0,
   );
 }
@@ -1108,7 +1090,7 @@ function heldUsePail(
   )
     return failure("use-intent-required");
   const lot = lotById(state, use.vessel);
-  const interior = lot && pailInterior(lot);
+  const interior = lot && portableContainerInterior(lot);
   if (
     !lot ||
     !interior ||
@@ -1163,112 +1145,183 @@ export function pourPailWater(
   });
 }
 
-export type HerbalAleBindingInput = {
+/** Fully resolved by a content owner; the material kernel knows no recipe roles. */
+export type ResolvedRecipePlan = {
   id: string;
+  definition: RecipeId;
   station: ContainerId;
-  portions: readonly {
+  consumed: readonly {
+    role: string;
     lot: LotId;
-    material: "malt" | "water" | "mugwort" | "wood";
+    material: Material;
     quantity: PositiveInt;
   }[];
-  barm: LotId;
-  keg: LotId;
-  output: ContainerSpec;
-  tray: ContainerSpec;
+  retained: readonly {
+    role: string;
+    lot: LotId;
+    material: Material;
+    quantity: PositiveInt;
+  }[];
+  promises: readonly {
+    role: string;
+    material: Material;
+    quantity: PositiveInt;
+    destination: ContainerSpec;
+  }[];
 };
 
-/** A ready recipe plan uses the same checks as final mutation, without a promise. */
-export function checkHerbalAleBinding(
+function recipePlanOwnerAvailable(
   state: MaterialsState,
-  input: HerbalAleBindingInput,
+  input: ResolvedRecipePlan,
 ): MaterialResult<void> {
   if (
     state.bindings.some(
       (binding) =>
         binding.id === input.id ||
-        (binding.kind === "brew" && binding.station === input.station),
+        (binding.kind === "recipe" && binding.station === input.station),
     )
   )
     return failure("owner-busy");
   if (
-    input.portions.length !== 4 ||
-    new Set(input.portions.map((portion) => portion.material)).size !== 4
+    new Set(input.retained.map((entry) => entry.role)).size !==
+      input.retained.length ||
+    new Set(input.promises.map((entry) => entry.role)).size !==
+      input.promises.length
   )
     return failure("source-ineligible");
-  const required = { malt: 2, water: 2, mugwort: 1, wood: 1 } as const;
-  for (const portion of input.portions) {
+  return success(undefined);
+}
+
+function consumedPortionsAvailable(
+  state: MaterialsState,
+  consumed: ResolvedRecipePlan["consumed"],
+): MaterialResult<void> {
+  const consumedByLot = new Map<LotId, number>();
+  for (const portion of consumed) {
     const lot = lotById(state, portion.lot);
     if (
       !lot ||
       lot.material !== portion.material ||
-      portion.quantity !== required[portion.material] ||
-      availableQuantity(state, lot.id) < portion.quantity
+      !isPositiveInt(portion.quantity)
     )
       return failure("source-insufficient");
+    consumedByLot.set(
+      portion.lot,
+      (consumedByLot.get(portion.lot) ?? 0) + portion.quantity,
+    );
   }
-  for (const [id, material] of [
-    [input.barm, "barm"],
-    [input.keg, "keg"],
-  ] as const) {
-    const lot = lotById(state, id);
-    if (
-      !lot ||
-      lot.material !== material ||
-      lot.quantity !== 1 ||
-      bindingOwnsLot(state, id)
-    )
-      return failure("source-ineligible");
+  for (const [lotId, quantity] of consumedByLot) {
+    if (availableQuantity(state, lotId) < quantity)
+      return failure("source-insufficient");
   }
-  if (
-    containerQuantity(state, input.output.id, "ale") +
-      incomingQuantity(state, input.output.id) +
-      brewBindingPromiseQuantity(state, input.output.id) +
-      HERBAL_ALE_V1.output.quantity >
-      input.output.capacity ||
-    containerQuantity(state, input.tray.id, "spent-grain") +
-      incomingQuantity(state, input.tray.id) +
-      brewBindingPromiseQuantity(state, input.tray.id) +
-      HERBAL_ALE_V1.byproduct.quantity >
-      input.tray.capacity
-  )
-    return failure("destination-full");
   return success(undefined);
 }
 
-/** Atomic recipe admission: binding is a promise, never a copied staging inventory. */
-export function admitHerbalAleBinding(
+function retainedLotsExclusive(
   state: MaterialsState,
-  input: HerbalAleBindingInput,
-): MaterialResult<Extract<MaterialBinding, { kind: "brew" }>> {
-  const checked = checkHerbalAleBinding(state, input);
+  retainedLots: ResolvedRecipePlan["retained"],
+): MaterialResult<void> {
+  for (const retained of retainedLots) {
+    const lot = lotById(state, retained.lot);
+    if (
+      !lot ||
+      lot.material !== retained.material ||
+      lot.quantity !== retained.quantity ||
+      bindingOwnsLot(state, retained.lot)
+    )
+      return failure("source-ineligible");
+  }
+  return success(undefined);
+}
+
+function recipePromisesFit(
+  state: MaterialsState,
+  promises: ResolvedRecipePlan["promises"],
+): MaterialResult<void> {
+  const promised = new Map<
+    ContainerId,
+    { destination: ContainerSpec; used: number }
+  >();
+  for (const promise of promises) {
+    if (
+      !isPositiveInt(promise.quantity) ||
+      !destinationAccepts(promise.destination, promise.material)
+    )
+      return failure("destination-mismatch");
+    const existing = promised.get(promise.destination.id) ?? {
+      destination: promise.destination,
+      used: 0,
+    };
+    const bulk = bulkFor(promise.destination, promise.material);
+    if (bulk === null) return failure("destination-mismatch");
+    existing.used += promise.quantity * bulk;
+    promised.set(promise.destination.id, existing);
+  }
+  for (const { destination, used } of promised.values()) {
+    const incoming = incomingBulk(state, destination);
+    if (!incoming.ok) return incoming;
+    const occupied = containerBulk(state, destination);
+    if (
+      occupied +
+        incoming.value +
+        bindingPromiseQuantity(state, destination) +
+        used >
+      destination.capacity
+    )
+      return failure("destination-full");
+  }
+  return success(undefined);
+}
+
+/** A resolved plan uses the same checks as final mutation, without a promise. */
+export function checkRecipePlan(
+  state: MaterialsState,
+  input: ResolvedRecipePlan,
+): MaterialResult<void> {
+  const owner = recipePlanOwnerAvailable(state, input);
+  if (!owner.ok) return owner;
+  const consumed = consumedPortionsAvailable(state, input.consumed);
+  if (!consumed.ok) return consumed;
+  const retained = retainedLotsExclusive(state, input.retained);
+  if (!retained.ok) return retained;
+  return recipePromisesFit(state, input.promises);
+}
+
+/** Atomic resolved-plan admission: a promise, never copied staging inventory. */
+export function admitRecipePlan(
+  state: MaterialsState,
+  input: ResolvedRecipePlan,
+): MaterialResult<Extract<MaterialBinding, { kind: "recipe" }>> {
+  const checked = checkRecipePlan(state, input);
   if (!checked.ok) return checked;
-  const binding: Extract<MaterialBinding, { kind: "brew" }> = {
-    kind: "brew",
+  const binding: Extract<MaterialBinding, { kind: "recipe" }> = {
+    kind: "recipe",
     id: input.id,
-    recipe: "herbal-ale-v1",
+    definition: input.definition,
     station: input.station,
-    portions: input.portions.map((portion) => ({ ...portion })),
-    barm: input.barm,
-    keg: input.keg,
-    output: input.output.id,
-    tray: input.tray.id,
+    consumed: input.consumed.map((portion) => ({ ...portion })),
+    retained: input.retained.map((entry) => ({ ...entry })),
+    promises: input.promises.map((entry) => ({
+      ...entry,
+      destination: entry.destination.id,
+    })),
   };
   state.bindings.push(binding);
   return success(binding);
 }
 
 /** PREPARE's one joined transformation receipt; later stages consume this provenance. */
-export function completeHerbalAlePrepare(
+export function completeRecipePrepare(
   state: MaterialsState,
   id: string,
 ): MaterialResult<void> {
   const binding = state.bindings.find(
-    (candidate): candidate is Extract<MaterialBinding, { kind: "brew" }> =>
-      candidate.kind === "brew" && candidate.id === id,
+    (candidate): candidate is Extract<MaterialBinding, { kind: "recipe" }> =>
+      candidate.kind === "recipe" && candidate.id === id,
   );
   if (!binding || state.transformations.some((entry) => entry.id === id))
     return failure("wrong-phase");
-  const lots = binding.portions.map((portion) => ({
+  const lots = binding.consumed.map((portion) => ({
     portion,
     lot: lotById(state, portion.lot),
   }));
@@ -1288,20 +1341,20 @@ export function completeHerbalAlePrepare(
   }
   state.transformations.push({
     id,
-    recipe: "herbal-ale-v1",
-    inputs: binding.portions.map((portion) => ({ ...portion })),
+    definition: binding.definition,
+    inputs: binding.consumed.map((portion) => ({ ...portion })),
   });
   return success(undefined);
 }
 
 /** Pre-PREPARE cancellation releases only the promise; staged physical lots stay put. */
-export function releaseUnpreparedBrewBinding(
+export function releaseUnpreparedRecipeBinding(
   state: MaterialsState,
   id: string,
 ): MaterialResult<void> {
   const binding = state.bindings.find(
-    (candidate): candidate is Extract<MaterialBinding, { kind: "brew" }> =>
-      candidate.kind === "brew" && candidate.id === id,
+    (candidate): candidate is Extract<MaterialBinding, { kind: "recipe" }> =>
+      candidate.kind === "recipe" && candidate.id === id,
   );
   if (!binding || state.transformations.some((entry) => entry.id === id))
     return failure("wrong-phase");
