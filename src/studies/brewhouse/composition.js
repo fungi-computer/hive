@@ -1,4 +1,4 @@
-import { group, box, ball, scene } from "../../art/geometry.js";
+import { group, box, scene } from "../../art/geometry.js";
 import { building } from "../../art/home.js";
 import { figure } from "../../art/figures.js";
 import { STOREY_HEIGHT } from "../../art/scale.js";
@@ -50,20 +50,5 @@ export function brewhouseScene(mode = "dollhouse", facing = 0, phase = 0) {
     group(root, 1.3, 0, 1.3),
     figure("rowan", phase, Math.PI, "idle"),
   );
-  // Steam puffs are art-only, not proof of heat/gas/brewing completion.
-  for (let i = 0; i < 5; i++) {
-    const t = (phase + i * 0.19) % 1;
-    const puff = ball(
-      root,
-      "#c1c8b2",
-      -2 + Math.sin(i * 2.3 + t * 3) * 0.12,
-      1.42 + t * 0.65,
-      -1,
-      0.07 + t * 0.065,
-      0.05 + t * 0.045,
-      0.06 + t * 0.04,
-    );
-    puff.visible = mode !== "exterior";
-  }
   return s;
 }
