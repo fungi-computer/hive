@@ -78,13 +78,13 @@ Channels anchors. No Game Discord adapter or framework is implied.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
+resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 The accepted fresh-only schema-v7 disposition migrated both live wood and herb
 consumers together after the isolated helper; it provides no v1–v6 save readers.
 Old raw slots remain recoverable/downloadable or replaceable through New Clearing.
 Brewhouse parity is local-served plus hosted-HTTP evidence, while bed contact
 stores only provider/slot/phase. Older herb-first and path-copy wording is
 historical.
-resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 records future landform, cave and exposed-part rendering guidance without
 expanding the live clearing or changing the current small-world sprint precedence.

@@ -6,13 +6,18 @@ Game CTO reviewed direction, 2026-09-08. This section supersedes the historical 
 
 **Outcome:** on the deliberately tiny map, the player can confidently place and inspect things, organize real supplies, make an honest brew, leave people working, and return to a useful result. A separate responsive map lab proves future geography without making a larger world the substitute for a satisfying home. Ship coherent improvements on the same preview as each becomes ready.
 
-Current Delivery checkpoint `2113dfa` has shipped the schema-10 finite-source and
-Fill Kettle slice on the feature preview. The next coupled consumer is the pinned
-brew process; it does not wait for regional fluid simulation. Levi separately
-authorized the Game CTO's isolated water, gas/heat and world-generation round-three
-goal recorded in `.botanical/research/environment-round3-20260908/GOAL.md`. Those
-executable studies own only ignored research directories and do not expand this
-sprint, the live clearing or tracked physics runtime.
+Current Delivery checkpoint `48dced7` has shipped the strict schema-12, repeatable
+herbal-ale loop on the feature preview: finite inputs, station construction, pail
+fill, preparation, fermentation, kegging, four attended servings, spent-grain
+clearing and a second batch through the same physical custody. Serving currently
+records a durable batch receipt but grants no personal inventory or needs effect.
+The next coupled consumer is one-time mugwort establishment by carried water; it
+does not wait for regional fluid simulation. The same checkpoint publishes the
+recorded native gas/heat playback lab with explicit non-live labels. Levi's newer
+Game CTO water, gas/heat and world-generation work remains isolated under
+`.botanical/research/environment-round3-20260908/GOAL.md`; those experiments are
+not retroactively represented by the older public recordings and do not expand
+the live clearing or tracked physics runtime.
 
 ### Preserve current work and name its limits
 
@@ -65,11 +70,11 @@ Keep strict v1–v6 parsing/rejection before deterministic conversion and valida
 
 Mixed storage then selects one explicit bounded capacity policy, compatible grouping/stacking rules and visible contents representation. Capacity, carry limits and liquid containment are different policies. Existing goods exercise the first mixed list; future filtering/priorities and automatic storage demand enter only when separately needed. It must not silently make every shelf an unlimited vessel.
 
-### Delivery settles the first brew before implementation
+### The first brew is settled; preserve its shared owners
 
-The architecture is ready; the exact recipe is not. The retained readiness note and current plans leave grain, yeast, water origin/quality, fuel, acquisition, quantities, work/fermentation duration, station cost/capacity and serving effect/economics unresolved. Delivery owns this finite decision under existing game authority. No further routine approval is needed, and missing choices must not become hidden defaults in worker code. Mugwort provides flavouring; it is not fermentable grain. The MF DOOM reference remains named inspiration, not a settled second recipe.
+The shipped herbal-ale definition consumes two malt, two contained water, one whole mugwort and one fuel wood; it retains one barm and one physical keg and produces four ale servings plus one spent-grain tray output. Preparation and kegging are attended Craft work, fermentation advances on the authoritative game clock, and serving/clearing are definition-owned output actions over the same durable process and material receipts. The finite cache and spring provide actual inputs; no proof-only stock or completion-time keg is conjured. Mugwort supplies flavouring, not fermentable grain. The MF DOOM reference remains named inspiration, not a settled second recipe.
 
-Record one attainable supply route for every input and container. Do not grant proof-only ingredients or invent portable keg material at completion. Stage real lots in the vessel; preparation atomically converts consumed portions into a batch ledger bound to that vessel. Release the worker; the existing authoritative clock advances the batch, with pause and local offline behavior unchanged. Completion converts it once into output in vessel custody. External storage being full cannot delete it. Portable packaging must be a real input/existing container; otherwise serve from the occupied vessel. Block station removal while inputs/batch/output remain until a supported teardown policy exists.
+The station cannot disappear while inputs, process or output remain. Serving does not yet create a personal inventory or needs benefit: the batch ledger and physical output settle truthfully, and a future accepted consumer may use those servings through the same goods owner. Adding a second recipe should be definitions/assets over the checked slot, timing, retained-input and output-action mechanisms; a genuinely new physical behavior earns one typed primitive rather than another scheduler or material path.
 
 Recipes over supported operations are versioned definitions/assets with checked references. New physical behavior earns a closed typed operation and invariant; no arbitrary callbacks, universal job engine or additional scheduler. Pin in-flight semantic recipes so changing configuration cannot rewrite an existing batch. Demonstrate a second recipe as data only when it is a real accepted playable recipe, not filler created for a test.
 
@@ -112,11 +117,11 @@ Separately prove that its next world substrate can scale. These are independent
 release tracks with one Delivery owner and serial integration, not a map-size
 increase concealed inside a home update.
 
-| Outcome | Concrete exit | What that establishes |
-| --- | --- | --- |
-| Finish the active upstairs bedroom | Gather its actual materials, build legal stairs/floors, carry material up, build and sleep in the upstairs bed; block the sole approach; pause/reload an in-progress traversal/work state. Review actual floor picking and stairwell cutaway. | Shared topology, work positions, resource custody, interruption and save across levels. |
-| Publish a separate `/world-lab` | Generate a seeded large region overview, inspect it in the original isometric presentation, pan/jump across signed chunk coordinates, regenerate in another request order, and inspect generation/frame/residency measurements. Gameplay stays on the tiny clearing. | Deterministic terrain generation, coordinate/projection consistency and bounded generation/render work. |
-| Establish a real simulation performance baseline | Run the actual simulation, routes, claims and selected WASM optimizer with 5/25/50/100 actors under useful workloads. Record outcomes and phase costs separately from browser display costs. | Where population scaling actually costs time and memory; an evidence-based next optimization. |
+| Outcome                                          | Concrete exit                                                                                                                                                                                                                                                        | What that establishes                                                                                   |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Finish the active upstairs bedroom               | Gather its actual materials, build legal stairs/floors, carry material up, build and sleep in the upstairs bed; block the sole approach; pause/reload an in-progress traversal/work state. Review actual floor picking and stairwell cutaway.                        | Shared topology, work positions, resource custody, interruption and save across levels.                 |
+| Publish a separate `/world-lab`                  | Generate a seeded large region overview, inspect it in the original isometric presentation, pan/jump across signed chunk coordinates, regenerate in another request order, and inspect generation/frame/residency measurements. Gameplay stays on the tiny clearing. | Deterministic terrain generation, coordinate/projection consistency and bounded generation/render work. |
+| Establish a real simulation performance baseline | Run the actual simulation, routes, claims and selected WASM optimizer with 5/25/50/100 actors under useful workloads. Record outcomes and phase costs separately from browser display costs.                                                                         | Where population scaling actually costs time and memory; an evidence-based next optimization.           |
 
 These are the sprint's committed proof outcomes, not a calendar guarantee that
 all future foundations can be delivered in five days. Delivery estimates the
