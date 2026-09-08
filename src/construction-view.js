@@ -12,7 +12,10 @@ import {
   footprint,
   placementProblem,
   indoors,
+  constructionBuffer,
+  shelfContainer,
 } from "./construction.js";
+import { containerContents, embeddedQuantity } from "./materials.ts";
 export function dragCells(start, end) {
   if (!start) return [end];
   const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.z - start.z);
@@ -146,10 +149,8 @@ export function createConstructionView(world, art, bodies, input, picking) {
         );
       const cutawayCover =
         cutawayWall || (site.type === "roof" && selection.cutaway && finished);
-      const stored = state.herbBundles.some(
-        (bundle) =>
-          bundle.location.kind === "stored" && bundle.location.site === site.id,
-      );
+      const stored = containerContents(state.materials, shelfContainer(site.id).id).some((lot) => lot.material === "mugwort");
+      const delivered = embeddedQuantity(state.materials, constructionBuffer(site).id, "wood");
       const stage = finished
         ? site.type === "shelf" && stored
           ? "filled"
@@ -188,16 +189,16 @@ export function createConstructionView(world, art, bodies, input, picking) {
           : 0.24
         : finished
           ? 1
-          : site.delivered
+          : delivered
             ? 0.85
             : 0.42;
-      view.tint = finished || site.delivered ? 0xffffff : 0xc6e9dd;
+      view.tint = finished || delivered ? 0xffffff : 0xc6e9dd;
       if (cutawayWall) view.alpha = 0.28;
       if (site.type === "roof" && selection.cutaway)
         view.alpha = finished ? 0.12 : 0.24;
       if (!finished) {
         for (const cell of footprint(site))
-          tile(grid, cell, site.delivered ? 0xdfc486 : 0x9ccbc1, 0.12);
+          tile(grid, cell, delivered ? 0xdfc486 : 0x9ccbc1, 0.12);
         bars.rect(at.x - 10, at.y + 7, 20, 3).fill(0x21362e);
         bars
           .rect(

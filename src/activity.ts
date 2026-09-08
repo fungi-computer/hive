@@ -1,55 +1,33 @@
-import type {
-  Activity,
-  Actor,
-  BuildActivity,
-  ChopActivity,
-  Clearing,
-  DeconstructActivity,
-  DeliverActivity,
-  HarvestActivity,
-  PickupActivity,
-  PickupHerbActivity,
-  SleepActivity,
-  SowActivity,
-  Site,
-  StoreHerbActivity,
-} from "./model.ts";
+import type { Activity, Actor, Cell, Clearing } from "./model.ts";
 import { blockedCells, sameCell } from "./world.js";
 import { walk, face } from "./movement.js";
 import {
   BUILDINGS,
+  constructionBuffer,
   removalProblem,
+  resolveMaterialDestination,
+  shelfContainer,
   shelteredBeds,
   workPosition,
 } from "./construction.js";
-import { dropWood, dropCarried } from "./resources.ts";
+import {
+  createGroundLot,
+  deliverTransfer,
+  embedConstruction,
+  interruptTransfer,
+  pickupTransfer,
+  releaseContainer,
+  salvageConstruction,
+  transferForActor,
+} from "./materials.ts";
 import { isNight } from "./routine.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
-
 export const CHOP_TICKS = 80;
-
-function dropHerbStorage(state: Clearing, person: Actor): void {
-  const claim = state.herbStorageClaims[person.id];
-  if (!claim) return;
-  const bundle = state.herbBundles.find(
-    (candidate) => candidate.id === claim.bundle,
-  );
-  if (
-    bundle?.location.kind === "carried" &&
-    bundle.location.actor === person.id
-  )
-    bundle.location = {
-      kind: "ground",
-      x: person.x,
-      z: person.z,
-      level: person.level,
-    };
-  delete state.herbStorageClaims[person.id];
+function groundCell(at: Cell): Cell {
+  return { x: at.x, z: at.z, level: at.level };
 }
-
-export function finishActivity(state: Clearing, person: Actor): void {
-  delete state.claims[person.id];
-  Object.assign(person, {
+export function finishActivity(state: Clearing, p: Actor): void {
+  Object.assign(p, {
     mode: "idle",
     task: null,
     assignment: null,
@@ -59,336 +37,217 @@ export function finishActivity(state: Clearing, person: Actor): void {
   });
   state.workDirty = true;
 }
-export function interruptWork(state: Clearing, person: Actor): void {
-  dropCarried(state, person);
-  dropHerbStorage(state, person);
-  finishActivity(state, person);
-}
-function finishJob(state: Clearing, person: Actor, job: string): void {
-  state.jobs = state.jobs.filter((j) => j.id !== job);
-  state.finishedJobs++;
-  finishActivity(state, person);
-}
-function transferWood(
-  state: Clearing,
-  person: Actor,
-  task: PickupActivity | DeliverActivity,
-): void {
-  if (task.kind === "pickup") {
-    const claim = state.claims[person.id];
-    const pile = state.piles.find((p) => p.id === claim?.pile);
-    const site = state.sites.find((s) => s.id === claim?.site);
-    if (
-      !claim ||
-      !pile ||
-      !site ||
-      claim.job !== task.job ||
-      pile.amount < claim.amount
-    ) {
-      interruptWork(state, person);
-      return;
-    }
-    pile.amount -= claim.amount;
-    person.cargo = { job: claim.job, site: claim.site, amount: claim.amount };
-    state.notice = `${person.name} has ${claim.amount} wood in hand. Taking it to the ${BUILDINGS[site.type].label.toLowerCase()}.`;
-  } else {
-    const cargo = person.cargo;
-    const site = state.sites.find((s) => s.id === cargo?.site);
-    if (
-      !cargo ||
-      !site ||
-      site.delivered + cargo.amount > BUILDINGS[site.type].wood
-    ) {
-      interruptWork(state, person);
-      return;
-    }
-    site.delivered += cargo.amount;
-    person.cargo = null;
-    state.notice = `${person.name} delivered the wood. Now the building can take shape.`;
-  }
-  finishActivity(state, person);
-}
-function transferHerb(
-  state: Clearing,
-  person: Actor,
-  task: PickupHerbActivity | StoreHerbActivity,
-): void {
-  const claim = state.herbStorageClaims[person.id];
-  const bundle = state.herbBundles.find(
-    (candidate) => candidate.id === claim?.bundle,
-  );
-  if (
-    !claim ||
-    !bundle ||
-    claim.job !== task.job ||
-    (task.kind === "pickup-herb"
-      ? bundle.location.kind !== "ground" ||
-        bundle.id !== task.target ||
-        claim.bundle !== task.target
-      : bundle.location.kind !== "carried" ||
-        bundle.location.actor !== person.id ||
-        claim.shelf !== task.target)
-  ) {
-    interruptWork(state, person);
-    return;
-  }
-  if (task.kind === "pickup-herb") {
-    bundle.location = { kind: "carried", actor: person.id };
-    state.notice = `${person.name} picked up the mugwort bundle.`;
-    delete state.claims[person.id];
-    Object.assign(person, {
-      mode: "idle",
-      task: null,
-      assignment: null,
-      path: [],
-      leg: 0,
-      work: 0,
-    });
-    state.workDirty = true;
-    return;
-  }
-  const shelf = state.sites.find((candidate) => candidate.id === claim.shelf);
-  const competingClaim = Object.entries(state.herbStorageClaims).some(
-    ([actorId, candidate]) =>
-      actorId !== person.id && candidate.shelf === claim.shelf,
-  );
-  const competingBundle = state.herbBundles.some(
-    (candidate) =>
-      candidate.id !== bundle.id &&
-      candidate.location.kind === "stored" &&
-      candidate.location.site === claim.shelf,
-  );
-  if (
-    !shelf ||
-    shelf.type !== "shelf" ||
-    shelf.finishedAt === null ||
-    competingClaim ||
-    competingBundle
-  ) {
-    interruptWork(state, person);
-    state.notice = `${person.name} could not store the mugwort bundle. The shelf changed; the order is waiting.`;
-    return;
-  }
-  bundle.location = { kind: "stored", site: claim.shelf };
-  delete state.herbStorageClaims[person.id];
-  state.notice = `${person.name} stored the mugwort bundle.`;
-  finishJob(state, person, task.job);
-}
-function workOnTree(state: Clearing, person: Actor, task: ChopActivity): void {
-  const tree = state.trees.find((t) => t.id === task.target)!;
-  person.work = ++tree.work;
-  if (tree.work < CHOP_TICKS) return;
-  tree.felledAt = state.tick;
-  dropWood(state, tree, 6);
-  state.felled++;
-  state.notice = `${person.name} felled an oak. Six wood on the ground, ready to carry.`;
-  finishJob(state, person, task.job);
-}
-function workOnBuilding(
-  state: Clearing,
-  person: Actor,
-  task: BuildActivity,
-): void {
-  const site = state.sites.find((s) => s.id === task.target)!;
-  person.work = ++site.work;
-  if (site.work < BUILDINGS[site.type].ticks) return;
-  site.finishedAt = state.tick;
-  state.notice = `${BUILDINGS[site.type].label} finished. A little less wilderness.`;
-  finishJob(state, person, task.job);
-}
-function workOnDeconstruction(
-  state: Clearing,
-  person: Actor,
-  task: DeconstructActivity,
-): void {
-  const site = state.sites.find((candidate) => candidate.id === task.target);
-  if (!site || site.finishedAt === null) {
-    interruptWork(state, person);
-    return;
-  }
-  person.work++;
-  if (person.work < BUILDINGS[site.type].deconstructTicks) return;
-
-  const problem = removalProblem(state, site, person);
-  if (problem) {
-    interruptWork(state, person);
-    state.notice = `${person.name} cannot finish deconstruction. ${problem}.`;
-    return;
-  }
-  const prospectiveSites = state.sites.filter(
-    (candidate) => candidate.id !== site.id,
-  );
-  const prospectiveState = { ...state, sites: prospectiveSites };
-  const salvageCell =
-    site.type === "floor"
-      ? { x: person.x, z: person.z, level: person.level }
-      : { x: site.x, z: site.z, level: site.level };
-  const beds = new Set(
-    shelteredBeds(prospectiveState).map((bed: Site) => bed.id),
-  );
-  for (const sleeper of Object.values(state.actors)) {
-    if (sleeper.task?.kind !== "sleep") continue;
-    if (sleeper.task.target === site.id || !beds.has(sleeper.task.target))
-      interruptWork(state, sleeper);
-  }
-
-  const recipe = BUILDINGS[site.type];
-  for (const [actorId, claim] of Object.entries(state.herbStorageClaims))
-    if (claim.shelf === site.id) interruptWork(state, state.actors[actorId]);
-  for (const bundle of state.herbBundles)
-    if (bundle.location.kind === "stored" && bundle.location.site === site.id)
-      bundle.location = {
-        kind: "ground",
-        x: site.x,
-        z: site.z,
-        level: site.level,
-      };
-  state.jobs = state.jobs.filter(
-    (job) => !(job.kind === "store-herb" && job.shelf === site.id),
-  );
-  state.sites = prospectiveSites;
-  finishJob(state, person, task.job);
-  dropWood(state, salvageCell, recipe.salvageWood);
-  state.consumedWood += recipe.wood - recipe.salvageWood;
-  state.notice = `${recipe.label} deconstructed. ${recipe.salvageWood} wood recovered.`;
-}
-function workOnHerb(
-  state: Clearing,
-  person: Actor,
-  task: SowActivity | HarvestActivity,
-): void {
-  const herb = state.herbs.find((candidate) => candidate.id === task.target);
-  const expected = task.kind === "sow" ? "ordered" : "ready";
-  if (!herb || herb.stage !== expected) {
-    interruptWork(state, person);
-    return;
-  }
-  const limit = task.kind === "sow" ? SOW_TICKS : HARVEST_TICKS;
-  person.work = ++herb.work;
-  if (person.work < limit) return;
-  if (task.kind === "sow") {
-    herb.stage = "planted";
-    herb.work = 0;
-    herb.plantedAt = state.tick;
-    state.notice = "Mugwort planted. It will grow on fixed ticks.";
-    finishJob(state, person, task.job);
-    return;
-  }
-  state.herbs = state.herbs.filter((candidate) => candidate.id !== herb.id);
-  state.herbBundles.push({
-    id: `herb-bundle-${state.nextId++}`,
-    kind: "mugwort",
-    amount: 1,
-    location: {
-      kind: "ground",
-      x: herb.x,
-      z: herb.z,
-      level: herb.level,
-    },
+export function interruptWork(state: Clearing, p: Actor): void {
+  const r = interruptTransfer(state.materials, p.id, {
+    cell: { x: p.x, z: p.z, level: p.level },
+    legal: true,
   });
-  state.harvestedHerbs++;
-  state.notice = "Mugwort harvested. One bundle is on the ground.";
-  finishJob(state, person, task.job);
+  if (!r.ok) throw new Error(r.reason);
+  finishActivity(state, p);
 }
-function rest(state: Clearing, person: Actor, task: SleepActivity): void {
-  person.work++;
-  person.rest = Math.min(100, person.rest + 0.3);
-  if (person.rest < 95) return;
-  if (state.jobs.find((j) => j.id === task.job)?.routine && isNight(state))
+function finishJob(s: Clearing, p: Actor, id: string) {
+  s.jobs = s.jobs.filter((j) => j.id !== id);
+  s.finishedJobs++;
+  finishActivity(s, p);
+}
+function siteFor(s: Clearing, id: string) {
+  return resolveMaterialDestination(s.sites, id)?.site;
+}
+function transfer(s: Clearing, p: Actor, t: Activity) {
+  const x = s.materials.transfers.find((x) => x.id === t.target);
+  if (!x) {
+    interruptWork(s, p);
     return;
-  state.rested++;
-  state.notice = `${person.name} is rested and ready for the next order.`;
-  finishJob(state, person, task.job);
-}
-function targetFor(state: Clearing, task: Activity) {
-  switch (task.kind) {
-    case "chop":
-      return state.trees.find((tree) => tree.id === task.target);
-    case "pickup":
-      return state.piles.find((pile) => pile.id === task.target);
-    case "pickup-herb": {
-      const bundle = state.herbBundles.find(
-        (candidate) => candidate.id === task.target,
-      );
-      return bundle?.location.kind === "ground" ? bundle.location : undefined;
+  }
+  if (x.phase.kind === "reserved") {
+    const r = pickupTransfer(s.materials, x.id, {
+      sourceReachable: true,
+      destinationReachableWithPayload: true,
+    });
+    if (!r.ok) {
+      interruptWork(s, p);
+      return;
     }
-    case "build":
-    case "deliver":
-    case "sleep":
-    case "deconstruct":
-    case "store-herb":
-      return state.sites.find((site) => site.id === task.target);
-    case "sow":
-    case "harvest":
-      return state.herbs.find((herb) => herb.id === task.target);
-    default:
-      return assertNever(task);
+    s.notice = `${p.name} picked up ${r.value.material}.`;
+    finishActivity(s, p);
+    return;
+  }
+  const resolved = resolveMaterialDestination(s.sites, x.request.destination);
+  if (!resolved) {
+    interruptWork(s, p);
+    return;
+  }
+  const r = deliverTransfer(s.materials, x.id, resolved.destination, true);
+  if (!r.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  s.notice = `${p.name} delivered material.`;
+  if (x.owner.step === "shelf-store") finishJob(s, p, x.owner.job);
+  else finishActivity(s, p);
+}
+function build(s: Clearing, p: Actor, t: Activity) {
+  const site = s.sites.find((x) => x.id === t.target);
+  if (!site) {
+    interruptWork(s, p);
+    return;
+  }
+  if (++site.work < BUILDINGS[site.type].ticks) {
+    p.work = site.work;
+    return;
+  }
+  const r = embedConstruction(s.materials, constructionBuffer(site), "wood");
+  if (!r.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  site.finishedAt = s.tick;
+  s.notice = `${BUILDINGS[site.type].label} finished.`;
+  finishJob(s, p, t.job);
+}
+function deconstruct(s: Clearing, p: Actor, t: Activity) {
+  const site = s.sites.find((x) => x.id === t.target);
+  if (!site || removalProblem(s, site, p)) {
+    interruptWork(s, p);
+    return;
+  }
+  if (++p.work < BUILDINGS[site.type].deconstructTicks) return;
+  if (site.type === "shelf") {
+    const rel = releaseContainer(s.materials, shelfContainer(site.id), {
+      contentsDrop: { cell: groundCell(site), legal: true },
+      carriedDrops: Object.fromEntries(
+        Object.values(s.actors).map((a) => [
+          a.id,
+          { cell: { x: a.x, z: a.z, level: a.level }, legal: true },
+        ]),
+      ),
+    });
+    if (!rel.ok) {
+      interruptWork(s, p);
+      return;
+    }
+    const releasedJobs = new Set(rel.value.owners.map((owner) => owner.job));
+    for (const job of s.jobs)
+      if (
+        job.kind === "transfer" &&
+        job.destination === shelfContainer(site.id).id
+      )
+        releasedJobs.add(job.id);
+    for (const actor of Object.values(s.actors))
+      if (actor.task && releasedJobs.has(actor.task.job))
+        finishActivity(s, actor);
+    s.jobs = s.jobs.filter((job) => !releasedJobs.has(job.id));
+  }
+  const sal = salvageConstruction(
+    s.materials,
+    constructionBuffer(site),
+    BUILDINGS[site.type].salvageWood,
+    { cell: groundCell(site), legal: true },
+  );
+  if (!sal.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  s.sites = s.sites.filter((x) => x.id !== site.id);
+  finishJob(s, p, t.job);
+}
+function herb(s: Clearing, p: Actor, t: Activity) {
+  const h = s.herbs.find((x) => x.id === t.target);
+  if (!h) {
+    interruptWork(s, p);
+    return;
+  }
+  const sow = t.kind === "sow";
+  if (++h.work < (sow ? SOW_TICKS : HARVEST_TICKS)) return;
+  if (sow) {
+    h.stage = "planted";
+    h.work = 0;
+    h.plantedAt = s.tick;
+    finishJob(s, p, t.job);
+  } else {
+    s.herbs = s.herbs.filter((x) => x !== h);
+    const r = createGroundLot(
+      s.materials,
+      "mugwort",
+      1 as any,
+      groundCell(h),
+      `herb-bundle-${s.nextId++}`,
+    );
+    if (!r.ok) throw new Error(r.reason);
+    s.harvestedHerbs++;
+    finishJob(s, p, t.job);
   }
 }
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled activity kind: ${JSON.stringify(value)}`);
-}
-export function advanceWork(state: Clearing, person: Actor): void {
-  const task = person.task;
-  if (!task) return;
-  const target = targetFor(state, task);
-  if (!target || !state.jobs.some((job) => job.id === task.job)) {
-    interruptWork(state, person);
+export function advanceWork(s: Clearing, p: Actor): void {
+  const t = p.task;
+  if (!t) return;
+  const target =
+    t.kind === "transfer"
+      ? (() => {
+          const x = s.materials.transfers.find((x) => x.id === t.target);
+          if (!x) return;
+          const phase = x.phase;
+          if (phase.kind === "carrying")
+            return siteFor(s, x.request.destination);
+          const lot = s.materials.lots.find((l) => l.id === phase.sourceLot);
+          return lot?.location.kind === "ground" ? lot.location : undefined;
+        })()
+      : t.kind === "chop"
+        ? s.trees.find((x) => x.id === t.target)
+        : t.kind === "sow" || t.kind === "harvest"
+          ? s.herbs.find((x) => x.id === t.target)
+          : s.sites.find((x) => x.id === t.target);
+  if (!target || !s.jobs.some((j) => j.id === t.job)) {
+    interruptWork(s, p);
     return;
   }
-  if (person.mode === "walk") {
-    const result = walk(person, blockedCells(state), state);
-    if (result === "blocked") interruptWork(state, person);
-    if (result !== "arrived") return;
-    person.mode = task.kind;
-    face(person, target);
-    if (task.kind === "sleep" && "direction" in target)
-      person.dir = target.direction;
+  if (p.mode === "walk") {
+    const r = walk(p, blockedCells(s), s);
+    if (r === "blocked") interruptWork(s, p);
+    if (r !== "arrived") return;
+    p.mode = t.kind;
+    face(p, target);
     return;
   }
-  const onTarget =
-    task.kind === "pickup" ||
-    task.kind === "pickup-herb" ||
-    task.kind === "sleep";
-  const reachable = onTarget
-    ? sameCell(person, target)
-    : task.kind === "build" ||
-        task.kind === "deconstruct" ||
-        task.kind === "deliver"
-      ? workPosition(state, person, target, task.kind)
-      : person.level === target.level &&
-        Math.abs(person.x - target.x) + Math.abs(person.z - target.z) === 1;
-  if (!reachable) {
-    interruptWork(state, person);
+  const okay =
+    t.kind === "transfer" &&
+    s.materials.transfers.find((x) => x.id === t.target)?.phase.kind ===
+      "reserved"
+      ? sameCell(p, target)
+      : t.kind === "build" || t.kind === "deconstruct" || t.kind === "transfer"
+        ? workPosition(
+            s,
+            p,
+            target,
+            t.kind === "deconstruct" ? "deconstruct" : "build",
+          )
+        : t.kind === "sleep"
+          ? sameCell(p, target)
+          : Math.abs(p.x - target.x) + Math.abs(p.z - target.z) === 1 &&
+            p.level === target.level;
+  if (!okay) {
+    interruptWork(s, p);
     return;
   }
-  switch (task.kind) {
-    case "chop":
-      workOnTree(state, person, task);
-      break;
-    case "build":
-      workOnBuilding(state, person, task);
-      break;
-    case "deconstruct":
-      workOnDeconstruction(state, person, task);
-      break;
-    case "sow":
-    case "harvest":
-      workOnHerb(state, person, task);
-      break;
-    case "sleep":
-      rest(state, person, task);
-      break;
-    case "pickup":
-    case "deliver":
-      if (++person.work >= task.duration) transferWood(state, person, task);
-      break;
-    case "pickup-herb":
-    case "store-herb":
-      if (++person.work >= task.duration) transferHerb(state, person, task);
-      break;
-    default:
-      assertNever(task);
+  if (t.kind === "transfer") {
+    if (++p.work >= t.duration) transfer(s, p, t);
+  } else if (t.kind === "build") build(s, p, t);
+  else if (t.kind === "deconstruct") deconstruct(s, p, t);
+  else if (t.kind === "sow" || t.kind === "harvest") herb(s, p, t);
+  else if (t.kind === "chop") {
+    const tree = target as any;
+    if (++tree.work >= CHOP_TICKS) {
+      tree.felledAt = s.tick;
+      createGroundLot(s.materials, "wood", 6 as any, groundCell(tree));
+      s.felled++;
+      finishJob(s, p, t.job);
+    }
+  } else if (t.kind === "sleep") {
+    p.rest = Math.min(100, p.rest + 0.3);
+    if (
+      p.rest >= 95 &&
+      !(s.jobs.find((j) => j.id === t.job)?.routine && isNight(s))
+    )
+      finishJob(s, p, t.job);
   }
 }

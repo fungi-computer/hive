@@ -5,6 +5,7 @@ import {
   neighbors,
   SIZE,
   blockedCells,
+  groundLotsAt,
   placementOccupant,
   stairCells,
   stairHeadroom,
@@ -65,6 +66,42 @@ export const BUILDINGS = {
     salvageWood: 2,
   },
 };
+
+// Consumer-owned destination policies. Materials only validates this resolved
+// shape; it does not know construction or shelf content rules.
+/** @returns {import("./materials.ts").ContainerSpec} */
+export function constructionBuffer(site) {
+  return {
+    id: `construction-buffer:${site.id}`,
+    capacity: BUILDINGS[site.type].wood,
+    accepts: ["wood"],
+  };
+}
+
+/** @returns {import("./materials.ts").ContainerSpec} */
+export function shelfContainer(site) {
+  return {
+    id: `shelf:${typeof site === "string" ? site : site.id}`,
+    capacity: 1,
+    accepts: ["mugwort"],
+  };
+}
+
+// The construction consumer owns the only lifecycle-aware interpretation of a
+// material destination. Transfer mechanics receive this resolved record; they
+// never infer a destination from a structure type.
+export function resolveMaterialDestination(sites, id) {
+  const siteId = id.replace(/^(?:construction-buffer:|shelf:)/, "");
+  const site = sites.find((candidate) => candidate.id === siteId);
+  if (!site) return null;
+  const construction = constructionBuffer(site);
+  if (id === construction.id && site.finishedAt === null)
+    return { site, destination: construction };
+  const shelf = shelfContainer(site.id);
+  if (site.type === "shelf" && site.finishedAt !== null && id === shelf.id)
+    return { site, destination: shelf };
+  return null;
+}
 export function footprint(at) {
   if (at.type === "stair") return stairCells(at);
   const cells = [{ x: at.x, z: at.z, level: at.level ?? 0 }];
@@ -107,7 +144,7 @@ export function floorSupported(state, cell) {
     finishedSiteAt(state, lower, "wall")
   );
 }
-export function crossLevelSurfaceConflict(state, site) {
+function crossLevelSurfaceConflict(state, site) {
   const upperFloor = site.type === "floor" && site.level === 1;
   const lowerCover =
     site.level === 0 && (site.type === "roof" || site.type === "door");
@@ -125,7 +162,7 @@ export function crossLevelSurfaceConflict(state, site) {
 function upperSupported(state, cell) {
   return upperSurface(state, cell);
 }
-export function workPositions(state, site, operation = "build") {
+function workPositions(state, site, operation = "build") {
   if (
     site.type === "floor" &&
     site.level === 1 &&
@@ -182,7 +219,7 @@ export function workApproach(state, from, site, blocked, operation = "build") {
       )[0] ?? null
   );
 }
-export function coverAt(state, cell) {
+function coverAt(state, cell) {
   if (cell.level === 0)
     return state.sites.some(
       (site) =>
@@ -230,13 +267,7 @@ export function removalProblem(state, site, person = null) {
           (actor.level === 1 && sameCell(actor, surface)) ||
           actor.path.some((cell) => sameCell(cell, surface)),
       ) ||
-      state.piles.some((pile) => pile.level === 1 && sameCell(pile, surface)) ||
-      state.herbBundles.some(
-        (bundle) =>
-          bundle.location.kind === "ground" &&
-          bundle.location.level === 1 &&
-          sameCell(bundle.location, surface),
-      )
+      groundLotsAt(state, surface).some((lot) => lot.location.level === 1)
     )
       return "Waiting for the upper surface to clear";
     if (person && person.level === 1 && !upperSurface(prospectiveState, person))
@@ -251,16 +282,14 @@ export function removalProblem(state, site, person = null) {
         (actor) =>
           actor.level === 1 || actor.path.some((cell) => cell.level === 1),
       ) ||
-      state.piles.some((pile) => pile.amount > 0 && pile.level === 1) ||
-      state.herbBundles.some(
-        (bundle) =>
-          bundle.location.kind === "ground" && bundle.location.level === 1,
+      state.materials.lots.some(
+        (lot) => lot.location.kind === "ground" && lot.location.level === 1,
       ))
   )
     return "Waiting for upstairs structures and materials to clear";
   return null;
 }
-export function sitesConflict(left, right) {
+function sitesConflict(left, right) {
   if (
     !footprint(left).some((a) => footprint(right).some((b) => sameCell(a, b)))
   )
@@ -400,7 +429,7 @@ export function placementProblem(state, at) {
     return "Let the path clear before placing a wall here.";
   if (
     at.type === "wall" &&
-    state.piles.some((p) => p.amount && sameCell(p, at))
+    groundLotsAt(state, at).some((lot) => lot.material === "wood")
   )
     return "Wood is lying here. Use it before building over it.";
   return "";

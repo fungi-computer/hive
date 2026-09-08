@@ -22,16 +22,18 @@ export type ItemLot = {
 export type SourcePolicy =
   | { readonly kind: "eligible-ground"; readonly material: Material }
   | { readonly kind: "exact-lot"; readonly lot: LotId };
-export type TransferStep = "construction-materials" | "shelf-store";
 export type TransferRequest = {
   readonly source: SourcePolicy;
+  /** A whole request preserves one source lot; a portion may split it. */
+  readonly quantityPolicy: "whole-lot" | "portion";
   readonly quantity: PositiveInt;
   readonly destination: ContainerId;
 };
 export type Transfer = {
   readonly id: TransferId;
   readonly actor: ActorId;
-  readonly owner: { readonly job: JobId; readonly step: TransferStep };
+  /** Consumer-defined opaque identity; the material kernel never branches on it. */
+  readonly owner: { readonly job: JobId; readonly step: string };
   readonly request: TransferRequest;
   phase:
     | {
@@ -54,7 +56,6 @@ export type MaterialsState = {
   consumedWood: number;
 };
 export type HerbId = string;
-export type HerbBundleId = string;
 export type Cell = { x: number; z: number; level: number };
 export type BuildingKind =
   "wall" | "door" | "roof" | "bed" | "shelf" | "floor" | "stair";
@@ -70,13 +71,7 @@ export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "harvest"; herb: HerbId }
     | { kind: "rest" }
   );
-export type StoreHerbCommand = {
-  kind: "store-herb";
-  party: PartyId;
-  actors: null;
-  bundle: HerbBundleId;
-  shelf: string;
-};
+export type StoreHerbCommand = { kind: "store-herb"; party: PartyId; actors: null; bundle: LotId; shelf: string };
 export type Command =
   | WorkCommand
   | StoreHerbCommand
@@ -99,11 +94,7 @@ export type BuildJob = JobBase & { kind: "build"; target: string };
 export type DeconstructJob = JobBase & { kind: "deconstruct"; target: string };
 export type SowJob = JobBase & { kind: "sow"; target: HerbId };
 export type HarvestJob = JobBase & { kind: "harvest"; target: HerbId };
-export type StoreHerbJob = JobBase & {
-  kind: "store-herb";
-  bundle: HerbBundleId;
-  shelf: string;
-};
+export type TransferJob = JobBase & { kind: "transfer"; source: LotId; destination: ContainerId };
 export type RestJob = JobBase & { kind: "rest"; target: ActorId };
 export type Job =
   | ChopJob
@@ -111,7 +102,7 @@ export type Job =
   | DeconstructJob
   | SowJob
   | HarvestJob
-  | StoreHerbJob
+  | TransferJob
   | RestJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
@@ -124,10 +115,7 @@ export type BuildActivity = ActivityBase & { kind: "build" };
 export type DeconstructActivity = ActivityBase & { kind: "deconstruct" };
 export type SowActivity = ActivityBase & { kind: "sow" };
 export type HarvestActivity = ActivityBase & { kind: "harvest" };
-export type PickupActivity = ActivityBase & { kind: "pickup" };
-export type DeliverActivity = ActivityBase & { kind: "deliver" };
-export type PickupHerbActivity = ActivityBase & { kind: "pickup-herb" };
-export type StoreHerbActivity = ActivityBase & { kind: "store-herb" };
+export type TransferActivity = ActivityBase & { kind: "transfer" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
 export type Activity =
   | ChopActivity
@@ -135,10 +123,7 @@ export type Activity =
   | DeconstructActivity
   | SowActivity
   | HarvestActivity
-  | PickupActivity
-  | DeliverActivity
-  | PickupHerbActivity
-  | StoreHerbActivity
+  | TransferActivity
   | SleepActivity;
 export type Body = Cell & {
   dir: number;
@@ -157,20 +142,6 @@ export type Actor = Body & {
   allowedWork: AllowedWork;
   task: Activity | null;
   assignment: Assignment | null;
-  cargo: { job: JobId; site: string; amount: number } | null;
-};
-// A claim promises stock; it is never included in physical material totals.
-// After pickup, actor cargo alone owns both wood and its delivery obligation.
-export type WoodClaim = {
-  job: JobId;
-  pile: string;
-  site: string;
-  amount: number;
-};
-export type HerbStorageClaim = {
-  job: JobId;
-  bundle: HerbBundleId;
-  shelf: string;
 };
 export type Tree = Cell & { id: string; work: number; felledAt: number | null };
 export type HerbStage = "ordered" | "planted" | "growing" | "ready";
@@ -181,25 +152,13 @@ export type Herb = Cell & {
   work: number;
   plantedAt: number | null;
 };
-export type HerbBundleLocation =
-  | ({ kind: "ground" } & Cell)
-  | { kind: "carried"; actor: ActorId }
-  | { kind: "stored"; site: string };
-export type HerbBundle = {
-  id: HerbBundleId;
-  kind: "mugwort";
-  amount: 1;
-  location: HerbBundleLocation;
-};
 export type Site = Cell & {
   id: string;
   type: BuildingKind;
   direction: number;
-  delivered: number;
   work: number;
   finishedAt: number | null;
 };
-export type Pile = Cell & { id: string; amount: number };
 export type StoryEvent = {
   kind: string;
   name: string;
@@ -216,21 +175,17 @@ export type Clearing = {
   cat: Body & { nextMove: number };
   trees: Tree[];
   herbs: Herb[];
-  herbBundles: HerbBundle[];
+  materials: MaterialsState;
   rocks: Cell[];
   watcher: Cell;
-  piles: Pile[];
   sites: Site[];
   // This ordered array remains the sole job store. Priority is its order; an
   // additional mutable status/index store would add no needed behavior here.
   jobs: Job[];
-  claims: Record<ActorId, WoodClaim>;
-  herbStorageClaims: Record<ActorId, HerbStorageClaim>;
   workDirty: boolean;
   felled: number;
   finishedJobs: number;
   rested: number;
-  consumedWood: number;
   harvestedHerbs: number;
   commands: (Command & { tick: number })[];
   feed: {

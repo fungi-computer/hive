@@ -1,177 +1,102 @@
 import { openDB } from "idb";
 import { z } from "zod";
-import type { Clearing } from "./model.ts";
-import {
-  cellKey,
-  inside,
-  placementOccupant,
-  sameCell,
-  stairCells,
-  stairHeadroom,
-  stairLanding,
-  topologyNeighbors,
-  upperSurface,
-} from "./world.js";
-import { CHOP_TICKS } from "./activity.ts";
-import { edgeTicks } from "./movement.js";
+import type { Clearing, Job, PositiveInt } from "./model.ts";
+import { inside } from "./world.js";
 import {
   BUILDINGS,
-  crossLevelSurfaceConflict,
+  constructionBuffer,
   floorSupported,
   footprint,
-  sitesConflict,
+  resolveMaterialDestination,
+  roofSupported,
+  shelfContainer,
 } from "./construction.js";
-import { HARVEST_TICKS, SOW_TICKS, mugwortStage } from "./herbs.ts";
+import type { ContainerSpec } from "./materials.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 6 as const;
-const SAVE_SCHEMA_V1 = 1 as const;
-const SAVE_SCHEMA_V2 = 2 as const;
-const SAVE_SCHEMA_V3 = 3 as const;
-const SAVE_SCHEMA_V4 = 4 as const;
-const SAVE_SCHEMA_V5 = 5 as const;
+const SAVE_SCHEMA = 7 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
-
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
-const positive = integer.min(1);
+const nonNegativeScalar = finite.min(0);
+const positive = integer
+  .min(1)
+  .transform((value): PositiveInt => value as PositiveInt);
 const id = z.string().min(1);
-const cellSchema = z
-  .object({ x: integer, z: integer, level: integer })
-  .strict();
-const allowedWorkSchemaV3 = z
-  .object({ chop: z.boolean(), haul: z.boolean(), build: z.boolean() })
-  .strict();
-const allowedWorkSchema = allowedWorkSchemaV3
-  .extend({ garden: z.boolean() })
-  .strict();
-const scopeSchema = z
+const cell = z.object({ x: integer, z: integer, level: integer }).strict();
+const scope = z
   .object({ party: id, actors: z.array(id).min(1).nullable() })
   .strict();
-
-const activityBase = {
-  job: id,
-  target: id,
-  duration: positive,
-};
-const chopActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("chop") })
-  .strict();
-const buildActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("build") })
-  .strict();
-const pickupActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("pickup") })
-  .strict();
-const deliverActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("deliver") })
-  .strict();
-const sleepActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("sleep") })
-  .strict();
-const deconstructActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("deconstruct") })
-  .strict();
-const pickupHerbActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("pickup-herb") })
-  .strict();
-const storeHerbActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("store-herb") })
-  .strict();
-const activitySchemaV1 = z.discriminatedUnion("kind", [
-  chopActivitySchema,
-  buildActivitySchema,
-  pickupActivitySchema,
-  deliverActivitySchema,
-  sleepActivitySchema,
-]);
-const activitySchemaV2 = z.discriminatedUnion("kind", [
-  chopActivitySchema,
-  buildActivitySchema,
-  pickupActivitySchema,
-  deliverActivitySchema,
-  sleepActivitySchema,
-  deconstructActivitySchema,
-]);
-const sowActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("sow") })
-  .strict();
-const harvestActivitySchema = z
-  .object({ ...activityBase, kind: z.literal("harvest") })
-  .strict();
-const activitySchemaV4 = z.discriminatedUnion("kind", [
-  chopActivitySchema,
-  buildActivitySchema,
-  pickupActivitySchema,
-  deliverActivitySchema,
-  sleepActivitySchema,
-  deconstructActivitySchema,
-  sowActivitySchema,
-  harvestActivitySchema,
-]);
-const activitySchema = z.discriminatedUnion("kind", [
-  chopActivitySchema,
-  buildActivitySchema,
-  pickupActivitySchema,
-  deliverActivitySchema,
-  sleepActivitySchema,
-  deconstructActivitySchema,
-  sowActivitySchema,
-  harvestActivitySchema,
-  pickupHerbActivitySchema,
-  storeHerbActivitySchema,
-]);
-
-const assignmentSchema = z
-  .object({ character: id, task: id, cost: finite })
-  .strict();
-const cargoSchema = z
-  .object({ job: id, site: id, amount: positive.max(2) })
-  .strict();
-const bodyFields = {
-  x: integer,
-  z: integer,
-  level: integer,
-  dir: integer.min(0).max(3),
-  path: z.array(cellSchema),
-  leg: nonNegative,
-  work: nonNegative,
-};
-const bodySchemaV1 = z
+const allowedWork = z
   .object({
-    ...bodyFields,
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "pickup",
-      "deliver",
-      "sleep",
-    ]),
+    chop: z.boolean(),
+    haul: z.boolean(),
+    build: z.boolean(),
+    garden: z.boolean(),
   })
   .strict();
-const bodySchemaV2 = z
-  .object({
-    ...bodyFields,
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "deconstruct",
-      "pickup",
-      "deliver",
-      "sleep",
-    ]),
-  })
-  .strict();
-const bodySchema = z
-  .object({
-    ...bodyFields,
+const activity = z.discriminatedUnion("kind", [
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("chop"),
+    })
+    .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("build"),
+    })
+    .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("deconstruct"),
+    })
+    .strict(),
+  z
+    .object({ job: id, target: id, duration: positive, kind: z.literal("sow") })
+    .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("harvest"),
+    })
+    .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("transfer"),
+    })
+    .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("sleep"),
+    })
+    .strict(),
+]);
+const actor = cell
+  .extend({
+    id,
+    name: z.string(),
+    figure: z.string(),
+    dir: integer,
     mode: z.enum([
       "idle",
       "walk",
@@ -180,109 +105,96 @@ const bodySchema = z
       "deconstruct",
       "sow",
       "harvest",
-      "pickup-herb",
-      "store-herb",
-      "pickup",
-      "deliver",
+      "transfer",
       "sleep",
     ]),
+    path: z.array(cell),
+    leg: nonNegative,
+    work: nonNegative,
+    drafted: z.boolean(),
+    rest: nonNegativeScalar,
+    routine: z.boolean(),
+    allowedWork,
+    task: activity.nullable(),
+    assignment: z
+      .object({ character: id, task: id, cost: finite })
+      .strict()
+      .nullable(),
   })
   .strict();
-const bodySchemaV4 = z
+const jobBase = { id, scope, reason: z.string(), routine: z.boolean() };
+const job = z.discriminatedUnion("kind", [
+  z.object({ ...jobBase, kind: z.literal("chop"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("build"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("deconstruct"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("sow"), target: id }).strict(),
+  z.object({ ...jobBase, kind: z.literal("harvest"), target: id }).strict(),
+  z
+    .object({
+      ...jobBase,
+      kind: z.literal("transfer"),
+      source: id,
+      destination: id,
+    })
+    .strict(),
+  z.object({ ...jobBase, kind: z.literal("rest"), target: id }).strict(),
+]);
+const lot = z
   .object({
-    ...bodyFields,
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "deconstruct",
-      "sow",
-      "harvest",
-      "pickup",
-      "deliver",
-      "sleep",
+    id,
+    material: z.enum(["wood", "mugwort"]),
+    quantity: positive,
+    location: z.discriminatedUnion("kind", [
+      cell.extend({ kind: z.literal("ground") }).strict(),
+      z.object({ kind: z.literal("hand"), actor: id }).strict(),
+      z.object({ kind: z.literal("container"), container: id }).strict(),
     ]),
   })
   .strict();
-const actorFieldsV3 = {
-  id,
-  name: z.string(),
-  figure: z.string(),
-  rest: finite.min(0).max(100),
-  routine: z.boolean(),
-  allowedWork: allowedWorkSchemaV3,
-  assignment: assignmentSchema.nullable(),
-  cargo: cargoSchema.nullable(),
-};
-const actorSchemaV1 = bodySchemaV1
-  .extend({ ...actorFieldsV3, task: activitySchemaV1.nullable() })
-  .strict();
-const actorSchemaV2 = bodySchemaV2
-  .extend({ ...actorFieldsV3, task: activitySchemaV2.nullable() })
-  .strict();
-const actorSchemaV3 = bodySchemaV2
-  .extend({
-    ...actorFieldsV3,
-    drafted: z.boolean(),
-    task: activitySchemaV2.nullable(),
+const request = z
+  .object({
+    source: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("eligible-ground"),
+          material: z.enum(["wood", "mugwort"]),
+        })
+        .strict(),
+      z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
+    ]),
+    quantityPolicy: z.enum(["whole-lot", "portion"]),
+    quantity: positive,
+    destination: id,
   })
   .strict();
-const actorSchemaV4 = bodySchemaV4
-  .extend({
-    ...actorFieldsV3,
-    allowedWork: allowedWorkSchema,
-    drafted: z.boolean(),
-    task: activitySchemaV4.nullable(),
-  })
-  .strict();
-const actorSchema = bodySchema
-  .extend({
-    ...actorFieldsV3,
-    allowedWork: allowedWorkSchema,
-    drafted: z.boolean(),
-    task: activitySchema.nullable(),
-  })
-  .strict();
-const partySchema = z.object({ id, members: z.array(id) }).strict();
-const treeSchema = cellSchema
-  .extend({ id, work: nonNegative, felledAt: nonNegative.nullable() })
-  .strict();
-const siteSchemaV4 = cellSchema
-  .extend({
+const transfer = z
+  .object({
     id,
-    type: z.enum(["wall", "door", "roof", "bed"]),
-    direction: integer.min(0).max(1),
-    delivered: nonNegative,
-    work: nonNegative,
-    finishedAt: nonNegative.nullable(),
+    actor: id,
+    owner: z.object({ job: id, step: z.string().min(1) }).strict(),
+    request,
+    phase: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("reserved"),
+          sourceLot: id,
+          quantity: positive,
+        })
+        .strict(),
+      z.object({ kind: z.literal("carrying"), lot: id }).strict(),
+    ]),
   })
   .strict();
-const siteSchema = cellSchema
-  .extend({
-    id,
-    type: z.enum(["wall", "door", "roof", "bed", "shelf"]),
-    direction: integer.min(0).max(1),
-    delivered: nonNegative,
-    work: nonNegative,
-    finishedAt: nonNegative.nullable(),
-  })
-  .strict();
-const siteSchemaV6 = cellSchema
+const site = cell
   .extend({
     id,
     type: z.enum(["wall", "door", "roof", "bed", "shelf", "floor", "stair"]),
-    direction: integer.min(0).max(1),
-    delivered: nonNegative,
+    direction: z.union([z.literal(0), z.literal(1)]),
     work: nonNegative,
     finishedAt: nonNegative.nullable(),
   })
   .strict();
-const pileSchema = cellSchema.extend({ id, amount: nonNegative }).strict();
-const claimSchema = z
-  .object({ job: id, pile: id, site: id, amount: positive.max(2) })
-  .strict();
-const eventSchema = z
+const event = z
   .object({
     kind: z.string(),
     name: z.string(),
@@ -290,1503 +202,536 @@ const eventSchema = z
     text: z.string(),
   })
   .strict();
-const herbSchema = cellSchema
-  .extend({
-    id,
-    kind: z.literal("mugwort"),
-    stage: z.enum(["ordered", "planted", "growing", "ready"]),
-    work: nonNegative,
-    plantedAt: nonNegative.nullable(),
-  })
-  .strict();
-const herbBundleSchemaV4 = cellSchema
-  .extend({ id, kind: z.literal("mugwort"), amount: z.literal(1) })
-  .strict();
-const herbGroundLocationSchema = cellSchema
-  .extend({ kind: z.literal("ground") })
-  .strict();
-const herbBundleLocationSchema = z.discriminatedUnion("kind", [
-  herbGroundLocationSchema,
-  z.object({ kind: z.literal("carried"), actor: id }).strict(),
-  z.object({ kind: z.literal("stored"), site: id }).strict(),
-]);
-const herbBundleSchema = z
+const stateSchema = z
   .object({
-    id,
-    kind: z.literal("mugwort"),
-    amount: z.literal(1),
-    location: herbBundleLocationSchema,
+    seed: finite,
+    tick: nonNegative,
+    paused: z.boolean(),
+    nextId: nonNegative,
+    actors: z.record(id, actor),
+    parties: z.record(id, z.object({ id, members: z.array(id) }).strict()),
+    cat: cell
+      .extend({
+        dir: integer,
+        mode: z.enum(["idle", "walk", "sleep"]),
+        path: z.array(cell),
+        leg: nonNegative,
+        work: nonNegative,
+        nextMove: nonNegative,
+      })
+      .strict(),
+    trees: z.array(
+      cell
+        .extend({ id, work: nonNegative, felledAt: nonNegative.nullable() })
+        .strict(),
+    ),
+    herbs: z.array(
+      cell
+        .extend({
+          id,
+          kind: z.literal("mugwort"),
+          stage: z.enum(["ordered", "planted", "growing", "ready"]),
+          work: nonNegative,
+          plantedAt: nonNegative.nullable(),
+        })
+        .strict(),
+    ),
+    materials: z
+      .object({
+        lots: z.array(lot),
+        transfers: z.array(transfer),
+        embedded: z.array(
+          z
+            .object({
+              container: id,
+              material: z.enum(["wood", "mugwort"]),
+              quantity: positive,
+            })
+            .strict(),
+        ),
+        nextLotId: nonNegative,
+        consumedWood: nonNegative,
+      })
+      .strict(),
+    rocks: z.array(cell),
+    watcher: cell,
+    sites: z.array(site),
+    jobs: z.array(job),
+    workDirty: z.boolean(),
+    felled: nonNegative,
+    finishedJobs: nonNegative,
+    rested: nonNegative,
+    harvestedHerbs: nonNegative,
+    feed: z
+      .object({
+        seed: finite,
+        sequence: nonNegative,
+        nextAt: nonNegative,
+        last: event.nullable(),
+      })
+      .strict(),
+    demand: event.nullable(),
+    notice: z.string(),
   })
   .strict();
-const herbStorageClaimSchema = z
-  .object({ job: id, bundle: id, shelf: id })
-  .strict();
-
-const jobBase = {
-  id,
-  scope: scopeSchema,
-  reason: z.string(),
-  routine: z.boolean(),
-};
-const chopJobSchema = z
-  .object({ ...jobBase, kind: z.literal("chop"), target: id })
-  .strict();
-const buildJobSchema = z
-  .object({ ...jobBase, kind: z.literal("build"), target: id })
-  .strict();
-const deconstructJobSchema = z
-  .object({ ...jobBase, kind: z.literal("deconstruct"), target: id })
-  .strict();
-const sowJobSchema = z
-  .object({ ...jobBase, kind: z.literal("sow"), target: id })
-  .strict();
-const harvestJobSchema = z
-  .object({ ...jobBase, kind: z.literal("harvest"), target: id })
-  .strict();
-const storeHerbJobSchema = z
-  .object({ ...jobBase, kind: z.literal("store-herb"), bundle: id, shelf: id })
-  .strict();
-const restJobSchema = z
-  .object({ ...jobBase, kind: z.literal("rest"), target: id })
-  .strict();
-const jobSchemaV1 = z.discriminatedUnion("kind", [
-  chopJobSchema,
-  buildJobSchema,
-  restJobSchema,
-]);
-const jobSchemaV3 = z.discriminatedUnion("kind", [
-  chopJobSchema,
-  buildJobSchema,
-  deconstructJobSchema,
-  restJobSchema,
-]);
-const jobSchema = z.discriminatedUnion("kind", [
-  chopJobSchema,
-  buildJobSchema,
-  deconstructJobSchema,
-  sowJobSchema,
-  harvestJobSchema,
-  storeHerbJobSchema,
-  restJobSchema,
-]);
-const jobSchemaV4 = z.discriminatedUnion("kind", [
-  chopJobSchema,
-  buildJobSchema,
-  deconstructJobSchema,
-  sowJobSchema,
-  harvestJobSchema,
-  restJobSchema,
-]);
-
-const workCommandSchema = z
-  .object({
-    party: id,
-    actors: z.array(id).min(1).nullable(),
-    direct: z.boolean().optional(),
-  })
-  .strict();
-const chopCommandSchema = workCommandSchema
-  .extend({ kind: z.literal("chop"), tree: id })
-  .strict();
-const buildCommandSchema = workCommandSchema
-  .extend({
-    kind: z.literal("build"),
-    type: z.enum(["wall", "door", "roof", "bed"]),
-    direction: integer,
-    x: integer,
-    z: integer,
-    level: integer,
-  })
-  .strict();
-const buildCommandSchemaV5 = buildCommandSchema
-  .extend({ type: z.enum(["wall", "door", "roof", "bed", "shelf"]) })
-  .strict();
-const buildCommandSchemaV6 = buildCommandSchema
-  .extend({
-    type: z.enum(["wall", "door", "roof", "bed", "shelf", "floor", "stair"]),
-  })
-  .strict();
-const deconstructCommandSchema = workCommandSchema
-  .extend({ kind: z.literal("deconstruct"), site: id })
-  .strict();
-const sowCommandSchema = workCommandSchema
-  .extend({ kind: z.literal("sow"), x: integer, z: integer, level: integer })
-  .strict();
-const harvestCommandSchema = workCommandSchema
-  .extend({ kind: z.literal("harvest"), herb: id })
-  .strict();
-const storeHerbCommandSchema = z
-  .object({
-    kind: z.literal("store-herb"),
-    party: id,
-    actors: z.null(),
-    bundle: id,
-    shelf: id,
-  })
-  .strict();
-const restCommandSchema = workCommandSchema
-  .extend({ kind: z.literal("rest") })
-  .strict();
-const queueCommandSchema = z
-  .object({
-    party: id,
-    actors: z.array(id).min(1).nullable(),
-    kind: z.enum(["cancel", "next"]),
-    job: id,
-  })
-  .strict();
-const routineCommandSchema = z
-  .object({
-    party: id,
-    actors: z.array(id).min(1).nullable(),
-    kind: z.literal("routine"),
-    enabled: z.boolean(),
-  })
-  .strict();
-const workCommandSchemaWithToggleV3 = z
-  .object({
-    party: id,
-    actors: z.array(id).min(1).nullable(),
-    kind: z.literal("work"),
-    work: z.enum(["chop", "haul", "build"]),
-    enabled: z.boolean(),
-  })
-  .strict();
-const workCommandSchemaWithToggleV4 = workCommandSchemaWithToggleV3
-  .extend({ work: z.enum(["chop", "haul", "build", "garden"]) })
-  .strict();
-const recruitCommandSchema = z
-  .object({ kind: z.literal("recruit"), party: id, actor: id })
-  .strict();
-const commandSchemasV1 = [
-  chopCommandSchema,
-  buildCommandSchema,
-  restCommandSchema,
-  queueCommandSchema,
-  routineCommandSchema,
-  workCommandSchemaWithToggleV3,
-  recruitCommandSchema,
-] as const;
-const commandSchemaV1 = z.union(commandSchemasV1);
-const commandSchemasV2 = [
-  chopCommandSchema,
-  buildCommandSchema,
-  deconstructCommandSchema,
-  restCommandSchema,
-  queueCommandSchema,
-  routineCommandSchema,
-  workCommandSchemaWithToggleV3,
-  recruitCommandSchema,
-] as const;
-const commandSchemaV2 = z.union(commandSchemasV2);
-const draftCommandSchema = z
-  .object({ kind: z.enum(["draft", "undraft"]), party: id, actor: id })
-  .strict();
-const goCommandSchema = z
-  .object({ kind: z.literal("go"), party: id, actor: id, target: cellSchema })
-  .strict();
-const commandSchemasV3 = [
-  chopCommandSchema,
-  buildCommandSchema,
-  deconstructCommandSchema,
-  restCommandSchema,
-  queueCommandSchema,
-  routineCommandSchema,
-  workCommandSchemaWithToggleV3,
-  recruitCommandSchema,
-  draftCommandSchema,
-  goCommandSchema,
-] as const;
-const commandSchemaV3 = z.union(commandSchemasV3);
-const commandSchemaV4 = z.union([
-  chopCommandSchema,
-  buildCommandSchema,
-  deconstructCommandSchema,
-  restCommandSchema,
-  queueCommandSchema,
-  routineCommandSchema,
-  workCommandSchemaWithToggleV4,
-  recruitCommandSchema,
-  draftCommandSchema,
-  goCommandSchema,
-  sowCommandSchema,
-  harvestCommandSchema,
-]);
-const commandSchemaV5WithoutStore = z.union([
-  chopCommandSchema,
-  buildCommandSchemaV5,
-  deconstructCommandSchema,
-  restCommandSchema,
-  queueCommandSchema,
-  routineCommandSchema,
-  workCommandSchemaWithToggleV4,
-  recruitCommandSchema,
-  draftCommandSchema,
-  goCommandSchema,
-  sowCommandSchema,
-  harvestCommandSchema,
-]);
-const commandSchemaV5 = z.union([
-  commandSchemaV5WithoutStore,
-  storeHerbCommandSchema,
-]);
-const commandSchemaV6WithoutStore = z.union([
-  chopCommandSchema,
-  buildCommandSchemaV6,
-  deconstructCommandSchema,
-  restCommandSchema,
-  queueCommandSchema,
-  routineCommandSchema,
-  workCommandSchemaWithToggleV4,
-  recruitCommandSchema,
-  draftCommandSchema,
-  goCommandSchema,
-  sowCommandSchema,
-  harvestCommandSchema,
-]);
-const commandSchemaV6 = z.union([
-  commandSchemaV6WithoutStore,
-  storeHerbCommandSchema,
-]);
-const commandHistorySchemaV1 = z.intersection(
-  commandSchemaV1,
-  z.object({ tick: nonNegative }).strict(),
-);
-const commandHistorySchemaV2 = z.intersection(
-  commandSchemaV2,
-  z.object({ tick: nonNegative }).strict(),
-);
-const commandHistorySchemaV3 = z.intersection(
-  commandSchemaV3,
-  z.object({ tick: nonNegative }).strict(),
-);
-const commandHistorySchemaV4 = z.intersection(
-  commandSchemaV4,
-  z.object({ tick: nonNegative }).strict(),
-);
-const commandHistorySchemaV5 = z.union([
-  z.intersection(
-    commandSchemaV5WithoutStore,
-    z.object({ tick: nonNegative }).strict(),
-  ),
-  z.intersection(
-    storeHerbCommandSchema,
-    z.object({ tick: nonNegative }).strict(),
-  ),
-]);
-const commandHistorySchemaV6 = z.union([
-  z.intersection(
-    commandSchemaV6WithoutStore,
-    z.object({ tick: nonNegative }).strict(),
-  ),
-  z.intersection(
-    storeHerbCommandSchema,
-    z.object({ tick: nonNegative }).strict(),
-  ),
-]);
-const clearingFields = {
-  seed: finite,
-  tick: nonNegative,
-  paused: z.boolean(),
-  nextId: positive,
-  parties: z.record(id, partySchema),
-  trees: z.array(treeSchema),
-  rocks: z.array(cellSchema),
-  watcher: cellSchema,
-  piles: z.array(pileSchema),
-  claims: z.record(id, claimSchema),
-  workDirty: z.boolean(),
-  felled: nonNegative,
-  finishedJobs: nonNegative,
-  rested: nonNegative,
-  feed: z
-    .object({
-      seed: finite,
-      sequence: nonNegative,
-      nextAt: nonNegative,
-      last: eventSchema.nullable(),
-    })
-    .strict(),
-  demand: eventSchema.nullable(),
-  notice: z.string(),
-};
-function makeClearingSchema(
-  actor: any,
-  body: any,
-  job: any,
-  commandHistory: any,
-  site: any,
-  bundle: any,
-  withConsumedWood: boolean,
-  withHerbs: boolean,
-  withHerbStorage: boolean,
-) {
-  return z
-    .object({
-      ...clearingFields,
-      actors: z.record(id, actor),
-      cat: body.extend({ nextMove: nonNegative }).strict(),
-      sites: z.array(site),
-      jobs: z.array(job),
-      commands: z.array(commandHistory),
-      ...(withConsumedWood ? { consumedWood: nonNegative } : {}),
-      ...(withHerbs
-        ? {
-            herbs: z.array(herbSchema),
-            herbBundles: z.array(bundle),
-            harvestedHerbs: nonNegative,
-          }
-        : {}),
-      ...(withHerbStorage
-        ? { herbStorageClaims: z.record(id, herbStorageClaimSchema) }
-        : {}),
-    })
-    .strict();
-}
-const clearingSchemaV1 = makeClearingSchema(
-  actorSchemaV1,
-  bodySchemaV1,
-  jobSchemaV1,
-  commandHistorySchemaV1,
-  siteSchemaV4,
-  herbBundleSchemaV4,
-  false,
-  false,
-  false,
-);
-const clearingSchemaV2 = makeClearingSchema(
-  actorSchemaV2,
-  bodySchemaV2,
-  jobSchemaV3,
-  commandHistorySchemaV2,
-  siteSchemaV4,
-  herbBundleSchemaV4,
-  true,
-  false,
-  false,
-);
-const clearingSchemaV3 = makeClearingSchema(
-  actorSchemaV3,
-  bodySchemaV2,
-  jobSchemaV3,
-  commandHistorySchemaV3,
-  siteSchemaV4,
-  herbBundleSchemaV4,
-  true,
-  false,
-  false,
-);
-const clearingSchemaV4 = makeClearingSchema(
-  actorSchemaV4,
-  bodySchemaV4,
-  jobSchemaV4,
-  commandHistorySchemaV4,
-  siteSchemaV4,
-  herbBundleSchemaV4,
-  true,
-  true,
-  false,
-);
-const clearingSchemaV5 = makeClearingSchema(
-  actorSchema,
-  bodySchema,
-  jobSchema,
-  commandHistorySchemaV5,
-  siteSchema,
-  herbBundleSchema,
-  true,
-  true,
-  true,
-);
-const clearingSchemaV6 = makeClearingSchema(
-  actorSchema,
-  bodySchema,
-  jobSchema,
-  commandHistorySchemaV6,
-  siteSchemaV6,
-  herbBundleSchema,
-  true,
-  true,
-  true,
-);
-const savedClearingSchemaV1 = clearingSchemaV1.omit({ commands: true });
-const savedClearingSchemaV2 = clearingSchemaV2.omit({ commands: true });
-const savedClearingSchemaV3 = clearingSchemaV3.omit({ commands: true });
-const savedClearingSchemaV4 = clearingSchemaV4.omit({ commands: true });
-const savedClearingSchemaV5 = clearingSchemaV5.omit({ commands: true });
-const savedClearingSchema = clearingSchemaV6.omit({ commands: true });
-const saveEnvelopeSchemaV1 = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(SAVE_SCHEMA_V1),
-    revision: nonNegative,
-    savedState: savedClearingSchemaV1,
-  })
-  .strict();
-const saveEnvelopeSchemaV2 = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(SAVE_SCHEMA_V2),
-    revision: nonNegative,
-    savedState: savedClearingSchemaV2,
-  })
-  .strict();
-const saveEnvelopeSchemaV3 = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(SAVE_SCHEMA_V3),
-    revision: nonNegative,
-    savedState: savedClearingSchemaV3,
-  })
-  .strict();
-const saveEnvelopeSchemaV4 = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(SAVE_SCHEMA_V4),
-    revision: nonNegative,
-    savedState: savedClearingSchemaV4,
-  })
-  .strict();
-const saveEnvelopeSchemaV5 = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(SAVE_SCHEMA_V5),
-    revision: nonNegative,
-    savedState: savedClearingSchemaV5,
-  })
-  .strict();
-const saveEnvelopeSchemaV6 = z
+type SavedClearing = Omit<Clearing, "commands">;
+const savedSchema = stateSchema.transform((value): SavedClearing => value);
+const envelopeSchema = z
   .object({
     kind: z.literal(SAVE_KIND),
     schema: z.literal(SAVE_SCHEMA),
     revision: nonNegative,
-    savedState: savedClearingSchema,
+    savedState: savedSchema,
   })
   .strict();
-const saveEnvelopeSchema = z.union([
-  saveEnvelopeSchemaV1,
-  saveEnvelopeSchemaV2,
-  saveEnvelopeSchemaV3,
-  saveEnvelopeSchemaV4,
-  saveEnvelopeSchemaV5,
-  saveEnvelopeSchemaV6,
-]);
-
-export type SerializedClearing = z.infer<typeof clearingSchemaV6>;
-type SavedClearing = z.infer<typeof savedClearingSchema>;
-export type SaveEnvelope = z.infer<typeof saveEnvelopeSchema>;
-
-function uniqueIds(values: string[], label: string): void {
-  if (new Set(values).size !== values.length)
-    throw new Error(`${label} contains duplicate ids`);
+export type SerializedClearing = SavedClearing;
+export type SaveEnvelope = z.infer<typeof envelopeSchema>;
+function fail(message: string): never {
+  throw new Error(`Invalid v7 save: ${message}`);
 }
 
-function generatedIdNumber(value: string): number | null {
-  const match = /^(?:job|site|wood|herb-bundle|herb)-(\d+)$/.exec(value);
-  return match ? Number(match[1]) : null;
+function liveState(state: SavedClearing): Clearing {
+  return { ...state, commands: [] };
 }
 
-function checkCell(
-  cell: { x: number; z: number; level: number },
-  label: string,
-): void {
-  if (!inside(cell)) throw new Error(`${label} is outside the clearing`);
-}
-function checkGroundCell(
-  cell: { x: number; z: number; level: number },
-  label: string,
-): void {
-  checkCell(cell, label);
-  if (cell.level !== 0) throw new Error(`${label} must be on the ground`);
+function activityMatchesJob(
+  state: SavedClearing,
+  actorId: string,
+  job: Job,
+  task: NonNullable<SavedClearing["actors"][string]["task"]>,
+): boolean {
+  if (task.kind === "transfer") {
+    const transfer = state.materials.transfers.find(
+      (candidate) => candidate.id === task.target,
+    );
+    const resolved = transfer
+      ? resolveMaterialDestination(state.sites, transfer.request.destination)
+      : null;
+    if (!transfer || !resolved) return false;
+    return (
+      transfer.actor === actorId &&
+      transfer.owner.job === job.id &&
+      resolved.destination.id === transfer.request.destination &&
+      ((job.kind === "build" &&
+        resolved.site.id === job.target &&
+        resolved.destination.id === constructionBuffer(resolved.site).id) ||
+        (job.kind === "transfer" &&
+          transfer.request.destination === job.destination))
+    );
+  }
+  if (job.kind === "rest")
+    return (
+      task.kind === "sleep" &&
+      job.target === actorId &&
+      state.sites.some(
+        (site) =>
+          site.id === task.target &&
+          site.type === "bed" &&
+          site.finishedAt !== null,
+      )
+    );
+  if (task.kind !== job.kind || task.target !== job.target) return false;
+  return job.kind === "chop"
+    ? state.trees.some((tree) => tree.id === job.target)
+    : job.kind === "build" || job.kind === "deconstruct"
+      ? state.sites.some((site) => site.id === job.target)
+      : state.herbs.some((herb) => herb.id === job.target);
 }
 
-function assertNever(value: never): never {
-  throw new Error(`Unhandled persisted task kind: ${JSON.stringify(value)}`);
-}
-
-type ValidationContext = {
-  jobs: Map<string, Clearing["jobs"][number]>;
-  sites: Map<string, Clearing["sites"][number]>;
-  piles: Map<string, Clearing["piles"][number]>;
-  claimsByPile: Map<string, number>;
-  claimsBySite: Map<string, number>;
-  cargoBySite: Map<string, number>;
-  herbClaimsByBundle: Map<string, string>;
-  herbClaimsByShelf: Map<string, string>;
+type SavedSite = SavedClearing["sites"][number];
+type SavedLot = SavedClearing["materials"]["lots"][number];
+type SavedTransfer = SavedClearing["materials"]["transfers"][number];
+type RelationContext = {
+  state: SavedClearing;
+  jobs: Map<string, Job>;
+  sites: Map<string, SavedSite>;
+  containers: Map<string, ContainerSpec>;
 };
 
-function checkIdentityAndParties(state: Clearing): void {
-  const actorIds = Object.keys(state.actors);
-  const partyIds = Object.keys(state.parties);
-  const treeIds = state.trees.map((tree) => tree.id);
-  const siteIds = state.sites.map((site) => site.id);
-  const pileIds = state.piles.map((pile) => pile.id);
-  const jobIds = state.jobs.map((job) => job.id);
-  uniqueIds(actorIds, "actors");
-  uniqueIds(partyIds, "parties");
-  uniqueIds(treeIds, "trees");
-  uniqueIds(siteIds, "sites");
-  uniqueIds(pileIds, "piles");
-  uniqueIds(jobIds, "jobs");
-  if (!state.parties.home) throw new Error("home party is missing");
-  for (const [key, actor] of Object.entries(state.actors)) {
-    if (key !== actor.id) throw new Error(`actor key mismatch: ${key}`);
-    checkCell(actor, `actor ${actor.id}`);
-    actor.path.forEach((cell, index) =>
-      checkCell(cell, `actor ${actor.id} path ${index}`),
-    );
-  }
-  for (const [key, party] of Object.entries(state.parties)) {
-    if (key !== party.id) throw new Error(`party key mismatch: ${key}`);
-  }
-  const memberParty = new Map<string, string>();
-  for (const party of Object.values(state.parties)) {
-    uniqueIds(party.members, `party ${party.id}`);
-    for (const member of party.members) {
-      if (!state.actors[member])
-        throw new Error(`party ${party.id} has missing actor`);
-      if (memberParty.has(member))
-        throw new Error(`actor ${member} belongs to multiple parties`);
-      memberParty.set(member, party.id);
-    }
+function validateMaterialLots(state: SavedClearing): void {
+  const lotIds = new Set<string>();
+  for (const lot of state.materials.lots) {
+    if (lotIds.has(lot.id)) fail(`duplicate material lot ${lot.id}`);
+    lotIds.add(lot.id);
+    if (lot.location.kind === "hand" && !state.actors[lot.location.actor])
+      fail(`hand lot ${lot.id} has missing actor ${lot.location.actor}`);
+    if (lot.location.kind === "ground" && !inside(lot.location))
+      fail(`ground lot ${lot.id} is outside the clearing`);
   }
 }
 
-function checkCellsAndTreeProgress(state: Clearing): void {
-  for (const tree of state.trees) checkGroundCell(tree, `tree ${tree.id}`);
-  for (const rock of state.rocks) checkGroundCell(rock, "rock");
-  for (const site of state.sites) checkCell(site, `site ${site.id}`);
-  for (const pile of state.piles) {
-    checkCell(pile, `pile ${pile.id}`);
-    if (pile.level === 1 && !upperSurface(state, pile))
-      throw new Error(`pile ${pile.id} has no supported upper surface`);
-  }
-  checkGroundCell(state.cat, "cat");
-  state.cat.path.forEach((cell, index) =>
-    checkGroundCell(cell, `cat path ${index}`),
-  );
-  checkGroundCell(state.watcher, "watcher");
-  const felledTrees = state.trees.filter((tree) => tree.felledAt !== null);
-  if (state.felled !== felledTrees.length)
-    throw new Error("felled count disagrees with felled trees");
-  for (const tree of state.trees) {
-    if (tree.felledAt !== null) {
-      if (tree.work !== CHOP_TICKS || tree.felledAt > state.tick)
-        throw new Error(`tree ${tree.id} has inconsistent felled progress`);
-    } else if (tree.work >= CHOP_TICKS) {
-      throw new Error(
-        `tree ${tree.id} has completed work without a felled tick`,
-      );
-    }
-  }
-}
-
-function checkSiteTopology(state: Clearing): void {
-  const stairs = state.sites.filter((site) => site.type === "stair");
-  if (stairs.length > 1) throw new Error("clearing has multiple stair ramps");
+function relationContext(state: SavedClearing): RelationContext {
+  const jobs = new Map(state.jobs.map((job) => [job.id, job]));
+  const sites = new Map(state.sites.map((site) => [site.id, site]));
+  if (jobs.size !== state.jobs.length) fail("duplicate job ID");
+  if (sites.size !== state.sites.length) fail("duplicate site ID");
+  const containers = new Map<string, ContainerSpec>();
   for (const site of state.sites) {
+    const buffer = constructionBuffer(site);
+    if (site.finishedAt === null) containers.set(buffer.id, buffer);
+    if (site.type === "shelf" && site.finishedAt !== null)
+      containers.set(shelfContainer(site.id).id, shelfContainer(site.id));
+  }
+  return { state, jobs, sites, containers };
+}
+
+function validateJobScopes({ state }: RelationContext): void {
+  for (const [partyId, party] of Object.entries(state.parties)) {
     if (
-      !Number.isInteger(site.direction) ||
-      site.direction < 0 ||
-      site.direction > 1
+      party.id !== partyId ||
+      new Set(party.members).size !== party.members.length ||
+      party.members.some((member) => !state.actors[member])
     )
-      throw new Error(`site ${site.id} has invalid direction`);
-    const cells = footprint(site);
-    if (crossLevelSurfaceConflict(state, site))
-      throw new Error(`site ${site.id} has a cross-level surface conflict`);
-    cells.forEach((cell, index) =>
-      checkCell(cell, `site ${site.id} cell ${index}`),
-    );
-    if (site.type === "stair") {
-      if (site.level !== 0)
-        throw new Error(`stair ${site.id} must be on level 0`);
-      if (!inside(stairLanding(site)))
-        throw new Error(`stair ${site.id} has an invalid upper landing`);
-      for (const cell of cells) {
-        if (
-          state.sites.some(
-            (other) =>
-              other.id !== site.id &&
-              other.level === 0 &&
-              other.x === cell.x &&
-              other.z === cell.z &&
-              (other.type === "wall" ||
-                other.type === "door" ||
-                other.type === "roof"),
-          )
-        )
-          throw new Error(`stair ${site.id} has a blocked lower ramp cell`);
-        if (
-          state.trees.some(
-            (tree) => tree.felledAt === null && cellKey(tree) === cellKey(cell),
-          ) ||
-          state.rocks.some((rock) => cellKey(rock) === cellKey(cell)) ||
-          cellKey(state.watcher) === cellKey(cell) ||
-          state.piles.some(
-            (pile) => pile.amount > 0 && cellKey(pile) === cellKey(cell),
-          ) ||
-          state.herbs.some((herb) => cellKey(herb) === cellKey(cell)) ||
-          state.herbBundles.some(
-            (bundle) =>
-              bundle.location.kind === "ground" &&
-              cellKey(bundle.location) === cellKey(cell),
-          )
-        )
-          throw new Error(`stair ${site.id} overlaps ground occupancy`);
-      }
-      if (
-        state.sites.some(
-          (other) =>
-            other.id !== site.id &&
-            other.level === 1 &&
-            (other.type === "floor" ||
-              (other.type === "roof" &&
-                stairHeadroom(site)
-                  .slice(0, 2)
-                  .some((ramp) =>
-                    footprint(other).some((cell) => sameCell(cell, ramp)),
-                  ))) &&
-            footprint(other).some((cell) =>
-              stairHeadroom(site).some((headroom) => sameCell(cell, headroom)),
-            ),
-        )
-      )
-        throw new Error(`stair ${site.id} has blocked upper headroom`);
-    } else if (site.type === "floor") {
-      if (site.level !== 1)
-        throw new Error(`floor ${site.id} must be on level 1`);
-      if (
-        state.sites.some(
-          (other) =>
-            other.type === "stair" &&
-            stairHeadroom(other).some((headroom) => sameCell(headroom, site)),
-        )
-      )
-        throw new Error(`floor ${site.id} occupies stair headroom`);
-      if (!floorSupported(state, site))
-        throw new Error(`floor ${site.id} has no lower support`);
-    } else if (site.level === 1) {
-      if (
-        cells.some((cell) =>
-          state.sites.some(
-            (other) =>
-              other.type === "stair" &&
-              sameCell(stairLanding(other), cell) &&
-              site.type !== "door" &&
-              site.type !== "roof",
-          ),
-        )
-      )
-        throw new Error(`site ${site.id} is not allowed on stair landing`);
-      if (
-        site.type === "roof" &&
-        state.sites.some(
-          (other) =>
-            other.type === "stair" &&
-            stairHeadroom(other)
-              .slice(0, 2)
-              .some((headroom) =>
-                footprint(site).some((cell) => sameCell(cell, headroom)),
-              ),
-        )
-      )
-        throw new Error(`roof ${site.id} occupies stair headroom`);
-      if (!cells.every((cell) => upperSurface(state, cell)))
-        throw new Error(`site ${site.id} has no finished floor support`);
-    }
+      fail(`party ${partyId} has invalid members`);
   }
-  for (let i = 0; i < state.sites.length; i++)
-    for (let j = i + 1; j < state.sites.length; j++)
-      if (sitesConflict(state.sites[i], state.sites[j]))
-        throw new Error(
-          `sites ${state.sites[i].id} and ${state.sites[j].id} overlap`,
-        );
-}
-
-function checkActorPaths(state: Clearing): void {
-  for (const actor of Object.values(state.actors)) {
-    if (actor.level === 1 && !upperSurface(state, actor))
-      throw new Error(`actor ${actor.id} is not on an upper surface`);
-    if (!actor.path.length) {
-      if (actor.leg !== 0)
-        throw new Error(`actor ${actor.id} has a leg without a path`);
-    } else if (actor.leg >= edgeTicks(actor, actor.path[0])) {
-      throw new Error(`actor ${actor.id} has an invalid leg`);
-    }
-    let from = { x: actor.x, z: actor.z, level: actor.level };
-    for (const [index, next] of actor.path.entries()) {
-      if (next.level === 1 && !upperSurface(state, next))
-        throw new Error(
-          `actor ${actor.id} path ${index} is not on an upper surface`,
-        );
-      if (
-        !topologyNeighbors(state, from).some(
-          (candidate) => cellKey(candidate) === cellKey(next),
-        )
-      )
-        throw new Error(`actor ${actor.id} path ${index} has an illegal edge`);
-      from = next;
-    }
-  }
-}
-
-function createValidationContext(state: Clearing): ValidationContext {
-  return {
-    jobs: new Map(state.jobs.map((job) => [job.id, job])),
-    sites: new Map(state.sites.map((site) => [site.id, site])),
-    piles: new Map(state.piles.map((pile) => [pile.id, pile])),
-    claimsByPile: new Map(),
-    claimsBySite: new Map(),
-    cargoBySite: new Map(),
-    herbClaimsByBundle: new Map(),
-    herbClaimsByShelf: new Map(),
-  };
-}
-
-function checkJobTargetsAndScope(
-  state: Clearing,
-  context: ValidationContext,
-): void {
-  const deconstructTargets = new Set<string>();
-  const storeBundles = new Set<string>();
-  const storeShelves = new Set<string>();
   for (const job of state.jobs) {
     const party = state.parties[job.scope.party];
-    if (!party) throw new Error(`job ${job.id} has missing party`);
-    if (job.scope.actors !== null)
-      for (const actor of job.scope.actors)
-        if (!party.members.includes(actor))
-          throw new Error(`job ${job.id} has out-of-scope actor`);
-    if (job.kind === "chop") {
-      const tree = state.trees.find((candidate) => candidate.id === job.target);
-      if (!tree) throw new Error(`job ${job.id} has missing tree`);
-      if (tree.felledAt !== null)
-        throw new Error(`job ${job.id} targets a felled tree`);
-    }
-    if (job.kind === "build") {
-      const site = context.sites.get(job.target);
-      if (!site) throw new Error(`job ${job.id} has missing site`);
-      if (site.finishedAt !== null)
-        throw new Error(`job ${job.id} targets a finished site`);
-    }
-    if (job.kind === "deconstruct") {
-      const site = context.sites.get(job.target);
-      if (!site) throw new Error(`job ${job.id} has missing site`);
-      if (site.finishedAt === null)
-        throw new Error(`job ${job.id} targets an unfinished site`);
-      if (deconstructTargets.has(site.id))
-        throw new Error(`site ${site.id} has duplicate deconstruction jobs`);
-      deconstructTargets.add(site.id);
-    }
-    if (job.kind === "store-herb") {
-      const bundle = state.herbBundles.find(
-        (candidate) => candidate.id === job.bundle,
-      );
-      const shelf = context.sites.get(job.shelf);
-      if (job.scope.actors !== null)
-        throw new Error(`store job ${job.id} must be shared`);
-      if (!bundle) throw new Error(`job ${job.id} has missing herb bundle`);
-      if (bundle.location.kind === "stored")
-        throw new Error(`job ${job.id} targets a stored herb bundle`);
-      if (!shelf || shelf.type !== "shelf" || shelf.finishedAt === null)
-        throw new Error(`job ${job.id} has invalid herb shelf`);
-      if (storeBundles.has(job.bundle))
-        throw new Error(`herb bundle ${job.bundle} has duplicate storage jobs`);
-      if (storeShelves.has(job.shelf))
-        throw new Error(`shelf ${job.shelf} has duplicate storage jobs`);
-      storeBundles.add(job.bundle);
-      storeShelves.add(job.shelf);
-    }
-    if (job.kind === "rest" && !state.actors[job.target])
-      throw new Error(`job ${job.id} has missing actor`);
-    if (job.kind === "rest") {
-      const party = state.parties[job.scope.party];
-      if (
-        !party.members.includes(job.target) ||
-        job.scope.actors === null ||
-        !job.scope.actors.includes(job.target)
-      )
-        throw new Error(`rest job ${job.id} is not personal to its target`);
-    }
+    if (!party) fail(`job ${job.id} has missing party`);
+    if (
+      job.scope.actors !== null &&
+      (new Set(job.scope.actors).size !== job.scope.actors.length ||
+        job.scope.actors.some((actor) => !party.members.includes(actor)))
+    )
+      fail(`job ${job.id} has invalid scope`);
   }
 }
 
-function checkActorActivity(
-  state: Clearing,
-  actor: Clearing["actors"][string],
-): void {
-  if (
-    actor.drafted &&
-    (actor.task ||
-      actor.assignment ||
-      actor.cargo ||
-      state.claims[actor.id] !== undefined ||
-      state.herbStorageClaims[actor.id] !== undefined)
-  )
-    throw new Error(`drafted actor ${actor.id} retains ordinary work`);
-  if (
-    !actor.task &&
-    actor.mode !== "idle" &&
-    !(actor.drafted && actor.mode === "walk")
-  )
-    throw new Error(`actor ${actor.id} has a mode without a task`);
-}
-
-function checkActorTaskReference(
-  state: Clearing,
-  actor: Clearing["actors"][string],
-  context: ValidationContext,
-): void {
-  if (!actor.task) return;
-  const job = context.jobs.get(actor.task.job);
-  if (!job) throw new Error(`actor ${actor.id} has missing task job`);
-  const party = state.parties[job.scope.party];
-  if (
-    !party.members.includes(actor.id) ||
-    (job.scope.actors !== null && !job.scope.actors.includes(actor.id))
-  )
-    throw new Error(`actor ${actor.id} task job is not in actor scope`);
-}
-
-function checkActorTaskAssignment(actor: Clearing["actors"][string]): void {
-  if (!actor.task) return;
-  if (!actor.assignment)
-    throw new Error(`actor ${actor.id} task has no assignment`);
-  if (
-    actor.assignment.character !== actor.id ||
-    actor.assignment.task !== actor.task.job
-  )
-    throw new Error(`actor ${actor.id} assignment does not match task`);
-}
-
-function checkActorTaskTarget(
-  state: Clearing,
-  actor: Clearing["actors"][string],
-  context: ValidationContext,
-): void {
-  const task = actor.task;
-  if (!task) return;
-  const job = context.jobs.get(task.job)!;
-  switch (task.kind) {
-    case "chop":
-      if (
-        job.kind !== "chop" ||
-        job.target !== task.target ||
-        !state.trees.some((tree) => tree.id === task.target)
-      )
-        throw new Error(
-          `actor ${actor.id} chop task disagrees with job target`,
-        );
-      break;
-    case "build":
-      if (
-        job.kind !== "build" ||
-        job.target !== task.target ||
-        !context.sites.has(task.target)
-      )
-        throw new Error(
-          `actor ${actor.id} build task disagrees with job target`,
-        );
-      break;
-    case "deconstruct": {
-      const site = context.sites.get(task.target);
-      if (
-        job.kind !== "deconstruct" ||
-        job.target !== task.target ||
-        !site ||
-        site.finishedAt === null ||
-        state.claims[actor.id] !== undefined ||
-        actor.cargo !== null
-      )
-        throw new Error(
-          `actor ${actor.id} deconstruct task disagrees with site`,
-        );
-      break;
-    }
-    case "pickup": {
-      const claim = state.claims[actor.id];
-      if (
-        job.kind !== "build" ||
-        !context.sites.has(job.target) ||
-        !context.piles.has(task.target) ||
-        !claim ||
-        claim.job !== job.id ||
-        claim.pile !== task.target ||
-        claim.site !== job.target ||
-        actor.cargo !== null
-      )
-        throw new Error(`actor ${actor.id} pickup task disagrees with claim`);
-      break;
-    }
-    case "deliver":
-      if (
-        job.kind !== "build" ||
-        job.target !== task.target ||
-        !context.sites.has(task.target) ||
-        state.claims[actor.id] !== undefined ||
-        !actor.cargo ||
-        actor.cargo.job !== job.id ||
-        actor.cargo.site !== task.target
-      )
-        throw new Error(`actor ${actor.id} deliver task disagrees with cargo`);
-      break;
-    case "pickup-herb": {
-      const claim = state.herbStorageClaims[actor.id];
-      const bundle = state.herbBundles.find(
-        (candidate) => candidate.id === task.target,
+function validateContainerLots({ state, containers }: RelationContext): void {
+  for (const lot of state.materials.lots) {
+    if (lot.location.kind !== "container") continue;
+    const destination = containers.get(lot.location.container);
+    if (!destination)
+      fail(
+        `container lot ${lot.id} has unknown destination ${lot.location.container}`,
       );
-      if (
-        job.kind !== "store-herb" ||
-        job.bundle !== task.target ||
-        !bundle ||
-        bundle.location.kind !== "ground" ||
-        !claim ||
-        claim.job !== job.id ||
-        claim.bundle !== task.target ||
-        !context.sites.has(job.shelf) ||
-        state.claims[actor.id] !== undefined ||
-        actor.cargo !== null
-      )
-        throw new Error(
-          `actor ${actor.id} pickup-herb task disagrees with storage claim`,
-        );
-      break;
-    }
-    case "store-herb": {
-      const claim = state.herbStorageClaims[actor.id];
-      const bundle = state.herbBundles.find(
-        (candidate) => candidate.id === claim?.bundle,
-      );
-      if (
-        job.kind !== "store-herb" ||
-        job.shelf !== task.target ||
-        !claim ||
-        claim.job !== job.id ||
-        claim.shelf !== task.target ||
-        !bundle ||
-        bundle.location.kind !== "carried" ||
-        bundle.location.actor !== actor.id ||
-        state.claims[actor.id] !== undefined ||
-        actor.cargo !== null
-      )
-        throw new Error(
-          `actor ${actor.id} store-herb task disagrees with storage claim`,
-        );
-      break;
-    }
-    case "sleep": {
-      const bed = context.sites.get(task.target);
-      if (
-        job.kind !== "rest" ||
-        job.target !== actor.id ||
-        !bed ||
-        bed.type !== "bed" ||
-        bed.finishedAt === null
-      )
-        throw new Error(
-          `actor ${actor.id} sleep task disagrees with job or bed`,
-        );
-      break;
-    }
-    case "sow":
-    case "harvest":
-      break;
-    default:
-      assertNever(task);
-  }
-  if (actor.mode !== "walk" && actor.mode !== task.kind)
-    throw new Error(`actor ${actor.id} mode disagrees with task`);
-}
-
-function checkActorAssignmentReference(
-  actor: Clearing["actors"][string],
-): void {
-  if (actor.assignment) {
-    if (actor.assignment.character !== actor.id)
-      throw new Error(`actor ${actor.id} assignment owner mismatch`);
-    if (!actor.task || actor.assignment.task !== actor.task.job)
-      throw new Error(`actor ${actor.id} assignment has no matching task`);
+    if (!destination.accepts.includes(lot.material))
+      fail(`container lot ${lot.id} has invalid material`);
   }
 }
 
-function checkActorWoodCargo(
-  state: Clearing,
-  actor: Clearing["actors"][string],
-  context: ValidationContext,
-): void {
-  if (!actor.cargo) return;
-  const job = context.jobs.get(actor.cargo.job);
-  const site = context.sites.get(actor.cargo.site);
-  if (
-    !job ||
-    job.kind !== "build" ||
-    !site ||
-    job.target !== site.id ||
-    !state.parties[job.scope.party].members.includes(actor.id) ||
-    (job.scope.actors !== null && !job.scope.actors.includes(actor.id))
-  )
-    throw new Error(`actor ${actor.id} has invalid cargo reference`);
-  if (state.claims[actor.id])
-    throw new Error(`actor ${actor.id} has claim and cargo`);
-  context.cargoBySite.set(
-    actor.cargo.site,
-    (context.cargoBySite.get(actor.cargo.site) ?? 0) + actor.cargo.amount,
+function transferLot(state: SavedClearing, transfer: SavedTransfer): SavedLot {
+  const lot = state.materials.lots.find(
+    (candidate) =>
+      candidate.id ===
+      (transfer.phase.kind === "reserved"
+        ? transfer.phase.sourceLot
+        : transfer.phase.lot),
   );
+  if (!lot) fail(`transfer ${transfer.id} has missing material lot`);
+  return lot;
 }
 
-function checkActorTaskAssignmentAndCargo(
-  state: Clearing,
-  context: ValidationContext,
+function validateTransferOwner(
+  { sites, jobs }: RelationContext,
+  transfer: SavedTransfer,
+): ContainerSpec {
+  const owner = jobs.get(transfer.owner.job);
+  if (!owner) fail(`transfer ${transfer.id} has missing job`);
+  const resolved = resolveMaterialDestination(
+    [...sites.values()],
+    transfer.request.destination,
+  );
+  if (!resolved) fail(`transfer ${transfer.id} has missing destination`);
+  const destination = resolved.destination;
+  const ownerSite =
+    owner.kind === "build" ? sites.get(owner.target) : undefined;
+  if (
+    (owner.kind === "build" &&
+      (!ownerSite ||
+        transfer.request.destination !== constructionBuffer(ownerSite).id)) ||
+    (owner.kind === "transfer" &&
+      transfer.request.destination !== owner.destination) ||
+    (owner.kind !== "build" && owner.kind !== "transfer")
+  )
+    fail(`transfer ${transfer.id} does not match owner destination`);
+  if (
+    (owner.kind === "build" &&
+      (transfer.request.source.kind !== "eligible-ground" ||
+        transfer.request.source.material !== "wood" ||
+        transfer.request.quantityPolicy !== "portion")) ||
+    (owner.kind === "transfer" &&
+      (transfer.request.source.kind !== "exact-lot" ||
+        transfer.request.source.lot !== owner.source ||
+        transfer.request.quantityPolicy !== "whole-lot" ||
+        transfer.request.quantity !== 1))
+  )
+    fail(`transfer ${transfer.id} does not match owner request`);
+  if (transfer.request.quantity > destination.capacity)
+    fail(`transfer ${transfer.id} exceeds destination capacity`);
+  return destination;
+}
+
+function validateReservedTransfer(
+  { state }: RelationContext,
+  transfer: SavedTransfer,
+  lot: SavedLot,
+  reservedBySource: Map<string, number>,
 ): void {
+  if (transfer.phase.kind !== "reserved") return;
+  if (lot.location.kind !== "ground")
+    fail(`reserved transfer ${transfer.id} source is not ground`);
+  if (transfer.phase.quantity !== transfer.request.quantity)
+    fail(`reserved transfer ${transfer.id} has mismatched quantity`);
+  if (
+    (transfer.request.source.kind === "exact-lot" &&
+      transfer.request.source.lot !== lot.id) ||
+    (transfer.request.source.kind === "eligible-ground" &&
+      transfer.request.source.material !== lot.material)
+  )
+    fail(`reserved transfer ${transfer.id} has invalid source`);
+  const reserved =
+    (reservedBySource.get(lot.id) ?? 0) + transfer.phase.quantity;
+  if (reserved > lot.quantity)
+    fail(`reserved source ${lot.id} exceeds quantity`);
+  reservedBySource.set(lot.id, reserved);
+  const actor = state.actors[transfer.actor];
+  if (
+    !actor.task ||
+    actor.task.kind !== "transfer" ||
+    actor.task.target !== transfer.id ||
+    actor.task.job !== transfer.owner.job ||
+    !actor.assignment ||
+    actor.assignment.character !== actor.id ||
+    actor.assignment.task !== transfer.owner.job
+  )
+    fail(`reserved transfer ${transfer.id} lacks matching actor task`);
+}
+
+function validateCarryingTransfer(
+  transfer: SavedTransfer,
+  lot: SavedLot,
+  destination: ContainerSpec,
+): void {
+  if (transfer.phase.kind !== "carrying") return;
+  if (lot.location.kind !== "hand" || lot.location.actor !== transfer.actor)
+    fail(`carrying transfer ${transfer.id} has invalid hand lot`);
+  if (lot.quantity !== transfer.request.quantity)
+    fail(`carrying transfer ${transfer.id} has mismatched quantity`);
+  if (
+    (transfer.request.source.kind === "exact-lot" &&
+      transfer.request.source.lot !== lot.id) ||
+    (transfer.request.source.kind === "eligible-ground" &&
+      transfer.request.source.material !== lot.material) ||
+    !destination.accepts.includes(lot.material)
+  )
+    fail(`carrying transfer ${transfer.id} has invalid material`);
+}
+
+function validateTransfers(context: RelationContext): void {
+  const { state, jobs } = context;
+  const transferIds = new Set<string>();
+  for (const transfer of state.materials.transfers) {
+    if (transferIds.has(transfer.id)) fail(`duplicate transfer ${transfer.id}`);
+    transferIds.add(transfer.id);
+  }
+  transferIds.clear();
+  const actorsWithTransfer = new Set<string>();
+  const owners = new Set<string>();
+  const reservedBySource = new Map<string, number>();
+  for (const transfer of state.materials.transfers) {
+    transferIds.add(transfer.id);
+    if (!state.actors[transfer.actor])
+      fail(`transfer ${transfer.id} has missing actor`);
+    if (actorsWithTransfer.has(transfer.actor))
+      fail(`actor ${transfer.actor} has multiple transfers`);
+    actorsWithTransfer.add(transfer.actor);
+    if (!jobs.has(transfer.owner.job))
+      fail(`transfer ${transfer.id} has missing job`);
+    const ownerKey = `${transfer.owner.job}/${transfer.owner.step}`;
+    if (owners.has(ownerKey)) fail(`duplicate transfer owner ${ownerKey}`);
+    owners.add(ownerKey);
+    const destination = validateTransferOwner(context, transfer);
+    const lot = transferLot(state, transfer);
+    validateReservedTransfer(context, transfer, lot, reservedBySource);
+    validateCarryingTransfer(transfer, lot, destination);
+  }
+}
+
+function validateContainerCapacity({
+  state,
+  containers,
+}: RelationContext): void {
+  for (const destination of containers.values()) {
+    const occupied = state.materials.lots
+      .filter(
+        (lot) =>
+          lot.location.kind === "container" &&
+          lot.location.container === destination.id,
+      )
+      .reduce((sum, lot) => sum + lot.quantity, 0);
+    const incoming = state.materials.transfers
+      .filter((transfer) => transfer.request.destination === destination.id)
+      .reduce((sum, transfer) => sum + transfer.request.quantity, 0);
+    if (occupied + incoming > destination.capacity)
+      fail(`container ${destination.id} exceeds capacity`);
+  }
+}
+
+function validateActorJobRelations({ state, jobs }: RelationContext): void {
   for (const actor of Object.values(state.actors)) {
-    checkActorActivity(state, actor);
-    checkActorTaskReference(state, actor, context);
-    checkActorTaskAssignment(actor);
-    checkActorTaskTarget(state, actor, context);
-    checkActorAssignmentReference(actor);
-    checkActorWoodCargo(state, actor, context);
+    if (!inside(actor) || actor.path.some((cell) => !inside(cell)))
+      fail(`actor ${actor.id} has an invalid path`);
+    if (actor.task) {
+      const taskJob = jobs.get(actor.task.job);
+      if (!taskJob) fail(`actor ${actor.id} has missing task job`);
+      if (
+        !actor.assignment ||
+        actor.assignment.character !== actor.id ||
+        actor.assignment.task !== actor.task.job
+      )
+        fail(`actor ${actor.id} task and assignment disagree`);
+      const party = state.parties[taskJob.scope.party];
+      if (
+        !party.members.includes(actor.id) ||
+        (taskJob.scope.actors !== null &&
+          !taskJob.scope.actors.includes(actor.id)) ||
+        !activityMatchesJob(state, actor.id, taskJob, actor.task)
+      )
+        fail(`actor ${actor.id} has inconsistent task activity`);
+    } else if (actor.assignment) {
+      fail(`actor ${actor.id} has assignment without task`);
+    }
   }
 }
 
-function checkClaimsAndReservations(
-  state: Clearing,
-  context: ValidationContext,
-): void {
-  for (const [actorId, claim] of Object.entries(state.claims)) {
-    const actor = state.actors[actorId];
-    const job = context.jobs.get(claim.job);
-    const pile = context.piles.get(claim.pile);
-    const site = context.sites.get(claim.site);
+function validateHandCustody({ state }: RelationContext): void {
+  for (const lot of state.materials.lots)
+    if (lot.location.kind === "hand") {
+      const actorId = lot.location.actor;
+      const carrying = state.materials.transfers.filter(
+        (transfer) =>
+          transfer.actor === actorId &&
+          transfer.phase.kind === "carrying" &&
+          transfer.phase.lot === lot.id,
+      );
+      if (carrying.length !== 1)
+        fail(`hand lot ${lot.id} lacks unique transfer custody`);
+    }
+}
+
+function validateEmbeddings({ state, sites }: RelationContext): void {
+  const embeddedContainers = new Set<string>();
+  for (const entry of state.materials.embedded) {
+    const siteId = entry.container.replace("construction-buffer:", "");
+    const site = sites.get(siteId);
     if (
-      !actor ||
-      !actor.task ||
-      actor.task.kind !== "pickup" ||
-      actor.task.job !== claim.job ||
-      actor.task.target !== claim.pile ||
-      !job ||
-      job.kind !== "build" ||
-      !pile ||
       !site ||
-      job.target !== claim.site ||
-      actor.cargo !== null ||
-      claim.amount > pile.amount
+      site.finishedAt === null ||
+      entry.container !== constructionBuffer(site).id ||
+      entry.material !== "wood" ||
+      entry.quantity !== constructionBuffer(site).capacity ||
+      embeddedContainers.has(entry.container)
     )
-      throw new Error(`claim for ${actorId} has no matching pickup task`);
-    context.claimsByPile.set(
-      claim.pile,
-      (context.claimsByPile.get(claim.pile) ?? 0) + claim.amount,
-    );
-    context.claimsBySite.set(
-      claim.site,
-      (context.claimsBySite.get(claim.site) ?? 0) + claim.amount,
-    );
-  }
-  for (const [pileId, claimed] of context.claimsByPile) {
-    const pile = context.piles.get(pileId);
-    if (!pile || claimed > pile.amount)
-      throw new Error(`claims exceed pile ${pileId}`);
+      fail(`embedded material has unknown container ${entry.container}`);
+    embeddedContainers.add(entry.container);
   }
 }
 
-function checkHerbStorageClaims(
-  state: Clearing,
-  context: ValidationContext,
-): void {
-  for (const [actorId, claim] of Object.entries(state.herbStorageClaims)) {
-    const actor = state.actors[actorId];
-    const job = context.jobs.get(claim.job);
-    const bundle = state.herbBundles.find(
-      (candidate) => candidate.id === claim.bundle,
-    );
-    const shelf = context.sites.get(claim.shelf);
-    if (
-      !actor ||
-      !job ||
-      job.kind !== "store-herb" ||
-      job.bundle !== claim.bundle ||
-      job.shelf !== claim.shelf ||
-      !bundle ||
-      !shelf ||
-      shelf.type !== "shelf" ||
-      shelf.finishedAt === null ||
-      !state.parties[job.scope.party].members.includes(actor.id) ||
-      (job.scope.actors !== null && !job.scope.actors.includes(actor.id)) ||
-      state.claims[actor.id] !== undefined ||
-      actor.cargo !== null ||
-      actor.drafted
-    )
-      throw new Error(`herb storage claim for ${actorId} is invalid`);
-    if (
-      bundle.location.kind !== "ground" &&
-      (bundle.location.kind !== "carried" || bundle.location.actor !== actor.id)
-    )
-      throw new Error(
-        `herb storage claim for ${actorId} disagrees with bundle`,
-      );
-    if (bundle.location.kind === "ground") {
-      if (
-        actor.task?.kind !== "pickup-herb" ||
-        actor.task.job !== job.id ||
-        actor.task.target !== bundle.id
-      )
-        throw new Error(`ground herb claim for ${actorId} has no pickup task`);
-    } else if (
-      actor.task &&
-      (actor.task.kind !== "store-herb" ||
-        actor.task.job !== job.id ||
-        actor.task.target !== shelf.id)
-    ) {
-      throw new Error(`carried herb claim for ${actorId} has unrelated task`);
-    }
-    if (context.herbClaimsByBundle.has(claim.bundle))
-      throw new Error(
-        `herb bundle ${claim.bundle} has duplicate storage claims`,
-      );
-    if (context.herbClaimsByShelf.has(claim.shelf))
-      throw new Error(`shelf ${claim.shelf} has duplicate storage claims`);
-    context.herbClaimsByBundle.set(claim.bundle, actor.id);
-    context.herbClaimsByShelf.set(claim.shelf, actor.id);
-  }
-  const storedShelves = new Set<string>();
-  for (const bundle of state.herbBundles) {
-    if (bundle.location.kind !== "stored") continue;
-    const shelf = context.sites.get(bundle.location.site);
-    if (!shelf || shelf.type !== "shelf" || shelf.finishedAt === null)
-      throw new Error(`stored herb bundle ${bundle.id} has invalid shelf`);
-    if (storedShelves.has(shelf.id))
-      throw new Error(`shelf ${shelf.id} stores multiple herb bundles`);
-    storedShelves.add(shelf.id);
-    if (context.herbClaimsByBundle.has(bundle.id))
-      throw new Error(`stored herb bundle ${bundle.id} has a storage claim`);
-    if (context.herbClaimsByShelf.has(shelf.id))
-      throw new Error(`shelf ${shelf.id} has a storage claim while full`);
-  }
-  for (const bundle of state.herbBundles) {
-    if (bundle.location.kind !== "carried") continue;
-    const claim = context.herbClaimsByBundle.get(bundle.id);
-    if (claim !== bundle.location.actor)
-      throw new Error(`carried herb bundle ${bundle.id} has no matching claim`);
-  }
-}
-
-function checkSitesAndProgress(
-  state: Clearing,
-  context: ValidationContext,
-): void {
+function validateSiteTopology({ state }: RelationContext): void {
   for (const site of state.sites) {
-    const recipe = BUILDINGS[site.type];
-    const committed =
-      site.delivered +
-      (context.claimsBySite.get(site.id) ?? 0) +
-      (context.cargoBySite.get(site.id) ?? 0);
-    if (site.delivered > recipe.wood || committed > recipe.wood)
-      throw new Error(`site ${site.id} exceeds its wood recipe`);
+    if (!footprint(site).every(inside))
+      fail(`site ${site.id} is outside the clearing`);
     if (
-      site.work > 0 &&
-      (site.delivered !== recipe.wood ||
-        (context.claimsBySite.get(site.id) ?? 0) > 0 ||
-        (context.cargoBySite.get(site.id) ?? 0) > 0)
+      site.finishedAt !== null &&
+      state.materials.embedded.filter(
+        (entry) => entry.container === constructionBuffer(site).id,
+      ).length !== 1
     )
-      throw new Error(
-        `site ${site.id} has work before its delivery is settled`,
-      );
-    if (site.finishedAt !== null) {
-      if (
-        site.work !== recipe.ticks ||
-        site.delivered !== recipe.wood ||
-        site.finishedAt > state.tick
-      )
-        throw new Error(`site ${site.id} has inconsistent finished progress`);
-    } else if (site.work >= recipe.ticks) {
-      throw new Error(
-        `site ${site.id} has completed work without a finished tick`,
-      );
-    }
+      fail(`finished site ${site.id} lacks construction embedding`);
+    if (site.type === "floor" && !floorSupported(liveState(state), site))
+      fail(`unsupported floor ${site.id}`);
+    if (
+      site.type === "roof" &&
+      site.finishedAt !== null &&
+      !roofSupported(liveState(state), site)
+    )
+      fail(`unsupported roof ${site.id}`);
   }
 }
 
-function checkMaterialConservation(
-  state: Clearing,
-  context: ValidationContext,
-): void {
-  const physicalWood =
-    state.piles.reduce((total, pile) => total + pile.amount, 0) +
-    state.sites.reduce((total, site) => total + site.delivered, 0) +
-    [...context.cargoBySite.values()].reduce(
-      (total, amount) => total + amount,
+function validateConservation({ state }: RelationContext): void {
+  const wood =
+    state.materials.lots.reduce(
+      (sum, lot) => sum + (lot.material === "wood" ? lot.quantity : 0),
       0,
     ) +
-    state.consumedWood;
-  if (physicalWood !== state.felled * 6)
-    throw new Error("physical wood does not match felled oaks");
-}
-
-function checkFeedAndNextId(state: Clearing): void {
-  if (state.feed.seed !== state.seed)
-    throw new Error("feed seed disagrees with clearing seed");
-  const jobIds = state.jobs.map((job) => job.id);
-  const siteIds = state.sites.map((site) => site.id);
-  const pileIds = state.piles.map((pile) => pile.id);
-  const generated = [...jobIds, ...siteIds, ...pileIds]
-    .map(generatedIdNumber)
-    .filter((value): value is number => value !== null);
-  if (generated.some((value) => value >= state.nextId))
-    throw new Error("nextId can collide with a generated id");
-}
-
-function checkHerbs(state: Clearing): void {
-  const herbIds = state.herbs.map((herb) => herb.id);
-  const bundleIds = state.herbBundles.map((bundle) => bundle.id);
-  uniqueIds(herbIds, "herbs");
-  uniqueIds(bundleIds, "herb bundles");
-  const jobs = new Map(state.jobs.map((job) => [job.id, job]));
-  const sowTargets = new Set<string>();
-  const harvestTargets = new Set<string>();
-  const herbCells = new Set<string>();
-  for (const herb of state.herbs) {
-    checkCell(herb, `herb ${herb.id}`);
-    const key = cellKey(herb);
-    if (herbCells.has(key))
-      throw new Error(`herbs contain duplicate cell ${key}`);
-    herbCells.add(key);
-    const occupant = placementOccupant(state, herb, herb.id);
-    if (occupant && occupant !== "pile" && occupant !== "herb-bundle")
-      throw new Error(`herb ${herb.id} overlaps ${occupant}`);
-    if (herb.stage === "ordered") {
-      if (herb.plantedAt !== null || herb.work >= SOW_TICKS)
-        throw new Error(`herb ${herb.id} has inconsistent ordered progress`);
-      continue;
-    }
-    if (
-      herb.plantedAt === null ||
-      herb.plantedAt > state.tick ||
-      herb.stage !== mugwortStage(state.tick - herb.plantedAt)
-    )
-      throw new Error(`herb ${herb.id} has inconsistent growth stage`);
-    if (herb.stage !== "ready" && herb.work !== 0)
-      throw new Error(`herb ${herb.id} has nonzero growth work`);
-    if (herb.stage === "ready" && herb.work >= HARVEST_TICKS)
-      throw new Error(`herb ${herb.id} has completed harvest work`);
-  }
-  for (const bundle of state.herbBundles) {
-    if (bundle.location.kind === "ground") {
-      checkCell(bundle.location, `herb bundle ${bundle.id}`);
-      if (bundle.location.level === 1 && !upperSurface(state, bundle.location))
-        throw new Error(`herb bundle ${bundle.id} is not on an upper surface`);
-    } else if (bundle.location.kind === "carried") {
-      if (!state.actors[bundle.location.actor])
-        throw new Error(`herb bundle ${bundle.id} has missing carrier`);
-    } else {
-      const storedSite =
-        bundle.location.kind === "stored" ? bundle.location.site : null;
-      if (
-        storedSite !== null &&
-        !state.sites.some((site) => site.id === storedSite)
-      ) {
-        throw new Error(`herb bundle ${bundle.id} has missing shelf`);
-      }
-    }
-  }
-  for (const job of state.jobs) {
-    if (job.kind !== "sow" && job.kind !== "harvest") continue;
-    const herb = state.herbs.find((candidate) => candidate.id === job.target);
-    if (!herb) throw new Error(`job ${job.id} has missing herb`);
-    if (job.kind === "sow") {
-      if (herb.stage !== "ordered")
-        throw new Error(`job ${job.id} targets a non-ordered herb`);
-      if (sowTargets.has(herb.id))
-        throw new Error(`herb ${herb.id} has duplicate sow jobs`);
-      sowTargets.add(herb.id);
-    } else {
-      if (herb.stage !== "ready")
-        throw new Error(`job ${job.id} targets a non-ready herb`);
-      if (harvestTargets.has(herb.id))
-        throw new Error(`herb ${herb.id} has duplicate harvest jobs`);
-      harvestTargets.add(herb.id);
-    }
-  }
-  for (const herb of state.herbs) {
-    if (herb.stage === "ordered" && !sowTargets.has(herb.id))
-      throw new Error(`ordered herb ${herb.id} has no sow job`);
-  }
-  for (const actor of Object.values(state.actors)) {
-    if (
-      !actor.task ||
-      (actor.task.kind !== "sow" && actor.task.kind !== "harvest")
-    )
-      continue;
-    const herb = state.herbs.find(
-      (candidate) => candidate.id === actor.task!.target,
+    state.materials.embedded.reduce(
+      (sum, entry) => sum + (entry.material === "wood" ? entry.quantity : 0),
+      0,
+    ) +
+    state.materials.consumedWood;
+  if (wood !== state.felled * 6)
+    fail(`wood conservation is ${wood}, expected ${state.felled * 6}`);
+  const mugwort =
+    state.materials.lots.reduce(
+      (sum, lot) => sum + (lot.material === "mugwort" ? lot.quantity : 0),
+      0,
+    ) +
+    state.materials.embedded.reduce(
+      (sum, entry) => sum + (entry.material === "mugwort" ? entry.quantity : 0),
+      0,
     );
-    const job = jobs.get(actor.task.job);
-    const expected = actor.task.kind === "sow" ? "ordered" : "ready";
-    if (
-      !herb ||
-      !job ||
-      job.kind !== actor.task.kind ||
-      job.target !== herb.id ||
-      herb.stage !== expected
-    )
-      throw new Error(
-        `actor ${actor.id} ${actor.task.kind} task disagrees with herb`,
-      );
-  }
-  if (
-    state.herbBundles.reduce((sum, bundle) => sum + bundle.amount, 0) !==
-    state.harvestedHerbs
-  )
-    throw new Error("harvested herbs do not match herb bundles");
-  const generated = [...herbIds, ...bundleIds]
-    .map(generatedIdNumber)
-    .filter((value): value is number => value !== null);
-  if (generated.some((value) => value >= state.nextId))
-    throw new Error("nextId can collide with a generated id");
+  if (mugwort !== state.harvestedHerbs)
+    fail(
+      `mugwort conservation is ${mugwort}, expected ${state.harvestedHerbs}`,
+    );
 }
 
-function checkInvariants(state: Clearing): void {
-  checkIdentityAndParties(state);
-  checkCellsAndTreeProgress(state);
-  checkSiteTopology(state);
-  checkActorPaths(state);
-  const context = createValidationContext(state);
-  checkJobTargetsAndScope(state, context);
-  checkActorTaskAssignmentAndCargo(state, context);
-  checkClaimsAndReservations(state, context);
-  checkHerbStorageClaims(state, context);
-  checkSitesAndProgress(state, context);
-  checkMaterialConservation(state, context);
-  checkFeedAndNextId(state);
-  checkHerbs(state);
+function validateRelations(state: SavedClearing): SavedClearing {
+  validateMaterialLots(state);
+  const context = relationContext(state);
+  validateJobScopes(context);
+  validateContainerLots(context);
+  validateTransfers(context);
+  validateContainerCapacity(context);
+  validateActorJobRelations(context);
+  validateHandCustody(context);
+  validateEmbeddings(context);
+  validateSiteTopology(context);
+  validateConservation(context);
+  return state;
 }
-
-export function validateClearing(value: unknown): SerializedClearing {
-  const parsed = clearingSchemaV6.parse(value);
-  checkInvariants(parsed as unknown as Clearing);
-  return parsed;
+function validateClearing(value: unknown): SerializedClearing {
+  return validateRelations(savedSchema.parse(value));
 }
-
-export function validateSaveEnvelope(value: unknown): SaveEnvelope {
-  const parsed = saveEnvelopeSchema.parse(value);
-  validateSavedClearing(normalizeSavedState(parsed));
-  return parsed;
+function validateSaveEnvelope(value: unknown): SaveEnvelope {
+  const parsed = envelopeSchema.parse(value);
+  return { ...parsed, savedState: validateRelations(parsed.savedState) };
 }
-
-function normalizeSavedState(envelope: SaveEnvelope): Record<string, unknown> {
-  const saved = envelope.savedState as any;
-  const actors = Object.fromEntries(
-    Object.entries(envelope.savedState.actors).map(([id, actor]) => [
-      id,
-      {
-        ...actor,
-        allowedWork: {
-          ...actor.allowedWork,
-          garden:
-            "garden" in actor.allowedWork ? actor.allowedWork.garden : true,
-        },
-        drafted: "drafted" in actor ? actor.drafted : false,
-      },
-    ]),
-  );
-  const herbBundles =
-    envelope.schema === SAVE_SCHEMA_V4
-      ? saved.herbBundles.map((bundle: any) => ({
-          id: bundle.id,
-          kind: bundle.kind,
-          amount: bundle.amount,
-          location: {
-            kind: "ground",
-            x: bundle.x,
-            z: bundle.z,
-            level: bundle.level,
-          },
-        }))
-      : envelope.schema === SAVE_SCHEMA_V5 || envelope.schema === SAVE_SCHEMA
-        ? saved.herbBundles
-        : [];
-  return {
-    ...saved,
-    actors,
-    ...(envelope.schema === SAVE_SCHEMA_V1 ? { consumedWood: 0 } : {}),
-    ...(envelope.schema === SAVE_SCHEMA_V4 ||
-    envelope.schema === SAVE_SCHEMA_V5 ||
-    envelope.schema === SAVE_SCHEMA
-      ? {
-          herbs: saved.herbs,
-          herbBundles,
-          harvestedHerbs: saved.harvestedHerbs,
-        }
-      : {
-          herbs: [],
-          herbBundles: [],
-          harvestedHerbs: 0,
-        }),
-    ...(envelope.schema === SAVE_SCHEMA_V5 || envelope.schema === SAVE_SCHEMA
-      ? { herbStorageClaims: saved.herbStorageClaims }
-      : { herbStorageClaims: {} }),
-  };
-}
-
 export function snapshotFor(state: Clearing): SaveEnvelope {
-  const { commands: _commands, ...withoutHistory } = structuredClone(state);
-  const savedState = validateSavedClearing(withoutHistory);
+  const { commands: _commands, ...savedState } = structuredClone(state);
   return {
     kind: SAVE_KIND,
     schema: SAVE_SCHEMA,
     revision: 0,
-    savedState: structuredClone(savedState),
+    savedState: validateClearing(savedState),
   };
 }
-
-function validateSavedClearing(value: unknown): SavedClearing {
-  const parsed = savedClearingSchema.parse(value);
-  checkInvariants({ ...parsed, commands: [] } as unknown as Clearing);
-  return parsed;
-}
-
 export function restoreSnapshot(value: unknown): {
   state: Clearing;
   revision: number;
 } {
-  const envelope = validateSaveEnvelope(value);
-  const savedState = normalizeSavedState(envelope);
+  const value7 = validateSaveEnvelope(value);
   return {
-    state: structuredClone({
-      ...savedState,
+    state: {
+      ...structuredClone(value7.savedState),
       commands: [],
       paused: true,
-    }) as unknown as Clearing,
-    revision: envelope.revision,
+    },
+    revision: value7.revision,
   };
 }
-
 export function backupJson(state: Clearing, revision: number): string {
   return `${JSON.stringify({ ...snapshotFor(state), revision }, null, 2)}\n`;
 }
-
 export function rawBackupJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
-
 export type LoadResult =
   | { kind: "missing" }
   | { kind: "loaded"; state: Clearing; revision: number }
   | { kind: "invalid"; raw: unknown; reason: string }
   | { kind: "failed"; error: unknown };
-
-class StaleRevisionError extends Error {
-  constructor() {
-    super("The local world changed in another tab.");
-    this.name = "StaleRevisionError";
-  }
-}
-
-class MalformedSaveError extends Error {
-  constructor() {
-    super("The local world record is malformed and was not overwritten.");
-    this.name = "MalformedSaveError";
-  }
-}
-
 const database =
   typeof indexedDB === "undefined"
     ? null
@@ -1796,13 +741,10 @@ const database =
             db.createObjectStore(SAVE_STORE);
         },
       });
-
 async function readRecord(): Promise<unknown> {
   if (!database) throw new Error("IndexedDB is unavailable.");
-  const db = await database;
-  return db.get(SAVE_STORE, SAVE_KEY);
+  return (await database).get(SAVE_STORE, SAVE_KEY);
 }
-
 export async function loadWorld(): Promise<LoadResult> {
   if (!database)
     return { kind: "failed", error: new Error("IndexedDB is unavailable.") };
@@ -1822,96 +764,83 @@ export async function loadWorld(): Promise<LoadResult> {
     return { kind: "failed", error };
   }
 }
-
 export type SaveRevisionDecision =
   | { kind: "write"; revision: number }
   | { kind: "stale"; currentRevision: number }
   | { kind: "malformed" };
-
 export type ReplaceRevisionDecision = SaveRevisionDecision;
-
 export function decideSaveRevision(
   current: unknown,
-  expectedRevision: number,
+  expected: number,
 ): SaveRevisionDecision {
   if (current === undefined)
-    return expectedRevision === 0
+    return expected === 0
       ? { kind: "write", revision: 1 }
       : { kind: "stale", currentRevision: 0 };
-  let currentRevision: number;
   try {
-    currentRevision = validateSaveEnvelope(current).revision;
+    const revision = validateSaveEnvelope(current).revision;
+    return revision === expected
+      ? { kind: "write", revision: revision + 1 }
+      : { kind: "stale", currentRevision: revision };
   } catch {
     return { kind: "malformed" };
   }
-  return currentRevision === expectedRevision
-    ? { kind: "write", revision: currentRevision + 1 }
-    : { kind: "stale", currentRevision };
 }
-
 export function decideReplaceRevision(
   current: unknown,
-  expectedRevision: number,
+  expected: number,
   mode: "cas" | "discardMalformed" = "cas",
 ): ReplaceRevisionDecision {
   if (current === undefined)
-    return mode === "cas" && expectedRevision === 0
+    return mode === "cas" && expected === 0
       ? { kind: "write", revision: 1 }
       : { kind: "stale", currentRevision: 0 };
   try {
-    const currentRevision = validateSaveEnvelope(current).revision;
-    if (mode === "discardMalformed") return { kind: "stale", currentRevision };
-    return currentRevision === expectedRevision
-      ? { kind: "write", revision: currentRevision + 1 }
-      : { kind: "stale", currentRevision };
+    const revision = validateSaveEnvelope(current).revision;
+    return mode === "discardMalformed"
+      ? { kind: "stale", currentRevision: revision }
+      : revision === expected
+        ? { kind: "write", revision: revision + 1 }
+        : { kind: "stale", currentRevision: revision };
   } catch {
     return mode === "discardMalformed"
       ? { kind: "write", revision: 1 }
       : { kind: "malformed" };
   }
 }
-
 export async function saveWorld(
   state: Clearing,
-  expectedRevision: number,
+  expected: number,
 ): Promise<{ revision: number }> {
-  const envelope = snapshotFor(state);
-  if (!database) throw new Error("IndexedDB is unavailable.");
-  const db = await database;
-  const tx = db.transaction(SAVE_STORE, "readwrite");
-  const current = await tx.store.get(SAVE_KEY);
-  const decision = decideSaveRevision(current, expectedRevision);
-  if (decision.kind !== "write") {
-    tx.abort();
-    await tx.done.catch(() => undefined);
-    if (decision.kind === "malformed") throw new MalformedSaveError();
-    throw new StaleRevisionError();
-  }
-  const revision = decision.revision;
-  await tx.store.put({ ...envelope, revision }, SAVE_KEY);
-  await tx.done;
-  return { revision };
+  return write(state, expected, "cas");
 }
-
 export async function replaceWorld(
   state: Clearing,
-  expectedRevision: number,
+  expected: number,
   mode: "cas" | "discardMalformed" = "cas",
 ): Promise<{ revision: number }> {
-  const envelope = snapshotFor(state);
+  return write(state, expected, mode);
+}
+async function write(
+  state: Clearing,
+  expected: number,
+  mode: "cas" | "discardMalformed",
+): Promise<{ revision: number }> {
   if (!database) throw new Error("IndexedDB is unavailable.");
-  const db = await database;
-  const tx = db.transaction(SAVE_STORE, "readwrite");
-  const current = await tx.store.get(SAVE_KEY);
-  const decision = decideReplaceRevision(current, expectedRevision, mode);
+  const db = await database,
+    tx = db.transaction(SAVE_STORE, "readwrite"),
+    decision =
+      mode === "cas"
+        ? decideSaveRevision(await tx.store.get(SAVE_KEY), expected)
+        : decideReplaceRevision(await tx.store.get(SAVE_KEY), expected, mode);
   if (decision.kind !== "write") {
     tx.abort();
-    await tx.done.catch(() => undefined);
-    if (decision.kind === "malformed") throw new MalformedSaveError();
-    throw new StaleRevisionError();
+    throw new Error(decision.kind);
   }
-  const revision = decision.revision;
-  await tx.store.put({ ...envelope, revision }, SAVE_KEY);
+  await tx.store.put(
+    { ...snapshotFor(state), revision: decision.revision },
+    SAVE_KEY,
+  );
   await tx.done;
-  return { revision };
+  return { revision: decision.revision };
 }

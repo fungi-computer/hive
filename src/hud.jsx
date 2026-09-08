@@ -11,7 +11,8 @@ import { Button } from "@fungi.computer/caps/components/button";
 import { Card } from "@fungi.computer/caps/components/card";
 import { Checkbox } from "@fungi.computer/caps/components/checkbox";
 import "@fungi.computer/caps/styles.css";
-import { BUILDINGS, shelteredBeds } from "./construction.js";
+import { BUILDINGS, constructionBuffer, shelfContainer, shelteredBeds } from "./construction.js";
+import { carriedLot, containerContents, embeddedQuantity, transferForActor } from "./materials.ts";
 import { commandProblem } from "./orders.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
@@ -175,7 +176,9 @@ const toolMachine = createMachine({
   },
 });
 
-function actorFact(actor, herbClaimJob) {
+function actorFact(actor, materials) {
+  const transfer = transferForActor(materials, actor.id);
+  const hand = carriedLot(materials, actor.id);
   return {
     id: actor.id,
     name: actor.name,
@@ -188,8 +191,9 @@ function actorFact(actor, herbClaimJob) {
     haulAllowed: actor.allowedWork.haul,
     buildAllowed: actor.allowedWork.build,
     gardenAllowed: actor.allowedWork.garden,
-    cargoAmount: actor.cargo?.amount ?? 0,
-    activeJobId: actor.task?.job ?? actor.cargo?.job ?? herbClaimJob ?? null,
+    carriedAmount: hand?.quantity ?? 0,
+    cargoMaterial: hand?.material ?? null,
+    activeJobId: actor.task?.job ?? transfer?.owner.job ?? null,
     x: actor.x,
     z: actor.z,
     level: actor.level,
@@ -240,7 +244,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   const nextActors = Object.fromEntries(
     Object.values(state.actors).map((actor) => [
       actor.id,
-      actorFact(actor, state.herbStorageClaims[actor.id]?.job ?? null),
+      actorFact(actor, state.materials),
     ]),
   );
   const actors =
@@ -300,13 +304,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     z: site.z,
     level: site.level,
     direction: site.direction,
-    delivered: site.delivered,
+    materialsInBuffer: embeddedQuantity(state.materials, constructionBuffer(site).id, "wood"),
     work: site.work,
     finished: site.finishedAt !== null,
-    bundleCount: state.herbBundles.filter(
-      (bundle) =>
-        bundle.location.kind === "stored" && bundle.location.site === site.id,
-    ).length,
+    bundleCount: containerContents(state.materials, shelfContainer(site.id).id).filter((lot) => lot.material === "mugwort").length,
   }));
   const herbsNext = state.herbs.map((herb) => ({
     id: herb.id,
@@ -317,17 +318,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     work: herb.work,
     plantedAt: herb.plantedAt,
   }));
-  const herbBundlesNext = state.herbBundles.map((bundle) => ({
-    id: bundle.id,
-    kind: bundle.kind,
-    amount: bundle.amount,
-    location:
-      bundle.location.kind === "ground"
-        ? { ...bundle.location }
-        : bundle.location.kind === "carried"
-          ? { ...bundle.location }
-          : { ...bundle.location },
-  }));
+  const herbBundlesNext = state.materials.lots.filter((lot) => lot.material === "mugwort").map((lot) => ({ id: lot.id, kind: "mugwort", amount: lot.quantity, location: lot.location.kind === "container" ? { kind: "stored", site: lot.location.container.replace("shelf:", "") } : lot.location.kind === "hand" ? { kind: "carried", actor: lot.location.actor } : { ...lot.location } }));
   const trees =
     previous &&
     treesNext.length === previous.trees.length &&
@@ -429,7 +420,7 @@ function orderModel(display, job) {
         ? ` · Shelf ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
         : ""
       : site
-        ? ` · ${site.delivered}/${BUILDINGS[site.type].wood} wood · ${site.level ? "Upper" : "Ground"}`
+        ? ` · ${site.materialsInBuffer}/${BUILDINGS[site.type].wood} wood · ${site.level ? "Upper" : "Ground"}`
         : "";
   return {
     id: job.id,
@@ -524,7 +515,7 @@ const rosterAtom = atom((get) => {
       !facts.homeIds.includes(selection.inspectedTarget.id)
         ? facts.actors[selection.inspectedTarget.id]
         : null,
-    carry: selected.reduce((total, actor) => total + actor.cargoAmount, 0),
+    carry: selected.reduce((total, actor) => total + actor.carriedAmount, 0),
     routine: selected.length
       ? selected.every((actor) => actor.routine)
       : !!facts.actors.rowan?.routine,

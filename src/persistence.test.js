@@ -1,72 +1,101 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createClearing, step as advance } from "./clearing.ts";
-import { CHOP_TICKS } from "./activity.ts";
-import { BUILDINGS } from "./construction.js";
-import { stairCells } from "./world.js";
+import { createClearing } from "./clearing.ts";
 import {
   decideReplaceRevision,
   decideSaveRevision,
   restoreSnapshot,
   snapshotFor,
-  validateClearing,
-  validateSaveEnvelope,
 } from "./persistence.ts";
 
-test("save revision admission distinguishes a missing slot from malformed bytes", () => {
-  assert.deepEqual(decideSaveRevision(undefined, 0), {
-    kind: "write",
-    revision: 1,
+const cell = (x = 5, z = 5, level = 0) => ({ x, z, level });
+const scope = { party: "home", actors: null };
+function envelope(change) {
+  const saved = snapshotFor(createClearing());
+  change(saved.savedState);
+  return saved;
+}
+function rejects(name, change, pattern) {
+  test(name, () => {
+    assert.throws(() => restoreSnapshot(envelope(change)), pattern);
   });
-  assert.deepEqual(decideSaveRevision(undefined, 3), {
-    kind: "stale",
-    currentRevision: 0,
-  });
-  assert.deepEqual(decideSaveRevision({ schema: "unknown" }, 0), {
-    kind: "malformed",
-  });
-  assert.deepEqual(decideSaveRevision({ revision: 4 }, 3), {
-    kind: "malformed",
-  });
-  const valid = snapshotFor(createClearing());
-  valid.revision = 4;
-  assert.deepEqual(decideSaveRevision(valid, 3), {
-    kind: "stale",
-    currentRevision: 4,
-  });
-  assert.deepEqual(decideReplaceRevision(undefined, 0), {
-    kind: "write",
-    revision: 1,
-  });
-  assert.deepEqual(decideReplaceRevision(undefined, 0, "discardMalformed"), {
-    kind: "stale",
-    currentRevision: 0,
-  });
-  assert.deepEqual(decideReplaceRevision({ revision: 4 }, 0), {
-    kind: "malformed",
-  });
-  assert.deepEqual(
-    decideReplaceRevision({ revision: 4 }, 0, "discardMalformed"),
-    {
-      kind: "write",
-      revision: 1,
+}
+function site(id, type = "wall", overrides = {}) {
+  return {
+    id,
+    type,
+    ...cell(),
+    direction: 0,
+    work: 0,
+    finishedAt: null,
+    ...overrides,
+  };
+}
+function job(id, kind = "chop", target = "oak-1", overrides = {}) {
+  return {
+    id,
+    kind,
+    target,
+    scope,
+    reason: "Ordered",
+    routine: false,
+    ...overrides,
+  };
+}
+function transfer(id, overrides = {}) {
+  return {
+    id,
+    actor: "rowan",
+    owner: { job: "job-build", step: "construction-materials" },
+    request: {
+      source: { kind: "eligible-ground", material: "wood" },
+      quantityPolicy: "portion",
+      quantity: 1,
+      destination: "construction-buffer:site-a",
     },
-  );
-  assert.deepEqual(decideReplaceRevision(valid, 4), {
-    kind: "write",
-    revision: 5,
+    phase: { kind: "reserved", sourceLot: "wood-a", quantity: 1 },
+    ...overrides,
+  };
+}
+function buildSupplyEnvelope() {
+  return envelope((state) => {
+    state.sites.push(site("site-a"));
+    state.jobs.push(job("job-build", "build", "site-a"));
+    state.materials.lots.push(
+      {
+        id: "hand-wood",
+        material: "wood",
+        quantity: 1,
+        location: { kind: "hand", actor: "rowan" },
+      },
+      {
+        id: "wood-rest",
+        material: "wood",
+        quantity: 5,
+        location: { kind: "ground", ...cell(4, 4) },
+      },
+    );
+    state.materials.transfers.push(
+      transfer("transfer-build", {
+        phase: { kind: "carrying", lot: "hand-wood" },
+      }),
+    );
+    state.actors.rowan.task = {
+      kind: "transfer",
+      job: "job-build",
+      target: "transfer-build",
+      duration: 8,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-build",
+      cost: 1,
+    };
+    state.felled = 1;
   });
-  assert.deepEqual(decideReplaceRevision(valid, 3), {
-    kind: "stale",
-    currentRevision: 4,
-  });
-  assert.deepEqual(decideReplaceRevision(valid, 4, "discardMalformed"), {
-    kind: "stale",
-    currentRevision: 4,
-  });
-});
+}
 
-test("snapshot omits command history and restores a paused fresh trace", () => {
+test("v7 snapshots omit commands and restore paused without any historical reader", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -74,1158 +103,457 @@ test("snapshot omits command history and restores a paused fresh trace", () => {
     actor: "sedge",
     tick: 0,
   });
-  const envelope = snapshotFor(state);
-
-  assert.equal("commands" in envelope.savedState, false);
-  const restored = restoreSnapshot(envelope);
+  const saved = snapshotFor(state);
+  assert.equal(saved.schema, 7);
+  assert.equal("commands" in saved.savedState, false);
+  const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
-  assert.deepEqual(state.commands, [
-    { kind: "recruit", party: "home", actor: "sedge", tick: 0 },
-  ]);
 });
 
-test("Garden work toggles validate in the v4 live command history", () => {
-  const state = createClearing();
-  state.paused = true;
-  const [result] = advance(state, {}, [
-    {
-      kind: "work",
-      party: "home",
-      actors: null,
-      work: "garden",
-      enabled: false,
-    },
-  ]);
-  assert.deepEqual(result, { status: "applied" });
-  assert.equal(state.commands[0].work, "garden");
-  assert.equal(validateClearing(state).commands[0].work, "garden");
+test("current-v7 revision admission distinguishes absent, malformed, and stale slots", () => {
+  assert.deepEqual(decideSaveRevision(undefined, 0), {
+    kind: "write",
+    revision: 1,
+  });
+  assert.deepEqual(decideSaveRevision({ schema: 0 }, 0), { kind: "malformed" });
+  const saved = snapshotFor(createClearing());
+  saved.revision = 3;
+  assert.deepEqual(decideSaveRevision(saved, 2), {
+    kind: "stale",
+    currentRevision: 3,
+  });
+  assert.deepEqual(decideReplaceRevision(undefined, 0, "discardMalformed"), {
+    kind: "stale",
+    currentRevision: 0,
+  });
 });
 
-test("schema 6 persists drafted state and typed draft/Go replay history", () => {
-  const state = createClearing();
-  state.actors.rowan.drafted = true;
-  state.actors.rowan.mode = "walk";
-  state.actors.rowan.path = [{ x: 8, z: 10, level: 0 }];
-  state.commands.push(
-    { kind: "draft", party: "home", actor: "rowan", tick: 0 },
-    {
-      kind: "go",
-      party: "home",
-      actor: "rowan",
-      target: { x: 8, z: 10, level: 0 },
-      tick: 0,
-    },
-  );
-  validateClearing(state);
-  const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 6);
-  assert.equal(envelope.savedState.actors.rowan.drafted, true);
-  const restored = restoreSnapshot(envelope).state;
-  assert.equal(restored.actors.rowan.drafted, true);
-  assert.equal(restored.actors.rowan.mode, "walk");
-  assert.deepEqual(restored.actors.rowan.path, [{ x: 8, z: 10, level: 0 }]);
-  assert.deepEqual(restored.commands, []);
-  assert.throws(() => {
-    const missing = structuredClone(envelope);
-    delete missing.savedState.actors.rowan.drafted;
-    validateSaveEnvelope(missing);
-  }, /Invalid input/);
-});
+test("restore accepts an active build-supply transfer and rejects owner/request contrasts", () => {
+  assert.doesNotThrow(() => restoreSnapshot(buildSupplyEnvelope()));
 
-function supportedUpperState() {
-  const state = structuredClone(createClearing());
-  state.tick = 20;
-  state.felled = 2;
-  for (const tree of state.trees.slice(0, 2)) {
-    tree.work = CHOP_TICKS;
-    tree.felledAt = 8;
-  }
-  state.sites.push(
-    {
-      id: "site-1",
-      type: "wall",
-      x: 8,
-      z: 5,
-      level: 0,
-      direction: 0,
-      delivered: 1,
-      work: BUILDINGS.wall.ticks,
-      finishedAt: 10,
-    },
-    {
-      id: "site-2",
-      type: "stair",
-      x: 8,
-      z: 2,
-      level: 0,
-      direction: 0,
-      delivered: BUILDINGS.stair.wood,
-      work: BUILDINGS.stair.ticks,
-      finishedAt: 10,
-    },
-    {
-      id: "site-3",
-      type: "floor",
-      x: 8,
-      z: 5,
-      level: 1,
-      direction: 0,
-      delivered: BUILDINGS.floor.wood,
-      work: BUILDINGS.floor.ticks,
-      finishedAt: 10,
-    },
-  );
-  state.piles.push({ id: "wood-4", x: 4, z: 5, level: 0, amount: 7 });
-  state.nextId = 20;
-  return state;
-}
+  const tasklessCarrying = buildSupplyEnvelope();
+  tasklessCarrying.savedState.actors.rowan.task = null;
+  tasklessCarrying.savedState.actors.rowan.assignment = null;
+  assert.doesNotThrow(() => restoreSnapshot(tasklessCarrying));
 
-test("v6 validates stair/floor topology, level-aware paths, and v5 restore", () => {
-  const state = supportedUpperState();
-  state.commands.push(
-    {
-      kind: "build",
-      party: "home",
-      actors: null,
-      type: "stair",
-      x: 8,
-      z: 2,
-      level: 0,
-      direction: 0,
-      tick: 20,
-    },
-    {
-      kind: "build",
-      party: "home",
-      actors: null,
-      type: "floor",
-      x: 8,
-      z: 5,
-      level: 1,
-      direction: 0,
-      tick: 20,
-    },
-  );
-  validateClearing(state);
-  const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 6);
-  assert.equal(restoreSnapshot(envelope).state.sites[1].type, "stair");
-
-  const secondStair = structuredClone(state);
-  secondStair.sites.push({
-    ...secondStair.sites[1],
-    id: "site-4",
-    x: 10,
-    z: 2,
-  });
-  secondStair.piles[0].amount -= BUILDINGS.stair.wood;
-  assert.throws(() => validateClearing(secondStair), /multiple stair/);
-
-  const wrongLevelStair = structuredClone(state);
-  wrongLevelStair.sites[1].level = 1;
-  assert.throws(() => validateClearing(wrongLevelStair), /stair .* level 0/);
-
-  const v5 = structuredClone(envelope);
-  v5.schema = 5;
-  v5.savedState.sites = v5.savedState.sites.filter(
-    (site) => site.type !== "stair" && site.type !== "floor",
-  );
-  v5.savedState.piles[0].amount += 4;
-  const restoredV5 = restoreSnapshot(v5).state;
-  assert.equal(restoredV5.paused, true);
-  assert.equal(restoredV5.sites.length, 1);
-
-  const blockedOrdinaryPath = structuredClone(state);
-  blockedOrdinaryPath.actors.rowan.x = 7;
-  blockedOrdinaryPath.actors.rowan.z = 1;
-  blockedOrdinaryPath.actors.rowan.path = [{ x: 8, z: 1, level: 0 }];
-  blockedOrdinaryPath.sites.push({
-    id: "site-4",
-    type: "wall",
-    x: 8,
-    z: 1,
-    level: 0,
-    direction: 0,
-    delivered: 1,
-    work: BUILDINGS.wall.ticks,
-    finishedAt: 10,
-  });
-  blockedOrdinaryPath.piles[0].amount--;
-  validateClearing(blockedOrdinaryPath);
-
-  const missingStairEdge = structuredClone(state);
-  missingStairEdge.sites = missingStairEdge.sites.filter(
-    (site) => site.type !== "stair",
-  );
-  missingStairEdge.actors.rowan.x = 8;
-  missingStairEdge.actors.rowan.z = 2;
-  missingStairEdge.actors.rowan.path = [{ x: 8, z: 4, level: 1 }];
-  assert.throws(
-    () => validateClearing(missingStairEdge),
-    /illegal edge|not on an upper surface/,
-  );
-
-  const unsupportedFloor = structuredClone(state);
-  unsupportedFloor.sites = unsupportedFloor.sites.filter(
-    (site) => site.id !== "site-1",
-  );
-  unsupportedFloor.piles[0].amount++;
-  assert.throws(() => validateClearing(unsupportedFloor), /no lower support/);
-
-  const landingDoor = structuredClone(state);
-  landingDoor.sites.push({
-    id: "site-4",
-    type: "door",
-    x: 8,
-    z: 4,
-    level: 1,
-    direction: 0,
-    delivered: BUILDINGS.door.wood,
-    work: BUILDINGS.door.ticks,
-    finishedAt: 10,
-  });
-  landingDoor.piles[0].amount -= BUILDINGS.door.wood;
-  validateClearing(landingDoor);
-
-  const floorInLanding = structuredClone(state);
-  floorInLanding.sites.push({
-    id: "site-4",
-    type: "floor",
-    x: 8,
-    z: 4,
-    level: 1,
-    direction: 0,
-    delivered: BUILDINGS.floor.wood,
-    work: BUILDINGS.floor.ticks,
-    finishedAt: 10,
-  });
-  floorInLanding.piles[0].amount -= BUILDINGS.floor.wood;
-  assert.throws(() => validateClearing(floorInLanding), /headroom/);
-
-  const roofOnRamp = structuredClone(state);
-  roofOnRamp.sites.push({
-    id: "site-4",
-    type: "roof",
-    x: 8,
-    z: 3,
-    level: 1,
-    direction: 0,
-    delivered: BUILDINGS.roof.wood,
-    work: BUILDINGS.roof.ticks,
-    finishedAt: 10,
-  });
-  roofOnRamp.piles[0].amount -= BUILDINGS.roof.wood;
-  assert.throws(() => validateClearing(roofOnRamp), /headroom/);
-
-  for (const type of ["wall", "door", "roof"]) {
-    const blueprintOnRamp = structuredClone(state);
-    const ramp = stairCells(
-      blueprintOnRamp.sites.find((site) => site.type === "stair"),
-    );
-    blueprintOnRamp.sites.push({
-      id: "site-4",
-      type,
-      x: ramp[1].x,
-      z: ramp[1].z,
-      level: 0,
-      direction: 0,
-      delivered: 0,
-      work: 0,
-      finishedAt: null,
-    });
-    assert.throws(
-      () => validateClearing(blueprintOnRamp),
-      /blocked lower ramp cell/,
-    );
-  }
-
-  for (const type of ["roof", "door"]) {
-    const lowerConflict = structuredClone(state);
-    lowerConflict.sites.push({
-      id: "site-4",
-      type,
-      x: 8,
-      z: 5,
-      level: 0,
-      direction: 0,
-      delivered: BUILDINGS[type].wood,
-      work: BUILDINGS[type].ticks,
-      finishedAt: null,
-    });
-    assert.throws(
-      () => validateClearing(lowerConflict),
-      /cross-level|no lower support/,
-    );
-
-    const coverFirst = structuredClone(state);
-    coverFirst.sites = coverFirst.sites.filter((site) => site.type !== "floor");
-    coverFirst.sites.push({
-      id: "site-4",
-      type,
-      x: 8,
-      z: 5,
-      level: 0,
-      direction: 0,
-      delivered: BUILDINGS[type].wood,
-      work: BUILDINGS[type].ticks,
-      finishedAt: null,
-    });
-    coverFirst.sites.push({
-      id: "site-5",
-      type: "floor",
-      x: 8,
-      z: 5,
-      level: 1,
-      direction: 0,
-      delivered: BUILDINGS.floor.wood,
-      work: BUILDINGS.floor.ticks,
-      finishedAt: null,
-    });
-    assert.throws(
-      () => validateClearing(coverFirst),
-      /cross-level|no lower support/,
-    );
-  }
-
-  const landingWall = structuredClone(state);
-  landingWall.sites.push({
-    id: "site-5",
-    type: "wall",
-    x: 8,
-    z: 4,
-    level: 1,
-    direction: 0,
-    delivered: BUILDINGS.wall.wood,
-    work: BUILDINGS.wall.ticks,
-    finishedAt: 10,
-  });
-  landingWall.piles[0].amount -= BUILDINGS.wall.wood;
-  assert.throws(
-    () => validateClearing(landingWall),
-    /not allowed on stair landing/,
-  );
-
-  const upperBundle = structuredClone(state);
-  upperBundle.herbBundles.push({
-    id: "herb-bundle-20",
-    kind: "mugwort",
-    amount: 1,
-    location: { kind: "ground", x: 7, z: 5, level: 1 },
-  });
-  upperBundle.harvestedHerbs = 1;
-  assert.throws(() => validateClearing(upperBundle), /not on an upper surface/);
-
-  const unsupportedUpperPath = structuredClone(state);
-  unsupportedUpperPath.actors.rowan.x = 8;
-  unsupportedUpperPath.actors.rowan.z = 4;
-  unsupportedUpperPath.actors.rowan.level = 1;
-  unsupportedUpperPath.actors.rowan.path = [{ x: 8, z: 3, level: 1 }];
-  assert.throws(
-    () => validateClearing(unsupportedUpperPath),
-    /path 0 is not on an upper surface/,
-  );
-});
-
-test("strict schema 1 through 3 normalize garden, herbs, and drafted state", () => {
-  const v4 = snapshotFor(createClearing());
-  const v3 = structuredClone(v4);
-  v3.schema = 3;
-  delete v3.savedState.herbs;
-  delete v3.savedState.herbBundles;
-  delete v3.savedState.harvestedHerbs;
-  delete v3.savedState.herbStorageClaims;
-  for (const actor of Object.values(v3.savedState.actors))
-    delete actor.allowedWork.garden;
-  const v2 = structuredClone(v3);
-  v2.schema = 2;
-  for (const actor of Object.values(v2.savedState.actors)) delete actor.drafted;
-  const v1 = structuredClone(v2);
-  v1.schema = 1;
-  delete v1.savedState.consumedWood;
-
-  const restoredV1 = restoreSnapshot(v1);
-  assert.equal(restoredV1.state.consumedWood, 0);
-  assert.equal(restoredV1.state.actors.rowan.drafted, false);
-  assert.equal(restoredV1.state.actors.rowan.allowedWork.garden, true);
-  assert.deepEqual(restoredV1.state.herbs, []);
-  assert.deepEqual(restoredV1.state.herbBundles, []);
-  assert.equal(restoredV1.state.harvestedHerbs, 0);
-  assert.equal(restoredV1.state.paused, true);
-  const restoredV2 = restoreSnapshot(v2);
-  assert.equal(restoredV2.state.actors.rowan.drafted, false);
-  const restoredV3 = restoreSnapshot(v3);
-  assert.equal(restoredV3.state.actors.rowan.allowedWork.garden, true);
-  const rewritten = snapshotFor(restoredV1.state);
-  assert.equal(rewritten.schema, 6);
-  assert.equal(rewritten.savedState.consumedWood, 0);
-  assert.equal(rewritten.savedState.actors.rowan.drafted, false);
-  assert.equal(rewritten.savedState.actors.rowan.allowedWork.garden, true);
-  assert.equal(validateSaveEnvelope(v1).schema, 1);
-  assert.equal(validateSaveEnvelope(v2).schema, 2);
-  assert.equal(validateSaveEnvelope(v3).schema, 3);
-});
-
-test("strict v4 ground bundles normalize to v5 locations without mutating the old envelope", () => {
-  const state = structuredClone(createClearing());
-  state.tick = 20;
-  state.felled = 1;
-  state.trees[0].work = CHOP_TICKS;
-  state.trees[0].felledAt = 8;
-  state.piles.push({ id: "wood-2", x: 8, z: 9, level: 0, amount: 6 });
-  state.herbs.push({
-    id: "herb-1",
-    kind: "mugwort",
-    x: 8,
-    z: 9,
-    level: 0,
-    stage: "planted",
-    work: 0,
-    plantedAt: 20,
-  });
-  state.herbBundles.push({
-    id: "herb-bundle-2",
-    kind: "mugwort",
-    amount: 1,
-    location: { kind: "ground", x: 8, z: 9, level: 0 },
-  });
-  state.harvestedHerbs = 1;
-  state.nextId = 3;
-  const v5 = snapshotFor(state);
-  const v4 = structuredClone(v5);
-  v4.schema = 4;
-  delete v4.savedState.herbStorageClaims;
-  v4.savedState.herbBundles = v4.savedState.herbBundles.map((bundle) => ({
-    id: bundle.id,
-    kind: bundle.kind,
-    amount: bundle.amount,
-    x: bundle.location.x,
-    z: bundle.location.z,
-    level: bundle.location.level,
-  }));
-  const beforeLoad = structuredClone(v4);
-  const restored = restoreSnapshot(v4).state;
-  assert.deepEqual(v4, beforeLoad);
-  assert.deepEqual(restored.herbBundles[0].location, {
-    kind: "ground",
-    x: 8,
-    z: 9,
-    level: 0,
-  });
-  assert.deepEqual(restored.herbStorageClaims, {});
-});
-
-test("Store command history is strictly shared-only in v6", () => {
-  const base = createClearing();
-  const valid = structuredClone(base);
-  valid.commands.push({
-    kind: "store-herb",
-    party: "home",
-    actors: null,
-    bundle: "herb-bundle-1",
-    shelf: "site-1",
-    tick: 0,
-  });
-  validateClearing(valid);
-
-  const personal = structuredClone(base);
-  personal.commands.push({
-    kind: "store-herb",
-    party: "home",
-    actors: ["rowan"],
-    bundle: "herb-bundle-1",
-    shelf: "site-1",
-    tick: 0,
-  });
-  assert.throws(() => validateClearing(personal), /Invalid input/);
-
-  const direct = structuredClone(base);
-  direct.commands.push({
-    kind: "store-herb",
-    party: "home",
-    actors: null,
-    direct: true,
-    bundle: "herb-bundle-1",
-    shelf: "site-1",
-    tick: 0,
-  });
-  assert.throws(() => validateClearing(direct), /direct/);
-});
-
-test("herb persistence accepts planted elapsed zero and rejects an orphaned order", () => {
-  const planted = structuredClone(createClearing());
-  planted.herbs.push({
-    id: "herb-1",
-    kind: "mugwort",
-    x: 7,
-    z: 9,
-    level: 0,
-    stage: "planted",
-    work: 0,
-    plantedAt: 0,
-  });
-  planted.nextId = 2;
-  validateClearing(planted);
-
-  const ordered = structuredClone(createClearing());
-  ordered.herbs.push({
-    id: "herb-1",
-    kind: "mugwort",
-    x: 7,
-    z: 9,
-    level: 0,
-    stage: "ordered",
-    work: 0,
-    plantedAt: null,
-  });
-  ordered.jobs.push({
-    id: "job-2",
-    kind: "sow",
-    target: "herb-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  ordered.nextId = 3;
-  validateClearing(ordered);
-  ordered.jobs = [];
-  assert.throws(() => validateClearing(ordered), /no sow job/);
-});
-
-test("schema 6 snapshot restores ordered, growing, ready, and bundled herb facts", () => {
-  const ordered = structuredClone(createClearing());
-  ordered.herbs.push({
-    id: "herb-1",
-    kind: "mugwort",
-    x: 7,
-    z: 9,
-    level: 0,
-    stage: "ordered",
-    work: 7,
-    plantedAt: null,
-  });
-  ordered.jobs.push({
-    id: "job-2",
-    kind: "sow",
-    target: "herb-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  ordered.nextId = 3;
-  const orderedRestored = restoreSnapshot(snapshotFor(ordered)).state;
-  assert.equal(orderedRestored.herbs[0].stage, "ordered");
-  assert.equal(orderedRestored.herbs[0].work, 7);
-  assert.equal(orderedRestored.jobs[0].target, "herb-1");
-
-  const growing = structuredClone(createClearing());
-  growing.tick = 100;
-  growing.herbs.push({
-    id: "herb-1",
-    kind: "mugwort",
-    x: 7,
-    z: 9,
-    level: 0,
-    stage: "growing",
-    work: 0,
-    plantedAt: 0,
-  });
-  growing.nextId = 2;
-  assert.equal(
-    restoreSnapshot(snapshotFor(growing)).state.herbs[0].stage,
-    "growing",
-  );
-
-  const ready = structuredClone(createClearing());
-  ready.tick = 240;
-  ready.herbs.push({
-    id: "herb-1",
-    kind: "mugwort",
-    x: 7,
-    z: 9,
-    level: 0,
-    stage: "ready",
-    work: 4,
-    plantedAt: 0,
-  });
-  ready.herbBundles.push({
-    id: "herb-bundle-2",
-    kind: "mugwort",
-    amount: 1,
-    location: { kind: "ground", x: 8, z: 9, level: 0 },
-  });
-  ready.harvestedHerbs = 1;
-  ready.nextId = 4;
-  ready.jobs.push({
-    id: "job-3",
-    kind: "harvest",
-    target: "herb-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  const readyRestored = restoreSnapshot(snapshotFor(ready)).state;
-  assert.equal(readyRestored.herbs[0].stage, "ready");
-  assert.equal(readyRestored.herbs[0].work, 4);
-  assert.equal(readyRestored.herbBundles[0].amount, 1);
-  assert.equal(readyRestored.harvestedHerbs, 1);
-  assert.equal(readyRestored.jobs[0].kind, "harvest");
-});
-
-test("schema 6 accepts a finished target and deconstruction job", () => {
-  const state = structuredClone(createClearing());
-  state.tick = 10;
-  state.felled = 1;
-  state.trees[0].work = CHOP_TICKS;
-  state.trees[0].felledAt = 8;
-  state.nextId = 3;
-  state.piles.push({ id: "wood-2", x: 4, z: 5, level: 0, amount: 5 });
-  state.sites.push({
-    id: "site-1",
-    type: "wall",
-    x: 5,
-    z: 5,
-    level: 0,
-    direction: 0,
-    delivered: 1,
-    work: BUILDINGS.wall.ticks,
-    finishedAt: 9,
-  });
-  state.jobs.push({
-    id: "job-2",
-    kind: "deconstruct",
-    target: "site-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  state.actors.rowan.task = {
-    kind: "deconstruct",
-    job: "job-2",
-    target: "site-1",
-    duration: BUILDINGS.wall.deconstructTicks,
-  };
-  state.actors.rowan.assignment = {
-    character: "rowan",
-    task: "job-2",
-    cost: 4,
-  };
-  state.actors.rowan.mode = "walk";
-  validateClearing(state);
-  const envelope = snapshotFor(state);
-  assert.equal(envelope.schema, 6);
-  assert.equal(restoreSnapshot(envelope).state.jobs[0].kind, "deconstruct");
-
-  const draftedWorker = structuredClone(envelope);
-  draftedWorker.savedState.actors.rowan.drafted = true;
-  assert.throws(
-    () => restoreSnapshot(draftedWorker),
-    /drafted actor rowan retains ordinary work/,
-  );
-
-  const v2 = structuredClone(envelope);
-  v2.schema = 2;
-  delete v2.savedState.herbs;
-  delete v2.savedState.herbBundles;
-  delete v2.savedState.harvestedHerbs;
-  delete v2.savedState.herbStorageClaims;
-  for (const actor of Object.values(v2.savedState.actors)) {
-    delete actor.drafted;
-    delete actor.allowedWork.garden;
-  }
-  assert.equal(restoreSnapshot(v2).state.jobs[0].kind, "deconstruct");
-
-  const duplicate = structuredClone(envelope);
-  duplicate.savedState.jobs.push({
-    ...duplicate.savedState.jobs[0],
-    id: "job-3",
-  });
-  assert.throws(
-    () => restoreSnapshot(duplicate),
-    /duplicate deconstruction jobs/,
-  );
-
-  const withCargo = structuredClone(state);
-  withCargo.actors.rowan.cargo = {
-    job: "job-2",
-    site: "site-1",
-    amount: 1,
-  };
-  assert.throws(() => validateClearing(withCargo), /deconstruct task/);
-  const withClaim = structuredClone(state);
-  withClaim.claims.rowan = {
-    job: "job-2",
-    pile: "wood-2",
-    site: "site-1",
-    amount: 1,
-  };
-  assert.throws(() => validateClearing(withClaim), /deconstruct task/);
-});
-
-test("schema rejects unknown versions and broken cross references", () => {
-  const envelope = snapshotFor(createClearing());
-  assert.throws(
-    () => validateSaveEnvelope({ ...envelope, schema: 99 }),
-    /Invalid input/,
-  );
-
-  const broken = structuredClone(createClearing());
-  broken.jobs.push({
-    id: "job-1",
-    kind: "chop",
-    target: "oak-missing",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  assert.throws(() => validateClearing(broken), /missing tree/);
-
-  const tasklessWalker = structuredClone(createClearing());
-  tasklessWalker.actors.rowan.mode = "walk";
-  tasklessWalker.actors.rowan.path = [{ x: 8, z: 10, level: 0 }];
-  assert.throws(
-    () => validateClearing(tasklessWalker),
-    /actor rowan has a mode without a task/,
-  );
-});
-
-test("schema preserves active cargo, claims, progress, path and ordered jobs", () => {
-  const state = structuredClone(createClearing());
-  state.tick = 10;
-  state.felled = 1;
-  state.trees[0].work = CHOP_TICKS;
-  state.trees[0].felledAt = 8;
-  state.nextId = 4;
-  state.sites.push({
-    id: "site-1",
-    type: "door",
-    x: 5,
-    z: 5,
-    level: 0,
-    direction: 0,
-    delivered: 0,
-    work: 0,
-    finishedAt: null,
-  });
-  state.jobs.push({
-    id: "job-2",
-    kind: "build",
-    target: "site-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  state.piles.push({ id: "wood-3", x: 4, z: 5, level: 0, amount: 6 });
-  state.claims.rowan = {
-    job: "job-2",
-    pile: "wood-3",
-    site: "site-1",
-    amount: 2,
-  };
-  state.actors.rowan.task = {
-    kind: "pickup",
-    job: "job-2",
-    target: "wood-3",
-    duration: 8,
-  };
-  state.actors.rowan.assignment = {
-    character: "rowan",
-    task: "job-2",
-    cost: 12,
-  };
-  state.actors.rowan.mode = "walk";
-  state.actors.rowan.path = [{ x: 7, z: 9, level: 0 }];
-  state.actors.rowan.leg = 3;
-  state.actors.rowan.work = 2;
-  state.jobs.push({
-    id: "job-3",
-    kind: "rest",
-    target: "rowan",
-    scope: { party: "home", actors: ["rowan"] },
-    reason: "Later",
-    routine: false,
-  });
-  state.feed.sequence = 1;
-  state.feed.nextAt = 300;
-  state.demand = { kind: "demand", name: "Bramble", tick: 50, text: "A roof." };
-
-  const parsed = validateClearing(state);
-  assert.deepEqual(
-    parsed.jobs.map((job) => job.id),
-    ["job-2", "job-3"],
-  );
-  const restored = restoreSnapshot(snapshotFor(state)).state;
-  assert.deepEqual(restored.actors.rowan.path, [{ x: 7, z: 9, level: 0 }]);
-  assert.deepEqual(restored.claims.rowan, state.claims.rowan);
-  assert.equal(restored.sites[0].work, 0);
-  assert.equal(restored.feed.nextAt, 300);
-
-  const badLeg = structuredClone(state);
-  badLeg.actors.rowan.leg = 6;
-  assert.throws(() => validateClearing(badLeg), /invalid leg/);
-  const emptyPathLeg = structuredClone(state);
-  emptyPathLeg.actors.rowan.path = [];
-  emptyPathLeg.actors.rowan.leg = 1;
-  assert.throws(() => validateClearing(emptyPathLeg), /leg without a path/);
-});
-
-function activeBuildState() {
-  const state = structuredClone(createClearing());
-  state.tick = 10;
-  state.felled = 1;
-  state.trees[0].work = CHOP_TICKS;
-  state.trees[0].felledAt = 8;
-  state.nextId = 4;
-  state.sites.push({
-    id: "site-1",
-    type: "door",
-    x: 5,
-    z: 5,
-    level: 0,
-    direction: 0,
-    delivered: 0,
-    work: 0,
-    finishedAt: null,
-  });
-  state.jobs.push({
-    id: "job-2",
-    kind: "build",
-    target: "site-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  state.piles.push({ id: "wood-3", x: 4, z: 5, level: 0, amount: 6 });
-  state.claims.rowan = {
-    job: "job-2",
-    pile: "wood-3",
-    site: "site-1",
-    amount: 2,
-  };
-  state.actors.rowan.task = {
-    kind: "pickup",
-    job: "job-2",
-    target: "wood-3",
-    duration: 8,
-  };
-  state.actors.rowan.assignment = {
-    character: "rowan",
-    task: "job-2",
-    cost: 12,
-  };
-  state.actors.rowan.mode = "walk";
-  return state;
-}
-
-function activeBuildWorkState() {
-  const state = activeBuildState();
-  state.claims = {};
-  state.actors.rowan.task = null;
-  state.actors.rowan.assignment = null;
-  state.actors.rowan.mode = "idle";
-  state.sites[0].delivered = 2;
-  state.sites[0].work = 7;
-  state.piles[0].amount = 4;
-  return state;
-}
-
-test("actor continuation rejects sleep/build target and claim/cargo mismatches", () => {
-  const sleepMismatch = activeBuildState();
-  sleepMismatch.actors.rowan.task = {
-    kind: "sleep",
-    job: "job-2",
-    target: "site-1",
-    duration: 80,
-  };
-  sleepMismatch.actors.rowan.mode = "sleep";
-  assert.throws(() => validateClearing(sleepMismatch), /sleep task disagrees/);
-
-  const buildTargetMismatch = activeBuildState();
-  buildTargetMismatch.claims = {};
-  buildTargetMismatch.sites.push({
-    id: "site-4",
-    type: "wall",
-    x: 6,
-    z: 5,
-    level: 0,
-    direction: 0,
-    delivered: 0,
-    work: 0,
-    finishedAt: null,
-  });
-  buildTargetMismatch.actors.rowan.task = {
-    kind: "build",
-    job: "job-2",
-    target: "site-4",
-    duration: 32,
-  };
-  buildTargetMismatch.actors.rowan.mode = "build";
-  assert.throws(
-    () => validateClearing(buildTargetMismatch),
-    /build task disagrees/,
-  );
-
-  const claimCargoMismatch = activeBuildState();
-  claimCargoMismatch.actors.rowan.cargo = {
-    job: "job-2",
-    site: "site-1",
-    amount: 1,
-  };
-  assert.throws(
-    () => validateClearing(claimCargoMismatch),
-    /pickup task disagrees with claim/,
-  );
-
-  const personalScopeMismatch = activeBuildState();
-  personalScopeMismatch.parties.home.members.push("sedge");
-  personalScopeMismatch.jobs[0].scope.actors = ["sedge"];
-  assert.throws(
-    () => validateClearing(personalScopeMismatch),
-    /not in actor scope/,
-  );
-});
-
-function activeHerbStorageState(location = "ground") {
-  const state = structuredClone(createClearing());
-  state.tick = 30;
-  state.felled = 1;
-  state.trees[0].work = CHOP_TICKS;
-  state.trees[0].felledAt = 8;
-  state.nextId = 4;
-  state.piles.push({ id: "wood-3", x: 4, z: 5, level: 0, amount: 5 });
-  state.sites.push({
-    id: "site-1",
-    type: "shelf",
-    x: 7,
-    z: 10,
-    level: 0,
-    direction: 0,
-    delivered: 1,
-    work: BUILDINGS.shelf.ticks,
-    finishedAt: 24,
-  });
-  state.jobs.push({
-    id: "job-2",
-    kind: "store-herb",
-    bundle: "herb-bundle-3",
-    shelf: "site-1",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  state.herbBundles.push({
-    id: "herb-bundle-3",
-    kind: "mugwort",
-    amount: 1,
-    location:
-      location === "ground"
-        ? { kind: "ground", x: 8, z: 10, level: 0 }
-        : { kind: "carried", actor: "rowan" },
-  });
-  state.harvestedHerbs = 1;
-  state.herbStorageClaims.rowan = {
-    job: "job-2",
-    bundle: "herb-bundle-3",
-    shelf: "site-1",
-  };
-  if (location === "ground") {
+  const ordinaryBuild = envelope((state) => {
+    state.sites.push(site("site-a"));
+    state.jobs.push(job("job-build", "build", "site-a"));
     state.actors.rowan.task = {
-      kind: "pickup-herb",
-      job: "job-2",
-      target: "herb-bundle-3",
+      kind: "build",
+      job: "job-build",
+      target: "site-a",
+      duration: 24,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-build",
+      cost: 1,
+    };
+  });
+  assert.doesNotThrow(() => restoreSnapshot(ordinaryBuild));
+
+  const wrongOwner = buildSupplyEnvelope();
+  wrongOwner.savedState.jobs.push(job("job-other", "build", "site-a"));
+  wrongOwner.savedState.materials.transfers[0].owner.job = "job-other";
+  assert.throws(
+    () => restoreSnapshot(wrongOwner),
+    /inconsistent task activity/,
+  );
+
+  const wrongRequest = buildSupplyEnvelope();
+  wrongRequest.savedState.sites.push(site("site-b", "wall", { x: 6 }));
+  wrongRequest.savedState.materials.transfers[0].request.destination =
+    "construction-buffer:site-b";
+  assert.throws(
+    () => restoreSnapshot(wrongRequest),
+    /does not match owner destination/,
+  );
+});
+
+test("restore accepts one full embedding for every finished construction site", () => {
+  const finished = envelope((state) => {
+    const wall = site("wall-a", "wall", { finishedAt: 1 });
+    state.sites.push(wall);
+    state.materials.lots.push({
+      id: "wood-rest",
+      material: "wood",
+      quantity: 5,
+      location: { kind: "ground", ...cell(4, 4) },
+    });
+    state.materials.embedded.push({
+      container: "construction-buffer:wall-a",
+      material: "wood",
+      quantity: 1,
+    });
+    state.felled = 1;
+  });
+  assert.doesNotThrow(() => restoreSnapshot(finished));
+});
+
+rejects(
+  "restore rejects duplicate live material lot IDs",
+  (state) => {
+    state.materials.lots.push(
+      {
+        id: "lot-a",
+        material: "wood",
+        quantity: 1,
+        location: { kind: "ground", ...cell() },
+      },
+      {
+        id: "lot-a",
+        material: "wood",
+        quantity: 1,
+        location: { kind: "ground", ...cell(6) },
+      },
+    );
+  },
+  /duplicate material lot lot-a/,
+);
+
+rejects(
+  "restore rejects duplicate current job IDs",
+  (state) => {
+    state.jobs.push(job("job-a"), job("job-a"));
+  },
+  /duplicate job ID/,
+);
+
+rejects(
+  "restore rejects duplicate current site IDs",
+  (state) => {
+    state.sites.push(site("site-a"), site("site-a", "door"));
+  },
+  /duplicate site ID/,
+);
+
+rejects(
+  "restore rejects duplicate transfer IDs before transfer joins",
+  (state) => {
+    state.materials.transfers.push(
+      transfer("transfer-a"),
+      transfer("transfer-a"),
+    );
+  },
+  /duplicate transfer transfer-a/,
+);
+
+rejects(
+  "restore rejects hand lots without exactly one carrying transfer",
+  (state) => {
+    state.materials.lots.push({
+      id: "hand-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "hand", actor: "rowan" },
+    });
+  },
+  /lacks unique transfer custody/,
+);
+
+rejects(
+  "restore rejects container lots outside an accepted live destination",
+  (state) => {
+    state.materials.lots.push({
+      id: "stored-a",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "container", container: "shelf:missing" },
+    });
+  },
+  /unknown destination shelf:missing/,
+);
+
+rejects(
+  "restore rejects embedded entries without a finished construction buffer",
+  (state) => {
+    state.materials.embedded.push({
+      container: "construction-buffer:missing",
+      material: "wood",
+      quantity: 1,
+    });
+  },
+  /embedded material has unknown container/,
+);
+
+rejects(
+  "restore rejects a transfer whose owner job is absent",
+  (state) => {
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push(transfer("transfer-a"));
+  },
+  /transfer transfer-a has missing job/,
+);
+
+rejects(
+  "restore rejects transfer owner and destination disagreement",
+  (state) => {
+    state.sites.push(site("site-a"), site("site-b", "door", { x: 6 }));
+    state.jobs.push(job("job-build", "build", "site-a"));
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push(
+      transfer("transfer-a", {
+        request: {
+          source: { kind: "eligible-ground", material: "wood" },
+          quantityPolicy: "portion",
+          quantity: 1,
+          destination: "construction-buffer:site-b",
+        },
+      }),
+    );
+    state.actors.rowan.task = {
+      kind: "transfer",
+      job: "job-build",
+      target: "transfer-a",
       duration: 8,
     };
     state.actors.rowan.assignment = {
       character: "rowan",
-      task: "job-2",
-      cost: 4,
+      task: "job-build",
+      cost: 1,
     };
-    state.actors.rowan.mode = "walk";
-  }
-  return state;
-}
+  },
+  /does not match owner destination/,
+);
 
-test("v5 restores a herb with a loose bundle and wood pile on one cell", () => {
-  const state = activeHerbStorageState();
-  state.piles[0].amount = 4;
-  state.piles.push({ id: "wood-4", x: 8, z: 10, level: 0, amount: 1 });
-  state.herbs.push({
-    id: "herb-2",
-    kind: "mugwort",
-    x: 8,
-    z: 10,
-    level: 0,
-    stage: "planted",
-    work: 0,
-    plantedAt: state.tick,
-  });
-  state.nextId = 5;
-  const restored = restoreSnapshot(snapshotFor(state)).state;
-  assert.deepEqual(restored.herbs[0], state.herbs[0]);
-  assert.deepEqual(restored.herbBundles[0].location, {
-    kind: "ground",
-    x: 8,
-    z: 10,
-    level: 0,
-  });
-  assert.equal(restored.piles[1].amount, 1);
-});
+rejects(
+  "restore rejects transfer phase quantities and source joins",
+  (state) => {
+    state.sites.push(site("site-a"));
+    state.jobs.push(job("job-build", "build", "site-a"));
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push(
+      transfer("transfer-a", {
+        phase: { kind: "reserved", sourceLot: "wood-a", quantity: 2 },
+      }),
+    );
+  },
+  /mismatched quantity/,
+);
 
-test("v5 herb storage claims require the matching continuation boundary", () => {
-  const ground = activeHerbStorageState();
-  validateClearing(ground);
-  const restoredGround = restoreSnapshot(snapshotFor(ground)).state;
-  assert.equal(restoredGround.herbBundles[0].location.kind, "ground");
+rejects(
+  "restore rejects aggregate reserved quantities over a source lot",
+  (state) => {
+    state.sites.push(site("site-a"), site("site-b", "wall", { x: 6 }));
+    state.jobs.push(
+      job("job-a", "build", "site-a"),
+      job("job-b", "build", "site-b"),
+    );
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push(
+      transfer("transfer-a", {
+        owner: { job: "job-a", step: "one" },
+        request: {
+          source: { kind: "eligible-ground", material: "wood" },
+          quantityPolicy: "portion",
+          quantity: 1,
+          destination: "construction-buffer:site-a",
+        },
+      }),
+      transfer("transfer-b", {
+        actor: "sedge",
+        owner: { job: "job-b", step: "two" },
+        request: {
+          source: { kind: "eligible-ground", material: "wood" },
+          quantityPolicy: "portion",
+          quantity: 1,
+          destination: "construction-buffer:site-b",
+        },
+      }),
+    );
+    state.parties.home.members.push("sedge");
+    state.actors.rowan.task = {
+      kind: "transfer",
+      job: "job-a",
+      target: "transfer-a",
+      duration: 8,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-a",
+      cost: 1,
+    };
+    state.actors.sedge.task = {
+      kind: "transfer",
+      job: "job-b",
+      target: "transfer-b",
+      duration: 8,
+    };
+    state.actors.sedge.assignment = {
+      character: "sedge",
+      task: "job-b",
+      cost: 1,
+    };
+  },
+  /reserved source wood-a exceeds quantity/,
+);
 
-  const carried = activeHerbStorageState("carried");
-  validateClearing(carried);
-  const restoredCarried = restoreSnapshot(snapshotFor(carried)).state;
-  assert.equal(restoredCarried.herbBundles[0].location.kind, "carried");
-  assert.equal(restoredCarried.actors.rowan.task, null);
+rejects(
+  "restore rejects occupied plus incoming material beyond a resolved container capacity",
+  (state) => {
+    state.sites.push(site("site-a", "door"));
+    state.jobs.push(job("job-build", "build", "site-a"));
+    state.materials.lots.push(
+      {
+        id: "wood-stored",
+        material: "wood",
+        quantity: 1,
+        location: {
+          kind: "container",
+          container: "construction-buffer:site-a",
+        },
+      },
+      {
+        id: "wood-a",
+        material: "wood",
+        quantity: 2,
+        location: { kind: "ground", ...cell() },
+      },
+    );
+    state.materials.transfers.push(
+      transfer("transfer-a", {
+        request: {
+          source: { kind: "eligible-ground", material: "wood" },
+          quantityPolicy: "portion",
+          quantity: 2,
+          destination: "construction-buffer:site-a",
+        },
+        phase: { kind: "reserved", sourceLot: "wood-a", quantity: 2 },
+      }),
+    );
+    state.actors.rowan.task = {
+      kind: "transfer",
+      job: "job-build",
+      target: "transfer-a",
+      duration: 8,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-build",
+      cost: 1,
+    };
+  },
+  /container construction-buffer:site-a exceeds capacity/,
+);
 
-  const carriedActive = activeHerbStorageState("carried");
-  carriedActive.actors.rowan.task = {
-    kind: "store-herb",
-    job: "job-2",
-    target: "site-1",
-    duration: 8,
-  };
-  carriedActive.actors.rowan.assignment = {
-    character: "rowan",
-    task: "job-2",
-    cost: 4,
-  };
-  carriedActive.actors.rowan.mode = "store-herb";
-  const activeRestored = restoreSnapshot(snapshotFor(carriedActive)).state;
-  assert.equal(activeRestored.actors.rowan.task?.kind, "store-herb");
+rejects(
+  "restore requires a matching actor task for reserved transfers",
+  (state) => {
+    state.sites.push(site("site-a"));
+    state.jobs.push(job("job-build", "build", "site-a"));
+    state.materials.lots.push({
+      id: "wood-a",
+      material: "wood",
+      quantity: 1,
+      location: { kind: "ground", ...cell() },
+    });
+    state.materials.transfers.push(transfer("transfer-a"));
+  },
+  /reserved transfer transfer-a lacks matching actor task/,
+);
 
-  const groundWithoutPickup = activeHerbStorageState();
-  groundWithoutPickup.actors.rowan.task = null;
-  groundWithoutPickup.actors.rowan.assignment = null;
-  groundWithoutPickup.actors.rowan.mode = "idle";
-  assert.throws(
-    () => validateClearing(groundWithoutPickup),
-    /ground herb claim.*pickup task/,
-  );
+rejects(
+  "restore rejects carrying material that does not match source or destination",
+  (state) => {
+    state.sites.push(site("site-a"));
+    state.jobs.push(job("job-build", "build", "site-a"));
+    state.materials.lots.push({
+      id: "hand-mugwort",
+      material: "mugwort",
+      quantity: 1,
+      location: { kind: "hand", actor: "rowan" },
+    });
+    state.materials.transfers.push(
+      transfer("transfer-a", {
+        phase: { kind: "carrying", lot: "hand-mugwort" },
+      }),
+    );
+  },
+  /carrying transfer transfer-a has invalid material/,
+);
 
-  const carriedWithUnrelatedTask = activeHerbStorageState("carried");
-  carriedWithUnrelatedTask.sites.push({
-    id: "site-2",
-    type: "wall",
-    x: 6,
-    z: 10,
-    level: 0,
-    direction: 0,
-    delivered: 0,
-    work: 0,
-    finishedAt: null,
-  });
-  carriedWithUnrelatedTask.jobs.push({
-    id: "job-3",
-    kind: "build",
-    target: "site-2",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  carriedWithUnrelatedTask.actors.rowan.task = {
-    kind: "build",
-    job: "job-3",
-    target: "site-2",
-    duration: BUILDINGS.wall.ticks,
-  };
-  carriedWithUnrelatedTask.actors.rowan.assignment = {
-    character: "rowan",
-    task: "job-3",
-    cost: 4,
-  };
-  carriedWithUnrelatedTask.actors.rowan.mode = "build";
-  assert.throws(
-    () => validateClearing(carriedWithUnrelatedTask),
-    /carried herb claim.*unrelated task/,
-  );
+rejects(
+  "restore rejects a finished site without its full construction embedding",
+  (state) => {
+    state.sites.push(site("site-a", "wall", { finishedAt: 1 }));
+  },
+  /finished site site-a lacks construction embedding/,
+);
 
-  const drafted = activeHerbStorageState();
-  drafted.actors.rowan.drafted = true;
-  assert.throws(
-    () => validateClearing(drafted),
-    /drafted actor rowan retains ordinary work/,
-  );
+rejects(
+  "restore rejects actor task, activity, assignment, and target disagreement",
+  (state) => {
+    state.jobs.push(job("job-chop", "chop", "oak-1"));
+    state.actors.rowan.task = {
+      kind: "build",
+      job: "job-chop",
+      target: "oak-1",
+      duration: 1,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-chop",
+      cost: 1,
+    };
+  },
+  /inconsistent task activity/,
+);
 
-  const fullShelfWithClaim = activeHerbStorageState();
-  fullShelfWithClaim.herbBundles.push({
-    id: "herb-bundle-4",
-    kind: "mugwort",
-    amount: 1,
-    location: { kind: "stored", site: "site-1" },
-  });
-  fullShelfWithClaim.harvestedHerbs = 2;
-  fullShelfWithClaim.nextId = 5;
-  assert.throws(
-    () => validateClearing(fullShelfWithClaim),
-    /storage claim while full/,
-  );
-});
+rejects(
+  "restore rejects invalid actor paths",
+  (state) => {
+    state.actors.rowan.path = [{ x: -1, z: 0, level: 0 }];
+  },
+  /invalid path/,
+);
 
-test("snapshot/restore preserves a real active build after delivery", () => {
-  const state = activeBuildWorkState();
-  validateClearing(state);
-  const restored = restoreSnapshot(snapshotFor(state)).state;
-  assert.equal(restored.sites[0].delivered, 2);
-  assert.equal(restored.sites[0].work, 7);
-  assert.deepEqual(restored.claims, {});
-  assert.equal(restored.actors.rowan.task, null);
-  assert.equal(restored.piles[0].amount, 4);
-});
+rejects(
+  "restore rejects unsupported current topology",
+  (state) => {
+    state.sites.push(site("floor-a", "floor", { level: 1 }));
+  },
+  /unsupported floor/,
+);
 
-test("material and completion invariants reject impossible continuation", () => {
-  const claimExceedsPile = activeBuildState();
-  claimExceedsPile.piles[0].amount = 1;
-  assert.throws(() => validateClearing(claimExceedsPile));
+rejects(
+  "restore rejects unsupported finished roofs",
+  (state) => {
+    state.sites.push(site("roof-a", "roof", { finishedAt: 1 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:roof-a",
+      material: "wood",
+      quantity: 1,
+    });
+  },
+  /unsupported roof/,
+);
 
-  const siteExceedsRecipe = activeBuildState();
-  siteExceedsRecipe.sites[0].delivered = 1;
-  assert.throws(() => validateClearing(siteExceedsRecipe));
-
-  const conservationBreak = activeBuildState();
-  conservationBreak.felled = 2;
-  assert.throws(() => validateClearing(conservationBreak));
-
-  const treeProgressBreak = activeBuildState();
-  treeProgressBreak.trees[0].work = 0;
-  assert.throws(() => validateClearing(treeProgressBreak));
-
-  const finishedJob = activeBuildState();
-  finishedJob.sites[0].work = BUILDINGS.door.ticks;
-  finishedJob.sites[0].delivered = BUILDINGS.door.wood;
-  finishedJob.sites[0].finishedAt = 10;
-  assert.throws(() => validateClearing(finishedJob));
-
-  const rockOutside = activeBuildState();
-  rockOutside.rocks[0] = { x: 99, z: 99, level: 0 };
-  assert.throws(() => validateClearing(rockOutside));
-
-  const badRestScope = structuredClone(createClearing());
-  badRestScope.jobs.push({
-    id: "job-1",
-    kind: "rest",
-    target: "rowan",
-    scope: { party: "home", actors: null },
-    reason: "Ordered",
-    routine: false,
-  });
-  assert.throws(() => validateClearing(badRestScope));
-
-  const idleCargoOutsideParty = activeBuildWorkState();
-  idleCargoOutsideParty.actors.rowan.cargo = {
-    job: "job-2",
-    site: "site-1",
-    amount: 2,
-  };
-  idleCargoOutsideParty.parties.home.members = [];
-  assert.throws(() => validateClearing(idleCargoOutsideParty));
-
-  const badDirections = activeBuildState();
-  badDirections.actors.rowan.dir = 4;
-  assert.throws(() => validateClearing(badDirections));
-});
+rejects(
+  "restore rejects current material conservation breaks",
+  (state) => {
+    state.felled = 1;
+  },
+  /wood conservation is 0, expected 6/,
+);

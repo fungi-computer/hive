@@ -7,6 +7,7 @@ import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
 import { createConstructionView } from "./construction-view.js";
 import { createVisualHitGeometryOwner } from "./visual-hit-geometry.js";
+import { carriedLot } from "./materials.ts";
 
 function label(text, size = 8) {
   const result = new Text({
@@ -208,33 +209,36 @@ export function createView(app, world, camera, art, initial, input) {
   });
 
   function drawPiles(state, selection) {
+    const groundWoodLots = state.materials.lots.filter(
+      (lot) => lot.material === "wood" && lot.location.kind === "ground",
+    );
     for (const [id, view] of piles) {
-      if (!state.piles.some((p) => p.id === id && p.amount)) {
+      if (!groundWoodLots.some((lot) => lot.id === id)) {
         view.container.destroy({ children: true });
         piles.delete(id);
       }
     }
-    for (const pile of state.piles.filter((p) => p.amount)) {
-      if (!piles.has(pile.id)) {
+    for (const lot of groundWoodLots) {
+      if (!piles.has(lot.id)) {
         const view = body(
-          art.wood[Math.min(6, pile.amount)],
+          art.wood[Math.min(6, lot.quantity)],
           art.propAnchor,
           7,
         );
-        const count = label(String(pile.amount), 7);
+        const count = label(String(lot.quantity), 7);
         count.position.set(10, 0);
         view.container.addChild(count);
         view.count = count;
-        piles.set(pile.id, view);
+        piles.set(lot.id, view);
         bodies.addChild(view.container);
       }
-      const view = piles.get(pile.id);
-      view.container.visible = pile.level === selection.level;
+      const view = piles.get(lot.id);
+      view.container.visible = lot.location.level === selection.level;
       view.container.eventMode =
-        pile.level === selection.level && !selection.tool ? "static" : "none";
-      put(view.container, pile, 0.22);
-      view.sprite.texture = art.wood[Math.min(6, pile.amount)];
-      view.count.text = String(pile.amount);
+        lot.location.level === selection.level && !selection.tool ? "static" : "none";
+      put(view.container, lot.location, 0.22);
+      view.sprite.texture = art.wood[Math.min(6, lot.quantity)];
+      view.count.text = String(lot.quantity);
     }
   }
 
@@ -327,6 +331,9 @@ export function createView(app, world, camera, art, initial, input) {
   }
 
   function drawHerbs(state, selection) {
+    const groundMugwortLots = state.materials.lots.filter(
+      (lot) => lot.material === "mugwort" && lot.location.kind === "ground",
+    );
     for (const [id, view] of herbs)
       if (!state.herbs.some((herb) => herb.id === id)) {
         picking.remove(view.container);
@@ -334,7 +341,7 @@ export function createView(app, world, camera, art, initial, input) {
         herbs.delete(id);
       }
     for (const [id, view] of bundles)
-      if (!state.herbBundles.some((bundle) => bundle.id === id)) {
+      if (!groundMugwortLots.some((lot) => lot.id === id)) {
         picking.remove(view.container);
         view.container.destroy({ children: true });
         bundles.delete(id);
@@ -391,13 +398,13 @@ export function createView(app, world, camera, art, initial, input) {
         .rect(projected.x - 10, projected.y + 7, 20 * progress, 1)
         .fill(herb.stage === "ready" ? 0xe8c679 : 0x9bc99a);
     }
-    for (const bundle of state.herbBundles) {
-      if (!bundles.has(bundle.id)) {
+    for (const lot of groundMugwortLots) {
+      if (!bundles.has(lot.id)) {
         const view = body(art.herbs.mugwort.bundle, art.propAnchor, 7);
         const target = {
           kind: "bundle",
-          id: bundle.id,
-          level: bundle.location.level ?? 0,
+          id: lot.id,
+          level: lot.location.level,
           action: "inspect-bundle",
         };
         view.container.eventMode = "static";
@@ -415,30 +422,28 @@ export function createView(app, world, camera, art, initial, input) {
         view.container.on("rightclick", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
         });
-        bundles.set(bundle.id, { ...view, target });
+        bundles.set(lot.id, { ...view, target });
         bodies.addChild(view.container);
       }
-      const view = bundles.get(bundle.id);
-      const ground = bundle.location.kind === "ground";
-      const active = ground && bundle.location.level === selection.level;
+      const view = bundles.get(lot.id);
+      const active = lot.location.level === selection.level;
       view.container.visible = active;
       view.container.eventMode =
         active && !selection.tool && !selection.panMode && !selection.box
           ? "static"
           : "none";
-      if (!ground) continue;
-      put(view.container, bundle.location, 0.2);
+      put(view.container, lot.location, 0.2);
       picking.bind(view.container, {
         texture: view.sprite.texture,
         anchor: art.propAnchor,
         orientation: "bundle",
-        target: { ...view.target, level: bundle.location.level },
+        target: { ...view.target, level: lot.location.level },
       });
-      if (selection.bundle === bundle.id)
+      if (selection.bundle === lot.id)
         marks
           .ellipse(
-            projectCell(bundle.location).x,
-            projectCell(bundle.location).y,
+            projectCell(lot.location).x,
+            projectCell(lot.location).y,
             12,
             6,
           )
@@ -455,14 +460,10 @@ export function createView(app, world, camera, art, initial, input) {
       const activeLevel = Math.round(pos.level) === selection.level;
       view.container.alpha = activeLevel ? 1 : 0.18;
       view.container.eventMode = activeLevel ? "static" : "none";
-      const carryingHerb = state.herbBundles.some(
-        (bundle) =>
-          bundle.location.kind === "carried" &&
-          bundle.location.actor === person.id,
-      );
-      const pose = carryingHerb
+      const hand = carriedLot(state.materials, person.id);
+      const pose = hand?.material === "mugwort"
         ? "carry-herb"
-        : person.mode === "walk" && person.cargo
+        : person.mode === "walk" && hand?.material === "wood"
           ? "carry"
           : person.mode;
       const frames = (art.figures[person.figure][pose] ||

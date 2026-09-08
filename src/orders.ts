@@ -1,434 +1,244 @@
 import type {
   Clearing,
   Command,
-  Herb,
   Job,
   Scope,
   StoreHerbCommand,
   WorkCommand,
 } from "./model.ts";
 import { inScope, scopeProblem } from "./actors.ts";
-import { placementProblem } from "./construction.js";
+import { constructionBuffer, placementProblem } from "./construction.js";
 import { interruptWork } from "./activity.ts";
-import { refundWood } from "./resources.ts";
+import { containerContents, releaseContainer } from "./materials.ts";
 import { blockedCells, cellKey, inside, placementOccupant } from "./world.js";
 import { route, beginWalk } from "./movement.js";
-
-// Drafted home Go follows the current stair topology. Cat roaming remains a
-// ground-only policy owned by advanceCat; this command path does not alter it.
-
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
-
-export function commandProblem(state: Clearing, command: Command): string {
-  if (command.kind === "recruit") {
-    if (!state.parties[command.party]) return "That party is not here.";
-    if (!state.actors[command.actor]) return "That person is not here.";
-    if (
-      Object.values(state.parties).some((party) =>
-        party.members.includes(command.actor),
-      )
-    )
-      return "That person has already joined a party.";
-    return "";
+export function commandProblem(s: Clearing, c: Command): string {
+  if (c.kind === "store-herb") {
+    const l = s.materials.lots.find(
+        (x) =>
+          x.id === c.bundle &&
+          x.material === "mugwort" &&
+          x.location.kind === "ground",
+      ),
+      sh = s.sites.find(
+        (x) => x.id === c.shelf && x.type === "shelf" && x.finishedAt !== null,
+      );
+    return !l
+      ? "That mugwort bundle is no longer on the ground."
+      : !sh
+        ? "That mugwort shelf is not finished."
+        : s.jobs.some(
+              (j) =>
+                j.kind === "transfer" &&
+                (j.source === c.bundle || j.destination === `shelf:${c.shelf}`),
+            )
+          ? "That mugwort is already marked for storage."
+          : "";
   }
-  if (command.kind === "draft" || command.kind === "undraft") {
-    const party = state.parties[command.party];
-    const person = state.actors[command.actor];
-    if (!party) return "That party is not here.";
-    if (!person || !party.members.includes(person.id))
-      return "Choose a home member.";
-    if (command.kind === "draft")
-      return person.drafted ? "That home member is already drafted." : "";
-    return person.drafted ? "" : "That home member is not drafted.";
-  }
-  if (command.kind === "go") {
-    const party = state.parties[command.party];
-    const person = state.actors[command.actor];
-    if (!party) return "That party is not here.";
-    if (!person || !party.members.includes(person.id))
-      return "Choose a home member.";
-    if (!person.drafted) return "Only a drafted home member can Go.";
-    if (!inside(command.target)) return "Choose a clear ground tile.";
-    if (blockedCells(state).has(cellKey(command.target)))
-      return "That ground is blocked.";
-    return route(person, command.target, blockedCells(state), state) === null
-      ? "That ground is unreachable."
+  if (c.kind === "build") return placementProblem(s, c);
+  if (c.kind === "harvest") {
+    const h = s.herbs.find((x) => x.id === c.herb);
+    return !h || h.stage !== "ready"
+      ? "Only ready mugwort can be harvested."
       : "";
   }
-  if (
-    command.kind === "store-herb" &&
-    (command.actors !== null || "direct" in command)
-  )
-    return "Mugwort storage orders are shared and cannot be direct.";
-  const problem = scopeProblem(state, command);
-  if (problem) return problem;
-  if ("direct" in command && command.direct && command.actors === null)
-    return "Select the people for a direct order.";
-  if (command.kind === "sow") {
-    if (!inside(command)) return "Choose clear ground inside the clearing.";
-    if (placementOccupant(state, command)) return "Choose clear ground.";
+  if (c.kind === "sow" && (!inside(c) || placementOccupant(s, c)))
+    return "Choose clear ground.";
+  if (c.kind === "cancel" || c.kind === "next")
+    return s.jobs.some((j) => j.id === c.job)
+      ? ""
+      : "That order is no longer available.";
+  if (c.kind === "draft" || c.kind === "undraft" || c.kind === "go") {
+    const p = s.actors[c.actor],
+      party = s.parties[c.party];
+    return !p || !party?.members.includes(c.actor)
+      ? "Choose a home member."
+      : c.kind === "go" &&
+          (!p.drafted ||
+            !inside(c.target) ||
+            blockedCells(s).has(cellKey(c.target)))
+        ? "Choose reachable clear ground."
+        : "";
   }
-  if (command.kind === "harvest") {
-    const herb = state.herbs.find((candidate) => candidate.id === command.herb);
-    if (!herb) return "That mugwort is no longer here.";
-    if (herb.stage !== "ready") return "Only ready mugwort can be harvested.";
-    if (
-      state.jobs.some((job) => job.kind === "harvest" && job.target === herb.id)
-    )
-      return "That mugwort is already marked for harvest.";
+  if (c.kind === "recruit") {
+    const party = s.parties[c.party];
+    return !s.actors[c.actor] || !party
+      ? "That person is not here."
+      : party.members.includes(c.actor)
+        ? "That person has already joined this party."
+        : "";
   }
-  if (command.kind === "store-herb") {
-    const bundle = state.herbBundles.find(
-      (candidate) => candidate.id === command.bundle,
-    );
-    if (!bundle) return "That mugwort bundle is no longer here.";
-    if (bundle.location.kind !== "ground")
-      return "That mugwort bundle is not on the ground.";
-    const shelf = state.sites.find(
-      (candidate) => candidate.id === command.shelf,
-    );
-    if (!shelf) return "That mugwort shelf is no longer here.";
-    if (shelf.type !== "shelf" || shelf.finishedAt === null)
-      return "That mugwort shelf is not finished.";
-    if (
-      state.jobs.some(
-        (job) => job.kind === "store-herb" && job.bundle === bundle.id,
-      )
-    )
-      return "That mugwort bundle is already marked for storage.";
-    if (
-      state.jobs.some(
-        (job) => job.kind === "store-herb" && job.shelf === shelf.id,
-      )
-    )
-      return "That mugwort shelf already has a storage order.";
-  }
-  if (command.kind === "build") return placementProblem(state, command);
-  if (command.kind === "deconstruct") {
-    const site = state.sites.find((candidate) => candidate.id === command.site);
-    if (!site) return "That structure is no longer here.";
-    if (site.finishedAt === null)
-      return "Only a finished structure can be deconstructed.";
-    if (
-      state.jobs.some(
-        (job) => job.kind === "deconstruct" && job.target === site.id,
-      )
-    )
-      return "That structure is already marked for deconstruction.";
-  }
-  if (command.kind === "chop") {
-    const tree = state.trees.find((t) => t.id === command.tree);
-    if (!tree) return "Select an oak tree first.";
-    if (tree.felledAt !== null) return "That tree is already a stump.";
-    if (
-      !command.direct &&
-      state.jobs.some((j) => j.kind === "chop" && j.target === tree.id)
-    )
-      return "That tree is already ordered.";
-  }
-  if (command.kind === "cancel" || command.kind === "next") {
-    const job = state.jobs.find((j) => j.id === command.job);
-    if (!job) return "That order is no longer available.";
-    if (job && job.scope.party !== command.party)
-      return "That order belongs to another party.";
-  }
-  return "";
+  return scopeProblem(s, c);
 }
-function cancelJob(state: Clearing, id: string): void {
-  const job = state.jobs.find((j) => j.id === id);
-  if (!job) return;
-  for (const person of Object.values(state.actors)) {
-    if (job.routine && job.kind === "rest" && person.id === job.target)
-      person.routine = false;
-    if (
-      person.task?.job === id ||
-      person.cargo?.job === id ||
-      state.herbStorageClaims[person.id]?.job === id
-    )
-      interruptWork(state, person);
-  }
-  switch (job.kind) {
-    case "build": {
-      const site = state.sites.find((s) => s.id === job.target)!;
-      state.sites = state.sites.filter((s) => s.id !== site.id);
-      refundWood(state, site, site.delivered);
-      break;
-    }
-    case "chop":
-    case "rest":
-      break;
-    case "deconstruct":
-      break;
-    case "sow":
-      state.herbs = state.herbs.filter((herb) => herb.id !== job.target);
-      break;
-    case "harvest":
-      break;
-    case "store-herb":
-      break;
-    default:
-      assertNever(job);
-  }
-  state.jobs = state.jobs.filter((j) => j.id !== id);
-  state.workDirty = true;
-  state.notice = "Order canceled. Completed work stays completed.";
+function scope(c: WorkCommand | StoreHerbCommand): Scope {
+  return c.kind === "store-herb"
+    ? { party: c.party, actors: null }
+    : { party: c.party, actors: c.actors && [...c.actors] };
 }
-function assertNever(value: never): never {
-  throw new Error(`Unhandled order kind: ${JSON.stringify(value)}`);
-}
-function prioritize(state: Clearing, job: Job): void {
-  state.jobs = [job, ...state.jobs.filter((j) => j.id !== job.id)];
-  state.workDirty = true;
-}
-function orderWork(
-  state: Clearing,
-  command: WorkCommand | StoreHerbCommand,
-): void {
-  const scope: Scope =
-    command.kind === "store-herb"
-      ? { party: command.party, actors: null }
-      : { party: command.party, actors: command.actors && [...command.actors] };
-  const direct = "direct" in command && command.direct === true;
-  const people = Object.values(state.actors).filter((person) =>
-    inScope(state, person, scope),
-  );
-  if (direct) for (const person of people) interruptWork(state, person);
-  if (command.kind === "rest") {
-    for (const person of people) {
-      const previous = state.jobs.find(
-        (j) => j.kind === "rest" && j.target === person.id,
-      );
-      if (previous) {
-        previous.routine = false;
-        if (direct) prioritize(state, previous);
-        continue;
-      }
-      const job: Job = {
-        id: `job-${state.nextId++}`,
-        kind: "rest",
-        target: person.id,
-        scope: { party: scope.party, actors: [person.id] },
-        reason: "Ordered",
-        routine: false,
-      };
-      if (direct) state.jobs.unshift(job);
-      else state.jobs.push(job);
-    }
-  } else if (command.kind === "chop") {
-    const previous = state.jobs.find(
-      (j) => j.kind === "chop" && j.target === command.tree,
-    );
-    if (previous) {
-      for (const person of Object.values(state.actors))
-        if (person.task?.job === previous.id) interruptWork(state, person);
-      previous.scope = scope;
-      prioritize(state, previous);
-    } else {
-      const job: Job = {
-        id: `job-${state.nextId++}`,
-        kind: "chop",
-        target: command.tree,
-        scope,
-        reason: "Ordered",
-        routine: false,
-      };
-      if (direct) state.jobs.unshift(job);
-      else state.jobs.push(job);
-    }
-  } else if (command.kind === "sow") {
-    const herb: Herb = {
-      id: `herb-${state.nextId++}`,
-      kind: "mugwort",
-      x: command.x,
-      z: command.z,
-      level: command.level,
-      stage: "ordered",
-      work: 0,
-      plantedAt: null,
-    };
-    state.herbs.push(herb);
-    const job: Job = {
-      id: `job-${state.nextId++}`,
-      kind: "sow",
-      target: herb.id,
-      scope,
+function add(s: Clearing, c: WorkCommand | StoreHerbCommand) {
+  const sc = scope(c),
+    id = `job-${s.nextId++}`;
+  let j: Job;
+  if (c.kind === "store-herb")
+    j = {
+      id,
+      kind: "transfer",
+      source: c.bundle,
+      destination: `shelf:${c.shelf}`,
+      scope: sc,
       reason: "Ordered",
       routine: false,
     };
-    if (direct) state.jobs.unshift(job);
-    else state.jobs.push(job);
-  } else if (command.kind === "harvest") {
-    const job: Job = {
-      id: `job-${state.nextId++}`,
-      kind: "harvest",
-      target: command.herb,
-      scope,
-      reason: "Ordered",
-      routine: false,
-    };
-    if (direct) state.jobs.unshift(job);
-    else state.jobs.push(job);
-  } else if (command.kind === "store-herb") {
-    const job: Job = {
-      id: `job-${state.nextId++}`,
-      kind: "store-herb",
-      bundle: command.bundle,
-      shelf: command.shelf,
-      scope,
-      reason: "Ordered",
-      routine: false,
-    };
-    state.jobs.push(job);
-  } else if (command.kind === "build") {
+  else if (c.kind === "build") {
     const site = {
-      id: `site-${state.nextId++}`,
-      type: command.type,
-      x: command.x,
-      z: command.z,
-      level: command.level,
-      direction: command.direction === 1 ? 1 : 0,
-      delivered: 0,
+      id: `site-${s.nextId++}`,
+      type: c.type,
+      x: c.x,
+      z: c.z,
+      level: c.level,
+      direction: c.direction === 1 ? 1 : 0,
       work: 0,
       finishedAt: null,
     };
-    state.sites.push(site);
-    const job: Job = {
-      id: `job-${state.nextId++}`,
+    s.sites.push(site);
+    j = {
+      id,
       kind: "build",
       target: site.id,
-      scope,
+      scope: sc,
       reason: "Ordered",
       routine: false,
     };
-    if (direct) state.jobs.unshift(job);
-    else state.jobs.push(job);
-  } else {
-    const job: Job = {
-      id: `job-${state.nextId++}`,
+  } else if (c.kind === "chop")
+    j = {
+      id,
+      kind: "chop",
+      target: c.tree,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  else if (c.kind === "deconstruct")
+    j = {
+      id,
       kind: "deconstruct",
-      target: command.site,
-      scope,
+      target: c.site,
+      scope: sc,
       reason: "Ordered",
       routine: false,
     };
-    if (direct) state.jobs.unshift(job);
-    else state.jobs.push(job);
-  }
-  state.workDirty = true;
-  state.notice =
-    command.kind === "sow"
-      ? "Mugwort ordered. A home member will plant it on clear ground."
-      : command.kind === "harvest"
-        ? "Mugwort harvest ordered."
-        : command.kind === "build"
-          ? "Blueprint placed. Wood will be brought when it is available."
-          : command.kind === "deconstruct"
-            ? "Deconstruction ordered. The structure will remain until the work is complete."
-            : direct
-              ? "Direct order received. Earlier unfinished orders are kept."
-              : "Work added to the orders.";
+  else if (c.kind === "harvest")
+    j = {
+      id,
+      kind: "harvest",
+      target: c.herb,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  else if (c.kind === "sow") {
+    const h = {
+      id: `herb-${s.nextId++}`,
+      kind: "mugwort" as const,
+      x: c.x,
+      z: c.z,
+      level: c.level,
+      stage: "ordered" as const,
+      work: 0,
+      plantedAt: null,
+    };
+    s.herbs.push(h);
+    j = {
+      id,
+      kind: "sow",
+      target: h.id,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  } else
+    j = {
+      id,
+      kind: "rest",
+      target: sc.actors![0],
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  s.jobs.push(j);
+  s.workDirty = true;
 }
-function acceptCommand(state: Clearing, command: Command): CommandResult {
-  const problem = commandProblem(state, command);
-  if (problem) return { status: "rejected", reason: problem };
-  switch (command.kind) {
-    case "recruit":
-      state.parties[command.party].members.push(command.actor);
-      state.workDirty = true;
-      state.notice = `${state.actors[command.actor].name} joined. Two pairs of hands, one very questionable plan.`;
-      return { status: "applied" };
-    case "draft": {
-      const person = state.actors[command.actor];
-      interruptWork(state, person);
-      person.drafted = true;
-      state.notice = `${person.name} is drafted and holding position.`;
-      state.workDirty = true;
-      return { status: "applied" };
+function cancel(s: Clearing, id: string) {
+  const j = s.jobs.find((x) => x.id === id);
+  if (!j) return;
+  for (const p of Object.values(s.actors))
+    if (p.task?.job === id) interruptWork(s, p);
+  if (j.kind === "build") {
+    const site = s.sites.find((x) => x.id === j.target);
+    if (site) {
+      const r = releaseContainer(s.materials, constructionBuffer(site), {
+        contentsDrop: {
+          cell: { x: site.x, z: site.z, level: site.level },
+          legal: true,
+        },
+        carriedDrops: Object.fromEntries(
+          Object.values(s.actors).map((p) => [p.id, { cell: p, legal: true }]),
+        ),
+      });
+      if (!r.ok) throw new Error(r.reason);
+      s.sites = s.sites.filter((x) => x !== site);
     }
-    case "undraft": {
-      const person = state.actors[command.actor];
-      person.drafted = false;
-      if (person.mode === "walk") {
-        person.mode = "idle";
-        person.path = [];
-        person.leg = 0;
-      }
-      state.notice = `${person.name} is available for ordinary work again.`;
-      state.workDirty = true;
-      return { status: "applied" };
-    }
-    case "go": {
-      const person = state.actors[command.actor];
-      const path = route(person, command.target, blockedCells(state), state);
-      if (path === null)
-        return { status: "rejected", reason: "That ground is unreachable." };
-      if (path.length) beginWalk(person, path);
-      else {
-        person.mode = "idle";
-        person.path = [];
-        person.leg = 0;
-      }
-      state.notice = `${person.name} is moving to clear ground.`;
-      return { status: "applied" };
-    }
-    case "cancel":
-      cancelJob(state, command.job);
-      return { status: "applied" };
-    case "next": {
-      const job = state.jobs.find((j) => j.id === command.job);
-      if (job) prioritize(state, job);
-      state.notice = "Moved to the front. Current activities finish first.";
-      return { status: "applied" };
-    }
-    case "routine":
-      for (const person of Object.values(state.actors)) {
-        if (!inScope(state, person, command)) continue;
-        person.routine = command.enabled;
-        if (!command.enabled)
-          for (const job of state.jobs.filter(
-            (j) => j.kind === "rest" && j.routine && j.target === person.id,
-          ))
-            cancelJob(state, job.id);
-      }
-      state.workDirty = true;
-      return { status: "applied" };
-    case "work": {
-      let changed = 0;
-      for (const person of Object.values(state.actors)) {
-        if (!inScope(state, person, command)) continue;
-        person.allowedWork[command.work] = command.enabled;
-        changed++;
-      }
-      state.workDirty = true;
-      state.notice = `Automatic ${command.work} work ${command.enabled ? "enabled" : "disabled"} for ${changed} home member${changed === 1 ? "" : "s"}.`;
-      return { status: "applied" };
-    }
-    case "chop":
-    case "build":
-    case "deconstruct":
-    case "sow":
-    case "harvest":
-    case "store-herb":
-    case "rest":
-      orderWork(state, command);
-      return { status: "applied" };
-    default:
-      return assertNever(command);
   }
+  s.jobs = s.jobs.filter((x) => x.id !== id);
+  s.workDirty = true;
 }
-
-// Commands are admitted in array order at the current completed tick. Only
-// applied transitions enter replay history; rejected attempts remain results
-// for the caller to display.
-export function admitCommands(
-  state: Clearing,
-  commands: Command[],
-): CommandResult[] {
-  return commands.map((command) => {
-    const result = acceptCommand(state, command);
-    if (result.status === "applied")
-      state.commands.push({ ...structuredClone(command), tick: state.tick });
-    return result;
-  });
+function accept(s: Clearing, c: Command): CommandResult {
+  const e = commandProblem(s, c);
+  if (e) return { status: "rejected", reason: e };
+  if (c.kind === "cancel") {
+    cancel(s, c.job);
+  } else if (c.kind === "next") {
+    const j = s.jobs.find((x) => x.id === c.job)!;
+    s.jobs = [j, ...s.jobs.filter((x) => x !== j)];
+    s.workDirty = true;
+  } else if (c.kind === "draft") {
+    const p = s.actors[c.actor];
+    interruptWork(s, p);
+    p.drafted = true;
+    s.workDirty = true;
+  } else if (c.kind === "undraft") {
+    s.actors[c.actor].drafted = false;
+    s.workDirty = true;
+  } else if (c.kind === "go") {
+    const p = s.actors[c.actor],
+      path = route(p, c.target, blockedCells(s), s);
+    if (path) beginWalk(p, path);
+  } else if (c.kind === "work") {
+    for (const p of Object.values(s.actors))
+      if (inScope(s, p, c)) p.allowedWork[c.work] = c.enabled;
+    s.workDirty = true;
+  } else if (c.kind === "routine") {
+    for (const p of Object.values(s.actors))
+      if (inScope(s, p, c)) p.routine = c.enabled;
+    s.workDirty = true;
+  } else if (c.kind === "recruit") {
+    s.parties[c.party].members.push(c.actor);
+    s.workDirty = true;
+  } else if (
+    c.kind === "chop" ||
+    c.kind === "build" ||
+    c.kind === "deconstruct" ||
+    c.kind === "sow" ||
+    c.kind === "harvest" ||
+    c.kind === "store-herb" ||
+    c.kind === "rest"
+  )
+    add(s, c);
+  s.commands.push({ ...structuredClone(c), tick: s.tick } as any);
+  return { status: "applied" };
+}
+export function admitCommands(s: Clearing, cs: Command[]): CommandResult[] {
+  return cs.map((c) => accept(s, c));
 }

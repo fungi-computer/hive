@@ -21,7 +21,6 @@ export function actor(
     allowedWork: { chop: true, haul: true, build: true, garden: true },
     task: null,
     assignment: null,
-    cargo: null,
   };
 }
 export function members(state: Clearing, party = "home"): Actor[] {

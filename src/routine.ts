@@ -1,4 +1,5 @@
 import type { Clearing } from "./model.ts";
+import { transferForActor } from "./materials.ts";
 import { members } from "./actors.ts";
 import { finishActivity } from "./activity.ts";
 import { shelteredBeds } from "./construction.js";
@@ -34,7 +35,7 @@ export function updateRoutine(state: Clearing): void {
         !person.routine ||
         person.drafted ||
         person.mode !== "idle" ||
-        person.cargo
+        transferForActor(state.materials, person.id)
       )
         continue;
       if (

@@ -63,6 +63,13 @@ function siteCells(site) {
     });
   return cells;
 }
+/** Returns every physical loose lot at this exact cell; hand and stored lots do not occupy terrain. */
+export function groundLotsAt(state, at) {
+  return state.materials.lots.filter(
+    (lot) => lot.location.kind === "ground" && sameCell(lot.location, at),
+  );
+}
+
 /** @param {string|null} [excludeId] */
 export function placementOccupant(state, at, excludeId = null) {
   if (state.trees.some((tree) => sameCell(tree, at))) return "tree";
@@ -74,16 +81,13 @@ export function placementOccupant(state, at, excludeId = null) {
   )
     return "site";
   if (sameCell(state.watcher, at)) return "watcher";
-  if (state.piles.some((pile) => pile.amount > 0 && sameCell(pile, at)))
+  if (groundLotsAt(state, at).some((lot) => lot.material === "wood"))
     return "pile";
   if (state.herbs?.some((herb) => herb.id !== excludeId && sameCell(herb, at)))
     return "herb";
   if (
-    state.herbBundles?.some(
-      (bundle) =>
-        bundle.id !== excludeId &&
-        bundle.location?.kind === "ground" &&
-        sameCell(bundle.location, at),
+    groundLotsAt(state, at).some(
+      (lot) => lot.id !== excludeId && lot.material === "mugwort",
     )
   )
     return "herb-bundle";
