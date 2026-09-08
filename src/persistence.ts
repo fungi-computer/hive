@@ -445,7 +445,7 @@ const brewProcess = z
     job: id,
     station: id,
     binding: id,
-    phase: z.enum(["prepare", "ferment"]),
+    phase: z.enum(["prepare", "ferment", "keg"]),
     progress: nonNegative,
     enteredAt: nonNegative,
   })
@@ -551,6 +551,33 @@ const stateSchema = z
                   })
                   .strict(),
               ),
+              settlement: z
+                .object({
+                  station: id,
+                  retained: z.array(
+                    z
+                      .object({
+                        role: id,
+                        lot: id,
+                        material,
+                        quantity: positive,
+                      })
+                      .strict(),
+                  ),
+                  outputs: z.array(
+                    z
+                      .object({
+                        role: id,
+                        destination: id,
+                        material,
+                        quantity: positive,
+                      })
+                      .strict(),
+                  ),
+                })
+                .strict()
+                .nullable()
+                .default(null),
             })
             .strict(),
         ),
@@ -747,7 +774,7 @@ function activityMatchesJob(
     return (
       job.kind === "brew" &&
       process?.job === job.id &&
-      process.phase === "prepare" &&
+      (process.phase === "prepare" || process.phase === "keg") &&
       process.station === job.target
     );
   }
@@ -1049,6 +1076,120 @@ function validateMaterialBindings({
   }
 }
 
+function matchingRecipeEntries(
+  left: readonly {
+    role: string;
+    lot: string;
+    material: string;
+    quantity: number;
+  }[],
+  right: readonly {
+    role: string;
+    lot: string;
+    material: string;
+    quantity: number;
+  }[],
+): boolean {
+  const count = (entries: typeof left) => {
+    const result = new Map<string, number>();
+    for (const entry of entries) {
+      const key = `${entry.role}\u0000${entry.lot}\u0000${entry.material}\u0000${entry.quantity}`;
+      result.set(key, (result.get(key) ?? 0) + 1);
+    }
+    return result;
+  };
+  const first = count(left),
+    second = count(right);
+  return (
+    first.size === second.size &&
+    [...first].every(([key, quantity]) => second.get(key) === quantity)
+  );
+}
+
+function recipeRolesMatch(
+  entries: readonly { role: string; material: string; quantity: number }[],
+  requirements: readonly { role: string; material: string; quantity: number }[],
+): boolean {
+  return (
+    entries.length === requirements.length &&
+    requirements.every((requirement) => {
+      const matches = entries.filter(
+        (entry) => entry.role === requirement.role,
+      );
+      return (
+        matches.length === 1 &&
+        matches[0].material === requirement.material &&
+        matches[0].quantity === requirement.quantity
+      );
+    })
+  );
+}
+
+function recipePortionsMatch(
+  entries: readonly { role: string; material: string; quantity: number }[],
+  requirements: readonly { role: string; material: string; quantity: number }[],
+): boolean {
+  return (
+    entries.length >= requirements.length &&
+    requirements.every((requirement) => {
+      const portions = entries.filter(
+        (entry) => entry.role === requirement.role,
+      );
+      return (
+        portions.length > 0 &&
+        portions.every((entry) => entry.material === requirement.material) &&
+        portions.reduce((total, entry) => total + entry.quantity, 0) ===
+          requirement.quantity
+      );
+    }) &&
+    entries.every((entry) =>
+      requirements.some((requirement) => requirement.role === entry.role),
+    )
+  );
+}
+
+function settledTransformationMatchesDefinition(
+  state: SavedClearing,
+  transformation: NonNullable<
+    SavedClearing["materials"]["transformations"][number]
+  >,
+): boolean {
+  const settlement = transformation.settlement;
+  if (!settlement) return false;
+  const definition = recipeDefinition(transformation.definition);
+  const station = state.sites.find(
+    (site) =>
+      site.type === "brew-station" &&
+      site.finishedAt !== null &&
+      siteMaterialEndpoint(site, definition.stationSlot)?.destination.id ===
+        settlement.station,
+  );
+  if (
+    !station ||
+    !recipePortionsMatch(transformation.inputs, definition.consumed) ||
+    !recipeRolesMatch(settlement.retained, definition.retained) ||
+    !recipeRolesMatch(settlement.outputs, definition.promises)
+  )
+    return false;
+  return definition.promises.every((promise) => {
+    const output = settlement.outputs.find(
+      (entry) => entry.role === promise.role,
+    );
+    let destination: string | null | undefined;
+    if (promise.destination.kind === "station-slot")
+      destination = siteMaterialEndpoint(station, promise.destination.slot)
+        ?.destination.id;
+    else {
+      const retainedRole = promise.destination.role;
+      const retained = settlement.retained.find(
+        (entry) => entry.role === retainedRole,
+      );
+      destination = retained ? `vessel:${retained.lot}` : null;
+    }
+    return output?.destination === destination;
+  });
+}
+
 function validateTransformations({ state }: RelationContext): void {
   const ids = new Set<string>();
   for (const transformation of state.materials.transformations) {
@@ -1059,28 +1200,12 @@ function validateTransformations({ state }: RelationContext): void {
       (candidate): candidate is Extract<typeof candidate, { kind: "recipe" }> =>
         candidate.kind === "recipe" && candidate.id === transformation.id,
     );
-    const count = (
-      entries: readonly {
-        role: string;
-        lot: string;
-        material: string;
-        quantity: number;
-      }[],
-    ) => {
-      const result = new Map<string, number>();
-      for (const entry of entries) {
-        const key = `${entry.role}\u0000${entry.lot}\u0000${entry.material}\u0000${entry.quantity}`;
-        result.set(key, (result.get(key) ?? 0) + 1);
-      }
-      return result;
-    };
-    if (!binding || binding.definition !== transformation.definition)
-      fail(`transformation ${transformation.id} does not match recipe binding`);
-    const inputs = count(transformation.inputs);
-    const portions = count(binding.consumed);
     if (
-      inputs.size !== portions.size ||
-      [...inputs].some(([key, quantity]) => portions.get(key) !== quantity)
+      binding
+        ? binding.definition !== transformation.definition ||
+          transformation.settlement !== null ||
+          !matchingRecipeEntries(transformation.inputs, binding.consumed)
+        : !settledTransformationMatchesDefinition(state, transformation)
     )
       fail(`transformation ${transformation.id} does not match recipe binding`);
   }
@@ -1307,12 +1432,16 @@ function brewProcessPhaseValid(
   transformed: boolean,
   prepare: number,
   ferment: number,
+  keg: number,
 ): boolean {
   return (
     (process.phase === "prepare" &&
       !transformed &&
       process.progress <= prepare) ||
-    (process.phase === "ferment" && transformed && process.progress <= ferment)
+    (process.phase === "ferment" &&
+      transformed &&
+      process.progress <= ferment) ||
+    (process.phase === "keg" && transformed && process.progress <= keg)
   );
 }
 
@@ -1344,6 +1473,7 @@ function validateBrewProcesses({ state }: RelationContext): void {
         recipe.transformed,
         recipe.definition.timings.prepare,
         recipe.definition.timings.ferment,
+        recipe.definition.timings.keg,
       )
     )
       fail(`brew process ${process.id} has invalid phase or binding`);
@@ -1885,6 +2015,7 @@ function convertV11State(predecessor: V11SavedClearing): SavedClearing {
             role: role(input.material),
             ...input,
           })),
+          settlement: null,
         }),
       ),
     },

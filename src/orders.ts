@@ -104,9 +104,10 @@ export function commandProblem(s: Clearing, c: Command): string {
     if (
       c.kind === "cancel" &&
       job.kind === "brew" &&
-      brewForJob(s, job.id)?.phase === "ferment"
+      brewForJob(s, job.id)?.phase !== undefined &&
+      brewForJob(s, job.id)?.phase !== "prepare"
     )
-      return "A fermenting batch cannot be cancelled.";
+      return "A committed batch cannot be cancelled.";
     return "";
   }
   if (c.kind === "draft" || c.kind === "undraft" || c.kind === "go") {

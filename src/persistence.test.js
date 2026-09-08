@@ -301,6 +301,58 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
     () => restoreSnapshot(wrongTarget),
     /brew process brew-process has invalid phase or binding/,
   );
+
+  const settled = structuredClone(saved);
+  const settledState = settled.savedState;
+  const binding = settledState.materials.bindings.find(
+    (entry) => entry.kind === "recipe" && entry.id === "brew-process",
+  );
+  settledState.materials.lots = settledState.materials.lots.filter(
+    (lot) =>
+      !["malt-stage", "water-stage", "mugwort-stage", "wood-stage"].includes(
+        lot.id,
+      ),
+  );
+  settledState.materials.lots.push(
+    {
+      id: "ale-output",
+      material: "ale",
+      quantity: 4,
+      location: {
+        kind: "container",
+        container: `vessel:${binding.retained.find((entry) => entry.role === "package").lot}`,
+      },
+    },
+    {
+      id: "spent-output",
+      material: "spent-grain",
+      quantity: 1,
+      location: { kind: "container", container: "brew-tray:station-a" },
+    },
+  );
+  settledState.materials.bindings = [];
+  settledState.materials.transformations = [
+    {
+      id: binding.id,
+      definition: binding.definition,
+      inputs: binding.consumed,
+      settlement: {
+        station: binding.station,
+        retained: binding.retained,
+        outputs: binding.promises,
+      },
+    },
+  ];
+  settledState.jobs = [];
+  settledState.processes = [];
+  assert.doesNotThrow(() => restoreSnapshot(settled));
+  const mismatchedReceipt = structuredClone(settled);
+  mismatchedReceipt.savedState.materials.transformations[0].settlement.outputs[0].destination =
+    "brew-tray:station-a";
+  assert.throws(
+    () => restoreSnapshot(mismatchedReceipt),
+    /transformation brew-process does not match recipe binding/,
+  );
 });
 
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {

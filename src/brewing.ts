@@ -13,8 +13,10 @@ import {
   completeRecipePrepare,
   containerQuantity,
   releaseUnpreparedRecipeBinding,
+  settleRecipePlan,
   type ContainerSpec,
   type ResolvedRecipePlan,
+  type ResolvedRecipeSettlement,
   type MaterialResult,
 } from "./materials.ts";
 import { portableContainerInterior } from "./item-containers.ts";
@@ -41,8 +43,8 @@ export type BrewStationReadiness =
       prepareTicks: PositiveInt;
     };
 
-function processDefinition(state: Clearing, process: BrewProcess) {
-  const binding = state.materials.bindings.find(
+function processBinding(state: Clearing, process: BrewProcess) {
+  return state.materials.bindings.find(
     (
       candidate,
     ): candidate is Extract<
@@ -50,6 +52,10 @@ function processDefinition(state: Clearing, process: BrewProcess) {
       { kind: "recipe" }
     > => candidate.kind === "recipe" && candidate.id === process.binding,
   );
+}
+
+function processDefinition(state: Clearing, process: BrewProcess) {
+  const binding = processBinding(state, process);
   if (!binding) throw new Error(`missing recipe binding ${process.binding}`);
   return recipeDefinition(binding.definition);
 }
@@ -59,6 +65,14 @@ export function brewPrepareRemaining(
   process: BrewProcess,
 ): PositiveInt {
   return (processDefinition(state, process).timings.prepare -
+    process.progress) as PositiveInt;
+}
+
+export function brewKegRemaining(
+  state: Clearing,
+  process: BrewProcess,
+): PositiveInt {
+  return (processDefinition(state, process).timings.keg -
     process.progress) as PositiveInt;
 }
 
@@ -296,35 +310,114 @@ export function cancelPreparingBrew(
   return { ok: true, value: undefined };
 }
 
+/** The definition owner resolves the already-bound output destinations once. */
+function brewSettlementPlan(
+  state: Clearing,
+  process: BrewProcess,
+): ResolvedRecipeSettlement | null {
+  const binding = processBinding(state, process);
+  const station = state.sites.find(
+    (site) =>
+      site.id === process.station &&
+      site.type === "brew-station" &&
+      site.finishedAt !== null,
+  );
+  if (!binding || !station) return null;
+  const definition = recipeDefinition(binding.definition);
+  const endpoint = (slot: string) => siteMaterialEndpoint(station, slot);
+  const outputs = definition.promises.map((promise) => {
+    const promised = binding.promises.find(
+      (entry) => entry.role === promise.role,
+    );
+    if (
+      !promised ||
+      promised.material !== promise.material ||
+      promised.quantity !== promise.quantity
+    )
+      return null;
+    let destination: ContainerSpec | null | undefined;
+    if (promise.destination.kind === "station-slot")
+      destination = endpoint(promise.destination.slot)?.destination;
+    else {
+      const retainedRole = promise.destination.role;
+      const retained = binding.retained.find(
+        (entry) => entry.role === retainedRole,
+      );
+      const lot =
+        retained &&
+        state.materials.lots.find((entry) => entry.id === retained.lot);
+      destination = lot && portableContainerInterior(lot);
+    }
+    return destination && destination.id === promised.destination
+      ? {
+          role: promise.role,
+          material: promise.material,
+          quantity: promise.quantity,
+          destination,
+        }
+      : null;
+  });
+  return outputs.some((output) => output === null)
+    ? null
+    : {
+        id: binding.id,
+        definition: definition.id,
+        station: binding.station,
+        retained: binding.retained,
+        outputs: outputs.filter(
+          (output): output is NonNullable<typeof output> => output !== null,
+        ),
+      };
+}
+
 /** The attended boundary: only this owner advances PREPARE or crosses to FERMENT. */
 export function attendBrew(
   state: Clearing,
   id: OperationId,
-): MaterialResult<"working" | "fermenting"> {
+): MaterialResult<"working" | "fermenting" | "settled"> {
   const process = state.processes.find((candidate) => candidate.id === id);
-  if (!process || process.phase !== "prepare")
+  if (!process || (process.phase !== "prepare" && process.phase !== "keg"))
     return { ok: false, reason: "wrong-phase" };
   const definition = processDefinition(state, process);
-  if (process.progress < definition.timings.prepare) process.progress++;
-  if (process.progress < definition.timings.prepare)
+  if (process.phase === "prepare") {
+    if (process.progress < definition.timings.prepare) process.progress++;
+    if (process.progress < definition.timings.prepare)
+      return { ok: true, value: "working" };
+    const consumed = completeRecipePrepare(state.materials, process.binding);
+    if (!consumed.ok) return consumed;
+    process.phase = "ferment";
+    process.progress = 0;
+    process.enteredAt = state.tick;
+    state.workDirty = true;
+    return { ok: true, value: "fermenting" };
+  }
+  if (process.progress + 1 < definition.timings.keg) {
+    process.progress++;
     return { ok: true, value: "working" };
-  const consumed = completeRecipePrepare(state.materials, process.binding);
-  if (!consumed.ok) return consumed;
-  process.phase = "ferment";
-  process.progress = 0;
-  process.enteredAt = state.tick;
+  }
+  const plan = brewSettlementPlan(state, process);
+  if (!plan) return { ok: false, reason: "destination-mismatch" };
+  const settled = settleRecipePlan(state.materials, plan);
+  if (!settled.ok) return settled;
+  state.processes = state.processes.filter(
+    (candidate) => candidate !== process,
+  );
   state.workDirty = true;
-  return { ok: true, value: "fermenting" };
+  return { ok: true, value: "settled" };
 }
 
 /** Unattended authoritative time; a transition tick never earns a ferment tick. */
 export function advanceBrewing(state: Clearing): void {
   for (const process of state.processes) {
-    if (
-      process.phase === "ferment" &&
-      process.enteredAt < state.tick &&
-      process.progress < processDefinition(state, process).timings.ferment
-    )
-      process.progress++;
+    if (process.phase === "ferment" && process.enteredAt < state.tick) {
+      const definition = processDefinition(state, process);
+      if (process.progress < definition.timings.ferment) process.progress++;
+      if (process.progress === definition.timings.ferment) {
+        process.phase = "keg";
+        process.progress = 0;
+        process.enteredAt = state.tick;
+        state.workDirty = true;
+      }
+    }
   }
 }

@@ -47,6 +47,7 @@ import {
 } from "./materials.ts";
 import {
   brewForJob,
+  brewKegRemaining,
   brewPrepareRemaining,
   brewProcessId,
   brewStationReadiness,
@@ -624,13 +625,18 @@ function brewOption(
           const path = workApproach(state, person, station, blocked);
           return path
             ? {
-                reason: "Ready to prepare herbal ale",
+                reason:
+                  process.phase === "keg"
+                    ? "Ready to keg herbal ale"
+                    : "Ready to prepare herbal ale",
                 candidate: make(
                   job,
                   "brew",
                   process.id,
                   path,
-                  brewPrepareRemaining(state, process),
+                  process.phase === "keg"
+                    ? brewKegRemaining(state, process)
+                    : brewPrepareRemaining(state, process),
                   pathTicks(person, path),
                 ),
               }

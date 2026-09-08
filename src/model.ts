@@ -118,7 +118,7 @@ export type EmbeddedMaterial = {
   material: Material;
   quantity: PositiveInt;
 };
-/** Immutable provenance written by the one atomic PREPARE transformation. */
+/** Immutable provenance and, after settlement, durable output receipt. */
 export type RecipeTransformation = {
   readonly id: OperationId;
   readonly definition: RecipeId;
@@ -128,6 +128,22 @@ export type RecipeTransformation = {
     readonly material: Material;
     readonly quantity: PositiveInt;
   }[];
+  /** Null is an attended/fermenting transformation with its live binding. */
+  readonly settlement: null | {
+    readonly station: ContainerId;
+    readonly retained: readonly {
+      readonly role: string;
+      readonly lot: LotId;
+      readonly material: Material;
+      readonly quantity: PositiveInt;
+    }[];
+    readonly outputs: readonly {
+      readonly role: string;
+      readonly destination: ContainerId;
+      readonly material: Material;
+      readonly quantity: PositiveInt;
+    }[];
+  };
 };
 export type MaterialsState = {
   lots: ItemLot[];
@@ -332,13 +348,13 @@ export type BrewWaterOperation = {
   /** Incomplete effect phase; successful pour retires this operation. */
   phase: "acquire" | "draw" | "pour";
 };
-/** The process owner advances this one saved process; workers only attend PREPARE. */
+/** The process owner advances this one saved process; workers attend PREPARE/KEG. */
 export type BrewProcess = {
   id: OperationId;
   job: JobId;
   station: string;
   binding: OperationId;
-  phase: "prepare" | "ferment";
+  phase: "prepare" | "ferment" | "keg";
   progress: number;
   enteredAt: number;
 };

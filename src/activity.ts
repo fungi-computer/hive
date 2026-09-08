@@ -475,7 +475,7 @@ function brew(s: Clearing, p: Actor, t: Activity): void {
   if (
     !process ||
     process.job !== t.job ||
-    process.phase !== "prepare" ||
+    (process.phase !== "prepare" && process.phase !== "keg") ||
     job?.kind !== "brew" ||
     !station ||
     station.type !== "brew-station" ||
@@ -494,6 +494,9 @@ function brew(s: Clearing, p: Actor, t: Activity): void {
   if (advanced.value === "fermenting") {
     s.notice = "Herbal ale is fermenting.";
     finishActivity(s, p);
+  } else if (advanced.value === "settled") {
+    s.notice = "Herbal ale is settled in the keg.";
+    finishJob(s, p, t.job);
   }
 }
 export function advanceWork(s: Clearing, p: Actor): void {

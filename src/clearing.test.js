@@ -990,6 +990,7 @@ test("actual libcolony supplies shared cache repair through its buffer and cance
   const cache = state.sources.find(
     (source) => source.kind === "reclaimed-timber-cache",
   );
+  assert.ok(cache);
   const buffer = cacheRepairBuffer(cache);
   state.felled = 1;
   state.materials.lots.push({
@@ -1414,6 +1415,9 @@ test("actual libcolony leaves a shortage staged but never admits a partial herba
 
 test("actual libcolony stages, interrupts, reloads, prepares, and ferments herbal ale", () => {
   const { state, station } = readyHerbalAleState();
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
   state.parties.home.members.push("sedge");
   assert.deepEqual(actualStep(state, [{ kind: "brew", station: station.id }]), [
     { status: "applied" },
@@ -1501,8 +1505,109 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
   for (let tick = 0; tick < 4; tick++) actualStep(restored);
   assert.equal(restored.actors[worker.id].task?.kind, "chop");
   assert.ok(restored.processes[0].progress > 1);
-  conserve(restored);
-  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(restored)));
+  for (
+    let tick = 0;
+    tick < 300 && restored.processes[0]?.phase !== "keg";
+    tick++
+  )
+    actualStep(restored);
+  assert.equal(restored.processes[0]?.phase, "keg");
+  assert.equal(restored.processes[0]?.progress, 0);
+  const kegJob = restored.jobs.find((job) => job.kind === "brew");
+  assert.deepEqual(actualStep(restored, [{ kind: "cancel", job: kegJob.id }]), [
+    { status: "rejected", reason: "A committed batch cannot be cancelled." },
+  ]);
+  for (
+    let tick = 0;
+    tick < 100 && !(restored.processes[0]?.progress >= 2);
+    tick++
+  )
+    actualStep(restored);
+  const kegWorker = Object.values(restored.actors).find(
+    (actor) => actor.task?.kind === "brew",
+  );
+  assert.ok(kegWorker);
+  const kegProgress = restored.processes[0].progress;
+  actualStep(restored, [{ kind: "draft", actor: kegWorker.id }]);
+  assert.equal(restored.processes[0].progress, kegProgress);
+  const kegReloaded = restoreSnapshot(snapshotFor(restored)).state;
+  assert.equal(kegReloaded.paused, true);
+  assert.equal(kegReloaded.processes[0]?.phase, "keg");
+  assert.equal(kegReloaded.processes[0]?.progress, kegProgress);
+  actualStep(kegReloaded, [{ kind: "undraft", actor: kegWorker.id }]);
+  kegReloaded.paused = false;
+  for (
+    let tick = 0;
+    tick < 200 && kegReloaded.processes[0]?.progress !== 19;
+    tick++
+  )
+    actualStep(kegReloaded);
+  const reservedKeg = kegReloaded.materials.lots.find(
+    (lot) => lot.material === "keg",
+  );
+  assert.ok(reservedKeg);
+  kegReloaded.materials.lots.push({
+    id: "blocked-ale",
+    material: "ale",
+    quantity: 1,
+    location: { kind: "container", container: `vessel:${reservedKeg.id}` },
+  });
+  const blockedMaterials = structuredClone(kegReloaded.materials);
+  const blockedProcess = structuredClone(kegReloaded.processes);
+  actualStep(kegReloaded);
+  assert.deepEqual(
+    kegReloaded.materials,
+    blockedMaterials,
+    "blocked output capacity leaves recipe claims and provenance unchanged",
+  );
+  assert.deepEqual(kegReloaded.processes, blockedProcess);
+  kegReloaded.materials.lots = kegReloaded.materials.lots.filter(
+    (lot) => lot.id !== "blocked-ale",
+  );
+  kegReloaded.workDirty = true;
+  for (let tick = 0; tick < 200 && kegReloaded.processes.length > 0; tick++)
+    actualStep(kegReloaded);
+  assert.equal(kegReloaded.processes.length, 0);
+  assert.equal(
+    kegReloaded.jobs.some((job) => job.id === kegJob.id),
+    false,
+  );
+  const keg = kegReloaded.materials.lots.find((lot) => lot.material === "keg");
+  const barm = kegReloaded.materials.lots.find(
+    (lot) => lot.material === "barm",
+  );
+  assert.equal(keg?.id, `source-keg-lot:${cache.id}`);
+  assert.equal(barm?.id, `source-barm-lot:${cache.id}`);
+  assert.equal(
+    containerQuantity(kegReloaded.materials, `vessel:${keg.id}`, "ale"),
+    4,
+  );
+  assert.equal(
+    containerQuantity(
+      kegReloaded.materials,
+      `brew-tray:${station.id}`,
+      "spent-grain",
+    ),
+    1,
+  );
+  assert.equal(
+    kegReloaded.materials.transformations[0]?.settlement?.outputs.length,
+    2,
+  );
+  const settledAle = containerQuantity(
+    kegReloaded.materials,
+    `vessel:${keg.id}`,
+    "ale",
+  );
+  actualStep(kegReloaded);
+  actualStep(kegReloaded);
+  assert.equal(
+    containerQuantity(kegReloaded.materials, `vessel:${keg.id}`, "ale"),
+    settledAle,
+    "a retired process cannot settle a second output",
+  );
+  conserve(kegReloaded);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(kegReloaded)));
 });
 
 test("canceling PREPARE retires only its process promise and leaves staged brew lots", () => {

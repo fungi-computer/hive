@@ -28,6 +28,7 @@ import {
   rebindOperationPail,
   reserveTransfer,
   salvageConstruction,
+  settleRecipePlan,
   sourceContainer,
   transferForActor,
 } from "./materials.ts";
@@ -1149,4 +1150,113 @@ test("resolved recipe plans bind split staged portions atomically and record pro
     }).ok,
     false,
   );
+});
+
+test("recipe settlement atomically realizes bound output receipts without replacing retained lots", () => {
+  const materials = fresh([
+    {
+      id: "malt",
+      material: "malt",
+      quantity: 1,
+      location: { kind: "container", container: "kettle" },
+    },
+    {
+      id: "barm",
+      material: "barm",
+      quantity: 1,
+      location: { kind: "container", container: "barm-slot" },
+    },
+    {
+      id: "keg",
+      material: "keg",
+      quantity: 1,
+      location: { kind: "container", container: "keg-slot" },
+    },
+  ]);
+  const plan = {
+    id: "recipe-settlement",
+    definition: HERBAL_ALE_V1.id,
+    station: "kettle",
+    consumed: [{ role: "malt", lot: "malt", material: "malt", quantity: 1 }],
+    retained: [
+      { role: "catalyst", lot: "barm", material: "barm", quantity: 1 },
+      { role: "package", lot: "keg", material: "keg", quantity: 1 },
+    ],
+    promises: [
+      {
+        role: "ale",
+        material: "ale",
+        quantity: 4,
+        destination: {
+          id: "vessel:keg",
+          capacity: 4,
+          accepts: ["ale"],
+          bulk: { ale: 1 },
+        },
+      },
+      {
+        role: "spent-grain",
+        material: "spent-grain",
+        quantity: 1,
+        destination: {
+          id: "tray",
+          capacity: 1,
+          accepts: ["spent-grain"],
+          bulk: { "spent-grain": 1 },
+        },
+      },
+    ],
+  };
+  assert.equal(admitRecipePlan(materials, plan).ok, true);
+  assert.equal(completeRecipePrepare(materials, plan.id).ok, true);
+  const blocked = structuredClone(materials);
+  assert.equal(
+    settleRecipePlan(materials, {
+      ...plan,
+      outputs: [
+        {
+          ...plan.promises[0],
+          destination: { ...plan.promises[0].destination, capacity: 3 },
+        },
+        plan.promises[1],
+      ],
+    }).ok,
+    false,
+  );
+  assert.deepEqual(
+    materials,
+    blocked,
+    "failed settlement changes no output or claim",
+  );
+  assert.equal(
+    settleRecipePlan(materials, { ...plan, outputs: plan.promises }).ok,
+    true,
+  );
+  assert.equal(materials.bindings.length, 0);
+  assert.deepEqual(
+    materials.lots.find((lot) => lot.id === "keg"),
+    plan.retained[1] && {
+      id: "keg",
+      material: "keg",
+      quantity: 1,
+      location: { kind: "container", container: "keg-slot" },
+    },
+  );
+  assert.equal(containerQuantity(materials, "vessel:keg", "ale"), 4);
+  assert.equal(containerQuantity(materials, "tray", "spent-grain"), 1);
+  assert.deepEqual(materials.transformations[0].settlement?.outputs, [
+    { role: "ale", destination: "vessel:keg", material: "ale", quantity: 4 },
+    {
+      role: "spent-grain",
+      destination: "tray",
+      material: "spent-grain",
+      quantity: 1,
+    },
+  ]);
+  const settled = structuredClone(materials);
+  assert.equal(
+    settleRecipePlan(materials, { ...plan, outputs: plan.promises }).ok,
+    false,
+  );
+  assert.deepEqual(materials, settled, "receipt prevents duplicate settlement");
 });

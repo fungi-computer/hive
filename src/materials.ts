@@ -1170,6 +1170,20 @@ export type ResolvedRecipePlan = {
   }[];
 };
 
+/** Definition-resolved output destinations; the kernel only checks this plan. */
+export type ResolvedRecipeSettlement = {
+  id: string;
+  definition: RecipeId;
+  station: ContainerId;
+  retained: ResolvedRecipePlan["retained"];
+  outputs: readonly {
+    role: string;
+    material: Material;
+    quantity: PositiveInt;
+    destination: ContainerSpec;
+  }[];
+};
+
 function recipePlanOwnerAvailable(
   state: MaterialsState,
   input: ResolvedRecipePlan,
@@ -1343,7 +1357,202 @@ export function completeRecipePrepare(
     id,
     definition: binding.definition,
     inputs: binding.consumed.map((portion) => ({ ...portion })),
+    settlement: null,
   });
+  return success(undefined);
+}
+
+function sameRecipeEntries(
+  left: readonly {
+    role: string;
+    lot: LotId;
+    material: Material;
+    quantity: PositiveInt;
+  }[],
+  right: readonly {
+    role: string;
+    lot: LotId;
+    material: Material;
+    quantity: PositiveInt;
+  }[],
+): boolean {
+  const key = (entry: (typeof left)[number]) =>
+    `${entry.role}\u0000${entry.lot}\u0000${entry.material}\u0000${entry.quantity}`;
+  return (
+    left.length === right.length &&
+    [...left]
+      .map(key)
+      .sort()
+      .every((entry, index) => entry === [...right].map(key).sort()[index])
+  );
+}
+
+function sameRecipeOutputs(
+  binding: Extract<MaterialBinding, { kind: "recipe" }>,
+  outputs: ResolvedRecipeSettlement["outputs"],
+): boolean {
+  const key = (entry: {
+    role: string;
+    destination: ContainerId;
+    material: Material;
+    quantity: PositiveInt;
+  }) =>
+    `${entry.role}\u0000${entry.destination}\u0000${entry.material}\u0000${entry.quantity}`;
+  const planned = outputs.map((entry) =>
+    key({ ...entry, destination: entry.destination.id }),
+  );
+  const promised = binding.promises.map(key);
+  return (
+    planned.length === promised.length &&
+    planned.sort().every((entry, index) => entry === promised.sort()[index])
+  );
+}
+
+function recipePromiseBulkExcept(
+  state: MaterialsState,
+  container: ContainerSpec,
+  except: string,
+): number {
+  return state.bindings.reduce(
+    (total, binding) =>
+      total +
+      (binding.kind !== "recipe" || binding.id === except
+        ? 0
+        : binding.promises
+            .filter((promise) => promise.destination === container.id)
+            .reduce((sum, promise) => {
+              const bulk = bulkFor(container, promise.material);
+              return sum + promise.quantity * (bulk ?? Infinity);
+            }, 0)),
+    0,
+  );
+}
+
+function settlementOutputCapacity(
+  state: MaterialsState,
+  plan: ResolvedRecipeSettlement,
+): MaterialResult<void> {
+  const promised = new Map<
+    ContainerId,
+    { destination: ContainerSpec; bulk: number }
+  >();
+  for (const output of plan.outputs) {
+    const unit = bulkFor(output.destination, output.material);
+    if (unit === null) return failure("destination-mismatch");
+    const entry = promised.get(output.destination.id) ?? {
+      destination: output.destination,
+      bulk: 0,
+    };
+    entry.bulk += output.quantity * unit;
+    promised.set(output.destination.id, entry);
+  }
+  for (const { destination, bulk } of promised.values()) {
+    const incoming = incomingBulk(state, destination);
+    if (!incoming.ok) return incoming;
+    if (
+      containerBulk(state, destination) +
+        incoming.value +
+        recipePromiseBulkExcept(state, destination, plan.id) +
+        bulk >
+      destination.capacity
+    )
+      return failure("destination-full");
+  }
+  return success(undefined);
+}
+
+function allocateLotIds(
+  state: MaterialsState,
+  count: number,
+): MaterialResult<{ ids: LotId[]; nextLotId: number }> {
+  const ids = new Set(state.lots.map((lot) => lot.id));
+  let next = state.nextLotId;
+  const allocated: LotId[] = [];
+  while (allocated.length < count) {
+    if (
+      !Number.isSafeInteger(next) ||
+      next < 0 ||
+      next === Number.MAX_SAFE_INTEGER
+    )
+      return failure("invalid-allocator");
+    const id = `lot-${next}`;
+    next++;
+    if (ids.has(id)) continue;
+    ids.add(id);
+    allocated.push(id);
+  }
+  return success({ ids: allocated, nextLotId: next });
+}
+
+/** Atomically realizes a fully checked definition-owned output settlement. */
+export function settleRecipePlan(
+  state: MaterialsState,
+  plan: ResolvedRecipeSettlement,
+): MaterialResult<void> {
+  const binding = state.bindings.find(
+    (candidate): candidate is Extract<MaterialBinding, { kind: "recipe" }> =>
+      candidate.kind === "recipe" && candidate.id === plan.id,
+  );
+  const transformation = state.transformations.find(
+    (entry) => entry.id === plan.id,
+  );
+  if (
+    !binding ||
+    !transformation ||
+    transformation.settlement !== null ||
+    binding.definition !== plan.definition ||
+    binding.station !== plan.station ||
+    !sameRecipeEntries(binding.retained, plan.retained) ||
+    !sameRecipeOutputs(binding, plan.outputs)
+  )
+    return failure("wrong-phase");
+  if (
+    plan.retained.some((entry) => {
+      const lot = lotById(state, entry.lot);
+      return (
+        !lot ||
+        lot.material !== entry.material ||
+        lot.quantity !== entry.quantity ||
+        lot.location.kind === "hand"
+      );
+    })
+  )
+    return failure("source-ineligible");
+  const capacity = settlementOutputCapacity(state, plan);
+  if (!capacity.ok) return capacity;
+  const allocation = allocateLotIds(state, plan.outputs.length);
+  if (!allocation.ok) return allocation;
+  const settled = {
+    station: plan.station,
+    retained: plan.retained.map((entry) => ({ ...entry })),
+    outputs: plan.outputs.map((entry) => ({
+      role: entry.role,
+      destination: entry.destination.id,
+      material: entry.material,
+      quantity: entry.quantity,
+    })),
+  };
+  state.lots.push(
+    ...plan.outputs.map((output, index) => ({
+      id: allocation.value.ids[index],
+      material: output.material,
+      quantity: output.quantity,
+      location: {
+        kind: "container" as const,
+        container: output.destination.id,
+      },
+    })),
+  );
+  state.nextLotId = allocation.value.nextLotId;
+  state.transformations.splice(
+    state.transformations.indexOf(transformation),
+    1,
+    {
+      ...transformation,
+      settlement: settled,
+    },
+  );
+  state.bindings = state.bindings.filter((candidate) => candidate !== binding);
   return success(undefined);
 }
 
