@@ -9,6 +9,7 @@ export default defineConfig({
         devilStudy: "devil-study.html",
         animalStudy: "animal-study.html",
         fireStudy: "fire-study.html",
+        foliageWindStudy: "foliage-wind-study.html",
         brewhouseStudy: "brewhouse-study.html",
         mixedShelfStudy: "mixed-shelf-study.html",
         clearingMinimapStudy: "clearing-minimap-study.html",

@@ -1,0 +1,37 @@
+body {
+  margin: 18px;
+  background: #25372f;
+  color: #e7dcc4;
+  font: 14px system-ui;
+}
+
+p {
+  max-width: 950px;
+}
+
+p {
+  line-height: 1.5;
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+a {
+  color: #d6dca6;
+}
+
+canvas {
+  image-rendering: pixelated;
+}
+
+button {
+  padding: 8px 14px;
+  margin: 0 8px 8px 0;
+}
+
+#stage {
+  overflow: auto;
+  max-width: 100%;
+}
