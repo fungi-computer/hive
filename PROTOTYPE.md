@@ -49,6 +49,9 @@ resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 The future [home-between-realms synthesis](docs/decisions/a-home-between-realms.md)
 and [Glomzy palette/night-lighting study](docs/decisions/glomzy-palette-and-night-lighting.md)
 remain deferred proposals; neither reorders upstairs → brewing or enters the current sprint.
+The reviewed [architecture implementation plan](docs/decisions/architecture-implementation-plan.md)
+is the master handoff for future implementation; its [current systems review and module plan](docs/decisions/current-systems-review-and-module-plan.md)
+is an evidence-backed planning companion, not a current sprint claim.
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna

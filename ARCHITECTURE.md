@@ -26,6 +26,9 @@ ridge identity and seam proof precede any larger region or finite-globe choice.
 The [home-between-realms synthesis](docs/decisions/a-home-between-realms.md) is a
 future product/architecture proposal, while [Glomzy palette and night lighting](docs/decisions/glomzy-palette-and-night-lighting.md)
 is a deferred art-study proposal; both preserve the active upstairs → brewing order.
+The [architecture implementation plan](docs/decisions/architecture-implementation-plan.md)
+is the master future handoff, with [current systems review and module plan](docs/decisions/current-systems-review-and-module-plan.md)
+as its source-backed companion; neither changes the current runtime priority.
 
 ## Delivery ownership
 
