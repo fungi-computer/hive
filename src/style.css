@@ -357,16 +357,19 @@ meter::-webkit-meter-optimum-value {
   color: var(--stipe-fg-muted);
 }
 .window.target-window {
-  left: var(--target-left);
-  top: clamp(
+  --target-docked-top: clamp(
     12px,
     var(--target-top, 80px),
     calc(100dvh - var(--hud-rail-bottom) - 56px)
   );
+  left: var(--target-left);
+  top: var(--target-docked-top);
   width: 232px;
   bottom: auto;
   height: fit-content;
-  max-height: calc(100dvh - var(--hud-rail-bottom) - 24px);
+  max-height: calc(
+    100dvh - var(--hud-rail-bottom) - var(--target-docked-top) - 12px
+  );
   overflow-y: auto;
   z-index: 3;
 }
