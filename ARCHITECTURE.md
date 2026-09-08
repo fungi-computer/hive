@@ -192,8 +192,10 @@ turns a standing tree into a persistent felled trunk, then applies further
 authoritative fixed-tick work to produce logs. Falling animation reads the
 simulation-owned direction, phase and impact geometry; possible crushing and the
 woodcutter skill needed to control direction remain unsettled. Logs may later
-branch into useful firewood or timber, and one bulk **fell and process**
-designation may carry the dependency chain without forcing repeated clicks.
+branch into useful firewood or timber: raw logs enable log-cabin construction,
+while processed timber enables timber houses, with exact yields and recipes still
+unsettled. One bulk **fell and process** designation may carry the dependency
+chain without forcing repeated clicks.
 Intermediate workpiece identity, progress and material provenance survive
 cancel/save/reload and use the common goods/transfer owner. This is not current
 schema-v7 runtime or a new hauling branch; yields, tools and physics are open,
