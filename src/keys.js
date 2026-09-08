@@ -212,7 +212,7 @@ export function createKeys(root, read, send, changed) {
         )
           return;
         if (minimapInputOwned(event.originalEvent, document.activeElement))
-          return;
+          return false;
         if (d.levelNavigation && pageNavigationOwned(event)) return;
         send(d.action());
       },
