@@ -8,10 +8,17 @@ export const WORLD_LAB_SPEC = Object.freeze({
   overview: Object.freeze({
     width: 512,
     height: 512,
-    bounds: Object.freeze({ minX: -2048, minZ: -2048, maxXExclusive: 2048, maxZExclusive: 2048 }),
+    bounds: Object.freeze({
+      minX: -2048,
+      minZ: -2048,
+      maxXExclusive: 2048,
+      maxZExclusive: 2048,
+    }),
   }),
   local: Object.freeze({ windowChunks: 5, maxResidentChunks: 25 }),
 });
+
+export const MAX_OVERVIEW_DIMENSION = 512;
 
 export const WORLD_LAB_NON_CLAIMS = Object.freeze([
   "generated terrain is not a Clearing chunk",
@@ -22,7 +29,8 @@ export const WORLD_LAB_NON_CLAIMS = Object.freeze([
 ]);
 
 function integer(value, label) {
-  if (!Number.isInteger(value)) throw new TypeError(`${label} must be an integer`);
+  if (!Number.isInteger(value))
+    throw new TypeError(`${label} must be an integer`);
   return value;
 }
 
@@ -44,9 +52,12 @@ export function createWorldSpec(overrides = {}) {
     overview: { ...WORLD_LAB_SPEC.overview, ...(overrides.overview || {}) },
     local: { ...WORLD_LAB_SPEC.local, ...(overrides.local || {}) },
   };
-  if (!spec.seed || !spec.generatorVersion) throw new Error("world identity is required");
-  if (spec.chunkSize !== 16) throw new Error("the first contract requires 16-cell chunks");
-  if (spec.local.windowChunks % 2 !== 1) throw new Error("local window must be odd");
+  if (!spec.seed || !spec.generatorVersion)
+    throw new Error("world identity is required");
+  if (spec.chunkSize !== 16)
+    throw new Error("the first contract requires 16-cell chunks");
+  if (spec.local.windowChunks % 2 !== 1)
+    throw new Error("local window must be odd");
   return Object.freeze({
     ...spec,
     identity: `${spec.generatorVersion}:${spec.seed}`,
@@ -90,7 +101,11 @@ function phase(spec, salt) {
 
 function coastLine(spec, x) {
   const p = phase(spec, "coast-phase");
-  return 180 * Math.sin((x + p * 90) / 620) + 0.14 * x + 42 * (coherentNoise(spec, x / 700, 0.37, "coast-warp") - 0.5);
+  return (
+    180 * Math.sin((x + p * 90) / 620) +
+    0.14 * x +
+    42 * (coherentNoise(spec, x / 700, 0.37, "coast-warp") - 0.5)
+  );
 }
 
 function ridgeLine(spec, x) {
@@ -112,7 +127,14 @@ function filteredField(spec, x, z, footprint, salt) {
     // Frequency omission is footprint-aware and keeps every surviving octave's
     // seed, coordinate scale, and amplitude unchanged.
     if (octave.scale < footprint * 1.5) continue;
-    result += octave.amplitude * coherentNoise(spec, x / octave.scale, z / octave.scale, `${salt}-${octave.salt}`);
+    result +=
+      octave.amplitude *
+      coherentNoise(
+        spec,
+        x / octave.scale,
+        z / octave.scale,
+        `${salt}-${octave.salt}`,
+      );
   }
   return result;
 }
@@ -135,8 +157,10 @@ export function chunkOf(spec, x, z) {
 }
 
 export function sampleTerrain(spec, x, z, footprint = 1) {
-  if (!Number.isFinite(x) || !Number.isFinite(z)) throw new TypeError("terrain coordinates must be finite");
-  if (!(footprint > 0)) throw new RangeError("terrain footprint must be positive");
+  if (!Number.isFinite(x) || !Number.isFinite(z))
+    throw new TypeError("terrain coordinates must be finite");
+  if (!(footprint > 0))
+    throw new RangeError("terrain footprint must be positive");
   // Chunk metadata is diagnostic/cache identity only. Every terrain value below
   // is derived from the signed world coordinate, never from chunk-local edges.
   const chunk = chunkOf(spec, Math.floor(x), Math.floor(z));
@@ -146,9 +170,24 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
   const ridgeDistance = z - ridgeLine(spec, x);
   const coastBand = Math.max(6, footprint * 0.75);
   const ridgeBand = Math.max(22, footprint * 0.75);
-  const feature = Math.abs(coastDistance) <= coastBand ? "coast" : Math.abs(ridgeDistance) <= ridgeBand ? "ridge" : null;
-  const elevation = Math.max(0, Math.min(1, 0.18 + broad * 0.82 + (coastDistance > 0 ? 0.08 : -0.1)));
-  const terrain = coastDistance < -coastBand ? "water" : feature === "coast" ? "coast" : feature === "ridge" ? "ridge" : "land";
+  const feature =
+    Math.abs(coastDistance) <= coastBand
+      ? "coast"
+      : Math.abs(ridgeDistance) <= ridgeBand
+        ? "ridge"
+        : null;
+  const elevation = Math.max(
+    0,
+    Math.min(1, 0.18 + broad * 0.82 + (coastDistance > 0 ? 0.08 : -0.1)),
+  );
+  const terrain =
+    coastDistance < -coastBand
+      ? "water"
+      : feature === "coast"
+        ? "coast"
+        : feature === "ridge"
+          ? "ridge"
+          : "land";
   return {
     x,
     z,
@@ -168,8 +207,16 @@ export function namedFeatures(spec) {
   const coastX = -720;
   const ridgeX = 420;
   return {
-    coast: { name: "Northwater Coast", x: coastX, z: Math.round(coastLine(spec, coastX)) },
-    ridge: { name: "Lantern Ridge", x: ridgeX, z: Math.round(ridgeLine(spec, ridgeX)) },
+    coast: {
+      name: "Northwater Coast",
+      x: coastX,
+      z: Math.round(coastLine(spec, coastX)),
+    },
+    ridge: {
+      name: "Lantern Ridge",
+      x: ridgeX,
+      z: Math.round(ridgeLine(spec, ridgeX)),
+    },
   };
 }
 
@@ -182,11 +229,20 @@ export function sampleCell(spec, x, z) {
 export function overviewPixelToWorldCell(overview, column, row) {
   integer(column, "overview column");
   integer(row, "overview row");
-  if (column < 0 || column >= overview.width || row < 0 || row >= overview.height)
+  if (
+    column < 0 ||
+    column >= overview.width ||
+    row < 0 ||
+    row >= overview.height
+  )
     throw new RangeError("overview pixel is outside the sampled image");
   return {
-    x: Math.floor(overview.bounds.minX + (column / overview.width) * overview.bounds.spanX),
-    z: Math.floor(overview.bounds.minZ + (row / overview.height) * overview.bounds.spanZ),
+    x: Math.floor(
+      overview.bounds.minX + (column / overview.width) * overview.bounds.spanX,
+    ),
+    z: Math.floor(
+      overview.bounds.minZ + (row / overview.height) * overview.bounds.spanZ,
+    ),
     column,
     row,
   };
@@ -195,8 +251,24 @@ export function overviewPixelToWorldCell(overview, column, row) {
 export function worldCellToOverviewPixel(overview, x, z) {
   integer(x, "world x");
   integer(z, "world z");
-  const column = Math.max(0, Math.min(overview.width - 1, Math.floor(((x - overview.bounds.minX) / overview.bounds.spanX) * overview.width)));
-  const row = Math.max(0, Math.min(overview.height - 1, Math.floor(((z - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height)));
+  const column = Math.max(
+    0,
+    Math.min(
+      overview.width - 1,
+      Math.floor(
+        ((x - overview.bounds.minX) / overview.bounds.spanX) * overview.width,
+      ),
+    ),
+  );
+  const row = Math.max(
+    0,
+    Math.min(
+      overview.height - 1,
+      Math.floor(
+        ((z - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height,
+      ),
+    ),
+  );
   return { column, row, index: row * overview.width + column };
 }
 
@@ -225,15 +297,25 @@ export function localViewport(spec, centerChunkX, centerChunkZ) {
 
 export function overviewRectForViewport(overview, viewport) {
   return {
-    left: ((viewport.minX - overview.bounds.minX) / overview.bounds.spanX) * overview.width,
-    top: ((viewport.minZ - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height,
+    left:
+      ((viewport.minX - overview.bounds.minX) / overview.bounds.spanX) *
+      overview.width,
+    top:
+      ((viewport.minZ - overview.bounds.minZ) / overview.bounds.spanZ) *
+      overview.height,
     width: (viewport.width / overview.bounds.spanX) * overview.width,
     height: (viewport.height / overview.bounds.spanZ) * overview.height,
   };
 }
 
 function terrainCode(terrain) {
-  return terrain === "water" ? 0 : terrain === "coast" ? 1 : terrain === "ridge" ? 2 : 3;
+  return terrain === "water"
+    ? 0
+    : terrain === "coast"
+      ? 1
+      : terrain === "ridge"
+        ? 2
+        : 3;
 }
 
 function featureCode(feature) {
@@ -278,7 +360,9 @@ export function generateChunk(spec, chunkX, chunkZ) {
     terrain,
     elevation,
     moisture,
-    checksum: checksumBytes(new Uint8Array([...terrain, ...elevation, ...moisture])),
+    checksum: checksumBytes(
+      new Uint8Array([...terrain, ...elevation, ...moisture]),
+    ),
   };
 }
 
@@ -288,16 +372,36 @@ function overviewBounds(spec, bounds) {
   const minZ = source.minZ;
   const maxXExclusive = source.maxXExclusive;
   const maxZExclusive = source.maxZExclusive;
-  if (![minX, minZ, maxXExclusive, maxZExclusive].every(Number.isFinite) || maxXExclusive <= minX || maxZExclusive <= minZ)
+  if (
+    ![minX, minZ, maxXExclusive, maxZExclusive].every(Number.isFinite) ||
+    maxXExclusive <= minX ||
+    maxZExclusive <= minZ
+  )
     throw new RangeError("overview bounds must have finite positive spans");
-  return { minX, minZ, maxXExclusive, maxZExclusive, spanX: maxXExclusive - minX, spanZ: maxZExclusive - minZ };
+  return {
+    minX,
+    minZ,
+    maxXExclusive,
+    maxZExclusive,
+    spanX: maxXExclusive - minX,
+    spanZ: maxZExclusive - minZ,
+  };
 }
 
-export function sampleOverview(spec, options = {}) {
+export function createOverviewSampler(spec, options = {}) {
   const width = options.width ?? spec.overview.width;
   const height = options.height ?? spec.overview.height;
   integer(width, "overview width");
   integer(height, "overview height");
+  if (
+    width <= 0 ||
+    height <= 0 ||
+    width > MAX_OVERVIEW_DIMENSION ||
+    height > MAX_OVERVIEW_DIMENSION
+  )
+    throw new RangeError(
+      `overview dimensions must be between 1 and ${MAX_OVERVIEW_DIMENSION}`,
+    );
   const bounds = overviewBounds(spec, options.bounds);
   const terrain = new Uint8Array(width * height);
   const features = new Uint8Array(width * height);
@@ -305,40 +409,74 @@ export function sampleOverview(spec, options = {}) {
   const moisture = new Uint8Array(width * height);
   const footprint = Math.max(bounds.spanX / width, bounds.spanZ / height);
   const featureCounts = { coast: 0, ridge: 0 };
-  for (let row = 0; row < height; row += 1) {
-    for (let column = 0; column < width; column += 1) {
-      const x = bounds.minX + ((column + 0.5) / width) * bounds.spanX - 0.5;
-      const z = bounds.minZ + ((row + 0.5) / height) * bounds.spanZ - 0.5;
-      const cell = sampleTerrain(spec, x, z, footprint);
-      const index = row * width + column;
-      terrain[index] = terrainCode(cell.terrain);
-      features[index] = featureCode(cell.feature);
-      elevation[index] = Math.round(cell.elevation * 255);
-      moisture[index] = Math.round(cell.moisture * 255);
-      if (cell.feature) featureCounts[cell.feature] += 1;
-    }
-  }
+  let nextRow = 0;
+
   return {
-    width,
-    height,
-    bounds: { ...bounds },
-    footprint,
-    source: "same global sampleTerrain(seed, x, z, footprint)",
-    filtering: "omit fine frequencies below the requested world-space footprint",
-    sampleCount: terrain.length,
-    terrain,
-    features,
-    elevation,
-    moisture,
-    featureCounts,
-    checksum: checksumBytes(terrain),
-    visualChecksum: checksumBytes(new Uint8Array([...terrain, ...elevation, ...moisture])),
+    sampleRows(rowCount) {
+      integer(rowCount, "overview row count");
+      if (rowCount <= 0)
+        throw new RangeError("overview row count must be positive");
+      const endRow = Math.min(height, nextRow + rowCount);
+      for (let row = nextRow; row < endRow; row += 1) {
+        for (let column = 0; column < width; column += 1) {
+          const x = bounds.minX + ((column + 0.5) / width) * bounds.spanX - 0.5;
+          const z = bounds.minZ + ((row + 0.5) / height) * bounds.spanZ - 0.5;
+          const cell = sampleTerrain(spec, x, z, footprint);
+          const index = row * width + column;
+          terrain[index] = terrainCode(cell.terrain);
+          features[index] = featureCode(cell.feature);
+          elevation[index] = Math.round(cell.elevation * 255);
+          moisture[index] = Math.round(cell.moisture * 255);
+          if (cell.feature) featureCounts[cell.feature] += 1;
+        }
+      }
+      nextRow = endRow;
+      return {
+        completedRows: nextRow,
+        totalRows: height,
+        done: nextRow === height,
+      };
+    },
+    result() {
+      if (nextRow !== height)
+        throw new Error("overview sampling is incomplete");
+      return {
+        width,
+        height,
+        bounds: { ...bounds },
+        footprint,
+        source: "same global sampleTerrain(seed, x, z, footprint)",
+        filtering:
+          "omit fine frequencies below the requested world-space footprint",
+        sampleCount: terrain.length,
+        terrain,
+        features,
+        elevation,
+        moisture,
+        featureCounts,
+        checksum: checksumBytes(terrain),
+        visualChecksum: checksumBytes(
+          new Uint8Array([...terrain, ...elevation, ...moisture]),
+        ),
+      };
+    },
   };
 }
 
+export function sampleOverview(spec, options = {}) {
+  const sampler = createOverviewSampler(spec, options);
+  while (!sampler.sampleRows(MAX_OVERVIEW_DIMENSION).done) {
+    // The synchronous API remains useful for bounded tests and host callers.
+    // Browser interaction uses the worker's smaller yielding row batches.
+  }
+  return sampler.result();
+}
+
 export function createResidency(spec, options = {}) {
-  const radius = options.radiusChunks ?? Math.floor(spec.local.windowChunks / 2);
-  const maxResidentChunks = options.maxResidentChunks ?? spec.local.maxResidentChunks;
+  const radius =
+    options.radiusChunks ?? Math.floor(spec.local.windowChunks / 2);
+  const maxResidentChunks =
+    options.maxResidentChunks ?? spec.local.maxResidentChunks;
   const cache = new Map();
   let clock = 0;
   let generatedChunks = 0;
@@ -357,7 +495,9 @@ export function createResidency(spec, options = {}) {
     cache.set(key, { chunk, lastUsed: ++clock });
     generatedChunks += 1;
     while (cache.size > maxResidentChunks) {
-      const oldest = [...cache.entries()].sort((a, b) => a[1].lastUsed - b[1].lastUsed)[0][0];
+      const oldest = [...cache.entries()].sort(
+        (a, b) => a[1].lastUsed - b[1].lastUsed,
+      )[0][0];
       cache.delete(oldest);
       evictions += 1;
     }
@@ -366,8 +506,16 @@ export function createResidency(spec, options = {}) {
 
   function loadWindow(centerChunkX, centerChunkZ) {
     const chunks = [];
-    for (let chunkZ = centerChunkZ - radius; chunkZ <= centerChunkZ + radius; chunkZ += 1)
-      for (let chunkX = centerChunkX - radius; chunkX <= centerChunkX + radius; chunkX += 1)
+    for (
+      let chunkZ = centerChunkZ - radius;
+      chunkZ <= centerChunkZ + radius;
+      chunkZ += 1
+    )
+      for (
+        let chunkX = centerChunkX - radius;
+        chunkX <= centerChunkX + radius;
+        chunkX += 1
+      )
         chunks.push(get(chunkX, chunkZ));
     return chunks;
   }
@@ -393,7 +541,8 @@ export function createResidency(spec, options = {}) {
 export function renderChunkBuffer(spec, chunks) {
   if (chunks.length === 0) throw new Error("chunks must not be empty");
   const size = Math.sqrt(chunks.length) * spec.chunkSize;
-  if (!Number.isInteger(size)) throw new Error("chunks must form a square window");
+  if (!Number.isInteger(size))
+    throw new Error("chunks must form a square window");
   const pixels = new Uint8Array(size * size);
   const elevation = new Uint8Array(size * size);
   const moisture = new Uint8Array(size * size);
@@ -421,6 +570,8 @@ export function renderChunkBuffer(spec, chunks) {
     originChunkX,
     originChunkZ,
     checksum: checksumBytes(pixels),
-    visualChecksum: checksumBytes(new Uint8Array([...pixels, ...elevation, ...moisture])),
+    visualChecksum: checksumBytes(
+      new Uint8Array([...pixels, ...elevation, ...moisture]),
+    ),
   };
 }

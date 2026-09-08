@@ -1,7 +1,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import {
+  MAX_OVERVIEW_DIMENSION,
   WORLD_LAB_NON_CLAIMS,
+  createOverviewSampler,
   createResidency,
   createWorldSpec,
   generateChunk,
@@ -16,6 +18,7 @@ import {
   overviewPixelToWorldCell,
   worldCellToOverviewPixel,
 } from "../src/world-lab/terrain.js";
+import { generateOverview } from "../src/world-lab/worker.js";
 
 const output = process.argv[2] || ".botanical/world-lab-proof";
 const spec = createWorldSpec();
@@ -30,25 +33,165 @@ await mkdir(output, { recursive: true });
 const negative = sampleCell(spec, -1, 0);
 const positive = sampleCell(spec, 16, 0);
 checks.globalSignedCoordinates = {
-  negative: { x: negative.x, chunkX: negative.chunk.chunkX, localX: negative.chunk.localX },
-  positive: { x: positive.x, chunkX: positive.chunk.chunkX, localX: positive.chunk.localX },
-  pass: negative.chunk.chunkX === -1 && negative.chunk.localX === 15 && positive.chunk.chunkX === 1 && positive.chunk.localX === 0,
+  negative: {
+    x: negative.x,
+    chunkX: negative.chunk.chunkX,
+    localX: negative.chunk.localX,
+  },
+  positive: {
+    x: positive.x,
+    chunkX: positive.chunk.chunkX,
+    localX: positive.chunk.localX,
+  },
+  pass:
+    negative.chunk.chunkX === -1 &&
+    negative.chunk.localX === 15 &&
+    positive.chunk.chunkX === 1 &&
+    positive.chunk.localX === 0,
 };
-assert(checks.globalSignedCoordinates.pass, "floor division failed at negative chunk edge");
+assert(
+  checks.globalSignedCoordinates.pass,
+  "floor division failed at negative chunk edge",
+);
 
-const fineBounds = { minX: -1024, minZ: -1024, maxXExclusive: 1024, maxZExclusive: 1024 };
-const localAuthorityPoints = [[-719, -100], [420, 320], [-1, 0], [16, 0]];
-const localBeforeOverview = localAuthorityPoints.map(([x, z]) => sampleCell(spec, x, z));
+const fineBounds = {
+  minX: -1024,
+  minZ: -1024,
+  maxXExclusive: 1024,
+  maxZExclusive: 1024,
+};
+const localAuthorityPoints = [
+  [-719, -100],
+  [420, 320],
+  [-1, 0],
+  [16, 0],
+];
+const localBeforeOverview = localAuthorityPoints.map(([x, z]) =>
+  sampleCell(spec, x, z),
+);
 const coarseStart = performance.now();
-const coarseOverview = sampleOverview(spec, { width: 512, height: 512, bounds: spec.overview.bounds });
+const coarseOverview = sampleOverview(spec, {
+  width: 512,
+  height: 512,
+  bounds: spec.overview.bounds,
+});
 const coarseMs = performance.now() - coarseStart;
 const fineStart = performance.now();
-const fineOverview = sampleOverview(spec, { width: 512, height: 512, bounds: fineBounds });
+const fineOverview = sampleOverview(spec, {
+  width: 512,
+  height: 512,
+  bounds: fineBounds,
+});
 const fineMs = performance.now() - fineStart;
 const fixedOutputSamples = 512 * 512;
+
+const incrementalSampler = createOverviewSampler(spec, {
+  width: 64,
+  height: 64,
+  bounds: fineBounds,
+});
+const incrementalProgress = [];
+while (true) {
+  const progress = incrementalSampler.sampleRows(7);
+  incrementalProgress.push(progress.completedRows);
+  if (progress.done) break;
+}
+const incrementalOverview = incrementalSampler.result();
+const synchronous64 = sampleOverview(spec, {
+  width: 64,
+  height: 64,
+  bounds: fineBounds,
+});
+let cancellationYields = 0;
+const canceledWorkerResult = await generateOverview(
+  {
+    type: "sample",
+    requestId: 41,
+    spec,
+    options: { width: 64, height: 64, bounds: fineBounds },
+  },
+  {
+    shouldCancel: () => cancellationYields > 0,
+    yieldControl: async () => {
+      cancellationYields += 1;
+    },
+  },
+);
+const workerResult = await generateOverview(
+  {
+    type: "sample",
+    requestId: 42,
+    spec,
+    options: { width: 32, height: 32, bounds: fineBounds },
+  },
+  { yieldControl: async () => {} },
+);
+let oversizedRejected = false;
+try {
+  sampleOverview(spec, {
+    width: MAX_OVERVIEW_DIMENSION + 1,
+    height: 1,
+    bounds: fineBounds,
+  });
+} catch (error) {
+  oversizedRejected = error instanceof RangeError;
+}
+checks.boundedIncrementalWorkerSampler = {
+  rowBatches: incrementalProgress,
+  synchronousChecksum: synchronous64.visualChecksum,
+  incrementalChecksum: incrementalOverview.visualChecksum,
+  canceledRequest: canceledWorkerResult,
+  completedRequest: {
+    type: workerResult.type,
+    requestId: workerResult.requestId,
+    sampleCount: workerResult.overview?.sampleCount,
+    typedArrays: workerResult.overview
+      ? [
+          workerResult.overview.terrain,
+          workerResult.overview.features,
+          workerResult.overview.elevation,
+          workerResult.overview.moisture,
+        ].every((value) => value instanceof Uint8Array)
+      : false,
+  },
+  maxDimension: MAX_OVERVIEW_DIMENSION,
+  oversizedRejected,
+  pass:
+    incrementalOverview.visualChecksum === synchronous64.visualChecksum &&
+    incrementalProgress.length > 1 &&
+    canceledWorkerResult.type === "canceled" &&
+    canceledWorkerResult.requestId === 41 &&
+    cancellationYields === 1 &&
+    workerResult.type === "result" &&
+    workerResult.requestId === 42 &&
+    workerResult.overview.sampleCount === 32 * 32 &&
+    oversizedRejected,
+};
+assert(
+  checks.boundedIncrementalWorkerSampler.pass,
+  "bounded incremental worker sampling or cancellation failed",
+);
 const overviewPixelFor = (overview, x, z) => {
-  const column = Math.max(0, Math.min(overview.width - 1, Math.round(((x - overview.bounds.minX) / overview.bounds.spanX) * overview.width - 0.5)));
-  const row = Math.max(0, Math.min(overview.height - 1, Math.round(((z - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height - 0.5)));
+  const column = Math.max(
+    0,
+    Math.min(
+      overview.width - 1,
+      Math.round(
+        ((x - overview.bounds.minX) / overview.bounds.spanX) * overview.width -
+          0.5,
+      ),
+    ),
+  );
+  const row = Math.max(
+    0,
+    Math.min(
+      overview.height - 1,
+      Math.round(
+        ((z - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height -
+          0.5,
+      ),
+    ),
+  );
   return { column, row, index: row * overview.width + column };
 };
 const overviewFeatureCode = { coast: 1, ridge: 2 };
@@ -89,14 +232,27 @@ checks.multiscaleGeography = {
     coarseOverview.featureCounts.ridge > 0 &&
     fineOverview.featureCounts.ridge > 0,
 };
-assert(checks.multiscaleGeography.pass, "multiscale geography did not preserve spans/features within bounded output work");
+assert(
+  checks.multiscaleGeography.pass,
+  "multiscale geography did not preserve spans/features within bounded output work",
+);
 
 const features = namedFeatures(spec);
 const featureProbe = {};
 for (const [kind, feature] of Object.entries(features)) {
   const local = sampleTerrain(spec, feature.x, feature.z, 1);
-  const coarse = sampleTerrain(spec, feature.x, feature.z, coarseOverview.footprint);
-  const fine = sampleTerrain(spec, feature.x, feature.z, fineOverview.footprint);
+  const coarse = sampleTerrain(
+    spec,
+    feature.x,
+    feature.z,
+    coarseOverview.footprint,
+  );
+  const fine = sampleTerrain(
+    spec,
+    feature.x,
+    feature.z,
+    fineOverview.footprint,
+  );
   featureProbe[kind] = {
     name: feature.name,
     coordinate: { x: feature.x, z: feature.z },
@@ -115,16 +271,26 @@ for (const [kind, feature] of Object.entries(features)) {
 }
 checks.namedFeatures = {
   features: featureProbe,
-  pass: Object.entries(featureProbe).every(([kind, samples]) =>
-    samples.local.feature === kind &&
-    samples.coarse.feature === kind &&
-    samples.fineSpan.feature === kind &&
-    samples.coarseOverviewPixel.featureCode === overviewFeatureCode[kind] &&
-    samples.fineOverviewPixel.featureCode === overviewFeatureCode[kind]),
+  pass: Object.entries(featureProbe).every(
+    ([kind, samples]) =>
+      samples.local.feature === kind &&
+      samples.coarse.feature === kind &&
+      samples.fineSpan.feature === kind &&
+      samples.coarseOverviewPixel.featureCode === overviewFeatureCode[kind] &&
+      samples.fineOverviewPixel.featureCode === overviewFeatureCode[kind],
+  ),
 };
-assert(checks.namedFeatures.pass, "named coast/ridge did not survive local and two overview spans");
+assert(
+  checks.namedFeatures.pass,
+  "named coast/ridge did not survive local and two overview spans",
+);
 
-const authorityPoints = [[-719, features.coast.z], [420, features.ridge.z], [-1, 0], [16, 0]];
+const authorityPoints = [
+  [-719, features.coast.z],
+  [420, features.ridge.z],
+  [-1, 0],
+  [16, 0],
+];
 const authorityResults = authorityPoints.map(([x, z]) => {
   const cell = sampleCell(spec, x, z);
   const direct = sampleTerrain(spec, x, z, 1);
@@ -140,26 +306,46 @@ const authorityResults = authorityPoints.map(([x, z]) => {
 });
 checks.authoritativeLocal = {
   points: authorityResults,
-  pass: authorityResults.every((point) => point.elevationDelta === 0 && point.moistureDelta === 0 && point.cellTerrain === point.directTerrain),
+  pass: authorityResults.every(
+    (point) =>
+      point.elevationDelta === 0 &&
+      point.moistureDelta === 0 &&
+      point.cellTerrain === point.directTerrain,
+  ),
 };
-assert(checks.authoritativeLocal.pass, "local authoritative terrain changed between integer caller paths");
+assert(
+  checks.authoritativeLocal.pass,
+  "local authoritative terrain changed between integer caller paths",
+);
 
-const localAfterOverview = localAuthorityPoints.map(([x, z]) => sampleCell(spec, x, z));
+const localAfterOverview = localAuthorityPoints.map(([x, z]) =>
+  sampleCell(spec, x, z),
+);
 checks.localResolutionAuthority = {
   points: localBeforeOverview.map((before, index) => {
     const after = localAfterOverview[index];
     return {
       x: before.x,
       z: before.z,
-      unchanged: before.elevation === after.elevation && before.moisture === after.moisture && before.terrain === after.terrain,
+      unchanged:
+        before.elevation === after.elevation &&
+        before.moisture === after.moisture &&
+        before.terrain === after.terrain,
     };
   }),
   pass: localBeforeOverview.every((before, index) => {
     const after = localAfterOverview[index];
-    return before.elevation === after.elevation && before.moisture === after.moisture && before.terrain === after.terrain;
+    return (
+      before.elevation === after.elevation &&
+      before.moisture === after.moisture &&
+      before.terrain === after.terrain
+    );
   }),
 };
-assert(checks.localResolutionAuthority.pass, "overview sampling mutated authoritative local terrain");
+assert(
+  checks.localResolutionAuthority.pass,
+  "overview sampling mutated authoritative local terrain",
+);
 
 const seamBoundaries = [-32, -16, 0, 16, 32];
 const seamSamples = [];
@@ -170,19 +356,32 @@ for (const boundary of seamBoundaries) {
   const zRight = sampleTerrain(spec, 4.25, boundary + 1e-4, 1);
   seamSamples.push({
     boundary,
-    x: { elevationDelta: Math.abs(xLeft.elevation - xRight.elevation), moistureDelta: Math.abs(xLeft.moisture - xRight.moisture) },
-    z: { elevationDelta: Math.abs(zLeft.elevation - zRight.elevation), moistureDelta: Math.abs(zLeft.moisture - zRight.moisture) },
+    x: {
+      elevationDelta: Math.abs(xLeft.elevation - xRight.elevation),
+      moistureDelta: Math.abs(xLeft.moisture - xRight.moisture),
+    },
+    z: {
+      elevationDelta: Math.abs(zLeft.elevation - zRight.elevation),
+      moistureDelta: Math.abs(zLeft.moisture - zRight.moisture),
+    },
   });
 }
 const seamTolerance = 0.002;
 checks.signedGlobalSeams = {
   seamSamples,
   seamTolerance,
-  pass: seamSamples.every((seam) =>
-    seam.x.elevationDelta < seamTolerance && seam.x.moistureDelta < seamTolerance &&
-    seam.z.elevationDelta < seamTolerance && seam.z.moistureDelta < seamTolerance),
+  pass: seamSamples.every(
+    (seam) =>
+      seam.x.elevationDelta < seamTolerance &&
+      seam.x.moistureDelta < seamTolerance &&
+      seam.z.elevationDelta < seamTolerance &&
+      seam.z.moistureDelta < seamTolerance,
+  ),
 };
-assert(checks.signedGlobalSeams.pass, "signed seam continuity failed at a cache-tile boundary");
+assert(
+  checks.signedGlobalSeams.pass,
+  "signed seam continuity failed at a cache-tile boundary",
+);
 
 const terrainCodes = { water: 0, coast: 1, ridge: 2, land: 3 };
 const leftChunk = generateChunk(spec, 0, 0);
@@ -199,25 +398,63 @@ for (let z = 0; z < spec.chunkSize; z += 1) {
 }
 const nearSeamLeft = sampleTerrain(spec, 15.999, 4.25, 1);
 const nearSeamRight = sampleTerrain(spec, 16.001, 4.25, 1);
-const seamElevationDelta = Math.abs(nearSeamLeft.elevation - nearSeamRight.elevation);
+const seamElevationDelta = Math.abs(
+  nearSeamLeft.elevation - nearSeamRight.elevation,
+);
 checks.cacheTileIdentity = {
   edgeMatches,
-  nearBoundary: { leftX: nearSeamLeft.x, rightX: nearSeamRight.x, elevationDelta: seamElevationDelta },
-  pass: edgeMatches.every((edge) => edge.left === edge.leftExpected && edge.right === edge.rightExpected) && seamElevationDelta < 0.02,
+  nearBoundary: {
+    leftX: nearSeamLeft.x,
+    rightX: nearSeamRight.x,
+    elevationDelta: seamElevationDelta,
+  },
+  pass:
+    edgeMatches.every(
+      (edge) =>
+        edge.left === edge.leftExpected && edge.right === edge.rightExpected,
+    ) && seamElevationDelta < 0.02,
 };
-assert(checks.cacheTileIdentity.pass, "cache tile rendering lost global sample identity");
+assert(
+  checks.cacheTileIdentity.pass,
+  "cache tile rendering lost global sample identity",
+);
 
-const requestedCoordinates = [[-1, 0], [0, 0], [0, -1]];
+const requestedCoordinates = [
+  [-1, 0],
+  [0, 0],
+  [0, -1],
+];
 const firstResidency = createResidency(spec, { maxResidentChunks: 25 });
 const reverseResidency = createResidency(spec, { maxResidentChunks: 25 });
-const firstOrder = requestedCoordinates.map(([chunkX, chunkZ]) => firstResidency.get(chunkX, chunkZ));
-const reverseOrder = [...requestedCoordinates].reverse().map(([chunkX, chunkZ]) => reverseResidency.get(chunkX, chunkZ));
+const firstOrder = requestedCoordinates.map(([chunkX, chunkZ]) =>
+  firstResidency.get(chunkX, chunkZ),
+);
+const reverseOrder = [...requestedCoordinates]
+  .reverse()
+  .map(([chunkX, chunkZ]) => reverseResidency.get(chunkX, chunkZ));
 checks.orderIndependentChunks = {
-  first: firstOrder.map((chunk) => ({ key: chunk.key, checksum: chunk.checksum })),
-  reverse: reverseOrder.map((chunk) => ({ key: chunk.key, checksum: chunk.checksum })),
-  pass: firstOrder.map((chunk) => chunk.checksum).sort().join(",") === reverseOrder.map((chunk) => chunk.checksum).sort().join(","),
+  first: firstOrder.map((chunk) => ({
+    key: chunk.key,
+    checksum: chunk.checksum,
+  })),
+  reverse: reverseOrder.map((chunk) => ({
+    key: chunk.key,
+    checksum: chunk.checksum,
+  })),
+  pass:
+    firstOrder
+      .map((chunk) => chunk.checksum)
+      .sort()
+      .join(",") ===
+    reverseOrder
+      .map((chunk) => chunk.checksum)
+      .sort()
+      .join(","),
 };
-assert(checks.orderIndependentChunks.pass, "chunk checksum changed with request order");
+assert(
+  checks.orderIndependentChunks.pass,
+  "chunk checksum changed with request order",
+);
 
 const residency = createResidency(spec);
 const generationStart = performance.now();
@@ -236,7 +473,11 @@ checks.boundedLocal = {
   visibleWindow: `${spec.local.windowChunks}x${spec.local.windowChunks}`,
   generatedTerrainChunks: beforeEviction.generatedChunks,
   visibleCells: render.sampleCount,
-  renderBuffer: { width: render.width, height: render.height, checksum: render.checksum },
+  renderBuffer: {
+    width: render.width,
+    height: render.height,
+    checksum: render.checksum,
+  },
   maxResidentChunks: afterReturn.maxResidentChunks,
   residentRenderChunks: afterReturn.residentChunks,
   evictions: afterReturn.evictions,
@@ -245,13 +486,24 @@ checks.boundedLocal = {
   originChecksum: firstOrder[1].checksum,
   shuffledRenderChecksum: shuffledRender.checksum,
   shuffledRenderVisualChecksum: shuffledRender.visualChecksum,
-  pass: beforeEviction.residentChunks === 25 && afterReturn.residentChunks <= 25 && regenerated.checksum === firstOrder[1].checksum && shuffledRender.checksum === render.checksum && shuffledRender.visualChecksum === render.visualChecksum,
+  pass:
+    beforeEviction.residentChunks === 25 &&
+    afterReturn.residentChunks <= 25 &&
+    regenerated.checksum === firstOrder[1].checksum &&
+    shuffledRender.checksum === render.checksum &&
+    shuffledRender.visualChecksum === render.visualChecksum,
 };
-assert(checks.boundedLocal.pass, "local residency exceeded its bounded cache or failed regeneration");
+assert(
+  checks.boundedLocal.pass,
+  "local residency exceeded its bounded cache or failed regeneration",
+);
 
 const mappingCells = [
   [coarseOverview.bounds.minX, coarseOverview.bounds.minZ],
-  [coarseOverview.bounds.maxXExclusive - 1, coarseOverview.bounds.maxZExclusive - 1],
+  [
+    coarseOverview.bounds.maxXExclusive - 1,
+    coarseOverview.bounds.maxZExclusive - 1,
+  ],
   [-1, 0],
   [0, 0],
   [features.coast.x, features.coast.z],
@@ -259,7 +511,11 @@ const mappingCells = [
 ];
 const mappingResults = mappingCells.map(([x, z]) => {
   const pixel = worldCellToOverviewPixel(coarseOverview, x, z);
-  const mapped = overviewPixelToWorldCell(coarseOverview, pixel.column, pixel.row);
+  const mapped = overviewPixelToWorldCell(
+    coarseOverview,
+    pixel.column,
+    pixel.row,
+  );
   const cellWidth = coarseOverview.bounds.spanX / coarseOverview.width;
   const cellHeight = coarseOverview.bounds.spanZ / coarseOverview.height;
   const pixelMinX = coarseOverview.bounds.minX + pixel.column * cellWidth;
@@ -268,22 +524,57 @@ const mappingResults = mappingCells.map(([x, z]) => {
     requested: { x, z },
     pixel,
     representativeCell: mapped,
-    withinPixelFootprint: x >= pixelMinX && (x < pixelMinX + cellWidth || (pixel.column === coarseOverview.width - 1 && x < coarseOverview.bounds.maxXExclusive)) && z >= pixelMinZ && (z < pixelMinZ + cellHeight || (pixel.row === coarseOverview.height - 1 && z < coarseOverview.bounds.maxZExclusive)),
+    withinPixelFootprint:
+      x >= pixelMinX &&
+      (x < pixelMinX + cellWidth ||
+        (pixel.column === coarseOverview.width - 1 &&
+          x < coarseOverview.bounds.maxXExclusive)) &&
+      z >= pixelMinZ &&
+      (z < pixelMinZ + cellHeight ||
+        (pixel.row === coarseOverview.height - 1 &&
+          z < coarseOverview.bounds.maxZExclusive)),
     signed: x < 0 || z < 0,
   };
 });
 checks.coordinateMapping = {
   edgeAndSignedSamples: mappingResults,
-  pass: mappingResults.every((result) => result.withinPixelFootprint) &&
+  pass:
+    mappingResults.every((result) => result.withinPixelFootprint) &&
     mappingResults.filter((result) => result.signed).length >= 2 &&
-    mappingResults.every((result) => overviewPixelToWorldCell(coarseOverview, result.pixel.column, result.pixel.row).column === result.pixel.column && overviewPixelToWorldCell(coarseOverview, result.pixel.column, result.pixel.row).row === result.pixel.row),
+    mappingResults.every(
+      (result) =>
+        overviewPixelToWorldCell(
+          coarseOverview,
+          result.pixel.column,
+          result.pixel.row,
+        ).column === result.pixel.column &&
+        overviewPixelToWorldCell(
+          coarseOverview,
+          result.pixel.column,
+          result.pixel.row,
+        ).row === result.pixel.row,
+    ),
 };
-assert(checks.coordinateMapping.pass, "overview pixel/world-cell mapping lost an edge or signed coordinate");
+assert(
+  checks.coordinateMapping.pass,
+  "overview pixel/world-cell mapping lost an edge or signed coordinate",
+);
 
-const signedViewport = localViewport(spec, floorDiv(-1, spec.chunkSize), floorDiv(0, spec.chunkSize));
-const signedRender = renderChunkBuffer(spec, createResidency(spec).loadWindow(signedViewport.centerChunkX, signedViewport.centerChunkZ));
+const signedViewport = localViewport(
+  spec,
+  floorDiv(-1, spec.chunkSize),
+  floorDiv(0, spec.chunkSize),
+);
+const signedRender = renderChunkBuffer(
+  spec,
+  createResidency(spec).loadWindow(
+    signedViewport.centerChunkX,
+    signedViewport.centerChunkZ,
+  ),
+);
 const signedCell = sampleCell(spec, -1, 0);
-const signedLocalIndex = (0 - signedViewport.minZ) * signedRender.width + (-1 - signedViewport.minX);
+const signedLocalIndex =
+  (0 - signedViewport.minZ) * signedRender.width + (-1 - signedViewport.minX);
 const signedOverview = sampleTerrain(spec, -1, 0, coarseOverview.footprint);
 checks.crossScaleSampleFacts = {
   selected: {
@@ -297,65 +588,156 @@ checks.crossScaleSampleFacts = {
     localRenderElevationByte: signedRender.elevation[signedLocalIndex],
     localRenderMoistureByte: signedRender.moisture[signedLocalIndex],
   },
-  pass: signedCell.elevation === sampleTerrain(spec, -1, 0, 1).elevation &&
+  pass:
+    signedCell.elevation === sampleTerrain(spec, -1, 0, 1).elevation &&
     signedCell.moisture === sampleTerrain(spec, -1, 0, 1).moisture &&
-    signedRender.elevation[signedLocalIndex] === Math.round(signedCell.elevation * 255) &&
-    signedRender.moisture[signedLocalIndex] === Math.round(signedCell.moisture * 255) &&
-    Number.isFinite(signedOverview.elevation) && Number.isFinite(signedOverview.moisture),
+    signedRender.elevation[signedLocalIndex] ===
+      Math.round(signedCell.elevation * 255) &&
+    signedRender.moisture[signedLocalIndex] ===
+      Math.round(signedCell.moisture * 255) &&
+    Number.isFinite(signedOverview.elevation) &&
+    Number.isFinite(signedOverview.moisture),
 };
-assert(checks.crossScaleSampleFacts.pass, "selected global cell facts diverged between overview sampler and local render arrays");
+assert(
+  checks.crossScaleSampleFacts.pass,
+  "selected global cell facts diverged between overview sampler and local render arrays",
+);
 
 checks.visualTerrainData = {
   overviewElevationValues: new Set(coarseOverview.elevation).size,
   overviewMoistureValues: new Set(coarseOverview.moisture).size,
   localElevationValues: new Set(render.elevation).size,
   localMoistureValues: new Set(render.moisture).size,
-  pass: new Set(coarseOverview.elevation).size > 1 && new Set(coarseOverview.moisture).size > 1 && new Set(render.elevation).size > 1 && new Set(render.moisture).size > 1,
+  pass:
+    new Set(coarseOverview.elevation).size > 1 &&
+    new Set(coarseOverview.moisture).size > 1 &&
+    new Set(render.elevation).size > 1 &&
+    new Set(render.moisture).size > 1,
 };
-assert(checks.visualTerrainData.pass, "terrain visualization arrays did not contain elevation/moisture variation");
+assert(
+  checks.visualTerrainData.pass,
+  "terrain visualization arrays did not contain elevation/moisture variation",
+);
 
 const source = await readFile("src/world-lab/terrain.js", "utf8");
 const mainSource = await readFile("src/world-lab/main.js", "utf8");
+const workerSource = await readFile("src/world-lab/worker.js", "utf8");
 const pageSource = await readFile("world-lab.html", "utf8");
 const stylesSource = await readFile("src/world-lab/styles.css", "utf8");
 const forbiddenImport = /^\s*import\s/m.test(source);
-checks.isolatedSource = { importsRuntimeOrSimulation: forbiddenImport, pass: !forbiddenImport };
+checks.isolatedSource = {
+  importsRuntimeOrSimulation: forbiddenImport,
+  pass: !forbiddenImport,
+};
 assert(checks.isolatedSource.pass, "isolated terrain must remain import-free");
 checks.footprintAwareGenerator = {
   sameGlobalSampler: source.includes("sampleTerrain(spec, x, z, footprint)"),
   frequencyOmission: source.includes("octave.scale < footprint * 1.5"),
-  noChunkGeographyClaim: WORLD_LAB_NON_CLAIMS.some((claim) => claim.includes("chunks do not own geography")),
-  pass: source.includes("sampleTerrain(spec, x, z, footprint)") && source.includes("octave.scale < footprint * 1.5") && WORLD_LAB_NON_CLAIMS.some((claim) => claim.includes("chunks do not own geography")),
+  noChunkGeographyClaim: WORLD_LAB_NON_CLAIMS.some((claim) =>
+    claim.includes("chunks do not own geography"),
+  ),
+  pass:
+    source.includes("sampleTerrain(spec, x, z, footprint)") &&
+    source.includes("octave.scale < footprint * 1.5") &&
+    WORLD_LAB_NON_CLAIMS.some((claim) =>
+      claim.includes("chunks do not own geography"),
+    ),
 };
-assert(checks.footprintAwareGenerator.pass, "generator source did not expose the footprint-aware global contract");
+assert(
+  checks.footprintAwareGenerator.pass,
+  "generator source did not expose the footprint-aware global contract",
+);
 
-const coastViewport = localViewport(spec, floorDiv(features.coast.x, spec.chunkSize), floorDiv(features.coast.z, spec.chunkSize));
+const coastViewport = localViewport(
+  spec,
+  floorDiv(features.coast.x, spec.chunkSize),
+  floorDiv(features.coast.z, spec.chunkSize),
+);
 const coastMarker = overviewRectForViewport(coarseOverview, coastViewport);
 checks.userFacingLabShape = {
-  noDiagnosticCallerOrButton: !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`),
-  namedGlobalButtons: [-720, -234, 420, 432, -1, 0].every((coordinate) => pageSource.includes(String(coordinate))),
+  noDiagnosticCallerOrButton: !/(1024|world-lab-diagnostic)/.test(
+    `${mainSource}\n${pageSource}`,
+  ),
+  namedGlobalButtons: [-720, -234, 420, 432, -1, 0].every((coordinate) =>
+    pageSource.includes(String(coordinate)),
+  ),
   markerData: {
     viewport: coastViewport,
     overviewRect: coastMarker,
   },
   markerHasPositiveArea: coastMarker.width > 0 && coastMarker.height > 0,
-  markerUpdatedFromRender: mainSource.includes("drawViewportMarker(local.viewport)") && mainSource.includes("center = { chunkX: floorDiv") && mainSource.includes("overviewCanvas.addEventListener(\"click\""),
-  clickMapsToCell: mainSource.includes("overviewPixelToWorldCell(overview, column, row)") && mainSource.includes("focus = { label: \"Overview cell\", x: cell.x, z: cell.z }"),
-  localSelectionMarker: mainSource.includes("localGridContext.strokeRect") && mainSource.includes("focus.x - viewport.minX"),
-  sharedFactsPanel: mainSource.includes("sampleCell(spec, focus.x, focus.z)") && mainSource.includes("sampleTerrain(spec, focus.x, focus.z, 1)") && mainSource.includes("sharedSampler") && mainSource.includes("data-field=selection") && mainSource.includes("matchesSampler"),
-  fullDetailInspectorLaw: mainSource.includes("local.buffer.elevation[localIndex] === Math.round(selectedLocal.elevation * 255)") && mainSource.includes("local.buffer.moisture[localIndex] === Math.round(selectedLocal.moisture * 255)") && !mainSource.includes("selectedOverview.elevation === selectedLocal.elevation"),
-  halfOpenBounds: source.includes("maxXExclusive") && source.includes("maxZExclusive") && mainSource.includes("maxXExclusive") && mainSource.includes("maxZExclusive"),
-  explicitOverviewScale: mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX"),
-  explicitLocalScale: mainSource.includes("one pixel = one world cell") && pageSource.includes("80×80 local view at 1 pixel per world cell"),
-  readableLegend: pageSource.includes("Terrain palette legend") && stylesSource.includes(".swatch.water") && stylesSource.includes(".legend"),
-  pass: !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`) &&
-    [-720, -234, 420, 432, -1, 0].every((coordinate) => pageSource.includes(String(coordinate))) &&
-    coastMarker.width > 0 && coastMarker.height > 0 &&
+  markerUpdatedFromRender:
     mainSource.includes("drawViewportMarker(local.viewport)") &&
-    mainSource.includes("center = { chunkX: floorDiv") &&
-    mainSource.includes("overviewCanvas.addEventListener(\"click\"") &&
+    mainSource.includes("chunkX: floorDiv(x, spec.chunkSize)") &&
+    mainSource.includes('overviewCanvas.addEventListener("click"'),
+  clickMapsToCell:
     mainSource.includes("overviewPixelToWorldCell(overview, column, row)") &&
-    mainSource.includes("focus = { label: \"Overview cell\", x: cell.x, z: cell.z }") &&
+    mainSource.includes('moveFocus("Overview cell", cell.x, cell.z)'),
+  localSelectionMarker:
+    mainSource.includes("localGridContext.strokeRect") &&
+    mainSource.includes("focus.x - viewport.minX"),
+  sharedFactsPanel:
+    mainSource.includes("sampleCell(spec, focus.x, focus.z)") &&
+    mainSource.includes("sampleTerrain(spec, focus.x, focus.z, 1)") &&
+    mainSource.includes("sharedSampler") &&
+    mainSource.includes("data-field=selection") &&
+    mainSource.includes("matchesSampler"),
+  fullDetailInspectorLaw:
+    /local\.buffer\.elevation\[localIndex\]\s*===\s*Math\.round\(selectedLocal\.elevation \* 255\)/.test(
+      mainSource,
+    ) &&
+    /local\.buffer\.moisture\[localIndex\]\s*===\s*Math\.round\(selectedLocal\.moisture \* 255\)/.test(
+      mainSource,
+    ) &&
+    !mainSource.includes(
+      "selectedOverview.elevation === selectedLocal.elevation",
+    ),
+  halfOpenBounds:
+    source.includes("maxXExclusive") &&
+    source.includes("maxZExclusive") &&
+    mainSource.includes("maxXExclusive") &&
+    mainSource.includes("maxZExclusive"),
+  explicitOverviewScale:
+    mainSource.includes("cellsPerPixel") &&
+    mainSource.includes("overview.bounds.spanX"),
+  explicitLocalScale:
+    mainSource.includes("one pixel = one world cell") &&
+    pageSource.includes("80×80 local view at 1 pixel per world cell"),
+  readableLegend:
+    pageSource.includes("Terrain palette legend") &&
+    stylesSource.includes(".swatch.water") &&
+    stylesSource.includes(".legend"),
+  responsiveNavigation:
+    pageSource.includes('data-pan="0,-0.25"') &&
+    pageSource.includes('data-zoom="0.5"') &&
+    pageSource.includes('id="world-lab-atlas-status"') &&
+    mainSource.includes("function panAtlas") &&
+    mainSource.includes("function zoomAtlas") &&
+    mainSource.includes("boundsAround"),
+  workerLifecycle:
+    mainSource.includes('new Worker(new URL("./worker.js", import.meta.url)') &&
+    mainSource.includes("activeRequest") &&
+    mainSource.includes("queuedRequest") &&
+    mainSource.includes("latestRequestId") &&
+    mainSource.includes('worker.postMessage({ type: "cancel"') &&
+    mainSource.includes('globalThis.addEventListener("pagehide", dispose') &&
+    mainSource.includes("worker.terminate()") &&
+    workerSource.includes("ROW_BATCH = 8") &&
+    workerSource.includes(
+      "globalThis.postMessage(message, transferOverview(message))",
+    ),
+  pass:
+    !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`) &&
+    [-720, -234, 420, 432, -1, 0].every((coordinate) =>
+      pageSource.includes(String(coordinate)),
+    ) &&
+    coastMarker.width > 0 &&
+    coastMarker.height > 0 &&
+    mainSource.includes("drawViewportMarker(local.viewport)") &&
+    mainSource.includes("chunkX: floorDiv(x, spec.chunkSize)") &&
+    mainSource.includes('overviewCanvas.addEventListener("click"') &&
+    mainSource.includes("overviewPixelToWorldCell(overview, column, row)") &&
+    mainSource.includes('moveFocus("Overview cell", cell.x, cell.z)') &&
     mainSource.includes("localGridContext.strokeRect") &&
     mainSource.includes("focus.x - viewport.minX") &&
     mainSource.includes("sampleCell(spec, focus.x, focus.z)") &&
@@ -363,16 +745,48 @@ checks.userFacingLabShape = {
     mainSource.includes("sharedSampler") &&
     mainSource.includes("data-field=selection") &&
     mainSource.includes("matchesSampler") &&
-    mainSource.includes("local.buffer.elevation[localIndex] === Math.round(selectedLocal.elevation * 255)") &&
-    mainSource.includes("local.buffer.moisture[localIndex] === Math.round(selectedLocal.moisture * 255)") &&
-    !mainSource.includes("selectedOverview.elevation === selectedLocal.elevation") &&
-    source.includes("maxXExclusive") && source.includes("maxZExclusive") && mainSource.includes("maxXExclusive") && mainSource.includes("maxZExclusive") &&
-    mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX") &&
+    /local\.buffer\.elevation\[localIndex\]\s*===\s*Math\.round\(selectedLocal\.elevation \* 255\)/.test(
+      mainSource,
+    ) &&
+    /local\.buffer\.moisture\[localIndex\]\s*===\s*Math\.round\(selectedLocal\.moisture \* 255\)/.test(
+      mainSource,
+    ) &&
+    !mainSource.includes(
+      "selectedOverview.elevation === selectedLocal.elevation",
+    ) &&
+    source.includes("maxXExclusive") &&
+    source.includes("maxZExclusive") &&
+    mainSource.includes("maxXExclusive") &&
+    mainSource.includes("maxZExclusive") &&
+    mainSource.includes("cellsPerPixel") &&
+    mainSource.includes("overview.bounds.spanX") &&
     mainSource.includes("one pixel = one world cell") &&
     pageSource.includes("80×80 local view at 1 pixel per world cell") &&
-    pageSource.includes("Terrain palette legend") && stylesSource.includes(".swatch.water") && stylesSource.includes(".legend"),
+    pageSource.includes("Terrain palette legend") &&
+    stylesSource.includes(".swatch.water") &&
+    stylesSource.includes(".legend") &&
+    pageSource.includes('data-pan="0,-0.25"') &&
+    pageSource.includes('data-zoom="0.5"') &&
+    pageSource.includes('id="world-lab-atlas-status"') &&
+    mainSource.includes("function panAtlas") &&
+    mainSource.includes("function zoomAtlas") &&
+    mainSource.includes("boundsAround") &&
+    mainSource.includes('new Worker(new URL("./worker.js", import.meta.url)') &&
+    mainSource.includes("activeRequest") &&
+    mainSource.includes("queuedRequest") &&
+    mainSource.includes("latestRequestId") &&
+    mainSource.includes('worker.postMessage({ type: "cancel"') &&
+    mainSource.includes('globalThis.addEventListener("pagehide", dispose') &&
+    mainSource.includes("worker.terminate()") &&
+    workerSource.includes("ROW_BATCH = 8") &&
+    workerSource.includes(
+      "globalThis.postMessage(message, transferOverview(message))",
+    ),
 };
-assert(checks.userFacingLabShape.pass, "World Lab page shape omitted required coordinates, marker, scale, palette, or diagnostic removal");
+assert(
+  checks.userFacingLabShape.pass,
+  "World Lab page shape omitted required coordinates, marker, scale, palette, or diagnostic removal",
+);
 
 const proof = {
   kind: "world-lab-coherent-lod-contract-measurement-and-readable-view",
@@ -383,15 +797,21 @@ const proof = {
     identity: spec.identity,
     chunkSize: spec.chunkSize,
     globalCoordinates: "signed integer x,z; mathematical floor division",
-    overviewBounds: "explicit half-open [minX,minZ,maxXExclusive,maxZExclusive) world bounds",
+    overviewBounds:
+      "explicit half-open [minX,minZ,maxXExclusive,maxZExclusive) world bounds",
     sampleIdentity: "generatorVersion:seed/sample/x,z",
-    chunkIdentity: "generatorVersion:seed/chunk/chunkX,chunkZ (cache identity only; not geography)",
-    coherentRecipe: "shared smooth broad fields plus footprint-omitted fine octaves; no output resize of a fine grid",
-    authoritativeLocal: "sampleCell uses the same footprint=1 terrain query as direct local sampling",
+    chunkIdentity:
+      "generatorVersion:seed/chunk/chunkX,chunkZ (cache identity only; not geography)",
+    coherentRecipe:
+      "shared smooth broad fields plus footprint-omitted fine octaves; no output resize of a fine grid",
+    authoritativeLocal:
+      "sampleCell uses the same footprint=1 terrain query as direct local sampling",
     overviewBudget: { width: 512, height: 512, samples: fixedOutputSamples },
     localResidency: spec.local,
-    overviewVisualData: "terrain, elevation, and moisture arrays come from the same sampleTerrain query",
-    localVisualData: "terrain, elevation, and moisture arrays come from the same generated cell arrays",
+    overviewVisualData:
+      "terrain, elevation, and moisture arrays come from the same sampleTerrain query",
+    localVisualData:
+      "terrain, elevation, and moisture arrays come from the same generated cell arrays",
   },
   measurements: {
     coarse512Ms: Number(coarseMs.toFixed(3)),
@@ -402,9 +822,36 @@ const proof = {
     note: "Render timing is bounded buffer preparation in this source-backed check; browser canvas timing remains a separate page measurement.",
   },
   checks,
-  diagnostic1024: { executed: false, reason: "1024 is diagnostic only after measured 512; this bounded check stops at 512." },
-  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency", "order-independent local render buffer", "readable elevation/moisture variation with named viewport marker", "overview pixel to signed global cell to local one-cell trace"],
+  diagnostic1024: {
+    executed: false,
+    reason:
+      "1024 is diagnostic only after measured 512; this bounded check stops at 512.",
+  },
+  claims: [
+    "deterministic terrain query",
+    "coherent named coast/ridge across two spans",
+    "signed global-coordinate seam continuity",
+    "bounded fixed-output LOD work",
+    "bounded local render residency",
+    "order-independent local render buffer",
+    "readable elevation/moisture variation with named viewport marker",
+    "overview pixel to signed global cell to local one-cell trace",
+  ],
   nonClaims: WORLD_LAB_NON_CLAIMS,
 };
 await writeFile(`${output}/proof.json`, `${JSON.stringify(proof, null, 2)}\n`);
-console.log(JSON.stringify({ output, status: "passed", proof: `${output}/proof.json`, measurements: proof.measurements, checks: Object.fromEntries(Object.entries(checks).map(([key, value]) => [key, value.pass])) }, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      output,
+      status: "passed",
+      proof: `${output}/proof.json`,
+      measurements: proof.measurements,
+      checks: Object.fromEntries(
+        Object.entries(checks).map(([key, value]) => [key, value.pass]),
+      ),
+    },
+    null,
+    2,
+  ),
+);

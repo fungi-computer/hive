@@ -1,15 +1,15 @@
 import {
+  MAX_OVERVIEW_DIMENSION,
   WORLD_LAB_NON_CLAIMS,
   createResidency,
   createWorldSpec,
   floorDiv,
   localViewport,
   namedFeatures,
-  overviewRectForViewport,
   overviewPixelToWorldCell,
+  overviewRectForViewport,
   renderChunkBuffer,
   sampleCell,
-  sampleOverview,
   sampleTerrain,
   worldCellToOverviewPixel,
 } from "./terrain.js";
@@ -18,16 +18,18 @@ import "./styles.css";
 const spec = createWorldSpec();
 const output = document.querySelector("#world-lab-output");
 const overviewCanvas = document.querySelector("#world-lab-overview");
-const overviewMarkerCanvas = document.querySelector("#world-lab-overview-marker");
+const overviewMarkerCanvas = document.querySelector(
+  "#world-lab-overview-marker",
+);
 const localCanvas = document.querySelector("#world-lab-local");
 const localGridCanvas = document.querySelector("#world-lab-local-grid");
+const atlasStatus = document.querySelector("#world-lab-atlas-status");
 const overviewContext = overviewCanvas.getContext("2d");
 const overviewMarkerContext = overviewMarkerCanvas.getContext("2d");
 const localContext = localCanvas.getContext("2d");
 const localGridContext = localGridCanvas.getContext("2d");
 const residency = createResidency(spec);
 const features = namedFeatures(spec);
-const overview = sampleOverview(spec);
 const featureButtons = [
   { label: "Origin", x: 0, z: 0 },
   { label: "Northwater Coast", ...features.coast },
@@ -35,7 +37,19 @@ const featureButtons = [
   { label: "Signed cell", x: -1, z: 0 },
 ];
 let focus = featureButtons[0];
-let center = { chunkX: floorDiv(focus.x, spec.chunkSize), chunkZ: floorDiv(focus.z, spec.chunkSize) };
+let center = {
+  chunkX: floorDiv(focus.x, spec.chunkSize),
+  chunkZ: floorDiv(focus.z, spec.chunkSize),
+};
+let overview = null;
+let requestedBounds = { ...spec.overview.bounds };
+let overviewGenerationMs = null;
+let worker = null;
+let activeRequest = null;
+let queuedRequest = null;
+let latestRequestId = 0;
+let staleResults = 0;
+let disposed = false;
 
 const terrainPalette = [
   [38, 91, 132],
@@ -63,7 +77,11 @@ function colorForCell(terrain, elevation, moisture) {
 function drawSamples(context, samples) {
   const image = context.createImageData(samples.width, samples.height);
   for (let index = 0; index < samples.sampleCount; index += 1) {
-    const [red, green, blue] = colorForCell(samples.pixels ? samples.pixels[index] : samples.terrain[index], samples.elevation[index], samples.moisture[index]);
+    const [red, green, blue] = colorForCell(
+      samples.pixels ? samples.pixels[index] : samples.terrain[index],
+      samples.elevation[index],
+      samples.moisture[index],
+    );
     image.data[index * 4] = red;
     image.data[index * 4 + 1] = green;
     image.data[index * 4 + 2] = blue;
@@ -73,19 +91,44 @@ function drawSamples(context, samples) {
 }
 
 function drawOverview() {
-  drawSamples(overviewContext, overview);
+  if (overview) drawSamples(overviewContext, overview);
+}
+
+function insideOverview(x, z) {
+  return (
+    overview &&
+    x >= overview.bounds.minX &&
+    x < overview.bounds.maxXExclusive &&
+    z >= overview.bounds.minZ &&
+    z < overview.bounds.maxZExclusive
+  );
 }
 
 function drawViewportMarker(viewport) {
+  overviewMarkerContext.clearRect(
+    0,
+    0,
+    overviewMarkerCanvas.width,
+    overviewMarkerCanvas.height,
+  );
+  if (!overview) return;
   const rect = overviewRectForViewport(overview, viewport);
-  overviewMarkerContext.clearRect(0, 0, overviewMarkerCanvas.width, overviewMarkerCanvas.height);
   overviewMarkerContext.fillStyle = "rgba(255, 245, 170, 0.18)";
   overviewMarkerContext.strokeStyle = "#fff2a8";
   overviewMarkerContext.lineWidth = 2;
   overviewMarkerContext.fillRect(rect.left, rect.top, rect.width, rect.height);
-  overviewMarkerContext.strokeRect(rect.left, rect.top, rect.width, rect.height);
-  const x = ((focus.x - overview.bounds.minX) / overview.bounds.spanX) * overview.width;
-  const z = ((focus.z - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height;
+  overviewMarkerContext.strokeRect(
+    rect.left,
+    rect.top,
+    rect.width,
+    rect.height,
+  );
+  if (!insideOverview(focus.x, focus.z)) return;
+  const x =
+    ((focus.x - overview.bounds.minX) / overview.bounds.spanX) * overview.width;
+  const z =
+    ((focus.z - overview.bounds.minZ) / overview.bounds.spanZ) *
+    overview.height;
   overviewMarkerContext.strokeStyle = "#ffffff";
   overviewMarkerContext.beginPath();
   overviewMarkerContext.moveTo(x - 5, z);
@@ -96,10 +139,19 @@ function drawViewportMarker(viewport) {
 }
 
 function drawLocalGrid(viewport) {
-  localGridContext.clearRect(0, 0, localGridCanvas.width, localGridCanvas.height);
+  localGridContext.clearRect(
+    0,
+    0,
+    localGridCanvas.width,
+    localGridCanvas.height,
+  );
   localGridContext.strokeStyle = "rgba(255, 248, 205, 0.26)";
   localGridContext.lineWidth = 1;
-  for (let cell = spec.chunkSize; cell < localGridCanvas.width; cell += spec.chunkSize) {
+  for (
+    let cell = spec.chunkSize;
+    cell < localGridCanvas.width;
+    cell += spec.chunkSize
+  ) {
     localGridContext.beginPath();
     localGridContext.moveTo(cell + 0.5, 0);
     localGridContext.lineTo(cell + 0.5, localGridCanvas.height);
@@ -109,7 +161,12 @@ function drawLocalGrid(viewport) {
   }
   const localX = focus.x - viewport.minX;
   const localZ = focus.z - viewport.minZ;
-  if (localX >= 0 && localX < viewport.width && localZ >= 0 && localZ < viewport.height) {
+  if (
+    localX >= 0 &&
+    localX < viewport.width &&
+    localZ >= 0 &&
+    localZ < viewport.height
+  ) {
     localGridContext.fillStyle = "rgba(255, 255, 255, 0.25)";
     localGridContext.strokeStyle = "#ffffff";
     localGridContext.fillRect(localX, localZ, 1, 1);
@@ -128,114 +185,329 @@ function drawLocal() {
   return { buffer, viewport, renderMs: performance.now() - started };
 }
 
+function lifecycleLabel() {
+  if (activeRequest && queuedRequest)
+    return `sampling #${activeRequest.requestId}; queued newest #${queuedRequest.requestId}`;
+  if (activeRequest) return `sampling request #${activeRequest.requestId}`;
+  return overview
+    ? `showing request #${latestRequestId}`
+    : "waiting for first bounded overview";
+}
+
 function render() {
   const local = drawLocal();
   drawViewportMarker(local.viewport);
   const selectedLocal = sampleCell(spec, focus.x, focus.z);
-  const selectedOverview = sampleTerrain(spec, focus.x, focus.z, overview.footprint);
   const selectedShared = sampleTerrain(spec, focus.x, focus.z, 1);
-  const selectedPixel = worldCellToOverviewPixel(overview, focus.x, focus.z);
+  const selectedOverview = overview
+    ? sampleTerrain(spec, focus.x, focus.z, overview.footprint)
+    : null;
+  const selectedPixel = insideOverview(focus.x, focus.z)
+    ? worldCellToOverviewPixel(overview, focus.x, focus.z)
+    : null;
   const localX = focus.x - local.viewport.minX;
   const localZ = focus.z - local.viewport.minZ;
   const localIndex = localZ * local.buffer.width + localX;
-  output.querySelector("[data-field=selection]").textContent = JSON.stringify({
-    focus: { label: focus.label, x: focus.x, z: focus.z },
-    overviewPixel: selectedPixel,
-    overviewSampler: {
-      footprint: overview.footprint,
-      elevation: selectedOverview.elevation,
-      moisture: selectedOverview.moisture,
-      terrain: selectedOverview.terrain,
+  output.querySelector("[data-field=selection]").textContent = JSON.stringify(
+    {
+      focus: { label: focus.label, x: focus.x, z: focus.z },
+      displayedOverviewPixel: selectedPixel,
+      overviewSampler: selectedOverview
+        ? {
+            footprint: overview.footprint,
+            elevation: selectedOverview.elevation,
+            moisture: selectedOverview.moisture,
+            terrain: selectedOverview.terrain,
+          }
+        : null,
+      sharedSampler: {
+        footprint: selectedShared.footprint,
+        elevation: selectedShared.elevation,
+        moisture: selectedShared.moisture,
+        terrain: selectedShared.terrain,
+      },
+      sharedLocalSampler: {
+        footprint: selectedLocal.footprint,
+        elevation: selectedLocal.elevation,
+        moisture: selectedLocal.moisture,
+        terrain: selectedLocal.terrain,
+      },
+      localRenderCell: {
+        x: localX,
+        z: localZ,
+        elevationByte: local.buffer.elevation[localIndex],
+        moistureByte: local.buffer.moisture[localIndex],
+        matchesSampler:
+          local.buffer.elevation[localIndex] ===
+            Math.round(selectedLocal.elevation * 255) &&
+          local.buffer.moisture[localIndex] ===
+            Math.round(selectedLocal.moisture * 255),
+      },
     },
-    sharedSampler: {
-      footprint: selectedShared.footprint,
-      elevation: selectedShared.elevation,
-      moisture: selectedShared.moisture,
-      terrain: selectedShared.terrain,
+    null,
+    2,
+  );
+  output.querySelector("[data-field=local]").textContent = JSON.stringify(
+    {
+      focus: { label: focus.label, x: focus.x, z: focus.z },
+      centerChunk: { x: center.chunkX, z: center.chunkZ },
+      extent: {
+        minX: local.viewport.minX,
+        minZ: local.viewport.minZ,
+        maxXExclusive: local.viewport.maxXExclusive,
+        maxZExclusive: local.viewport.maxZExclusive,
+      },
+      scale: "80x80 canvas: one pixel = one world cell",
+      generatedLocalRenderChunks: residency.stats().generatedChunks,
+      residentLocalRenderChunks: residency.stats().residentChunks,
+      renderCells: local.buffer.sampleCount,
+      renderChecksum: local.buffer.checksum,
+      visualChecksum: local.buffer.visualChecksum,
+      renderMs: Number(local.renderMs.toFixed(3)),
     },
-    sharedLocalSampler: {
-      footprint: selectedLocal.footprint,
-      elevation: selectedLocal.elevation,
-      moisture: selectedLocal.moisture,
-      terrain: selectedLocal.terrain,
+    null,
+    2,
+  );
+  output.querySelector("[data-field=claims]").textContent = JSON.stringify(
+    {
+      generatedLocalRenderResidency: true,
+      chunkKeysAreCacheOnly: true,
+      displayedOverview: overview
+        ? `${overview.bounds.spanX}x${overview.bounds.spanZ} world cells over ${overview.width}x${overview.height} pixels`
+        : null,
+      requestedBounds,
+      atlasLifecycle: lifecycleLabel(),
+      staleResultsRejected: staleResults,
+      caravan: false,
+      simulation: false,
+      nonClaims: WORLD_LAB_NON_CLAIMS,
     },
-    localRenderCell: {
-      x: localX,
-      z: localZ,
-      elevationByte: local.buffer.elevation[localIndex],
-      moistureByte: local.buffer.moisture[localIndex],
-      matchesSampler: local.buffer.elevation[localIndex] === Math.round(selectedLocal.elevation * 255) && local.buffer.moisture[localIndex] === Math.round(selectedLocal.moisture * 255),
-    },
-  }, null, 2);
-  output.querySelector("[data-field=local]").textContent = JSON.stringify({
-    focus: { label: focus.label, x: focus.x, z: focus.z },
-    centerChunk: { x: center.chunkX, z: center.chunkZ },
-    extent: {
-      minX: local.viewport.minX,
-      minZ: local.viewport.minZ,
-      maxXExclusive: local.viewport.maxXExclusive,
-      maxZExclusive: local.viewport.maxZExclusive,
-    },
-    scale: "80x80 canvas: one pixel = one world cell",
-    generatedLocalRenderChunks: residency.stats().generatedChunks,
-    residentLocalRenderChunks: residency.stats().residentChunks,
-    renderCells: local.buffer.sampleCount,
-    renderChecksum: local.buffer.checksum,
-    visualChecksum: local.buffer.visualChecksum,
-    renderMs: Number(local.renderMs.toFixed(3)),
-  }, null, 2);
-  output.querySelector("[data-field=claims]").textContent = JSON.stringify({
-    generatedLocalRenderResidency: true,
-    chunkKeysAreCacheOnly: true,
-    overview: `${overview.bounds.spanX}x${overview.bounds.spanZ} world cells over ${overview.width}x${overview.height} pixels`,
-    caravan: false,
-    simulation: false,
-    nonClaims: WORLD_LAB_NON_CLAIMS,
-  }, null, 2);
+    null,
+    2,
+  );
+  atlasStatus.textContent = lifecycleLabel();
 }
 
-drawOverview();
-const overviewMeasurement = {
-  sampleCount: overview.sampleCount,
-  checksum: overview.checksum,
-  visualChecksum: overview.visualChecksum,
-  footprint: overview.footprint,
-  featureCounts: overview.featureCounts,
-};
-output.querySelector("[data-field=contract]").textContent = JSON.stringify({
-  seed: spec.seed,
-  generatorVersion: spec.generatorVersion,
-  chunkSize: spec.chunkSize,
-  bounds: overview.bounds,
-  span: { x: overview.bounds.spanX, z: overview.bounds.spanZ },
-  overviewSamples: overview.sampleCount,
-  cellsPerPixel: overview.footprint,
-  localScale: "80x80 pixels; one pixel = one world cell",
-  source: overview.source,
-  filtering: overview.filtering,
-  namedFeatures: overview.featureCounts,
-  visualChecksum: overviewMeasurement.visualChecksum,
-  lifecycle: "synchronous main-thread provisional caller",
-  identity: spec.identity,
-}, null, 2);
+function contractReport() {
+  output.querySelector("[data-field=contract]").textContent = JSON.stringify(
+    {
+      seed: spec.seed,
+      generatorVersion: spec.generatorVersion,
+      chunkSize: spec.chunkSize,
+      bounds: overview?.bounds ?? requestedBounds,
+      span: overview
+        ? { x: overview.bounds.spanX, z: overview.bounds.spanZ }
+        : null,
+      overviewSamples: overview?.sampleCount ?? null,
+      cellsPerPixel: overview?.footprint ?? null,
+      overviewCap: `${MAX_OVERVIEW_DIMENSION}x${MAX_OVERVIEW_DIMENSION}`,
+      localScale: "80x80 pixels; one pixel = one world cell",
+      source:
+        overview?.source ??
+        "same versioned sampler requested in one lazy worker",
+      filtering: overview?.filtering ?? "footprint-aware sampling pending",
+      namedFeatures: overview?.featureCounts ?? null,
+      visualChecksum: overview?.visualChecksum ?? null,
+      generationMs: overviewGenerationMs,
+      lifecycle:
+        "one lazy worker; one active request; one replaceable queued intent; stale results rejected",
+      identity: spec.identity,
+    },
+    null,
+    2,
+  );
+}
+
+function workerSpec() {
+  return {
+    seed: spec.seed,
+    generatorVersion: spec.generatorVersion,
+    chunkSize: spec.chunkSize,
+    overview: spec.overview,
+    local: spec.local,
+  };
+}
+
+function startQueuedRequest() {
+  if (disposed || activeRequest || !queuedRequest) return;
+  if (!worker) {
+    worker = new Worker(new URL("./worker.js", import.meta.url), {
+      type: "module",
+    });
+    worker.addEventListener("message", receiveOverview);
+    worker.addEventListener("error", (event) => {
+      atlasStatus.textContent = `worker error: ${event.message}`;
+      activeRequest = null;
+      worker.terminate();
+      worker = null;
+      startQueuedRequest();
+    });
+  }
+  activeRequest = queuedRequest;
+  queuedRequest = null;
+  worker.postMessage({
+    type: "sample",
+    requestId: activeRequest.requestId,
+    spec: workerSpec(),
+    options: activeRequest.options,
+  });
+  render();
+}
+
+function receiveOverview(event) {
+  const message = event.data;
+  if (!activeRequest || message.requestId !== activeRequest.requestId) {
+    staleResults += 1;
+    return;
+  }
+  const completed = activeRequest;
+  activeRequest = null;
+  if (
+    message.type === "result" &&
+    completed.requestId === latestRequestId &&
+    !queuedRequest
+  ) {
+    overview = message.overview;
+    overviewGenerationMs = Number(message.generationMs.toFixed(3));
+    drawOverview();
+  } else if (message.type === "result") {
+    staleResults += 1;
+  } else if (
+    message.type === "error" &&
+    completed.requestId === latestRequestId
+  ) {
+    atlasStatus.textContent = `request failed: ${message.message}`;
+  }
+  contractReport();
+  render();
+  startQueuedRequest();
+}
+
+function requestOverview(bounds, reason) {
+  requestedBounds = { ...bounds };
+  const requestId = ++latestRequestId;
+  queuedRequest = {
+    requestId,
+    options: {
+      width: MAX_OVERVIEW_DIMENSION,
+      height: MAX_OVERVIEW_DIMENSION,
+      bounds: requestedBounds,
+    },
+    reason,
+  };
+  if (activeRequest)
+    worker.postMessage({ type: "cancel", requestId: activeRequest.requestId });
+  else startQueuedRequest();
+  contractReport();
+  render();
+}
+
+function boundsAround(x, z, spanX, spanZ = spanX) {
+  const minX = Math.floor(x - spanX / 2);
+  const minZ = Math.floor(z - spanZ / 2);
+  return {
+    minX,
+    minZ,
+    maxXExclusive: minX + spanX,
+    maxZExclusive: minZ + spanZ,
+  };
+}
+
+function moveFocus(label, x, z) {
+  focus = { label, x, z };
+  center = {
+    chunkX: floorDiv(x, spec.chunkSize),
+    chunkZ: floorDiv(z, spec.chunkSize),
+  };
+}
+
+function panAtlas(dx, dz) {
+  const spanX = requestedBounds.maxXExclusive - requestedBounds.minX;
+  const spanZ = requestedBounds.maxZExclusive - requestedBounds.minZ;
+  const shiftX = Math.round(spanX * dx);
+  const shiftZ = Math.round(spanZ * dz);
+  const bounds = {
+    minX: requestedBounds.minX + shiftX,
+    minZ: requestedBounds.minZ + shiftZ,
+    maxXExclusive: requestedBounds.maxXExclusive + shiftX,
+    maxZExclusive: requestedBounds.maxZExclusive + shiftZ,
+  };
+  moveFocus(
+    "Atlas center",
+    Math.floor((bounds.minX + bounds.maxXExclusive) / 2),
+    Math.floor((bounds.minZ + bounds.maxZExclusive) / 2),
+  );
+  requestOverview(bounds, "pan");
+}
+
+function zoomAtlas(scale) {
+  const currentSpan = requestedBounds.maxXExclusive - requestedBounds.minX;
+  const nextSpan = Math.max(
+    512,
+    Math.min(8192, Math.round(currentSpan * scale)),
+  );
+  requestOverview(
+    boundsAround(focus.x, focus.z, nextSpan),
+    scale < 1 ? "zoom-in" : "zoom-out",
+  );
+}
 
 for (const button of document.querySelectorAll("[data-cell]")) {
   button.addEventListener("click", () => {
     const [x, z] = button.dataset.cell.split(",").map(Number);
-    focus = { label: button.dataset.label, x, z };
-    center = { chunkX: floorDiv(x, spec.chunkSize), chunkZ: floorDiv(z, spec.chunkSize) };
-    render();
+    moveFocus(button.dataset.label, x, z);
+    const span = requestedBounds.maxXExclusive - requestedBounds.minX;
+    requestOverview(boundsAround(x, z, span), "named-location");
   });
 }
 
+for (const button of document.querySelectorAll("[data-pan]")) {
+  button.addEventListener("click", () => {
+    const [dx, dz] = button.dataset.pan.split(",").map(Number);
+    panAtlas(dx, dz);
+  });
+}
+
+for (const button of document.querySelectorAll("[data-zoom]"))
+  button.addEventListener("click", () =>
+    zoomAtlas(Number(button.dataset.zoom)),
+  );
+
 overviewCanvas.addEventListener("click", (event) => {
+  if (!overview) return;
   const bounds = overviewCanvas.getBoundingClientRect();
-  const column = Math.max(0, Math.min(overview.width - 1, Math.floor(((event.clientX - bounds.left) / bounds.width) * overview.width)));
-  const row = Math.max(0, Math.min(overview.height - 1, Math.floor(((event.clientY - bounds.top) / bounds.height) * overview.height)));
+  const column = Math.max(
+    0,
+    Math.min(
+      overview.width - 1,
+      Math.floor(
+        ((event.clientX - bounds.left) / bounds.width) * overview.width,
+      ),
+    ),
+  );
+  const row = Math.max(
+    0,
+    Math.min(
+      overview.height - 1,
+      Math.floor(
+        ((event.clientY - bounds.top) / bounds.height) * overview.height,
+      ),
+    ),
+  );
   const cell = overviewPixelToWorldCell(overview, column, row);
-  focus = { label: "Overview cell", x: cell.x, z: cell.z };
-  center = { chunkX: floorDiv(cell.x, spec.chunkSize), chunkZ: floorDiv(cell.z, spec.chunkSize) };
+  moveFocus("Overview cell", cell.x, cell.z);
   render();
 });
 
+function dispose() {
+  disposed = true;
+  queuedRequest = null;
+  if (worker) worker.terminate();
+  worker = null;
+  activeRequest = null;
+}
+
+globalThis.addEventListener("pagehide", dispose, { once: true });
+contractReport();
 render();
+requestOverview(requestedBounds, "initial");
