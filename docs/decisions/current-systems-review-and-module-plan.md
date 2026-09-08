@@ -2,6 +2,14 @@
 
 Game CTO personal source review, 2026-09-08, anchored to published `32cd4235e22a6f7d456c3100d87fa8abd89475cd` plus the preserved working tree. Levi requested a deeper audit after false wall picking and bed overlap, followed by a concrete module plan. This is a current repair/migration contract. The larger [architecture plan](architecture-implementation-plan.md) and its simulation/world/living-system records describe later consumers.
 
+The newer [controls floor-priority recut](controls-floor-priority-recut.md) now
+owns ordering: controls first, then one deleted-old-branch wood+herb transfer
+owner before brewing completion. [Unified work algebra](unified-work-algebra-recut.md)
+is the source-of-truth recut; vertical/tower and cat-surface work remain future.
+The settled [furniture contact and navigation decision](furniture-contact-and-navigation-decision.md)
+now supplies the bed contact/exit policy and its caller boundary; its supporting
+bed-contact review remains ignored evidence.
+
 ## Evidence and limits
 
 Root personally opened the actual Pixi event boundary/Sprite bounds implementation and Hive's construction-view, view, camera/scale, main input/save/ticker callers, HUD projections/action router, command admission, assignment, activity/routine, movement/topology, construction/support, and selected relational save validators. This is a targeted cross-system review, not a claim every line is correct. Independent source readers challenged picking, rendering, support and the future architecture. No full browser suite ran in this pass.

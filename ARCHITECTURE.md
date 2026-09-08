@@ -29,6 +29,10 @@ is a deferred art-study proposal; both preserve the active upstairs → brewing 
 The [architecture implementation plan](docs/decisions/architecture-implementation-plan.md)
 is the master future handoff, with [current systems review and module plan](docs/decisions/current-systems-review-and-module-plan.md)
 as its source-backed companion; neither changes the current runtime priority.
+The newer [controls floor-priority recut](docs/decisions/controls-floor-priority-recut.md)
+is the current precedence: finish controls, then delete parallel wood+herb
+transfer ownership/validators before brewing; vertical/tower and cat-surface work
+remain future direction.
 
 ## Delivery ownership
 

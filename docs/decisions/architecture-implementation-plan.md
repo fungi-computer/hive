@@ -15,6 +15,17 @@ The product is a home in a living world: build it, welcome people, discover and 
 
 Those documents give proposed API/data shapes with explicit maturity limits. Implement only the subset needed by the assigned consumer. Existing owners are replaced only when source/caller evidence establishes the need. Do not scaffold empty systems in anticipation of the complete game.
 
+### Newer control/work precedence
+
+The [controls floor-priority recut](controls-floor-priority-recut.md) is newer
+than this master plan for current ordering: controls proceed first, then all wood
+and herb transfer branches/validators converge under one owner and the old
+parallel paths are deleted before brewing is complete. The [unified work algebra
+recut](unified-work-algebra-recut.md) is the governing migration record. The
+[vertical/tower contract](vertical-world-and-tower-ready-contract.md) remains
+future direction, including cat-surface work; it does not interrupt controls or
+World Lab.
+
 ## Current status and source baseline
 
 During this planning pass, Delivery published upstairs candidate `32cd4235e22a6f7d456c3100d87fa8abd89475cd` on the existing feature preview. Local HEAD was independently read at that revision. Delivery reports exact hosted asset parity and preserved local topology/material/save laws. The final browser trace reached the earned-material upstairs fixture; later complete sleep/save/reload browser assertions were not finished, and the long trace was stopped under Levi's publish-and-move-on direction. This plan neither reruns nor upgrades that evidence claim.

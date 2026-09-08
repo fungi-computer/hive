@@ -52,6 +52,10 @@ remain deferred proposals; neither reorders upstairs → brewing or enters the c
 The reviewed [architecture implementation plan](docs/decisions/architecture-implementation-plan.md)
 is the master handoff for future implementation; its [current systems review and module plan](docs/decisions/current-systems-review-and-module-plan.md)
 is an evidence-backed planning companion, not a current sprint claim.
+The newer [controls floor-priority recut](docs/decisions/controls-floor-priority-recut.md)
+supersedes that broad ordering for the current controls owner: controls now, then
+one unified wood+herb transfer owner with old parallel branches/validators deleted
+before brewing completion; vertical/tower and cat-surface work remain future.
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna
