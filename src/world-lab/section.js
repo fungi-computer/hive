@@ -6,8 +6,8 @@ export const SECTION_LIMITS = Object.freeze({
   halo: 1,
 });
 
-// Diagram pixels per whole source surface level; this does not define world
-// geometry or a Clearing storey.
+// Diagram pixels per whole quantized bed level; this does not define world
+// geometry, a water volume, or a Clearing storey.
 export const SECTION_VOXEL_PIXEL_HEIGHT = 4;
 
 function integer(value, label) {
@@ -86,8 +86,8 @@ export function assembleSurfaceSection(sampled) {
         ...cell,
         localX: x - sampled.minX,
         localZ: z - sampled.minZ,
-        eastSurfaceLevel: requireCell(x + 1, z).surfaceLevel,
-        southSurfaceLevel: requireCell(x, z + 1).surfaceLevel,
+        eastBedLevel: requireCell(x + 1, z).bedLevel,
+        southBedLevel: requireCell(x, z + 1).bedLevel,
         focused: x === sampled.focusX && z === sampled.focusZ,
       });
     }
@@ -126,15 +126,9 @@ export function prepareIsometricSection(section, options = {}) {
   const rawTiles = section.cells.map((cell) => {
     const centerX = (cell.localX - cell.localZ) * halfWidth;
     const groundY = (cell.localX + cell.localZ) * halfHeight;
-    const eastDropLevels = Math.max(
-      0,
-      cell.surfaceLevel - cell.eastSurfaceLevel,
-    );
-    const southDropLevels = Math.max(
-      0,
-      cell.surfaceLevel - cell.southSurfaceLevel,
-    );
-    const centerY = groundY - cell.surfaceLevel * voxelPixelHeight;
+    const eastDropLevels = Math.max(0, cell.bedLevel - cell.eastBedLevel);
+    const southDropLevels = Math.max(0, cell.bedLevel - cell.southBedLevel);
+    const centerY = groundY - cell.bedLevel * voxelPixelHeight;
     const eastDrop = eastDropLevels * voxelPixelHeight;
     const southDrop = southDropLevels * voxelPixelHeight;
     const top = [
@@ -145,7 +139,7 @@ export function prepareIsometricSection(section, options = {}) {
     ];
     return {
       cell,
-      surfaceLevel: cell.surfaceLevel,
+      bedLevel: cell.bedLevel,
       eastDropLevels,
       southDropLevels,
       top,

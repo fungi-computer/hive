@@ -3,7 +3,7 @@
 
 export const WORLD_LAB_SPEC = Object.freeze({
   seed: "hive-world-lab-seed-20260907",
-  generatorVersion: "world-lab-terrain-landforms-v4",
+  generatorVersion: "world-lab-terrain-height-sea-v5",
   chunkSize: 16,
   overview: Object.freeze({
     width: 512,
@@ -16,19 +16,29 @@ export const WORLD_LAB_SPEC = Object.freeze({
     }),
   }),
   local: Object.freeze({ windowChunks: 5, maxResidentChunks: 25 }),
+  // This candidate's sole height/sea authority. Level is a quantized bed
+  // height, and one level is one voxel-height in the stated physical metric.
+  terrain: Object.freeze({
+    id: "layered-landforms-continuous-coast-height-sea-v1",
+    verticalVoxelMetres: 0.54,
+    quantization: Object.freeze({
+      kind: "round-normalized-height-times-32",
+      steps: 32,
+      minimum: 0,
+      maximum: 32,
+    }),
+    seaSurfaceLevel: 12,
+    coastShaping: Object.freeze({
+      transitionWorldUnits: 96,
+      waterwardOffset: -0.1,
+      landwardOffset: 0.08,
+    }),
+    surfaceWaterInitialization:
+      "all-below-datum-surface-basins-at-waterline-v1",
+  }),
 });
 
 export const MAX_OVERVIEW_DIMENSION = 512;
-
-// This presentation policy is deliberately separate from the generator
-// identity: it quantizes the already-authoritative normalized query result.
-export const TERRAIN_SURFACE_LEVEL_POLICY = Object.freeze({
-  id: "world-lab-surface-level-normalized-32-v1",
-  steps: 32,
-  minimum: 0,
-  maximum: 32,
-  formula: "round(clamp(normalizedElevation, 0, 1) * 32)",
-});
 
 export const WORLD_LAB_NON_CLAIMS = Object.freeze([
   "generated terrain is not a Clearing chunk",
@@ -56,11 +66,14 @@ export function mod(value, divisor) {
 }
 
 export function createWorldSpec(overrides = {}) {
+  if (overrides.terrain !== undefined)
+    throw new Error("height/sea definition is fixed by this candidate version");
   const spec = {
     ...WORLD_LAB_SPEC,
     ...overrides,
     overview: { ...WORLD_LAB_SPEC.overview, ...(overrides.overview || {}) },
     local: { ...WORLD_LAB_SPEC.local, ...(overrides.local || {}) },
+    terrain: WORLD_LAB_SPEC.terrain,
   };
   if (!spec.seed || !spec.generatorVersion)
     throw new Error("world identity is required");
@@ -70,9 +83,10 @@ export function createWorldSpec(overrides = {}) {
     throw new Error("local window must be odd");
   return Object.freeze({
     ...spec,
-    identity: `${spec.generatorVersion}:${spec.seed}`,
+    identity: `${spec.generatorVersion}:${spec.terrain.id}:${spec.seed}`,
     overview: Object.freeze(spec.overview),
     local: Object.freeze(spec.local),
+    terrain: WORLD_LAB_SPEC.terrain,
   });
 }
 
@@ -188,11 +202,27 @@ export function chunkOf(spec, x, z) {
   };
 }
 
-export function surfaceLevelForElevation(elevation) {
+export function quantizeBedLevel(spec, elevation) {
   if (!Number.isFinite(elevation))
     throw new TypeError("normalized elevation must be finite");
-  const clamped = Math.max(0, Math.min(1, elevation));
-  return Math.round(clamped * TERRAIN_SURFACE_LEVEL_POLICY.steps);
+  const quantization = spec.terrain.quantization;
+  return Math.round(Math.max(0, Math.min(1, elevation)) * quantization.steps);
+}
+
+function coastHeightOffset(spec, coastDistance) {
+  const shape = spec.terrain.coastShaping;
+  const raw = Math.max(
+    0,
+    Math.min(
+      1,
+      (coastDistance + shape.transitionWorldUnits) /
+        (2 * shape.transitionWorldUnits),
+    ),
+  );
+  return (
+    shape.waterwardOffset +
+    (shape.landwardOffset - shape.waterwardOffset) * smooth(raw)
+  );
 }
 
 export function sampleTerrain(spec, x, z, footprint = 1) {
@@ -212,15 +242,16 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
   const coastBand = Math.max(6, footprint * 0.75);
   const ridgeBand = Math.max(22, footprint * 0.75);
   const canyonBand = Math.max(28, footprint * 0.75);
+  // Coast remains a continuous landform input, never a water classifier.
   const baseElevation = Math.max(
     0,
-    Math.min(1, 0.18 + broad * 0.82 + (coastDistance > 0 ? 0.08 : -0.1)),
+    Math.min(1, 0.18 + broad * 0.82 + coastHeightOffset(spec, coastDistance)),
   );
   const ridgeLift = 0.3 * bellProfile(ridgeDistance, 92);
   const canyonCarve = 0.34 * bellProfile(canyonDistance, 82);
   const feature =
     Math.abs(coastDistance) <= coastBand
-      ? "coast"
+      ? "coast-shaping"
       : Math.abs(canyonDistance) <= canyonBand
         ? "canyon"
         : Math.abs(ridgeDistance) <= ridgeBand
@@ -230,17 +261,20 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
     0,
     Math.min(1, baseElevation + ridgeLift - canyonCarve),
   );
-  const surfaceLevel = surfaceLevelForElevation(elevation);
+  const bedLevel = quantizeBedLevel(spec, elevation);
+  const seaSurfaceLevel = spec.terrain.seaSurfaceLevel;
+  const surfaceWaterPotentialDepthLevels = Math.max(
+    0,
+    seaSurfaceLevel - bedLevel,
+  );
+  // Equality is dry ground at the datum. A shore requires exact cardinal
+  // wet/dry adjacency; water remains initialization metadata only.
   const terrain =
-    coastDistance < -coastBand
-      ? "water"
-      : feature === "coast"
-        ? "coast"
-        : feature === "canyon"
-          ? "canyon"
-          : feature === "ridge"
-            ? "ridge"
-            : "land";
+    bedLevel < seaSurfaceLevel
+      ? "surface-water"
+      : bedLevel === seaSurfaceLevel
+        ? "sea-level-ground"
+        : "land";
   return {
     x,
     z,
@@ -248,7 +282,14 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
     chunk,
     sampleId: `${spec.identity}/sample/${x},${z}`,
     elevation,
-    surfaceLevel,
+    bedLevel,
+    bedMetres: bedLevel * spec.terrain.verticalVoxelMetres,
+    seaSurfaceLevel,
+    seaSurfaceMetres: seaSurfaceLevel * spec.terrain.verticalVoxelMetres,
+    surfaceWaterPotentialDepthLevels,
+    surfaceWaterPotentialDepthMetres:
+      surfaceWaterPotentialDepthLevels * spec.terrain.verticalVoxelMetres,
+    classificationScope: "footprint-approximation",
     moisture: Math.max(0, Math.min(1, moisture)),
     coastDistance,
     ridgeDistance,
@@ -266,8 +307,8 @@ export function namedFeatures(spec) {
   const ridgeX = 420;
   const canyonX = -240;
   return {
-    coast: {
-      name: "Northwater Coast",
+    coastShaping: {
+      name: "Northwater coastal shaping line (not shoreline)",
       x: coastX,
       z: Math.round(coastLine(spec, coastX)),
     },
@@ -281,13 +322,98 @@ export function namedFeatures(spec) {
       x: canyonX,
       z: Math.round(canyonLine(spec, canyonX)),
     },
+    wetDryBoundary: nearestWetDryBoundary(
+      spec,
+      coastX,
+      Math.round(coastLine(spec, coastX)),
+    ),
   };
+}
+
+const CARDINAL_NEIGHBOURS = Object.freeze([
+  Object.freeze({ x: 0, z: -1, name: "north" }),
+  Object.freeze({ x: 1, z: 0, name: "east" }),
+  Object.freeze({ x: 0, z: 1, name: "south" }),
+  Object.freeze({ x: -1, z: 0, name: "west" }),
+]);
+
+function isSurfaceWater(cell) {
+  return cell.bedLevel < cell.seaSurfaceLevel;
+}
+
+function exactWetDryBoundary(spec, cell) {
+  const wet = isSurfaceWater(cell);
+  const neighbours = CARDINAL_NEIGHBOURS.map((offset) => {
+    const neighbour = sampleTerrain(
+      spec,
+      cell.x + offset.x,
+      cell.z + offset.z,
+      1,
+    );
+    return {
+      direction: offset.name,
+      x: neighbour.x,
+      z: neighbour.z,
+      terrain: neighbour.terrain,
+      bedLevel: neighbour.bedLevel,
+      wet: isSurfaceWater(neighbour),
+    };
+  });
+  return {
+    wetDryBoundary: neighbours.some((neighbour) => neighbour.wet !== wet),
+    wet,
+    neighbours,
+  };
+}
+
+export function nearestWetDryBoundary(
+  spec,
+  anchorX,
+  anchorZ,
+  maxDistance = 1024,
+) {
+  integer(anchorX, "wet/dry boundary anchor x");
+  integer(anchorZ, "wet/dry boundary anchor z");
+  integer(maxDistance, "wet/dry boundary maximum distance");
+  if (maxDistance < 0)
+    throw new RangeError(
+      "wet/dry boundary maximum distance must be nonnegative",
+    );
+  for (let distance = 0; distance <= maxDistance; distance += 1) {
+    const offsets = distance === 0 ? [0] : [-distance, distance];
+    for (const offset of offsets) {
+      const cell = sampleCell(spec, anchorX, anchorZ + offset);
+      if (!cell.wetDryBoundary) continue;
+      return {
+        name: "Northwater wet/dry boundary",
+        x: cell.x,
+        z: cell.z,
+        anchor: { x: anchorX, z: anchorZ },
+        distance,
+        wet: cell.wet,
+        adjacentDirections: cell.wetDryNeighbours
+          .filter((neighbour) => neighbour.wet !== cell.wet)
+          .map((neighbour) => neighbour.direction),
+      };
+    }
+  }
+  throw new Error(
+    `no wet/dry boundary within ${maxDistance} cells of ${anchorX},${anchorZ}`,
+  );
 }
 
 export function sampleCell(spec, x, z) {
   integer(x, "x");
   integer(z, "z");
-  return sampleTerrain(spec, x, z, 1);
+  const cell = sampleTerrain(spec, x, z, 1);
+  const boundary = exactWetDryBoundary(spec, cell);
+  return {
+    ...cell,
+    classificationScope: "exact-cell",
+    wet: boundary.wet,
+    wetDryBoundary: boundary.wetDryBoundary,
+    wetDryNeighbours: boundary.neighbours,
+  };
 }
 
 export function overviewPixelToWorldCell(overview, column, row) {
@@ -373,19 +499,15 @@ export function overviewRectForViewport(overview, viewport) {
 }
 
 export function terrainCode(terrain) {
-  return terrain === "water"
+  return terrain === "surface-water"
     ? 0
-    : terrain === "coast"
+    : terrain === "sea-level-ground"
       ? 1
-      : terrain === "ridge"
-        ? 2
-        : terrain === "canyon"
-          ? 4
-          : 3;
+      : 3;
 }
 
 function featureCode(feature) {
-  return feature === "coast"
+  return feature === "coast-shaping"
     ? 1
     : feature === "ridge"
       ? 2
@@ -409,7 +531,7 @@ export function generateChunk(spec, chunkX, chunkZ) {
   const size = spec.chunkSize;
   const terrain = new Uint8Array(size * size);
   const elevation = new Uint8Array(size * size);
-  const surfaceLevels = new Uint8Array(size * size);
+  const bedLevels = new Uint8Array(size * size);
   const moisture = new Uint8Array(size * size);
   for (let localZ = 0; localZ < size; localZ += 1) {
     for (let localX = 0; localX < size; localX += 1) {
@@ -421,7 +543,7 @@ export function generateChunk(spec, chunkX, chunkZ) {
       const index = localZ * size + localX;
       terrain[index] = terrainCode(cell.terrain);
       elevation[index] = Math.round(cell.elevation * 255);
-      surfaceLevels[index] = cell.surfaceLevel;
+      bedLevels[index] = cell.bedLevel;
       moisture[index] = Math.round(cell.moisture * 255);
     }
   }
@@ -431,12 +553,13 @@ export function generateChunk(spec, chunkX, chunkZ) {
     chunkZ,
     size,
     sampleCount: size * size,
+    terrainLabelScope: "exact-cell samples",
     terrain,
     elevation,
-    surfaceLevels,
+    bedLevels,
     moisture,
     checksum: checksumBytes(
-      new Uint8Array([...terrain, ...elevation, ...surfaceLevels, ...moisture]),
+      new Uint8Array([...terrain, ...elevation, ...bedLevels, ...moisture]),
     ),
   };
 }
@@ -483,7 +606,7 @@ export function createOverviewSampler(spec, options = {}) {
   const elevation = new Uint8Array(width * height);
   const moisture = new Uint8Array(width * height);
   const footprint = Math.max(bounds.spanX / width, bounds.spanZ / height);
-  const featureCounts = { coast: 0, ridge: 0, canyon: 0 };
+  const featureCounts = { coastShaping: 0, ridge: 0, canyon: 0 };
   let nextRow = 0;
 
   return {
@@ -502,7 +625,10 @@ export function createOverviewSampler(spec, options = {}) {
           features[index] = featureCode(cell.feature);
           elevation[index] = Math.round(cell.elevation * 255);
           moisture[index] = Math.round(cell.moisture * 255);
-          if (cell.feature) featureCounts[cell.feature] += 1;
+          if (cell.feature)
+            featureCounts[
+              cell.feature === "coast-shaping" ? "coastShaping" : cell.feature
+            ] += 1;
         }
       }
       nextRow = endRow;
@@ -521,6 +647,8 @@ export function createOverviewSampler(spec, options = {}) {
         bounds: { ...bounds },
         footprint,
         source: "same global sampleTerrain(seed, x, z, footprint)",
+        terrainLabelScope:
+          "per-pixel footprint approximation; exact clicked cells use sampleCell",
         filtering:
           "omit fine frequencies below the requested world-space footprint",
         sampleCount: terrain.length,
@@ -620,7 +748,7 @@ export function renderChunkBuffer(spec, chunks) {
     throw new Error("chunks must form a square window");
   const pixels = new Uint8Array(size * size);
   const elevation = new Uint8Array(size * size);
-  const surfaceLevels = new Uint8Array(size * size);
+  const bedLevels = new Uint8Array(size * size);
   const moisture = new Uint8Array(size * size);
   const originChunkX = Math.min(...chunks.map((chunk) => chunk.chunkX));
   const originChunkZ = Math.min(...chunks.map((chunk) => chunk.chunkZ));
@@ -633,7 +761,7 @@ export function renderChunkBuffer(spec, chunks) {
         const targetIndex = (offsetZ + localZ) * size + offsetX + localX;
         pixels[targetIndex] = chunk.terrain[sourceIndex];
         elevation[targetIndex] = chunk.elevation[sourceIndex];
-        surfaceLevels[targetIndex] = chunk.surfaceLevels[sourceIndex];
+        bedLevels[targetIndex] = chunk.bedLevels[sourceIndex];
         moisture[targetIndex] = chunk.moisture[sourceIndex];
       }
   }
@@ -643,13 +771,13 @@ export function renderChunkBuffer(spec, chunks) {
     sampleCount: pixels.length,
     pixels,
     elevation,
-    surfaceLevels,
+    bedLevels,
     moisture,
     originChunkX,
     originChunkZ,
     checksum: checksumBytes(pixels),
     visualChecksum: checksumBytes(
-      new Uint8Array([...pixels, ...elevation, ...surfaceLevels, ...moisture]),
+      new Uint8Array([...pixels, ...elevation, ...bedLevels, ...moisture]),
     ),
   };
 }

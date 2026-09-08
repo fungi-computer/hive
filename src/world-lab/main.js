@@ -11,7 +11,6 @@ import {
   renderChunkBuffer,
   sampleCell,
   sampleTerrain,
-  TERRAIN_SURFACE_LEVEL_POLICY,
   terrainCode,
   worldCellToOverviewPixel,
 } from "./terrain.js";
@@ -42,7 +41,7 @@ const residency = createResidency(spec);
 const features = namedFeatures(spec);
 const featureButtons = [
   { label: "Origin", x: 0, z: 0 },
-  { label: "Northwater Coast", ...features.coast },
+  { label: "Northwater wet/dry boundary", ...features.wetDryBoundary },
   { label: "Lantern Ridge", ...features.ridge },
   { label: "Mallowcut Canyon", ...features.canyon },
   { label: "Signed cell", x: -1, z: 0 },
@@ -69,13 +68,11 @@ const formatNumber = new Intl.NumberFormat("en-US", {
 const zoomInButton = document.querySelector('[data-atlas-zoom="in"]');
 const zoomOutButton = document.querySelector('[data-atlas-zoom="out"]');
 
-const terrainPalette = [
-  [38, 91, 132],
-  [197, 168, 104],
-  [111, 96, 71],
-  [75, 132, 82],
-  [128, 76, 58],
-];
+const terrainPalette = Object.freeze({
+  0: [38, 91, 132], // surface-water: bed below sea surface
+  1: [197, 168, 104], // sea-level-ground: dry bed exactly at datum
+  3: [75, 132, 82], // land: bed above sea surface
+});
 
 function channel(value) {
   return Math.max(0, Math.min(255, Math.round(value)));
@@ -338,16 +335,23 @@ function render() {
       displayedOverviewPixel: selectedPixel,
       overviewSampler: selectedOverview
         ? {
+            classificationScope: selectedOverview.classificationScope,
             footprint: overview.footprint,
             elevation: selectedOverview.elevation,
             moisture: selectedOverview.moisture,
-            terrain: selectedOverview.terrain,
+            terrainLabel: selectedOverview.terrain,
+            labelLimit: "footprint approximation; inspect exact cell below",
           }
         : null,
       sharedSampler: {
         footprint: selectedShared.footprint,
         elevation: selectedShared.elevation,
-        surfaceLevel: selectedShared.surfaceLevel,
+        bedLevel: selectedShared.bedLevel,
+        bedMetres: selectedShared.bedMetres,
+        seaSurfaceLevel: selectedShared.seaSurfaceLevel,
+        seaSurfaceMetres: selectedShared.seaSurfaceMetres,
+        surfaceWaterPotentialDepthLevels:
+          selectedShared.surfaceWaterPotentialDepthLevels,
         moisture: selectedShared.moisture,
         terrain: selectedShared.terrain,
         feature: selectedShared.feature,
@@ -361,21 +365,26 @@ function render() {
       sharedLocalSampler: {
         footprint: selectedLocal.footprint,
         elevation: selectedLocal.elevation,
-        surfaceLevel: selectedLocal.surfaceLevel,
+        bedLevel: selectedLocal.bedLevel,
+        bedMetres: selectedLocal.bedMetres,
+        seaSurfaceLevel: selectedLocal.seaSurfaceLevel,
+        surfaceWaterPotentialDepthLevels:
+          selectedLocal.surfaceWaterPotentialDepthLevels,
         moisture: selectedLocal.moisture,
-        terrain: selectedLocal.terrain,
+        terrainLabel: selectedLocal.terrain,
+        wetDryBoundary: selectedLocal.wetDryBoundary,
+        wetDryNeighbours: selectedLocal.wetDryNeighbours,
       },
       localRenderCell: {
         x: localX,
         z: localZ,
         elevationByte: local.buffer.elevation[localIndex],
-        surfaceLevel: local.buffer.surfaceLevels[localIndex],
+        bedLevel: local.buffer.bedLevels[localIndex],
         moistureByte: local.buffer.moisture[localIndex],
         matchesSampler:
           local.buffer.elevation[localIndex] ===
             Math.round(selectedLocal.elevation * 255) &&
-          local.buffer.surfaceLevels[localIndex] ===
-            selectedLocal.surfaceLevel &&
+          local.buffer.bedLevels[localIndex] === selectedLocal.bedLevel &&
           local.buffer.moisture[localIndex] ===
             Math.round(selectedLocal.moisture * 255),
       },
@@ -413,8 +422,8 @@ function render() {
       halo: sectionView.section.halo,
       sampledCells: sectionView.section.sampleCount,
       sampleBudget: "24x16 visible cells + one-cell halo",
-      focusSurfaceLevel: sectionView.section.cells.find((cell) => cell.focused)
-        ?.surfaceLevel,
+      focusBedLevel: sectionView.section.cells.find((cell) => cell.focused)
+        ?.bedLevel,
       voxelPixelHeight: sectionView.prepared.voxelPixelHeight,
       exposedStepFaces: sectionView.prepared.tiles.filter(
         (tile) => tile.eastDropLevels > 0 || tile.southDropLevels > 0,
@@ -465,9 +474,11 @@ function contractReport() {
       cellsPerPixel: overview?.footprint ?? null,
       overviewCap: `${MAX_OVERVIEW_DIMENSION}x${MAX_OVERVIEW_DIMENSION}`,
       localScale: "80x80 pixels; one pixel = one world cell",
-      surfaceLevelPolicy: TERRAIN_SURFACE_LEVEL_POLICY,
+      heightSeaDefinition: spec.terrain,
       overviewElevation:
-        "continuous footprint-aware normalized elevation; voxel levels are local/section only",
+        "continuous footprint-aware elevation; exact local/section bed levels are quantized by the versioned terrain definition",
+      terrainLabels:
+        "surface-water: bed below datum; sea-level-ground: dry bed equal datum; land: bed above datum; wet/dry boundary needs exact cardinal neighbors",
       source:
         overview?.source ??
         "same versioned sampler requested in one lazy worker",
