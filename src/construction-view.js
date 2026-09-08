@@ -1,4 +1,5 @@
-import { Container, Graphics, Polygon, Sprite, Text } from "pixi.js";
+import { Container, Graphics, Sprite, Text } from "pixi.js";
+import { hitAreaFor } from "./art.js";
 import { projectCell } from "./art/scale.js";
 import {
   SIZE,
@@ -101,8 +102,6 @@ export function createConstructionView(world, art, bodies, input) {
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
-        if (site.type === "floor")
-          s.hitArea = new Polygon([0, -8, 16, 0, 0, 8, -16, 0]);
         s.on("pointerdown", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
         });
@@ -147,10 +146,14 @@ export function createConstructionView(world, art, bodies, input) {
         : site.work > 0
           ? "frame"
           : "stakes";
-      view.texture =
+      const texture =
         site.type === "wall"
           ? art.wallJoints[stage][wallMask(site, state.sites)]
           : art.buildings[site.type][stage][site.direction];
+      if (view.texture !== texture || !view.hitArea) {
+        view.texture = texture;
+        view.hitArea = hitAreaFor(texture, art.propAnchor);
+      }
       view.visible = activeLevel || supportContext;
       view.position.set(at.x, at.y);
       view.eventMode =

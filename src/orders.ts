@@ -14,6 +14,9 @@ import { refundWood } from "./resources.ts";
 import { blockedCells, cellKey, inside, placementOccupant } from "./world.js";
 import { route, beginWalk } from "./movement.js";
 
+// Drafted home Go follows the current stair topology. Cat roaming remains a
+// ground-only policy owned by advanceCat; this command path does not alter it.
+
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
 
@@ -49,7 +52,7 @@ export function commandProblem(state: Clearing, command: Command): string {
     if (!inside(command.target)) return "Choose a clear ground tile.";
     if (blockedCells(state).has(cellKey(command.target)))
       return "That ground is blocked.";
-    return route(person, command.target, blockedCells(state)) === null
+    return route(person, command.target, blockedCells(state), state) === null
       ? "That ground is unreachable."
       : "";
   }
@@ -357,7 +360,7 @@ function acceptCommand(state: Clearing, command: Command): CommandResult {
     }
     case "go": {
       const person = state.actors[command.actor];
-      const path = route(person, command.target, blockedCells(state));
+      const path = route(person, command.target, blockedCells(state), state);
       if (path === null)
         return { status: "rejected", reason: "That ground is unreachable." };
       if (path.length) beginWalk(person, path);

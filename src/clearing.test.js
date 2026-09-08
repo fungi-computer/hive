@@ -249,6 +249,78 @@ test("the sole stair uses an 18-tick edge and upstairs rest persists through v6"
   validateClearing(restored.state);
 });
 
+test("drafted Go admits both stair directions and rejects a missing landing", () => {
+  const upstairs = upstairsFixture();
+  upstairs.actors.rowan.x = 8;
+  upstairs.actors.rowan.z = 2;
+  upstairs.actors.rowan.level = 0;
+  const pausedTick = upstairs.tick;
+  assert.deepEqual(
+    step(upstairs, colony, [{ kind: "draft", actor: "rowan" }]),
+    [{ status: "applied" }],
+  );
+  assert.deepEqual(
+    step(upstairs, colony, [
+      { kind: "go", actor: "rowan", target: { x: 8, z: 4, level: 1 } },
+    ]),
+    [{ status: "applied" }],
+  );
+  assert.equal(upstairs.tick, pausedTick);
+  assert.deepEqual(upstairs.actors.rowan.path, [
+    { x: 8, z: 4, level: 1 },
+  ]);
+  assert.equal(upstairs.jobs.length, 0);
+  upstairs.paused = false;
+  run(upstairs, STAIR_TICKS);
+  assert.equal(upstairs.actors.rowan.level, 1);
+  assert.equal(upstairs.actors.rowan.mode, "idle");
+
+  const downstairs = upstairsFixture();
+  downstairs.actors.rowan.x = 8;
+  downstairs.actors.rowan.z = 4;
+  downstairs.actors.rowan.level = 1;
+  assert.deepEqual(
+    step(downstairs, colony, [{ kind: "draft", actor: "rowan" }]),
+    [{ status: "applied" }],
+  );
+  assert.deepEqual(
+    step(downstairs, colony, [
+      { kind: "go", actor: "rowan", target: { x: 8, z: 2, level: 0 } },
+    ]),
+    [{ status: "applied" }],
+  );
+  assert.deepEqual(downstairs.actors.rowan.path, [
+    { x: 8, z: 2, level: 0 },
+  ]);
+  downstairs.paused = false;
+  run(downstairs, STAIR_TICKS);
+  assert.equal(downstairs.actors.rowan.level, 0);
+  assert.equal(downstairs.actors.rowan.mode, "idle");
+
+  const blocked = upstairsFixture();
+  blocked.sites = blocked.sites.filter((site) => site.type !== "stair");
+  blocked.actors.rowan.x = 8;
+  blocked.actors.rowan.z = 2;
+  blocked.actors.rowan.level = 0;
+  assert.deepEqual(
+    step(blocked, colony, [{ kind: "draft", actor: "rowan" }]),
+    [{ status: "applied" }],
+  );
+  const before = structuredClone(blocked.actors.rowan);
+  const [rejected] = step(blocked, colony, [
+    { kind: "go", actor: "rowan", target: { x: 8, z: 4, level: 1 } },
+  ]);
+  assert.deepEqual(rejected, {
+    status: "rejected",
+    reason: "That ground is blocked.",
+  });
+  assert.deepEqual(blocked.actors.rowan, before);
+  assert.equal(
+    blocked.commands.some((command) => command.kind === "go"),
+    false,
+  );
+});
+
 test("stair headroom reserves the ramp while its landing admits the upper doorway", () => {
   const state = createClearing(118);
   state.sites.push({

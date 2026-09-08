@@ -9,6 +9,57 @@ import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
 import { building, woodPile, wallJoint } from "./art/home.js";
 import { BUILDINGS } from "./construction.js";
 
+const textureSilhouettes = new WeakMap();
+const textureHitAreas = new WeakMap();
+
+export function createVisibleSilhouette(rgba, width, height) {
+  const rows = new Uint32Array(height + 1),
+    spans = [];
+  for (let y = 0; y < height; y++) {
+    let x = 0;
+    while (x < width) {
+      while (x < width && rgba[(y * width + x) * 4 + 3] === 0) x++;
+      if (x === width) break;
+      const start = x;
+      while (x < width && rgba[(y * width + x) * 4 + 3] !== 0) x++;
+      spans.push(start, x - 1);
+    }
+    rows[y + 1] = spans.length / 2;
+  }
+  return { width, height, rows, spans: Uint16Array.from(spans) };
+}
+
+export function createVisibleHitArea(silhouette, anchorPoint) {
+  return {
+    contains(localX, localY) {
+      const x = Math.floor(localX + anchorPoint.x * silhouette.width),
+        y = Math.floor(localY + anchorPoint.y * silhouette.height);
+      if (x < 0 || y < 0 || x >= silhouette.width || y >= silhouette.height)
+        return false;
+      const start = silhouette.rows[y] * 2,
+        end = silhouette.rows[y + 1] * 2;
+      for (let i = start; i < end; i += 2)
+        if (x >= silhouette.spans[i] && x <= silhouette.spans[i + 1])
+          return true;
+      return false;
+    },
+  };
+}
+
+export function hitAreaFor(texture, anchorPoint) {
+  const silhouette = textureSilhouettes.get(texture);
+  if (!silhouette) throw new Error("Missing baked texture silhouette");
+  let byAnchor = textureHitAreas.get(texture);
+  if (!byAnchor) textureHitAreas.set(texture, (byAnchor = new Map()));
+  const key = `${anchorPoint.x}:${anchorPoint.y}`;
+  let hitArea = byAnchor.get(key);
+  if (!hitArea) {
+    hitArea = createVisibleHitArea(silhouette, anchorPoint);
+    byAnchor.set(key, hitArea);
+  }
+  return hitArea;
+}
+
 function outline(ctx, w, h) {
   const src = ctx.getImageData(0, 0, w, h),
     out = ctx.createImageData(w, h);
@@ -36,6 +87,10 @@ export function bake(renderer, s, c, w, h, ink = true) {
   });
   const texture = Texture.from(canvas);
   texture.source.scaleMode = "nearest";
+  textureSilhouettes.set(
+    texture,
+    createVisibleSilhouette(ctx.getImageData(0, 0, w, h).data, w, h),
+  );
   return texture;
 }
 export function anchor(c) {
