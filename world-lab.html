@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World Lab — deterministic terrain</title>
+  </head>
+  <body>
+    <main>
+      <h1>World Lab / deterministic terrain</h1>
+      <p class="boundary">An isolated terrain and render-residency measurement page. It does not load the live Clearing, create actors, or run caravan/simulation work. The overview is a synchronous main-thread provisional caller, not a final large-area lifecycle.</p>
+      <div class="controls" aria-label="World Lab jumps">
+        <button data-jump="0,0">Origin (0, 0)</button>
+        <button data-jump="-1,0">Negative edge (-1, 0)</button>
+        <button data-jump="37,-29">Distant signed jump (37, -29)</button>
+        <button id="world-lab-diagnostic">Measure 1024 diagnostic</button>
+      </div>
+      <div class="canvases">
+        <figure>
+          <canvas id="world-lab-overview" width="512" height="512" aria-label="512 by 512 terrain overview"></canvas>
+          <figcaption>512×512 sampled overview over an explicit geographic span — pixels are filtered terrain samples, not scene objects.</figcaption>
+        </figure>
+        <figure>
+          <canvas id="world-lab-local" width="80" height="80" aria-label="5 by 5 chunk local detail"></canvas>
+          <figcaption>Bounded 5×5 local render residency — 16-cell cache tiles; borders do not define geography.</figcaption>
+        </figure>
+      </div>
+      <div id="world-lab-output" class="reports">
+        <section><h2>Contract / overview</h2><pre data-field="contract"></pre></section>
+        <section><h2>Local generation / render</h2><pre data-field="local"></pre></section>
+        <section><h2>Boundary / diagnostic</h2><pre data-field="claims"></pre><pre data-field="diagnostic">1024 is diagnostic only after measured 512.</pre></section>
+      </div>
+    </main>
+    <script type="module" src="/src/world-lab/main.js"></script>
+  </body>
+</html>
