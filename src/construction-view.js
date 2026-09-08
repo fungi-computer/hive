@@ -1,5 +1,4 @@
 import { Container, Graphics, Sprite, Text } from "pixi.js";
-import { hitAreaFor } from "./art.js";
 import { projectCell } from "./art/scale.js";
 import {
   SIZE,
@@ -59,7 +58,7 @@ function wallMask(site, sites) {
   });
   return mask || (site.direction ? 10 : 5);
 }
-export function createConstructionView(world, art, bodies, input) {
+export function createConstructionView(world, art, bodies, input, picking) {
   const grid = new Graphics(),
     bars = new Graphics(),
     ghostLayer = new Container(),
@@ -86,6 +85,7 @@ export function createConstructionView(world, art, bodies, input) {
   function drawSites(state, selection) {
     for (const [id, view] of sites)
       if (!state.sites.some((s) => s.id === id)) {
+        picking.remove(view);
         view.destroy();
         sites.delete(id);
       }
@@ -102,19 +102,30 @@ export function createConstructionView(world, art, bodies, input) {
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
+        const target = {
+          kind: "site",
+          id: site.id,
+          level: site.level,
+          action: "inspect-site",
+        };
         s.on("pointerdown", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
         });
         s.on("pointertap", (event) => {
           if (input.groundPointerOwns()) return;
+          const dispatched = picking.recordFor(s)?.target;
+          if (!dispatched) return;
           event.stopPropagation();
-          input.site(site.id, event.global);
+          input.site(dispatched.id, event.global);
         });
         s.on("rightclick", (event) => {
           if (input.groundPointerOwns()) return;
+          const dispatched = picking.recordFor(s)?.target;
+          if (!dispatched) return;
           event.stopPropagation();
-          input.site(site.id, event.global);
+          input.site(dispatched.id, event.global);
         });
+        s.visualTarget = target;
         sites.set(site.id, s);
         bodies.addChild(s);
       }
@@ -146,14 +157,19 @@ export function createConstructionView(world, art, bodies, input) {
         : site.work > 0
           ? "frame"
           : "stakes";
+      const jointMask =
+        site.type === "wall" ? wallMask(site, state.sites) : null;
       const texture =
-        site.type === "wall"
-          ? art.wallJoints[stage][wallMask(site, state.sites)]
+        jointMask !== null
+          ? art.wallJoints[stage][jointMask]
           : art.buildings[site.type][stage][site.direction];
-      if (view.texture !== texture || !view.hitArea) {
-        view.texture = texture;
-        view.hitArea = hitAreaFor(texture, art.propAnchor);
-      }
+      view.texture = texture;
+      picking.bind(view, {
+        texture,
+        anchor: art.propAnchor,
+        orientation: `${stage}:${site.direction}${jointMask === null ? "" : `:joint-${jointMask}`}`,
+        target: { ...view.visualTarget, level: site.level },
+      });
       view.visible = activeLevel || supportContext;
       view.position.set(at.x, at.y);
       view.eventMode =

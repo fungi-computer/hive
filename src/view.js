@@ -1,4 +1,4 @@
-import { Sprite, Container, Graphics, Rectangle, Text } from "pixi.js";
+import { Sprite, Container, Graphics, Text } from "pixi.js";
 import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.js";
 import { WATCHER, inside } from "./world.js";
@@ -6,6 +6,7 @@ import { CHOP_TICKS } from "./activity.ts";
 import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
 import { createConstructionView } from "./construction-view.js";
+import { createVisualHitGeometryOwner } from "./visual-hit-geometry.js";
 
 function label(text, size = 8) {
   const result = new Text({
@@ -55,23 +56,31 @@ export function createView(app, world, camera, art, initial, input) {
   route.eventMode = marks.eventMode = selectionBox.eventMode = "none";
   bodies.sortableChildren = true;
   world.addChild(route, marks, bodies);
+  const picking = createVisualHitGeometryOwner(bodies);
 
   const trees = new Map();
   for (const tree of initial.trees) {
     const view = body(art.tree.standing, art.propAnchor, 13);
+    const target = {
+      kind: "tree",
+      id: tree.id,
+      level: tree.level,
+      action: "tree",
+    };
     put(view.container, tree, 0.95);
     bodies.addChild(view.container);
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
-    view.container.hitArea = new Rectangle(-22, -62, 44, 66);
     view.container.on("pointerdown", (event) => {
       if (!input.groundPointerOwns()) event.stopPropagation();
     });
     const choose = (event, secondary = false) => {
       if (input.groundPointerOwns()) return;
+      const dispatched = picking.recordFor(view.container)?.target;
+      if (!dispatched) return;
       event.stopPropagation();
       input.tree(
-        tree.id,
+        dispatched.id,
         event.global,
         secondary,
         !!(event.shiftKey || event.originalEvent?.shiftKey),
@@ -79,7 +88,7 @@ export function createView(app, world, camera, art, initial, input) {
     };
     view.container.on("pointertap", choose);
     view.container.on("rightclick", (event) => choose(event, true));
-    trees.set(tree.id, view);
+    trees.set(tree.id, { ...view, target });
   }
 
   const actors = new Map();
@@ -91,15 +100,22 @@ export function createView(app, world, camera, art, initial, input) {
     );
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
-    view.container.hitArea = new Rectangle(-13, -45, 26, 48);
+    const target = {
+      kind: "actor",
+      id: person.id,
+      level: person.level,
+      action: "select",
+    };
     view.container.on("pointerdown", (event) => {
       if (!input.groundPointerOwns()) event.stopPropagation();
     });
     view.container.on("pointertap", (event) => {
       if (input.groundPointerOwns()) return;
+      const dispatched = picking.recordFor(view.container)?.target;
+      if (!dispatched) return;
       event.stopPropagation();
       input.actor(
-        person.id,
+        dispatched.id,
         event.global,
         !!(
           event.shiftKey ||
@@ -142,7 +158,7 @@ export function createView(app, world, camera, art, initial, input) {
     view.container.addChildAt(ring, 1);
     view.container.addChild(progress);
     app.stage.addChild(plate);
-    actors.set(person.id, { ...view, ring, plate, progress });
+    actors.set(person.id, { ...view, ring, plate, progress, target });
   }
 
   const cat = body(art.figures.cat.idle[0][0], art.pawnAnchor, 5);
@@ -153,7 +169,13 @@ export function createView(app, world, camera, art, initial, input) {
   const piles = new Map();
   const herbs = new Map();
   const bundles = new Map();
-  const construction = createConstructionView(world, art, bodies, input);
+  const construction = createConstructionView(
+    world,
+    art,
+    bodies,
+    input,
+    picking,
+  );
   const dusk = new Graphics()
     .rect(0, 0, WIDTH, HEIGHT)
     .fill({ color: 0x252342, alpha: 0.3 });
@@ -226,19 +248,20 @@ export function createView(app, world, camera, art, initial, input) {
       );
       view.container.eventMode =
         selection.tool || selection.box ? "none" : "static";
-      view.sprite.texture =
-        art.tree[
-          tree.felledAt !== null
-            ? "stump"
-            : tree.work > CHOP_TICKS / 3
-              ? "notched"
-              : "standing"
-        ];
-      view.container.hitArea =
+      const treeStage =
         tree.felledAt !== null
-          ? new Rectangle(-9, -10, 18, 15)
-          : new Rectangle(-22, -62, 44, 66);
-      view.sprite.rotation = active ? Math.sin(state.tick * 0.6) * 0.013 : 0;
+          ? "stump"
+          : tree.work > CHOP_TICKS / 3
+            ? "notched"
+            : "standing";
+      view.sprite.texture = art.tree[treeStage];
+      picking.bind(view.container, {
+        texture: view.sprite.texture,
+        anchor: art.propAnchor,
+        orientation: treeStage,
+        target: { ...view.target, level: tree.level },
+      });
+      view.container.rotation = active ? Math.sin(state.tick * 0.6) * 0.013 : 0;
       const at = projectCell(tree);
       view.container.visible = true;
       view.container.alpha = selection.level === 0 ? 1 : 0.18;
@@ -281,29 +304,38 @@ export function createView(app, world, camera, art, initial, input) {
     );
     view.container.eventMode = "static";
     view.container.cursor = "pointer";
-    view.container.hitArea = new Rectangle(-18, -34, 36, 38);
+    const target = {
+      kind: "herb",
+      id: herb.id,
+      level: herb.level,
+      action: "inspect-herb",
+    };
     view.container.on("pointerdown", (event) => {
       if (!input.groundPointerOwns()) event.stopPropagation();
     });
     view.container.on("pointertap", (event) => {
       if (input.groundPointerOwns()) return;
+      const dispatched = picking.recordFor(view.container)?.target;
+      if (!dispatched) return;
       event.stopPropagation();
-      input.herb(herb.id, event.global);
+      input.herb(dispatched.id, event.global);
     });
     view.container.on("rightclick", (event) => {
       if (!input.groundPointerOwns()) event.stopPropagation();
     });
-    return view;
+    return { ...view, target };
   }
 
   function drawHerbs(state, selection) {
     for (const [id, view] of herbs)
       if (!state.herbs.some((herb) => herb.id === id)) {
+        picking.remove(view.container);
         view.container.destroy({ children: true });
         herbs.delete(id);
       }
     for (const [id, view] of bundles)
       if (!state.herbBundles.some((bundle) => bundle.id === id)) {
+        picking.remove(view.container);
         view.container.destroy({ children: true });
         bundles.delete(id);
       }
@@ -328,6 +360,12 @@ export function createView(app, world, camera, art, initial, input) {
         herb.level === selection.level && herb.stage !== "ordered";
       if (herb.stage !== "ordered")
         view.sprite.texture = art.herbs.mugwort[herb.stage];
+      picking.bind(view.container, {
+        texture: view.sprite.texture,
+        anchor: art.propAnchor,
+        orientation: herb.stage,
+        target: { ...view.target, level: herb.level },
+      });
       if (herb.stage === "ordered") {
         marks
           .moveTo(projected.x, projected.y)
@@ -356,21 +394,28 @@ export function createView(app, world, camera, art, initial, input) {
     for (const bundle of state.herbBundles) {
       if (!bundles.has(bundle.id)) {
         const view = body(art.herbs.mugwort.bundle, art.propAnchor, 7);
+        const target = {
+          kind: "bundle",
+          id: bundle.id,
+          level: bundle.location.level ?? 0,
+          action: "inspect-bundle",
+        };
         view.container.eventMode = "static";
         view.container.cursor = "pointer";
-        view.container.hitArea = new Rectangle(-18, -30, 36, 34);
         view.container.on("pointerdown", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
         });
         view.container.on("pointertap", (event) => {
           if (input.groundPointerOwns()) return;
+          const dispatched = picking.recordFor(view.container)?.target;
+          if (!dispatched) return;
           event.stopPropagation();
-          input.bundle(bundle.id, event.global);
+          input.bundle(dispatched.id, event.global);
         });
         view.container.on("rightclick", (event) => {
           if (!input.groundPointerOwns()) event.stopPropagation();
         });
-        bundles.set(bundle.id, view);
+        bundles.set(bundle.id, { ...view, target });
         bodies.addChild(view.container);
       }
       const view = bundles.get(bundle.id);
@@ -383,6 +428,12 @@ export function createView(app, world, camera, art, initial, input) {
           : "none";
       if (!ground) continue;
       put(view.container, bundle.location, 0.2);
+      picking.bind(view.container, {
+        texture: view.sprite.texture,
+        anchor: art.propAnchor,
+        orientation: "bundle",
+        target: { ...view.target, level: bundle.location.level },
+      });
       if (selection.bundle === bundle.id)
         marks
           .ellipse(
@@ -421,6 +472,12 @@ export function createView(app, world, camera, art, initial, input) {
           ? 0
           : animationFrame(state.tick, pose, frames);
       view.sprite.texture = frames[frame];
+      picking.bind(view.container, {
+        texture: view.sprite.texture,
+        anchor: art.pawnAnchor,
+        orientation: `${pose}:${person.dir}:${frame}`,
+        target: { ...view.target, level: person.level },
+      });
       const selected = selection.selectedActors.includes(person.id);
       const visitor = !state.parties.home.members.includes(person.id);
       view.ring.visible = selected;
@@ -480,6 +537,7 @@ export function createView(app, world, camera, art, initial, input) {
         selection.tool === "chop" ? { ...selection, tool: null } : selection,
       );
       dusk.visible = isNight(state);
+      picking.renderDebug(!!selection.debugPicking);
     },
   };
 }

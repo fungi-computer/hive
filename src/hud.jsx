@@ -17,6 +17,7 @@ import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
 import {
   dispatchUiAction,
+  DEBUG_PICKING_CONTROL,
   LEVEL_NAVIGATION,
   requiredToolLevel,
   submitDesignation,
@@ -457,6 +458,7 @@ const selectionAtom = atom({
 });
 const preferencesAtom = atom({
   cutaway: true,
+  debugPicking: false,
   panMode: false,
   help: true,
   direction: 0,
@@ -1345,6 +1347,16 @@ function Menu({ model: m, send }) {
         <Button variant="outline" onClick={() => send({ kind: "help" })}>
           Bramble's advice
         </Button>
+        <label>
+          <Checkbox
+            id="debug-picking"
+            type="checkbox"
+            checked={m.debugPicking}
+            onChange={() => send(DEBUG_PICKING_CONTROL.action)}
+          />{" "}
+          {DEBUG_PICKING_CONTROL.label}{" "}
+          <Key model={m} name={DEBUG_PICKING_CONTROL.name} />
+        </label>
         <a href="/study">Character study ↗</a>
         <Button
           id="reset"
@@ -1399,6 +1411,7 @@ function Hud({ machineSnapshot, send, portraits }) {
     tool,
     phase,
     cutaway: preferences.cutaway,
+    debugPicking: preferences.debugPicking,
     panMode: preferences.panMode,
     level: preferences.level,
     help: preferences.help,
@@ -1959,6 +1972,7 @@ export function createHud(host, art, effect) {
         }));
         setPreferences(() => ({
           cutaway: true,
+          debugPicking: false,
           panMode: false,
           help: true,
           direction: 0,
@@ -1979,6 +1993,12 @@ export function createHud(host, art, effect) {
         return;
       case "cutaway":
         setPreferences((value) => ({ ...value, cutaway: action.value }));
+        return;
+      case "debug-picking":
+        setPreferences((value) => ({
+          ...value,
+          debugPicking: !value.debugPicking,
+        }));
         return;
       case "pan-mode":
         machine.send({ type: "CAMERA_MOVE" });
@@ -2098,6 +2118,7 @@ export function createHud(host, art, effect) {
         : null,
       designationTargetIds: [...value.designationTargetIds],
       cutaway: preferences.cutaway,
+      debugPicking: preferences.debugPicking,
       panMode: preferences.panMode,
       direction: preferences.direction,
       level: preferences.level,

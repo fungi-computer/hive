@@ -69,6 +69,7 @@ export type UiAction =
   | { kind: "commit-designation" }
   | { kind: "commit-result"; accepted: number }
   | { kind: "cutaway"; value: boolean }
+  | { kind: "debug-picking" }
   | { kind: "level"; level: LogicalLevel }
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
@@ -126,6 +127,20 @@ export const LEVEL_NAVIGATION = [
     action: { kind: "level", level: 1 },
   },
 ] as const satisfies readonly LevelNavigationControl[];
+
+export const DEBUG_PICKING_CONTROL = {
+  name: "view.debug-picking",
+  label: "Picking debug",
+  key: "shift+d",
+  title: "Toggle picking geometry",
+  action: { kind: "debug-picking" },
+} as const satisfies {
+  readonly name: string;
+  readonly label: string;
+  readonly key: string;
+  readonly title: string;
+  readonly action: Extract<UiAction, { kind: "debug-picking" }>;
+};
 
 export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
   switch (tool) {
@@ -240,6 +255,7 @@ export function dispatchUiAction(
     case "download-backup":
     case "download-raw-save":
     case "pan-mode":
+    case "debug-picking":
     case "help":
     case "rotate":
     case "pause":

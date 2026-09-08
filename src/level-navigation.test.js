@@ -2,11 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { levelNavigationOwned } from "./keys.js";
 import {
+  DEBUG_PICKING_CONTROL,
   decideLevelTransition,
+  dispatchUiAction,
   dispatchLevelAction,
   LEVEL_NAVIGATION,
   requiredToolLevel,
 } from "./ui-actions.ts";
+
+test("picking debug uses the checked UI action catalog and normal dispatcher", () => {
+  assert.deepEqual(DEBUG_PICKING_CONTROL, {
+    name: "view.debug-picking",
+    label: "Picking debug",
+    key: "shift+d",
+    title: "Toggle picking geometry",
+    action: { kind: "debug-picking" },
+  });
+  const forwarded = [];
+  dispatchUiAction(DEBUG_PICKING_CONTROL.action, {
+    run: (action) => forwarded.push(action),
+    level: null,
+  });
+  assert.deepEqual(forwarded, [{ kind: "debug-picking" }]);
+});
 
 test("level navigation catalog owns labels, keys, actions, and limit state", () => {
   assert.deepEqual(

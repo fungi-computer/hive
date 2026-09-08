@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createVisibleHitArea, createVisibleSilhouette } from "./art.js";
+import {
+  createVisibleHitArea,
+  createVisibleSilhouette,
+} from "./visual-hit-geometry.js";
 
 function rgba(width, pixels) {
   const data = new Uint8ClampedArray(width * width * 4);

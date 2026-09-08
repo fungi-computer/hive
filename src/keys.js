@@ -3,7 +3,7 @@ import {
   createBindingLookup,
   formatCommandBindings,
 } from "@opentui/keymap/extras";
-import { LEVEL_NAVIGATION } from "./ui-actions.ts";
+import { DEBUG_PICKING_CONTROL, LEVEL_NAVIGATION } from "./ui-actions.ts";
 
 const LEVEL_INPUT_SELECTOR =
   "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='checkbox']";
@@ -84,6 +84,12 @@ export function createKeys(root, read, send, changed) {
       key: "h",
       title: "Toggle cutaway",
       action: () => ({ kind: "cutaway", value: !read().cutaway }),
+    },
+    {
+      name: DEBUG_PICKING_CONTROL.name,
+      key: DEBUG_PICKING_CONTROL.key,
+      title: DEBUG_PICKING_CONTROL.title,
+      action: () => ({ ...DEBUG_PICKING_CONTROL.action }),
     },
     {
       name: "help",

@@ -144,6 +144,7 @@ async function startGame() {
           ? { start: context.start.screen, current: context.end.screen }
           : null,
       cutaway: current.cutaway,
+      debugPicking: current.debugPicking,
       panMode: current.panMode,
     };
   }
