@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import {
   MAX_OVERVIEW_DIMENSION,
+  TERRAIN_SURFACE_LEVEL_POLICY,
   WORLD_LAB_NON_CLAIMS,
   createOverviewSampler,
   createResidency,
@@ -15,6 +16,7 @@ import {
   sampleCell,
   sampleOverview,
   sampleTerrain,
+  surfaceLevelForElevation,
   terrainCode,
   overviewPixelToWorldCell,
   worldCellToOverviewPixel,
@@ -407,6 +409,8 @@ const authorityResults = authorityPoints.map(([x, z]) => {
     directTerrain: direct.terrain,
     elevationDelta: Math.abs(cell.elevation - direct.elevation),
     moistureDelta: Math.abs(cell.moisture - direct.moisture),
+    surfaceLevel: cell.surfaceLevel,
+    directSurfaceLevel: direct.surfaceLevel,
   };
 });
 checks.authoritativeLocal = {
@@ -415,6 +419,7 @@ checks.authoritativeLocal = {
     (point) =>
       point.elevationDelta === 0 &&
       point.moistureDelta === 0 &&
+      point.surfaceLevel === point.directSurfaceLevel &&
       point.cellTerrain === point.directTerrain,
   ),
 };
@@ -435,6 +440,7 @@ checks.localResolutionAuthority = {
       unchanged:
         before.elevation === after.elevation &&
         before.moisture === after.moisture &&
+        before.surfaceLevel === after.surfaceLevel &&
         before.terrain === after.terrain,
     };
   }),
@@ -443,6 +449,7 @@ checks.localResolutionAuthority = {
     return (
       before.elevation === after.elevation &&
       before.moisture === after.moisture &&
+      before.surfaceLevel === after.surfaceLevel &&
       before.terrain === after.terrain
     );
   }),
@@ -504,8 +511,12 @@ for (let z = 0; z < spec.chunkSize; z += 1) {
     z,
     left: leftChunk.terrain[z * spec.chunkSize + 15],
     leftExpected: terrainCode(sampleCell(spec, 15, z).terrain),
+    leftSurfaceLevel: leftChunk.surfaceLevels[z * spec.chunkSize + 15],
+    leftExpectedSurfaceLevel: sampleCell(spec, 15, z).surfaceLevel,
     right: rightChunk.terrain[z * spec.chunkSize],
     rightExpected: terrainCode(sampleCell(spec, 16, z).terrain),
+    rightSurfaceLevel: rightChunk.surfaceLevels[z * spec.chunkSize],
+    rightExpectedSurfaceLevel: sampleCell(spec, 16, z).surfaceLevel,
   });
 }
 const nearSeamLeft = sampleTerrain(spec, 15.999, 4.25, 1);
@@ -523,7 +534,10 @@ checks.cacheTileIdentity = {
   pass:
     edgeMatches.every(
       (edge) =>
-        edge.left === edge.leftExpected && edge.right === edge.rightExpected,
+        edge.left === edge.leftExpected &&
+        edge.right === edge.rightExpected &&
+        edge.leftSurfaceLevel === edge.leftExpectedSurfaceLevel &&
+        edge.rightSurfaceLevel === edge.rightExpectedSurfaceLevel,
     ) && seamElevationDelta < 0.02,
 };
 assert(
@@ -697,15 +711,19 @@ checks.crossScaleSampleFacts = {
     overviewElevation: signedOverview.elevation,
     overviewMoisture: signedOverview.moisture,
     localElevation: signedCell.elevation,
+    localSurfaceLevel: signedCell.surfaceLevel,
     localMoisture: signedCell.moisture,
     localRenderElevationByte: signedRender.elevation[signedLocalIndex],
+    localRenderSurfaceLevel: signedRender.surfaceLevels[signedLocalIndex],
     localRenderMoistureByte: signedRender.moisture[signedLocalIndex],
   },
   pass:
     signedCell.elevation === sampleTerrain(spec, -1, 0, 1).elevation &&
+    signedCell.surfaceLevel === sampleTerrain(spec, -1, 0, 1).surfaceLevel &&
     signedCell.moisture === sampleTerrain(spec, -1, 0, 1).moisture &&
     signedRender.elevation[signedLocalIndex] ===
       Math.round(signedCell.elevation * 255) &&
+    signedRender.surfaceLevels[signedLocalIndex] === signedCell.surfaceLevel &&
     signedRender.moisture[signedLocalIndex] ===
       Math.round(signedCell.moisture * 255) &&
     Number.isFinite(signedOverview.elevation) &&
@@ -730,6 +748,56 @@ checks.visualTerrainData = {
 assert(
   checks.visualTerrainData.pass,
   "terrain visualization arrays did not contain elevation/moisture variation",
+);
+
+const quantizationCases = [-1, 0, 0.5, 1, 2].map((elevation) => ({
+  elevation,
+  surfaceLevel: surfaceLevelForElevation(elevation),
+}));
+const wholeLevelPoints = [
+  ridgeCenter,
+  ridgeNorthShoulder,
+  ridgeSouthShoulder,
+  canyonCenter,
+  canyonNorthBank,
+  canyonSouthBank,
+  signedCell,
+];
+checks.wholeVoxelSurfaceLevels = {
+  policy: TERRAIN_SURFACE_LEVEL_POLICY,
+  quantizationCases,
+  ridge: {
+    center: ridgeCenter.surfaceLevel,
+    shoulders: [
+      ridgeNorthShoulder.surfaceLevel,
+      ridgeSouthShoulder.surfaceLevel,
+    ],
+  },
+  canyon: {
+    center: canyonCenter.surfaceLevel,
+    banks: [canyonNorthBank.surfaceLevel, canyonSouthBank.surfaceLevel],
+  },
+  pass:
+    TERRAIN_SURFACE_LEVEL_POLICY.id ===
+      "world-lab-surface-level-normalized-32-v1" &&
+    TERRAIN_SURFACE_LEVEL_POLICY.steps === 32 &&
+    quantizationCases.map((entry) => entry.surfaceLevel).join(",") ===
+      "0,0,16,32,32" &&
+    wholeLevelPoints.every(
+      (cell) =>
+        Number.isInteger(cell.surfaceLevel) &&
+        cell.surfaceLevel >= TERRAIN_SURFACE_LEVEL_POLICY.minimum &&
+        cell.surfaceLevel <= TERRAIN_SURFACE_LEVEL_POLICY.maximum &&
+        cell.surfaceLevel === surfaceLevelForElevation(cell.elevation),
+    ) &&
+    ridgeCenter.surfaceLevel > ridgeNorthShoulder.surfaceLevel &&
+    ridgeCenter.surfaceLevel > ridgeSouthShoulder.surfaceLevel &&
+    canyonCenter.surfaceLevel < canyonNorthBank.surfaceLevel &&
+    canyonCenter.surfaceLevel < canyonSouthBank.surfaceLevel,
+};
+assert(
+  checks.wholeVoxelSurfaceLevels.pass,
+  "surface level policy did not produce authoritative whole ridge/canyon levels",
 );
 
 const sectionSampleStarted = performance.now();
@@ -768,6 +836,7 @@ const sectionEquality = sampledSection.samples.map((sample) => {
     exact:
       sample.sampleId === direct.sampleId &&
       sample.elevation === direct.elevation &&
+      sample.surfaceLevel === direct.surfaceLevel &&
       sample.moisture === direct.moisture &&
       sample.ridgeLift === direct.ridgeLift &&
       sample.canyonCarve === direct.canyonCarve &&
@@ -777,6 +846,32 @@ const sectionEquality = sampledSection.samples.map((sample) => {
 const expectedSectionSamples =
   (SECTION_LIMITS.maxWidth + SECTION_LIMITS.halo * 2) *
   (SECTION_LIMITS.maxDepth + SECTION_LIMITS.halo * 2);
+const ridgeSection = assembleSurfaceSection(
+  sampleSectionCells(spec, {
+    focusX: features.ridge.x,
+    focusZ: features.ridge.z,
+    width: SECTION_LIMITS.maxWidth,
+    depth: SECTION_LIMITS.maxDepth,
+    halo: SECTION_LIMITS.halo,
+  }),
+);
+const preparedRidgeSection = prepareIsometricSection(ridgeSection);
+const fractionalVoxelSection = prepareIsometricSection(assembledSection, {
+  voxelPixelHeight: 2.5,
+});
+const exposedStepFaces = (prepared) =>
+  prepared.tiles.filter(
+    (tile) => tile.eastDropLevels > 0 || tile.southDropLevels > 0,
+  );
+const sectionTilesUseWholeLevels = (prepared) =>
+  prepared.tiles.every(
+    (tile) =>
+      Number.isInteger(tile.surfaceLevel) &&
+      Number.isInteger(tile.eastDropLevels) &&
+      Number.isInteger(tile.southDropLevels) &&
+      tile.eastDropLevels >= 0 &&
+      tile.southDropLevels >= 0,
+  );
 checks.boundedSurfaceSection = {
   limits: SECTION_LIMITS,
   focus: assembledSection.focus,
@@ -789,6 +884,10 @@ checks.boundedSurfaceSection = {
     height: preparedSection.height,
     tiles: preparedSection.tiles.length,
     surfaceOnly: preparedSection.surfaceOnly,
+    voxelPixelHeight: preparedSection.voxelPixelHeight,
+    fractionalVoxelPixelHeight: fractionalVoxelSection.voxelPixelHeight,
+    canyonExposedStepFaces: exposedStepFaces(preparedSection).length,
+    ridgeExposedStepFaces: exposedStepFaces(preparedRidgeSection).length,
   },
   timings: {
     sampleMs: Number(sectionSampleMs.toFixed(3)),
@@ -803,6 +902,15 @@ checks.boundedSurfaceSection = {
     assembledSection.visibleCellCount === 24 * 16 &&
     preparedSection.tiles.length === 24 * 16 &&
     preparedSection.surfaceOnly === true &&
+    Number.isFinite(preparedSection.voxelPixelHeight) &&
+    preparedSection.voxelPixelHeight > 0 &&
+    Number.isFinite(preparedRidgeSection.voxelPixelHeight) &&
+    preparedRidgeSection.voxelPixelHeight > 0 &&
+    fractionalVoxelSection.voxelPixelHeight === 2.5 &&
+    exposedStepFaces(preparedSection).length > 0 &&
+    exposedStepFaces(preparedRidgeSection).length > 0 &&
+    sectionTilesUseWholeLevels(preparedSection) &&
+    sectionTilesUseWholeLevels(preparedRidgeSection) &&
     missingHaloRejected &&
     sectionEquality.every((entry) => entry.exact),
 };
@@ -832,7 +940,7 @@ checks.sectionSourceOwner = {
     sectionSource.includes("assembleSurfaceSection") &&
     sectionSource.includes("prepareIsometricSection"),
   noIndependentNoiseOrWorker:
-    !/(coherentNoise|hashLattice|new Worker|postMessage|cave|voxel)/i.test(
+    !/(coherentNoise|hashLattice|new Worker|postMessage|cave)/i.test(
       sectionSource,
     ),
   pass:
@@ -841,7 +949,7 @@ checks.sectionSourceOwner = {
     sectionSource.includes("sampleCell(spec, sampleMinX + localX") &&
     sectionSource.includes("assembleSurfaceSection") &&
     sectionSource.includes("prepareIsometricSection") &&
-    !/(coherentNoise|hashLattice|new Worker|postMessage|cave|voxel)/i.test(
+    !/(coherentNoise|hashLattice|new Worker|postMessage|cave)/i.test(
       sectionSource,
     ),
 };
@@ -866,7 +974,6 @@ assert(
   checks.footprintAwareGenerator.pass,
   "generator source did not expose the footprint-aware global contract",
 );
-
 const coastViewport = localViewport(
   spec,
   floorDiv(features.coast.x, spec.chunkSize),
@@ -944,6 +1051,14 @@ checks.userFacingLabShape = {
     mainSource.includes("baseElevation: selectedShared.baseElevation") &&
     mainSource.includes("ridgeLift: selectedShared.ridgeLift") &&
     mainSource.includes("canyonCarve: selectedShared.canyonCarve"),
+  wholeSurfaceInspector:
+    mainSource.includes("surfaceLevel: selectedShared.surfaceLevel") &&
+    mainSource.includes("surfaceLevel: selectedLocal.surfaceLevel") &&
+    mainSource.includes("local.buffer.surfaceLevels[localIndex]") &&
+    mainSource.includes("surfaceLevelPolicy: TERRAIN_SURFACE_LEVEL_POLICY") &&
+    mainSource.includes("continuous footprint-aware normalized elevation") &&
+    pageSource.includes("Whole source surface") &&
+    pageSource.includes("Atlas/local color uses continuous elevation"),
   responsiveNavigation:
     pageSource.includes('data-pan="0,-0.25"') &&
     pageSource.includes('data-atlas-zoom="in"') &&
@@ -1037,6 +1152,13 @@ checks.userFacingLabShape = {
     mainSource.includes("baseElevation: selectedShared.baseElevation") &&
     mainSource.includes("ridgeLift: selectedShared.ridgeLift") &&
     mainSource.includes("canyonCarve: selectedShared.canyonCarve") &&
+    mainSource.includes("surfaceLevel: selectedShared.surfaceLevel") &&
+    mainSource.includes("surfaceLevel: selectedLocal.surfaceLevel") &&
+    mainSource.includes("local.buffer.surfaceLevels[localIndex]") &&
+    mainSource.includes("surfaceLevelPolicy: TERRAIN_SURFACE_LEVEL_POLICY") &&
+    mainSource.includes("continuous footprint-aware normalized elevation") &&
+    pageSource.includes("Whole source surface") &&
+    pageSource.includes("Atlas/local color uses continuous elevation") &&
     pageSource.includes('data-pan="0,-0.25"') &&
     pageSource.includes('data-atlas-zoom="in"') &&
     pageSource.includes('data-atlas-zoom="out"') &&
@@ -1096,12 +1218,15 @@ const proof = {
       "shared smooth broad fields, fixed-support ridge lift and canyon carve, plus footprint-omitted fine octaves; no output resize of a fine grid",
     authoritativeLocal:
       "sampleCell uses the same footprint=1 terrain query as direct local sampling",
+    surfaceLevelPolicy: TERRAIN_SURFACE_LEVEL_POLICY,
+    overviewElevation:
+      "continuous footprint-aware normalized elevation; no surface-level worker buffer",
     overviewBudget: { width: 512, height: 512, samples: fixedOutputSamples },
     localResidency: spec.local,
     overviewVisualData:
       "terrain, elevation, and moisture arrays come from the same sampleTerrain query",
     localVisualData:
-      "terrain, elevation, and moisture arrays come from the same generated cell arrays",
+      "terrain, continuous elevation, whole surface levels, and moisture arrays come from the same generated cell arrays",
     surfaceSection:
       "24x16 visible surface cells plus one-cell neighbor halo, derived only from authoritative sampleCell",
   },
@@ -1126,6 +1251,7 @@ const proof = {
     "deterministic terrain query",
     "coherent named coast/ridge/canyon across two spans",
     "numeric ridge lift and canyon carve with fixed footprint support",
+    "whole source surface levels with stepped section faces",
     "signed global-coordinate seam continuity",
     "bounded fixed-output LOD work",
     "bounded local render residency",

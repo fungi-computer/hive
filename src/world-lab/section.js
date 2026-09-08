@@ -6,6 +6,10 @@ export const SECTION_LIMITS = Object.freeze({
   halo: 1,
 });
 
+// Diagram pixels per whole source surface level; this does not define world
+// geometry or a Clearing storey.
+export const SECTION_VOXEL_PIXEL_HEIGHT = 4;
+
 function integer(value, label) {
   if (!Number.isInteger(value))
     throw new TypeError(`${label} must be an integer`);
@@ -82,8 +86,8 @@ export function assembleSurfaceSection(sampled) {
         ...cell,
         localX: x - sampled.minX,
         localZ: z - sampled.minZ,
-        eastElevation: requireCell(x + 1, z).elevation,
-        southElevation: requireCell(x, z + 1).elevation,
+        eastSurfaceLevel: requireCell(x + 1, z).surfaceLevel,
+        southSurfaceLevel: requireCell(x, z + 1).surfaceLevel,
         focused: x === sampled.focusX && z === sampled.focusZ,
       });
     }
@@ -109,23 +113,30 @@ export function assembleSurfaceSection(sampled) {
 export function prepareIsometricSection(section, options = {}) {
   const tileWidth = options.tileWidth ?? 18;
   const tileHeight = options.tileHeight ?? 9;
-  const elevationPixels = options.elevationPixels ?? 76;
-  if (!(tileWidth > 0 && tileHeight > 0 && elevationPixels > 0))
+  const voxelPixelHeight =
+    options.voxelPixelHeight ?? SECTION_VOXEL_PIXEL_HEIGHT;
+  if (
+    !(tileWidth > 0 && tileHeight > 0) ||
+    !Number.isFinite(voxelPixelHeight) ||
+    voxelPixelHeight <= 0
+  )
     throw new RangeError("section drawing dimensions must be positive");
   const halfWidth = tileWidth / 2;
   const halfHeight = tileHeight / 2;
   const rawTiles = section.cells.map((cell) => {
     const centerX = (cell.localX - cell.localZ) * halfWidth;
     const groundY = (cell.localX + cell.localZ) * halfHeight;
-    const centerY = groundY - cell.elevation * elevationPixels;
-    const eastDrop = Math.max(
+    const eastDropLevels = Math.max(
       0,
-      (cell.elevation - cell.eastElevation) * elevationPixels,
+      cell.surfaceLevel - cell.eastSurfaceLevel,
     );
-    const southDrop = Math.max(
+    const southDropLevels = Math.max(
       0,
-      (cell.elevation - cell.southElevation) * elevationPixels,
+      cell.surfaceLevel - cell.southSurfaceLevel,
     );
+    const centerY = groundY - cell.surfaceLevel * voxelPixelHeight;
+    const eastDrop = eastDropLevels * voxelPixelHeight;
+    const southDrop = southDropLevels * voxelPixelHeight;
     const top = [
       { x: centerX, y: centerY - halfHeight },
       { x: centerX + halfWidth, y: centerY },
@@ -134,6 +145,9 @@ export function prepareIsometricSection(section, options = {}) {
     ];
     return {
       cell,
+      surfaceLevel: cell.surfaceLevel,
+      eastDropLevels,
+      southDropLevels,
       top,
       eastFace:
         eastDrop > 0
@@ -177,7 +191,7 @@ export function prepareIsometricSection(section, options = {}) {
     height: Math.ceil(maxY - minY + padding * 2),
     tileWidth,
     tileHeight,
-    elevationPixels,
+    voxelPixelHeight,
     tiles: rawTiles
       .sort(
         (left, right) =>

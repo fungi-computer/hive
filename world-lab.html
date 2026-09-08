@@ -104,9 +104,10 @@
           </div>
           <figcaption>
             Surface-only 24×16 isometric section from the same authoritative
-            one-cell sampler, plus one-cell slope halo. Gold marks the focused
-            cell. This does not generate caves, voxel volume, or gameplay
-            terrain.
+            one-cell sampler, plus one-cell neighbor halo. Whole source surface
+            levels draw flat voxel-step tops and exposed step faces; the Atlas
+            remains continuous. Gold marks the focused cell. This does not
+            generate caves, voxel volume, or gameplay terrain.
           </figcaption>
         </figure>
       </div>
@@ -117,8 +118,8 @@
         <span><i class="swatch canyon"></i>canyon</span>
         <span><i class="swatch land"></i>land</span>
         <span class="legend-note"
-          >color lightness follows elevation; cyan/green lift follows
-          moisture</span
+          >Atlas/local color uses continuous elevation; section height uses
+          whole source levels. Cyan/green lift follows moisture.</span
         >
       </div>
       <div id="world-lab-output" class="reports">

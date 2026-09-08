@@ -20,6 +20,16 @@ export const WORLD_LAB_SPEC = Object.freeze({
 
 export const MAX_OVERVIEW_DIMENSION = 512;
 
+// This presentation policy is deliberately separate from the generator
+// identity: it quantizes the already-authoritative normalized query result.
+export const TERRAIN_SURFACE_LEVEL_POLICY = Object.freeze({
+  id: "world-lab-surface-level-normalized-32-v1",
+  steps: 32,
+  minimum: 0,
+  maximum: 32,
+  formula: "round(clamp(normalizedElevation, 0, 1) * 32)",
+});
+
 export const WORLD_LAB_NON_CLAIMS = Object.freeze([
   "generated terrain is not a Clearing chunk",
   "render residency is not decoded-world eviction",
@@ -178,6 +188,13 @@ export function chunkOf(spec, x, z) {
   };
 }
 
+export function surfaceLevelForElevation(elevation) {
+  if (!Number.isFinite(elevation))
+    throw new TypeError("normalized elevation must be finite");
+  const clamped = Math.max(0, Math.min(1, elevation));
+  return Math.round(clamped * TERRAIN_SURFACE_LEVEL_POLICY.steps);
+}
+
 export function sampleTerrain(spec, x, z, footprint = 1) {
   if (!Number.isFinite(x) || !Number.isFinite(z))
     throw new TypeError("terrain coordinates must be finite");
@@ -213,6 +230,7 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
     0,
     Math.min(1, baseElevation + ridgeLift - canyonCarve),
   );
+  const surfaceLevel = surfaceLevelForElevation(elevation);
   const terrain =
     coastDistance < -coastBand
       ? "water"
@@ -230,6 +248,7 @@ export function sampleTerrain(spec, x, z, footprint = 1) {
     chunk,
     sampleId: `${spec.identity}/sample/${x},${z}`,
     elevation,
+    surfaceLevel,
     moisture: Math.max(0, Math.min(1, moisture)),
     coastDistance,
     ridgeDistance,
@@ -390,6 +409,7 @@ export function generateChunk(spec, chunkX, chunkZ) {
   const size = spec.chunkSize;
   const terrain = new Uint8Array(size * size);
   const elevation = new Uint8Array(size * size);
+  const surfaceLevels = new Uint8Array(size * size);
   const moisture = new Uint8Array(size * size);
   for (let localZ = 0; localZ < size; localZ += 1) {
     for (let localX = 0; localX < size; localX += 1) {
@@ -401,6 +421,7 @@ export function generateChunk(spec, chunkX, chunkZ) {
       const index = localZ * size + localX;
       terrain[index] = terrainCode(cell.terrain);
       elevation[index] = Math.round(cell.elevation * 255);
+      surfaceLevels[index] = cell.surfaceLevel;
       moisture[index] = Math.round(cell.moisture * 255);
     }
   }
@@ -412,9 +433,10 @@ export function generateChunk(spec, chunkX, chunkZ) {
     sampleCount: size * size,
     terrain,
     elevation,
+    surfaceLevels,
     moisture,
     checksum: checksumBytes(
-      new Uint8Array([...terrain, ...elevation, ...moisture]),
+      new Uint8Array([...terrain, ...elevation, ...surfaceLevels, ...moisture]),
     ),
   };
 }
@@ -598,6 +620,7 @@ export function renderChunkBuffer(spec, chunks) {
     throw new Error("chunks must form a square window");
   const pixels = new Uint8Array(size * size);
   const elevation = new Uint8Array(size * size);
+  const surfaceLevels = new Uint8Array(size * size);
   const moisture = new Uint8Array(size * size);
   const originChunkX = Math.min(...chunks.map((chunk) => chunk.chunkX));
   const originChunkZ = Math.min(...chunks.map((chunk) => chunk.chunkZ));
@@ -610,6 +633,7 @@ export function renderChunkBuffer(spec, chunks) {
         const targetIndex = (offsetZ + localZ) * size + offsetX + localX;
         pixels[targetIndex] = chunk.terrain[sourceIndex];
         elevation[targetIndex] = chunk.elevation[sourceIndex];
+        surfaceLevels[targetIndex] = chunk.surfaceLevels[sourceIndex];
         moisture[targetIndex] = chunk.moisture[sourceIndex];
       }
   }
@@ -619,12 +643,13 @@ export function renderChunkBuffer(spec, chunks) {
     sampleCount: pixels.length,
     pixels,
     elevation,
+    surfaceLevels,
     moisture,
     originChunkX,
     originChunkZ,
     checksum: checksumBytes(pixels),
     visualChecksum: checksumBytes(
-      new Uint8Array([...pixels, ...elevation, ...moisture]),
+      new Uint8Array([...pixels, ...elevation, ...surfaceLevels, ...moisture]),
     ),
   };
 }

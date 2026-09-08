@@ -11,6 +11,7 @@ import {
   renderChunkBuffer,
   sampleCell,
   sampleTerrain,
+  TERRAIN_SURFACE_LEVEL_POLICY,
   terrainCode,
   worldCellToOverviewPixel,
 } from "./terrain.js";
@@ -346,6 +347,7 @@ function render() {
       sharedSampler: {
         footprint: selectedShared.footprint,
         elevation: selectedShared.elevation,
+        surfaceLevel: selectedShared.surfaceLevel,
         moisture: selectedShared.moisture,
         terrain: selectedShared.terrain,
         feature: selectedShared.feature,
@@ -359,6 +361,7 @@ function render() {
       sharedLocalSampler: {
         footprint: selectedLocal.footprint,
         elevation: selectedLocal.elevation,
+        surfaceLevel: selectedLocal.surfaceLevel,
         moisture: selectedLocal.moisture,
         terrain: selectedLocal.terrain,
       },
@@ -366,10 +369,13 @@ function render() {
         x: localX,
         z: localZ,
         elevationByte: local.buffer.elevation[localIndex],
+        surfaceLevel: local.buffer.surfaceLevels[localIndex],
         moistureByte: local.buffer.moisture[localIndex],
         matchesSampler:
           local.buffer.elevation[localIndex] ===
             Math.round(selectedLocal.elevation * 255) &&
+          local.buffer.surfaceLevels[localIndex] ===
+            selectedLocal.surfaceLevel &&
           local.buffer.moisture[localIndex] ===
             Math.round(selectedLocal.moisture * 255),
       },
@@ -407,6 +413,12 @@ function render() {
       halo: sectionView.section.halo,
       sampledCells: sectionView.section.sampleCount,
       sampleBudget: "24x16 visible cells + one-cell halo",
+      focusSurfaceLevel: sectionView.section.cells.find((cell) => cell.focused)
+        ?.surfaceLevel,
+      voxelPixelHeight: sectionView.prepared.voxelPixelHeight,
+      exposedStepFaces: sectionView.prepared.tiles.filter(
+        (tile) => tile.eastDropLevels > 0 || tile.southDropLevels > 0,
+      ).length,
       preparedPixels: {
         width: sectionView.prepared.width,
         height: sectionView.prepared.height,
@@ -453,6 +465,9 @@ function contractReport() {
       cellsPerPixel: overview?.footprint ?? null,
       overviewCap: `${MAX_OVERVIEW_DIMENSION}x${MAX_OVERVIEW_DIMENSION}`,
       localScale: "80x80 pixels; one pixel = one world cell",
+      surfaceLevelPolicy: TERRAIN_SURFACE_LEVEL_POLICY,
+      overviewElevation:
+        "continuous footprint-aware normalized elevation; voxel levels are local/section only",
       source:
         overview?.source ??
         "same versioned sampler requested in one lazy worker",
