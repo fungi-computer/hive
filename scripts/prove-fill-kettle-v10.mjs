@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 const url = process.argv[2] || "http://127.0.0.1:5196/";
 const output =
   process.argv[3] || ".botanical/schema10-fill-kettle-final-20260908/local";
+const distRoot = process.argv[4] || "dist";
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const assetRefs = (html) =>
   [...html.matchAll(/(?:src|href)=["']\/?(assets\/[^"']+)["']/g)].map(
@@ -37,11 +38,11 @@ const evidence = {
 let browser;
 
 try {
-  const localIndex = await readFile("dist/index.html");
+  const localIndex = await readFile(`${distRoot}/index.html`);
   const refs = assetRefs(localIndex.toString("utf8"));
   const local = {
     index: sha256(localIndex),
-    assets: await hashes("dist", refs),
+    assets: await hashes(distRoot, refs),
   };
   const response = await fetch(url);
   assert.equal(response.status, 200);
@@ -168,6 +169,80 @@ try {
     if (!(await page.locator('[data-build="brew-station"]').count()))
       await page.getByRole("button", { name: "Build", exact: true }).click();
     await page.locator('[data-build="brew-station"]').waitFor();
+  };
+  const growAndHarvestHerb = async () => {
+    const beforeHerb = await state();
+    const occupied = new Set(
+      [
+        ...beforeHerb.trees,
+        ...beforeHerb.rocks,
+        ...beforeHerb.sources,
+        ...beforeHerb.herbs,
+        ...beforeHerb.sites.flatMap((site) => {
+          if (site.type !== "brew-station") return [site];
+          return [
+            site,
+            { x: site.x + 1, z: site.z, level: site.level },
+            { x: site.x, z: site.z + 1, level: site.level },
+            { x: site.x + 1, z: site.z + 1, level: site.level },
+          ];
+        }),
+        ...beforeHerb.materials.lots
+          .filter((lot) => lot.location.kind === "ground")
+          .map((lot) => lot.location),
+        ...Object.values(beforeHerb.actors),
+      ].map(key),
+    );
+    let cell = null;
+    for (let z = 2; z < 13 && cell === null; z++)
+      for (let x = 2; x < 13; x++) {
+        const candidate = { x, z, level: 0 };
+        if (!occupied.has(key(candidate))) {
+          cell = candidate;
+          break;
+        }
+      }
+    assert.ok(cell, "one clear cell is available for the recipe herb");
+    await closeTarget();
+    await openBuild();
+    await page.locator("#herb-tool").click();
+    await clickCell(cell);
+    await waitState(
+      ({ x, z }) =>
+        window.__GOBLIN.state.herbs.some(
+          (herb) => herb.x === x && herb.z === z && herb.level === 0,
+        ),
+      cell,
+    );
+    const herb = (await state()).herbs.find(
+      (entry) => entry.x === cell.x && entry.z === cell.z,
+    );
+    assert.ok(herb);
+    if (await page.locator("#cancel-herb").count())
+      await page.locator("#cancel-herb").click();
+    await setPaused(false);
+    await waitState(
+      (id) =>
+        window.__GOBLIN.state.herbs.find((entry) => entry.id === id)?.stage ===
+        "ready",
+      herb.id,
+      60_000,
+    );
+    await setPaused(true);
+    await inspect("herb", herb.id, herb);
+    await page.locator("#harvest-herb").click();
+    await setPaused(false);
+    await waitState(
+      (id) =>
+        !window.__GOBLIN.state.herbs.some((entry) => entry.id === id) &&
+        window.__GOBLIN.state.materials.lots.some(
+          (lot) => lot.material === "mugwort" && lot.location.kind === "ground",
+        ),
+      herb.id,
+      60_000,
+    );
+    await setPaused(true);
+    return { id: herb.id, cell };
   };
 
   assert.equal(
@@ -319,9 +394,9 @@ try {
   };
 
   const stationPick = await inspect("site", station.id, station);
-  const structure = page.getByRole("region", { name: "Structure actions" });
+  const structure = page.getByRole("region", { name: "Brew station actions" });
   await structure.waitFor();
-  assert.match(await structure.innerText(), /Kettle water 0\/2/);
+  assert.match(await structure.innerText(), /Water 0\/2/);
   await page.locator("#fill-kettle").click();
   await setPaused(false);
   await waitState(
@@ -400,7 +475,7 @@ try {
   );
   assert.equal(finalSpring.quantity, 6);
   assert.equal(finished.operations.length, 0);
-  assert.equal(finished.materials.vesselUses.length, 0);
+  assert.equal(finished.materials.bindings.length, 0);
   assert.equal(
     finished.materials.transfers.filter(
       (entry) => entry.owner.kind === "operation",
@@ -410,7 +485,7 @@ try {
   assert.equal(finalPail.location.kind, "ground");
   const finalStationPick = await inspect("site", station.id, station);
   await structure.waitFor();
-  assert.match(await structure.innerText(), /Kettle water 2\/2/);
+  assert.match(await structure.innerText(), /Water 2\/2/);
   await screenshot("filled-kettle-settled");
   evidence.claims.settlement = {
     station: station.id,
@@ -418,10 +493,280 @@ try {
     kettleWater: 2,
     springWater: finalSpring.quantity,
     operationCount: 0,
-    vesselUseCount: 0,
+    bindingCount: 0,
     operationTransferCount: 0,
     pailLocation: finalPail.location,
   };
+
+  // Grow one real recipe herb through the ordinary placement and harvest UI.
+  const herb = await growAndHarvestHerb();
+  evidence.claims.recipeHerb = {
+    id: herb.id,
+    cell: herb.cell,
+    grownAndHarvested: true,
+  };
+
+  // Admit and run one complete batch through the visible station panel.
+  if ((await page.locator("#speed").innerText()).includes("4"))
+    await page.locator("#speed").click();
+  await inspect("site", station.id, station);
+  await structure.waitFor();
+  assert.equal(await page.locator("#brew").isEnabled(), true);
+  await page.locator("#brew").click();
+  await setPaused(false);
+  await waitState(
+    (id) => {
+      const current = window.__GOBLIN.state;
+      const process = current.processes.find((entry) => entry.station === id);
+      return (
+        process?.phase === "prepare" &&
+        Object.values(current.actors).some(
+          (actor) =>
+            actor.task?.kind === "brew" && actor.task.job === process.job,
+        )
+      );
+    },
+    station.id,
+    60_000,
+  );
+  await setPaused(true);
+  const preparing = await state();
+  const prepareProcess = preparing.processes.find(
+    (entry) => entry.station === station.id,
+  );
+  assert.equal(prepareProcess?.phase, "prepare");
+  await screenshot("brew-prepare-attended");
+
+  await setPaused(false);
+  await waitState(
+    (id) =>
+      window.__GOBLIN.state.processes.find((entry) => entry.station === id)
+        ?.phase === "ferment",
+    station.id,
+    60_000,
+  );
+  await setPaused(true);
+  await screenshot("brew-ferment-calm");
+
+  await setPaused(false);
+  await waitState(
+    (id) =>
+      window.__GOBLIN.state.processes.find((entry) => entry.station === id)
+        ?.phase === "keg",
+    station.id,
+    60_000,
+  );
+  await setPaused(true);
+  await screenshot("brew-keg-stage");
+
+  await setPaused(false);
+  await waitState(
+    (id) => {
+      const current = window.__GOBLIN.state;
+      return (
+        !current.processes.some((entry) => entry.station === id) &&
+        current.materials.transformations.some(
+          (entry) => entry.settlement?.station === `kettle:${id}`,
+        ) &&
+        current.materials.lots.some(
+          (lot) => lot.material === "ale" && lot.quantity === 4,
+        ) &&
+        current.materials.lots.some(
+          (lot) => lot.material === "spent-grain" && lot.quantity === 1,
+        )
+      );
+    },
+    station.id,
+    60_000,
+  );
+  await setPaused(true);
+  await inspect("site", station.id, station);
+  await structure.waitFor();
+  assert.match(await structure.innerText(), /Ale 4/);
+  assert.match(await structure.innerText(), /Spent grain 1/);
+  assert.equal(await page.locator("#tap").isEnabled(), true);
+  await screenshot("brew-settled-batch");
+  const settled = await state();
+  evidence.claims.brew = {
+    station: station.id,
+    transformation: settled.materials.transformations.find(
+      (entry) => entry.settlement?.station === `kettle:${station.id}`,
+    )?.id,
+    ale: 4,
+    spentGrain: 1,
+    processRetired: !settled.processes.some(
+      (entry) => entry.station === station.id,
+    ),
+  };
+
+  // Each visible Tap order consumes one canonical serving; the fifth is disabled.
+  for (let serving = 1; serving <= 4; serving++) {
+    assert.equal(await page.locator("#tap").isEnabled(), true);
+    await page.locator("#tap").click();
+    await waitState(
+      (id) =>
+        window.__GOBLIN.state.jobs.some(
+          (job) => job.kind === "tap" && job.target === id,
+        ),
+      station.id,
+    );
+    await setPaused(false);
+    await waitState(
+      ({ station, remaining, receipts }) => {
+        const current = window.__GOBLIN.state;
+        return (
+          !current.jobs.some(
+            (job) => job.kind === "tap" && job.target === station,
+          ) &&
+          current.materials.lots
+            .filter((lot) => lot.material === "ale")
+            .reduce((total, lot) => total + lot.quantity, 0) === remaining &&
+          current.materials.consumptions.length === receipts
+        );
+      },
+      { station: station.id, remaining: 4 - serving, receipts: serving },
+      60_000,
+    );
+    await setPaused(true);
+  }
+  await structure.waitFor();
+  assert.match(await structure.innerText(), /Ale 0/);
+  assert.match(await structure.innerText(), /Spent grain 1/);
+  assert.match(await structure.innerText(), /No live ale is available to serve/);
+  assert.equal(await page.locator("#tap").isDisabled(), true);
+  assert.equal(await page.locator("#brew").isDisabled(), true);
+  await screenshot("brew-four-servings-tapped");
+  const tapped = await state();
+  evidence.claims.tap = {
+    receipts: tapped.materials.consumptions.length,
+    aleRemaining: tapped.materials.lots
+      .filter((lot) => lot.material === "ale")
+      .reduce((total, lot) => total + lot.quantity, 0),
+    spentGrain: tapped.materials.lots
+      .filter((lot) => lot.material === "spent-grain")
+      .reduce((total, lot) => total + lot.quantity, 0),
+    fifthDisabled: await page.locator("#tap").isDisabled(),
+    brewBlockedByCleanupOccupancy: await page.locator("#brew").isDisabled(),
+  };
+
+  // Clearing is an attended recipe-output action, not an inventory shortcut.
+  assert.equal(await page.locator("#clear-spent-grain").isEnabled(), true);
+  await page.locator("#clear-spent-grain").click();
+  await waitState(
+    (id) =>
+      window.__GOBLIN.state.jobs.some(
+        (job) => job.kind === "clear-spent-grain" && job.target === id,
+      ),
+    station.id,
+  );
+  await setPaused(false);
+  await waitState(
+    (id) => {
+      const current = window.__GOBLIN.state;
+      return (
+        !current.jobs.some(
+          (job) => job.kind === "clear-spent-grain" && job.target === id,
+        ) &&
+        !current.materials.lots.some((lot) => lot.material === "spent-grain") &&
+        current.materials.consumptions.some(
+          (entry) => entry.role === "spent-grain" && entry.quantity === 1,
+        )
+      );
+    },
+    station.id,
+    60_000,
+  );
+  await setPaused(true);
+  await inspect("site", station.id, station);
+  await structure.waitFor();
+  assert.match(await structure.innerText(), /Spent grain 0/);
+  assert.equal(await page.locator("#clear-spent-grain").isDisabled(), true);
+  assert.equal(await page.locator("#brew").isEnabled(), true);
+  const cleared = await state();
+  evidence.claims.clearSpentGrain = {
+    receipt: cleared.materials.consumptions.find(
+      (entry) => entry.role === "spent-grain",
+    )?.id,
+    trayQuantity: cleared.materials.lots
+      .filter((lot) => lot.material === "spent-grain")
+      .reduce((total, lot) => total + lot.quantity, 0),
+    brewUnblocked: await page.locator("#brew").isEnabled(),
+  };
+  await screenshot("brew-spent-grain-cleared");
+
+  // Use ordinary commands and remaining finite stock to settle a second batch.
+  const secondHerb = await growAndHarvestHerb();
+  await inspect("site", station.id, station);
+  await structure.waitFor();
+  assert.equal(await page.locator("#fill-kettle").isEnabled(), true);
+  await page.locator("#fill-kettle").click();
+  await setPaused(false);
+  await waitState(
+    (id) => {
+      const current = window.__GOBLIN.state;
+      return (
+        !current.jobs.some(
+          (job) => job.kind === "fill-kettle" && job.target === id,
+        ) &&
+        current.materials.lots.some(
+          (lot) =>
+            lot.material === "water" &&
+            lot.quantity === 2 &&
+            lot.location.kind === "container" &&
+            lot.location.container === `kettle:${id}`,
+        )
+      );
+    },
+    station.id,
+    60_000,
+  );
+  await setPaused(true);
+  await inspect("site", station.id, station);
+  await structure.waitFor();
+  assert.equal(await page.locator("#brew").isEnabled(), true);
+  if (!(await page.locator("#speed").innerText()).includes("4"))
+    await page.locator("#speed").click();
+  await page.locator("#brew").click();
+  await setPaused(false);
+  await waitState(
+    (id) => {
+      const current = window.__GOBLIN.state;
+      return (
+        !current.processes.some((entry) => entry.station === id) &&
+        current.materials.transformations.filter(
+          (entry) => entry.settlement?.station === `kettle:${id}`,
+        ).length === 2 &&
+        current.materials.lots.some(
+          (lot) => lot.material === "ale" && lot.quantity === 4,
+        ) &&
+        current.materials.lots.some(
+          (lot) => lot.material === "spent-grain" && lot.quantity === 1,
+        )
+      );
+    },
+    station.id,
+    90_000,
+  );
+  await setPaused(true);
+  await inspect("site", station.id, station);
+  await structure.waitFor();
+  assert.match(await structure.innerText(), /Ale 4/);
+  assert.match(await structure.innerText(), /Served 0\/4/);
+  assert.match(await structure.innerText(), /Spent grain 1/);
+  const secondSettled = await state();
+  evidence.claims.secondBatch = {
+    herb: secondHerb,
+    settledTransformations: secondSettled.materials.transformations
+      .filter((entry) => entry.settlement?.station === `kettle:${station.id}`)
+      .map((entry) => entry.id),
+    ale: secondSettled.materials.lots
+      .filter((lot) => lot.material === "ale")
+      .reduce((total, lot) => total + lot.quantity, 0),
+    spentGrain: secondSettled.materials.lots
+      .filter((lot) => lot.material === "spent-grain")
+      .reduce((total, lot) => total + lot.quantity, 0),
+  };
+  await screenshot("brew-second-batch-settled");
   assert.deepEqual(evidence.errors, []);
 } catch (error) {
   evidence.failure = { message: error.message, stack: error.stack };

@@ -12,17 +12,22 @@ import {
   checkRecipePlan,
   completeRecipePrepare,
   containerQuantity,
-  consumeRecipeServing,
+  consumeRecipeOutput,
   releaseUnpreparedRecipeBinding,
   settleRecipePlan,
   type ContainerSpec,
   type ResolvedRecipePlan,
   type ResolvedRecipeSettlement,
-  type ResolvedRecipeServing,
+  type ResolvedRecipeOutputConsumption,
   type MaterialResult,
 } from "./materials.ts";
 import { portableContainerInterior } from "./item-containers.ts";
-import { HERBAL_ALE_V1, recipeDefinition } from "./recipes.ts";
+import {
+  HERBAL_ALE_V1,
+  recipeDefinition,
+  recipeOutputAction,
+  type RecipeOutputActionKey,
+} from "./recipes.ts";
 import { siteMaterialEndpoint } from "./construction.js";
 
 export type BrewSupplyRequirement = {
@@ -78,31 +83,48 @@ export function brewKegRemaining(
     process.progress) as PositiveInt;
 }
 
-type SettledTap = {
+type SettledRecipeOutput = {
   definition: ReturnType<typeof recipeDefinition>;
   transformation: string;
-  serving: ResolvedRecipeServing;
+  consumption: ResolvedRecipeOutputConsumption;
 };
 
-function settledTap(
+function outputConsumptionQuantity(
+  state: Clearing,
+  transformation: string,
+  role: string,
+): number {
+  return state.materials.consumptions.reduce(
+    (total, entry) =>
+      total +
+      (entry.transformation === transformation && entry.role === role
+        ? entry.quantity
+        : 0),
+    0,
+  );
+}
+
+function settledRecipeOutput(
   state: Clearing,
   station: Site,
+  action: RecipeOutputActionKey,
   transformationId?: string,
-  consumptionId = "tap-preview",
-): SettledTap | null {
+  consumptionId = "recipe-output-preview",
+): SettledRecipeOutput | null {
   for (const transformation of state.materials.transformations) {
     if (
       transformation.settlement === null ||
       (transformationId !== undefined && transformation.id !== transformationId)
     )
       continue;
-    const tap = settledTapForReceipt(
+    const output = settledRecipeOutputForReceipt(
       state,
       station,
       transformation,
+      action,
       consumptionId,
     );
-    if (tap) return tap;
+    if (output) return output;
     // A job owns one exact receipt.  A broken or exhausted one cannot silently
     // take a serving from a later batch.
     if (transformationId !== undefined) return null;
@@ -110,133 +132,235 @@ function settledTap(
   return null;
 }
 
-function settledTapForReceipt(
+function settledRecipeOutputForReceipt(
   state: Clearing,
   station: Site,
   transformation: Clearing["materials"]["transformations"][number],
+  action: RecipeOutputActionKey,
   consumptionId: string,
-): SettledTap | null {
+): SettledRecipeOutput | null {
   if (!transformation.settlement) return null;
   const definition = recipeDefinition(transformation.definition);
   const stationContainer = siteMaterialEndpoint(station, definition.stationSlot)
     ?.destination.id;
   if (stationContainer !== transformation.settlement.station) return null;
+  const actionDefinition = recipeOutputAction(definition, action);
   const outputDefinition = definition.promises.find(
-    (entry) => entry.role === definition.tap.outputRole,
+    (entry) => entry.role === actionDefinition.outputRole,
   );
   if (
     !outputDefinition ||
-    outputDefinition.material !== definition.tap.material
+    outputDefinition.material !== actionDefinition.material
   )
     return null;
   const outputDestination = outputDefinition.destination;
-  if (outputDestination.kind !== "retained-interior") return null;
-  const retainedRequirement = definition.retained.find(
-    (entry) => entry.role === outputDestination.role,
-  );
-  const retained = transformation.settlement.retained.find(
-    (entry) => entry.role === outputDestination.role,
-  );
-  const retainedDestination =
-    retainedRequirement &&
-    siteMaterialEndpoint(station, retainedRequirement.slot);
-  const keg =
-    retained && state.materials.lots.find((entry) => entry.id === retained.lot);
-  const interior = keg && portableContainerInterior(keg);
+  let destination: ContainerSpec | null = null;
+  if (outputDestination.kind === "station-slot")
+    destination =
+      siteMaterialEndpoint(station, outputDestination.slot)?.destination ??
+      null;
+  else {
+    const retainedRequirement = definition.retained.find(
+      (entry) => entry.role === outputDestination.role,
+    );
+    const retained = transformation.settlement.retained.find(
+      (entry) => entry.role === outputDestination.role,
+    );
+    const retainedDestination =
+      retainedRequirement &&
+      siteMaterialEndpoint(station, retainedRequirement.slot);
+    const vessel =
+      retained &&
+      state.materials.lots.find((entry) => entry.id === retained.lot);
+    const interior = vessel && portableContainerInterior(vessel);
+    if (
+      !retained ||
+      !retainedRequirement ||
+      !retainedDestination ||
+      !vessel ||
+      vessel.material !== retained.material ||
+      vessel.quantity !== retained.quantity ||
+      vessel.location.kind !== "container" ||
+      vessel.location.container !== retainedDestination.destination.id ||
+      !interior
+    )
+      return null;
+    destination = interior;
+  }
   const output = transformation.settlement.outputs.find(
     (entry) => entry.role === outputDefinition.role,
   );
   if (
-    !retained ||
-    !retainedRequirement ||
-    !retainedDestination ||
-    !keg ||
-    keg.material !== retained.material ||
-    keg.quantity !== retained.quantity ||
-    keg.location.kind !== "container" ||
-    keg.location.container !== retainedDestination.destination.id ||
-    !interior ||
+    !destination ||
     !output ||
-    output.material !== definition.tap.material ||
-    output.destination !== interior.id
+    output.material !== actionDefinition.material ||
+    output.destination !== destination.id
   )
     return null;
-  const alreadyServed = state.materials.consumptions.reduce(
-    (total, entry) =>
-      total +
-      (entry.transformation === transformation.id &&
-      entry.role === outputDefinition.role
-        ? entry.quantity
-        : 0),
-    0,
-  );
-  if (alreadyServed + definition.tap.quantity > output.quantity) return null;
+  if (
+    outputConsumptionQuantity(state, transformation.id, outputDefinition.role) +
+      actionDefinition.quantity >
+    output.quantity
+  )
+    return null;
   const source = state.materials.lots.find(
     (lot) =>
-      lot.material === definition.tap.material &&
+      lot.material === actionDefinition.material &&
       lot.location.kind === "container" &&
-      lot.location.container === interior.id &&
-      lot.quantity >= definition.tap.quantity,
+      lot.location.container === destination.id &&
+      lot.quantity >= actionDefinition.quantity,
   );
   if (!source) return null;
   return {
     definition,
     transformation: transformation.id,
-    serving: {
+    consumption: {
       id: consumptionId,
       transformation: transformation.id,
-      role: definition.tap.outputRole,
-      material: definition.tap.material,
-      quantity: definition.tap.quantity,
+      role: actionDefinition.outputRole,
+      material: actionDefinition.material,
+      quantity: actionDefinition.quantity,
       sourceLot: source.id,
-      destination: interior,
+      destination,
     },
   };
 }
 
-export type TapReadiness =
+function outputActionProblem(
+  state: Clearing,
+  station: Site,
+  action: RecipeOutputActionKey,
+  transformation?: string,
+): { output: SettledRecipeOutput } | { reason: string } {
+  const output = settledRecipeOutput(state, station, action, transformation);
+  if (!output) return { reason: "Waiting for a settled recipe output" };
+  const prerequisite = recipeOutputAction(
+    output.definition,
+    action,
+  ).requiresOutputExhausted;
+  if (!prerequisite) return { output };
+  const receipt = state.materials.transformations
+    .find((entry) => entry.id === output.transformation)
+    ?.settlement?.outputs.find(
+      (entry) =>
+        entry.role === prerequisite.outputRole &&
+        entry.material === prerequisite.material,
+    );
+  if (
+    !receipt ||
+    outputConsumptionQuantity(
+      state,
+      output.transformation,
+      prerequisite.outputRole,
+    ) < receipt.quantity ||
+    containerQuantity(
+      state.materials,
+      receipt.destination,
+      prerequisite.material,
+    ) > 0
+  )
+    return { reason: prerequisite.reason };
+  return { output };
+}
+
+/** Finished physical output must be cleared before the station can bind again. */
+export function brewStationOutputProblem(
+  state: Clearing,
+  station: Site,
+): string | null {
+  for (const transformation of state.materials.transformations) {
+    if (!transformation.settlement) continue;
+    const definition = recipeDefinition(transformation.definition);
+    if (
+      transformation.settlement.station !==
+      siteMaterialEndpoint(station, definition.stationSlot)?.destination.id
+    )
+      continue;
+    for (const output of transformation.settlement.outputs)
+      if (
+        containerQuantity(
+          state.materials,
+          output.destination,
+          output.material,
+        ) > 0
+      )
+        return "Finish the settled batch first.";
+  }
+  return null;
+}
+
+export type RecipeOutputReadiness =
   | { kind: "waiting"; reason: string }
   | { kind: "ready"; transformation: string };
 
-/** The station/receipt owner chooses the original keg and one actual serving. */
-export function tapStationReadiness(
+/** One definition action resolves its receipt, output lot, and prerequisite. */
+export function recipeOutputReadiness(
   state: Clearing,
   station: Site,
+  action: RecipeOutputActionKey,
   transformation?: string,
-): TapReadiness {
+  unavailableReason = "Waiting for a settled recipe output",
+): RecipeOutputReadiness {
   if (station.type !== "brew-station" || station.finishedAt === null)
     return { kind: "waiting", reason: "Waiting for a finished brew station" };
-  const tap = settledTap(state, station, transformation);
-  return tap
-    ? { kind: "ready", transformation: tap.transformation }
-    : { kind: "waiting", reason: "Waiting for a settled ale serving" };
+  const result = outputActionProblem(state, station, action, transformation);
+  return "reason" in result
+    ? {
+        kind: "waiting",
+        reason:
+          result.reason === "Waiting for a settled recipe output"
+            ? unavailableReason
+            : result.reason,
+      }
+    : { kind: "ready", transformation: result.output.transformation };
 }
 
-export function tapRemaining(
+export function recipeOutputRemaining(
   state: Clearing,
   station: Site,
+  action: RecipeOutputActionKey,
   transformation: string,
   progress: number,
 ): PositiveInt | null {
-  const tap = settledTap(state, station, transformation);
-  return tap ? ((tap.definition.timings.tap - progress) as PositiveInt) : null;
+  const result = outputActionProblem(state, station, action, transformation);
+  return "reason" in result
+    ? null
+    : ((recipeOutputAction(result.output.definition, action).ticks -
+        progress) as PositiveInt);
 }
 
-export function attendTap(
+export function attendRecipeOutput(
   state: Clearing,
   input: {
     id: string;
     station: Site;
+    action: RecipeOutputActionKey;
     transformation: string;
     progress: number;
   },
-): MaterialResult<"working" | "served"> {
-  const tap = settledTap(state, input.station, input.transformation, input.id);
-  if (!tap) return { ok: false, reason: "source-insufficient" };
-  if (input.progress + 1 < tap.definition.timings.tap)
+): MaterialResult<"working" | "consumed"> {
+  const ready = outputActionProblem(
+    state,
+    input.station,
+    input.action,
+    input.transformation,
+  );
+  if ("reason" in ready) return { ok: false, reason: "source-insufficient" };
+  const output = settledRecipeOutput(
+    state,
+    input.station,
+    input.action,
+    input.transformation,
+    input.id,
+  );
+  if (!output) return { ok: false, reason: "source-insufficient" };
+  if (
+    input.progress + 1 <
+    recipeOutputAction(output.definition, input.action).ticks
+  )
     return { ok: true, value: "working" };
-  const consumed = consumeRecipeServing(state.materials, tap.serving);
-  return consumed.ok ? { ok: true, value: "served" } : consumed;
+  const consumed = consumeRecipeOutput(state.materials, output.consumption);
+  return consumed.ok ? { ok: true, value: "consumed" } : consumed;
 }
 
 const stagedLot = (
@@ -290,6 +414,8 @@ export function brewStationReadiness(
 ): BrewStationReadiness {
   if (station.type !== "brew-station" || station.finishedAt === null)
     return { kind: "waiting", reason: "Waiting for a finished brew station" };
+  const outputProblem = brewStationOutputProblem(state, station);
+  if (outputProblem) return { kind: "waiting", reason: outputProblem };
   const definition = recipeDefinition(HERBAL_ALE_V1.id);
   const endpoint = (slot: string) => siteMaterialEndpoint(station, slot);
   const supply = [...definition.consumed, ...definition.retained].find(

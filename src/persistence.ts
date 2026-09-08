@@ -14,6 +14,7 @@ import {
 } from "./construction.js";
 import {
   bindingPromiseQuantity,
+  containerQuantity,
   sourceContainer,
   type ContainerSpec,
 } from "./materials.ts";
@@ -27,7 +28,12 @@ import {
   sourceSuppliesContainerSpec,
   sourceContainerSpec,
 } from "./finite-sources.ts";
-import { recipeDefinition } from "./recipes.ts";
+import {
+  recipeDefinition,
+  recipeOutputAction,
+  recipeOutputActionForWire,
+  recipeOutputConsumptionAction,
+} from "./recipes.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
 const SAVE_SCHEMA = 12 as const;
@@ -144,6 +150,14 @@ const activity = z.discriminatedUnion("kind", [
       kind: z.literal("tap"),
     })
     .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("clear-spent-grain"),
+    })
+    .strict(),
 ]);
 const actor = cell
   .extend({
@@ -165,6 +179,7 @@ const actor = cell
       "brew-water",
       "brew",
       "tap",
+      "clear-spent-grain",
     ]),
     path: z.array(cell),
     leg: nonNegative,
@@ -193,6 +208,15 @@ const job = z.discriminatedUnion("kind", [
       kind: z.literal("store"),
       source: id,
       destination: id,
+    })
+    .strict(),
+  z
+    .object({
+      ...jobBase,
+      kind: z.literal("clear-spent-grain"),
+      target: id,
+      transformation: id,
+      progress: nonNegative,
     })
     .strict(),
   z.object({ ...jobBase, kind: z.literal("rest"), target: id }).strict(),
@@ -809,12 +833,12 @@ function activityMatchesJob(
       process.station === job.target
     );
   }
-  if (task.kind === "tap") {
+  if (task.kind === "tap" || task.kind === "clear-spent-grain") {
     const transformation = state.materials.transformations.find(
       (entry) => entry.id === task.target && entry.settlement !== null,
     );
     return (
-      job.kind === "tap" &&
+      job.kind === task.kind &&
       job.transformation === task.target &&
       transformation !== undefined
     );
@@ -1252,7 +1276,7 @@ function validateTransformations({ state }: RelationContext): void {
   }
 }
 
-/** Settled output may move later; this durable receipt is its only tap ledger. */
+/** Settled output may move later; this durable receipt is its only consumption ledger. */
 function validateRecipeConsumptions({ state }: RelationContext): void {
   const ids = new Set<string>();
   const consumed = new Map<string, number>();
@@ -1269,13 +1293,13 @@ function validateRecipeConsumptions({ state }: RelationContext): void {
       (candidate) =>
         candidate.role === entry.role && candidate.material === entry.material,
     );
-    if (
-      !output ||
-      definition.tap.outputRole !== entry.role ||
-      definition.tap.material !== entry.material ||
-      definition.tap.quantity !== entry.quantity
-    )
-      fail(`recipe consumption ${entry.id} has invalid serving`);
+    const action = recipeOutputConsumptionAction(
+      definition,
+      entry.role,
+      entry.material,
+    );
+    if (!output || !action || action.quantity !== entry.quantity)
+      fail(`recipe consumption ${entry.id} has invalid output`);
     const key = `${entry.transformation}/${entry.role}`;
     const total = (consumed.get(key) ?? 0) + entry.quantity;
     if (total > output.quantity)
@@ -1284,13 +1308,14 @@ function validateRecipeConsumptions({ state }: RelationContext): void {
   }
 }
 
-function validateTapJobs({ state }: RelationContext): void {
-  const transformations = new Set<string>();
+function validateRecipeOutputJobs({ state }: RelationContext): void {
+  const actions = new Set<string>();
   for (const job of state.jobs) {
-    if (job.kind !== "tap") continue;
-    if (transformations.has(job.transformation))
-      fail(`duplicate tap job for ${job.transformation}`);
-    transformations.add(job.transformation);
+    if (job.kind !== "tap" && job.kind !== "clear-spent-grain") continue;
+    const label = job.kind === "clear-spent-grain" ? "clear" : job.kind;
+    const key = `${job.kind}/${job.transformation}`;
+    if (actions.has(key)) fail(`duplicate recipe output job for ${key}`);
+    actions.add(key);
     const transformation = state.materials.transformations.find(
       (entry) => entry.id === job.transformation,
     );
@@ -1301,14 +1326,76 @@ function validateTapJobs({ state }: RelationContext): void {
         site.finishedAt !== null,
     );
     if (!transformation?.settlement || !station)
-      fail(`tap job ${job.id} lacks settled station receipt`);
+      fail(`${label} job ${job.id} lacks settled station receipt`);
     const definition = recipeDefinition(transformation.definition);
+    const action = recipeOutputAction(
+      definition,
+      recipeOutputActionForWire(job.kind),
+    );
+    const stationEndpoint = siteMaterialEndpoint(
+      station,
+      definition.stationSlot,
+    )?.destination.id;
+    const promise = definition.promises.find(
+      (entry) =>
+        entry.role === action.outputRole && entry.material === action.material,
+    );
+    const output = transformation.settlement.outputs.find(
+      (entry) =>
+        entry.role === action.outputRole && entry.material === action.material,
+    );
+    const consumed = state.materials.consumptions.reduce(
+      (total, entry) =>
+        total +
+        (entry.transformation === transformation.id &&
+        entry.role === action.outputRole
+          ? entry.quantity
+          : 0),
+      0,
+    );
+    const liveOutput = state.materials.lots.some(
+      (lot) =>
+        lot.material === action.material &&
+        lot.location.kind === "container" &&
+        lot.location.container === output?.destination &&
+        lot.quantity >= action.quantity,
+    );
     if (
-      transformation.settlement.station !==
-        siteMaterialEndpoint(station, definition.stationSlot)?.destination.id ||
-      job.progress >= definition.timings.tap
+      !output ||
+      !promise ||
+      promise.material !== action.material ||
+      transformation.settlement.station !== stationEndpoint ||
+      job.progress >= action.ticks ||
+      consumed + action.quantity > output.quantity ||
+      !liveOutput
     )
-      fail(`tap job ${job.id} has invalid station or progress`);
+      fail(`${label} job ${job.id} has invalid station or progress`);
+    const prerequisite = action.requiresOutputExhausted;
+    if (!prerequisite) continue;
+    const requiredOutput = transformation.settlement.outputs.find(
+      (entry) =>
+        entry.role === prerequisite.outputRole &&
+        entry.material === prerequisite.material,
+    );
+    const requiredConsumed = state.materials.consumptions.reduce(
+      (total, entry) =>
+        total +
+        (entry.transformation === transformation.id &&
+        entry.role === prerequisite.outputRole
+          ? entry.quantity
+          : 0),
+      0,
+    );
+    if (
+      !requiredOutput ||
+      requiredConsumed < requiredOutput.quantity ||
+      containerQuantity(
+        state.materials,
+        requiredOutput.destination,
+        prerequisite.material,
+      ) > 0
+    )
+      fail(`${label} job ${job.id} has unmet output prerequisite`);
   }
 }
 
@@ -2020,7 +2107,7 @@ function validateRelations(
   validateTransformations(context);
   validateRecipeConsumptions(context);
   validateBrewProcesses(context);
-  validateTapJobs(context);
+  validateRecipeOutputJobs(context);
   validateTransfers(context);
   validateContainerCapacity(context);
   validateActorJobRelations(context);

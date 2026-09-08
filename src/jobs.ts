@@ -51,11 +51,12 @@ import {
   brewPrepareRemaining,
   brewProcessId,
   brewStationReadiness,
-  tapRemaining,
-  tapStationReadiness,
+  recipeOutputReadiness,
+  recipeOutputRemaining,
   admitBrew,
   type BrewSupplyRequirement,
 } from "./brewing.ts";
+import { recipeOutputActionForWire } from "./recipes.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 type Candidate = {
@@ -678,10 +679,10 @@ function brewOption(
   };
 }
 
-function tapOption(
+function recipeOutputOption(
   state: Clearing,
   person: Actor,
-  job: Extract<Job, { kind: "tap" }>,
+  job: Extract<Job, { kind: "tap" | "clear-spent-grain" }>,
   blocked: Set<string>,
 ): Options {
   const station = state.sites.find(
@@ -691,22 +692,39 @@ function tapOption(
       site.finishedAt !== null,
   );
   if (!station) return no("Waiting for a finished brew station");
-  const readiness = tapStationReadiness(state, station, job.transformation);
-  if (readiness.kind === "waiting") return no(readiness.reason);
-  const path = workApproach(state, person, station, blocked);
-  const duration = tapRemaining(
+  const action = recipeOutputActionForWire(job.kind);
+  const readiness = recipeOutputReadiness(
     state,
     station,
+    action,
+    job.transformation,
+    job.kind === "tap"
+      ? "Waiting for a settled ale serving"
+      : "Waiting for spent grain to clear",
+  );
+  if (readiness.kind === "waiting") return no(readiness.reason);
+  const path = workApproach(state, person, station, blocked);
+  const duration = recipeOutputRemaining(
+    state,
+    station,
+    action,
     job.transformation,
     job.progress,
   );
   return !path || duration === null
-    ? no("Waiting for a settled ale serving")
+    ? no(
+        job.kind === "tap"
+          ? "Waiting for a settled ale serving"
+          : "Waiting for spent grain to clear",
+      )
     : {
-        reason: "Ready to tap herbal ale",
+        reason:
+          job.kind === "tap"
+            ? "Ready to tap herbal ale"
+            : "Ready to clear spent grain",
         candidate: make(
           job,
-          "tap",
+          job.kind,
           job.transformation,
           path,
           duration,
@@ -726,7 +744,8 @@ function option(
   if (j.kind === "fill-kettle")
     return fillKettleOption(state, p, j, b, sourceFacts);
   if (j.kind === "brew") return brewOption(state, p, j, b, sourceFacts);
-  if (j.kind === "tap") return tapOption(state, p, j, b);
+  if (j.kind === "tap" || j.kind === "clear-spent-grain")
+    return recipeOutputOption(state, p, j, b);
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
@@ -825,7 +844,7 @@ function automatic(a: Activity): WorkType | null {
         ? "haul"
         : a.kind === "brew"
           ? "craft"
-          : a.kind === "tap"
+          : a.kind === "tap" || a.kind === "clear-spent-grain"
             ? "craft"
             : a.kind === "build" || a.kind === "deconstruct"
               ? "build"

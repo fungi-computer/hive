@@ -50,6 +50,33 @@ export type RecipeDefinition = {
     readonly material: Material;
     readonly quantity: PositiveInt;
   };
+  /** A station-local output disposal, resolved without a loose-haul path. */
+  readonly discard: {
+    readonly outputRole: string;
+    readonly material: Material;
+    readonly quantity: PositiveInt;
+    readonly ticks: PositiveInt;
+    readonly requiresOutputExhausted: null | {
+      readonly outputRole: string;
+      readonly material: Material;
+      readonly reason: string;
+    };
+  };
+};
+
+export type RecipeOutputConsumptionAction = {
+  readonly outputRole: string;
+  readonly material: Material;
+  readonly quantity: PositiveInt;
+};
+export type RecipeOutputActionKey = "tap" | "discard";
+export type RecipeOutputAction = RecipeOutputConsumptionAction & {
+  readonly ticks: PositiveInt;
+  readonly requiresOutputExhausted: null | {
+    readonly outputRole: string;
+    readonly material: Material;
+    readonly reason: string;
+  };
 };
 
 /** Pinned authored facts; station capacity is deliberately not recipe yield. */
@@ -127,9 +154,54 @@ export const HERBAL_ALE_V1 = {
     material: "ale",
     quantity: 1 as PositiveInt,
   },
+  discard: {
+    outputRole: "spent-grain",
+    material: "spent-grain",
+    quantity: 1 as PositiveInt,
+    ticks: 1 as PositiveInt,
+    requiresOutputExhausted: {
+      outputRole: "ale",
+      material: "ale",
+      reason: "Serve the remaining ale first",
+    },
+  },
 } as const satisfies RecipeDefinition;
 
 export function recipeDefinition(id: RecipeId): RecipeDefinition {
   if (id === HERBAL_ALE_V1.id) return HERBAL_ALE_V1;
   throw new Error(`unknown recipe ${id}`);
+}
+
+/** Definitions, not the material kernel, authorize exact output disposal quanta. */
+export function recipeOutputConsumptionAction(
+  definition: RecipeDefinition,
+  role: string,
+  material: Material,
+): RecipeOutputConsumptionAction | null {
+  for (const key of ["tap", "discard"] as const) {
+    const action = recipeOutputAction(definition, key);
+    if (action.outputRole === role && action.material === material)
+      return action;
+  }
+  return null;
+}
+
+export function recipeOutputAction(
+  definition: RecipeDefinition,
+  key: RecipeOutputActionKey,
+): RecipeOutputAction {
+  return key === "tap"
+    ? {
+        ...definition.tap,
+        ticks: definition.timings.tap,
+        requiresOutputExhausted: null,
+      }
+    : definition.discard;
+}
+
+/** The two persisted schema-12 variants intentionally adapt to one recipe action. */
+export function recipeOutputActionForWire(
+  kind: "tap" | "clear-spent-grain",
+): RecipeOutputActionKey {
+  return kind === "tap" ? "tap" : "discard";
 }

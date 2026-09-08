@@ -15,7 +15,7 @@ import {
   containerQuantity,
   createGroundLot,
   completeRecipePrepare,
-  consumeRecipeServing,
+  consumeRecipeOutput,
   deliverTransfer,
   drawPailWater,
   embedConstruction,
@@ -1263,7 +1263,7 @@ test("recipe settlement atomically realizes bound output receipts without replac
   assert.deepEqual(materials, settled, "receipt prevents duplicate settlement");
 });
 
-test("a settled recipe receipt sinks one exact serving without pinning later output lots", () => {
+test("a settled recipe receipt consumes exact resolved outputs without pinning later lots", () => {
   const materials = fresh([
     {
       id: "ale-serving",
@@ -1303,18 +1303,51 @@ test("a settled recipe receipt sinks one exact serving without pinning later out
       bulk: { ale: 1 },
     },
   };
-  assert.equal(consumeRecipeServing(materials, serving).ok, true);
+  assert.equal(consumeRecipeOutput(materials, serving).ok, true);
   assert.equal(containerQuantity(materials, "vessel:keg", "ale"), 3);
-  assert.equal(consumeRecipeServing(materials, serving).ok, false);
+  assert.equal(consumeRecipeOutput(materials, serving).ok, false);
   for (let index = 2; index <= 4; index++)
     assert.equal(
-      consumeRecipeServing(materials, { ...serving, id: `tap-${index}` }).ok,
+      consumeRecipeOutput(materials, { ...serving, id: `tap-${index}` }).ok,
       true,
     );
   assert.equal(containerQuantity(materials, "vessel:keg", "ale"), 0);
   assert.equal(
-    consumeRecipeServing(materials, { ...serving, id: "tap-5" }).ok,
+    consumeRecipeOutput(materials, { ...serving, id: "tap-5" }).ok,
     false,
   );
   assert.equal(materials.consumptions.length, 4);
+  materials.lots.push({
+    id: "spent-output",
+    material: "spent-grain",
+    quantity: 1,
+    location: { kind: "container", container: "tray:station" },
+  });
+  materials.transformations[0].settlement.outputs.push({
+    role: "spent-grain",
+    destination: "tray:station",
+    material: "spent-grain",
+    quantity: 1,
+  });
+  assert.equal(
+    consumeRecipeOutput(materials, {
+      id: "discard-1",
+      transformation: "settled-batch",
+      role: "spent-grain",
+      material: "spent-grain",
+      quantity: 1,
+      sourceLot: "spent-output",
+      destination: {
+        id: "tray:station",
+        capacity: 1,
+        accepts: ["spent-grain"],
+        bulk: { "spent-grain": 1 },
+      },
+    }).ok,
+    true,
+  );
+  assert.equal(
+    materials.lots.some((lot) => lot.id === "spent-output"),
+    false,
+  );
 });

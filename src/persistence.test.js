@@ -378,6 +378,66 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
     () => restoreSnapshot(mismatchedTap),
     /tap job tap-job lacks settled station receipt/,
   );
+  const liveClear = structuredClone(tapping);
+  liveClear.savedState.materials.consumptions = [
+    ...Array.from({ length: 4 }, (_, index) => ({
+      id: `tap-complete-${index + 1}`,
+      transformation: "brew-process",
+      role: "ale",
+      material: "ale",
+      quantity: 1,
+    })),
+  ];
+  liveClear.savedState.materials.lots =
+    liveClear.savedState.materials.lots.filter(
+      (lot) => lot.id !== "ale-output",
+    );
+  liveClear.savedState.jobs = [
+    {
+      ...job("clear-job", "clear-spent-grain", "station-a"),
+      transformation: "brew-process",
+      progress: 0,
+    },
+  ];
+  assert.doesNotThrow(() => restoreSnapshot(liveClear));
+  const clearingSpent = structuredClone(liveClear);
+  clearingSpent.savedState.materials.lots =
+    clearingSpent.savedState.materials.lots.filter(
+      (lot) => lot.id !== "spent-output",
+    );
+  clearingSpent.savedState.materials.consumptions.push({
+    id: "discard-receipt",
+    transformation: "brew-process",
+    role: "spent-grain",
+    material: "spent-grain",
+    quantity: 1,
+  });
+  clearingSpent.savedState.jobs = [];
+  assert.doesNotThrow(() => restoreSnapshot(clearingSpent));
+  const corruptClear = structuredClone(clearingSpent);
+  corruptClear.savedState.materials.consumptions.find(
+    (entry) => entry.id === "discard-receipt",
+  ).role = "not-an-output";
+  assert.throws(
+    () => restoreSnapshot(corruptClear),
+    /recipe consumption discard-receipt has invalid output/,
+  );
+  const staleClear = structuredClone(clearingSpent);
+  staleClear.savedState.jobs.push({
+    ...job("stale-clear", "clear-spent-grain", "station-a"),
+    transformation: "brew-process",
+    progress: 0,
+  });
+  assert.throws(
+    () => restoreSnapshot(staleClear),
+    /clear job stale-clear has invalid station or progress/,
+  );
+  const doubleAle = structuredClone(tapping);
+  doubleAle.savedState.materials.consumptions[0].quantity = 2;
+  assert.throws(
+    () => restoreSnapshot(doubleAle),
+    /recipe consumption tap-receipt has invalid output/,
+  );
   const mismatchedReceipt = structuredClone(settled);
   mismatchedReceipt.savedState.materials.transformations[0].settlement.outputs[0].destination =
     "brew-tray:station-a";

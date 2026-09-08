@@ -4,6 +4,7 @@ import {
   containerQuantity,
   vesselContainer,
 } from "./materials.ts";
+import { recipeDefinition } from "./recipes.ts";
 import { stationVisualProfile } from "./brew-station-profiles.js";
 
 function stationContainer(site, slot) {
@@ -21,11 +22,55 @@ function jobFact(state, kind, station) {
   return Object.freeze({
     id: job.id,
     reason: job.reason,
-    progress: job.kind === "tap" ? job.progress : null,
+    progress:
+      job.kind === "tap" || job.kind === "clear-spent-grain"
+        ? job.progress
+        : null,
     active: Object.values(state.actors).some(
       (actor) => actor.task?.job === job.id,
     ),
   });
+}
+
+function settledBatchFact(state, site) {
+  const station = stationContainer(site, "kettle").id;
+  return [...(state.materials.transformations ?? [])]
+    .reverse()
+    .find((transformation) => {
+      if (transformation.settlement?.station !== station) return false;
+      const definition = recipeDefinition(transformation.definition);
+      const output = transformation.settlement.outputs.find(
+        (entry) => entry.role === definition.discard.outputRole,
+      );
+      const discarded = (state.materials.consumptions ?? []).reduce(
+        (total, entry) =>
+          total +
+          (entry.transformation === transformation.id &&
+          entry.role === definition.discard.outputRole
+            ? entry.quantity
+            : 0),
+        0,
+      );
+      return output && discarded < output.quantity;
+    });
+}
+
+function servingFact(state, batch) {
+  if (!batch?.settlement) return Object.freeze({ served: 0, total: 0 });
+  const definition = recipeDefinition(batch.definition);
+  const output = batch.settlement.outputs.find(
+    (entry) => entry.role === definition.tap.outputRole,
+  );
+  const served = (state.materials.consumptions ?? []).reduce(
+    (total, entry) =>
+      total +
+      (entry.transformation === batch.id &&
+      entry.role === definition.tap.outputRole
+        ? entry.quantity
+        : 0),
+    0,
+  );
+  return Object.freeze({ served, total: output?.quantity ?? 0 });
 }
 
 /**
@@ -47,6 +92,7 @@ export function brewStationPresentation(state, site) {
   const process = state.processes.find(
     (candidate) => candidate.station === site.id,
   );
+  const settledBatch = settledBatchFact(state, site);
   const brewJob = jobFact(state, "brew", site);
   const slots = Object.freeze({
     kettle: Object.freeze({
@@ -77,6 +123,7 @@ export function brewStationPresentation(state, site) {
         progress: process.progress,
       })
     : null;
+  const serving = servingFact(state, settledBatch);
   const attending = !!(
     process?.phase === "prepare" &&
     Object.values(state.actors).some(
@@ -96,10 +143,14 @@ export function brewStationPresentation(state, site) {
     fillJob: jobFact(state, "fill-kettle", site),
     brewJob,
     tapJob: jobFact(state, "tap", site),
+    clearJob: jobFact(state, "clear-spent-grain", site),
     // Spent grain remains an actual station occupancy after every ale portion
     // has been tapped. It is broader than a future Tap's live-ale eligibility.
-    settled: !process && slots.tray.spentGrain > 0,
+    settled: !process && (slots.tray.spentGrain > 0 || slots.keg.ale > 0),
     tapReady: slots.keg.ale > 0,
+    clearReady: slots.tray.spentGrain > 0 && slots.keg.ale === 0,
+    served: serving.served,
+    servingTotal: serving.total,
   };
   return Object.freeze({
     ...fact,
@@ -128,4 +179,8 @@ export function brewStartAvailable(station) {
  * there is nothing new to request. */
 export function tapStartAvailable(station) {
   return station.tapReady && !station.tapJob;
+}
+
+export function clearSpentGrainStartAvailable(station) {
+  return station.clearReady && !station.clearJob;
 }

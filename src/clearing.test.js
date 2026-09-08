@@ -13,7 +13,7 @@ import {
 } from "./construction.js";
 import { cacheRepairBuffer } from "./finite-sources.ts";
 import { assignWork } from "./jobs.ts";
-import { brewPrepareRemaining, tapStationReadiness } from "./brewing.ts";
+import { brewPrepareRemaining, recipeOutputReadiness } from "./brewing.ts";
 import { recipeDefinition } from "./recipes.ts";
 import {
   containerQuantity,
@@ -1678,6 +1678,16 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
   );
   assert.equal(tapReloaded.materials.consumptions.length, 1);
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(tapReloaded)));
+  assert.deepEqual(
+    actualStep(tapReloaded, [
+      { kind: "clear-spent-grain", station: station.id },
+    ]),
+    [{ status: "rejected", reason: "Serve the remaining ale first" }],
+  );
+  assert.deepEqual(
+    actualStep(tapReloaded, [{ kind: "brew", station: station.id }]),
+    [{ status: "rejected", reason: "Finish the settled batch first." }],
+  );
   for (let serving = 2; serving <= 4; serving++) {
     assert.deepEqual(
       actualStep(tapReloaded, [{ kind: "tap", station: station.id }]),
@@ -1714,7 +1724,7 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
     location: { kind: "container", container: `vessel:${keg.id}` },
   });
   assert.deepEqual(
-    tapStationReadiness(laterBatch, station),
+    recipeOutputReadiness(laterBatch, station, "tap"),
     { kind: "ready", transformation: "settled-batch-after-exhaustion" },
     "an exhausted older receipt cannot shadow a later serving at the same station",
   );
@@ -1727,6 +1737,88 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
     tapReloaded.materials.consumptions.length,
     4,
     "a fifth or repeated tick cannot duplicate a serving",
+  );
+  assert.deepEqual(
+    actualStep(tapReloaded, [
+      { kind: "clear-spent-grain", station: station.id },
+    ]),
+    [{ status: "applied" }],
+  );
+  for (
+    let tick = 0;
+    tick < 160 &&
+    tapReloaded.jobs.some((job) => job.kind === "clear-spent-grain");
+    tick++
+  )
+    actualStep(tapReloaded);
+  assert.equal(
+    containerQuantity(
+      tapReloaded.materials,
+      `brew-tray:${station.id}`,
+      "spent-grain",
+    ),
+    0,
+    "clearing consumes the physical tray lot without a ground drop",
+  );
+  assert.equal(tapReloaded.materials.consumptions.length, 5);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(tapReloaded)));
+  tapReloaded.herbs.push({
+    id: "second-batch-herb",
+    kind: "mugwort",
+    stage: "ready",
+    work: 0,
+    plantedAt: 0,
+    ...cell(7, 9),
+  });
+  tapReloaded.harvestedHerbs++;
+  tapReloaded.materials.lots.push({
+    id: "second-batch-mugwort",
+    material: "mugwort",
+    quantity: 1,
+    location: { kind: "ground", ...cell(7, 9) },
+  });
+  assert.deepEqual(
+    actualStep(tapReloaded, [{ kind: "fill-kettle", station: station.id }]),
+    [{ status: "applied" }],
+  );
+  for (
+    let tick = 0;
+    tick < 1_200 && tapReloaded.jobs.some((job) => job.kind === "fill-kettle");
+    tick++
+  )
+    actualStep(tapReloaded);
+  assert.equal(
+    containerQuantity(tapReloaded.materials, brewKettle(station).id, "water"),
+    2,
+  );
+  assert.deepEqual(
+    actualStep(tapReloaded, [{ kind: "brew", station: station.id }]),
+    [{ status: "applied" }],
+  );
+  for (
+    let tick = 0;
+    tick < 3_000 &&
+    (tapReloaded.processes.length > 0 ||
+      containerQuantity(tapReloaded.materials, `vessel:${keg.id}`, "ale") < 4);
+    tick++
+  )
+    actualStep(tapReloaded);
+  assert.equal(
+    tapReloaded.materials.transformations.length,
+    2,
+    "the emptied original keg and tray admit a second real batch",
+  );
+  assert.equal(
+    containerQuantity(tapReloaded.materials, `vessel:${keg.id}`, "ale"),
+    4,
+  );
+  assert.equal(
+    containerQuantity(
+      tapReloaded.materials,
+      `brew-tray:${station.id}`,
+      "spent-grain",
+    ),
+    1,
   );
   assert.equal(
     removalProblem(tapReloaded, station),

@@ -145,7 +145,7 @@ export type RecipeTransformation = {
     }[];
   };
 };
-/** A durable, receipt-scoped consumption; its physical serving may later be gone. */
+/** A durable settled-output consumption; its physical lot may later be gone. */
 export type RecipeConsumption = {
   readonly id: OperationId;
   readonly transformation: OperationId;
@@ -233,6 +233,12 @@ export type TapCommand = Scope & {
   direct?: boolean;
   station: string;
 };
+/** Station-owned output disposal; the recipe resolves the actual tray portion. */
+export type ClearSpentGrainCommand = Scope & {
+  kind: "clear-spent-grain";
+  direct?: boolean;
+  station: string;
+};
 export type Command =
   | WorkCommand
   | StoreCommand
@@ -240,6 +246,7 @@ export type Command =
   | FillKettleCommand
   | BrewCommand
   | TapCommand
+  | ClearSpentGrainCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
@@ -280,6 +287,12 @@ export type TapJob = JobBase & {
   transformation: OperationId;
   progress: number;
 };
+export type ClearSpentGrainJob = JobBase & {
+  kind: "clear-spent-grain";
+  target: string;
+  transformation: OperationId;
+  progress: number;
+};
 export type Job =
   | ChopJob
   | BuildJob
@@ -291,7 +304,8 @@ export type Job =
   | RepairCacheJob
   | FillKettleJob
   | BrewJob
-  | TapJob;
+  | TapJob
+  | ClearSpentGrainJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -309,6 +323,9 @@ export type BrewWaterActivity = ActivityBase & { kind: "brew-water" };
 export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
 export type BrewActivity = ActivityBase & { kind: "brew" };
 export type TapActivity = ActivityBase & { kind: "tap" };
+export type ClearSpentGrainActivity = ActivityBase & {
+  kind: "clear-spent-grain";
+};
 export type Activity =
   | ChopActivity
   | BuildActivity
@@ -320,7 +337,8 @@ export type Activity =
   | BrewWaterActivity
   | RepairCacheActivity
   | BrewActivity
-  | TapActivity;
+  | TapActivity
+  | ClearSpentGrainActivity;
 export type Body = Cell & {
   dir: number;
   mode: "idle" | "walk" | Activity["kind"];

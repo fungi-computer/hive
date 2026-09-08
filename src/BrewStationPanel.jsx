@@ -3,6 +3,7 @@ import { Button } from "@fungi.computer/caps/components/button";
 import { Card } from "@fungi.computer/caps/components/card";
 import {
   brewStartAvailable,
+  clearSpentGrainStartAvailable,
   tapStartAvailable,
 } from "./brew-station-presentation.js";
 
@@ -14,7 +15,8 @@ function jobLabel(job, action) {
 export function BrewStationPanel({ station, context, deconstructJob, send }) {
   const fillLabel = jobLabel(station.fillJob, "Fill kettle");
   const brewLabel = jobLabel(station.brewJob, "Brew herbal ale");
-  const tapLabel = jobLabel(station.tapJob, "Tap herbal ale");
+  const tapLabel = jobLabel(station.tapJob, "Serve herbal ale");
+  const clearLabel = jobLabel(station.clearJob, "Clear spent grain");
   const deconstructLabel = jobLabel(deconstructJob, "Deconstruct");
   const processLabel = station.process
     ? `${station.process.phase.toUpperCase()} · progress ${station.process.progress}`
@@ -23,6 +25,7 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
       : "No active batch.";
   const canBrew = brewStartAvailable(station);
   const canTap = tapStartAvailable(station);
+  const canClear = clearSpentGrainStartAvailable(station);
   return (
     <Card
       variant="outline"
@@ -69,8 +72,8 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
         <div>
           <dt>Settled contents</dt>
           <dd>
-            Ale {station.slots.keg.ale} · Spent grain{" "}
-            {station.slots.tray.spentGrain}
+            Ale {station.slots.keg.ale} · Served {station.served}/
+            {station.servingTotal} · Spent grain {station.slots.tray.spentGrain}
           </dd>
         </div>
       </dl>
@@ -82,16 +85,23 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
               : "The current process is unattended."
             : station.settled
               ? station.tapReady
-                ? "Live ale is available for the shared Tap order."
-                : "Spent grain still occupies the tray; Tap has no live ale target."
+                ? "Live ale is available for the shared serving order."
+                : "Spent grain still occupies the tray; no live ale remains to serve."
               : "Brew admission remains the authoritative recipe check.")}
       </small>
       <small className="action-reason" data-status="tap">
         {station.tapJob
           ? `${station.tapJob.reason} · progress ${station.tapJob.progress}`
           : station.tapReady
-            ? "Tap admission remains the authoritative serving check."
-            : "No live ale is available to tap."}
+            ? "A served portion is consumed; personal inventory and needs do not exist yet."
+            : "No live ale is available to serve."}
+      </small>
+      <small className="action-reason" data-status="clear-spent-grain">
+        {station.clearJob
+          ? `${station.clearJob.reason} · progress ${station.clearJob.progress}`
+          : station.clearReady
+            ? "Clear the canonical tray before starting the next batch."
+            : "No spent grain is waiting in the tray."}
       </small>
       <div className="button-column">
         <Button
@@ -145,6 +155,26 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
           }
         >
           {tapLabel}
+        </Button>
+        <Button
+          id="clear-spent-grain"
+          data-action="clear-spent-grain"
+          data-site={station.id}
+          variant="primary"
+          disabled={!canClear}
+          aria-label={clearLabel}
+          onClick={() =>
+            send({
+              kind: "command",
+              command: {
+                kind: "clear-spent-grain",
+                station: station.id,
+                actors: null,
+              },
+            })
+          }
+        >
+          {clearLabel}
         </Button>
         <Button
           id="deconstruct"

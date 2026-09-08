@@ -1185,7 +1185,8 @@ export type ResolvedRecipeSettlement = {
 };
 
 /** A definition-resolved serving from one settled physical output destination. */
-export type ResolvedRecipeServing = {
+/** A recipe owner resolves one exact settled-output portion before mutation. */
+export type ResolvedRecipeOutputConsumption = {
   id: string;
   transformation: string;
   role: string;
@@ -1567,52 +1568,52 @@ export function settleRecipePlan(
   return success(undefined);
 }
 
-/** Atomically sinks one exact output portion and leaves a durable receipt. */
-export function consumeRecipeServing(
+/** Atomically sinks one exact settled output portion and leaves a durable receipt. */
+export function consumeRecipeOutput(
   state: MaterialsState,
-  serving: ResolvedRecipeServing,
+  consumption: ResolvedRecipeOutputConsumption,
 ): MaterialResult<void> {
-  if (state.consumptions.some((entry) => entry.id === serving.id))
+  if (state.consumptions.some((entry) => entry.id === consumption.id))
     return failure("owner-busy");
   const transformation = state.transformations.find(
-    (entry) => entry.id === serving.transformation,
+    (entry) => entry.id === consumption.transformation,
   );
   const output = transformation?.settlement?.outputs.find(
     (entry) =>
-      entry.role === serving.role &&
-      entry.material === serving.material &&
-      entry.destination === serving.destination.id,
+      entry.role === consumption.role &&
+      entry.material === consumption.material &&
+      entry.destination === consumption.destination.id,
   );
   if (!transformation?.settlement || !output) return failure("wrong-phase");
   const consumed = state.consumptions.reduce(
     (total, entry) =>
       total +
-      (entry.transformation === serving.transformation &&
-      entry.role === serving.role
+      (entry.transformation === consumption.transformation &&
+      entry.role === consumption.role
         ? entry.quantity
         : 0),
     0,
   );
-  if (consumed + serving.quantity > output.quantity)
+  if (consumed + consumption.quantity > output.quantity)
     return failure("source-insufficient");
-  const lot = lotById(state, serving.sourceLot);
+  const lot = lotById(state, consumption.sourceLot);
   if (
     !lot ||
-    lot.material !== serving.material ||
+    lot.material !== consumption.material ||
     lot.location.kind !== "container" ||
-    lot.location.container !== serving.destination.id ||
-    availableQuantity(state, lot.id) < serving.quantity
+    lot.location.container !== consumption.destination.id ||
+    availableQuantity(state, lot.id) < consumption.quantity
   )
     return failure("source-insufficient");
-  if (lot.quantity === serving.quantity)
+  if (lot.quantity === consumption.quantity)
     state.lots = state.lots.filter((entry) => entry !== lot);
-  else lot.quantity = (lot.quantity - serving.quantity) as PositiveInt;
+  else lot.quantity = (lot.quantity - consumption.quantity) as PositiveInt;
   state.consumptions.push({
-    id: serving.id,
-    transformation: serving.transformation,
-    role: serving.role,
-    material: serving.material,
-    quantity: serving.quantity,
+    id: consumption.id,
+    transformation: consumption.transformation,
+    role: consumption.role,
+    material: consumption.material,
+    quantity: consumption.quantity,
   });
   return success(undefined);
 }

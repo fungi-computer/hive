@@ -4,6 +4,7 @@ import type {
   Job,
   RepairCacheCommand,
   BrewCommand,
+  ClearSpentGrainCommand,
   TapCommand,
   Scope,
   StoreCommand,
@@ -15,9 +16,11 @@ import { cacheRepairBuffer, sourceIsOpen } from "./finite-sources.ts";
 import { interruptWork } from "./activity.ts";
 import {
   brewForJob,
+  brewStationOutputProblem,
   cancelPreparingBrew,
-  tapStationReadiness,
+  recipeOutputReadiness,
 } from "./brewing.ts";
+import { recipeOutputActionForWire } from "./recipes.ts";
 import {
   containerContents,
   interruptOperationPail,
@@ -80,9 +83,11 @@ export function commandProblem(s: Clearing, c: Command): string {
         site.type === "brew-station" &&
         site.finishedAt !== null,
     );
-    return !station ? "That brew station is not finished." : scopeProblem(s, c);
+    return !station
+      ? "That brew station is not finished."
+      : (brewStationOutputProblem(s, station) ?? scopeProblem(s, c));
   }
-  if (c.kind === "tap") {
+  if (c.kind === "tap" || c.kind === "clear-spent-grain") {
     const station = s.sites.find(
       (site) =>
         site.id === c.station &&
@@ -90,15 +95,25 @@ export function commandProblem(s: Clearing, c: Command): string {
         site.finishedAt !== null,
     );
     if (!station) return "That brew station is not finished.";
-    const readiness = tapStationReadiness(s, station);
+    const readiness = recipeOutputReadiness(
+      s,
+      station,
+      recipeOutputActionForWire(c.kind),
+      undefined,
+      c.kind === "tap"
+        ? "Waiting for a settled ale serving"
+        : "Waiting for spent grain to clear",
+    );
     return readiness.kind === "waiting"
       ? readiness.reason
       : s.jobs.some(
             (job) =>
-              job.kind === "tap" &&
+              job.kind === c.kind &&
               job.transformation === readiness.transformation,
           )
-        ? "That settled batch is already being tapped."
+        ? c.kind === "tap"
+          ? "That settled batch is already being tapped."
+          : "That spent grain is already being cleared."
         : scopeProblem(s, c);
   }
   if (c.kind === "build") return placementProblem(s, c);
@@ -163,6 +178,7 @@ function scope(
     | RepairCacheCommand
     | BrewCommand
     | TapCommand
+    | ClearSpentGrainCommand
     | Extract<Command, { kind: "fill-kettle" }>,
 ): Scope {
   return c.kind === "store"
@@ -177,6 +193,7 @@ function add(
     | RepairCacheCommand
     | BrewCommand
     | TapCommand
+    | ClearSpentGrainCommand
     | Extract<Command, { kind: "fill-kettle" }>,
 ) {
   const sc = scope(c),
@@ -222,13 +239,21 @@ function add(
       reason: "Ordered",
       routine: false,
     };
-  else if (c.kind === "tap") {
+  else if (c.kind === "tap" || c.kind === "clear-spent-grain") {
     const station = s.sites.find((site) => site.id === c.station)!;
-    const readiness = tapStationReadiness(s, station);
+    const readiness = recipeOutputReadiness(
+      s,
+      station,
+      recipeOutputActionForWire(c.kind),
+      undefined,
+      c.kind === "tap"
+        ? "Waiting for a settled ale serving"
+        : "Waiting for spent grain to clear",
+    );
     if (readiness.kind !== "ready") throw new Error(readiness.reason);
     j = {
       id,
-      kind: "tap",
+      kind: c.kind,
       target: c.station,
       transformation: readiness.transformation,
       progress: 0,
@@ -416,6 +441,7 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "fill-kettle" ||
     c.kind === "brew" ||
     c.kind === "tap" ||
+    c.kind === "clear-spent-grain" ||
     c.kind === "rest"
   )
     add(s, c);

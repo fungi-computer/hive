@@ -4,6 +4,7 @@ import { siteMaterialEndpoint } from "./construction.js";
 import {
   brewStartAvailable,
   brewStationPresentation,
+  clearSpentGrainStartAvailable,
   shouldUseBrewStationPanel,
   tapStartAvailable,
 } from "./brew-station-presentation.js";
@@ -24,6 +25,7 @@ function state({
   attending = false,
   settled = false,
   exhausted = false,
+  served = 0,
   tap = null,
 } = {}) {
   const lots = [
@@ -75,12 +77,48 @@ function state({
       lots.push({
         id: "ale",
         material: "ale",
-        quantity: 4,
+        quantity: 4 - served,
         location: { kind: "container", container: "vessel:keg" },
       });
   }
   return {
-    materials: { lots },
+    materials: {
+      lots,
+      transformations:
+        settled || exhausted
+          ? [
+              {
+                id: "batch-1",
+                definition: "herbal-ale-v1",
+                settlement: {
+                  station: "kettle:site-brew",
+                  retained: [],
+                  outputs: [
+                    {
+                      role: "ale",
+                      destination: "vessel:keg",
+                      material: "ale",
+                      quantity: 4,
+                    },
+                    {
+                      role: "spent-grain",
+                      destination: "brew-tray:site-brew",
+                      material: "spent-grain",
+                      quantity: 1,
+                    },
+                  ],
+                },
+              },
+            ]
+          : [],
+      consumptions: Array.from({ length: served }, (_, index) => ({
+        id: `tap-${index + 1}`,
+        transformation: "batch-1",
+        role: "ale",
+        material: "ale",
+        quantity: 1,
+      })),
+    },
     jobs: [
       { id: "job-brew", kind: "brew", target: site.id, reason: "Ordered" },
       ...(tap
@@ -185,6 +223,7 @@ test("an exhausted keg keeps the real spent-grain tray visible and blocks a new 
   assert.equal(exhausted.tapReady, false);
   assert.equal(exhausted.visualProfile, "settled");
   assert.equal(brewStartAvailable(exhausted), false);
+  assert.equal(clearSpentGrainStartAvailable(exhausted), true);
 });
 
 test("Tap projects only its canonical station job and live ale without serving policy", () => {
@@ -204,7 +243,15 @@ test("Tap projects only its canonical station job and live ale without serving p
   assert.equal(ready.tapReady, true);
   assert.equal(tapStartAvailable(ready), true);
 
+  const partlyServed = brewStationPresentation(
+    state({ settled: true, served: 2 }),
+    site,
+  );
+  assert.equal(partlyServed.served, 2);
+  assert.equal(partlyServed.servingTotal, 4);
+
   const exhausted = brewStationPresentation(state({ exhausted: true }), site);
   assert.equal(exhausted.tapReady, false);
   assert.equal(tapStartAvailable(exhausted), false);
+  assert.equal(clearSpentGrainStartAvailable(exhausted), true);
 });
