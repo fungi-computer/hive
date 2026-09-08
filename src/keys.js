@@ -3,6 +3,39 @@ import {
   createBindingLookup,
   formatCommandBindings,
 } from "@opentui/keymap/extras";
+import { LEVEL_NAVIGATION } from "./ui-actions.ts";
+
+const LEVEL_INPUT_SELECTOR =
+  "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='checkbox']";
+const SCROLLABLE_OVERFLOW = new Set(["auto", "scroll", "overlay"]);
+
+function actuallyScrollable(node, resolveStyle) {
+  const style = resolveStyle(node);
+  return (
+    (SCROLLABLE_OVERFLOW.has(style.overflowX) &&
+      node.scrollWidth > node.clientWidth) ||
+    (SCROLLABLE_OVERFLOW.has(style.overflowY) &&
+      node.scrollHeight > node.clientHeight)
+  );
+}
+
+export function levelNavigationOwned(
+  nativeEvent,
+  activeElement,
+  body,
+  resolveStyle = (node) => globalThis.getComputedStyle(node),
+) {
+  if (nativeEvent?.defaultPrevented) return true;
+  if (!activeElement) return false;
+  if (activeElement.matches?.(LEVEL_INPUT_SELECTOR)) return true;
+  let node = activeElement;
+  while (node) {
+    if (actuallyScrollable(node, resolveStyle)) return true;
+    if (node === body) break;
+    node = node.parentElement;
+  }
+  return false;
+}
 
 // Game actions are local; OpenTUI owns physical keys, matching and hint formatting.
 export function createKeys(root, read, send, changed) {
@@ -122,7 +155,22 @@ export function createKeys(root, read, send, changed) {
       repeat: true,
       action: () => ({ kind: "pan", x: 0, y: -24 }),
     },
+    ...LEVEL_NAVIGATION.map((control) => ({
+      name: control.name,
+      key: control.key,
+      title: control.title,
+      levelNavigation: true,
+      enabled: () => control.enabled(read().level),
+      action: () => ({ ...control.action }),
+    })),
   ];
+  function pageNavigationOwned(event) {
+    return levelNavigationOwned(
+      event.originalEvent,
+      document.activeElement,
+      document.body,
+    );
+  }
   const lookup = createBindingLookup(
     Object.fromEntries(definitions.map((d) => [d.name, d.key])),
   );
@@ -144,6 +192,7 @@ export function createKeys(root, read, send, changed) {
           (event.originalEvent?.repeat && !d.repeat)
         )
           return;
+        if (d.levelNavigation && pageNavigationOwned(event)) return;
         send(d.action());
       },
     })),
@@ -165,6 +214,8 @@ export function createKeys(root, read, send, changed) {
                 keyNameAliases: {
                   space: "Space",
                   escape: "Esc",
+                  pageup: "PageUp",
+                  pagedown: "PageDown",
                   left: "←",
                   right: "→",
                   up: "↑",

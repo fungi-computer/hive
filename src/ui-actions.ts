@@ -1,6 +1,7 @@
 import type { BuildingKind, Cell, Command } from "./model.ts";
 
 export type ToolKind = "chop" | BuildingKind | "herb";
+export type LogicalLevel = 0 | 1;
 
 export type GesturePoint = {
   cell: { x: number; z: number; level: number };
@@ -68,7 +69,7 @@ export type UiAction =
   | { kind: "commit-designation" }
   | { kind: "commit-result"; accepted: number }
   | { kind: "cutaway"; value: boolean }
-  | { kind: "level"; level: 0 | 1 }
+  | { kind: "level"; level: LogicalLevel }
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
   | { kind: "go"; point: GesturePoint }
@@ -95,6 +96,109 @@ export type UiEffect =
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number };
 
+export type LevelNavigationControl = {
+  readonly name: string;
+  readonly level: LogicalLevel;
+  readonly label: "Ground" | "Upper";
+  readonly key: "pageup" | "pagedown";
+  readonly title: string;
+  readonly enabled: (current: LogicalLevel) => boolean;
+  readonly action: { kind: "level"; level: LogicalLevel };
+};
+
+export const LEVEL_NAVIGATION = [
+  {
+    name: "view.level.ground",
+    level: 0,
+    label: "Ground",
+    key: "pagedown",
+    title: "Show Ground level",
+    enabled: (current: LogicalLevel) => current !== 0,
+    action: { kind: "level", level: 0 },
+  },
+  {
+    name: "view.level.upper",
+    level: 1,
+    label: "Upper",
+    key: "pageup",
+    title: "Show Upper level",
+    enabled: (current: LogicalLevel) => current !== 1,
+    action: { kind: "level", level: 1 },
+  },
+] as const satisfies readonly LevelNavigationControl[];
+
+export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
+  switch (tool) {
+    case "floor":
+      return 1;
+    case "stair":
+    case "chop":
+    case "herb":
+      return 0;
+    case "wall":
+    case "door":
+    case "roof":
+    case "bed":
+    case "shelf":
+      return null;
+    default:
+      return neverAction(tool);
+  }
+}
+
+export type LevelTransition = {
+  readonly changed: boolean;
+  readonly level: LogicalLevel;
+  readonly disarm: boolean;
+  readonly notice: string | null;
+};
+
+export function decideLevelTransition(
+  current: LogicalLevel,
+  requested: LogicalLevel,
+  tool: ToolKind | null,
+): LevelTransition {
+  if (current === requested)
+    return { changed: false, level: current, disarm: false, notice: null };
+  const required = tool === null ? null : requiredToolLevel(tool);
+  const disarm = required !== null && required !== requested;
+  return {
+    changed: true,
+    level: requested,
+    disarm,
+    notice: disarm
+      ? `${requested === 1 ? "Upper" : "Ground"} selected; the armed tool was disarmed because it is unavailable on this level.`
+      : null,
+  };
+}
+
+export type LevelActionOwner = {
+  readonly currentLevel: () => LogicalLevel;
+  readonly armedTool: () => ToolKind | null;
+  readonly resetGesture: () => void;
+  readonly disarmTool: () => void;
+  readonly setLevel: (level: LogicalLevel) => void;
+  readonly clearInspection: () => void;
+  readonly notice: (text: string) => void;
+};
+
+export function dispatchLevelAction(
+  action: Extract<UiAction, { kind: "level" }>,
+  owner: LevelActionOwner,
+): void {
+  const transition = decideLevelTransition(
+    owner.currentLevel(),
+    action.level,
+    owner.armedTool(),
+  );
+  if (!transition.changed) return;
+  owner.resetGesture();
+  if (transition.disarm) owner.disarmTool();
+  owner.setLevel(transition.level);
+  owner.clearInspection();
+  if (transition.notice) owner.notice(transition.notice);
+}
+
 export function submitDesignation(targetIds: string[]): UiEffect {
   return { kind: "submit-designation", targetIds: [...targetIds] };
 }
@@ -103,14 +207,21 @@ function neverAction(value: never): never {
   throw new Error(`Unhandled UI action: ${String(value)}`);
 }
 
-// This is the actual producer/router boundary used by HUD and OpenTUI. Every
-// discriminant is checked by TypeScript; a new action cannot silently fall
-// through to an unowned producer.
-export function routeUiAction(
+export type NonLevelUiAction = Exclude<UiAction, { kind: "level" }>;
+
+export type UiActionOwners = {
+  readonly run: (action: NonLevelUiAction) => void;
+  readonly level: LevelActionOwner;
+};
+
+export function dispatchUiAction(
   action: UiAction,
-  run: (action: UiAction) => void,
+  owners: UiActionOwners,
 ): void {
   switch (action.kind) {
+    case "level":
+      dispatchLevelAction(action, owners.level);
+      return;
     case "select":
     case "select-many":
     case "tree":
@@ -144,14 +255,13 @@ export function routeUiAction(
     case "commit-designation":
     case "commit-result":
     case "cutaway":
-    case "level":
     case "command":
     case "recruit":
     case "go":
     case "notice":
     case "zoom":
     case "pan":
-      run(action);
+      owners.run(action);
       return;
     default:
       return neverAction(action);

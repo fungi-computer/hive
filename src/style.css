@@ -35,6 +35,7 @@ a {
 }
 #hud {
   pointer-events: none;
+  --hud-rail-bottom: 190px;
 }
 #hud button,
 #hud input,
@@ -355,9 +356,16 @@ meter::-webkit-meter-optimum-value {
   border: 0;
   color: var(--stipe-fg-muted);
 }
-.target-window {
+.window.target-window {
+  left: var(--target-left);
+  top: max(
+    12px,
+    min(var(--target-top, 80px), calc(100dvh - var(--hud-rail-bottom)))
+  );
   width: 232px;
-  bottom: auto;
+  bottom: var(--hud-rail-bottom);
+  max-height: calc(100dvh - var(--hud-rail-bottom) - 24px);
+  overflow-y: auto;
   z-index: 3;
 }
 .target-window .button-row {
@@ -455,6 +463,7 @@ meter::-webkit-meter-optimum-value {
   gap: 6px;
   padding: 6px;
   white-space: nowrap;
+  z-index: 4;
 }
 .command-bar button > span {
   margin-left: 4px;
@@ -466,6 +475,7 @@ meter::-webkit-meter-optimum-value {
   gap: 2px;
   padding: 0 2px;
   border-left: 1px solid var(--color-base-300);
+  flex-shrink: 0;
 }
 .cutaway-control {
   display: flex;
@@ -534,7 +544,6 @@ meter::-webkit-meter-optimum-value {
     width: 232px;
     right: auto;
     bottom: auto;
-    max-height: none;
   }
   .bramble-advice {
     left: 10px;
@@ -636,6 +645,9 @@ kbd {
 @media (max-width: 760px) {
   .command-bar kbd {
     display: none;
+  }
+  .level-controls kbd {
+    display: inline;
   }
 }
 @media (max-width: 760px) {

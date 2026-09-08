@@ -15,7 +15,12 @@ import { BUILDINGS, shelteredBeds } from "./construction.js";
 import { commandProblem } from "./orders.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
-import { routeUiAction, submitDesignation } from "./ui-actions.ts";
+import {
+  dispatchUiAction,
+  LEVEL_NAVIGATION,
+  requiredToolLevel,
+  submitDesignation,
+} from "./ui-actions.ts";
 
 const ACTIVITIES = {
   idle: "Waiting for work",
@@ -1015,10 +1020,7 @@ function Target({ model: m, send }) {
         role="region"
         className="window target-window"
         aria-label="Mugwort bundle actions"
-        style={{
-          left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
-          top: Math.max(80, Math.min(innerHeight - 230, m.context.y + 12)),
-        }}
+        style={targetPosition(m.context)}
       >
         <div className="window-heading">
           <h2>Mugwort bundle</h2>
@@ -1089,10 +1091,7 @@ function Target({ model: m, send }) {
         role="region"
         className="window target-window"
         aria-label="Structure actions"
-        style={{
-          left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
-          top: Math.max(80, Math.min(innerHeight - 190, m.context.y + 12)),
-        }}
+        style={targetPosition(m.context)}
       >
         <div className="window-heading">
           <h2>
@@ -1154,10 +1153,7 @@ function Target({ model: m, send }) {
         role="region"
         className="window target-window"
         aria-label="Mugwort actions"
-        style={{
-          left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
-          top: Math.max(80, Math.min(innerHeight - 190, m.context.y + 12)),
-        }}
+        style={targetPosition(m.context)}
       >
         <div className="window-heading">
           <h2>Mugwort</h2>
@@ -1215,10 +1211,7 @@ function Target({ model: m, send }) {
       role="region"
       className="window target-window"
       aria-label="Oak actions"
-      style={{
-        left: Math.max(12, Math.min(innerWidth - 244, m.context.x + 12)),
-        top: Math.max(80, Math.min(innerHeight - 270, m.context.y + 12)),
-      }}
+      style={targetPosition(m.context)}
     >
       <div className="window-heading">
         <h2>{tree.felled ? "Oak stump" : "Oak tree"}</h2>
@@ -1592,16 +1585,18 @@ function Hud({ machineSnapshot, send, portraits }) {
           <Key model={m} name="panel.orders" />
         </Button>
         <div className="level-controls" role="group" aria-label="Logical level">
-          {[0, 1].map((level) => (
+          {LEVEL_NAVIGATION.map((control) => (
             <Button
-              key={level}
-              data-level={level}
-              variant={m.level === level ? "secondary" : "ghost"}
+              key={control.name}
+              data-level={control.level}
+              variant={m.level === control.level ? "secondary" : "ghost"}
               size="sm"
-              aria-pressed={m.level === level}
-              onClick={() => send({ kind: "level", level })}
+              aria-label={control.title}
+              aria-pressed={m.level === control.level}
+              disabled={!control.enabled(m.level)}
+              onClick={() => send(control.action)}
             >
-              {levelName(level)}
+              {control.label} <Key model={m} name={control.name} />
             </Button>
           ))}
         </div>
@@ -1642,6 +1637,13 @@ function Hud({ machineSnapshot, send, portraits }) {
       </Card>
     </>
   );
+}
+
+function targetPosition(point) {
+  return {
+    "--target-left": `${Math.max(12, Math.min(innerWidth - 244, point.x + 12))}px`,
+    "--target-top": `${Math.max(12, point.y + 12)}px`,
+  };
 }
 
 function portrait(texture, crop) {
@@ -1694,6 +1696,25 @@ function HudHost({ machine, send, portraits }) {
       fallback.tabIndex = -1;
     fallback.focus({ preventScroll: true });
   });
+  useLayoutEffect(() => {
+    const hud = document.querySelector("#hud");
+    const rail = hud?.querySelector(".command-bar");
+    if (!hud || !rail) return;
+    const updateReservedLayout = () => {
+      hud.style.setProperty(
+        "--hud-rail-bottom",
+        `${Math.ceil(rail.getBoundingClientRect().height) + 12}px`,
+      );
+    };
+    updateReservedLayout();
+    const observer = new ResizeObserver(updateReservedLayout);
+    observer.observe(rail);
+    window.addEventListener("resize", updateReservedLayout);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateReservedLayout);
+    };
+  }, []);
   return <Hud machineSnapshot={snapshot} send={send} portraits={portraits} />;
 }
 
@@ -1713,7 +1734,23 @@ export function createHud(host, art, effect) {
     store.set(preferencesAtom, update);
   }
   function dispatch(action) {
-    routeUiAction(action, runAction);
+    dispatchUiAction(action, {
+      run: runAction,
+      level: {
+        currentLevel: () => store.get(preferencesAtom).level,
+        armedTool: () => machine.getSnapshot().context.tool,
+        resetGesture: () => machine.send({ type: "LEVEL_CHANGE" }),
+        disarmTool: () => machine.send({ type: "TOOL", tool: null }),
+        setLevel: (level) => setPreferences((value) => ({ ...value, level })),
+        clearInspection: () =>
+          setSelection((value) => ({
+            ...value,
+            inspectedTarget: null,
+            designationTargetIds: [],
+          })),
+        notice: (text) => effect({ kind: "notice", text }),
+      },
+    });
   }
   function runAction(action) {
     const current = store.get(selectionAtom);
@@ -1843,29 +1880,13 @@ export function createHud(host, art, effect) {
         return;
       case "tool":
         machine.send({ type: "TOOL", tool: action.tool });
-        if (
-          action.tool === "floor" ||
-          action.tool === "stair" ||
-          action.tool === "chop" ||
-          action.tool === "herb"
-        )
-          setPreferences((value) => ({
-            ...value,
-            level: action.tool === "floor" ? 1 : 0,
-          }));
+        if (action.tool) {
+          const level = requiredToolLevel(action.tool);
+          if (level !== null) setPreferences((value) => ({ ...value, level }));
+        }
         setSelection((value) => ({
           ...value,
           panel: "build",
-          inspectedTarget: null,
-          designationTargetIds: [],
-        }));
-        return;
-      case "level":
-        if (action.level === preferences.level) return;
-        machine.send({ type: "LEVEL_CHANGE" });
-        setPreferences((value) => ({ ...value, level: action.level }));
-        setSelection((value) => ({
-          ...value,
           inspectedTarget: null,
           designationTargetIds: [],
         }));
