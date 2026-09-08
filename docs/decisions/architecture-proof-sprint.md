@@ -2,7 +2,7 @@
 
 ## Current sprint: a small home worth returning to
 
-Game CTO reviewed direction, 2026-09-08. Replace only the current section of `docs/decisions/architecture-proof-sprint.md` after review; retain its historical section and evidence below. This is proposed sequencing, not a new source, proof, deployment, cost or deadline claim. Delivery's exact revision/release records establish what is playable.
+Game CTO reviewed direction, 2026-09-08. This section supersedes the historical section and evidence retained below. It is sequencing direction, not a new source, proof, deployment, cost or deadline claim. Delivery's exact revision/release records establish what is playable.
 
 **Outcome:** on the deliberately tiny map, the player can confidently place and inspect things, organize real supplies, make an honest brew, leave people working, and return to a useful result. A separate responsive map lab proves future geography without making a larger world the substitute for a satisfying home. Ship coherent improvements on the same preview as each becomes ready.
 
