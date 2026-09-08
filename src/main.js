@@ -10,6 +10,7 @@ import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
 import { inside, placementOccupant, SIZE } from "./world.js";
 import { createHud } from "./hud.jsx";
+import { singlePlacementTool } from "./ui-actions.ts";
 import {
   backupJson,
   loadWorld,
@@ -131,6 +132,7 @@ async function startGame() {
       tree: inspectedTarget?.kind === "tree" ? inspectedTarget.id : null,
       herb: inspectedTarget?.kind === "herb" ? inspectedTarget.id : null,
       lot: inspectedTarget?.kind === "lot" ? inspectedTarget.id : null,
+      source: inspectedTarget?.kind === "source" ? inspectedTarget.id : null,
       site: inspectedTarget?.kind === "site" ? inspectedTarget.id : null,
       tool: current.tool,
       phase: current.phase,
@@ -348,7 +350,9 @@ async function startGame() {
       command.kind === "deconstruct" ||
       command.kind === "sow" ||
       command.kind === "harvest" ||
-      command.kind === "store"
+      command.kind === "store" ||
+      command.kind === "repair-cache" ||
+      command.kind === "fill-kettle"
     ) {
       scoped = { party: "home", actors: null, ...command };
     } else {
@@ -578,6 +582,16 @@ async function startGame() {
         return;
       hud.dispatch({ kind: "inspect-lot", id, point: pointAt });
     },
+    source(id, pointAt) {
+      const current = hud.view();
+      if (
+        current.tool ||
+        current.panMode ||
+        current.machine.context.gesture === "box"
+      )
+        return;
+      hud.dispatch({ kind: "inspect-source", id, point: pointAt });
+    },
     site(id, pointAt) {
       const current = hud.view();
       if (
@@ -667,10 +681,9 @@ async function startGame() {
         hud.dispatch({ kind: "escape" });
         return;
       }
-      const cells =
-        fixed.tool === "bed" || fixed.tool === "stair"
-          ? [end]
-          : dragCells(start, end);
+      const cells = singlePlacementTool(fixed.tool)
+        ? [end]
+        : dragCells(start, end);
       for (const cell of cells)
         request({
           kind: "build",

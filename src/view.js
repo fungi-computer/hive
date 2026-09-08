@@ -7,7 +7,8 @@ import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
 import { createConstructionView } from "./construction-view.js";
 import { createVisualHitGeometryOwner } from "./visual-hit-geometry.js";
-import { carriedLot } from "./materials.ts";
+import { carriedLot, containerQuantity, vesselContainer } from "./materials.ts";
+import { sourceContainerSpec, sourceIsOpen } from "./finite-sources.ts";
 
 function label(text, size = 8) {
   const result = new Text({
@@ -46,6 +47,39 @@ function body(texture, anchor, radius) {
 function animationFrame(tick, pose, frames) {
   const ticksPerFrame = pose === "idle" ? 8 : 2;
   return Math.floor(tick / ticksPerFrame) % frames.length;
+}
+
+/** The renderer derives every carried-pail pose from durable lot custody. */
+export function carriedActorPose(materials, hand, mode) {
+  if (hand?.material === "pail") {
+    const water = containerQuantity(
+      materials,
+      vesselContainer(hand.id),
+      "water",
+    );
+    return water >= 2
+      ? "carry-pail-full"
+      : water === 1
+        ? "carry-pail-half"
+        : "carry-pail-empty";
+  }
+  return hand?.material === "mugwort"
+    ? "carry-herb"
+    : mode === "walk" && hand?.material === "wood"
+      ? "carry"
+      : mode;
+}
+
+function stationaryCarryPose(pose, mode) {
+  return (
+    mode !== "walk" && (pose === "carry-herb" || pose.startsWith("carry-pail-"))
+  );
+}
+
+export function carriedActorFrame(tick, pose, mode, frames) {
+  return stationaryCarryPose(pose, mode)
+    ? 0
+    : animationFrame(tick, pose, frames);
 }
 
 export function createView(app, world, camera, art, initial, input) {
@@ -170,6 +204,8 @@ export function createView(app, world, camera, art, initial, input) {
   const piles = new Map();
   const herbs = new Map();
   const bundles = new Map();
+  const sources = new Map();
+  const pails = new Map();
   const construction = createConstructionView(
     world,
     art,
@@ -207,6 +243,140 @@ export function createView(app, world, camera, art, initial, input) {
     if (fromCanvas(e))
       input.groundRight(camera.cell(e.global, input.level()), e.global);
   });
+
+  function drawSources(state, selection) {
+    for (const [id, view] of sources)
+      if (!state.sources.some((source) => source.id === id)) {
+        picking.remove(view.container);
+        view.container.destroy({ children: true });
+        sources.delete(id);
+      }
+    const interactive = !selection.tool && !selection.panMode && !selection.box;
+    for (const source of state.sources) {
+      if (!sources.has(source.id)) {
+        const view = body(art.sources.spring.full, art.propAnchor, 9);
+        const target = {
+          kind: "source",
+          id: source.id,
+          level: source.level,
+          action: "inspect-source",
+        };
+        view.container.cursor = "pointer";
+        view.container.on("pointerdown", (event) => {
+          if (!input.groundPointerOwns()) event.stopPropagation();
+        });
+        view.container.on("pointertap", (event) => {
+          if (input.groundPointerOwns()) return;
+          const dispatched = picking.recordFor(view.container)?.target;
+          if (!dispatched) return;
+          event.stopPropagation();
+          input.source(dispatched.id, event.global);
+        });
+        sources.set(source.id, { ...view, target });
+        bodies.addChild(view.container);
+      }
+      const view = sources.get(source.id);
+      const provider = sourceContainerSpec(source);
+      const quantity = containerQuantity(
+        state.materials,
+        provider.id,
+        provider.accepts[0],
+      );
+      const stateName =
+        source.kind === "spring"
+          ? quantity <= 0
+            ? "dry"
+            : quantity < provider.capacity
+              ? "low"
+              : "full"
+          : sourceIsOpen(source)
+            ? "repaired"
+            : "sealed";
+      const texture =
+        source.kind === "spring"
+          ? art.sources.spring[stateName]
+          : art.sources.cache[stateName];
+      const active = source.level === selection.level;
+      view.container.visible = active;
+      view.container.eventMode = active && interactive ? "static" : "none";
+      put(view.container, source, 0.24);
+      view.sprite.texture = texture;
+      picking.bind(view.container, {
+        texture,
+        anchor: art.propAnchor,
+        orientation: `${source.kind}:${stateName}`,
+        target: { ...view.target, level: source.level },
+      });
+      if (selection.source === source.id)
+        marks
+          .ellipse(projectCell(source).x, projectCell(source).y, 14, 7)
+          .stroke({ width: 2, color: 0xe6c477 });
+    }
+  }
+
+  function drawPails(state, selection) {
+    const groundPails = state.materials.lots.filter(
+      (lot) => lot.material === "pail" && lot.location.kind === "ground",
+    );
+    for (const [id, view] of pails)
+      if (!groundPails.some((lot) => lot.id === id)) {
+        picking.remove(view.container);
+        view.container.destroy({ children: true });
+        pails.delete(id);
+      }
+    const interactive = !selection.tool && !selection.panMode && !selection.box;
+    for (const lot of groundPails) {
+      if (!pails.has(lot.id)) {
+        const view = body(art.pail.empty, art.propAnchor, 7);
+        const target = {
+          kind: "lot",
+          id: lot.id,
+          level: lot.location.level,
+          action: "inspect-lot",
+        };
+        view.container.cursor = "pointer";
+        view.container.on("pointerdown", (event) => {
+          if (!input.groundPointerOwns()) event.stopPropagation();
+        });
+        view.container.on("pointertap", (event) => {
+          if (input.groundPointerOwns()) return;
+          const dispatched = picking.recordFor(view.container)?.target;
+          if (!dispatched) return;
+          event.stopPropagation();
+          input.lot(dispatched.id, event.global);
+        });
+        pails.set(lot.id, { ...view, target });
+        bodies.addChild(view.container);
+      }
+      const view = pails.get(lot.id);
+      const water = containerQuantity(
+        state.materials,
+        vesselContainer(lot.id),
+        "water",
+      );
+      const texture = water >= 2 ? art.pail.filled : art.pail.empty;
+      const active = lot.location.level === selection.level;
+      view.container.visible = active;
+      view.container.eventMode = active && interactive ? "static" : "none";
+      put(view.container, lot.location, 0.21);
+      view.sprite.texture = texture;
+      picking.bind(view.container, {
+        texture,
+        anchor: art.propAnchor,
+        orientation: `pail:${water >= 2 ? "filled" : "empty"}`,
+        target: { ...view.target, level: lot.location.level },
+      });
+      if (selection.lot === lot.id)
+        marks
+          .ellipse(
+            projectCell(lot.location).x,
+            projectCell(lot.location).y,
+            12,
+            6,
+          )
+          .stroke({ width: 2, color: 0xe6c477 });
+    }
+  }
 
   function drawPiles(state, selection) {
     const groundWoodLots = state.materials.lots.filter(
@@ -496,18 +666,10 @@ export function createView(app, world, camera, art, initial, input) {
       view.container.alpha = activeLevel ? 1 : 0.18;
       view.container.eventMode = activeLevel ? "static" : "none";
       const hand = carriedLot(state.materials, person.id);
-      const pose =
-        hand?.material === "mugwort"
-          ? "carry-herb"
-          : person.mode === "walk" && hand?.material === "wood"
-            ? "carry"
-            : person.mode;
+      const pose = carriedActorPose(state.materials, hand, person.mode);
       const frames = (art.figures[person.figure][pose] ||
         art.figures[person.figure].idle)[person.dir];
-      const frame =
-        pose === "carry-herb" && person.mode !== "walk"
-          ? 0
-          : animationFrame(state.tick, pose, frames);
+      const frame = carriedActorFrame(state.tick, pose, person.mode, frames);
       view.sprite.texture = frames[frame];
       picking.bind(view.container, {
         texture: view.sprite.texture,
@@ -557,8 +719,10 @@ export function createView(app, world, camera, art, initial, input) {
   return {
     render(state, selection) {
       drawTrees(state, selection);
+      drawSources(state, selection);
       drawHerbs(state, selection);
       drawPiles(state, selection);
+      drawPails(state, selection);
       drawActors(state, selection);
       drawSelectionBox(selection);
       cat.container.eventMode = goblin.container.eventMode = "none";

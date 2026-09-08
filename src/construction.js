@@ -65,6 +65,13 @@ export const BUILDINGS = {
     deconstructTicks: 72,
     salvageWood: 2,
   },
+  "brew-station": {
+    label: "Brew station",
+    wood: 6,
+    ticks: 144,
+    deconstructTicks: 144,
+    salvageWood: 3,
+  },
 };
 
 // Consumer-owned destination policies. Materials only validates this resolved
@@ -86,6 +93,16 @@ export function shelfContainer(site) {
     capacity: 6,
     accepts: ["wood", "mugwort"],
     bulk: { wood: 2, mugwort: 1 },
+  };
+}
+
+/** The first process destination: water only, independent of build staging. */
+export function brewKettle(site) {
+  return {
+    id: `kettle:${site.id}`,
+    capacity: /** @type {import("./model.ts").PositiveInt} */ (2),
+    accepts: /** @type {import("./model.ts").Material[]} */ (["water"]),
+    bulk: { water: /** @type {import("./model.ts").PositiveInt} */ (1) },
   };
 }
 
@@ -118,6 +135,13 @@ export function resolveMaterialDestination(sites, id) {
 }
 export function footprint(at) {
   if (at.type === "stair") return stairCells(at);
+  if (at.type === "brew-station")
+    return [
+      { x: at.x, z: at.z, level: at.level ?? 0 },
+      { x: at.x + 1, z: at.z, level: at.level ?? 0 },
+      { x: at.x, z: at.z + 1, level: at.level ?? 0 },
+      { x: at.x + 1, z: at.z + 1, level: at.level ?? 0 },
+    ];
   const cells = [{ x: at.x, z: at.z, level: at.level ?? 0 }];
   if (at.type === "bed")
     cells.push({
@@ -126,6 +150,29 @@ export function footprint(at) {
       level: at.level ?? 0,
     });
   return cells;
+}
+
+/** Outside-front/side cells for the fixed 2×2 station datum. */
+export function brewStationAccessCells(site) {
+  const cells =
+    site.direction === 1
+      ? [
+          { x: site.x + 2, z: site.z, level: site.level },
+          { x: site.x + 2, z: site.z + 1, level: site.level },
+          { x: site.x, z: site.z - 1, level: site.level },
+          { x: site.x + 1, z: site.z - 1, level: site.level },
+        ]
+      : [
+          { x: site.x, z: site.z + 2, level: site.level },
+          { x: site.x + 1, z: site.z + 2, level: site.level },
+          { x: site.x + 2, z: site.z, level: site.level },
+          { x: site.x + 2, z: site.z + 1, level: site.level },
+        ];
+  return cells.filter(
+    (cell, index) =>
+      inside(cell) &&
+      cells.findIndex((other) => sameCell(other, cell)) === index,
+  );
 }
 function finishedSiteAt(state, cell, type = null) {
   return state.sites.some(
@@ -177,6 +224,7 @@ function upperSupported(state, cell) {
   return upperSurface(state, cell);
 }
 function workPositions(state, site, operation = "build") {
+  if (site.type === "brew-station") return brewStationAccessCells(site);
   if (
     site.type === "floor" &&
     site.level === 1 &&

@@ -18,9 +18,11 @@ import {
   interruptTransfer,
   materialQuantity,
   moveContainerPortion,
+  parkOperationPail,
   pickupTransfer,
   pourPailWater,
   releaseContainer,
+  rebindOperationPail,
   reserveTransfer,
   salvageConstruction,
   sourceContainer,
@@ -634,7 +636,7 @@ test("one held pail draws and pours exactly two finite water units", () => {
   assert.equal(transferForActor(materials, "rowan").phase.kind, "carrying");
 });
 
-test("interrupting a filled held pail drops one vessel and closes its operation", () => {
+test("interrupting a filled held pail drops one vessel but preserves its operation binding", () => {
   const spring = {
     id: sourceContainer("feature:spring"),
     capacity: 8,
@@ -681,11 +683,63 @@ test("interrupting a filled held pail drops one vessel and closes its operation"
     true,
   );
   assert.equal(materials.transfers.length, 0);
-  assert.deepEqual(materials.vesselUses, []);
+  assert.deepEqual(materials.vesselUses, [
+    { id: "fill-kettle-a", vessel: "pail-a" },
+  ]);
   assert.equal(containerQuantity(materials, "vessel:pail-a", "water"), 2);
   assert.deepEqual(materials.lots.find((lot) => lot.id === "pail-a").location, {
     kind: "ground",
     ...cell(3, 3),
+  });
+});
+
+test("an interrupted pail keeps one operation binding and can rebind", () => {
+  const materials = fresh([
+    {
+      id: "pail-a",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "ground", ...cell(1, 1) },
+    },
+  ]);
+  assert.equal(
+    acquirePailForOperation(materials, {
+      id: "pail-use-a",
+      actor: "rowan",
+      operation: "fill-kettle-a",
+      vessel: "pail-a",
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(pickupTransfer(materials, "pail-use-a", access).ok, true);
+  assert.equal(
+    parkOperationPail(materials, {
+      actor: "rowan",
+      operation: "fill-kettle-a",
+      drop: { cell: cell(3, 3), legal: true },
+    }).ok,
+    true,
+  );
+  assert.equal(materials.transfers.length, 0);
+  assert.deepEqual(materials.lots[0].location, {
+    kind: "ground",
+    ...cell(3, 3),
+  });
+  assert.equal(
+    rebindOperationPail(materials, {
+      id: "pail-use-b",
+      operation: "fill-kettle-a",
+      actor: "sedge",
+      access,
+    }).ok,
+    true,
+  );
+  assert.equal(materials.transfers[0].phase.kind, "reserved");
+  assert.equal(materials.transfers[0].actor, "sedge");
+  assert.deepEqual(materials.vesselUses[0], {
+    id: "fill-kettle-a",
+    vessel: "pail-a",
   });
 });
 

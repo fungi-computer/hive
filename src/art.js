@@ -8,6 +8,11 @@ import { figure } from "./art/figures.js";
 import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
 import { building, woodPile, wallJoint } from "./art/home.js";
 import { PROFILES, mixedShelf } from "./art/mixed-shelf.js";
+import { basinScene } from "./art/spring-basin.js";
+import { brewerCache } from "./art/brew-supplies.js";
+import { pail } from "./art/pail.js";
+import { scene } from "./art/geometry.js";
+import { stationScene } from "./art/brew-station.js";
 import { BUILDINGS } from "./construction.js";
 import { registerVisibleTexture } from "./visual-hit-geometry.js";
 
@@ -23,6 +28,12 @@ function outline(ctx, w, h) {
         out.data.set([43, 48, 38, 255], i);
     }
   ctx.putImageData(out, 0, 0);
+}
+
+function propScene(draw) {
+  const result = scene();
+  draw(result);
+  return result;
 }
 export function bake(renderer, s, c, w, h, ink = true) {
   renderer.setSize(w, h, false);
@@ -62,6 +73,8 @@ export async function bakeArt() {
     tree: {},
     herbs: { mugwort: {} },
     buildings: {},
+    sources: { spring: {}, cache: {} },
+    pail: {},
     wood: {},
     wallJoints: {},
     mixedShelf: {},
@@ -75,6 +88,9 @@ export async function bakeArt() {
     "build",
     "carry",
     "carry-herb",
+    "carry-pail-empty",
+    "carry-pail-half",
+    "carry-pail-full",
     "pickup-herb",
     "pickup",
     "deliver",
@@ -121,7 +137,41 @@ export async function bakeArt() {
       art.buildings[type][stage] = [0, 1].map((direction) =>
         bake(renderer, building(type, stage, direction), prop, 112, 112),
       );
+    if (type === "brew-station")
+      art.buildings[type].water = [0, 1].map((direction) =>
+        bake(
+          renderer,
+          stationScene("finished", direction, { water: true }),
+          prop,
+          112,
+          112,
+        ),
+      );
   }
+  for (const fill of ["dry", "low", "full"])
+    art.sources.spring[fill] = bake(renderer, basinScene(fill), prop, 112, 112);
+  for (const [state, sealed] of [
+    ["sealed", true],
+    ["repaired", false],
+  ])
+    art.sources.cache[state] = bake(
+      renderer,
+      propScene((parent) => brewerCache(parent, sealed)),
+      prop,
+      112,
+      112,
+    );
+  for (const [state, units] of [
+    ["empty", 0],
+    ["filled", 2],
+  ])
+    art.pail[state] = bake(
+      renderer,
+      propScene((parent) => pail(parent, units)),
+      prop,
+      112,
+      112,
+    );
   for (const profile of PROFILES)
     art.mixedShelf[profile.key] = [0, 1].map((direction) =>
       bake(renderer, mixedShelf(profile.key, direction), prop, 112, 112),

@@ -50,6 +50,8 @@ export type UiCommand =
     }
   | { kind: "deconstruct"; site: string }
   | { kind: "store"; lot: string; shelf: string }
+  | { kind: "repair-cache"; actors?: string[] | null }
+  | { kind: "fill-kettle"; station: string; actors?: string[] | null }
   | { kind: "rest"; actors?: string[] }
   | { kind: "routine"; enabled: boolean; actors?: string[] }
   | {
@@ -68,6 +70,7 @@ export type UiAction =
   | { kind: "tree"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-herb"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-lot"; id: string; point: { x: number; y: number } }
+  | { kind: "inspect-source"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-site"; id: string; point: { x: number; y: number } }
   | {
       kind: "panel";
@@ -180,6 +183,7 @@ export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
     case "floor":
       return 1;
     case "stair":
+    case "brew-station":
     case "chop":
     case "herb":
       return 0;
@@ -192,6 +196,11 @@ export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
     default:
       return neverAction(tool);
   }
+}
+
+/** These footprints are admitted from one anchor cell; drag is not replication. */
+export function singlePlacementTool(tool: ToolKind): boolean {
+  return tool === "bed" || tool === "stair" || tool === "brew-station";
 }
 
 export type LevelTransition = {
@@ -275,6 +284,7 @@ export function dispatchUiAction(
     case "tree":
     case "inspect-herb":
     case "inspect-lot":
+    case "inspect-source":
     case "inspect-site":
     case "panel":
     case "close-target":

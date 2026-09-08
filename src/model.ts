@@ -52,10 +52,9 @@ export type OperationTransferOwner = {
   readonly operation: OperationId;
 };
 export type TransferOwner = JobTransferOwner | OperationTransferOwner;
-/** The one durable authorization for a held pail; its work phases come later. */
+/** The durable pail binding belongs to the operation, never its current worker. */
 export type VesselUse = {
   id: OperationId;
-  actor: ActorId;
   vessel: LotId;
 };
 export type Transfer = {
@@ -89,12 +88,18 @@ export type MaterialsState = {
 };
 export type FeatureId = string;
 export type SourceFeatureKind = "spring" | "reclaimed-timber-cache";
-export type SourceFeature = Cell & {
+type SourceFeatureBase = Cell & {
   id: FeatureId;
-  kind: SourceFeatureKind;
   /** Access is metadata. Its finite quantity is a lot in sourceContainer(id). */
-  access: "open" | "sealed";
 };
+export type SourceFeature =
+  | (SourceFeatureBase & { kind: "spring"; access: "open" })
+  | (SourceFeatureBase & {
+      kind: "reclaimed-timber-cache";
+      access: "sealed";
+      /** The once-only repair gate belongs only to the cache capability. */
+      repaired: boolean;
+    });
 export type PendingFeatureIntroduction = {
   id: FeatureId;
   kind: SourceFeatureKind;
@@ -103,7 +108,14 @@ export type PendingFeatureIntroduction = {
 export type HerbId = string;
 export type Cell = { x: number; z: number; level: number };
 export type BuildingKind =
-  "wall" | "door" | "roof" | "bed" | "shelf" | "floor" | "stair";
+  | "wall"
+  | "door"
+  | "roof"
+  | "bed"
+  | "shelf"
+  | "floor"
+  | "stair"
+  | "brew-station";
 export type WorkType = "chop" | "haul" | "build" | "garden";
 export type AllowedWork = Record<WorkType, boolean>;
 export type Scope = { party: PartyId; actors: ActorId[] | null };
@@ -123,9 +135,20 @@ export type StoreCommand = {
   lot: LotId;
   shelf: string;
 };
+export type RepairCacheCommand = Scope & {
+  kind: "repair-cache";
+  direct?: boolean;
+};
+export type FillKettleCommand = Scope & {
+  kind: "fill-kettle";
+  direct?: boolean;
+  station: string;
+};
 export type Command =
   | WorkCommand
   | StoreCommand
+  | RepairCacheCommand
+  | FillKettleCommand
   | (Scope & { kind: "cancel" | "next"; job: JobId })
   | (Scope & { kind: "routine"; enabled: boolean })
   | (Scope & { kind: "work"; work: WorkType; enabled: boolean })
@@ -151,6 +174,14 @@ export type StoreJob = JobBase & {
   destination: ContainerId;
 };
 export type RestJob = JobBase & { kind: "rest"; target: ActorId };
+export type RepairCacheJob = JobBase & {
+  kind: "repair-cache";
+  target: FeatureId;
+};
+export type FillKettleJob = JobBase & {
+  kind: "fill-kettle";
+  target: string;
+};
 export type Job =
   | ChopJob
   | BuildJob
@@ -158,7 +189,9 @@ export type Job =
   | SowJob
   | HarvestJob
   | StoreJob
-  | RestJob;
+  | RestJob
+  | RepairCacheJob
+  | FillKettleJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -172,6 +205,8 @@ export type SowActivity = ActivityBase & { kind: "sow" };
 export type HarvestActivity = ActivityBase & { kind: "harvest" };
 export type TransferActivity = ActivityBase & { kind: "transfer" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
+export type BrewWaterActivity = ActivityBase & { kind: "brew-water" };
+export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
 export type Activity =
   | ChopActivity
   | BuildActivity
@@ -179,7 +214,9 @@ export type Activity =
   | SowActivity
   | HarvestActivity
   | TransferActivity
-  | SleepActivity;
+  | SleepActivity
+  | BrewWaterActivity
+  | RepairCacheActivity;
 export type Body = Cell & {
   dir: number;
   mode: "idle" | "walk" | Activity["kind"];
@@ -220,6 +257,18 @@ export type StoryEvent = {
   tick: number;
   text: string;
 };
+/** The one saved identity for cache repair, pail custody, draw and pour. */
+export type BrewWaterOperation = {
+  id: OperationId;
+  job: JobId;
+  actor: ActorId;
+  spring: FeatureId;
+  station: string;
+  pail: LotId;
+  water: LotId | null;
+  /** Incomplete effect phase; successful pour retires this operation. */
+  phase: "acquire" | "draw" | "pour";
+};
 export type Clearing = {
   seed: number;
   tick: number;
@@ -233,6 +282,7 @@ export type Clearing = {
   materials: MaterialsState;
   sources: SourceFeature[];
   pendingSources: PendingFeatureIntroduction[];
+  operations: BrewWaterOperation[];
   rocks: Cell[];
   watcher: Cell;
   sites: Site[];

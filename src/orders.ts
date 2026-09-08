@@ -2,15 +2,28 @@ import type {
   Clearing,
   Command,
   Job,
+  RepairCacheCommand,
   Scope,
   StoreCommand,
   WorkCommand,
 } from "./model.ts";
 import { inScope, scopeProblem } from "./actors.ts";
 import { constructionBuffer, placementProblem } from "./construction.js";
+import { cacheRepairBuffer, sourceIsOpen } from "./finite-sources.ts";
 import { interruptWork } from "./activity.ts";
-import { containerContents, releaseContainer } from "./materials.ts";
-import { blockedCells, cellKey, inside, placementOccupant } from "./world.js";
+import {
+  containerContents,
+  interruptOperationPail,
+  releaseContainer,
+  retireOperationPail,
+} from "./materials.ts";
+import {
+  blockedCells,
+  cellKey,
+  inside,
+  placementOccupant,
+  sourceAccessCells,
+} from "./world.js";
 import { route, beginWalk } from "./movement.js";
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
@@ -34,6 +47,25 @@ export function commandProblem(s: Clearing, c: Command): string {
           ? "That material is already marked for storage."
           : "";
   }
+  if (c.kind === "repair-cache") {
+    const cache = s.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    );
+    return !cache
+      ? "The reclaimed cache has not arrived."
+      : sourceIsOpen(cache)
+        ? "The reclaimed cache is already repaired."
+        : scopeProblem(s, c);
+  }
+  if (c.kind === "fill-kettle") {
+    const station = s.sites.find(
+      (site) =>
+        site.id === c.station &&
+        site.type === "brew-station" &&
+        site.finishedAt !== null,
+    );
+    return !station ? "That brew station is not finished." : scopeProblem(s, c);
+  }
   if (c.kind === "build") return placementProblem(s, c);
   if (c.kind === "harvest") {
     const h = s.herbs.find((x) => x.id === c.herb);
@@ -43,10 +75,23 @@ export function commandProblem(s: Clearing, c: Command): string {
   }
   if (c.kind === "sow" && (!inside(c) || placementOccupant(s, c)))
     return "Choose clear ground.";
-  if (c.kind === "cancel" || c.kind === "next")
-    return s.jobs.some((j) => j.id === c.job)
-      ? ""
-      : "That order is no longer available.";
+  if (c.kind === "cancel" || c.kind === "next") {
+    const job = s.jobs.find((entry) => entry.id === c.job);
+    if (!job) return "That order is no longer available.";
+    if (c.kind === "cancel" && job.kind === "repair-cache") {
+      const cache = s.sources.find((source) => source.id === job.target);
+      const buffer = cache && cacheRepairBuffer(cache);
+      if (
+        buffer &&
+        containerContents(s.materials, buffer.id).length > 0 &&
+        !sourceAccessCells(cache!).some(
+          (cell) => !blockedCells(s).has(cellKey(cell)),
+        )
+      )
+        return "No legal place to release the repair wood.";
+    }
+    return "";
+  }
   if (c.kind === "draft" || c.kind === "undraft" || c.kind === "go") {
     const p = s.actors[c.actor],
       party = s.parties[c.party];
@@ -69,12 +114,25 @@ export function commandProblem(s: Clearing, c: Command): string {
   }
   return scopeProblem(s, c);
 }
-function scope(c: WorkCommand | StoreCommand): Scope {
+function scope(
+  c:
+    | WorkCommand
+    | StoreCommand
+    | RepairCacheCommand
+    | Extract<Command, { kind: "fill-kettle" }>,
+): Scope {
   return c.kind === "store"
     ? { party: c.party, actors: null }
     : { party: c.party, actors: c.actors && [...c.actors] };
 }
-function add(s: Clearing, c: WorkCommand | StoreCommand) {
+function add(
+  s: Clearing,
+  c:
+    | WorkCommand
+    | StoreCommand
+    | RepairCacheCommand
+    | Extract<Command, { kind: "fill-kettle" }>,
+) {
   const sc = scope(c),
     id = `job-${s.nextId++}`;
   let j: Job;
@@ -84,6 +142,27 @@ function add(s: Clearing, c: WorkCommand | StoreCommand) {
       kind: "store",
       source: c.lot,
       destination: `shelf:${c.shelf}`,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  else if (c.kind === "repair-cache") {
+    const cache = s.sources.find(
+      (source) => source.kind === "reclaimed-timber-cache",
+    )!;
+    j = {
+      id,
+      kind: "repair-cache",
+      target: cache.id,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
+  } else if (c.kind === "fill-kettle")
+    j = {
+      id,
+      kind: "fill-kettle",
+      target: c.station,
       scope: sc,
       reason: "Ordered",
       routine: false,
@@ -187,6 +266,37 @@ function cancel(s: Clearing, id: string) {
       if (!r.ok) throw new Error(r.reason);
       s.sites = s.sites.filter((x) => x !== site);
     }
+  } else if (j.kind === "repair-cache") {
+    const cache = s.sources.find((source) => source.id === j.target);
+    const buffer = cache && cacheRepairBuffer(cache);
+    const drop = cache
+      ? sourceAccessCells(cache).find(
+          (cell) => !blockedCells(s).has(cellKey(cell)),
+        )
+      : undefined;
+    if (buffer && containerContents(s.materials, buffer.id).length > 0) {
+      if (!drop) throw new Error("no legal repair-buffer drop");
+      const r = releaseContainer(s.materials, buffer, {
+        contentsDrop: { cell: drop, legal: true },
+        carriedDrops: Object.fromEntries(
+          Object.values(s.actors).map((p) => [p.id, { cell: p, legal: true }]),
+        ),
+      });
+      if (!r.ok) throw new Error(r.reason);
+    }
+  } else if (j.kind === "fill-kettle") {
+    const active = s.operations.find((operation) => operation.job === j.id);
+    if (active) {
+      const actor = s.actors[active.actor];
+      if (!actor) throw new Error("fill operation has missing actor");
+      const released = interruptOperationPail(s.materials, active.id, {
+        cell: { x: actor.x, z: actor.z, level: actor.level },
+        legal: true,
+      });
+      if (!released.ok) throw new Error(released.reason);
+      retireOperationPail(s.materials, active.id);
+      s.operations = s.operations.filter((operation) => operation !== active);
+    }
   }
   s.jobs = s.jobs.filter((x) => x.id !== id);
   s.workDirty = true;
@@ -230,6 +340,8 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "sow" ||
     c.kind === "harvest" ||
     c.kind === "store" ||
+    c.kind === "repair-cache" ||
+    c.kind === "fill-kettle" ||
     c.kind === "rest"
   )
     add(s, c);

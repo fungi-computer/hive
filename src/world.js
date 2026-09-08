@@ -54,6 +54,13 @@ export function stairHeadroom(site) {
 }
 function siteCells(site) {
   if (site.type === "stair") return stairCells(site);
+  if (site.type === "brew-station")
+    return [
+      { x: site.x, z: site.z, level: site.level },
+      { x: site.x + 1, z: site.z, level: site.level },
+      { x: site.x, z: site.z + 1, level: site.level },
+      { x: site.x + 1, z: site.z + 1, level: site.level },
+    ];
   const cells = [{ x: site.x, z: site.z, level: site.level }];
   if (site.type === "bed")
     cells.push({
@@ -140,8 +147,11 @@ export function blockedCells(state) {
       state.watcher,
       ...state.trees.filter((t) => t.felledAt === null),
       ...(state.sources ?? []),
-      // A wall blueprint reserves its cell, keeping routes out of future walls.
-      ...state.sites.filter((s) => s.type === "wall"),
+      // Walls reserve their cell; the station's fixed 2×2 body is likewise
+      // physical while every supply/work action uses its outside datum.
+      ...state.sites
+        .filter((s) => s.type === "wall" || s.type === "brew-station")
+        .flatMap(siteCells),
     ].map(cellKey),
   );
   for (const stair of state.sites)

@@ -49,6 +49,7 @@ export function createClearing(seed = 42): Clearing {
     },
     sources: [],
     pendingSources: [],
+    operations: [],
     rocks: structuredClone(ROCKS),
     watcher: { ...WATCHER },
     sites: [],

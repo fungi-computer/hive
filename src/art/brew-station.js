@@ -2,7 +2,7 @@
 import * as THREE from "three";
 import { box, group, mesh, scene } from "./geometry.js";
 import { spentGrainTray } from "./brew-supplies.js";
-import { kettleBody, kettlePaddle } from "./brew-vessel.js";
+import { kettleBody, kettleContents, kettlePaddle } from "./brew-vessel.js";
 
 export const STATION_STAGES = ["stakes", "frame", "finished"];
 const P = {
@@ -97,13 +97,14 @@ function frame(parent) {
 }
 
 /** Centered 2x2 station body: caller applies its positive-cell datum once. */
-export function brewStation(parent, stage) {
+export function brewStation(parent, stage, { water = false } = {}) {
   const g = group(parent);
   g.name = "brew-station";
   if (stage === "stakes") stakes(g);
   else if (stage === "frame") frame(g);
   else if (stage === "finished") {
     kettleBody(g);
+    if (water) kettleContents(g, { level: 0.8, appearance: "water" });
     kettlePaddle(g, 0, false);
     trayMount(g);
     const tray = spentGrainTray(g, false);
@@ -113,13 +114,13 @@ export function brewStation(parent, stage) {
 }
 
 /** Isolated rendering adapter: a 2x2 positive-cell station rotates about (.5,0,.5). */
-export function stationScene(stage, direction = 0) {
+export function stationScene(stage, direction = 0, options) {
   if (direction !== 0 && direction !== 1)
     throw new Error("Expected one of the two station facings");
   const s = scene();
   const datum = group(s, 0.5, 0, 0.5);
   datum.name = "station-datum";
   datum.rotation.y = (direction * Math.PI) / 2;
-  brewStation(datum, stage);
+  brewStation(datum, stage, options);
   return s;
 }

@@ -1,9 +1,10 @@
 import { openDB } from "idb";
 import { z } from "zod";
 import type { Clearing, Job, PositiveInt } from "./model.ts";
-import { inside } from "./world.js";
+import { inside, sameCell } from "./world.js";
 import {
   BUILDINGS,
+  brewKettle,
   constructionBuffer,
   floorSupported,
   footprint,
@@ -19,11 +20,13 @@ import {
 import {
   finiteSourceProblem,
   introduceFiniteSources,
+  cacheRepairBuffer,
+  sourcePailContainerSpec,
   sourceContainerSpec,
 } from "./finite-sources.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 9 as const;
+const SAVE_SCHEMA = 10 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -99,6 +102,22 @@ const activity = z.discriminatedUnion("kind", [
       kind: z.literal("sleep"),
     })
     .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("repair-cache"),
+    })
+    .strict(),
+  z
+    .object({
+      job: id,
+      target: id,
+      duration: positive,
+      kind: z.literal("brew-water"),
+    })
+    .strict(),
 ]);
 const actor = cell
   .extend({
@@ -116,6 +135,8 @@ const actor = cell
       "harvest",
       "transfer",
       "sleep",
+      "repair-cache",
+      "brew-water",
     ]),
     path: z.array(cell),
     leg: nonNegative,
@@ -147,6 +168,10 @@ const job = z.discriminatedUnion("kind", [
     })
     .strict(),
   z.object({ ...jobBase, kind: z.literal("rest"), target: id }).strict(),
+  z
+    .object({ ...jobBase, kind: z.literal("repair-cache"), target: id })
+    .strict(),
+  z.object({ ...jobBase, kind: z.literal("fill-kettle"), target: id }).strict(),
 ]);
 const v8Material = z.enum(["wood", "mugwort"]);
 const material = z.enum(["wood", "mugwort", "water", "pail"]);
@@ -242,7 +267,16 @@ const v8Transfer = transfer
 const site = cell
   .extend({
     id,
-    type: z.enum(["wall", "door", "roof", "bed", "shelf", "floor", "stair"]),
+    type: z.enum([
+      "wall",
+      "door",
+      "roof",
+      "bed",
+      "shelf",
+      "floor",
+      "stair",
+      "brew-station",
+    ]),
     direction: z.union([z.literal(0), z.literal(1)]),
     work: nonNegative,
     finishedAt: nonNegative.nullable(),
@@ -254,6 +288,38 @@ const event = z
     name: z.string(),
     tick: nonNegative,
     text: z.string(),
+  })
+  .strict();
+const brewWaterOperation = z
+  .object({
+    id,
+    job: id,
+    actor: id,
+    spring: id,
+    station: id,
+    pail: id,
+    water: id.nullable(),
+    phase: z.enum(["acquire", "draw", "pour"]),
+  })
+  .strict();
+const sourceFeature = z.discriminatedUnion("kind", [
+  cell
+    .extend({ id, kind: z.literal("spring"), access: z.literal("open") })
+    .strict(),
+  cell
+    .extend({
+      id,
+      kind: z.literal("reclaimed-timber-cache"),
+      access: z.literal("sealed"),
+      repaired: z.boolean(),
+    })
+    .strict(),
+]);
+const v9SourceFeature = cell
+  .extend({
+    id,
+    kind: z.enum(["spring", "reclaimed-timber-cache"]),
+    access: z.enum(["open", "sealed"]),
   })
   .strict();
 const stateSchema = z
@@ -294,7 +360,7 @@ const stateSchema = z
       .object({
         lots: z.array(v8Lot.extend({ material }).strict()),
         transfers: z.array(transfer),
-        vesselUses: z.array(z.object({ id, actor: id, vessel: id }).strict()),
+        vesselUses: z.array(z.object({ id, vessel: id }).strict()),
         embedded: z.array(
           z
             .object({
@@ -311,15 +377,7 @@ const stateSchema = z
     rocks: z.array(cell),
     watcher: cell,
     sites: z.array(site),
-    sources: z.array(
-      cell
-        .extend({
-          id,
-          kind: z.enum(["spring", "reclaimed-timber-cache"]),
-          access: z.enum(["open", "sealed"]),
-        })
-        .strict(),
-    ),
+    sources: z.array(sourceFeature),
     pendingSources: z.array(
       z
         .object({
@@ -329,6 +387,7 @@ const stateSchema = z
         })
         .strict(),
     ),
+    operations: z.array(brewWaterOperation),
     jobs: z.array(job),
     workDirty: z.boolean(),
     felled: nonNegative,
@@ -349,7 +408,7 @@ const stateSchema = z
   .strict();
 type SavedClearing = Omit<Clearing, "commands">;
 const v8StateSchema = stateSchema
-  .omit({ sources: true, pendingSources: true })
+  .omit({ sources: true, pendingSources: true, operations: true })
   .extend({
     materials: stateSchema.shape.materials.omit({ vesselUses: true }).extend({
       lots: z.array(v8Lot),
@@ -358,6 +417,13 @@ const v8StateSchema = stateSchema
   })
   .strict();
 type V8SavedClearing = z.infer<typeof v8StateSchema>;
+const v9StateSchema = stateSchema
+  .omit({ operations: true })
+  .extend({
+    sources: z.array(v9SourceFeature),
+  })
+  .strict();
+type V9SavedClearing = z.infer<typeof v9StateSchema>;
 const savedSchema = stateSchema.transform((value): SavedClearing => value);
 const envelopeSchema = z
   .object({
@@ -377,8 +443,16 @@ const v8EnvelopeSchema = z
     savedState: v8StateSchema,
   })
   .strict();
+const v9EnvelopeSchema = z
+  .object({
+    kind: z.literal(SAVE_KIND),
+    schema: z.literal(9),
+    revision: nonNegative,
+    savedState: v9StateSchema,
+  })
+  .strict();
 function fail(message: string): never {
-  throw new Error(`Invalid v9 save: ${message}`);
+  throw new Error(`Invalid v10 save: ${message}`);
 }
 
 function liveState(state: SavedClearing): Clearing {
@@ -391,6 +465,29 @@ function activityMatchesJob(
   job: Job,
   task: NonNullable<SavedClearing["actors"][string]["task"]>,
 ): boolean {
+  if (task.kind === "repair-cache")
+    return (
+      job.kind === "repair-cache" &&
+      task.target === job.target &&
+      state.sources.some(
+        (source) =>
+          source.id === job.target &&
+          source.kind === "reclaimed-timber-cache" &&
+          !source.repaired,
+      )
+    );
+  if (task.kind === "brew-water") {
+    const operation = state.operations.find(
+      (entry) => entry.id === task.target,
+    );
+    return (
+      job.kind === "fill-kettle" &&
+      operation?.job === job.id &&
+      operation.actor === actorId &&
+      operation.station === job.target &&
+      true
+    );
+  }
   if (task.kind === "transfer") {
     const transfer = state.materials.transfers.find(
       (candidate) => candidate.id === task.target,
@@ -399,18 +496,21 @@ function activityMatchesJob(
     if (transfer.intent.kind === "use" || transfer.owner.kind !== "job")
       return false;
     if (transfer.owner.job !== job.id) return false;
-    const resolved = resolveMaterialDestination(
-      state.sites,
-      transfer.intent.destination,
+    const destinationId = transfer.intent.destination;
+    const resolved = resolveMaterialDestination(state.sites, destinationId);
+    const repair = state.sources.find(
+      (source) => cacheRepairBuffer(source)?.id === destinationId,
     );
-    if (!resolved) return false;
+    if (!resolved && !repair) return false;
     return (
-      resolved.destination.id === transfer.intent.destination &&
-      ((job.kind === "build" &&
+      (resolved?.destination.id === destinationId &&
+        job.kind === "build" &&
         resolved.site.id === job.target &&
         resolved.destination.id === constructionBuffer(resolved.site).id) ||
-        (job.kind === "store" &&
-          transfer.intent.destination === job.destination))
+      (job.kind === "store" && destinationId === job.destination) ||
+      (job.kind === "repair-cache" &&
+        repair?.id === job.target &&
+        destinationId === cacheRepairBuffer(repair)?.id)
     );
   }
   if (job.kind === "rest")
@@ -458,34 +558,43 @@ function validateMaterialLots(state: SavedClearing): void {
   }
 }
 
-function validateVesselUses(state: SavedClearing): void {
-  const ids = new Set<string>();
+function validateVesselUses({ state }: RelationContext): void {
+  const ids = new Set<string>(),
+    vessels = new Set<string>();
   for (const use of state.materials.vesselUses) {
     if (ids.has(use.id)) fail(`duplicate vessel use ${use.id}`);
     ids.add(use.id);
+    if (vessels.has(use.vessel)) fail(`duplicate vessel binding ${use.vessel}`);
+    vessels.add(use.vessel);
     const lot = state.materials.lots.find(
       (candidate) => candidate.id === use.vessel,
     );
-    if (
-      !state.actors[use.actor] ||
-      !lot ||
-      lot.material !== "pail" ||
-      lot.quantity !== 1
-    )
-      fail(`vessel use ${use.id} has invalid actor or pail`);
+    if (!lot || lot.material !== "pail" || lot.quantity !== 1)
+      fail(`vessel use ${use.id} has invalid pail`);
     const custody = state.materials.transfers.filter(
       (transfer) =>
         transfer.intent.kind === "use" &&
         transfer.intent.operation === use.id &&
         transfer.owner.kind === "operation" &&
         transfer.owner.operation === use.id &&
-        transfer.actor === use.actor &&
         (transfer.phase.kind === "reserved"
           ? transfer.phase.sourceLot === use.vessel
           : transfer.phase.lot === use.vessel),
     );
-    if (custody.length !== 1)
-      fail(`vessel use ${use.id} lacks unique pail custody`);
+    const operation = state.operations.find((entry) => entry.id === use.id);
+    if (!operation || operation.pail !== use.vessel)
+      fail(`vessel use ${use.id} has no matching operation`);
+    const actor = state.actors[operation.actor];
+    const active =
+      actor?.task?.kind === "brew-water" &&
+      actor.task.target === operation.id &&
+      actor.task.job === operation.job &&
+      actor.assignment?.task === operation.job;
+    if (
+      custody.length !== (active ? 1 : 0) ||
+      (active && custody[0].actor !== operation.actor)
+    )
+      fail(`vessel use ${use.id} has invalid executor custody`);
   }
 }
 
@@ -505,9 +614,17 @@ function relationContext(state: SavedClearing): RelationContext {
     if (site.finishedAt === null) containers.set(buffer.id, buffer);
     if (site.type === "shelf" && site.finishedAt !== null)
       containers.set(shelfContainer(site.id).id, shelfContainer(site.id));
+    if (site.type === "brew-station" && site.finishedAt !== null)
+      containers.set(brewKettle(site).id, brewKettle(site));
   }
-  for (const feature of state.sources)
+  for (const feature of state.sources) {
     containers.set(sourceContainer(feature.id), sourceContainerSpec(feature));
+    const repair = cacheRepairBuffer(feature);
+    if (feature.kind === "reclaimed-timber-cache" && !feature.repaired)
+      containers.set(repair!.id, repair!);
+    const pail = sourcePailContainerSpec(feature);
+    if (pail) containers.set(pail.id, pail);
+  }
   for (const lot of state.materials.lots) {
     const interior = pailInterior(lot);
     if (interior) containers.set(interior.id, interior);
@@ -549,6 +666,112 @@ function validateContainerLots({ state, containers }: RelationContext): void {
   }
 }
 
+function operationIsActive(
+  state: SavedClearing,
+  operation: SavedClearing["operations"][number],
+): boolean {
+  const actor = state.actors[operation.actor];
+  return !!(
+    actor?.task?.kind === "brew-water" &&
+    actor.task.target === operation.id &&
+    actor.task.job === operation.job &&
+    actor.assignment?.task === operation.job
+  );
+}
+
+function validateOperationEndpoints(
+  { state, sites, containers }: RelationContext,
+  operation: SavedClearing["operations"][number],
+): void {
+  const actor = state.actors[operation.actor];
+  const spring = state.sources.find(
+    (source) => source.id === operation.spring && source.kind === "spring",
+  );
+  const station = sites.get(operation.station);
+  const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
+  if (
+    !actor ||
+    !spring ||
+    !station ||
+    station.type !== "brew-station" ||
+    station.finishedAt === null ||
+    !pail ||
+    pail.material !== "pail" ||
+    pail.quantity !== 1 ||
+    !containers.has(brewKettle(station).id)
+  )
+    fail(`brew operation ${operation.id} has invalid endpoint`);
+}
+
+function validateOperationCustody(
+  { state, jobs, sites }: RelationContext,
+  operation: SavedClearing["operations"][number],
+): void {
+  const job = jobs.get(operation.job);
+  const station = sites.get(operation.station)!;
+  const custody = state.materials.transfers.filter(
+    (transfer) =>
+      transfer.owner.kind === "operation" &&
+      transfer.owner.operation === operation.id,
+  );
+  const active = operationIsActive(state, operation);
+  if (!job || job.kind !== "fill-kettle" || job.target !== station.id)
+    fail(`brew operation ${operation.id} lacks fill job`);
+  if (custody.length !== (active ? 1 : 0))
+    fail(`brew operation ${operation.id} lacks pail custody`);
+  const use = state.materials.vesselUses.find(
+    (candidate) => candidate.id === operation.id,
+  );
+  if (
+    !use ||
+    use.vessel !== operation.pail ||
+    (active && custody[0].actor !== operation.actor)
+  )
+    fail(`brew operation ${operation.id} has invalid pail custody`);
+}
+
+function validateOperationWater(
+  { state }: RelationContext,
+  operation: SavedClearing["operations"][number],
+): void {
+  const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
+  const interior = pail && pailInterior(pail);
+  if (!interior) fail(`brew operation ${operation.id} has invalid pail`);
+  const water = operation.water
+    ? state.materials.lots.find((lot) => lot.id === operation.water)
+    : null;
+  const interiorWater = state.materials.lots.filter(
+    (lot) =>
+      lot.material === "water" &&
+      lot.location.kind === "container" &&
+      lot.location.container === interior.id,
+  );
+  if (operation.phase === "acquire" || operation.phase === "draw") {
+    if (operation.water !== null || interiorWater.length !== 0)
+      fail(`brew operation ${operation.id} has premature water`);
+  } else if (
+    !water ||
+    water.material !== "water" ||
+    water.quantity !== 2 ||
+    water.location.kind !== "container" ||
+    water.location.container !== interior.id ||
+    interiorWater.length !== 1
+  )
+    fail(`brew operation ${operation.id} has invalid water custody`);
+}
+
+function validateOperations(context: RelationContext): void {
+  const { state } = context;
+  const ids = new Set<string>();
+  for (const operation of state.operations) {
+    if (ids.has(operation.id)) fail(`duplicate brew operation ${operation.id}`);
+    ids.add(operation.id);
+    validateOperationEndpoints(context, operation);
+    validateOperationCustody(context, operation);
+    validateOperationWater(context, operation);
+  }
+}
+
 function transferLot(state: SavedClearing, transfer: SavedTransfer): SavedLot {
   const lot = state.materials.lots.find(
     (candidate) =>
@@ -562,7 +785,7 @@ function transferLot(state: SavedClearing, transfer: SavedTransfer): SavedLot {
 }
 
 function validateTransferOwner(
-  { state, sites, jobs }: RelationContext,
+  { state, sites, jobs, containers }: RelationContext,
   transfer: SavedTransfer,
 ): ContainerSpec | null {
   if (transfer.intent.kind === "use") {
@@ -573,7 +796,6 @@ function validateTransferOwner(
     if (
       !use ||
       transfer.owner.kind !== "operation" ||
-      use.actor !== transfer.actor ||
       transfer.owner.operation !== use.id ||
       use.vessel !==
         (transfer.phase.kind === "reserved"
@@ -587,21 +809,26 @@ function validateTransferOwner(
     fail(`transfer ${transfer.id} has invalid delivery owner`);
   const owner = jobs.get(transfer.owner.job);
   if (!owner) fail(`transfer ${transfer.id} has missing job`);
-  const resolved = resolveMaterialDestination(
-    [...sites.values()],
-    transfer.intent.destination,
-  );
-  if (!resolved) fail(`transfer ${transfer.id} has missing destination`);
-  const destination = resolved.destination;
+  const destination = containers.get(transfer.intent.destination);
+  if (!destination) fail(`transfer ${transfer.id} has missing destination`);
   const ownerSite =
     owner.kind === "build" ? sites.get(owner.target) : undefined;
+  const repairSource =
+    owner.kind === "repair-cache"
+      ? state.sources.find((source) => source.id === owner.target)
+      : undefined;
   if (
     (owner.kind === "build" &&
       (!ownerSite ||
         transfer.intent.destination !== constructionBuffer(ownerSite).id)) ||
     (owner.kind === "store" &&
       transfer.intent.destination !== owner.destination) ||
-    (owner.kind !== "build" && owner.kind !== "store")
+    (owner.kind === "repair-cache" &&
+      (!repairSource ||
+        transfer.intent.destination !== cacheRepairBuffer(repairSource)?.id)) ||
+    (owner.kind !== "build" &&
+      owner.kind !== "store" &&
+      owner.kind !== "repair-cache")
   )
     fail(`transfer ${transfer.id} does not match owner destination`);
   if (
@@ -613,7 +840,11 @@ function validateTransferOwner(
       (transfer.request.source.kind !== "exact-lot" ||
         transfer.request.source.lot !== owner.source ||
         (transfer.request.quantityPolicy !== "whole-lot" &&
-          transfer.request.quantityPolicy !== "portion")))
+          transfer.request.quantityPolicy !== "portion"))) ||
+    (owner.kind === "repair-cache" &&
+      (transfer.request.source.kind === "exact-lot" ||
+        transfer.request.source.material !== "wood" ||
+        transfer.request.quantityPolicy !== "portion"))
   )
     fail(`transfer ${transfer.id} does not match owner request`);
   return destination;
@@ -627,8 +858,49 @@ function validateReservedTransfer(
   reservedBySource: Map<string, number>,
 ): void {
   if (transfer.phase.kind !== "reserved") return;
-  if (transfer.intent.kind === "use")
-    fail(`reserved held-use transfer ${transfer.id} is not resumable`);
+  if (transfer.intent.kind === "use") {
+    const operationId = transfer.intent.operation;
+    const operation = state.operations.find(
+      (candidate) => candidate.id === operationId,
+    );
+    const use = state.materials.vesselUses.find(
+      (candidate) => candidate.id === operationId,
+    );
+    const actor = state.actors[transfer.actor];
+    const active =
+      actor?.task?.kind === "brew-water" &&
+      actor.task.target === operation?.id &&
+      actor.task.job === operation?.job &&
+      actor.assignment?.task === operation?.job;
+    if (
+      !operation ||
+      !use ||
+      !actor ||
+      transfer.owner.kind !== "operation" ||
+      transfer.owner.operation !== operation.id ||
+      use.vessel !== operation.pail ||
+      transfer.phase.sourceLot !== operation.pail ||
+      lot.id !== operation.pail ||
+      lot.material !== "pail" ||
+      lot.quantity !== 1 ||
+      transfer.request.source.kind !== "exact-lot" ||
+      transfer.request.source.lot !== operation.pail ||
+      transfer.request.quantityPolicy !== "whole-lot" ||
+      transfer.request.quantity !== 1 ||
+      transfer.phase.quantity !== 1 ||
+      (transfer.phase.origin.kind === "ground" &&
+        (lot.location.kind !== "ground" ||
+          !sameCell(lot.location, transfer.phase.origin.cell))) ||
+      (transfer.phase.origin.kind === "container" &&
+        (lot.location.kind !== "container" ||
+          lot.location.container !== transfer.phase.origin.container)) ||
+      !active
+    )
+      fail(
+        `reserved held-use transfer ${transfer.id} has invalid pail custody`,
+      );
+    return;
+  }
   if (transfer.owner.kind !== "job")
     fail(`reserved transfer ${transfer.id} has invalid delivery owner`);
   const owner = transfer.owner;
@@ -908,11 +1180,12 @@ function validateRelations(
   requireFiniteSources = true,
 ): SavedClearing {
   validateMaterialLots(state);
-  validateVesselUses(state);
   validateSources(state, requireFiniteSources);
   const context = relationContext(state);
   validateJobScopes(context);
   validateContainerLots(context);
+  validateOperations(context);
+  validateVesselUses(context);
   validateTransfers(context);
   validateContainerCapacity(context);
   validateActorJobRelations(context);
@@ -953,12 +1226,43 @@ function convertV8State(predecessor: V8SavedClearing): SavedClearing {
     },
     sources: [],
     pendingSources: [],
+    operations: [],
     commands: [],
   };
   const { commands: _predecessorCommands, ...beforeIntroduction } = state;
   validateRelations(beforeIntroduction, false);
   introduceFiniteSources(state);
   const { commands: _commands, ...saved } = state;
+  return saved;
+}
+/** Schema 9 introduced the finite providers but predates repair/use operations. */
+function convertV9State(predecessor: V9SavedClearing): SavedClearing {
+  if (
+    predecessor.sources.some(
+      (source) =>
+        (source.kind === "spring" && source.access !== "open") ||
+        (source.kind === "reclaimed-timber-cache" &&
+          source.access !== "sealed"),
+    )
+  )
+    fail("schema 9 source has invalid access");
+  const state: Clearing = {
+    ...predecessor,
+    sources: predecessor.sources.map((source) =>
+      source.kind === "spring"
+        ? { ...source, kind: "spring" as const, access: "open" as const }
+        : {
+            ...source,
+            kind: "reclaimed-timber-cache" as const,
+            access: "sealed" as const,
+            repaired: false,
+          },
+    ),
+    operations: [],
+    commands: [],
+  };
+  const { commands: _commands, ...saved } = state;
+  validateRelations(saved);
   return saved;
 }
 
@@ -973,6 +1277,20 @@ function validateSaveEnvelope(value: unknown): SaveEnvelope {
     return {
       ...current,
       savedState: validateRelations(current.savedState),
+    };
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "schema" in value &&
+    value.schema === 9
+  ) {
+    const predecessor = v9EnvelopeSchema.parse(value);
+    return {
+      kind: SAVE_KIND,
+      schema: SAVE_SCHEMA,
+      revision: predecessor.revision,
+      savedState: validateRelations(convertV9State(predecessor.savedState)),
     };
   }
   const predecessor = v8EnvelopeSchema.parse(value);

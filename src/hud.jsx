@@ -14,6 +14,7 @@ import "@fungi.computer/caps/styles.css";
 import {
   BUILDINGS,
   constructionBuffer,
+  brewKettle,
   footprint,
   shelfContainer,
   shelteredBeds,
@@ -23,7 +24,13 @@ import {
   containerContents,
   containerQuantity,
   transferForActor,
+  vesselContainer,
 } from "./materials.ts";
+import {
+  sourceContainerSpec,
+  sourceIsOpen,
+  sourcePailContainerSpec,
+} from "./finite-sources.ts";
 import { commandProblem } from "./orders.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
@@ -36,6 +43,7 @@ import {
   cameraMoveKeepsTool,
   localGoodsAt,
   requiredToolLevel,
+  singlePlacementTool,
   submitDesignation,
 } from "./ui-actions.ts";
 
@@ -235,7 +243,14 @@ function sameObject(a, b) {
 }
 
 function sameBundle(a, b) {
-  if (!a || !b || a.id !== b.id || a.kind !== b.kind || a.amount !== b.amount)
+  if (
+    !a ||
+    !b ||
+    a.id !== b.id ||
+    a.kind !== b.kind ||
+    a.amount !== b.amount ||
+    a.vesselWater !== b.vesselWater
+  )
     return false;
   const left = a.location;
   const right = b.location;
@@ -341,7 +356,11 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
         quantity: lot.quantity,
       })),
       incomingBulk: state.materials.transfers
-        .filter((transfer) => transfer.request.destination === shelf.id)
+        .filter(
+          (transfer) =>
+            transfer.intent.kind === "deliver" &&
+            transfer.intent.destination === shelf.id,
+        )
         .reduce((total, transfer) => {
           const lot = state.materials.lots.find(
             (candidate) =>
@@ -350,11 +369,35 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
                 ? transfer.phase.sourceLot
                 : transfer.phase.lot),
           );
-          return (
-            total +
-            transfer.request.quantity * shelf.bulk[lot?.material ?? "wood"]
-          );
+          const bulk = lot && shelf.bulk[lot.material];
+          return bulk ? total + transfer.request.quantity * bulk : total;
         }, 0),
+      kettleWater:
+        site.type === "brew-station"
+          ? containerQuantity(state.materials, brewKettle(site).id, "water")
+          : 0,
+    };
+  });
+  const sourcesNext = state.sources.map((source) => {
+    const provider = sourceContainerSpec(source);
+    const pailProvider = sourcePailContainerSpec(source);
+    return {
+      id: source.id,
+      kind: source.kind,
+      x: source.x,
+      z: source.z,
+      level: source.level,
+      material: provider.accepts[0],
+      quantity: containerQuantity(
+        state.materials,
+        provider.id,
+        provider.accepts[0],
+      ),
+      capacity: provider.capacity,
+      pailQuantity: pailProvider
+        ? containerQuantity(state.materials, pailProvider.id, "pail")
+        : 0,
+      open: sourceIsOpen(source),
     };
   });
   const structures = state.sites.map((site) => ({
@@ -381,6 +424,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     id: lot.id,
     material: lot.material,
     amount: lot.quantity,
+    vesselWater:
+      lot.material === "pail"
+        ? containerQuantity(state.materials, vesselContainer(lot.id), "water")
+        : 0,
     location:
       lot.location.kind === "container"
         ? { kind: "stored", site: lot.location.container.replace("shelf:", "") }
@@ -418,6 +465,14 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     lotsNext.every((bundle, index) => sameBundle(bundle, previous.lots[index]))
       ? previous.lots
       : lotsNext;
+  const sources =
+    previous &&
+    sourcesNext.length === previous.sources.length &&
+    sourcesNext.every((source, index) =>
+      sameObject(source, previous.sources[index]),
+    )
+      ? previous.sources
+      : sourcesNext;
   const demand =
     state.demand &&
     previous?.demand &&
@@ -446,6 +501,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     structures,
     herbs,
     lots,
+    sources,
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
     time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
     feed,
@@ -480,9 +536,13 @@ function orderModel(display, job) {
               : "Rest in bedroll"
             : job.kind === "store"
               ? "Store material"
-              : site
-                ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
-                : "Work order";
+              : job.kind === "repair-cache"
+                ? "Repair reclaimed cache"
+                : job.kind === "fill-kettle"
+                  ? "Fill brew-station kettle"
+                  : site
+                    ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
+                    : "Work order";
   const detail =
     job.kind === "store"
       ? site
@@ -645,6 +705,14 @@ const targetAtom = atom((get) => {
           shelfMugwortBulk: site.shelfMugwortBulk,
         })),
     };
+  }
+  if (target.kind === "source") {
+    const source = facts.sources.find(
+      (candidate) => candidate.id === target.id,
+    );
+    if (!source) return null;
+    const { kind: sourceKind, ...details } = source;
+    return { kind: "source", sourceKind, ...details };
   }
   const site = facts.sites.find((candidate) => candidate.id === target.id);
   return site ? { kind: "site", ...site } : null;
@@ -1027,7 +1095,9 @@ function Build({ model: m, send }) {
                   ? " · 3-cell ramp"
                   : type === "bed"
                     ? " · 1×2"
-                    : ""}
+                    : type === "brew-station"
+                      ? " · 2×2 ground · single anchor"
+                      : ""}
             </small>
           </Button>
         ))}
@@ -1035,7 +1105,9 @@ function Build({ model: m, send }) {
       <p className="muted">
         {m.tool === "herb"
           ? "Hover a clear tile and release to sow. Escape, right-click, or camera movement cancels."
-          : "Mark a tile or drag a row. A blueprint can wait for wood. Leave room for a doorway."}
+          : m.tool && singlePlacementTool(m.tool)
+            ? "Hover the anchor tile and release once to order this footprint. Escape, right-click, or camera movement cancels."
+            : "Mark a tile or drag a row. A blueprint can wait for wood. Leave room for a doorway."}
       </p>
       <div className="button-row">
         {m.tool !== "herb" ? (
@@ -1082,6 +1154,38 @@ function Build({ model: m, send }) {
 function Target({ model: m, send }) {
   if (!m.context || !m.target) return null;
   if (m.target.kind === "lot") {
+    if (m.target.material === "pail")
+      return (
+        <Card
+          variant="outline"
+          role="region"
+          className="window target-window"
+          aria-label="Pail details"
+          style={targetPosition(m.context)}
+        >
+          <div className="window-heading">
+            <h2>Pail</h2>
+            <Button
+              className="close"
+              variant="ghost"
+              size="icon"
+              aria-label="Close pail details"
+              onClick={() => send({ kind: "close-target" })}
+            >
+              ×
+            </Button>
+          </div>
+          <p className="muted">
+            {m.target.location.kind === "ground"
+              ? `Loose on ground · ${m.target.location.x}, ${m.target.location.z} · ${levelName(m.target.location.level)}`
+              : "Held for its current operation"}
+          </p>
+          <small className="action-reason">
+            Water {m.target.vesselWater}/2 · This vessel is used by shared brew
+            work.
+          </small>
+        </Card>
+      );
     const storeJob = m.orders.find(
       (job) => job.kind === "store" && job.lot === m.target.id,
     );
@@ -1176,6 +1280,63 @@ function Target({ model: m, send }) {
       </Card>
     );
   }
+  if (m.target.kind === "source") {
+    const cache = m.target.sourceKind === "reclaimed-timber-cache";
+    const repairJob = m.orders.find(
+      (job) => job.kind === "repair-cache" && job.target === m.target.id,
+    );
+    const actionLabel = repairJob
+      ? repairJob.active
+        ? "Repair in progress"
+        : "Repair queued"
+      : "Repair cache";
+    return (
+      <Card
+        variant="outline"
+        role="region"
+        className="window target-window"
+        aria-label="Finite source details"
+        style={targetPosition(m.context)}
+      >
+        <div className="window-heading">
+          <h2>{cache ? "Reclaimed timber cache" : "Spring"}</h2>
+          <Button
+            className="close"
+            variant="ghost"
+            size="icon"
+            aria-label="Close source details"
+            onClick={() => send({ kind: "close-target" })}
+          >
+            ×
+          </Button>
+        </div>
+        <p className="muted">
+          {m.target.material === "wood" ? "Wood" : "Water"} {m.target.quantity}/
+          {m.target.capacity} · {m.target.x}, {m.target.z} ·{" "}
+          {levelName(m.target.level)}
+        </p>
+        <small className="action-reason">
+          {m.target.open ? "Open access." : "Sealed; repair opens access."}
+          {cache && ` Pail ${m.target.pailQuantity}/1.`}
+        </small>
+        {cache && !m.target.open && (
+          <Button
+            id="repair-cache"
+            data-action="repair-cache"
+            data-source={m.target.id}
+            variant="primary"
+            disabled={!!repairJob}
+            aria-label={actionLabel}
+            onClick={() =>
+              send({ kind: "command", command: { kind: "repair-cache" } })
+            }
+          >
+            {actionLabel}
+          </Button>
+        )}
+      </Card>
+    );
+  }
   if (m.target.kind === "site") {
     const label = BUILDINGS[m.target.type].label;
     const deconstructJob = m.orders.find(
@@ -1186,6 +1347,14 @@ function Target({ model: m, send }) {
         ? "Deconstruction in progress"
         : "Deconstruction queued"
       : "Deconstruct";
+    const fillJob = m.orders.find(
+      (job) => job.kind === "fill-kettle" && job.target === m.target.id,
+    );
+    const fillLabel = fillJob
+      ? fillJob.active
+        ? "Filling kettle"
+        : "Fill queued"
+      : "Fill kettle";
     return (
       <Card
         variant="outline"
@@ -1230,6 +1399,29 @@ function Target({ model: m, send }) {
               ? `Contents: ${m.target.contents.map((lot) => `${lot.material === "wood" ? "Wood" : "Mugwort"} ×${lot.quantity}`).join(", ")}. Shelf art shows up to three representatives.`
               : "Contents: empty."}
           </small>
+        )}
+        {m.target.type === "brew-station" && m.target.finished && (
+          <>
+            <small className="action-reason">
+              Kettle water {m.target.kettleWater}/2.
+            </small>
+            <Button
+              id="fill-kettle"
+              data-action="fill-kettle"
+              data-site={m.target.id}
+              variant="primary"
+              disabled={!!fillJob || m.target.kettleWater >= 2}
+              aria-label={fillLabel}
+              onClick={() =>
+                send({
+                  kind: "command",
+                  command: { kind: "fill-kettle", station: m.target.id },
+                })
+              }
+            >
+              {fillLabel}
+            </Button>
+          </>
         )}
         <Button
           id="deconstruct"
@@ -2006,6 +2198,19 @@ export function createHud(host, art, effect) {
           designationTargetIds: [],
         }));
         return;
+      case "inspect-source":
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          inspectedTarget: {
+            kind: "source",
+            id: action.id,
+            point: { x: action.point.x, y: action.point.y },
+          },
+          panel: null,
+          designationTargetIds: [],
+        }));
+        return;
       case "inspect-site":
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
@@ -2192,7 +2397,9 @@ export function createHud(host, art, effect) {
           command.kind === "deconstruct" ||
           command.kind === "sow" ||
           command.kind === "harvest" ||
-          command.kind === "store"
+          command.kind === "store" ||
+          command.kind === "repair-cache" ||
+          command.kind === "fill-kettle"
         )
           command.actors = null;
         else if (command.actors === undefined)
@@ -2272,6 +2479,10 @@ export function createHud(host, art, effect) {
           : null,
       lot:
         value.inspectedTarget?.kind === "lot" ? value.inspectedTarget.id : null,
+      source:
+        value.inspectedTarget?.kind === "source"
+          ? value.inspectedTarget.id
+          : null,
       site:
         value.inspectedTarget?.kind === "site"
           ? value.inspectedTarget.id

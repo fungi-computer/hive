@@ -21,10 +21,13 @@ function v8Envelope(change = () => {}) {
   predecessor.schema = 8;
   delete predecessor.savedState.sources;
   delete predecessor.savedState.pendingSources;
+  delete predecessor.savedState.operations;
   delete predecessor.savedState.materials.vesselUses;
   predecessor.savedState.materials.lots =
     predecessor.savedState.materials.lots.filter(
-      (lot) => !lot.id.startsWith("source-lot:"),
+      (lot) =>
+        (lot.material === "wood" || lot.material === "mugwort") &&
+        !lot.id.startsWith("source-lot:"),
     );
   change(predecessor.savedState);
   return predecessor;
@@ -85,7 +88,6 @@ function heldPailUse(state, operation) {
   });
   state.materials.vesselUses.push({
     id: operation,
-    actor: "rowan",
     vessel: "pail-collision",
   });
   state.materials.transfers.push({
@@ -139,7 +141,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v9 snapshots omit commands and restore paused", () => {
+test("v10 snapshots omit commands and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -148,16 +150,16 @@ test("v9 snapshots omit commands and restore paused", () => {
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 9);
+  assert.equal(saved.schema, 10);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
 });
 
-test("valid v8 introduces finite sources once and writes schema 9", () => {
+test("valid v8 introduces finite sources once and writes schema 10", () => {
   const restored = restoreSnapshot(v8Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 9);
+  assert.equal(snapshotFor(restored.state).schema, 10);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -257,6 +259,14 @@ test("a held pail use reloads only with its matching operation custody", () => {
       (lot) => lot.id === `source-lot:${spring.id}`,
     );
     sourceLot.quantity = 6;
+    state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:station-a",
+      material: "wood",
+      quantity: 6,
+    });
+    state.felled = 1;
+    state.jobs.push(job("job-fill", "fill-kettle", "station-a"));
     state.materials.lots.push(
       {
         id: "pail-a",
@@ -273,7 +283,6 @@ test("a held pail use reloads only with its matching operation custody", () => {
     );
     state.materials.vesselUses.push({
       id: "fill-kettle-a",
-      actor: "rowan",
       vessel: "pail-a",
     });
     state.materials.transfers.push({
@@ -288,11 +297,32 @@ test("a held pail use reloads only with its matching operation custody", () => {
       intent: { kind: "use", operation: "fill-kettle-a" },
       phase: { kind: "carrying", lot: "pail-a" },
     });
+    state.operations.push({
+      id: "fill-kettle-a",
+      job: "job-fill",
+      actor: "rowan",
+      spring: spring.id,
+      station: "station-a",
+      pail: "pail-a",
+      water: "pail-water-a",
+      phase: "pour",
+    });
+    state.actors.rowan.task = {
+      kind: "brew-water",
+      job: "job-fill",
+      target: "fill-kettle-a",
+      duration: 1,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-fill",
+      cost: 1,
+    };
   });
   const restored = restoreSnapshot(saved);
   assert.equal(restored.state.paused, true);
   assert.deepEqual(restored.state.materials.vesselUses, [
-    { id: "fill-kettle-a", actor: "rowan", vessel: "pail-a" },
+    { id: "fill-kettle-a", vessel: "pail-a" },
   ]);
   assert.equal(
     restored.state.materials.lots.find((lot) => lot.id === "pail-water-a")
@@ -301,7 +331,64 @@ test("a held pail use reloads only with its matching operation custody", () => {
   );
 
   saved.savedState.materials.transfers[0].owner.operation = "wrong-operation";
-  assert.throws(() => restoreSnapshot(saved), /lacks unique pail custody/);
+  assert.throws(() => restoreSnapshot(saved), /pail custody/);
+});
+
+test("schema 10 rejects actor-bound pail bindings as an unpublished wire shape", () => {
+  const saved = snapshotFor(createClearing());
+  saved.savedState.materials.vesselUses.push({
+    id: "unpublished-use",
+    vessel: "pail-a",
+    actor: "rowan",
+  });
+  assert.throws(() => restoreSnapshot(saved));
+});
+
+test("schema 10 rejects two parked operations bound to one physical pail", () => {
+  const saved = envelope((state) => {
+    state.sites.push(
+      site("station-a", "brew-station", { finishedAt: 0 }),
+      site("station-b", "brew-station", { x: 9, finishedAt: 0 }),
+    );
+    state.materials.embedded.push(
+      {
+        container: "construction-buffer:station-a",
+        material: "wood",
+        quantity: 6,
+      },
+      {
+        container: "construction-buffer:station-b",
+        material: "wood",
+        quantity: 6,
+      },
+    );
+    state.felled = 2;
+    state.materials.lots.push({
+      id: "parked-pail",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "ground", ...cell(3, 3) },
+    });
+    const spring = state.sources.find((source) => source.kind === "spring");
+    for (const [id, jobId, station, actor] of [
+      ["fill-a", "job-fill-a", "station-a", "rowan"],
+      ["fill-b", "job-fill-b", "station-b", "sedge"],
+    ]) {
+      state.jobs.push(job(jobId, "fill-kettle", station));
+      state.operations.push({
+        id,
+        job: jobId,
+        actor,
+        spring: spring.id,
+        station,
+        pail: "parked-pail",
+        water: null,
+        phase: "acquire",
+      });
+      state.materials.vesselUses.push({ id, vessel: "parked-pail" });
+    }
+  });
+  assert.throws(() => restoreSnapshot(saved), /duplicate vessel binding/);
 });
 
 test("schema 8 migration retains finite source identity under existing IDs", () => {
@@ -355,6 +442,14 @@ rejects(
 );
 
 rejects(
+  "restore rejects an irrelevant repair flag on a spring",
+  (state) => {
+    state.sources.find((source) => source.kind === "spring").repaired = true;
+  },
+  /repaired/,
+);
+
+rejects(
   "restore rejects finite source stock over its provider capacity",
   (state) => {
     const spring = state.sources.find((source) => source.kind === "spring");
@@ -372,7 +467,7 @@ rejects(
       (source) => source.kind === "reclaimed-timber-cache",
     ).access = "open";
   },
-  /source .* is invalid/,
+  /sealed/,
 );
 
 rejects(

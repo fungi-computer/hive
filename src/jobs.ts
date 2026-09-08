@@ -13,22 +13,33 @@ import type {
 } from "./model.ts";
 import { inScope } from "./actors.ts";
 import { optimizeEligible } from "./matching.ts";
-import { blockedCells } from "./world.js";
+import { blockedCells, sameCell, sourceAccessCells } from "./world.js";
 import { approach, pathTicks, route, beginWalk } from "./movement.js";
 import {
   BUILDINGS,
+  brewKettle,
   constructionBuffer,
   removalProblem,
   roofSupported,
   shelfContainer,
   resolveMaterialEndpoint,
   shelteredBeds,
+  brewStationAccessCells,
   workApproach,
 } from "./construction.js";
 import {
+  cacheRepairBuffer,
+  resolveCacheRepairBuffer,
+  resolveOpenFiniteSourceContainer,
+  sourceIsOpen,
+  sourcePailContainer,
+} from "./finite-sources.ts";
+import {
   availableMaterialFacts,
+  acquirePailForOperation,
   containerQuantity,
   remainingContainerQuantity,
+  rebindOperationPail,
   reserveTransfer,
   transferForActor,
   type ContainerSpec,
@@ -49,6 +60,7 @@ type Candidate = {
     /** The resolved route exists only for this scheduling pass. */
     destinationReachableWithPayload: boolean;
   };
+  brew?: { station: string; spring: string; pail: string; operation?: string };
 };
 type Options = { reason: string; candidate: Candidate | null };
 const no = (reason: string): Options => ({ reason, candidate: null });
@@ -92,11 +104,12 @@ function constructionTransferOption(
       ({ lot }) =>
         lot.material === "wood" &&
         lot.location.kind === "container" &&
-        !!resolveMaterialEndpoint(
+        (!!resolveMaterialEndpoint(
           state.sites,
           lot.location.container,
           "withdraw",
-        ),
+        ) ||
+          !!resolveOpenFiniteSourceContainer(state, lot.location.container)),
     ),
   ];
   let selected:
@@ -120,9 +133,15 @@ function constructionTransferOption(
             "withdraw",
           )?.site
         : null;
+    const finiteSource =
+      lot.location.kind === "container"
+        ? resolveOpenFiniteSourceContainer(state, lot.location.container)
+        : null;
     const a = sourceSite
         ? workApproach(state, person, sourceSite, blocked)
-        : route(person, lot.location, blocked, state),
+        : finiteSource
+          ? nearestPath(state, person, finiteSource.accessCells, blocked)
+          : route(person, lot.location, blocked, state),
       from = a?.at(-1) ?? person,
       b = a && workApproach(state, from, site, blocked);
     if (!a || !b) continue;
@@ -231,6 +250,236 @@ function storageTransferOption(
     },
   };
 }
+function nearestPath(
+  state: Clearing,
+  from: Cell,
+  cells: readonly Cell[],
+  blocked: Set<string>,
+) {
+  return (
+    cells
+      .map((cell) => route(from, cell, blocked, state))
+      .filter((path): path is Cell[] => path !== null)
+      .sort(
+        (left, right) => pathTicks(from, left) - pathTicks(from, right),
+      )[0] ?? null
+  );
+}
+function repairCacheOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "repair-cache" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const cache = state.sources.find((source) => source.id === job.target);
+  if (!cache || cache.kind !== "reclaimed-timber-cache" || sourceIsOpen(cache))
+    return no("The reclaimed cache is already repaired");
+  const destination = cacheRepairBuffer(cache)!;
+  const delivered = containerQuantity(state.materials, destination.id, "wood");
+  if (delivered === 2) {
+    const path = nearestPath(state, person, sourceAccessCells(cache), blocked);
+    return path
+      ? {
+          reason: "Ready to repair the cache",
+          candidate: make(
+            job,
+            "repair-cache",
+            cache.id,
+            path,
+            8,
+            pathTicks(person, path),
+          ),
+        }
+      : no("No route to the cache");
+  }
+  const remaining = 2 - delivered;
+  let selected:
+    | {
+        lot: AvailableLotFact["lot"];
+        quantity: number;
+        path: Cell[];
+        travel: number;
+      }
+    | undefined;
+  for (const fact of sourceFacts) {
+    const lot = fact.lot;
+    if (lot.material !== "wood") continue;
+    const sourceSite =
+      lot.location.kind === "container"
+        ? resolveMaterialEndpoint(
+            state.sites,
+            lot.location.container,
+            "withdraw",
+          )?.site
+        : null;
+    const path = sourceSite
+      ? workApproach(state, person, sourceSite, blocked)
+      : lot.location.kind === "ground"
+        ? route(person, lot.location, blocked, state)
+        : null;
+    if (!path) continue;
+    const toRepair = nearestPath(
+      state,
+      path.at(-1) ?? person,
+      sourceAccessCells(cache),
+      blocked,
+    );
+    if (!toRepair) continue;
+    const travel =
+      pathTicks(person, path) + pathTicks(path.at(-1) ?? person, toRepair);
+    if (!selected || travel < selected.travel)
+      selected = { lot, quantity: fact.quantity, path, travel };
+  }
+  if (!selected) return no("Waiting for reachable repair wood");
+  const quantity = Math.min(2, remaining, selected.quantity);
+  if (quantity < 1) return no("Waiting for reachable repair wood");
+  return {
+    reason: "Ready to haul repair wood",
+    candidate: {
+      ...make(
+        job,
+        "transfer",
+        selected.lot.id,
+        selected.path,
+        8,
+        selected.travel,
+      ),
+      transfer: {
+        sourceLot: selected.lot.id,
+        destination,
+        request: {
+          source:
+            selected.lot.location.kind === "container"
+              ? {
+                  kind: "eligible-container",
+                  material: "wood",
+                  container: selected.lot.location.container,
+                }
+              : { kind: "eligible-ground", material: "wood" },
+          quantityPolicy: "portion",
+          quantity: quantity as PositiveInt,
+        },
+        intent: { kind: "deliver", destination: destination.id },
+        owner: { kind: "job", job: job.id, step: "cache-repair-materials" },
+        destinationReachableWithPayload: true,
+      },
+    },
+  };
+}
+function fillKettleOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "fill-kettle" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const existing = state.operations.find(
+    (operation) => operation.job === job.id,
+  );
+  const station = state.sites.find(
+    (site) =>
+      site.id === (existing?.station ?? job.target) &&
+      site.type === "brew-station" &&
+      site.finishedAt !== null,
+  );
+  if (!station) return no("Waiting for a finished brew station");
+  if (containerQuantity(state.materials, brewKettle(station).id, "water") >= 2)
+    return no("The kettle is full");
+  const phase = existing?.phase ?? "acquire";
+  if (
+    existing &&
+    !state.materials.vesselUses.some(
+      (use) => use.id === existing.id && use.vessel === existing.pail,
+    )
+  )
+    return no("Waiting for its bound pail");
+  const pailFacts = existing
+    ? (() => {
+        const lot = state.materials.lots.find(
+          (candidate) => candidate.id === existing.pail,
+        );
+        return lot && lot.id === existing.pail ? [{ lot }] : [];
+      })()
+    : sourceFacts.filter(
+        ({ lot }) => lot.material === "pail" && lot.quantity === 1,
+      );
+  const candidates = pailFacts
+    .flatMap(({ lot }) => {
+      const cache = state.sources.find(
+        (source) =>
+          lot.location.kind === "container" &&
+          lot.location.container === sourcePailContainer(source.id),
+      );
+      const access =
+        lot.location.kind === "ground"
+          ? [lot.location]
+          : cache && sourceIsOpen(cache)
+            ? sourceAccessCells(cache)
+            : [];
+      const path =
+        lot.location.kind === "hand" && lot.location.actor === person.id
+          ? []
+          : nearestPath(state, person, access, blocked);
+      return path ? [{ lot, path }] : [];
+    })
+    .sort(
+      (left, right) =>
+        pathTicks(person, left.path) - pathTicks(person, right.path),
+    );
+  const selected = candidates[0];
+  if (!selected) return no("Waiting for the recoverable pail");
+  const spring =
+    phase === "pour"
+      ? undefined
+      : state.sources.find(
+          (source) =>
+            source.id === existing?.spring ||
+            (!existing && source.kind === "spring"),
+        );
+  if (
+    phase !== "pour" &&
+    (!spring ||
+      containerQuantity(state.materials, `source:${spring.id}`, "water") < 2)
+  )
+    return no("Waiting for the spring");
+  const pailAt = selected.path.at(-1) ?? person;
+  const springPath = spring
+    ? nearestPath(state, pailAt, sourceAccessCells(spring), blocked)
+    : [];
+  const stationPath = spring
+    ? springPath &&
+      nearestPath(
+        state,
+        springPath.at(-1) ?? pailAt,
+        brewStationAccessCells(station),
+        blocked,
+      )
+    : nearestPath(state, pailAt, brewStationAccessCells(station), blocked);
+  if (!stationPath || (spring && !springPath))
+    return no("No route from pail to kettle");
+  return {
+    reason: "Ready to fill the kettle",
+    candidate: {
+      ...make(
+        job,
+        "brew-water",
+        "pending-operation",
+        selected.path,
+        1,
+        pathTicks(person, selected.path) +
+          pathTicks(pailAt, springPath) +
+          pathTicks(springPath.at(-1) ?? pailAt, stationPath),
+      ),
+      brew: {
+        station: station.id,
+        spring: existing?.spring ?? spring!.id,
+        pail: selected.lot.id,
+        operation: existing?.id,
+      },
+    },
+  };
+}
 function option(
   state: Clearing,
   p: Actor,
@@ -238,6 +487,10 @@ function option(
   b: Set<string>,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
+  if (j.kind === "repair-cache")
+    return repairCacheOption(state, p, j, b, sourceFacts);
+  if (j.kind === "fill-kettle")
+    return fillKettleOption(state, p, j, b, sourceFacts);
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
@@ -330,13 +583,17 @@ function option(
 function automatic(a: Activity): WorkType | null {
   return a.kind === "transfer"
     ? "haul"
-    : a.kind === "build" || a.kind === "deconstruct"
+    : a.kind === "repair-cache"
       ? "build"
-      : a.kind === "chop"
-        ? "chop"
-        : a.kind === "sow" || a.kind === "harvest"
-          ? "garden"
-          : null;
+      : a.kind === "brew-water"
+        ? "haul"
+        : a.kind === "build" || a.kind === "deconstruct"
+          ? "build"
+          : a.kind === "chop"
+            ? "chop"
+            : a.kind === "sow" || a.kind === "harvest"
+              ? "garden"
+              : null;
 }
 export function assignWork(state: Clearing, colony: Colony): void {
   if (!state.workDirty) return;
@@ -388,7 +645,12 @@ export function assignWork(state: Clearing, colony: Colony): void {
         carry.intent.destination,
         "deposit",
       )?.site;
-      const path = site && workApproach(state, p, site, blocked);
+      const repair = resolveCacheRepairBuffer(state, carry.intent.destination);
+      const path = site
+        ? workApproach(state, p, site, blocked)
+        : repair
+          ? nearestPath(state, p, sourceAccessCells(repair.source), blocked)
+          : null;
       if (path) {
         const c = make(
           state.jobs.find(
@@ -462,6 +724,59 @@ export function assignWork(state: Clearing, colony: Colony): void {
       )
         continue;
       c.activity.target = state.materials.transfers.at(-1)!.id;
+    }
+    if (c.brew) {
+      const id = c.brew.operation ?? `brew-water-${state.nextId}`;
+      const existing = state.operations.find(
+        (operation) => operation.id === id,
+      );
+      if (existing) {
+        const rebound = rebindOperationPail(state.materials, {
+          id: `vessel-use-${id}-${state.nextId}`,
+          operation: existing.id,
+          actor: p.id,
+          access: {
+            sourceReachable: true,
+            destinationReachableWithPayload: true,
+          },
+        });
+        if (!rebound.ok) {
+          state.workDirty = true;
+          continue;
+        }
+        existing.actor = p.id;
+        state.nextId++;
+      } else {
+        state.operations.push({
+          id,
+          job: m.task,
+          actor: p.id,
+          station: c.brew.station,
+          spring: c.brew.spring,
+          pail: c.brew.pail,
+          water: null,
+          phase: "acquire",
+        });
+        const acquired = acquirePailForOperation(state.materials, {
+          id: `vessel-use-${id}`,
+          operation: id,
+          actor: p.id,
+          vessel: c.brew.pail,
+          access: {
+            sourceReachable: true,
+            destinationReachableWithPayload: true,
+          },
+        });
+        if (!acquired.ok) {
+          state.operations = state.operations.filter(
+            (operation) => operation.id !== id,
+          );
+          state.workDirty = true;
+          continue;
+        }
+        state.nextId++;
+      }
+      c.activity.target = id;
     }
     p.assignment = { ...m };
     p.task = c.activity;

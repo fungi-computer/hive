@@ -17,13 +17,27 @@ import {
   type ContainerSpec,
 } from "./materials.ts";
 
-export type FiniteSourceDefinition = {
-  kind: SourceFeatureKind;
-  preferred: Cell;
-  access: SourceFeature["access"];
-  material: "wood" | "water";
-  quantity: PositiveInt;
-};
+export type FiniteSourceDefinition =
+  | {
+      kind: "spring";
+      preferred: Cell;
+      access: "open";
+      provider: { material: "water"; capacity: PositiveInt };
+      initial: readonly [
+        { slot: "provider"; material: "water"; quantity: PositiveInt },
+      ];
+    }
+  | {
+      kind: "reclaimed-timber-cache";
+      preferred: Cell;
+      access: "sealed";
+      provider: { material: "wood"; capacity: PositiveInt };
+      pail: { capacity: PositiveInt };
+      initial: readonly [
+        { slot: "provider"; material: "wood"; quantity: PositiveInt },
+        { slot: "pail"; material: "pail"; quantity: PositiveInt },
+      ];
+    };
 
 /** The one bounded source policy: placement metadata and finite stock. */
 export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
@@ -31,15 +45,21 @@ export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
     kind: "spring",
     preferred: { x: 13, z: 13, level: 0 },
     access: "open",
-    material: "water",
-    quantity: 8 as PositiveInt,
+    provider: { material: "water", capacity: 8 as PositiveInt },
+    initial: [
+      { slot: "provider", material: "water", quantity: 8 as PositiveInt },
+    ],
   },
   {
     kind: "reclaimed-timber-cache",
     preferred: { x: 1, z: 13, level: 0 },
     access: "sealed",
-    material: "wood",
-    quantity: 10 as PositiveInt,
+    provider: { material: "wood", capacity: 10 as PositiveInt },
+    pail: { capacity: 1 as PositiveInt },
+    initial: [
+      { slot: "provider", material: "wood", quantity: 10 as PositiveInt },
+      { slot: "pail", material: "pail", quantity: 1 as PositiveInt },
+    ],
   },
 ];
 
@@ -95,10 +115,63 @@ export function sourceContainerSpec(
   const definition = sourceDefinition(source.kind);
   return {
     id: sourceContainer(source.id),
-    capacity: definition.quantity,
-    accepts: [definition.material],
-    bulk: { [definition.material]: 1 as PositiveInt },
+    capacity: definition.provider.capacity,
+    accepts: [definition.provider.material],
+    bulk: { [definition.provider.material]: 1 as PositiveInt },
   };
+}
+
+export function sourcePailContainer(id: string): string {
+  return `source-pail:${id}`;
+}
+
+function sourcePailLot(id: string): string {
+  return `source-pail-lot:${id}`;
+}
+
+export function sourcePailContainerSpec(
+  source: Pick<SourceFeature, "id" | "kind">,
+): ContainerSpec | null {
+  const definition = sourceDefinition(source.kind);
+  return "pail" in definition
+    ? {
+        id: sourcePailContainer(source.id),
+        capacity: definition.pail.capacity,
+        accepts: ["pail"],
+        bulk: { pail: 1 as PositiveInt },
+      }
+    : null;
+}
+
+/** Repair is a separate once-only wood consumer, never cache stock capacity. */
+export function cacheRepairBuffer(
+  source: Pick<SourceFeature, "id" | "kind">,
+): ContainerSpec | null {
+  return source.kind === "reclaimed-timber-cache"
+    ? {
+        id: `repair-buffer:${source.id}`,
+        capacity: 2 as PositiveInt,
+        accepts: ["wood"],
+        bulk: { wood: 1 as PositiveInt },
+      }
+    : null;
+}
+
+export function resolveCacheRepairBuffer(
+  state: Pick<Clearing, "sources">,
+  id: string,
+): { source: SourceFeature; destination: ContainerSpec } | null {
+  const source = state.sources.find(
+    (candidate) =>
+      candidate.kind === "reclaimed-timber-cache" &&
+      cacheRepairBuffer(candidate)?.id === id,
+  );
+  const destination = source && cacheRepairBuffer(source);
+  return source && destination ? { source, destination } : null;
+}
+
+export function sourceIsOpen(source: SourceFeature): boolean {
+  return source.kind !== "reclaimed-timber-cache" || source.repaired;
 }
 
 /** Source metadata and approach cells; routing remains owned by world/path. */
@@ -115,6 +188,27 @@ export function resolveFiniteSource(
     ? {
         source,
         container: sourceContainerSpec(source),
+        accessCells: sourceAccessCells(source),
+      }
+    : null;
+}
+
+/** Checked provider lookup for consumers that may withdraw finite stock. */
+export function resolveOpenFiniteSourceContainer(
+  state: Pick<Clearing, "sources">,
+  container: string,
+): {
+  source: SourceFeature;
+  provider: ContainerSpec;
+  accessCells: readonly Cell[];
+} | null {
+  const source = state.sources.find(
+    (candidate) => sourceContainer(candidate.id) === container,
+  );
+  return source && sourceIsOpen(source)
+    ? {
+        source,
+        provider: sourceContainerSpec(source),
         accessCells: sourceAccessCells(source),
       }
     : null;
@@ -154,11 +248,17 @@ function identityKeys(state: SourceState): Set<string> {
       entry.id,
       sourceContainer(entry.id),
       `source-lot:${entry.id}`,
+      ...(sourcePailContainerSpec(entry)
+        ? [sourcePailContainer(entry.id), sourcePailLot(entry.id)]
+        : []),
     ]),
     ...state.pendingSources.flatMap((entry) => [
       entry.id,
       sourceContainer(entry.id),
       `source-lot:${entry.id}`,
+      ...("pail" in sourceDefinition(entry.kind)
+        ? [sourcePailContainer(entry.id), sourcePailLot(entry.id)]
+        : []),
     ]),
   ]);
 }
@@ -205,7 +305,9 @@ function nextFeatureId(kind: SourceFeatureKind, used: Set<string>): string {
     if (
       !used.has(id) &&
       !used.has(sourceContainer(id)) &&
-      !used.has(`source-lot:${id}`)
+      !used.has(`source-lot:${id}`) &&
+      !used.has(sourcePailContainer(id)) &&
+      !used.has(sourcePailLot(id))
     )
       return id;
   }
@@ -246,6 +348,8 @@ function planFiniteSources(
     used.delete(id);
     used.delete(sourceContainer(id));
     used.delete(`source-lot:${id}`);
+    used.delete(sourcePailContainer(id));
+    used.delete(sourcePailLot(id));
   }
   const occupied = physicalOccupancy(state);
   const plan: SourcePlan[] = [];
@@ -255,7 +359,9 @@ function planFiniteSources(
     if (
       used.has(id) ||
       used.has(sourceContainer(id)) ||
-      used.has(`source-lot:${id}`)
+      used.has(`source-lot:${id}`) ||
+      used.has(sourcePailContainer(id)) ||
+      used.has(sourcePailLot(id))
     )
       return null;
     const cell = featureCell(definition.preferred, occupied);
@@ -263,6 +369,10 @@ function planFiniteSources(
     used.add(id);
     used.add(sourceContainer(id));
     used.add(`source-lot:${id}`);
+    if ("pail" in definition) {
+      used.add(sourcePailContainer(id));
+      used.add(sourcePailLot(id));
+    }
     occupied.push(cell);
     plan.push({ definition, id, cell });
   }
@@ -274,24 +384,44 @@ function commitSourcePlan(
   plan: readonly SourcePlan[],
 ): void {
   for (const { definition, id } of plan) {
-    const stock = introduceFiniteSourceLot(state.materials, {
-      source: sourceContainerSpec({ id, kind: definition.kind }),
-      material: definition.material,
-      quantity: definition.quantity,
-      preferredId: `source-lot:${id}`,
-    });
-    if (!stock.ok)
-      throw new Error(`cannot introduce ${definition.kind}: ${stock.reason}`);
+    for (const initial of definition.initial) {
+      const source =
+        initial.slot === "provider"
+          ? sourceContainerSpec({ id, kind: definition.kind })
+          : sourcePailContainerSpec({ id, kind: definition.kind });
+      if (!source) throw new Error("cannot introduce missing pail provider");
+      const lot = introduceFiniteSourceLot(state.materials, {
+        source,
+        material: initial.material,
+        quantity: initial.quantity,
+        preferredId:
+          initial.slot === "provider" ? `source-lot:${id}` : sourcePailLot(id),
+      });
+      if (!lot.ok)
+        throw new Error(`cannot introduce ${definition.kind}: ${lot.reason}`);
+    }
   }
   for (const { definition, id, cell } of plan)
-    state.sources.push({
-      id,
-      kind: definition.kind,
-      access: definition.access,
-      x: cell.x,
-      z: cell.z,
-      level: cell.level,
-    });
+    state.sources.push(
+      definition.kind === "spring"
+        ? {
+            id,
+            kind: "spring",
+            access: "open",
+            x: cell.x,
+            z: cell.z,
+            level: cell.level,
+          }
+        : {
+            id,
+            kind: "reclaimed-timber-cache",
+            access: "sealed",
+            repaired: false,
+            x: cell.x,
+            z: cell.z,
+            level: cell.level,
+          },
+    );
 }
 
 function persistPending(
@@ -306,6 +436,10 @@ function persistPending(
     used.add(id);
     used.add(sourceContainer(id));
     used.add(`source-lot:${id}`);
+    if ("pail" in definition) {
+      used.add(sourcePailContainer(id));
+      used.add(sourcePailLot(id));
+    }
     state.pendingSources.push({
       id,
       kind: definition.kind,
@@ -343,6 +477,20 @@ export function resolvePendingFiniteSources(state: SourceState): void {
   commitSourcePlan(state, plan);
 }
 
+/** Cache repair opens access without changing its finite wood stock. */
+export function repairReclaimedCache(
+  state: Pick<Clearing, "sources">,
+  id: string,
+): boolean {
+  const cache = state.sources.find(
+    (source) => source.id === id && source.kind === "reclaimed-timber-cache",
+  );
+  if (!cache || cache.kind !== "reclaimed-timber-cache" || cache.repaired)
+    return false;
+  cache.repaired = true;
+  return true;
+}
+
 /** One source/physical/identity law shared by restore and introduction. */
 export function finiteSourceProblem(
   state: SourceState,
@@ -364,16 +512,29 @@ export function finiteSourceProblem(
     const key = `${source.x},${source.z},${source.level}`;
     const provider = sourceContainerSpec(source);
     const namedLotId = `source-lot:${source.id}`;
+    const pailProvider = sourcePailContainerSpec(source);
+    const pailLotId = pailProvider ? sourcePailLot(source.id) : null;
     const contents = state.materials.lots.filter(
       (lot) =>
         lot.location.kind === "container" &&
         lot.location.container === provider.id,
     );
     const namedLot = state.materials.lots.find((lot) => lot.id === namedLotId);
+    const pailContents = pailProvider
+      ? state.materials.lots.filter(
+          (lot) =>
+            lot.location.kind === "container" &&
+            lot.location.container === pailProvider.id,
+        )
+      : [];
+    const pailLot = pailLotId
+      ? state.materials.lots.find((lot) => lot.id === pailLotId)
+      : undefined;
     // This is provenance, not permanent provider custody: the final portion
     // may be held or in another valid container after a draw.  Its ID is not
     // a competing identity while the material lot itself remains unique.
     if (namedLot) used.delete(namedLotId);
+    if (pailLotId && pailLot) used.delete(pailLotId);
     if (
       ids.has(source.id) ||
       kinds.has(source.kind) ||
@@ -387,6 +548,13 @@ export function finiteSourceProblem(
       fixed.has(namedLotId) ||
       containerIds.has(provider.id) ||
       namedLotIds.has(namedLotId) ||
+      (pailProvider !== null &&
+        (state.materials.lots.some((lot) => lot.id === pailProvider.id) ||
+          fixed.has(pailProvider.id) ||
+          fixed.has(pailLotId!) ||
+          containerIds.has(pailProvider.id) ||
+          namedLotIds.has(pailLotId!) ||
+          used.has(pailLotId!))) ||
       !featureIdMatches(source.kind, source.id) ||
       source.access !== sourceDefinition(source.kind).access
     )
@@ -404,18 +572,37 @@ export function finiteSourceProblem(
       )
     )
       return `source ${source.id} has invalid finite contents`;
+    if (
+      pailProvider &&
+      (!pailLot ||
+        pailLot.material !== "pail" ||
+        pailLot.quantity !== 1 ||
+        pailContents.length > 1 ||
+        pailContents.some((lot) => lot.id !== pailLotId))
+    )
+      return `source ${source.id} has invalid pail contents`;
     ids.add(source.id);
     kinds.add(source.kind);
     cells.add(key);
     containerIds.add(provider.id);
     namedLotIds.add(namedLotId);
+    if (pailProvider) {
+      containerIds.add(pailProvider.id);
+      namedLotIds.add(pailLotId!);
+    }
     used.add(source.id);
     used.add(provider.id);
     used.add(`source-lot:${source.id}`);
+    if (pailProvider) {
+      used.add(pailProvider.id);
+      used.add(pailLotId!);
+    }
   }
   for (const pending of state.pendingSources) {
     const providerId = sourceContainer(pending.id);
     const namedLotId = `source-lot:${pending.id}`;
+    const pailProvider = sourcePailContainerSpec(pending);
+    const pailLotId = pailProvider ? sourcePailLot(pending.id) : null;
     if (
       ids.has(pending.id) ||
       kinds.has(pending.kind) ||
@@ -426,6 +613,13 @@ export function finiteSourceProblem(
       fixed.has(namedLotId) ||
       containerIds.has(providerId) ||
       namedLotIds.has(namedLotId) ||
+      (pailProvider !== null &&
+        (used.has(pailProvider.id) ||
+          used.has(pailLotId!) ||
+          fixed.has(pailProvider.id) ||
+          fixed.has(pailLotId!) ||
+          containerIds.has(pailProvider.id) ||
+          namedLotIds.has(pailLotId!))) ||
       !featureIdMatches(pending.kind, pending.id) ||
       state.materials.lots.some(
         (lot) =>
@@ -439,9 +633,17 @@ export function finiteSourceProblem(
     kinds.add(pending.kind);
     containerIds.add(providerId);
     namedLotIds.add(namedLotId);
+    if (pailProvider) {
+      containerIds.add(pailProvider.id);
+      namedLotIds.add(pailLotId!);
+    }
     used.add(pending.id);
     used.add(providerId);
     used.add(namedLotId);
+    if (pailProvider) {
+      used.add(pailProvider.id);
+      used.add(pailLotId!);
+    }
   }
   return requireAll && kinds.size !== FINITE_SOURCE_DEFINITIONS.length
     ? "finite source introduction is incomplete"

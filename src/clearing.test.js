@@ -6,9 +6,11 @@ import { advanceWork, CHOP_TICKS, interruptWork } from "./activity.ts";
 import { createClearing, step as advance } from "./clearing.ts";
 import {
   BUILDINGS,
+  brewKettle,
   constructionBuffer,
   shelfContainer,
 } from "./construction.js";
+import { cacheRepairBuffer } from "./finite-sources.ts";
 import { assignWork } from "./jobs.ts";
 import {
   containerQuantity,
@@ -964,4 +966,362 @@ test("actual libcolony creates a night routine in a sheltered room and clears it
   );
   assert.equal(state.actors.rowan.task, null);
   assert.equal(state.rested, 1);
+});
+
+test("actual libcolony supplies shared cache repair through its buffer and cancellation returns staged wood", () => {
+  const state = createClearing(91);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  const buffer = cacheRepairBuffer(cache);
+  state.felled = 1;
+  state.materials.lots.push({
+    id: "repair-wood",
+    material: "wood",
+    quantity: 6,
+    location: { kind: "ground", ...cell(7, 10) },
+  });
+  assert.deepEqual(actualStep(state, [{ kind: "repair-cache" }]), [
+    { status: "applied" },
+  ]);
+  for (
+    let tick = 0;
+    tick < 400 && containerQuantity(state.materials, buffer.id, "wood") !== 2;
+    tick++
+  )
+    actualStep(state);
+  assert.equal(containerQuantity(state.materials, buffer.id, "wood"), 2);
+  const repair = state.jobs.find((job) => job.kind === "repair-cache");
+  assert.ok(repair);
+  assert.deepEqual(actualStep(state, [{ kind: "cancel", job: repair.id }]), [
+    { status: "applied" },
+  ]);
+  assert.equal(cache.repaired, false);
+  assert.equal(containerQuantity(state.materials, buffer.id, "wood"), 0);
+  assert.equal(state.materials.consumedWood, 0);
+  assert.equal(
+    state.jobs.some((job) => job.id === repair.id),
+    false,
+  );
+  conserve(state);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+});
+
+test("actual libcolony builds a normal brew station from repaired finite cache wood", () => {
+  const state = createClearing(95);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  state.felled = 1;
+  state.materials.consumedWood = 4;
+  state.materials.lots.push({
+    id: "repair-only-wood",
+    material: "wood",
+    quantity: 2,
+    location: { kind: "ground", ...cell(7, 10) },
+  });
+  state.paused = true;
+  assert.deepEqual(
+    actualStep(state, [
+      { kind: "repair-cache" },
+      { kind: "build", type: "brew-station", x: 7, z: 5, direction: 0 },
+    ]),
+    [{ status: "applied" }, { status: "applied" }],
+  );
+  state.paused = false;
+  for (
+    let tick = 0;
+    tick < 1_200 &&
+    !state.sites.some(
+      (site) => site.type === "brew-station" && site.finishedAt !== null,
+    );
+    tick++
+  )
+    actualStep(state);
+  const station = state.sites.find((site) => site.type === "brew-station");
+  assert.ok(station?.finishedAt !== null);
+  assert.equal(
+    embeddedQuantity(state.materials, constructionBuffer(station).id, "wood"),
+    6,
+  );
+  assert.equal(
+    containerQuantity(state.materials, `source:${cache.id}`, "wood"),
+    4,
+  );
+  conserve(state);
+});
+
+test("actual libcolony repairs once, pauses a filled pail, and resumes one fill operation without redrawing", () => {
+  const state = createClearing(92);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  const spring = state.sources.find((source) => source.kind === "spring");
+  const station = {
+    id: "station-a",
+    type: "brew-station",
+    ...cell(7, 5),
+    direction: 0,
+    work: BUILDINGS["brew-station"].ticks,
+    finishedAt: 0,
+  };
+  state.sites.push(station);
+  state.materials.embedded.push({
+    container: constructionBuffer(station).id,
+    material: "wood",
+    quantity: BUILDINGS["brew-station"].wood,
+  });
+  state.felled = 2;
+  state.materials.lots.push({
+    id: "repair-wood",
+    material: "wood",
+    quantity: 6,
+    location: { kind: "ground", ...cell(7, 10) },
+  });
+  actualStep(state, [{ kind: "repair-cache" }]);
+  for (let tick = 0; tick < 500 && !cache.repaired; tick++) actualStep(state);
+  assert.equal(cache.repaired, true);
+  assert.equal(state.materials.consumedWood, 2);
+  state.actors.sedge.drafted = true;
+  Object.assign(state.actors.rowan, cell(14, 1));
+  assert.deepEqual(
+    actualStep(state, [{ kind: "fill-kettle", station: station.id }]),
+    [{ status: "applied" }],
+  );
+  assert.equal(state.operations[0]?.phase, "acquire");
+  assert.equal(state.materials.transfers[0]?.phase.kind, "reserved");
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+  for (
+    let tick = 0;
+    tick < 700 && state.operations[0]?.phase !== "pour";
+    tick++
+  )
+    actualStep(state);
+  const operation = state.operations[0];
+  assert.equal(operation.phase, "pour");
+  assert.equal(
+    containerQuantity(state.materials, `source:${spring.id}`, "water"),
+    6,
+  );
+  // Simulate a lost path before the later Draft command: the operation keeps
+  // only its pail binding, not Rowan's executor transfer.
+  interruptWork(state, state.actors.rowan);
+  assert.equal(state.materials.transfers.length, 0);
+  assert.equal(state.materials.vesselUses.length, 1);
+  assert.deepEqual(actualStep(state, [{ kind: "draft", actor: "rowan" }]), [
+    { status: "applied" },
+  ]);
+  assert.deepEqual(actualStep(state, [{ kind: "draft", actor: "rowan" }]), [
+    { status: "applied" },
+  ]);
+  assert.equal(state.materials.vesselUses.length, 1);
+  assert.equal(state.materials.transfers.length, 0);
+  const paused = restoreSnapshot(snapshotFor(state)).state;
+  assert.equal(paused.paused, true);
+  assert.equal(paused.operations[0].id, operation.id);
+  assert.equal(paused.operations[0].phase, "pour");
+  assert.equal(paused.actors.rowan.task, null);
+  paused.jobs.unshift({
+    id: "personal-chop-after-pour",
+    kind: "chop",
+    target: paused.trees[0].id,
+    scope: personal("rowan"),
+    reason: "Ordered",
+    routine: false,
+  });
+  paused.workDirty = true;
+  actualStep(paused, [
+    { kind: "work", work: "haul", enabled: false },
+    { kind: "undraft", actor: "rowan" },
+  ]);
+  paused.paused = false;
+  actualStep(paused);
+  assert.equal(paused.actors.rowan.task?.job, "personal-chop-after-pour");
+  assert.equal(paused.materials.transfers.length, 0);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(paused)));
+  interruptWork(paused, paused.actors.rowan);
+  paused.jobs = paused.jobs.filter(
+    (job) => job.id !== "personal-chop-after-pour",
+  );
+  paused.workDirty = true;
+  actualStep(paused, [{ kind: "work", work: "haul", enabled: true }]);
+  const pourWithoutSpring = restoreSnapshot(snapshotFor(paused)).state;
+  pourWithoutSpring.materials.lots.find(
+    (lot) => lot.id === `source-lot:${spring.id}`,
+  ).quantity = 0;
+  actualStep(pourWithoutSpring, [{ kind: "undraft", actor: "rowan" }]);
+  pourWithoutSpring.paused = false;
+  for (
+    let tick = 0;
+    tick < 700 && pourWithoutSpring.operations.length !== 0;
+    tick++
+  )
+    actualStep(pourWithoutSpring);
+  assert.equal(pourWithoutSpring.operations.length, 0);
+  assert.equal(
+    containerQuantity(
+      pourWithoutSpring.materials,
+      brewKettle(station).id,
+      "water",
+    ),
+    2,
+  );
+  actualStep(paused, [{ kind: "undraft", actor: "rowan" }]);
+  paused.paused = false;
+  for (let tick = 0; tick < 700 && paused.operations.length !== 0; tick++)
+    actualStep(paused);
+  assert.equal(paused.operations.length, 0);
+  assert.equal(
+    containerQuantity(paused.materials, brewKettle(station).id, "water"),
+    2,
+  );
+  assert.equal(
+    containerQuantity(paused.materials, `source:${spring.id}`, "water"),
+    6,
+  );
+  assert.equal(paused.materials.vesselUses.length, 0);
+  assert.equal(paused.materials.transfers.length, 0);
+  assert.equal(
+    paused.materials.lots.find((lot) => lot.id === operation.pail).location
+      .kind,
+    "ground",
+  );
+  conserve(paused);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(paused)));
+});
+
+test("one cache pail admits only the earlier shared fill job", () => {
+  const state = createClearing(94);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  cache.repaired = true;
+  for (const [id, x] of [
+    ["station-first", 6],
+    ["station-second", 10],
+  ]) {
+    const station = {
+      id,
+      type: "brew-station",
+      ...cell(x, 5),
+      direction: 0,
+      work: BUILDINGS["brew-station"].ticks,
+      finishedAt: 0,
+    };
+    state.sites.push(station);
+    state.materials.embedded.push({
+      container: constructionBuffer(station).id,
+      material: "wood",
+      quantity: BUILDINGS["brew-station"].wood,
+    });
+  }
+  state.felled = 2;
+  actualStep(state, [
+    { kind: "fill-kettle", station: "station-first" },
+    { kind: "fill-kettle", station: "station-second" },
+  ]);
+  assert.equal(state.operations.length, 1);
+  assert.equal(state.operations[0].station, "station-first");
+  assert.equal(state.materials.vesselUses.length, 1);
+  assert.equal(state.materials.transfers.length, 1);
+  assert.equal(state.materials.transfers[0].phase.kind, "reserved");
+});
+
+test("canceling an incomplete fill drops its same filled pail and retires the live operation", () => {
+  const state = createClearing(93);
+  const spring = state.sources.find((source) => source.kind === "spring");
+  const station = {
+    id: "station-cancel",
+    type: "brew-station",
+    ...cell(7, 5),
+    direction: 0,
+    work: BUILDINGS["brew-station"].ticks,
+    finishedAt: 0,
+  };
+  state.sites.push(station);
+  state.materials.embedded.push({
+    container: constructionBuffer(station).id,
+    material: "wood",
+    quantity: 6,
+  });
+  state.felled = 1;
+  state.materials.lots.find(
+    (lot) => lot.id === `source-lot:${spring.id}`,
+  ).quantity = 6;
+  state.materials.lots.push(
+    {
+      id: "cancel-pail",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "hand", actor: "rowan" },
+    },
+    {
+      id: "cancel-water",
+      material: "water",
+      quantity: 2,
+      location: { kind: "container", container: "vessel:cancel-pail" },
+    },
+  );
+  state.jobs.push({
+    id: "job-fill-cancel",
+    kind: "fill-kettle",
+    target: station.id,
+    scope: shared,
+    reason: "Ordered",
+    routine: false,
+  });
+  state.operations.push({
+    id: "fill-cancel",
+    job: "job-fill-cancel",
+    actor: "rowan",
+    spring: spring.id,
+    station: station.id,
+    pail: "cancel-pail",
+    water: "cancel-water",
+    phase: "pour",
+  });
+  state.materials.vesselUses.push({
+    id: "fill-cancel",
+    vessel: "cancel-pail",
+  });
+  state.materials.transfers.push({
+    id: "fill-cancel-use",
+    actor: "rowan",
+    owner: { kind: "operation", operation: "fill-cancel" },
+    request: {
+      source: { kind: "exact-lot", lot: "cancel-pail" },
+      quantityPolicy: "whole-lot",
+      quantity: 1,
+    },
+    intent: { kind: "use", operation: "fill-cancel" },
+    phase: { kind: "carrying", lot: "cancel-pail" },
+  });
+  state.actors.rowan.task = {
+    kind: "brew-water",
+    job: "job-fill-cancel",
+    target: "fill-cancel",
+    duration: 1,
+  };
+  state.actors.rowan.assignment = {
+    character: "rowan",
+    task: "job-fill-cancel",
+    cost: 0,
+  };
+  assert.deepEqual(
+    actualStep(state, [{ kind: "cancel", job: "job-fill-cancel" }]),
+    [{ status: "applied" }],
+  );
+  assert.equal(state.operations.length, 0);
+  assert.equal(state.materials.transfers.length, 0);
+  assert.equal(state.materials.vesselUses.length, 0);
+  assert.equal(
+    state.materials.lots.find((lot) => lot.id === "cancel-pail").location.kind,
+    "ground",
+  );
+  assert.equal(
+    state.materials.lots.find((lot) => lot.id === "cancel-water").location
+      .container,
+    "vessel:cancel-pail",
+  );
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
 });

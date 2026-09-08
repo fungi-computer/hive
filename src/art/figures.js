@@ -4,6 +4,13 @@ import * as THREE from "three";
 import { scene, box, ball, cylinder, mesh, group } from "./geometry.js";
 import { mugwortBundle } from "./herbs.js";
 
+import { pail, PAIL_GRIP } from "./pail.js";
+const PAIL_POSES = {
+  "carry-pail-empty": 0,
+  "carry-pail-half": 1,
+  "carry-pail-full": 2,
+};
+
 const SKIN = "#c59a76";
 const GREEN = "#8ba74e";
 
@@ -56,6 +63,7 @@ function arms(
   { shoulder, spread, length, sleeve, hand, action = "idle" },
 ) {
   const carryingHerb = action === "carry-herb";
+  const carryingPail = Object.hasOwn(PAIL_POSES, action);
   if (action === "carry-herb") action = "carry";
   if (action === "pickup-herb") action = "pickup";
   const hands = [];
@@ -75,6 +83,10 @@ function arms(
       arm.rotation.z = side < 0 ? -0.04 : 0.22;
     }
     if (action === "carry") arm.rotation.x = carryingHerb ? -0.55 : -1.15;
+    if (carryingPail && side === 1) {
+      arm.rotation.x = -0.12 + Math.sin(phase * Math.PI * 2) * 0.05;
+      arm.rotation.z = 0.5;
+    }
     limb(arm, sleeve, length, 0.14);
     const elbow = group(arm, 0, -length, 0);
     elbow.rotation.x = carryingHerb
@@ -168,6 +180,16 @@ function carryHerb(body, hands) {
 }
 
 function workGear(body, hands, pose) {
+  if (Object.hasOwn(PAIL_POSES, pose)) {
+    const palmWorld = hands[1].localToWorld(new THREE.Vector3(0, -0.025, 0));
+    const palm = body.worldToLocal(palmWorld.clone());
+    const vessel = pail(body, PAIL_POSES[pose]);
+    vessel.name = "carried-pail";
+    vessel.position.copy(palm).sub(new THREE.Vector3(0, PAIL_GRIP, 0));
+    const gripWorld = vessel.localToWorld(new THREE.Vector3(0, PAIL_GRIP, 0));
+    body.userData.pailGripError = gripWorld.distanceTo(palmWorld);
+    return;
+  }
   if (pose === "carry-herb") {
     carryHerb(body, hands);
     return;
@@ -671,7 +693,11 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
   const s = scene();
   const puppet = group(s);
   puppet.rotation.y = direction;
-  const moving = pose === "walk" || pose === "carry" || pose === "carry-herb";
+  const moving =
+    pose === "walk" ||
+    pose === "carry" ||
+    pose === "carry-herb" ||
+    Object.hasOwn(PAIL_POSES, pose);
   const body = group(
     puppet,
     0,

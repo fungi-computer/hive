@@ -227,6 +227,7 @@ export function availableMaterialFacts(
         (reserved.get(transfer.phase.sourceLot) ?? 0) + transfer.phase.quantity,
       );
   return state.lots.flatMap((lot) => {
+    if (state.vesselUses.some((use) => use.vessel === lot.id)) return [];
     const origin = originForLot(lot);
     const quantity = lot.quantity - (reserved.get(lot.id) ?? 0);
     return origin && quantity > 0 ? [{ lot, quantity, origin }] : [];
@@ -355,6 +356,54 @@ export function createGroundLot(
   state.lots.push(lot);
   state.nextLotId = nextLotId;
   return success(lot);
+}
+
+/** A checked permanent portion sink for a consumer with an exact ground input. */
+function consumeGroundPortion(
+  state: MaterialsState,
+  input: { lot: LotId; material: Material; quantity: number },
+): MaterialResult<void> {
+  if (!isPositiveInt(input.quantity))
+    return failure("invalid-positive-integer");
+  const lot = lotById(state, input.lot);
+  if (!lot || lot.material !== input.material || lot.location.kind !== "ground")
+    return failure("source-ineligible");
+  if (availableQuantity(state, lot.id) < input.quantity)
+    return failure("source-insufficient");
+  if (lot.quantity === input.quantity)
+    state.lots = state.lots.filter((candidate) => candidate !== lot);
+  else lot.quantity = (lot.quantity - input.quantity) as PositiveInt;
+  if (input.material === "wood") state.consumedWood += input.quantity;
+  return success(undefined);
+}
+
+/** A checked permanent portion sink for a resolved consumer container. */
+export function consumeContainerPortion(
+  state: MaterialsState,
+  input: {
+    lot: LotId;
+    container: ContainerId;
+    material: Material;
+    quantity: number;
+  },
+): MaterialResult<void> {
+  if (!isPositiveInt(input.quantity))
+    return failure("invalid-positive-integer");
+  const lot = lotById(state, input.lot);
+  if (
+    !lot ||
+    lot.material !== input.material ||
+    lot.location.kind !== "container" ||
+    lot.location.container !== input.container
+  )
+    return failure("source-ineligible");
+  if (availableQuantity(state, lot.id) < input.quantity)
+    return failure("source-insufficient");
+  if (lot.quantity === input.quantity)
+    state.lots = state.lots.filter((candidate) => candidate !== lot);
+  else lot.quantity = (lot.quantity - input.quantity) as PositiveInt;
+  if (input.material === "wood") state.consumedWood += input.quantity;
+  return success(undefined);
 }
 
 /** One-time finite-source seeding. Callers must pass the resolved source spec. */
@@ -563,6 +612,15 @@ function resolveReservationSource(
     return failure("source-ineligible");
   if (!requestAllowsLot(input.request, source))
     return failure("source-ineligible");
+  if (
+    source.material === "pail" &&
+    state.vesselUses.some(
+      (use) =>
+        use.vessel === source.id &&
+        (input.intent.kind !== "use" || input.intent.operation !== use.id),
+    )
+  )
+    return failure("owner-busy");
   if (availableQuantity(state, source.id) < input.request.quantity)
     return failure("source-insufficient");
   return success({ source, origin });
@@ -591,10 +649,7 @@ function validateReservationOwner(
   return input.owner.kind === "operation" &&
     input.owner.operation === operation &&
     state.vesselUses.some(
-      (use) =>
-        use.id === operation &&
-        use.actor === input.actor &&
-        use.vessel === input.sourceLot,
+      (use) => use.id === operation && use.vessel === input.sourceLot,
     )
     ? null
     : "use-intent-required";
@@ -682,7 +737,6 @@ export function acquirePailForOperation(
     return failure("owner-busy");
   state.vesselUses.push({
     id: input.operation,
-    actor: input.actor,
     vessel: input.vessel,
   });
   const reserved = reserveTransfer(state, {
@@ -703,6 +757,89 @@ export function acquirePailForOperation(
       (use) => use.id !== input.operation,
     );
   return reserved;
+}
+
+/** Keeps an interrupted pail's operation claim while its physical vessel drops. */
+export function parkOperationPail(
+  state: MaterialsState,
+  input: { actor: ActorId; operation: string; drop: LegalDrop },
+): MaterialResult<void> {
+  const use = state.vesselUses.find(
+    (candidate) => candidate.id === input.operation,
+  );
+  const transfer = state.transfers.find(
+    (candidate) =>
+      candidate.actor === input.actor &&
+      candidate.owner.kind === "operation" &&
+      candidate.owner.operation === input.operation,
+  );
+  if (
+    !use ||
+    (transfer &&
+      (transfer.intent.kind !== "use" ||
+        transfer.intent.operation !== input.operation))
+  )
+    return failure("use-intent-required");
+  if (!transfer) return success(undefined);
+  if (transfer.phase.kind === "reserved") {
+    state.transfers.splice(state.transfers.indexOf(transfer), 1);
+    return success(undefined);
+  }
+  const held = lotById(state, transfer.phase.lot);
+  if (
+    !held ||
+    held.location.kind !== "hand" ||
+    held.location.actor !== input.actor ||
+    held.material !== "pail" ||
+    held.quantity !== 1 ||
+    !input.drop.legal
+  )
+    return failure("held-lot-invalid");
+  const cell = {
+    x: input.drop.cell.x,
+    z: input.drop.cell.z,
+    level: input.drop.cell.level,
+  };
+  held.location = groundLocation(cell);
+  state.transfers.splice(state.transfers.indexOf(transfer), 1);
+  return success(undefined);
+}
+
+/** Reassignment creates fresh executor custody for the operation's bound pail. */
+export function rebindOperationPail(
+  state: MaterialsState,
+  input: {
+    id: TransferId;
+    operation: string;
+    actor: ActorId;
+    access: TransferAccess;
+  },
+): MaterialResult<Transfer> {
+  const use = state.vesselUses.find(
+    (candidate) => candidate.id === input.operation,
+  );
+  if (
+    !use ||
+    state.transfers.some(
+      (candidate) =>
+        candidate.owner.kind === "operation" &&
+        candidate.owner.operation === input.operation,
+    )
+  )
+    return failure("use-intent-required");
+  return reserveTransfer(state, {
+    id: input.id,
+    actor: input.actor,
+    owner: { kind: "operation", operation: input.operation },
+    request: {
+      source: { kind: "exact-lot", lot: use.vessel },
+      quantityPolicy: "whole-lot",
+      quantity: 1 as PositiveInt,
+    },
+    intent: { kind: "use", operation: input.operation },
+    sourceLot: use.vessel,
+    access: input.access,
+  });
 }
 
 export function pickupTransfer(
@@ -874,7 +1011,11 @@ function heldUsePail(
 ): MaterialResult<{ lot: ItemLot; interior: ContainerSpec }> {
   const use = state.vesselUses.find((candidate) => candidate.id === operation);
   if (!use) return failure("use-intent-required");
-  const transfer = transferForActor(state, use.actor);
+  const transfer = state.transfers.find(
+    (candidate) =>
+      candidate.owner.kind === "operation" &&
+      candidate.owner.operation === operation,
+  );
   if (
     !transfer ||
     transfer.intent.kind !== "use" ||
@@ -891,7 +1032,7 @@ function heldUsePail(
     !lot ||
     !interior ||
     lot.location.kind !== "hand" ||
-    lot.location.actor !== use.actor
+    lot.location.actor !== transfer.actor
   )
     return failure("vessel-invalid");
   return success({ lot, interior });
@@ -951,23 +1092,21 @@ export type InterruptResult =
       owner: Transfer["owner"];
     };
 
-function closeVesselUse(state: MaterialsState, transfer: Transfer): void {
-  if (transfer.intent.kind === "use") {
-    const operation = transfer.intent.operation;
-    state.vesselUses = state.vesselUses.filter((use) => use.id !== operation);
-  }
+export function retireOperationPail(
+  state: MaterialsState,
+  operation: string,
+): void {
+  state.vesselUses = state.vesselUses.filter((use) => use.id !== operation);
 }
 
-export function interruptTransfer(
+function interruptExactTransfer(
   state: MaterialsState,
-  actor: ActorId,
+  transfer: Transfer | undefined,
   drop?: LegalDrop,
 ): MaterialResult<InterruptResult> {
-  const transfer = transferForActor(state, actor);
   if (!transfer) return success({ kind: "none" });
   if (transfer.phase.kind === "reserved") {
     state.transfers.splice(state.transfers.indexOf(transfer), 1);
-    closeVesselUse(state, transfer);
     return success({
       kind: "released",
       transfer: transfer.id,
@@ -978,20 +1117,43 @@ export function interruptTransfer(
   if (
     !held ||
     held.location.kind !== "hand" ||
-    held.location.actor !== actor ||
+    held.location.actor !== transfer.actor ||
     held.quantity !== transfer.request.quantity
   )
     return failure("held-lot-invalid");
   if (!drop?.legal) return failure("illegal-drop");
   held.location = groundLocation(drop.cell);
   state.transfers.splice(state.transfers.indexOf(transfer), 1);
-  closeVesselUse(state, transfer);
   return success({
     kind: "dropped",
     transfer: transfer.id,
     lot: held.id,
     owner: transfer.owner,
   });
+}
+
+export function interruptOperationPail(
+  state: MaterialsState,
+  operation: string,
+  drop?: LegalDrop,
+): MaterialResult<InterruptResult> {
+  return interruptExactTransfer(
+    state,
+    state.transfers.find(
+      (transfer) =>
+        transfer.owner.kind === "operation" &&
+        transfer.owner.operation === operation,
+    ),
+    drop,
+  );
+}
+
+export function interruptTransfer(
+  state: MaterialsState,
+  actor: ActorId,
+  drop?: LegalDrop,
+): MaterialResult<InterruptResult> {
+  return interruptExactTransfer(state, transferForActor(state, actor), drop);
 }
 
 export type ReleasedContainer = {
