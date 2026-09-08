@@ -59,6 +59,37 @@ export function quantizedVisibleArea(corners, size) {
   );
 }
 
+/** Keeps one presentation subscriber alive across BFCache suspension without
+ * adding a clock or a second camera owner. */
+export function subscribeCameraPresentation(camera, update, target = window) {
+  let stop = null;
+  const attach = () => {
+    if (stop) return;
+    update();
+    stop = camera.subscribe(update);
+  };
+  const detach = () => {
+    stop?.();
+    stop = null;
+  };
+  const dispose = () => {
+    detach();
+    target.removeEventListener("pagehide", onPageHide);
+    target.removeEventListener("pageshow", onPageShow);
+  };
+  const onPageHide = (event) => {
+    detach();
+    if (!event.persisted) dispose();
+  };
+  const onPageShow = (event) => {
+    if (event.persisted) attach();
+  };
+  attach();
+  target.addEventListener("pagehide", onPageHide);
+  target.addEventListener("pageshow", onPageShow);
+  return dispose;
+}
+
 // Presentation coordinates only. Baked pixels and simulation cells stay fixed.
 export function createCamera(app, host, world) {
   let zoom = host.clientWidth >= 900 ? 2 : 1;

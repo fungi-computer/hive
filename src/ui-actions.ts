@@ -28,6 +28,12 @@ export function localGoodsAt<T extends LocalGoodsLot>(
   );
 }
 
+/** Camera presentation changes retain an armed placement tool while clearing
+ * only its in-progress stroke. */
+export function cameraMoveKeepsTool(tool: ToolKind | null): boolean {
+  return tool !== null;
+}
+
 export type GesturePoint = {
   cell: { x: number; z: number; level: number };
   screen: { x: number; y: number };

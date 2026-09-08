@@ -5,7 +5,7 @@ import { createClearing, step } from "./clearing.ts";
 import { admitCommands, commandProblem } from "./orders.ts";
 import { createTicker, push } from "./ticker.js";
 import { createView } from "./view.js";
-import { createCamera } from "./camera.js";
+import { createCamera, subscribeCameraPresentation } from "./camera.js";
 import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
 import { inside, placementOccupant, SIZE } from "./world.js";
@@ -501,9 +501,7 @@ async function startGame() {
   const hud = createHud(document.querySelector("#hud"), art, effect);
   const updateCameraPresentation = () =>
     hud.updateCamera(camera.snapshot(SIZE));
-  updateCameraPresentation();
-  const stopCameraPresentation = camera.subscribe(updateCameraPresentation);
-  window.addEventListener("pagehide", stopCameraPresentation, { once: true });
+  subscribeCameraPresentation(camera, updateCameraPresentation);
   const root = document.querySelector("#game");
   root.tabIndex = -1;
   let keys;

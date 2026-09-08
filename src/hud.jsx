@@ -33,6 +33,7 @@ import {
   dispatchUiAction,
   DEBUG_PICKING_CONTROL,
   LEVEL_NAVIGATION,
+  cameraMoveKeepsTool,
   localGoodsAt,
   requiredToolLevel,
   submitDesignation,
@@ -108,7 +109,14 @@ const toolMachine = createMachine({
       },
     ],
     CANCEL: { target: ".idle", actions: clearGesture },
-    CAMERA_MOVE: { target: ".idle", actions: clearGestureKeepTool },
+    CAMERA_MOVE: [
+      {
+        target: ".ready",
+        guard: ({ context }) => cameraMoveKeepsTool(context.tool),
+        actions: clearGestureKeepTool,
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
     ESCAPE: { target: ".idle", actions: clearGesture },
     RESET: { target: ".idle", actions: clearGesture },
     LEVEL_CHANGE: [
@@ -2012,7 +2020,13 @@ export function createHud(host, art, effect) {
         }));
         return;
       case "panel":
-        machine.send({ type: "ESCAPE" });
+        machine.send({
+          type:
+            action.panel === "menu" &&
+            cameraMoveKeepsTool(machine.getSnapshot().context.tool)
+              ? "CAMERA_MOVE"
+              : "ESCAPE",
+        });
         setSelection((value) => ({
           ...value,
           panel: value.panel === action.panel ? null : action.panel,

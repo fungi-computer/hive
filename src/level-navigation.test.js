@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { quantizedVisibleArea } from "./camera.js";
+import { quantizedVisibleArea, subscribeCameraPresentation } from "./camera.js";
 import { levelNavigationOwned, minimapInputOwned } from "./keys.js";
 import {
   DEBUG_PICKING_CONTROL,
+  cameraMoveKeepsTool,
   decideLevelTransition,
   dispatchUiAction,
   dispatchLevelAction,
@@ -75,6 +76,12 @@ test("minimap focus owns arrows and activation without taking Escape", () => {
   ]);
 });
 
+test("camera movement returns an armed tool to ready and no tool to idle", () => {
+  assert.equal(cameraMoveKeepsTool("wall"), true);
+  assert.equal(cameraMoveKeepsTool("chop"), true);
+  assert.equal(cameraMoveKeepsTool(null), false);
+});
+
 test("camera visible area converts quantized cell centers to clipped grid edges", () => {
   const visible = quantizedVisibleArea(
     [
@@ -102,6 +109,50 @@ test("camera visible area converts quantized cell centers to clipped grid edges"
   );
   assert.ok(clipped.every((point) => point.x >= 0 && point.x <= 15));
   assert.ok(clipped.every((point) => point.z >= 0 && point.z <= 15));
+});
+
+test("camera presentation subscription detaches for BFCache and reattaches once", () => {
+  const listeners = new Map();
+  const target = {
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    removeEventListener(name, listener) {
+      if (listeners.get(name) === listener) listeners.delete(name);
+    },
+  };
+  let subscriptions = 0;
+  let unsubscribed = 0;
+  let updates = 0;
+  const camera = {
+    subscribe() {
+      subscriptions++;
+      return () => unsubscribed++;
+    },
+  };
+  const dispose = subscribeCameraPresentation(camera, () => updates++, target);
+  assert.deepEqual(
+    { subscriptions, unsubscribed, updates },
+    { subscriptions: 1, unsubscribed: 0, updates: 1 },
+  );
+  listeners.get("pagehide")({ persisted: true });
+  assert.deepEqual(
+    { subscriptions, unsubscribed, updates },
+    { subscriptions: 1, unsubscribed: 1, updates: 1 },
+  );
+  listeners.get("pageshow")({ persisted: true });
+  listeners.get("pageshow")({ persisted: true });
+  assert.deepEqual(
+    { subscriptions, unsubscribed, updates },
+    { subscriptions: 2, unsubscribed: 1, updates: 2 },
+  );
+  listeners.get("pagehide")({ persisted: false });
+  assert.deepEqual(
+    { subscriptions, unsubscribed, updates },
+    { subscriptions: 2, unsubscribed: 2, updates: 2 },
+  );
+  assert.equal(listeners.size, 0);
+  dispose();
 });
 
 test("level navigation catalog owns labels, keys, actions, and limit state", () => {
