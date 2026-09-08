@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="/foliage-wind-study.css" />
   </head>
   <body>
-    <main>
+    <div data-study-chrome data-study-id="foliage-wind"></div>
+    <main id="study-content" tabindex="-1">
       <p class="eyebrow">GOBLIN BED &amp; BREAKFAST · ORIGINAL FOLIAGE STUDY</p>
       <h1>Still roots, moving leaves</h1>
       <p>
@@ -18,15 +19,12 @@
         wind, weather or growth. Current tree silhouettes stay selectable; grass
         stays decorative.
       </p>
-      <p>
-        <a href="/study.html">Back to art studies</a> ·
-        <a href="/">Back to the clearing</a>
-      </p>
       <div class="controls" aria-label="Foliage wind study controls">
         <button id="pause">Pause motion</button><span id="phase"></span>
       </div>
       <div id="stage"></div>
     </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
     <script type="module" src="/foliage-wind-study.js"></script>
   </body>
 </html>

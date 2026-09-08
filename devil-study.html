@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -110,7 +110,8 @@
     </style>
   </head>
   <body>
-    <main>
+    <div data-study-chrome data-study-id="devil"></div>
+    <main id="study-content" tabindex="-1">
       <div class="eyebrow">
         GOBLIN BED & BREAKFAST · ORIGINAL CHARACTER STUDY
       </div>
@@ -159,6 +160,7 @@
         encounters are not playable here.
       </footer>
     </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
     <script type="module" src="./devil-study.js"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -75,12 +75,8 @@
     </style>
   </head>
   <body>
-    <main>
-      <nav aria-label="Study navigation">
-        <a href="/study">All studies</a>
-        <a href="/">Back to the clearing</a>
-        <a href="/studies/goblin-den/concept.png">Open full-size image</a>
-      </nav>
+    <div data-study-chrome data-study-id="goblin-den"></div>
+    <main id="study-content" tabindex="-1">
       <header>
         <p class="eyebrow">Goblin Bed &amp; Breakfast · Concept art</p>
         <h1>Goblin hospitality</h1>
@@ -111,5 +107,6 @@
         grubby; treatment and food quality still matter.
       </p>
     </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
   </body>
 </html>

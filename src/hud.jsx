@@ -1690,7 +1690,7 @@ function Menu({ model: m, send }) {
           {DEBUG_PICKING_CONTROL.label}{" "}
           <Key model={m} name={DEBUG_PICKING_CONTROL.name} />
         </label>
-        <a href="/study">Character study ↗</a>
+        <a href="/study">Studies ↗</a>
         <Button
           id="reset"
           variant="destructive"

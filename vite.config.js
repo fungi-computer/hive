@@ -14,6 +14,8 @@ export default defineConfig({
         mixedShelfStudy: "mixed-shelf-study.html",
         clearingMinimapStudy: "clearing-minimap-study.html",
         worldLab: "world-lab.html",
+        goblinDenStudy: "goblin-den-study.html",
+        goblinMessStudy: "goblin-mess-study.html",
       },
     },
   },
