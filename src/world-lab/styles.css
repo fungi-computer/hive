@@ -11,10 +11,24 @@ h1 { margin: 0 0 8px; font-size: 24px; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 button { color: #f5ead2; background: #2a4536; border: 1px solid #92a978; border-radius: 4px; padding: 8px 10px; cursor: pointer; }
 button:hover, button:focus-visible { background: #3a6048; }
+button span { color: #d7c89f; font-size: 0.9em; }
 .canvases { display: grid; grid-template-columns: minmax(280px, 512px) minmax(280px, 512px); gap: 18px; align-items: start; }
 figure { margin: 0; }
 canvas { display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated; border: 1px solid #718566; background: #1d3028; }
+.overview-stage, .local-stage { position: relative; width: 100%; }
+.overview-stage canvas, .local-stage canvas { position: relative; }
+.overview-stage canvas + canvas, .local-stage canvas + canvas { position: absolute; inset: 0; pointer-events: none; }
+.overview-stage canvas + canvas { border-color: transparent; }
+.local-stage canvas + canvas { border-color: transparent; }
 figcaption { margin-top: 6px; color: #c6d6ad; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: 14px; color: #e8dfbd; font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend-note { color: #b8c6a8; }
+.swatch { width: 14px; height: 14px; border: 1px solid #d9d2ae; display: inline-block; }
+.swatch.water { background: #265b84; }
+.swatch.coast { background: #c5a868; }
+.swatch.ridge { background: #6f6047; }
+.swatch.land { background: #4b8452; }
 .reports { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
 section { min-width: 0; }
 section h2 { font-size: 14px; color: #d7c89f; }

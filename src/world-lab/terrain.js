@@ -179,6 +179,38 @@ export function sampleCell(spec, x, z) {
   return sampleTerrain(spec, x, z, 1);
 }
 
+export function localViewport(spec, centerChunkX, centerChunkZ) {
+  integer(centerChunkX, "centerChunkX");
+  integer(centerChunkZ, "centerChunkZ");
+  const radius = Math.floor(spec.local.windowChunks / 2);
+  const size = spec.chunkSize;
+  const minX = (centerChunkX - radius) * size;
+  const minZ = (centerChunkZ - radius) * size;
+  const width = spec.local.windowChunks * size;
+  return {
+    minX,
+    minZ,
+    maxXExclusive: minX + width,
+    maxZExclusive: minZ + width,
+    width,
+    height: width,
+    centerX: minX + (width - 1) / 2,
+    centerZ: minZ + (width - 1) / 2,
+    cellsPerPixel: 1,
+    centerChunkX,
+    centerChunkZ,
+  };
+}
+
+export function overviewRectForViewport(overview, viewport) {
+  return {
+    left: ((viewport.minX - overview.bounds.minX) / overview.bounds.spanX) * overview.width,
+    top: ((viewport.minZ - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height,
+    width: (viewport.width / overview.bounds.spanX) * overview.width,
+    height: (viewport.height / overview.bounds.spanZ) * overview.height,
+  };
+}
+
 function terrainCode(terrain) {
   return terrain === "water" ? 0 : terrain === "coast" ? 1 : terrain === "ridge" ? 2 : 3;
 }
@@ -248,6 +280,8 @@ export function sampleOverview(spec, options = {}) {
   const bounds = overviewBounds(spec, options.bounds);
   const terrain = new Uint8Array(width * height);
   const features = new Uint8Array(width * height);
+  const elevation = new Uint8Array(width * height);
+  const moisture = new Uint8Array(width * height);
   const footprint = Math.max(bounds.spanX / width, bounds.spanZ / height);
   const featureCounts = { coast: 0, ridge: 0 };
   for (let row = 0; row < height; row += 1) {
@@ -258,6 +292,8 @@ export function sampleOverview(spec, options = {}) {
       const index = row * width + column;
       terrain[index] = terrainCode(cell.terrain);
       features[index] = featureCode(cell.feature);
+      elevation[index] = Math.round(cell.elevation * 255);
+      moisture[index] = Math.round(cell.moisture * 255);
       if (cell.feature) featureCounts[cell.feature] += 1;
     }
   }
@@ -271,8 +307,11 @@ export function sampleOverview(spec, options = {}) {
     sampleCount: terrain.length,
     terrain,
     features,
+    elevation,
+    moisture,
     featureCounts,
     checksum: checksumBytes(terrain),
+    visualChecksum: checksumBytes(new Uint8Array([...terrain, ...elevation, ...moisture])),
   };
 }
 
@@ -334,12 +373,28 @@ export function renderChunkBuffer(spec, chunks) {
   const size = Math.sqrt(chunks.length) * spec.chunkSize;
   if (!Number.isInteger(size)) throw new Error("chunks must form a square window");
   const pixels = new Uint8Array(size * size);
+  const elevation = new Uint8Array(size * size);
+  const moisture = new Uint8Array(size * size);
   for (const chunk of chunks) {
     const offsetX = (chunk.chunkX - chunks[0].chunkX) * spec.chunkSize;
     const offsetZ = (chunk.chunkZ - chunks[0].chunkZ) * spec.chunkSize;
     for (let localZ = 0; localZ < spec.chunkSize; localZ += 1)
-      for (let localX = 0; localX < spec.chunkSize; localX += 1)
-        pixels[(offsetZ + localZ) * size + offsetX + localX] = chunk.terrain[localZ * spec.chunkSize + localX];
+      for (let localX = 0; localX < spec.chunkSize; localX += 1) {
+        const sourceIndex = localZ * spec.chunkSize + localX;
+        const targetIndex = (offsetZ + localZ) * size + offsetX + localX;
+        pixels[targetIndex] = chunk.terrain[sourceIndex];
+        elevation[targetIndex] = chunk.elevation[sourceIndex];
+        moisture[targetIndex] = chunk.moisture[sourceIndex];
+      }
   }
-  return { width: size, height: size, sampleCount: pixels.length, pixels, checksum: checksumBytes(pixels) };
+  return {
+    width: size,
+    height: size,
+    sampleCount: pixels.length,
+    pixels,
+    elevation,
+    moisture,
+    checksum: checksumBytes(pixels),
+    visualChecksum: checksumBytes(new Uint8Array([...pixels, ...elevation, ...moisture])),
+  };
 }

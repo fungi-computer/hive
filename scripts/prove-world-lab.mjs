@@ -5,7 +5,10 @@ import {
   createResidency,
   createWorldSpec,
   generateChunk,
+  floorDiv,
+  localViewport,
   namedFeatures,
+  overviewRectForViewport,
   renderChunkBuffer,
   sampleCell,
   sampleOverview,
@@ -62,6 +65,8 @@ checks.multiscaleGeography = {
     sampleCount: fineOverview.sampleCount,
     checksum: fineOverview.checksum,
     featureCounts: fineOverview.featureCounts,
+    elevationSamples: fineOverview.elevation.length,
+    moistureSamples: fineOverview.moisture.length,
     ms: Number(fineMs.toFixed(3)),
   },
   fixedOutputSamples,
@@ -72,6 +77,10 @@ checks.multiscaleGeography = {
   pass:
     coarseOverview.sampleCount === fixedOutputSamples &&
     fineOverview.sampleCount === fixedOutputSamples &&
+    coarseOverview.elevation.length === fixedOutputSamples &&
+    coarseOverview.moisture.length === fixedOutputSamples &&
+    fineOverview.elevation.length === fixedOutputSamples &&
+    fineOverview.moisture.length === fixedOutputSamples &&
     coarseOverview.bounds.spanX > fineOverview.bounds.spanX &&
     coarseOverview.featureCounts.coast > 0 &&
     fineOverview.featureCounts.coast > 0 &&
@@ -235,7 +244,19 @@ checks.boundedLocal = {
 };
 assert(checks.boundedLocal.pass, "local residency exceeded its bounded cache or failed regeneration");
 
+checks.visualTerrainData = {
+  overviewElevationValues: new Set(coarseOverview.elevation).size,
+  overviewMoistureValues: new Set(coarseOverview.moisture).size,
+  localElevationValues: new Set(render.elevation).size,
+  localMoistureValues: new Set(render.moisture).size,
+  pass: new Set(coarseOverview.elevation).size > 1 && new Set(coarseOverview.moisture).size > 1 && new Set(render.elevation).size > 1 && new Set(render.moisture).size > 1,
+};
+assert(checks.visualTerrainData.pass, "terrain visualization arrays did not contain elevation/moisture variation");
+
 const source = await readFile("src/world-lab/terrain.js", "utf8");
+const mainSource = await readFile("src/world-lab/main.js", "utf8");
+const pageSource = await readFile("world-lab.html", "utf8");
+const stylesSource = await readFile("src/world-lab/styles.css", "utf8");
 const forbiddenImport = /^\s*import\s/m.test(source);
 checks.isolatedSource = { importsRuntimeOrSimulation: forbiddenImport, pass: !forbiddenImport };
 assert(checks.isolatedSource.pass, "isolated terrain must remain import-free");
@@ -247,8 +268,34 @@ checks.footprintAwareGenerator = {
 };
 assert(checks.footprintAwareGenerator.pass, "generator source did not expose the footprint-aware global contract");
 
+const coastViewport = localViewport(spec, floorDiv(features.coast.x, spec.chunkSize), floorDiv(features.coast.z, spec.chunkSize));
+const coastMarker = overviewRectForViewport(coarseOverview, coastViewport);
+checks.userFacingLabShape = {
+  noDiagnosticCallerOrButton: !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`),
+  namedGlobalButtons: [-720, -234, 420, 432, -1, 0].every((coordinate) => pageSource.includes(String(coordinate))),
+  markerData: {
+    viewport: coastViewport,
+    overviewRect: coastMarker,
+  },
+  markerHasPositiveArea: coastMarker.width > 0 && coastMarker.height > 0,
+  markerUpdatedFromRender: mainSource.includes("drawViewportMarker(local.viewport)") && mainSource.includes("center = { chunkX: floorDiv"),
+  explicitOverviewScale: mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX"),
+  explicitLocalScale: mainSource.includes("one pixel = one world cell") && pageSource.includes("80×80 local view at 1 pixel per world cell"),
+  readableLegend: pageSource.includes("Terrain palette legend") && stylesSource.includes(".swatch.water") && stylesSource.includes(".legend"),
+  pass: !/(1024|world-lab-diagnostic)/.test(`${mainSource}\n${pageSource}`) &&
+    [-720, -234, 420, 432, -1, 0].every((coordinate) => pageSource.includes(String(coordinate))) &&
+    coastMarker.width > 0 && coastMarker.height > 0 &&
+    mainSource.includes("drawViewportMarker(local.viewport)") &&
+    mainSource.includes("center = { chunkX: floorDiv") &&
+    mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX") &&
+    mainSource.includes("one pixel = one world cell") &&
+    pageSource.includes("80×80 local view at 1 pixel per world cell") &&
+    pageSource.includes("Terrain palette legend") && stylesSource.includes(".swatch.water") && stylesSource.includes(".legend"),
+};
+assert(checks.userFacingLabShape.pass, "World Lab page shape omitted required coordinates, marker, scale, palette, or diagnostic removal");
+
 const proof = {
-  kind: "world-lab-coherent-lod-contract-and-measurement",
+  kind: "world-lab-coherent-lod-contract-measurement-and-readable-view",
   generatedAt: new Date().toISOString(),
   contract: {
     seed: spec.seed,
@@ -262,6 +309,8 @@ const proof = {
     authoritativeLocal: "sampleCell uses the same footprint=1 terrain query as direct local sampling",
     overviewBudget: { width: 512, height: 512, samples: fixedOutputSamples },
     localResidency: spec.local,
+    overviewVisualData: "terrain, elevation, and moisture arrays come from the same sampleTerrain query",
+    localVisualData: "terrain, elevation, and moisture arrays come from the same generated cell arrays",
   },
   measurements: {
     coarse512Ms: Number(coarseMs.toFixed(3)),
@@ -273,7 +322,7 @@ const proof = {
   },
   checks,
   diagnostic1024: { executed: false, reason: "1024 is diagnostic only after measured 512; this bounded check stops at 512." },
-  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency"],
+  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency", "readable elevation/moisture variation with named viewport marker"],
   nonClaims: WORLD_LAB_NON_CLAIMS,
 };
 await writeFile(`${output}/proof.json`, `${JSON.stringify(proof, null, 2)}\n`);
