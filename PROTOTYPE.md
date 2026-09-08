@@ -56,22 +56,20 @@ The future environment/opening proof boundary is in
 [environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
 The current local-save/later durable-AI boundary is in
 [local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
-The accepted architecture-proof sprint keeps tiny-map play and a separate
-[World Lab/proof track](docs/decisions/architecture-proof-sprint.md) independent:
-upstairs remains the active home seam, brewing remains the next playable slice,
-and world expansion waits for measured first consumers rather than automatic
-sequencing.
+The current [small-world architecture-proof sprint](docs/decisions/architecture-proof-sprint.md)
+keeps the tiny home and independent World Lab separate: trustworthy controls,
+one unified goods/transfer owner, mixed storage, the first honest brew, then one
+ecology consumer. World expansion still waits behind small-home playability.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
 resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 records future landform, cave and exposed-part rendering guidance without
-expanding the live clearing or changing the current Maps sprint precedence.
-The newer [current Maps sprint handoff](docs/decisions/architecture-proof-sprint.md)
-supersedes the historical status/sequence below: controls are current, World Lab
-map inspection is independent, responsive atlas navigation follows its checkpoint,
-and an actual-clearing minimap follows controls; this does not expand live terrain.
+expanding the live clearing or changing the current small-world sprint precedence.
+The [authored-building procedural assembly study](docs/decisions/authored-building-procedural-assembly-study.md)
+bounds future room/template composition; it is not a runtime assembler or a way
+to bypass ordinary construction.
 The future [home-between-realms synthesis](docs/decisions/a-home-between-realms.md)
 and [Glomzy palette/night-lighting study](docs/decisions/glomzy-palette-and-night-lighting.md)
 remain deferred proposals; neither reorders upstairs → brewing or enters the current sprint.

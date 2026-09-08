@@ -20,18 +20,18 @@ The future environment/opening proof boundary is in
 The current local-save/later durable-AI boundary is in
 [local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
 The accepted [architecture-proof sprint](docs/decisions/architecture-proof-sprint.md)
-records the current status boundary: keep the tiny clearing fun, finish the
-active upstairs seam, and prove any separate World Lab and scale measurements
-before treating expansion as playable. Brewing remains next after upstairs.
+now records the current small-world sequence: trustworthy controls, one unified
+goods/transfer owner, mixed storage, the first honest brew, then one ecology
+consumer. The independent World Lab does not expand live gameplay.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
 ridge identity and seam proof precede any larger region or finite-globe choice.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 adds future landform, cave and exposed-part rendering guidance without changing
-the tiny live clearing or the current Maps sprint precedence.
-The newer [current Maps sprint handoff](docs/decisions/architecture-proof-sprint.md)
-supersedes the historical status/sequence below: reliable controls and usable
-maps are the current sprint, with World Lab separate and no live-world expansion.
+the tiny live clearing or the current small-world sprint precedence.
+The [authored-building procedural assembly study](docs/decisions/authored-building-procedural-assembly-study.md)
+bounds future room/template composition without adding a runtime assembler or
+bypassing ordinary construction.
 The [home-between-realms synthesis](docs/decisions/a-home-between-realms.md) is a
 future product/architecture proposal, while [Glomzy palette and night lighting](docs/decisions/glomzy-palette-and-night-lighting.md)
 is a deferred art-study proposal; both preserve the active upstairs → brewing order.
