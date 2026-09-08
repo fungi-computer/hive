@@ -601,8 +601,14 @@ meter::-webkit-meter-optimum-value {
 }
 @media (max-width: 480px) {
   .level-controls {
+    display: grid;
+    grid-column: span 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1px;
     padding: 0 1px;
+  }
+  .level-controls button {
+    min-width: 0;
   }
   .level-controls kbd {
     display: none;
