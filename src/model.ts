@@ -3,6 +3,56 @@
 export type ActorId = string;
 export type PartyId = string;
 export type JobId = string;
+declare const positiveIntBrand: unique symbol;
+export type PositiveInt = number & { readonly [positiveIntBrand]: true };
+export type LotId = string;
+export type TransferId = string;
+export type ContainerId = string;
+export type Material = "wood" | "mugwort";
+export type ItemLotLocation =
+  | ({ kind: "ground" } & Cell)
+  | { kind: "hand"; actor: ActorId }
+  | { kind: "container"; container: ContainerId };
+export type ItemLot = {
+  id: LotId;
+  material: Material;
+  quantity: PositiveInt;
+  location: ItemLotLocation;
+};
+export type SourcePolicy =
+  | { readonly kind: "eligible-ground"; readonly material: Material }
+  | { readonly kind: "exact-lot"; readonly lot: LotId };
+export type TransferStep = "construction-materials" | "shelf-store";
+export type TransferRequest = {
+  readonly source: SourcePolicy;
+  readonly quantity: PositiveInt;
+  readonly destination: ContainerId;
+};
+export type Transfer = {
+  readonly id: TransferId;
+  readonly actor: ActorId;
+  readonly owner: { readonly job: JobId; readonly step: TransferStep };
+  readonly request: TransferRequest;
+  phase:
+    | {
+        kind: "reserved";
+        sourceLot: LotId;
+        quantity: PositiveInt;
+      }
+    | { kind: "carrying"; lot: LotId };
+};
+export type EmbeddedMaterial = {
+  container: ContainerId;
+  material: Material;
+  quantity: PositiveInt;
+};
+export type MaterialsState = {
+  lots: ItemLot[];
+  transfers: Transfer[];
+  embedded: EmbeddedMaterial[];
+  nextLotId: number;
+  consumedWood: number;
+};
 export type HerbId = string;
 export type HerbBundleId = string;
 export type Cell = { x: number; z: number; level: number };
