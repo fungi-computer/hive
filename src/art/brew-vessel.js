@@ -105,24 +105,36 @@ export function kettleBody(parent) {
   return root;
 }
 
+const LIQUID_APPEARANCE = {
+  wort: { body: P.ale, light: P.cream, middle: "#d4a15a" },
+  water: { body: "#668a88", light: "#b8cec0", middle: "#82b4af" },
+};
+
 export function kettleContents(
   parent,
-  { level = 0.8, moving = false, phase = 0 } = {},
+  { level = 0.8, moving = false, phase = 0, appearance = "wort" } = {},
 ) {
   if (!(level > 0 && level <= 1))
     throw new Error("Visible liquid level must be in (0,1].");
+  const look = LIQUID_APPEARANCE[appearance];
+  if (!look) throw new Error("Unknown kettle liquid appearance");
   const root = group(parent);
   root.name = "kettle-contents";
-  const y = 0.73 + level * 0.47;
-  const radius = 0.321 + (y - 0.73) * 0.196;
-  cylinder(root, P.ale, 0, y, 0, radius, radius, 0.012, 16);
+  const y = 0.73 + level * 0.47,
+    radius = 0.321 + (y - 0.73) * 0.196;
+  cylinder(root, look.body, 0, y, 0, radius, radius, 0.012, 16);
+  if (appearance === "water") {
+    // A quiet reflection on the same liquid plane, never foam or ingredients.
+    box(root, look.light, -0.075, y + 0.009, 0.07, 0.12, 0.004, 0.02);
+    box(root, look.middle, 0.12, y + 0.009, -0.08, 0.065, 0.004, 0.012);
+  }
   if (moving)
     for (let i = 0; i < 6; i++) {
       const wave = Math.sin((phase + i / 6) * Math.PI * 2);
       const size = 0.027 + 0.014 * (1 + wave);
       ball(
         root,
-        i % 2 ? P.cream : "#d4a15a",
+        i % 2 ? look.light : look.middle,
         Math.sin(i * 2.4) * 0.23,
         y + 0.012,
         Math.cos(i * 2.4) * 0.21,
