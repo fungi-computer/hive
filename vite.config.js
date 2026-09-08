@@ -11,6 +11,7 @@ export default defineConfig({
         fireStudy: "fire-study.html",
         brewhouseStudy: "brewhouse-study.html",
         mixedShelfStudy: "mixed-shelf-study.html",
+        clearingMinimapStudy: "clearing-minimap-study.html",
         worldLab: "world-lab.html",
       },
     },
