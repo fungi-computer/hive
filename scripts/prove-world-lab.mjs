@@ -709,11 +709,31 @@ checks.userFacingLabShape = {
     stylesSource.includes(".legend"),
   responsiveNavigation:
     pageSource.includes('data-pan="0,-0.25"') &&
-    pageSource.includes('data-zoom="0.5"') &&
+    pageSource.includes('data-atlas-zoom="in"') &&
+    pageSource.includes('data-atlas-zoom="out"') &&
     pageSource.includes('id="world-lab-atlas-status"') &&
     mainSource.includes("function panAtlas") &&
     mainSource.includes("function zoomAtlas") &&
     mainSource.includes("boundsAround"),
+  visibleScaleStatus:
+    pageSource.includes('aria-live="polite"') &&
+    pageSource.includes('id="world-lab-request-status"') &&
+    mainSource.includes("function scaleForBounds") &&
+    mainSource.includes("function scaleStatusLabel") &&
+    mainSource.includes(
+      "`Updating to ${requested}; showing ${scaleForBounds(overview.bounds)}`",
+    ) &&
+    mainSource.includes("`Showing ${scaleForBounds(overview.bounds)}`") &&
+    mainSource.includes("cells/pixel") &&
+    stylesSource.includes(".atlas-status"),
+  zoomLimitsAndNoOp:
+    mainSource.includes("const MIN_ATLAS_SPAN = 512") &&
+    mainSource.includes("const MAX_ATLAS_SPAN = 8192") &&
+    mainSource.includes("zoomInButton.disabled = span <= MIN_ATLAS_SPAN") &&
+    mainSource.includes("zoomOutButton.disabled = span >= MAX_ATLAS_SPAN") &&
+    mainSource.includes("if (nextSpan === currentSpan)") &&
+    mainSource.includes("return false") &&
+    mainSource.includes('document.querySelectorAll("[data-atlas-zoom]")'),
   workerLifecycle:
     mainSource.includes('new Worker(new URL("./worker.js", import.meta.url)') &&
     mainSource.includes("activeRequest") &&
@@ -766,11 +786,29 @@ checks.userFacingLabShape = {
     stylesSource.includes(".swatch.water") &&
     stylesSource.includes(".legend") &&
     pageSource.includes('data-pan="0,-0.25"') &&
-    pageSource.includes('data-zoom="0.5"') &&
+    pageSource.includes('data-atlas-zoom="in"') &&
+    pageSource.includes('data-atlas-zoom="out"') &&
     pageSource.includes('id="world-lab-atlas-status"') &&
+    pageSource.includes('aria-live="polite"') &&
+    pageSource.includes('id="world-lab-request-status"') &&
     mainSource.includes("function panAtlas") &&
     mainSource.includes("function zoomAtlas") &&
     mainSource.includes("boundsAround") &&
+    mainSource.includes("function scaleForBounds") &&
+    mainSource.includes("function scaleStatusLabel") &&
+    mainSource.includes(
+      "`Updating to ${requested}; showing ${scaleForBounds(overview.bounds)}`",
+    ) &&
+    mainSource.includes("`Showing ${scaleForBounds(overview.bounds)}`") &&
+    mainSource.includes("cells/pixel") &&
+    stylesSource.includes(".atlas-status") &&
+    mainSource.includes("const MIN_ATLAS_SPAN = 512") &&
+    mainSource.includes("const MAX_ATLAS_SPAN = 8192") &&
+    mainSource.includes("zoomInButton.disabled = span <= MIN_ATLAS_SPAN") &&
+    mainSource.includes("zoomOutButton.disabled = span >= MAX_ATLAS_SPAN") &&
+    mainSource.includes("if (nextSpan === currentSpan)") &&
+    mainSource.includes("return false") &&
+    mainSource.includes('document.querySelectorAll("[data-atlas-zoom]")') &&
     mainSource.includes('new Worker(new URL("./worker.js", import.meta.url)') &&
     mainSource.includes("activeRequest") &&
     mainSource.includes("queuedRequest") &&

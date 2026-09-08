@@ -24,6 +24,7 @@ const overviewMarkerCanvas = document.querySelector(
 const localCanvas = document.querySelector("#world-lab-local");
 const localGridCanvas = document.querySelector("#world-lab-local-grid");
 const atlasStatus = document.querySelector("#world-lab-atlas-status");
+const requestStatus = document.querySelector("#world-lab-request-status");
 const overviewContext = overviewCanvas.getContext("2d");
 const overviewMarkerContext = overviewMarkerCanvas.getContext("2d");
 const localContext = localCanvas.getContext("2d");
@@ -50,6 +51,13 @@ let queuedRequest = null;
 let latestRequestId = 0;
 let staleResults = 0;
 let disposed = false;
+const MIN_ATLAS_SPAN = 512;
+const MAX_ATLAS_SPAN = 8192;
+const formatNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+});
+const zoomInButton = document.querySelector('[data-atlas-zoom="in"]');
+const zoomOutButton = document.querySelector('[data-atlas-zoom="out"]');
 
 const terrainPalette = [
   [38, 91, 132],
@@ -194,6 +202,31 @@ function lifecycleLabel() {
     : "waiting for first bounded overview";
 }
 
+function scaleForBounds(bounds) {
+  const spanX = bounds.maxXExclusive - bounds.minX;
+  const spanZ = bounds.maxZExclusive - bounds.minZ;
+  const footprint = Math.max(
+    spanX / MAX_OVERVIEW_DIMENSION,
+    spanZ / MAX_OVERVIEW_DIMENSION,
+  );
+  return `${formatNumber.format(spanX)} × ${formatNumber.format(spanZ)} cells · ${formatNumber.format(footprint)} cells/pixel`;
+}
+
+function scaleStatusLabel() {
+  const requested = scaleForBounds(requestedBounds);
+  if (activeRequest || queuedRequest)
+    return overview
+      ? `Updating to ${requested}; showing ${scaleForBounds(overview.bounds)}`
+      : `Loading ${requested}`;
+  return overview ? `Showing ${scaleForBounds(overview.bounds)}` : requested;
+}
+
+function updateZoomAvailability() {
+  const span = requestedBounds.maxXExclusive - requestedBounds.minX;
+  zoomInButton.disabled = span <= MIN_ATLAS_SPAN;
+  zoomOutButton.disabled = span >= MAX_ATLAS_SPAN;
+}
+
 function render() {
   const local = drawLocal();
   drawViewportMarker(local.viewport);
@@ -285,7 +318,9 @@ function render() {
     null,
     2,
   );
-  atlasStatus.textContent = lifecycleLabel();
+  atlasStatus.textContent = scaleStatusLabel();
+  requestStatus.textContent = lifecycleLabel();
+  updateZoomAvailability();
 }
 
 function contractReport() {
@@ -336,7 +371,7 @@ function startQueuedRequest() {
     });
     worker.addEventListener("message", receiveOverview);
     worker.addEventListener("error", (event) => {
-      atlasStatus.textContent = `worker error: ${event.message}`;
+      requestStatus.textContent = `worker error: ${event.message}`;
       activeRequest = null;
       worker.terminate();
       worker = null;
@@ -376,7 +411,7 @@ function receiveOverview(event) {
     message.type === "error" &&
     completed.requestId === latestRequestId
   ) {
-    atlasStatus.textContent = `request failed: ${message.message}`;
+    requestStatus.textContent = `request failed: ${message.message}`;
   }
   contractReport();
   render();
@@ -440,16 +475,22 @@ function panAtlas(dx, dz) {
   requestOverview(bounds, "pan");
 }
 
-function zoomAtlas(scale) {
+function zoomAtlas(direction) {
   const currentSpan = requestedBounds.maxXExclusive - requestedBounds.minX;
+  const scale = direction === "in" ? 0.5 : 2;
   const nextSpan = Math.max(
-    512,
-    Math.min(8192, Math.round(currentSpan * scale)),
+    MIN_ATLAS_SPAN,
+    Math.min(MAX_ATLAS_SPAN, Math.round(currentSpan * scale)),
   );
+  if (nextSpan === currentSpan) {
+    updateZoomAvailability();
+    return false;
+  }
   requestOverview(
     boundsAround(focus.x, focus.z, nextSpan),
-    scale < 1 ? "zoom-in" : "zoom-out",
+    direction === "in" ? "zoom-in" : "zoom-out",
   );
+  return true;
 }
 
 for (const button of document.querySelectorAll("[data-cell]")) {
@@ -468,10 +509,8 @@ for (const button of document.querySelectorAll("[data-pan]")) {
   });
 }
 
-for (const button of document.querySelectorAll("[data-zoom]"))
-  button.addEventListener("click", () =>
-    zoomAtlas(Number(button.dataset.zoom)),
-  );
+for (const button of document.querySelectorAll("[data-atlas-zoom]"))
+  button.addEventListener("click", () => zoomAtlas(button.dataset.atlasZoom));
 
 overviewCanvas.addEventListener("click", (event) => {
   if (!overview) return;
