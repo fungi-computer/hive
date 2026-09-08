@@ -147,43 +147,70 @@ export function brewStationContainers(site) {
   ];
 }
 
+/**
+ * Site-owned material endpoints.  This is the one lifecycle-aware catalogue
+ * for transfer resolution, save relations, and structure teardown; the
+ * material kernel receives only its resolved ContainerSpec.
+ */
+export function siteMaterialEndpoints(site) {
+  if (site.finishedAt === null)
+    return [
+      {
+        site,
+        destination: constructionBuffer(site),
+        deposit: true,
+        withdraw: false,
+      },
+    ];
+  if (site.type === "shelf")
+    return [
+      {
+        site,
+        destination: shelfContainer(site.id),
+        deposit: true,
+        withdraw: true,
+      },
+    ];
+  if (site.type === "brew-station")
+    return [
+      ...brewStationContainers(site).map((destination) => ({
+        site,
+        destination,
+        deposit: true,
+        withdraw: false,
+      })),
+      {
+        site,
+        destination: herbalAleTray(site.id),
+        deposit: false,
+        withdraw: false,
+      },
+    ];
+  return [];
+}
+
+/** The content-owned slot for one accepted material and operation. */
+export function siteMaterialEndpointFor(site, material, operation = null) {
+  return (
+    siteMaterialEndpoints(site).find(
+      (endpoint) =>
+        (operation === null || endpoint[operation]) &&
+        endpoint.destination.accepts.includes(material),
+    ) ?? null
+  );
+}
+
 // The construction consumer owns the only lifecycle-aware interpretation of a
 // material destination. Transfer mechanics receive this resolved record; they
 // never infer a destination from a structure type.
 export function resolveMaterialEndpoint(sites, id, operation = "deposit") {
-  const brewStation = sites.find(
-    (candidate) =>
-      candidate.type === "brew-station" &&
-      candidate.finishedAt !== null &&
-      brewStationContainers(candidate).some(
-        (destination) => destination.id === id,
-      ),
-  );
-  if (brewStation) {
-    const destination = brewStationContainers(brewStation).find(
-      (candidate) => candidate.id === id,
-    );
-    if (operation === "deposit" && destination)
-      return { site: brewStation, destination };
-  }
-  const siteId = id.replace(/^(?:construction-buffer:|shelf:)/, "");
-  const site = sites.find((candidate) => candidate.id === siteId);
-  if (!site) return null;
-  const construction = constructionBuffer(site);
-  if (
-    operation === "deposit" &&
-    id === construction.id &&
-    site.finishedAt === null
-  )
-    return { site, destination: construction };
-  const shelf = shelfContainer(site.id);
-  if (
-    site.type === "shelf" &&
-    site.finishedAt !== null &&
-    id === shelf.id &&
-    (operation === "deposit" || operation === "withdraw")
-  )
-    return { site, destination: shelf };
+  for (const site of sites)
+    for (const endpoint of siteMaterialEndpoints(site))
+      if (
+        endpoint.destination.id === id &&
+        (operation === "deposit" ? endpoint.deposit : endpoint.withdraw)
+      )
+        return { site, destination: endpoint.destination };
   return null;
 }
 export function resolveMaterialDestination(sites, id) {
@@ -358,10 +385,9 @@ export function removalProblem(state, site, person = null) {
   if (!site || site.finishedAt === null)
     return "Waiting for a finished structure";
   if (site.type === "brew-station") {
-    const slots = new Set([
-      ...brewStationContainers(site).map((container) => container.id),
-      herbalAleTray(site.id).id,
-    ]);
+    const slots = new Set(
+      siteMaterialEndpoints(site).map((endpoint) => endpoint.destination.id),
+    );
     const hasContents = state.materials.lots.some(
       (lot) =>
         lot.location.kind === "container" && slots.has(lot.location.container),

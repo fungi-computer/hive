@@ -4,17 +4,13 @@ import type { Clearing, Job, PositiveInt } from "./model.ts";
 import { inside, sameCell } from "./world.js";
 import {
   BUILDINGS,
-  brewBarmSlot,
-  brewHearth,
-  brewKegSlot,
-  brewKettle,
-  brewStationContainers,
   constructionBuffer,
   floorSupported,
   footprint,
   resolveMaterialDestination,
   roofSupported,
-  shelfContainer,
+  siteMaterialEndpointFor,
+  siteMaterialEndpoints,
 } from "./construction.js";
 import {
   brewBindingPromiseQuantity,
@@ -32,7 +28,7 @@ import {
   sourceSuppliesContainerSpec,
   sourceContainerSpec,
 } from "./finite-sources.ts";
-import { HERBAL_ALE_V1, herbalAleTray } from "./recipes.ts";
+import { HERBAL_ALE_V1 } from "./recipes.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
 const SAVE_SCHEMA = 12 as const;
@@ -719,12 +715,7 @@ function activityMatchesJob(
         destinationId === cacheRepairBuffer(repair)?.id) ||
       (job.kind === "brew" &&
         resolved?.site.id === job.target &&
-        [
-          brewKettle(resolved.site).id,
-          brewHearth(resolved.site).id,
-          brewBarmSlot(resolved.site).id,
-          brewKegSlot(resolved.site).id,
-        ].includes(destinationId))
+        resolved.destination.id === destinationId)
     );
   }
   if (job.kind === "rest")
@@ -807,7 +798,7 @@ function validateMaterialBindings({
         (site) =>
           site.type === "brew-station" &&
           site.finishedAt !== null &&
-          brewKettle(site).id === use.station,
+          siteMaterialEndpointFor(site, "malt")?.destination.id === use.station,
       );
       const requiresStaging = state.processes.some(
         (process) => process.binding === use.id,
@@ -833,9 +824,8 @@ function validateMaterialBindings({
                 (!station ||
                   lot.location.kind !== "container" ||
                   lot.location.container !==
-                    (portion.material === "wood"
-                      ? brewHearth(station).id
-                      : brewKettle(station).id))))) ||
+                    siteMaterialEndpointFor(station, portion.material)
+                      ?.destination.id)))) ||
           portion.quantity !== required[portion.material]
         )
           fail(`brew binding ${use.id} has invalid portion ${portion.lot}`);
@@ -861,9 +851,7 @@ function validateMaterialBindings({
             (!station ||
               lot.location.kind !== "container" ||
               lot.location.container !==
-                (material === "barm"
-                  ? brewBarmSlot(station).id
-                  : brewKegSlot(station).id)))
+                siteMaterialEndpointFor(station, material)?.destination.id))
         )
           fail(`brew binding ${use.id} has invalid ${material}`);
       }
@@ -879,7 +867,8 @@ function validateMaterialBindings({
         outputContainer.capacity !== 4 ||
         !outputContainer.accepts.includes("ale") ||
         !tray ||
-        tray.id !== herbalAleTray(station.id).id ||
+        tray.id !==
+          siteMaterialEndpointFor(station, "spent-grain")?.destination.id ||
         tray.capacity !== 1 ||
         !tray.accepts.includes("spent-grain")
       )
@@ -1000,18 +989,9 @@ function relationContext(state: SavedClearing): RelationContext {
   if (jobs.size !== state.jobs.length) fail("duplicate job ID");
   if (sites.size !== state.sites.length) fail("duplicate site ID");
   const containers = new Map<string, ContainerSpec>();
-  for (const site of state.sites) {
-    const buffer = constructionBuffer(site);
-    if (site.finishedAt === null) containers.set(buffer.id, buffer);
-    if (site.type === "shelf" && site.finishedAt !== null)
-      containers.set(shelfContainer(site.id).id, shelfContainer(site.id));
-    if (site.type === "brew-station" && site.finishedAt !== null)
-      for (const container of [
-        ...brewStationContainers(site),
-        herbalAleTray(site.id),
-      ])
-        containers.set(container.id, container);
-  }
+  for (const site of state.sites)
+    for (const endpoint of siteMaterialEndpoints(site))
+      containers.set(endpoint.destination.id, endpoint.destination);
   for (const feature of state.sources) {
     containers.set(sourceContainer(feature.id), sourceContainerSpec(feature));
     const repair = cacheRepairBuffer(feature);
@@ -1097,7 +1077,7 @@ function validateOperationEndpoints(
     !pail ||
     pail.material !== "pail" ||
     pail.quantity !== 1 ||
-    !containers.has(brewKettle(station).id)
+    !siteMaterialEndpointFor(station, "water")
   )
     fail(`brew operation ${operation.id} has invalid endpoint`);
 }
@@ -1213,7 +1193,8 @@ function validateBrewProcesses({ state }: RelationContext): void {
       job.target !== process.station ||
       !station ||
       !binding ||
-      binding.station !== brewKettle(station).id ||
+      binding.station !==
+        siteMaterialEndpointFor(station, "malt")?.destination.id ||
       process.id !== process.binding ||
       (process.phase === "prepare" &&
         (transformed || process.progress > HERBAL_ALE_V1.timings.prepare)) ||

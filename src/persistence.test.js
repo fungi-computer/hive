@@ -177,7 +177,7 @@ test("strict schema 11 converts Craft defaults but rejects schema-12 Brew fields
   assert.throws(() => restoreSnapshot(malformed));
 });
 
-test("restore rejects a Brew process whose job targets another station", () => {
+test("station endpoint catalogue restores checked slots and rejects mismatches", () => {
   const saved = envelope((state) => {
     const cache = state.sources.find(
       (source) => source.kind === "reclaimed-timber-cache",
@@ -232,7 +232,7 @@ test("restore rejects a Brew process whose job targets another station", () => {
         location: { kind: "container", container: "brew-hearth:station-a" },
       },
     );
-    state.jobs.push(job("brew-job", "brew", "another-station"));
+    state.jobs.push(job("brew-job", "brew", "station-a"));
     state.materials.bindings.push({
       kind: "brew",
       id: "brew-process",
@@ -259,8 +259,20 @@ test("restore rejects a Brew process whose job targets another station", () => {
       enteredAt: 0,
     });
   });
+  assert.doesNotThrow(() => restoreSnapshot(saved));
+  const unknown = structuredClone(saved);
+  unknown.savedState.materials.lots.find(
+    (lot) => lot.id === "malt-stage",
+  ).location = { kind: "container", container: "kettle:missing" };
   assert.throws(
-    () => restoreSnapshot(saved),
+    () => restoreSnapshot(unknown),
+    /unknown destination kettle:missing/,
+  );
+  const wrongTarget = structuredClone(saved);
+  wrongTarget.savedState.jobs.find((entry) => entry.id === "brew-job").target =
+    "another-station";
+  assert.throws(
+    () => restoreSnapshot(wrongTarget),
     /brew process brew-process has invalid phase or binding/,
   );
 });
