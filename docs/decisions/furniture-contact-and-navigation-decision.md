@@ -55,6 +55,11 @@ The clarified screenshot concerns a separate Upper floor tile painting over the 
 
 For this case, every actual supporting floor surface must precede the supported bed body. A whole-bed sprite can satisfy that relation if the resulting ordering is acyclic. Keep physical support/visible geometry bounds and stable deterministic ordering from `isometric-order-and-structural-support.md`; do not replace this with another arbitrary global bed offset or draw all furniture above all floors at every elevation. Split a baked object into reviewed parts only when a demonstrated overlap requires interleaving or produces a cycle that whole sprites cannot satisfy. This screenshot alone does not establish that requirement.
 
+The proved supporting-floor-before-bed relation is presentation-only. It does
+not make draw order the owner of physical support or contact: full-footprint bed
+blocking, legal entry, the reserved use slot, exit and sleep remain owned by the
+physical contact/navigation transition above.
+
 Navigation blocking will not repair those pixels. Conversely, changing depth order will not stop Sedge from being legally routed into the bed under the old model. Prove both claims separately and retain the actual source/art boundary: unchanged accepted geometry needs ordinary source/render verification, not another ceremonial art gate. New bake parts or contact animation go through the existing reserved original-art review if they change the visible art.
 
 ## Focused exit, after controls

@@ -102,6 +102,12 @@ Split `drawSites` into lifecycle synchronization, state-derived appearance, visi
 
 Use the detailed [ordering/support record](isometric-order-and-structural-support.md) for overlap broad phase, partial ordering, cycle handling, full actor volumes and bed-contact proof. No all-world O(n²) loop, magic extra z constant, second renderer or duplicated full sprite. Changed art partitions receive Astra's reserved review; unchanged hit metadata has no new art gate.
 
+The bounded bed/floor result should later replace the existing scalar depth
+callers with one measured, cached rank owner over visible candidates. Rendering
+and Pixi picking consume that shared order, while cached baked-alpha visible hit
+geometry remains the authority for selectable pixels; world AABBs or rank do not
+replace it.
+
 ### 3. Construction geometry and navigation
 
 Geometry describes a building once. Support, cover, work approach, collision and removal dependencies ask distinct questions of it. They return explicit reasons/evidence rather than unrelated UI strings reconstructed in multiple modules.

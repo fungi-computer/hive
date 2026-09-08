@@ -88,6 +88,12 @@ The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-dec
 and [depth source review](docs/decisions/excalibur-depth-source-review.md) are
 bounded guidance only: no dependency or general ECS; capability/index/lifetime/
 draw separation remains subordinate to controls and the unified-work owner.
+Upstairs presentation still awaits bounded visual-depth integration under the
+[isometric ordering/support decision](docs/decisions/isometric-order-and-structural-support.md),
+with physical bed contact governed separately by the
+[furniture contact/navigation decision](docs/decisions/furniture-contact-and-navigation-decision.md).
+Camera and cutaway change visibility/presentation only, never saved physical
+state; unresolved depth cases retain current behavior.
 
 The current persistent Game CTO goal is to continuously reconcile retained plans,
 studies, ADRs and issues into coherent architecture-focused sprints, while

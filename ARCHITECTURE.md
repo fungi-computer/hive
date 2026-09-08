@@ -48,6 +48,12 @@ remain future direction.
 The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-decision.md)
 are later bounded guidance, linked with the [depth source review](docs/decisions/excalibur-depth-source-review.md);
 they do not authorize an Excalibur dependency or general ECS migration.
+Upstairs presentation still awaits bounded visual-depth integration under the
+[isometric ordering/support decision](docs/decisions/isometric-order-and-structural-support.md),
+with physical bed contact governed separately by the
+[furniture contact/navigation decision](docs/decisions/furniture-contact-and-navigation-decision.md).
+Camera and cutaway change visibility/presentation only, never saved physical
+state; unresolved depth cases retain current behavior.
 
 ## Delivery ownership
 

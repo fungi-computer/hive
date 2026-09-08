@@ -33,6 +33,18 @@ Report cycles/ambiguous intersections in development. A deterministic fallback i
 
 For a sleeping occupant, define the relationship of mattress/frame, body, cover and pillow through a bounded contact-pose composition. For ordinary movement inside bed cells, first choose a consistent visual contact policy or a separately reviewed movement/approach correction. Do not hide this semantic problem inside arbitrary z offsets. Picking resolves visible selectable parts to the same site/actor under the existing armed-tool/right-click ownership.
 
+The bounded actual-builder/Pixi study now proves both bed facings: finished
+supporting upper-floor surfaces must order before their supported bed, and that
+relation removes the observed floor-over-foot failure with unchanged pixels.
+The foreground tree, sleeping contact, all stair traversal samples, a true
+ordering cycle and hot-path performance remain unresolved; retain current
+behavior for those cases until each has focused evidence. Do not ship the
+study's all-pairs projected-AABB prototype or its scratch-array work. A later
+integration should replace the existing scalar-depth callers with one measured
+rank owner over visible candidates, using cached bake metadata and sharing the
+result with picking. Unchanged art needs no second art gate; split parts only for
+a demonstrated interleaving or cycle.
+
 ## First corrective outcome
 
 One focused bed/actor renderer checkpoint, both bed axes and levels, with a canonical overlap fixture. Prove near/far sides, equal-anchor-sum diagonal cases, two actors around one bed, walking/carrying transitions and the actual sleep contact. Reversed insertion order must not change the result. Keep click/inspection and persistent tool behavior. Use a compact contact sheet/short motion trace; no full-home harness or material-earning marathon.
