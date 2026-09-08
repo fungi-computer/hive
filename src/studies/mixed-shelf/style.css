@@ -1,0 +1,19 @@
+:root { color-scheme: dark; font-family: ui-sans-serif, system-ui, sans-serif; background: #222a2a; color: #eee1c5; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1024px; margin: 0 auto; padding: 28px 20px 48px; }
+h1 { font-size: clamp(25px, 5vw, 36px); margin: 8px 0; }
+h2 { font-size: 18px; margin-top: 28px; }
+p { max-width: 740px; line-height: 1.5; }
+.eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 11px; color: #c1b488; }
+button { background: #526d64; color: #fff2d6; border: 1px solid #acb69a; border-radius: 7px; padding: 10px 18px; font: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid #f6d57a; outline-offset: 4px; }
+#profiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.profile { background: #34433b; border: 1px solid #5a6755; border-radius: 9px; text-align: center; padding: 10px 5px; }
+.profile h3 { font-size: 13px; margin: 4px 0; }
+.profile p { font-size: 12px; margin: 4px 0; color: #cfceb0; }
+canvas { image-rendering: pixelated; display: block; }
+.profile canvas { width: 224px; height: 224px; max-width: 100%; object-fit: contain; margin: auto; }
+#contact { max-width: 100%; overflow-x: auto; }
+#contact canvas { width: 448px; max-width: none; }
+.note { color: #b8b79f; font-size: 13px; }

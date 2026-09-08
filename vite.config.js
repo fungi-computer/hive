@@ -10,6 +10,7 @@ export default defineConfig({
         animalStudy: "animal-study.html",
         fireStudy: "fire-study.html",
         brewhouseStudy: "brewhouse-study.html",
+        mixedShelfStudy: "mixed-shelf-study.html",
         worldLab: "world-lab.html",
       },
     },
