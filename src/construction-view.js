@@ -14,10 +14,10 @@ import {
   indoors,
   constructionBuffer,
   shelfContainer,
-  brewKettle,
 } from "./construction.js";
 import { containerContents, containerQuantity } from "./materials.ts";
 import { singlePlacementTool } from "./ui-actions.ts";
+import { brewStationPresentation } from "./brew-station-presentation.js";
 
 function shelfProfile(contents) {
   const wood = contents
@@ -181,10 +181,10 @@ export function createConstructionView(world, art, bodies, input, picking) {
         shelfContainer(site.id).id,
       );
       const profile = site.type === "shelf" ? shelfProfile(contents) : null;
-      const kettleWater =
-        site.type === "brew-station"
-          ? containerQuantity(state.materials, brewKettle(site).id, "water")
-          : 0;
+      const station =
+        site.type === "brew-station" && finished
+          ? brewStationPresentation(state, site)
+          : null;
       const delivered = containerQuantity(
         state.materials,
         constructionBuffer(site).id,
@@ -198,14 +198,20 @@ export function createConstructionView(world, art, bodies, input, picking) {
           ? art.wallJoints[stage][jointMask]
           : profile && profile !== "empty"
             ? art.mixedShelf[profile][site.direction]
-            : site.type === "brew-station" && finished && kettleWater >= 2
-              ? art.buildings[site.type].water[site.direction]
+            : station && finished
+              ? (() => {
+                  const frames =
+                    art.buildings[site.type].profiles[station.visualProfile][
+                      site.direction
+                    ];
+                  return frames[Math.floor(state.tick / 2) % frames.length];
+                })()
               : art.buildings[site.type][stage][site.direction];
       view.texture = texture;
       picking.bind(view, {
         texture,
         anchor: art.propAnchor,
-        orientation: `${stage}:${site.direction}${jointMask === null ? "" : `:joint-${jointMask}`}${profile ? `:${profile}` : ""}${kettleWater >= 2 ? ":water" : ""}`,
+        orientation: `${stage}:${site.direction}${jointMask === null ? "" : `:joint-${jointMask}`}${profile ? `:${profile}` : ""}${station ? `:${station.visualProfile}` : ""}`,
         target: { ...view.visualTarget, level: site.level },
       });
       view.visible = activeLevel || supportContext;

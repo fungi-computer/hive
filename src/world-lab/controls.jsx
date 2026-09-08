@@ -47,7 +47,7 @@ function ExactCell({ exact }) {
   );
 }
 
-export function WorldLabControls({ controller }) {
+function WorldLabControls({ controller }) {
   const state = useSyncExternalStore(
     controller.subscribe,
     controller.getSnapshot,

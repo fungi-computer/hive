@@ -1,6 +1,6 @@
 // Accepted brewing-supply primitives. Content visibility is supplied by callers.
 import * as THREE from "three";
-import { ball, box, group, mesh } from "./geometry.js";
+import { ball, box, cylinder, group, mesh } from "./geometry.js";
 
 const P = Object.freeze({
   wood: "#785037",
@@ -13,9 +13,66 @@ const P = Object.freeze({
   plum: "#65455b",
   cord: "#c5a76d",
   wax: "#a24d43",
+  gold: "#e0a462",
   grain: "#a88e52",
   wet: "#4f4135",
 });
+
+function kegRing(parent, color, y, radius, thickness = 0.025) {
+  const item = mesh(
+    parent,
+    new THREE.TorusGeometry(radius, thickness, 4, 16),
+    color,
+    0,
+    y,
+    0,
+  );
+  item.rotation.x = Math.PI / 2;
+  return item;
+}
+
+/** Accepted portable keg geometry, shared by the study and station renderer. */
+export function brewKeg(parent, { tap = false, size = 1 } = {}) {
+  const g = group(parent);
+  g.name = "brew-keg";
+  g.scale.setScalar(size);
+  for (let i = 0; i < 12; i++) {
+    const angle = (i * Math.PI) / 6;
+    const stave = box(
+      g,
+      i % 3 ? P.wood : P.light,
+      Math.sin(angle) * 0.33,
+      0.48,
+      Math.cos(angle) * 0.33,
+      0.17,
+      0.82,
+      0.08,
+    );
+    stave.rotation.y = angle;
+  }
+  cylinder(g, P.wood, 0, 0.48, 0, 0.33, 0.33, 0.85, 12);
+  for (const y of [0.1, 0.28, 0.68, 0.86]) kegRing(g, P.iron, y, 0.36, 0.033);
+  cylinder(g, P.end, 0, 0.91, 0, 0.327, 0.327, 0.055, 12);
+  for (const x of [-0.2, -0.07, 0.07, 0.2])
+    box(
+      g,
+      P.wood,
+      x,
+      0.941,
+      0,
+      0.015,
+      0.007,
+      Math.sqrt(0.32 * 0.32 - x * x) * 2,
+    );
+  cylinder(g, P.wood, 0, 0.955, 0, 0.055, 0.055, 0.035, 8);
+  if (tap) {
+    const spout = cylinder(g, P.gold, 0, 0.29, 0.4, 0.035, 0.035, 0.22, 8);
+    spout.rotation.x = Math.PI / 2;
+    cylinder(g, P.gold, 0, 0.24, 0.5, 0.028, 0.028, 0.1, 8);
+    box(g, P.iron, 0, 0.36, 0.44, 0.12, 0.04, 0.04);
+  }
+  return g;
+}
 
 function ring(p, color, y, radius, thickness) {
   const m = mesh(

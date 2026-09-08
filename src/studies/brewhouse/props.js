@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { box, ball, cylinder, mesh, group } from "../../art/geometry.js";
 import { mugwortBundle } from "../../art/herbs.js";
 import { kettleBody, kettlePaddle } from "../../art/brew-vessel.js";
+import { brewKeg } from "../../art/brew-supplies.js";
 import { pail } from "../../art/pail.js";
 
 export const PALETTE = {
@@ -83,50 +84,9 @@ export function tankard(p) {
       0.035,
     );
 }
-export function cask(p, { tap = false, size = 1 } = {}) {
-  const g = group(p);
-  g.scale.setScalar(size);
-  for (let i = 0; i < 12; i++) {
-    const angle = (i * Math.PI) / 6;
-    const stave = box(
-      g,
-      i % 3 ? P.wood : P.light,
-      Math.sin(angle) * 0.33,
-      0.48,
-      Math.cos(angle) * 0.33,
-      0.17,
-      0.82,
-      0.08,
-    );
-    stave.rotation.y = angle;
-  }
-  cylinder(g, P.wood, 0, 0.48, 0, 0.33, 0.33, 0.85, 12);
-  for (const y of [0.1, 0.28, 0.68, 0.86])
-    ring(g, P.iron, 0, y, 0, 0.36, 0.033);
-  cylinder(g, P.end, 0, 0.91, 0, 0.327, 0.327, 0.055, 12);
-  for (const x of [-0.2, -0.07, 0.07, 0.2])
-    box(
-      g,
-      P.wood,
-      x,
-      0.941,
-      0,
-      0.015,
-      0.007,
-      Math.sqrt(0.32 * 0.32 - x * x) * 2,
-    );
-  cylinder(g, P.wood, 0, 0.955, 0, 0.055, 0.055, 0.035, 8);
-  if (tap) {
-    const spout = cylinder(g, P.gold, 0, 0.29, 0.4, 0.035, 0.035, 0.22, 8);
-    spout.rotation.x = Math.PI / 2;
-    cylinder(g, P.gold, 0, 0.24, 0.5, 0.028, 0.028, 0.1, 8);
-    box(g, P.iron, 0, 0.36, 0.44, 0.12, 0.04, 0.04);
-  }
-  return g;
-}
 export function fermenter(p) {
   const g = group(p);
-  cask(g, { size: 1.18 });
+  brewKeg(g, { size: 1.18 });
   for (const x of [-0.33, 0.33]) box(g, P.wood, x, 0.055, 0, 0.13, 0.11, 0.87);
   cylinder(g, P.copper, 0.06, 1.17, 0, 0.025, 0.025, 0.2, 8);
   ball(g, P.gold, 0.06, 1.27, 0, 0.055, 0.07, 0.055);
@@ -294,7 +254,7 @@ export function sign(p) {
 export const PROP_BUILDERS = {
   kettle,
   fermenter,
-  cask,
+  cask: brewKeg,
   workbench,
   bar,
   stool,

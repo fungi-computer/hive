@@ -107,8 +107,8 @@ function bed(parent, stage) {
   }
 }
 const TYPES = { wall, door, roof, bed, shelf, floor, stair };
-export function building(type, stage, direction = 0) {
-  if (type === "brew-station") return stationScene(stage, direction);
+export function building(type, stage, direction = 0, options) {
+  if (type === "brew-station") return stationScene(stage, direction, options);
   const build = TYPES[type];
   if (!build) throw new Error(`Unknown building art: ${type}`);
   const s = scene(),

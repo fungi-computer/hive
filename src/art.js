@@ -13,6 +13,7 @@ import { brewerCache } from "./art/brew-supplies.js";
 import { pail } from "./art/pail.js";
 import { scene } from "./art/geometry.js";
 import { stationScene } from "./art/brew-station.js";
+import { STATION_VISUAL_PROFILES } from "./brew-station-profiles.js";
 import { BUILDINGS } from "./construction.js";
 import { registerVisibleTexture } from "./visual-hit-geometry.js";
 
@@ -138,14 +139,25 @@ export async function bakeArt() {
         bake(renderer, building(type, stage, direction), prop, 112, 112),
       );
     if (type === "brew-station")
-      art.buildings[type].water = [0, 1].map((direction) =>
-        bake(
-          renderer,
-          stationScene("finished", direction, { water: true }),
-          prop,
-          112,
-          112,
-        ),
+      art.buildings[type].profiles = Object.fromEntries(
+        STATION_VISUAL_PROFILES.map((profile) => [
+          profile,
+          [0, 1].map((direction) => {
+            const frames = profile === "prepare-attended" ? 8 : 1;
+            return Array.from({ length: frames }, (_, frame) =>
+              bake(
+                renderer,
+                stationScene("finished", direction, {
+                  profile,
+                  phase: frame / frames,
+                }),
+                prop,
+                112,
+                112,
+              ),
+            );
+          }),
+        ]),
       );
   }
   for (const fill of ["dry", "low", "full"])

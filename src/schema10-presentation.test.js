@@ -3,6 +3,10 @@ import test from "node:test";
 import { pail } from "./art/pail.js";
 import { basinScene } from "./art/spring-basin.js";
 import { stationScene } from "./art/brew-station.js";
+import {
+  stationProfileOptions,
+  stationVisualProfile,
+} from "./brew-station-profiles.js";
 import { figure } from "./art/figures.js";
 import { carriedActorFrame, carriedActorPose } from "./view.js";
 import {
@@ -70,6 +74,80 @@ test("station water is an optional full clear-water appearance at the accepted d
   assert.deepEqual(datum.position.toArray(), [0.5, 0, 0.5]);
   assert.equal(named(empty, "kettle-contents"), null);
   assert.ok(named(full, "kettle-contents"));
+});
+
+test("station profiles expose only canonical phase and contents effects", () => {
+  const slots = {
+    kettle: { water: 2, malt: 2, mugwort: 1 },
+    hearth: { wood: 1 },
+    barm: { barm: 1 },
+    keg: { keg: 1, ale: 0 },
+    tray: { spentGrain: 0 },
+  };
+  assert.equal(
+    stationVisualProfile({
+      finished: true,
+      slots,
+      process: { phase: "prepare" },
+      attending: false,
+    }),
+    "prepare",
+  );
+  assert.equal(
+    stationVisualProfile({
+      finished: true,
+      slots,
+      process: { phase: "prepare" },
+      attending: true,
+    }),
+    "prepare-attended",
+  );
+  assert.equal(
+    stationVisualProfile({
+      finished: true,
+      slots,
+      process: { phase: "ferment" },
+      attending: false,
+    }),
+    "ferment",
+  );
+  assert.equal(
+    stationVisualProfile({
+      finished: true,
+      slots: { ...slots, keg: { keg: 1, ale: 4 }, tray: { spentGrain: 1 } },
+      process: null,
+      attending: false,
+    }),
+    "settled",
+  );
+  assert.deepEqual(stationProfileOptions("ferment"), {
+    liquid: "wort",
+    barm: true,
+    keg: true,
+    tray: false,
+    stirring: false,
+    fire: false,
+    steam: false,
+  });
+});
+
+test("only attended PREPARE bakes fire, steam, and stirring", () => {
+  const prepare = stationScene("finished", 0, { profile: "prepare" });
+  const attended = stationScene("finished", 0, {
+    profile: "prepare-attended",
+    phase: 0.25,
+  });
+  const ferment = stationScene("finished", 0, { profile: "ferment" });
+  const settled = stationScene("finished", 0, { profile: "settled" });
+  assert.equal(named(prepare, "kettle-fire"), null);
+  assert.equal(named(prepare, "kettle-steam"), null);
+  assert.ok(named(attended, "kettle-fire"));
+  assert.ok(named(attended, "kettle-steam"));
+  assert.ok(named(attended, "brew-keg"));
+  assert.equal(named(ferment, "kettle-fire"), null);
+  assert.equal(named(ferment, "kettle-steam"), null);
+  assert.ok(named(settled, "brew-keg"));
+  assert.ok(named(settled, "spent-grain-contents"));
 });
 
 test("carried pail art reads vessel water from the canonical lot container", () => {

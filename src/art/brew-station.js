@@ -1,8 +1,15 @@
 // Accepted station geometry. Callers own footprint, stage, and facing facts.
 import * as THREE from "three";
 import { box, group, mesh, scene } from "./geometry.js";
-import { spentGrainTray } from "./brew-supplies.js";
-import { kettleBody, kettleContents, kettlePaddle } from "./brew-vessel.js";
+import { barmCrock, brewKeg, spentGrainTray } from "./brew-supplies.js";
+import {
+  kettleBody,
+  kettleContents,
+  kettleFire,
+  kettlePaddle,
+  kettleSteam,
+} from "./brew-vessel.js";
+import { stationProfileOptions } from "../brew-station-profiles.js";
 
 export const STATION_STAGES = ["stakes", "frame", "finished"];
 const P = {
@@ -97,30 +104,55 @@ function frame(parent) {
 }
 
 /** Centered 2x2 station body: caller applies its positive-cell datum once. */
-export function brewStation(parent, stage, { water = false } = {}) {
+export function brewStation(
+  parent,
+  stage,
+  { profile = "empty", phase = 0 } = {},
+) {
   const g = group(parent);
   g.name = "brew-station";
   if (stage === "stakes") stakes(g);
   else if (stage === "frame") frame(g);
   else if (stage === "finished") {
+    const visible = stationProfileOptions(profile);
     kettleBody(g);
-    if (water) kettleContents(g, { level: 0.8, appearance: "water" });
-    kettlePaddle(g, 0, false);
+    if (visible.liquid)
+      kettleContents(g, {
+        level: 0.8,
+        appearance: visible.liquid,
+        moving: visible.stirring,
+        phase,
+      });
+    kettlePaddle(g, phase, visible.stirring);
+    if (visible.fire) kettleFire(g, phase);
+    if (visible.steam) kettleSteam(g, phase);
+    if (visible.barm) {
+      const crock = barmCrock(g);
+      crock.position.set(-0.66, 0.17, 0.48);
+      crock.scale.setScalar(0.72);
+    }
+    if (visible.keg) {
+      const keg = brewKeg(g);
+      keg.position.set(0.67, 0.17, -0.34);
+      keg.scale.setScalar(0.5);
+    }
     trayMount(g);
-    const tray = spentGrainTray(g, false);
+    const tray = spentGrainTray(g, visible.tray);
     tray.position.set(0, 0.17, 0.72);
   } else throw new Error(`Unknown brew station stage: ${stage}`);
   return g;
 }
 
 /** Isolated rendering adapter: a 2x2 positive-cell station rotates about (.5,0,.5). */
-export function stationScene(stage, direction = 0, options) {
+export function stationScene(stage, direction = 0, options = {}) {
   if (direction !== 0 && direction !== 1)
     throw new Error("Expected one of the two station facings");
   const s = scene();
   const datum = group(s, 0.5, 0, 0.5);
   datum.name = "station-datum";
   datum.rotation.y = (direction * Math.PI) / 2;
-  brewStation(datum, stage, options);
+  const profile =
+    options.profile ?? (options.water ? "stock-w1-b0-k0" : "empty");
+  brewStation(datum, stage, { profile, phase: options.phase ?? 0 });
   return s;
 }

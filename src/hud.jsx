@@ -36,6 +36,11 @@ import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
 import { SIZE, stairLanding } from "./world.js";
 import { ClearingMinimap } from "./clearing-minimap.jsx";
+import { BrewStationPanel } from "./BrewStationPanel.jsx";
+import {
+  brewStationPresentation,
+  shouldUseBrewStationPanel,
+} from "./brew-station-presentation.js";
 import {
   dispatchUiAction,
   DEBUG_PICKING_CONTROL,
@@ -56,6 +61,8 @@ const ACTIVITIES = {
   deconstruct: "Deconstructing",
   sow: "Planting mugwort",
   harvest: "Harvesting mugwort",
+  "brew-water": "Filling brew kettle",
+  brew: "Brewing herbal ale",
   sleep: "Sleeping in the bedroll",
 };
 
@@ -376,6 +383,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
         site.type === "brew-station"
           ? containerQuantity(state.materials, brewKettle(site).id, "water")
           : 0,
+      brewStation:
+        site.type === "brew-station" && site.finishedAt !== null
+          ? brewStationPresentation(state, site)
+          : null,
     };
   });
   const sourcesNext = state.sources.map((source) => {
@@ -540,9 +551,11 @@ function orderModel(display, job) {
                 ? "Repair reclaimed cache"
                 : job.kind === "fill-kettle"
                   ? "Fill brew-station kettle"
-                  : site
-                    ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
-                    : "Work order";
+                  : job.kind === "brew"
+                    ? "Brew herbal ale"
+                    : site
+                      ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
+                      : "Work order";
   const detail =
     job.kind === "store"
       ? site
@@ -1338,6 +1351,19 @@ function Target({ model: m, send }) {
     );
   }
   if (m.target.kind === "site") {
+    if (shouldUseBrewStationPanel(m.target, m.target.brewStation)) {
+      const deconstructJob = m.orders.find(
+        (job) => job.kind === "deconstruct" && job.target === m.target.id,
+      );
+      return (
+        <BrewStationPanel
+          station={m.target.brewStation}
+          context={targetPosition(m.context)}
+          deconstructJob={deconstructJob}
+          send={send}
+        />
+      );
+    }
     const label = BUILDINGS[m.target.type].label;
     const deconstructJob = m.orders.find(
       (job) => job.kind === "deconstruct" && job.target === m.target.id,

@@ -52,6 +52,7 @@ export type UiCommand =
   | { kind: "store"; lot: string; shelf: string }
   | { kind: "repair-cache"; actors?: string[] | null }
   | { kind: "fill-kettle"; station: string; actors?: string[] | null }
+  | { kind: "brew"; station: string; actors?: string[] | null }
   | { kind: "rest"; actors?: string[] }
   | { kind: "routine"; enabled: boolean; actors?: string[] }
   | {

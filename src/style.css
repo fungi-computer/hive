@@ -388,6 +388,32 @@ meter::-webkit-meter-optimum-value {
   margin-top: 8px;
   font-size: 10px;
 }
+.button-column {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.brew-station-facts {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+.brew-station-facts div {
+  display: grid;
+  gap: 1px;
+}
+.brew-station-facts dt {
+  color: var(--stipe-fg-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.brew-station-facts dd {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.35;
+}
 .menu-window {
   left: auto;
   right: 16px;
