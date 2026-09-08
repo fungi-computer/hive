@@ -584,10 +584,14 @@ meter::-webkit-meter-optimum-value {
     gap: 3px;
     padding: 5px;
     display: grid;
-    grid-template-columns: repeat(4, auto);
-    justify-content: center;
-    max-width: calc(100% - 16px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: calc(100% - 16px);
     white-space: normal;
+  }
+  .command-bar > *,
+  .command-bar button,
+  .level-controls {
+    min-width: 0;
   }
   .cutaway-control {
     font-size: 10px;
@@ -596,6 +600,13 @@ meter::-webkit-meter-optimum-value {
   }
 }
 @media (max-width: 480px) {
+  .level-controls {
+    gap: 1px;
+    padding: 0 1px;
+  }
+  .level-controls kbd {
+    display: none;
+  }
   .roster {
     width: 150px;
     flex-direction: column;

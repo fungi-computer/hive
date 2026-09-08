@@ -55,12 +55,14 @@
 
 .minimap-window {
   bottom: var(--hud-rail-bottom);
+  min-width: 0;
   max-height: calc(100dvh - var(--hud-rail-bottom) - 24px);
   overflow-y: auto;
 }
 
 .minimap-window .clearing-minimap {
   width: 100%;
+  min-width: 0;
   margin: 12px 0;
 }
 
