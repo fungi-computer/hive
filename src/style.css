@@ -673,6 +673,8 @@ kbd {
   .command-bar kbd {
     display: none;
   }
+}
+@media (min-width: 481px) and (max-width: 760px) {
   .level-controls kbd {
     display: inline;
   }
