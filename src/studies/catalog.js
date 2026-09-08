@@ -14,10 +14,10 @@ export const STUDY_GROUPS = Object.freeze([
       {
         id: "gas-heat-lab",
         title: "Air, heat & smoke",
-        href: null,
+        href: "/gas-heat-lab.html",
         scope:
-          "Recorded solver qualification is ready; its study page has not joined yet.",
-        evidence: "Recorded Node qualification",
+          "Recorded 46-frame air, heat, and passive-tracer playback from a native Node solver; controls only select saved samples.",
+        evidence: "Recorded native Node solver",
       },
       {
         id: "world-lab",

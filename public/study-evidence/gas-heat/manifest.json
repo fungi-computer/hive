@@ -1,0 +1,149 @@
+{
+  "format": "gas-visual-recording-index-v1",
+  "execution": "recorded-native-node-solver",
+  "status": "complete",
+  "sourcePins": [
+    {
+      "path": "../transport-v2/checkpoint/geometry.mjs",
+      "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+    },
+    {
+      "path": "../transport-v2/checkpoint/solver.mjs",
+      "sha256": "14ef3fa8aa65bc0ba58009a9bbdbfb47d345dbe5cdc1e7020bcaacf8f0b2db6b"
+    },
+    {
+      "path": "../transport-v2/checkpoint/transport.mjs",
+      "sha256": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae"
+    },
+    {
+      "path": "../transport-v2/checkpoint/physics.mjs",
+      "sha256": "50f82527649ee66e9a356e7dbbe23b956b1b5792f8d3a56c141063e51c65486b"
+    },
+    {
+      "path": "export.mjs",
+      "sha256": "70f12f89b534023306d8058a67edc7387da3e8d9ece56f48efed485f68bd1a4a"
+    },
+    {
+      "path": "CONTRACT.md",
+      "sha256": "28ca6423730e96d25b232df6c3cc7c928f8ef0827c2b1839f1b360b70c21359e"
+    }
+  ],
+  "config": {
+    "size": [
+      8,
+      10,
+      6
+    ],
+    "spacing": [
+      1,
+      0.54,
+      1
+    ],
+    "origin": [
+      -4,
+      0,
+      -3
+    ],
+    "sampleSeconds": 1,
+    "durationSeconds": 45,
+    "dtMaxSeconds": 0.1,
+    "source": {
+      "localCell": [
+        2,
+        1,
+        2
+      ],
+      "heatWatts": 60,
+      "tracerKgPerSecond": 0.00001,
+      "startsAt": 0,
+      "endsAt": 20
+    },
+    "ports": [
+      {
+        "localCell": [
+          0,
+          2,
+          2
+        ],
+        "side": "x-",
+        "areaM2": 0.54
+      },
+      {
+        "localCell": [
+          7,
+          7,
+          3
+        ],
+        "side": "x+",
+        "areaM2": 0.54
+      }
+    ]
+  },
+  "wallMs": 1311.109742,
+  "cpuMs": 1443.998,
+  "rssBytes": 117170176,
+  "cases": [
+    {
+      "case": "sealed",
+      "file": "sealed.json",
+      "status": "complete",
+      "sha256": "6c57ce852695bcdfc9f5263ee1b350fe988a29d8459ff20f13fe091bee1d892e",
+      "bytes": 1089753,
+      "wallMs": 666.990385,
+      "cpuMs": 758.548,
+      "samples": 46,
+      "recordedThroughSeconds": 45,
+      "maxKelvin": 294.07382923758706,
+      "minKelvin": 293.15,
+      "maxTemperatureRatio": 0.0031513874725808823,
+      "maxFaceSpeedMS": 0.14703053004926642,
+      "maxCellFluxImbalanceM3S": 1.3535865570762917e-11,
+      "maxMassErrorKg": 3.2526065174565133e-19,
+      "maxHeatErrorJ": 1.3642420526593924e-12,
+      "sourceCutoffIsSimulationEvent": true,
+      "observationMutatesState": false,
+      "pressureSolves": 463,
+      "iterations": 25688,
+      "matrixProducts": 25688,
+      "operatorBuilds": 1,
+      "workspaceBytes": 30592,
+      "scalarCacheBuilds": 1,
+      "scalarEulerStages": 926,
+      "scalarFaceEvaluations": 437072,
+      "scalarReconstructions": 1852,
+      "scalarRejectedStages": 0,
+      "scalarWorkspaceBytes": 95744
+    },
+    {
+      "case": "ports",
+      "file": "ports.json",
+      "status": "complete",
+      "sha256": "eb0af363f13b4524a5797dbe3b368a8b17ec43766928b710c067c01c547ae174",
+      "bytes": 1101227,
+      "wallMs": 617.497981,
+      "cpuMs": 661.305,
+      "samples": 46,
+      "recordedThroughSeconds": 45,
+      "maxKelvin": 294.07381988831276,
+      "minKelvin": 293.15,
+      "maxTemperatureRatio": 0.003151355580122047,
+      "maxFaceSpeedMS": 0.14798866171570763,
+      "maxCellFluxImbalanceM3S": 9.99868414518039e-12,
+      "maxMassErrorKg": 5.421010862427522e-19,
+      "maxHeatErrorJ": 1.8189894035458565e-12,
+      "sourceCutoffIsSimulationEvent": true,
+      "observationMutatesState": false,
+      "pressureSolves": 463,
+      "iterations": 26420,
+      "matrixProducts": 26420,
+      "operatorBuilds": 1,
+      "workspaceBytes": 30656,
+      "scalarCacheBuilds": 1,
+      "scalarEulerStages": 926,
+      "scalarFaceEvaluations": 440776,
+      "scalarReconstructions": 1852,
+      "scalarRejectedStages": 0,
+      "scalarWorkspaceBytes": 95872
+    }
+  ]
+}
