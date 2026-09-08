@@ -1,5 +1,9 @@
 # World generation and streaming contracts
 
+The [Excalibur depth review](excalibur-depth-source-review.md) is only a bounded
+render/depth reference: spatial lookup, residency and simulation remain separate;
+it does not change this world's streaming or performance contract.
+
 Status: Game CTO implementation direction, 2026-09-07. Read with `architecture-implementation-plan.md` and the existing World Mapping/LOD ADR. These are future contracts and explicit experiment candidates, not a new runtime, approved planet size, chosen production solver, or gameplay expansion. The existing 16-cell World Lab remains an independent first consumer. Delivery owns tracked implementation and serial integration.
 
 ## Starting evidence and immediate corrections

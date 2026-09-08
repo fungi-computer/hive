@@ -56,6 +56,10 @@ The newer [controls floor-priority recut](docs/decisions/controls-floor-priority
 supersedes that broad ordering for the current controls owner: controls now, then
 one unified wood+herb transfer owner with old parallel branches/validators deleted
 before brewing completion; vertical/tower and cat-surface work remain future.
+The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-decision.md)
+and [depth source review](docs/decisions/excalibur-depth-source-review.md) are
+bounded guidance only: no dependency or general ECS; capability/index/lifetime/
+draw separation remains subordinate to controls and the unified-work owner.
 
 The active goal remains the full-viewport **two-person home**, based on playable
 `016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna

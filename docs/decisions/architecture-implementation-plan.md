@@ -25,6 +25,11 @@ recut](unified-work-algebra-recut.md) is the governing migration record. The
 [vertical/tower contract](vertical-world-and-tower-ready-contract.md) remains
 future direction, including cat-surface work; it does not interrupt controls or
 World Lab.
+The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) and [depth
+review](excalibur-depth-source-review.md) are newer bounded guidance for the
+unified-work, world/performance and rendering seams: one measured derived index,
+one joint optimizer, paused-command invalidation before observers, and spatial
+lookup kept separate. They do not add a dependency or general ECS.
 
 ## Current status and source baseline
 

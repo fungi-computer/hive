@@ -33,6 +33,9 @@ The newer [controls floor-priority recut](docs/decisions/controls-floor-priority
 is the current precedence: finish controls, then delete parallel wood+herb
 transfer ownership/validators before brewing; vertical/tower and cat-surface work
 remain future direction.
+The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-decision.md)
+are later bounded guidance, linked with the [depth source review](docs/decisions/excalibur-depth-source-review.md);
+they do not authorize an Excalibur dependency or general ECS migration.
 
 ## Delivery ownership
 

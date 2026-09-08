@@ -1,5 +1,10 @@
 # ADR draft: prove the architecture while the playable clearing stays tiny
 
+The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) contributes
+no benchmark or dependency claim. Any index, optimizer or culling change must
+replace a measured cost in the existing owner while preserving paused-command
+invalidation and spatial separation.
+
 Status: Game CTO reviewed direction for Delivery publication, 2026-09-07.
 Authority: Levi requests review of all plans and a separate large-world generation
 page before permitting gameplay expansion. This supersedes automatic

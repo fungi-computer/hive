@@ -9,6 +9,10 @@ is the source-of-truth recut; vertical/tower and cat-surface work remain future.
 The settled [furniture contact and navigation decision](furniture-contact-and-navigation-decision.md)
 now supplies the bed contact/exit policy and its caller boundary; its supporting
 bed-contact review remains ignored evidence.
+The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) and [depth
+review](excalibur-depth-source-review.md) refine this migration only: retain the
+existing owners, add at most one measured derived index and joint optimizer, and
+keep spatial lookup separate from painter order.
 
 ## Evidence and limits
 
