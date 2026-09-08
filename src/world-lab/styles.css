@@ -17,7 +17,7 @@ figure { margin: 0; }
 canvas { display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated; border: 1px solid #718566; background: #1d3028; }
 .overview-stage, .local-stage { position: relative; width: 100%; }
 .overview-stage canvas, .local-stage canvas { position: relative; }
-.overview-stage canvas + canvas, .local-stage canvas + canvas { position: absolute; inset: 0; pointer-events: none; }
+.overview-stage canvas + canvas, .local-stage canvas + canvas { position: absolute; inset: 0; pointer-events: none; background: transparent; }
 .overview-stage canvas + canvas { border-color: transparent; }
 .local-stage canvas + canvas { border-color: transparent; }
 figcaption { margin-top: 6px; color: #c6d6ad; }
