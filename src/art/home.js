@@ -3,6 +3,7 @@ import { scene, box, cylinder, group } from "./geometry.js";
 import { shelf } from "./shelf.js";
 import { floor } from "./floor.js";
 import { stair } from "./stair.js";
+import { stationScene } from "./brew-station.js";
 function plank(parent, x, y, z, w, h, d) {
   box(parent, "#8e6a43", x, y, z, w, h, d);
   box(
@@ -107,10 +108,13 @@ function bed(parent, stage) {
 }
 const TYPES = { wall, door, roof, bed, shelf, floor, stair };
 export function building(type, stage, direction = 0) {
+  if (type === "brew-station") return stationScene(stage, direction);
+  const build = TYPES[type];
+  if (!build) throw new Error(`Unknown building art: ${type}`);
   const s = scene(),
     model = group(s);
   model.rotation.y = (direction * Math.PI) / 2;
-  TYPES[type](model, stage);
+  build(model, stage);
   return s;
 }
 export function woodPile(amount) {
