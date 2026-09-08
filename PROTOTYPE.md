@@ -46,6 +46,9 @@ The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapp
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
 resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
+The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
+records future landform, cave and exposed-part rendering guidance without
+expanding the live clearing or changing the current Maps sprint precedence.
 The newer [current Maps sprint handoff](docs/decisions/architecture-proof-sprint.md)
 supersedes the historical status/sequence below: controls are current, World Lab
 map inspection is independent, responsive atlas navigation follows its checkpoint,

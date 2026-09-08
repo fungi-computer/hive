@@ -4,6 +4,10 @@ Status: reviewed future direction, 2026-09-07. This record does not change the
 15×15 playable clearing, active upstairs work, brewery direction, or current
 World Lab implementation.
 
+The [Minecraft-inspired terrain and isometric world study](minecraft-inspired-terrain-and-isometric-world-study.md)
+is a future landform/cave/rendering companion. The current Maps sprint and its
+bounded World Lab remain the active precedence.
+
 ## Committed direction
 
 Normal travel crosses chunk boundaries invisibly. Prefetch follows camera/travel
