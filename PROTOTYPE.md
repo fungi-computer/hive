@@ -87,15 +87,14 @@ and [depth source review](docs/decisions/excalibur-depth-source-review.md) are
 bounded guidance only: no dependency or general ECS; capability/index/lifetime/
 draw separation remains subordinate to controls and the unified-work owner.
 
-The active goal remains the full-viewport **two-person home**, based on playable
-`016b1a02b009e798165bd4ba11653093cf4ee1c6`. First independent work: a Luna
-HUD pass separates home/notice/Bramble messages from the display snapshot without
-changing behavior. A separately requested adult-witch/child art study extends the
-optional lineup beside the preserved original `/study`; it does not add child
-simulation or a new game engine. Game-delivery owns routine actor/job/material
-integration after the explicit handoff and escalates actual architecture choices.
-Inspect small working results before adding more work; keep source and render
-proof proportional. No new management tier or status framework is required.
+The current persistent Game CTO goal is to continuously reconcile retained plans,
+studies, ADRs and issues into coherent architecture-focused sprints, while
+overseeing the small-world demo until Levi accepts its core loops as fun and
+dependable. Each sprint names the player-visible loop, shared module and current
+consumers, duplicate ownership to delete, focused source/law/Fallow/performance
+evidence, one coherent same-preview release and the Levi feedback that selects the
+next sprint. Speculative systems remain durably queued. The earlier full-viewport
+two-person goal is a completed historical milestone, not a competing active goal.
 
 Deferred future-art direction only: retain Levi's many biblical references,
 including an original Joseph in a technicolor dream coat, skinny cows, and loose
@@ -407,10 +406,21 @@ a whole set; card UI uses Caps as-is where its components apply. This does not
 add an Astro app or a second art engine to the game. Deployment/repository age
 parity is still unverified.
 
-## Active polish goal (Levi, 2026-09-07)
+## Current architecture-delivery goal (Levi, 2026-09-08)
 
-Levi requests a pacing goal and authorizes polishing the game into a full-screen
-colony experience. The persistent goal is **a full-viewport, two-person home**:
+The persistent goal is continuous review and reconciliation of retained plans,
+game studies, ADRs and issues into coherent architecture-focused sprints, with
+small-world demo delivery continuing until Levi accepts its core loops as fun and
+dependable. The current packet is shared visual geometry/picking/debug plus
+responsive maps. Later sprint selection draws from bed/contact, unified wood and
+herb material transfer with duplicate owners deleted, mixed storage and the first
+brew. Large-world gameplay remains gated; no new board or PM-count target follows
+from this goal.
+
+### Historical two-person polish milestone (Levi, 2026-09-07)
+
+Levi requested a pacing goal and authorized polishing the game into a full-screen
+colony experience. That completed milestone was **a full-viewport, two-person home**:
 recruit a visible outsider, select either person, issue direct or queued orders,
 and have both share real chopping, hauling, construction and rest. Replace the
 surrounding page chrome with a compact roster, build controls and contextual

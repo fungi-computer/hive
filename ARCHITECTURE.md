@@ -3,10 +3,13 @@
 Architecture proposal, 2026-09-07. Starting playable revision:
 `cb80c55fe9932c2e01c7570ed855266d03cb9695`.
 
-This document plans the next implementation and records focused runtime evidence.
-Levi has now opened the full-viewport, two-person polish goal described below.
-It does not claim implementation of multiplayer, streaming, upper floors or a backend.
-The accepted game and character study remain the regression baseline.
+This document plans implementation and records focused runtime evidence. The
+current persistent Game CTO goal continuously reconciles retained plans, studies,
+ADRs and issues into coherent architecture-focused sprints and oversees the
+small-world demo until Levi accepts its core loops as fun and dependable. The
+full-viewport two-person goal below is historical evidence, not a competing active
+instruction. This document does not claim implementation of multiplayer,
+streaming, large-world gameplay or a backend.
 
 The accepted future product/source boundary is in the
 [home, expeditions, and living world ADR](docs/decisions/home-expeditions-and-living-world.md).
