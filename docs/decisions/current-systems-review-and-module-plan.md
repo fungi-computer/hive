@@ -73,6 +73,15 @@ First fix can keep Pixi's event tree and implement a small reusable local-coordi
 
 The current floor diamond is a supported surface target policy; it need not be forced into a one-size-fits-all alpha rule. A stair has lower body and upper landing semantics: explicitly decide what can be inspected at each active level rather than blindly unioning all levels. Draw order determines visible selectable parts; cutaway/noninteractive context and shadows are not blanket targets. Each render part resolves to one owner ID. Use one camera/frame snapshot for render and pick transforms, with distinct screen/world/cell coordinate types at checked boundaries; camera movement must not mix a new inverse transform with stale projected hit facts.
 
+The reviewed current execution recut keeps one resolved visual-geometry record as
+the source for both Pixi hit testing and a noninteractive diagnostic overlay.
+Existing plant, loose-bundle, actor and tree rectangles remain the truthful
+clickable shapes until each caller is deliberately migrated; the overlay must
+draw those actual rectangles rather than an aspirational silhouette. Display and
+pick geometry remain separate from physical footprint, support and navigation.
+Reuse the cached baked-alpha representation and Pixi Graphics/Text where it fits;
+do not add an Excalibur dependency, global debug queue, ECS or second picker.
+
 Input intent owns the single routing decision between an armed tool, selection, pan and drafted Go. XState owns gesture phase; Jotai owns selection/preferences/facts; neither independently decides physical legality. Preserve persistent tools and right-click cancellation. The alpha hotfix keeps the existing Pixi event path; do not add a competing stage picker. Later checked dispatch must cover the real `runAction`, `main.effect` and world/key input producer boundary, with any remaining unchecked JSX producers disclosed and guarded at ingress. A typed declaration alone does not establish that coverage. Root reviewed a native suggestion to use only logical footprint diamonds and rejected it because the visible upper wall would become unclickable.
 
 ### 2. Render geometry and occlusion
