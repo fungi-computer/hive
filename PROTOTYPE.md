@@ -46,6 +46,10 @@ The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapp
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
 resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
+The newer [current Maps sprint handoff](docs/decisions/architecture-proof-sprint.md)
+supersedes the historical status/sequence below: controls are current, World Lab
+map inspection is independent, responsive atlas navigation follows its checkpoint,
+and an actual-clearing minimap follows controls; this does not expand live terrain.
 The future [home-between-realms synthesis](docs/decisions/a-home-between-realms.md)
 and [Glomzy palette/night-lighting study](docs/decisions/glomzy-palette-and-night-lighting.md)
 remain deferred proposals; neither reorders upstairs → brewing or enters the current sprint.

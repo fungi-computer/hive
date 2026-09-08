@@ -23,6 +23,9 @@ before treating expansion as playable. Brewing remains next after upstairs.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
 ridge identity and seam proof precede any larger region or finite-globe choice.
+The newer [current Maps sprint handoff](docs/decisions/architecture-proof-sprint.md)
+supersedes the historical status/sequence below: reliable controls and usable
+maps are the current sprint, with World Lab separate and no live-world expansion.
 The [home-between-realms synthesis](docs/decisions/a-home-between-realms.md) is a
 future product/architecture proposal, while [Glomzy palette and night lighting](docs/decisions/glomzy-palette-and-night-lighting.md)
 is a deferred art-study proposal; both preserve the active upstairs → brewing order.
