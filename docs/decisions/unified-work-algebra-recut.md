@@ -4,9 +4,10 @@ The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) is bounded
 guidance for this owner: choose one measured derived index and one joint
 optimizer, invalidate paused commands before observers, and delete replaced
 parallel scans. No ECS dependency or generic framework follows.
-The accepted audit disposition fixes the durable boundary: after the isolated
-helper, schema-v7 migrates both wood and herb together; an herb-only save
-intermediate is not a valid completion checkpoint.
+The accepted fresh-only durable boundary is schema-v7: it migrated both live
+wood and herb consumers together; an herb-only save intermediate was not a valid
+completion checkpoint. It provides no v1–v6 readers or migrations. Old raw slots
+remain recoverable/downloadable and can be replaced through New Clearing.
 
 Game architecture recut, 2026-09-08, current source `32cd423`. This replaces the earlier suggestion that an indefinitely separate wood adapter could remain while brewing lands. Levi now explicitly requires **all current hauling—wood into construction and mugwort into shelves—to use the same resource, claim, transfer and work primitives**. Serial migration checkpoints are acceptable. The completed slice must delete the old parallel runtime paths; brewing then consumes the unified operations.
 
@@ -16,7 +17,7 @@ This is an ignored design handoff, not source implementation or a proof result. 
 
 Current wood ownership is `piles`, actor `cargo`, `Site.delivered`, `claims`, `reserveWood`, `transferWood`, `dropCarried`, `deliveryOption`. Current herb ownership is `herbBundles`, `herbStorageClaims`, `transferHerb`, `dropHerbStorage`, `storeHerbOption`, `herbDeliveryOption`, and direct shelf ejection in deconstruction. Scheduler, cancellation, HUD, art selection and save validation branch on both representations. A facade that forwards to both complete implementations is only a temporary migration checkpoint.
 
-Existing invariants are assets to preserve: wood conservation, bundle identity, carry-before-new-work, destination capacity, interrupt/drop behavior, personal versus shared work, actual libcolony matching, paused admission and strict old saves. The refactor replaces representation and duplicated transitions; it does not erase these behaviors.
+Existing invariants are assets to preserve: wood conservation, bundle identity, carry-before-new-work, destination capacity, interrupt/drop behavior, personal versus shared work, actual libcolony matching, paused admission, strict fresh-v7 validation and raw old-slot recovery. The refactor replaces representation and duplicated transitions; it does not erase these behaviors or authorize a compatibility shim.
 
 ## Proposed data-only algebra
 
@@ -173,22 +174,28 @@ the zone never owns a second contents list or pooled inventory. Removing,
 shrinking or changing a zone leaves every existing lot in place and recoverable,
 while newly disallowed goods may become ordinary relocation candidates. A desired
 stock quota is policy and must stay distinct from a hard per-cell or container
-capacity, so editing a quota cannot make valid physical stock corrupt.
+capacity, so editing a quota cannot make valid physical stock corrupt. Filter,
+priority and cell edits wake ordinary automatic demand/revalidation; the zone
+editor never moves lots directly.
 
-The common destination algebra may cover either a ground cell or a container
-slot. The material owner checks actual occupied space plus incoming reservations
-at that destination and supplies the same withdrawal path to construction,
-shelves, vessels and later machines. Zone totals and grouped rendering are derived
-views; they do not merge lot identities or grant one full cell extra capacity.
-Storage priority ranks destinations separately from job urgency, and equal-priority
-placement must not churn.
+The common destination algebra may cover either one checked physical ground cell
+or a container slot. A floor transfer resolves and validates the exact cell before
+reserving its incoming space; a zone ID is policy and is never the physical
+destination. The material owner checks actual occupied space plus incoming
+reservations at that destination and supplies the same withdrawal path to
+construction, shelves, vessels and later machines. Zone totals and grouped
+rendering are derived views; they do not merge lot identities or grant one full
+cell extra capacity. Storage priority ranks destinations separately from job
+urgency, and equal-priority placement must not churn.
 
 Later powered belts, hoppers and hoists advance real lots through the same custody
 and reservation owner. They use authoritative fixed-tick progress, bounded buffers
 and backpressure: a full output retains stock and stops upstream intake, while
-power loss freezes progress without deletion. One lot consumes at most one
-movement budget per tick regardless of how many segment records are iterated.
-Machinery never impersonates a pawn or gains a parallel inventory/claim store.
+power loss freezes progress without deletion. A moving lot has one authoritative
+saved segment/buffer location and progress, never a ground/container copy plus a
+second moving item. One lot consumes at most one movement budget per tick
+regardless of how many segment records are iterated. Machinery never impersonates
+a pawn or gains a parallel inventory/claim store.
 
 Floor-stockpile presentation and exact ordering are a separate natural post-v7
 decision alongside mixed shelves and brewing, not part of the current schema-v7
@@ -226,13 +233,13 @@ Fold the data-only syntax with separate interpreters for dependency inspection, 
 ## Migration checkpoints and mandatory deletion gate
 
 1. **Contracts and generic transfer implementation.** Add checked lot/container/transfer types, strict current schema and the generic transition owner with its pure queries. Port existing mugwort shelf transport completely through it in an isolated source checkpoint. Preserve bundle IDs and real carry art. Temporary wood paths may exist only with a documented remaining deletion checklist; this checkpoint is not the completed unification release.
-2. **Construction transport migration.** Port wood sources, carry, incoming promises, site buffers, cancellation, embedding and salvage to the same implementation. Build planning uses `supply`; exact mugwort storage uses `transfer`. Remove old production `piles`/`cargo`/`claims`/`herbBundles`/`herbStorageClaims`/`Site.delivered` ownership as each is represented in the new model. Old names remain only in old wire schemas and migration code, or clearly derived compatibility selectors until their caller cleanup in this same slice.
-3. **Whole current caller and save closure.** Scheduler has one transfer continuation branch and one reservation path; activity has one pickup/delivery/interruption implementation; HUD/render derive physical carried/stored appearance; deconstruction goes through container/embedding settlement; validation has one transfer/location/capacity family. Strict v1–v6 decode/migrate into the new schema preserves paused state and conservation, with raw original recoverable and no write merely from load. Delete transitional adapters and duplicate validators. This checkpoint, not the first herb port, satisfies Levi's unification request.
+2. **Construction transport migration.** Port wood sources, carry, incoming promises, site buffers, cancellation, embedding and salvage to the same implementation. Build planning uses `supply`; exact mugwort storage uses `transfer`. Remove old production `piles`/`cargo`/`claims`/`herbBundles`/`herbStorageClaims`/`Site.delivered` ownership as each is represented in the new model. Old names may remain in historical evidence, not live schemas, compatibility selectors or migration shims.
+3. **Whole current caller and fresh-v7 save closure.** Scheduler has one transfer continuation branch and one reservation path; activity has one pickup/delivery/interruption implementation; HUD/render derive physical carried/stored appearance; deconstruction goes through container/embedding settlement; validation has one transfer/location/capacity family. Strict v7 validation preserves paused state and conservation. There is no v1–v6 decode/migrate path: invalid old slots remain raw-downloadable/recoverable until explicit New Clearing replacement. Delete transitional adapters and duplicate validators. This checkpoint, not the first herb port, satisfies Levi's unification request.
 4. **Brewing consumer.** Only after that gate, add the finite configured recipe and supported unattended process primitive. It must use the already-shipped supply/transfer/claim owner. A new `BeerCargo`, `beerClaims`, `pickup-beer` branch, copy of a haul job or direct material write outside the owner rejects the candidate.
 
-Existing IDs need a migration mapping rather than replacement names. Wood cargo lacks a persistent lot ID today, so migration allocates one deterministically in a collision-free namespace and migrates its obligation into a carrying transfer. Old wood claims become reserved transfers without moving their source quantity. Existing delivered material maps to unfinished construction buffer lots or a finished embedding ledger according to the actual site lifecycle. Old herb bundle ID/location maps directly. Synthetic migration IDs update the allocator or occupy an explicitly disjoint namespace; repeated migration of the same old save must produce the same normalized IDs.
+The live-consumer cutover needs stable IDs rather than replacement names. Wood cargo that lacked a persistent lot ID receives one deterministically in a collision-free namespace as the current runtime representation is replaced; its obligation becomes a carrying transfer without duplicating source quantity. Live delivered material becomes unfinished construction-buffer lots or a finished embedding ledger according to actual site lifecycle, and live herb bundle identity/location is retained. This is source/runtime migration into fresh v7, not a decoder for an old saved slot.
 
-The proof gate covers both old consumers with the same transition laws: two actors competing for scarce stock/capacity; partial wood pickup; whole-bundle pickup; paused saves before/after pickup and delivery; Draft/drop; blocked destination; site cancellation and shelf teardown; exact salvage/embedding balance; resumed work with no duplicate output; old-schema restore preserving values. Include compile-time exhaustive handlers and config rejection laws. Measure useful candidate/route/assignment/commit counts separately; preserving libcolony is mandatory and an idle-actor benchmark does not establish capacity.
+The proof gate covers both migrated live consumers with the same transition laws: two actors competing for scarce stock/capacity; partial wood pickup; whole-bundle pickup; paused fresh-v7 saves before/after pickup and delivery; Draft/drop; blocked destination; site cancellation and shelf teardown; exact salvage/embedding balance; resumed work with no duplicate output; strict v7 restore preserving values. Separately prove old slots remain recoverable/downloadable and New Clearing replaces them without interpreting v1–v6. Include compile-time exhaustive handlers and config rejection laws. Measure useful candidate/route/assignment/commit counts separately; preserving libcolony is mandatory and an idle-actor benchmark does not establish capacity.
 
 No full-home browser marathon is required to prove the refactor. Use deterministic actual-WASM laws plus one focused real UI trace through both wood construction hauling and herb shelving on the pinned build, then the ordinary short hosted parity/interaction check. Preserve earlier failed evidence. One writer owns this coupled seam throughout; independent rendering/input work needs exact non-overlapping custody or serial integration.
 

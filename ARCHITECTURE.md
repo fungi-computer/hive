@@ -36,9 +36,11 @@ Channels anchors. No Game Discord responsibility or adapter is implied.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
 ridge identity and seam proof precede any larger region or finite-globe choice.
-The accepted audit reconciliation makes schema-v7 a coupled wood+herb landing
-after the isolated helper; brewhouse local-served/hosted-HTTP parity and the
-provider/slot/phase-only bed contact law remain distinct evidence boundaries.
+The accepted fresh-only schema-v7 reconciliation migrated both live wood and herb
+consumers after the isolated helper and provides no v1–v6 save readers. Old raw
+slots remain recoverable/downloadable or replaceable through New Clearing;
+brewhouse local-served/hosted-HTTP parity and the provider/slot/phase-only bed
+contact law remain distinct evidence boundaries.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 adds future landform, cave and exposed-part rendering guidance without changing
 the tiny live clearing or the current small-world sprint precedence.
@@ -57,8 +59,10 @@ transfer ownership/validators before brewing; vertical/tower and cat-surface wor
 remain future direction.
 The same [unified work record](docs/decisions/unified-work-algebra-recut.md) keeps
 painted floor stockpiles as a separate post-v7 storage decision alongside mixed
-shelves and brewing. Lots remain on ground cells; later powered Dwarven belts use
-real custody, progress and backpressure and do not gate the first brew.
+shelves and brewing. A floor transfer resolves one checked physical cell; the
+zone ID remains policy and never a destination. Lots remain on ground cells;
+later powered Dwarven belts use one saved location/progress, real custody and
+backpressure and do not gate the first brew.
 The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-decision.md)
 are later bounded guidance, linked with the [depth source review](docs/decisions/excalibur-depth-source-review.md);
 they do not authorize an Excalibur dependency or general ECS migration.

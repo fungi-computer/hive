@@ -74,10 +74,12 @@ Channels anchors. No Game Discord adapter or framework is implied.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
-The accepted audit disposition now governs the next coupled goods landing:
-schema-v7 migrates wood and herb together after the isolated helper; brewhouse
-parity is local-served plus hosted-HTTP evidence, while bed contact stores only
-provider/slot/phase. Older herb-first and path-copy wording is historical.
+The accepted fresh-only schema-v7 disposition migrated both live wood and herb
+consumers together after the isolated helper; it provides no v1–v6 save readers.
+Old raw slots remain recoverable/downloadable or replaceable through New Clearing.
+Brewhouse parity is local-served plus hosted-HTTP evidence, while bed contact
+stores only provider/slot/phase. Older herb-first and path-copy wording is
+historical.
 resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 records future landform, cave and exposed-part rendering guidance without
@@ -97,8 +99,10 @@ one unified wood+herb transfer owner with old parallel branches/validators delet
 before brewing completion; vertical/tower and cat-surface work remain future.
 The same [unified work record](docs/decisions/unified-work-algebra-recut.md) now
 keeps painted floor stockpiles as a separate post-v7 storage decision alongside
-mixed shelves and brewing. Lots remain on ground cells; later powered Dwarven
-belts use real custody, progress and backpressure and do not gate the first brew.
+mixed shelves and brewing. A floor transfer resolves one checked physical cell;
+the zone ID remains policy and never a destination. Lots remain on ground cells;
+later powered Dwarven belts use one saved location/progress, real custody and
+backpressure and do not gate the first brew.
 The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-decision.md)
 and [depth source review](docs/decisions/excalibur-depth-source-review.md) are
 bounded guidance only: no dependency or general ECS; capability/index/lifetime/
