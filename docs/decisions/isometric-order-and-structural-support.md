@@ -35,15 +35,27 @@ For a sleeping occupant, define the relationship of mattress/frame, body, cover 
 
 The bounded actual-builder/Pixi study now proves both bed facings: finished
 supporting upper-floor surfaces must order before their supported bed, and that
-relation removes the observed floor-over-foot failure with unchanged pixels.
-The foreground tree, sleeping contact, all stair traversal samples, a true
-ordering cycle and hot-path performance remain unresolved; retain current
-behavior for those cases until each has focused evidence. Do not ship the
-study's all-pairs projected-AABB prototype or its scratch-array work. A later
-integration should replace the existing scalar-depth callers with one measured
-rank owner over visible candidates, using cached bake metadata and sharing the
-result with picking. Unchanged art needs no second art gate; split parts only for
-a demonstrated interleaving or cycle.
+relation removes the observed floor-over-foot failure with unchanged pixels. A
+subsequent diagnostic Three oracle narrows the remaining geometry evidence: the
+sampled tree/Rowan pose has 241 shared interior rays, all owned by the tree,
+while both sleeper facings and the entrance, midpoint and landing ramp samples
+have stable opposing interior owners. Whole-sprite ordering therefore cannot
+exactly reproduce those sampled sleeper/ramp interiors. The floor/bed result
+still holds after one-pixel erosion, but one contact-edge pixel for each facing
+favored the floor before erosion, so it is not proof of exact continuous or
+depth-buffer equality.
+
+These are sampled original opaque poses under one diagnostic camera, not a full
+animation, material, Pixi or population result. Preserve existing foreground-tree
+behavior; true-cycle handling and hot-path performance remain unresolved. Do not
+ship the study's all-pairs projected-AABB prototype, scratch-array work, arbitrary
+fallback order or a new global scalar solution. A later integration should
+replace the existing scalar-depth callers with one measured rank owner over
+visible candidates, using cached bake metadata and sharing the result with
+picking. This evidence does not justify a framework, wholesale renderer adoption
+or new art/test gate. Unchanged art needs no second art gate; retain current
+behavior until a bounded sleeper/ramp treatment is reviewed, and split parts
+only for a demonstrated interleaving or cycle.
 
 ## First corrective outcome
 
