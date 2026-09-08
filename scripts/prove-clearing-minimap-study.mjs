@@ -25,6 +25,33 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, executablePath });
 const errors = { page: [], console: [] };
 let page;
+
+function clippedPolygon(viewport) {
+  return (
+    viewport?.kind === "quantized-camera-inverse-corner-polygon" &&
+    viewport.points.length >= 3 &&
+    viewport.points.every(
+      (point) =>
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.z) &&
+        point.x >= 0 &&
+        point.x <= 15 &&
+        point.z >= 0 &&
+        point.z <= 15,
+    )
+  );
+}
+
+async function clickMapCell(page, x, z) {
+  const surface = page.getByTestId("clearing-minimap-control");
+  const box = await surface.boundingBox();
+  if (!box) throw new Error("minimap surface has no screen bounds");
+  await page.mouse.click(
+    box.x + ((x + 0.5) / 15) * box.width,
+    box.y + ((z + 0.5) / 15) * box.height,
+  );
+}
+
 try {
   page = await browser.newPage({ viewport: { width: 1024, height: 760 } });
   page.on("pageerror", (error) => errors.page.push(String(error)));
@@ -36,7 +63,17 @@ try {
   const before = await page.evaluate(
     () => window.__CLEARING_MINIMAP_STUDY.snapshot,
   );
-  await page.locator('[data-cell="2,3,0"]').click();
+  if (!clippedPolygon(before.viewport))
+    throw new Error("caller did not provide a clipped inverse-camera polygon");
+  if (
+    (await page.getByTestId("clearing-minimap-control").count()) !== 1 ||
+    (await page.locator(".clearing-minimap-cell").count()) !== 225 ||
+    (await page.locator(".clearing-minimap-cell button").count()) !== 0
+  )
+    throw new Error(
+      "minimap must have one focusable surface, not 225 tab stops",
+    );
+  await clickMapCell(page, 2, 3);
   const afterClick = await page.evaluate(
     () => window.__CLEARING_MINIMAP_STUDY.snapshot,
   );
@@ -47,6 +84,24 @@ try {
     throw new Error("minimap did not emit the requested Ground center cell");
   if (afterClick.tick !== before.tick || afterClick.jobs !== before.jobs)
     throw new Error("minimap request mutated the frozen Clearing state");
+  const mapSurface = page.getByTestId("clearing-minimap-control");
+  await mapSurface.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  const keyboardRequest = await page.evaluate(
+    () => window.__CLEARING_MINIMAP_STUDY.snapshot,
+  );
+  if (
+    keyboardRequest.requestedCenter?.x !== 3 ||
+    keyboardRequest.requestedCenter?.z !== 4
+  )
+    throw new Error("keyboard cursor did not emit its requested center cell");
+  if (
+    keyboardRequest.tick !== before.tick ||
+    keyboardRequest.jobs !== before.jobs
+  )
+    throw new Error("keyboard request mutated the frozen Clearing state");
   await page.screenshot({
     path: `${output}/normal-ground.png`,
     fullPage: true,
@@ -58,7 +113,8 @@ try {
   if (
     upper.level !== 1 ||
     upper.tick !== before.tick ||
-    upper.jobs !== before.jobs
+    upper.jobs !== before.jobs ||
+    !clippedPolygon(upper.viewport)
   )
     throw new Error(
       "Upper map selection mutated state or did not change logical level",
@@ -79,6 +135,7 @@ try {
     baseline: { clearingSha },
     before,
     afterClick,
+    keyboardRequest,
     upper,
     narrow,
     errors,
@@ -86,6 +143,8 @@ try {
     claims: {
       standaloneLocalStudy: true,
       mapRequestOnly: true,
+      cameraInverseFootprint: true,
+      oneKeyboardFocusableMapSurface: true,
       frozenTickAndJobs: true,
       groundAndUpper: true,
       narrowContainment: true,

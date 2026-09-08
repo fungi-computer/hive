@@ -83,24 +83,58 @@ function createStudyCamera(host) {
   return { app, camera: createCamera(app, host, world) };
 }
 
-function clippedViewport(camera, screen, level) {
+function clipPolygonEdge(points, inside, intersection) {
+  if (!points.length) return points;
+  const clipped = [];
+  let previous = points.at(-1);
+  let previousInside = inside(previous);
+  for (const point of points) {
+    const pointInside = inside(point);
+    if (pointInside !== previousInside)
+      clipped.push(intersection(previous, point));
+    if (pointInside) clipped.push(point);
+    previous = point;
+    previousInside = pointInside;
+  }
+  return clipped;
+}
+
+function clippedCameraPolygon(corners) {
+  const horizontal = (axis, value) => (from, to) => {
+    const distance = to[axis] - from[axis];
+    if (!distance) return { ...from, [axis]: value };
+    const ratio = (value - from[axis]) / distance;
+    return {
+      x: from.x + (to.x - from.x) * ratio,
+      z: from.z + (to.z - from.z) * ratio,
+    };
+  };
+  let points = corners.map(({ x, z }) => ({ x, z }));
+  points = clipPolygonEdge(points, (point) => point.x >= 0, horizontal("x", 0));
+  points = clipPolygonEdge(
+    points,
+    (point) => point.x <= SIZE,
+    horizontal("x", SIZE),
+  );
+  points = clipPolygonEdge(points, (point) => point.z >= 0, horizontal("z", 0));
+  return clipPolygonEdge(
+    points,
+    (point) => point.z <= SIZE,
+    horizontal("z", SIZE),
+  );
+}
+
+function cameraViewportPolygon(camera, screen, level) {
   const corners = [
     { x: 0, y: 0 },
     { x: screen.width, y: 0 },
-    { x: 0, y: screen.height },
     { x: screen.width, y: screen.height },
+    { x: 0, y: screen.height },
   ].map((point) => camera.cell(point, level));
-  const minX = Math.max(0, Math.min(...corners.map((cell) => cell.x)));
-  const minZ = Math.max(0, Math.min(...corners.map((cell) => cell.z)));
-  const maxXExclusive = Math.min(
-    SIZE,
-    Math.max(...corners.map((cell) => cell.x)) + 1,
-  );
-  const maxZExclusive = Math.min(
-    SIZE,
-    Math.max(...corners.map((cell) => cell.z)) + 1,
-  );
-  return { minX, minZ, maxXExclusive, maxZExclusive };
+  return {
+    kind: "quantized-camera-inverse-corner-polygon",
+    points: clippedCameraPolygon(corners),
+  };
 }
 
 function snapshot(state, level, viewport, requestedCenter) {
@@ -109,7 +143,10 @@ function snapshot(state, level, viewport, requestedCenter) {
     paused: state.paused,
     jobs: state.jobs.length,
     level,
-    viewport: { ...viewport },
+    viewport: {
+      kind: viewport.kind,
+      points: viewport.points.map((point) => ({ ...point })),
+    },
     requestedCenter: requestedCenter ? { ...requestedCenter } : null,
   };
 }
@@ -120,11 +157,16 @@ function Study() {
   const facts = useMemo(() => frozenFacts(state), [state]);
   const cameraRef = useRef(null);
   const [level, setLevel] = useState(0);
+  const levelRef = useRef(level);
+  levelRef.current = level;
   const [viewport, setViewport] = useState({
-    minX: 0,
-    minZ: 0,
-    maxXExclusive: SIZE,
-    maxZExclusive: SIZE,
+    kind: "quantized-camera-inverse-corner-polygon",
+    points: [
+      { x: 0, z: 0 },
+      { x: SIZE, z: 0 },
+      { x: SIZE, z: SIZE },
+      { x: 0, z: SIZE },
+    ],
   });
   const [requestedCenter, setRequestedCenter] = useState(null);
 
@@ -132,7 +174,7 @@ function Study() {
     const { app, camera } = createStudyCamera(host.current);
     cameraRef.current = { app, camera };
     const updateViewport = () =>
-      setViewport(clippedViewport(camera, app.screen, level));
+      setViewport(cameraViewportPolygon(camera, app.screen, levelRef.current));
     updateViewport();
     const observer = new ResizeObserver(updateViewport);
     observer.observe(host.current);
@@ -146,7 +188,9 @@ function Study() {
   useEffect(() => {
     const current = cameraRef.current;
     if (current)
-      setViewport(clippedViewport(current.camera, current.app.screen, level));
+      setViewport(
+        cameraViewportPolygon(current.camera, current.app.screen, level),
+      );
   }, [level]);
 
   useEffect(() => {
@@ -194,7 +238,6 @@ function Study() {
             facts={facts}
             level={level}
             onRequestCenter={setRequestedCenter}
-            requestedCenter={requestedCenter}
             viewport={viewport}
           />
         </div>
@@ -202,8 +245,8 @@ function Study() {
           <h2>Caller contract</h2>
           <p>
             The real <code>createClearing()</code> state is read once. The
-            component receives an immutable projection and a clipped viewport
-            from the real camera inverse-cell API.
+            component receives an immutable projection and a clipped, quantized
+            inverse-corner polygon from the real camera cell API.
           </p>
           <dl>
             <div>
@@ -215,10 +258,13 @@ function Study() {
               </dd>
             </div>
             <div>
-              <dt>Camera viewport</dt>
+              <dt>Camera inverse footprint</dt>
               <dd data-testid="camera-viewport">
-                [{viewport.minX}, {viewport.minZ}) → [{viewport.maxXExclusive},{" "}
-                {viewport.maxZExclusive})
+                {viewport.points
+                  .map(
+                    (point) => `(${point.x.toFixed(2)}, ${point.z.toFixed(2)})`,
+                  )
+                  .join(" → ")}
               </dd>
             </div>
             <div>

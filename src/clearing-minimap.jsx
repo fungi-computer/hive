@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "./clearing-minimap.css";
 
 function cellKey(x, z) {
@@ -9,8 +9,7 @@ function markersFor(facts, level) {
   const markers = new Map();
   const add = (x, z, marker) => {
     const key = cellKey(x, z);
-    const current = markers.get(key) ?? [];
-    markers.set(key, [...current, marker]);
+    markers.set(key, [...(markers.get(key) ?? []), marker]);
   };
   for (const tree of facts.trees)
     if (tree.level === level && !tree.felled)
@@ -32,15 +31,6 @@ function markersFor(facts, level) {
   return markers;
 }
 
-function inViewport(viewport, x, z) {
-  return (
-    x >= viewport.minX &&
-    x < viewport.maxXExclusive &&
-    z >= viewport.minZ &&
-    z < viewport.maxZExclusive
-  );
-}
-
 function markerSummary(markers) {
   if (!markers.length) return { text: "", className: "empty" };
   const actor = markers.find((marker) => marker.kind === "actor");
@@ -49,60 +39,89 @@ function markerSummary(markers) {
       text: actor.label.slice(0, 1),
       className: `actor${actor.selected ? " selected" : ""}`,
     };
-  const structure = markers.find((marker) => marker.kind === "structure");
-  if (structure) return { text: "■", className: "structure" };
+  if (markers.some((marker) => marker.kind === "structure"))
+    return { text: "■", className: "structure" };
   return { text: "♣", className: "tree" };
+}
+
+function clampCell(value, size) {
+  return Math.max(0, Math.min(size - 1, value));
+}
+
+function pointerCell(event, size) {
+  const bounds = event.currentTarget.getBoundingClientRect();
+  return {
+    x: clampCell(
+      Math.floor(((event.clientX - bounds.left) / bounds.width) * size),
+      size,
+    ),
+    z: clampCell(
+      Math.floor(((event.clientY - bounds.top) / bounds.height) * size),
+      size,
+    ),
+  };
 }
 
 /**
  * Read-only Clearing map projection. The caller owns simulation facts, logical
- * level, camera viewport, and the request callback; this component owns no
- * camera, selection, gesture, persistence, or simulation state.
+ * level, and the clipped quantized camera-footprint polygon. The only output
+ * is a requested center cell; this component owns no camera, selection,
+ * gesture, persistence, or simulation state.
  */
-export function ClearingMinimap({
-  facts,
-  level,
-  viewport,
-  requestedCenter,
-  onRequestCenter,
-}) {
+export function ClearingMinimap({ facts, level, viewport, onRequestCenter }) {
+  const [cursor, setCursor] = useState({
+    x: Math.floor(facts.size / 2),
+    z: Math.floor(facts.size / 2),
+    level,
+  });
+  useEffect(() => setCursor((current) => ({ ...current, level })), [level]);
   const markers = markersFor(facts, level);
+  const request = (cell) => onRequestCenter({ ...cell, level });
+  const handleKeyDown = (event) => {
+    const delta =
+      event.key === "ArrowLeft"
+        ? { x: -1, z: 0 }
+        : event.key === "ArrowRight"
+          ? { x: 1, z: 0 }
+          : event.key === "ArrowUp"
+            ? { x: 0, z: -1 }
+            : event.key === "ArrowDown"
+              ? { x: 0, z: 1 }
+              : null;
+    if (delta) {
+      event.preventDefault();
+      setCursor((current) => ({
+        x: clampCell(current.x + delta.x, facts.size),
+        z: clampCell(current.z + delta.z, facts.size),
+        level,
+      }));
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      request(cursor);
+    }
+  };
   const cells = [];
   for (let z = 0; z < facts.size; z += 1)
     for (let x = 0; x < facts.size; x += 1) {
-      const at = { x, z, level };
-      const entries = markers.get(cellKey(x, z)) ?? [];
-      const marker = markerSummary(entries);
-      const visible = inViewport(viewport, x, z);
-      const requested =
-        requestedCenter?.x === x &&
-        requestedCenter?.z === z &&
-        requestedCenter?.level === level;
-      const labels = [
-        `${x}, ${z} · ${level === 1 ? "Upper" : "Ground"}`,
-        ...entries.map((entry) => entry.label),
-        visible ? "inside camera viewport" : "outside camera viewport",
-        requested ? "last center request" : null,
-      ].filter(Boolean);
+      const marker = markerSummary(markers.get(cellKey(x, z)) ?? []);
+      const selected = cursor.x === x && cursor.z === z;
       cells.push(
-        <button
-          aria-label={labels.join(" · ")}
-          className={`clearing-minimap-cell ${marker.className}${visible ? " viewport" : ""}${requested ? " requested" : ""}`}
-          data-cell={`${x},${z},${level}`}
+        <span
+          aria-hidden="true"
+          className={`clearing-minimap-cell ${marker.className}${selected ? " cursor" : ""}`}
           key={`${x},${z}`}
-          onClick={() => onRequestCenter({ ...at })}
-          type="button"
         >
           {marker.text}
-        </button>,
+        </span>,
       );
     }
+  const polygon = viewport.points
+    .map((point) => `${point.x},${point.z}`)
+    .join(" ");
   return (
-    <section
-      aria-label="Clearing minimap"
-      className="clearing-minimap"
-      style={{ "--clearing-minimap-size": facts.size }}
-    >
+    <section aria-label="Clearing minimap" className="clearing-minimap">
       <header>
         <div>
           <p className="clearing-minimap-eyebrow">Local map</p>
@@ -110,28 +129,38 @@ export function ClearingMinimap({
             {level === 1 ? "Upper" : "Ground"} · {facts.size}×{facts.size}
           </h2>
         </div>
-        <p className="clearing-minimap-key">▣ camera · ■ structure · ♣ oak</p>
+        <p className="clearing-minimap-key">
+          ◇ inverse-camera footprint · ■ structure · ♣ oak
+        </p>
       </header>
-      <p className="clearing-minimap-copy">
-        Click a cell to request a camera center. This read-only projection does
-        not issue world commands.
-      </p>
       <div
-        className="clearing-minimap-grid"
-        role="grid"
-        aria-label={`${level === 1 ? "Upper" : "Ground"} clearing cells`}
+        aria-label={`${level === 1 ? "Upper" : "Ground"} clearing map. Arrow keys move the cell cursor; Enter or Space requests a camera center.`}
+        className="clearing-minimap-surface"
+        data-testid="clearing-minimap-control"
+        onClick={(event) => {
+          const cell = pointerCell(event, facts.size);
+          setCursor({ ...cell, level });
+          request(cell);
+        }}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
       >
-        {cells}
+        <div
+          aria-hidden="true"
+          className="clearing-minimap-grid"
+          style={{ "--clearing-minimap-size": facts.size }}
+        >
+          {cells}
+        </div>
+        <svg
+          aria-hidden="true"
+          className="clearing-minimap-footprint"
+          preserveAspectRatio="none"
+          viewBox={`0 0 ${facts.size} ${facts.size}`}
+        >
+          <polygon points={polygon} />
+        </svg>
       </div>
-      <p
-        className="clearing-minimap-status"
-        data-testid="minimap-request"
-        role="status"
-      >
-        {requestedCenter
-          ? `Requested center: ${requestedCenter.x}, ${requestedCenter.z} · ${requestedCenter.level === 1 ? "Upper" : "Ground"}`
-          : "No center requested."}
-      </p>
     </section>
   );
 }
