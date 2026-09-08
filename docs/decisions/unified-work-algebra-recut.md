@@ -165,6 +165,36 @@ Units are per item/material dimension. Summing one log and one herb into a gener
 
 One synchronous owner mutates those records inside the fixed step. It preflights fallible conditions before the first mutation, or applies a small touched-record plan. No world-wide `structuredClone` for every transition, no async operations inside a material commit and no event subscriber that independently edits the same quantity.
 
+### Floor stockpiles and later machine movement
+
+A painted stockpile zone owns only its cells, accepted-goods filters and
+destination priority. Lots within it remain physically located on ground cells;
+the zone never owns a second contents list or pooled inventory. Removing,
+shrinking or changing a zone leaves every existing lot in place and recoverable,
+while newly disallowed goods may become ordinary relocation candidates. A desired
+stock quota is policy and must stay distinct from a hard per-cell or container
+capacity, so editing a quota cannot make valid physical stock corrupt.
+
+The common destination algebra may cover either a ground cell or a container
+slot. The material owner checks actual occupied space plus incoming reservations
+at that destination and supplies the same withdrawal path to construction,
+shelves, vessels and later machines. Zone totals and grouped rendering are derived
+views; they do not merge lot identities or grant one full cell extra capacity.
+Storage priority ranks destinations separately from job urgency, and equal-priority
+placement must not churn.
+
+Later powered belts, hoppers and hoists advance real lots through the same custody
+and reservation owner. They use authoritative fixed-tick progress, bounded buffers
+and backpressure: a full output retains stock and stops upstream intake, while
+power loss freezes progress without deletion. One lot consumes at most one
+movement budget per tick regardless of how many segment records are iterated.
+Machinery never impersonates a pawn or gains a parallel inventory/claim store.
+
+Floor-stockpile presentation and exact ordering are a separate natural post-v7
+decision alongside mixed shelves and brewing, not part of the current schema-v7
+migration. Dwarven conveyors remain later technology and do not gate the first
+brew or justify a new scheduler/framework.
+
 ## Execution, sequencing and concurrency
 
 Persist only current plan position, named result bindings, current leaf/transfer/work progress, definition identity and completed effect identities needed for retry. A finished job can retire its plan once no unresolved effect/receipt requires it. The runtime does not retain a closure, generator stack, Promise or serialized XState interpreter object. Save data is understood by the game, not by a library's private runtime.

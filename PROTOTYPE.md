@@ -95,6 +95,10 @@ The newer [controls floor-priority recut](docs/decisions/controls-floor-priority
 supersedes that broad ordering for the current controls owner: controls now, then
 one unified wood+herb transfer owner with old parallel branches/validators deleted
 before brewing completion; vertical/tower and cat-surface work remain future.
+The same [unified work record](docs/decisions/unified-work-algebra-recut.md) now
+keeps painted floor stockpiles as a separate post-v7 storage decision alongside
+mixed shelves and brewing. Lots remain on ground cells; later powered Dwarven
+belts use real custody, progress and backpressure and do not gate the first brew.
 The [Excalibur reuse/depth decisions](docs/decisions/excalibur-ecs-and-reuse-decision.md)
 and [depth source review](docs/decisions/excalibur-depth-source-review.md) are
 bounded guidance only: no dependency or general ECS; capability/index/lifetime/
