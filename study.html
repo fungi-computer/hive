@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="data:," />
@@ -9,31 +9,19 @@
   </head>
   <body>
     <main>
+      <div id="study-catalog"></div>
       <header>
         <div>
           <p class="eyebrow">GOBLIN BED & BREAKFAST · ART STUDY</p>
           <h1>People <i>&</i> proportion</h1>
         </div>
-        <a href="/">Back to the clearing ↗</a>
       </header>
       <p class="intro">
         A tired outsider. A strange little world. And a cat with better
         prospects.
       </p>
-      <p class="small">
-        Optional studies:
-        <a href="/devil-study.html">The Devil and demons</a> ·
-        <a href="/animal-study.html">Animals on the road</a> ·
-        <a href="/fire-study.html">Fire and light</a> ·
-        <a href="/foliage-wind-study.html">Still roots, moving leaves</a> ·
-        <a href="/brewhouse-study">The Copper Familiar</a> ·
-        <a href="/mixed-shelf-study">Mixed shelves</a> ·
-        <a href="/clearing-minimap-study.html">Clearing minimap</a> ·
-        <a href="/goblin-den-study.html">Goblin hospitality</a> ·
-        <a href="/goblin-mess-study.html">Floor details</a> ·
-        <a href="/world-lab.html">World Lab</a>
-      </p>
       <section
+        id="people-proportion"
         class="workbench"
         aria-label="Original character proportion study"
       >
@@ -146,6 +134,7 @@
         art study; the accepted chop/build game is linked above.
       </p>
     </main>
+    <script type="module" src="/src/studies/catalog/main.jsx"></script>
     <script type="module" src="/src/study.js"></script>
   </body>
 </html>

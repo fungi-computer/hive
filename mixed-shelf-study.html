@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,17 +7,25 @@
     <link rel="stylesheet" href="/src/studies/mixed-shelf/style.css" />
   </head>
   <body>
-    <main>
+    <div data-study-chrome data-study-id="mixed-shelves"></div>
+    <main id="study-content" tabindex="-1">
       <p class="eyebrow">Original art study</p>
       <h1>A place for useful things</h1>
-      <p>The same timber shelf, filled with wood and tied herbs. The inventory list carries full counts; small contents keep the shelf readable.</p>
+      <p>
+        The same timber shelf, filled with wood and tied herbs. The inventory
+        list carries full counts; small contents keep the shelf readable.
+      </p>
       <button id="turn" type="button">Turn shelf</button>
       <p id="status" role="status">Preparing the shelves…</p>
       <section id="profiles" aria-label="Shelf contents"></section>
       <h2>Native pixels · both directions</h2>
       <div id="contact"></div>
-      <p class="note">These are artwork examples, not a new shelf capacity rule. Contents and quantities will come from the real stored goods.</p>
+      <p class="note">
+        These are artwork examples, not a new shelf capacity rule. Contents and
+        quantities will come from the real stored goods.
+      </p>
     </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
     <script type="module" src="/src/studies/mixed-shelf/main.js"></script>
   </body>
 </html>

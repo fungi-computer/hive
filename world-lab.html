@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>World Lab — height/sea candidate</title>
   </head>
   <body>
-    <main>
+    <div data-study-chrome data-study-id="world-lab"></div>
+    <main id="study-content" tabindex="-1">
       <h1>World Lab / deterministic terrain</h1>
       <p class="boundary">
         An isolated terrain and render-residency measurement page. It does not
@@ -147,6 +148,7 @@
         </section>
       </div>
     </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
     <script type="module" src="/src/world-lab/main.js"></script>
   </body>
 </html>

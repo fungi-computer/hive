@@ -74,7 +74,8 @@
     </style>
   </head>
   <body class="bg-base-100 text-base-content">
-    <main>
+    <div data-study-chrome data-study-id="animals"></div>
+    <main id="study-content" tabindex="-1">
       <div class="eyebrow">GOBLIN BED & BREAKFAST · ORIGINAL ANIMAL STUDY</div>
       <h1>Good company on a long road.</h1>
       <p>
@@ -136,10 +137,10 @@
         scale.<br />
         An art and motion study. Feeding, milking, eggs, wool and caravan cargo
         are planned gameplay. Pack toggle shows an authored load, not a working
-        inventory.<br />
-        <a class="link" href="/">Back to the playable home</a>
+        inventory.
       </footer>
     </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
     <script type="module" src="./animal-study.js"></script>
   </body>
 </html>
