@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>World Lab — deterministic terrain</title>
+    <title>World Lab — height/sea candidate</title>
   </head>
   <body>
     <main>
@@ -18,8 +18,8 @@
         <button data-cell="0,0" data-label="Origin">
           Origin <span>(0, 0)</span>
         </button>
-        <button data-feature="coast">
-          Northwater Coast <span>(from generator)</span>
+        <button data-feature="wetDryBoundary">
+          Northwater wet/dry boundary <span>(exact sampled neighbours)</span>
         </button>
         <button data-feature="ridge">
           Lantern Ridge <span>(from generator)</span>
@@ -104,7 +104,7 @@
           </div>
           <figcaption>
             Surface-only 24×16 isometric section from the same authoritative
-            one-cell sampler, plus one-cell neighbor halo. Whole source surface
+            one-cell sampler, plus one-cell neighbor halo. Whole quantized bed
             levels draw flat voxel-step tops and exposed step faces; the Atlas
             remains continuous. Gold marks the focused cell. This does not
             generate caves, voxel volume, or gameplay terrain.
@@ -112,14 +112,16 @@
         </figure>
       </div>
       <div class="legend" aria-label="Terrain palette legend">
-        <span><i class="swatch water"></i>water</span>
-        <span><i class="swatch coast"></i>coast</span>
-        <span><i class="swatch ridge"></i>ridge</span>
-        <span><i class="swatch canyon"></i>canyon</span>
-        <span><i class="swatch land"></i>land</span>
+        <span><i class="swatch water"></i>surface water (bed below datum)</span>
+        <span
+          ><i class="swatch coast"></i>sea-level ground (dry bed at datum)</span
+        >
+        <span><i class="swatch land"></i>land (bed above datum)</span>
         <span class="legend-note"
-          >Atlas/local color uses continuous elevation; section height uses
-          whole source levels. Cyan/green lift follows moisture.</span
+          >The named wet/dry boundary is derived from exact cardinal neighbours.
+          Atlas labels summarize footprint samples; inspect a clicked cell for
+          the exact classification. No displayed water is live stock or ocean
+          proof.</span
         >
       </div>
       <div id="world-lab-output" class="reports">
