@@ -13,6 +13,8 @@ import {
   sampleCell,
   sampleOverview,
   sampleTerrain,
+  overviewPixelToWorldCell,
+  worldCellToOverviewPixel,
 } from "../src/world-lab/terrain.js";
 
 const output = process.argv[2] || ".botanical/world-lab-proof";
@@ -244,6 +246,62 @@ checks.boundedLocal = {
 };
 assert(checks.boundedLocal.pass, "local residency exceeded its bounded cache or failed regeneration");
 
+const mappingCells = [
+  [coarseOverview.bounds.minX, coarseOverview.bounds.minZ],
+  [coarseOverview.bounds.maxX, coarseOverview.bounds.maxZ],
+  [-1, 0],
+  [0, 0],
+  [features.coast.x, features.coast.z],
+  [features.ridge.x, features.ridge.z],
+];
+const mappingResults = mappingCells.map(([x, z]) => {
+  const pixel = worldCellToOverviewPixel(coarseOverview, x, z);
+  const mapped = overviewPixelToWorldCell(coarseOverview, pixel.column, pixel.row);
+  const cellWidth = coarseOverview.bounds.spanX / coarseOverview.width;
+  const cellHeight = coarseOverview.bounds.spanZ / coarseOverview.height;
+  const pixelMinX = coarseOverview.bounds.minX + pixel.column * cellWidth;
+  const pixelMinZ = coarseOverview.bounds.minZ + pixel.row * cellHeight;
+  return {
+    requested: { x, z },
+    pixel,
+    representativeCell: mapped,
+    withinPixelFootprint: x >= pixelMinX && (x < pixelMinX + cellWidth || (pixel.column === coarseOverview.width - 1 && x <= coarseOverview.bounds.maxX)) && z >= pixelMinZ && (z < pixelMinZ + cellHeight || (pixel.row === coarseOverview.height - 1 && z <= coarseOverview.bounds.maxZ)),
+    signed: x < 0 || z < 0,
+  };
+});
+checks.coordinateMapping = {
+  edgeAndSignedSamples: mappingResults,
+  pass: mappingResults.every((result) => result.withinPixelFootprint) &&
+    mappingResults.filter((result) => result.signed).length >= 2 &&
+    mappingResults.every((result) => overviewPixelToWorldCell(coarseOverview, result.pixel.column, result.pixel.row).column === result.pixel.column && overviewPixelToWorldCell(coarseOverview, result.pixel.column, result.pixel.row).row === result.pixel.row),
+};
+assert(checks.coordinateMapping.pass, "overview pixel/world-cell mapping lost an edge or signed coordinate");
+
+const signedViewport = localViewport(spec, floorDiv(-1, spec.chunkSize), floorDiv(0, spec.chunkSize));
+const signedRender = renderChunkBuffer(spec, createResidency(spec).loadWindow(signedViewport.centerChunkX, signedViewport.centerChunkZ));
+const signedCell = sampleCell(spec, -1, 0);
+const signedLocalIndex = (0 - signedViewport.minZ) * signedRender.width + (-1 - signedViewport.minX);
+const signedOverview = sampleTerrain(spec, -1, 0, coarseOverview.footprint);
+checks.crossScaleSampleFacts = {
+  selected: {
+    x: -1,
+    z: 0,
+    overviewFootprint: coarseOverview.footprint,
+    overviewElevation: signedOverview.elevation,
+    overviewMoisture: signedOverview.moisture,
+    localElevation: signedCell.elevation,
+    localMoisture: signedCell.moisture,
+    localRenderElevationByte: signedRender.elevation[signedLocalIndex],
+    localRenderMoistureByte: signedRender.moisture[signedLocalIndex],
+  },
+  pass: signedCell.elevation === sampleTerrain(spec, -1, 0, 1).elevation &&
+    signedCell.moisture === sampleTerrain(spec, -1, 0, 1).moisture &&
+    signedRender.elevation[signedLocalIndex] === Math.round(signedCell.elevation * 255) &&
+    signedRender.moisture[signedLocalIndex] === Math.round(signedCell.moisture * 255) &&
+    Number.isFinite(signedOverview.elevation) && Number.isFinite(signedOverview.moisture),
+};
+assert(checks.crossScaleSampleFacts.pass, "selected global cell facts diverged between overview sampler and local render arrays");
+
 checks.visualTerrainData = {
   overviewElevationValues: new Set(coarseOverview.elevation).size,
   overviewMoistureValues: new Set(coarseOverview.moisture).size,
@@ -278,7 +336,10 @@ checks.userFacingLabShape = {
     overviewRect: coastMarker,
   },
   markerHasPositiveArea: coastMarker.width > 0 && coastMarker.height > 0,
-  markerUpdatedFromRender: mainSource.includes("drawViewportMarker(local.viewport)") && mainSource.includes("center = { chunkX: floorDiv"),
+  markerUpdatedFromRender: mainSource.includes("drawViewportMarker(local.viewport)") && mainSource.includes("center = { chunkX: floorDiv") && mainSource.includes("overviewCanvas.addEventListener(\"click\""),
+  clickMapsToCell: mainSource.includes("overviewPixelToWorldCell(overview, column, row)") && mainSource.includes("focus = { label: \"Overview cell\", x: cell.x, z: cell.z }"),
+  localSelectionMarker: mainSource.includes("localGridContext.strokeRect") && mainSource.includes("focus.x - viewport.minX"),
+  sharedFactsPanel: mainSource.includes("sampleCell(spec, focus.x, focus.z)") && mainSource.includes("sampleTerrain(spec, focus.x, focus.z, 1)") && mainSource.includes("sharedSampler") && mainSource.includes("data-field=selection") && mainSource.includes("matchesSampler"),
   explicitOverviewScale: mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX"),
   explicitLocalScale: mainSource.includes("one pixel = one world cell") && pageSource.includes("80×80 local view at 1 pixel per world cell"),
   readableLegend: pageSource.includes("Terrain palette legend") && stylesSource.includes(".swatch.water") && stylesSource.includes(".legend"),
@@ -287,6 +348,16 @@ checks.userFacingLabShape = {
     coastMarker.width > 0 && coastMarker.height > 0 &&
     mainSource.includes("drawViewportMarker(local.viewport)") &&
     mainSource.includes("center = { chunkX: floorDiv") &&
+    mainSource.includes("overviewCanvas.addEventListener(\"click\"") &&
+    mainSource.includes("overviewPixelToWorldCell(overview, column, row)") &&
+    mainSource.includes("focus = { label: \"Overview cell\", x: cell.x, z: cell.z }") &&
+    mainSource.includes("localGridContext.strokeRect") &&
+    mainSource.includes("focus.x - viewport.minX") &&
+    mainSource.includes("sampleCell(spec, focus.x, focus.z)") &&
+    mainSource.includes("sampleTerrain(spec, focus.x, focus.z, 1)") &&
+    mainSource.includes("sharedSampler") &&
+    mainSource.includes("data-field=selection") &&
+    mainSource.includes("matchesSampler") &&
     mainSource.includes("cellsPerPixel") && mainSource.includes("overview.bounds.spanX") &&
     mainSource.includes("one pixel = one world cell") &&
     pageSource.includes("80×80 local view at 1 pixel per world cell") &&
@@ -322,7 +393,7 @@ const proof = {
   },
   checks,
   diagnostic1024: { executed: false, reason: "1024 is diagnostic only after measured 512; this bounded check stops at 512." },
-  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency", "readable elevation/moisture variation with named viewport marker"],
+  claims: ["deterministic terrain query", "coherent named coast/ridge across two spans", "signed global-coordinate seam continuity", "bounded fixed-output LOD work", "bounded local render residency", "readable elevation/moisture variation with named viewport marker", "overview pixel to signed global cell to local one-cell trace"],
   nonClaims: WORLD_LAB_NON_CLAIMS,
 };
 await writeFile(`${output}/proof.json`, `${JSON.stringify(proof, null, 2)}\n`);

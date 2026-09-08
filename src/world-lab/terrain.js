@@ -179,6 +179,27 @@ export function sampleCell(spec, x, z) {
   return sampleTerrain(spec, x, z, 1);
 }
 
+export function overviewPixelToWorldCell(overview, column, row) {
+  integer(column, "overview column");
+  integer(row, "overview row");
+  if (column < 0 || column >= overview.width || row < 0 || row >= overview.height)
+    throw new RangeError("overview pixel is outside the sampled image");
+  return {
+    x: Math.floor(overview.bounds.minX + (column / overview.width) * overview.bounds.spanX),
+    z: Math.floor(overview.bounds.minZ + (row / overview.height) * overview.bounds.spanZ),
+    column,
+    row,
+  };
+}
+
+export function worldCellToOverviewPixel(overview, x, z) {
+  integer(x, "world x");
+  integer(z, "world z");
+  const column = Math.max(0, Math.min(overview.width - 1, Math.floor(((x - overview.bounds.minX) / overview.bounds.spanX) * overview.width)));
+  const row = Math.max(0, Math.min(overview.height - 1, Math.floor(((z - overview.bounds.minZ) / overview.bounds.spanZ) * overview.height)));
+  return { column, row, index: row * overview.width + column };
+}
+
 export function localViewport(spec, centerChunkX, centerChunkZ) {
   integer(centerChunkX, "centerChunkX");
   integer(centerChunkZ, "centerChunkZ");

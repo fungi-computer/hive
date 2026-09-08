@@ -18,7 +18,7 @@
       <div class="canvases">
         <figure>
           <div class="overview-stage">
-            <canvas id="world-lab-overview" width="512" height="512" aria-label="512 by 512 terrain overview"></canvas>
+            <canvas id="world-lab-overview" width="512" height="512" tabindex="0" aria-label="512 by 512 terrain overview; click a pixel to inspect its signed world cell"></canvas>
             <canvas id="world-lab-overview-marker" width="512" height="512" aria-hidden="true"></canvas>
           </div>
           <figcaption>512×512 samples over an explicit world span. The gold rectangle is the current 80×80-cell local viewport; the white cross is the focused cell.</figcaption>
@@ -40,6 +40,7 @@
       </div>
       <div id="world-lab-output" class="reports">
         <section><h2>Contract / overview</h2><pre data-field="contract"></pre></section>
+        <section><h2>Selected global cell</h2><pre data-field="selection"></pre></section>
         <section><h2>Local generation / render</h2><pre data-field="local"></pre></section>
         <section><h2>Boundary / scope</h2><pre data-field="claims"></pre></section>
       </div>

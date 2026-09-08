@@ -29,7 +29,7 @@ figcaption { margin-top: 6px; color: #c6d6ad; }
 .swatch.coast { background: #c5a868; }
 .swatch.ridge { background: #6f6047; }
 .swatch.land { background: #4b8452; }
-.reports { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.reports { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
 section { min-width: 0; }
 section h2 { font-size: 14px; color: #d7c89f; }
 pre { overflow: auto; padding: 10px; background: #0d1613; border: 1px solid #314b3c; font-size: 11px; line-height: 1.4; }

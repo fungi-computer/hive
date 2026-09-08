@@ -6,8 +6,12 @@ import {
   localViewport,
   namedFeatures,
   overviewRectForViewport,
+  overviewPixelToWorldCell,
   renderChunkBuffer,
+  sampleCell,
   sampleOverview,
+  sampleTerrain,
+  worldCellToOverviewPixel,
 } from "./terrain.js";
 import "./styles.css";
 
@@ -91,7 +95,7 @@ function drawViewportMarker(viewport) {
   overviewMarkerContext.stroke();
 }
 
-function drawLocalGrid() {
+function drawLocalGrid(viewport) {
   localGridContext.clearRect(0, 0, localGridCanvas.width, localGridCanvas.height);
   localGridContext.strokeStyle = "rgba(255, 248, 205, 0.26)";
   localGridContext.lineWidth = 1;
@@ -103,21 +107,66 @@ function drawLocalGrid() {
     localGridContext.lineTo(localGridCanvas.width, cell + 0.5);
     localGridContext.stroke();
   }
+  const localX = focus.x - viewport.minX;
+  const localZ = focus.z - viewport.minZ;
+  if (localX >= 0 && localX < viewport.width && localZ >= 0 && localZ < viewport.height) {
+    localGridContext.fillStyle = "rgba(255, 255, 255, 0.25)";
+    localGridContext.strokeStyle = "#ffffff";
+    localGridContext.fillRect(localX, localZ, 1, 1);
+    localGridContext.strokeRect(localX + 0.1, localZ + 0.1, 0.8, 0.8);
+  }
 }
 
 function drawLocal() {
   const started = performance.now();
   const chunks = residency.loadWindow(center.chunkX, center.chunkZ);
   const buffer = renderChunkBuffer(spec, chunks);
+  const viewport = localViewport(spec, center.chunkX, center.chunkZ);
   localContext.imageSmoothingEnabled = false;
   drawSamples(localContext, { ...buffer, pixels: buffer.pixels });
-  drawLocalGrid();
-  return { buffer, viewport: localViewport(spec, center.chunkX, center.chunkZ), renderMs: performance.now() - started };
+  drawLocalGrid(viewport);
+  return { buffer, viewport, renderMs: performance.now() - started };
 }
 
 function render() {
   const local = drawLocal();
   drawViewportMarker(local.viewport);
+  const selectedLocal = sampleCell(spec, focus.x, focus.z);
+  const selectedOverview = sampleTerrain(spec, focus.x, focus.z, overview.footprint);
+  const selectedShared = sampleTerrain(spec, focus.x, focus.z, 1);
+  const selectedPixel = worldCellToOverviewPixel(overview, focus.x, focus.z);
+  const localX = focus.x - local.viewport.minX;
+  const localZ = focus.z - local.viewport.minZ;
+  const localIndex = localZ * local.buffer.width + localX;
+  output.querySelector("[data-field=selection]").textContent = JSON.stringify({
+    focus: { label: focus.label, x: focus.x, z: focus.z },
+    overviewPixel: selectedPixel,
+    overviewSampler: {
+      footprint: overview.footprint,
+      elevation: selectedOverview.elevation,
+      moisture: selectedOverview.moisture,
+      terrain: selectedOverview.terrain,
+    },
+    sharedSampler: {
+      footprint: selectedShared.footprint,
+      elevation: selectedShared.elevation,
+      moisture: selectedShared.moisture,
+      terrain: selectedShared.terrain,
+    },
+    sharedLocalSampler: {
+      footprint: selectedLocal.footprint,
+      elevation: selectedLocal.elevation,
+      moisture: selectedLocal.moisture,
+      terrain: selectedLocal.terrain,
+    },
+    localRenderCell: {
+      x: localX,
+      z: localZ,
+      elevationByte: local.buffer.elevation[localIndex],
+      moistureByte: local.buffer.moisture[localIndex],
+      matchesSampler: local.buffer.elevation[localIndex] === Math.round(selectedLocal.elevation * 255) && local.buffer.moisture[localIndex] === Math.round(selectedLocal.moisture * 255),
+    },
+  }, null, 2);
   output.querySelector("[data-field=local]").textContent = JSON.stringify({
     focus: { label: focus.label, x: focus.x, z: focus.z },
     centerChunk: { x: center.chunkX, z: center.chunkZ },
@@ -178,5 +227,15 @@ for (const button of document.querySelectorAll("[data-cell]")) {
     render();
   });
 }
+
+overviewCanvas.addEventListener("click", (event) => {
+  const bounds = overviewCanvas.getBoundingClientRect();
+  const column = Math.max(0, Math.min(overview.width - 1, Math.floor(((event.clientX - bounds.left) / bounds.width) * overview.width)));
+  const row = Math.max(0, Math.min(overview.height - 1, Math.floor(((event.clientY - bounds.top) / bounds.height) * overview.height)));
+  const cell = overviewPixelToWorldCell(overview, column, row);
+  focus = { label: "Overview cell", x: cell.x, z: cell.z };
+  center = { chunkX: floorDiv(cell.x, spec.chunkSize), chunkZ: floorDiv(cell.z, spec.chunkSize) };
+  render();
+});
 
 render();
