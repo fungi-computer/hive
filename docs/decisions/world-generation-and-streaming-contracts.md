@@ -10,6 +10,14 @@ contracts; it does not expand the live clearing or reorder the current Maps spri
 
 Status: Game CTO implementation direction, 2026-09-07. Read with `architecture-implementation-plan.md` and the existing World Mapping/LOD ADR. These are future contracts and explicit experiment candidates, not a new runtime, approved planet size, chosen production solver, or gameplay expansion. The existing 16-cell World Lab remains an independent first consumer. Delivery owns tracked implementation and serial integration.
 
+Levi's later isolated round-three goal is recorded in
+`.botanical/research/environment-round3-20260908/GOAL.md`. Its world-generation
+checkpoint freezes the current generator and measures signed-cell/chunk-order
+identity, integer surface levels, exact-versus-LOD work, and edit/eviction/
+regeneration ownership. It owns ignored evidence only; it does not alter the
+versioned generator, World Lab, live clearing or this contract until Delivery
+accepts a concrete tracked consumer.
+
 ## Starting evidence and immediate corrections
 
 `src/world-lab/terrain.js` currently gives us global signed sampling, 16×16 byte-array chunks, six footprint-filtered noise scales, analytic coast/ridge markers, a 512² overview and a 25-chunk cache. `main.js` invokes it synchronously and displays terrain codes in a flat 2D canvas. The optional 1024² button does not yet report an actual duration. This is neither an isometric chunk renderer nor hydrology nor streamed Clearing state. `renderChunkBuffer` trusts window contiguity/order, and cache eviction sorts the whole small map. Correct these when their real consumer expands; do not call their present bounded cost a demonstrated crisis.

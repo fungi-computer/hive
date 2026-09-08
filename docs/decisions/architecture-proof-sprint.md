@@ -6,6 +6,14 @@ Game CTO reviewed direction, 2026-09-08. This section supersedes the historical 
 
 **Outcome:** on the deliberately tiny map, the player can confidently place and inspect things, organize real supplies, make an honest brew, leave people working, and return to a useful result. A separate responsive map lab proves future geography without making a larger world the substitute for a satisfying home. Ship coherent improvements on the same preview as each becomes ready.
 
+Current Delivery checkpoint `2113dfa` has shipped the schema-10 finite-source and
+Fill Kettle slice on the feature preview. The next coupled consumer is the pinned
+brew process; it does not wait for regional fluid simulation. Levi separately
+authorized the Game CTO's isolated water, gas/heat and world-generation round-three
+goal recorded in `.botanical/research/environment-round3-20260908/GOAL.md`. Those
+executable studies own only ignored research directories and do not expand this
+sprint, the live clearing or tracked physics runtime.
+
 ### Preserve current work and name its limits
 
 Continue the existing controls/visual-geometry/picking correction and independent responsive World Lab work with their current writers. This reconciliation does not reopen the stopped upstairs house-building marathon or move active authors. Selection, persistent designation, direct orders, Draft/Go, level controls, view occlusion and physical contact remain distinct decisions. The intended click, preview and submitted target must agree; transparent sprite padding cannot intercept distant ground.

@@ -144,7 +144,19 @@ Keep the intended terrain's discrete elevations separate from fluid quantity. Th
 
 ### Next work and release boundary
 
-Do not start a third numerical round automatically. Before a regional-fluid gameplay slice, compare the corrected local-inertial candidate and full shallow water on the intended stepped terrain, wet/dry fronts and downstream demand; keep the failed criteria visible. Before gas integration, validate the interior transport approximation against a bounded low-speed reference and prove the same source/occupant/vent decision with acceptable spatial error and cost. Later water-air/phase/combustion consumers require their own compatible state and energy accounting.
+The earlier instruction not to start a third numerical round automatically is
+historical. Levi explicitly authorized the Game CTO's isolated round-three goal in
+`.botanical/research/environment-round3-20260908/GOAL.md`. It compares a retained
+dense shallow-water reference with a justified dry-region optimization, builds a
+bounded momentum/projection gas-and-heat reference, and probes world-generation
+identity/edit/residency laws. These are ignored executable studies, not an accepted
+solver, tracked runtime join or release gate. Before a regional-fluid gameplay slice,
+compare the selected water method on stepped terrain, wet/dry fronts and downstream
+demand; keep failed criteria visible. Before gas integration, validate the interior
+transport approximation against a bounded low-speed reference and prove the same
+source/occupant/vent decision with acceptable spatial error and cost. Later
+water-air/phase/combustion consumers require their own compatible state and energy
+accounting.
 
 The next production water consumer is much smaller: finite water acquired into a real vessel, carried through the common goods/transfer owner, and consumed once to establish a plant. That earns gameplay and liquid custody without requiring regional hydraulics. No new hauling branch, second clock, oxygen system or planet simulation enters the current brewing candidate.
 
