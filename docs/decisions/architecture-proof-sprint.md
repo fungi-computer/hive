@@ -14,6 +14,25 @@ The retained Maps baseline describes diagnostic overview/local views sharing a g
 
 The actual-clearing minimap remains a small independent consumer at the next safe HUD/camera handoff: show real people, structures, selected level and camera extent; click recenters the camera without jobs or ticks. Do not give it a second generator or duplicate game state. Loaded terrain is not discovered knowledge. Later committed edit/tombstone → decoded-data eviction → regenerate/reload is a separate lab proof; actors/cargo crossing live chunks remains deferred behind tiny-map playability.
 
+### Audit and consumer precedence
+
+The accepted `u1567` Fallow run was a stable dirty-worktree scan, not a clean
+`071a59e` audit. Preserve its scan-vs-HEAD distinctions, finding counts and
+static-estimate labels; exit 0 is not a no-findings claim. The next landable
+schema-v7 migration is coupled: after the isolated helper, migrate **both wood
+and herb** transfer branches and validators, never an herb-only durable
+intermediate. Keep materials laws in the ordinary required test command when
+the runtime joins.
+
+The brewhouse remains isolated authored art with local served interaction and
+verified hosted HTTP byte parity; that is not a gameplay/build claim. Mixed
+storage is complete only when stored wood can withdraw into ordinary
+construction through the same owner. Bed contact stores provider, slot and phase
+only, never a movement path or `leg`; Go waits or rejects while contact clears,
+and historical overlap/egress remains proposed. The dead brewhouse bake anchor
+and needless factory exports are separate narrow future cleanup; packed Stipe
+remains a required Caps dependency.
+
 ### Playable packets and dependencies
 
 | Packet                                        | Dependency and owner boundary                                                                                                | Player-visible exit                                                                                                                                                                                              |
@@ -26,7 +45,7 @@ The actual-clearing minimap remains a small independent consumer at the next saf
 
 These are serial gameplay dependencies, not a fixed calendar or a mandate to finish every row before publishing. Independent map/art/research work can proceed without broadening the coupled candidate. Delivery gives estimates after a useful first source/caller checkpoint.
 
-### Goods migration has a deletion exit
+### Historical goods-migration wording (superseded by the audit disposition)
 
 The first source checkpoint can fully move existing herb Store through a generic transfer owner, with quantity splitting and destination promises designed for the immediate wood port. It does not satisfy completed unification. Then construction uses the same owner for partial wood pickup, supply, cancellation, embedding and salvage. A third beer hauling implementation rejects the candidate.
 
@@ -34,7 +53,7 @@ Preserve meaningful differences as data and explicit outcomes: wood carries up t
 
 Delete authoritative runtime `piles`, actor `cargo`, `claims`, `herbBundles`, `herbStorageClaims` and `Site.delivered`, plus the separate pickup/delivery/drop and material-validation branches they support. Their new lots, containers, transfers and embedding ledger have one synchronous mutation owner. Read-only display selectors are acceptable; writable legacy mirrors are not. Old wire fields remain only for historical save conversion. Plant development keeps its own validation, not a generic bag of optional fields.
 
-Keep strict v1–v6 parsing/rejection before deterministic conversion and validate the resulting new schema. Preserve paused restore, job progress, path/leg, scope/priority, raw recovery and no write merely from load. Old identities are only unique per collection: reserve existing herb identities, remap colliding wood/synthetic IDs deterministically and rewrite references/allocator together. Handle valid empty wood shells deliberately. Preflight teardown/refund placement before deleting its source. Per-material live + embedded/transformed + sink balances must remain equal to production; a single combined “item count” is insufficient.
+Keep strict v1–v6 parsing/rejection before deterministic conversion and validate the resulting new schema. Preserve paused restore, job progress, path/leg, scope/priority, raw recovery and no write merely from load. Old identities are only unique per collection: reserve existing herb identities, remap colliding wood/synthetic IDs deterministically and rewrite references/allocator together. Handle valid empty wood shells deliberately. Preflight teardown/refund placement before deleting its source. Per-material live + embedded/transformed + sink balances must remain equal to production; a single combined “item count” is insufficient. **This v1–v6 wording is historical; the next durable landing is schema-v7 for both wood and herb after the isolated helper.**
 
 Mixed storage then selects one explicit bounded capacity policy, compatible grouping/stacking rules and visible contents representation. Capacity, carry limits and liquid containment are different policies. Existing goods exercise the first mixed list; future filtering/priorities and automatic storage demand enter only when separately needed. It must not silently make every shelf an unlimited vessel.
 
@@ -117,12 +136,12 @@ framework into the current upstairs candidate.
    need whole-workload measurement. Limiting emitted matches does not itself
    bound the work spent searching candidates. The isolated small optimizer probe
    is not a 100-person simulation benchmark.
-3. **Storage and hauling are still commodity-specific.** `model.ts`, `jobs.ts`,
+3. **Historical storage finding (superseded by the coupled v7 disposition).** `model.ts`, `jobs.ts`,
    `activity.ts` and persistence contain a separate mugwort bundle/storage path
    beside construction wood. Another item kind should not require a third copy
    of the whole claim/pickup/carry/store chain. Brewing earns a narrow goods and
-   capacity owner; construction wood can remain on its existing path until a
-   real consumer warrants migration. A shelf is a mixed grouped list, not a pack
+   capacity owner; the old proposal that construction wood can remain on its
+   existing path is historical. A shelf is a mixed grouped list, not a pack
    grid. Bulk/weight/filter policy and exact capacities remain proposals.
 4. **A timed workstation process does not exist yet.** BUILDINGS is construction
    data, and herb growth is a specific fixed-tick owner. Brewing should establish

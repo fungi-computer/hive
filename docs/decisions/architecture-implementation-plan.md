@@ -25,6 +25,9 @@ recut](unified-work-algebra-recut.md) is the governing migration record. The
 [vertical/tower contract](vertical-world-and-tower-ready-contract.md) remains
 future direction, including cat-surface work; it does not interrupt controls or
 World Lab.
+The accepted architecture-audit disposition supersedes any herb-only durable
+intermediate: schema-v7 must migrate wood and herb together after the isolated
+helper. Materials laws belong in the ordinary required test command.
 The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) and [depth
 review](excalibur-depth-source-review.md) are newer bounded guidance for the
 unified-work, world/performance and rendering seams: one measured derived index,

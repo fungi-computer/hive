@@ -63,6 +63,10 @@ ecology consumer. World expansion still waits behind small-home playability.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 keeps chunk crossing invisible, separates minimap loading from discovery, and
 requires one footprint-aware geography source across local, atlas, and globe
+The accepted audit disposition now governs the next coupled goods landing:
+schema-v7 migrates wood and herb together after the isolated helper; brewhouse
+parity is local-served plus hosted-HTTP evidence, while bed contact stores only
+provider/slot/phase. Older herb-first and path-copy wording is historical.
 resolutions; its 4096² and ~1000 km figures remain unmeasured proposals.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 records future landform, cave and exposed-part rendering guidance without

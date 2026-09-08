@@ -4,6 +4,9 @@ The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) is bounded
 guidance for this owner: choose one measured derived index and one joint
 optimizer, invalidate paused commands before observers, and delete replaced
 parallel scans. No ECS dependency or generic framework follows.
+The accepted audit disposition fixes the durable boundary: after the isolated
+helper, schema-v7 migrates both wood and herb together; an herb-only save
+intermediate is not a valid completion checkpoint.
 
 Game architecture recut, 2026-09-08, current source `32cd423`. This replaces the earlier suggestion that an indefinitely separate wood adapter could remain while brewing lands. Levi now explicitly requires **all current hauling—wood into construction and mugwort into shelves—to use the same resource, claim, transfer and work primitives**. Serial migration checkpoints are acceptable. The completed slice must delete the old parallel runtime paths; brewing then consumes the unified operations.
 

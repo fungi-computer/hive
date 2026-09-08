@@ -26,6 +26,9 @@ consumer. The independent World Lab does not expand live gameplay.
 The reviewed [world mapping and terrain LOD direction](docs/decisions/world-mapping-and-lod.md)
 adds no runtime claim: 512² remains the lab baseline, while cross-scale coast/
 ridge identity and seam proof precede any larger region or finite-globe choice.
+The accepted audit reconciliation makes schema-v7 a coupled wood+herb landing
+after the isolated helper; brewhouse local-served/hosted-HTTP parity and the
+provider/slot/phase-only bed contact law remain distinct evidence boundaries.
 The [Minecraft-inspired terrain and isometric world study](docs/decisions/minecraft-inspired-terrain-and-isometric-world-study.md)
 adds future landform, cave and exposed-part rendering guidance without changing
 the tiny live clearing or the current small-world sprint precedence.

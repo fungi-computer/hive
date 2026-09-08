@@ -9,6 +9,9 @@ is the source-of-truth recut; vertical/tower and cat-surface work remain future.
 The settled [furniture contact and navigation decision](furniture-contact-and-navigation-decision.md)
 now supplies the bed contact/exit policy and its caller boundary; its supporting
 bed-contact review remains ignored evidence.
+The accepted audit disposition makes the next durable migration schema-v7 for
+both wood and herb after the isolated helper; do not land an herb-only save
+intermediate. The scan's counts remain static estimates with scan-vs-HEAD scope.
 The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) and [depth
 review](excalibur-depth-source-review.md) refine this migration only: retain the
 existing owners, add at most one measured derived index and joint optimizer, and
@@ -161,7 +164,7 @@ saveRepository.commit(snapshot, expectedRevision): CommitResult;
 
 Build one validation context per snapshot for identity and relation lookups. Split `checkHerbs` into plant-stage, herb-job/activity, bundle-location and conservation checks; keep the latter at the owning material boundary. Split `checkActorTaskTarget` by exhaustive activity family while retaining cross-family exclusivity rules. Never weaken unknown-key, missing-reference, capacity, support or material-sink rejection to simplify code.
 
-Unify the genuinely repeated IndexedDB commit mechanics only after preserving the distinct `save` versus explicit replacement policies. Existing v1–v6 migration/recovery must remain legal through each behavior-neutral extraction. Loading an old valid save does not automatically rewrite the durable slot. New material/support semantics require an explicit next schema and migration; do not call a semantic change a refactor.
+Unify the genuinely repeated IndexedDB commit mechanics only after preserving the distinct `save` versus explicit replacement policies. Existing v1–v6 migration/recovery must remain legal through each behavior-neutral extraction. Loading an old valid save does not automatically rewrite the durable slot. New material/support semantics require schema-v7 migration for both wood and herb after the isolated helper; do not land an herb-only durable intermediate or call a semantic change a refactor.
 
 ## Dependency shape and concrete flows
 

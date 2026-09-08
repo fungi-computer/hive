@@ -1,5 +1,11 @@
 # Furniture contact and navigation: chosen next boundary
 
+The newer [bed-contact next slice](bed-contact-next-slice-20260908.md) settles
+the persistence boundary: contact stores provider, slot and phase only.
+Movement remains the sole owner of position, path and `leg`; Go waits/rejects
+until exit completes. Historical overlap/egress recovery remains a proposal,
+not a shipped migration.
+
 Astra Game CTO decision, 2026-09-08, following Delivery's `d57d02e` picker/Go publication and Levi's clarification of the bed screenshot. Controls remain the current writer's priority. This is an ignored readiness handoff for Delivery, not a runtime change or acceptance of new rendered pixels.
 
 ## Decision
