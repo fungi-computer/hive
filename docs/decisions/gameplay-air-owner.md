@@ -148,6 +148,11 @@ Root's current source read identifies these remaining boundaries:
   Before preparation completes, cancellation creates no emissions obligation.
   Afterward, pause/retry/reload must retain it independently of worker animation.
   The six-second warm-room yield is game content, not wood's chemical energy.
+  Current committed brewing cannot be canceled; its station process/binding
+  already blocks removal. The 240-tick ferment interval outlasts the proposed
+  120-tick source, so that case needs no second station claim. Retire an active
+  source schedule only after its totals are recorded; retain checked paid-input
+  provenance so reloading cannot emit the same transformation twice.
 - The current room site array is authored content, not full Clearing `Site`
   records with construction work and embedded material. The proposed starting
   house must have explicit finite starting-stock provenance if used in a game
@@ -164,9 +169,15 @@ Root's current source read identifies these remaining boundaries:
   solution for the main game. The independent immutable-room consumer retains
   its narrower contract while Root resolves this boundary.
 
+Sol's corrected ignored read-only trace is
+`generated-room/.botanical/generated-room/FULL-GAME-AIR-JOIN-TRACE.md`, SHA256
+`d311ed1ef556bad6c44698350b61b918da8a66a53ae9e0bfa46b06a859203c92`.
+Root independently read the paid-input, cancellation, removal and clock callers;
+the trace's stable-room scenario is a proposal, not accepted main-game policy.
+
 This is the next source design work, not a release of a new air writer, new
-solver, starting-house scenario or additional numerical run. The current
-field/pail native proof remains independently queued. The same registered
+solver, starting-house scenario or additional numerical run. The independent
+field/pail native proof passed u4514; it does not qualify air. The same registered
 geometry and outside air route must eventually serve physics and the main view.
 
 First acceptance requires the same room/source/interval with vent closed/open,

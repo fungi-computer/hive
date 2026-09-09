@@ -250,6 +250,16 @@ or identity store is authorized. Root retains
 integration and actual rendered/DO qualification; frozen prior input evidence
 remains.
 
+**Next released source custody:** Hume retains his Session and owns actual-game
+field-water inspection/projection in isolated `field-inspection` at `aa24956`.
+Use the current main/HUD/view interaction owner to expose real standing-water
+litres and whole measures, without changing physics, material, save or original
+art. Source/focused checks only; no browser/build/native/deploy release. Meitner
+independently owns ignored-only air volume-change readiness from current rebind
+and construction geometry. Root owns the physical design and paid-fuel join;
+Sol's corrected full-game air trace is accepted supporting evidence. No repeated
+agent activation is needed when Botanical relays these same releases.
+
 **Generated-room source integrated:** Sol pinned `fad0657` with10 affected laws
 u4465 and app types u4456. Root and Meitner accepted the three corrections:
 shared terrain/site/air coordinates, geometry identity across same-revision
