@@ -42,6 +42,34 @@ questions using that same placement. Repeated stairs, ramps and capability-
 checked traversal links replace a global one-stair special case. Cat jumping
 can add supported links over the same contact surfaces without a second world.
 
+### Four orientations and a rotating world view
+
+Levi additionally requires four object orientations and world rotation in the
+engine **and** demo. The first control is four quarter-turn camera views. A
+placement's saved orientation is world-relative, independently of the camera.
+Rotating the view never rotates or rewrites terrain, rooms, actor paths, jobs or
+stored item locations. Direction-sensitive footprints, stair endpoints and
+access points support all four directions. Symmetry may deduplicate equivalent
+geometry/bakes; it cannot make a one-ended stair face only two directions.
+
+One view transform owns world-to-screen projection and its picking inverse.
+Depth ordering/contact segments, hit silhouettes, selected-height cutaway,
+hover/drag geometry and visible directional assets use that same camera state.
+Do not repair individual callers with unrelated sign swaps. Keep the Three
+original geometry and low-resolution bake to Pixi pipeline; derive necessary
+camera/object facings from those originals rather than mirror asymmetric pixels
+or rotate a finished isometric image in screen space. Original art/caller review
+remains personal Game CTO work. Camera choice belongs in UI preferences, not
+the physical simulation clock.
+
+Acceptance rotates an asymmetric stair/bed/tower fixture through all four views,
+selects the same real surfaces/objects, places all four stair directions with
+correct endpoints, checks foreground occlusion and floor/roof previews, and
+follows actors/held items through vertical traversal. View rotation while paused
+must not change physical state. Save/reload preserves world orientation and
+world positions; normal and narrow controls remain usable. This joins the
+geometry/vertical migration, not an isolated CSS/canvas rotation feature.
+
 ### Bounded depth without allocating the entire world
 
 Use sparse three-dimensional bricks and a configured world envelope. Retained

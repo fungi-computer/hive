@@ -23,6 +23,14 @@ See the [vertical-world contract](world-generation-and-streaming-contracts.md#ve
 for migration, physical geometry and acceptance. Preserve the active material
 writer/reviewer and independent asset work while Game CTO owns this recut.
 
+**Further direct amendment:** four logical object orientations and quarter-turn
+world rotation belong in both the engine and playable demo. Two-direction stair
+art/placement is not the final contract. Camera rotation is a view transform,
+not a rotation of saved geography; picking, ghosts, visibility, ordering and
+directional original bakes must consume the same transform. See the same
+vertical-world contract. Do not claim completion from rotating the ground image
+alone or reuse asymmetric art by mirroring it.
+
 **Saved goal reconciliation, September 9:** Levi pasted and activated the full
 Hive v0 objective in native Game CTO Session
 `01a0791e-7ac8-7cc0-90dd-48f8d164e526`. The goal tool now reports **active**;
