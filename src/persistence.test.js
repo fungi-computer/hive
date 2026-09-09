@@ -177,7 +177,7 @@ test("current snapshots retain authored terrain, omit commands, and restore paus
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 18);
+  assert.equal(saved.schema, 19);
   assert.deepEqual(saved.savedState.terrain, state.terrain);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
@@ -447,7 +447,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("current reload preserves finite supplies and partial source contents", () => {
   const restored = restoreSnapshot(envelope());
-  assert.equal(snapshotFor(restored.state).schema, 18);
+  assert.equal(snapshotFor(restored.state).schema, 19);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -540,11 +540,14 @@ test("a held pail use reloads only with its matching operation custody", () => {
       kind: "water-delivery",
       id: "fill-kettle-a",
       job: "job-fill",
-      spring: spring.id,
+      supply: { kind: "container", container: `source:${spring.id}` },
       target: { kind: "kettle", station: "station-a" },
       quantity: 2,
       pail: "pail-a",
-      execution: { phase: "deliver", content: "pail-water-a" },
+      execution: {
+        phase: "deliver",
+        contents: [{ lot: "pail-water-a", quantity: 2 }],
+      },
     });
     state.actors.rowan.task = {
       kind: "water-delivery",
@@ -611,7 +614,7 @@ test("current Fill draw progress requires matching executor custody", () => {
       kind: "water-delivery",
       id: "fill-kettle-a",
       job: "job-fill",
-      spring: spring.id,
+      supply: { kind: "container", container: `source:${spring.id}` },
       target: { kind: "kettle", station: "station-a" },
       quantity: 2,
       pail: "pail-a",
@@ -680,7 +683,7 @@ test("current water operations pin target quantity and establishment receipts", 
       kind: "water-delivery",
       id: "fill-a",
       job: "job-fill",
-      spring: spring.id,
+      supply: { kind: "container", container: `source:${spring.id}` },
       target: { kind: "kettle", station: "station-a" },
       quantity: 2,
       pail: "pail-a",
@@ -789,7 +792,7 @@ test("current codec rejects two parked operations bound to one physical pail", (
         kind: "water-delivery",
         id,
         job: jobId,
-        spring: spring.id,
+        supply: { kind: "container", container: `source:${spring.id}` },
         target: { kind: "kettle", station },
         quantity: 2,
         pail: "parked-pail",

@@ -1,9 +1,13 @@
+import {
+  materialPortionsSchema,
+  type MaterialPortion,
+} from "../materials/index.ts";
 import { z } from "zod";
 export const workProgressSchema = z.discriminatedUnion("phase", [
   z.object({ phase: z.literal("acquire") }).strict(),
   z.object({ phase: z.literal("draw") }).strict(),
   z
-    .object({ phase: z.literal("deliver"), content: z.string().min(1) })
+    .object({ phase: z.literal("deliver"), contents: materialPortionsSchema })
     .strict(),
   z
     .object({
@@ -22,18 +26,19 @@ export type WorkProgressRecord = { execution: WorkProgress };
 export type WorkHost = {
   acquire(): AccessOutcome;
   draw():
-    { status: "ready"; content: string } | { status: "pending" | "invalid" };
-  deliver(content: string): AccessOutcome;
+    | { status: "ready"; contents: MaterialPortion[] }
+    | { status: "pending" | "invalid" };
+  deliver(contents: MaterialPortion[]): AccessOutcome;
   consume(): boolean;
 };
 function vesselStep(record: WorkProgressRecord, host: WorkHost): WorkOutcome {
   if (record.execution.phase === "draw") {
     const drawn = host.draw();
     if (drawn.status !== "ready") return accessResult(drawn.status);
-    record.execution = { phase: "deliver", content: drawn.content };
+    record.execution = { phase: "deliver", contents: drawn.contents };
   }
   if (record.execution.phase !== "deliver") return "interrupted";
-  const delivered = host.deliver(record.execution.content);
+  const delivered = host.deliver(record.execution.contents);
   return delivered === "ready" ? "completed" : accessResult(delivered);
 }
 function portionStep(
@@ -74,6 +79,8 @@ export function workProgressProblem(
   progress: WorkProgress,
   definition: WorkDefinition,
 ): string | null {
+  if (!workProgressSchema.safeParse(progress).success)
+    return "invalid-progress";
   if (
     definition.kind === "portion" &&
     (!Number.isSafeInteger(definition.attendTicks) ||

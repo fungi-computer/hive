@@ -102,8 +102,10 @@ export function careIntentsConflict(
   left: Pick<CareJob, "target" | "policy">,
   right: Pick<CareJob, "target" | "policy">,
 ): boolean {
-  return left.target === right.target &&
-    (left.policy === "automatic") === (right.policy === "automatic");
+  return (
+    left.target === right.target &&
+    (left.policy === "automatic") === (right.policy === "automatic")
+  );
 }
 
 /** Queue intent at safe idle boundaries; assignment itself still respects draft. */
@@ -113,8 +115,13 @@ export function queueAutomaticCare(state: Clearing): void {
     if (
       !need ||
       state.jobs.some(
-        (job) => job.kind === "care" && job.target === actor.id &&
-          (careIntentsConflict(job, { target: actor.id, policy: "automatic" }) ||
+        (job) =>
+          job.kind === "care" &&
+          job.target === actor.id &&
+          (careIntentsConflict(job, {
+            target: actor.id,
+            policy: "automatic",
+          }) ||
             job.need === need),
       )
     )
@@ -149,9 +156,13 @@ export function advanceNeeds(state: Clearing): void {
     if (actor.mode !== "sleep")
       needs.rest = Math.max(0, needs.rest - elapsed * REST_DECAY);
     needs.advancedAt = state.tick;
-    if ((["hydration", "nourishment", "rest"] as const).some(
-      (need) => before[need] >= CARE_THRESHOLD && needs[need] < CARE_THRESHOLD,
-    )) state.workDirty = true;
+    if (
+      (["hydration", "nourishment", "rest"] as const).some(
+        (need) =>
+          before[need] >= CARE_THRESHOLD && needs[need] < CARE_THRESHOLD,
+      )
+    )
+      state.workDirty = true;
   }
 }
 
@@ -177,11 +188,10 @@ function outcomeFor(
 /** Preflights custody and authored effect, then sinks and credits as one owner. */
 export function settleCareConsumption(
   state: Clearing,
-  input: {
-    actor: ActorId;
-    operation: ConsumeOperation | WaterDeliveryOperation;
-    lot: string;
-  },
+  input: { actor: ActorId } & (
+    | { operation: ConsumeOperation; lot: string }
+    | { operation: WaterDeliveryOperation }
+  ),
 ): boolean {
   const { operation } = input;
   const definition =
@@ -217,22 +227,26 @@ export function settleCareConsumption(
     state.materials.sinks.some((entry) => entry.id === outcome.receipt)
   )
     return false;
-  const consumed =
-    operation.kind === "consume"
-      ? sinkHeldOperationPortion(state.materials, {
-          id: outcome.receipt,
-          operation: operation.id,
-          lot: input.lot,
-          material: definition.consume.material,
-          quantity: definition.consume.quantity,
-        })
-      : sinkHeldPortion(state.materials, {
-          id: outcome.receipt,
-          operation: operation.id,
-          sourceLot: input.lot,
-          material: definition.consume.material,
-          quantity: definition.consume.quantity,
-        });
+  let consumed;
+  if (operation.kind === "consume") {
+    if (!("lot" in input)) return false;
+    consumed = sinkHeldOperationPortion(state.materials, {
+      id: outcome.receipt,
+      operation: operation.id,
+      lot: input.lot,
+      material: definition.consume.material,
+      quantity: definition.consume.quantity,
+    });
+  } else {
+    if (operation.execution.phase !== "deliver") return false;
+    consumed = sinkHeldPortion(state.materials, {
+      id: outcome.receipt,
+      operation: operation.id,
+      portions: operation.execution.contents,
+      material: definition.consume.material,
+      quantity: definition.consume.quantity,
+    });
+  }
   if (!consumed.ok) return false;
   // All post-sink facts were preflighted above; this append/gain cannot fail.
   state.careOutcomes.push(outcome);
@@ -299,9 +313,12 @@ export function careOutcomeProblem(
 export function careFacts(state: Clearing, actor: ActorId) {
   const needs = state.actors[actor]?.needs;
   const jobs = state.jobs.filter(
-    (entry): entry is CareJob => entry.kind === "care" && entry.target === actor,
+    (entry): entry is CareJob =>
+      entry.kind === "care" && entry.target === actor,
   );
-  const job = jobs.find((entry) => entry.id === state.actors[actor]?.task?.job) ?? jobs[0];
+  const job =
+    jobs.find((entry) => entry.id === state.actors[actor]?.task?.job) ??
+    jobs[0];
   const task =
     job && state.actors[actor]?.task?.job === job.id
       ? state.actors[actor].task

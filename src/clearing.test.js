@@ -1409,11 +1409,14 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     kind: "water-delivery",
     id: "fill-cancel",
     job: "job-fill-cancel",
-    spring: spring.id,
+    supply: { kind: "container", container: `source:${spring.id}` },
     target: { kind: "kettle", station: station.id },
     quantity: 2,
     pail: "cancel-pail",
-    execution: { phase: "deliver", content: "cancel-water" },
+    execution: {
+      phase: "deliver",
+      contents: [{ lot: "cancel-water", quantity: 2 }],
+    },
   });
   state.materials.bindings.push({
     kind: "vessel-use",
@@ -2009,12 +2012,14 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
     kind: "water-delivery",
     id: "fill-active",
     job: "fill-job",
-    spring: state.sources.find((source) => source.kind === "spring").id,
+    supply: {
+      kind: "container",
+      container: `source:${state.sources.find((source) => source.kind === "spring").id}`,
+    },
     target: { kind: "kettle", station: station.id },
     quantity: 2,
     pail: "unused-pail",
-    water: null,
-    phase: "acquire",
+    execution: { phase: "acquire" },
   });
   assert.equal(removalProblem(state, station), "The brew station is occupied.");
   state.operations[0].target = { kind: "mugwort", herb: "herb-unrelated" };

@@ -1,3 +1,5 @@
+import { selectContainerPortions } from "./portions.ts";
+export { materialPortionsSchema, type MaterialPortion } from "./portions.ts";
 import { validateMaterialRelations } from "./relations.ts";
 import { checkedMaterialDefinitions } from "./definitions.ts";
 import { createMaterialRecovery } from "./recovery.ts";
@@ -49,6 +51,20 @@ export function createMaterialOwner<M extends string>(
     },
     recipes: createRecipeSettlements(configured),
     queries: {
+      selectContainerPortions(
+        state: MaterialsState<M>,
+        container: string,
+        material: M,
+        quantity: number,
+      ) {
+        return selectContainerPortions(
+          state,
+          container,
+          material,
+          quantity,
+          internal.availableQuantity,
+        );
+      },
       sourceContainer: internal.sourceContainer,
       availableMaterialFacts: internal.availableMaterialFacts,
       availablePortions: internal.availablePortions,

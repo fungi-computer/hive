@@ -1,3 +1,8 @@
+import {
+  planContainerDebit,
+  debitContainer,
+  type MaterialPortion,
+} from "./portions.ts";
 import type * as T from "./types.ts";
 import type { createMaterialOwner } from "./owner.ts";
 export function createHeldUses<M extends string>(
@@ -28,13 +33,9 @@ export function createHeldUses<M extends string>(
   function isPositiveInt(value: number): value is PositiveInt {
     return Number.isSafeInteger(value) && value > 0;
   }
-  function checkedAdd(a: number, b: number): number | null {
-    const result = a + b;
-    return Number.isSafeInteger(result) && result >= 0 ? result : null;
-  }
   const {
     reserveTransfer,
-    moveContainerPortion,
+    moveContainerPortions,
     interruptTransfer,
     portableContainerInterior,
     transferPhaseProblem,
@@ -249,17 +250,17 @@ export function createHeldUses<M extends string>(
       operation: string;
       material: Material;
       source: ContainerSpec;
-      sourceLot: LotId;
+      portions: readonly MaterialPortion[];
       quantity: number;
       access: TransferAccess;
     },
-  ): MaterialResult<ItemLot> {
+  ): MaterialResult<MaterialPortion[]> {
     const held = heldUseVessel(state, input.operation);
     if (!held.ok) return held;
-    return moveContainerPortion(state, {
+    return moveContainerPortions(state, {
       source: input.source,
       destination: held.value.interior,
-      sourceLot: input.sourceLot,
+      portions: input.portions,
       material: input.material,
       quantity: input.quantity,
       access: input.access,
@@ -272,17 +273,17 @@ export function createHeldUses<M extends string>(
       operation: string;
       material: Material;
       destination: ContainerSpec;
-      sourceLot: LotId;
+      portions: readonly MaterialPortion[];
       quantity: number;
       access: TransferAccess;
     },
-  ): MaterialResult<ItemLot> {
+  ): MaterialResult<MaterialPortion[]> {
     const held = heldUseVessel(state, input.operation);
     if (!held.ok) return held;
-    return moveContainerPortion(state, {
+    return moveContainerPortions(state, {
       source: held.value.interior,
       destination: input.destination,
-      sourceLot: input.sourceLot,
+      portions: input.portions,
       material: input.material,
       quantity: input.quantity,
       access: input.access,
@@ -295,7 +296,7 @@ export function createHeldUses<M extends string>(
     input: {
       id: string;
       operation: string;
-      sourceLot: LotId;
+      portions: readonly MaterialPortion[];
       material: Material;
       quantity: number;
     },
@@ -304,21 +305,22 @@ export function createHeldUses<M extends string>(
       return failure("duplicate-sink");
     const held = heldUseVessel(state, input.operation);
     if (!held.ok) return held;
-    const lot = lotById(state, input.sourceLot);
-    if (
-      !lot ||
-      lot.material !== input.material ||
-      lot.location.kind !== "container" ||
-      lot.location.container !== held.value.interior.id ||
-      lot.quantity !== input.quantity ||
-      !isPositiveInt(input.quantity)
-    )
-      return failure("source-insufficient");
-    state.lots = state.lots.filter((candidate) => candidate !== lot);
+    const planned = planContainerDebit(
+      state,
+      {
+        container: held.value.interior.id,
+        material: input.material,
+        portions: input.portions,
+        quantity: input.quantity,
+      },
+      owner.internal.availableQuantity,
+    );
+    if (!planned.ok) return planned;
+    debitContainer(state, planned.value);
     state.sinks.push({
       id: input.id,
       material: input.material,
-      quantity: input.quantity,
+      quantity: input.quantity as PositiveInt,
     });
     return success({ id: input.id });
   }

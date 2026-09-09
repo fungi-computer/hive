@@ -1,3 +1,5 @@
+import { waterSupplySchema, waterSupplyProblem } from "./water-supply.ts";
+import { materialPortionsSchema } from "./engine/materials/index.ts";
 import {
   workProgressSchema,
   workProgressProblem,
@@ -60,7 +62,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 18 as const;
+const SAVE_SCHEMA = 19 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -359,7 +361,7 @@ const waterOperation = z
   .object({
     id,
     job: id,
-    spring: id,
+    supply: waterSupplySchema,
     pail: id,
     quantity: positive,
     execution: workProgressSchema,
@@ -1352,13 +1354,9 @@ function validateOperationEndpoints(
   { state }: RelationContext,
   operation: SavedWaterOperation,
 ): void {
-  const spring = state.sources.find(
-    (source) => source.id === operation.spring && source.kind === "spring",
-  );
   const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
   const delivery = resolveWaterDelivery(liveState(state), operation.target);
   if (
-    !spring ||
     !delivery ||
     delivery.quantity !== operation.quantity ||
     !pail ||
@@ -1366,6 +1364,15 @@ function validateOperationEndpoints(
     pail.quantity !== 1
   )
     fail(`water operation ${operation.id} has invalid endpoint`);
+  if (operation.execution.phase !== "deliver") {
+    const problem = waterSupplyProblem(
+      liveState(state),
+      operation.pail,
+      operation.quantity,
+      operation.supply,
+    );
+    if (problem) fail(`water operation ${operation.id}: ${problem}`);
+  }
 }
 
 function validateOperationCustody(
@@ -1414,13 +1421,6 @@ function validateOperationWater(
   const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
   const interior = pail && portableContainerInterior(pail);
   if (!interior) fail(`water operation ${operation.id} has invalid pail`);
-  const content =
-    operation.execution.phase === "deliver"
-      ? operation.execution.content
-      : null;
-  const water = content
-    ? state.materials.lots.find((lot) => lot.id === content)
-    : null;
   if (
     workProgressProblem(operation.execution, {
       kind: "vessel",
@@ -1428,27 +1428,25 @@ function validateOperationWater(
     })
   )
     fail(`invalid vessel progress ${operation.id}`);
-  const interiorWater = state.materials.lots.filter(
-    (lot) =>
-      lot.material === "water" &&
-      lot.location.kind === "container" &&
-      lot.location.container === interior.id,
-  );
+  if (operation.execution.phase !== "deliver") return;
+  const parsed = materialPortionsSchema.safeParse(operation.execution.contents);
   if (
-    operation.execution.phase === "acquire" ||
-    operation.execution.phase === "draw"
-  ) {
-    if (interiorWater.length !== 0)
-      fail(`water operation ${operation.id} has premature water`);
-  } else if (
-    !water ||
-    water.material !== "water" ||
-    water.quantity !== operation.quantity ||
-    water.location.kind !== "container" ||
-    water.location.container !== interior.id ||
-    interiorWater.length !== 1
+    !parsed.success ||
+    parsed.data.reduce((sum, portion) => sum + portion.quantity, 0) !==
+      operation.quantity
   )
-    fail(`water operation ${operation.id} has invalid water custody`);
+    fail(`water operation ${operation.id} has invalid water promise`);
+  for (const portion of parsed.data) {
+    const lot = state.materials.lots.find((lot) => lot.id === portion.lot);
+    if (
+      !lot ||
+      lot.material !== "water" ||
+      lot.quantity < portion.quantity ||
+      lot.location.kind !== "container" ||
+      lot.location.container !== interior.id
+    )
+      fail(`water operation ${operation.id} has invalid water custody`);
+  }
 }
 
 function validateOperations(context: RelationContext): void {
