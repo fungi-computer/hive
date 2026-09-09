@@ -1,3 +1,8 @@
+import {
+  fieldInspectionFacts,
+  resolveFieldInspection,
+  fieldInspectionText,
+} from "./field-inspection.ts";
 import React, {
   useEffect,
   useLayoutEffect,
@@ -459,6 +464,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     waterDeliveries,
     lots,
     sources,
+    fieldWater: fieldInspectionFacts(state),
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
     time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
     feed,
@@ -684,6 +690,10 @@ const targetAtom = atom((get) => {
           shelfMugwortBulk: site.shelfMugwortBulk,
         })),
     };
+  }
+  if (target.kind === "field-water") {
+    const field = resolveFieldInspection(facts.fieldWater, target.reference);
+    return field ? { kind: "field-water", ...field } : null;
   }
   if (target.kind === "source") {
     const source = facts.sources.find(
@@ -1213,6 +1223,41 @@ function Build({ model: m, send }) {
   );
 }
 
+function FieldWaterTarget({ target, context, send }) {
+  const text = fieldInspectionText(target);
+  return (
+    <Card
+      variant="outline"
+      role="region"
+      className="window target-window"
+      aria-label="Field water details"
+      style={targetPosition(context)}
+    >
+      <div className="window-heading">
+        <h2>Water in the hollow</h2>
+        <Button
+          className="close"
+          variant="ghost"
+          size="icon"
+          aria-label="Close field water details"
+          onClick={() => send({ kind: "close-target" })}
+        >
+          ×
+        </Button>
+      </div>
+      <p className="muted">
+        Ground · {target.x}, {target.z}
+      </p>
+      <p data-field-water="litres">{text.stock}</p>
+      <p data-field-water="measures">{text.measures}</p>
+      <small className="action-reason">{text.access}</small>
+      <small className="action-reason">
+        Stock is shared and can change before a home member arrives.
+      </small>
+    </Card>
+  );
+}
+
 function Target({ model: m, send }) {
   if (!m.context || !m.target) return null;
   if (m.target.kind === "lot") {
@@ -1346,6 +1391,10 @@ function Target({ model: m, send }) {
       </Card>
     );
   }
+  if (m.target.kind === "field-water")
+    return (
+      <FieldWaterTarget target={m.target} context={m.context} send={send} />
+    );
   if (m.target.kind === "source") {
     const cache = m.target.sourceKind === "reclaimed-timber-cache";
     const repairJob = m.orders.find(
@@ -2325,6 +2374,24 @@ export function createHud(host, art, effect) {
           designationTargetIds: [],
         }));
         return;
+      case "inspect-field-water":
+        if (
+          machine.getSnapshot().context.tool ||
+          store.get(preferencesAtom).panMode
+        )
+          return;
+        machine.send({ type: "ESCAPE" });
+        setSelection((value) => ({
+          ...value,
+          inspectedTarget: {
+            kind: "field-water",
+            reference: { ...action.reference },
+            point: { ...action.point },
+          },
+          panel: null,
+          designationTargetIds: [],
+        }));
+        return;
       case "inspect-source":
         machine.send({ type: "ESCAPE" });
         setSelection((value) => ({
@@ -2583,6 +2650,12 @@ export function createHud(host, art, effect) {
       store.get(worldFactsAtom),
     );
     store.set(worldFactsAtom, facts);
+    const target = store.get(selectionAtom).inspectedTarget;
+    if (
+      target?.kind === "field-water" &&
+      !resolveFieldInspection(facts.fieldWater, target.reference)
+    )
+      setSelection((value) => ({ ...value, inspectedTarget: null }));
   }
   function updateCamera(camera) {
     store.set(cameraFactsAtom, camera);
@@ -2593,6 +2666,10 @@ export function createHud(host, art, effect) {
     const snapshot = machine.getSnapshot();
     return {
       selectedIds: [...value.selectedIds],
+      fieldWater:
+        store.get(targetAtom)?.kind === "field-water"
+          ? { ...store.get(targetAtom) }
+          : null,
       inspectedTarget: value.inspectedTarget
         ? {
             ...value.inspectedTarget,
