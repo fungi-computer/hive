@@ -10,7 +10,7 @@ import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
 import { inside, placementOccupant, SIZE } from "./world.js";
 import { createHud } from "./hud.jsx";
-import { singlePlacementTool } from "./ui-actions.ts";
+import { singlePlacementTool, terrainDesignationCells } from "./ui-actions.ts";
 import {
   backupJson,
   loadWorld,
@@ -54,6 +54,9 @@ async function startGame() {
     loadColony(),
     loadWorld(),
   ]);
+  window.addEventListener("pagehide", (event) => {
+    if (!event.persisted) art.dispose();
+  });
   const app = new Application();
   await app.init({
     width: host.clientWidth,
@@ -303,7 +306,21 @@ async function startGame() {
       ...result,
     }));
     const designation = results.filter((result) => result.meta.designationId);
-    if (designation.length) {
+    const terrainDesignation = results.filter(
+      (result) => result.meta.terrainDesignation,
+    );
+    if (terrainDesignation.length) {
+      const accepted = terrainDesignation.filter(
+        (result) => result.status === "applied",
+      ).length;
+      const rejected = terrainDesignation.find(
+        (result) => result.status === "rejected",
+      );
+      const tool = terrainDesignation[0].meta.terrainDesignation;
+      notice = accepted
+        ? `Applied ${accepted} shared ${tool} designation${accepted === 1 ? "" : "s"}${rejected ? `; ${terrainDesignation.length - accepted} rejected: ${rejected.reason}` : "."}`
+        : `${tool === "dig" ? "Dig" : "Backfill"} designation rejected: ${rejected?.reason || "no target was applied."}`;
+    } else if (designation.length) {
       const acceptedIds = designation
         .filter((result) => result.status === "applied")
         .map((result) => result.meta.designationId);
@@ -348,6 +365,8 @@ async function startGame() {
       command.kind === "next" ||
       command.kind === "build" ||
       command.kind === "deconstruct" ||
+      command.kind === "dig" ||
+      command.kind === "backfill" ||
       command.kind === "sow" ||
       command.kind === "harvest" ||
       command.kind === "store" ||
@@ -441,6 +460,22 @@ async function startGame() {
           ? `Submitted ${submitted} shared oak designation${submitted === 1 ? "" : "s"}; waiting for the fixed step.`
           : "No standing, unassigned oaks were submitted.";
         if (!submitted) hud.dispatch({ kind: "commit-result", accepted: 0 });
+        if (state.paused) flushPending();
+        publish();
+        break;
+      }
+      case "submit-terrain-designation": {
+        for (const cell of action.cells)
+          request(
+            { kind: cell.kind, party: "home", actors: null, ...cell },
+            { terrainDesignation: cell.kind },
+          );
+        if (!action.cells.length) {
+          notice = "No ground cells were selected.";
+          publish();
+          break;
+        }
+        notice = `Submitted ${action.cells.length} shared ${action.cells[0].kind} designation${action.cells.length === 1 ? "" : "s"}; waiting for the fixed step.`;
         if (state.paused) flushPending();
         publish();
         break;
@@ -659,6 +694,14 @@ async function startGame() {
         }
         request({ kind: "sow", ...cell });
         hud.dispatch({ kind: "placement-result", point: point(cell, screen) });
+        return;
+      }
+      if (fixed.tool === "dig" || fixed.tool === "backfill") {
+        hud.dispatch({
+          kind: "submit-terrain-designation",
+          cells: terrainDesignationCells(fixed.tool, start, end),
+        });
+        hud.dispatch({ kind: "placement-result", point: point(end, screen) });
         return;
       }
       if (fixed.gesture === "box") {

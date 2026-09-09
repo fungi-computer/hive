@@ -1,7 +1,30 @@
 import type { BuildingKind, Cell, Command } from "./model.ts";
+import { setup } from "xstate";
 
-export type ToolKind = "chop" | BuildingKind | "herb";
+export type TerrainToolKind = "dig" | "backfill";
+export type ToolKind = "chop" | BuildingKind | "herb" | TerrainToolKind;
 export type LogicalLevel = 0 | 1;
+
+/** Checked terrain controls share their labels and help with their typed tool. */
+export const TERRAIN_TOOL_CATALOG = [
+  {
+    kind: "dig",
+    label: "Dig",
+    detail: "remove one shallow soil voxel · shared Build work",
+    title: "Designate shallow excavation",
+  },
+  {
+    kind: "backfill",
+    label: "Backfill",
+    detail: "fill one shallow pit with soil · shared Build work",
+    title: "Designate shallow backfill",
+  },
+] as const satisfies readonly {
+  readonly kind: TerrainToolKind;
+  readonly label: string;
+  readonly detail: string;
+  readonly title: string;
+}[];
 
 /** A read-only UI projection of a physical lot.  It deliberately carries no
  * command or stock policy: callers can only find the loose goods at a cell. */
@@ -38,8 +61,224 @@ export type GesturePoint = {
   cell: { x: number; z: number; level: number };
   screen: { x: number; y: number };
 };
+
+export type TerrainDesignation = {
+  readonly kind: TerrainToolKind;
+  readonly x: number;
+  readonly z: number;
+  readonly level: 0;
+};
+
+/** The gesture selects a rectangle only. Terrain admission owns every law. */
+export function terrainDesignationCells(
+  kind: TerrainToolKind,
+  start: Pick<GesturePoint["cell"], "x" | "z"> | null,
+  end: Pick<GesturePoint["cell"], "x" | "z">,
+): TerrainDesignation[] {
+  const from = start ?? end;
+  const left = Math.min(from.x, end.x);
+  const right = Math.max(from.x, end.x);
+  const top = Math.min(from.z, end.z);
+  const bottom = Math.max(from.z, end.z);
+  const cells: TerrainDesignation[] = [];
+  for (let z = top; z <= bottom; z++)
+    for (let x = left; x <= right; x++) cells.push({ kind, x, z, level: 0 });
+  return cells;
+}
+
+type ToolGestureContext = {
+  tool: ToolKind | null;
+  gesture: "box" | "tool" | null;
+  start: GesturePoint | null;
+  end: GesturePoint | null;
+  commitRequested: boolean;
+};
+type ToolGestureEvent =
+  | { type: "TOOL"; tool: ToolKind | null }
+  | {
+      type:
+        | "CANCEL"
+        | "CAMERA_MOVE"
+        | "ESCAPE"
+        | "RESET"
+        | "LEVEL_CHANGE"
+        | "CANCEL_STROKE";
+    }
+  | { type: "BEGIN" | "MOVE" | "END" | "PLACED"; point: GesturePoint }
+  | { type: "COMMIT" }
+  | { type: "COMMIT_RESULT"; accepted: number };
+
+const toolGesture = setup({
+  types: {
+    context: {} as ToolGestureContext,
+    events: {} as ToolGestureEvent,
+  },
+});
+
+function toolFromEvent(event: ToolGestureEvent): ToolKind | null {
+  if (event.type !== "TOOL") throw new Error("Tool event required");
+  return event.tool;
+}
+
+function pointFromEvent(event: ToolGestureEvent): GesturePoint {
+  if (!("point" in event)) throw new Error("Gesture point event required");
+  return event.point;
+}
+
+const clearGesture = toolGesture.assign(() => ({
+  tool: null,
+  gesture: null,
+  start: null,
+  end: null,
+  commitRequested: false,
+}));
+
+const clearGestureKeepTool = toolGesture.assign(({ context }) => ({
+  tool: context.tool,
+  gesture: null,
+  start: null,
+  end: null,
+  commitRequested: false,
+}));
+
+const keepToolReady = toolGesture.assign(({ context, event }) => ({
+  tool: context.tool,
+  gesture: null,
+  start: null,
+  end: event.type === "PLACED" ? event.point : context.end,
+  commitRequested: false,
+}));
+
+/** XState owns gestures only; command admission and terrain remain below UI. */
+export const toolMachine = toolGesture.createMachine({
+  id: "tool-gesture",
+  initial: "idle",
+  context: {
+    tool: null,
+    gesture: null,
+    start: null,
+    end: null,
+    commitRequested: false,
+  },
+  on: {
+    TOOL: [
+      {
+        target: ".ready",
+        actions: [
+          clearGesture,
+          toolGesture.assign(({ event }) => ({ tool: toolFromEvent(event) })),
+        ],
+        guard: ({ event }) => !!toolFromEvent(event),
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
+    CANCEL: { target: ".idle", actions: clearGesture },
+    CAMERA_MOVE: [
+      {
+        target: ".ready",
+        guard: ({ context }) => cameraMoveKeepsTool(context.tool),
+        actions: clearGestureKeepTool,
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
+    ESCAPE: { target: ".idle", actions: clearGesture },
+    RESET: { target: ".idle", actions: clearGesture },
+    LEVEL_CHANGE: [
+      {
+        target: ".ready",
+        guard: ({ context }) => !!context.tool,
+        actions: clearGestureKeepTool,
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
+    CANCEL_STROKE: [
+      {
+        target: ".ready",
+        guard: ({ context }) => !!context.tool,
+        actions: clearGestureKeepTool,
+      },
+      { target: ".idle", actions: clearGesture },
+    ],
+  },
+  states: {
+    idle: {
+      on: {
+        BEGIN: {
+          target: "dragging",
+          actions: toolGesture.assign(({ event }) => ({
+            tool: null,
+            gesture: "box",
+            start: pointFromEvent(event),
+            end: pointFromEvent(event),
+            commitRequested: false,
+          })),
+        },
+      },
+    },
+    ready: {
+      on: {
+        MOVE: {
+          actions: toolGesture.assign(({ event }) => ({
+            end: pointFromEvent(event),
+          })),
+        },
+        BEGIN: {
+          target: "dragging",
+          actions: toolGesture.assign(({ context, event }) => ({
+            gesture: "tool",
+            start: pointFromEvent(event),
+            end: pointFromEvent(event),
+            tool: context.tool,
+            commitRequested: false,
+          })),
+        },
+      },
+    },
+    dragging: {
+      on: {
+        MOVE: {
+          actions: toolGesture.assign(({ event }) => ({
+            end: pointFromEvent(event),
+          })),
+        },
+        END: {
+          target: "fixed",
+          actions: toolGesture.assign(({ event }) => ({
+            end: pointFromEvent(event),
+          })),
+        },
+      },
+    },
+    fixed: {
+      on: {
+        PLACED: { target: "ready", actions: keepToolReady },
+        COMMIT: {
+          actions: toolGesture.assign(() => ({ commitRequested: true })),
+          guard: ({ context }) => !context.commitRequested,
+        },
+        COMMIT_RESULT: [
+          {
+            target: "ready",
+            guard: ({ event }) => event.accepted > 0,
+            actions: keepToolReady,
+          },
+          { target: "ready", actions: keepToolReady },
+        ],
+      },
+    },
+  },
+});
+
 export type UiCommand =
   | { kind: "chop"; tree: string; direct?: boolean; actors?: string[] | null }
+  | {
+      kind: TerrainToolKind;
+      x: number;
+      z: number;
+      level: 0;
+      direct?: boolean;
+      actors?: string[] | null;
+    }
   | {
       kind: "build";
       type: BuildingKind;
@@ -103,6 +342,7 @@ export type UiAction =
   | { kind: "begin" | "move" | "end"; point: GesturePoint }
   | { kind: "placement-result"; point: GesturePoint }
   | { kind: "set-designation"; ids: string[] }
+  | { kind: "submit-terrain-designation"; cells: TerrainDesignation[] }
   | { kind: "commit-designation" }
   | { kind: "commit-result"; accepted: number }
   | { kind: "cutaway"; value: boolean }
@@ -121,6 +361,7 @@ export type UiEffect =
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
   | { kind: "submit-designation"; targetIds: string[] }
+  | { kind: "submit-terrain-designation"; cells: TerrainDesignation[] }
   | {
       kind:
         | "pause"
@@ -189,6 +430,8 @@ export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
     case "brew-station":
     case "chop":
     case "herb":
+    case "dig":
+    case "backfill":
       return 0;
     case "wall":
     case "door":
@@ -263,6 +506,15 @@ export function submitDesignation(targetIds: string[]): UiEffect {
   return { kind: "submit-designation", targetIds: [...targetIds] };
 }
 
+export function submitTerrainDesignation(
+  cells: readonly TerrainDesignation[],
+): UiEffect {
+  return {
+    kind: "submit-terrain-designation",
+    cells: cells.map((cell) => ({ ...cell })),
+  };
+}
+
 function neverAction(value: never): never {
   throw new Error(`Unhandled UI action: ${String(value)}`);
 }
@@ -314,6 +566,7 @@ export function dispatchUiAction(
     case "end":
     case "placement-result":
     case "set-designation":
+    case "submit-terrain-designation":
     case "commit-designation":
     case "commit-result":
     case "cutaway":

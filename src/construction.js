@@ -13,6 +13,7 @@ import {
   upperSurface,
 } from "./world.js";
 import { pathTicks, route } from "./movement.js";
+import { terrainCell } from "./terrain.ts";
 
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
@@ -534,6 +535,12 @@ export function placementProblem(state, at) {
   if (!at || !BUILDINGS[at.type]) return "Choose something to build.";
   if (!footprint(at).every(inside))
     return "Keep the footprint inside the clearing.";
+  if (
+    footprint(at).some(
+      (cell) => !terrainCell(state.terrain, cell.x, cell.z).support,
+    )
+  )
+    return "Backfill this ground before building over it.";
   if (at.type === "floor") {
     if (at.level !== 1) return "Upper floors belong on level 1.";
     if (crossLevelSurfaceConflict(state, at))

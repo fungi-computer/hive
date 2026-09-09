@@ -1,9 +1,10 @@
 import * as THREE from "three";
+import { TERRAIN_VOXEL_METRIC } from "../terrain.ts";
 import { SIZE } from "../world.js";
 // The accepted study camera: a 32×16 diamond and ~19.6 pixels per vertical unit.
 export const WIDTH = 640,
   HEIGHT = 400;
-export const STOREY_HEIGHT = 2.16;
+export const STOREY_HEIGHT = 4 * TERRAIN_VOXEL_METRIC.verticalM;
 const PIXELS_PER_UNIT = 16 * Math.SQRT2;
 export function camera(width, height, targetY = 1.03) {
   const c = new THREE.OrthographicCamera(

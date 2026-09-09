@@ -14,7 +14,9 @@
     "prove:build-hover": "node scripts/prove-build-hover.mjs",
     "prove:two-person": "node scripts/prove-two-person.mjs",
     "prove:study": "node scripts/prove-study.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prove:digging": "node scripts/prove-digging.mjs",
+    "test:digging": "node --test src/digging-controls.test.js src/terrain-picking.test.js"
   },
   "dependencies": {
     "@fungi.computer/caps": "file:vendor/caps/fungi.computer-caps-0.0.0.tgz",

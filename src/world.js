@@ -1,5 +1,6 @@
 // One finite clearing. Logical storeys are explicit; rendering may interpolate
 // between them, but simulation positions remain integer cells.
+import { terrainCell } from "./terrain.ts";
 export const SIZE = 15;
 export const WATCHER = { x: 13, z: 2, level: 0 };
 export const ROCKS = [
@@ -111,6 +112,46 @@ export function placementOccupant(state, at, excludeId = null) {
     return "herb-bundle";
   return null;
 }
+/** Occupancy is checked separately from terrain geometry so completion can revalidate it. */
+export function terrainEditProblem(state, at) {
+  if (!inside(at) || at.level !== 0) return "That is not shallow ground.";
+  const body = [...Object.values(state.actors), state.cat];
+  if (body.some((pawn) => sameCell(pawn, at)))
+    return "Someone is standing there.";
+  if (body.some((pawn) => pawn.path?.some((cell) => sameCell(cell, at))))
+    return "Someone is crossing that ground.";
+  if (sourceAt(state, at)) return "A source occupies that ground.";
+  if (state.trees.some((tree) => sameCell(tree, at)))
+    return "A tree or stump occupies that ground.";
+  if (state.rocks.some((rock) => sameCell(rock, at)))
+    return "A rock occupies that ground.";
+  if (sameCell(state.watcher, at)) return "The watcher occupies that ground.";
+  if (
+    state.sites.some((site) =>
+      siteCells(site).some((cell) => sameCell(cell, at)),
+    )
+  )
+    return "A structure occupies or depends on that ground.";
+  if (state.herbs.some((herb) => sameCell(herb, at)))
+    return "An herb occupies that ground.";
+  if (groundLotsAt(state, at).length) return "Loose goods occupy that ground.";
+  return null;
+}
+/** Safe cardinal rim cells; workers do not enter a shallow hole in this release. */
+export function terrainRimCells(state, at) {
+  const terrainTargets = new Set(
+    state.jobs
+      .filter((job) => job.kind === "dig" || job.kind === "backfill")
+      .map((job) => cellKey(job)),
+  );
+  return neighbors(at).filter(
+    (cell) =>
+      inside(cell) &&
+      cell.level === 0 &&
+      !terrainTargets.has(cellKey(cell)) &&
+      terrainCell(state.terrain, cell.x, cell.z).support,
+  );
+}
 export function neighbors(p) {
   return [
     [1, 0],
@@ -154,6 +195,8 @@ export function blockedCells(state) {
         .flatMap(siteCells),
     ].map(cellKey),
   );
+  for (const edit of state.terrain.edits)
+    blocked.add(cellKey({ x: edit.x, z: edit.z, level: 0 }));
   for (const stair of state.sites)
     if (stair.type === "stair")
       for (const cell of stairCells(stair).slice(1)) blocked.add(cellKey(cell));

@@ -24,6 +24,7 @@ function legs(
   moving,
   { hip, spread, width, cloth, boots, action = "idle" },
 ) {
+  if (action === "dig") action = "build";
   const length = (hip - 0.1) / 2;
   for (const side of [-1, 1]) {
     const swing = moving ? Math.sin(phase * Math.PI * 2) * side : 0;
@@ -62,9 +63,10 @@ function arms(
   moving,
   { shoulder, spread, length, sleeve, hand, action = "idle" },
 ) {
-  const carryingHerb = action === "carry-herb";
+  const carryingHerb = ["carry-herb", "carry-soil"].includes(action);
+  if (action === "dig") action = "build";
   const carryingPail = Object.hasOwn(PAIL_POSES, action);
-  if (action === "carry-herb") action = "carry";
+  if (carryingHerb) action = "carry";
   if (action === "pickup-herb") action = "pickup";
   const hands = [];
   for (const side of [-1, 1]) {
@@ -192,6 +194,23 @@ function workGear(body, hands, pose) {
   }
   if (pose === "carry-herb") {
     carryHerb(body, hands);
+    return;
+  }
+  if (pose === "carry-soil") {
+    const palms = hands.map((hand) =>
+      body.worldToLocal(hand.getWorldPosition(new THREE.Vector3())),
+    );
+    const center = palms[0].clone().add(palms[1]).multiplyScalar(0.5);
+    // A cloth gathering sack reads as earth custody without a log/axe prop.
+    const sack = group(body, center.x, center.y - 0.13, center.z + 0.03);
+    ball(sack, "#ac9162", 0, 0, 0, 0.24, 0.22, 0.18);
+    ball(sack, "#72523c", 0, 0.15, 0, 0.2, 0.075, 0.15);
+    return;
+  }
+  if (pose === "dig") {
+    const spade = group(hands[0], 0, -0.025, 0);
+    cylinder(spade, "#a17b4d", 0, -0.15, 0, 0.023, 0.023, 0.44, 6);
+    box(spade, "#8a9993", 0, -0.39, 0, 0.19, 0.2, 0.04);
     return;
   }
   if (pose === "pickup-herb") return;
@@ -576,6 +595,7 @@ function copperHair(body, phase, moving, pose) {
   const working = [
     "chop",
     "build",
+    "dig",
     "pickup",
     "pickup-herb",
     "deliver",
@@ -697,6 +717,7 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
     pose === "walk" ||
     pose === "carry" ||
     pose === "carry-herb" ||
+    pose === "carry-soil" ||
     Object.hasOwn(PAIL_POSES, pose);
   const body = group(
     puppet,
@@ -704,7 +725,10 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
     moving ? Math.abs(Math.sin(phase * Math.PI * 2)) * 0.025 : 0,
     0,
   );
-  if (pose === "build" && ["rowan", "witch-runner"].includes(kind))
+  if (
+    ["build", "dig"].includes(pose) &&
+    ["rowan", "witch-runner"].includes(kind)
+  )
     body.position.y = -0.39;
   if (pose === "idle" && ["rowan", "witch-runner", "cat"].includes(kind)) {
     body.scale.y = 1 + Math.sin(phase * Math.PI * 2) * 0.012;

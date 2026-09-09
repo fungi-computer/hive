@@ -18,6 +18,7 @@ import { updateRoutine } from "./routine.ts";
 import { admitCommands, type CommandResult } from "./orders.ts";
 import { route, beginWalk, walk } from "./movement.js";
 import { mugwortStage } from "./herbs.ts";
+import { authoredClearingTerrain } from "./terrain.ts";
 
 export function createClearing(seed = 42): Clearing {
   const state: Clearing = {
@@ -55,6 +56,7 @@ export function createClearing(seed = 42): Clearing {
     pendingSources: [],
     operations: [],
     processes: [],
+    terrain: authoredClearingTerrain(),
     rocks: structuredClone(ROCKS),
     watcher: { ...WATCHER },
     sites: [],

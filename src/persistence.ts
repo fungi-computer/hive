@@ -1,7 +1,12 @@
 import { openDB } from "idb";
 import { z } from "zod";
 import type { Clearing, Job, PositiveInt } from "./model.ts";
-import { inside, sameCell } from "./world.js";
+import {
+  AUTHORED_CLEARING_TERRAIN,
+  authoredClearingTerrain,
+  terrainBackfillBuffer,
+} from "./terrain.ts";
+import { inside, sameCell, terrainEditProblem } from "./world.js";
 import {
   BUILDINGS,
   constructionBuffer,
@@ -42,7 +47,7 @@ import {
 import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 13 as const;
+const SAVE_SCHEMA = 14 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -421,6 +426,19 @@ const material = z.enum([
   "ale",
   "spent-grain",
 ]);
+/** Current soil is deliberate schema-14 content; predecessor schemas stay frozen. */
+const currentMaterial = z.enum([
+  "wood",
+  "mugwort",
+  "water",
+  "pail",
+  "malt",
+  "barm",
+  "keg",
+  "ale",
+  "spent-grain",
+  "soil",
+]);
 const lot = z
   .object({
     id,
@@ -491,6 +509,28 @@ const transfer = z
     ]),
   })
   .strict();
+const currentLot = lot.extend({ material: currentMaterial }).strict();
+const currentRequest = request
+  .extend({
+    source: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("eligible-ground"),
+          material: currentMaterial,
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("eligible-container"),
+          material: currentMaterial,
+          container: id,
+        })
+        .strict(),
+      z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
+    ]),
+  })
+  .strict();
+const currentTransfer = transfer.extend({ request: currentRequest }).strict();
 const v10Request = request
   .extend({
     source: z.discriminatedUnion("kind", [
@@ -791,7 +831,83 @@ const stateSchema = v12StateSchema.extend({
   operations: z.array(waterDeliveryOperation),
   jobs: z.array(job),
 });
+/** Schema 13 remains the frozen predecessor shape above. */
+const terrainEdit = z
+  .object({ x: integer, z: integer, level: z.literal(0) })
+  .strict();
+const currentActivity = z.discriminatedUnion("kind", [
+  ...activity.options,
+  currentActivityKind("dig"),
+  currentActivityKind("backfill"),
+]);
+const currentActor = actor
+  .extend({
+    mode: z.enum([
+      "idle",
+      "walk",
+      "chop",
+      "build",
+      "deconstruct",
+      "sow",
+      "harvest",
+      "transfer",
+      "sleep",
+      "repair-cache",
+      "water-delivery",
+      "brew",
+      "tap",
+      "clear-spent-grain",
+      "dig",
+      "backfill",
+    ]),
+    task: currentActivity.nullable(),
+  })
+  .strict();
+const currentJob = z.discriminatedUnion("kind", [
+  ...job.options,
+  z
+    .object({
+      ...jobBase,
+      kind: z.literal("dig"),
+      x: integer,
+      z: integer,
+      level: z.literal(0),
+    })
+    .strict(),
+  z
+    .object({
+      ...jobBase,
+      kind: z.literal("backfill"),
+      x: integer,
+      z: integer,
+      level: z.literal(0),
+    })
+    .strict(),
+]);
+const currentStateSchema = stateSchema
+  .extend({
+    actors: z.record(id, currentActor),
+    materials: stateSchema.shape.materials
+      .extend({
+        lots: z.array(currentLot),
+        transfers: z.array(currentTransfer),
+        sinks: z
+          .array(z.object({ id, material, quantity: positive }).strict())
+          .default([]),
+      })
+      .strict(),
+    jobs: z.array(currentJob),
+    terrain: z
+      .object({
+        base: z.literal(AUTHORED_CLEARING_TERRAIN),
+        edits: z.array(terrainEdit),
+        revision: nonNegative,
+      })
+      .strict(),
+  })
+  .strict();
 type V12SavedClearing = z.infer<typeof v12StateSchema>;
+type V13SavedClearing = z.infer<typeof stateSchema>;
 type SavedClearing = Omit<Clearing, "commands">;
 /** Schema 11 predates Craft and saved processes; parse it strictly before filling defaults. */
 const v11LegacyBinding = z
@@ -870,7 +986,9 @@ const v10StateSchema = v11StateSchema
   })
   .strict();
 type V10SavedClearing = z.infer<typeof v10StateSchema>;
-const savedSchema = stateSchema.transform((value): SavedClearing => value);
+const savedSchema = currentStateSchema.transform(
+  (value): SavedClearing => value as SavedClearing,
+);
 const envelopeSchema = z
   .object({
     kind: z.literal(SAVE_KIND),
@@ -885,6 +1003,14 @@ const v12EnvelopeSchema = z
     schema: z.literal(12),
     revision: nonNegative,
     savedState: v12StateSchema,
+  })
+  .strict();
+const v13EnvelopeSchema = z
+  .object({
+    kind: z.literal(SAVE_KIND),
+    schema: z.literal(13),
+    revision: nonNegative,
+    savedState: stateSchema,
   })
   .strict();
 export type SerializedClearing = SavedClearing;
@@ -906,7 +1032,7 @@ const v11EnvelopeSchema = z
   })
   .strict();
 function fail(message: string): never {
-  throw new Error(`Invalid schema 13 save: ${message}`);
+  throw new Error(`Invalid schema 14 save: ${message}`);
 }
 
 function liveState(state: SavedClearing): Clearing {
@@ -977,7 +1103,10 @@ function activityMatchesJob(
     const repair = state.sources.find(
       (source) => cacheRepairBuffer(source)?.id === destinationId,
     );
-    if (!resolved && !repair) return false;
+    const terrain =
+      job.kind === "backfill" &&
+      destinationId === terrainBackfillBuffer(job.id).id;
+    if (!resolved && !repair && !terrain) return false;
     return (
       (resolved?.destination.id === destinationId &&
         job.kind === "build" &&
@@ -989,7 +1118,8 @@ function activityMatchesJob(
         destinationId === cacheRepairBuffer(repair)?.id) ||
       (job.kind === "brew" &&
         resolved?.site.id === job.target &&
-        resolved.destination.id === destinationId)
+        resolved.destination.id === destinationId) ||
+      terrain
     );
   }
   if (job.kind === "rest")
@@ -1003,6 +1133,8 @@ function activityMatchesJob(
           site.finishedAt !== null,
       )
     );
+  if (job.kind === "dig" || job.kind === "backfill")
+    return task.kind === job.kind && task.target === job.id;
   if (task.kind !== job.kind || task.target !== job.target) return false;
   return job.kind === "chop"
     ? state.trees.some((tree) => tree.id === job.target)
@@ -1536,6 +1668,12 @@ function relationContext(state: SavedClearing): RelationContext {
     const supplies = sourceSuppliesContainerSpec(feature);
     if (supplies) containers.set(supplies.id, supplies);
   }
+  for (const job of state.jobs)
+    if (job.kind === "backfill")
+      containers.set(
+        terrainBackfillBuffer(job.id).id,
+        terrainBackfillBuffer(job.id),
+      );
   for (const lot of state.materials.lots) {
     const interior = portableContainerInterior(lot);
     if (interior) containers.set(interior.id, interior);
@@ -1881,9 +2019,12 @@ function validateTransferOwner(
     (owner.kind === "repair-cache" &&
       (!repairSource ||
         transfer.intent.destination !== cacheRepairBuffer(repairSource)?.id)) ||
+    (owner.kind === "backfill" &&
+      transfer.intent.destination !== terrainBackfillBuffer(owner.id).id) ||
     (owner.kind !== "build" &&
       owner.kind !== "store" &&
       owner.kind !== "repair-cache" &&
+      owner.kind !== "backfill" &&
       owner.kind !== "brew")
   )
     fail(`transfer ${transfer.id} does not match owner destination`);
@@ -1901,6 +2042,11 @@ function validateTransferOwner(
       (transfer.request.source.kind === "exact-lot" ||
         transfer.request.source.material !== "wood" ||
         transfer.request.quantityPolicy !== "portion")) ||
+    (owner.kind === "backfill" &&
+      (transfer.request.source.kind === "exact-lot" ||
+        transfer.request.source.material !== "soil" ||
+        transfer.request.quantityPolicy !== "portion" ||
+        transfer.request.quantity !== 1)) ||
     (owner.kind === "brew" && transfer.request.source.kind !== "exact-lot")
   )
     fail(`transfer ${transfer.id} does not match owner request`);
@@ -2252,6 +2398,54 @@ function validateConservation({ state }: RelationContext): void {
     .reduce((sum, source) => sum + sourceContainerSpec(source).capacity, 0);
   if (water !== springWater)
     fail(`water conservation is ${water}, expected ${springWater}`);
+  const soil = state.materials.lots.reduce(
+    (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
+    0,
+  );
+  if (soil !== state.terrain.edits.length)
+    fail(
+      `soil conservation is ${soil}, expected ${state.terrain.edits.length}`,
+    );
+}
+
+function validateTerrainEdits(state: SavedClearing): Set<string> {
+  if (state.terrain.base !== AUTHORED_CLEARING_TERRAIN)
+    fail("unknown terrain base");
+  const edits = new Set<string>();
+  for (const edit of state.terrain.edits) {
+    const key = `${edit.x},${edit.z},${edit.level}`;
+    if (!inside(edit) || edit.level !== 0 || edits.has(key))
+      fail(`invalid terrain edit ${key}`);
+    const occupant = terrainEditProblem(liveState(state), edit);
+    if (occupant) fail(`terrain edit ${key} is occupied: ${occupant}`);
+    edits.add(key);
+  }
+  return edits;
+}
+
+function validateTerrainJobTargets(
+  state: SavedClearing,
+  edits: ReadonlySet<string>,
+): void {
+  const jobTargets = new Set<string>();
+  for (const job of state.jobs) {
+    if (job.kind !== "dig" && job.kind !== "backfill") continue;
+    if (!inside(job) || job.level !== 0)
+      fail(`terrain job ${job.id} has invalid target`);
+    const key = `${job.x},${job.z},0`;
+    if (jobTargets.has(key)) fail(`duplicate terrain job target ${key}`);
+    jobTargets.add(key);
+    const removed = edits.has(`${job.x},${job.z},0`);
+    if (
+      (job.kind === "dig" && removed) ||
+      (job.kind === "backfill" && !removed)
+    )
+      fail(`terrain job ${job.id} has stale geometry`);
+  }
+}
+
+function validateTerrain({ state }: RelationContext): void {
+  validateTerrainJobTargets(state, validateTerrainEdits(state));
 }
 
 function validateRelations(
@@ -2277,6 +2471,7 @@ function validateRelations(
   validateHandCustody(context);
   validateEmbeddings(context);
   validateSiteTopology(context);
+  validateTerrain(context);
   validateConservation(context);
   return state;
 }
@@ -2295,6 +2490,7 @@ function v12KettleDeliveryQuantity(station: string): PositiveInt {
 function v12CurrentRelationView(predecessor: V12SavedClearing): SavedClearing {
   return {
     ...predecessor,
+    terrain: authoredClearingTerrain(),
     actors: Object.fromEntries(
       Object.entries(predecessor.actors).map(([actorId, actor]) => [
         actorId,
@@ -2327,6 +2523,14 @@ function v12CurrentRelationView(predecessor: V12SavedClearing): SavedClearing {
       phase: operation.phase,
     })),
   };
+}
+
+/** Schema 13 is admitted in its exact shipped shape before flat terrain is added. */
+function convertV13State(predecessor: V13SavedClearing): SavedClearing {
+  return validateRelations({
+    ...predecessor,
+    terrain: authoredClearingTerrain(),
+  } as SavedClearing);
 }
 
 /** Schema 12 is structurally strict and relation-checked before conversion. */
@@ -2451,7 +2655,7 @@ function convertV11State(predecessor: V11SavedClearing): SavedClearing {
               })),
             };
           })(),
-    );
+    ) as unknown as V12SavedClearing["materials"]["bindings"];
   const state: V12SavedClearing = {
     ...predecessor,
     actors: Object.fromEntries(
@@ -2498,6 +2702,20 @@ function validateSaveEnvelope(value: unknown): SaveEnvelope {
     typeof value === "object" &&
     value !== null &&
     "schema" in value &&
+    value.schema === 13
+  ) {
+    const predecessor = v13EnvelopeSchema.parse(value);
+    return {
+      kind: SAVE_KIND,
+      schema: SAVE_SCHEMA,
+      revision: predecessor.revision,
+      savedState: convertV13State(predecessor.savedState),
+    };
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "schema" in value &&
     value.schema === 12
   ) {
     const predecessor = v12EnvelopeSchema.parse(value);
@@ -2536,7 +2754,7 @@ function validateSaveEnvelope(value: unknown): SaveEnvelope {
       savedState: validateRelations(convertV10State(predecessor.savedState)),
     };
   }
-  throw new Error("Invalid schema 13 save: unsupported predecessor schema");
+  throw new Error("Invalid schema 14 save: unsupported predecessor schema");
 }
 export function snapshotFor(state: Clearing): SaveEnvelope {
   const { commands: _commands, ...savedState } = structuredClone(state);

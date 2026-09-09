@@ -19,6 +19,7 @@ function v10Envelope(change = () => {}) {
   const saved = snapshotFor(createClearing());
   const predecessor = structuredClone(saved);
   predecessor.schema = 10;
+  delete predecessor.savedState.terrain;
   delete predecessor.savedState.materials.sinks;
   for (const herb of predecessor.savedState.herbs) delete herb.establishment;
   delete predecessor.savedState.processes;
@@ -38,6 +39,7 @@ function v10Envelope(change = () => {}) {
 function v11Envelope(change = () => {}) {
   const predecessor = structuredClone(snapshotFor(createClearing()));
   predecessor.schema = 11;
+  delete predecessor.savedState.terrain;
   delete predecessor.savedState.materials.sinks;
   for (const herb of predecessor.savedState.herbs) delete herb.establishment;
   delete predecessor.savedState.processes;
@@ -188,7 +190,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v13 snapshots omit commands and restore paused", () => {
+test("v14 snapshots retain authored terrain, omit commands, and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -197,11 +199,49 @@ test("v13 snapshots omit commands and restore paused", () => {
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 13);
+  assert.equal(saved.schema, 14);
+  assert.deepEqual(saved.savedState.terrain, {
+    base: "authored-clearing-v1",
+    edits: [],
+    revision: 0,
+  });
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
+});
+
+test("schema 13 stays frozen while schema 14 rejects malformed terrain edits and soil sinks", () => {
+  const predecessor = structuredClone(snapshotFor(createClearing()));
+  predecessor.schema = 13;
+  delete predecessor.savedState.terrain;
+  predecessor.savedState.materials.lots.push({
+    id: "future-soil",
+    material: "soil",
+    quantity: 1,
+    location: { kind: "ground", ...cell(5, 5) },
+  });
+  assert.throws(() => restoreSnapshot(predecessor));
+
+  const occupiedEdit = envelope((state) => {
+    state.terrain.edits.push({ x: 1, z: 1, level: 0 });
+    state.materials.lots.push({
+      id: "soil-rim",
+      material: "soil",
+      quantity: 1,
+      location: { kind: "ground", ...cell(5, 5) },
+    });
+  });
+  assert.throws(() => restoreSnapshot(occupiedEdit), /terrain edit/);
+
+  const soilSink = envelope((state) => {
+    state.materials.sinks.push({
+      id: "buried-soil",
+      material: "soil",
+      quantity: 1,
+    });
+  });
+  assert.throws(() => restoreSnapshot(soilSink));
 });
 
 test("strict schema 11 converts Craft defaults but rejects schema-12 Brew fields", () => {
@@ -453,7 +493,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {
   const restored = restoreSnapshot(v10Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 13);
+  assert.equal(snapshotFor(restored.state).schema, 14);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -706,6 +746,7 @@ test("schema 12 validates executor-bound Fill custody before converting it", () 
   });
   const predecessor = structuredClone(saved);
   predecessor.schema = 12;
+  delete predecessor.savedState.terrain;
   delete predecessor.savedState.materials.sinks;
   for (const herb of predecessor.savedState.herbs) delete herb.establishment;
   const operation = predecessor.savedState.operations[0];
@@ -1249,12 +1290,12 @@ rejects(
   /pending source .* is invalid/,
 );
 
-test("schema 13 reports unsupported predecessors truthfully", () => {
+test("schema 14 reports unsupported predecessors truthfully", () => {
   const unsupported = snapshotFor(createClearing());
   unsupported.schema = 7;
   assert.throws(
     () => restoreSnapshot(unsupported),
-    /Invalid schema 13 save: unsupported predecessor schema/,
+    /Invalid schema 14 save: unsupported predecessor schema/,
   );
   const malformed = v10Envelope((state) => {
     state.extra = true;

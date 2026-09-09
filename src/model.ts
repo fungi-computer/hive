@@ -23,7 +23,8 @@ export type Material =
   | "barm"
   | "keg"
   | "ale"
-  | "spent-grain";
+  | "spent-grain"
+  | "soil";
 export type ItemLotLocation =
   | ({ kind: "ground" } & Cell)
   | { kind: "hand"; actor: ActorId }
@@ -206,6 +207,7 @@ export type Scope = { party: PartyId; actors: ActorId[] | null };
 
 export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "chop"; tree: string }
+    | ({ kind: "dig" | "backfill" } & Cell)
     | ({ kind: "build"; type: BuildingKind; direction: number } & Cell)
     | { kind: "deconstruct"; site: string }
     | ({ kind: "sow" } & Cell)
@@ -305,6 +307,19 @@ export type ClearSpentGrainJob = JobBase & {
   transformation: OperationId;
   progress: number;
 };
+export type DigJob = JobBase & {
+  kind: "dig";
+  x: number;
+  z: number;
+  level: 0;
+};
+export type BackfillJob = JobBase & {
+  kind: "backfill";
+  x: number;
+  z: number;
+  level: 0;
+};
+export type TerrainJob = DigJob | BackfillJob;
 export type Job =
   | ChopJob
   | BuildJob
@@ -318,7 +333,8 @@ export type Job =
   | FillKettleJob
   | BrewJob
   | TapJob
-  | ClearSpentGrainJob;
+  | ClearSpentGrainJob
+  | TerrainJob;
 export type Assignment = { character: ActorId; task: JobId; cost: number };
 type ActivityBase = {
   job: JobId;
@@ -339,6 +355,8 @@ export type TapActivity = ActivityBase & { kind: "tap" };
 export type ClearSpentGrainActivity = ActivityBase & {
   kind: "clear-spent-grain";
 };
+export type TerrainActivity =
+  (ActivityBase & { kind: "dig" }) | (ActivityBase & { kind: "backfill" });
 export type Activity =
   | ChopActivity
   | BuildActivity
@@ -351,7 +369,8 @@ export type Activity =
   | RepairCacheActivity
   | BrewActivity
   | TapActivity
-  | ClearSpentGrainActivity;
+  | ClearSpentGrainActivity
+  | TerrainActivity;
 export type Body = Cell & {
   dir: number;
   mode: "idle" | "walk" | Activity["kind"];
@@ -423,6 +442,12 @@ export type BrewProcess = {
   progress: number;
   enteredAt: number;
 };
+export type TerrainEdit = { x: number; z: number; level: 0 };
+export type TerrainState = {
+  base: "authored-clearing-v1";
+  edits: TerrainEdit[];
+  revision: number;
+};
 export type Clearing = {
   seed: number;
   tick: number;
@@ -438,6 +463,7 @@ export type Clearing = {
   pendingSources: PendingFeatureIntroduction[];
   operations: WaterDeliveryOperation[];
   processes: BrewProcess[];
+  terrain: TerrainState;
   rocks: Cell[];
   watcher: Cell;
   sites: Site[];

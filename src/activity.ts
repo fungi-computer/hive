@@ -3,11 +3,18 @@ import type {
   Actor,
   Cell,
   Clearing,
+  Job,
   Site,
   Transfer,
   WaterDeliveryOperation,
 } from "./model.ts";
-import { blockedCells, sameCell, sourceAccessCells } from "./world.js";
+import {
+  blockedCells,
+  sameCell,
+  sourceAccessCells,
+  terrainEditProblem,
+  terrainRimCells,
+} from "./world.js";
 import { beginWalk, route, walk, face } from "./movement.js";
 import {
   BUILDINGS,
@@ -54,7 +61,14 @@ import {
   settleWaterDelivery,
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
+import {
+  backfillShallowVoxel,
+  removeShallowVoxel,
+  terrainBackfillBuffer,
+  terrainCell,
+} from "./terrain.ts";
 export const CHOP_TICKS = 80;
+const TERRAIN_TICKS = 40;
 function groundCell(at: Cell): Cell {
   return { x: at.x, z: at.z, level: at.level };
 }
@@ -100,13 +114,83 @@ function transferEndpoint(s: Clearing, id: string) {
   if (site)
     return { destination: site.destination, target: site.site, access: null };
   const repair = resolveCacheRepairBuffer(s, id);
-  return repair
+  if (repair)
+    return {
+      destination: repair.destination,
+      target: repair.source,
+      access: sourceAccessCells(repair.source),
+    };
+  const terrainJob = s.jobs.find(
+    (job): job is Extract<Job, { kind: "backfill" }> =>
+      job.kind === "backfill" && terrainBackfillBuffer(job.id).id === id,
+  );
+  return terrainJob
     ? {
-        destination: repair.destination,
-        target: repair.source,
-        access: sourceAccessCells(repair.source),
+        destination: terrainBackfillBuffer(terrainJob.id),
+        target: terrainJob,
+        access: terrainRimCells(s, terrainJob),
       }
     : null;
+}
+function terrainWork(
+  s: Clearing,
+  p: Actor,
+  t: Extract<Activity, { kind: "dig" | "backfill" }>,
+): void {
+  const job = s.jobs.find(
+    (candidate): candidate is Extract<Job, { kind: "dig" | "backfill" }> =>
+      candidate.id === t.job && candidate.kind === t.kind,
+  );
+  if (!job || t.target !== job.id || terrainEditProblem(s, job)) {
+    interruptWork(s, p);
+    return;
+  }
+  const geometry = terrainCell(s.terrain, job.x, job.z);
+  if (
+    (job.kind === "dig" && !geometry.solid) ||
+    (job.kind === "backfill" && geometry.solid)
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  const rim = terrainRimCells(s, job);
+  if (!accessWork(s, p, rim)) return;
+  face(p, job);
+  if (++p.work < TERRAIN_TICKS) return;
+  if (job.kind === "dig") {
+    const created = createGroundLot(s.materials, "soil", 1, groundCell(p));
+    if (!created.ok || !removeShallowVoxel(s.terrain, job)) {
+      interruptWork(s, p);
+      return;
+    }
+    s.notice = "One shallow soil voxel is on the rim.";
+  } else {
+    const buffer = terrainBackfillBuffer(job.id);
+    const soil = s.materials.lots.find(
+      (lot) =>
+        lot.material === "soil" &&
+        lot.location.kind === "container" &&
+        lot.location.container === buffer.id &&
+        lot.quantity >= 1,
+    );
+    if (!soil) {
+      interruptWork(s, p);
+      return;
+    }
+    const consumed = consumeContainerPortion(s.materials, {
+      lot: soil.id,
+      container: buffer.id,
+      material: "soil",
+      quantity: 1,
+    });
+    if (!consumed.ok || !backfillShallowVoxel(s.terrain, job)) {
+      interruptWork(s, p);
+      return;
+    }
+    s.notice = "The shallow ground is backfilled.";
+  }
+  s.workDirty = true;
+  finishJob(s, p, job.id);
 }
 function transfer(s: Clearing, p: Actor, t: Activity) {
   const x = s.materials.transfers.find((x) => x.id === t.target);
@@ -545,6 +629,7 @@ export function advanceWork(s: Clearing, p: Actor): void {
   if (t.kind === "brew") return brew(s, p, t);
   if (t.kind === "tap" || t.kind === "clear-spent-grain")
     return recipeOutput(s, p, t);
+  if (t.kind === "dig" || t.kind === "backfill") return terrainWork(s, p, t);
   const target =
     t.kind === "transfer"
       ? (() => {
@@ -586,7 +671,7 @@ export function advanceWork(s: Clearing, p: Actor): void {
     t.kind === "transfer"
       ? s.materials.transfers.find((x) => x.id === t.target)
       : undefined;
-  const carriedRepairAccess =
+  const carriedDeliveryAccess =
     currentTransfer?.phase.kind === "carrying" &&
     currentTransfer.intent.kind === "deliver"
       ? transferEndpoint(s, currentTransfer.intent.destination)?.access
@@ -600,8 +685,8 @@ export function advanceWork(s: Clearing, p: Actor): void {
         )?.accessCells
       : null;
   const okay =
-    t.kind === "transfer" && carriedRepairAccess
-      ? atAny(p, carriedRepairAccess)
+    t.kind === "transfer" && carriedDeliveryAccess
+      ? atAny(p, carriedDeliveryAccess)
       : t.kind === "transfer" && reservedFiniteAccess
         ? atAny(p, reservedFiniteAccess)
         : t.kind === "transfer" && currentTransfer?.phase.kind === "reserved"

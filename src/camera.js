@@ -1,3 +1,5 @@
+import { createTerrainPicker } from "./terrain-picking.js";
+import { SIZE } from "./world.js";
 import {
   project,
   projectCell,
@@ -92,6 +94,7 @@ export function subscribeCameraPresentation(camera, update, target = window) {
 
 // Presentation coordinates only. Baked pixels and simulation cells stay fixed.
 export function createCamera(app, host, world) {
+  const terrainPicker = createTerrainPicker(SIZE);
   let zoom = host.clientWidth >= 900 ? 2 : 1;
   const center = { x: WIDTH / 2, y: HEIGHT / 2 };
   const listeners = new Set();
@@ -113,6 +116,10 @@ export function createCamera(app, host, world) {
   }
   function cell(point, level = 0) {
     const p = local(point);
+    if (level === 0) {
+      const face = terrainPicker.pick(p);
+      if (face) return { ...face.cell };
+    }
     const ground = projectCell({ x: 0, z: 0, level: 0 });
     const surface = projectCell({ x: 0, z: 0, level });
     return {
@@ -132,6 +139,9 @@ export function createCamera(app, host, world) {
       return { x: p.x * zoom + world.x, y: p.y * zoom + world.y };
     },
     cell,
+    setTerrain(terrain) {
+      terrainPicker.update(terrain);
+    },
     pan(dx, dy) {
       center.x -= dx / zoom;
       center.y -= dy / zoom;

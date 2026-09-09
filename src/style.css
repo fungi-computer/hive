@@ -284,21 +284,37 @@ meter::-webkit-meter-optimum-value {
 }
 #palette {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 #palette button {
+  min-width: 0;
+  min-height: var(--size);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
   text-align: left;
-  padding: 10px;
+  white-space: normal;
+  padding: 8px 10px;
 }
 #palette span {
   display: block;
   font-size: 12px;
+  line-height: 1.15;
 }
 #palette small {
   display: block;
-  margin-top: 3px;
   font-size: 10px;
+  line-height: 1.2;
+}
+.terrain-tool-help {
+  margin: -4px 0 10px;
+  color: var(--stipe-fg-muted);
+  font-size: 11px;
+  line-height: 1.5;
 }
 .level-readout {
   margin: 9px 0;

@@ -14,6 +14,7 @@ import type {
 import { inScope } from "./actors.ts";
 import { optimizeEligible } from "./matching.ts";
 import { blockedCells, sameCell, sourceAccessCells } from "./world.js";
+import { terrainEditProblem, terrainRimCells } from "./world.js";
 import { approach, pathTicks, route, beginWalk } from "./movement.js";
 import {
   BUILDINGS,
@@ -56,6 +57,7 @@ import {
 } from "./brewing.ts";
 import { recipeOutputActionForWire } from "./recipes.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
+import { terrainBackfillBuffer, terrainCell } from "./terrain.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 import {
   resolveWaterDelivery,
@@ -88,6 +90,7 @@ type Candidate = {
   };
 };
 type Options = { reason: string; candidate: Candidate | null };
+const TERRAIN_TICKS = 40;
 const no = (reason: string): Options => ({ reason, candidate: null });
 const make = (
   job: Job,
@@ -753,6 +756,157 @@ function recipeOutputOption(
         ),
       };
 }
+type TerrainRim = { rim: Cell[] };
+
+function terrainRimCandidate(
+  state: Clearing,
+  job: Extract<Job, { kind: "dig" | "backfill" }>,
+  blocked: Set<string>,
+): TerrainRim | Options {
+  const target = { x: job.x, z: job.z, level: 0 as const };
+  const geometry = terrainCell(state.terrain, target.x, target.z);
+  if (terrainEditProblem(state, target)) return no("Ground is occupied");
+  if (job.kind === "dig" && !geometry.solid)
+    return no("Shallow voxel already removed");
+  if (job.kind === "backfill" && geometry.solid)
+    return no("Ground already filled");
+  const rim = terrainRimCells(state, target).filter(
+    (cell) => !blocked.has(`${cell.x},${cell.z},${cell.level}`),
+  );
+  return rim.length ? { rim } : no("No safe cardinal rim");
+}
+
+function rimWorkOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "dig" | "backfill" }>,
+  rim: readonly Cell[],
+  blocked: Set<string>,
+): Options {
+  const path = nearestPath(state, person, rim, blocked);
+  return path
+    ? {
+        reason: job.kind === "dig" ? "Ready to dig" : "Ready to backfill",
+        candidate: make(
+          job,
+          job.kind,
+          job.id,
+          path,
+          TERRAIN_TICKS,
+          pathTicks(person, path),
+        ),
+      }
+    : no("No route to the safe rim");
+}
+
+function nearestBackfillSoil(
+  state: Clearing,
+  person: Actor,
+  rim: readonly Cell[],
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+) {
+  let selected: {
+    fact: AvailableLotFact;
+    path: Cell[];
+    travel: number;
+  } | null = null;
+  for (const fact of sourceFacts) {
+    if (fact.lot.material !== "soil" || fact.lot.location.kind !== "ground")
+      continue;
+    const path = route(person, fact.lot.location, blocked, state);
+    const delivery =
+      path && nearestPath(state, path.at(-1) ?? person, rim, blocked);
+    if (!path || !delivery) continue;
+    const travel =
+      pathTicks(person, path) + pathTicks(path.at(-1) ?? person, delivery);
+    if (!selected || travel < selected.travel)
+      selected = { fact, path, travel };
+  }
+  return selected;
+}
+
+function backfillSupplyOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "backfill" }>,
+  rim: readonly Cell[],
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const buffer = terrainBackfillBuffer(job.id);
+  const staged = containerQuantity(state.materials, buffer.id, "soil");
+  if (staged === 1) return rimWorkOption(state, person, job, rim, blocked);
+  if (
+    staged > 0 ||
+    state.materials.transfers.some(
+      (transfer) =>
+        transfer.owner.kind === "job" && transfer.owner.job === job.id,
+    )
+  )
+    return no("Soil is on its way");
+  const selected = nearestBackfillSoil(
+    state,
+    person,
+    rim,
+    blocked,
+    sourceFacts,
+  );
+  if (!selected) return no("Waiting for reachable soil");
+  return {
+    reason: "Ready to haul soil",
+    candidate: {
+      ...make(
+        job,
+        "transfer",
+        selected.fact.lot.id,
+        selected.path,
+        8,
+        selected.travel,
+      ),
+      transfer: {
+        sourceLot: selected.fact.lot.id,
+        destination: buffer,
+        request: {
+          source: { kind: "eligible-ground", material: "soil" },
+          quantityPolicy: "portion",
+          quantity: 1 as PositiveInt,
+        },
+        intent: { kind: "deliver", destination: buffer.id },
+        owner: { kind: "job", job: job.id, step: "terrain-backfill-soil" },
+        destinationReachableWithPayload: true,
+      },
+    },
+  };
+}
+
+function terrainOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "dig" | "backfill" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const terrain = terrainRimCandidate(state, job, blocked);
+  if ("reason" in terrain) return terrain;
+  return job.kind === "backfill"
+    ? backfillSupplyOption(
+        state,
+        person,
+        job,
+        terrain.rim,
+        blocked,
+        sourceFacts,
+      )
+    : rimWorkOption(state, person, job, terrain.rim, blocked);
+}
+function terrainBackfillTarget(state: Clearing, destination: string) {
+  return state.jobs.find(
+    (job): job is Extract<Job, { kind: "backfill" }> =>
+      job.kind === "backfill" &&
+      terrainBackfillBuffer(job.id).id === destination,
+  );
+}
 function option(
   state: Clearing,
   p: Actor,
@@ -767,6 +921,8 @@ function option(
   if (j.kind === "brew") return brewOption(state, p, j, b, sourceFacts);
   if (j.kind === "tap" || j.kind === "clear-spent-grain")
     return recipeOutputOption(state, p, j, b);
+  if (j.kind === "dig" || j.kind === "backfill")
+    return terrainOption(state, p, j, b, sourceFacts);
   if (j.kind === "build") {
     const site = state.sites.find((x) => x.id === j.target)!;
     const c = constructionBuffer(site);
@@ -867,7 +1023,10 @@ function automatic(a: Activity): WorkType | null {
           ? "craft"
           : a.kind === "tap" || a.kind === "clear-spent-grain"
             ? "craft"
-            : a.kind === "build" || a.kind === "deconstruct"
+            : a.kind === "build" ||
+                a.kind === "deconstruct" ||
+                a.kind === "dig" ||
+                a.kind === "backfill"
               ? "build"
               : a.kind === "chop"
                 ? "chop"
@@ -926,11 +1085,14 @@ export function assignWork(state: Clearing, colony: Colony): void {
         "deposit",
       )?.site;
       const repair = resolveCacheRepairBuffer(state, carry.intent.destination);
+      const terrain = terrainBackfillTarget(state, carry.intent.destination);
       const path = site
         ? workApproach(state, p, site, blocked)
         : repair
           ? nearestPath(state, p, sourceAccessCells(repair.source), blocked)
-          : null;
+          : terrain
+            ? nearestPath(state, p, terrainRimCells(state, terrain), blocked)
+            : null;
       if (path) {
         const c = make(
           state.jobs.find(

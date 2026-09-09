@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { batchStaticScene } from "./static-batch.js";
+import { terrainSurfaces } from "../terrain-surface-geometry.js";
 import {
   scene,
   box,
@@ -99,7 +101,7 @@ export function clearing() {
   for (const x of [-0.16, 0.16])
     box(marker, "#e1ce94", x, 0.99, 0.07, 0.055, 0.12, 0.025);
   box(marker, "#e1ce94", 0, 0.88, 0.08, 0.28, 0.025, 0.025);
-  return s;
+  return batchStaticScene(s);
 }
 export function tree(stage) {
   const s = scene();
@@ -178,4 +180,52 @@ export function tree(stage) {
   }
   mushroom(s, -0.34, 0.03, 0.17, 0.65);
   return s;
+}
+
+/** Only newly exposed soil is rebaked. The orthographic opening mask removes
+ * the old top surface in the composite, while the same faces own picking. */
+export function excavationScene(terrain) {
+  const s = scene();
+  for (const face of terrainSurfaces(terrain, SIZE)) {
+    if (face.kind === "ground") continue;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(
+        [...face.vertices, ...face.vertices].flatMap(({ x, y, z }) => [
+          x - CENTER,
+          y,
+          z - CENTER,
+        ]),
+        3,
+      ),
+    );
+    geometry.setIndex([0, 1, 2, 0, 2, 3, 6, 5, 4, 7, 6, 4]);
+    geometry.computeVertexNormals();
+    mesh(
+      s,
+      geometry,
+      face.kind === "pit-floor" ? "#806143" : "#9a744f",
+      0,
+      0,
+      0,
+    );
+    if (face.kind === "cut-wall") {
+      const mid = face.vertices.reduce(
+        (p, v) => ({ x: p.x + v.x / 4, y: p.y + v.y / 4, z: p.z + v.z / 4 }),
+        { x: 0, y: 0, z: 0 },
+      );
+      ball(
+        s,
+        "#bb9b6c",
+        mid.x - CENTER,
+        mid.y,
+        mid.z - CENTER,
+        0.07,
+        0.035,
+        0.06,
+      );
+    }
+  }
+  return batchStaticScene(s);
 }

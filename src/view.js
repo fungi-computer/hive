@@ -9,6 +9,9 @@ import { createConstructionView } from "./construction-view.js";
 import { createVisualHitGeometryOwner } from "./visual-hit-geometry.js";
 import { carriedLot, containerQuantity, vesselContainer } from "./materials.ts";
 import { sourceContainerSpec, sourceIsOpen } from "./finite-sources.ts";
+import { terrainCell } from "./terrain.ts";
+import { terrainDesignationCells } from "./ui-actions.ts";
+import { commandProblem } from "./orders.ts";
 
 function label(text, size = 8) {
   const result = new Text({
@@ -63,6 +66,8 @@ export function carriedActorPose(materials, hand, mode) {
         ? "carry-pail-half"
         : "carry-pail-empty";
   }
+  if (hand?.material === "soil") return "carry-soil";
+  if (["dig", "backfill"].includes(mode)) return "dig";
   return hand?.material === "mugwort"
     ? "carry-herb"
     : mode === "walk" && hand?.material === "wood"
@@ -72,7 +77,10 @@ export function carriedActorPose(materials, hand, mode) {
 
 function stationaryCarryPose(pose, mode) {
   return (
-    mode !== "walk" && (pose === "carry-herb" || pose.startsWith("carry-pail-"))
+    mode !== "walk" &&
+    (pose === "carry-herb" ||
+      pose === "carry-soil" ||
+      pose.startsWith("carry-pail-"))
   );
 }
 
@@ -93,14 +101,36 @@ export function herbGrowthProgress(herb, tick) {
 }
 
 export function createView(app, world, camera, art, initial, input) {
-  world.addChild(new Sprite(art.ground));
+  const ground = new Sprite(art.ground);
+  world.addChild(ground);
+  let terrainSource = null,
+    terrainRevision = -1;
+  function drawTerrain(state) {
+    if (
+      terrainSource === state.terrain &&
+      terrainRevision === state.terrain.revision
+    )
+      return;
+    terrainSource = state.terrain;
+    terrainRevision = state.terrain.revision;
+    const previous = ground.texture;
+    ground.texture = state.terrain.edits.length
+      ? art.bakeTerrain(state.terrain, art.ground, state.terrain.edits)
+      : art.ground;
+    if (previous !== ground.texture && previous !== art.ground)
+      previous.destroy(true);
+    camera.setTerrain(state.terrain);
+  }
+  drawTerrain(initial);
   const route = new Graphics();
   const marks = new Graphics();
   const selectionBox = new Graphics();
+  const terrainMarks = new Graphics();
+  terrainMarks.eventMode = "none";
   const bodies = new Container();
   route.eventMode = marks.eventMode = selectionBox.eventMode = "none";
   bodies.sortableChildren = true;
-  world.addChild(route, marks, bodies);
+  world.addChild(route, marks, terrainMarks, bodies);
   const picking = createVisualHitGeometryOwner(bodies);
 
   const trees = new Map();
@@ -388,9 +418,15 @@ export function createView(app, world, camera, art, initial, input) {
     }
   }
 
+  const pileTexture = (lot) =>
+    lot.material === "soil"
+      ? art.soil[Math.min(3, lot.quantity)]
+      : art.wood[Math.min(6, lot.quantity)];
   function drawPiles(state, selection) {
     const groundWoodLots = state.materials.lots.filter(
-      (lot) => lot.material === "wood" && lot.location.kind === "ground",
+      (lot) =>
+        ["wood", "soil"].includes(lot.material) &&
+        lot.location.kind === "ground",
     );
     for (const [id, view] of piles) {
       if (!groundWoodLots.some((lot) => lot.id === id)) {
@@ -401,11 +437,7 @@ export function createView(app, world, camera, art, initial, input) {
     }
     for (const lot of groundWoodLots) {
       if (!piles.has(lot.id)) {
-        const view = body(
-          art.wood[Math.min(6, lot.quantity)],
-          art.propAnchor,
-          7,
-        );
+        const view = body(pileTexture(lot), art.propAnchor, 7);
         const count = label(String(lot.quantity), 7);
         count.position.set(10, 0);
         view.container.addChild(count);
@@ -437,12 +469,12 @@ export function createView(app, world, camera, art, initial, input) {
           ? "static"
           : "none";
       put(view.container, lot.location, 0.22);
-      view.sprite.texture = art.wood[Math.min(6, lot.quantity)];
+      view.sprite.texture = pileTexture(lot);
       view.count.text = String(lot.quantity);
       picking.bind(view.container, {
         texture: view.sprite.texture,
         anchor: art.propAnchor,
-        orientation: `wood:${lot.quantity}`,
+        orientation: `${lot.material}:${lot.quantity}`,
         target: { ...view.target, level: lot.location.level },
       });
       if (selection.lot === lot.id)
@@ -708,6 +740,47 @@ export function createView(app, world, camera, art, initial, input) {
     }
   }
 
+  function drawTerrainMarks(state, selection) {
+    terrainMarks.clear();
+    if (selection.level !== 0) return;
+    function tile(cell, color, alpha) {
+      const height = terrainCell(state.terrain, cell.x, cell.z).height;
+      const points = [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5],
+      ].flatMap(([dx, dz]) => {
+        const p = projectCell(
+          { x: cell.x + dx, z: cell.z + dz, level: 0 },
+          height + 0.02,
+        );
+        return [p.x, p.y];
+      });
+      terrainMarks
+        .poly(points)
+        .fill({ color, alpha })
+        .stroke({ width: 1, color, alpha: 0.8 });
+    }
+    for (const job of state.jobs)
+      if (job.kind === "dig" || job.kind === "backfill")
+        tile(job, 0xdcb56c, 0.18);
+    if (!["dig", "backfill"].includes(selection.tool) || !selection.at) return;
+    const cells = terrainDesignationCells(
+      selection.tool,
+      selection.drag,
+      selection.at,
+    );
+    for (const cell of cells) {
+      const problem = commandProblem(state, {
+        ...cell,
+        party: "home",
+        actors: null,
+      });
+      tile(cell, problem ? 0xe48b78 : 0xbad597, 0.3);
+    }
+  }
+
   function drawSelectionBox(selection) {
     selectionBox.clear();
     if (!selection.box) return;
@@ -723,6 +796,8 @@ export function createView(app, world, camera, art, initial, input) {
 
   return {
     render(state, selection) {
+      drawTerrain(state);
+      drawTerrainMarks(state, selection);
       drawTrees(state, selection);
       drawSources(state, selection);
       drawHerbs(state, selection);
@@ -740,7 +815,9 @@ export function createView(app, world, camera, art, initial, input) {
       goblin.container.alpha = selection.level === 0 ? 1 : 0.18;
       construction.render(
         state,
-        selection.tool === "chop" ? { ...selection, tool: null } : selection,
+        ["chop", "dig", "backfill"].includes(selection.tool)
+          ? { ...selection, tool: null }
+          : selection,
       );
       dusk.visible = isNight(state);
       picking.renderDebug(!!selection.debugPicking);

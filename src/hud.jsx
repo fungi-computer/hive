@@ -6,7 +6,7 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { atom, createStore, Provider, useAtomValue } from "jotai";
-import { assign, createActor, createMachine } from "xstate";
+import { createActor } from "xstate";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Card } from "@fungi.computer/caps/components/card";
 import { Checkbox } from "@fungi.computer/caps/components/checkbox";
@@ -45,11 +45,14 @@ import {
   dispatchUiAction,
   DEBUG_PICKING_CONTROL,
   LEVEL_NAVIGATION,
+  TERRAIN_TOOL_CATALOG,
   cameraMoveKeepsTool,
   localGoodsAt,
   requiredToolLevel,
   singlePlacementTool,
   submitDesignation,
+  submitTerrainDesignation,
+  toolMachine,
 } from "./ui-actions.ts";
 
 const ACTIVITIES = {
@@ -77,140 +80,12 @@ function levelName(level) {
   return level === 1 ? "Upper" : "Ground";
 }
 
-const clearGesture = assign(() => ({
-  tool: null,
-  gesture: null,
-  start: null,
-  end: null,
-  commitRequested: false,
-}));
-
-const clearGestureKeepTool = assign(({ context }) => ({
-  tool: context.tool,
-  gesture: null,
-  start: null,
-  end: null,
-  commitRequested: false,
-}));
-
-const keepToolReady = assign(({ context, event }) => ({
-  tool: context.tool,
-  gesture: null,
-  start: null,
-  end: event.point ?? context.end,
-  commitRequested: false,
-}));
-
-// This machine owns every tool/gesture phase. It has no simulation state,
-// actors, clocks, or timers; those remain in main.js and the typed core.
-const toolMachine = createMachine({
-  id: "tool-gesture",
-  initial: "idle",
-  context: {
-    tool: null,
-    gesture: null,
-    start: null,
-    end: null,
-    commitRequested: false,
-  },
-  on: {
-    TOOL: [
-      {
-        target: ".ready",
-        actions: [clearGesture, assign(({ event }) => ({ tool: event.tool }))],
-        guard: ({ event }) => !!event.tool,
-      },
-      {
-        target: ".idle",
-        actions: clearGesture,
-      },
-    ],
-    CANCEL: { target: ".idle", actions: clearGesture },
-    CAMERA_MOVE: [
-      {
-        target: ".ready",
-        guard: ({ context }) => cameraMoveKeepsTool(context.tool),
-        actions: clearGestureKeepTool,
-      },
-      { target: ".idle", actions: clearGesture },
-    ],
-    ESCAPE: { target: ".idle", actions: clearGesture },
-    RESET: { target: ".idle", actions: clearGesture },
-    LEVEL_CHANGE: [
-      {
-        target: ".ready",
-        guard: ({ context }) => !!context.tool,
-        actions: clearGestureKeepTool,
-      },
-      { target: ".idle", actions: clearGesture },
-    ],
-    CANCEL_STROKE: [
-      {
-        target: ".ready",
-        guard: ({ context }) => !!context.tool,
-        actions: clearGestureKeepTool,
-      },
-      { target: ".idle", actions: clearGesture },
-    ],
-  },
-  states: {
-    idle: {
-      on: {
-        BEGIN: {
-          target: "dragging",
-          actions: assign(({ event }) => ({
-            tool: null,
-            gesture: "box",
-            start: event.point,
-            end: event.point,
-            commitRequested: false,
-          })),
-        },
-      },
-    },
-    ready: {
-      on: {
-        MOVE: { actions: assign(({ event }) => ({ end: event.point })) },
-        BEGIN: {
-          target: "dragging",
-          actions: assign(({ context, event }) => ({
-            gesture: "tool",
-            start: event.point,
-            end: event.point,
-            tool: context.tool,
-            commitRequested: false,
-          })),
-        },
-      },
-    },
-    dragging: {
-      on: {
-        MOVE: { actions: assign(({ event }) => ({ end: event.point })) },
-        END: {
-          target: "fixed",
-          actions: assign(({ event }) => ({ end: event.point })),
-        },
-      },
-    },
-    fixed: {
-      on: {
-        PLACED: { target: "ready", actions: keepToolReady },
-        COMMIT: {
-          actions: assign(() => ({ commitRequested: true })),
-          guard: ({ context }) => !context.commitRequested,
-        },
-        COMMIT_RESULT: [
-          {
-            target: "ready",
-            guard: ({ event }) => event.accepted > 0,
-            actions: keepToolReady,
-          },
-          { target: "ready", actions: keepToolReady },
-        ],
-      },
-    },
-  },
-});
+function materialLabel(material) {
+  return material
+    .split("-")
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 function actorFact(actor, materials) {
   const transfer = transferForActor(materials, actor.id);
@@ -976,8 +851,8 @@ function Character({ model: m, send, portraits }) {
           <small>
             {visitor
               ? "She has found the clearing but not a bed."
-              : m.carry
-                ? `${m.carry} wood in hand`
+              : person.carriedAmount
+                ? `${person.carriedAmount} ${materialLabel(person.cargoMaterial)} in hand`
                 : "A borrowed axe. A chance to stay alive."}
           </small>
         </div>
@@ -1082,6 +957,7 @@ function Character({ model: m, send, portraits }) {
 }
 
 function Build({ model: m, send }) {
+  const terrainTool = TERRAIN_TOOL_CATALOG.find(({ kind }) => kind === m.tool);
   return (
     <Panel
       title="Make a home"
@@ -1119,6 +995,27 @@ function Build({ model: m, send }) {
         Working level: <strong>{levelName(m.level)}</strong>
       </div>
       <div id="palette">
+        {TERRAIN_TOOL_CATALOG.map((definition) => (
+          <Button
+            key={definition.kind}
+            id={`${definition.kind}-tool`}
+            data-tool={definition.kind}
+            variant={m.tool === definition.kind ? "secondary" : "outline"}
+            title={definition.title}
+            aria-pressed={m.tool === definition.kind}
+            onClick={() =>
+              send({
+                kind: "tool",
+                tool: m.tool === definition.kind ? null : definition.kind,
+              })
+            }
+          >
+            <span>{definition.label}</span>
+            <small>
+              {definition.kind === "dig" ? "shallow soil" : "1 soil"}
+            </small>
+          </Button>
+        ))}
         <Button
           id="herb-tool"
           data-tool="herb"
@@ -1156,14 +1053,22 @@ function Build({ model: m, send }) {
         ))}
       </div>
       <p className="muted">
-        {m.tool === "herb"
-          ? "Hover a clear tile and release to sow. Escape, right-click, or camera movement cancels."
-          : m.tool && singlePlacementTool(m.tool)
-            ? "Hover the anchor tile and release once to order this footprint. Escape, right-click, or camera movement cancels."
-            : "Mark a tile or drag a row. A blueprint can wait for wood. Leave room for a doorway."}
+        {terrainTool
+          ? "Mark a tile or drag a rectangle, then release to submit a shared order."
+          : m.tool === "herb"
+            ? "Hover a clear tile and release to sow. Escape, right-click, or camera movement cancels."
+            : m.tool && singlePlacementTool(m.tool)
+              ? "Hover the anchor tile and release once to order this footprint. Escape, right-click, or camera movement cancels."
+              : "Mark a tile or drag a row. A blueprint can wait for wood. Leave room for a doorway."}
       </p>
+      {terrainTool && (
+        <p className="terrain-tool-help">
+          Each cell is one 0.54 m soil voxel. Escape, right-click, or Done
+          cancels the active tool.
+        </p>
+      )}
       <div className="button-row">
-        {m.tool !== "herb" ? (
+        {m.tool !== "herb" && !terrainTool ? (
           <>
             <Button
               id="rotate"
@@ -1184,7 +1089,7 @@ function Build({ model: m, send }) {
               Done placing
             </Button>
           </>
-        ) : (
+        ) : m.tool === "herb" ? (
           <Button
             id="cancel-herb"
             variant="ghost"
@@ -1192,6 +1097,15 @@ function Build({ model: m, send }) {
             onClick={() => send({ kind: "close" })}
           >
             Cancel planting
+          </Button>
+        ) : (
+          <Button
+            id="finish-terrain-designation"
+            variant="primary"
+            size="sm"
+            onClick={() => send({ kind: "finish-placement" })}
+          >
+            Done designating
           </Button>
         )}
       </div>
@@ -1257,7 +1171,7 @@ function Target({ model: m, send }) {
         style={targetPosition(m.context)}
       >
         <div className="window-heading">
-          <h2>{m.target.material === "wood" ? "Wood" : "Mugwort"}</h2>
+          <h2>{materialLabel(m.target.material)}</h2>
           <Button
             className="close"
             variant="ghost"
@@ -1282,6 +1196,10 @@ function Target({ model: m, send }) {
             {m.target.location.kind === "carried"
               ? "This lot is held for its active transfer."
               : "This lot is already stored on its shelf."}
+          </small>
+        ) : m.target.material !== "wood" && m.target.material !== "mugwort" ? (
+          <small className="action-reason">
+            No finished shelf accepts {materialLabel(m.target.material)}.
           </small>
         ) : m.target.shelves.length ? (
           <div className="button-column">
@@ -1462,7 +1380,7 @@ function Target({ model: m, send }) {
         {m.target.type === "shelf" && (
           <small className="action-reason">
             {m.target.contents.length
-              ? `Contents: ${m.target.contents.map((lot) => `${lot.material === "wood" ? "Wood" : "Mugwort"} ×${lot.quantity}`).join(", ")}. Shelf art shows up to three representatives.`
+              ? `Contents: ${m.target.contents.map((lot) => `${materialLabel(lot.material)} ×${lot.quantity}`).join(", ")}. Shelf art shows up to three representatives.`
               : "Contents: empty."}
           </small>
         )}
@@ -1668,7 +1586,7 @@ function Target({ model: m, send }) {
                 send({ kind: "inspect-lot", id: lot.id, point: m.context })
               }
             >
-              {lot.material === "wood" ? "Wood" : "Mugwort"} ×{lot.amount}
+              {materialLabel(lot.material)} ×{lot.amount}
             </Button>
           ))}
         </div>
@@ -2411,6 +2329,9 @@ export function createHud(host, art, effect) {
             ? value
             : { ...value, designationTargetIds: [...action.ids] },
         );
+        return;
+      case "submit-terrain-designation":
+        effect(submitTerrainDesignation(action.cells));
         return;
       case "commit-designation": {
         const snapshot = machine.getSnapshot();

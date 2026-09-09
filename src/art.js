@@ -2,8 +2,8 @@
 // Reference pictures never enter this pipeline.
 import * as THREE from "three";
 import { Texture } from "pixi.js";
-import { camera, worldCamera, WIDTH, HEIGHT } from "./art/scale.js";
-import { clearing, tree } from "./art/clearing.js";
+import { camera, worldCamera, project, WIDTH, HEIGHT } from "./art/scale.js";
+import { clearing, tree, excavationScene } from "./art/clearing.js";
 import { figure } from "./art/figures.js";
 import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
 import { building, woodPile, wallJoint } from "./art/home.js";
@@ -12,6 +12,7 @@ import { basinScene } from "./art/spring-basin.js";
 import { brewerCache } from "./art/brew-supplies.js";
 import { pail } from "./art/pail.js";
 import { scene } from "./art/geometry.js";
+import { soilPile } from "./art/soil.js";
 import { stationScene } from "./art/brew-station.js";
 import { STATION_VISUAL_PROFILES } from "./brew-station-profiles.js";
 import { BUILDINGS } from "./construction.js";
@@ -57,6 +58,61 @@ export function anchor(c) {
   const foot = new THREE.Vector3(0, 0, 0).project(c);
   return { x: 0.5, y: (1 - foot.y) / 2 };
 }
+function bakeTerrainPatch(renderer, terrain, previous, changedCells) {
+  // Bake only exposed earth, clipped to the union of actual top openings.
+  // The static board is never rebuilt by a dig; fill restores its original top.
+  // Both this mask and mouse picking use the same world-space cell faces.
+  const points = changedCells.flatMap(({ x, z }) =>
+    [-2, 2].flatMap((dx) =>
+      [-2, 2].flatMap((dz) => [0, -0.8].map((y) => project(x + dx, z + dz, y))),
+    ),
+  );
+  const left = Math.max(0, Math.floor(Math.min(...points.map((p) => p.x))) - 2);
+  const top = Math.max(0, Math.floor(Math.min(...points.map((p) => p.y))) - 2);
+  const right = Math.min(
+    WIDTH,
+    Math.ceil(Math.max(...points.map((p) => p.x))) + 3,
+  );
+  const bottom = Math.min(
+    HEIGHT,
+    Math.ceil(Math.max(...points.map((p) => p.y))) + 3,
+  );
+  const camera = worldCamera.clone();
+  camera.setViewOffset(WIDTH, HEIGHT, left, top, right - left, bottom - top);
+  const patch = bake(
+    renderer,
+    excavationScene(terrain),
+    camera,
+    right - left,
+    bottom - top,
+    false,
+  );
+  const canvas = document.createElement("canvas");
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const context = canvas.getContext("2d");
+  context.drawImage(previous.source.resource, 0, 0);
+  context.beginPath();
+  for (const { x, z } of terrain.edits) {
+    const points = [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [0.5, 0.5],
+      [-0.5, 0.5],
+    ].map(([dx, dz]) => project(x + dx, z + dz, 0));
+    context.moveTo(points[0].x, points[0].y);
+    for (const point of points.slice(1)) context.lineTo(point.x, point.y);
+    context.closePath();
+  }
+  context.clip();
+  context.clearRect(left, top, right - left, bottom - top);
+  context.drawImage(patch.source.resource, left, top);
+  patch.destroy(true);
+  const texture = Texture.from(canvas);
+  texture.source.scaleMode = "nearest";
+  return texture;
+}
+
 export async function bakeArt() {
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
@@ -77,6 +133,7 @@ export async function bakeArt() {
     sources: { spring: {}, cache: {} },
     pail: {},
     wood: {},
+    soil: {},
     wallJoints: {},
     mixedShelf: {},
     pawnAnchor: anchor(portrait),
@@ -87,6 +144,8 @@ export async function bakeArt() {
     "walk",
     "chop",
     "build",
+    "dig",
+    "carry-soil",
     "carry",
     "carry-herb",
     "carry-pail-empty",
@@ -194,6 +253,12 @@ export async function bakeArt() {
     );
   for (let amount = 1; amount <= 6; amount++)
     art.wood[amount] = bake(renderer, woodPile(amount), prop, 112, 112);
-  renderer.dispose();
+  for (let amount = 1; amount <= 3; amount++)
+    art.soil[amount] = bake(renderer, soilPile(amount), prop, 112, 112);
+  // This one retained renderer rebakes terrain only after a physical edit/load.
+  // It never updates simulation state or time. View owns replacement textures.
+  art.bakeTerrain = (terrain, previous, changedCells) =>
+    bakeTerrainPatch(renderer, terrain, previous, changedCells);
+  art.dispose = () => renderer.dispose();
   return art;
 }

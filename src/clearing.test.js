@@ -17,6 +17,7 @@ import { brewPrepareRemaining, recipeOutputReadiness } from "./brewing.ts";
 import { recipeDefinition } from "./recipes.ts";
 import {
   containerQuantity,
+  createGroundLot,
   embeddedQuantity,
   materialQuantity,
 } from "./materials.ts";
@@ -2046,4 +2047,113 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
     enteredAt: 0,
   });
   assert.equal(removalProblem(state, station), "The brew station is occupied.");
+});
+
+test("actual libcolony digs one shallow voxel to its rim then backfills through one soil transfer", () => {
+  const state = createClearing();
+  const target = { x: 7, z: 9, level: 0 };
+  assert.deepEqual(actualStep(state, [{ kind: "dig", ...target }]), [
+    { status: "applied" },
+  ]);
+  actualRun(state, 55);
+  assert.deepEqual(state.terrain.edits, [target]);
+  const soil = state.materials.lots.find((lot) => lot.material === "soil");
+  assert.equal(soil?.quantity, 1);
+  assert.equal(soil?.location.kind, "ground");
+  assert.notDeepEqual(soil?.location, { kind: "ground", ...target });
+  assert.deepEqual(actualStep(state, [{ kind: "backfill", ...target }]), [
+    { status: "applied" },
+  ]);
+  actualRun(state, 90);
+  assert.deepEqual(state.terrain.edits, []);
+  assert.equal(
+    state.materials.lots.some((lot) => lot.material === "soil"),
+    false,
+  );
+});
+
+test("actual libcolony finishes an adjacent two-cell trench across a paused reload without spoiling either target", () => {
+  const state = createClearing();
+  state.parties.home.members.push("sedge");
+  const left = { x: 7, z: 9, level: 0 };
+  const right = { x: 8, z: 9, level: 0 };
+  assert.deepEqual(
+    actualStep(state, [
+      { kind: "dig", ...left },
+      { kind: "dig", ...right },
+    ]),
+    [{ status: "applied" }, { status: "applied" }],
+  );
+  actualRun(state, 16);
+  const restored = restoreSnapshot(snapshotFor(state)).state;
+  assert.equal(restored.paused, true);
+  restored.paused = false;
+  actualRun(restored, 125);
+  assert.deepEqual(
+    new Set(restored.terrain.edits.map(({ x, z }) => `${x},${z}`)),
+    new Set(["7,9", "8,9"]),
+  );
+  const soil = restored.materials.lots.filter((lot) => lot.material === "soil");
+  assert.equal(
+    soil.reduce((sum, lot) => sum + lot.quantity, 0),
+    2,
+  );
+  assert.ok(
+    soil.every(
+      (lot) =>
+        lot.location.kind === "ground" &&
+        !["7,9", "8,9"].includes(`${lot.location.x},${lot.location.z}`),
+    ),
+  );
+});
+
+test("drafting then cancelling a carrying backfill preserves its one real soil lot", () => {
+  const state = createClearing();
+  const target = { x: 7, z: 9, level: 0 };
+  actualStep(state, [{ kind: "dig", ...target }]);
+  actualRun(state, 55);
+  actualStep(state, [{ kind: "backfill", ...target }]);
+  actualRun(state, 10);
+  assert.equal(
+    state.materials.lots.reduce(
+      (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
+      0,
+    ),
+    1,
+  );
+  actualStep(state, [{ kind: "draft", actor: "rowan" }]);
+  const fill = state.jobs.find((job) => job.kind === "backfill");
+  assert.ok(fill);
+  assert.deepEqual(actualStep(state, [{ kind: "cancel", job: fill.id }]), [
+    { status: "applied" },
+  ]);
+  assert.deepEqual(state.terrain.edits, [target]);
+  assert.equal(state.materials.transfers.length, 0);
+  assert.equal(
+    state.materials.lots.reduce(
+      (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
+      0,
+    ),
+    1,
+  );
+  assert.ok(
+    state.materials.lots.some(
+      (lot) => lot.material === "soil" && lot.location.kind === "ground",
+    ),
+  );
+});
+
+test("a new loose occupant interrupts a dig before settlement without minting soil", () => {
+  const state = createClearing();
+  const target = { x: 7, z: 9, level: 0 };
+  actualStep(state, [{ kind: "dig", ...target }]);
+  actualRun(state, 12);
+  assert.equal(createGroundLot(state.materials, "pail", 1, target).ok, true);
+  actualRun(state, 55);
+  assert.deepEqual(state.terrain.edits, []);
+  assert.equal(
+    state.materials.lots.some((lot) => lot.material === "soil"),
+    false,
+  );
+  assert.ok(state.jobs.some((job) => job.kind === "dig"));
 });
