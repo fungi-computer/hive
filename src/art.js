@@ -40,8 +40,12 @@ function propScene(draw) {
   draw(result);
   return result;
 }
+// Scratch query output, not remembered size: every bake reads its actual renderer.
+const bakeSize = new THREE.Vector2();
 export function bake(renderer, s, c, w, h, ink = true, releaseGeometry = true) {
-  renderer.setSize(w, h, false);
+  renderer.getSize(bakeSize);
+  if (bakeSize.x !== w || bakeSize.y !== h) renderer.setSize(w, h, false);
+  else renderer.setViewport(0, 0, w, h);
   renderer.render(s, c);
   const canvas = document.createElement("canvas");
   canvas.width = w;
