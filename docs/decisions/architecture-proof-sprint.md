@@ -31,6 +31,28 @@ directional original bakes must consume the same transform. See the same
 vertical-world contract. Do not claim completion from rotating the ground image
 alone or reuse asymmetric art by mirroring it.
 
+**Selection amendment:** the same geometry/controls work includes a visible
+3D box gizmo with draggable faces/edges, shared shape selection and depth-aware
+volume designation. Levi's quarry consumer is planned through reachable work
+stages; a bottom-depth field alone does not satisfy the interaction. Keep one
+shape/preview owner for Chop, digging, construction and zoning. Persistent layer
+buttons/hotkeys and camera rotation must work with it. X-ray, target queries and
+AI tools respect visible/remembered/unknown knowledge; slicing downward cannot
+reveal an undiscovered dragon. The [3D selection contract](controls-floor-priority-recut.md#visible-shapes-and-volume-designations-september-9)
+owns interaction, pause/cancel, knowledge and bounded query/work requirements.
+
+**Opaque owner and debug amendment:** apply the actual Watchdog/Field Guide
+payload-blind boundary. Game definitions and registered systems give opaque
+content its meaning, including material distribution, diggability and supported
+physical interactions; the engine owns lawful storage, lifecycle and mutation.
+Moving an air/soil/stone recipe into an engine directory does not finish that
+extraction. Rich optional debug tools are engine consumers of the same owned
+geometry, work, material and field queries, usable through overlays or tool
+adapters without a second simulation. Developer inspection requires its own
+grant. The [engine contract](architecture-implementation-plan.md#opaque-engine-contracts-and-composed-tools--september-9)
+records source anchors, first debug consumers and acceptance. Asset creation's
+public MCP connection grants no game administrator access.
+
 **Saved goal reconciliation, September 9:** Levi pasted and activated the full
 Hive v0 objective in native Game CTO Session
 `01a0791e-7ac8-7cc0-90dd-48f8d164e526`. The goal tool now reports **active**;
@@ -100,6 +122,22 @@ remain protected. Full Fiend scene-editor parity belongs to the asset product;
 its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
+
+**Current checkpoint, September 9:** Game CTO accepted the bounded material
+extraction recut2 after personal caller review and independent Sol review.
+All 24 source hashes match the retained inventory. Reported evidence is 130/130
+focused laws (`u3781`), strict types (`u3778`) and the actual five-unit ore depot
+(`u3780`). Current Goblin validation uses the same physical-relations owner;
+old checks are restricted to predecessor saves. Game CTO takes coupled source
+and serial integration back from `engine_core_pm`. The checkpoint is on disk,
+not hosted; shared work execution, care interaction and the full engine exits
+remain unfinished. The retained Fallow factory/validator advisories remain open.
+
+The current asset PM owns the independent portable viewer fonts/navigation fit;
+its six-tool MCP document packet remains frozen for Root's local HTTP acceptance.
+The old hosting archive is preserved. Root also owns the opaque world-storage
+recut and its independent material-palette consumer. The paragraph below records
+the preceding PM assignments, not an additional live writer over those files.
 
 Botanical confirmed the two-PM shape. Native Astra-low `engine_core_pm` completed
 the accepted needs/persistence repair packet and now owns the single coupled

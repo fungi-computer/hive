@@ -1,5 +1,114 @@
 # Controls first: floor navigation and the maintained command boundary
 
+## Visible shapes and volume designations, September 9
+
+Direct Levi amendment, part of the active engine and demo geometry outcome:
+provide a reusable visible shape selection system, including quarry footprint
+and depth. The old Ground/Upper-only controls below are historical. Root Game
+CTO retains source and geometry authority; native workers retain their named
+non-overlapping boundaries.
+
+Levi sharpened this requirement: use a real **3D box gizmo**, not just a bottom-
+depth field. Draw a box, then drag its face/edge handles to adjust its dimensions
+and position on explicit axes. Numeric dimensions are an additional precise
+input. Camera-facing handles, outline and translucent planes must stay legible
+through rotation/cutaway; hidden handles must not steal ordinary world clicks.
+One editing state owns anchor, active handle, initial bounds and candidate bounds.
+Dragging a face changes that face, not the opposite fixed anchor. Handle picking,
+snapping and previews use the same geometry transform as ordinary placement.
+
+Layer controls remain persistent: PageUp/PageDown and visible buttons move the
+view through physical layers. A separately labelled storey jump can move four
+voxels. Controls/help belong to the checked catalog; neither selecting stairs
+nor choosing a build tool is required to move the view.
+
+### Cutaway respects knowledge
+
+Levi explicitly rejects omniscient underground X-ray. Separate **currently
+visible**, **previously observed** and **unknown** knowledge. View slicing removes
+visual obstruction from permitted observations; it does not grant observation
+of undiscovered caves, resources, enemies or events. Remembered rooms may show
+their last observed state, but cannot display the current hidden dragon there.
+Selection highlights, eligible counts, inspectors, paths, tool results and
+minimaps obey the same observer query. Camera controls never bypass it.
+
+A player may designate a blind excavation volume in unexplored ground. Display
+the geometric plan and its known portion; unknown content/eligibility stays
+unknown until exploration or work reveals it. The designation does not need to
+know a hidden creature to occupy that region. Physical execution still checks
+actual hazards/occupancy under the authoritative simulation. Scope normal query
+results to the bound player/controller; give development tools a separate explicit
+inspection grant. Fog shading over an omniscient inspection API is insufficient.
+Knowledge/observation is engine-owned reusable state with game-owned vision and
+discovery policy, not a second world simulation or a boolean on the camera.
+
+Current source already has a shallow rectangular Dig/Backfill path in
+`ui-actions.ts` and `main.js`, with gesture laws in `digging-controls.test.js`.
+It enumerates Ground cells and submits per-cell commands. Chop separately
+derives tree IDs, and construction separately derives dragged cells. Preserve
+working drag behavior, but replace separate geometry/target interpretations as
+the shared selection owner lands. More controls must not reproduce those paths.
+
+### Player interaction
+
+Choose a tool, drag a footprint on the visible physical surface, and see its
+extent continuously. For a volume tool, set top/bottom height through a visible
+depth control and inspect a translucent outline/filled selection through the
+cutaway. A quarry may say “down 8 voxels, bottom -4.32 m” with its physical datum
+clear. Provide on-screen depth controls as well as documented hotkeys. Changing
+depth updates the same selection; rotating the camera preserves world bounds.
+Rectangle/box is the first complete consumer; line and single-cell placement
+use the same coordinate/selection contract. Later paint, ellipse and polygon
+shapes extend its shape vocabulary rather than adding new pointer owners.
+
+Show eligible targets and conflicts separately: selected footprint/volume,
+trees affected, solid voxels designated, and blocked/unsupported regions.
+The preview must not promise that an inaccessible bottom voxel can be worked
+immediately. Large counts may be an explicitly pending bounded query; do not
+freeze input while enumerating an entire volume or invent an exact count.
+Tool meaning stays contextual: Chop resolves eligible trees; Dig/Quarry resolves
+solid cells; floor/wall construction resolves surfaces/spans; stockpile zoning
+records a region plus storage policy. Selection does not itself mutate them.
+
+Dragging with an armed tool never accidentally selects/drafts pawns. Releasing
+a stroke completes that stroke; the persistent tool remains armed. The volume
+tool has an explicit confirmation after depth adjustment. Escape/right-click
+cancels the active preview according to the common gesture contract; finishing
+work or changing view cannot silently reinterpret a previous stroke. Paused
+designation changes accepted intent only, with no material removal or time.
+
+### Shared ownership and durable work
+
+The geometry layer owns canonical signed bounds, shape membership, clipping,
+volume/face queries and stable traversal order. The same world-to-screen inverse
+used by picking anchors the selection. XState owns gesture phases, Jotai owns
+the draft selection/tool/view choices, and the renderer draws that selection.
+The checked interaction catalog supplies controls/help. No state store maintains
+a second selected-terrain or job inventory.
+
+Queries combine the region with typed tool policy and actual capability/spatial
+indexes. A geometric hit is not permission, reachability, support or available
+capacity. The simulation revalidates those rules when admitting intent and when
+executing it. Do not serialize arbitrary filter functions. Save the accepted
+designation's identity, bounds, policy and progress; transient pointer previews
+are not saved physical work.
+
+A quarry is one durable excavation designation with a target bottom. It creates
+or exposes bounded eligible work through the ordinary job owner. Workers remove
+reachable stages, preserve an access route, and revisit eligibility as topology,
+support, water or other workers change. The plan does not reserve every future
+voxel or allocate a job per selected cell immediately. Cancellation removes
+unperformed intent and releases claims; it does not refill excavated cells,
+delete spoil or discard water. Quarry depth is a goal, not a guarantee that no
+additional access/support work will be needed.
+
+Acceptance uses the same visible rectangle for Chop and Dig; a multi-depth
+quarry through a vertical-brick boundary; a conflicting/partly unreachable
+volume; rotation and view-height changes while previewing; paused confirmation;
+cancel and save/reload of partially completed work; and responsive normal/narrow
+controls. Check actual selected IDs/cells against what is highlighted. This is
+part of playable deep digging, not a separate decorative wireframe lab.
+
 Independent read-only recut for root, 2026-09-08. HEAD remained `32cd4235`; the tree includes Delivery's active picking/Go corrections and preserved work. I did not edit production, run a build/proof, or contact Delivery. This note supersedes any implication that bed rendering or large module extraction must precede usable floor controls.
 
 ## What actually exists and what is wrong

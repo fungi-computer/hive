@@ -6,6 +6,29 @@ site and remote routing; Hive owns original assets, operations, SDK server and
 client/render evidence. The agreed remote address is `mcp.shiit.app/mcp`; the
 game domain is `goblin.shiit.app`. Neither spelling establishes a live deployment.
 
+## Portable hosting fit, September 9
+
+Botanical's source review found that the frozen `886d542` viewer has host-relative
+links to `/brewhouse-study.html`, `/study` and `/`, and lacks the current shared
+font faces. Preserve that archive and its evidence. The existing asset PM owns
+a new source-built portable artifact with public Caps/Stipe fonts and a supplied,
+verified absolute game URL; omit destinations not established on the host.
+Current Hive tarballs do not include the new font export. Botanical released
+the exact read-only `packages/caps/src/fonts.css` and `packages/stipe/fonts.css`
+plus adjacent Nunito/Maple Mono assets, both OFL licenses and README provenance
+for this bundle. Preserve those sheets and relative font URLs through the
+maintained bundler; no recreated font-face rules, shared source edits or package
+rebuild are needed. The portable manifest owns exact released source hashes.
+Installed public Caps controls stay unchanged; do not claim the old package
+supplies these font assets or copy unrelated shared source.
+
+The new handoff must identify source revision, file inventory and archive hash,
+and include actual normal/narrow rendered proof, font loading and working
+navigation/export. Marketing owns copying the accepted artifact under
+`shiit.app/public/workshops/copper-assets` and its Astro project entry; Botanical
+owns publication. This hosting correction is independent of vertical engine
+acceptance and does not authorize copying engine source into the marketing site.
+
 ## Real first consumer
 
 `tools/asset-mcp/assets.mjs` defines narrow, transport-independent art operations
