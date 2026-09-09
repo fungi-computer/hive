@@ -5,10 +5,15 @@ composition after the reviewed generated-water query correction. Source review
 of the physical state/adapter, held-use/material owner, work progress and actual
 activity/destination callers agrees with the corrected readiness below.
 Physical implementation is pinned `cfd8456` and integrated as `abcf9f8`.
-Game pairing and current-version DO acceptance remain outstanding.
+Shared partial-pail work `a0c32f4` is reviewed/integrated `c330675`; its four
+actual-WASM caller laws passed over the joined physical format in `u4412`, as
+did strict installed types. Existing physical and93-law material source evidence
+was not rerun. Game pairing and current-version DO acceptance remain outstanding.
 
-Meitner released the reviewed physical files to Root. Hume owns partial-pail
-material/work and all current destination callers in `vessel-portions`; Root
+Meitner and Hume released the reviewed physical and partial-pail files to Root.
+Meitner now owns only the generic held-vessel import/export material primitives
+in `vessel-boundary`, reusing held custody and the new shared portion debit.
+Outward physical transfer creates no end-use sink or new saved ledger. Root
 owns the paired field/material admission and serial game join. The unchanged
 main-water diagnostic remains frozen and Root-owned. One current-format change removes
 the duplicate outer water baseline; no predecessor reader or shim.

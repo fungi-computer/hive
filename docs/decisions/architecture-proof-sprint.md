@@ -171,7 +171,17 @@ window. Original evidence and `WINDOW-RESULT.md` remain under frozen goblin-wet
 `.botanical/goblin-wet-startup`. Hume now owns actual startup progress and bounded
 DOM diagnostic facts in isolated `game-startup` at base `2991691`; no timeout
 increase, skipped asset/WASM/storage work or automatic rerun. The partial-pail
-packet is clean `a0c32f4`, released for Root and independent review.
+packet `a0c32f4` passed Root and independent review and is integrated `c330675`.
+The joined current physical/save format passed all4 actual-WASM vessel caller
+laws plus strict installed types in `u4412`; the unchanged93-law source suite
+was not repeated. Hume's actual startup reporting `7b17b93` + `8df3007` is
+integrated `9007e90` + `3c411a9`: five real startup stages, main-body marker,
+bounded art-group/count/rAF observations and plain loading text. Root reviewed
+the original-art caller and removed per-texture DOM publication; bake geometry,
+frames, cameras and yields remain unchanged. Reporter laws `u4409`, source
+syntax/types `u4410` and final wrapper syntax `u4415` passed; Fallow `u4411`
+retains eight broad startup/art caller advisories. This is not another browser
+result or an identified startup cause.
 
 The prior `u4344` at unchanged `09e813a` used the matching
 headless-shell1243 and provisioned libraries. Browser launch and page navigation
@@ -209,7 +219,10 @@ shared partial-pail/material-portions caller change in
 `engine/vessel-portions-20260909`. It retains the existing closed finite supply
 budget; field sourcing is the later serial paired join. Meitner released the
 physical files, accepted Root's implemented closed-consumer guard, and now
-independently reviews the clean partial-pail packet while Root traces the join.
+accepted the clean partial-pail packet. Meitner now owns only generic held-vessel
+material import/export primitives in isolated `vessel-boundary` at `c330675`;
+outward transfer must reuse exact debit and must not append a consumption sink.
+Root retains units, actual field supply/reach and paired game/Region commitment.
 Neither source chunk changes the frozen diagnostic runtime. The generated-room
 read-only recut is complete: actual terrain supports the existing footprint and
 collar; the [air contract](gameplay-air-owner.md) records the next shared producer
