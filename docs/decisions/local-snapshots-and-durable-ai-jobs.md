@@ -224,3 +224,61 @@ owning simulation. Translate a specifically accepted future service action into 
 durable payload only at a real server boundary. Do not add Watchdog, SQLite,
 liveness probes, wakes, an external executor, or a second scheduler to the
 current local browser save.
+
+## Account-bound Goblin entry — peer proposal, September 9
+
+This is a planning response to Botanical's existing
+`issues/marketing-launch/08-connect-fungi-accounts-to-goblin.md`, not an account
+writer, backend launch or replacement for the active physical work. The game
+source trace is retained at ignored generated-room
+`.botanical/generated-room/ACCOUNTS-SOURCE-TRACE.md`. Its Hive anchors were read
+at4f45e24; its Botanical reads came from the retained dirty97fd33c root and must
+not be mistaken for current accepted App-host availability. Botanical owns that
+current capability comparison.
+
+Current Hive `main.js` owns browser simulation and periodically writes the one
+`hive-local-world/world/current` IndexedDB slot. That slot has no account or
+world principal. The local Goblin DO harness has one constant DO name and proof
+secrets; it is not an authenticated customer game service. The engine Region
+already owns durable state/revision/event/receipt, but intentionally trusts the
+host to construct its principal. Its full checkpoint/debug read is not a player
+observation. The existing public Mycelium consumer captures a host-selected
+principal and actor but its rest/dig observation is narrower than the full HUD.
+
+Proposed first product boundary: one private clearing owned by the authenticated
+account. Do not silently equate a personal platform Team, a game party, a pawn
+and an account. The account-to-permitted-world relation and stable role/body
+grant belong at the game host's ordinary authenticated entry; Better Auth remains
+Botanical's identity owner. Use the current public App/host mechanism that
+Botanical can actually qualify, or agree its missing seam before implementation.
+Do not invent a privileged Hub endpoint or pass a client-supplied owner into the
+engine. A separate game-origin page cannot rely on Hub's host-only cookie.
+
+That host must authorize startup/read, command, receipt replay and reopen for
+the requested world, then route to its existing Region/DO owner. Use stable
+host-constructed principals rather than growing the proof harness's global
+`goblin-player` role into multiplayer identity. Reads must expose the entitled
+player view; world knowledge and debug grants still apply. In account mode the
+browser becomes a projection/command client and stops independently advancing
+or confirming that server-owned world. Rebuildable local caches must be keyed
+by the selected account and world and cannot authenticate access. This work
+reuses the existing engine command/receipt boundary and durable wake contract.
+
+Preserve anonymous `world/current` bytes unassociated and unchanged across
+login and account switches. Signing into another account must never adopt,
+upload, overwrite or display that local clearing as the new account's world.
+Keep raw download/recovery available. Any future import is an explicit action
+into a separately created private world, validated with the supported game
+codec, idempotently acknowledged before changing local bytes. Older unsupported
+formats remain raw recovery data; this proposal does not add a migration shim.
+An anonymous snapshot proves no earned multiplayer history, so do not import it
+into a shared economy or overwrite an existing account world by default.
+
+First joint acceptance should demonstrate two accounts on the same browser:
+owned-world startup, cross-account read/command/replay denial, sign-out removal
+of access, lost-ack retry and exact DO reopen, while the anonymous local bytes
+remain intact. The unresolved peer decision is which current ordinary Fungi
+host/App admission supplies the verified account/grant to this game operation.
+Botanical owns that host capability; Game CTO owns world membership, projections
+and source integration. No new identity database or custom agent protocol is
+required by this proposal.
