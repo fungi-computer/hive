@@ -1,4 +1,16 @@
 {
-  "compilerOptions": { "target":"ES2023", "module":"ESNext", "moduleResolution":"Bundler", "lib":["ES2023"], "strict":true, "noEmit":true, "allowImportingTsExtensions":true, "allowJs":true, "checkJs":false, "skipLibCheck":true, "types":[] },
-  "files":["goblin-env.d.ts","goblin-wasm.d.ts","goblin-worker.ts"]
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": false,
+    "types": []
+  },
+  "files": ["goblin-env.d.ts", "goblin-wasm.d.ts", "goblin-worker.ts"]
 }

@@ -1,15 +1,23 @@
+import { DurableObject } from "cloudflare:workers";
+import { createHeldFieldFixture } from "./goblin-field-fixture.ts";
+import { serializeClearing } from "../../src/clearing-state.ts";
+import { FIELD_WATER } from "../../src/field-water-source.ts";
 import {
   openRegion,
   type RegionSqliteOwner,
 } from "../../src/engine/region/index.ts";
 import { createGoblinRegionProgram } from "../../src/world-presets/goblin-region.ts";
-import { loadOptimizer } from "../../src/engine/colony/loader.ts";
+import {
+  loadOptimizer,
+  optimizerBuildIdentity,
+} from "../../src/engine/colony/loader.ts";
 import colonyWasm from "../../src/engine/colony/colony.wasm";
 
 // Local proof harness only. Credentials are generated per run; no public auth or
 // administrative API is established by this consumer.
 type Environment = {
   REGIONS: DurableObjectNamespace;
+  FIXTURE?: "dig" | "field";
   WRITER_SECRET: string;
   SPECTATOR_SECRET: string;
   DEBUG_SECRET: string;
@@ -20,17 +28,18 @@ function authorized(request: Request, secret: string): boolean {
     request.headers.get("Authorization") === `Bearer ${secret}`
   );
 }
-export class GoblinRegion {
+export class GoblinRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion>;
   private readonly ready: Promise<void>;
   private failBeforeReceipt = false;
-  constructor(
-    private readonly ctx: DurableObjectState,
-    private readonly env: Environment,
-  ) {
+  constructor(ctx: DurableObjectState, env: Environment) {
+    super(ctx, env);
     const owner: RegionSqliteOwner = {
       sql: {
-        exec: <Row extends Record<string, SqlStorageValue | Uint8Array>>(statement: string, ...bindings: (SqlStorageValue | Uint8Array)[]) => {
+        exec: <Row extends Record<string, SqlStorageValue | Uint8Array>>(
+          statement: string,
+          ...bindings: (SqlStorageValue | Uint8Array)[]
+        ) => {
           if (
             this.failBeforeReceipt &&
             statement.startsWith("INSERT INTO hive_region_receipts")
@@ -46,7 +55,25 @@ export class GoblinRegion {
     };
     this.ready = ctx.blockConcurrencyWhile(async () => {
       const optimizer = await loadOptimizer(colonyWasm);
-      this.region = openRegion({ owner, region: "goblin-proof-v1", program: createGoblinRegionProgram(optimizer) });
+      const fixture = fixtureName(env);
+      const program = createGoblinRegionProgram(optimizer);
+      if (fixture === "field") {
+        program.id = `field20-proof-v1:${optimizerBuildIdentity(optimizer)}`;
+        program.initial = () => {
+          const { state, operation } = createHeldFieldFixture();
+          operation.supply = {
+            kind: "field",
+            binding: FIELD_WATER.id,
+            nodeId: "reservoir:column-p0-p128",
+          };
+          return { clearing: serializeClearing(state) };
+        };
+      }
+      this.region = openRegion({
+        owner,
+        region: fixture === "dig" ? "goblin-proof-v1" : "goblin-field-proof-v1",
+        program,
+      });
     });
   }
   async fetch(request: Request): Promise<Response> {
@@ -115,12 +142,21 @@ export class GoblinRegion {
     }
   }
 }
+function fixtureName(env: Environment): "dig" | "field" {
+  if (env.FIXTURE === undefined || env.FIXTURE === "dig") return "dig";
+  if (env.FIXTURE === "field") return "field";
+  throw new Error("invalid-proof-fixture");
+}
 export default {
   fetch(request: Request, env: Environment): Promise<Response> | Response {
     if (new URL(request.url).pathname === "/health")
       return Response.json({ service: "hive-goblin-local-proof" });
-    return env.REGIONS.get(env.REGIONS.idFromName("goblin-proof-v1")).fetch(
-      request,
-    );
+    return env.REGIONS.get(
+      env.REGIONS.idFromName(
+        fixtureName(env) === "dig"
+          ? "goblin-proof-v1"
+          : "goblin-field-proof-v1",
+      ),
+    ).fetch(request);
   },
 };
