@@ -1,5 +1,5 @@
 import { requireCondition } from './soil.mjs';
-import { darcyFaces } from './faces.mjs';
+import { exchangeFaces } from './faces.mjs';
 
 // Solver-owned working arrays only. No canonical initial water or accepted
 // state is created by compiling/evaluating geometry or a trial pressure.
@@ -27,7 +27,7 @@ export function mixedResidual(g, oldMassKg, headInput, dtS) {
       capacityKgPerM[i] = heads[i] >= 0 ? factor : 0;
     }
   }
-  const face = darcyFaces(g, heads, fields);
+  const face = exchangeFaces(g, heads, fields);
   const residualKg = Float64Array.from(massFromHeadKg, (mass, i) => mass - oldMassKg[i]);
   for (const [k, f] of g.faces.entries()) {
     const transferKg = g.densityKgM3 * dtS * face.volumeRateM3S[k];

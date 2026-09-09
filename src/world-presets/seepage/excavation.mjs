@@ -4,7 +4,7 @@ import { createVolume, createVolumeGeometry, balanceTolerance, compensatedSum } 
 import { key, xyz, same, ordered, immutable, exactFields, coordinate, restoreWorld,
   assertRegionWorld, pitContacts, assertVented, excavateWorld, metric, requireCondition } from './world-binding.mjs';
 
-const VERSION = 'height-caves-finite-seepage-v2';
+const VERSION = 'height-caves-finite-seepage-v3';
 const PIT_ID = 'excavation-pit';
 const MAX_ENCODED = 1048576;
 const STATE_FIELDS = ['version', 'identity', 'world', 'soilGeometry', 'soilState',
@@ -81,7 +81,7 @@ function validateExcavationHistory(config, state, facts) {
   excavateWorld(previousWorld, command);
   requireCondition(same(previousWorld.save(), state.world), 'one replayed material edit exactly explains current world');
 
-  const descriptor = { ...state.soilGeometry, version: 'rigid-soil-voxel-graph-v1',
+  const descriptor = { ...state.soilGeometry,
     revision: command.expectedWorldRevision,
     cells: [...state.soilGeometry.cells, { at, soilId: entry.soilId }],
     reservoirs: state.soilGeometry.reservoirs.filter(r => r.id !== PIT_ID),
@@ -184,10 +184,10 @@ export function createExcavationAdapter(input) {
     const { target, stock, contacts } = admitTarget(checked, command);
     const previousWorldTarget = input.world.changes.find(change => matchesAt(change, command.at)) ?? null;
     excavateWorld(checked.world, command); // Private candidate; never the caller's world.
-    const descriptor = { ...checked.owner.geometry, version: 'rigid-soil-voxel-pit-graph-v1',
+    const descriptor = { ...checked.owner.geometry,
       revision: command.expectedWorldRevision + 1,
       cells: checked.owner.geometry.cells.filter(cell => !same(cell.at, command.at)),
-      reservoirs: [...checked.owner.geometry.reservoirs, { id: PIT_ID, kind: 'vented-pit', at: command.at }],
+      reservoirs: [...checked.owner.geometry.reservoirs, { id: PIT_ID, kind: 'vented-pit', at: command.at, heightCells: 1 }],
       ports: [...checked.owner.geometry.ports, ...pitPorts(contacts)] };
     const retained = checked.facts.nodes.filter(node => node.nodeId !== stock.nodeId)
       .map(node => ({ nodeId: node.nodeId, massKg: node.massKg }));

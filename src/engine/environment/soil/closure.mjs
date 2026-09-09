@@ -39,11 +39,11 @@ function normalizeWetHeads(g, closed) {
   return normalizations;
 }
 
-// B is positive outward incidence. Preserve Darcy circulation on all chords;
+// B is positive outward incidence. Preserve constitutive transfer on all chords;
 // only the stable tree carries the small remaining continuity discrepancy.
 function conservativeFaceLedger(g, oldMassKg, massKg, checked, dtS, work) {
-  const darcyTransferKg = Array.from(checked.volumeRateM3S, q => g.densityKgM3 * dtS * q);
-  const transferKg = [...darcyTransferKg], subtree = oldMassKg.map((m, i) => m - massKg[i]);
+  const constitutiveTransferKg = Array.from(checked.volumeRateM3S, q => g.densityKgM3 * dtS * q);
+  const transferKg = [...constitutiveTransferKg], subtree = oldMassKg.map((m, i) => m - massKg[i]);
   for (const [k, face] of g.faces.entries()) {
     subtree[face.left] -= transferKg[k]; subtree[face.right] += transferKg[k];
     work.closureFaceVisits++;
@@ -55,7 +55,7 @@ function conservativeFaceLedger(g, oldMassKg, massKg, checked, dtS, work) {
     treeCorrectionKg[faceIndex] = delta; transferKg[faceIndex] += delta;
     subtree[g.tree.parent[child]] += subtree[child]; work.closureTreeVisits++;
   }
-  return { transferKg, darcyTransferKg, treeCorrectionKg, initialContinuityKg,
+  return { transferKg, constitutiveTransferKg, treeCorrectionKg, initialContinuityKg,
     rootCompatibilityKg: subtree[g.tree.root] };
 }
 
@@ -74,15 +74,15 @@ function ledgerMetrics(g, oldMassKg, closed, checked, ledger, dtS) {
     paired[face.left] -= ledger.transferKg[k]; paired[face.right] += ledger.transferKg[k];
   }
   const boundaries = boundaryFacts(g, closed);
-  const darcyKg = maxAbs(ledger.transferKg.map((m, k) => m - ledger.darcyTransferKg[k]));
+  const faceLawKg = maxAbs(ledger.transferKg.map((m, k) => m - ledger.constitutiveTransferKg[k]));
   return { mixedKg: checked.normKg,
     constitutiveKg: maxAbs(checked.massFromHeadKg.map((m, i) => m - closed.massKg[i])),
-    darcyKg, darcyM3S: darcyKg / (g.densityKgM3 * dtS),
+    faceLawKg, faceLawM3S: faceLawKg / (g.densityKgM3 * dtS),
     pairKg: maxAbs(paired.map((m, i) => m - closed.massKg[i])),
     totalKg: compensatedSum(closed.massKg) - compensatedSum(oldMassKg),
     treeCorrectionKg: maxAbs(ledger.treeCorrectionKg), rootCompatibilityKg: ledger.rootCompatibilityKg,
     initialContinuityKg: ledger.initialContinuityKg,
-    chordDifferenceKg: maxAbs(g.tree.chords.map(k => ledger.transferKg[k] - ledger.darcyTransferKg[k])),
+    chordDifferenceKg: maxAbs(g.tree.chords.map(k => ledger.transferKg[k] - ledger.constitutiveTransferKg[k])),
     complementarityM2: maxAbs(boundaries.map(b => b.depthM * b.gapM)), boundaries };
 }
 
@@ -92,7 +92,7 @@ function admitClosure(g, oldMassKg, closed, metrics) {
     m >= g.nodes[i].minMassKg && m <= g.nodes[i].maxMassKg && validHead(g.nodes[i], closed.heads[i]));
   const wetLaw = metrics.boundaries.every(b => b.depthM >= 0 && b.gapM >= 0 &&
     (b.kind === 'pit' || b.portCount === 1 || b.massKg > 0));
-  const limits = [metrics.mixedKg, metrics.constitutiveKg, metrics.darcyKg, metrics.treeCorrectionKg];
+  const limits = [metrics.mixedKg, metrics.constitutiveKg, metrics.faceLawKg, metrics.treeCorrectionKg];
   if (!bounded || !wetLaw || !limits.every(x => Number.isFinite(x) && x <= NUMERICS.acceptedKg) ||
     !Number.isFinite(metrics.totalKg) || Math.abs(metrics.totalKg) > balance ||
     !Number.isFinite(metrics.pairKg) || metrics.pairKg > balance ||

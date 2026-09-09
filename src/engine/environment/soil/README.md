@@ -20,8 +20,12 @@ new consumers import this implementation. The synthetic loam and water-table
 initial condition live in `world-presets/seepage/wet-clearing.mjs` and are not assertions
 about actual soil or water inferred from a terrain color.
 
-Current admitted limits are 64 porous cells, 8 reservoirs, 72 unknowns and one
-vented voxel pit. Physical definition density is 1000 kg/m³; spacing is explicit.
+Current admitted limits are 64 porous cells, 8 reservoirs, 72 unknowns and 16 surface
+connections. Vented water columns explicitly own 1..16 vertically contiguous air
+voxels and one porous floor; their Darcy graph must remain connected. Physical
+definition density is 1000 kg/m³; spacing is explicit. A surface edge derives its
+crest and opening from two neighboring columns and uses the declared normalized
+broad-crested overflow law. It carries no momentum or wave state.
 The tested generated scene has 18 initial soil cells, then 17 plus the excavated
 pit. It removes one actual world soil cell, exports its pore water with spoil,
 and accumulates approximately 12.5654 kg of seepage after 600 simulated seconds.
@@ -36,10 +40,15 @@ and `geometry.mjs`; no acceptance threshold was relaxed during extraction.
 56 → 11). Estimated-coverage CRAP advisories remain; public entry reachability is
 not inferred from a main-game import because integration is unfinished.
 
-Spill routing, multiple connected excavations, terrain backfill, free-falling
-water, gas coupling and pail/material exchange are still unfinished. An open
-lateral outlet rejects instead of inventing a basin wall. This module is one
-part of the water engine, not a substitute for those required capabilities.
+Connected surface/soil laws now exercise a real 0.54 m ledge, filling a receiver
+above one voxel, closed/subcrest/equal-head transfers, reversal and independent
+drainage-curve refinement. Surface edges remain constitutive chords in the same
+ledger; numerical continuity cleanup cannot transfer water across a closed crest.
+The column geometry is current format only. The one-cut world consumer still
+rejects an open lateral outlet; deriving new connections through repeated world
+excavation is the next caller join. Terrain backfill, solid-floor/disconnected
+components, free-falling travel, gas coupling and pail/material exchange remain
+unfinished. These are not replaced by the surface approximation.
 
 Breaking changes are allowed. Only the current format is read; no legacy
 compatibility reader is included.

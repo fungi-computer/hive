@@ -3,6 +3,7 @@ import { createVolumeGeometry, REGION_LIMITS } from './geometry.mjs';
 import { ConvergenceFailure } from './newton.mjs';
 import { solveStep } from './closure.mjs';
 import { VERSION, NUMERICS, freezeState, initialState, validateState, maxAbs } from './state.mjs';
+import { SURFACE_EXCHANGE_VERSION } from './surface-exchange.mjs';
 
 function admitRequest(g, identity, input, intervalS, options) {
   validateState(g, identity, input);
@@ -50,6 +51,16 @@ function boundedStep(g, state, proposedDtS, work, rejectedStages) {
   throw new Error('unreachable bounded region retry');
 }
 
+function proposedStep(state, request, intervalS) {
+  const remaining = request.endS - state.timeS;
+  const roundoff = 16 * Number.EPSILON * Math.max(1, intervalS, request.dtMaxS);
+  // Absorb only summation roundoff into the last actual solve. Never advance
+  // the clock through an unsolved tiny tail or change the global physical cap.
+  if (remaining <= request.dtMaxS + roundoff)
+    return remaining <= NUMERICS.maxDtS ? remaining : remaining / 2;
+  return request.dtMaxS;
+}
+
 function recordStep(prior, next, trial, receipt) {
   const step = { startS: prior.timeS, endS: next.timeS, dtS: trial.dtS,
     headM: trial.headM, massKg: trial.massKg, ledger: trial.ledger, metrics: trial.metrics, closure: trial.closure };
@@ -80,7 +91,7 @@ function readFacts(g, identity, state) {
     if (node.kind !== 'soil') return { nodeId: node.id, kind: node.kind, massKg,
       depthM: massKg / (g.densityKgM3 * node.areaM2), ports: node.portCount,
       ...(node.kind === 'pit' ? { at: node.at, baseYM: node.baseYM, rimYM: node.rimYM,
-        capacityKg: node.maxMassKg, atmosphere: 'vented-unmodeled' } : {}) };
+        heightCells: node.heightCells, capacityKg: node.maxMassKg, atmosphere: 'vented-unmodeled' } : {}) };
     return { nodeId: node.id, kind: node.kind, massKg, theta: massKg / (g.densityKgM3 * node.volumeM3),
       poreAirM3: (node.maxMassKg - massKg) / g.densityKgM3,
       retentionHeadM: checked.anchors.find(a => a.node === i)?.headM ?? null };
@@ -92,8 +103,9 @@ export function createVolume(descriptor) {
   const identity = JSON.stringify({ version: VERSION, geometry: g.identity,
     faceRule: 'series-centre-half-trace-quarter-v1', solver: 'analytic-dense-newton-tree-closure-v1',
     pressureGuess: 'stable-id-multisource-bfs-canonical-stock-v1', dryBoundary: 'single-port-only-v1',
+    surfaceExchange: SURFACE_EXCHANGE_VERSION,
     ...(g.nodes.some(n => n.kind === 'pit') ? {
-      pitBoundary: 'integrated-side-seepage-single-floor-positive-depth-v1',
+      pitBoundary: 'voxel-column-integrated-side-single-floor-positive-depth-v2',
       dryPitReference: 'exposed-saturated-side-atmosphere-v1' } : {}) });
 
   function advance(input, intervalS, options = {}) {
@@ -104,7 +116,7 @@ export function createVolume(descriptor) {
     try {
       while (state.timeS < request.endS) {
         requireCondition(receipt.steps.length < request.maxSteps, 'accepted region step budget exhausted; input uncommitted');
-        const trial = boundedStep(g, state, Math.min(request.dtMaxS, request.endS - state.timeS), work, receipt.rejectedStages);
+        const trial = boundedStep(g, state, proposedStep(state, request, intervalS), work, receipt.rejectedStages);
         const next = freezeState({ ...state, massKg: trial.massKg,
           timeS: state.timeS + trial.dtS, steps: state.steps + 1 });
         validateState(g, identity, next); recordStep(state, next, trial, receipt); state = next;

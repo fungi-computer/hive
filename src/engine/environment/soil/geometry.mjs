@@ -1,5 +1,6 @@
 import { createSoil, SOIL_FIELDS, requireCondition } from './soil.mjs';
 import { pitNode } from './pit.mjs';
+import { compileSurfaceEdges } from './surface-geometry.mjs';
 
 export const REGION_LIMITS = Object.freeze({ maxCells: 64, maxReservoirs: 8, maxPorts: 64,
   maxFaces: 384, maxUnknowns: 72, maxSteps: 512, maxIterations: 64, maxLineSearch: 18,
@@ -64,9 +65,13 @@ function reservoirInputs(inputs) {
   const ids = new Set();
   return inputs.map(input => {
     const pit = input?.kind === 'vented-pit';
-    ownKeys(input, pit ? ['id', 'kind', 'at'] : ['id', 'areaM2'], 'finite reservoir definition fields');
+    ownKeys(input, pit ? ['id', 'kind', 'at', 'heightCells'] : ['id', 'areaM2'], 'finite reservoir definition fields');
     requireCondition(identifier(input.id) && !ids.has(input.id), 'unique finite reservoir ID'); ids.add(input.id);
-    if (pit) return Object.freeze({ id: input.id, kind: 'vented-pit', at: coordinate(input.at) });
+    if (pit) {
+      requireCondition(Number.isSafeInteger(input.heightCells) && input.heightCells > 0 && input.heightCells <= 16,
+        'explicit column height in1..16 air voxels');
+      return Object.freeze({ id: input.id, kind: 'vented-pit', at: coordinate(input.at), heightCells: input.heightCells });
+    }
     requireCondition(Number.isFinite(input.areaM2) && input.areaM2 >= 0.01 && input.areaM2 <= 8,
       'bounded positive reservoir surface area');
     return Object.freeze({ id: input.id, areaM2: input.areaM2 });
@@ -122,7 +127,7 @@ function* cellFaces(cells, spacing) {
 function flowFace(entry, neighbor, boundary, nodes, spacing) {
   const { index, cell, axis, sign, face } = entry;
   const left = sign > 0 ? index : neighbor, right = sign > 0 ? neighbor : index;
-  return Object.freeze({ ...face, left, right, boundary,
+  return Object.freeze({ ...face, kind: 'darcy', left, right, boundary,
     ...(boundary && nodes[neighbor].kind === 'pit' ? { pitRole: axis === 1 ? 'floor' : 'side' } : {}),
     leftSoilId: boundary ? cell.soilId : nodes[left].soilId,
     rightSoilId: boundary ? cell.soilId : nodes[right].soilId,
@@ -176,7 +181,7 @@ function stableTopology(nodes, faces) {
 
 export function createVolumeGeometry(input) {
   ownKeys(input, ['version', 'regionId', 'revision', 'spacingM', 'exterior', 'definitions', 'cells',
-    'reservoirs', 'ports', 'closedFaces'], 'connected porous region descriptor fields');
+    'reservoirs', 'ports', 'closedFaces', 'surfaceEdges'], 'connected porous region descriptor fields');
   requireCondition(identifier(input.regionId) && Number.isSafeInteger(input.revision) && input.revision >= 0,
     'explicit porous region identity/revision');
   requireCondition(Array.isArray(input.spacingM) && input.spacingM.length === 3 &&
@@ -187,22 +192,35 @@ export function createVolumeGeometry(input) {
   const soils = definitions(input.definitions), cells = soilNodes(input.cells, soils, spacing);
   const lookup = new Map(cells.map((n, i) => [key(n.at), i]));
   const reservoirDefs = reservoirInputs(input.reservoirs), ports = compilePorts(input.ports, lookup, reservoirDefs, spacing);
-  const pitCount = reservoirDefs.filter(r => r.kind === 'vented-pit').length;
-  requireCondition(pitCount <= 1, 'first shared-owner candidate admits one finite pit');
-  const version = pitCount === 0 ? 'rigid-soil-voxel-graph-v1' : 'rigid-soil-voxel-pit-graph-v1';
+  const occupiedAir = new Set();
+  for (const r of reservoirDefs.filter(r => r.kind === 'vented-pit')) {
+    for (let y = r.at[1]; y < r.at[1] + r.heightCells; y++) {
+      const id = key([r.at[0], y, r.at[2]]);
+      requireCondition(!occupiedAir.has(id), 'finite columns cannot own overlapping air voxels'); occupiedAir.add(id);
+    }
+  }
+  const version = 'rigid-soil-voxel-columns-v2';
   requireCondition(input.version === undefined || input.version === version,
     'supported porous geometry descriptor version');
   const nodes = Object.freeze([...cells, ...reservoirNodes(reservoirDefs, ports, cells, spacing)]);
   requireCondition(nodes.length <= REGION_LIMITS.maxUnknowns, 'bounded shared pressure unknowns');
   const compiled = compileFaces(cells, nodes, lookup, ports, input.closedFaces, spacing);
+  const surface = compileSurfaceEdges(input.surfaceEdges ?? [], nodes, spacing);
+  requireCondition(compiled.faces.length + surface.faces.length <= REGION_LIMITS.maxFaces, 'bounded exchange faces');
+  // Only Darcy edges form the continuity-correction tree. Surface edges remain
+  // constitutive chords, so rounding cleanup cannot move water across a closed crest.
   const topology = stableTopology(nodes, compiled.faces);
+  const faces = Object.freeze([...compiled.faces, ...surface.faces]);
+  const tree = Object.freeze({ ...topology.tree, chords: Object.freeze([...topology.tree.chords,
+    ...surface.faces.map((_, i) => compiled.faces.length + i)]) });
   const descriptor = Object.freeze({ version, regionId: input.regionId,
     revision: input.revision, spacingM: spacing, exterior: 'closed',
     definitions: Object.freeze(Object.keys(soils).sort(compareText).map(id => soils[id].definition)),
     cells: Object.freeze(cells.map(n => Object.freeze({ at: n.at, soilId: n.soilId }))),
     reservoirs: Object.freeze(reservoirDefs), ports: Object.freeze(ports.map(p => Object.freeze({
       cell: cells[p.cell].at, side: `${AXES[p.face.axis]}${p.sign > 0 ? '+' : '-'}`,
-      reservoirId: p.reservoirId }))), closedFaces: Object.freeze([...input.closedFaces].sort(compareText)) });
+      reservoirId: p.reservoirId }))), closedFaces: Object.freeze([...input.closedFaces].sort(compareText)),
+    surfaceEdges: surface.definitions });
   return Object.freeze({ descriptor, identity: JSON.stringify(descriptor), nodes,
-    ...compiled, ...topology, soils, densityKgM3: 1000 });
+    ...compiled, ...topology, faces, tree, soils, densityKgM3: 1000 });
 }
