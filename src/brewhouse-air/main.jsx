@@ -4,6 +4,7 @@ import { Badge } from "@fungi.computer/caps/components/badge";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Card, CardContent } from "@fungi.computer/caps/components/card";
 import "@fungi.computer/caps/styles.css";
+import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel.ts";
 import { AIR_VISUAL_SCALE, createBrewhouseAirView } from "./view.js";
 import "./style.css";
 
@@ -22,26 +23,26 @@ function format(value, digits = 5) {
 
 function explain(error) {
   if (error === "fuel-already-used")
-    return "The one stocked wood dose has already been used.";
+    return "The stocked wood has already been burned.";
   if (error === "opening-unchanged")
     return "The upper shutter is already in that position.";
-  return `The local room rejected that request: ${error}`;
+  return `The room could not do that: ${error}`;
 }
 
 function noticeFor(data, previousTime) {
   switch (data.action) {
     case "ignite":
-      return "One wood unit paid for a six-second heat and tracer dose. Advance time to release it.";
+      return "The hearth is lit. It will burn for six seconds as time advances.";
     case "vent":
       return `Upper shutter ${data.scene.result.ventOpen ? "opened" : "closed"}. This changes the measured path; it is not a safety claim.`;
     case "advance":
-      return `Advanced the room by ${data.result.timeS - previousTime} seconds.`;
+      return `Waited ${data.result.timeS - previousTime} seconds.`;
     case "reopen":
-      return "Reopened the browser-local checkpoint through the same strict room parser.";
+      return "Reopened the saved room.";
     case "reset":
       return "Started a new closed room with one wood unit in the hearth.";
     default:
-      return "The authored brewhouse is ready. The upper shutter starts closed.";
+      return "The authored brewhouse is ready. The hearth is stocked and the upper shutter is closed.";
   }
 }
 
@@ -53,21 +54,21 @@ function RoomControls({ busy, result, scene, send, turnView }) {
         disabled={busy || !result || result.fuelUnits === 0}
         onClick={() => send("ignite")}
       >
-        Ignite 1 wood
+        Light hearth
       </Button>
       <Button
         size="sm"
         disabled={busy || !result}
         onClick={() => send("advance", { seconds: 1 })}
       >
-        Advance 1 second
+        Wait 1 second
       </Button>
       <Button
         size="sm"
         disabled={busy || !result}
         onClick={() => send("advance", { seconds: 6 })}
       >
-        Advance 6 seconds
+        Wait 6 seconds
       </Button>
       <Button
         size="sm"
@@ -115,7 +116,7 @@ function FieldControls({
   toggleSmoke,
 }) {
   return (
-    <div className="air-field-controls" aria-label="Measured air fields">
+    <div className="air-field-controls" aria-label="Air overlays">
       <Button
         size="sm"
         variant={showHeat ? "primary" : "outline"}
@@ -123,7 +124,7 @@ function FieldControls({
         aria-pressed={showHeat}
         onClick={toggleHeat}
       >
-        Heat field
+        Heat overlay
       </Button>
       <Button
         size="sm"
@@ -132,7 +133,7 @@ function FieldControls({
         aria-pressed={showSmoke}
         onClick={toggleSmoke}
       >
-        Tracer field
+        Smoke overlay
       </Button>
     </div>
   );
@@ -140,44 +141,42 @@ function FieldControls({
 
 function RoomFacts({ result }) {
   if (!result) return null;
+  const burning = result.fuelUnits === 0 && result.remainingDoseFraction > 0;
+  const fireRemaining = burning
+    ? `${format(result.remainingDoseFraction * ROOM_FUEL.durationS, 2)} s`
+    : result.fuelUnits > 0
+      ? "Not lit"
+      : "Out";
   return (
     <dl className="air-facts" data-brewhouse-air-facts>
       <div>
-        <dt>Physical time</dt>
+        <dt>Time</dt>
         <dd>{format(result.timeS, 3)} s</dd>
       </div>
       <div>
-        <dt>Wood in hearth</dt>
-        <dd>{result.fuelUnits}</dd>
+        <dt>Wood</dt>
+        <dd>{result.fuelUnits === 1 ? "1 piece" : "None"}</dd>
       </div>
       <div>
-        <dt>Unreleased paid dose</dt>
-        <dd>{format(result.remainingDoseFraction * 100, 2)}%</dd>
+        <dt>Fire remaining</dt>
+        <dd>{fireRemaining}</dd>
       </div>
       <div>
         <dt>Upper shutter</dt>
         <dd>{result.ventOpen ? "Open" : "Closed"}</dd>
       </div>
       <div>
-        <dt>Heat supplied</dt>
-        <dd>{format(result.emittedHeatJ, 3)} J</dd>
-      </div>
-      <div>
-        <dt>Tracer supplied</dt>
-        <dd>{format(result.emittedSmokeKg * 1e6, 3)} mg</dd>
-      </div>
-      <div>
-        <dt>Downstairs air</dt>
+        <dt>Downstairs</dt>
         <dd>
-          {format(result.downstairs.temperatureK, 5)} K ·{" "}
-          {format(result.downstairs.smokeKgM3 * 1e6, 5)} mg/m³
+          {format(result.downstairs.temperatureK - 273.15, 3)} °C ·{" "}
+          {format(result.downstairs.smokeKgM3 * 1e6, 4)} mg/m³ smoke
         </dd>
       </div>
       <div>
-        <dt>Upstairs air</dt>
+        <dt>Upstairs</dt>
         <dd>
-          {format(result.upstairs.temperatureK, 5)} K ·{" "}
-          {format(result.upstairs.smokeKgM3 * 1e6, 5)} mg/m³
+          {format(result.upstairs.temperatureK - 273.15, 3)} °C ·{" "}
+          {format(result.upstairs.smokeKgM3 * 1e6, 4)} mg/m³ smoke
         </dd>
       </div>
     </dl>
@@ -193,7 +192,7 @@ function CheckpointControls({ busy, available, reopen, download, reset }) {
         disabled={busy || !available}
         onClick={reopen}
       >
-        Reopen checkpoint
+        Reopen saved room
       </Button>
       <Button
         size="sm"
@@ -201,12 +200,49 @@ function CheckpointControls({ busy, available, reopen, download, reset }) {
         disabled={!available}
         onClick={download}
       >
-        Download checkpoint
+        Download saved room
       </Button>
       <Button size="sm" variant="outline" disabled={busy} onClick={reset}>
         New room
       </Button>
     </div>
+  );
+}
+
+function TechnicalDetails({ result }) {
+  return (
+    <Card variant="outline" className="air-legend">
+      <CardContent>
+        <details>
+          <summary>Technical details and limits</summary>
+          {result && (
+            <p>
+              The hearth has supplied {format(result.emittedHeatJ, 3)} J of
+              room-directed heat and {format(result.emittedSmokeKg * 1e6, 3)}
+              mg of passive tracer.
+            </p>
+          )}
+          <p>
+            The optional <span className="air-key heat" /> heat and{" "}
+            <span className="air-key smoke" /> smoke overlays occupy the actual
+            1 × 0.54 × 1 m air cells. Eight fixed opacity steps cover 0–
+            {AIR_VISUAL_SCALE.heatDeltaK} K above 293.15 K and 0–
+            {AIR_VISUAL_SCALE.smokeKgM3 * 1e6} mg/m³ tracer. The scale never
+            renormalizes to the current frame.
+          </p>
+          <p>
+            In the retained 66-second comparison, opening the upper shutter
+            increased tracer past the upstairs measurement by 50.4–50.5%, with
+            almost none reaching the exterior. This is an authored room study,
+            not the complete generated game-world air join. It does not
+            establish safe ventilation, accuracy for stronger fires or finer
+            spatial behavior, chemical combustion, oxygen, or actor exposure.
+            The saved room lives only in this page unless downloaded; there is
+            no server durability or autonomous time.
+          </p>
+        </details>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -219,7 +255,7 @@ function BrewhouseAir() {
   const sceneTime = useRef(0);
   const [scene, setScene] = useState(null);
   const [busy, setBusy] = useState(true);
-  const [notice, setNotice] = useState("Opening the brewhouse…");
+  const [notice, setNotice] = useState("Opening the authored brewhouse…");
   const [turn, setTurn] = useState(0);
   const [layer, setLayer] = useState("cutaway");
   const [showHeat, setShowHeat] = useState(false);
@@ -246,7 +282,7 @@ function BrewhouseAir() {
       worker.current = null;
       setBusy(true);
       setNotice(
-        `${message} Reload to restart; the last completed checkpoint remains downloadable.`,
+        `${message} Reload to restart; the last saved room remains downloadable.`,
       );
     }
     runtime.onmessage = ({ data }) => {
@@ -307,16 +343,16 @@ function BrewhouseAir() {
     <>
       <section className="air-heading">
         <div>
-          <p>Live local Hive world</p>
+          <p>Authored two-storey room study</p>
           <h1>Warm air in the brewhouse</h1>
           <span>
-            One stocked hearth, two authored storeys, and the actual bounded air
-            owner. The upper shutter changes the path; it does not promise
-            cleaner air.
+            Light the stocked hearth, wait, and compare the air downstairs and
+            upstairs. Opening the upper shutter changes the path; it does not
+            promise cleaner air.
           </span>
         </div>
         <Badge tone="neutral" size="sm">
-          Browser-local checkpoint
+          Browser-local saved room
         </Badge>
       </section>
 
@@ -354,25 +390,7 @@ function BrewhouseAir() {
         </Card>
       </div>
 
-      <Card variant="outline" className="air-legend">
-        <CardContent>
-          <p>
-            The optional <span className="air-key heat" /> heat and{" "}
-            <span className="air-key smoke" /> tracer fields occupy the actual 1
-            × 0.54 × 1 m air cells. Their eight fixed opacity steps cover 0–
-            {AIR_VISUAL_SCALE.heatDeltaK} K above 293.15 K and 0–
-            {AIR_VISUAL_SCALE.smokeKgM3 * 1e6} mg/m³ tracer. The scale never
-            renormalizes to the current frame.
-          </p>
-          <p>
-            The retained 66-second comparison found that opening this upper
-            shutter drew about 50% more tracer past the upstairs measurement,
-            with little exterior clearance. This view does not claim safe
-            ventilation, chemical combustion, oxygen, actor exposure, server
-            durability, or autonomous time.
-          </p>
-        </CardContent>
-      </Card>
+      <TechnicalDetails result={result} />
     </>
   );
 }
