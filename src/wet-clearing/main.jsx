@@ -78,7 +78,8 @@ function WetClearing() {
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   return <>
-    <header><h1>A hole in wet ground</h1><p>Dig into the hillside. The water already in the soil has somewhere new to go.</p></header>
+    <header><a className="wet-study-link link link-hover" href="/study">← Back to studies</a>
+      <h1>A hole in wet ground</h1><p>Dig into the hillside. The water already in the soil has somewhere new to go.</p></header>
     <div className="wet-layout">
       <div className="wet-world" ref={host} data-wet-world />
       <Card variant="outline"><CardContent>
@@ -86,7 +87,7 @@ function WetClearing() {
         <p>Selected: <strong data-wet-selected>{selection?.join(', ') ?? 'none'}</strong></p>
         <div className="wet-actions">
           <Button size="sm" disabled={busy || !modeledSoilSelected} onClick={() => send('dig')}>Dig selected soil</Button>
-          <Button size="sm" disabled={busy || !scene?.water.length} onClick={() => send('advance', { seconds: 6 })}>Watch 6 seconds</Button>
+          <Button size="sm" disabled={busy || !scene?.water.length} onClick={() => send('advance', { seconds: 6 })}>Advance 6 seconds</Button>
           <Button size="sm" disabled={busy || !scene?.water.length} onClick={() => send('advance', { seconds: 600 })}>Wait ten minutes</Button>
           <Button size="sm" variant="outline" disabled={busy || !scene} onClick={() => setTurn((turn + 1) % 4)}>Turn view</Button>
           <Button size="sm" variant="outline" disabled={busy || !scene} onClick={() => send('reopen')}>Reopen checkpoint</Button>

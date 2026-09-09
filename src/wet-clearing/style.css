@@ -1,6 +1,7 @@
 body { margin: 0; background: var(--color-base-100); color: var(--color-base-content); font-family: var(--font-sans); }
 #wet-clearing { max-width: 1200px; margin: auto; padding: 16px; }
 #wet-clearing h1 { font-size: 1.5rem; margin: 8px 0; }
+.wet-study-link { display: inline-block; margin-top: 4px; font-size: .875rem; }
 .wet-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
 .wet-world { background: #303e35; border-radius: 8px; min-width: 0; overflow: hidden; }
 .wet-world canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; cursor: crosshair; }

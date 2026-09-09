@@ -49,6 +49,29 @@ assert.throws(
 );
 assert.equal(adapter.encode(input), initialWire);
 
+const replies = [];
+globalThis.self = { postMessage: (message) => replies.push(message) };
+await import('../../src/wet-clearing/worker.js?wet-clearing-check');
+const dispatchWorker = data => {
+  const before = replies.length;
+  self.onmessage({ data });
+  assert.equal(replies.length, before + 1);
+  return replies.at(-1);
+};
+const opened = dispatchWorker({ id: 1, action: 'inspect' });
+assert.equal(opened.ok, true);
+assert.equal(opened.scene.revision, 0);
+const workerDug = dispatchWorker({ id: 2, action: 'dig', at: opened.target });
+assert.equal(workerDug.ok, true);
+assert.equal(workerDug.scene.revision, 1);
+const workerRejected = dispatchWorker({ id: 3, action: 'dig', at: boundary });
+assert.equal(workerRejected.ok, false);
+assert.match(workerRejected.error, /canonical water ownership/);
+const afterRejected = dispatchWorker({ id: 4, action: 'inspect' });
+assert.equal(afterRejected.scene.revision, 1);
+assert.equal(afterRejected.checkpoint, workerDug.checkpoint);
+delete globalThis.self;
+
 console.log(
   JSON.stringify({
     worldId: recipe.source.id.worldId,
