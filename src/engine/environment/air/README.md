@@ -189,9 +189,12 @@ entrypoint was deleted/suppressed. `facesOf` cognitive30→7, component discover
 `transferFaces` remains cognitive14 and the momentum predictor15. This is source
 qualification and actual small native evidence, not a room-performance claim.
 
-Dry-displacement source checkpoint is under review in Root's air-displacement
-worktree. Its new focused laws cover ordered removal/addition, an actual current
-four-voxel wall shape, masked/sealed routes, detached failure, signed anomaly,
-tiny arithmetic and exact current-format reopen. These laws have not yet run;
-no new numerical, main-game, liquid-displacement, browser or DO acceptance is
-claimed by their presence. Ordinary transport/projection source is unchanged.
+Dry-displacement checkpoint `dd3b340` passed u4552: all15 air laws, including
+six new cases for ordered removal/addition, the current four-voxel wall shape,
+masked/sealed routes, detached failure, signed anomaly, tiny arithmetic and
+current-format reopen. Two affected field laws, the compact actual Region event
+law and strict public/app types also passed. Ordinary transport/projection source
+is unchanged. Fallow returned1 with a new moderate estimated-coverage advisory
+on21-line `membership` (CC11/cog12); Root retains it explicitly without suppression
+or claiming a green audit. Main-game work/air, liquid displacement, browser,
+DO air recovery and performance remain separate acceptance boundaries.

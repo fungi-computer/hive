@@ -214,10 +214,13 @@ A completed construction edit needs a preflight/commit path that reports its
 blocked physical condition without repeatedly failing unrelated whole ticks.
 The current four-cell event cap is not an all-actor or120-tick batch cap.
 
-Numerical laws and typed consumer are source only pending a bounded affected
-window. No source-only review qualifies a rendered wall, digging displacement,
-main air save, Region rollback or performance. The accepted field/pail u4514
-receipt remains separate.
+Unchanged joined `dd3b340` passed u4552:15 air laws, two affected field laws,
+one compact Node SQLite event/replay law, strict public air and current app types.
+The command exited1 at Fallow on a new moderate estimated-coverage advisory for
+`membership` (CC11/cognitive12), which Root retains after source disposition;
+there is no green audit claim. This qualifies bounded dry edit behavior and
+its present callers, not a rendered wall, main-game air save, wet displacement,
+air DO restart or performance. Accepted field/pail u4514 remains separate.
 
 The actual completion read exposed a needed result boundary before qualification:
 a sealed displacement now returns explicit `blocked/no-outdoor-route`, with no
