@@ -1,0 +1,10 @@
+{
+  "sourceRoot": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/gas-heat",
+  "extraction": "Current voxel-air owner; originals are immutable evidence, not live imports.",
+  "files": {
+    "transport-v2/checkpoint/geometry.mjs": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14",
+    "finite-low-mach-refactor-v1/projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+    "transport-v2/checkpoint/transport.mjs": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae",
+    "finite-low-mach-refactor-v1/boussinesq-reference.mjs": "fe464e909b134ea87d6e76688585a862d35e593bc7c23a6b70ba92b871fb753a"
+  }
+}
