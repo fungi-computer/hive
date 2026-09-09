@@ -159,6 +159,28 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Latest actual input witness:** `u4344` at unchanged `09e813a` used the matching
+headless-shell1243 and provisioned libraries. Browser launch and page navigation
+succeeded; the first `window.__GOBLIN.artReady` wait timed out after60seconds.
+No game inputs, assertions or screenshots ran. The page-error array was empty,
+but the fixture did not capture console errors or loading text, so startup cause
+is unqualified. Browser close completed, Vite exited143, both recorded child
+PIDs disappeared, port5198 was clear and the owned scope inactive/dead. The
+window was returned to Delivery. Preserve the two earlier before-page desktop
+Chrome failures and the already-completed benchmark; neither is being rerun.
+Hume owns source-only readiness/caller diagnosis, with no permission to guess a
+runtime correction or increase the timeout to make the check pass.
+
+**Next physical composition:** the reviewed [field-water/vessel contract](field-water-and-vessel-work.md)
+keeps one fixed original field baseline and one signed boundary total, with exact
+removed-soil records and material water completing the joined conservation law.
+Meitner owns that isolated physical state/exchange/remap implementation; Root
+retains paired material/game admission. Partial pails use checked portions over
+existing lot identities: drink1 from2, retain1, draw only1, then deliver2 to the
+kettle. Kettle, gardening and hydration must share that correction. These are
+accepted implementation boundaries, not completed pail/field gameplay.
+
+
 **Latest measured correction, September 9:** the first full main-game workload
 is retained at `goblin-wet` pin `4afe1c4`. `u4325` completed the frozen 20/80/60
 tick benchmark, then failed before opening Chromium because `libnspr4.so` was
