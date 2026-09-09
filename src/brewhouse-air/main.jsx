@@ -34,7 +34,7 @@ function noticeFor(data, previousTime) {
     case "ignite":
       return "The hearth is lit. It will burn for six seconds as time advances.";
     case "vent":
-      return `Upper shutter ${data.scene.result.ventOpen ? "opened" : "closed"}. This changes the measured path; it is not a safety claim.`;
+      return `Upper shutter ${data.scene.result.ventOpen ? "opened" : "closed"}. Watch how the smoke moves between the floors.`;
     case "advance":
       return `Waited ${data.result.timeS - previousTime} seconds.`;
     case "reopen":
@@ -347,8 +347,8 @@ function BrewhouseAir() {
           <h1>Warm air in the brewhouse</h1>
           <span>
             Light the stocked hearth, wait, and compare the air downstairs and
-            upstairs. Opening the upper shutter changes the path; it does not
-            promise cleaner air.
+            upstairs. Open the upper shutter and watch how the smoke moves
+            between the floors.
           </span>
         </div>
         <Badge tone="neutral" size="sm">

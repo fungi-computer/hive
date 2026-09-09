@@ -345,12 +345,13 @@ air-path response under the declared approximation, not safe ventilation or smok
 clearance. Preserve the original failed criterion and both histories. No room
 render, actor-health, main-game join, DO crash or deployed-air claim follows.
 
-**Authored-room presentation checkpoint:** `scene_document_review` pinned
-`033bf881` in its isolated `air-view` worktree. Two worker laws (`u4302`) and
-source/syntax checks passed. Its original Three-to-Pixi view consumes the actual
+**Authored-room presentation checkpoint:** reviewed `033bf881`/`bfa76bff` is
+joined as `d876871`/`c042f90`. Two worker laws (`u4302`) and final source/syntax
+checks (`u4331`/`u4336`) passed. Its original Three-to-Pixi view consumes the actual
 room's cells, finite fuel and shutter state, with optional fixed-scale heat/smoke
-overlays. It is receiving a source-only plain-language presentation pass and
-unchanged kettle-fire geometry composed only while the real fuel is burning.
+overlays. Plain-language actions and Celsius readings lead; numerical assumptions
+and the failed ventilation criterion remain in optional technical details.
+Unchanged kettle-fire geometry appears only while the real fuel is burning.
 It has no browser/rendered-art or hosted acceptance yet. The room uses the
 explicit foundation in `9c98db2`, matched to the numerical scenario; that authored
 foundation is not the generated playable world's completed air producer join.
