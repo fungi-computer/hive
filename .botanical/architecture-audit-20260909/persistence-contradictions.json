@@ -1,0 +1,154 @@
+{
+  "scope": "Read-only runtime diagnostic; only ignored diagnostic/evidence files written. No browser or production mutations.",
+  "head": "2e7e543e35ab7e60847127b9c105c1ec14cdc9b4",
+  "sourceBefore": {
+    "src/clearing.ts": "e262d60f9e5767631c6c3a84a7d672c1ae7f94575e44af3aa26c3c595a779f4d",
+    "src/orders.ts": "a3b4dbbea0198fd598fce03dc16971ae94c3c8bbe83d975508daf71149b37d01",
+    "src/needs.ts": "6910632930bdbaef80a6ad637393f058a433e9f05f5e33a047fdd277906644a7",
+    "src/jobs.ts": "c4c2b1b1f28fce55c476d6074a549d17c23cab058c12b912e2f6a83c3e2fd1da",
+    "src/materials.ts": "281b6bb9faa1d4d4955129f322c518ca63cd2bee7c9c19772332f21efccf06cd",
+    "src/persistence.ts": "84b6b66b6bcd05e0ec9229c524950c5542af0c54d150519bb9c1f6261f3ef98a"
+  },
+  "shippedPartialRule": true,
+  "cases": [
+    {
+      "name": "manual rest plus automatic thirst",
+      "setup": "createClearing; explicitly set Rowan hydration to 35 as a mature-needs fixture, no other world edits",
+      "beforeValid": true,
+      "command": {
+        "kind": "rest",
+        "party": "home",
+        "actors": [
+          "rowan"
+        ]
+      },
+      "receipts": [
+        {
+          "status": "applied"
+        }
+      ],
+      "manualOnlyValid": true,
+      "tick": 1,
+      "jobs": [
+        {
+          "id": "job-2",
+          "kind": "care",
+          "target": "rowan",
+          "need": "hydration",
+          "policy": "automatic",
+          "reason": "Waiting for the recoverable pail",
+          "routine": false
+        },
+        {
+          "id": "job-1",
+          "kind": "care",
+          "target": "rowan",
+          "need": "rest",
+          "policy": "manual-rest",
+          "reason": "Needs a free bed",
+          "routine": false
+        }
+      ],
+      "error": "Invalid schema 14 save: care job job-1 has missing actor",
+      "reproduced": true
+    },
+    {
+      "name": "partial exact-lot storage pickup",
+      "setup": "fresh createClearing; actual paused Chop -> resume/fell -> actual Build shelf -> completion -> actual Store; no inventory, site, transfer or actor fixture edits",
+      "beforeValid": true,
+      "chopReceipt": [
+        {
+          "status": "applied"
+        }
+      ],
+      "felledValid": true,
+      "buildReceipt": [
+        {
+          "status": "applied"
+        }
+      ],
+      "finishedShelfValid": true,
+      "sourceBefore": {
+        "id": "lot-1",
+        "material": "wood",
+        "quantity": 5,
+        "location": {
+          "kind": "ground",
+          "x": 3,
+          "z": 4,
+          "level": 0
+        }
+      },
+      "storeCommand": {
+        "kind": "store",
+        "party": "home",
+        "actors": null,
+        "lot": "lot-1",
+        "shelf": "site-3"
+      },
+      "storeReceipt": [
+        {
+          "status": "applied"
+        }
+      ],
+      "admittedStoreValid": true,
+      "tick": 228,
+      "transfer": {
+        "id": "transfer-6",
+        "actor": "rowan",
+        "owner": {
+          "kind": "job",
+          "job": "job-5",
+          "step": "shelf-store"
+        },
+        "request": {
+          "source": {
+            "kind": "exact-lot",
+            "lot": "lot-1"
+          },
+          "quantityPolicy": "portion",
+          "quantity": 2
+        },
+        "intent": {
+          "kind": "deliver",
+          "destination": "shelf:site-3"
+        },
+        "phase": {
+          "kind": "carrying",
+          "lot": "lot-3"
+        }
+      },
+      "sourceAfter": {
+        "id": "lot-1",
+        "material": "wood",
+        "quantity": 3,
+        "location": {
+          "kind": "ground",
+          "x": 3,
+          "z": 4,
+          "level": 0
+        }
+      },
+      "carried": {
+        "id": "lot-3",
+        "material": "wood",
+        "quantity": 2,
+        "location": {
+          "kind": "hand",
+          "actor": "rowan"
+        }
+      },
+      "error": "Invalid schema 14 save: carrying transfer transfer-6 has invalid material",
+      "reproduced": true
+    }
+  ],
+  "sourceAfter": {
+    "src/clearing.ts": "e262d60f9e5767631c6c3a84a7d672c1ae7f94575e44af3aa26c3c595a779f4d",
+    "src/orders.ts": "a3b4dbbea0198fd598fce03dc16971ae94c3c8bbe83d975508daf71149b37d01",
+    "src/needs.ts": "6910632930bdbaef80a6ad637393f058a433e9f05f5e33a047fdd277906644a7",
+    "src/jobs.ts": "c4c2b1b1f28fce55c476d6074a549d17c23cab058c12b912e2f6a83c3e2fd1da",
+    "src/materials.ts": "281b6bb9faa1d4d4955129f322c518ca63cd2bee7c9c19772332f21efccf06cd",
+    "src/persistence.ts": "84b6b66b6bcd05e0ec9229c524950c5542af0c54d150519bb9c1f6261f3ef98a"
+  },
+  "sourceUnchanged": true
+}

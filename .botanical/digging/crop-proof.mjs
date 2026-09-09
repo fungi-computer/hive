@@ -1,0 +1,4 @@
+import {chromium} from 'playwright';
+import {writeFile} from 'node:fs/promises';
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+try{const page=await browser.newPage({viewport:{width:1370,height:1100}});const errors=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('http://127.0.0.1:5199/.botanical/digging/crop.html');await page.waitForFunction(()=>window.ready,{},{timeout:25000});const evidence=await page.evaluate(()=>window.evidence);evidence.errors=errors;await page.screenshot({path:'.botanical/digging/crop.png',fullPage:true});await writeFile('.botanical/digging/crop.json',JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));if(errors.length)process.exitCode=1;}finally{await browser.close();}

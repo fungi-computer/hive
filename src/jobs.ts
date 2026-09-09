@@ -29,12 +29,14 @@ import {
 import {
   cacheRepairBuffer,
   resolveCacheRepairBuffer,
+  resolveMaterialWithdrawal,
   resolveOpenFiniteSourceContainer,
   sourceIsOpen,
   sourcePailContainer,
 } from "./finite-sources.ts";
 import {
   availableMaterialFacts,
+  acquireLotForOperation,
   acquirePailForOperation,
   containerQuantity,
   remainingContainerQuantity,
@@ -63,6 +65,10 @@ import {
   resolveWaterDelivery,
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
+import {
+  consumableCareDefinition,
+  consumableCareDefinitionsFor,
+} from "./needs.ts";
 type Candidate = {
   activity: Activity;
   path: Cell[];
@@ -82,6 +88,12 @@ type Candidate = {
     spring: string;
     pail: string;
     operation?: string;
+  };
+  consume?: {
+    sourceLot: string;
+    definition: string;
+    material: import("./model.ts").Material;
+    quantity: PositiveInt;
   };
   recipe?: {
     id: string;
@@ -410,12 +422,13 @@ function repairCacheOption(
 function waterDeliveryOption(
   state: Clearing,
   person: Actor,
-  job: Extract<Job, { kind: "fill-kettle" | "water-mugwort" }>,
+  job: Extract<Job, { kind: "fill-kettle" | "water-mugwort" | "care" }>,
   blocked: Set<string>,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const existing = state.operations.find(
-    (operation) => operation.job === job.id,
+    (operation): operation is import("./model.ts").WaterDeliveryOperation =>
+      operation.kind === "water-delivery" && operation.job === job.id,
   );
   const target = existing?.target ?? waterDeliveryTargetForJob(state, job);
   const destination = target && resolveWaterDelivery(state, target);
@@ -423,7 +436,9 @@ function waterDeliveryOption(
     return no(
       job.kind === "fill-kettle"
         ? "Waiting for a finished brew station"
-        : "Waiting for planted mugwort",
+        : job.kind === "water-mugwort"
+          ? "Waiting for planted mugwort"
+          : "Waiting for water access",
     );
   if (existing && existing.quantity !== destination.quantity)
     return no("Waiting for the checked water requirement");
@@ -514,7 +529,9 @@ function waterDeliveryOption(
     reason:
       job.kind === "fill-kettle"
         ? "Ready to fill the kettle"
-        : "Ready to water mugwort",
+        : job.kind === "water-mugwort"
+          ? "Ready to water mugwort"
+          : "Ready to drink",
     candidate: {
       ...make(
         job,
@@ -907,6 +924,173 @@ function terrainBackfillTarget(state: Clearing, destination: string) {
       terrainBackfillBuffer(job.id).id === destination,
   );
 }
+function consumeOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "care" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  if (job.need !== "nourishment") return no("Care does not use a ration");
+  const existing = state.operations.find(
+    (entry) => entry.kind === "consume" && entry.job === job.id,
+  );
+  if (existing) return no("Waiting for the ration transfer");
+  const selected = consumableCareDefinitionsFor(job.need)
+    .flatMap((definition, definitionOrder) =>
+      sourceFacts
+        .filter(
+          ({ lot, quantity }) =>
+            lot.material === definition.consume.material &&
+            quantity >= definition.consume.quantity,
+        )
+        .flatMap(({ lot }) => {
+          const withdrawal =
+            lot.location.kind === "container"
+              ? resolveMaterialWithdrawal(state, lot.location.container)
+              : null;
+          const path =
+            lot.location.kind === "hand" && lot.location.actor === person.id
+              ? []
+              : lot.location.kind === "ground"
+                ? route(person, lot.location, blocked, state)
+                : withdrawal?.kind === "site"
+                  ? workApproach(state, person, withdrawal.site, blocked)
+                  : withdrawal?.kind === "finite-source"
+                    ? nearestPath(
+                        state,
+                        person,
+                        withdrawal.accessCells,
+                        blocked,
+                      )
+                    : null;
+          return path ? [{ definition, definitionOrder, lot, path }] : [];
+        }),
+    )
+    .sort(
+      (left, right) =>
+        pathTicks(person, left.path) - pathTicks(person, right.path) ||
+        left.definitionOrder - right.definitionOrder ||
+        left.lot.id.localeCompare(right.lot.id),
+    )[0];
+  return selected
+    ? {
+        reason: "Ready to eat",
+        candidate: {
+          ...make(
+            job,
+            "consume",
+            "pending-operation",
+            selected.path,
+            selected.definition.attendTicks,
+            pathTicks(person, selected.path),
+          ),
+          consume: {
+            sourceLot: selected.lot.id,
+            definition: selected.definition.id,
+            material: selected.definition.consume.material,
+            quantity: selected.definition.consume.quantity as PositiveInt,
+          },
+        },
+      }
+    : no("Waiting for a ration");
+}
+function sleepOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "care" }>,
+  blocked: Set<string>,
+): Options {
+  const occupied = new Set(
+    Object.values(state.actors).flatMap((actor) =>
+      actor.task?.kind === "sleep" ? [actor.task.target] : [],
+    ),
+  );
+  const selected = shelteredBeds(state)
+    .filter(
+      (candidate: Clearing["sites"][number]) => !occupied.has(candidate.id),
+    )
+    .flatMap((bed: Clearing["sites"][number]) => {
+      const path = route(person, bed, blocked, state);
+      return path ? [{ bed, path }] : [];
+    })
+    .sort(
+      (
+        left: { bed: Clearing["sites"][number]; path: Cell[] },
+        right: { bed: Clearing["sites"][number]; path: Cell[] },
+      ) =>
+        pathTicks(person, left.path) - pathTicks(person, right.path) ||
+        left.bed.id.localeCompare(right.bed.id),
+    )[0];
+  return selected
+    ? {
+        reason: "Ready to rest",
+        candidate: make(
+          job,
+          "sleep",
+          selected.bed.id,
+          selected.path,
+          80,
+          pathTicks(person, selected.path),
+        ),
+      }
+    : no("Needs a free bed");
+}
+function careOption(
+  state: Clearing,
+  person: Actor,
+  job: Extract<Job, { kind: "care" }>,
+  blocked: Set<string>,
+  sourceFacts: readonly AvailableLotFact[],
+): Options {
+  const values = person.needs;
+  const active = state.operations.find((operation) => operation.job === job.id);
+  if (active) {
+    return active.kind === "water-delivery"
+      ? waterDeliveryOption(
+          state,
+          person,
+          { ...job, need: "hydration" },
+          blocked,
+          sourceFacts,
+        )
+      : consumeOption(
+          state,
+          person,
+          { ...job, need: "nourishment" },
+          blocked,
+          sourceFacts,
+        );
+  }
+  const choices =
+    job.policy === "automatic"
+      ? (["hydration", "nourishment", "rest"] as const)
+          .filter((need) => values[need] <= 35)
+          .sort((left, right) => values[left] - values[right])
+      : [];
+  const attempted = choices.length ? choices : [job.need];
+  let waiting = "Care is unavailable";
+  for (const need of attempted) {
+    const candidate =
+      need === "hydration"
+        ? waterDeliveryOption(
+            state,
+            person,
+            { ...job, need },
+            blocked,
+            sourceFacts,
+          )
+        : need === "nourishment"
+          ? consumeOption(state, person, { ...job, need }, blocked, sourceFacts)
+          : sleepOption(state, person, { ...job, need }, blocked);
+    if (candidate.candidate) {
+      job.need = need;
+      return candidate;
+    }
+    waiting = candidate.reason;
+  }
+  return no(waiting);
+}
 function option(
   state: Clearing,
   p: Actor,
@@ -916,6 +1100,7 @@ function option(
 ): Options {
   if (j.kind === "repair-cache")
     return repairCacheOption(state, p, j, b, sourceFacts);
+  if (j.kind === "care") return careOption(state, p, j, b, sourceFacts);
   if (j.kind === "fill-kettle" || j.kind === "water-mugwort")
     return waterDeliveryOption(state, p, j, b, sourceFacts);
   if (j.kind === "brew") return brewOption(state, p, j, b, sourceFacts);
@@ -1003,36 +1188,32 @@ function option(
         }
       : no("Waiting to deconstruct");
   }
-  const bed = shelteredBeds(state)[0];
-  const path = bed && route(p, bed, b, state);
-  return bed && path
-    ? {
-        reason: "Ready to rest",
-        candidate: make(j, "sleep", bed.id, path, 80, pathTicks(p, path)),
-      }
-    : no("Needs a bed");
+  const unsupported: never = j;
+  throw new Error(`Unsupported job: ${JSON.stringify(unsupported)}`);
 }
 function automatic(a: Activity): WorkType | null {
   return a.kind === "transfer"
     ? "haul"
-    : a.kind === "repair-cache"
-      ? "build"
-      : a.kind === "water-delivery"
-        ? "haul"
-        : a.kind === "brew"
-          ? "craft"
-          : a.kind === "tap" || a.kind === "clear-spent-grain"
+    : a.kind === "consume"
+      ? null
+      : a.kind === "repair-cache"
+        ? "build"
+        : a.kind === "water-delivery"
+          ? "haul"
+          : a.kind === "brew"
             ? "craft"
-            : a.kind === "build" ||
-                a.kind === "deconstruct" ||
-                a.kind === "dig" ||
-                a.kind === "backfill"
-              ? "build"
-              : a.kind === "chop"
-                ? "chop"
-                : a.kind === "sow" || a.kind === "harvest"
-                  ? "garden"
-                  : null;
+            : a.kind === "tap" || a.kind === "clear-spent-grain"
+              ? "craft"
+              : a.kind === "build" ||
+                  a.kind === "deconstruct" ||
+                  a.kind === "dig" ||
+                  a.kind === "backfill"
+                ? "build"
+                : a.kind === "chop"
+                  ? "chop"
+                  : a.kind === "sow" || a.kind === "harvest"
+                    ? "garden"
+                    : null;
 }
 export function assignWork(state: Clearing, colony: Colony): void {
   if (!state.workDirty) return;
@@ -1040,7 +1221,11 @@ export function assignWork(state: Clearing, colony: Colony): void {
   const blocked = blockedCells(state),
     members = new Set(Object.values(state.parties).flatMap((p) => p.members)),
     idle = Object.values(state.actors).filter(
-      (p) => p.mode === "idle" && !p.drafted && members.has(p.id),
+      (p) =>
+        p.mode === "idle" &&
+        !p.drafted &&
+        (members.has(p.id) ||
+          state.jobs.some((job) => job.kind === "care" && job.target === p.id)),
     ),
     offered: Assignment[] = [],
     choices = new Map<string, Candidate>(),
@@ -1117,8 +1302,17 @@ export function assignWork(state: Clearing, colony: Colony): void {
       } else interruptWork(state, p);
       continue;
     }
+    const care = state.jobs.filter(
+      (j): j is Extract<Job, { kind: "care" }> =>
+        j.kind === "care" && j.target === p.id,
+    );
+    if (care.some((j) => offer(p, j, true))) continue;
+    if (!members.has(p.id)) continue;
     const personal = state.jobs.filter(
-      (j) => inScope(state, p, j.scope) && j.scope.actors?.includes(p.id),
+      (j): j is Exclude<Job, { kind: "care" }> =>
+        j.kind !== "care" &&
+        inScope(state, p, j.scope) &&
+        j.scope.actors?.includes(p.id) === true,
     );
     if (personal.some((j) => offer(p, j, true))) continue;
     sharedWorkers.push(p);
@@ -1129,7 +1323,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
   let frontier = 0;
   for (const job of state.jobs) {
     if (frontier >= sharedWorkers.length) break;
-    if (job.scope.actors !== null) continue;
+    if (job.kind === "care" || job.scope.actors !== null) continue;
     let viable = false;
     for (const worker of sharedWorkers)
       if (inScope(state, worker, job.scope))
@@ -1147,6 +1341,17 @@ export function assignWork(state: Clearing, colony: Colony): void {
     const p = state.actors[m.character],
       c = choices.get(`${m.character}/${m.task}`);
     if (!c) continue;
+    if (
+      c.activity.kind === "sleep" &&
+      Object.values(state.actors).some(
+        (actor) =>
+          actor.task?.kind === "sleep" &&
+          actor.task.target === c.activity.target,
+      )
+    ) {
+      state.workDirty = true;
+      continue;
+    }
     if (c.transfer) {
       if (
         !reserveTransfer(state.materials, {
@@ -1170,7 +1375,8 @@ export function assignWork(state: Clearing, colony: Colony): void {
     if (c.water) {
       const id = c.water.operation ?? `water-delivery-${state.nextId}`;
       const existing = state.operations.find(
-        (operation) => operation.id === id,
+        (operation): operation is import("./model.ts").WaterDeliveryOperation =>
+          operation.kind === "water-delivery" && operation.id === id,
       );
       if (existing) {
         const rebound = rebindOperationPail(state.materials, {
@@ -1189,6 +1395,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
         state.nextId++;
       } else {
         state.operations.push({
+          kind: "water-delivery",
           id,
           job: m.task,
           target: c.water.target,
@@ -1217,6 +1424,44 @@ export function assignWork(state: Clearing, colony: Colony): void {
         }
         state.nextId++;
       }
+      c.activity.target = id;
+    }
+    if (c.consume) {
+      const id = `consume-${state.nextId}`;
+      const definition = consumableCareDefinition(c.consume.definition);
+      if (
+        !definition ||
+        definition.consume.kind !== "held-lot" ||
+        definition.consume.material !== c.consume.material ||
+        definition.consume.quantity !== c.consume.quantity
+      ) {
+        state.workDirty = true;
+        continue;
+      }
+      const acquired = acquireLotForOperation(state.materials, {
+        id: `consume-use-${id}`,
+        operation: id,
+        actor: p.id,
+        lot: c.consume.sourceLot,
+        material: c.consume.material,
+        quantity: c.consume.quantity,
+        access: {
+          sourceReachable: true,
+          destinationReachableWithPayload: true,
+        },
+      });
+      if (!acquired.ok) {
+        state.workDirty = true;
+        continue;
+      }
+      state.operations.push({
+        kind: "consume",
+        id,
+        job: m.task,
+        actor: p.id,
+        definition: definition.id,
+      });
+      state.nextId++;
       c.activity.target = id;
     }
     if (c.recipe) {

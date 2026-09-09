@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><style>body{background:#293d35;color:#eee;font:16px sans-serif}canvas{image-rendering:pixelated;width:960px;display:block}</style><h1>Actual cropped terrain bake</h1><script type="module">
+import * as THREE from '/node_modules/three/build/three.module.js';
+import {bake,bakeTerrainPatch} from '/src/art.js';
+import {clearing} from '/src/art/clearing.js';
+import {worldCamera,WIDTH,HEIGHT} from '/src/art/scale.js';
+import {authoredClearingTerrain,removeShallowVoxel} from '/src/terrain.ts';
+const r=new THREE.WebGLRenderer({alpha:true,antialias:false,preserveDrawingBuffer:true});r.setPixelRatio(1);r.setClearColor(0,0);r.outputColorSpace=THREE.SRGBColorSpace;
+const terrain=authoredClearingTerrain();const texture=bake(r,clearing(terrain),worldCamera,WIDTH,HEIGHT,false);let current=texture;const times=[];
+for(const x of [7,8,9]){const cell={x,z:8,level:0};removeShallowVoxel(terrain,cell);const start=performance.now();const next=bakeTerrainPatch(r,terrain,texture,terrain.edits);times.push(performance.now()-start);if(current!==texture)current.destroy(true);current=next;}
+const ref=bake(r,clearing(terrain),worldCamera,WIDTH,HEIGHT,false);const canvases=[current,ref].map(t=>{const c=document.createElement('canvas');c.width=WIDTH;c.height=HEIGHT;c.getContext('2d').drawImage(t.source.resource,0,0);document.body.append(c);return c;});const [actual,expected]=canvases.map(c=>c.getContext('2d').getImageData(0,0,WIDTH,HEIGHT).data);let pixels=0,max=0;for(let i=0;i<actual.length;i+=4){if(actual[i]!==expected[i]||actual[i+1]!==expected[i+1]||actual[i+2]!==expected[i+2]||actual[i+3]!==expected[i+3])pixels++;for(let j=0;j<4;j++)max=Math.max(max,Math.abs(actual[i+j]-expected[i+j]));}window.evidence={times,pixels,max};texture.destroy(true);current.destroy(true);ref.destroy(true);r.dispose();window.ready=true;
+</script>

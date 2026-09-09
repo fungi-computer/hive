@@ -67,6 +67,8 @@ export function carriedActorPose(materials, hand, mode) {
         : "carry-pail-empty";
   }
   if (hand?.material === "soil") return "carry-soil";
+  if (hand?.material === "ration")
+    return mode === "consume" ? "eat" : "carry-ration";
   if (["dig", "backfill"].includes(mode)) return "dig";
   return hand?.material === "mugwort"
     ? "carry-herb"
@@ -80,6 +82,7 @@ function stationaryCarryPose(pose, mode) {
     mode !== "walk" &&
     (pose === "carry-herb" ||
       pose === "carry-soil" ||
+      pose === "carry-ration" ||
       pose.startsWith("carry-pail-"))
   );
 }
@@ -419,13 +422,15 @@ export function createView(app, world, camera, art, initial, input) {
   }
 
   const pileTexture = (lot) =>
-    lot.material === "soil"
-      ? art.soil[Math.min(3, lot.quantity)]
-      : art.wood[Math.min(6, lot.quantity)];
+    lot.material === "ration"
+      ? art.ration[Math.min(3, lot.quantity)]
+      : lot.material === "soil"
+        ? art.soil[Math.min(3, lot.quantity)]
+        : art.wood[Math.min(6, lot.quantity)];
   function drawPiles(state, selection) {
     const groundWoodLots = state.materials.lots.filter(
       (lot) =>
-        ["wood", "soil"].includes(lot.material) &&
+        ["wood", "soil", "ration"].includes(lot.material) &&
         lot.location.kind === "ground",
     );
     for (const [id, view] of piles) {

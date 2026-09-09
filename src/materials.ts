@@ -107,11 +107,38 @@ function vesselBinding(
       binding.kind === "vessel-use" && binding.id === operation,
   );
 }
+function operationUseBinding(
+  state: MaterialsState,
+  operation: string,
+): Extract<MaterialBinding, { kind: "operation-use" }> | undefined {
+  return state.bindings.find(
+    (binding): binding is Extract<MaterialBinding, { kind: "operation-use" }> =>
+      binding.kind === "operation-use" && binding.id === operation,
+  );
+}
+function useBindingLot(
+  state: MaterialsState,
+  operation: string,
+): LotId | undefined {
+  return (
+    vesselBinding(state, operation)?.vessel ??
+    operationUseBinding(state, operation)?.lot
+  );
+}
+function useBindingQuantity(
+  state: MaterialsState,
+  operation: string,
+): number {
+  return vesselBinding(state, operation)
+    ? 1
+    : (operationUseBinding(state, operation)?.quantity ?? 0);
+}
 
 function bindingOwnsLot(state: MaterialsState, lot: LotId): boolean {
   return state.bindings.some(
     (binding) =>
       (binding.kind === "vessel-use" && binding.vessel === lot) ||
+      (binding.kind === "operation-use" && binding.lot === lot) ||
       (binding.kind === "recipe" &&
         (binding.retained.some((entry) => entry.lot === lot) ||
           (!state.transformations.some((entry) => entry.id === binding.id) &&
@@ -127,18 +154,22 @@ function boundQuantity(state: MaterialsState, lot: LotId): number {
         ? binding.vessel === lot
           ? 1
           : 0
-        : binding.retained.reduce(
-            (sum, retained) =>
-              sum + (retained.lot === lot ? retained.quantity : 0),
-            0,
-          ) +
-          (state.transformations.some((entry) => entry.id === binding.id)
-            ? 0
-            : binding.consumed.reduce(
-                (sum, portion) =>
-                  sum + (portion.lot === lot ? portion.quantity : 0),
-                0,
-              ))),
+        : binding.kind === "operation-use"
+          ? binding.lot === lot
+            ? binding.quantity
+            : 0
+          : binding.retained.reduce(
+              (sum, retained) =>
+                sum + (retained.lot === lot ? retained.quantity : 0),
+              0,
+            ) +
+            (state.transformations.some((entry) => entry.id === binding.id)
+              ? 0
+              : binding.consumed.reduce(
+                  (sum, portion) =>
+                    sum + (portion.lot === lot ? portion.quantity : 0),
+                  0,
+                ))),
     0,
   );
 }
@@ -687,13 +718,13 @@ function resolveReservationSource(
     source.material === "pail" &&
     bindingOwnsLot(state, source.id) &&
     (input.intent.kind !== "use" ||
-      vesselBinding(state, input.intent.operation)?.vessel !== source.id)
+      useBindingLot(state, input.intent.operation) !== source.id)
   )
     return failure("owner-busy");
   const authorizedBindingQuantity =
     input.intent.kind === "use" &&
-    vesselBinding(state, input.intent.operation)?.vessel === source.id
-      ? 1
+    useBindingLot(state, input.intent.operation) === source.id
+      ? useBindingQuantity(state, input.intent.operation)
       : 0;
   if (
     availableQuantity(state, source.id) + authorizedBindingQuantity <
@@ -725,7 +756,7 @@ function validateReservationOwner(
   const operation = input.intent.operation;
   return input.owner.kind === "operation" &&
     input.owner.operation === operation &&
-    vesselBinding(state, operation)?.vessel === input.sourceLot
+    useBindingLot(state, operation) === input.sourceLot
     ? null
     : "use-intent-required";
 }
@@ -763,8 +794,21 @@ export function reserveTransfer(
     return failure("actor-hand-not-empty");
   const { source, origin } = resolved.value;
   if (source.material === "water") return failure("source-ineligible");
-  if (input.intent.kind === "use" && source.material !== "pail")
-    return failure("vessel-invalid");
+  const use =
+    input.intent.kind === "use"
+      ? state.bindings.find(
+          (binding) =>
+            binding.id ===
+            (input.intent as Extract<CarryIntent, { kind: "use" }>).operation,
+        )
+      : undefined;
+  if (
+    input.intent.kind === "use" &&
+    (!use ||
+      (use.kind === "vessel-use" && source.material !== "pail") ||
+      (use.kind === "operation-use" && use.lot !== source.id))
+  )
+    return failure("use-intent-required");
   if (!input.access.sourceReachable) return failure("source-unreachable");
   if (destination.value && !input.access.destinationReachableWithPayload)
     return failure("destination-unreachable");
@@ -825,6 +869,50 @@ export function acquirePailForOperation(
     },
     intent: { kind: "use", operation: input.operation },
     sourceLot: input.vessel,
+    access: input.access,
+  });
+  if (!reserved.ok)
+    state.bindings = state.bindings.filter(
+      (binding) => binding.id !== input.operation,
+    );
+  return reserved;
+}
+
+/** Reserves one ordinary lot for an operation without inventing a cargo path. */
+export function acquireLotForOperation(
+  state: MaterialsState,
+  input: {
+    id: TransferId;
+    operation: string;
+    actor: ActorId;
+    lot: LotId;
+    material: Material;
+    quantity: PositiveInt;
+    access: TransferAccess;
+  },
+): MaterialResult<Transfer> {
+  if (state.bindings.some((binding) => binding.id === input.operation))
+    return failure("owner-busy");
+  const lot = lotById(state, input.lot);
+  if (!lot || lot.material !== input.material)
+    return failure("source-ineligible");
+  state.bindings.push({
+    kind: "operation-use",
+    id: input.operation,
+    lot: input.lot,
+    quantity: input.quantity,
+  });
+  const reserved = reserveTransfer(state, {
+    id: input.id,
+    actor: input.actor,
+    owner: { kind: "operation", operation: input.operation },
+    request: {
+      source: { kind: "exact-lot", lot: input.lot },
+      quantityPolicy: "portion",
+      quantity: input.quantity,
+    },
+    intent: { kind: "use", operation: input.operation },
+    sourceLot: input.lot,
     access: input.access,
   });
   if (!reserved.ok)
@@ -932,6 +1020,22 @@ export function pickupTransfer(
   if (!requestAllowsLot(transfer.request, source))
     return failure("source-ineligible");
   if (source.material === "water") return failure("source-ineligible");
+  const use =
+    transfer.intent.kind === "use"
+      ? state.bindings.find(
+          (binding) =>
+            binding.id ===
+            (transfer.intent as Extract<CarryIntent, { kind: "use" }>)
+              .operation,
+        )
+      : undefined;
+  if (
+    transfer.intent.kind === "use" &&
+    (!use ||
+      (use.kind === "vessel-use" && source.material !== "pail") ||
+      (use.kind === "operation-use" && use.lot !== source.id))
+  )
+    return failure("use-intent-required");
   if (source.quantity < transfer.phase.quantity)
     return failure("source-insufficient");
   if (!access.sourceReachable) return failure("source-unreachable");
@@ -969,7 +1073,19 @@ export function pickupTransfer(
     state.nextLotId = allocation.value.nextLotId;
   }
   transfer.phase = { kind: "carrying", lot: carried.id };
+  if (use?.kind === "operation-use")
+    state.bindings = state.bindings.map((binding) =>
+      binding === use ? { ...binding, lot: carried.id } : binding,
+    );
   return success(carried);
+}
+
+/** Cancelling an ordinary use releases both its claim and physical custody. */
+export function retireOperationUse(
+  state: MaterialsState,
+  operation: string,
+): void {
+  state.bindings = state.bindings.filter((binding) => binding.id !== operation);
 }
 
 export function deliverTransfer(
@@ -1183,6 +1299,53 @@ export function sinkHeldPortion(
     id: input.id,
     material: input.material,
     quantity: input.quantity,
+  });
+  return success({ id: input.id });
+}
+
+/** Settles an exact ordinary held use transfer into one immutable receipt. */
+export function sinkHeldOperationPortion(
+  state: MaterialsState,
+  input: {
+    id: string;
+    operation: string;
+    lot: LotId;
+    material: Material;
+    quantity: number;
+  },
+): MaterialResult<{ id: string }> {
+  if (state.sinks.some((sink) => sink.id === input.id))
+    return failure("duplicate-sink");
+  const use = operationUseBinding(state, input.operation);
+  const transfer = state.transfers.find(
+    (entry) =>
+      entry.owner.kind === "operation" &&
+      entry.owner.operation === input.operation,
+  );
+  const lot = lotById(state, input.lot);
+  if (
+    !use ||
+    use.lot !== input.lot ||
+    use.quantity !== input.quantity ||
+    !transfer ||
+    transfer.intent.kind !== "use" ||
+    transfer.phase.kind !== "carrying" ||
+    transfer.phase.lot !== input.lot ||
+    !lot ||
+    lot.material !== input.material ||
+    lot.quantity !== input.quantity ||
+    lot.location.kind !== "hand" ||
+    lot.location.actor !== transfer.actor ||
+    !isPositiveInt(input.quantity)
+  )
+    return failure("use-intent-required");
+  state.lots = state.lots.filter((entry) => entry !== lot);
+  state.transfers = state.transfers.filter((entry) => entry !== transfer);
+  state.bindings = state.bindings.filter((entry) => entry !== use);
+  state.sinks.push({
+    id: input.id,
+    material: input.material,
+    quantity: input.quantity as PositiveInt,
   });
   return success({ id: input.id });
 }

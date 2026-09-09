@@ -10,6 +10,7 @@ import {
   admitRecipePlan,
   bindingPromiseQuantity,
   acquirePailForOperation,
+  acquireLotForOperation,
   containerBulk,
   containerContents,
   containerQuantity,
@@ -28,8 +29,10 @@ import {
   releaseContainer,
   rebindOperationPail,
   reserveTransfer,
+  retireOperationUse,
   salvageConstruction,
   settleRecipePlan,
+  sinkHeldOperationPortion,
   sourceContainer,
   transferForActor,
 } from "./materials.ts";
@@ -88,6 +91,63 @@ function conserved(materials, felled, harvested = 0) {
   assert.equal(wood.live + wood.embedded + wood.consumed, felled * 6);
   assert.equal(mugwort.live + mugwort.embedded, harvested);
 }
+
+test("ordinary operation use splits, drops, and settles one bound ration", () => {
+  const materials = fresh([
+    {
+      id: "rations",
+      material: "ration",
+      quantity: 6,
+      location: { kind: "ground", ...cell(2, 2) },
+    },
+  ]);
+  const reserveUse = (operation, transfer) =>
+    acquireLotForOperation(materials, {
+      id: transfer,
+      operation,
+      actor: "rowan",
+      lot: "rations",
+      material: "ration",
+      quantity: 1,
+      access,
+    });
+  assert.equal(reserveUse("eat-cancel", "use-cancel").ok, true);
+  assert.equal(pickupTransfer(materials, "use-cancel", access).ok, true);
+  assert.equal(materials.bindings[0].lot, materials.transfers[0].phase.lot);
+  assert.equal(
+    interruptTransfer(materials, "rowan", { cell: cell(3, 2), legal: true }).ok,
+    true,
+  );
+  retireOperationUse(materials, "eat-cancel");
+  assert.equal(
+    materials.lots
+      .filter((lot) => lot.material === "ration")
+      .reduce((sum, lot) => sum + lot.quantity, 0),
+    6,
+  );
+  assert.equal(reserveUse("eat-settle", "use-settle").ok, true);
+  const picked = pickupTransfer(materials, "use-settle", access);
+  assert.equal(picked.ok, true);
+  const sunk = sinkHeldOperationPortion(materials, {
+    id: "ration-receipt",
+    operation: "eat-settle",
+    lot: picked.value.id,
+    material: "ration",
+    quantity: 1,
+  });
+  assert.equal(sunk.ok, true);
+  assert.equal(
+    sinkHeldOperationPortion(materials, {
+      id: "ration-receipt",
+      operation: "eat-settle",
+      lot: picked.value.id,
+      material: "ration",
+      quantity: 1,
+    }).ok,
+    false,
+  );
+  assert.equal(materials.sinks[0].quantity, 1);
+});
 
 test("lots allocate collision-safe positive IDs without changing state on failure", () => {
   const materials = fresh([

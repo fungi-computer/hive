@@ -1,4 +1,5 @@
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { createClearing } from "./clearing.ts";
 import {
@@ -15,8 +16,13 @@ function envelope(change) {
   change(saved.savedState);
   return saved;
 }
+function v14Envelope(change = () => {}) {
+  const saved = JSON.parse(readFileSync(new URL("./fixtures/clearing-v14.json", import.meta.url), "utf8"));
+  change(saved.savedState);
+  return saved;
+}
 function v10Envelope(change = () => {}) {
-  const saved = snapshotFor(createClearing());
+  const saved = v14Envelope();
   const predecessor = structuredClone(saved);
   predecessor.schema = 10;
   delete predecessor.savedState.terrain;
@@ -34,10 +40,11 @@ function v10Envelope(change = () => {}) {
         !["malt", "barm", "keg", "ale", "spent-grain"].includes(lot.material),
     );
   change(predecessor.savedState);
+  for (const operation of predecessor.savedState.operations) delete operation.kind;
   return predecessor;
 }
 function v11Envelope(change = () => {}) {
-  const predecessor = structuredClone(snapshotFor(createClearing()));
+  const predecessor = v14Envelope();
   predecessor.schema = 11;
   delete predecessor.savedState.terrain;
   delete predecessor.savedState.materials.sinks;
@@ -46,6 +53,7 @@ function v11Envelope(change = () => {}) {
   for (const actor of Object.values(predecessor.savedState.actors))
     delete actor.allowedWork.craft;
   change(predecessor.savedState);
+  for (const operation of predecessor.savedState.operations) delete operation.kind;
   return predecessor;
 }
 function rejects(name, change, pattern) {
@@ -190,7 +198,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v14 snapshots retain authored terrain, omit commands, and restore paused", () => {
+test("v15 snapshots retain authored terrain, omit commands, and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -199,7 +207,7 @@ test("v14 snapshots retain authored terrain, omit commands, and restore paused",
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 14);
+  assert.equal(saved.schema, 15);
   assert.deepEqual(saved.savedState.terrain, {
     base: "authored-clearing-v1",
     edits: [],
@@ -212,7 +220,7 @@ test("v14 snapshots retain authored terrain, omit commands, and restore paused",
 });
 
 test("schema 13 stays frozen while schema 14 rejects malformed terrain edits and soil sinks", () => {
-  const predecessor = structuredClone(snapshotFor(createClearing()));
+  const predecessor = v14Envelope();
   predecessor.schema = 13;
   delete predecessor.savedState.terrain;
   predecessor.savedState.materials.lots.push({
@@ -493,7 +501,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {
   const restored = restoreSnapshot(v10Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 14);
+  assert.equal(snapshotFor(restored.state).schema, 15);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -652,6 +660,7 @@ test("a held pail use reloads only with its matching operation custody", () => {
       phase: { kind: "carrying", lot: "pail-a" },
     });
     state.operations.push({
+      kind: "water-delivery",
       id: "fill-kettle-a",
       job: "job-fill",
       spring: spring.id,
@@ -689,7 +698,7 @@ test("a held pail use reloads only with its matching operation custody", () => {
 });
 
 test("schema 12 validates executor-bound Fill custody before converting it", () => {
-  const saved = envelope((state) => {
+  const saved = v14Envelope((state) => {
     const spring = state.sources.find((source) => source.kind === "spring");
     state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
     state.materials.embedded.push({
@@ -723,6 +732,7 @@ test("schema 12 validates executor-bound Fill custody before converting it", () 
       phase: { kind: "carrying", lot: "pail-a" },
     });
     state.operations.push({
+      kind: "water-delivery",
       id: "fill-kettle-a",
       job: "job-fill",
       spring: spring.id,
@@ -752,6 +762,7 @@ test("schema 12 validates executor-bound Fill custody before converting it", () 
   const operation = predecessor.savedState.operations[0];
   operation.actor = "rowan";
   operation.station = operation.target.station;
+  delete operation.kind;
   delete operation.target;
   delete operation.quantity;
   predecessor.savedState.actors.rowan.task.kind = "brew-water";
@@ -804,6 +815,7 @@ test("current water operations pin target quantity and establishment receipts", 
       phase: { kind: "carrying", lot: "pail-a" },
     });
     state.operations.push({
+      kind: "water-delivery",
       id: "fill-a",
       job: "job-fill",
       spring: spring.id,
@@ -913,6 +925,7 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
     ]) {
       state.jobs.push(job(jobId, "fill-kettle", station));
       state.operations.push({
+      kind: "water-delivery",
         id,
         job: jobId,
         spring: spring.id,
@@ -950,6 +963,7 @@ test("schema 10 converts cache recipe lots exactly once", () => {
       [`source-barm-lot:${cache.id}`, "barm", 1],
       [`source-keg-lot:${cache.id}`, "keg", 1],
       [`source-malt-lot:${cache.id}`, "malt", 4],
+      [`source-ration-lot:${cache.id}`, "ration", 6],
     ],
   );
   const reloaded = restoreSnapshot(snapshotFor(restored.state));
@@ -1816,3 +1830,38 @@ rejects(
   },
   /wood conservation is 10, expected 16/,
 );
+
+test("shipped v14 upgrades physical needs and finite provisions once without rewriting its old lots", () => {
+  const historical = v14Envelope();
+  const original = structuredClone(historical);
+  const upgraded = restoreSnapshot(historical).state;
+  assert.deepEqual(historical, original, "migration does not mutate the recovery record");
+  for (const lot of original.savedState.materials.lots)
+    assert.deepEqual(upgraded.materials.lots.find((entry) => entry.id === lot.id), lot);
+  for (const actor of Object.values(upgraded.actors)) {
+    assert.equal(actor.needs.rest, original.savedState.actors[actor.id].rest);
+    assert.equal(actor.needs.advancedAt, upgraded.tick);
+    assert.equal("rest" in actor, false);
+  }
+  assert.equal("rested" in upgraded, false);
+  assert.equal(upgraded.materials.lots.filter((lot) => lot.material === "water").reduce((sum, lot) => sum + lot.quantity, 0), 16);
+  assert.equal(upgraded.materials.lots.filter((lot) => lot.material === "ration").reduce((sum, lot) => sum + lot.quantity, 0), 6);
+  const reloaded = restoreSnapshot(snapshotFor(upgraded)).state;
+  assert.deepEqual(reloaded, upgraded, "current reload does not reintroduce provisions");
+});
+
+test("v14 rejects future stock and broken old ownership before adding care provisions", () => {
+  const overfull = v14Envelope((state) => {
+    state.materials.lots.find((lot) => lot.material === "water").quantity = 9;
+  });
+  assert.throws(() => restoreSnapshot(overfull), /finite contents|capacity|conservation/);
+  const futureFood = v14Envelope((state) => {
+    state.materials.lots.push({ id: "future-ration", material: "ration", quantity: 1, location: { kind: "ground", ...cell() } });
+  });
+  assert.throws(() => restoreSnapshot(futureFood));
+  const orphan = v14Envelope((state) => {
+    const lot = state.materials.lots.find((entry) => entry.material === "pail");
+    lot.location = { kind: "hand", actor: "rowan" };
+  });
+  assert.throws(() => restoreSnapshot(orphan), /hand|custody/);
+});

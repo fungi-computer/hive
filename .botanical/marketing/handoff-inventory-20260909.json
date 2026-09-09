@@ -1,0 +1,15 @@
+{
+  "handoff": "/home/levi/src/hive/.botanical/marketing/shiit-app-game-handoff-20260909.md",
+  "originalDoors": {
+    "/home/levi/three-doors/publish-agent-one-pager.md": "43c15bbdc623ac45d9a4806300368d6d9614157b7fc05179c018892668d57618",
+    "/home/levi/three-doors/fungi-platform-sales-lines.md": "896e3cbc091660fbe35b482f5697259ae5f0b35a32d6167bb66ccfdcbf967a28",
+    "/home/levi/three-doors/memo.md": "4bf91755396088762055f6c17d6e10b8f327f46e9dc8d1ed0096015e7f617042",
+    "/home/levi/three-doors/minimalist.md": "4f8436ff5f66386b3403aab778843ee7ef0af07226604f32d7f58ce4bf75d7ce",
+    "/home/levi/three-doors/standard-bearer.md": "8e385d424665a1dc633f46994b9ffc93019a1675b754b6673ee502cefb5f1dca"
+  },
+  "originalsArchive": "/home/levi/src/hive/.botanical/marketing/three-doors-originals-20260909.tar.gz",
+  "archiveSha256": "6573e137f876c1ee503fb28d7a5597b754378fd55022dc25a330f3d1c2e61360",
+  "sourceFilesChecked": 139,
+  "changedSourceFiles": [],
+  "scope": "Local handoff packaging and preservation check; no SSH, network, browser or publication."
+}

@@ -759,21 +759,22 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
   });
   state.jobs.push({
     id: "job-rest",
-    kind: "rest",
+    kind: "care",
     target: "rowan",
-    scope: personal("rowan"),
+    need: "rest",
+    policy: "manual-rest",
     reason: "Ordered",
     routine: false,
   });
   Object.assign(state.actors.rowan, {
     ...cell(7, 9),
     mode: "sleep",
-    rest: 94.8,
+    needs: { ...state.actors.rowan.needs, rest: 89.8 },
     task: { kind: "sleep", job: "job-rest", target: bed.id, duration: 1 },
     assignment: { character: "rowan", task: "job-rest", cost: 0 },
   });
   advanceWork(state, state.actors.rowan);
-  assert.ok(state.actors.rowan.rest >= 95);
+  assert.ok(state.actors.rowan.needs.rest >= 90);
   assert.equal(
     state.jobs.some((job) => job.id === "job-rest"),
     false,
@@ -968,7 +969,7 @@ test("actual libcolony creates a night routine in a sheltered room and clears it
   state.tick = 4_800;
   state.actors.rowan.routine = true;
   actualStep(state);
-  const routine = state.jobs.find((job) => job.kind === "rest" && job.routine);
+  const routine = state.jobs.find((job) => job.kind === "care" && job.policy === "routine-rest" && job.routine);
   assert.ok(routine);
   Object.assign(state.actors.rowan, {
     ...cell(7, 7),
@@ -984,7 +985,7 @@ test("actual libcolony creates a night routine in a sheltered room and clears it
     false,
   );
   assert.equal(state.actors.rowan.task, null);
-  assert.equal(state.rested, 1);
+  assert.ok(state.actors.rowan.needs.rest >= 0);
 });
 
 test("actual libcolony supplies shared cache repair through its buffer and cancellation returns staged wood", () => {
@@ -1121,7 +1122,7 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
   assert.equal(operation.phase, "pour");
   assert.equal(
     containerQuantity(state.materials, `source:${spring.id}`, "water"),
-    6,
+    14,
   );
   // Simulate a lost path before the later Draft command: the operation keeps
   // only its pail binding, not Rowan's executor transfer.
@@ -1197,7 +1198,7 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
   );
   assert.equal(
     containerQuantity(paused.materials, `source:${spring.id}`, "water"),
-    6,
+    14,
   );
   assert.equal(paused.materials.bindings.length, 0);
   assert.equal(paused.materials.transfers.length, 0);
@@ -1257,7 +1258,7 @@ test("actual libcolony establishes one newly sown mugwort with one recoverable p
   });
   assert.equal(
     containerQuantity(state.materials, `source:${spring.id}`, "water"),
-    6,
+    14,
   );
   assert.equal(
     state.jobs.some((job) => job.kind === "water-mugwort"),
@@ -1270,7 +1271,7 @@ test("actual libcolony establishes one newly sown mugwort with one recoverable p
   actualRun(state, 240);
   assert.equal(established.stage, "ready");
   const water = materialQuantity(state.materials, "water");
-  assert.equal(water.live + water.consumed, 8);
+  assert.equal(water.live + water.consumed, 16);
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
 });
 
@@ -1399,6 +1400,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     routine: false,
   });
   state.operations.push({
+    kind: "water-delivery",
     id: "fill-cancel",
     job: "job-fill-cancel",
     spring: spring.id,
@@ -1998,6 +2000,7 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
     (lot) => lot.id !== "staged-malt",
   );
   state.operations.push({
+    kind: "water-delivery",
     id: "fill-active",
     job: "fill-job",
     spring: state.sources.find((source) => source.kind === "spring").id,

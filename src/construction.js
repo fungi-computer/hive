@@ -326,7 +326,7 @@ function crossLevelSurfaceConflict(state, site) {
 function upperSupported(state, cell) {
   return upperSurface(state, cell);
 }
-function workPositions(state, site, operation = "build") {
+export function workPositions(state, site, operation = "build") {
   if (site.type === "brew-station") return brewStationAccessCells(site);
   if (
     site.type === "floor" &&

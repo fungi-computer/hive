@@ -24,7 +24,8 @@ export type Material =
   | "keg"
   | "ale"
   | "spent-grain"
-  | "soil";
+  | "soil"
+  | "ration";
 export type ItemLotLocation =
   | ({ kind: "ground" } & Cell)
   | { kind: "hand"; actor: ActorId }
@@ -72,6 +73,13 @@ export type MaterialBinding =
       readonly kind: "vessel-use";
       readonly id: OperationId;
       readonly vessel: LotId;
+    }
+  | {
+      /** A non-container operation consumes this exact ordinary held lot. */
+      readonly kind: "operation-use";
+      readonly id: OperationId;
+      readonly lot: LotId;
+      readonly quantity: PositiveInt;
     }
   | {
       /** A resolved physical plan; recipe semantics stay with its definition. */
@@ -285,7 +293,17 @@ export type StoreJob = JobBase & {
   source: LotId;
   destination: ContainerId;
 };
-export type RestJob = JobBase & { kind: "rest"; target: ActorId };
+/** Personal physical care is deliberately outside a work-party scope. */
+export type CareNeed = "nourishment" | "hydration" | "rest";
+export type CareJob = {
+  id: JobId;
+  kind: "care";
+  target: ActorId;
+  need: CareNeed;
+  policy: "automatic" | "manual-rest" | "routine-rest";
+  reason: string;
+  routine: boolean;
+};
 export type RepairCacheJob = JobBase & {
   kind: "repair-cache";
   target: FeatureId;
@@ -328,7 +346,7 @@ export type Job =
   | HarvestJob
   | WaterMugwortJob
   | StoreJob
-  | RestJob
+  | CareJob
   | RepairCacheJob
   | FillKettleJob
   | BrewJob
@@ -348,6 +366,7 @@ export type SowActivity = ActivityBase & { kind: "sow" };
 export type HarvestActivity = ActivityBase & { kind: "harvest" };
 export type TransferActivity = ActivityBase & { kind: "transfer" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
+export type ConsumeActivity = ActivityBase & { kind: "consume" };
 export type WaterDeliveryActivity = ActivityBase & { kind: "water-delivery" };
 export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
 export type BrewActivity = ActivityBase & { kind: "brew" };
@@ -365,6 +384,7 @@ export type Activity =
   | HarvestActivity
   | TransferActivity
   | SleepActivity
+  | ConsumeActivity
   | WaterDeliveryActivity
   | RepairCacheActivity
   | BrewActivity
@@ -383,7 +403,7 @@ export type Actor = Body & {
   name: string;
   figure: string;
   drafted: boolean;
-  rest: number;
+  needs: Needs;
   routine: boolean;
   allowedWork: AllowedWork;
   task: Activity | null;
@@ -419,9 +439,11 @@ export type StoryEvent = {
 /** Semantic completion belongs to the checked water-delivery target resolver. */
 export type WaterDeliveryTarget =
   | { readonly kind: "kettle"; readonly station: string }
-  | { readonly kind: "mugwort"; readonly herb: HerbId };
+  | { readonly kind: "mugwort"; readonly herb: HerbId }
+  | { readonly kind: "hydration"; readonly actor: ActorId };
 /** One saved pail/water operation, independent of its current executor. */
 export type WaterDeliveryOperation = {
+  kind: "water-delivery";
   id: OperationId;
   job: JobId;
   spring: FeatureId;
@@ -431,6 +453,29 @@ export type WaterDeliveryOperation = {
   water: LotId | null;
   /** Incomplete effect phase; successful pour retires this operation. */
   phase: "acquire" | "draw" | "pour";
+};
+/** A ration is carried by the ordinary operation-owned use transfer. */
+export type ConsumeOperation = {
+  kind: "consume";
+  id: OperationId;
+  job: JobId;
+  actor: ActorId;
+  definition: string;
+};
+export type CareOutcome = {
+  id: string;
+  receipt: string;
+  actor: ActorId;
+  need: "nourishment" | "hydration";
+  definition: string;
+  amount: number;
+  tick: number;
+};
+export type Needs = {
+  advancedAt: number;
+  nourishment: number;
+  hydration: number;
+  rest: number;
 };
 /** The process owner advances this one saved process; workers attend PREPARE/KEG. */
 export type BrewProcess = {
@@ -461,7 +506,8 @@ export type Clearing = {
   materials: MaterialsState;
   sources: SourceFeature[];
   pendingSources: PendingFeatureIntroduction[];
-  operations: WaterDeliveryOperation[];
+  operations: (WaterDeliveryOperation | ConsumeOperation)[];
+  careOutcomes: CareOutcome[];
   processes: BrewProcess[];
   terrain: TerrainState;
   rocks: Cell[];
@@ -473,7 +519,6 @@ export type Clearing = {
   workDirty: boolean;
   felled: number;
   finishedJobs: number;
-  rested: number;
   harvestedHerbs: number;
   commands: (Command & { tick: number })[];
   feed: {

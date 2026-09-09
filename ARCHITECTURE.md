@@ -94,7 +94,9 @@ state; unresolved depth cases retain current behavior.
 Current 2026-09-09 supersession: Astra has all implementation and integration
 custody after Delivery’s explicit `bf12e99` release. Native Codex workers now
 implement bounded outcomes with independent review. The visible-lane pattern
-below is historical and does not override Levi’s latest instruction.
+below is historical and does not override Levi’s latest instruction. Botanical
+CTO retired the released Game terminals after identity checks, preserving their
+resumable sessions and evidence. The two CTO panes remain; no Herdr lane refill.
 
 Astra is peer Game CTO and owns game direction, difficult architecture, staffing
 and personal review of changed original art. The visible Sol `game-delivery` lead

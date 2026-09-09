@@ -1,0 +1,86 @@
+{
+  "purpose": "Standard Three ObjectLoader artifact for one current Copper Familiar kettle prop; ignored tool-fit trial only.",
+  "source": {
+    "module": "/home/levi/src/hive/.botanical/three-tool-trial/export-brewhouse-kettle.mjs",
+    "factory": "src/studies/brewhouse/props.js:buildProp('kettle')",
+    "lightRig": "src/art/geometry.js:scene",
+    "productionCamera": "src/art/scale.js:camera (not serialized into this Object scene)",
+    "bakeBoundary": "src/studies/brewhouse/bake.js:bakeCanvas disposes geometry after render",
+    "exportPreparation": "scene.updateMatrixWorld(true) before Object3D.toJSON"
+  },
+  "runtime": {
+    "threeRevision": "185",
+    "threePackageVersion": "0.185.1"
+  },
+  "artifact": {
+    "path": "/home/levi/src/hive/.botanical/three-tool-trial/output/brewhouse-kettle.r185.json",
+    "sha256": "9d7558c491f7c5aa943fed357e2d8a8062321d680074004b650599c8ff1f6ef9",
+    "bytes": 47844
+  },
+  "sourceSummary": {
+    "nodes": 42,
+    "meshes": 36,
+    "lights": 2,
+    "geometries": 36,
+    "materials": 8
+  },
+  "parsedSummary": {
+    "nodes": 42,
+    "meshes": 36,
+    "lights": 2,
+    "geometries": 36,
+    "materials": 8
+  },
+  "sourceBounds": {
+    "min": [
+      -0.7099999785423279,
+      -1.4901161138336505e-9,
+      -0.6600000262260437
+    ],
+    "max": [
+      0.7099999785423279,
+      1.8633601164066258,
+      0.6600000262260437
+    ]
+  },
+  "parsedBounds": {
+    "min": [
+      -0.7099999785423279,
+      -1.4901161138336505e-9,
+      -0.6600000262260437
+    ],
+    "max": [
+      0.7099999785423279,
+      1.8633601164066258,
+      0.6600000262260437
+    ]
+  },
+  "verified": {
+    "metadataType": "Object",
+    "namedSubject": true,
+    "summaryEqual": true,
+    "boundsEqual": true,
+    "subjectTransformEqual": true,
+    "boundsDelta": {
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "preserved": [
+    "standard scene hierarchy, named subject, transforms, MeshLambert materials, BufferGeometry, and shared light rig"
+  ],
+  "notPreserved": [
+    "the buildProp factory identity and its source parameters",
+    "the shared geometry.js material cache identity",
+    "the production orthographic camera, renderer settings, outline pass, and Pixi texture",
+    "any route back from editor edits into Hive procedural source"
+  ]
+}

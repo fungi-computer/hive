@@ -1,0 +1,22 @@
+{
+  "checkedSourceFiles": 139,
+  "changedSourceFiles": [],
+  "checkedDocuments": [
+    "AGENTS.md",
+    "docs/decisions/architecture-proof-sprint.md",
+    "docs/decisions/architecture-implementation-plan.md",
+    "docs/decisions/simulation-and-content-contracts.md",
+    "docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md"
+  ],
+  "missingLocalLinks": [],
+  "diffCheckExit": 0,
+  "diffCheckOutput": "",
+  "docHashes": {
+    "AGENTS.md": "75365d850478f8a672c345254a00df81850cc1c7a05a5e0b2e2ccf46ecd083d6",
+    "docs/decisions/architecture-proof-sprint.md": "856c062df65c175020f0a1ba575c02575c91ecfe11edf9e87f67ede9dc14abe3",
+    "docs/decisions/architecture-implementation-plan.md": "4368f73795eb2f67d24e03ff0c5a697769c6f0c3c1c33e5f76afbdc77c1728ca",
+    "docs/decisions/simulation-and-content-contracts.md": "fd5a7f1b6b95e45473b25f49f240e638c080eb00767c54001f5e555c2707e21a",
+    "docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md": "9b30125209d4ad01eb62747fb78fdd6a2b51a93fd42500a24fa04c120dcda24a"
+  },
+  "scope": "Documentation and source-preservation check. No simulation/browser/performance proof."
+}
