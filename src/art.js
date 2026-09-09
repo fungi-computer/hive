@@ -134,16 +134,22 @@ function createWaterBake(renderer) {
   });
   let geometryKey = null,
     planes = [];
-  return (terrain, water) => {
+  let disposed = false;
+  function clearGeometry() {
+    for (const child of [...result.children]) {
+      if (!child.isMesh) continue;
+      child.geometry.dispose();
+      result.remove(child);
+    }
+    geometryKey = null;
+    planes = [];
+  }
+  function draw(terrain, water) {
+    if (disposed) throw new Error("Water baker is disposed");
     const nextKey = terrainGeometryKey(terrain);
     if (nextKey !== geometryKey) {
-      for (const child of [...result.children]) {
-        if (!child.isMesh) continue;
-        child.geometry.dispose();
-        result.remove(child);
-      }
+      clearGeometry();
       geometryKey = nextKey;
-      planes = [];
       for (const face of terrainSurfaces(terrain, 15)) {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute(
@@ -171,6 +177,17 @@ function createWaterBake(renderer) {
       planes[index].visible = surface.depthM > 0;
     });
     return bake(renderer, result, worldCamera, WIDTH, HEIGHT, false, false);
+  }
+  return {
+    bake: draw,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      clearGeometry();
+      mask.dispose();
+      liquid.dispose();
+      result.clear();
+    },
   };
 }
 
@@ -323,9 +340,13 @@ export async function bakeArt() {
     art.ration[amount] = bake(renderer, rationPile(amount), prop, 112, 112);
   // This one retained renderer rebakes terrain only after a physical edit/load.
   // It never updates simulation state or time. View owns replacement textures.
-  art.bakeTerrainWater = createWaterBake(renderer);
+  const waterBake = createWaterBake(renderer);
+  art.bakeTerrainWater = waterBake.bake;
   art.bakeTerrain = (terrain, previous, changedCells) =>
     bakeTerrainPatch(renderer, terrain, previous, changedCells);
-  art.dispose = () => renderer.dispose();
+  art.dispose = () => {
+    waterBake.dispose();
+    renderer.dispose();
+  };
   return art;
 }
