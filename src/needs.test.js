@@ -238,6 +238,37 @@ test("paused reload during consume preserves one pending portion and one eventua
   );
   assert.equal(restored.paused, true);
   assert.equal(restored.careOutcomes.length, 0);
+  const simultaneouslySettled = structuredClone(saved);
+  const activeConsumption = simultaneouslySettled.savedState.operations.find(
+    (operation) => operation.kind === "consume",
+  );
+  const remainingRations = simultaneouslySettled.savedState.materials.lots.find(
+    (lot) =>
+      lot.material === "ration" &&
+      lot.location.kind !== "hand" &&
+      lot.quantity > 1,
+  );
+  remainingRations.quantity--;
+  const receipt = `${activeConsumption.id}-sink`;
+  simultaneouslySettled.savedState.materials.sinks.push({
+    id: receipt,
+    material: "ration",
+    quantity: 1,
+  });
+  simultaneouslySettled.savedState.careOutcomes.push({
+    id: `care-outcome:${activeConsumption.id}`,
+    receipt,
+    actor: activeConsumption.actor,
+    need: "nourishment",
+    definition: activeConsumption.definition,
+    amount: 60,
+    tick: simultaneouslySettled.savedState.tick,
+  });
+  assert.throws(
+    () => restoreSnapshot(simultaneouslySettled),
+    /care outcome .* has invalid receipt/,
+    "one consumption cannot be both active and settled",
+  );
   restored.paused = false;
   waitFor(
     restored,
@@ -248,6 +279,11 @@ test("paused reload during consume preserves one pending portion and one eventua
       ).length === 1,
   );
   assert.equal(restored.careOutcomes.length, 1);
+  assert.deepEqual(
+    restoreSnapshot(snapshotFor(restored)).state.materials,
+    restored.materials,
+    "completed ration consumption retains its sink through the current codec",
+  );
 });
 
 test("manual rest and automatic care survive paused restore in either admission order", () => {
