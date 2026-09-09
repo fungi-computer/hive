@@ -65,6 +65,25 @@ ventilation expectation stay explicit; do not retune the scenario to hide it.
 
 ## Chosen existing method
 
+**Current geometry source qualification boundary:** shared sparse physical
+queries and actual exterior classification are source-reviewed at `c951b0a`.
+The registered terrain plus building primitives own both the old structure
+raster and the generated-room exterior queries. Empty roofed continuation
+outside the field is unresolved neighboring air, not a free outdoor reservoir.
+Ambient is explicitly declared at registered terrain maxY64 and proved through
+that vertical path;504 solver cells remain unchanged. The producer now retains
+classified open sides and closed faces together. A wholly closed floor side
+stays closed, preserving its prior tangential boundary policy. Five new laws
+are authored but unrun; no new operator/scene performance evidence is claimed.
+
+Review also exposed a retained numerical limitation: on a side with both open
+and masked patches, the air momentum ghost stencil currently reads side-wide
+openness. Closed masks stop normal flux, but do not supply local tangential
+no-slip behavior to a masked patch on that same open side. Root owns the required
+per-face decision/qualification before claiming arbitrary mixed outer walls.
+The current room's full foundation avoids that case. Do not relabel it as
+normal smoke leakage or treat raster parity as numerical boundary proof.
+
 Reuse the retained 3D Boussinesq caller, shared projection/private geometry and
 MC-limited scalar transport. These already have duct, scalar-transport,
 conservation and exact-restart evidence. Extract one maintained implementation;
