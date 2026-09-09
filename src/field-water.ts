@@ -122,6 +122,13 @@ function preflight(
   const worker = resolveDrawingWorker(state, input.operation);
   if (!worker.ok) return worker;
   const { actor, operation } = worker.value;
+  if (
+    direction === "withdraw" &&
+    (operation.supply.kind !== "field" ||
+      operation.supply.binding !== input.binding ||
+      operation.supply.nodeId !== input.nodeId)
+  )
+    return { ok: false as const, reason: "field-supply-mismatch" };
   const access = fieldWaterAccess(
     state,
     { binding: input.binding, nodeId: input.nodeId },

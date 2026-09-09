@@ -157,6 +157,9 @@ function deposit(f, quantity = 2) {
   });
 }
 function draw(f, quantity = 2) {
+  // The host-return fixture starts bound to the finite spring. Drawing back is
+  // a distinct admitted field intent; the primitive may not invent this change.
+  f.operation.supply = { kind: "field", ...reference };
   return drawFieldWater(f.state, {
     ...reference,
     operation: f.operation.id,
@@ -212,6 +215,7 @@ test("paid held water returns to the actual pit and is drawn back with one mater
 
 test("late field failure, full vessel, wrong custody, paused time and bad portions cannot publish half a transfer", () => {
   const f = fixture();
+  f.operation.supply = { kind: "field", ...reference };
   unchanged(f, () => draw(f)); // full material destination, dry physical source
   assert(deposit(f).ok);
   const allocator = f.state.materials.nextLotId;
@@ -298,6 +302,7 @@ test("Goblin Region returns one held portion pair across rollback, lost acknowle
   );
   const f = fixture(),
     db = new DatabaseSync(":memory:");
+  f.operation.supply = { kind: "field", ...reference };
   t.after(() => db.close());
   let fail = false;
   const owner = sqliteTestOwner(db, (sql) => {
@@ -379,6 +384,56 @@ test("Goblin Region returns one held portion pair across rollback, lost acknowle
     "rejected",
   );
   assert.deepEqual(reopened.readCommitted(), paid);
+  // The next ordinary host tick executes the actual work callback: acquire the
+  // already-held pail, draw its recorded field supply and begin delivery. A
+  // later receipt failure must roll back that draw, progress and field step.
+  const work = {
+    id: "draw-and-walk",
+    expectedRevision: 1,
+    command: { kind: "advance", ticks: 1 },
+  };
+  fail = true;
+  assert.throws(
+    () => reopened.dispatch("goblin-host", work),
+    /injected-paired-receipt-write/,
+  );
+  assert.deepEqual(open().readCommitted(), paid);
+  fail = false;
+  const worked = reopened.dispatch("goblin-host", work),
+    carrying = reopened.readCommitted();
+  assert.equal(worked.status, "applied");
+  assert.equal(carrying.state.clearing.tick, paid.state.clearing.tick + 1);
+  assert.equal(
+    carrying.state.clearing.operations[0].execution.phase,
+    "deliver",
+  );
+  assert.equal(
+    terrainFacts(carrying.state.clearing.terrain).balance.exchangeWaterKg,
+    0,
+  );
+  assert.equal(
+    containerQuantity(
+      carrying.state.clearing.materials,
+      f.interior.id,
+      "water",
+    ),
+    2,
+  );
+  assert.equal(fieldWaterBalance(carrying.state.clearing).residualKg, 0);
+  const resumed = open();
+  assert.deepEqual(resumed.readCommitted(), carrying);
+  assert.deepEqual(resumed.dispatch("goblin-host", work), worked);
+  assert.deepEqual(resumed.readCommitted(), carrying);
+  resumed.dispatch("goblin-host", {
+    id: "continue-walk",
+    expectedRevision: 2,
+    command: { kind: "advance", ticks: 1 },
+  });
+  assert.equal(
+    terrainFacts(resumed.readCommitted().state.clearing.terrain).balance
+      .exchangeWaterKg,
+    0,
+  );
 });
 
 test("return cannot invalidate a contents-only or masked missing supply reference", () => {
@@ -397,4 +452,28 @@ test("return cannot invalidate a contents-only or masked missing supply referenc
       2,
     );
   }
+});
+
+test("field withdrawal cannot bypass the operation's recorded source", () => {
+  const f = fixture();
+  assert(deposit(f).ok);
+  const request = { ...reference, operation: f.operation.id, quantity: 1 };
+  unchanged(f, () => drawFieldWater(f.state, request));
+  f.state.terrain = excavateTerrain(f.state.terrain, [1, 14, 128]);
+  assert(
+    createGroundLot(f.state.materials, "soil", 1, { x: 6, z: 9, level: 0 }).ok,
+  );
+  f.operation.supply = {
+    kind: "field",
+    ...reference,
+    nodeId: "reservoir:column-p1-p128",
+  };
+  unchanged(f, () => {
+    const rejected = drawFieldWater(f.state, request);
+    assert.equal(rejected.reason, "field-supply-mismatch");
+    return rejected;
+  });
+  assert.equal(pit(f.state).massKg, 2);
+  assert.equal(containerQuantity(f.state.materials, f.interior.id, "water"), 0);
+  assert.doesNotThrow(() => snapshotFor(f.state));
 });

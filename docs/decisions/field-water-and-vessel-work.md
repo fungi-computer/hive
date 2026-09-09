@@ -99,8 +99,22 @@ command ID. The fixture is a validated authored intermediate work state using
 the real Goblin parser/executor, not earned work or native Cloudflare evidence.
 The same two-law check proves the joined generated-room consumer rejects a
 real but unpaired deposit through `parseClosedTerrain`; app types passed.
-Forward field sourcing through real assigned work is Hume's current isolated
-`field-supply` writer at aeb216b. Root retains the paired primitive and Region.
+Forward callers are now accepted `b40213c`, joined `506528c` with all five
+hashes matched. Three actual-WASM laws u4485 cover naturally seeped stock,
+waiting wake, kettle/hydration/garden, cancellation, partial top-up and save.
+Strict types with skipLibCheck=false passed u4486; the existing container laws
+passed u4487/u4489 without repeating the field suite. The fixture preserves
+finite authored supplies but blocks spring access with prepared walls; it does
+not prove those walls or the initial excavation were earned by gameplay.
+
+Root then added exact withdrawal-intent matching (return targets stay separate).
+Six affected primitive/save/Region laws and strict app types passed u4493. The
+expanded u4496 law additionally executes an ordinary host work tick after the
+return: paired field draw, delivery progress and actual field advancement all
+roll back on receipt failure, reopen/retry exactly once, and the next walking
+tick does not draw again. Current native Cloudflare and rendered/hosted proofs
+remain separate. Do not replace these boundaries with a fake spring container
+or infer physical provenance from an unauthenticated imported save.
 
 Readiness provenance: ignored source packet SHA256
 `e4a4ec985760cb0d025aa4efaed112ac295a42d53ddde0d226385a607cb1227e`.

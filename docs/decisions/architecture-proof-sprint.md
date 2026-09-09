@@ -183,7 +183,7 @@ Original builders, pixels/outline code, dimensions, cameras and dynamic bakes
 remain unchanged. Syntax `u4450` passed; Fallow `u4451` retains the inherited
 bakeArt complexity advisory. No speedup or new raster/parity claim. The frozen
 input-only candidate remains unchanged. Hume released that one-file source;
-Root's field/material boundary is the next coupled implementation dependency.
+The completed field/material source and remaining qualification are recorded below.
 
 **Material boundary now integrated:** Meitner's `5c35791` is joined as `18a1e30`,
 all five accepted hashes verified. Held-vessel import delegates identity,
@@ -191,26 +191,35 @@ quantity/definition and capacity to the existing creation owner. Export shares
 exact held-portion debit with consumption but appends no consumption sink.
 Seven focused laws `u4429`, strict types `u4432` and inspected Fallow
 `u4433/u4435` qualify that material-side boundary; existing advisories remain.
-No unchanged suite was repeated. Root still owns the actual paired field/game
-operation, units, supply/reach and joined admission/Region commitment. Meitner
-has released those source files and independently reviews Sol's generated-room
-producer/Region/view read-only. Sol continues the same bounded writer chunk;
-Root found and routed its half-tile display mismatch against center-addressed
-terrain. No physics or original builder change is needed for that correction.
+No unchanged suite was repeated. The later paired source and generated-room
+acceptance below supersede this former caller dependency. Root retains units,
+source acceptance, integration and actual runtime qualification.
 
-**Current paired field/material source:** Root now owns the schema20 paired
-primitive and fixed-baseline save law described in
-[field water and vessel work](field-water-and-vessel-work.md#current-paired-source-checkpoint).
-Actual held portions and a real column pay each other; all fallible checks occur
-before either successor is published. Initial9 laws passed u4466; strengthened
-late-field failure and app types passed u4475/u4479. The host-only Region return
-now passes Node SQLite rollback, lost-ack replay, reopen and no-double-effect
-u4480; actual Cloudflare evidence is separate. Hume owns shared supply/activity
-callers in isolated `field-supply`; Meitner accepted corrected paired source `c3b96bf`: shared post-return reference
-validation closes the unsavable-contents edge without another validator. Five
-affected laws and app types passed u4483. No new browser or deployment.
+**Current paired field/material source is integrated:** schema20 and the
+fixed-baseline law live in Root's paired owner; Hume's `b40213c` is joined as
+`506528c` with all five hashes matched. Three actual-WASM laws u4485 prove natural
+seepage wakes waiting work, serves kettle/hydration/garden through the existing
+vessel lifecycle, retains canceled contents and draws only a partial pail's
+missing unit. Existing container behavior passed its affected laws; strict app
+types with skipLibCheck=false passed u4486. Independent review accepted the
+caller. Fallow retains existing activity/routine complexity/cycle advisories,
+with zero introduced findings in this chunk.
 
-**Generated-room source ready:** Sol pinned `fad0657` with10 affected laws
+Root's six paired/intent laws and strict app types passed u4493. The expanded
+actual Goblin Region law u4496 then proves both return and the ordinary subsequent
+work-tick draw across SQLite receipt failure, exact reopen and lost-ack replay.
+These use a validated authored intermediate work state, distinct from Hume's
+naturally seeping field fixture. Withdrawals must match the operation's recorded
+field source; returns can choose another reached receiver but cannot invalidate
+the pending supply. Both rules reuse current owners. No new native Cloudflare,
+browser, benchmark, build or deployment is implied.
+
+Hume and Meitner have released accepted field source/review. Sol now traces only
+the existing accounts-to-Goblin boundary read-only, with ignored notes; no account
+writer, server or identity store is authorized. Root retains integration and the
+next actual rendered/DO qualification; the frozen prior input evidence remains.
+
+**Generated-room source integrated:** Sol pinned `fad0657` with10 affected laws
 u4465 and app types u4456. Root and Meitner accepted the three corrections:
 shared terrain/site/air coordinates, geometry identity across same-revision
 histories, and rejection of fuel splits/remainders smaller than the public field
