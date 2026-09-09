@@ -1,9 +1,7 @@
 import { worldIdentity, createVoxelWorld, MATERIAL } from '../world-presets/height-caves.mjs';
 import { createWorldSpec, sampleTerrain } from '../world-presets/height.js';
-import { createVolume } from '../engine/environment/soil/volume.mjs';
-import { createVolumeGeometry } from '../engine/environment/soil/geometry.mjs';
-import { requireCondition } from '../engine/environment/soil/soil.mjs';
-import { metric } from '../world-presets/seepage/world-binding.mjs';
+import { createVolume, createVolumeGeometry } from '../engine/environment/soil/index.js';
+import { requireCondition, metric } from '../world-presets/seepage/world-binding.mjs';
 const REFERENCE_SOIL = Object.freeze({ id: 'synthetic-rigid-loam-si-v1', thetaR: 0.05, porosity: 0.45, alphaPerM: 2, n: 2, ksMPerS: 1e-4, ell: 0.5, minHeadM: -4, maxHeadM: 8, densityKgM3: 1000 });
 import { createExcavationAdapter } from '../world-presets/seepage/excavation.mjs';
 
@@ -24,7 +22,7 @@ export function fixedExcavationFixture({ soleTargetAnchor = false } = {}) {
     if (x === 0 && z === 128) target = [x, bedLevel - 1, z];
   }
   const descriptor = { regionId: 'generated-pit-region', revision: world.describe().revision,
-    spacingM: metric(id).spacingM, exterior: 'closed', definitions: [REFERENCE_SOIL],
+    spacingM: metric(world).spacingM, exterior: 'closed', definitions: [REFERENCE_SOIL],
     cells, reservoirs: [], ports: [], closedFaces: [] };
   const geometry = createVolumeGeometry(descriptor), soil = createVolume(descriptor);
   const targetId = `cell:${target.join(',')}`;

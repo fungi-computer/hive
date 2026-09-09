@@ -1,5 +1,6 @@
 import { createVoxelWorld, MATERIAL } from '../height-caves.mjs';
-import { requireCondition } from '../../engine/environment/soil/soil.mjs';
+import { assertWorldRecord } from '../../engine/world/data-contract.mjs';
+export function requireCondition(ok, message) { if (!ok) throw new Error(message); }
 
 export const key = at => at.join(',');
 export const xyz = at => ({ x: at[0], y: at[1], z: at[2] });
@@ -15,10 +16,7 @@ export const immutable = value => {
   }
   return value;
 };
-export function exactFields(value, fields, label) {
-  requireCondition(value && typeof value === 'object' && !Array.isArray(value) &&
-    Object.keys(value).sort().join('|') === [...fields].sort().join('|'), label);
-}
+export const exactFields = assertWorldRecord;
 export function coordinate(at) {
   requireCondition(Array.isArray(at) && at.length === 3 &&
     [0, 1, 2].every(i => Object.hasOwn(at, i) && Number.isSafeInteger(at[i])),
@@ -26,26 +24,15 @@ export function coordinate(at) {
   return [...at];
 }
 // The game recipe owns material meaning, physical spacing and supported extent.
-export function metric(identity) {
-  const world = createVoxelWorld(identity);
+export function metric(world) {
   const units = world.describe().identity.base.units;
   const spacingM = [units.horizontalMetres, units.verticalMetres, units.horizontalMetres];
   return { spacingM, voxelM3: spacingM[0] * spacingM[1] * spacingM[2] };
 }
 export function restoreWorld(identity, checkpoint) {
-  requireCondition(checkpoint && Array.isArray(checkpoint.changes) && checkpoint.changes.length <= 4096,
-    'bounded actual world checkpoint');
-  exactFields(checkpoint, checkpoint.schema === 2
-    ? ['schema', 'identity', 'revision', 'changes']
-    : ['schema', 'identity', 'generatorId', 'layout', 'revision', 'changes'], 'world checkpoint fields');
-  for (const change of checkpoint.changes)
-    exactFields(change, ['x', 'y', 'z', 'material', 'revision'], 'world change fields');
+  // Delegate before any property access: the owner rejects accessors, hidden
+  // fields, invalid current envelopes and capacity violations.
   return createVoxelWorld(identity, { checkpoint, maxChangedCells: 4096 });
-}
-export function worldSnapshot(world, legacy = false) {
-  const saved = world.save();
-  if (!legacy) return saved;
-  return { schema: 2, identity: saved.identity, revision: saved.revision, changes: saved.changes };
 }
 export function assertRegionWorld(world, descriptor) {
   requireCondition(descriptor.revision === world.describe().revision,

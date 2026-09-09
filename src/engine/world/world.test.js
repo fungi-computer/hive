@@ -16,7 +16,7 @@ const identity = worldIdentity({
 });
 const spec = createWorldSpec({ seed: identity.base.heightSeed });
 
-test("legacy world boundary rejects non-JSON identities and hidden checkpoint properties", () => {
+test("world boundary rejects non-JSON identities and hidden checkpoint properties", () => {
   assert.throws(
     () => createVoxelWorld({ ...identity, ignored: undefined }),
     /JSON/,
@@ -25,22 +25,14 @@ test("legacy world boundary rejects non-JSON identities and hidden checkpoint pr
     () => createVoxelWorld({ ...identity, callback: () => null }),
     /JSON/,
   );
-  const fixture = JSON.parse(
-    readFileSync(
-      new URL(
-        "../../world-presets/fixtures/height-caves-v2.json",
-        import.meta.url,
-      ),
-      "utf8",
-    ),
-  );
-  const hidden = structuredClone(fixture.legacyCheckpoint);
+  const checkpoint = createVoxelWorld(identity).save();
+  const hidden = structuredClone(checkpoint);
   Object.defineProperty(hidden, "invisible", { value: 1 });
   assert.throws(
     () => createVoxelWorld(identity, { checkpoint: hidden }),
     /record|fields/,
   );
-  const accessor = structuredClone(fixture.legacyCheckpoint);
+  const accessor = structuredClone(checkpoint);
   Object.defineProperty(accessor, "schema", {
     get() {
       throw new Error("must not invoke getter");
@@ -51,7 +43,7 @@ test("legacy world boundary rejects non-JSON identities and hidden checkpoint pr
     () => createVoxelWorld(identity, { checkpoint: accessor }),
     /record|fields/,
   );
-  const symbol = structuredClone(fixture.legacyCheckpoint);
+  const symbol = structuredClone(checkpoint);
   symbol[Symbol("discarded")] = true;
   assert.throws(
     () => createVoxelWorld(identity, { checkpoint: symbol }),
@@ -59,7 +51,7 @@ test("legacy world boundary rejects non-JSON identities and hidden checkpoint pr
   );
 });
 
-test("original cave geography and codec2 edits survive generic storage extraction", () => {
+test("original cave geography is stable and current edits persist without a legacy reader", () => {
   const fixture = JSON.parse(
     readFileSync(
       new URL(
@@ -74,26 +66,17 @@ test("original cave geography and codec2 edits survive generic storage extractio
     const bytes = world.readBrick(at).material;
     assert.equal(createHash("sha256").update(bytes).digest("hex"), sha256);
   }
-  const before = structuredClone(fixture.legacyCheckpoint);
-  const restored = createVoxelWorld(fixture.identity, {
-    checkpoint: fixture.legacyCheckpoint,
-  });
-  assert.deepEqual(fixture.legacyCheckpoint, before);
-  for (const change of before.changes)
-    assert.equal(restored.readPoint(change), change.material);
-  assert.equal(restored.save().schema, 1);
-  assert.equal(restored.save().revision, before.revision);
-  assert.deepEqual(restored.save().changes, before.changes);
-  const reopened = createVoxelWorld(fixture.identity, {
-    checkpoint: restored.save(),
-  });
-  assert.deepEqual(reopened.save(), restored.save());
-  const bad = structuredClone(before);
-  bad.changes[0].material = 60000;
-  assert.throws(
-    () => createVoxelWorld(fixture.identity, { checkpoint: bad }),
-    /palette/,
-  );
+  assert.throws(() => createVoxelWorld(fixture.identity, { checkpoint: fixture.legacyCheckpoint }), /fields|schema/);
+  const cells = fixture.legacyCheckpoint.changes.map(({ x, y, z, material }) => ({
+    x, y, z, material, expectedMaterial: world.readPoint({ x, y, z }) }));
+  assert.equal(world.edit({ expectedRevision: 0, cells }).ok, true);
+  const before = world.save();
+  const restored = createVoxelWorld(fixture.identity, { checkpoint: before });
+  for (const change of cells) assert.equal(restored.readPoint(change), change.material);
+  assert.deepEqual(restored.save(), before);
+  const bad = structuredClone(before); bad.changes[0].material = 60000;
+  assert.throws(() => createVoxelWorld(fixture.identity, { checkpoint: bad }), /palette/);
+
 });
 
 test("maps and solid surfaces share quantized height and sea authority", () => {

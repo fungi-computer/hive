@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { fixedExcavationFixture } from "../../fixtures/generated-seepage.mjs";
 import { createExcavationAdapter } from "./excavation.mjs";
 import { createVolume, createVolumeGeometry } from "../../engine/environment/soil/index.js";
+const reference = JSON.parse(readFileSync(new URL("../../fixtures/seepage-reference.json", import.meta.url), "utf8")).facts;
 
 test("generated voxel excavation conserves pore water and resumes seepage exactly", () => {
   const { adapter, input, command } = fixedExcavationFixture();
@@ -21,6 +23,7 @@ test("generated voxel excavation conserves pore water and resumes seepage exactl
   const restored = fresh.decode(adapter.encode(moving.state));
   const resumed = fresh.advance(restored, 300, { dtMaxS: 6 });
   assert.deepEqual(resumed.state, whole.state);
+  for (const [key, value] of Object.entries(reference)) assert.deepEqual(whole.state[key], value, key);
   assert.ok(Math.abs(whole.balance.pitWaterKg - 12.565428851627985) < 1e-10);
   assert.ok(Math.abs(whole.balance.residualKg) < 2e-9);
   assert.deepEqual(fresh.excavate(resumed.state, command).state, resumed.state);
@@ -28,25 +31,25 @@ test("generated voxel excavation conserves pore water and resumes seepage exactl
   assert.throws(() => adapter.backfill(whole.state), /displaced finite water/);
 });
 
-test("legacy combined save validates custody before its explicit world codec migration", () => {
+test("unsupported saves and corrupt custody reject without migration", () => {
   const { adapter, input, command } = fixedExcavationFixture();
   const state = adapter.excavate(input, command).state;
-  const legacy = structuredClone(state);
-  legacy.version = "one-vented-soil-excavation-with-finite-pit-v1";
-  legacy.identity = JSON.stringify({ version: legacy.version,
-    worldIdentity: JSON.parse(state.identity).worldIdentity,
-    regionId: input.soilGeometry.regionId });
-  legacy.world = { schema: 2, identity: state.world.identity,
-    revision: state.world.revision, changes: state.world.changes };
-  const raw = JSON.stringify(legacy);
-  assert.deepEqual(adapter.decode(raw), state);
-  assert.equal(JSON.stringify(legacy), raw);
-  const corrupt = structuredClone(legacy);
-  corrupt.exports[0].waterKg += 1;
+  const old = { ...state, version: "obsolete" };
+  assert.throws(() => adapter.decode(JSON.stringify(old)), /identity/);
+  const corrupt = structuredClone(state); corrupt.exports[0].waterKg += 1;
   assert.throws(() => adapter.decode(JSON.stringify(corrupt)), /retain the original water/);
-  const wrongMetric = structuredClone(state);
-  wrongMetric.soilGeometry.spacingM = [1, 1, 1];
+  const wrongMetric = structuredClone(state); wrongMetric.soilGeometry.spacingM = [1, 1, 1];
   assert.throws(() => adapter.decode(JSON.stringify(wrongMetric)), /world metric/);
+});
+
+test("direct initial input rejects world accessors without running them", () => {
+  const { adapter, input } = fixedExcavationFixture();
+  let calls = 0;
+  const world = { ...input.world };
+  Object.defineProperty(world, "changes", { enumerable: true, get() { calls++; return []; } });
+  assert.throws(() => adapter.initial({ world, soilGeometry: input.soilGeometry,
+    soilState: input.soilState }), /fields|record|properties/);
+  assert.equal(calls, 0);
 });
 
 test("shared soil geometry takes consumer metric and coefficients, outside world bounds/content", () => {

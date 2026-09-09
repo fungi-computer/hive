@@ -159,33 +159,7 @@ export function createVoxelWorld(identity, options = {}) {
     brickSide: RECIPE.brickSide,
     materialIds: Object.values(MATERIAL),
   };
-  let checkpoint = options.checkpoint ?? null;
-  if (checkpoint !== null)
-    assertWorldRecord(
-      checkpoint,
-      ["schema", "identity", "revision", "changes"],
-      "world checkpoint",
-      ["generatorId", "layout"],
-    );
-  if (checkpoint?.schema === 2) {
-    assertWorldRecord(
-      checkpoint,
-      ["schema", "identity", "revision", "changes"],
-      "legacy world checkpoint",
-    );
-    // Legacy codec2 already pins the exact original palette through this checked recipe identity.
-    // New writes use the engine envelope; loading never mutates or rewrites the supplied object.
-    if (!matchesWorldIdentity(checkpoint.identity, expected))
-      throw new Error("legacy world/recipe mismatch");
-    checkpoint = {
-      schema: 1,
-      identity: checkpoint.identity,
-      generatorId: generator.id,
-      layout,
-      revision: checkpoint.revision,
-      changes: checkpoint.changes,
-    };
-  }
+  const checkpoint = options.checkpoint ?? null;
   const world = createVoxelStore(
     { identity: expected, ...layout, generator },
     { ...options, checkpoint },

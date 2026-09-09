@@ -108,6 +108,27 @@ function reservoirNodes(inputs, ports, cells, spacing) {
   });
 }
 
+// Enumerate physical faces in the retained canonical cell/axis/sign order.
+function* cellFaces(cells, spacing) {
+  const directions = [[0, -1], [0, 1], [1, -1], [1, 1], [2, -1], [2, 1]];
+  for (const [index, cell] of cells.entries()) {
+    for (const [axis, sign] of directions) {
+      const neighborAt = [...cell.at]; neighborAt[axis] += sign;
+      yield { index, cell, axis, sign, neighborAt,
+        face: faceDescriptor(cell.at, axis, sign, spacing) };
+    }
+  }
+}
+function flowFace(entry, neighbor, boundary, nodes, spacing) {
+  const { index, cell, axis, sign, face } = entry;
+  const left = sign > 0 ? index : neighbor, right = sign > 0 ? neighbor : index;
+  return Object.freeze({ ...face, left, right, boundary,
+    ...(boundary && nodes[neighbor].kind === 'pit' ? { pitRole: axis === 1 ? 'floor' : 'side' } : {}),
+    leftSoilId: boundary ? cell.soilId : nodes[left].soilId,
+    rightSoilId: boundary ? cell.soilId : nodes[right].soilId,
+    leftDistanceM: spacing[axis] / (boundary ? 4 : 2),
+    rightDistanceM: spacing[axis] / (boundary ? 4 : 2) });
+}
 function compileFaces(cells, nodes, lookup, ports, closedInputs, spacing) {
   requireCondition(Array.isArray(closedInputs) && closedInputs.length <= 3 * cells.length &&
     closedInputs.every(id => typeof id === 'string') && new Set(closedInputs).size === closedInputs.length,
@@ -116,24 +137,17 @@ function compileFaces(cells, nodes, lookup, ports, closedInputs, spacing) {
   const portByFace = new Map(ports.map(p => [p.face.id, p]));
   const reservoirIndex = new Map(nodes.map((n, i) => [n.reservoirId, i]).filter(([id]) => id));
   const faces = [], closedFaces = [];
-  for (const [i, cell] of cells.entries()) for (let axis = 0; axis < 3; axis++) for (const sign of [-1, 1]) {
-    const face = faceDescriptor(cell.at, axis, sign, spacing);
-    if (seen.has(face.id)) continue; seen.add(face.id);
-    const otherAt = [...cell.at]; otherAt[axis] += sign;
-    const other = lookup.get(key(otherAt)), port = portByFace.get(face.id);
+  for (const entry of cellFaces(cells, spacing)) {
+    const { face, neighborAt } = entry;
+    if (seen.has(face.id)) continue;
+    seen.add(face.id);
+    const other = lookup.get(key(neighborAt)), port = portByFace.get(face.id);
     if (other !== undefined && closed.has(face.id)) {
       recognized.add(face.id); closedFaces.push(Object.freeze(face)); continue;
     }
     if (other === undefined && !port) { closedFaces.push(Object.freeze(face)); continue; }
     const neighbor = other ?? reservoirIndex.get(port.reservoirId);
-    const left = sign > 0 ? i : neighbor, right = sign > 0 ? neighbor : i;
-    const boundary = other === undefined;
-    faces.push(Object.freeze({ ...face, left, right, boundary,
-      ...(boundary && nodes[neighbor].kind === 'pit' ? { pitRole: face.axis === 1 ? 'floor' : 'side' } : {}),
-      leftSoilId: boundary ? cell.soilId : nodes[left].soilId,
-      rightSoilId: boundary ? cell.soilId : nodes[right].soilId,
-      leftDistanceM: spacing[axis] / (boundary ? 4 : 2),
-      rightDistanceM: spacing[axis] / (boundary ? 4 : 2) }));
+    faces.push(flowFace(entry, neighbor, other === undefined, nodes, spacing));
   }
   requireCondition(recognized.size === closed.size, 'closed face must identify an existing interior soil face');
   requireCondition(faces.length <= REGION_LIMITS.maxFaces, 'bounded active Darcy faces');

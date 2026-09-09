@@ -1,12 +1,8 @@
 import { MATERIAL } from '../height-caves.mjs';
-import { createVolume } from '../../engine/environment/soil/volume.mjs';
-import { createVolumeGeometry } from '../../engine/environment/soil/geometry.mjs';
-import { balanceTolerance } from '../../engine/environment/soil/state.mjs';
-import { compensatedSum, requireCondition } from '../../engine/environment/soil/soil.mjs';
+import { createVolume, createVolumeGeometry, balanceTolerance, compensatedSum } from '../../engine/environment/soil/index.js';
 import { key, xyz, same, ordered, immutable, exactFields, coordinate, restoreWorld,
-  assertRegionWorld, pitContacts, assertVented, excavateWorld, metric, worldSnapshot } from './world-binding.mjs';
+  assertRegionWorld, pitContacts, assertVented, excavateWorld, metric, requireCondition } from './world-binding.mjs';
 
-const LEGACY_VERSION = 'one-vented-soil-excavation-with-finite-pit-v1';
 const VERSION = 'height-caves-finite-seepage-v2';
 const PIT_ID = 'excavation-pit';
 const MAX_ENCODED = 1048576;
@@ -51,7 +47,7 @@ function rebuildSoil(descriptor, stocks, clock) {
   return { owner, state };
 }
 
-function validateExcavationHistory(config, state, facts, legacy) {
+function validateExcavationHistory(config, state, facts) {
   exactFields(state.pit, ['at', 'mode', 'reservoirId'], 'finite pit binding fields');
   exactFields(state.excavation, ['command', 'previousWorldTarget', 'previousSoilIdentity'],
     'one accepted excavation receipt');
@@ -82,7 +78,7 @@ function validateExcavationHistory(config, state, facts, legacy) {
   const previousWorld = restoreWorld(config.worldIdentity, previousCheckpoint);
   requireCondition(previousWorld.readPoint(xyz(at)) === MATERIAL.soil, 'recorded edit must actually remove world soil');
   excavateWorld(previousWorld, command);
-  requireCondition(same(worldSnapshot(previousWorld, legacy), state.world), 'one replayed material edit exactly explains current world');
+  requireCondition(same(previousWorld.save(), state.world), 'one replayed material edit exactly explains current world');
 
   const descriptor = { ...state.soilGeometry, version: 'rigid-soil-voxel-graph-v1',
     revision: command.expectedWorldRevision,
@@ -96,18 +92,19 @@ function validateExcavationHistory(config, state, facts, legacy) {
     'previous geometry identity and exported source pore-capacity bounds');
 }
 
-function validate(config, identity, state, legacy = false) {
+function validate(config, identity, state) {
   exactFields(state, STATE_FIELDS, 'combined excavation checkpoint fields');
   requireCondition(encodedSize(JSON.stringify(state)) <= MAX_ENCODED, 'bounded complete excavation input');
-  requireCondition(state.version === (legacy ? LEGACY_VERSION : VERSION) && state.identity === identity, 'excavation world/region/policy identity');
+  requireCondition(state.version === VERSION && state.identity === identity, 'excavation world/region/policy identity');
   requireCondition(state.soilGeometry.regionId === config.regionId, 'bound regional soil identity');
-  const physical = metric(config.worldIdentity);
+  const world = restoreWorld(config.worldIdentity, state.world);
+  const physical = metric(world);
   requireCondition(same(state.soilGeometry.spacingM, physical.spacingM), 'soil uses the bound world metric');
-  requireCondition(state.world.schema === (legacy ? 2 : 1), 'world codec matches combined checkpoint version');
-  const world = restoreWorld(config.worldIdentity, state.world), owner = createVolume(state.soilGeometry);
+  requireCondition(state.world.schema === 1, 'world codec matches combined checkpoint version');
+  const owner = createVolume(state.soilGeometry);
   // Use the public codec so all existing strict canonical/relational laws apply.
   const soil = owner.decode(JSON.stringify(state.soilState)), facts = owner.read(soil);
-  requireCondition(same(owner.geometry, state.soilGeometry) && same(worldSnapshot(world, legacy), state.world),
+  requireCondition(same(owner.geometry, state.soilGeometry) && same(world.save(), state.world),
     'canonical world and soil descriptor ordering');
   assertRegionWorld(world, owner.geometry);
   let contacts = [];
@@ -116,7 +113,7 @@ function validate(config, identity, state, legacy = false) {
       state.initialWaterKg === soil.initialTotalKg && !facts.nodes.some(node => node.kind === 'pit'),
       'initial adapter has no excavation/export or changed baseline');
   } else {
-    validateExcavationHistory(config, state, facts, legacy);
+    validateExcavationHistory(config, state, facts);
     assertVented(world, state.pit.at);
     contacts = pitContacts(world, owner.geometry, state.pit.at);
     const expected = pitPorts(contacts);
@@ -125,7 +122,7 @@ function validate(config, identity, state, legacy = false) {
       'all actual unlined soil contacts bind the one physical pit');
   }
   const balance = validateLedger(state, facts, physical.voxelM3);
-  return { world, owner, soil, facts, contacts, balance };
+  return { world, physical, owner, soil, facts, contacts, balance };
 }
 
 function admitTarget(checked, command) {
@@ -166,8 +163,7 @@ export function createExcavationAdapter(input) {
   requireCondition(identifier(input.regionId), 'bound region ID');
   const config = own({ worldIdentity: ordered(input.worldIdentity), regionId: input.regionId });
   const identity = JSON.stringify({ version: VERSION, ...config });
-  const legacyIdentity = JSON.stringify({ version: LEGACY_VERSION, ...config });
-  metric(config.worldIdentity); // Admit the recipe before exposing operations.
+  restoreWorld(config.worldIdentity, null); // Admit recipe before exposing operations.
 
   function initial(input) {
     exactFields(input, ['world', 'soilGeometry', 'soilState'], 'initial canonical world/soil inputs');
@@ -199,7 +195,7 @@ export function createExcavationAdapter(input) {
     const state = own({ ...input, world: checked.world.save(), soilGeometry: rebuilt.owner.geometry,
       soilState: rebuilt.state, pit: { at: command.at, mode: 'open-vented-integrated-seepage', reservoirId: PIT_ID },
       exports: [{ id: `wet-spoil:${command.operationId}`, fromNodeId: stock.nodeId,
-        soilId: target.soilId, waterKg: stock.massKg, sourceVoxelM3: metric(config.worldIdentity).voxelM3 }],
+        soilId: target.soilId, waterKg: stock.massKg, sourceVoxelM3: checked.physical.voxelM3 }],
       excavation: { command, previousWorldTarget, previousSoilIdentity: checked.owner.identity } });
     const accepted = validate(config, identity, state);
     return { state, replayed: false, balance: accepted.balance, contacts: accepted.contacts };
@@ -219,13 +215,7 @@ export function createExcavationAdapter(input) {
     decode: raw => {
       requireCondition(typeof raw === 'string' && raw.length <= MAX_ENCODED && encodedSize(raw) <= MAX_ENCODED,
         'bounded encoded excavation checkpoint');
-      let state = JSON.parse(raw);
-      if (state.version === LEGACY_VERSION) {
-        // Validate original custody, history and balance BEFORE conversion.
-        validate(config, legacyIdentity, state, true);
-        state = { ...state, version: VERSION, identity,
-          world: restoreWorld(config.worldIdentity, state.world).save() };
-      }
+      const state = JSON.parse(raw);
       validate(config, identity, state); return own(state);
     },
     advance: (state, intervalS, options = {}) => {
