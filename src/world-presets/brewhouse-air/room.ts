@@ -1,5 +1,7 @@
-import { authoredClearingTerrain } from "../../terrain.ts";
-import { structureEnvironment } from "../../structure-environment.ts";
+import {
+  structureEnvironment,
+  type StructureTerrainGeometry,
+} from "../../structure-environment.ts";
 import type { BuildingKind } from "../../model.ts";
 
 /** An authored starting building using actual Goblin construction definitions.
@@ -71,6 +73,24 @@ const MODEL = Object.freeze({
   tracerDiffusivityM2S: 1e-5,
 });
 
+/** This authored starting room has an explicit flat foundation and local voxel
+ * frame. It is a separate scenario, not a fallback for generated Goblin terrain.
+ * The queried air space begins at0; its foundation and bottom boundary agree.
+ */
+const foundation: StructureTerrainGeometry = Object.freeze({
+  identity: "goblin-warm-room-foundation-v1",
+  revision: 0,
+  frame: Object.freeze({ x: 0, y: 0, z: 0, storeyVoxels: 4 }),
+  spacingM: Object.freeze([1, 0.54, 1] as const),
+  bounds: Object.freeze({
+    min: Object.freeze([3, -1, 3] as const),
+    max: Object.freeze([11, 9, 10] as const),
+  }),
+  solidAt(_x, y, _z) {
+    return y < 0;
+  },
+});
+
 /** Consumer policy supplies actual exterior air; query/window edges alone do not.
  * One outside-cell collar is modeled beside the house and above its roof. The
  * bottom meets authored ground and is closed. Walls/floors come from the shared
@@ -84,7 +104,7 @@ export function roomAirDefinition(ventOpen: boolean, revision: number) {
   )
     throw new TypeError("invalid brewhouse opening state");
   const geometry = structureEnvironment(
-    { terrain: authoredClearingTerrain(), sites: BREWHOUSE_ROOM.sites },
+    { terrain: foundation, sites: BREWHOUSE_ROOM.sites },
     {
       min: [...BREWHOUSE_ROOM.bounds.min] as [number, number, number],
       max: [...BREWHOUSE_ROOM.bounds.max] as [number, number, number],

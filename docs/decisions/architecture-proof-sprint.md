@@ -161,17 +161,40 @@ its progress neither replaces nor completes water/gas/world integration.
 
 **Latest custody, September 9 (supersedes the staffing below):** King Bolete
 owns the environment worktree, actual finite fuel/air consumer and integration.
-Native `engine_core_pm` now owns the isolated `goblin-wet` worktree's coupled
-main-game generated terrain/water migration, including its immediate projection,
-save and command callers. All 225 map columns need the same generated geometry;
+Native `engine_core_pm` pinned the isolated `goblin-wet` worktree's coupled
+main-game generated terrain/water migration as `151e60d` plus retained-bake disposal
+`f73b94b`, joined as `e829c01`/`2b93cc8`. It owns the declared actual-game cost
+measurement and focused input/render closure after the coordinated window.
+The source includes immediate projection, save and command callers. All 225 map columns need the same generated geometry;
 the current 32-cell soil patch is a bounded simulation capability, not the extent
 of the map. The single registered frame supplies the actual surface datum.
 This interim does not finish the accepted deep-vertical/world-coverage target.
-The independent air owner and typed entry are settled; native source review and
-the completed room numerical study are separate from Root's finite material join.
+The independent air owner and typed entry are settled; native `scene_document_review`
+owns the separate `air-view` worktree's actual two-storey room consumer. Native
+source review and the completed room numerical study are separate from Root's finite material join.
 Wet UI source is reviewed/joined and awaits a coherent release. No retired Hive
 Herdr role is refilled. Routine milestones and actual heavy-window closure go to
 Botanical `delivery-lead` Shimeji; cross-owner decisions remain peer CTO work.
+
+**Main join and computation checkpoint:** the current browser/Region tick publishes
+one detached candidate across pawn work, extracted soil and finite water. Schema18
+stores that generated-world checkpoint; the old authored edits and unsafe backfill
+path are removed. Ten main pawn/Region laws (`u4242`), affected current-codec/picking
+laws, strict declarations and three public Mycelium/Goblin laws (`u4261`) passed.
+This is source/current-save evidence, not a new browser/native/hosted acceptance.
+The old water deployment below is unchanged.
+
+Root's `6912138` reuses admitted immutable water geometry through private weak
+keys; unknown input still fully validates, cuts edit a fresh world, and every
+advance retains the exact wire-size guard. Fifteen affected laws passed `u4268`;
+the final guarded correction passed cache isolation plus exact40-step state,
+facts and solver-work parity in `u4297`. In the predeclared32-cell adapter-only
+workload, p95 CPU fell from15.743 to3.346ms before cuts and21.468 to7.011ms after
+three cuts. Both meet that workload's25ms target; this does not prove the entire
+50ms game tick, browser frame rate, field-only memory or DO runtime capacity.
+Main benchmark and short build/input/render work are queued with Delivery;
+expensive editor testing remains stopped. Fallow retains existing caller
+complexity and the activity/routine cycle; no advisory was suppressed.
 
 **Completed controller checkpoint:** the isolated controllers worktree supplied
 public Mycelium authored operations through the
