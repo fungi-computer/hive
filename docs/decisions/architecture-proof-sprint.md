@@ -11,6 +11,18 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Direct scope amendment from Levi, September 9:** engine acceptance includes
+deep digging and multi-storey witch towers. The deliberately small clearing
+limits horizontal play space, not vertical capability. The current one-voxel
+excavation and Ground/Upper implementation are temporary shipped restrictions,
+not the engine target. Floor and roof placement must use the same visible
+physical surface-height convention. This supersedes the shallow-only excavation
+envelope in the earlier v0 wording and the deferral of tower capability below;
+it does not require every decorative spiral stair or future collapse rule.
+See the [vertical-world contract](world-generation-and-streaming-contracts.md#vertical-world-amendment-september-9)
+for migration, physical geometry and acceptance. Preserve the active material
+writer/reviewer and independent asset work while Game CTO owns this recut.
+
 **Saved goal reconciliation, September 9:** Levi pasted and activated the full
 Hive v0 objective in native Game CTO Session
 `01a0791e-7ac8-7cc0-90dd-48f8d164e526`. The goal tool now reports **active**;
@@ -54,8 +66,8 @@ first while the overall engine goal remains unfinished.
 | --- | --- |
 | Reusable entry and real consumers | A headless public engine entry runs without Goblin scenario/content, React, Pixi, Three, Caps, DOM or model-provider imports. Goblin construction and shelves plus the independent five-unit ore depot use the extracted material owner. No copied demo kernel or second inventory remains. Import/source review identifies where each game definition is supplied. |
 | Capabilities, work and persistence | Resolve body/navigation/carry/container/source/work/needs capabilities through narrow owners. Current wood/herb/soil/water/food consumers share applicable supply/transfer/execution rules; final domain effects stay typed. Kettle filling, planting water, drinking and eating no longer orchestrate separate phase machines. Another supported vessel, consumable and recipe are definition changes. Snapshot phase/custody validation uses domain facts; both reproduced save defects are closed. Cancellation, contested stock, moving/lost targets, partial pickup and load preserve quantity/ownership and settle effects once. |
-| Edited world and generation | One versioned, stepped generator supplies height/sea level, biome fields and bounded cave/feature queries. Coarse maps and fine samples share that owner. Generated base + sparse edits + resident field state stay distinct. Adjacent-chunk edit/evict/reload proof preserves seams and state without generating the whole world. Geometry feeds separate movement/support/contact/picking queries; topology invalidation is owned. Keep the playable clearing tiny and publish its supported excavation/vertical envelope explicitly. |
-| Water, soil, air and heat in real play | A player-created shallow channel/pit changes finite flow/soil exchange; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. Reference playback and visual bubbles do not pass this exit. |
+| Edited world and generation | One versioned, stepped generator supplies height/sea level, biome fields and bounded cave/feature queries. Coarse maps and fine samples share that owner. Generated base + sparse edits + resident field state stay distinct. Adjacent-chunk and vertical-brick edit/evict/reload proofs preserve seams and state without generating the whole world. Geometry feeds separate movement/support/contact/picking queries; topology invalidation is owned. The tiny clearing supports deep excavation and a multi-storey witch tower using general signed voxel coordinates, repeated traversal links and consistent floor/roof surface placement. Publish and measure its vertical envelope; Ground/Upper and one removed voxel cannot pass this exit. |
+| Water, soil, air and heat in real play | Player excavation changes finite flow/soil exchange, including underground spaces and vertically separated occupied volumes; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure across stacked rooms. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. One surface height per column may serve a compatible surface-water subcase but cannot own the whole excavatable world. Reference playback and visual bubbles do not pass this exit. |
 | Engine controller door | An authored public Mycelium module registers input/output schemas and handlers over the scoped engine API, then the existing execute tool and sandbox invoke it. Use Knapsack only where the actual host needs connection discovery; neither a generic MCP adapter nor a custom client catalog is required. Keep platform imports in the integration consumer, outside the headless physical owner. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A deterministic host proof can establish those laws through a real execute-tool invocation. The later live Camel/Shiitake match is separate evidence of model play. |
 | Integration, budgets and distribution | Goblin consumes the same accepted modules and remains playable through a short dig/build/supply/care trace. A consumer installs/runs the documented engine entry from a clean checkout with pinned definitions and snapshots. Record actual candidate/path/optimizer/field/render/save costs and peak/resident memory separately on named hardware. Freeze workload sizes, fixed-step budgets, field tolerances and browser response targets before final performance acceptance; exceeding them remains a blocker, not an invitation to relabel the load. Source/caller review, focused laws, visible interaction and hosted artifact parity each state their own evidence. |
 
@@ -71,8 +83,9 @@ the final comparison. Preserve declared physical sources/sinks when selecting
 budgets; changing a reservoir boundary to make a benchmark pass changes the
 experiment rather than improving its implementation.
 
-Deferred game content (nations, religions, courts, realms, deep breeding, spiral
-towers and the whole social ecosystem) does not gate this engine version.
+Deferred game content (nations, religions, courts, realms, deep breeding,
+decorative spiral-stair variants and the whole social ecosystem) does not gate
+this engine version. Basic deep excavation and multi-storey tower capability do.
 Production multiplayer, paid autonomy and engine-wide hot mod execution also
 need their own real hosting/authority acceptance. Their planned capability seams
 remain protected. Full Fiend scene-editor parity belongs to the asset product;
