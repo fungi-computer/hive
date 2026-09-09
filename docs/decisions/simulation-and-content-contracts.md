@@ -291,7 +291,7 @@ Performance: actual 5/25/50/100-actor useful workloads with scarce materials, to
 
 ## Hosted authority, AI and recoverable time
 
-These are later contracts; local Save/Continue still restores paused with no offline advancement. First prove two clients against one authoritative simulation before distributing physical interactions. A coordination region can contain many storage chunks and several small spaces. Its membership/owner epoch is explicit. A national boundary, camera rectangle or work group does not create a server owner.
+These are current hosted-authority contracts; local Save/Continue still restores paused with no offline advancement. First prove two clients against one authoritative simulation before distributing physical interactions. A coordination region can contain many storage chunks and several small spaces. Its membership/owner epoch is explicit. A national boundary, camera rectangle or work group does not create a server owner.
 
 **Levi reaffirmed September 9: the engine will run in Durable Objects.** This is
 a primary constraint on the current extraction; the

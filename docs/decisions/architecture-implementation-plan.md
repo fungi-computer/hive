@@ -38,9 +38,9 @@ the same owner. Keep the first world's geography and codec identity compatible.
 The material extraction supplies consumer definitions; work and geometry need
 equally real consumer boundaries.
 
-Watchdog remains intended reuse for durable host work in the later Cloudflare
-host. Use its maintained operations when that consumer lands; do not reproduce
-its lease/recovery machinery as a Hive scheduler. The fixed simulation clock and
+Watchdog is the preferred existing owner to qualify for durable host work in
+the current DO engine consumer. Use its maintained operations; do not reproduce
+its claim/recovery machinery as a Hive scheduler. The fixed simulation clock and
 libcolony still own in-world time and assignment. A durable host execution receipt
 is distinct from a committed game command and eventual physical work completion.
 
