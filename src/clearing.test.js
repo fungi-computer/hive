@@ -1413,8 +1413,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     target: { kind: "kettle", station: station.id },
     quantity: 2,
     pail: "cancel-pail",
-    water: "cancel-water",
-    phase: "deliver",
+    execution: { phase: "deliver", content: "cancel-water" },
   });
   state.materials.bindings.push({
     kind: "vessel-use",

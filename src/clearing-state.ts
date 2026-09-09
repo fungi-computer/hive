@@ -2,12 +2,7 @@ import {
   workProgressSchema,
   workProgressProblem,
 } from "./engine/work/index.ts";
-import type { Material } from "./model.ts";
-import {
-  validateMaterialState,
-  historicalTransferPhaseProblem,
-  containerCapacityProblem,
-} from "./materials.ts";
+import { validateMaterialState } from "./materials.ts";
 import { z } from "zod";
 import type {
   Clearing,
@@ -15,11 +10,7 @@ import type {
   PositiveInt,
   WaterDeliveryOperation,
 } from "./model.ts";
-import {
-  AUTHORED_CLEARING_TERRAIN,
-  authoredClearingTerrain,
-  terrainBackfillBuffer,
-} from "./terrain.ts";
+import { AUTHORED_CLEARING_TERRAIN, terrainBackfillBuffer } from "./terrain.ts";
 import { inside, sameCell, terrainEditProblem } from "./world.js";
 import {
   BUILDINGS,
@@ -32,9 +23,7 @@ import {
   siteMaterialEndpoints,
 } from "./construction.js";
 import {
-  bindingPromiseQuantity,
   containerQuantity,
-  introduceFiniteSourceLot,
   sourceContainer,
   type ContainerSpec,
 } from "./materials.ts";
@@ -42,12 +31,7 @@ import { portableContainerInterior } from "./item-containers.ts";
 import {
   finiteSourceProblem,
   FINITE_SOURCE_DEFINITIONS,
-  introduceFiniteSources,
-  introduceCurrentFiniteSourceProvisions,
-  introduceRecipeCacheSupplies,
-  V14_FINITE_SOURCE_DEFINITIONS,
   cacheRepairBuffer,
-  type FiniteSourceDefinition,
   sourcePailContainerSpec,
   sourceSuppliesContainerSpec,
   sourceContainerSpec,
@@ -64,11 +48,7 @@ import {
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
 import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
-import {
-  careConsumptionDefinition,
-  careIntentsConflict,
-  initialNeeds,
-} from "./needs.ts";
+import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
 const SAVE_SCHEMA = 17 as const;
@@ -97,107 +77,45 @@ const allowedWork = z
     craft: z.boolean(),
   })
   .strict();
-const allowedWorkV11 = allowedWork.omit({ craft: true });
-const v12Activity = z.discriminatedUnion("kind", [
+const currentActivityKind = <Kind extends string>(kind: Kind) =>
   z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("chop"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("build"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("deconstruct"),
-    })
-    .strict(),
-  z
-    .object({ job: id, target: id, duration: positive, kind: z.literal("sow") })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("harvest"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("transfer"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("sleep"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("repair-cache"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("brew-water"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("brew"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("tap"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("clear-spent-grain"),
-    })
-    .strict(),
+    .object({ job: id, target: id, duration: positive, kind: z.literal(kind) })
+    .strict();
+const activity = z.discriminatedUnion("kind", [
+  currentActivityKind("chop"),
+  currentActivityKind("build"),
+  currentActivityKind("deconstruct"),
+  currentActivityKind("sow"),
+  currentActivityKind("harvest"),
+  currentActivityKind("transfer"),
+  currentActivityKind("sleep"),
+  currentActivityKind("repair-cache"),
+  currentActivityKind("water-delivery"),
+  currentActivityKind("brew"),
+  currentActivityKind("tap"),
+  currentActivityKind("clear-spent-grain"),
+  currentActivityKind("dig"),
+  currentActivityKind("backfill"),
+  currentActivityKind("consume"),
 ]);
-const v12Actor = cell
+const actor = cell
   .extend({
+    needs: z
+      .object({
+        advancedAt: nonNegative,
+        nourishment: nonNegativeScalar.max(100),
+        hydration: nonNegativeScalar.max(100),
+        rest: nonNegativeScalar.max(100),
+      })
+      .strict(),
     id,
     name: z.string(),
     figure: z.string(),
     dir: integer,
     mode: z.enum([
+      "consume",
+      "dig",
+      "backfill",
       "idle",
       "walk",
       "chop",
@@ -208,7 +126,7 @@ const v12Actor = cell
       "transfer",
       "sleep",
       "repair-cache",
-      "brew-water",
+      "water-delivery",
       "brew",
       "tap",
       "clear-spent-grain",
@@ -217,10 +135,9 @@ const v12Actor = cell
     leg: nonNegative,
     work: nonNegative,
     drafted: z.boolean(),
-    rest: nonNegativeScalar,
     routine: z.boolean(),
     allowedWork,
-    task: v12Activity.nullable(),
+    task: activity.nullable(),
     assignment: z
       .object({ character: id, task: id, cost: finite })
       .strict()
@@ -228,7 +145,18 @@ const v12Actor = cell
   })
   .strict();
 const jobBase = { id, scope, reason: z.string(), routine: z.boolean() };
-const v12Job = z.discriminatedUnion("kind", [
+const careJob = z
+  .object({
+    id,
+    kind: z.literal("care"),
+    target: id,
+    need: z.enum(["nourishment", "hydration", "rest"]),
+    policy: z.enum(["automatic", "manual-rest", "routine-rest"]),
+    reason: z.string(),
+    routine: z.boolean(),
+  })
+  .strict();
+const job = z.discriminatedUnion("kind", [
   z.object({ ...jobBase, kind: z.literal("chop"), target: id }).strict(),
   z.object({ ...jobBase, kind: z.literal("build"), target: id }).strict(),
   z.object({ ...jobBase, kind: z.literal("deconstruct"), target: id }).strict(),
@@ -266,177 +194,30 @@ const v12Job = z.discriminatedUnion("kind", [
       progress: nonNegative,
     })
     .strict(),
-]);
-const currentActivityKind = <Kind extends string>(kind: Kind) =>
-  z
-    .object({ job: id, target: id, duration: positive, kind: z.literal(kind) })
-    .strict();
-const activity = z.discriminatedUnion("kind", [
-  currentActivityKind("chop"),
-  currentActivityKind("build"),
-  currentActivityKind("deconstruct"),
-  currentActivityKind("sow"),
-  currentActivityKind("harvest"),
-  currentActivityKind("transfer"),
-  currentActivityKind("sleep"),
-  currentActivityKind("repair-cache"),
-  currentActivityKind("water-delivery"),
-  currentActivityKind("brew"),
-  currentActivityKind("tap"),
-  currentActivityKind("clear-spent-grain"),
-]);
-const actor = cell
-  .extend({
-    id,
-    name: z.string(),
-    figure: z.string(),
-    dir: integer,
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "deconstruct",
-      "sow",
-      "harvest",
-      "transfer",
-      "sleep",
-      "repair-cache",
-      "water-delivery",
-      "brew",
-      "tap",
-      "clear-spent-grain",
-    ]),
-    path: z.array(cell),
-    leg: nonNegative,
-    work: nonNegative,
-    drafted: z.boolean(),
-    rest: nonNegativeScalar,
-    routine: z.boolean(),
-    allowedWork,
-    task: activity.nullable(),
-    assignment: z
-      .object({ character: id, task: id, cost: finite })
-      .strict()
-      .nullable(),
-  })
-  .strict();
-const job = z.discriminatedUnion("kind", [
-  ...v12Job.options,
   z
     .object({ ...jobBase, kind: z.literal("water-mugwort"), target: id })
     .strict(),
-]);
-/** Exact schema-11 activity/job wire: Craft and Brew did not exist yet. */
-const v11Activity = z.discriminatedUnion("kind", [
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("chop"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("build"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("deconstruct"),
-    })
-    .strict(),
-  z
-    .object({ job: id, target: id, duration: positive, kind: z.literal("sow") })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("harvest"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("transfer"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("sleep"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("repair-cache"),
-    })
-    .strict(),
-  z
-    .object({
-      job: id,
-      target: id,
-      duration: positive,
-      kind: z.literal("brew-water"),
-    })
-    .strict(),
-]);
-const v11Job = z.discriminatedUnion("kind", [
-  z.object({ ...jobBase, kind: z.literal("chop"), target: id }).strict(),
-  z.object({ ...jobBase, kind: z.literal("build"), target: id }).strict(),
-  z.object({ ...jobBase, kind: z.literal("deconstruct"), target: id }).strict(),
-  z.object({ ...jobBase, kind: z.literal("sow"), target: id }).strict(),
-  z.object({ ...jobBase, kind: z.literal("harvest"), target: id }).strict(),
   z
     .object({
       ...jobBase,
-      kind: z.literal("store"),
-      source: id,
-      destination: id,
+      kind: z.literal("dig"),
+      x: integer,
+      z: integer,
+      level: z.literal(0),
     })
     .strict(),
-  z.object({ ...jobBase, kind: z.literal("rest"), target: id }).strict(),
   z
-    .object({ ...jobBase, kind: z.literal("repair-cache"), target: id })
+    .object({
+      ...jobBase,
+      kind: z.literal("backfill"),
+      x: integer,
+      z: integer,
+      level: z.literal(0),
+    })
     .strict(),
-  z.object({ ...jobBase, kind: z.literal("fill-kettle"), target: id }).strict(),
+  careJob,
 ]);
-const actorV11 = v12Actor
-  .extend({
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "deconstruct",
-      "sow",
-      "harvest",
-      "transfer",
-      "sleep",
-      "repair-cache",
-      "brew-water",
-    ]),
-    allowedWork: allowedWorkV11,
-    task: v11Activity.nullable(),
-  })
-  .strict();
-const material = z.enum([
+const recipeMaterial = z.enum([
   "wood",
   "mugwort",
   "water",
@@ -447,19 +228,8 @@ const material = z.enum([
   "ale",
   "spent-grain",
 ]);
-/** Current soil is deliberate schema-14 content; predecessor schemas stay frozen. */
-const v14Material = z.enum([
-  "wood",
-  "mugwort",
-  "water",
-  "pail",
-  "malt",
-  "barm",
-  "keg",
-  "ale",
-  "spent-grain",
-  "soil",
-]);
+const material = z.enum([...recipeMaterial.options, "soil", "ration"]);
+const sinkMaterial = z.enum([...recipeMaterial.options, "ration"]);
 const lot = z
   .object({
     id,
@@ -472,9 +242,6 @@ const lot = z
     ]),
   })
   .strict();
-/** Exact shipped schema-10 goods wire; do not widen predecessor admission. */
-const v10Material = z.enum(["wood", "mugwort", "water", "pail"]);
-const v10Lot = lot.extend({ material: v10Material }).strict();
 const request = z
   .object({
     source: z.discriminatedUnion("kind", [
@@ -513,6 +280,7 @@ const transfer = z
     actor: id,
     owner: transferOwner,
     request,
+    resolvedMaterial: material,
     intent,
     phase: z.discriminatedUnion("kind", [
       z
@@ -530,46 +298,6 @@ const transfer = z
     ]),
   })
   .strict();
-const v14Lot = lot.extend({ material: v14Material }).strict();
-const v14Request = request
-  .extend({
-    source: z.discriminatedUnion("kind", [
-      z
-        .object({
-          kind: z.literal("eligible-ground"),
-          material: v14Material,
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("eligible-container"),
-          material: v14Material,
-          container: id,
-        })
-        .strict(),
-      z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
-    ]),
-  })
-  .strict();
-const v14Transfer = transfer.extend({ request: v14Request }).strict();
-const v10Request = request
-  .extend({
-    source: z.discriminatedUnion("kind", [
-      z
-        .object({ kind: z.literal("eligible-ground"), material: v10Material })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("eligible-container"),
-          material: v10Material,
-          container: id,
-        })
-        .strict(),
-      z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
-    ]),
-  })
-  .strict();
-const v10Transfer = transfer.extend({ request: v10Request }).strict();
 const site = cell
   .extend({
     id,
@@ -596,18 +324,6 @@ const event = z
     text: z.string(),
   })
   .strict();
-const brewWaterOperation = z
-  .object({
-    id,
-    job: id,
-    actor: id,
-    spring: id,
-    station: id,
-    pail: id,
-    water: id.nullable(),
-    phase: z.enum(["acquire", "draw", "pour"]),
-  })
-  .strict();
 const brewProcess = z
   .object({
     id,
@@ -632,13 +348,79 @@ const sourceFeature = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-const v12StateSchema = z
+const herb = cell
+  .extend({
+    id,
+    kind: z.literal("mugwort"),
+    stage: z.enum(["ordered", "planted", "growing", "ready"]),
+    work: nonNegative,
+    establishment: z
+      .discriminatedUnion("kind", [
+        z.object({ kind: z.literal("legacy"), at: nonNegative }).strict(),
+        z
+          .object({ kind: z.literal("water"), at: nonNegative, receipt: id })
+          .strict(),
+      ])
+      .nullable(),
+    plantedAt: nonNegative.nullable(),
+  })
+  .strict();
+const terrainEdit = z
+  .object({ x: integer, z: integer, level: z.literal(0) })
+  .strict();
+const waterOperation = z
   .object({
+    id,
+    job: id,
+    spring: id,
+    pail: id,
+    quantity: positive,
+    execution: workProgressSchema,
+    kind: z.literal("water-delivery"),
+    target: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("kettle"), station: id }).strict(),
+      z.object({ kind: z.literal("mugwort"), herb: id }).strict(),
+      z.object({ kind: z.literal("hydration"), actor: id }).strict(),
+    ]),
+  })
+  .strict();
+const consumeOperation = z
+  .object({
+    kind: z.literal("consume"),
+    id,
+    job: id,
+    actor: id,
+    definition: id,
+    execution: workProgressSchema,
+  })
+  .strict();
+const currentStateSchema = z
+  .object({
+    terrain: z
+      .object({
+        base: z.literal(AUTHORED_CLEARING_TERRAIN),
+        edits: z.array(terrainEdit),
+        revision: nonNegative,
+      })
+      .strict(),
+    careOutcomes: z.array(
+      z
+        .object({
+          id,
+          receipt: id,
+          actor: id,
+          need: z.enum(["nourishment", "hydration"]),
+          definition: id,
+          amount: nonNegativeScalar,
+          tick: nonNegative,
+        })
+        .strict(),
+    ),
     seed: finite,
     tick: nonNegative,
     paused: z.boolean(),
     nextId: nonNegative,
-    actors: z.record(id, v12Actor),
+    actors: z.record(id, actor),
     parties: z.record(id, z.object({ id, members: z.array(id) }).strict()),
     cat: cell
       .extend({
@@ -655,23 +437,21 @@ const v12StateSchema = z
         .extend({ id, work: nonNegative, felledAt: nonNegative.nullable() })
         .strict(),
     ),
-    herbs: z.array(
-      cell
-        .extend({
-          id,
-          kind: z.literal("mugwort"),
-          stage: z.enum(["ordered", "planted", "growing", "ready"]),
-          work: nonNegative,
-          plantedAt: nonNegative.nullable(),
-        })
-        .strict(),
-    ),
+    herbs: z.array(herb),
     materials: z
       .object({
         lots: z.array(lot),
         transfers: z.array(transfer),
         bindings: z.array(
           z.discriminatedUnion("kind", [
+            z
+              .object({
+                kind: z.literal("operation-use"),
+                id,
+                lot: id,
+                quantity: positive,
+              })
+              .strict(),
             z
               .object({ kind: z.literal("vessel-use"), id, vessel: id })
               .strict(),
@@ -683,12 +463,22 @@ const v12StateSchema = z
                 station: id,
                 consumed: z.array(
                   z
-                    .object({ role: id, lot: id, material, quantity: positive })
+                    .object({
+                      role: id,
+                      lot: id,
+                      material: recipeMaterial,
+                      quantity: positive,
+                    })
                     .strict(),
                 ),
                 retained: z.array(
                   z
-                    .object({ role: id, lot: id, material, quantity: positive })
+                    .object({
+                      role: id,
+                      lot: id,
+                      material: recipeMaterial,
+                      quantity: positive,
+                    })
                     .strict(),
                 ),
                 promises: z.array(
@@ -696,7 +486,7 @@ const v12StateSchema = z
                     .object({
                       role: id,
                       destination: id,
-                      material,
+                      material: recipeMaterial,
                       quantity: positive,
                     })
                     .strict(),
@@ -715,7 +505,7 @@ const v12StateSchema = z
                   .object({
                     role: id,
                     lot: id,
-                    material,
+                    material: recipeMaterial,
                     quantity: positive,
                   })
                   .strict(),
@@ -728,7 +518,7 @@ const v12StateSchema = z
                       .object({
                         role: id,
                         lot: id,
-                        material,
+                        material: recipeMaterial,
                         quantity: positive,
                       })
                       .strict(),
@@ -738,7 +528,7 @@ const v12StateSchema = z
                       .object({
                         role: id,
                         destination: id,
-                        material,
+                        material: recipeMaterial,
                         quantity: positive,
                       })
                       .strict(),
@@ -757,7 +547,7 @@ const v12StateSchema = z
                 id,
                 transformation: id,
                 role: id,
-                material,
+                material: recipeMaterial,
                 quantity: positive,
               })
               .strict(),
@@ -772,6 +562,13 @@ const v12StateSchema = z
             })
             .strict(),
         ),
+        sinks: z
+          .array(
+            z
+              .object({ id, material: sinkMaterial, quantity: positive })
+              .strict(),
+          )
+          .default([]),
         nextLotId: nonNegative,
         consumedWood: nonNegative,
       })
@@ -789,13 +586,14 @@ const v12StateSchema = z
         })
         .strict(),
     ),
-    operations: z.array(brewWaterOperation),
+    operations: z.array(
+      z.discriminatedUnion("kind", [waterOperation, consumeOperation]),
+    ),
     processes: z.array(brewProcess),
-    jobs: z.array(v12Job),
+    jobs: z.array(job),
     workDirty: z.boolean(),
     felled: nonNegative,
     finishedJobs: nonNegative,
-    rested: nonNegative,
     harvestedHerbs: nonNegative,
     feed: z
       .object({
@@ -809,393 +607,8 @@ const v12StateSchema = z
     notice: z.string(),
   })
   .strict();
-const waterDeliveryOperation = z
-  .object({
-    id,
-    job: id,
-    spring: id,
-    target: z.discriminatedUnion("kind", [
-      z.object({ kind: z.literal("kettle"), station: id }).strict(),
-      z.object({ kind: z.literal("mugwort"), herb: id }).strict(),
-    ]),
-    pail: id,
-    quantity: positive,
-    water: id.nullable(),
-    phase: z.enum(["acquire", "draw", "pour"]),
-  })
-  .strict();
-const currentHerb = cell
-  .extend({
-    id,
-    kind: z.literal("mugwort"),
-    stage: z.enum(["ordered", "planted", "growing", "ready"]),
-    work: nonNegative,
-    establishment: z
-      .discriminatedUnion("kind", [
-        z.object({ kind: z.literal("legacy"), at: nonNegative }).strict(),
-        z
-          .object({ kind: z.literal("water"), at: nonNegative, receipt: id })
-          .strict(),
-      ])
-      .nullable(),
-    plantedAt: nonNegative.nullable(),
-  })
-  .strict();
-const stateSchema = v12StateSchema.extend({
-  actors: z.record(id, actor),
-  herbs: z.array(currentHerb),
-  materials: v12StateSchema.shape.materials.extend({
-    sinks: z
-      .array(z.object({ id, material, quantity: positive }).strict())
-      .default([]),
-  }),
-  operations: z.array(waterDeliveryOperation),
-  jobs: z.array(job),
-});
-/** Schema 13 remains the frozen predecessor shape above. */
-const terrainEdit = z
-  .object({ x: integer, z: integer, level: z.literal(0) })
-  .strict();
-const currentActivity = z.discriminatedUnion("kind", [
-  ...activity.options,
-  currentActivityKind("dig"),
-  currentActivityKind("backfill"),
-]);
-const currentActor = actor
-  .extend({
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "deconstruct",
-      "sow",
-      "harvest",
-      "transfer",
-      "sleep",
-      "repair-cache",
-      "water-delivery",
-      "brew",
-      "tap",
-      "clear-spent-grain",
-      "dig",
-      "backfill",
-    ]),
-    task: currentActivity.nullable(),
-  })
-  .strict();
-const currentJob = z.discriminatedUnion("kind", [
-  ...job.options,
-  z
-    .object({
-      ...jobBase,
-      kind: z.literal("dig"),
-      x: integer,
-      z: integer,
-      level: z.literal(0),
-    })
-    .strict(),
-  z
-    .object({
-      ...jobBase,
-      kind: z.literal("backfill"),
-      x: integer,
-      z: integer,
-      level: z.literal(0),
-    })
-    .strict(),
-]);
-const v14StateSchema = stateSchema
-  .extend({
-    actors: z.record(id, currentActor),
-    materials: stateSchema.shape.materials
-      .extend({
-        lots: z.array(v14Lot),
-        transfers: z.array(v14Transfer),
-        sinks: z
-          .array(z.object({ id, material, quantity: positive }).strict())
-          .default([]),
-      })
-      .strict(),
-    jobs: z.array(currentJob),
-    terrain: z
-      .object({
-        base: z.literal(AUTHORED_CLEARING_TERRAIN),
-        edits: z.array(terrainEdit),
-        revision: nonNegative,
-      })
-      .strict(),
-  })
-  .strict();
-/** Current care wire is deliberately separate from the frozen v14 parser. */
-const currentMaterial = z.enum([...v14Material.options, "ration"]);
-const currentLot = lot.extend({ material: currentMaterial }).strict();
-const currentRequest = request
-  .extend({
-    source: z.discriminatedUnion("kind", [
-      z
-        .object({
-          kind: z.literal("eligible-ground"),
-          material: currentMaterial,
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("eligible-container"),
-          material: currentMaterial,
-          container: id,
-        })
-        .strict(),
-      z.object({ kind: z.literal("exact-lot"), lot: id }).strict(),
-    ]),
-  })
-  .strict();
-const currentTransfer = transfer.extend({ request: currentRequest }).strict();
-const careJob = z
-  .object({
-    id,
-    kind: z.literal("care"),
-    target: id,
-    need: z.enum(["nourishment", "hydration", "rest"]),
-    policy: z.enum(["automatic", "manual-rest", "routine-rest"]),
-    reason: z.string(),
-    routine: z.boolean(),
-  })
-  .strict();
-const careActivity = currentActivityKind("consume");
-const careActor = currentActor
-  .omit({ rest: true })
-  .extend({
-    mode: z.enum([
-      "idle",
-      "walk",
-      "chop",
-      "build",
-      "deconstruct",
-      "sow",
-      "harvest",
-      "transfer",
-      "sleep",
-      "consume",
-      "repair-cache",
-      "water-delivery",
-      "brew",
-      "tap",
-      "clear-spent-grain",
-      "dig",
-      "backfill",
-    ]),
-    task: z
-      .discriminatedUnion("kind", [...currentActivity.options, careActivity])
-      .nullable(),
-    needs: z
-      .object({
-        advancedAt: nonNegative,
-        nourishment: nonNegativeScalar.max(100),
-        hydration: nonNegativeScalar.max(100),
-        rest: nonNegativeScalar.max(100),
-      })
-      .strict(),
-  })
-  .strict();
-const careWaterTarget = z
-  .object({ kind: z.literal("hydration"), actor: id })
-  .strict();
-const currentWaterOperation = waterDeliveryOperation
-  .omit({ water: true, phase: true })
-  .extend({
-    execution: workProgressSchema,
-    kind: z.literal("water-delivery"),
-    target: z.discriminatedUnion("kind", [
-      z.object({ kind: z.literal("kettle"), station: id }).strict(),
-      z.object({ kind: z.literal("mugwort"), herb: id }).strict(),
-      careWaterTarget,
-    ]),
-  })
-  .strict();
-const consumeOperation = z
-  .object({
-    kind: z.literal("consume"),
-    id,
-    job: id,
-    actor: id,
-    definition: id,
-    execution: workProgressSchema,
-  })
-  .strict();
-const v15StateSchema = v14StateSchema
-  .omit({
-    actors: true,
-    materials: true,
-    jobs: true,
-    operations: true,
-    rested: true,
-  })
-  .extend({
-    actors: z.record(id, careActor),
-    materials: v14StateSchema.shape.materials
-      .extend({
-        lots: z.array(currentLot),
-        transfers: z.array(currentTransfer),
-        bindings: z.array(
-          z.union([
-            v14StateSchema.shape.materials.shape.bindings.element,
-            z
-              .object({
-                kind: z.literal("operation-use"),
-                id,
-                lot: id,
-                quantity: positive,
-              })
-              .strict(),
-          ]),
-        ),
-      })
-      .strict(),
-    jobs: z.array(
-      z.discriminatedUnion("kind", [...currentJob.options, careJob]),
-    ),
-    operations: z.array(
-      z.discriminatedUnion("kind", [currentWaterOperation, consumeOperation]),
-    ),
-    careOutcomes: z.array(
-      z
-        .object({
-          id,
-          receipt: id,
-          actor: id,
-          need: z.enum(["nourishment", "hydration"]),
-          definition: id,
-          amount: nonNegativeScalar,
-          tick: nonNegative,
-        })
-        .strict(),
-    ),
-  })
-  .strict();
-/** Schema 15 remains strict; schema 16 retains admitted physical material obligations. */
-const currentStateSchema = v15StateSchema
-  .extend({
-    materials: v15StateSchema.shape.materials
-      .extend({
-        transfers: z.array(
-          currentTransfer
-            .extend({ resolvedMaterial: currentMaterial })
-            .strict(),
-        ),
-      })
-      .strict(),
-  })
-  .strict();
-
-function resolveHistoricalMaterials<
-  T extends {
-    lots: { id: string; material: Material }[];
-    transfers: {
-      phase:
-        | { kind: "reserved"; sourceLot: string }
-        | { kind: "carrying"; lot: string };
-    }[];
-  },
->(materials: T) {
-  const { transfers, ...rest } = materials;
-  return {
-    ...rest,
-    transfers: transfers.map((transfer: T["transfers"][number]) => {
-      const lotId =
-        transfer.phase.kind === "reserved"
-          ? transfer.phase.sourceLot
-          : transfer.phase.lot;
-      const lot = materials.lots.find((entry) => entry.id === lotId);
-      if (!lot) fail("historical transfer has missing material lot");
-      // Old saves never recorded an obligation. This migration retains their
-      // validated physical fact; it cannot reconstruct discarded source history.
-      return { ...transfer, resolvedMaterial: lot.material };
-    }),
-  };
-}
-
-type V12SavedClearing = z.infer<typeof v12StateSchema>;
-type V13SavedClearing = z.infer<typeof stateSchema>;
 type SavedClearing = Omit<Clearing, "commands">;
 type SavedWaterOperation = WaterDeliveryOperation;
-/** Schema 11 predates Craft and saved processes; parse it strictly before filling defaults. */
-const v11LegacyBinding = z
-  .object({
-    kind: z.literal("brew"),
-    id,
-    recipe: z.literal("herbal-ale-v1"),
-    station: id,
-    portions: z.array(
-      z
-        .object({
-          lot: id,
-          material: z.enum(["malt", "water", "mugwort", "wood"]),
-          quantity: positive,
-        })
-        .strict(),
-    ),
-    barm: id,
-    keg: id,
-    output: id,
-    tray: id,
-  })
-  .strict();
-const v11LegacyTransformation = z
-  .object({
-    id,
-    recipe: z.literal("herbal-ale-v1"),
-    inputs: z.array(
-      z
-        .object({
-          lot: id,
-          material: z.enum(["malt", "water", "mugwort", "wood"]),
-          quantity: positive,
-        })
-        .strict(),
-    ),
-  })
-  .strict();
-const v11StateSchema = v12StateSchema
-  .omit({ actors: true, jobs: true, processes: true, materials: true })
-  .extend({
-    actors: z.record(id, actorV11),
-    jobs: z.array(v11Job),
-    materials: v12StateSchema.shape.materials
-      .omit({ bindings: true, transformations: true })
-      .extend({
-        bindings: z.array(
-          z.discriminatedUnion("kind", [
-            z
-              .object({ kind: z.literal("vessel-use"), id, vessel: id })
-              .strict(),
-            v11LegacyBinding,
-          ]),
-        ),
-        transformations: z.array(v11LegacyTransformation),
-      })
-      .strict(),
-  })
-  .strict();
-type V11SavedClearing = z.infer<typeof v11StateSchema>;
-const v10StateSchema = v11StateSchema
-  .omit({ materials: true })
-  .extend({
-    materials: v12StateSchema.shape.materials
-      .omit({
-        lots: true,
-        transfers: true,
-        bindings: true,
-        transformations: true,
-      })
-      .extend({
-        lots: z.array(v10Lot),
-        transfers: z.array(v10Transfer),
-        vesselUses: z.array(z.object({ id, vessel: id }).strict()),
-      }),
-  })
-  .strict();
-type V10SavedClearing = z.infer<typeof v10StateSchema>;
 const savedSchema = currentStateSchema.transform(
   (value): SavedClearing => value as SavedClearing,
 );
@@ -1207,48 +620,8 @@ const envelopeSchema = z
     savedState: savedSchema,
   })
   .strict();
-const v12EnvelopeSchema = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(12),
-    revision: nonNegative,
-    savedState: v12StateSchema,
-  })
-  .strict();
-const v13EnvelopeSchema = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(13),
-    revision: nonNegative,
-    savedState: stateSchema,
-  })
-  .strict();
-const v14EnvelopeSchema = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(14),
-    revision: nonNegative,
-    savedState: v14StateSchema,
-  })
-  .strict();
 export type SerializedClearing = SavedClearing;
 export type SaveEnvelope = z.infer<typeof envelopeSchema>;
-const v10EnvelopeSchema = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(10),
-    revision: nonNegative,
-    savedState: v10StateSchema,
-  })
-  .strict();
-const v11EnvelopeSchema = z
-  .object({
-    kind: z.literal(SAVE_KIND),
-    schema: z.literal(11),
-    revision: nonNegative,
-    savedState: v11StateSchema,
-  })
-  .strict();
 function fail(message: string): never {
   throw new Error(`Invalid Hive save: ${message}`);
 }
@@ -1388,24 +761,10 @@ type RelationContext = {
   jobs: Map<string, Job>;
   sites: Map<string, SavedSite>;
   containers: Map<string, ContainerSpec>;
-  sourceDefinitions: readonly FiniteSourceDefinition[] | undefined;
-  historical?: boolean;
 };
 
-function validateMaterialLots(state: SavedClearing, historical: boolean): void {
-  const lotIds = new Set<string>();
+function validateMaterialLots(state: SavedClearing): void {
   for (const lot of state.materials.lots) {
-    if (historical && lotIds.has(lot.id))
-      fail(`duplicate material lot ${lot.id}`);
-    lotIds.add(lot.id);
-    if (historical && lot.material === "pail" && lot.quantity !== 1)
-      fail(`vessel lot ${lot.id} must have quantity 1`);
-    if (
-      historical &&
-      lot.material === "water" &&
-      lot.location.kind !== "container"
-    )
-      fail(`water lot ${lot.id} must be contained`);
     if (lot.location.kind === "hand" && !state.actors[lot.location.actor])
       fail(`hand lot ${lot.id} has missing actor ${lot.location.actor}`);
     if (lot.location.kind === "ground" && !inside(lot.location))
@@ -1416,22 +775,9 @@ function validateMaterialLots(state: SavedClearing, historical: boolean): void {
 function validateMaterialBindings({
   state,
   containers,
-  historical,
 }: RelationContext): void {
-  const ids = new Set<string>(),
-    vessels = new Set<string>(),
-    stations = new Set<string>(),
-    retainedLots = new Set<string>();
-  const reservedPortions = new Map<string, number>();
-  const promisedContainers = new Set<string>();
   for (const use of state.materials.bindings) {
-    if (historical && ids.has(use.id))
-      fail(`duplicate material binding ${use.id}`);
-    ids.add(use.id);
     if (use.kind === "recipe") {
-      if (historical && stations.has(use.station))
-        fail(`duplicate recipe station binding ${use.station}`);
-      stations.add(use.station);
       const definition = recipeDefinition(use.definition);
       const transformation = state.materials.transformations.find(
         (entry) => entry.id === use.id,
@@ -1502,11 +848,6 @@ function validateMaterialBindings({
             fail(
               `recipe binding ${use.id} has invalid consumed lot ${portion.lot}`,
             );
-          if (!transformation)
-            reservedPortions.set(
-              portion.lot,
-              (reservedPortions.get(portion.lot) ?? 0) + portion.quantity,
-            );
         }
       }
       for (const requirement of definition.retained) {
@@ -1525,7 +866,6 @@ function validateMaterialBindings({
           !retained ||
           retained.material !== requirement.material ||
           retained.quantity !== requirement.quantity ||
-          (historical && retainedLots.has(retained.lot)) ||
           !lot ||
           lot.material !== retained.material ||
           lot.quantity !== retained.quantity ||
@@ -1538,7 +878,6 @@ function validateMaterialBindings({
           fail(
             `recipe binding ${use.id} has invalid retained ${retained?.lot}`,
           );
-        retainedLots.add(retained.lot);
       }
       for (const requirement of definition.promises) {
         const promise = use.promises.find(
@@ -1569,7 +908,6 @@ function validateMaterialBindings({
           fail(
             `recipe binding ${use.id} has invalid promise ${requirement.role}`,
           );
-        promisedContainers.add(promise.destination);
       }
       continue;
     }
@@ -1599,9 +937,6 @@ function validateMaterialBindings({
         fail(`operation use ${use.id} has invalid bound portion`);
       continue;
     }
-    if (historical && vessels.has(use.vessel))
-      fail(`duplicate vessel binding ${use.vessel}`);
-    vessels.add(use.vessel);
     const lot = state.materials.lots.find(
       (candidate) => candidate.id === use.vessel,
     );
@@ -1626,40 +961,6 @@ function validateMaterialBindings({
     const active = operationIsActive(state, operation);
     if (custody.length !== (active ? 1 : 0))
       fail(`vessel use ${use.id} has invalid executor custody`);
-  }
-  if (!historical) return;
-  for (const [lotId, quantity] of reservedPortions) {
-    const lot = state.materials.lots.find(
-      (candidate) => candidate.id === lotId,
-    );
-    if (!lot || quantity > lot.quantity)
-      fail(`recipe portions exceed source lot ${lotId}`);
-  }
-  for (const containerId of promisedContainers) {
-    const container = containers.get(containerId)!;
-    const occupied = state.materials.lots.reduce(
-      (total, lot) =>
-        total +
-        (lot.location.kind === "container" &&
-        lot.location.container === containerId
-          ? lot.quantity
-          : 0),
-      0,
-    );
-    const incoming = state.materials.transfers.reduce(
-      (total, transfer) =>
-        total +
-        (transfer.intent.kind === "deliver" &&
-        transfer.intent.destination === containerId
-          ? transfer.request.quantity
-          : 0),
-      0,
-    );
-    if (
-      occupied + incoming + bindingPromiseQuantity(state.materials, container) >
-      container.capacity
-    )
-      fail(`recipe binding capacity exceeds ${containerId}`);
   }
 }
 
@@ -1921,19 +1222,12 @@ function validateRecipeOutputJobs({ state }: RelationContext): void {
   }
 }
 
-function validateSources(
-  state: SavedClearing,
-  requireAll = true,
-  sourceDefinitions?: readonly FiniteSourceDefinition[],
-): void {
-  const problem = finiteSourceProblem(state, requireAll, sourceDefinitions);
+function validateSources(state: SavedClearing): void {
+  const problem = finiteSourceProblem(state);
   if (problem) fail(problem);
 }
 
-function relationContext(
-  state: SavedClearing,
-  sourceDefinitions?: readonly FiniteSourceDefinition[],
-): RelationContext {
+function relationContext(state: SavedClearing): RelationContext {
   const jobs = new Map(state.jobs.map((job) => [job.id, job]));
   const sites = new Map(state.sites.map((site) => [site.id, site]));
   if (jobs.size !== state.jobs.length) fail("duplicate job ID");
@@ -1943,16 +1237,13 @@ function relationContext(
     for (const endpoint of siteMaterialEndpoints(site))
       containers.set(endpoint.destination.id, endpoint.destination);
   for (const feature of state.sources) {
-    containers.set(
-      sourceContainer(feature.id),
-      sourceContainerSpec(feature, sourceDefinitions),
-    );
+    containers.set(sourceContainer(feature.id), sourceContainerSpec(feature));
     const repair = cacheRepairBuffer(feature);
     if (feature.kind === "reclaimed-timber-cache" && !feature.repaired)
       containers.set(repair!.id, repair!);
-    const pail = sourcePailContainerSpec(feature, sourceDefinitions);
+    const pail = sourcePailContainerSpec(feature);
     if (pail) containers.set(pail.id, pail);
-    const supplies = sourceSuppliesContainerSpec(feature, sourceDefinitions);
+    const supplies = sourceSuppliesContainerSpec(feature);
     if (supplies) containers.set(supplies.id, supplies);
   }
   for (const job of state.jobs)
@@ -1965,7 +1256,7 @@ function relationContext(
     const interior = portableContainerInterior(lot);
     if (interior) containers.set(interior.id, interior);
   }
-  return { state, jobs, sites, containers, sourceDefinitions };
+  return { state, jobs, sites, containers };
 }
 
 function validateJobScopes({ state }: RelationContext): void {
@@ -2001,19 +1292,6 @@ function validateJobScopes({ state }: RelationContext): void {
         job.scope.actors.some((actor) => !party.members.includes(actor)))
     )
       fail(`job ${job.id} has invalid scope`);
-  }
-}
-
-function validateContainerLots({ state, containers }: RelationContext): void {
-  for (const lot of state.materials.lots) {
-    if (lot.location.kind !== "container") continue;
-    const destination = containers.get(lot.location.container);
-    if (!destination)
-      fail(
-        `container lot ${lot.id} has unknown destination ${lot.location.container}`,
-      );
-    if (!destination.accepts.includes(lot.material))
-      fail(`container lot ${lot.id} has invalid material`);
   }
 }
 
@@ -2484,11 +1762,9 @@ function validateTransferOwner(
 }
 
 function validateReservedTransfer(
-  { state, historical }: RelationContext,
+  { state }: RelationContext,
   transfer: SavedTransfer,
   lot: SavedLot,
-  destination: ContainerSpec | null,
-  reservedBySource: Map<string, number>,
 ): void {
   if (transfer.phase.kind !== "reserved") return;
   if (transfer.intent.kind === "use") {
@@ -2578,13 +1854,6 @@ function validateReservedTransfer(
   if (transfer.owner.kind !== "job")
     fail(`reserved transfer ${transfer.id} has invalid delivery owner`);
   const owner = transfer.owner;
-  if (historical && destination && !destination.accepts.includes(lot.material))
-    fail(`reserved transfer ${transfer.id} has invalid destination material`);
-  const reserved =
-    (reservedBySource.get(lot.id) ?? 0) + transfer.phase.quantity;
-  if (historical && reserved > lot.quantity)
-    fail(`reserved source ${lot.id} exceeds quantity`);
-  reservedBySource.set(lot.id, reserved);
   const actor = state.actors[transfer.actor];
   if (
     !actor.task ||
@@ -2600,69 +1869,11 @@ function validateReservedTransfer(
 
 function validateTransfers(context: RelationContext): void {
   const { state } = context;
-  const transferIds = new Set<string>();
   for (const transfer of state.materials.transfers) {
-    if (context.historical && transferIds.has(transfer.id))
-      fail(`duplicate transfer ${transfer.id}`);
-    transferIds.add(transfer.id);
-  }
-  transferIds.clear();
-  const actorsWithTransfer = new Set<string>();
-  const owners = new Set<string>();
-  const reservedBySource = new Map<string, number>();
-  for (const transfer of state.materials.transfers) {
-    transferIds.add(transfer.id);
     if (!state.actors[transfer.actor])
       fail(`transfer ${transfer.id} has missing actor`);
-    if (context.historical && actorsWithTransfer.has(transfer.actor))
-      fail(`actor ${transfer.actor} has multiple transfers`);
-    actorsWithTransfer.add(transfer.actor);
-    const ownerKey =
-      transfer.owner.kind === "job"
-        ? `job/${transfer.owner.job}/${transfer.owner.step}`
-        : `operation/${transfer.owner.operation}`;
-    if (context.historical && owners.has(ownerKey))
-      fail(`duplicate transfer owner ${ownerKey}`);
-    owners.add(ownerKey);
-    const destination = validateTransferOwner(context, transfer);
-    const lot = transferLot(state, transfer);
-    if (context.historical) {
-      const phaseProblem = historicalTransferPhaseProblem(
-        state.materials,
-        transfer,
-      );
-      if (phaseProblem)
-        fail(
-          `transfer ${transfer.id} has invalid physical phase: ${phaseProblem}`,
-        );
-    }
-    if (
-      context.historical &&
-      destination &&
-      (!destination.accepts.includes(lot.material) ||
-        transfer.request.quantity *
-          (destination.bulk[lot.material] ?? Infinity) >
-          destination.capacity)
-    )
-      fail(`transfer ${transfer.id} exceeds destination capacity`);
-    validateReservedTransfer(
-      context,
-      transfer,
-      lot,
-      destination,
-      reservedBySource,
-    );
-  }
-}
-
-function validateContainerCapacity({
-  state,
-  containers,
-}: RelationContext): void {
-  for (const destination of containers.values()) {
-    const problem = containerCapacityProblem(state.materials, destination);
-    if (problem && problem !== "container-embedded")
-      fail(`container ${destination.id} exceeds capacity: ${problem}`);
+    validateTransferOwner(context, transfer);
+    validateReservedTransfer(context, transfer, transferLot(state, transfer));
   }
 }
 
@@ -2694,21 +1905,6 @@ function validateActorJobRelations({ state, jobs }: RelationContext): void {
       fail(`actor ${actor.id} has assignment without task`);
     }
   }
-}
-
-function validateHandCustody({ state }: RelationContext): void {
-  for (const lot of state.materials.lots)
-    if (lot.location.kind === "hand") {
-      const actorId = lot.location.actor;
-      const carrying = state.materials.transfers.filter(
-        (transfer) =>
-          transfer.actor === actorId &&
-          transfer.phase.kind === "carrying" &&
-          transfer.phase.lot === lot.id,
-      );
-      if (carrying.length !== 1)
-        fail(`hand lot ${lot.id} lacks unique transfer custody`);
-    }
 }
 
 function validateEmbeddings({ state, sites }: RelationContext): void {
@@ -2751,10 +1947,7 @@ function validateSiteTopology({ state }: RelationContext): void {
   }
 }
 
-function validateConservation({
-  state,
-  sourceDefinitions,
-}: RelationContext): void {
+function validateConservation({ state }: RelationContext): void {
   const transformed = (material: string) =>
     state.materials.transformations.reduce(
       (sum, transformation) =>
@@ -2779,11 +1972,7 @@ function validateConservation({
     transformed("wood");
   const reclaimedWood = state.sources
     .filter((source) => source.kind === "reclaimed-timber-cache")
-    .reduce(
-      (sum, source) =>
-        sum + sourceContainerSpec(source, sourceDefinitions).capacity,
-      0,
-    );
+    .reduce((sum, source) => sum + sourceContainerSpec(source).capacity, 0);
   if (wood !== state.felled * 6 + reclaimedWood)
     fail(
       `wood conservation is ${wood}, expected ${state.felled * 6 + reclaimedWood}`,
@@ -2814,14 +2003,10 @@ function validateConservation({
     );
   const springWater = state.sources
     .filter((source) => source.kind === "spring")
-    .reduce(
-      (sum, source) =>
-        sum + sourceContainerSpec(source, sourceDefinitions).capacity,
-      0,
-    );
+    .reduce((sum, source) => sum + sourceContainerSpec(source).capacity, 0);
   if (water !== springWater)
     fail(`water conservation is ${water}, expected ${springWater}`);
-  const activeDefinitions = sourceDefinitions ?? FINITE_SOURCE_DEFINITIONS;
+  const activeDefinitions = FINITE_SOURCE_DEFINITIONS;
   const rationPerCache = activeDefinitions
     .filter((definition) => definition.kind === "reclaimed-timber-cache")
     .flatMap((definition) => definition.initial)
@@ -2894,17 +2079,11 @@ function validateTerrain({ state }: RelationContext): void {
   validateTerrainJobTargets(state, validateTerrainEdits(state));
 }
 
-function validateRelations(
-  state: SavedClearing,
-  requireFiniteSources = true,
-  sourceDefinitions?: readonly FiniteSourceDefinition[],
-  historical = false,
-): SavedClearing {
-  validateMaterialLots(state, historical);
-  validateSources(state, requireFiniteSources, sourceDefinitions);
-  const context = { ...relationContext(state, sourceDefinitions), historical };
+function validateRelations(state: SavedClearing): SavedClearing {
+  validateMaterialLots(state);
+  validateSources(state);
+  const context = relationContext(state);
   validateJobScopes(context);
-  if (historical) validateContainerLots(context);
   validateMaterialSinks(context);
   validateHerbEstablishments(context);
   validateOperations(context);
@@ -2913,12 +2092,9 @@ function validateRelations(
   validateRecipeConsumptions(context);
   validateBrewProcesses(context);
   validateRecipeOutputJobs(context);
-  if (!historical)
-    validateMaterialState(state.materials, [...context.containers.values()]);
+  validateMaterialState(state.materials, [...context.containers.values()]);
   validateTransfers(context);
-  if (historical) validateContainerCapacity(context);
   validateActorJobRelations(context);
-  if (historical) validateHandCustody(context);
   validateEmbeddings(context);
   validateSiteTopology(context);
   validateTerrain(context);
@@ -2955,14 +2131,14 @@ export function restoreSnapshot(value: unknown): {
   state: Clearing;
   revision: number;
 } {
-  const value7 = validateSaveEnvelope(value);
+  const envelope = validateSaveEnvelope(value);
   return {
     state: {
-      ...structuredClone(value7.savedState),
+      ...structuredClone(envelope.savedState),
       commands: [],
       paused: true,
     },
-    revision: value7.revision,
+    revision: envelope.revision,
   };
 }
 export function backupJson(state: Clearing, revision: number): string {

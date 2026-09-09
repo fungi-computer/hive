@@ -13,7 +13,12 @@ test("current region reconstruction preserves running/paused state and detached 
     const state = createClearing();
     state.paused = paused;
     state.tick = 37;
-    state.commands.push({ kind: "recruit", party: "home", actor: "sedge", tick: 0 });
+    state.commands.push({
+      kind: "recruit",
+      party: "home",
+      actor: "sedge",
+      tick: 0,
+    });
     const wire = serializeClearing(state);
     const restored = parseLiveClearing(wire);
     assert.deepEqual(serializeClearing(restored), wire);
@@ -32,6 +37,19 @@ test("live reconstruction checks the same terrain/material relations and accepts
   const wire = serializeClearing(state);
   wire.terrain.edits.push({ x: 4, z: 8, level: 0 });
   assert.throws(() => parseLiveClearing(wire));
-  assert.throws(() => restoreSnapshot({ ...snapshotFor(state), savedState: wire }));
+  assert.throws(() =>
+    restoreSnapshot({ ...snapshotFor(state), savedState: wire }),
+  );
   assert.throws(() => parseLiveClearing(snapshotFor(state)));
+});
+
+test("current envelope rejects every unsupported predecessor without upgrading its state", () => {
+  const current = snapshotFor(createClearing());
+  assert.equal(current.schema, 17);
+  for (const schema of [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18]) {
+    const unsupported = { ...structuredClone(current), schema };
+    const before = structuredClone(unsupported);
+    assert.throws(() => restoreSnapshot(unsupported));
+    assert.deepEqual(unsupported, before);
+  }
 });

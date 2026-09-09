@@ -248,6 +248,11 @@ test("paused reload during consume preserves one pending portion and one eventua
       ).length === 1,
   );
   assert.equal(restored.careOutcomes.length, 1);
+  assert.deepEqual(
+    restoreSnapshot(snapshotFor(restored)).state.materials,
+    restored.materials,
+    "completed ration consumption retains its sink through the current codec",
+  );
 });
 
 test("manual rest and automatic care survive paused restore in either admission order", () => {
