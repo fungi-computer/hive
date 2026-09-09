@@ -1,13 +1,17 @@
 import { defineConfig } from "vite";
-import { cp, readFile, mkdir } from "node:fs/promises";
+import { cp, readFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { patchUpstream, patchedPaths } from "./editor/upstream-patches.mjs";
 const root = fileURLToPath(new URL("./editor/", import.meta.url));
 const fonts = fileURLToPath(new URL("./portable-fonts/", import.meta.url));
 const rawFiles = new Set([
   "frame.html",
   "frame.js",
   "session.js",
+  "project-admission.js",
+  "project-application.js",
+  "scene-resources.js",
   "history-admission.js",
   "protocol.js",
   "inner.css",
@@ -69,7 +73,7 @@ export default defineConfig({
               "Content-Type",
               mime[extname(target)] || "application/octet-stream",
             );
-            res.end(bytes);
+            res.end(patchUpstream(path, bytes).bytes);
           } catch {
             res.statusCode = 404;
             res.end("Missing pinned editor resource");
@@ -79,7 +83,7 @@ export default defineConfig({
       async closeBundle() {
         const output = resolve(
           root,
-          "../../../.botanical/asset-mcp/editor-theme-checkpoint-20260909",
+          "../../../.botanical/asset-mcp/editor-native-checkpoint-20260909",
         );
         await mkdir(output, { recursive: true });
         for (const file of rawFiles)
@@ -89,6 +93,19 @@ export default defineConfig({
           filter: (source) =>
             !["index.html", "sw.js"].includes(source.split("/").at(-1)),
         });
+        const patches = [];
+        for (const path of patchedPaths) {
+          const result = patchUpstream(
+            path,
+            await readFile(resolve(root, path)),
+          );
+          await writeFile(resolve(output, path), result.bytes);
+          patches.push(result.record);
+        }
+        await writeFile(
+          resolve(output, "runtime-patches.json"),
+          JSON.stringify({ patches }, null, 2) + "\n",
+        );
         await cp(fonts, resolve(output, "portable-fonts"), { recursive: true });
         await cp(
           resolve(root, "resource-manifest.json"),
@@ -98,7 +115,7 @@ export default defineConfig({
     },
   ],
   build: {
-    outDir: "../../../.botanical/asset-mcp/editor-theme-checkpoint-20260909",
+    outDir: "../../../.botanical/asset-mcp/editor-native-checkpoint-20260909",
     emptyOutDir: true,
     rollupOptions: { input: resolve(root, "index.html") },
   },

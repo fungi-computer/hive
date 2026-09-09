@@ -1,4 +1,4 @@
-# Full upstream editor: first source checkpoint
+# Full upstream editor: native project boundary
 
 This is an isolated, pinned Three.js r186 editor inside a public Caps shell. The
 upstream Editor and History own scene, selection, transforms, geometry/material
@@ -49,25 +49,62 @@ live Three references or arbitrary editor commands crossing the boundary.
 - Scene replacement and frame disposal release the session's geometries/materials/
   textures; renderer animation loop and context are stopped when the frame closes.
 
-Renderer/project display settings are included in native project JSON but are not
-restored in this checkpoint. The project envelope and Open status disclose that
-limitation. Scene loading sets background/environment types before setScene and
-preserves the incoming camera UUID in the native camera registry. History admission
-checks known non-script command types, IDs, nested records, transforms and references
-before mutation; it does not prove arbitrary historical command replay validity.
+The interaction candidate restores renderer type, antialias, shadows, shadow type,
+tone mapping and exposure through the native renderer panel's controls/configuration
+writer. `upstream-patches.mjs` verifies the pristine resource SHA before each exact
+replacement; dev and static build apply the same changes. `runtime-patches.json`
+records pristine/result hashes. The vendored pin and notices remain unchanged.
+The small owner patch also includes antialias in Editor.toJSON and preserves scene
+background/environment rotations and environment intensity in Editor.setScene.
+Renderer creation is serialized through its retained native Promise; frame readiness,
+imports and exports await completion. A failed creation rejects its caller, disposes
+the unpublished candidate and retains the current renderer; a later native selection
+or project restore may retry. Project restore resolves renderer recovery before
+clearing the scene and reapplies settings after native clear resets them.
+
+Original admission attaches detached directional/spot light targets to the native
+scene graph with Object3D.attach, preserving their world transform. Each normalized
+target records `original-detached-light-target-v1` in userData; immutable recipe
+provenance remains unchanged. Native ObjectLoader can then restore the serialized
+light-to-target UUID relationship. This does not repair arbitrary older projects
+whose detached target data was never serialized.
+
+Admission (`project-admission.js`) validates/decode/parses a detached candidate;
+application (`project-application.js`) calls native renderer/scene/camera/History
+owners; `scene-resources.js` closes candidate/session resources. Session retains
+only immutable source-provenance bytes alongside the sole native editor owner.
+
+Native `Sidebar.Settings.Shortcuts` already installs W/E/R, Ctrl/Cmd-Z and
+Shift-Ctrl/Cmd-Z handlers, plus configurable focus/camera keys. The frame uses those
+handlers directly. Native text/number inputs stop key propagation while editing;
+viewport/outliner focus resumes editor shortcuts. No parallel keyboard dispatcher
+was added. History admission checks known non-script command records before native
+History.fromJSON; arbitrary historical replay validity remains a separate limit.
 
 Parsing/admission failures occur before replacement. Native clear/setScene/history
 signals are not a transactional host API: an unexpected renderer/UI failure after
 clear may interrupt replacement. The first checkpoint does not claim an unconditional
-"bad file never clears the scene" guarantee or complete project-settings round-trip.
+"bad file never clears the scene" guarantee before runtime interaction verification.
 
-This is a source checkpoint, not rendered art acceptance or full Fiend parity.
-The pending first readiness proof must validate native menu startup, actual original
-scene display and request round-trip. Renderer/environment/project-setting fidelity,
-malformed import cleanup, complete object-history round-trip and native export
-resource paths require source review and focused proof before claiming coverage.
+Current project imports require explicit renderer settings (including antialias),
+camera, controls, background and environment types. There is no legacy project
+settings migration. Original scene imports receive their actual initial view
+and renderer defaults instead of pretending to be saved editor projects.
+
+Lightweight native laws run with `node --test tools/asset-mcp/editor-native-laws.mjs`
+through the required run-proof wrapper. They use the frame's pinned r186 mapping,
+real ObjectLoader/resources and current admission; no mocked Editor or renderer.
+They cover required settings, scene/camera serialization, original material
+isolation, transformed light target identity, failed camera admission disposal,
+and malformed/executable history rejection. This is not native UI/history replay
+or GPU renderer recovery evidence. Browser runs before target closure reached
+transform/undo/redo and nondefault settings save/reopen, then exposed detached
+target identity. That source defect is closed by the native target law. Subsequent
+browser readiness timed out; full corrected history/GLB interaction remains
+unproved. Levi stopped further expensive browser testing. No full Fiend parity
+or unconditional transactional import claim is made.
 
 Build/config: `../editor.config.mjs`; NEW portable output:
-`.botanical/asset-mcp/editor-source-checkpoint-20260909-v2`. It cannot empty or replace
+`.botanical/asset-mcp/editor-native-checkpoint-20260909`. It cannot empty or replace
 the accepted portable viewer directory or frozen hosting archive. Root owns builds,
 proof acceptance and publication coordination for this source checkpoint.

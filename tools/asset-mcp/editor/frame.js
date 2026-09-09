@@ -134,4 +134,5 @@ window.addEventListener("pagehide", () => {
 });
 editor.signals.windowResize.dispatch();
 // Readiness means resource construction completed, not a rendered-art proof.
+await editor.rendererReady;
 announce("ready");
