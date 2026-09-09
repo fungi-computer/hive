@@ -250,15 +250,40 @@ or identity store is authorized. Root retains
 integration and actual rendered/DO qualification; frozen prior input evidence
 remains.
 
-**Next released source custody:** Hume retains his Session and owns actual-game
-field-water inspection/projection in isolated `field-inspection` at `aa24956`.
-Use the current main/HUD/view interaction owner to expose real standing-water
-litres and whole measures, without changing physics, material, save or original
-art. Source/focused checks only; no browser/build/native/deploy release. Meitner
-independently owns ignored-only air volume-change readiness from current rebind
-and construction geometry. Root owns the physical design and paid-fuel join;
-Sol's corrected full-game air trace is accepted supporting evidence. No repeated
-agent activation is needed when Botanical relays these same releases.
+**Water inspection source accepted:** Hume's `0ad8400` is integrated as
+`5bb8b7c`, all seven file hashes matched. Root and Sol read the actual main/HUD/
+view/XState/picker chain. Exact hollow references resolve current litres and
+whole measures, including dry/fractional pits; stock does not grant route/pail
+permission. Three focused laws and strict types passed in Hume's original
+checkpoint, without a repeat after unchanged-byte integration. The inspector
+and actual floor/body picking have not been browser-qualified. Sol's ignored
+FIELD-INSPECTION-REVIEW.md has SHA256
+`55d2121a2ff9dba2467e94cdf01409fe8b1277f9d77f0841fd3b8b906bb6a002`.
+Hume prepared the existing input driver in isolated `water-inspection-proof` at
+`5bb8b7c`: initial earned dig, paused exact inspection and input guards, no reload
+marathon. Its ignored water-inspection-input packet has syntax-only evidence;
+Root has read it but no browser/build/native/deploy window is released.
+
+**Root air source checkpoint:** isolated `air-displacement` pins `1fafd83`,
+not yet integrated or numerically qualified. The existing rebind now proposes
+bounded dry voxel displacement through real outdoor paths and shares the finite
+field's quantity-arithmetic rule. Meitner accepted all16 source files after two
+first-shape corrections; AIR-DISPLACEMENT-REVIEW.md SHA256
+`8f2401ee781302ee8c0eefaaa1575bd13271b495266be44e77c8c1ed0fbcacaa`.
+Syntax-only u4524 passed. Six new displacement laws are authored, not run.
+The queued combined affected qualification must use the later joined pin:
+Sol owns only the compact vent event caller and focused law in `air-events` at
+`5bb8b7c`. Its explicit scalar/count event removes full JSON identities and avoids
+spreading the new readonly receipt arrays into Region Json. No type weakening,
+compatibility wrapper or enlarged event limit is allowed. No partial1f gate.
+
+The [air contract](gameplay-air-owner.md) preserves remaining main-world bounds:
+wet phase volume, actual outdoor classification, paid emission receivers and
+ordinary blocked-work handling still need their real caller joins. This source
+primitive does not freeze a player's whole house, solve compressed gas or
+qualify live-world smoke. Existing u4514 field/pail native acceptance and prior
+adverse-ventilation results remain separate. Delivery owns actual heavy-window
+release; no numerical, browser, build, benchmark or DO run is active here.
 
 **Generated-room source integrated:** Sol pinned `fad0657` with10 affected laws
 u4465 and app types u4456. Root and Meitner accepted the three corrections:

@@ -1,3 +1,4 @@
+import type { FieldWaterReference } from "./field-water-source.ts";
 import { terrainCell } from "./terrain.ts";
 import type { TerrainState } from "./model.ts";
 import type { BuildingKind, Cell, Command } from "./model.ts";
@@ -57,6 +58,23 @@ export type GesturePoint = {
   cell: { x: number; z: number; level: number };
   screen: { x: number; y: number };
 };
+
+/** A completed stationary box gesture is a ground click, not a designation. */
+export function groundInspectionGesture(context: {
+  tool: ToolKind | null;
+  gesture: string | null;
+  start: GesturePoint | null;
+  end: GesturePoint | null;
+}): boolean {
+  return (
+    context.tool === null &&
+    context.gesture === "box" &&
+    !!context.start &&
+    !!context.end &&
+    context.start.screen.x === context.end.screen.x &&
+    context.start.screen.y === context.end.screen.y
+  );
+}
 
 export type TerrainDesignation = {
   readonly kind: TerrainToolKind;
@@ -311,6 +329,11 @@ export type UiAction =
   | { kind: "tree"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-herb"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-lot"; id: string; point: { x: number; y: number } }
+  | {
+      kind: "inspect-field-water";
+      reference: FieldWaterReference;
+      point: { x: number; y: number };
+    }
   | { kind: "inspect-source"; id: string; point: { x: number; y: number } }
   | { kind: "inspect-site"; id: string; point: { x: number; y: number } }
   | {
@@ -537,6 +560,7 @@ export function dispatchUiAction(
     case "tree":
     case "inspect-herb":
     case "inspect-lot":
+    case "inspect-field-water":
     case "inspect-source":
     case "inspect-site":
     case "panel":
