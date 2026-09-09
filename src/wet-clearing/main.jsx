@@ -58,7 +58,7 @@ function WetClearing() {
         <p>Selected: <strong data-wet-selected>{selection?.join(', ') ?? 'none'}</strong></p>
         <div className="wet-actions">
           <Button size="sm" disabled={busy || !canDig} onClick={() => send('dig')}>Dig selected block</Button>
-          <Button size="sm" disabled={busy || !scene?.water} onClick={() => send('advance')}>Wait one minute</Button>
+          <Button size="sm" disabled={busy || !scene?.water} onClick={() => send('advance')}>Wait ten minutes</Button>
           <Button size="sm" variant="outline" disabled={busy || !scene} onClick={() => setTurn((turn + 1) % 4)}>Turn view</Button>
           <Button size="sm" variant="outline" disabled={busy || !scene} onClick={() => send('reopen')}>Reopen checkpoint</Button>
           <Button size="sm" variant="outline" disabled={!scene} onClick={download}>Download world</Button>
