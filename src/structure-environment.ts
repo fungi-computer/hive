@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  compilePhysicalGeometry,
+  type Bounds,
+  type PhysicalPrimitive,
+} from "./engine/world/physical-geometry.ts";
 import { BUILDINGS, footprint } from "./construction.js";
 import type { BuildingKind, Site } from "./model.ts";
 export type StructureTerrainGeometry = {
@@ -18,20 +23,6 @@ export type StructureTerrainGeometry = {
   solidAt(x: number, y: number, z: number): boolean;
 };
 const integer = z.number().int().min(-1_000_000).max(1_000_000);
-const coordinate = z.tuple([integer, integer, integer]);
-const boundsSchema = z
-  .strictObject({ min: coordinate, max: coordinate })
-  .superRefine((bounds, context) => {
-    const spans = bounds.max.map((value, axis) => value - bounds.min[axis]);
-    if (
-      spans.some((span) => span <= 0) ||
-      spans.reduce((volume, span) => volume * span, 1) > 1024
-    )
-      context.addIssue({
-        code: "custom",
-        message: "region must contain 1..1024 voxels",
-      });
-  });
 const shapeSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("solid-column"),
@@ -59,62 +50,40 @@ type GeometrySite = Omit<
   Pick<Site, "id" | "type" | "x" | "z" | "level" | "direction" | "finishedAt">,
   "level"
 > & { level: number };
-type Bounds = z.infer<typeof boundsSchema>;
-const cellId = (x: number, y: number, z: number) => `cell:${x},${y},${z}`;
-const faceId = (x: number, y: number, z: number) => `y:${x},${y},${z}`;
-function inColumn(bounds: Bounds, x: number, z: number) {
-  return (
-    x >= bounds.min[0] &&
-    x < bounds.max[0] &&
-    z >= bounds.min[2] &&
-    z < bounds.max[2]
-  );
-}
-function terrainSolids(
-  terrain: StructureTerrainGeometry,
-  bounds: Bounds,
-  solid: Set<string>,
-) {
-  for (let x = bounds.min[0]; x < bounds.max[0]; x++)
-    for (let y = bounds.min[1]; y < bounds.max[1]; y++)
-      for (let z = bounds.min[2]; z < bounds.max[2]; z++)
-        if (terrain.solidAt(x, y, z)) solid.add(cellId(x, y, z));
-}
-function addStructure(
+function structurePrimitives(
   site: z.infer<typeof siteSchema>,
   shape: z.infer<typeof shapeSchema>,
-  bounds: Bounds,
   frame: StructureTerrainGeometry["frame"],
-  solid: Set<string>,
-  closed: Set<string>,
-) {
+): PhysicalPrimitive[] {
   const baseY = frame.y + site.level * frame.storeyVoxels;
-  for (const local of footprint(site)) {
-    const at = { x: local.x + frame.x, z: local.z + frame.z };
-    if (!inColumn(bounds, at.x, at.z)) continue;
-    switch (shape.kind) {
-      case "solid-column":
-        for (
-          let y = Math.max(bounds.min[1], baseY);
-          y < Math.min(bounds.max[1], baseY + shape.heightVoxels);
-          y++
-        )
-          solid.add(cellId(at.x, y, at.z));
-        break;
-      case "y-face": {
-        const y = baseY + shape.offsetVoxels;
-        if (y >= bounds.min[1] && y <= bounds.max[1])
-          closed.add(faceId(at.x, y, at.z));
-        break;
+  return footprint(site).flatMap(
+    (local: { x: number; z: number }): PhysicalPrimitive[] => {
+      const x = local.x + frame.x,
+        z = local.z + frame.z;
+      switch (shape.kind) {
+        case "solid-column":
+          return [
+            {
+              kind: "solid",
+              min: [x, baseY, z],
+              max: [x + 1, baseY + shape.heightVoxels, z + 1],
+            },
+          ];
+        case "y-face":
+          return [
+            {
+              kind: "face",
+              axis: "y",
+              at: baseY + shape.offsetVoxels,
+              min: [x, z],
+              max: [x + 1, z + 1],
+            },
+          ];
+        case "permeable":
+          return [];
       }
-      case "permeable":
-        break;
-      default: {
-        const exhaustive: never = shape;
-        throw new Error(`invalid environment shape: ${exhaustive}`);
-      }
-    }
-  }
+    },
+  );
 }
 
 /** Game-owned physical geometry query. Bounds are half-open world voxel x/y/z;
@@ -122,17 +91,11 @@ function addStructure(
  * have no ambient/closed default: the consumer must provide an explicit collar.
  * No navigation, rendering, saved cache or second mutable world participates.
  */
-export function structureEnvironment(
+export function createStructureGeometry(
   source: { terrain: StructureTerrainGeometry; sites: readonly GeometrySite[] },
-  requested: z.input<typeof boundsSchema>,
+  requested: Bounds,
 ) {
-  const bounds = boundsSchema.parse(requested),
-    terrain = source.terrain;
-  if (
-    bounds.min.some((value, axis) => value < terrain.bounds.min[axis]) ||
-    bounds.max.some((value, axis) => value > terrain.bounds.max[axis])
-  )
-    throw new Error("region exceeds registered terrain geometry");
+  const terrain = source.terrain;
   const shapes = new Map(
     Object.entries(definitions).map(([kind, definition]) => [
       kind,
@@ -140,25 +103,18 @@ export function structureEnvironment(
     ]),
   );
   const sites = z.array(siteSchema).max(4096).parse(source.sites);
-  const solid = new Set<string>(),
-    closed = new Set<string>();
-  terrainSolids(terrain, bounds, solid);
+  const primitives: PhysicalPrimitive[] = [];
   for (const site of sites) {
     const shape = shapes.get(site.type);
     if (!shape) throw new Error(`unknown structure environment: ${site.type}`);
     if (site.finishedAt !== null)
-      addStructure(site, shape, bounds, terrain.frame, solid, closed);
+      primitives.push(...structurePrimitives(site, shape, terrain.frame));
   }
-  return Object.freeze({
+  const physical = compilePhysicalGeometry(terrain, requested, primitives);
+  const metadata = Object.freeze({
     version: "goblin-structure-environment-v1" as const,
-    bounds: Object.freeze({
-      min: Object.freeze(bounds.min),
-      max: Object.freeze(bounds.max),
-    }),
     spacingM: Object.freeze([...terrain.spacingM]),
     exterior: "unspecified" as const,
-    solidCellIds: Object.freeze([...solid].sort()),
-    closedFaceIds: Object.freeze([...closed].sort()),
     provenance: Object.freeze({
       terrainIdentity: terrain.identity,
       terrainRevision: terrain.revision,
@@ -182,4 +138,18 @@ export function structureEnvironment(
       }),
     }),
   });
+  return Object.freeze({
+    ...physical,
+    region(requested: Bounds) {
+      return Object.freeze({ ...metadata, ...physical.region(requested) });
+    },
+  });
+}
+
+/** Bulk descriptor and live exterior queries share the same compiled owner. */
+export function structureEnvironment(
+  source: { terrain: StructureTerrainGeometry; sites: readonly GeometrySite[] },
+  requested: Bounds,
+) {
+  return createStructureGeometry(source, requested).region(requested);
 }
