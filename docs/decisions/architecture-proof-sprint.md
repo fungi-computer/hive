@@ -11,6 +11,29 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Latest delivery direction, Levi September 9:** land coherent accepted work in
+our playable demo now. This release wave supersedes the earlier preference for
+less frequent deployment. Root owns serial integration, source/art acceptance
+and the existing preview. Reuse completed laws and qualify only the changed
+consumer; no historical browser matrix or stopped expensive editor runs.
+
+The first candidate is the accepted current main Clearing through `cf66f922`,
+including finite digging/water, common partial-pail supply, real field-water
+inspection and shared physical completion. Freeze it independently of unfinished
+room/stencil/yield work, build once, exercise the actual paused Dig → earned
+hollow → current water inspection interaction, and publish those exact bytes to
+the existing preview. The new one-voxel clambering policy is planned, not yet
+implemented: cost-aware routes and shared traversal progress must land before
+removing deep-work reach guards. Follow with reachable deeper excavation/material
+yields, then actual paid brewing smoke/heat/ventilation in the same playable world.
+These are release slices within the unchanged engine goal, not engine completion.
+
+The user restored native helpers after their usage stop. Hume resumes preserved
+`terrain-yields` checkpoint `aaad125`; Sol owns the bounded room-source Fallow
+correction; Meitner independently reads actual stencil/yield/room source. Root
+keeps release execution and the coupled physical/numerical decisions. Their first
+replies confirmed actual roots/files; no Session or worktree was replaced.
+
 **Latest development policy, Levi September 9:** breaking engine/game APIs and
 save formats are allowed. Do not implement legacy shims, compatibility wrappers,
 old-save migrations or parallel old execution paths unless Levi explicitly asks
@@ -334,19 +357,22 @@ so nominal rate multiplication cannot enlarge the finite total. Payment, clock,
 field mutation and Region commitment stay with their existing owners; no saved
 cursor, timer, callback plan or parallel fuel ledger was introduced.
 
-These two sources are joined, but not runtime-qualified, at `5da4c2f` in isolated
-`finite-emissions`. Delivery has the concrete room-source-join packet: one
-affected qualification of nineteen geometry/structure/release laws plus three
-actual Region source/reopen/rollback cases, strict app types, diff and touched
-Fallow. No historical physics matrix or physical-completion replay is included;
-no heavy run is released or started yet. The main Clearing source-end/fixed-tick
+These two sources are joined at `5da4c2f` in isolated `finite-emissions`.
+Actual `u4592` passed nineteen geometry/structure/release laws, three selected
+SQLite Region source/reopen/rollback cases, strict app types and diff. The full
+command exited1 at Fallow; source corrections/disposition are still open, so this
+join is not accepted merely because its laws passed. Receipt SHA256
+`c619a8b41fa2e110a77c94db70476d579afaeb1217eb511e2acf5fa8e64bae66`
+and all raw output remain in `qualification-v1`. Owned scope is closed and the
+window returned. No historical physics matrix or automatic replay is scheduled. The main Clearing source-end/fixed-tick
 join remains unfinished. This does not qualify running air in the full game.
 
 Meitner's deep-stone readiness is complete. The finite17-cell engine shaft
 already exists, but actual player reach/navigation and stone yield accounting
 remain unimplemented. Removing the current guards would allow surface pawns to
-mine far below their feet. No new stone writer, reach policy or movement change
-is assigned. Root retains air design, the prepared water-inspection input driver
+mine far below their feet. Hume now owns generic yield source from preserved `aaad125`; the
+one-voxel movement policy is recorded in the world contract. Movement runtime
+remains unimplemented. Root retains air design, the prepared water-inspection input driver
 and integration.
 
 The [air contract](gameplay-air-owner.md) preserves remaining main-world bounds:
