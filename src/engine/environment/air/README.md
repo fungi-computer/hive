@@ -7,6 +7,26 @@ MC/SSPRK2 scalar method, with a current plain-data boundary and bounded stepping
 studies. There is one private geometry, velocity history and paired-flux owner.
 The public module exports only `createAir`.
 
+The adjacent `index.d.ts` is the maintained TypeScript contract for that same
+JavaScript entrypoint. It exports readonly definition, initial/source input,
+state, read-fact, receipt and work types; there is no runtime wrapper. Author
+definitions with `satisfies AirDefinition`. `createAir` and `rebind` accept unknown
+definitions at their checked parser boundary; state operations and supported
+options have precise types. Integer membership, finite numerical bounds, exact
+plain-data shapes and physical laws still require runtime validation. Readonly
+receipt/work types describe consumer access, not a new runtime freezing guarantee.
+
+The compile-only consumer in `types/consumer.ts` follows initialization, field and
+face observations, source/advance receipts, opening edits and encode/decode. Its
+negative cases reject nonexistent facts/methods, mutable canonical stock,
+callback sources and unsupported options. Run the repository proof wrapper
+around `tsc --project src/engine/environment/air/types/tsconfig.json`. This uses
+strict NodeNext resolution, exact optional properties, unchecked-index checking,
+no ambient package types and no `skipLibCheck`; air has no external dependencies.
+It establishes declaration usability and static rejection, not new solver,
+room-physics or host evidence. Runtime changes must update these public types and
+their consumer together.
+
 ## Operations
 
 ```js
