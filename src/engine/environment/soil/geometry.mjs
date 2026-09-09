@@ -2,7 +2,7 @@ import { createSoil, SOIL_FIELDS, requireCondition } from './soil.mjs';
 import { pitNode } from './pit.mjs';
 import { compileSurfaceEdges } from './surface-geometry.mjs';
 
-export const REGION_LIMITS = Object.freeze({ maxCells: 64, maxReservoirs: 8, maxPorts: 64,
+export const REGION_LIMITS = Object.freeze({ maxCells: 64, maxReservoirs: 8, maxColumnHeightCells: 32, maxPorts: 64,
   maxFaces: 384, maxUnknowns: 72, maxSteps: 512, maxIterations: 64, maxLineSearch: 18,
   maxHalvings: 12, maxEvaluations: 250000, maxMatrixUpdates: 30000000 });
 const AXES = Object.freeze(['x', 'y', 'z']);
@@ -68,8 +68,10 @@ function reservoirInputs(inputs) {
     ownKeys(input, pit ? ['id', 'kind', 'at', 'heightCells', 'bottom'] : ['id', 'areaM2'], 'finite reservoir definition fields');
     requireCondition(identifier(input.id) && !ids.has(input.id), 'unique finite reservoir ID'); ids.add(input.id);
     if (pit) {
-      requireCondition(Number.isSafeInteger(input.heightCells) && input.heightCells > 0 && input.heightCells <= 16,
-        'explicit column height in1..16 air voxels');
+      // At most256 enumerated air voxels across the eight-column budget; depth
+      // adds capacity, not a pressure unknown for every impermeable wall voxel.
+      requireCondition(Number.isSafeInteger(input.heightCells) && input.heightCells > 0 && input.heightCells <= REGION_LIMITS.maxColumnHeightCells,
+        'explicit column height in1..32 air voxels');
       requireCondition(input.bottom === 'porous' || input.bottom === 'sealed', 'explicit porous or sealed column bottom');
       return Object.freeze({ id: input.id, kind: 'vented-pit', at: coordinate(input.at),
         heightCells: input.heightCells, bottom: input.bottom });

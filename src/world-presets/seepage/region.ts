@@ -22,7 +22,7 @@ export function createWetRegionProgram(): RegionProgram<State, Command> {
     return { environment: adapter.parse(state.environment) };
   }
   return {
-    id: "generated-wet-clearing-v5",
+    id: "generated-wet-clearing-v6",
     initial: () => parseState({ environment: recipe.input }),
     parseState,
     parseCommand: value => commandSchema.parse(value),

@@ -60,7 +60,41 @@ test('host time and player excavation grants are distinct; unsupported geometry 
   assert.throws(() => region.dispatch('wet-world-host', dig('wrong', 0)), /forbidden/);
   region.dispatch('wet-world-player', dig('first', 0));
   const before = region.readCommitted();
-  assert.throws(() => region.dispatch('wet-world-player', dig('unowned-stone', 1, 0, 12)), /remaining owned/);
+  assert.throws(() => region.dispatch('wet-world-player', dig('noncontiguous-stone', 1, 0, 12)), /deepen the bottom/);
   assert.deepEqual(region.readCommitted(), before);
   assert.equal(region.readEvents(0).length, 1);
+});
+
+test('stone removal source, unchanged water and receipt commit together once across rollback and reopen', t => {
+  const f = fixture(t), region = f.open();
+  region.dispatch('wet-world-player', dig('upper-soil', 0, 1, 14));
+  region.dispatch('wet-world-host', advance('seep', 1));
+  region.dispatch('wet-world-player', dig('lower-soil', 2, 1, 13));
+  const before = region.readCommitted(), command = dig('first-stone', 3, 1, 12);
+  f.setFailure(true);
+  assert.throws(() => region.dispatch('wet-world-player', command), /injected-receipt-write/);
+  assert.deepEqual(region.readCommitted(), before);
+  assert.deepEqual(f.open().readCommitted(), before);
+  assert.equal(region.readEvents(0).length, 3);
+  f.setFailure(false);
+  const receipt = region.dispatch('wet-world-player', command), next = region.readCommitted();
+  assert.equal(receipt.status, 'applied');
+  const current = next.state.environment, prior = before.state.environment;
+  assert.deepEqual(current.soilState.massKg, prior.soilState.massKg);
+  assert.equal(current.soilState.timeS, prior.soilState.timeS);
+  assert.equal(current.soilState.steps, prior.soilState.steps);
+  assert.equal(current.soilState.initialTotalKg, prior.soilState.initialTotalKg);
+  assert.equal(current.initialWaterKg, prior.initialWaterKg);
+  assert.equal(current.world.revision, prior.world.revision + 1);
+  const stone = current.exports.filter(entry => entry.kind === 'impermeable');
+  assert.deepEqual(stone, [{ id: 'excavation:cell:1,12,128', kind: 'impermeable',
+    at: [1, 12, 128], materialId: 2, quantity: 1, waterKg: 0, sourceVoxelM3: .54 }]);
+  assert.deepEqual(current.exports.filter(entry => entry.kind === 'porous'), prior.exports);
+  const reopened = f.open();
+  assert.deepEqual(reopened.dispatch('wet-world-player', command), receipt);
+  assert.deepEqual(reopened.readCommitted(), next);
+  assert.equal(reopened.readEvents(0).length, 4);
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM hive_region_receipts').get().n, 4);
+  assert.throws(() => reopened.dispatch('wet-world-player', dig('different-retry', 4, 1, 12)), /remaining original solid/);
+  assert.deepEqual(reopened.readCommitted(), next);
 });

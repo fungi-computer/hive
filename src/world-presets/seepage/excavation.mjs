@@ -1,42 +1,16 @@
 import { readScene } from './scene.mjs';
-import { createVolume, createVolumeGeometry, balanceTolerance, compensatedSum } from '../../engine/environment/soil/index.js';
+import { createVolume, createVolumeGeometry } from '../../engine/environment/soil/index.js';
 import { encode as encodeData, decode as decodeData } from '../../engine/region/codec.ts';
 import { same, ordered, immutable, exactFields, coordinate, restoreWorld,
   excavateWorld, metric, requireCondition } from './world-binding.mjs';
-import { deriveTopology, assertBaseGeometry, soilNodeId } from './topology.mjs';
+import { deriveTopology, assertBaseGeometry } from './topology.mjs';
+import { removalSource, validateLedger } from './source-record.mjs';
 
-const VERSION = 'height-caves-connected-excavation-v5';
+const VERSION = 'height-caves-connected-excavation-v6';
 const MAX_ENCODED = 1048576;
 const STATE_FIELDS = ['version', 'identity', 'world', 'soilState', 'initialWaterKg', 'exports'];
 const own = value => immutable(decodeData(encodeData(value, MAX_ENCODED), MAX_ENCODED));
 const sameData = (a, b) => same(ordered(a), ordered(b));
-const exportId = nodeId => `wet-spoil:${nodeId}`;
-
-function validateLedger(config, state, facts, removed, voxelM3) {
-  requireCondition(Array.isArray(state.exports) && state.exports.length === removed.length,
-    'one wet-spoil export for each removed voxel');
-  const expected = new Set(removed.map(cell => soilNodeId(cell.at))), seen = new Set();
-  for (const entry of state.exports) {
-    exactFields(entry, ['id', 'fromNodeId', 'soilId', 'waterKg', 'sourceVoxelM3'], 'wet-spoil export fields');
-    const source = config.baseNodes.get(entry.fromNodeId);
-    requireCondition(source && expected.has(entry.fromNodeId) && !seen.has(entry.fromNodeId) &&
-      entry.id === exportId(entry.fromNodeId) && entry.soilId === source.soilId &&
-      Number.isFinite(entry.waterKg) && entry.waterKg >= source.minMassKg &&
-      entry.waterKg <= source.maxMassKg && entry.sourceVoxelM3 === voxelM3,
-      'unique wet-spoil identity and actual source pore capacity');
-    seen.add(entry.fromNodeId);
-  }
-  requireCondition(state.exports.every((entry, i, entries) => i === 0 || entries[i - 1].id < entry.id),
-    'wet-spoil exports have canonical identity order');
-  const exportWaterKg = compensatedSum(state.exports.map(entry => entry.waterKg));
-  const pitWaterKg = compensatedSum(facts.nodes.filter(node => node.kind === 'pit').map(node => node.massKg));
-  const totalWaterKg = compensatedSum([facts.totalMassKg, exportWaterKg]);
-  requireCondition(Number.isFinite(state.initialWaterKg) && state.initialWaterKg > 0 &&
-    Math.abs(totalWaterKg - state.initialWaterKg) <= balanceTolerance(state.initialWaterKg),
-    'soil plus finite spoil plus columns must retain the original water total');
-  return { retainedWaterKg: facts.totalMassKg - pitWaterKg, exportWaterKg, pitWaterKg,
-    totalWaterKg, residualKg: totalWaterKg - state.initialWaterKg };
-}
 
 function validate(config, identity, input) {
   // Shared plain-data codec rejects accessors before following nested world,
@@ -54,13 +28,17 @@ function validate(config, identity, input) {
 
 function remapStock(owner, facts, removedId, clock) {
   const previous = new Map(facts.nodes.map(node => [node.nodeId, node.massKg]));
-  previous.delete(removedId);
+  if (removedId !== null) previous.delete(removedId);
   const geometry = createVolumeGeometry(owner.geometry);
   const initial = owner.initial({ stocks: geometry.nodes.map(node => {
     requireCondition(previous.has(node.id) || node.kind === 'pit', 'surviving pore stock retains its owner');
     return { nodeId: node.id, massKg: previous.get(node.id) ?? 0 };
   }) });
-  return owner.decode(JSON.stringify({ ...initial, timeS: clock.timeS, steps: clock.steps }));
+  // An impermeable cut changes only geometry. Keep its accumulated reference
+  // total too, rather than rebase it on a rounded sum of otherwise exact stocks.
+  return owner.decode(JSON.stringify({ ...initial,
+    initialTotalKg: removedId === null ? clock.initialTotalKg : initial.initialTotalKg,
+    timeS: clock.timeS, steps: clock.steps }));
 }
 
 export function createExcavationAdapter(input) {
@@ -117,17 +95,23 @@ export function createExcavationAdapter(input) {
   function excavate(input, rawCommand) {
     exactFields(rawCommand, ['at'], 'coordinate-only excavation command');
     const at = coordinate(rawCommand.at), checked = admit(input);
-    const sourceId = soilNodeId(at), source = config.baseNodes.get(sourceId);
-    const stock = checked.facts.nodes.find(node => node.nodeId === sourceId);
-    requireCondition(source && stock, 'excavation targets one remaining owned world-soil voxel');
+    const source = removalSource(config, checked.world, at);
+    requireCondition(checked.world.inspect({ x: at[0], y: at[1], z: at[2] }).material === source.materialId,
+      'excavation targets one remaining original solid voxel');
+    const stock = source.kind === 'porous'
+      ? checked.facts.nodes.find(node => node.nodeId === source.nodeId) : null;
+    requireCondition(source.kind !== 'porous' || stock, 'excavation targets one remaining owned world-soil voxel');
+    requireCondition(source.kind !== 'impermeable' || checked.columns.some(column =>
+      column.at[0] === at[0] && column.at[2] === at[2] && column.at[1] === at[1] + 1),
+      'impermeable excavation must deepen the bottom of an existing vented column');
     // Never edit the retained read projection: failed and successful cuts must
     // leave both the prior checkpoint and its future scene queries unchanged.
     const world = restoreWorld(config.worldIdentity, checked.state.world);
-    excavateWorld(world, { at, expectedWorldRevision: world.describe().revision });
+    excavateWorld(world, { at, expectedMaterial: source.materialId, expectedWorldRevision: world.describe().revision });
     const candidate = deriveTopology(config, world);
-    const soil = remapStock(candidate.owner, checked.facts, sourceId, checked.soil);
-    const exports = [...checked.state.exports, { id: exportId(sourceId), fromNodeId: sourceId,
-      soilId: source.soilId, waterKg: stock.massKg, sourceVoxelM3: checked.physical.voxelM3 }]
+    const soil = remapStock(candidate.owner, checked.facts, source.kind === 'porous' ? source.nodeId : null, checked.soil);
+    const exports = [...checked.state.exports, { ...source,
+      waterKg: stock?.massKg ?? 0, sourceVoxelM3: checked.physical.voxelM3 }]
       .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     const state = own({ ...checked.state, world: world.save(), soilState: soil, exports });
     const accepted = admit(state);

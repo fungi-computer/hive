@@ -24,14 +24,15 @@ test("generated voxel excavation conserves pore water and resumes seepage exactl
   assert.deepEqual(resumed.state, whole.state);
   // The current column geometry/solver identity breaks the old envelope. Keep
   // the old physical result as evidence, without adding a predecessor reader.
-  const physicalExports = entries => entries.map(({ id, ...physical }) => physical);
+  const physicalExports = entries => entries.map(({ soilId, waterKg, sourceVoxelM3 }) =>
+    ({ soilId, waterKg, sourceVoxelM3 }));
   assert.deepEqual(physicalExports(whole.state.exports), physicalExports(reference.exports));
   assert.equal(whole.state.initialWaterKg, reference.initialWaterKg);
   whole.state.soilState.massKg.forEach((mass, i) =>
     assert.ok(Math.abs(mass-reference.soilState.massKg[i]) <= 2e-9));
   assert.ok(Math.abs(whole.balance.pitWaterKg - 12.565428851627985) < 1e-10);
   assert.ok(Math.abs(whole.balance.residualKg) < 2e-9);
-  assert.throws(() => fresh.excavate(resumed.state, command), /remaining owned/);
+  assert.throws(() => fresh.excavate(resumed.state, command), /remaining original solid/);
   assert.throws(() => adapter.excavate(input, { ...command, expectedWorldRevision: 1 }), /coordinate-only/);
   assert.equal(Object.hasOwn(whole.state, 'pit'), false);
   assert.equal(Object.hasOwn(whole.state, 'excavation'), false);

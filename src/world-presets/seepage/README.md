@@ -25,8 +25,49 @@ material/work changes and command receipts. The browser consumer has its own
 explicit local-save boundary. Neither a cache hit nor a numerical return is a
 durable command acknowledgment.
 
-The current connected scene owns32 porous cells and two-layer soil excavation
-with real stone bottoms. This does not finish wider field coverage, digging
-stone, roofed cavities, water displacement by backfill, or pail/field exchange.
-The main game queries generated geometry beyond this bounded water ownership;
-unmodeled soil is not implicitly dry.
+The current connected scene starts with32 porous cells. A cut removes actual
+generated soil, or deepens an existing vented shaft into actual generated stone.
+The preset owns interpreting those numeric material IDs; the soil owner knows
+only its explicit porous cells, sealed/porous bottoms and physical contacts.
+Canonical world edits derive the column runs. An arbitrary cave, overhang,
+unowned lateral outlet or detached underground cut is rejected rather than
+flattened into a surface column.
+
+Current checkpoint version is `height-caves-connected-excavation-v6`. Every
+removed voxel has exactly one record, sorted by its stable
+`excavation:cell:x,y,z` ID. Both kinds own `at`, canonical numeric `materialId`,
+`quantity:1` (one removed voxel), `waterKg`, and `sourceVoxelM3`. A `porous`
+record additionally names the actual `nodeId` and `soilId`, and exports that
+node's actual finite water. An `impermeable` record has no pore-node fields and
+exports exactly0kg of water. No unknown material defaults to dry soil or rock.
+Record fields, provenance, capacities and cross-owner water balance are checked
+on current-format reopen; old formats are rejected without migration.
+
+Deepening stone adds empty capacity and lowers the column base. The same water
+ID, water quantity, solver time and accepted-step count survive exactly. Upper
+porous side contacts stay at their real heights, and the stone floor has no
+fictional soil node or bottom flux. This is the existing instantaneous
+hydrostatic column approximation: it does not resolve falling momentum, waves
+or gravitational energy.
+
+The focused fixed-seed consumer excavates17 cells down through y=0, retaining
+29 porous nodes and two columns. Its18 removal records describe3 soil and15
+stone voxels. Six-second comparisons at three-/17-cell depths use the same
+owner with dt ceiling6s versus0.1s, a predeclared5.4mm water-height tolerance and
+2e-9kg paired/constitutive residual bound. It also tests exact current reopen,
+nonzero water preservation, invalid source records and SQLite Region rollback/
+retry without duplicate removal. This is not a browser, native DO or hosted
+proof.32 cells is the bounded per-column admission limit, not the tested
+hydraulic depth; it allows at most256 column air voxels across the existing
+eight-reservoir limit without adding a pressure unknown per depth cell.
+
+The main game still admits only its existing soil targets and rejects imported
+stone-source checkpoints until its actual material/yield owner joins them.
+The independent Region consumer owns deep-stone commands and finite source
+records now; it does not create game inventory. Existing finite removed pore
+water and future physical lots cannot both spend the same source stock.
+
+Wider field coverage, zero-port/disconnected columns, roofed cavities, water
+displacement by backfill, gas coupling and pail/field exchange remain separate
+work. The main game queries generated geometry beyond this bounded water
+ownership; unmodeled soil is not implicitly dry.
