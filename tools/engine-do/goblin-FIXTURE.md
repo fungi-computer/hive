@@ -42,3 +42,48 @@ is pinned in .botanical/engine-do/goblin-identity-20260909/transitive-source-inv
 Earlier v3 receipt hashes remain historical evidence, not post-correction hashes.
 Limits: native proof killed processes only after committed checkpoints; maximum
 advance120 is a step-count limit, not a measured CPU budget. No hosted claim.
+
+
+## Paired field/pail native fixture (prepared, not yet run)
+
+The optional `--fixture field` selects a fixed host-configured initial program
+and distinct `goblin-field-proof-v1` DO/region identity. Default `dig` retains its
+original identity and trace; it is not rerun for this packet. The field program
+identity includes the maintained optimizer build and its authored fixture version.
+No request can upload state, select a fixture, choose a principal or mutate debug
+state. The same local ephemeral credentials bind player/host/debug capabilities.
+
+`goblin-field-fixture.ts` is shared with the accepted Node paired law. It builds
+one valid authored intermediate: real excavated pit `[0,14,128]` and one soil
+lot, completed station with conserved embedded wood, the original pail holding
+2 units withdrawn from the finite authored spring, Rowan holding that pail in
+its existing draw phase at the real rim. Host initialization records the actual
+field binding/node as supply. The pit starts dry; all original finite water is
+retained. This proves transaction/restart, not earned seepage, construction,
+excavation or acquisition. The three WASM caller laws retain those separate
+field-sourcing observations.
+
+The bounded trace uses existing synchronous receipt fault injection and storage
+sync. First reject player return, then fail receipt insertion after return's
+candidate mutation: original state/events must survive abrupt restart. Commit
+return2 while withholding its acknowledgement, restart and replay the same
+command: pit2/pail0, tick0 and one receipt. Next reject player advancement, then
+fail the ordinary one-tick draw receipt: paid state/events must survive restart.
+Commit the same actual draw tick with lost acknowledgement, restart and replay:
+tick1, phase deliver, pail2, net field exchange0, same checked portion IDs and no
+sink. One final ordinary tick continues movement without another draw or charge.
+Whole snapshots/events and field/material balance facts are saved before/after
+all four restarts. The two lost acknowledgements are harness503 after actual
+storage sync; process termination occurs after committed evidence, not inside a
+physical instruction or an unconfirmed transaction. Five owned runtime starts
+maximum, cleanup after first failure, no automatic retry loop or dig trace.
+
+Ready command, only after Root/Delivery release:
+
+```
+/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh node tools/engine-do/goblin-proof.mjs --output .botanical/field-region-host/native-v1 --fixture field
+```
+
+The output directory must be new; its retained SQLite is never reused from a
+prior proof. Each owned process/listener closure and sanitized log remains in
+the receipt. No browser, deployment, benchmark, provider or public backend claim.
