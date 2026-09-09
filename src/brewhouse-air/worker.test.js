@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel.ts";
-import { createLocalBrewhouseSession } from "./worker.js";
+import { createBrewhouseAirProgram } from "../world-presets/brewhouse-air/region.ts";
+import {
+  createLocalBrewhouseSession,
+  projectBrewhouseScene,
+} from "./worker.js";
 
 function commit(session, id, action, details = {}) {
   const staged = session.prepare({ id, action, ...details });
@@ -16,6 +20,18 @@ test("local worker composes the registered finite room and strictly reopens it",
   assert.equal(initial.scene.result.remainingDoseFraction, 1);
   assert.equal(initial.scene.result.timeS, 0);
   assert.equal(initial.scene.cells.length, 368);
+  assert.deepEqual(initial.scene.frame, {
+    x: -7,
+    y: 15,
+    z: 119,
+    storeyVoxels: 4,
+  });
+  assert.deepEqual(initial.scene.terrain.bounds, {
+    min: [0, 0],
+    max: [15, 15],
+  });
+  assert.equal(initial.scene.terrain.faces.length, 236);
+  assert.equal(initial.scene.trees.length, 3);
 
   const ignition = commit(session, 2, "ignite");
   assert.equal(ignition.revision, 1);
@@ -35,17 +51,22 @@ test("local worker composes the registered finite room and strictly reopens it",
   assert.equal(opened.scene.result.timeS, 2);
   assert.ok(Math.abs(opened.scene.result.emittedHeatJ - 600) < 1e-5);
 
-  const reopened = commit(session, 5, "reopen", {
-    checkpoint: opened.checkpoint,
+  const excavated = commit(session, 5, "excavate");
+  assert.equal(excavated.scene.result.excavatedVoxels, 1);
+  assert.ok(excavated.scene.result.exportedWaterKg > 0);
+  assert.ok(excavated.scene.terrain.faces.length > 236);
+
+  const reopened = commit(session, 6, "reopen", {
+    checkpoint: excavated.checkpoint,
   });
-  assert.deepEqual(reopened.scene, opened.scene);
-  assert.equal(reopened.checkpoint, opened.checkpoint);
+  assert.deepEqual(reopened.scene, excavated.scene);
+  assert.equal(reopened.checkpoint, excavated.checkpoint);
   assert.throws(
     () =>
       session.prepare({
-        id: 6,
+        id: 7,
         action: "reopen",
-        checkpoint: opened.checkpoint.replace(
+        checkpoint: excavated.checkpoint.replace(
           '"state":',
           '"extra":true,"state":',
         ),
@@ -82,4 +103,29 @@ test("unpublished and rejected worker stages cannot change local room truth", ()
   });
   assert.throws(() => session.prepare(accessor), /invalid room request/);
   assert.equal(getterCalls, 0);
+});
+
+test("equal terrain revisions from different excavation histories have distinct static scene keys", () => {
+  const program = createBrewhouseAirProgram(),
+    a = program.initial(),
+    b = program.initial();
+  assert.equal(
+    program.execute(
+      a,
+      program.parseCommand({ kind: "excavate", at: [0, 14, 129] }),
+    ).status,
+    "applied",
+  );
+  assert.equal(
+    program.execute(
+      b,
+      program.parseCommand({ kind: "excavate", at: [1, 14, 129] }),
+    ).status,
+    "applied",
+  );
+  const first = projectBrewhouseScene(program, a, 1),
+    second = projectBrewhouseScene(program, b, 1);
+  assert.equal(first.terrain.revision, second.terrain.revision);
+  assert.notEqual(first.terrain.key, second.terrain.key);
+  assert.notDeepEqual(first.terrain.faces, second.terrain.faces);
 });

@@ -3,18 +3,21 @@ import {
   createBrewhouseAirProgram,
   roomResult,
 } from "../world-presets/brewhouse-air/region.ts";
+import { generatedBrewhouseRoom } from "../world-presets/brewhouse-air/generated-room.ts";
 import {
-  BREWHOUSE_ROOM,
-  roomAirDefinition,
-} from "../world-presets/brewhouse-air/room.ts";
+  terrainGeometryKey,
+  terrainWater,
+} from "../world-presets/goblin-terrain.ts";
+import { terrainSurfaces } from "../terrain-surface-geometry.js";
 
-const CHECKPOINT_KIND = "hive-browser-brewhouse-air-v1";
+const CHECKPOINT_KIND = "hive-browser-generated-brewhouse-air-v1";
 const MAX_CHECKPOINT_BYTES = 512 * 1024;
 const textEncoder = new TextEncoder();
 const REQUEST_FIELDS = Object.freeze({
   inspect: ["id", "action"],
   reset: ["id", "action"],
   ignite: ["id", "action"],
+  excavate: ["id", "action"],
   vent: ["id", "action", "open"],
   advance: ["id", "action", "seconds"],
   reopen: ["id", "action", "checkpoint"],
@@ -91,21 +94,34 @@ function decodeCheckpoint(program, wire) {
   };
 }
 
-function roomScene(program, state, revision) {
-  const definition = roomAirDefinition(
-    state.opening.open,
-    state.opening.revision,
-  );
+export function projectBrewhouseScene(program, state, revision) {
+  const room = generatedBrewhouseRoom(state.terrain, state.opening);
+  const definition = room.definition;
   const facts = createAir(definition).read(state.air);
   return {
     revision,
     program: program.id,
     metric: [...definition.spacingM],
-    bounds: {
-      min: [...BREWHOUSE_ROOM.bounds.min],
-      max: [...BREWHOUSE_ROOM.bounds.max],
+    frame: { ...room.frame },
+    roomBounds: {
+      min: [...room.localBounds.min],
+      max: [...room.localBounds.max],
     },
-    sites: BREWHOUSE_ROOM.sites.map((site) => ({ ...site })),
+    sites: room.sites.map((site) => ({ ...site })),
+    trees: room.trees.map((tree) => ({ ...tree })),
+    terrain: {
+      revision: state.terrain.world.revision,
+      key: terrainGeometryKey(state.terrain),
+      bounds: {
+        min: [...room.terrainBounds.min],
+        max: [...room.terrainBounds.max],
+      },
+      faces: terrainSurfaces(state.terrain, room.terrainSize).map((face) => ({
+        kind: face.kind,
+        vertices: face.vertices.map((point) => ({ ...point })),
+      })),
+      water: terrainWater(state.terrain).map((water) => ({ ...water })),
+    },
     cells: facts.cells.map((cell) => ({
       cellId: cell.cellId,
       at: [...cell.at],
@@ -121,11 +137,19 @@ function cloneState(program, state) {
   return program.parseState(structuredClone(state));
 }
 
-function commandFor(program, request) {
+function commandFor(program, request, state) {
   if (request.action === "ignite")
     return program.parseCommand({ kind: "ignite" });
   if (request.action === "vent")
     return program.parseCommand({ kind: "vent", open: request.open });
+  if (request.action === "excavate")
+    return program.parseCommand({
+      kind: "excavate",
+      at: [
+        ...generatedBrewhouseRoom(state.terrain, state.opening)
+          .outsideExcavation,
+      ],
+    });
   return program.parseCommand({ kind: "advance", seconds: request.seconds });
 }
 
@@ -146,7 +170,7 @@ export function createLocalBrewhouseSession() {
         action,
         revision: nextRevision,
         result,
-        scene: roomScene(program, parsed, nextRevision),
+        scene: projectBrewhouseScene(program, parsed, nextRevision),
         checkpoint: encodeCheckpoint(program, parsed, nextRevision),
       },
     };
@@ -172,7 +196,7 @@ export function createLocalBrewhouseSession() {
   }
 
   function execute(request) {
-    const command = commandFor(program, request);
+    const command = commandFor(program, request, state);
     const principal =
       request.action === "advance" ? "room-host" : "room-player";
     const candidate = cloneState(program, state);
