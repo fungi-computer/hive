@@ -12,6 +12,14 @@ export const STUDY_GROUPS = Object.freeze([
         evidence: "Recorded physical experiment",
       },
       {
+        id: "slosh-lab",
+        title: "Water motion",
+        href: "/slosh-lab.html",
+        scope:
+          "Recorded 2D standing-wave surface playback; it is a visual reference, not live fluid physics.",
+        evidence: "Recorded native reference",
+      },
+      {
         id: "gas-heat-lab",
         title: "Air, heat & smoke",
         href: "/gas-heat-lab.html",
