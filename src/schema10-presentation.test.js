@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { pail } from "./art/pail.js";
 import { basinScene } from "./art/spring-basin.js";
@@ -18,6 +19,8 @@ import {
   requiredToolLevel,
   singlePlacementTool,
 } from "./ui-actions.ts";
+
+const mainSource = readFileSync(new URL("./main.js", import.meta.url), "utf8");
 
 function named(scene, name) {
   let found = null;
@@ -72,6 +75,19 @@ test("Water mugwort stays a target-only catalog command", () => {
     level: null,
   });
   assert.deepEqual(forwarded, [action]);
+});
+
+test("unscoped Water uses the shared request branch before roster selection", () => {
+  const water = mainSource.indexOf('command.kind === "water-mugwort"');
+  const selected = mainSource.indexOf(
+    "command.actors === undefined ? selectedIds() : command.actors",
+  );
+  assert.ok(water >= 0, "Water has a checked request branch");
+  assert.ok(water < selected, "Water never inherits an unrelated selection");
+  assert.match(
+    mainSource.slice(water, selected),
+    /scoped = \{ party: "home", actors: null, \.\.\.command \}/,
+  );
 });
 
 test("finite-source and pail art states are caller-supplied geometry", () => {

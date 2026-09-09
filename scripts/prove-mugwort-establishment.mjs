@@ -132,11 +132,23 @@ try {
 
   const planted = (await state()).herbs[0];
   assert.equal(planted.establishment, null);
-  const herbPoint = await project(planted.x, planted.z, 0.5);
-  await page.mouse.click(herbPoint.x, herbPoint.y);
-  await waitState((id) => window.__GOBLIN.selection.herb === id, planted.id);
-  await page.getByText("Needs water", { exact: true }).waitFor();
+  for (const height of [0.18, 0.1, 0.3, 0.5]) {
+    const herbPoint = await project(planted.x, planted.z, height);
+    await page.mouse.click(herbPoint.x, herbPoint.y);
+    await page.waitForTimeout(100);
+    if ((await selection()).herb === planted.id) break;
+  }
+  assert.equal(
+    (await selection()).herb,
+    planted.id,
+    "physical herb probe must select the planted target",
+  );
   const waterButton = page.locator("#water-mugwort");
+  await waterButton.waitFor();
+  assert.match(
+    await page.locator('[data-status="water-mugwort"]').innerText(),
+    /Needs water/,
+  );
   await waterButton.click();
   await waitState(
     (id) =>

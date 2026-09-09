@@ -352,7 +352,8 @@ async function startGame() {
       command.kind === "harvest" ||
       command.kind === "store" ||
       command.kind === "repair-cache" ||
-      command.kind === "fill-kettle"
+      command.kind === "fill-kettle" ||
+      command.kind === "water-mugwort"
     ) {
       scoped = { party: "home", actors: null, ...command };
     } else {
