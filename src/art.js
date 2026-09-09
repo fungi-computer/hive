@@ -198,10 +198,8 @@ export async function bakeArt(onProgress = () => {}) {
     onProgress({ detail, completedTextures, waitingFor });
   report();
   function bakeStartup(...args) {
-    report();
     const texture = bake(...args);
     completedTextures++;
-    report();
     return texture;
   }
   const renderer = new THREE.WebGLRenderer({
