@@ -1,4 +1,4 @@
-# Current plan: make the tiny clearing worth playing
+# Current plan: extract Hive and prove it in the tiny clearing
 
 Game CTO decision, 2026-09-09. Personally authored after reading production at
 `bf12e99362845c16cd055f5bf877085f2425c460`, the current sprint and retained
@@ -10,6 +10,24 @@ Historical plans remain evidence. This document is a plan, not a new runtime,
 hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
+
+**Latest joint direction, 2026-09-09:** finish deriving the reusable sandbox
+engine from Goblin and prove it through actual game and independent consumers.
+Shiitake integration is a core engine capability: scoped observations, controller
+actions/events and durable results, as defined by
+[Vishnu's many faces](vishnus-many-faces.md). The finite ore depot is the agreed
+first independent material-owner proof, paired with existing construction and
+shelf consumers. It is not an already extracted engine or a completed AI match.
+
+Game and Botanical CTOs jointly selected Copper Familiar's real rotate/cutaway/
+floor interaction, a playable-clearing link and explicit launch signup as the
+first polished marketing story. Root owns shiit.app/website and shared Caps;
+Game supplies original art and reviewed consumer artifacts. Engine extraction
+continues independently. A later Levi-versus-Shiitake resource challenge uses
+one game state/action owner, real finite goods and a bounded server-side Camel
+integration; it is not due tomorrow. Model terminals do not prove game results.
+Polished ecology/water/air making-of stories retain their actual experiment
+labels; private transcripts stay private and provider savings need measurement.
 
 **Shallow digging and backfill are live**, runtime
 `449e9b8a642dc1c9e6d815f8e7417c143ba1e574`, same-preview deployment
