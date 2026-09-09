@@ -18,6 +18,7 @@ import { terrainCell } from "./terrain.ts";
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
   wall: {
+    environment: { kind: "solid-column", heightVoxels: 4 },
     label: "Timber wall",
     wood: 1,
     ticks: 32,
@@ -25,6 +26,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   door: {
+    environment: { kind: "permeable" },
     label: "Doorway",
     wood: 2,
     ticks: 48,
@@ -32,6 +34,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   roof: {
+    environment: { kind: "y-face", offsetVoxels: 4 },
     label: "Thatch roof",
     wood: 1,
     ticks: 24,
@@ -39,6 +42,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   bed: {
+    environment: { kind: "permeable" },
     label: "Bedroll",
     wood: 2,
     ticks: 48,
@@ -46,6 +50,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   shelf: {
+    environment: { kind: "permeable" },
     label: "Storage shelf",
     wood: 1,
     ticks: 24,
@@ -53,6 +58,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   floor: {
+    environment: { kind: "y-face", offsetVoxels: 0 },
     label: "Upper floor",
     wood: 1,
     ticks: 24,
@@ -60,6 +66,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   stair: {
+    environment: { kind: "permeable" },
     label: "Stair ramp",
     wood: 3,
     ticks: 72,
@@ -67,6 +74,7 @@ export const BUILDINGS = {
     salvageWood: 2,
   },
   "brew-station": {
+    environment: { kind: "permeable" },
     label: "Brew station",
     wood: 6,
     ticks: 144,
