@@ -178,6 +178,18 @@ correction in `goblin-wet` after importing `9977f85`; unchanged physics, exact
 outputs, invalidation and branch isolation are required. Another benchmark or
 browser session waits for Delivery's release. Preserve the original failure.
 
+The reviewed correction is now pinned `09e813a` and joined as `91d46ee`.
+One private projection owns checked bounds, at most225 frozen cell facts,
+changed/excavated column lists, solidity and the visual geometry key. Known
+water-only changes share it; edits and fresh restores remain isolated. Water
+facts use the admitted physical state separately, including when an external
+caller reuses a mutable checkpoint object. Ten projection/codec/picking laws
+(`u4334`), four actual-pawn/UI/isolation laws (`u4339`) and strict declarations
+(`u4340`) passed. Fallow retained only existing exhaustive UI-dispatch complexity
+in the inspected scope. The next benchmark retains the exact workload and
+records the intervening deep-water source merge separately. Performance and
+rendered acceptance remain open until that actual run.
+
 **Deep-water source checkpoint:** reviewed `905f170` is joined as `9977f85`.
 The same generated-world excavation and finite stock owner now deepens an
 existing vented shaft through real stone. One tagged record per removed voxel
