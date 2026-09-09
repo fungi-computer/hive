@@ -1,5 +1,56 @@
 # Unified work algebra: corrected completion contract
 
+## Current correction — capability composition must reach execution
+
+Levi, 2026-09-09, after inspecting the unshipped needs candidate: common material
+custody alone does not satisfy the requested composability. Astra re-read the
+Excalibur decision and the actual `activity.ts`, `jobs.ts`, `water-delivery.ts`,
+`item-containers.ts` and `needs.ts` callers. Material lots/claims are shared, but
+the activity owner still manually orchestrates pail acquisition, source access,
+draw, destination access, settlement and cleanup. Adding hydration required
+branches across those callers and persistence. That is incomplete execution
+composition; this paragraph is a correction, not a claim that it is implemented.
+
+The current candidate also demonstrated the practical defect: it resolved a
+person's drinking destination before a draw step moved that same person, causing
+an endless return walk. Boolean helpers conflate an already-completed phase with
+work that has just completed, and let the caller retain stale dependent facts.
+
+The next source checkpoint must establish two complementary boundaries:
+
+- **Capability facts:** definitions compose existing body/navigation, carrying,
+  portable-container, source and needs capabilities. A pail is an item with a
+  container capability; selecting a compatible vessel checks accepted material,
+  capacity and current access. Membership queries do not grant permission,
+  reachability or resource custody. Preserve domain records and IDs rather than
+  copying quantities/positions into component bags.
+- **Durable work execution:** a bounded, closed set of serializable steps is
+  advanced by one executor under the existing fixed clock and optimizer. Steps
+  resolve their live prerequisites when entered and return explicit working,
+  waiting, completed or invalid results. Movement/material/contact/needs owners
+  retain their mutations. Definitions select supported acquire, approach,
+  transfer, attendance and application operations; a generic callback or renamed
+  wrapper around the current water function does not meet this boundary.
+
+Use actual current consumers as the completion test: filling the kettle,
+watering the herb, drinking, and eating. Their different final effects remain
+typed, owner-validated operations; the work runner must not branch on a kettle,
+mugwort, ration, named character or pail. Another food or compatible vessel using
+the supported behavior must be a definition/asset change. Craft transformations
+and unattended fermentation retain their existing process authority; this is not
+permission to run a second scheduler or make a general scripting engine.
+
+Acceptance requires migrated current callers and deletion of replaced orchestration,
+with cancellation, lost access, contested stock, moving recipients, paused reload
+and exactly-once quantity/effect settlement. Capability removal invalidates access
+without erasing physical goods. Keep useful existing tests and original art.
+The current shared-needs candidate remains unshipped while this boundary is recut;
+the live shallow-digging release is preserved. Astra owns this source decision and
+integration; native supporting reviews remain read-only unless assigned exact files.
+
+The older completion records below establish material unification only. They do
+not establish the missing capability/executor layer or supersede this correction.
+
 The [Excalibur reuse decision](excalibur-ecs-and-reuse-decision.md) is bounded
 guidance for this owner: choose one measured derived index and one joint
 optimizer, invalidate paused commands before observers, and delete replaced

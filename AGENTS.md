@@ -24,7 +24,7 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 
 ## Delivery and review
 
-Current explicit supersession (Levi, 2026-09-09): Astra owns source acceptance, file custody, Git, proofs and same-preview releases. Game Delivery explicitly released all custody at `bf12e99`; the visible lanes remain parked with their sessions and evidence preserved. Use native Codex sub-agents with task-appropriate models for bounded implementation and independent review. Keep one writer per coupled seam and one integration owner; agree shared-file boundaries before editing. Astra owns game direction, difficult architecture and personal review of changed original art. Routine source work and unchanged accepted art do not wait for a second CTO gate.
+Current explicit supersession (Levi, 2026-09-09): Astra owns source acceptance, file custody, Git, proofs and same-preview releases. Game Delivery explicitly released all custody at `bf12e99`; Botanical CTO subsequently retired those released terminals with resumable sessions and evidence preserved. Only the two CTO panes remain; do not refill Herdr lanes. Use native Codex sub-agents with task-appropriate models for bounded implementation and independent review. Keep one writer per coupled seam and one integration owner; agree shared-file boundaries before editing. Astra owns game direction, difficult architecture and personal review of changed original art. Routine source work and unchanged accepted art do not wait for a second CTO gate.
 
 Keep independent ready outcomes advancing while coupled work is reviewed. Use bounded implementation and independent source/caller review; delegate decisions within the assigned outcome. Preserve active authors, dirty/untracked files, accepted studies and prior evidence. Keep plans and outcomes in existing issues and documents, not a new management framework.
 
@@ -41,6 +41,7 @@ Publish coherent authorized interims to the existing feature preview and tell Le
 Read the current-status section of [the architecture-proof sprint](docs/decisions/architecture-proof-sprint.md) before assigning work. Historical paragraphs are evidence, not a competing active queue. Follow the applicable deeper contract:
 
 - [Architecture implementation and module plan](docs/decisions/architecture-implementation-plan.md)
+- [Current whole-game source audit and repair order](docs/decisions/current-systems-review-and-module-plan.md)
 - [Controls priority](docs/decisions/controls-floor-priority-recut.md)
 - [Unified work/material algebra](docs/decisions/unified-work-algebra-recut.md)
 - [Excalibur composition, queries and lifecycle](docs/decisions/excalibur-ecs-and-reuse-decision.md)

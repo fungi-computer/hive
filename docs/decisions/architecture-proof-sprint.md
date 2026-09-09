@@ -38,10 +38,29 @@ cycle were not deleted to produce a green audit. The source/caller review and
 focused behavior evidence establish this release; the audit is not claimed clean.
 
 **Active next outcome: shared physical care, before the first inn visitor.**
-Native Terra owns the coupled schema-15 needs/material/job migration; native Sol
-reviews its first source shape and immediate callers. A second Terra is preparing
-the HUD read-only until the core API is stable. Astra retains original art,
-product decisions and sole Git/build/proof/deploy custody. No Herdr lane is refilled.
+The [current whole-game audit](current-systems-review-and-module-plan.md)
+now owns the immediate repair order: two reproduced save/phase-policy defects,
+then endpoint/capability/supply/execution composition before care publication.
+The partial wood Store-save rule also exists in the shipped baseline; the
+manual-rest-plus-thirst contradiction belongs to the dirty needs candidate.
+One 0.86s actual-WASM diagnostic reproduced both, without production mutations.
+The audit records the separate controls, render/contact and lifecycle outcomes
+and which old owners must disappear; it does not restart the environmental labs.
+Levi's current correction requires the capability/execution boundary in
+[the unified work recut](unified-work-algebra-recut.md) before this candidate
+ships. Shared inventory alone is insufficient. Existing care source, art and
+focused-law evidence are retained; the next checkpoint removes the repeated
+special-purpose activity orchestration using its current consumers.
+The retained schema-15 needs/material/job checkpoint transferred from native Terra
+to native Sol, then back to Astra when Sol terminated with an account usage-limit
+error. Its source bundle and inventory are preserved at
+`.botanical/needs/sol-limit-checkpoint/`. Astra is the sole runtime/persistence
+writer. The needs-law author is now stopped at its retained checkpoint and all
+source custody is back with Astra. Native audit/tool readers own only their
+bounded ignored diagnostics. The HUD and focused proof sources are released.
+Astra retains original art, final source/caller review, product decisions and
+sole Git/build/proof/deploy custody.
+No Herdr lane is refilled.
 The old modified proof and 19 untracked files remain preserved.
 
 ## Product outcome and actual baseline
