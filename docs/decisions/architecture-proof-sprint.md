@@ -318,7 +318,7 @@ Exec92498 / scopeu4579 / invocation `2d5948a68e8944faa9d51d06d52cdc63` are
 collected and closed, inactive/dead with empty ControlGroup. No server/listener
 started; Delivery received the returned window. No repeat is scheduled.
 
-**Current source custody:** Hume continues the shared physical-geometry query
+**Current source custody:** Hume completed the shared physical-geometry query
 and actual generated-room exterior classification in isolated
 `physical-geometry-query`, based on accepted `cf66f922`. First shape `3d2609a`
 replaces duplicate structure raster loops with a sparse primitive query owner;
@@ -327,9 +327,20 @@ room sides open changes floor boundary semantics even with closed face masks.
 Corrected source `c951b0a` is independently accepted: classified open sides and
 masks travel together, and the wholly closed floor retains its prior side policy.
 Root retains numerical decisions and the later mixed-boundary join.
-Sol reviews Root's finite-release definition and
-actual room Region caller in isolated `finite-emissions`. No heavy run is
-released for these new candidates.
+Root's finite-release definition and actual room Region caller are independently
+source-reviewed at `ec15cc3`; six new laws remain unrun. A large-clock review
+correction computes interval quantities from cumulative represented-clock facts,
+so nominal rate multiplication cannot enlarge the finite total. Payment, clock,
+field mutation and Region commitment stay with their existing owners; no saved
+cursor, timer, callback plan or parallel fuel ledger was introduced.
+
+These two sources are joined, but not runtime-qualified, at `5da4c2f` in isolated
+`finite-emissions`. Delivery has the concrete room-source-join packet: one
+affected qualification of nineteen geometry/structure/release laws plus three
+actual Region source/reopen/rollback cases, strict app types, diff and touched
+Fallow. No historical physics matrix or physical-completion replay is included;
+no heavy run is released or started yet. The main Clearing source-end/fixed-tick
+join remains unfinished. This does not qualify running air in the full game.
 
 Meitner's deep-stone readiness is complete. The finite17-cell engine shaft
 already exists, but actual player reach/navigation and stone yield accounting
