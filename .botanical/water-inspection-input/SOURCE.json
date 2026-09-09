@@ -1,0 +1,30 @@
+{
+  "runtimePin": "5bb8b7c0800b4cb620ccd4b82b754d5fbae6ac1a",
+  "proofRoot": "/home/levi/src/hive-worktrees/water-inspection-proof",
+  "packet": {
+    "run-window.mjs": "12088d3a4f5df6460c616e39b68b1acc043b0a5499d5127b080ad05b4fac9a9d",
+    "prove-water.mjs": "41d6c2fa11d0d2f5c67eada4df6a0f64451d92ba66f6a7b48b5f93cd07cfa90d"
+  },
+  "runtimeFiles": {
+    "src/main.js": "e7c011d84fcea26ed9032dbadfb9a980a3d531756a902a39945f4a1bb63cca7b",
+    "src/hud.jsx": "34ff828f345ba4e10efa95853178492249d305aaae454e297a3d1b18c6dd3d08",
+    "src/view.js": "32b622b633527a6b29b43a3afc76c9a374e6005d67aaa703a7c4f9e78aca3cf3",
+    "src/ui-actions.ts": "7ac6d8637211b7a2f7e2ea1fd3b299798e2bbbb631bda523a52f7453e6335dd2",
+    "src/field-inspection.ts": "f2d81e8400def0985907a64e2358c4627e2526bd380b38d6b0fdb44dc94ed5c5",
+    "src/terrain-picking.js": "631d83c285bc3ab804224383899b8e3e3e535f9db1d4cf456ee8e76c77543b56",
+    "src/terrain-surface-geometry.js": "2e2d6a089bf21e9960e2a3bc5c702059810dbfada1f9510e69d365fa9d79bb9a",
+    "src/camera.js": "afd1629b9601fe8cd40b4d6ff051eec5eb24b28c20f1d99038dfb9306804b697",
+    "src/art/scale.js": "d5fa8860df9b55fa9056a7cd7001545e3c6682cc02597653474a02c1f58a538a",
+    "scripts/prove-digging.mjs": "9e3b6d44dc5aff48fb78e3e76c4557d425fd98ade25a68a37e95c2861302e51d"
+  },
+  "reusedDriver": {
+    "path": "/home/levi/src/hive-worktrees/game-startup-proof/.botanical/game-startup-input/run-window.mjs",
+    "sha256": "5a25362f204a8f50f7b48693470ff701005fa33de22abc4f9500e6a0b288d32e"
+  },
+  "dependencies": {
+    "/home/levi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell": true,
+    "/home/levi/src/Botanical-next/.botanical/browser-libs/root/usr/lib/x86_64-linux-gnu/libnspr4.so": true,
+    "/home/levi/src/hive-worktrees/water-inspection-proof/node_modules/vite/bin/vite.js": true,
+    "/home/levi/src/hive-worktrees/water-inspection-proof/node_modules/playwright/package.json": true
+  }
+}
