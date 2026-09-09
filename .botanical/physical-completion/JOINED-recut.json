@@ -1,0 +1,51 @@
+{
+  "head": "d6982ac30b9334718c4b922237d8b8d12202862e",
+  "base": "74e28210644cef01abeb1cb8c34f309a90333da4",
+  "root": "/home/levi/src/hive-worktrees/physical-completion",
+  "branch": "engine/physical-completion-20260909",
+  "evidence": "Source-only responsibility recut. Root qualification u4562 passed eight unchanged laws and strict app types on predecessor joined797ed9c; predecessor Fallow failed. This successor has not been executed or audited.",
+  "files": [
+    {
+      "path": "src/activity-lifecycle.ts",
+      "sha256": "67573d9b717de7a4a2905d9b46c86ad2998f9ddcd73b0deb7749622816ac9f07"
+    },
+    {
+      "path": "src/activity.ts",
+      "sha256": "36be39983b53809d29b1505b7dbc55f7d6511355ea5328eb03ecfe705126386e"
+    },
+    {
+      "path": "src/clearing-state.ts",
+      "sha256": "18d97625e7cb96a8ac39a29039eaaf545361a808e04228442d1b189606134803"
+    },
+    {
+      "path": "src/jobs.ts",
+      "sha256": "9fc30e4f330d47c9e87423a111ae333626c6114639d07692640cd30f711a61e0"
+    },
+    {
+      "path": "src/material-container-facts.ts",
+      "sha256": "2e736d55ef6db4dc0ae5910c0929c9dfd9c985c7ad85885f02c53ec1d64979ff"
+    },
+    {
+      "path": "src/orders.ts",
+      "sha256": "3efdbd3a80aa8985cccc08296bb5ffe066c4da9032b56efe309c8e62740363b7"
+    },
+    {
+      "path": "src/physical-completion.test.js",
+      "sha256": "c77be1af90d9a9507eb18b458a3def9fa4b235fb86de70feac0ed96e80efc0ba"
+    },
+    {
+      "path": "src/physical-completion.ts",
+      "sha256": "292180a222fc2f6eb357e1c2d63852855635bbe4845b8d0fabda11b73729dedf"
+    },
+    {
+      "path": "src/routine.ts",
+      "sha256": "27bad78afafd753c863b0dc2e95127c715d1b09b77a526040c01d910a9cddc04"
+    }
+  ],
+  "priorSourceCheckpoint": "d334dd64aade4d8fb14a8d52bbab755d0e246f0a",
+  "joinedPin": "a10bf191dc64208f0ce20884c5ee15f664219c8e",
+  "joinedBase": "797ed9cbe0454edd56d70b3005997fd3306504f4",
+  "execution": "not run",
+  "driver": ".botanical/physical-completion/qualify-recut.sh",
+  "driverSha256": "69968c0af00575c652f3bfbd01b359f5431a792f0c4d31b1f57ca875029a85a0"
+}

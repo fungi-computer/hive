@@ -1,0 +1,16 @@
+✔ one live finished deconstruction target at admission and current restore (240.927261ms)
+✔ late shelf salvage allocator failure publishes neither ejection nor related cleanup; retry settles once (83.78486ms)
+✔ incomplete construction waits at its last tick, survives interruption/reload, and retries once (77.251471ms)
+✔ current saves reject already-complete unfinished work and misidentified workers cannot settle (18.511843ms)
+✔ excavation allocator failure preserves terrain and final progress, successful retry exports once (76.195821ms)
+✔ transient upstairs occupancy waits without resetting progress or invalidating admitted save (41.070626ms)
+✔ paused final work is inert and unfinished deconstruction targets are rejected (18.39669ms)
+✔ one waiting final build preserves another actor and the actual clock/terrain tick (172.493601ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1923.388871
