@@ -1,0 +1,27 @@
+{
+  "name": "hive-engine-controller-proof",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "proof": "node proof.mjs",
+    "typecheck:platform": "tsc --project tsconfig.platform.json --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/codemode": "0.5.1",
+    "@fungi.computer/cairn": "file:vendor/fungi.computer-cairn-0.0.0.tgz",
+    "@fungi.computer/forage": "file:vendor/fungi.computer-forage-0.0.0.tgz",
+    "@fungi.computer/mule": "file:vendor/fungi.computer-mule-0.0.0.tgz",
+    "@fungi.computer/mycelium": "file:vendor/fungi.computer-mycelium-0.0.0.tgz",
+    "effect": "3.22.1",
+    "zod": "4.2.1"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.25.2",
+    "@types/node": "24.13.3",
+    "ai": "6.0.0",
+    "esbuild": "0.28.2",
+    "miniflare": "5.20260828.0-alpha",
+    "typescript": "5.9.3"
+  }
+}

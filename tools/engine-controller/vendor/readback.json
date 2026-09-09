@@ -1,0 +1,180 @@
+{
+  "sourceRevision": "73741d9174ba734a8d1fb55d3303487a5a94b875",
+  "sourceStatus": "",
+  "buildEvidence": "Morel confirmed canonical sequential build success before custody release; no rebuild by Enoki",
+  "packages": [
+    {
+      "name": "@fungi.computer/cairn",
+      "path": "/home/levi/src/Botanical-lane-integration/.botanical/game-capability-packs/fungi.computer-cairn-0.0.0.tgz",
+      "sha256": "803c6e3a95290443ba0dcd22e73d3be95795e0dc356df82f0f8ceba554581f45",
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js"
+        },
+        "./id": {
+          "types": "./dist/identifier.d.ts",
+          "import": "./dist/identifier.js"
+        },
+        "./words": {
+          "types": "./dist/words.d.ts",
+          "import": "./dist/words.js"
+        }
+      },
+      "dependencies": {
+        "nanoid": "5.1.16",
+        "zod": "4.2.1"
+      },
+      "fileCount": 19,
+      "fileHashes": {
+        "package/LICENSE": "233eaaf9268b9cb69d3fb248ef7b744e1b43ce97caf76017e2fd9c06cbcb9e61",
+        "package/dist/internal/identifier-codec.js": "0d715a3837f59a3c23db275dc390877c2c81f279befc9074e4e82b558e3ef24c",
+        "package/dist/internal/identifier-schema.js": "75eaa0bf5886c1cdb7848e7af8f7401318052bdfae883f47b945bbe7ae5a235b",
+        "package/dist/identifier.js": "54a98391f7905f60b0d8779d429b08d220fbd095fbb34e03d8be6381fce1c860",
+        "package/dist/index.js": "d8514732c3765d3193e1d8630315df3c33448b5995b13f5118d40f2cc68ac035",
+        "package/dist/nanoid.js": "d40b9d84ed6d1fdbe3abbbdef3d1597d8d77925d3fe7494c4c7a3222b1bdeff1",
+        "package/dist/words.js": "f3342d2329c792afa015bf2c2709fc00d7207bd21640e4182e4f7f64c890b32f",
+        "package/docs/api/identifier.md": "6dd9f266d0bce8f3b68867eeb6dfcec3c993d6741e06cd44ad715da68538e929",
+        "package/docs/api/index.md": "7ad3b3270a213de581a588deb63f129d13b9db95c83fc02d8196841f15a97763",
+        "package/docs/api/README.md": "cf9234df54e987fa628211afa9dbcab4522f6d22d1edf91fe513b6d18eb6dd1a",
+        "package/README.md": "cc6e88dbefe0e6c49acdfa698dcf82f733cc016511a9e30b49841a2e65ce1af7",
+        "package/docs/api/words.md": "9f713435e5e1561e2ee13fd324f68398a3b49578455dcf704802b55dc7fdc630",
+        "package/dist/internal/identifier-codec.d.ts": "6b69267c8918ae9bc6bc575002f0955615ebc291b2c14a0051a26cc356a0e2b0",
+        "package/dist/internal/identifier-schema.d.ts": "3e836f8d267b638ea07eec9d5e2b3df18b5d37f4d8e56f7d4daf73db9988f2d7",
+        "package/dist/identifier.d.ts": "0cec26bab7231d7b5a29dd58b9c2853c750c86aa9ebfebdc644910a0e595998d",
+        "package/dist/index.d.ts": "828f2c237802553e2c5261b5bd7eb8c146fe10d7a467638b0e95a552a8487b74",
+        "package/dist/nanoid.d.ts": "4be66ee7e32dd947114e1c997437b37e9e08d9b5107c42b5739602095299375a",
+        "package/dist/words.d.ts": "0502b1fee01d7f5f99d8a4549d4dac7b435c2718b6049999104f73f3af4d1f4f"
+      },
+      "sourceTree": "e87c44ee9b7deae5990e95b0fc9547339a1b0d91"
+    },
+    {
+      "name": "@fungi.computer/forage",
+      "path": "/home/levi/src/Botanical-lane-integration/.botanical/game-capability-packs/fungi.computer-forage-0.0.0.tgz",
+      "sha256": "af36dbd4bf63562421630900b97b0e683ded62fbf6ef06fb9354caf02dc22fce",
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js"
+        }
+      },
+      "dependencies": {
+        "zod": "4.2.1"
+      },
+      "fileCount": 23,
+      "fileHashes": {
+        "package/LICENSE": "08e094bb9d89129915007886615d7e2ff6d8d6742f83a2bc13ba50a60b175d83",
+        "package/THIRD_PARTY_NOTICES": "8aced351b12bbd48bc2c93bcf4256c65b0e93e499bbfef43d5b8ddb1dc99da1a",
+        "package/dist/catalog.js": "a48649e53c70c97a8acca13236f6d8ea604084a5fb67f781a8be2152ad9e5ab7",
+        "package/dist/definitions.js": "83a487dacd5dcd0fd9096f679fd160967775c1c17bd887370b9e3704ef0d8ccc",
+        "package/dist/describe.js": "938e097cd066ba47c468f43750965b93c18675f81ef14b06f3475a694f166a1f",
+        "package/dist/errors.js": "b2d0493998d7f172acaa67889398ed0662b8ab103c32c2fb3f261a0b5063d4ec",
+        "package/dist/index.js": "07e9b6912a98e09f07a7905c525c9a88127d77c940e93601b4eeaf56f3d1e426",
+        "package/dist/normalization.js": "3982078f1713e425c3c2051c7382f0e53e692a086b3aa30dbcd56c2c99d1060b",
+        "package/dist/rendering.js": "9e73c8ea3446d8e94bed2634cdb2ffa5523457d50a536bdafd04fac5519fba16",
+        "package/dist/schemas.js": "f03d92f73c670be7349c9d23ebc6bbf45e17b30e5b24da7725e6719c34a2471e",
+        "package/dist/search.js": "3f9f45f02eef7b47a72292ae24b564f98c8502aef8ec7994652de6b297d6c966",
+        "package/docs/api/README.md": "75d9687bb8ab3bb8542c30284ce2c5aa1f59c69714b54cf340f980e311238304",
+        "package/README.md": "6fd55671e8b7abd6dcf8102d56c264283d434cf06350e9bf94f85b0e726dcd9b",
+        "package/dist/catalog.d.ts": "31285aa0ed7168acd032c575f670366d6d6cde1e1278626e6a8e603edaf98a06",
+        "package/dist/definitions.d.ts": "268adaaf82316ad548bf1e2fc03809593fd709638a6efe32a45e803cf82640ca",
+        "package/dist/describe.d.ts": "8cdafd60975756d0365c095c1e80936bbb5a296133caf12300fa5fb672ae4309",
+        "package/dist/errors.d.ts": "174c9c3ec15daaa586727fe1cbdd4356038d0de838aeca4301eac3e59a6dcc0c",
+        "package/dist/index.d.ts": "71d14b00042dba652bbd66794d761a2b549abf0a0b68e041526b6601ebbb6a57",
+        "package/dist/normalization.d.ts": "3dc40684a8a1c8a66c1ebf92d4ca9dc99ea6acaed6038fc1900a5bf12525369a",
+        "package/dist/rendering.d.ts": "bcf71608b27d8b05ef72919292380dbd61bcc55fb3df3c644d1e9342a7acfc4d",
+        "package/dist/schemas.d.ts": "e57b1aa0f2963df6452b54fab65d6a3396ac15ca6f671278891f361c0ebd661e",
+        "package/dist/search.d.ts": "6748ec44ac6ff90a5084efd70e5e4d207adb1584f9e1df22478ebdb264d790cf"
+      },
+      "sourceTree": "52c7c230fa210bcb799fadd5346bae3a40153d02"
+    },
+    {
+      "name": "@fungi.computer/mule",
+      "path": "/home/levi/src/Botanical-lane-integration/.botanical/game-capability-packs/fungi.computer-mule-0.0.0.tgz",
+      "sha256": "f990be4c617303dc3e7049cfc469d3a08f0a8c81024f1a8ef83bf24dc4bea39a",
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js"
+        },
+        "./effect": {
+          "types": "./dist/effect.d.ts",
+          "import": "./dist/effect.js"
+        }
+      },
+      "dependencies": {
+        "@earendil-works/pi-ai": "0.85.1",
+        "@fungi.computer/cairn": "0.0.0",
+        "effect": "3.22.1"
+      },
+      "fileCount": 11,
+      "fileHashes": {
+        "package/LICENSE": "eb3f04f12f1417de97a0ccd133c1bd8375d6ffc2090cb0926089e229c0c014fe",
+        "package/THIRD_PARTY_NOTICES": "175139b54c8b434879f7ad51461f8f13c3aca735c4736939b84db05ebca4249a",
+        "package/dist/effect.js": "1d45b8f63a34fa52a29e415da81f8e0a3c9a1452e57421a8f98a05f07aa67a71",
+        "package/dist/index.js": "70fd35d4408e6f18434f68425e69e28b388bb81d89e9970530b4512bd6f1a34f",
+        "package/docs/api/effect.md": "2f30e57f6e855f852dd2a975e3bed676d82cb952dc10f7b8b2a677a9ccee69c8",
+        "package/docs/api/index.md": "cbea614f8cc906b7af68522d831ccf87040b24f697b884da4781a21497aaf8ff",
+        "package/docs/api/README.md": "a556d4bd23f409f9d47242fd7bc9637449bb934dab66fc16e83ddaaaf23491fb",
+        "package/README.md": "53b49a686e7ed24b256ed7b4eb55ec762c9c43f3ebb2344162f3ad2750bc42b3",
+        "package/dist/effect.d.ts": "53bd949c94835c54788a1c29281de4d3af4491c512dec13f86f5c8adb8a648cf",
+        "package/dist/index.d.ts": "5169f57d8757597157463f12f700b17234175555ac7d4da21502ae7133546c5f"
+      },
+      "sourceTree": "7f2b949955c52e17f3f8f3bddc973c4558acfb26"
+    },
+    {
+      "name": "@fungi.computer/mycelium",
+      "path": "/home/levi/src/Botanical-lane-integration/.botanical/game-capability-packs/fungi.computer-mycelium-0.0.0.tgz",
+      "sha256": "8e9e08ada2329aeb7cae284a89dab9ebcb2ffa6e25448dfecdac5c9c3d335396",
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js"
+        },
+        "./effect": {
+          "types": "./dist/effect.d.ts",
+          "import": "./dist/effect.js"
+        }
+      },
+      "dependencies": {
+        "@fungi.computer/cairn": "0.0.0",
+        "@fungi.computer/forage": "0.0.0",
+        "@fungi.computer/mule": "0.0.0",
+        "effect": "3.22.1",
+        "zod": "4.2.1"
+      },
+      "fileCount": 29,
+      "fileHashes": {
+        "package/LICENSE": "0a8dcd663ce23c74127623b0837596d50771a8a0a2b6a04c0d398109f9c354d3",
+        "package/THIRD_PARTY_NOTICES": "9515ed707168be1074d0de7ea1260945bbe804bb543fc54e4f6a53b3137d7a65",
+        "package/dist/capability-source.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "package/dist/compiler.js": "5c3fcca6cf6fbe1dcbecbc9c58e7bb4b1aeb1047ee0d68b4037039455b0c94b6",
+        "package/dist/effect.js": "2a21bf872d804f8733b9415bec47e96a7307c22178d56c7f19b5969c9c3a7243",
+        "package/dist/errors.js": "6fb0213e3275682f25aecd76ee101316b51b35e1c091e71802e0c2613b608832",
+        "package/dist/execute-tool.js": "991edf4dfd88f6153384e0fd6c74f1f37d0f1a5e527f31e20ddd8be11a6c267e",
+        "package/dist/internal/execution-lifecycle.js": "150e98ad788ecb8a5be5c0eed0beaaa40778304bcb72957ee6d70bf8f9777de9",
+        "package/dist/index.js": "7be8e4943c10797170ec529a2682005dbd91930c6c3f8c03c959c07e50f44d2b",
+        "package/dist/promise-facade.js": "29c27d61394e799c737985efc1faa6c9e1a40b600548428f27ee71595eddb052",
+        "package/dist/registration.js": "b1b66e1f55a1aaacee02c0b66d40af4257a9e75564509c085e23a0c44a6e3451",
+        "package/dist/runtime.js": "15ab92be5e261143b7927042c37026b14ddf2de72caeb75e7448c322855e3e7e",
+        "package/dist/source-runtime.js": "f2a46716313a898ae88931fff0bee6b1cee6e848bd2d895008abac9e59fe7df7",
+        "package/docs/api/effect.md": "7d5cebd3b44bca2cd70895d5b3d871be5e0a3b543dfac1c8971e11b07cb88979",
+        "package/docs/api/index.md": "33046af7a2145890a8c3622af6910e9404e7899a2c9ab2c4e2b4475abbdceca1",
+        "package/docs/api/README.md": "52dffd997aab201554c8763ad89e80a2d567ffb7fe94cf2738efe4b9727a3478",
+        "package/README.md": "da327eb9ba1bd4d297becf4c5dc5a905dce744ae2dcc9e3696bdaa91015ffb75",
+        "package/dist/capability-source.d.ts": "514107af8927ee42af23ecc3d9a7b11633cf1c9fdf2cae7e432da83aa8d848c1",
+        "package/dist/compiler.d.ts": "50b87a469e4557fdb0ff380ae898f9f4daa32809eec58ff44433f6b8b051f55d",
+        "package/dist/effect.d.ts": "3f89bfae5365bc76841909169ccb2389d372a2c307f9b91f916dd0679efa81a9",
+        "package/dist/errors.d.ts": "ca09517b3614fc7623237d4931837b117a41c77a3fb7803a20a41387e8d6bf64",
+        "package/dist/execute-tool.d.ts": "8235bedeb248ca933a20ec41303206e2a88762c27f2fc2a117a708bfe5ac35fb",
+        "package/dist/internal/execution-lifecycle.d.ts": "95cc7026288f8055a014720302601eff745e5daecf60c5b83db817923454f90a",
+        "package/dist/index.d.ts": "4bf5bcdca9e0c0a7b5650a4825949cc9b134d8a4fa8e5a87e5334654b3de6596",
+        "package/dist/promise-facade.d.ts": "07d4911724a1344ff7bf11b4ab26ee9918edcc31af8b9be6d3f0ec0a0602bda1",
+        "package/dist/registration.d.ts": "71f1288be7cf98fa1f45fbc784a158cdccaceb71a514abdcb41427c06341211e",
+        "package/dist/runtime.d.ts": "3794d06eea7c07f9a301ce6ff05ddf7a8fb2149e558b2e8ae997447fe00f243b",
+        "package/dist/source-runtime.d.ts": "442469a8a965469d6e6dfc31bd6e16e2eadae365ab96b1ddadb9d10a42b8e569"
+      },
+      "sourceTree": "6732df79b0c317a9705cd4364d8f736a36734f60"
+    }
+  ]
+}
