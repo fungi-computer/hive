@@ -159,6 +159,42 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Latest checkpoint, September 9 (supersedes the staffing below):** King Bolete
+owns the environment worktree and integration. Native `engine_core_pm` owns the
+isolated controllers worktree: public Mycelium authored operations through the
+current Mule Effect/Stream execute path and actual Codemode/DO SQLite. Native
+`u4101` passed lost-response/restart/replay, scope and one-effect laws. Installed
+declaration closure remains separate: remove `skipLibCheck`, supply maintained
+optional peers, and resolve actual host type environments without compatibility
+shims. No provider call or controller backend deployment is implied.
+
+The environmental numerical clock correction `d0ab751` is reviewed and joined as
+`7d134f6`; `u4102` passed 11 focused clock/connected-column laws. Root's current
+world join derives all columns, capacity and contacts from edited terrain,
+removes the single-pit and duplicate command-history owners, and keeps one stock
+vector and clock. The original one-cut physical reference remains within its
+unchanged tolerance (`u4107`, 12 affected laws). The actual generated 4x4,
+32-porous-cell consumer supports two adjacent cuts and paired surface exchange
+(`u4108`, three laws), including exact current-state reopening. This is source
+evidence, not a newly rendered or hosted interaction. Review remains in progress.
+The browser consumer is updated for a water-column array but still exposes its
+previous one-cut interaction until the coupled control join.
+
+The published water study remains `4a6931c`, deployment `30835156`, at
+`/wet-clearing.html` on the same preview. It supports one actual local dig and
+finite seepage; 44 served files matched. Its physical local interaction passed,
+but the screenshot budget expired, so no new rendered/narrow/hosted interaction
+claim is made. Compact editor `8518cc5` is hosted by Botanical; expensive editor
+browser tests remain stopped. Deploy less frequently; current source milestones
+do not trigger another publication automatically.
+
+**Next dependent environment boundary:** the current generated recipe has two
+soil layers and then real stone. Deepening a hole reaches a sealed floor, which
+the current owner deliberately rejects. Add a qualified sealed-floor boundary
+before claiming a generated 0.54 m ledge/deep-hole outcome. The following Region
+join must commit terrain, water, wet-spoil and command receipt together through
+the existing owner; the local study worker is not a separate durable authority.
+
 **Active source handoff after `512c698`:** `engine_core_pm` owns the first actual
 Goblin-region source join: `src/orders.ts`, new command admission schema/tests,
 new `src/world-presets/goblin-region.ts`/tests and isolated `tools/engine-do/goblin-*`.

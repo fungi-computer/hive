@@ -35,14 +35,6 @@ export function restoreWorld(identity, checkpoint) {
   // fields, invalid current envelopes and capacity violations.
   return createVoxelWorld(identity, { checkpoint, maxChangedCells: 4096 });
 }
-export function assertRegionWorld(world, descriptor) {
-  requireCondition(descriptor.revision === world.describe().revision,
-    'soil geometry revision must match actual world');
-  for (const cell of descriptor.cells)
-    requireCondition(world.readPoint(xyz(coordinate(cell.at))) === MATERIAL.soil,
-      `porous node must be actual world soil: ${key(cell.at)}`);
-}
-
 /** Derived physical contacts; the caller may not mistake these for admitted closed walls. */
 export function pitContacts(world, descriptor, at) {
   at = coordinate(at);

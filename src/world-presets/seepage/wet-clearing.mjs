@@ -7,12 +7,13 @@ import { createExcavationAdapter } from './excavation.mjs';
 
 // One fixed generated location, never a terrain/seed search. These are explicit
 // initial water stocks from the retained synthetic law, not generated moisture.
-export function createWetClearing({ soleTargetAnchor = false } = {}) {
+export function createWetClearing({ soleTargetAnchor = false, connected = false } = {}) {
   const spec = createWorldSpec({ seed: 'hive-world-lab-seed-20260907' });
   const id = worldIdentity({ worldId: 'one-generated-soil-excavation', seed: spec.seed });
   const world = createVoxelWorld(id), cells = [];
   let target = null;
-  for (const x of [-1, 0, 1]) for (const z of [127, 128, 129]) {
+  for (const x of connected ? [-1, 0, 1, 2] : [-1, 0, 1])
+    for (const z of connected ? [127, 128, 129, 130] : [127, 128, 129]) {
     const { bedLevel } = sampleTerrain(spec, x, z, 1);
     requireCondition(Number.isSafeInteger(bedLevel) && bedLevel > 0, 'wet-clearing recipe is inland above sea datum');
     for (const y of [bedLevel - 2, bedLevel - 1]) {
@@ -32,9 +33,8 @@ export function createWetClearing({ soleTargetAnchor = false } = {}) {
       ? node.id !== targetId ? 0 : -.5
       : waterTableYM - node.centerM[1]).theta }));
   const water = soil.initial({ stocks });
-  const adapter = createExcavationAdapter({ worldIdentity: id, regionId: descriptor.regionId });
-  const input = adapter.initial({ world: world.save(), soilGeometry: soil.geometry, soilState: water });
-  return { adapter, input, target, targetId, command: { operationId: 'first-wet-soil-cut',
-    expectedWorldRevision: input.world.revision, at: target }, world, source: { id, columns: 9,
+  const adapter = createExcavationAdapter({ worldIdentity: id, baseSoilGeometry: soil.geometry, surfaceCoefficient: .5 });
+  const input = adapter.initial({ world: world.save(), soilState: water });
+  return { adapter, input, target, targetId, command: { at: target }, world, source: { id, columns: connected ? 16 : 9,
     generatedSoilCells: cells.length, seed: spec.seed, waterTableYM, soleTargetAnchor } };
 }

@@ -50,6 +50,10 @@ test('receiving water occupies real stacked air voxels and survives exact recons
   conserved(state,resumed.state);
   const truncated=structuredClone(descriptor);truncated.reservoirs[1].heightCells=1;
   assert.throws(()=>createVolume(truncated),/open vertical interval/);
+  const shorter=structuredClone(descriptor);shorter.reservoirs[1].heightCells=2;
+  assert.throws(()=>createVolume(shorter),/share one modeled rim/);
+  const taller=structuredClone(descriptor);taller.reservoirs[0].heightCells=3;
+  assert.throws(()=>createVolume(taller),/share one modeled rim/);
 });
 
 test('closed surface connection retains exact zero constitutive and closure transfer',()=>{

@@ -22,6 +22,8 @@ export function compileSurfaceEdges(inputs, nodes, spacing) {
     const baseLevel = Math.max(a.at[1], b.at[1]);
     const rimLevel = Math.min(a.at[1] + a.heightCells, b.at[1] + b.heightCells);
     requireCondition(baseLevel < rimLevel, 'surface connection has a real open vertical interval');
+    requireCondition(a.at[1] + a.heightCells === b.at[1] + b.heightCells,
+      'vented surface columns share one modeled rim; roof/orifice flow is unsupported');
     const at = [...a.at]; at[axis]++; at[1] = baseLevel;
     const id = `surface:${axis === 0 ? 'x' : 'z'}:${at.join(',')}`;
     requireCondition(!seen.has(id), 'one connection per physical surface opening'); seen.add(id);

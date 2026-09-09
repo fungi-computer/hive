@@ -27,7 +27,7 @@ function WetClearing() {
       checkpoint.current = data.checkpoint;
       setScene(data.scene); setTarget(data.target);
       if (data.action === 'dig') setSelection(null);
-      setNotice(data.scene.water ? 'Groundwater seeps through the exposed soil into the pit.'
+      setNotice(data.scene.water.length ? 'Groundwater seeps through the exposed soil into the pit.'
         : 'Select the marked soil block, then dig.');
     };
     const stop = message => {
@@ -42,8 +42,8 @@ function WetClearing() {
     }).catch(error => { if (!disposed) stop(error.message); });
     return () => { disposed = true; runtime.terminate(); view.current?.destroy(); view.current = null; };
   }, []);
-  useEffect(() => { if (scene && view.current) view.current.draw(scene, selection ?? (scene.water ? null : target), turn); }, [scene, selection, target, turn]);
-  const canDig = scene && !scene.water && selection?.every((n, i) => n === target[i]);
+  useEffect(() => { if (scene && view.current) view.current.draw(scene, selection ?? (scene.water.length ? null : target), turn); }, [scene, selection, target, turn]);
+  const canDig = scene && !scene.water.length && selection?.every((n, i) => n === target[i]);
   function download() {
     const url = URL.createObjectURL(new Blob([checkpoint.current], { type: 'application/json' }));
     const link = document.createElement('a'); link.href = url; link.download = 'wet-clearing.json'; link.click();
@@ -58,7 +58,7 @@ function WetClearing() {
         <p>Selected: <strong data-wet-selected>{selection?.join(', ') ?? 'none'}</strong></p>
         <div className="wet-actions">
           <Button size="sm" disabled={busy || !canDig} onClick={() => send('dig')}>Dig selected block</Button>
-          <Button size="sm" disabled={busy || !scene?.water} onClick={() => send('advance')}>Wait ten minutes</Button>
+          <Button size="sm" disabled={busy || !scene?.water.length} onClick={() => send('advance')}>Wait ten minutes</Button>
           <Button size="sm" variant="outline" disabled={busy || !scene} onClick={() => setTurn((turn + 1) % 4)}>Turn view</Button>
           <Button size="sm" variant="outline" disabled={busy || !scene} onClick={() => send('reopen')}>Reopen checkpoint</Button>
           <Button size="sm" variant="outline" disabled={!scene} onClick={download}>Download world</Button>
@@ -66,8 +66,8 @@ function WetClearing() {
         </div>
         {scene && <dl className="wet-facts" data-wet-facts>
           <dt>Time</dt><dd>{scene.timeS} seconds</dd>
-          <dt>Water in the hole</dt><dd>{(scene.water?.massKg ?? 0).toFixed(2)} litres</dd>
-          <dt>Water depth</dt><dd>{((scene.water?.depthM ?? 0) * 100).toFixed(2)} cm</dd>
+          <dt>Water in the holes</dt><dd>{scene.balance.pitWaterKg.toFixed(2)} litres</dd>
+          <dt>Deepest water</dt><dd>{(Math.max(0, ...scene.water.map(column => column.depthM)) * 100).toFixed(2)} cm</dd>
           <dt>Water in removed soil</dt><dd>{scene.balance.exportWaterKg.toFixed(2)} litres</dd>
           <dt>Total water accounted for</dt><dd>{scene.balance.totalWaterKg.toFixed(2)} litres</dd>
         </dl>}

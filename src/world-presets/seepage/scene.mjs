@@ -26,14 +26,14 @@ export function readScene(checked, state, input) {
       const pore = pores.get(`cell:${key(at)}`);
       cells.push({ at, material, theta: pore?.theta ?? null });
     }
-  const pit = checked.facts.nodes.find(n => n.kind === 'pit');
+  const columns = checked.facts.nodes.filter(n => n.kind === 'pit');
   return {
     bounds: { min, max }, spacingM: [...checked.physical.spacingM],
     revision: state.world.revision, timeS: checked.soil.timeS,
     sampledCells: count, cells,
     // A null theta means unmodeled pore water, never a dry-soil assertion.
-    water: pit ? { at: [...pit.at], depthM: pit.depthM, massKg: pit.massKg,
-      baseYM: pit.baseYM, rimYM: pit.rimYM } : null,
+    water: columns.map(pit => ({ id: pit.nodeId, at: [...pit.at], depthM: pit.depthM, massKg: pit.massKg,
+      baseYM: pit.baseYM, rimYM: pit.rimYM })),
     balance: { ...checked.balance }, exports: structuredClone(state.exports),
   };
 }

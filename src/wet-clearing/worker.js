@@ -11,7 +11,7 @@ self.onmessage = ({ data }) => {
       case 'dig':
         state = recipe.adapter.excavate(state, { ...recipe.command, at: data.at }).state;
         break;
-      case 'advance': state = recipe.adapter.advance(state, 600, { dtMaxS: 6 }).state; break;
+      case 'advance': state = recipe.adapter.advance(state, 600).state; break;
       case 'reopen': {
         const checkpoint = recipe.adapter.encode(state);
         const fresh = createWetClearing();

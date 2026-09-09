@@ -16,25 +16,26 @@ test("generated voxel excavation conserves pore water and resumes seepage exactl
   assert.equal(dug.state.exports.length, 1);
   assert.equal(dug.balance.pitWaterKg, 0);
   assert.equal(dug.state.exports[0].sourceVoxelM3, 0.54);
-  const moving = adapter.advance(dug.state, 300, { dtMaxS: 6 });
-  const whole = adapter.advance(dug.state, 600, { dtMaxS: 6 });
-  const fresh = createExcavationAdapter({ worldIdentity: input.world.identity,
-    regionId: input.soilGeometry.regionId });
+  const moving = adapter.advance(dug.state, 300);
+  const whole = adapter.advance(dug.state, 600);
+  const fresh = createExcavationAdapter(adapter.definition);
   const restored = fresh.decode(adapter.encode(moving.state));
-  const resumed = fresh.advance(restored, 300, { dtMaxS: 6 });
+  const resumed = fresh.advance(restored, 300);
   assert.deepEqual(resumed.state, whole.state);
   // The current column geometry/solver identity breaks the old envelope. Keep
   // the old physical result as evidence, without adding a predecessor reader.
-  assert.deepEqual(whole.state.exports, reference.exports);
-  assert.deepEqual(whole.state.pit, reference.pit);
+  const physicalExports = entries => entries.map(({ id, ...physical }) => physical);
+  assert.deepEqual(physicalExports(whole.state.exports), physicalExports(reference.exports));
   assert.equal(whole.state.initialWaterKg, reference.initialWaterKg);
   whole.state.soilState.massKg.forEach((mass, i) =>
     assert.ok(Math.abs(mass-reference.soilState.massKg[i]) <= 2e-9));
   assert.ok(Math.abs(whole.balance.pitWaterKg - 12.565428851627985) < 1e-10);
   assert.ok(Math.abs(whole.balance.residualKg) < 2e-9);
-  assert.deepEqual(fresh.excavate(resumed.state, command).state, resumed.state);
-  assert.throws(() => adapter.excavate(input, { ...command, expectedWorldRevision: 1 }), /stale/);
-  assert.throws(() => adapter.backfill(whole.state), /displaced finite water/);
+  assert.throws(() => fresh.excavate(resumed.state, command), /remaining owned/);
+  assert.throws(() => adapter.excavate(input, { ...command, expectedWorldRevision: 1 }), /coordinate-only/);
+  assert.equal(Object.hasOwn(whole.state, 'pit'), false);
+  assert.equal(Object.hasOwn(whole.state, 'excavation'), false);
+  assert.equal(Object.hasOwn(whole.state, 'soilGeometry'), false);
 });
 
 test("unsupported saves and corrupt custody reject without migration", () => {
@@ -44,8 +45,8 @@ test("unsupported saves and corrupt custody reject without migration", () => {
   assert.throws(() => adapter.decode(JSON.stringify(old)), /identity/);
   const corrupt = structuredClone(state); corrupt.exports[0].waterKg += 1;
   assert.throws(() => adapter.decode(JSON.stringify(corrupt)), /retain the original water/);
-  const wrongMetric = structuredClone(state); wrongMetric.soilGeometry.spacingM = [1, 1, 1];
-  assert.throws(() => adapter.decode(JSON.stringify(wrongMetric)), /world metric/);
+  const wrongMetric = structuredClone(adapter.definition); wrongMetric.baseSoilGeometry.spacingM = [1, 1, 1];
+  assert.throws(() => createExcavationAdapter(wrongMetric), /world metric/);
 });
 
 test("direct initial input rejects world accessors without running them", () => {
@@ -53,20 +54,18 @@ test("direct initial input rejects world accessors without running them", () => 
   let calls = 0;
   const world = { ...input.world };
   Object.defineProperty(world, "changes", { enumerable: true, get() { calls++; return []; } });
-  assert.throws(() => adapter.initial({ world, soilGeometry: input.soilGeometry,
-    soilState: input.soilState }), /fields|record|properties/);
+  assert.throws(() => adapter.initial({ world, soilState: input.soilState }), /fields|record|properties/);
   assert.equal(calls, 0);
   const identity = structuredClone(input.world.identity);
   Object.defineProperty(identity.base, "heightSeed", { enumerable: true,
     get() { calls++; return "unexpected"; } });
-  assert.throws(() => createExcavationAdapter({ worldIdentity: identity,
-    regionId: input.soilGeometry.regionId }), /properties/);
+  assert.throws(() => createExcavationAdapter({ ...adapter.definition, worldIdentity: identity }), /record/);
   assert.equal(calls, 0);
 });
 
 test("shared soil geometry takes consumer metric and coefficients, outside world bounds/content", () => {
-  const { input } = createWetClearing();
-  const definition = { ...input.soilGeometry.definitions[0], id: "other-soil" };
+  const { adapter } = createWetClearing();
+  const definition = { ...adapter.definition.baseSoilGeometry.definitions[0], id: "other-soil" };
   const descriptor = { regionId: "independent-soil", revision: 0,
     spacingM: [2, 1, 3], exterior: "closed", definitions: [definition],
     cells: [{ at: [3000, 70, 0], soilId: definition.id },

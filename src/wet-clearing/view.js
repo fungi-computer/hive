@@ -57,8 +57,8 @@ export async function createWetView(host, select) {
       (n + scene.bounds.max[i] - (i === 1 ? 1 : 0)) / 2 * spacing[i]);
     const occupied = new Set(scene.cells.map(cell => cell.at.join(',')));
     for (const cell of scene.cells) voxel(cell, spacing, origin, occupied);
-    if (scene.water?.massKg > 0) {
-      const pool = new THREE.Mesh(cube, water), liquid = scene.water;
+    for (const liquid of scene.water.filter(column => column.massKg > 0)) {
+      const pool = new THREE.Mesh(cube, water);
       pool.scale.set(spacing[0], liquid.depthM, spacing[2]);
       pool.position.set((liquid.at[0] + .5) * spacing[0] - origin[0],
         liquid.baseYM + liquid.depthM / 2 - origin[1],
