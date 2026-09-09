@@ -292,14 +292,27 @@ window. Source/physics/types acceptance does not imply live-world air completion
 Meitner's accepted current completion readiness is
 `vessel-boundary/.botanical/vessel-boundary/PHYSICAL-EDIT-READINESS.md`, SHA256
 `30884b9887ab704baf8ac3772b423314293ab9e5a3ba9da205a71dcfb61d641c`.
-Hume owns isolated `physical-completion` at `74e2821`: shared build/dig/remove
-settlement through existing materials/geometry, duplicate-target admission and
-last-incomplete progress. Exact first-shape corrections include assignment
-custody, current-save progress bounds, one terrain-work duration, shared
-material-container discovery and import-safe cleanup extraction. This does not
-add a second station claim, generic callback engine or air solver. Meitner is
-reviewing first shape/final pin read-only; Hume retains files. Root retains the
-frozen water-inspection input driver, actual air design and integration.
+Hume's physical-completion source `d334dd6` is preserved and joined with
+accepted air at frozen `797ed9c`. Root's one bounded qualification `u4562`
+passed all eight authored laws, including an actual-WASM two-person clock law:
+a waiting physical completion preserves its work while another person's work
+and the shared clock advance. Strict app types (`skipLibCheck=false`) and diff
+passed. The command exited1 at Fallow. Root read the new readiness/preparation/
+save-validation cognitive hotspots and returned a bounded source-only
+responsibility correction to Hume. Final source integration remains pending;
+this result does not add an air hook or qualify a main-game/DO/browser join.
+
+Evidence is preserved at
+`physical-completion-join/.botanical/physical-completion/qualification-v1/`,
+receipt SHA256 `a5b7473ae1ee635843d26ebe7ec08d3a478cb9b95fcd94b5b33bd9b84b042150`.
+Exec95062 and scopeu4562 are collected/closed, inactive/dead with empty
+ControlGroup; no listener or server was started. Delivery received the released
+window. No repeated physics, build, browser, benchmark or native DO run followed.
+Meitner's accepted nine-file source review remains evidence of the predecessor,
+not a substitute for disposition of the actual audit. Meitner now independently
+traces the main-game deep-stone yield/reachability gap read-only; no new stone
+writer or physics change is assigned. Root retains air design, the prepared
+water-inspection input driver and integration.
 
 The [air contract](gameplay-air-owner.md) preserves remaining main-world bounds:
 wet phase volume, actual outdoor classification, paid emission receivers and
