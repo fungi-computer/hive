@@ -126,6 +126,17 @@ Current source, under `/home/levi/src/Botanical-next`, was reread for this decis
   proves autonomous wake after a crash without another request. Game CTO read
   these actual callers and accepts the distinction: the region DO must own
   proved durable wake/rearming, not inherit an imaginary scheduler.
+- **Retained-history correction from Botanical:** native `AgentDO` alarms were
+  retained when the old external WatchdogDO liveness sidecar was removed. Later
+  `packages/fungi-computer/do-host/src/alarm-clock.ts` multiplexed module wake
+  deadlines into the one native alarm and rearmed after module ticks. The
+  current waitUntil-only adapter is a rebuild acceptance gap, not a decision to
+  abandon durable wake. Compare this retained owner and its fixes before adding
+  scheduling code. The checked records are Botanical's
+  `.botanical/cto/logs/retained-shiitake-alarm-review.md` and
+  `shiitake-alarm-rebuild-history.md`; their limits include failed alarm writes,
+  omitted failed deadline queries and hung module ticks. Source/test history
+  does not itself prove Hive's request-free recovery.
 - BirdDog delivery may repeat after send-before-delete failure. Shiitake's
   settlement/outbox reconciliation is a repair path, not a single atomic world
   commit. Mycelium's live sandbox fibers are execution resources, not durable

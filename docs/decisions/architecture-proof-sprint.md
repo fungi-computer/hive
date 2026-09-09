@@ -149,6 +149,34 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Latest checkpoint, September 9:** the opaque voxel owner and material owner now
+compose through `src/engine/region` in an independent quarry consumer. Root owns
+these sources. Nine native SQLite laws passed (`u3868`); independent review
+accepted scoped replay, detached candidates, atomic physical state/results/events
+and persisted admission limits. The actual local SQLite DO trace (`u3865`) passed
+rollback injection, explicit failed acknowledgment, two abrupt runtime restarts,
+exact recovery and one-winner concurrent admission. Its retained evidence is
+`.botanical/engine-do/quarry-20260909-v2`; a sanitation-only erratum removes
+truncated ephemeral harness bindings from logs without changing runtime evidence.
+No autonomous wake, hosted game backend or full-engine completion is claimed.
+
+Native `engine_core_pm` now owns only a new packed Watchdog consumer under
+`tools/engine-do`, separate from the frozen direct-transaction harness. The next
+exit is durable queue admission and native alarm recovery without a player
+request, including process loss between physical commit and host-job settlement.
+Watchdog uses the same SQL owner and replays the engine receipt. Botanical's
+replacement package hash is `00ca3f33f7eac8742555fec180bc5788afe414fc3f0ea5a6afa953282cde626e`;
+Cairn remains `803c6e3a95290443ba0dcd22e73d3be95795e0dc356df82f0f8ceba554581f45`.
+The docs-only correction is accepted separately from the original failed gate;
+these ordinary local packages are not a registry release.
+
+Native `asset_product_pm` independently inspects Levi's Fiend hosted editor
+references against the existing Copper Familiar scene-document/viewer and public
+Three.js editor source. The first source boundary follows that comparison;
+Root retains shared-site/hosting coordination with Botanical. Private share-link
+capabilities do not enter source, public notes or artifact URLs. The paragraphs
+below describe earlier checkpoints, not overlapping active writers.
+
 **Current checkpoint, September 9:** Game CTO accepted the bounded material
 extraction recut2 after personal caller review and independent Sol review.
 All 24 source hashes match the retained inventory. Reported evidence is 130/130
