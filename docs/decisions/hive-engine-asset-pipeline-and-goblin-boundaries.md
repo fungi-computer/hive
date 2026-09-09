@@ -25,6 +25,42 @@ ownership; the [current sprint](architecture-proof-sprint.md) owns release statu
 
 ## Decision: three reusable layers, with a separate platform
 
+### Creator experience clarification — September 9
+
+Levi described the childhood JRPG-building experience, likely RPG Maker, to
+clarify the desired authoring product: make it easy for people to build games
+with AI, mostly writing straightforward code in a sandbox. This is a product
+test for the existing engine extraction, not a request for a second engine or
+a new no-code language. Small TypeScript/JavaScript definitions and rules should
+use documented engine operations; original assets and the editor support that
+workflow. Reusable movement, inventory, work, environment, permissions and
+durability remain engine responsibilities.
+
+The strongest creator acceptance is an independent author or AI taking the
+public exports, a maintained example and original assets and producing a small
+playable game without editing Hive internals. Configuration should be sufficient
+for another supported material, recipe or creature profile. New behavior may
+require a deliberately added typed primitive, rather than direct access to
+mutable tables. A successful static scene export or quarry test alone does not
+meet the playable-game authoring exit.
+
+Game authoring and agent gameplay have distinct authority. Authors supply
+versioned definitions/rule code through the supported build/registration path;
+controllers invoke granted operations through the ordinary Mycelium sandbox.
+Saved worlds contain data and definition identities, not executable callbacks.
+Untrusted author code needs the actual platform execution limits and capabilities;
+a trusted in-process program callback is not evidence of sandbox isolation.
+Use Botanical's supported execution door instead of inventing another evaluator.
+
+Levi immediately clarified that this creator product is aspirational for now.
+Focus current work on a meaningful, well-composed engine and keep Botanical CTO
+informed about concrete outcomes worth explaining or publishing. The discussed
+one-to-two-week creator alpha is not an active deadline or a new release gate.
+Full JRPG tool parity, combat content and a visual event editor are not added to
+the current six engine exits. Public availability claims must name the supported
+features and remaining limitations; a future creator exercise will test the
+joined Goblin/world/work/DO owners rather than replacing that work.
+
 **Hive is the world and simulation engine. Goblin Bed & Breakfast is the game
 whose rules and content compose that engine. Asset authoring is a toolchain that
 can supply both this game and other projects. Fungi supplies product hosting and

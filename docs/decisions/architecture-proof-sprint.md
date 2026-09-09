@@ -149,6 +149,50 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Public demo amendment, September 9:** Levi wants environmental demonstrations
+inside Hive's voxel world. Water, soil, air/heat and terrain exhibits must share
+the actual world geometry and applicable simulation owners, with ordinary visible
+actions such as digging, opening a sluice or changing ventilation. Optional debug
+overlays expose measurements; detached mathematical plots are supporting evidence,
+not the public experience. A recording must remain labelled as a recording.
+Do not paint an unrelated numerical fixture isometrically and claim a world join.
+
+The next water interaction should make an actual world intervention change finite
+water flow. The current browser labs replay reference output; world-lab surface
+water is static classification. The accepted shallow-water boundary is
+`.botanical/research/environment-round3-20260908/water/accepted-boundary-v3/`.
+It supersedes the earlier optimization's admission/lifetime API. Its meaningful
+finite-diversion tests use 0.1 m terraces; the method qualification reports wrong
+flow across some 0.54 m transitions. Thus the current Hive ledge join is an actual
+unfinished correctness requirement. Keep the reference and resolve the supported
+voxel-world behavior before offering a live world-water demo. Neither changing
+the display scale nor publishing a recorded result closes that requirement.
+The small scene is an engine consumer, not a second water owner or a reason to
+restart the full physics research programme. Botanical owns final site/host
+publication; King Bolete owns its engine/art/source qualification.
+
+**Newest native durability milestone, September 9:** the separate packed Watchdog
+consumer passed strict workerd types (`u3906`) and actual local native-alarm
+recovery (`u3907`). Independent source/evidence review accepted the exact frozen
+packet in `.botanical/engine-do/watchdog-20260909-v2/`: queued work completes after
+owned runtime restart, and a running job recovers after its physical commit while
+replaying the same region receipt. External read-only SQLite observes each success
+before any DO fetch, with zero constructor alarm repairs and no duplicate goods,
+state or events. The first lazy-SQL adapter failure is retained in `v1`.
+Alarm re-arm failure/retry exhaustion, outgoing-event acknowledgment recovery,
+Goblin execution and deployed-host behavior are still unproved. This qualifies
+these two local crash windows; it does not complete the overall durability exit.
+
+Root also separated the current Goblin state codec from browser IndexedDB IO:
+`src/clearing-state.ts` owns the existing validation/migrations and current state
+encoding; `src/persistence.ts` retains browser IO and existing exports. Independent
+review found no mechanical validator/migration drift; 61 focused laws passed,
+then the final parser export passed two focused laws (`u3920`) and strict types
+(`u3921`). Browser Continue still deliberately
+pauses; live engine reconstruction preserves saved pause/tick/work state. Canonical
+region state will exclude browser command diagnostics. This is a source checkpoint,
+not a running Goblin DO. Existing material/transfer validator Fallow hotspots remain.
+
 **Latest checkpoint, September 9:** the opaque voxel owner and material owner now
 compose through `src/engine/region` in an independent quarry consumer. Root owns
 these sources. Nine native SQLite laws passed (`u3868`); independent review
