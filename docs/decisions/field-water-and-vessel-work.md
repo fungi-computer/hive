@@ -84,6 +84,11 @@ single-owned without an import cycle, physical binding/reference/reach queries
 live in `field-water-source.ts`; `field-water.ts` owns the material/field pairing
 and balance. There is no old-path reexport or second supply validator. Root's
 new law checks both failed returns preserve the complete valid original state.
+The final paired chunk is `c3b96bf`: five affected laws plus app types passed
+u4483; independent read-only correction review accepted it. Fallow u4481 found
+no dead-code, cycle, duplication, complexity or security finding in the actual
+Goblin Region caller; earlier field-source pending exports are consumed by the
+current Hume join. Source acceptance is not a hosted or native DO claim.
 
 The actual Goblin Region now admits a strict host-only `return-field-water`
 command through that same primitive. Its existing transaction owns state,

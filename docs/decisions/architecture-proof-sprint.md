@@ -206,8 +206,9 @@ before either successor is published. Initial9 laws passed u4466; strengthened
 late-field failure and app types passed u4475/u4479. The host-only Region return
 now passes Node SQLite rollback, lost-ack replay, reopen and no-double-effect
 u4480; actual Cloudflare evidence is separate. Hume owns shared supply/activity
-callers in isolated `field-supply`; Meitner reviews paired source read-only. No
-new browser or deployment.
+callers in isolated `field-supply`; Meitner accepted corrected paired source `c3b96bf`: shared post-return reference
+validation closes the unsavable-contents edge without another validator. Five
+affected laws and app types passed u4483. No new browser or deployment.
 
 **Generated-room source ready:** Sol pinned `fad0657` with10 affected laws
 u4465 and app types u4456. Root and Meitner accepted the three corrections:
