@@ -1,3 +1,4 @@
+import { createStartupReporter, renderStartup } from "./startup.js";
 import { Application, Container } from "pixi.js";
 import { bakeArt } from "./art.js";
 import { loadColony } from "./colony.js";
@@ -47,25 +48,37 @@ export function rectangleTargetIds(state, start, end) {
     .map((tree) => tree.id);
 }
 
+const startupLoading = document.querySelector("#loading");
+if (startupLoading) startupLoading.dataset.startupMain = "entered";
+const startup = createStartupReporter((stages) =>
+  renderStartup(document.querySelector("#loading"), stages),
+);
+
 async function startGame() {
   const host = document.querySelector("#stage");
   const [art, colony, loaded] = await Promise.all([
-    bakeArt(),
-    loadColony(),
-    loadWorld(),
+    startup.run("art", () =>
+      bakeArt((progress) => startup.progress("art", progress)),
+    ),
+    startup.run("optimizer", loadColony),
+    startup.run("storage", loadWorld),
   ]);
   window.addEventListener("pagehide", (event) => {
     if (!event.persisted) art.dispose();
   });
-  const app = new Application();
-  await app.init({
-    width: host.clientWidth,
-    height: host.clientHeight,
-    background: 0x293931,
-    antialias: false,
-    resolution: 1,
-    preference: "webgl",
+  const app = await startup.run("display", async () => {
+    const application = new Application();
+    await application.init({
+      width: host.clientWidth,
+      height: host.clientHeight,
+      background: 0x293931,
+      antialias: false,
+      resolution: 1,
+      preference: "webgl",
+    });
+    return application;
   });
+  startup.start("game");
   host.append(app.canvas);
   app.canvas.setAttribute(
     "aria-label",
@@ -861,7 +874,6 @@ async function startGame() {
   });
   hud.dispatch({ kind: "panel", panel: "menu" });
   publish();
-  document.querySelector("#loading").remove();
   window.__GOBLIN = {
     artReady: true,
     get state() {
@@ -892,11 +904,14 @@ async function startGame() {
     project: camera.project,
     colony,
   };
+  startup.complete("game");
+  document.querySelector("#loading").remove();
 }
 
 startGame().catch((error) => {
+  startup.fail("game", error);
   console.error(error);
   const loading = document.querySelector("#loading");
-  if (loading)
+  if (loading && !startup.snapshot().some((stage) => stage.status === "failed"))
     loading.textContent = "The clearing could not open. Reload to try again.";
 });
