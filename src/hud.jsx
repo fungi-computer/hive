@@ -2514,6 +2514,7 @@ export function createHud(host, art, effect) {
           command.kind === "store" ||
           command.kind === "repair-cache" ||
           command.kind === "fill-kettle" ||
+          command.kind === "water-mugwort" ||
           command.kind === "tap"
         )
           command.actors = null;

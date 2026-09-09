@@ -21,6 +21,7 @@ import {
 } from "./ui-actions.ts";
 
 const mainSource = readFileSync(new URL("./main.js", import.meta.url), "utf8");
+const hudSource = readFileSync(new URL("./hud.jsx", import.meta.url), "utf8");
 
 function named(scene, name) {
   let found = null;
@@ -77,7 +78,16 @@ test("Water mugwort stays a target-only catalog command", () => {
   assert.deepEqual(forwarded, [action]);
 });
 
-test("unscoped Water uses the shared request branch before roster selection", () => {
+test("unscoped Water stays shared through HUD normalization and request", () => {
+  const normalizer = hudSource.slice(
+    hudSource.indexOf('case "command":'),
+    hudSource.indexOf('case "go":'),
+  );
+  assert.match(
+    normalizer,
+    /command\.kind === "fill-kettle" \|\|\s*command\.kind === "water-mugwort"/,
+  );
+  assert.match(normalizer, /command\.actors = null/);
   const water = mainSource.indexOf('command.kind === "water-mugwort"');
   const selected = mainSource.indexOf(
     "command.actors === undefined ? selectedIds() : command.actors",
