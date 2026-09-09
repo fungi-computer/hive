@@ -214,10 +214,17 @@ field source; returns can choose another reached receiver but cannot invalidate
 the pending supply. Both rules reuse current owners. No new native Cloudflare,
 browser, benchmark, build or deployment is implied.
 
-Hume and Meitner have released accepted field source/review. Sol now traces only
-the existing accounts-to-Goblin boundary read-only, with ignored notes; no account
-writer, server or identity store is authorized. Root retains integration and the
-next actual rendered/DO qualification; the frozen prior input evidence remains.
+Hume and Meitner have released accepted field source/review. Hume's next
+source-only outcome is the same bounded paired witness over the existing native
+Goblin DO harness, isolated `field-region-host` at `add6906`. It must share the
+lawful authored fixture, existing fault/restart/receipt lifecycle and preserve
+the former digging evidence. No native launch, browser, build or deployment is
+released; Root owns actual heavy execution through Delivery. Sol completed the
+accounts-to-Goblin source trace in ignored notes; the peer proposal is in the
+[DO contract](local-snapshots-and-durable-ai-jobs.md#account-bound-goblin-entry--peer-proposal-september-9).
+No account writer, server or identity store is authorized. Root retains
+integration and actual rendered/DO qualification; frozen prior input evidence
+remains.
 
 **Generated-room source integrated:** Sol pinned `fad0657` with10 affected laws
 u4465 and app types u4456. Root and Meitner accepted the three corrections:
