@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export type Coordinate = readonly [number, number, number];
 export type Bounds = { readonly min: Coordinate; readonly max: Coordinate };
+/** Axis vocabulary shared by public face and exterior queries. */
+// fallow-ignore-next-line unused-type
 export type Axis = "x" | "y" | "z";
 export type SolidGeometry = {
   readonly bounds: Bounds;
@@ -163,6 +165,8 @@ export function compilePhysicalGeometry(
     (columns.get(`${at[0]},${at[2]}`) ?? []).some(
       (interval) => at[1] >= interval.min && at[1] < interval.max,
     );
+  const pointAt = (at: Coordinate) =>
+    inside(at, domain) ? (solidAt(at) ? "solid" : "empty") : "unresolved";
   const faceClosed = (axis: Axis, at: Coordinate) => {
     const normal = axes.indexOf(axis),
       tangent = [0, 1, 2].filter((i) => i !== normal);
@@ -173,44 +177,62 @@ export function compilePhysicalGeometry(
         ?.has(at[normal]) ?? false
     );
   };
-  function point(input: Coordinate) {
-    const at = coordinate.parse(input);
-    return inside(at, domain)
-      ? solidAt(at)
-        ? "solid"
-        : "empty"
-      : "unresolved";
-  }
-  function face(axis: Axis, input: Coordinate) {
-    const at = coordinate.parse(input),
-      normal = axes.indexOf(axis);
-    if (normal < 0) throw new Error("invalid physical face axis");
+  const faceAt = (axis: Axis, at: Coordinate, normal: number) => {
     const known = at.every(
       (v, i) =>
         v >= domain.min[i] &&
         (i === normal ? v <= domain.max[i] : v < domain.max[i]),
     );
     return known ? (faceClosed(axis, at) ? "closed" : "open") : "unresolved";
+  };
+  function point(input: Coordinate) {
+    return pointAt(coordinate.parse(input));
   }
+  function face(axis: Axis, input: Coordinate) {
+    const at = coordinate.parse(input),
+      normal = axes.indexOf(axis);
+    if (normal < 0) throw new Error("invalid physical face axis");
+    return faceAt(axis, at, normal);
+  }
+  const supportsClearance = (at: Coordinate, plane: number) =>
+    inside(at, domain) &&
+    plane >= at[1] &&
+    plane <= domain.max[1] &&
+    plane - at[1] <= 4096;
   function verticalClearance(
     input: Coordinate,
     ambientPlaneY: number,
   ): "clear" | "blocked" | "unresolved" {
     const at = coordinate.parse(input),
       plane = integer.parse(ambientPlaneY);
-    if (
-      plane < at[1] ||
-      plane > domain.max[1] ||
-      plane - at[1] > 4096 ||
-      !inside(at, domain)
-    )
-      return "unresolved";
+    if (!supportsClearance(at, plane)) return "unresolved";
     for (let y = at[1]; y <= plane; y++) {
       if (y < domain.max[1] && solidAt([at[0], y, at[2]])) return "blocked";
       if (y > at[1] && faceClosed("y", [at[0], y, at[2]])) return "blocked";
     }
     return "clear";
   }
+  function adjacent(
+    at: Coordinate,
+    normal: number,
+    direction: -1 | 1,
+  ) {
+    const boundary: [number, number, number] = [...at],
+      neighbor: [number, number, number] = [...at];
+    if (direction === 1) boundary[normal]++;
+    neighbor[normal] += direction;
+    return { boundary, neighbor };
+  }
+  const exitsAtAmbientPlane = (
+    axis: Axis,
+    direction: -1 | 1,
+    neighbor: Coordinate,
+    ambientPlaneY: number,
+  ) =>
+    axis === "y" &&
+    direction === 1 &&
+    neighbor[1] === ambientPlaneY &&
+    ambientPlaneY === domain.max[1];
   function exterior(
     input: Coordinate,
     axis: Axis,
@@ -221,21 +243,17 @@ export function compilePhysicalGeometry(
       normal = axes.indexOf(axis);
     if (normal < 0 || (direction !== -1 && direction !== 1))
       throw new Error("invalid exterior direction");
-    if (point(at) === "unresolved") return "needs-neighbor";
-    if (point(at) === "solid") return "closed";
-    const boundary: [number, number, number] = [...at],
-      neighbor: [number, number, number] = [...at];
-    if (direction === 1) boundary[normal]++;
-    neighbor[normal] += direction;
-    if (face(axis, boundary) === "closed" || point(neighbor) === "solid")
+    const origin = point(at);
+    if (origin === "unresolved") return "needs-neighbor";
+    if (origin === "solid") return "closed";
+    const { boundary, neighbor } = adjacent(at, normal, direction);
+    if (
+      face(axis, boundary) === "closed" ||
+      point(neighbor) === "solid"
+    )
       return "closed";
     // The registered upper face itself can be the explicitly declared plane.
-    if (
-      axis === "y" &&
-      direction === 1 &&
-      neighbor[1] === ambientPlaneY &&
-      ambientPlaneY === domain.max[1]
-    )
+    if (exitsAtAmbientPlane(axis, direction, neighbor, ambientPlaneY))
       return "outdoor";
     // An overhead obstruction is not a wall between these two empty cells.
     return verticalClearance(neighbor, ambientPlaneY) === "clear"

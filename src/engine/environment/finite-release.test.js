@@ -7,6 +7,31 @@ const close = (actual, expected) =>
       8 * Number.EPSILON * Math.max(Math.abs(actual), Math.abs(expected)),
     `${actual} differs from ${expected} beyond interval arithmetic roundoff`,
   );
+function applySegment(received, segment) {
+  if (segment.rates === null) return;
+  for (const channel of Object.keys(received))
+    received[channel] += segment.rates[channel] * segment.seconds;
+}
+function receivedAcross(release, start, times) {
+  const received = { heatJ: 0, smokeKg: 0 };
+  for (let i = 1; i < times.length; i++) {
+    const plan = release.plan(
+      start,
+      times[i - 1],
+      times[i] - times[i - 1],
+      1e-6,
+    );
+    assert.equal(plan.status, "ready");
+    for (const segment of plan.segments) applySegment(received, segment);
+  }
+  return received;
+}
+function assertExhaustedTotals(release, start, endsAt, times) {
+  const received = receivedAcross(release, start, times),
+    exhausted = release.read(start, endsAt).released;
+  for (const channel of Object.keys(received))
+    close(received[channel], exhausted[channel]);
+}
 
 test("one host-clock profile supplies finite rates and exhausts without another cursor", () => {
   const release = createFiniteRelease({
@@ -83,28 +108,13 @@ test("large host clocks and interval partitions cannot enlarge a finite release"
     0.1,
     "fixture exposes represented span rounding",
   );
-  for (const times of [
-    [start, start + 0.2],
-    [start, start + 0.03, start + 0.06, start + 0.2],
-  ]) {
-    const received = { heatJ: 0, smokeKg: 0 };
-    for (let i = 1; i < times.length; i++) {
-      const plan = release.plan(
-        start,
-        times[i - 1],
-        times[i] - times[i - 1],
-        1e-6,
-      );
-      assert.equal(plan.status, "ready");
-      for (const segment of plan.segments)
-        if (segment.rates)
-          for (const channel of Object.keys(received))
-            received[channel] += segment.rates[channel] * segment.seconds;
-    }
-    const exhausted = release.read(start, endsAt).released;
-    for (const channel of Object.keys(received))
-      close(received[channel], exhausted[channel]);
-  }
+  assertExhaustedTotals(release, start, endsAt, [start, start + 0.2]);
+  assertExhaustedTotals(release, start, endsAt, [
+    start,
+    start + 0.03,
+    start + 0.06,
+    start + 0.2,
+  ]);
 });
 
 test("a real short active piece, coast or owed remainder is retained by rejection", () => {

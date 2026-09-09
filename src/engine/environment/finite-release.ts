@@ -12,6 +12,8 @@ export type FiniteReleaseDefinition<K extends string> = {
   /** Channel names and units belong to the consuming physical operation. */
   readonly totals: Readonly<Record<K, number>>;
 };
+/** Stable public result of a release query. */
+// fallow-ignore-next-line unused-type
 export type ReleaseFacts<K extends string> = {
   readonly fraction: number;
   readonly remainingS: number;
@@ -23,6 +25,8 @@ export type ReleaseSegment<K extends string> = {
   /** null means the interval has no active source. */
   readonly rates: Readonly<Record<K, number>> | null;
 };
+/** Stable public result of planning against a consumer's minimum interval. */
+// fallow-ignore-next-line unused-type
 export type ReleasePlan<K extends string> =
   | {
       readonly status: "ready";
