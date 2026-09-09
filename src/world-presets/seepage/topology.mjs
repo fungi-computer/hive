@@ -1,8 +1,7 @@
 import { MATERIAL } from '../height-caves.mjs';
 import { createVolume } from '../../engine/environment/soil/index.js';
 import { key, xyz, same, assertVented, pitContacts, requireCondition } from './world-binding.mjs';
-
-export const soilNodeId = at => `cell:${key(at)}`;
+import { removalSource } from './source-record.mjs';
 const signed = n => n < 0 ? `n${-n}` : `p${n}`;
 const columnId = at => `column-${signed(at[0])}-${signed(at[2])}`;
 
@@ -11,13 +10,14 @@ function columnsFrom(world, removed) {
   for (const cell of removed) {
     const id = columnId(cell.at);
     if (!groups.has(id)) groups.set(id, []);
-    groups.get(id).push(cell.at);
+    groups.get(id).push(cell);
   }
   return [...groups].map(([id, cells]) => {
-    cells.sort((a, b) => a[1] - b[1]);
-    requireCondition(cells.every((at, i) => at[1] === cells[0][1] + i),
+    cells.sort((a, b) => a.at[1] - b.at[1]);
+    requireCondition(cells.every((cell, i) => cell.at[1] === cells[0].at[1] + i),
       'excavated column is one contiguous vertical air run');
-    const at = [...cells[0]], floor = world.readPoint(xyz([at[0], at[1] - 1, at[2]]));
+    requireCondition(cells.at(-1).kind === 'porous', 'vented columns begin with an owned porous surface cut');
+    const at = [...cells[0].at], floor = world.readPoint(xyz([at[0], at[1] - 1, at[2]]));
     requireCondition(floor === MATERIAL.soil || floor === MATERIAL.stone,
       'finite column has an actual soil or stone bottom, not an unmodeled opening');
     return { id, kind: 'vented-pit', at, heightCells: cells.length,
@@ -69,18 +69,21 @@ function surfaceEdges(columns, coefficient) {
 /** Rebuild only derived geometry. Saved terrain owns excavation; the volume
  * owns stock and time. Neither contacts nor reservoir capacity are extra state. */
 export function deriveTopology(config, world) {
-  const remaining = [], removed = [];
+  const checkpoint = world.save();
+  requireCondition(checkpoint.revision === checkpoint.changes.length &&
+    checkpoint.changes.every(change => change.material === MATERIAL.air),
+    'world edits exactly match single-voxel solid removals');
+  const removed = checkpoint.changes.map(change =>
+    removalSource(config, world, [change.x, change.y, change.z]));
+  const removedKeys = new Set(removed.map(cell => key(cell.at))), remaining = [];
   for (const cell of config.baseSoilGeometry.cells) {
     const material = world.readPoint(xyz(cell.at));
     requireCondition(material === MATERIAL.soil || material === MATERIAL.air,
-      'bounded excavation changes original soil only to air');
-    (material === MATERIAL.soil ? remaining : removed).push(cell);
+      'bounded excavation changes original solids only to air');
+    requireCondition(material === MATERIAL.soil || removedKeys.has(key(cell.at)),
+      'removed porous cells have an actual world edit');
+    if (material === MATERIAL.soil) remaining.push(cell);
   }
-  const checkpoint = world.save(), removedKeys = new Set(removed.map(cell => key(cell.at)));
-  requireCondition(checkpoint.revision === removed.length && checkpoint.changes.length === removed.length &&
-    checkpoint.changes.every(change => change.material === MATERIAL.air &&
-      removedKeys.has(key([change.x, change.y, change.z]))),
-    'world edits exactly match the removed base porous cells');
   const columns = columnsFrom(world, removed);
   const descriptor = { ...config.baseSoilGeometry, revision: checkpoint.revision, cells: remaining,
     reservoirs: columns, surfaceEdges: surfaceEdges(columns, config.surfaceCoefficient) };

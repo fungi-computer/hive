@@ -35,19 +35,33 @@ export type GeneratedTerrain = {
     readonly steps: number;
   };
   readonly initialWaterKg: number;
-  readonly exports: readonly {
+  readonly exports: readonly ({
     readonly id: string;
-    readonly fromNodeId: string;
+    readonly at: readonly [number, number, number];
+    readonly quantity: 1;
+    readonly sourceVoxelM3: number;
+  } & ({
+    readonly kind: "porous";
+    readonly materialId: 1;
+    readonly nodeId: string;
     readonly soilId: string;
     readonly waterKg: number;
-    readonly sourceVoxelM3: number;
-  }[];
+  } | {
+    readonly kind: "impermeable";
+    readonly materialId: 2;
+    readonly waterKg: 0;
+  }))[];
 };
 export function initialTerrain(): GeneratedTerrain {
   return adapter.parse(recipe.input);
 }
 export function parseTerrain(value: unknown): GeneratedTerrain {
-  return adapter.parse(value);
+  const state: GeneratedTerrain = adapter.parse(value);
+  // The engine consumer can deepen stone. Main-game yields still own only soil;
+  // do not admit an imported stone source as a soil item through the old count.
+  if (state.exports.some(source => source.kind !== "porous"))
+    throw new Error("Main-game stone material yields are not yet supported.");
+  return state;
 }
 export function terrainFacts(state: GeneratedTerrain) {
   return adapter.read(state);

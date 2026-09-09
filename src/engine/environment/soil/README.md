@@ -21,7 +21,7 @@ initial condition live in `world-presets/seepage/wet-clearing.mjs` and are not a
 about actual soil or water inferred from a terrain color.
 
 Current admitted limits are 64 porous cells, 8 reservoirs, 72 unknowns and 16 surface
-connections. Vented water columns explicitly own 1..16 vertically contiguous air
+connections. Vented water columns explicitly own 1..32 vertically contiguous air
 voxels and an explicit `bottom: 'porous' | 'sealed'`; their Darcy graph must remain
 connected. A porous bottom has exactly one floor port. A sealed bottom has none and requires at least
 one actual porous side, with no fictional floor node or flux. Physical
@@ -48,8 +48,10 @@ drainage-curve refinement. Surface edges remain constitutive chords in the same
 ledger; numerical continuity cleanup cannot transfer water across a closed crest.
 The column geometry is current format only. The world consumer owns deriving
 columns, ports and surface connections from actual edited voxels and rejects
-unmodeled lateral outlets. Generated-world deepening onto sealed material remains
-a separate integration proof. Terrain backfill, isolated/disconnected components,
+unmodeled lateral outlets. The separate generated-world consumer now qualifies
+a17-cell shaft through actual stone, with29 remaining porous nodes and two
+columns; the32-height geometry limit bounds enumeration, not a32-cell hydraulic
+capacity claim. Terrain backfill, isolated/disconnected components,
 free-falling travel, gas coupling and pail/material exchange remain unfinished.
 These are not replaced by the surface approximation.
 

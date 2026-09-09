@@ -63,7 +63,7 @@ export function assertVented(world, at) {
 }
 export function excavateWorld(world, command) {
   const result = world.edit({ expectedRevision: command.expectedWorldRevision,
-    cells: [{ ...xyz(command.at), expectedMaterial: MATERIAL.soil, material: MATERIAL.air }] });
+    cells: [{ ...xyz(command.at), expectedMaterial: command.expectedMaterial, material: MATERIAL.air }] });
   requireCondition(result.ok && result.revision === command.expectedWorldRevision + 1,
     `world excavation rejected: ${result.reason ?? 'revision did not advance'}`);
   return result;

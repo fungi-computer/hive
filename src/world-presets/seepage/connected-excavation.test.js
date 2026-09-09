@@ -43,15 +43,15 @@ test('two real generated cuts regenerate shared contacts, preserve prior water a
   assert.deepEqual(fresh.advance(restored, 6).state, adapter.advance(flowing.state, 6).state);
 });
 
-test('unknown side water, unowned stone excavation and corruption reject without changing the current owner', () => {
+test('unknown side water, noncontiguous stone excavation and corruption reject without changing the current owner', () => {
   const { adapter, input, target } = createWetClearing({ connected: true });
   const cut = adapter.excavate(input, { at: target }).state, frozen = adapter.encode(cut);
-  assert.throws(() => adapter.excavate(cut, { at: [target[0], target[1] - 2, target[2]] }), /remaining owned/);
+  assert.throws(() => adapter.excavate(cut, { at: [target[0], target[1] - 2, target[2]] }), /deepen the bottom/);
   assert.throws(() => adapter.excavate(cut, { at: [-1, target[1], target[2]] }), /canonical water ownership/);
   const duplicate = structuredClone(cut); duplicate.exports.push({ ...duplicate.exports[0] });
-  assert.throws(() => adapter.parse(duplicate), /one wet-spoil/);
+  assert.throws(() => adapter.parse(duplicate), /one excavation source/);
   const missing = structuredClone(cut); missing.exports.length = 0;
-  assert.throws(() => adapter.parse(missing), /one wet-spoil/);
+  assert.throws(() => adapter.parse(missing), /one excavation source/);
   const wrong = structuredClone(cut); wrong.soilState.identity += 'wrong';
   assert.throws(() => adapter.parse(wrong), /identity/);
   const outside = structuredClone(cut);
@@ -60,7 +60,7 @@ test('unknown side water, unowned stone excavation and corruption reject without
   assert.equal(world.edit({ expectedRevision: 1, cells: [{ x: 3, y: target[1], z: target[2],
     expectedMaterial: MATERIAL.soil, material: MATERIAL.air }] }).ok, true);
   outside.world = world.save();
-  assert.throws(() => adapter.parse(outside), /exactly match the removed/);
+  assert.throws(() => adapter.parse(outside), /canonical water ownership/);
   assert.equal(adapter.encode(cut), frozen);
 });
 

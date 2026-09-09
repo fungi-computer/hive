@@ -2076,7 +2076,7 @@ test("actual libcolony finishes an adjacent two-cell trench across a paused relo
   restored.paused = false;
   actualRun(restored, 125);
   assert.deepEqual(
-    new Set(restored.terrain.exports.map((entry) => entry.fromNodeId)),
+    new Set(restored.terrain.exports.map((entry) => entry.nodeId)),
     new Set(["cell:0,14,128", "cell:1,14,128"]),
   );
   const soil = restored.materials.lots.filter((lot) => lot.material === "soil");
