@@ -1,3 +1,4 @@
+import { fieldWaterSupplyKey } from "./field-water-source.ts";
 import { createMaterialsState } from "./materials.ts";
 // Commands authorize work. Fixed steps own outcomes; the view reads state.
 import type { Clearing, Colony, Command } from "./model.ts";
@@ -139,7 +140,9 @@ function advanceCandidate(
     advanceWork(state, person);
     advanceDrafted(state, person);
   }
+  const waterSupplyBefore = fieldWaterSupplyKey(state);
   state.terrain = advanceTerrain(state.terrain, STEP_SECONDS);
+  if (fieldWaterSupplyKey(state) !== waterSupplyBefore) state.workDirty = true;
   advanceBrewing(state);
   advanceHerbGrowth(state);
   assignWork(state, colony);
