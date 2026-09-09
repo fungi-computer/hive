@@ -34,6 +34,11 @@ correction; Meitner independently reads actual stencil/yield/room source. Root
 keeps release execution and the coupled physical/numerical decisions. Their first
 replies confirmed actual roots/files; no Session or worktree was replaced.
 
+**Editor cost and handoff policies remain:** expensive native-editor browser
+traces stay stopped. Compact8518cc5 is already hosted over accepted5171299;
+new narrow/export closure remains open. PMs own complete bounded outcomes through
+corrections and isolated commits; review checkpoints do not park them by default.
+
 **Latest development policy, Levi September 9:** breaking engine/game APIs and
 save formats are allowed. Do not implement legacy shims, compatibility wrappers,
 old-save migrations or parallel old execution paths unless Levi explicitly asks
@@ -696,6 +701,19 @@ foundation is not the generated playable world's completed air producer join.
 The following dated checkpoints retain source and proof provenance. They are not
 active staffing assignments or competing next-work queues.
 
+**Ultimate asset product, Levi September 9:** Hive asset authoring UI and MCP
+backend become a normal Fungi App through the same public contracts as Media and
+an independent publisher. Hive retains one asset/scene operations owner;
+Botanical owns the App host/Release/Installation/Grant join. An owner-selected
+immutable Release must execute an actual backend operation through ordinary App
+hosting, and its output must open in the authoring UI. Team capability use obeys
+normal grants/revocation; anonymous asset use gains no Team power. Current GET-only
+Release HTML and Media packaging do not prove an MCP POST backend. Use the
+existing App owners; no privileged Hub endpoint or new asset engine. Standalone
+MCP/editor/demo releases remain useful authorized interims. See Botanical's
+`wiki/2-areas/apps-computers-and-machines.md#hive-asset-authoring-as-an-app` for the
+peer-owned platform contract. This does not displace the current engine goal.
+
 **Active source handoff after `512c698`:** `engine_core_pm` owns the first actual
 Goblin-region source join: `src/orders.ts`, new command admission schema/tests,
 new `src/world-presets/goblin-region.ts`/tests and isolated `tools/engine-do/goblin-*`.
@@ -850,7 +868,31 @@ integration; it is not due tomorrow. Model terminals do not prove game results.
 Polished ecology/water/air making-of stories retain their actual experiment
 labels; private transcripts stay private and provider savings need measurement.
 
-**Shallow digging and backfill are live**, runtime
+**New water-world study is live, September 9:** `/wet-clearing.html`, also linked
+from `/study`, on the existing game preview. Release source
+`4a6931c4c6c4454431651c330ff8ec15dd980b1a` is pushed on
+`release/wet-clearing-20260909`; deployment
+`30835156-fdcd-48c6-9d4f-5333001c06ea`. This adds the actual generated-voxel and
+finite soil-water consumer, leaving every previous gameplay artifact unchanged.
+Select the marked block, Dig, then Wait ten minutes. Local input reached600s,
+12.57L in the hole,1.26cm depth and4320.32L total accounted for. The local
+`u4077` command exited1 because screenshot capture exhausted its45-second
+guard after those facts appeared; page errors were empty and owned browser and
+listener closed. No rendered/narrow/hosted-browser acceptance is claimed.
+`u4079` compared44 served new/study/game-entry assets, with zero mismatches.
+Evidence is in the wet-release worktree's
+`.botanical/wet-clearing-release/`. This is one local pit with checkpoint
+reopen/download; connected overflow, air/heat and the environment DO join remain
+required engine work. Publishing this requested demonstration does not finish
+the engine or replace its deep-dig/tower target.
+
+The current engine branch also merged the reviewed strict schema17 cleanup
+`60250d1` plus `7a428b2`: an outcome cannot be saved while its consumption is
+still active. Shared physical/reference validation remains. This source is not
+part of the frozen gameplay deployment. The next surface-exchange decision is
+recorded in the environment branch's `docs/decisions/voxel-surface-exchange.md`.
+
+**Shallow digging and backfill remain live**, runtime
 `449e9b8a642dc1c9e6d815f8e7417c143ba1e574`, same-preview deployment
 `ad099b8c-0c97-4432-bc8a-8ae92781a460`. Build → Dig/Backfill supports persistent
 paused shared rectangle designations. Workers use a safe rim; each removed
