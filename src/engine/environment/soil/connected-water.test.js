@@ -7,8 +7,8 @@ function ledge({coefficient=.5, upperMass=270, lowerMass=0, conductivity=1e-4}={
     ksMPerS:conductivity,ell:.5,minHeadM:-4,maxHeadM:8,densityKgM3:1000};
   const descriptor={regionId:'connected-ledge',revision:0,spacingM:[1,.54,1],exterior:'closed',
     definitions:[soil],cells:[[0,0,0],[0,-1,0],[1,-1,0]].map(at=>({at,soilId:soil.id})),
-    reservoirs:[{id:'upper',kind:'vented-pit',at:[0,1,0],heightCells:2},
-      {id:'lower',kind:'vented-pit',at:[1,0,0],heightCells:3}],
+    reservoirs:[{id:'upper',kind:'vented-pit',at:[0,1,0],heightCells:2,bottom:'porous'},
+      {id:'lower',kind:'vented-pit',at:[1,0,0],heightCells:3,bottom:'porous'}],
     ports:[{cell:[0,0,0],side:'y+',reservoirId:'upper'},
       {cell:[1,-1,0],side:'y+',reservoirId:'lower'},
       {cell:[0,0,0],side:'x+',reservoirId:'lower'}],

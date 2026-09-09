@@ -65,12 +65,14 @@ function reservoirInputs(inputs) {
   const ids = new Set();
   return inputs.map(input => {
     const pit = input?.kind === 'vented-pit';
-    ownKeys(input, pit ? ['id', 'kind', 'at', 'heightCells'] : ['id', 'areaM2'], 'finite reservoir definition fields');
+    ownKeys(input, pit ? ['id', 'kind', 'at', 'heightCells', 'bottom'] : ['id', 'areaM2'], 'finite reservoir definition fields');
     requireCondition(identifier(input.id) && !ids.has(input.id), 'unique finite reservoir ID'); ids.add(input.id);
     if (pit) {
       requireCondition(Number.isSafeInteger(input.heightCells) && input.heightCells > 0 && input.heightCells <= 16,
         'explicit column height in1..16 air voxels');
-      return Object.freeze({ id: input.id, kind: 'vented-pit', at: coordinate(input.at), heightCells: input.heightCells });
+      requireCondition(input.bottom === 'porous' || input.bottom === 'sealed', 'explicit porous or sealed column bottom');
+      return Object.freeze({ id: input.id, kind: 'vented-pit', at: coordinate(input.at),
+        heightCells: input.heightCells, bottom: input.bottom });
     }
     requireCondition(Number.isFinite(input.areaM2) && input.areaM2 >= 0.01 && input.areaM2 <= 8,
       'bounded positive reservoir surface area');
@@ -199,7 +201,7 @@ export function createVolumeGeometry(input) {
       requireCondition(!occupiedAir.has(id), 'finite columns cannot own overlapping air voxels'); occupiedAir.add(id);
     }
   }
-  const version = 'rigid-soil-voxel-columns-v2';
+  const version = 'rigid-soil-voxel-columns-v3';
   requireCondition(input.version === undefined || input.version === version,
     'supported porous geometry descriptor version');
   const nodes = Object.freeze([...cells, ...reservoirNodes(reservoirDefs, ports, cells, spacing)]);
