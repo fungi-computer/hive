@@ -132,6 +132,25 @@ body {
   line-height: 1.5;
 }
 
+.air-legend details {
+  color: var(--stipe-fg-muted);
+}
+
+.air-legend summary {
+  width: fit-content;
+  color: var(--color-base-content);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.air-legend details[open] summary {
+  margin-bottom: 0.8rem;
+}
+
+.air-legend details p + p {
+  margin-top: 0.75rem;
+}
+
 .air-key {
   display: inline-block;
   width: 0.8rem;

@@ -3,6 +3,7 @@ import { Application, Sprite, Texture } from "pixi.js";
 import { camera } from "../art/prop-camera.js";
 import { box, scene as litScene } from "../art/geometry.js";
 import { building, wallJoint } from "../art/home.js";
+import { kettleFire } from "../art/brew-vessel.js";
 
 const WIDTH = 640;
 const HEIGHT = 400;
@@ -129,11 +130,16 @@ function cellVisible(cell, layer) {
   return true;
 }
 
-function addSiteArt(site, structural, target, centerX, centerZ) {
+function addSiteArt(site, structural, target, centerX, centerZ, burning) {
   const art =
     site.type === "wall"
       ? wallJoint("finished", wallMask(site, structural))
       : building(site.type, "finished", site.direction, { profile: "empty" });
+  if (site.type === "brew-station" && burning) {
+    const station = art.getObjectByName("brew-station");
+    if (!station) throw new Error("brewhouse station art is missing");
+    kettleFire(station, 0);
+  }
   const anchor = new THREE.Group();
   // Station art owns its positive-cell (.5,.5) datum internally. Every other
   // building is centered on the current corner-addressed voxel.
@@ -195,7 +201,7 @@ export async function createBrewhouseAirView(host) {
   host.append(app.canvas);
   app.canvas.setAttribute(
     "aria-label",
-    "Isometric two-storey brewhouse with measured heat and smoke cells",
+    "Isometric authored two-storey brewhouse with optional heat and smoke overlays",
   );
 
   const renderer = new THREE.WebGLRenderer({
@@ -242,7 +248,9 @@ export async function createBrewhouseAirView(host) {
   }
 
   function buildStatic(scene, layer, turn) {
-    const key = `${layer}:${turn}:${scene.result.ventOpen}`;
+    const burning =
+      scene.result.fuelUnits === 0 && scene.result.remainingDoseFraction > 0;
+    const key = `${layer}:${turn}:${scene.result.ventOpen}:${burning}`;
     if (staticKey === key) return;
     staticKey = key;
     clearStatic();
@@ -266,7 +274,7 @@ export async function createBrewhouseAirView(host) {
     const perimeter = wallPerimeter(scene.sites);
     for (const site of scene.sites)
       if (siteVisible(site, layer, perimeter, turn))
-        addSiteArt(site, structural, staticRoot, centerX, centerZ);
+        addSiteArt(site, structural, staticRoot, centerX, centerZ, burning);
     addShutterMarker(scene, layer, staticRoot, centerX, centerZ, {
       closed: shutterClosedMaterial,
       open: shutterOpenMaterial,

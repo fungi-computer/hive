@@ -15,8 +15,8 @@ export const STUDY_GROUPS = Object.freeze([
         title: "Warm air in the brewhouse",
         href: "/brewhouse-air.html",
         scope:
-          "Ignite one finite wood dose and advance measured heat and passive tracer through an authored two-storey room. Browser-local checkpoint; no safety or server claim.",
-        evidence: "Live local world",
+          "Light one stocked hearth and compare measured air downstairs and upstairs in an authored two-storey room. Browser-local saved state; not the complete game-world air join.",
+        evidence: "Live authored-room study",
       },
       {
         id: "water-lab",
