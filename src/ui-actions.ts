@@ -81,7 +81,7 @@ export function terrainDesignationCells(
       x <= Math.min(14, Math.max(from.x, end.x));
       x++
     )
-      cells.push({ kind, voxel: terrainCell(terrain, x, z).voxel });
+      cells.push({ kind, voxel: [...terrainCell(terrain, x, z).voxel] });
   return cells;
 }
 
