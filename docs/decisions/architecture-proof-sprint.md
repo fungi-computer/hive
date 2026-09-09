@@ -159,6 +159,39 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Latest actual witness, superseding the earlier startup-only result:** Root ran
+frozen `b5e1303` once as `u4438`, invocation
+`bbfb6f47060749eba4a0b7283617372c`, after Delivery released the input-only
+window. Initial startup succeeded. Physical paused Dig admitted `[0,14,128]`
+at tick0; Rowan completed it and produced one soil lot, paused at tick56 with
+physical time2.8seconds. Root viewed `completed.png` in the actual isometric
+clearing. Reload then exceeded the unchanged60second startup deadline: main
+entered, storage/optimizer complete, art1291 textures complete after68.044seconds,
+display initialization running and game assembly not begun. No canvas existed
+at that observation. Error arrays were empty. This is a measured frontier,
+not proof of an earlier root cause or exact reload restoration. The two actual
+input/work assertions passed; reload equality did not run. Browser, all captured
+processes and port5198 closed; scope inactive/dead with empty ControlGroup.
+Delivery has the returned window. Evidence and hashes are in frozen
+`game-startup-proof/.botanical/game-startup-input/WINDOW-RESULT.md`. No benchmark,
+law/build replay, new deployment or automatic browser repeat. Hume now owns
+bounded source-only reload-cost disposition, ignored notes only.
+
+**Material boundary now integrated:** Meitner's `5c35791` is joined as `18a1e30`,
+all five accepted hashes verified. Held-vessel import delegates identity,
+quantity/definition and capacity to the existing creation owner. Export shares
+exact held-portion debit with consumption but appends no consumption sink.
+Seven focused laws `u4429`, strict types `u4432` and inspected Fallow
+`u4433/u4435` qualify that material-side boundary; existing advisories remain.
+No unchanged suite was repeated. Root still owns the actual paired field/game
+operation, units, supply/reach and joined admission/Region commitment. Meitner
+has released those source files and independently reviews Sol's generated-room
+producer/Region/view read-only. Sol continues the same bounded writer chunk;
+Root found and routed its half-tile display mismatch against center-addressed
+terrain. No physics or original builder change is needed for that correction.
+
+The following records preserve prior evidence and completed custody history.
+
 **Latest actual input witness:** diagnostic `u4391` at runtime `09e813a`, fixture
 `696bd2a`, again timed out at initial readiness after60seconds. The bounded
 document read succeeded: original loading text, document complete, no

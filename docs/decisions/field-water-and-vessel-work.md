@@ -11,10 +11,15 @@ did strict installed types. Existing physical and93-law material source evidence
 was not rerun. Game pairing and current-version DO acceptance remain outstanding.
 
 Meitner and Hume released the reviewed physical and partial-pail files to Root.
-Meitner now owns only the generic held-vessel import/export material primitives
-in `vessel-boundary`, reusing held custody and the new shared portion debit.
-Outward physical transfer creates no end-use sink or new saved ledger. Root
-owns the paired field/material admission and serial game join. The unchanged
+Generic held-vessel import/export is now pinned `5c35791`, integrated `18a1e30`
+with all five source hashes matched. Import delegates allocation, definition
+validation, capacity and final commitment to `introduceFiniteSourceLot`; export
+uses the same held-debit admission as consumption and returns a frozen detached
+fact without creating an end-use sink or saved ledger. Seven focused laws
+`u4429` and strict types `u4432` passed; actual Fallow `u4433/u4435` retains
+existing advisories. These primitives do not prove an outside counterpart or
+idempotency alone. Root owns the paired field/material admission and serial
+game join. The unchanged
 main-water diagnostic remains frozen and Root-owned. One current-format change removes
 the duplicate outer water baseline; no predecessor reader or shim.
 
