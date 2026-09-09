@@ -159,6 +159,31 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Current worktree supersession, September 9:** each writer has a verified
+isolated root and its own installed dependency copy. `engine_core_pm` owns
+`/home/levi/src/hive-worktrees/work` (`engine/work-20260909`) for the shared
+work executor and current-format callers. `asset_product_pm` owns
+`/home/levi/src/hive-worktrees/editor` (`asset/editor-20260909`) for functional
+editor work and surrounding Caps chrome. King Bolete owns
+`/home/levi/src/hive-worktrees/environment` (`engine/environment-20260909`) for
+world/soil/water. The original root is frozen integration custody. The separate
+`editor-shell` release worktree contains only the reviewed chrome delta over
+accepted `5171299`; unaccepted functional changes do not enter that release.
+The paragraphs below retain earlier checkpoint history, not current writer roots.
+
+**Ultimate asset product, Levi September 9:** Hive asset authoring UI and MCP
+backend become a normal Fungi App through the same public contracts as Media and
+an independent publisher. Hive retains one asset/scene operations owner;
+Botanical owns the App host/Release/Installation/Grant join. An owner-selected
+immutable Release must execute an actual backend operation through ordinary App
+hosting, and its output must open in the authoring UI. Team capability use obeys
+normal grants/revocation; anonymous asset use gains no Team power. Current GET-only
+Release HTML and Media packaging do not prove an MCP POST backend. Use the
+existing App owners; no privileged Hub endpoint or new asset engine. Standalone
+MCP/editor/demo releases remain useful authorized interims. See Botanical's
+`wiki/2-areas/apps-computers-and-machines.md#hive-asset-authoring-as-an-app` for the
+peer-owned platform contract. This does not displace the current engine goal.
+
 **Active source handoff after `512c698`:** `engine_core_pm` owns the first actual
 Goblin-region source join: `src/orders.ts`, new command admission schema/tests,
 new `src/world-presets/goblin-region.ts`/tests and isolated `tools/engine-do/goblin-*`.
