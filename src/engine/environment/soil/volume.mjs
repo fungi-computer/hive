@@ -21,7 +21,12 @@ function admitRequest(g, identity, input, intervalS, options) {
   requireCondition(Number.isSafeInteger(maxEvaluations) && maxEvaluations > 0 &&
     maxEvaluations <= REGION_LIMITS.maxEvaluations && Number.isSafeInteger(maxMatrixUpdates) &&
     maxMatrixUpdates > 0 && maxMatrixUpdates <= REGION_LIMITS.maxMatrixUpdates, 'bounded nonlinear/linear work request');
-  return { endS: input.timeS + intervalS, dtMaxS, maxSteps, maxEvaluations, maxMatrixUpdates };
+  const endS = input.timeS + intervalS;
+  // A timestamp must resolve the smallest supported adaptive interval with
+  // margin. Do not enlarge a physical timestep to overcome a coarse clock.
+  requireCondition(intervalS === 0 || Number.EPSILON * Math.max(1, input.timeS, endS) <= NUMERICS.minDtS / 16,
+    'absolute clock resolution is too coarse for supported solver timesteps');
+  return { endS, dtMaxS, maxSteps, maxEvaluations, maxMatrixUpdates };
 }
 
 function newWork(request) {
@@ -51,8 +56,8 @@ function boundedStep(g, state, proposedDtS, work, rejectedStages) {
   throw new Error('unreachable bounded region retry');
 }
 
-function proposedStep(state, request, intervalS) {
-  const remaining = request.endS - state.timeS;
+function proposedStep(elapsedS, compensationS, request, intervalS) {
+  const remaining = intervalS - elapsedS + compensationS;
   const roundoff = 16 * Number.EPSILON * Math.max(1, intervalS, request.dtMaxS);
   // Absorb only summation roundoff into the last actual solve. Never advance
   // the clock through an unsolved tiny tail or change the global physical cap.
@@ -103,6 +108,7 @@ export function createVolume(descriptor) {
   const identity = JSON.stringify({ version: VERSION, geometry: g.identity,
     faceRule: 'series-centre-half-trace-quarter-v1', solver: 'analytic-dense-newton-tree-closure-v1',
     pressureGuess: 'stable-id-multisource-bfs-canonical-stock-v1', dryBoundary: 'single-port-only-v1',
+    timeIntegration: 'request-local-compensated-interval-v1',
     surfaceExchange: SURFACE_EXCHANGE_VERSION,
     ...(g.nodes.some(n => n.kind === 'pit') ? {
       pitBoundary: 'voxel-column-integrated-side-single-floor-positive-depth-v2',
@@ -112,15 +118,21 @@ export function createVolume(descriptor) {
     const request = admitRequest(g, identity, input, intervalS, options), work = newWork(request);
     const receipt = { startS: input.timeS, endS: input.timeS, faceIds: g.faces.map(f => f.id),
       faceTransferKg: Array(g.faces.length).fill(0), steps: [], rejectedStages: [], maxAbsMetrics: {} };
-    let state = input;
+    let state = input, elapsedS = 0, compensationS = 0;
     try {
-      while (state.timeS < request.endS) {
+      while (elapsedS < intervalS) {
         requireCondition(receipt.steps.length < request.maxSteps, 'accepted region step budget exhausted; input uncommitted');
-        const trial = boundedStep(g, state, proposedStep(state, request, intervalS), work, receipt.rejectedStages);
+        const trial = boundedStep(g, state, proposedStep(elapsedS, compensationS, request, intervalS), work, receipt.rejectedStages);
+        // Accumulate only intervals actually solved. This request-local Kahan
+        // working pair is discarded on return; canonical time remains timeS.
+        const incrementS = trial.dtS - compensationS, nextElapsedS = elapsedS + incrementS;
+        compensationS = (nextElapsedS - elapsedS) - incrementS;
+        elapsedS = nextElapsedS;
         const next = freezeState({ ...state, massKg: trial.massKg,
-          timeS: state.timeS + trial.dtS, steps: state.steps + 1 });
+          timeS: input.timeS + elapsedS, steps: state.steps + 1 });
         validateState(g, identity, next); recordStep(state, next, trial, receipt); state = next;
       }
+      requireCondition(state.timeS === request.endS, 'solved interval must reach its representable timestamp');
       receipt.aggregateResidual = receiptBalance(g, input, state, receipt);
     } catch (error) {
       // Diagnostic local progress is explicitly uncommitted, never a new input
