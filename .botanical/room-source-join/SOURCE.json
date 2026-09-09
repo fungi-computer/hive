@@ -1,0 +1,48 @@
+{
+  "head": "5da4c2fabe9f3b6083e1f79f30bcd6ae5b41e9b9",
+  "base": "cf66f922b8d42db4af2332a39c6b49809526c851",
+  "root": "/home/levi/src/hive-worktrees/finite-emissions",
+  "status": "SOURCE REVIEWED; combined qualification not started",
+  "parts": {
+    "geometry": "c951b0aa8af5165fa962bd98ddc090ac6c766746",
+    "finiteRelease": "ec15cc3ae7b357a4e9212d9cb47be256ac3da535"
+  },
+  "files": [
+    {
+      "path": "src/engine/environment/finite-release.test.js",
+      "sha256": "571e92069048ef70dca4892774f10c6c5cb96bfaaff41e90223409a00d11bc5f"
+    },
+    {
+      "path": "src/engine/environment/finite-release.ts",
+      "sha256": "b8faa4bb7b66b0ae62bcbe0d55234db7324b4b39b0c56e517aa7585b1092d098"
+    },
+    {
+      "path": "src/engine/world/physical-geometry.test.js",
+      "sha256": "d32523b8948ae4a2583caef664cf80c210594772925b1a4032ebe55bb865b04b"
+    },
+    {
+      "path": "src/engine/world/physical-geometry.ts",
+      "sha256": "89d8ce9e9d06eb4b1bff3fb9cd7968f36e4c2d05e4221c016cbb823760f955ed"
+    },
+    {
+      "path": "src/structure-environment.README.md",
+      "sha256": "7a2e38de36d3d851426f1e679a3845091fca5db151ec10de4af47da324c5bbc6"
+    },
+    {
+      "path": "src/structure-environment.ts",
+      "sha256": "d1023abd7e19fbea4e64311596722ad790132be5c0deae3756b24c082e904af0"
+    },
+    {
+      "path": "src/world-presets/brewhouse-air/generated-room-geometry.test.js",
+      "sha256": "5941175773b6b52f589962e243bd85835a306c844a36aa1cc1ad8cccf38c33f3"
+    },
+    {
+      "path": "src/world-presets/brewhouse-air/generated-room.ts",
+      "sha256": "8bae669b970eab35e51a5f866fc80331defcb984f5b322304be62b8eb577294c"
+    },
+    {
+      "path": "src/world-presets/brewhouse-air/region.ts",
+      "sha256": "6459fc1bdde94002af219d265ea486eb5b04ae06cfcab72284c3310011ef558d"
+    }
+  ]
+}
