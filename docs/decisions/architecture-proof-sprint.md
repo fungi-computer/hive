@@ -149,6 +149,23 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Active source handoff after `512c698`:** `engine_core_pm` owns the first actual
+Goblin-region source join: `src/orders.ts`, new command admission schema/tests,
+new `src/world-presets/goblin-region.ts`/tests and isolated `tools/engine-do/goblin-*`.
+Existing Clearing codec/material/world and frozen Watchdog remain read-only to
+that writer. The accepted ignored static-Wasm libcolony build (`u3919`) supplies
+the optimizer readiness, not a substitute assignment algorithm. The first shape
+must preserve paused admission and separate bounded host time advancement, then
+prove actual pawn digging through the existing work owner. Root retains the
+environment/voxel-water seam and serial acceptance/Git/deployment.
+
+`asset_product_pm` independently owns the next full-editor source refinement and
+real edit/undo/save/reopen/export trace. `512c698`, the accepted static review
+archive and its normal/390 evidence remain frozen for Botanical hosting. Current
+renderer/settings/import limitations are explicit; no shared-link service is
+implied. A read-only supporting reviewer traces only the retained seepage adapter
+versus current opaque voxel queries for Root; it owns no shared source.
+
 **Public demo amendment, September 9:** Levi wants environmental demonstrations
 inside Hive's voxel world. Water, soil, air/heat and terrain exhibits must share
 the actual world geometry and applicable simulation owners, with ordinary visible
