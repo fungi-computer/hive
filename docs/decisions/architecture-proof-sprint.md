@@ -174,8 +174,16 @@ input/work assertions passed; reload equality did not run. Browser, all captured
 processes and port5198 closed; scope inactive/dead with empty ControlGroup.
 Delivery has the returned window. Evidence and hashes are in frozen
 `game-startup-proof/.botanical/game-startup-input/WINDOW-RESULT.md`. No benchmark,
-law/build replay, new deployment or automatic browser repeat. Hume now owns
-bounded source-only reload-cost disposition, ignored notes only.
+law/build replay, new deployment or automatic browser repeat. Hume completed
+source-only reload-cost disposition: installed Three rewrites backing dimensions
+on every setSize call, and1288 of1291 startup requests repeat the previous size.
+The shared bake guard `a24ade6` is now source-reviewed/integrated: read actual
+renderer size every call, resize when needed, otherwise reset full viewport.
+Original builders, pixels/outline code, dimensions, cameras and dynamic bakes
+remain unchanged. Syntax `u4450` passed; Fallow `u4451` retains the inherited
+bakeArt complexity advisory. No speedup or new raster/parity claim. The frozen
+input-only candidate remains unchanged. Hume released that one-file source;
+Root's field/material boundary is the next coupled implementation dependency.
 
 **Material boundary now integrated:** Meitner's `5c35791` is joined as `18a1e30`,
 all five accepted hashes verified. Held-vessel import delegates identity,
