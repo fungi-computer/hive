@@ -1,0 +1,29 @@
+{
+  "status": "failed",
+  "endpoint": "http://127.0.0.1:42199",
+  "checks": [],
+  "processes": [
+    {
+      "pid": 404419,
+      "exit": {
+        "code": 130,
+        "signal": null
+      },
+      "listenerClosed": true
+    }
+  ],
+  "sourceHashes": {
+    "watchdog-worker.ts": "1ecfccfbadd6ef3e1851787a69fa2386fccbf59259120ce47bab509457a23774",
+    "watchdog.wrangler.json": "57cdce93f0ad7ea6461950cf9f75f9e8637ab10b6d626f82c3c2f0ebb2d288bf",
+    "watchdog-proof.mjs": "1979acca533e51e7a834c38b4a615f36ecbb3e1ebb12c314c48a3cd92a3e16a7",
+    "watchdog-env.d.ts": "e1d5d8e1a4dd8cd712af58a3bf7f9b8fca462edf4a151b965c0a5c728b24b8cd",
+    "watchdog.tsconfig.json": "b9e3dbcf7c341a06399ca71231d0dda2dd9df04b89573c5dfa7bd05d67cd8fdf",
+    "package.json": "3307e631af900af4fb9c028f12093e60fb9e770129e7fd15a639cc23643adce8",
+    "package-lock.json": "8fdf54289db6eb3643c1199aa9930d72bb319ca2b823c436cef58f7807996a27",
+    "vendor/fungi.computer-watchdog-0.0.0.tgz": "00ca3f33f7eac8742555fec180bc5788afe414fc3f0ea5a6afa953282cde626e",
+    "vendor/fungi.computer-cairn-0.0.0.tgz": "803c6e3a95290443ba0dcd22e73d3be95795e0dc356df82f0f8ceba554581f45",
+    "../../src/engine/region/index.ts": "9981e57eb070ac25ec194a59b7d967d7674b150688d2abedbcc3a9db2e30acfa",
+    "../../src/world-presets/excavation-region.ts": "72cf7e2d1c6a9e6681ca9915f02d7ad63ba217bb83622bcf0c5899fa7abaf87f"
+  },
+  "error": "SyntaxError: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at parseJSONFromBytes (node:internal/deps/undici/undici:4394:19)\n    at successSteps (node:internal/deps/undici/undici:7048:27)\n    at readAllBytes (node:internal/deps/undici/undici:5965:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

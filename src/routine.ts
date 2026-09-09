@@ -21,7 +21,6 @@ export function updateRoutine(state: Clearing): void {
     if (!nightIds.size) return;
     for (const person of Object.values(state.actors)) {
       if (!person.task || !nightIds.has(person.task.job)) continue;
-      if (person.mode === "sleep" && person.work > 0) state.rested++;
       finishActivity(state, person);
     }
     state.jobs = state.jobs.filter((job) => !nightIds.has(job.id));
@@ -40,16 +39,17 @@ export function updateRoutine(state: Clearing): void {
         continue;
       if (
         state.jobs.some(
-          (job) => job.kind === "rest" && job.target === person.id,
+          (job) => job.kind === "care" && job.target === person.id,
         )
       )
         continue;
       if (!shelteredBeds(state).length) continue;
       state.jobs.unshift({
         id: `job-${state.nextId++}`,
-        kind: "rest",
+        kind: "care",
         target: person.id,
-        scope: { party: party.id, actors: [person.id] },
+        need: "rest",
+        policy: "routine-rest",
         reason: "Night routine",
         routine: true,
       });

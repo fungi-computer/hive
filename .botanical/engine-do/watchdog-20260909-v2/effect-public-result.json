@@ -1,0 +1,51 @@
+{
+  "work": {
+    "status": "found",
+    "job": {
+      "jobId": "[\"watchdog-quarry-proof-v1\",\"quarry-builder\",\"effect-restart\"]",
+      "queue": "quarry",
+      "lane": "host-command",
+      "priority": 0,
+      "payload": {
+        "principal": "quarry-builder",
+        "input": {
+          "id": "effect-restart",
+          "expectedRevision": 1,
+          "command": {
+            "kind": "excavate",
+            "at": {
+              "x": 1,
+              "y": -1,
+              "z": 0
+            }
+          }
+        }
+      },
+      "recovery": {
+        "maxRecoveries": 1
+      },
+      "state": "settled",
+      "outcome": "completed"
+    },
+    "cancellation": {
+      "status": "absent"
+    }
+  },
+  "receipt": {
+    "commandId": "effect-restart",
+    "principal": "quarry-builder",
+    "region": "watchdog-quarry-proof-v1",
+    "result": {
+      "at": {
+        "x": 1,
+        "y": -1,
+        "z": 0
+      },
+      "lot": "lot-2",
+      "material": "chalk",
+      "quantity": 1
+    },
+    "revision": 2,
+    "status": "applied"
+  }
+}

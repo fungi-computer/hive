@@ -1,0 +1,9 @@
+{
+  "name": "hive-watchdog-local-proof",
+  "main": "./watchdog-worker.ts",
+  "compatibility_date": "2026-09-04",
+  "durable_objects": {
+    "bindings": [{ "name": "REGIONS", "class_name": "WatchdogQuarry" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WatchdogQuarry"] }]
+}

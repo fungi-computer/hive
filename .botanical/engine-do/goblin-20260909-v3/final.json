@@ -1,0 +1,393 @@
+{
+  "snapshot": {
+    "region": "goblin-proof-v1",
+    "programId": "goblin-region-v1",
+    "revision": 5,
+    "state": {
+      "clearing": {
+        "seed": 42,
+        "tick": 60,
+        "paused": false,
+        "nextId": 2,
+        "parties": {
+          "home": {
+            "id": "home",
+            "members": [
+              "rowan"
+            ]
+          }
+        },
+        "cat": {
+          "x": 8,
+          "z": 10,
+          "level": 0,
+          "dir": 0,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "nextMove": 100
+        },
+        "trees": [
+          {
+            "x": 3,
+            "z": 4,
+            "level": 0,
+            "id": "oak-1",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 10,
+            "z": 3,
+            "level": 0,
+            "id": "oak-2",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 3,
+            "z": 9,
+            "level": 0,
+            "id": "oak-3",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 11,
+            "z": 10,
+            "level": 0,
+            "id": "oak-4",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 6,
+            "z": 2,
+            "level": 0,
+            "id": "oak-5",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 1,
+            "z": 6,
+            "level": 0,
+            "id": "oak-6",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 6,
+            "z": 12,
+            "level": 0,
+            "id": "oak-7",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "x": 12,
+            "z": 6,
+            "level": 0,
+            "id": "oak-8",
+            "work": 0,
+            "felledAt": null
+          }
+        ],
+        "herbs": [],
+        "rocks": [
+          {
+            "x": 1,
+            "z": 1,
+            "level": 0
+          },
+          {
+            "x": 13,
+            "z": 12,
+            "level": 0
+          },
+          {
+            "x": 2,
+            "z": 13,
+            "level": 0
+          },
+          {
+            "x": 12,
+            "z": 1,
+            "level": 0
+          }
+        ],
+        "watcher": {
+          "x": 13,
+          "z": 2,
+          "level": 0
+        },
+        "sites": [],
+        "sources": [
+          {
+            "x": 13,
+            "z": 13,
+            "level": 0,
+            "id": "feature:spring",
+            "kind": "spring",
+            "access": "open"
+          },
+          {
+            "x": 1,
+            "z": 13,
+            "level": 0,
+            "id": "feature:reclaimed-timber-cache",
+            "kind": "reclaimed-timber-cache",
+            "access": "sealed",
+            "repaired": false
+          }
+        ],
+        "pendingSources": [],
+        "processes": [],
+        "workDirty": false,
+        "felled": 0,
+        "finishedJobs": 1,
+        "harvestedHerbs": 0,
+        "feed": {
+          "seed": 42,
+          "sequence": 1,
+          "nextAt": 50,
+          "last": {
+            "kind": "demand",
+            "name": "Mallow",
+            "tick": 50,
+            "text": "A roof before supper, human. Or you're supper."
+          }
+        },
+        "demand": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        },
+        "notice": "One shallow soil voxel is on the rim.",
+        "terrain": {
+          "base": "authored-clearing-v1",
+          "edits": [
+            {
+              "x": 7,
+              "z": 9,
+              "level": 0
+            }
+          ],
+          "revision": 1
+        },
+        "actors": {
+          "rowan": {
+            "x": 7,
+            "z": 10,
+            "level": 0,
+            "id": "rowan",
+            "name": "Rowan",
+            "figure": "rowan",
+            "dir": 2,
+            "mode": "idle",
+            "path": [],
+            "leg": 0,
+            "work": 0,
+            "drafted": false,
+            "routine": false,
+            "allowedWork": {
+              "chop": true,
+              "haul": true,
+              "build": true,
+              "garden": true,
+              "craft": true
+            },
+            "task": null,
+            "assignment": null,
+            "needs": {
+              "advancedAt": 60,
+              "nourishment": 99.6750000000003,
+              "hydration": 99.45833333333354,
+              "rest": 79.27999999999997
+            }
+          },
+          "sedge": {
+            "x": 10,
+            "z": 12,
+            "level": 0,
+            "id": "sedge",
+            "name": "Sedge",
+            "figure": "witch-runner",
+            "dir": 0,
+            "mode": "idle",
+            "path": [],
+            "leg": 0,
+            "work": 0,
+            "drafted": false,
+            "routine": false,
+            "allowedWork": {
+              "chop": true,
+              "haul": true,
+              "build": true,
+              "garden": true,
+              "craft": true
+            },
+            "task": null,
+            "assignment": null,
+            "needs": {
+              "advancedAt": 60,
+              "nourishment": 99.6750000000003,
+              "hydration": 99.45833333333354,
+              "rest": 79.27999999999997
+            }
+          }
+        },
+        "materials": {
+          "lots": [
+            {
+              "id": "source-lot:feature:spring",
+              "material": "water",
+              "quantity": 8,
+              "location": {
+                "kind": "container",
+                "container": "source:feature:spring"
+              }
+            },
+            {
+              "id": "needs-water-lot:feature:spring",
+              "material": "water",
+              "quantity": 8,
+              "location": {
+                "kind": "container",
+                "container": "source:feature:spring"
+              }
+            },
+            {
+              "id": "source-lot:feature:reclaimed-timber-cache",
+              "material": "wood",
+              "quantity": 10,
+              "location": {
+                "kind": "container",
+                "container": "source:feature:reclaimed-timber-cache"
+              }
+            },
+            {
+              "id": "source-pail-lot:feature:reclaimed-timber-cache",
+              "material": "pail",
+              "quantity": 1,
+              "location": {
+                "kind": "container",
+                "container": "source-pail:feature:reclaimed-timber-cache"
+              }
+            },
+            {
+              "id": "source-malt-lot:feature:reclaimed-timber-cache",
+              "material": "malt",
+              "quantity": 4,
+              "location": {
+                "kind": "container",
+                "container": "source-supplies:feature:reclaimed-timber-cache"
+              }
+            },
+            {
+              "id": "source-barm-lot:feature:reclaimed-timber-cache",
+              "material": "barm",
+              "quantity": 1,
+              "location": {
+                "kind": "container",
+                "container": "source-supplies:feature:reclaimed-timber-cache"
+              }
+            },
+            {
+              "id": "source-keg-lot:feature:reclaimed-timber-cache",
+              "material": "keg",
+              "quantity": 1,
+              "location": {
+                "kind": "container",
+                "container": "source-supplies:feature:reclaimed-timber-cache"
+              }
+            },
+            {
+              "id": "source-ration-lot:feature:reclaimed-timber-cache",
+              "material": "ration",
+              "quantity": 6,
+              "location": {
+                "kind": "container",
+                "container": "source-supplies:feature:reclaimed-timber-cache"
+              }
+            },
+            {
+              "id": "lot-1",
+              "material": "soil",
+              "quantity": 1,
+              "location": {
+                "x": 7,
+                "z": 10,
+                "level": 0,
+                "kind": "ground"
+              }
+            }
+          ],
+          "transfers": [],
+          "bindings": [],
+          "transformations": [],
+          "consumptions": [],
+          "embedded": [],
+          "nextLotId": 2,
+          "consumedWood": 0,
+          "sinks": []
+        },
+        "jobs": [],
+        "operations": [],
+        "careOutcomes": []
+      }
+    }
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "event": {
+        "id": "goblin-proof-v1:1:0",
+        "payload": {
+          "createdJobs": [
+            "job-1"
+          ],
+          "kind": "order-admitted"
+        },
+        "revision": 1
+      }
+    },
+    {
+      "sequence": 2,
+      "event": {
+        "id": "goblin-proof-v1:3:0",
+        "payload": {
+          "kind": "pause-changed",
+          "paused": false
+        },
+        "revision": 3
+      }
+    },
+    {
+      "sequence": 3,
+      "event": {
+        "id": "goblin-proof-v1:4:0",
+        "payload": {
+          "from": 0,
+          "kind": "world-advanced",
+          "to": 10
+        },
+        "revision": 4
+      }
+    },
+    {
+      "sequence": 4,
+      "event": {
+        "id": "goblin-proof-v1:5:0",
+        "payload": {
+          "from": 10,
+          "kind": "world-advanced",
+          "to": 60
+        },
+        "revision": 5
+      }
+    }
+  ]
+}

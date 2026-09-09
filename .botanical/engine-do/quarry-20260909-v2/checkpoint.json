@@ -1,0 +1,27 @@
+{
+  "scope": "run-u3865.scope",
+  "invocation": "104922a8468f462e8c2a01f252214f57",
+  "terminalSession": 45869,
+  "exitCode": 0,
+  "persistence": "/home/levi/src/hive/.botanical/engine-do/quarry-20260909-v2/sqlite",
+  "source": [
+    {
+      "path": "tools/engine-do/worker.ts",
+      "sha256": "f34abfa44c874e2dd46d7564960a510bc2441d8b2cbed47b19155fec6622b88b"
+    },
+    {
+      "path": "tools/engine-do/proof.mjs",
+      "sha256": "80d630a4252136470bc93bd69a58469cea14fff6635d922a0788a0769b8c0bca"
+    },
+    {
+      "path": "tools/engine-do/wrangler.json",
+      "sha256": "db684456ff8c5e867579dfce35ff75f835bba9fc88bfe34b895284b73075c109"
+    },
+    {
+      "path": "tools/engine-do/README.md",
+      "sha256": "1ecf61959c72248853e9c62059163d8d2ec6a44e3ab47be918e52063547918ee"
+    }
+  ],
+  "runtimeLogErrors": [],
+  "previousFailurePreserved": ".botanical/engine-do/quarry-20260909/receipt.json"
+}

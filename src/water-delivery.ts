@@ -18,6 +18,7 @@ import {
 } from "./materials.ts";
 import { brewStationWaterRequirement } from "./recipes.ts";
 import { neighbors } from "./world.js";
+import { settleCareConsumption } from "./needs.ts";
 
 export type ResolvedWaterDelivery = {
   target: WaterDeliveryTarget;
@@ -31,6 +32,7 @@ export function waterDeliveryQuantity(
   target: WaterDeliveryTarget,
 ): PositiveInt | null {
   if (target.kind === "mugwort") return MUGWORT_ESTABLISHMENT_WATER;
+  if (target.kind === "hydration") return 1 as PositiveInt;
   return brewStationWaterRequirement();
 }
 
@@ -55,6 +57,18 @@ export function resolveWaterDelivery(
         }
       : null;
   }
+  if (target.kind === "hydration") {
+    const actor = state.actors[target.actor];
+    const quantity = waterDeliveryQuantity(target);
+    return actor && quantity
+      ? {
+          target,
+          access: [{ x: actor.x, z: actor.z, level: actor.level }],
+          destination: null,
+          quantity,
+        }
+      : null;
+  }
   const herb = state.herbs.find((entry) => entry.id === target.herb);
   const quantity = waterDeliveryQuantity(target);
   return herb && quantity && mugwortNeedsWater(herb)
@@ -70,6 +84,8 @@ export function waterDeliveryTargetForJob(
     return { kind: "kettle", station: job.target };
   if (job.kind === "water-mugwort")
     return { kind: "mugwort", herb: job.target };
+  if (job.kind === "care" && job.need === "hydration")
+    return { kind: "hydration", actor: job.target };
   return null;
 }
 
@@ -100,6 +116,15 @@ export function settleWaterDelivery(
     return poured.ok ? { ok: true } : poured;
   }
   const target = operation.target;
+  if (target.kind === "hydration") {
+    return settleCareConsumption(state, {
+      actor: target.actor,
+      operation,
+      lot: operation.water,
+    })
+      ? { ok: true }
+      : { ok: false, reason: "destination-unavailable" };
+  }
   if (target.kind !== "mugwort")
     return { ok: false, reason: "destination-unavailable" };
   const herb = state.herbs.find((entry) => entry.id === target.herb);

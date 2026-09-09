@@ -1,0 +1,62 @@
+{
+  "observedAt": 1788945515329,
+  "region": [
+    {
+      "singleton": 1,
+      "region_id": "watchdog-quarry-proof-v1",
+      "program_id": "quarry-region-v1",
+      "limits_json": "{\"commandBytes\":8192,\"eventBytes\":8192,\"events\":4096,\"receipts\":4096,\"resultBytes\":8192,\"stateBytes\":262144,\"storageBytes\":8388608}",
+      "revision": 1,
+      "state_json": "{\"excavated\":1,\"materials\":{\"schema\":1,\"state\":{\"bindings\":[],\"consumptions\":[],\"embedded\":[],\"lots\":[{\"id\":\"lot-1\",\"location\":{\"kind\":\"ground\",\"level\":0,\"x\":0,\"z\":0},\"material\":\"chalk\",\"quantity\":1}],\"nextLotId\":2,\"sinks\":[],\"transfers\":[],\"transformations\":[]}},\"tick\":0,\"world\":{\"changes\":[{\"material\":9,\"revision\":1,\"x\":0,\"y\":-1,\"z\":0}],\"generatorId\":\"quarry-bands-v1\",\"identity\":{\"recipe\":\"quarry-v1\",\"world\":\"durable-quarry\"},\"layout\":{\"bounds\":{\"maxX\":4,\"maxY\":4,\"maxZ\":4,\"minX\":-4,\"minY\":-8,\"minZ\":-4},\"brickSide\":4,\"materialIds\":[9,275,45000]},\"revision\":1,\"schema\":1}}",
+      "receipt_count": 1,
+      "event_count": 1,
+      "event_sequence": 1,
+      "state_bytes": 578,
+      "receipt_bytes": 338,
+      "event_bytes": 153
+    }
+  ],
+  "receipts": [
+    {
+      "principal": "quarry-builder",
+      "command_id": "queued-restart",
+      "input_json": "{\"command\":{\"at\":{\"x\":0,\"y\":-1,\"z\":0},\"kind\":\"excavate\"},\"expectedRevision\":0,\"id\":\"queued-restart\"}",
+      "receipt_json": "{\"commandId\":\"queued-restart\",\"principal\":\"quarry-builder\",\"region\":\"watchdog-quarry-proof-v1\",\"result\":{\"at\":{\"x\":0,\"y\":-1,\"z\":0},\"lot\":\"lot-1\",\"material\":\"chalk\",\"quantity\":1},\"revision\":1,\"status\":\"applied\"}"
+    }
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "event_json": "{\"id\":\"watchdog-quarry-proof-v1:1:0\",\"payload\":{\"at\":{\"x\":0,\"y\":-1,\"z\":0},\"kind\":\"excavated\",\"lot\":\"lot-1\",\"material\":\"chalk\",\"quantity\":1},\"revision\":1}"
+    }
+  ],
+  "jobs": [
+    {
+      "sequence": 1,
+      "job_id": "[\"watchdog-quarry-proof-v1\",\"quarry-builder\",\"queued-restart\"]",
+      "queue_name": "quarry",
+      "lane": "host-command",
+      "priority": 0,
+      "payload_json": "{\"principal\":\"quarry-builder\",\"input\":{\"id\":\"queued-restart\",\"expectedRevision\":0,\"command\":{\"kind\":\"excavate\",\"at\":{\"x\":0,\"y\":-1,\"z\":0}}}}",
+      "recovery_max": 1,
+      "state": "settled",
+      "outcome": "completed",
+      "claim_token": "watchdog_claim_3su8bddqb84z1qu6l6phj",
+      "recovery_count": 0,
+      "cancellation_id": null
+    }
+  ],
+  "barriers": [
+    {
+      "job_id": "[\"watchdog-quarry-proof-v1\",\"quarry-builder\",\"queued-restart\"]",
+      "barrier": null
+    }
+  ],
+  "witness": [
+    {
+      "singleton": 1,
+      "alarms": 1,
+      "repairs": 0
+    }
+  ]
+}

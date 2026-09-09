@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "endpoint": "http://127.0.0.1:43289",
+  "checks": [
+    "permission rejection unchanged",
+    "native transaction rollback after state and event writes",
+    "abrupt process loss exact SQLite restore",
+    "lost acknowledgment receipt replay no extra resource or event",
+    "same id different payload conflict",
+    "stale receipt replay unchanged world",
+    "concurrent expected revision serialization and material conservation",
+    "final snapshot events and rejected receipts persist"
+  ],
+  "processes": [
+    {
+      "pid": 384608,
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "listenerClosed": true
+    },
+    {
+      "pid": 384822,
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "listenerClosed": true
+    },
+    {
+      "pid": 385152,
+      "exit": {
+        "code": 130,
+        "signal": null
+      },
+      "listenerClosed": true
+    }
+  ]
+}

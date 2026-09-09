@@ -1,0 +1,6 @@
+// Pure shared physical owner. World material IDs, initial water and excavation
+// permission are consumer definitions. No clock, storage, renderer or host IO.
+export { createVolume } from "./volume.mjs";
+export { createVolumeGeometry, REGION_LIMITS } from "./geometry.mjs";
+export { createSoil } from "./soil.mjs";
+export { NUMERICS, balanceTolerance } from "./state.mjs";

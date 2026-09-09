@@ -1,0 +1,63 @@
+{
+  "scope": "0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-u3919.scope",
+  "node": "v24.20.0",
+  "versions": {
+    "wrangler": "4.127.1",
+    "workerd": "1.20260828.1",
+    "miniflare": "5.20260828.0-alpha"
+  },
+  "hashes": {
+    "colony.mjs": "b766aed9dbf46b7a85b3740a96a69daf78a5dd582df76eb040dcc450e75ac378",
+    "colony.wasm": "33d78e3451179d1e17d283837066a819d94ec0bba239dda4c6ce19edb7fcc0e9",
+    "worker.mjs": "f6e9fe5afa8f4b7bd5f5db50638231106421803b4be5392effe0943b8e60175d",
+    "build.sh": "77453af4e22aef59f566a2804521ba95fa8048b247c736eca74468925cbd7657",
+    "wrangler.jsonc": "2c273741e6642bf038c3ab77fcb784be1864338252e4c83c52c562a4bbf88879"
+  },
+  "compatibilityDate": "2026-09-04",
+  "emscripten": "3.1.46",
+  "initialMemory": 16777216,
+  "stack": 1048576,
+  "allowMemoryGrowth": false,
+  "stackOverflowCheck": 2,
+  "port": 35483,
+  "response": {
+    "initialized": true,
+    "offeredCount": 500,
+    "runs": 100,
+    "chosen": [
+      {
+        "character": "person-4",
+        "task": "job-1",
+        "cost": 5
+      },
+      {
+        "character": "person-3",
+        "task": "job-0",
+        "cost": 4
+      },
+      {
+        "character": "person-0",
+        "task": "job-2",
+        "cost": 1
+      },
+      {
+        "character": "person-2",
+        "task": "job-4",
+        "cost": 3
+      },
+      {
+        "character": "person-1",
+        "task": "job-3",
+        "cost": 2
+      }
+    ],
+    "heapBefore": 16777216,
+    "heapAfter": 16777216
+  },
+  "listenerClosed": true,
+  "success": true,
+  "childExit": {
+    "code": 143,
+    "signal": null
+  }
+}

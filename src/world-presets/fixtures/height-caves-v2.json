@@ -1,0 +1,200 @@
+{
+  "provenance": "Unchanged accepted point-query-v1 recipe before opaque extraction; byte hashes are Uint8 material bricks.",
+  "identity": {
+    "worldId": "engine-geography-laws",
+    "spaceId": "surface",
+    "base": {
+      "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:volume-v2-fixed-cave-pocket-v1",
+      "heightSeed": "volume-v2-fixed-cave-pocket-v1",
+      "codecSchema": 2,
+      "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+      "voxelRecipe": "height-sea-connected-caves-v3",
+      "features": {
+        "id": "pit-gallery-capsules-v1",
+        "regionMetres": 128,
+        "candidateJitterCells": 20,
+        "dryMarginLevels": 3,
+        "radiusMetres": 1.35,
+        "points": [
+          [0, 2, 0],
+          [0, -5, 0],
+          [8, -10, 6],
+          [20, -18, 10]
+        ],
+        "chamberRadiiMetres": [3.8, 2.4, 3.4],
+        "cacheCapRegions": 16,
+        "sampling": "physical-voxel-centres"
+      },
+      "units": {
+        "horizontalMetres": 1,
+        "verticalMetres": 0.54,
+        "voxelsPerStorey": 4
+      },
+      "bounds": {
+        "minX": -2048,
+        "maxX": 2048,
+        "minZ": -2048,
+        "maxZ": 2048,
+        "minY": -64,
+        "maxY": 64
+      },
+      "brickSide": 16,
+      "residentBrickCap": 8,
+      "cave": {
+        "id": "global-trilinear-two-octave-cave-v1",
+        "sampleNamespace": "height-sea-cave-density-v2",
+        "macro": {
+          "horizontalMetres": 32,
+          "verticalMetres": 18,
+          "weight": 0.78,
+          "salt": "cave-macro"
+        },
+        "detail": {
+          "horizontalMetres": 11,
+          "verticalMetres": 7,
+          "weight": 0.22,
+          "salt": "cave-detail"
+        },
+        "voidThreshold": 0.42,
+        "protectedSolidLayers": 3
+      }
+    }
+  },
+  "bricks": [
+    {
+      "at": {
+        "x": -1,
+        "y": -1,
+        "z": -1
+      },
+      "sha256": "142b5e3b573fb0d5bae239fc8f071be48a73b10f1da997d0ac46957d08018e30"
+    },
+    {
+      "at": {
+        "x": 0,
+        "y": -3,
+        "z": 0
+      },
+      "sha256": "30d6bc164ea54188aa9df0c14f20c4fbc8a155c5644bcc9ef9eb05901cb07d70"
+    },
+    {
+      "at": {
+        "x": 1,
+        "y": 0,
+        "z": 1
+      },
+      "sha256": "58b5aa4410637d86fe1d8227bfc698d5097591c99af297908fae7ce8246abd88"
+    },
+    {
+      "at": {
+        "x": -2,
+        "y": 1,
+        "z": 0
+      },
+      "sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
+    },
+    {
+      "at": {
+        "x": 2,
+        "y": 2,
+        "z": -1
+      },
+      "sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
+    },
+    {
+      "at": {
+        "x": 4,
+        "y": 0,
+        "z": 4
+      },
+      "sha256": "c5de774317e67780da50c38c7434f3866c7950d43f2cac6d57440b30e770bfeb"
+    }
+  ],
+  "legacyCheckpoint": {
+    "schema": 2,
+    "identity": {
+      "worldId": "engine-geography-laws",
+      "spaceId": "surface",
+      "base": {
+        "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:volume-v2-fixed-cave-pocket-v1",
+        "heightSeed": "volume-v2-fixed-cave-pocket-v1",
+        "codecSchema": 2,
+        "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+        "voxelRecipe": "height-sea-connected-caves-v3",
+        "features": {
+          "id": "pit-gallery-capsules-v1",
+          "regionMetres": 128,
+          "candidateJitterCells": 20,
+          "dryMarginLevels": 3,
+          "radiusMetres": 1.35,
+          "points": [
+            [0, 2, 0],
+            [0, -5, 0],
+            [8, -10, 6],
+            [20, -18, 10]
+          ],
+          "chamberRadiiMetres": [3.8, 2.4, 3.4],
+          "cacheCapRegions": 16,
+          "sampling": "physical-voxel-centres"
+        },
+        "units": {
+          "horizontalMetres": 1,
+          "verticalMetres": 0.54,
+          "voxelsPerStorey": 4
+        },
+        "bounds": {
+          "minX": -2048,
+          "maxX": 2048,
+          "minZ": -2048,
+          "maxZ": 2048,
+          "minY": -64,
+          "maxY": 64
+        },
+        "brickSide": 16,
+        "residentBrickCap": 8,
+        "cave": {
+          "id": "global-trilinear-two-octave-cave-v1",
+          "sampleNamespace": "height-sea-cave-density-v2",
+          "macro": {
+            "horizontalMetres": 32,
+            "verticalMetres": 18,
+            "weight": 0.78,
+            "salt": "cave-macro"
+          },
+          "detail": {
+            "horizontalMetres": 11,
+            "verticalMetres": 7,
+            "weight": 0.22,
+            "salt": "cave-detail"
+          },
+          "voidThreshold": 0.42,
+          "protectedSolidLayers": 3
+        }
+      }
+    },
+    "revision": 1,
+    "changes": [
+      {
+        "x": -1,
+        "y": -17,
+        "z": 0,
+        "material": 0,
+        "revision": 1
+      },
+      {
+        "x": 0,
+        "y": -33,
+        "z": -1,
+        "material": 0,
+        "revision": 1
+      },
+      {
+        "x": 17,
+        "y": 15,
+        "z": 17,
+        "material": 2,
+        "revision": 1
+      }
+    ]
+  }
+}

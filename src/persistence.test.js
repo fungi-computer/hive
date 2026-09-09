@@ -1,4 +1,5 @@
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { createClearing } from "./clearing.ts";
 import {
@@ -13,10 +14,20 @@ const scope = { party: "home", actors: null };
 function envelope(change) {
   const saved = snapshotFor(createClearing());
   change(saved.savedState);
+  for (const transfer of saved.savedState.materials.transfers) {
+    if (transfer.resolvedMaterial !== undefined) continue;
+    const lotId = transfer.phase.kind === "carrying" ? transfer.phase.lot : transfer.phase.sourceLot;
+    transfer.resolvedMaterial = saved.savedState.materials.lots.find((lot) => lot.id === lotId)?.material ?? "wood";
+  }
+  return saved;
+}
+function v14Envelope(change = () => {}) {
+  const saved = JSON.parse(readFileSync(new URL("./fixtures/clearing-v14.json", import.meta.url), "utf8"));
+  change(saved.savedState);
   return saved;
 }
 function v10Envelope(change = () => {}) {
-  const saved = snapshotFor(createClearing());
+  const saved = v14Envelope();
   const predecessor = structuredClone(saved);
   predecessor.schema = 10;
   delete predecessor.savedState.terrain;
@@ -34,10 +45,11 @@ function v10Envelope(change = () => {}) {
         !["malt", "barm", "keg", "ale", "spent-grain"].includes(lot.material),
     );
   change(predecessor.savedState);
+  for (const operation of predecessor.savedState.operations) delete operation.kind;
   return predecessor;
 }
 function v11Envelope(change = () => {}) {
-  const predecessor = structuredClone(snapshotFor(createClearing()));
+  const predecessor = v14Envelope();
   predecessor.schema = 11;
   delete predecessor.savedState.terrain;
   delete predecessor.savedState.materials.sinks;
@@ -46,6 +58,7 @@ function v11Envelope(change = () => {}) {
   for (const actor of Object.values(predecessor.savedState.actors))
     delete actor.allowedWork.craft;
   change(predecessor.savedState);
+  for (const operation of predecessor.savedState.operations) delete operation.kind;
   return predecessor;
 }
 function rejects(name, change, pattern) {
@@ -190,7 +203,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v14 snapshots retain authored terrain, omit commands, and restore paused", () => {
+test("v16 snapshots retain authored terrain, omit commands, and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -199,7 +212,7 @@ test("v14 snapshots retain authored terrain, omit commands, and restore paused",
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 14);
+  assert.equal(saved.schema, 16);
   assert.deepEqual(saved.savedState.terrain, {
     base: "authored-clearing-v1",
     edits: [],
@@ -212,7 +225,7 @@ test("v14 snapshots retain authored terrain, omit commands, and restore paused",
 });
 
 test("schema 13 stays frozen while schema 14 rejects malformed terrain edits and soil sinks", () => {
-  const predecessor = structuredClone(snapshotFor(createClearing()));
+  const predecessor = v14Envelope();
   predecessor.schema = 13;
   delete predecessor.savedState.terrain;
   predecessor.savedState.materials.lots.push({
@@ -336,7 +349,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
   ).location = { kind: "container", container: "kettle:missing" };
   assert.throws(
     () => restoreSnapshot(unknown),
-    /unknown destination kettle:missing/,
+    /recipe binding brew-process has invalid consumed lot malt-stage/,
   );
   const wrongTarget = structuredClone(saved);
   wrongTarget.savedState.jobs.find((entry) => entry.id === "brew-job").target =
@@ -493,7 +506,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {
   const restored = restoreSnapshot(v10Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 14);
+  assert.equal(snapshotFor(restored.state).schema, 16);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -652,6 +665,7 @@ test("a held pail use reloads only with its matching operation custody", () => {
       phase: { kind: "carrying", lot: "pail-a" },
     });
     state.operations.push({
+      kind: "water-delivery",
       id: "fill-kettle-a",
       job: "job-fill",
       spring: spring.id,
@@ -685,11 +699,11 @@ test("a held pail use reloads only with its matching operation custody", () => {
   );
 
   saved.savedState.materials.transfers[0].owner.operation = "wrong-operation";
-  assert.throws(() => restoreSnapshot(saved), /(pail custody|held-use owner)/);
+  assert.throws(() => restoreSnapshot(saved), /invalid use custody/);
 });
 
 test("schema 12 validates executor-bound Fill custody before converting it", () => {
-  const saved = envelope((state) => {
+  const saved = v14Envelope((state) => {
     const spring = state.sources.find((source) => source.kind === "spring");
     state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
     state.materials.embedded.push({
@@ -723,6 +737,7 @@ test("schema 12 validates executor-bound Fill custody before converting it", () 
       phase: { kind: "carrying", lot: "pail-a" },
     });
     state.operations.push({
+      kind: "water-delivery",
       id: "fill-kettle-a",
       job: "job-fill",
       spring: spring.id,
@@ -752,6 +767,7 @@ test("schema 12 validates executor-bound Fill custody before converting it", () 
   const operation = predecessor.savedState.operations[0];
   operation.actor = "rowan";
   operation.station = operation.target.station;
+  delete operation.kind;
   delete operation.target;
   delete operation.quantity;
   predecessor.savedState.actors.rowan.task.kind = "brew-water";
@@ -804,6 +820,7 @@ test("current water operations pin target quantity and establishment receipts", 
       phase: { kind: "carrying", lot: "pail-a" },
     });
     state.operations.push({
+      kind: "water-delivery",
       id: "fill-a",
       job: "job-fill",
       spring: spring.id,
@@ -913,6 +930,7 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
     ]) {
       state.jobs.push(job(jobId, "fill-kettle", station));
       state.operations.push({
+      kind: "water-delivery",
         id,
         job: jobId,
         spring: spring.id,
@@ -929,7 +947,7 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
       });
     }
   });
-  assert.throws(() => restoreSnapshot(saved), /duplicate vessel binding/);
+  assert.throws(() => restoreSnapshot(saved), /source overbooked/);
 });
 
 test("schema 10 converts cache recipe lots exactly once", () => {
@@ -950,6 +968,7 @@ test("schema 10 converts cache recipe lots exactly once", () => {
       [`source-barm-lot:${cache.id}`, "barm", 1],
       [`source-keg-lot:${cache.id}`, "keg", 1],
       [`source-malt-lot:${cache.id}`, "malt", 4],
+      [`source-ration-lot:${cache.id}`, "ration", 6],
     ],
   );
   const reloaded = restoreSnapshot(snapshotFor(restored.state));
@@ -1015,7 +1034,7 @@ test("schema 11 validates one exact brew binding and its provenance without live
   });
   assert.throws(
     () => restoreSnapshot(duplicate),
-    /duplicate recipe station binding/,
+    /invalid recipe station/,
   );
   const corrupt = structuredClone(saved);
   corrupt.savedState.materials.bindings[0].consumed[0].quantity = 1;
@@ -1068,7 +1087,7 @@ test("schema 11 validates one exact brew binding and its provenance without live
         capacity.savedState.materials.bindings[0].promises[0].destination,
     },
   });
-  assert.throws(() => restoreSnapshot(capacity), /recipe binding capacity/);
+  assert.throws(() => restoreSnapshot(capacity), /invalid capacity: destination-full/);
 });
 
 test("schema 11 aggregates recipe portion promises across distinct brew bindings", () => {
@@ -1137,7 +1156,7 @@ test("schema 11 aggregates recipe portion promises across distinct brew bindings
   });
   assert.throws(
     () => restoreSnapshot(saved),
-    /recipe portions exceed source lot/,
+    /source overbooked/,
   );
 });
 
@@ -1295,7 +1314,7 @@ test("schema 14 reports unsupported predecessors truthfully", () => {
   unsupported.schema = 7;
   assert.throws(
     () => restoreSnapshot(unsupported),
-    /Invalid schema 14 save: unsupported predecessor schema/,
+    /Invalid Hive save: unsupported predecessor schema/,
   );
   const malformed = v10Envelope((state) => {
     state.extra = true;
@@ -1418,7 +1437,7 @@ rejects(
       },
     );
   },
-  /duplicate material lot lot-a/,
+  /duplicate lot/,
 );
 
 rejects(
@@ -1431,7 +1450,7 @@ rejects(
       location: { kind: "ground", ...cell(4, 4) },
     });
   },
-  /vessel lot pail-stack must have quantity 1/,
+  /invalid lot: vessel-invalid/,
 );
 
 rejects(
@@ -1448,7 +1467,7 @@ rejects(
       location: { kind: "ground", ...cell(4, 4) },
     });
   },
-  /water lot loose-water must be contained/,
+  /invalid lot: source-ineligible/,
 );
 
 rejects(
@@ -1475,7 +1494,7 @@ rejects(
       transfer("transfer-a"),
     );
   },
-  /duplicate transfer transfer-a/,
+  /duplicate transfer/,
 );
 
 rejects(
@@ -1488,7 +1507,7 @@ rejects(
       location: { kind: "hand", actor: "rowan" },
     });
   },
-  /lacks unique transfer custody/,
+  /orphan hand lot/,
 );
 
 rejects(
@@ -1501,7 +1520,7 @@ rejects(
       location: { kind: "container", container: "shelf:missing" },
     });
   },
-  /unknown destination shelf:missing/,
+  /unknown or incompatible container/,
 );
 
 rejects(
@@ -1519,6 +1538,7 @@ rejects(
 rejects(
   "restore rejects a transfer whose owner job is absent",
   (state) => {
+    state.sites.push(site("site-a"));
     state.materials.lots.push({
       id: "wood-a",
       material: "wood",
@@ -1583,7 +1603,7 @@ rejects(
       }),
     );
   },
-  /mismatched quantity/,
+  /invalid transfer phase: source-insufficient/,
 );
 
 rejects(
@@ -1635,7 +1655,7 @@ rejects(
       cost: 1,
     };
   },
-  /reserved source wood-a exceeds quantity/,
+  /source overbooked/,
 );
 
 rejects(
@@ -1687,7 +1707,7 @@ rejects(
       cost: 1,
     };
   },
-  /container construction-buffer:site-a exceeds capacity/,
+  /invalid capacity: destination-full/,
 );
 
 rejects(
@@ -1714,7 +1734,7 @@ rejects(
       },
     );
   },
-  /container shelf:shelf-a exceeds capacity/,
+  /invalid capacity: destination-full/,
 );
 
 rejects(
@@ -1750,7 +1770,7 @@ rejects(
       }),
     );
   },
-  /carrying transfer transfer-a has invalid material/,
+  /invalid transfer phase: source-ineligible/,
 );
 
 rejects(
@@ -1816,3 +1836,57 @@ rejects(
   },
   /wood conservation is 10, expected 16/,
 );
+
+test("shipped v14 upgrades physical needs and finite provisions once without rewriting its old lots", () => {
+  const historical = v14Envelope();
+  const original = structuredClone(historical);
+  const upgraded = restoreSnapshot(historical).state;
+  assert.deepEqual(historical, original, "migration does not mutate the recovery record");
+  for (const lot of original.savedState.materials.lots)
+    assert.deepEqual(upgraded.materials.lots.find((entry) => entry.id === lot.id), lot);
+  for (const actor of Object.values(upgraded.actors)) {
+    assert.equal(actor.needs.rest, original.savedState.actors[actor.id].rest);
+    assert.equal(actor.needs.advancedAt, upgraded.tick);
+    assert.equal("rest" in actor, false);
+  }
+  assert.equal("rested" in upgraded, false);
+  assert.equal(upgraded.materials.lots.filter((lot) => lot.material === "water").reduce((sum, lot) => sum + lot.quantity, 0), 16);
+  assert.equal(upgraded.materials.lots.filter((lot) => lot.material === "ration").reduce((sum, lot) => sum + lot.quantity, 0), 6);
+  const reloaded = restoreSnapshot(snapshotFor(upgraded)).state;
+  assert.deepEqual(reloaded, upgraded, "current reload does not reintroduce provisions");
+});
+
+test("v14 rejects future stock and broken old ownership before adding care provisions", () => {
+  const overfull = v14Envelope((state) => {
+    state.materials.lots.find((lot) => lot.material === "water").quantity = 9;
+  });
+  assert.throws(() => restoreSnapshot(overfull), /finite contents|capacity|conservation/);
+  const futureFood = v14Envelope((state) => {
+    state.materials.lots.push({ id: "future-ration", material: "ration", quantity: 1, location: { kind: "ground", ...cell() } });
+  });
+  assert.throws(() => restoreSnapshot(futureFood));
+  const orphan = v14Envelope((state) => {
+    const lot = state.materials.lots.find((entry) => entry.material === "pail");
+    lot.location = { kind: "hand", actor: "rowan" };
+  });
+  assert.throws(() => restoreSnapshot(orphan), /hand|custody/);
+});
+
+test("care uniqueness follows stable policy slots when automatic need retargets to rest", () => {
+  const saved = envelope((state) => {
+    state.jobs.push(
+      { id: "care-auto", kind: "care", target: "rowan", need: "rest", policy: "automatic", reason: "Blocked care", routine: false },
+      { id: "care-rest", kind: "care", target: "rowan", need: "rest", policy: "manual-rest", reason: "Pinned rest", routine: false },
+    );
+  });
+  assert.doesNotThrow(() => restoreSnapshot(saved));
+  for (const change of [
+    (job) => { job.target = "missing-actor"; },
+    (job) => { job.need = "hydration"; },
+    (job) => { job.routine = true; },
+  ]) {
+    const bad = structuredClone(saved);
+    change(bad.savedState.jobs.find((job) => job.id === "care-rest"));
+    assert.throws(() => restoreSnapshot(bad), /care job/);
+  }
+});

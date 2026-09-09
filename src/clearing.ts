@@ -1,3 +1,4 @@
+import { createMaterialsState } from "./materials.ts";
 // Commands authorize work. Fixed steps own outcomes; the view reads state.
 import type { Clearing, Colony, Command } from "./model.ts";
 import { createFeed, nextEvent } from "./feed.js";
@@ -10,7 +11,7 @@ import {
 } from "./world.js";
 import { introduceFiniteSources } from "./finite-sources.ts";
 import { shelteredBeds } from "./construction.js";
-import { actor, body, members } from "./actors.ts";
+import { actor, body } from "./actors.ts";
 import { assignWork } from "./jobs.ts";
 import { advanceWork } from "./activity.ts";
 import { advanceBrewing } from "./brewing.ts";
@@ -19,6 +20,7 @@ import { admitCommands, type CommandResult } from "./orders.ts";
 import { route, beginWalk, walk } from "./movement.js";
 import { mugwortStage } from "./herbs.ts";
 import { authoredClearingTerrain } from "./terrain.ts";
+import { advanceNeeds, queueAutomaticCare } from "./needs.ts";
 
 export function createClearing(seed = 42): Clearing {
   const state: Clearing = {
@@ -41,20 +43,11 @@ export function createClearing(seed = 42): Clearing {
       felledAt: null,
     })),
     herbs: [],
-    materials: {
-      lots: [],
-      transfers: [],
-      bindings: [],
-      transformations: [],
-      consumptions: [],
-      sinks: [],
-      embedded: [],
-      nextLotId: 1,
-      consumedWood: 0,
-    },
+    materials: createMaterialsState(),
     sources: [],
     pendingSources: [],
     operations: [],
+    careOutcomes: [],
     processes: [],
     terrain: authoredClearingTerrain(),
     rocks: structuredClone(ROCKS),
@@ -64,7 +57,6 @@ export function createClearing(seed = 42): Clearing {
     workDirty: true,
     felled: 0,
     finishedJobs: 0,
-    rested: 0,
     harvestedHerbs: 0,
     commands: [],
     feed: createFeed(seed),
@@ -139,9 +131,9 @@ export function step(
   const results = admitCommands(state, commands);
   if (state.paused) return results;
   state.tick++;
-  for (const person of members(state))
-    if (person.mode !== "sleep") person.rest = Math.max(0, person.rest - 0.012);
+  advanceNeeds(state);
   updateRoutine(state);
+  queueAutomaticCare(state);
   for (const person of Object.values(state.actors)) {
     advanceWork(state, person);
     advanceDrafted(state, person);
