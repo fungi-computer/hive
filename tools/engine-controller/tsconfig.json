@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@fungi.computer/mycelium": [
+        "./node_modules/@fungi.computer/mycelium"
+      ],
+      "zod": [
+        "./node_modules/zod"
+      ]
+    },
+    "lib": [
+      "ES2023"
+    ]
+  },
+  "include": [
+    "*.mts",
+    "../../src/engine/controllers/*.mts",
+    "runtime.d.ts"
+  ]
+}
