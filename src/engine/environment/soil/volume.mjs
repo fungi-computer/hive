@@ -35,7 +35,7 @@ function newWork(request) {
     matrixBuilds: 0, matrixAssemblyAdds: 0, peakDenseBytes: 0, pivotComparisons: 0, matrixSwapEntries: 0,
     factorDivisions: 0, matrixUpdates: 0, matrixUpdateLimit: request.maxMatrixUpdates, rhsUpdates: 0,
     backSubProducts: 0, backSubDivisions: 0, maxLinearResidualKg: 0,
-    closureFaceVisits: 0, closureTreeVisits: 0 };
+    closureFaceVisits: 0, closureTreeVisits: 0, dryDirectionCorrections: 0, maxDryDirectionCorrectionM: 0 };
 }
 
 function boundedStep(g, state, proposedDtS, work, rejectedStages) {
@@ -96,7 +96,7 @@ function readFacts(g, identity, state) {
     if (node.kind !== 'soil') return { nodeId: node.id, kind: node.kind, massKg,
       depthM: massKg / (g.densityKgM3 * node.areaM2), ports: node.portCount,
       ...(node.kind === 'pit' ? { at: node.at, baseYM: node.baseYM, rimYM: node.rimYM,
-        heightCells: node.heightCells, capacityKg: node.maxMassKg, atmosphere: 'vented-unmodeled' } : {}) };
+        heightCells: node.heightCells, bottom: node.bottom, capacityKg: node.maxMassKg, atmosphere: 'vented-unmodeled' } : {}) };
     return { nodeId: node.id, kind: node.kind, massKg, theta: massKg / (g.densityKgM3 * node.volumeM3),
       poreAirM3: (node.maxMassKg - massKg) / g.densityKgM3,
       retentionHeadM: checked.anchors.find(a => a.node === i)?.headM ?? null };
@@ -111,7 +111,7 @@ export function createVolume(descriptor) {
     timeIntegration: 'request-local-compensated-interval-v1',
     surfaceExchange: SURFACE_EXCHANGE_VERSION,
     ...(g.nodes.some(n => n.kind === 'pit') ? {
-      pitBoundary: 'voxel-column-integrated-side-single-floor-positive-depth-v2',
+      pitBoundary: 'voxel-column-integrated-side-bottom-policy-v3',
       dryPitReference: 'exposed-saturated-side-atmosphere-v1' } : {}) });
 
   function advance(input, intervalS, options = {}) {

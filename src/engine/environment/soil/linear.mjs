@@ -67,11 +67,27 @@ function residualOfDirection(g, evaluation, dtS, direction) {
   return maxAbs(result);
 }
 
+function closeDryDirectionRoundoff(g, evaluation, direction, work) {
+  const toleranceM = 64 * Number.EPSILON * Math.max(1, maxAbs(direction));
+  for (const [i, node] of g.nodes.entries()) {
+    if (node.kind !== 'pit' || node.bottom !== 'sealed' || evaluation.headM[i] !== 0 ||
+      direction[i] >= 0 || direction[i] < -toleranceM) continue;
+    // A zero sealed-depth increment can round slightly negative in elimination.
+    // Correct only this working direction at its active physical bound; the
+    // original full Jacobian residual is checked below after the correction.
+    // No pressure/stock is clipped and no extra water enters the mixed solve.
+    work.dryDirectionCorrections++;
+    work.maxDryDirectionCorrectionM = Math.max(work.maxDryDirectionCorrectionM, -direction[i]);
+    direction[i] = 0;
+  }
+}
+
 export function solveNewtonDirection(g, evaluation, dtS, work) {
   requireCondition(g.nodes.length <= REGION_LIMITS.maxUnknowns, 'bounded dense Newton unknowns');
   const { matrix, rhs, n } = assemble(g, evaluation, dtS, work);
   for (let k = 0; k < n; k++) { pivotRow(matrix, rhs, n, k, work); eliminate(matrix, rhs, n, k, work); }
   const direction = substitute(matrix, rhs, n, work);
+  closeDryDirectionRoundoff(g, evaluation, direction, work);
   // Reuse original physical coefficients, not an unreported second dense copy.
   const residual = residualOfDirection(g, evaluation, dtS, direction);
   work.maxLinearResidualKg = Math.max(work.maxLinearResidualKg, residual);

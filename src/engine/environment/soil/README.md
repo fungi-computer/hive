@@ -22,7 +22,9 @@ about actual soil or water inferred from a terrain color.
 
 Current admitted limits are 64 porous cells, 8 reservoirs, 72 unknowns and 16 surface
 connections. Vented water columns explicitly own 1..16 vertically contiguous air
-voxels and one porous floor; their Darcy graph must remain connected. Physical
+voxels and an explicit `bottom: 'porous' | 'sealed'`; their Darcy graph must remain
+connected. A porous bottom has exactly one floor port. A sealed bottom has none and requires at least
+one actual porous side, with no fictional floor node or flux. Physical
 definition density is 1000 kg/m³; spacing is explicit. A surface edge derives its
 crest and opening from two neighboring columns and uses the declared normalized
 broad-crested overflow law. It carries no momentum or wave state.
@@ -44,11 +46,24 @@ Connected surface/soil laws now exercise a real 0.54 m ledge, filling a receiver
 above one voxel, closed/subcrest/equal-head transfers, reversal and independent
 drainage-curve refinement. Surface edges remain constitutive chords in the same
 ledger; numerical continuity cleanup cannot transfer water across a closed crest.
-The column geometry is current format only. The one-cut world consumer still
-rejects an open lateral outlet; deriving new connections through repeated world
-excavation is the next caller join. Terrain backfill, solid-floor/disconnected
-components, free-falling travel, gas coupling and pail/material exchange remain
-unfinished. These are not replaced by the surface approximation.
+The column geometry is current format only. The world consumer owns deriving
+columns, ports and surface connections from actual edited voxels and rejects
+unmodeled lateral outlets. Generated-world deepening onto sealed material remains
+a separate integration proof. Terrain backfill, isolated/disconnected components,
+free-falling travel, gas coupling and pail/material exchange remain unfinished.
+These are not replaced by the surface approximation.
+
+Sealed columns use nonnegative depth as their head unknown: they have no porous
+floor suction multiplier. An empty column derives its starting atmospheric head
+from existing side exposure; this is not an external mass or fixed-pressure
+source. The fully saturated-side witness exposed a `-8.67e-22 m` Newton direction
+at the zero-depth bound (u4125). Dense elimination now corrects only a roundoff-sized
+negative working direction there, records the correction and verifies the original
+full Jacobian residual again. It never clips accepted pressure or water stock.
+The sealed-floor laws cover dry-to-wet seepage, dry-state rejection, retained
+water identity while deepening, the actual 0.54m ledge and drainage refinement.
+The preset still owns proving that a particular world material supplies this
+sealed boundary and rebuilding its actual contacts after excavation.
 
 Breaking changes are allowed. Only the current format is read; no legacy
 compatibility reader is included.
