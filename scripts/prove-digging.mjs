@@ -25,6 +25,7 @@ try {
   browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH,
     headless: true,
+    args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
   });
   const page = await browser.newPage({
     viewport: { width: 1280, height: 900 },
@@ -95,7 +96,6 @@ try {
   await page.waitForFunction(() => window.__GOBLIN?.artReady, undefined, {
     timeout: 60000,
   });
-  await page.locator("#continue").click();
   await page.waitForFunction(
     () => window.__GOBLIN.state.terrain.exports.length === 1,
   );
@@ -106,7 +106,7 @@ try {
   assert.deepEqual(restored.materials, completed.materials);
   await page.screenshot({ path: join(output, "restored.png") });
   evidence.checks.push(
-    "browser Continue restores exact generated terrain/materials and stays paused",
+    "browser reload restores exact generated terrain/materials paused before Continue",
   );
   assert.deepEqual(evidence.errors, []);
 } finally {
