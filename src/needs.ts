@@ -1,6 +1,7 @@
 import type {
   ActorId,
   CareNeed,
+  CareJob,
   CareOutcome,
   Clearing,
   Needs,
@@ -96,6 +97,15 @@ export function careNeed(needs: Needs): CareNeed | null {
   return null;
 }
 
+/** Automatic care may retarget its need; pinned rest retains a separate intent. */
+export function careIntentsConflict(
+  left: Pick<CareJob, "target" | "policy">,
+  right: Pick<CareJob, "target" | "policy">,
+): boolean {
+  return left.target === right.target &&
+    (left.policy === "automatic") === (right.policy === "automatic");
+}
+
 /** Queue intent at safe idle boundaries; assignment itself still respects draft. */
 export function queueAutomaticCare(state: Clearing): void {
   for (const actor of Object.values(state.actors)) {
@@ -104,7 +114,8 @@ export function queueAutomaticCare(state: Clearing): void {
       !need ||
       state.jobs.some(
         (job) => job.kind === "care" && job.target === actor.id &&
-          (job.policy === "automatic" || job.need === need),
+          (careIntentsConflict(job, { target: actor.id, policy: "automatic" }) ||
+            job.need === need),
       )
     )
       continue;
@@ -287,10 +298,10 @@ export function careOutcomeProblem(
 /** UI reads these authoritative facts without owning a second care status. */
 export function careFacts(state: Clearing, actor: ActorId) {
   const needs = state.actors[actor]?.needs;
-  const job = state.jobs.find(
-    (entry): entry is Extract<Clearing["jobs"][number], { kind: "care" }> =>
-      entry.kind === "care" && entry.target === actor,
+  const jobs = state.jobs.filter(
+    (entry): entry is CareJob => entry.kind === "care" && entry.target === actor,
   );
+  const job = jobs.find((entry) => entry.id === state.actors[actor]?.task?.job) ?? jobs[0];
   const task =
     job && state.actors[actor]?.task?.job === job.id
       ? state.actors[actor].task

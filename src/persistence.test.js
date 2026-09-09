@@ -1865,3 +1865,22 @@ test("v14 rejects future stock and broken old ownership before adding care provi
   });
   assert.throws(() => restoreSnapshot(orphan), /hand|custody/);
 });
+
+test("care uniqueness follows stable policy slots when automatic need retargets to rest", () => {
+  const saved = envelope((state) => {
+    state.jobs.push(
+      { id: "care-auto", kind: "care", target: "rowan", need: "rest", policy: "automatic", reason: "Blocked care", routine: false },
+      { id: "care-rest", kind: "care", target: "rowan", need: "rest", policy: "manual-rest", reason: "Pinned rest", routine: false },
+    );
+  });
+  assert.doesNotThrow(() => restoreSnapshot(saved));
+  for (const change of [
+    (job) => { job.target = "missing-actor"; },
+    (job) => { job.need = "hydration"; },
+    (job) => { job.routine = true; },
+  ]) {
+    const bad = structuredClone(saved);
+    change(bad.savedState.jobs.find((job) => job.id === "care-rest"));
+    assert.throws(() => restoreSnapshot(bad), /care job/);
+  }
+});

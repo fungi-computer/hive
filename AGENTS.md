@@ -22,6 +22,11 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
   become usable headlessly; asset authoring must not import live `Clearing` state.
   Game and workbench consume the same original pack and bake/export owner.
   A visual asset cannot create physical capabilities or inventory by itself.
+- Shiitake participation is a first-class engine requirement. The engine owns
+  scoped controller observations, actions, events and durable results, with a
+  maintained Shiitake integration; Goblin supplies its personas/content/rules.
+  Keep model calls outside physical ticks without deferring integration to a
+  game-only chat adapter. Follow [Vishnu's many faces](docs/decisions/vishnus-many-faces.md).
 - Keep the existing deterministic simulation and actual libcolony optimizer as owners. Narrow candidate work before expensive paths; preserve joint assignment, personal-order policy and cargo continuation. Rendering and cosmetic animation never advance authoritative time or settle resources.
 - UI commands, buttons, hotkeys and help share the checked interaction catalog and current OpenTUI keymap. Jotai owns UI choices/display projections; XState owns gestures. Paused commands may change accepted intent while movement/work remains frozen.
 - Reuse the original Three → low-resolution bake → Pixi pipeline. World geometry, picking and ordering share coordinate contracts. Cached visuals and temporary pooled objects have disposal/reset rules and never replace persistent identity.
@@ -43,6 +48,11 @@ On the shared host, automated proof commands use `/home/levi/src/Botanical-next/
 Publish coherent authorized interims to the existing feature preview and tell Levi what is playable. Preserve the no-main-merge, no-production/backend-deploy and no-purchase boundaries. Routine accepted game work needs no additional permission; escalate only an actual new product, ownership or resource decision.
 
 ## Current decisions to read
+
+For Game CTO product, architecture and cross-portfolio work, use the maintained
+[Game CTO skill](.agents/skills/game-cto/SKILL.md). It requires peer comparison of
+actual source/capabilities with Botanical and protects the many-faces engine/game
+vision; it does not add a routine approval gate or override current user direction.
 
 Read the current-status section of [the architecture-proof sprint](docs/decisions/architecture-proof-sprint.md) before assigning work. Historical paragraphs are evidence, not a competing active queue. Follow the applicable deeper contract:
 

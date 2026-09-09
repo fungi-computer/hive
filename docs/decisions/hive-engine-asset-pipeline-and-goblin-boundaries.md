@@ -7,6 +7,13 @@ a paid MCP-accessible product; the engine should be usable by others; products
 should eventually fit Fungi Apps. This records the boundaries and extraction
 order, not a completed SDK, public MCP service or backend deployment.
 
+Latest direct clarification: **Hive is built for Shiitake to plug into it.**
+[Vishnu's many faces](vishnus-many-faces.md) governs this core engine requirement.
+The reusable engine owns scoped observation, control/action admission, committed
+events and durable results, with a maintained Shiitake integration. Goblin is a
+consumer of that integration, not its sole owner. Extraction and generalization
+are the active outcome; the game and polished studies demonstrate their value.
+
 Source baseline: `2eacfcec8776ea3799264385d86e4ce36749ceb4` plus the preserved,
 unpublished needs candidate. The hosted runtime remains `449e9b8`, shallow
 Dig/Backfill and schema 14. Astra personally reviewed the current sources and
@@ -26,7 +33,7 @@ not yet expose them as independent packages.
 
 | Concern | Owns | Does not own |
 | --- | --- | --- |
-| Hive engine | Versioned terrain generation, edited physical world, topology, navigation, finite materials, claims/transfers, work execution, processes, reusable organism mechanisms, environment updates, snapshot laws | Rowan, mugwort, herbal ale, goblin customer rewards, a particular campaign, menus, accounts or billing |
+| Hive engine | Versioned terrain generation, edited physical world, topology, navigation, finite materials, claims/transfers, work execution, processes, reusable organism mechanisms, environment updates, snapshot laws; scoped controller observations/actions/events/results and maintained Shiitake integration | Rowan, mugwort, herbal ale, goblin customer rewards, a particular campaign, menus, provider credentials, identity service or billing |
 | Asset pipeline | Validated visual compositions, parameterized builders, render profiles, bake/export, visual anchors/bounds/alpha, caching and disposal | Item quantities, collision permission, recipe results, AI action authority or a running colony |
 | Original art packs | Our geometry, palettes/light presets, poses, props, visual variants and authored room dressing, with versions/provenance | Generic rendering machinery or live simulation state |
 | Goblin Bed & Breakfast | Starting scenario, species/content definitions, recipes, work and care policies, hospitality, relationships, progression, magic, incidents, UI and mappings from state to art | Copies of carrying, fluid accounting, world generation or the asset baker |
@@ -45,6 +52,9 @@ flowchart TD
   G --> V["Isometric presentation adapter"]
   V --> Q["Engine read views and spatial contracts"]
   E --> Q
+  S["Shiitake Session and tools"] <--> I["Hive Shiitake integration"]
+  I <--> C["Engine controllers: observations, actions, events, receipts"]
+  C --> E
   V --> A["Versioned visual artifacts"]
   W["Asset workbench"] --> P["Asset authoring API and bake/export"]
   M["MCP adapter"] --> P
@@ -56,8 +66,11 @@ flowchart TD
 
 Arrows identify dependencies or supplied inputs, not additional mutation owners.
 Game policy submits operations to the engine. Presentation reads accepted state.
-An LLM uses the game's admitted commands; it never receives direct mutable engine
-tables. The engine can run without React, Pixi, Three, Caps, Shiitake or a DOM.
+An LLM uses admitted engine capabilities under the game's rules; it never
+receives direct mutable engine tables. The extracted simulation must run without
+React, Pixi, Three, Caps, a model connection or a DOM. The engine product includes
+first-class Shiitake integration beside that headless simulation, with Botanical
+retaining ownership of the runtime itself.
 
 ## What exists and what is still being proved
 
@@ -360,16 +373,85 @@ Astra retains source acceptance and serial Git/build/proof/deploy custody.
 | Order | Concrete outcome | Proof that the boundary exists |
 | --- | --- | --- |
 | 0. Repair durable facts | Correct partial exact-lot pickup save validation and manual-rest/automatic-thirst coexistence | Positive regression laws show both admitted states snapshot/restore with care intent and split-lot custody preserved; malformed states still reject. The old diagnostic exits 0 when bugs reproduce and is not a passing acceptance test |
-| 1. Engine capabilities and work | Extract resolved endpoints/contact and shared supply/execution from current construction/storage/kettle/plant/care callers; separate content definitions | Migrate all consumers of each extracted rule, delete their duplicate cleanup/phase checks; cancellation, partial pickup, blocked destination and paused reload conserve goods; a supported second definition requires no shared executor/save branch |
+| 1. Engine capabilities and work | Extract resolved endpoints/contact and shared supply/execution from current construction/storage/kettle/plant/care callers; separate content definitions | First independent finite-lot consumer below plus both actual Goblin consumers share one owner. Migrate each extracted rule's current consumers; cancellation, partial pickup, blocked destination and paused reload conserve goods; a supported second definition requires no shared executor/save branch |
 | 2. Playable care payoff | Publish shared hunger/thirst/rest using that boundary; then one physical inn visitor | Player and visitor share physiology while access, payment and visitor behavior remain game policy; actual food/water receipt causes one benefit |
 | 3. Physical world and fields | Shared metric/base/edit/topology contract; bounded finite water/soil and room air/heat joins | Tiny-map diversion and opening changes have saved effects; field/item exchanges balance; active-work cost is measured; no generation-driven refills |
 | 4. Asset authoring separation | Common bake/export and original pack descriptors, used by the game and navigable Caps workbench | Same supported composition can be previewed/exported/reloaded without importing `Clearing`; existing game assets retain reviewed scale/alpha/appearance; lifecycle closes |
-| 5. Independent distribution | Headless engine entry, pack/pipeline entry, Goblin app entry; MCP adapter over the proved API | A small external consumer uses public exports only; engine imports no Goblin/UI/art/host modules, pipeline imports no live game state; Fungi host integration is separately reviewed |
+| 5. Independent distribution | Headless engine entry, maintained Shiitake controller integration, pack/pipeline entry and Goblin app entry; asset MCP adapter over the proved authoring API | Independent consumers use public exports only; simulation imports no Goblin/UI/art/provider implementation, pipeline imports no live game state; the engine controller proof works outside Goblin. Fungi hosting is separately joined |
 
 Step 4 can run independently alongside the coupled engine work once exact art/
 adapter files are assigned; it must not compete for `art.js`, `view.js` or shared
 geometry during their other writer's checkpoint. Backend publication, new paid
 resources and registry changes are not authorized by this document.
+
+### First independent reusable consumer: finite ore depot
+
+Agreed CTO proposal, not yet executed. Extract the existing finite-lot capacity/
+transfer owner and run the same implementation in construction supply, mixed
+shelves and a Node-only ore depot. The depot imports a public engine entry and
+validated definitions, never `Clearing`, `BUILDINGS`, recipes, art or a browser.
+It is a proof of real reuse, not a parallel demonstration simulator.
+
+The bounded trace begins with five ore units and a bin that can accept two:
+reserve two, reject overbooking, pick up a distinct two-unit portion, save while
+carrying, restore and deliver. Total quantity remains five. Exercise cancellation
+before/after pickup, invalidated destination and repeated completion. Report
+actual locations, promises, quantities and results so a later visual consumer can
+inspect the same state.
+
+Extract domain-neutral lots/locations/transfer states from `model.ts`, the actual
+capacity/reserve/pickup/deliver/interrupt owner from `materials.ts`, and its
+phase/custody validation from `persistence.ts`. Pail/keg definitions in
+`item-containers.ts` and construction/shelf definitions remain game content.
+Do not move the entire materials file unchanged: its water/pail restrictions,
+`consumedWood`, recipe bindings and imports still couple it to Goblin.
+
+Validated material capabilities cover divisibility, direct carrying versus vessel
+containment, bulk and interior capacity. An unchecked string in place of the
+`Material` union is not sufficient. All current consumers keep one canonical
+material state during serial extraction; no engine ledger beside game inventory.
+
+In carrying phase validate the actual held portion, owner, quantity and resolved
+obligation while retaining request provenance; the original source lot need not
+remain live forever. Do not repair this by dropping all source/phase checks.
+The two save defects precede this proof. Today a repeated `deliverTransfer`
+returns `transfer-not-found` after removal: that establishes at-most-once mutation,
+not a durable replayable success receipt. Implement and prove stronger receipts
+before the external-controller milestone claims them.
+
+The ordinary test command must include the extracted material laws. The existing
+materials suite imports construction and herbal ale, so passing it alone does
+not prove an independent engine consumer. This first packet establishes logistics;
+work orchestration and physical field/controller joins remain further outcomes.
+
+### First-class engine controller integration and later match
+
+Levi's practical correction is to expose an ordinary open engine API or MCP
+contract and reuse Mycelium/Knapsack to connect it. Botanical CTO supplies the
+current capability/tool path and product fit. No bespoke Hive agent-host protocol
+or large adapter layer is implied by first-class engine support.
+
+Design this alongside the extracted owners, rather than after finishing all game
+content. Hive supplies role-scoped observations/query budgets, control bindings,
+supported action descriptions/admission, committed event references, command
+identity and saved results. Games supply knowledge/rule/content definitions over
+that authority. One engine-maintained adapter connects the actual Shiitake
+Session/tools; Botanical supplies verified caller context and runtime lifecycle.
+
+Prove the controller boundary on the independent consumer as well as Goblin. A
+permitted controller can inspect, request and observe a real result; a wrong-scope
+or stale request fails without mutation; acknowledgement loss/retry cannot move
+goods twice. This protocol evidence can begin without live model inference but
+does not claim that Shiitake actually played. The later live match must use the
+real supported adapter and an actual model decision.
+
+The jointly proposed later demonstration lets Levi compete with Shiitake in a
+small shared resource challenge: one world, finite goods, distinct controlled
+people and observable game-owned outcomes. Exact objective and budget remain to
+be chosen jointly. It is not due at tomorrow's marketing launch. Levi's Camel
+credential is authorized server-side for that bounded demo only; never ship it
+in client/site/assets. Full role/authority and acceptance details are in
+[Vishnu's many faces](vishnus-many-faces.md).
 
 Read actual Fallow findings on the extracted files and extend the ordinary test
 command to cover their focused laws; current `npm test` covers clearing and

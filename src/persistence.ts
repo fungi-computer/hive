@@ -57,6 +57,7 @@ import {
 import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import {
   careConsumptionDefinition,
+  careIntentsConflict,
   initialNeeds,
 } from "./needs.ts";
 
@@ -1910,20 +1911,20 @@ function validateJobScopes({ state }: RelationContext): void {
     )
       fail(`party ${partyId} has invalid members`);
   }
-  const careTargets = new Set<string>();
+  const careJobs: Extract<SavedClearing["jobs"][number], { kind: "care" }>[] = [];
   for (const job of state.jobs) {
     if (job.kind === "care") {
       if (
         !state.actors[job.target] ||
-        careTargets.has(job.target) ||
+        careJobs.some((existing) => careIntentsConflict(existing, job)) ||
         (job.policy === "automatic" && job.routine) ||
         (job.policy === "manual-rest" &&
           (job.need !== "rest" || job.routine)) ||
         (job.policy === "routine-rest" &&
           (job.need !== "rest" || !job.routine))
       )
-        fail(`care job ${job.id} has missing actor`);
-      careTargets.add(job.target);
+        fail(`care job ${job.id} has invalid actor or intent policy`);
+      careJobs.push(job);
       continue;
     }
     const party = state.parties[job.scope.party];
@@ -2534,6 +2535,7 @@ function validateReservedTransfer(
 }
 
 function validateCarryingTransfer(
+  state: SavedClearing,
   transfer: SavedTransfer,
   lot: SavedLot,
   destination: ContainerSpec | null,
@@ -2543,10 +2545,17 @@ function validateCarryingTransfer(
     fail(`carrying transfer ${transfer.id} has invalid hand lot`);
   if (lot.quantity !== transfer.request.quantity)
     fail(`carrying transfer ${transfer.id} has mismatched quantity`);
+  // Pickup preserves the request as provenance but may split a new held lot.
+  // The original remainder may subsequently move or be fully consumed.
+  const sourceRequest = transfer.request.source;
+  const source = sourceRequest.kind === "exact-lot"
+    ? state.materials.lots.find((entry) => entry.id === sourceRequest.lot)
+    : undefined;
   if (
     (transfer.request.source.kind === "exact-lot" &&
-      transfer.intent.kind !== "use" &&
-      transfer.request.source.lot !== lot.id) ||
+      ((transfer.request.quantityPolicy === "whole-lot" &&
+        transfer.request.source.lot !== lot.id) ||
+       (source !== undefined && source.material !== lot.material))) ||
     (transfer.request.source.kind === "eligible-ground" &&
       transfer.request.source.material !== lot.material) ||
     (transfer.request.source.kind === "eligible-container" &&
@@ -2582,7 +2591,7 @@ function validateTransfers(context: RelationContext): void {
     owners.add(ownerKey);
     const destination = validateTransferOwner(context, transfer);
     const lot = transferLot(state, transfer);
-    validateCarryingTransfer(transfer, lot, destination);
+    validateCarryingTransfer(state, transfer, lot, destination);
     if (
       destination &&
       (!destination.accepts.includes(lot.material) ||
