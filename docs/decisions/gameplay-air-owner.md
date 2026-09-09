@@ -124,9 +124,10 @@ resolved motion; report the kinetic change under the declared face metric.
 Do not reset every velocity or secretly turn projection error into room heat.
 Check compatibility and the pressure gauge in every resulting component.
 
-Digging/filling solids or displacing air with water changes volume and remains
-unsupported until a genuine remap/displacement law exists. Reject such a
-candidate atomically; changing only its saved geometry identity is invalid.
+The opening-only baseline did not support changes to fluid membership. The
+dry-volume candidate below supplies a bounded whole-voxel remap; displacement
+by water still needs a coupled volume law. Changing only the saved geometry
+identity remains invalid.
 The same world can have a vented water region and an air region without claiming
 that this first air owner models sealed-water pressure or general phase exchange.
 
@@ -162,9 +163,9 @@ Root's current source read identifies these remaining boundaries:
   Use the canonical physical field time; the current terrain-to-game-tick law
   allows `1e-8` seconds of representation error. Do not replace it with exact
   floating-point equality to `tick * STEP_SECONDS`, or introduce another timer.
-- Fixed-volume air rebind currently rejects any changed fluid/solid membership.
-  Walls and digging can change that membership in normal Clearing play. A
-  conservative geometry-change rule remains necessary before broad integration;
+- The qualified opening-only baseline rejects changed fluid/solid membership.
+  Root's dry-volume candidate below extends that owner for walls and dry digging.
+  Its numerical qualification and real completion caller remain necessary;
   freezing the whole room footprint against player edits is not an accepted
   solution for the main game. The independent immutable-room consumer retains
   its narrower contract while Root resolves this boundary.
@@ -217,3 +218,12 @@ Numerical laws and typed consumer are source only pending a bounded affected
 window. No source-only review qualifies a rendered wall, digging displacement,
 main air save, Region rollback or performance. The accepted field/pail u4514
 receipt remains separate.
+
+The actual completion read exposed a needed result boundary before qualification:
+a sealed displacement now returns explicit `blocked/no-outdoor-route`, with no
+candidate state. Successful rebinds return `applied`; malformed definition,
+numerical and work-limit failures still throw. The registered room caller and
+public typed consumer narrow that result. Future work completion can retain one
+waiting job without hiding engine failures as ordinary scheduling. This does
+not yet implement the shared main-game completion owner; its progress/material/
+cleanup ordering remains a separate accepted-readiness join.

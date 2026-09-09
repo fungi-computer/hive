@@ -297,15 +297,15 @@ test("projection exhaustion and sealed volume edits preserve the complete input"
     afterFailure.state,
     fresh.owner.advance(fresh.state, 0.1).state,
   );
-  unchanged(
-    state,
-    () =>
-      owner.rebind(
-        state,
-        definition({ revision: 1, solidCells: ["cell:0,0,0"] }),
-      ),
-    /real open route/,
+  const beforeEdit = JSON.stringify(state);
+  assert.deepEqual(
+    owner.rebind(
+      state,
+      definition({ revision: 1, solidCells: ["cell:0,0,0"] }),
+    ),
+    { status: "blocked", reason: "no-outdoor-route" },
   );
+  assert.equal(JSON.stringify(state), beforeEdit);
   unchanged(
     state,
     () =>

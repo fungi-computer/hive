@@ -65,6 +65,11 @@ function consume(input: AirInitialInput, externalDefinition: unknown) {
     revision: 1,
     openSides: ["x+"],
   } satisfies AirDefinition);
+  if (rebound.status === "blocked") {
+    // @ts-expect-error An expected blockage contains no proposed field state.
+    rebound.state;
+    return { blocked: rebound.reason };
+  }
   const kineticChange: AirRebindReceipt["kineticChangeJ"] =
     rebound.receipt.kineticChangeJ;
   const reopened = createAir(rebound.definition);
@@ -74,6 +79,7 @@ function consume(input: AirInitialInput, externalDefinition: unknown) {
     revision: 2,
     solidCells: ["cell:0,0,0"],
   } satisfies AirDefinition);
+  if (edited.status === "blocked") return { blocked: edited.reason };
   const exportedM3: number = edited.receipt.airExportM3;
   for (const crossing of edited.receipt.boundaryCrossings) {
     const direction: "import" | "export" = crossing.direction;

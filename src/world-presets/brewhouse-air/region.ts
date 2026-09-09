@@ -129,18 +129,15 @@ function changeVent(candidate: State, open: boolean) {
       revision: oldGeometryRevision + 1,
     },
     registered = generatedBrewhouseRoom(candidate.terrain, opening),
-    rebound = airOwner(candidate).rebind(
-      candidate.air,
-      registered.definition,
-    );
+    rebound = airOwner(candidate).rebind(candidate.air, registered.definition);
+  if (rebound.status === "blocked")
+    return { status: "rejected" as const, result: { reason: rebound.reason } };
   const openedFaceCount = rebound.receipt.newFaces.length,
     closedFaceCount = rebound.receipt.closedFaces.length,
     changedFaceCount = registered.shutterFaces.length;
   if (
-    (open &&
-      (openedFaceCount !== changedFaceCount || closedFaceCount !== 0)) ||
-    (!open &&
-      (openedFaceCount !== 0 || closedFaceCount !== changedFaceCount))
+    (open && (openedFaceCount !== changedFaceCount || closedFaceCount !== 0)) ||
+    (!open && (openedFaceCount !== 0 || closedFaceCount !== changedFaceCount))
   )
     throw new Error("brewhouse shutter changed unexpected air faces");
   candidate.air = rebound.state;

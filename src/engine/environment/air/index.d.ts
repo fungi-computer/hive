@@ -229,13 +229,24 @@ export interface AirRebindReceipt {
   }[];
 }
 
-export interface AirRebindResult {
+export interface AirRebindApplied {
+  readonly status: "applied";
   readonly definition: AirDefinition;
   readonly state: AirState;
   readonly receipt: AirRebindReceipt;
   /** Projection work only; no scalar evaluation/scratch fields are returned. */
   readonly work: AirWork;
 }
+
+/** A valid physical edit can wait for a route; it has no candidate to commit.
+ * Malformed definitions, arithmetic, projection and budget failures still throw.
+ */
+export type AirRebindResult =
+  | AirRebindApplied
+  | {
+      readonly status: "blocked";
+      readonly reason: "no-outdoor-route";
+    };
 
 export interface Air {
   readonly definition: AirDefinition;
@@ -253,7 +264,8 @@ export interface Air {
   /** Same domain, voxel metric and model, with a newer geometry revision.
    * Opening-only changes preserve stocks. A dry volume edit adds OR removes at
    * most four fluid cells through real outdoor paths, with unchanged explicit
-   * opening masks/sides. Sealed or mixed edits reject atomically. No liquid
+   * opening masks/sides. Sealed paths return blocked; unsupported/mixed edits
+   * and invalid numerical inputs throw. Neither changes the input. No liquid
    * displacement, finite-pressure or domain-resize behavior is implied.
    * Its detached result belongs to the new identity.
    */

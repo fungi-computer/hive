@@ -103,8 +103,12 @@ warm/dilute assumption must also describe the actual chosen source workload.
 const rebound = air.rebind(state, {
   ...air.definition, revision: 1, openSides: ['x-', 'x+'],
 });
-const newAir = createAir(rebound.definition);
-newAir.read(rebound.state);
+if (rebound.status === "applied") {
+  const newAir = createAir(rebound.definition);
+  newAir.read(rebound.state);
+} else {
+  // Keep this work pending: rebound.reason is "no-outdoor-route".
+}
 ```
 
 An opening-only edit changes open sides/closed faces and revision, preserving
@@ -122,7 +126,10 @@ Opening a cell pulls existing parcels inward and admits reference air only at
 that outdoor end. The deepest removable cell goes first; additions use the
 nearest currently reachable frontier. Equal distances use stable cell IDs;
 shortest routes use stable face IDs. Already removed or not-yet-filled cells
-cannot carry parcels. A blocked later stage rejects the whole detached edit.
+cannot carry parcels. A blocked later stage returns `{status:"blocked", reason:"no-outdoor-route"}`
+without a candidate state. Successful results have `status:"applied"`. Malformed
+definitions, unsupported event shapes and numerical/work failures still throw;
+a caller must never swallow them all as an ordinary waiting job.
 A solid outside the boundary must be masked by the producer; array edges do not
 establish outdoor air.
 
@@ -144,10 +151,11 @@ energy increase beyond existing roundoff admission rejects; any loss is reported
 never converted into heat. This instantaneous construction approximation does
 not resolve transient displacement jets, wall/pressure work or compressed gas.
 
-Sealed net-volume edits, simultaneous volume-and-opening edits, mixed additions
-and removals, liquid volume fractions and domain resize reject or remain outside
-this API. The caller must also preserve a valid receiver for any still-owed
-physical source; the remap neither moves a kettle nor forgives unpaid emissions.
+Sealed net-volume edits return the expected blocked result. Simultaneous
+volume-and-opening edits, mixed additions/removals and domain resize reject.
+Liquid volume fractions remain outside this API. The caller must also preserve
+a valid receiver for any still-owed physical source; the remap neither moves a
+kettle nor forgives unpaid emissions.
 Current wet excavations need a separate coupled liquid-volume policy before this
 dry primitive can be joined there. No room-footprint freeze is the solution.
 

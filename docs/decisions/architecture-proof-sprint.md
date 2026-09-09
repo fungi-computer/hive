@@ -271,11 +271,39 @@ field's quantity-arithmetic rule. Meitner accepted all16 source files after two
 first-shape corrections; AIR-DISPLACEMENT-REVIEW.md SHA256
 `8f2401ee781302ee8c0eefaaa1575bd13271b495266be44e77c8c1ed0fbcacaa`.
 Syntax-only u4524 passed. Six new displacement laws are authored, not run.
-The queued combined affected qualification must use the later joined pin:
-Sol owns only the compact vent event caller and focused law in `air-events` at
-`5bb8b7c`. Its explicit scalar/count event removes full JSON identities and avoids
-spreading the new readonly receipt arrays into Region Json. No type weakening,
-compatibility wrapper or enlarged event limit is allowed. No partial1f gate.
+Sol's returned compact vent event and focused law are joined through `67ad203`;
+`0553f24` also includes current Clearing `74e2821` unchanged. The explicit
+scalar/count event removes full JSON identities and avoids spreading readonly
+receipt arrays into Region Json. No type weakening, compatibility wrapper or
+enlarged event limit was added. No partial1f gate ran.
+
+Meitner's construction/dig completion read found that normal sealed-air refusal
+must be distinguishable from a numerical or definition failure. Root's next
+correction makes the same rebind operation return `blocked/no-outdoor-route`
+without candidate state, or `applied` with its state/receipt. Invalid inputs,
+arithmetic resolution, projection and work-limit failures still throw. The
+actual Region caller, public declarations, typed consumer and authored laws
+change together. Delivery must use the corrected reviewed pin, not `0553f24`,
+for the one combined affected qualification. No numerical gate has run yet.
+
+The completion readiness note remains ignored source evidence at
+`vessel-boundary/.botanical/vessel-boundary/PHYSICAL-EDIT-READINESS.md`, SHA256
+`30884b9887ab704baf8ac3772b423314293ab9e5a3ba9da205a71dcfb61d641c`.
+Its proposed shared completion owner prepares geometry and existing material
+operations before publishing, retains last incomplete progress on an expected
+block, and lets unrelated actors/ticks continue. The current build/dig/remove
+callers do not implement that join yet. Source review also found duplicate
+deconstruction admission and compound shelf teardown risks to close there;
+the existing paid fermentation guard needs no duplicate station claim.
+
+Hume has acknowledged the next source outcome in isolated `physical-completion`
+at `74e2821`: one shared current build/dig/remove settlement, detached compound
+material changes, duplicate-target admission and last-incomplete progress.
+The exact cleanup extraction also owns `routine.ts`'s `finishActivity` import;
+no compatibility reexport or second lifecycle owner is retained. The existing
+water-inspection proof packet stays frozen under Root. Air binding/solver,
+rendering, native execution and integration remain Root-owned; this source
+handoff does not authorize a second heavy run.
 
 The [air contract](gameplay-air-owner.md) preserves remaining main-world bounds:
 wet phase volume, actual outdoor classification, paid emission receivers and

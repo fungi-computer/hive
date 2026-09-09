@@ -55,6 +55,11 @@ function rejectsUnchanged(state, call, message) {
   assert.throws(call, message);
   assert.equal(JSON.stringify(state), before);
 }
+function blocksUnchanged(state, call) {
+  const before = JSON.stringify(state);
+  assert.deepEqual(call(), { status: "blocked", reason: "no-outdoor-route" });
+  assert.equal(JSON.stringify(state), before);
+}
 
 test("closing a duct removes its deepest cells first and exports the actual boundary parcel", () => {
   const d = domain({ fluid: [id(0), id(1), id(2), id(3)] }),
@@ -166,35 +171,29 @@ test("a four-voxel wall preserves budgets and accepts retained-face projection",
   assert.deepEqual(next.decode(next.encode(edited.state)), edited.state);
 });
 
-test("masked exterior and a later sealed parcel reject the entire detached edit", () => {
+test("masked exterior and a later sealed parcel return blocked with no candidate to commit", () => {
   const isolated = id(1, 1, 1),
     fluid = [id(0), id(1), id(2), isolated];
   const d = domain({ fluid }),
     { owner, state } = start(d);
-  rejectsUnchanged(
-    state,
-    () =>
-      owner.rebind(state, {
-        ...d,
-        revision: 1,
-        solidCells: [...d.solidCells, id(2), isolated],
-      }),
-    /real open route/,
+  blocksUnchanged(state, () =>
+    owner.rebind(state, {
+      ...d,
+      revision: 1,
+      solidCells: [...d.solidCells, id(2), isolated],
+    }),
   );
   const masked = domain({
     fluid: [id(0), id(1), id(2)],
     closedFaces: ["x:0,0,0"],
   });
   const blocked = start(masked);
-  rejectsUnchanged(
-    blocked.state,
-    () =>
-      blocked.owner.rebind(blocked.state, {
-        ...masked,
-        revision: 1,
-        solidCells: [...masked.solidCells, id(2)],
-      }),
-    /real open route/,
+  blocksUnchanged(blocked.state, () =>
+    blocked.owner.rebind(blocked.state, {
+      ...masked,
+      revision: 1,
+      solidCells: [...masked.solidCells, id(2)],
+    }),
   );
 });
 

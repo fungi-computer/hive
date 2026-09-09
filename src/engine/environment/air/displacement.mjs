@@ -73,8 +73,7 @@ function nextParcel(g, graph, filled, pending, importing) {
       (importing ? 1 : -1) * (a.cells.length - b.cells.length) ||
       lexical(g.cellIds[a.cell], g.cellIds[b.cell]),
   );
-  assert(candidates.length, "air volume edit needs a real open route outdoors");
-  return candidates[0];
+  return candidates[0] ?? null;
 }
 
 function shift(values, path, importing) {
@@ -150,6 +149,7 @@ export function displace(old, next, state) {
     crossings = [];
   while (pending.size) {
     const path = nextParcel(g, graph, filled, pending, importing);
+    if (!path) return null;
     crossings.push({
       cellId: g.cellIds[path.cell],
       faceId: path.faceId,

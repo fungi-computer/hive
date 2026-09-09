@@ -42,6 +42,8 @@ export function rebind(g, identity, state, rawDefinition, options, identityOf) {
   const nextGeometry = buildGeometry(definition),
     nextIdentity = identityOf(definition);
   const displaced = displace(g, nextGeometry, state);
+  if (displaced === null)
+    return Object.freeze({ status: "blocked", reason: "no-outdoor-route" });
   const oldVelocity = new Map(
     g.faces.map((f) => [f.id, state.velocityMPS[f.k]]),
   );
@@ -65,6 +67,7 @@ export function rebind(g, identity, state, rawDefinition, options, identityOf) {
   validateState(nextGeometry, nextIdentity, next);
   const newIds = new Set(nextGeometry.faces.map((f) => f.id));
   return {
+    status: "applied",
     definition,
     state: next,
     receipt: {
