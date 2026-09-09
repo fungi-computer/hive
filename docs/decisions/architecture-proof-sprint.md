@@ -168,8 +168,24 @@ declaration closure now passes separately (`u4121`, `skipLibCheck:false`, pinned
 maintained optional peers). The combined generated Worker and Node ambient
 declarations still conflict externally (`u4106`); there is no shim or suppression.
 The source packet is `7bb871a`, joined as `6cbe352`. No provider call or controller
-backend deployment is implied. Its owner continues the actual Goblin delegated
-player consumer; that later source is distinct from the accepted quarry proof.
+backend deployment is implied. The actual Goblin delegated-player consumer is now
+`70cc373`, joined as `edc3de6`: the same public module binds selected personal
+orders and scoped observations to the actual Goblin region. `u4136` passed three
+public binding/Node SQLite/actual-WASM laws, including paused order admission,
+host-driven excavation and receipt replay; strict platform types passed `u4133`.
+That evidence is distinct from the quarry's native execute sandbox and does not
+claim a live model, independent player accounts or a deployed Goblin backend.
+
+Current native owners continue in isolated worktrees: `engine_core_pm` owns only
+`tools/engine-do/wet-*` in `wet-region-host`, qualifying the actual wet RegionProgram
+under native SQLite rollback and lost-acknowledgment restart; `scene_document_review`
+owns `src/wet-clearing/**` and `tools/wet-clearing/**` in `wet-ui`, exposing adjacent
+and deeper excavation with shorter bounded waits; `water_exchange_review` owns
+the extracted warm-air/smoke numerical owner in `air`. Root owns the actual
+world/building/material joins, numerical acceptance and serial integration.
+Botanical's restored `delivery-lead` Shimeji coordinates its routine queue and
+shared heavy-proof windows; Hive integration stays with King Bolete. No retired
+Hive Herdr role is refilled. No expensive editor browser work is authorized.
 
 The environmental numerical clock correction `d0ab751` is reviewed and joined as
 `7d134f6`; `u4102` passed 11 focused clock/connected-column laws. Root's current
@@ -193,12 +209,18 @@ claim is made. Compact editor `8518cc5` is hosted by Botanical; expensive editor
 browser tests remain stopped. Deploy less frequently; current source milestones
 do not trigger another publication automatically.
 
-**Next dependent environment boundary:** the current generated recipe has two
-soil layers and then real stone. Deepening a hole reaches a sealed floor, which
-the current owner deliberately rejects. Add a qualified sealed-floor boundary
-before claiming a generated 0.54 m ledge/deep-hole outcome. The following Region
-join must commit terrain, water, wet-spoil and command receipt together through
-the existing owner; the local study worker is not a separate durable authority.
+**Actual deeper-water checkpoint:** sealed stone floors are now supported by the
+reviewed `e6646d6` owner, joined as `9d35a35`. A sealed column has no fictional
+porous-floor port, retains actual porous side contacts, and owns its real volume.
+`u4138` passed 17 affected numerical laws. Root's `abc8ffd` joins it to the fixed
+generated world: two adjacent cuts followed by removal of the lower soil voxel
+expose actual stone and a 0.54 m floor ledge. The column keeps its identity and
+water when deepened; capacity changes from 540 to 1080 litres. `u4146` passed 11
+generated-world/region laws: finite downhill transfer, exact reopening and total
+water error below 2e-9 kg. The predeclared six-second comparison with 0.1-second
+steps stayed within 0.0054 m of column height. This does not establish arbitrary
+stone digging, flooded sealed rooms, backfill displacement, long-time accuracy or
+new rendered interaction. Native DO water qualification and the UI join are next.
 
 **World transaction source checkpoint:** the independent generated wet-world
 RegionProgram now uses that existing owner. `u4122` passed 15 affected laws over
@@ -208,6 +230,20 @@ rollback. Those laws also retain the existing quarry and actual-WASM Goblin
 checks after sharing their SQLite test owner. `u4128` passes application types.
 This is not yet the Cloudflare water-field host/restart proof, nor the whole-game
 pawn/environment transaction. The local browser is not the durable game host.
+
+**Air selection:** use the retained qualified Boussinesq airflow and MC scalar
+transport for the first fixed-volume, mildly heated, dilute-smoke brewhouse.
+The [gameplay air contract](gameplay-air-owner.md) freezes its initial supported
+envelope and remaining finite-fuel/building/vent joins. This reuses existing
+numerical work; the newer sealed finite-gas experiments do not supply open vents.
+No flame-temperature, oxygen depletion, compression or full thermal-energy claim
+follows. The numerical owner, actual room consumer and rendered game remain
+separate acceptance steps under the same engine goal.
+
+### Historical source handoffs below
+
+The following dated checkpoints retain source and proof provenance. They are not
+active staffing assignments or competing next-work queues.
 
 **Active source handoff after `512c698`:** `engine_core_pm` owns the first actual
 Goblin-region source join: `src/orders.ts`, new command admission schema/tests,
