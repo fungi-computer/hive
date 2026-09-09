@@ -1,6 +1,10 @@
 // One finite clearing. Logical storeys are explicit; rendering may interpolate
 // between them, but simulation positions remain integer cells.
-import { terrainCell, terrainColumn } from "./terrain.ts";
+import {
+  terrainCell,
+  terrainColumn,
+  terrainChangedColumns,
+} from "./terrain.ts";
 export const SIZE = 15;
 export const WATCHER = { x: 13, z: 2, level: 0 };
 export const ROCKS = [
@@ -196,10 +200,8 @@ export function blockedCells(state) {
         .flatMap(siteCells),
     ].map(cellKey),
   );
-  for (let x = 0; x < SIZE; x++)
-    for (let z = 0; z < SIZE; z++)
-      if (!terrainCell(state.terrain, x, z).support)
-        blocked.add(cellKey({ x, z, level: 0 }));
+  for (const cell of terrainChangedColumns(state.terrain))
+    blocked.add(cellKey(cell));
   for (const stair of state.sites)
     if (stair.type === "stair")
       for (const cell of stairCells(stair).slice(1)) blocked.add(cellKey(cell));
