@@ -20,6 +20,68 @@ paragraph. The engine/asset and launch amendments below are current authorized
 work within this owning sprint. The environmental gameplay joins remain owed;
 an MCP export success does not finish that saved goal.
 
+### Proposed engine completion contract — for joint CTO acceptance
+
+Levi's September 9 amendment makes the **first reusable Hive engine** the next
+goal, with Astra retaining its present model and Session through acceptance.
+The original unfinished environmental work is included. The native tool has no
+goal edit/resume operation; until a supported UI replacement is confirmed,
+this explicit objective owns the new direction without a false completion.
+
+**Goal text:** Complete Hive v0 as a reusable, headless, Shiitake-ready sandbox
+engine extracted from the actual Goblin implementation. Prove that Goblin and
+independent consumers use the same capability, material/work, edited-world and
+environment owners; integrate bounded game-scale water/soil and air/heat; expose
+scoped observations/actions/results through Botanical's existing execute-door
+plumbing; preserve saves, original art, finite resources and the one world clock.
+Deliver accepted source, useful playable interims and reproducible behavior/
+performance evidence. Copper Familiar/MCP is a separate asset-product outcome,
+not engine completion. Keep game direction and integration custody until the
+two CTOs review the concrete engine finish and Levi accepts the role transition.
+
+Here, “complete” means a useful **v0 contract over a declared supported world**,
+not implementation of every planned game feature or scientific fluid dynamics.
+The acceptance packet must close all six exits below; individual rows can ship
+first while the overall engine goal remains unfinished.
+
+| Exit | Concrete acceptance |
+| --- | --- |
+| Reusable entry and real consumers | A headless public engine entry runs without Goblin scenario/content, React, Pixi, Three, Caps, DOM or model-provider imports. Goblin construction and shelves plus the independent five-unit ore depot use the extracted material owner. No copied demo kernel or second inventory remains. Import/source review identifies where each game definition is supplied. |
+| Capabilities, work and persistence | Resolve body/navigation/carry/container/source/work/needs capabilities through narrow owners. Current wood/herb/soil/water/food consumers share applicable supply/transfer/execution rules; final domain effects stay typed. Kettle filling, planting water, drinking and eating no longer orchestrate separate phase machines. Another supported vessel, consumable and recipe are definition changes. Snapshot phase/custody validation uses domain facts; both reproduced save defects are closed. Cancellation, contested stock, moving/lost targets, partial pickup and load preserve quantity/ownership and settle effects once. |
+| Edited world and generation | One versioned, stepped generator supplies height/sea level, biome fields and bounded cave/feature queries. Coarse maps and fine samples share that owner. Generated base + sparse edits + resident field state stay distinct. Adjacent-chunk edit/evict/reload proof preserves seams and state without generating the whole world. Geometry feeds separate movement/support/contact/picking queries; topology invalidation is owned. Keep the playable clearing tiny and publish its supported excavation/vertical envelope explicitly. |
+| Water, soil, air and heat in real play | A player-created shallow channel/pit changes finite flow/soil exchange; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. Reference playback and visual bubbles do not pass this exit. |
+| Engine controller door | An ordinary scoped engine API is callable through the actual maintained Mycelium/Knapsack host path; no custom agent scheduler/catalog or parallel game loop. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; command retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A real execute-tool call must reach this owner. A later live human-vs-Shiitake match remains its own product proof; a synthetic caller does not claim model play. |
+| Integration, budgets and distribution | Goblin consumes the same accepted modules and remains playable through a short dig/build/supply/care trace. A consumer installs/runs the documented engine entry from a clean checkout with pinned definitions and snapshots. Record actual candidate/path/optimizer/field/render/save costs and peak/resident memory separately on named hardware. Freeze workload sizes, fixed-step budgets, field tolerances and browser response targets before final performance acceptance; exceeding them remains a blocker, not an invitation to relabel the load. Source/caller review, focused laws, visible interaction and hosted artifact parity each state their own evidence. |
+
+Performance acceptance covers the named active workload, not hundreds of idle
+pawns. Deterministic work budgets bound simulation; wall-clock scheduling can
+yield rendering/generation without changing physical decisions. The first packet
+must publish the tested actor/job/resident-cell/chunk counts and frame/fixed-step
+budgets so a larger-world claim cannot outgrow the measured result. Exact final
+workload numbers are selected jointly from the first extraction baseline, rather
+than inventing a supported population in a planning document.
+
+Deferred game content (nations, religions, courts, realms, deep breeding, spiral
+towers and the whole social ecosystem) does not gate this engine version.
+Production multiplayer, paid autonomy and engine-wide hot mod execution also
+need their own real hosting/authority acceptance. Their planned capability seams
+remain protected. Full Fiend scene-editor parity belongs to the asset product;
+its progress neither replaces nor completes water/gas/world integration.
+
+### Current parallel custody
+
+Botanical confirmed the two-PM shape. Native Astra-low `engine_core_pm` owns the
+first coupled repair packet in needs/persistence and its focused laws, followed
+by the source-grounded material extraction checkpoint. Native Astra-low
+`asset_product_pm` owns new `src/asset-pipeline/**` scene document/editor work,
+away from frozen MCP `886d542`. Each has a saved bounded active goal and reports
+source/caller decisions, corrections and proof to Game CTO. Supporting workers
+and independent reviews share the real slot limit; do not occupy every slot
+with another coordinator. Root Game CTO keeps architecture, original-art review,
+serial source acceptance/Git/build/deploy; Botanical owns sites/shared Caps and
+the separate MCP hosting route. Existing dirty source and parked sessions remain
+preserved. No model switch is authorized before engine acceptance.
+
 **Latest joint direction, 2026-09-09:** finish deriving the reusable sandbox
 engine from Goblin and prove it through actual game and independent consumers.
 Shiitake integration is a core engine capability: scoped observations, controller
