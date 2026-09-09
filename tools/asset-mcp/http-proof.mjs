@@ -141,7 +141,7 @@ async function legacyProof() {
   try {
     await client.connect(transport);
     assert.equal(client.getProtocolEra(), "legacy");
-    assert.equal((await client.listTools()).tools.length, 2);
+    assert.equal((await client.listTools()).tools.length, 6);
     const result = await client.callTool({
       name: "hive_build_scene",
       arguments: {
@@ -155,6 +155,132 @@ async function legacyProof() {
       name: "default-legacy-http-client-build",
       passed: true,
       meshes: 36,
+    });
+  } finally {
+    await client.close();
+  }
+  assert.deepEqual(errors, []);
+}
+
+async function documentProof() {
+  const client = new Client(
+    { name: "hive-http-document-proof", version: "0.1.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+  );
+  const errors = [];
+  client.onerror = (error) => errors.push(error.message);
+  const call = async (name, arguments_) => {
+    const result = await client.callTool({ name, arguments: arguments_ });
+    assert(!result.isError, JSON.stringify(result.content));
+    assert(result.structuredContent);
+    return result.structuredContent;
+  };
+  try {
+    await client.connect(new StreamableHTTPClientTransport(endpoint));
+    assert.equal(client.getProtocolEra(), "modern");
+    const { document: initial } = await call("hive_scene_create", {
+      name: "HTTP document join",
+    });
+    const transform = {
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    };
+    const { document } = await call("hive_scene_edit", {
+      document: initial,
+      expectedRevision: 0,
+      operations: [
+        {
+          type: "add",
+          node: {
+            id: "bench",
+            parentId: null,
+            transform,
+            material: null,
+            geometry: {
+              kind: "original",
+              pack: "hive-brewhouse-v1",
+              asset: { builder: "bench", parameters: {} },
+            },
+          },
+        },
+        { type: "material", id: "bench", material: { color: "#b86842" } },
+        {
+          type: "add",
+          node: {
+            id: "block",
+            parentId: null,
+            transform,
+            material: null,
+            geometry: { kind: "box", size: [0.3, 0.4, 0.5] },
+          },
+        },
+      ],
+    });
+    assert.equal(document.revision, 1);
+    assert.equal(document.nodes.length, 2);
+    const original = JSON.stringify(document);
+    const rejected = [];
+    for (const [name, input] of [
+      [
+        "stale-revision",
+        {
+          document,
+          expectedRevision: 0,
+          operations: [{ type: "remove", id: "bench" }],
+        },
+      ],
+      [
+        "invalid-input",
+        {
+          document,
+          expectedRevision: 1,
+          operations: [{ type: "remove", id: 3 }],
+        },
+      ],
+    ]) {
+      try {
+        const result = await client.callTool({
+          name: "hive_scene_edit",
+          arguments: input,
+        });
+        assert.equal(result.isError, true, `${name} rejected`);
+        rejected.push({
+          name,
+          surface: "tool-result",
+          content: result.content,
+        });
+      } catch (error) {
+        if (error.code !== -32602) throw error;
+        rejected.push({ name, surface: "protocol-error", code: error.code });
+      }
+      assert.equal(JSON.stringify(document), original);
+    }
+    const inspected = await call("hive_scene_inspect", { document });
+    const exported = await call("hive_scene_export", { document });
+    assert.deepEqual(inspected.document, document);
+    assert.deepEqual(exported.document, document);
+    assert.deepEqual(inspected.bounds, exported.metadata.bounds);
+    assert.deepEqual(inspected.stats, exported.metadata.stats);
+    assert.equal(exported.metadata.stats.meshes, 10);
+    await writeFile(
+      resolve(outputDirectory, "document.three.json"),
+      JSON.stringify(exported.scene),
+    );
+    await writeFile(
+      resolve(outputDirectory, "document.json"),
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+    await writeFile(
+      resolve(outputDirectory, "document.metadata.json"),
+      `${JSON.stringify(exported.metadata, null, 2)}\n`,
+    );
+    receipt.checks.push({
+      name: "current-http-client-owned-document",
+      passed: true,
+      revision: document.revision,
+      rejected,
+      metadata: exported.metadata,
     });
   } finally {
     await client.close();
@@ -275,6 +401,7 @@ try {
   await waitForHealth();
   await modernProof();
   await legacyProof();
+  await documentProof();
   await boundaryProof();
   receipt.status = "passed";
 } catch (error) {

@@ -41,6 +41,24 @@ This accepts local portable output, not Botanical's later public copy/deployment
 
 ## Real first consumer
 
+**Current local source, September 9:** the maintained server now exposes six
+tools. The original catalog/build calls remain compatible; scene create, atomic
+edit, inspect and export call the accepted shared scene-document owner. Documents
+are supplied and retained by the client. An expected revision checks that
+supplied document; it is not a claim of hosted shared storage or cross-client
+concurrency control. Typed export metadata and actual compiler bounds/counts
+are returned, and temporary geometry is disposed after inspection/export.
+
+Real stdio `u3768` and current/legacy Streamable HTTP `u3804` pass the document
+flow, original/generic geometry, rejected edits, export and request boundaries.
+The owned HTTP server closed normally. Game CTO read the final caller/operations
+and verified all six packet source hashes. Fallow `u3816` reports no clones,
+cycles or unresolved imports; new tool owners have no health threshold finding.
+Remaining findings concern real external entrypoints, estimated coverage in
+existing request/cleanup code and the linear HTTP proof's size. No code was
+removed or suppressed. This source milestone does not update Botanical's frozen
+`886d542` hosting choice or claim six remotely deployed tools.
+
 `tools/asset-mcp/assets.mjs` defines narrow, transport-independent art operations
 with Zod input schemas. The original bench/bottle/kettle/bookcase factories
 already used by Copper Familiar construct the geometry. The shared art camera

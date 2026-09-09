@@ -2,10 +2,12 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { assetCatalog, buildAssetScene, sceneInputSchema } from "./assets.mjs";
 
+import { sceneOperations, exportMetadataSchema } from "./scene-operations.mjs";
+
 const sceneOutputSchema = z.object({
   recipe: sceneInputSchema,
   scene: z.record(z.string(), z.unknown()),
-  metadata: z.record(z.string(), z.unknown()),
+  metadata: exportMetadataSchema,
 });
 
 function result(value) {
@@ -54,6 +56,21 @@ export function createAssetServer() {
     },
     async (input) => result(await buildAssetScene(input)),
   );
+
+  for (const { name, execute, ...definition } of sceneOperations) {
+    server.registerTool(
+      name,
+      {
+        ...definition,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          openWorldHint: false,
+        },
+      },
+      async (input) => result(await execute(input)),
+    );
+  }
 
   return server;
 }
