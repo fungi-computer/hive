@@ -1,5 +1,5 @@
 import { MATERIAL } from '../height-caves.mjs';
-import { balanceTolerance, compensatedSum } from '../../engine/environment/soil/index.js';
+import { compensatedSum } from '../../engine/environment/soil/index.js';
 import { key, xyz, same, exactFields, requireCondition } from './world-binding.mjs';
 
 const soilNodeId = at => `cell:${key(at)}`;
@@ -50,9 +50,9 @@ export function validateLedger(config, state, facts, removed, voxelM3) {
   const exportWaterKg = compensatedSum(state.exports.map(entry => entry.waterKg));
   const pitWaterKg = compensatedSum(facts.nodes.filter(node => node.kind === 'pit').map(node => node.massKg));
   const totalWaterKg = compensatedSum([facts.totalMassKg, exportWaterKg]);
-  requireCondition(Number.isFinite(state.initialWaterKg) && state.initialWaterKg > 0 &&
-    Math.abs(totalWaterKg - state.initialWaterKg) <= balanceTolerance(state.initialWaterKg),
-    'soil plus finite spoil plus columns must retain the original water total');
+  // The paired material owner is deliberately absent here. This derived fact
+  // must close against its actual counterpart in the composed game transaction.
+  const exchangeWaterKg = compensatedSum([facts.boundaryKg, exportWaterKg]);
   return { retainedWaterKg: facts.totalMassKg - pitWaterKg, exportWaterKg, pitWaterKg,
-    totalWaterKg, residualKg: totalWaterKg - state.initialWaterKg };
+    totalWaterKg, boundaryKg: facts.boundaryKg, exchangeWaterKg, residualKg: facts.residualKg };
 }

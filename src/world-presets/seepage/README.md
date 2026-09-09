@@ -7,7 +7,7 @@ capacity, geometry and read projections are rebuilt from those facts.
 
 `createExcavationAdapter` accepts a generated-world identity and physical
 definitions. Unknown inputs cross the full plain-data, geometry, stock and
-cross-owner conservation checks. Returned checkpoints are immutable. A private
+physical conservation and removal-provenance checks. Returned checkpoints are immutable. A private
 weak cache recognizes only checkpoints actually admitted by that adapter, never
 a matching revision, an external frozen object or a mutable caller snapshot.
 
@@ -33,14 +33,14 @@ Canonical world edits derive the column runs. An arbitrary cave, overhang,
 unowned lateral outlet or detached underground cut is rejected rather than
 flattened into a surface column.
 
-Current checkpoint version is `height-caves-connected-excavation-v6`. Every
+Current checkpoint version is `height-caves-connected-excavation-v7`. Every
 removed voxel has exactly one record, sorted by its stable
 `excavation:cell:x,y,z` ID. Both kinds own `at`, canonical numeric `materialId`,
 `quantity:1` (one removed voxel), `waterKg`, and `sourceVoxelM3`. A `porous`
 record additionally names the actual `nodeId` and `soilId`, and exports that
 node's actual finite water. An `impermeable` record has no pore-node fields and
 exports exactly0kg of water. No unknown material defaults to dry soil or rock.
-Record fields, provenance, capacities and cross-owner water balance are checked
+Record fields, provenance, capacities and physical water balance are checked
 on current-format reopen; old formats are rejected without migration.
 
 Deepening stone adds empty capacity and lowers the column base. The same water
@@ -67,7 +67,47 @@ The independent Region consumer owns deep-stone commands and finite source
 records now; it does not create game inventory. Existing finite removed pore
 water and future physical lots cannot both spend the same source stock.
 
+## One original mass and one physical boundary
+
+The canonical physical state alone owns fixed `soilState.initialTotalKg` and
+signed `soilState.boundaryKg`. The former outer `initialWaterKg` field is gone.
+Removing a porous voxel preserves the original reference and subtracts its
+actual pore water from boundaryKg, while putting that exact water in the
+existing removal record. Removing impermeable stone changes neither water nor
+boundary. Remap copies surviving stable-ID stocks to the new checked geometry;
+it does not call an initializer that silently rebases the original mass.
+
+`adapter.exchange(state, {nodeId, direction, massKg})` delegates to the same
+volume's detached finite free-water transfer. It leaves world, removal records,
+geometry, time and accepted-step count unchanged. The immutable admission cache
+retains compiled topology but still checks physical state and the exact encoded
+byte budget before remembering the new checkpoint. Unknown wire still fully
+revalidates. No mutable projection is shared across an actual excavation.
+
+Read facts expose physical `boundaryKg`, `residualKg`, exact summed
+`exportWaterKg`, and **derived** `exchangeWaterKg = boundaryKg + exportWaterKg`.
+The latter excludes spoil and represents net other boundary transfers into the
+field; it is not saved as another ledger. `totalWaterKg` remains the clearly
+defined current field plus recorded spoil quantity, which now changes when an
+outside counterpart supplies/withdraws water. Physical residual comes from the
+volume owner; this adapter does not duplicate its conservation validator.
+
+The adapter alone cannot certify that external material water paid for an
+exchange. Its parser accepts physically coherent supplied-boundary states and
+checks removal records against source provenance/capacity, not an unavailable
+history of material transfers. The composed game/Region must validate
+`exchangeWaterKg + kgPerUnit*(materialWater - initialMaterialWater) == 0` in one
+candidate. Until that join, current game admission must require zero external
+exchange (within its stated arithmetic allowance) and keep its existing closed
+material-water budget. A physical receipt is not authority to mint a pail lot.
+
+New focused laws deposit into a real generated column, run same-owner side
+infiltration, remove a further actual porous voxel, deepen to stone, and reopen
+before further flow. Fixed original mass, exact exported pore water, zero stone
+transfer, column identity and clock survive. These are source/JS laws only;
+the native wet proof receives a current field-name update, not a new native run.
+
 Wider field coverage, zero-port/disconnected columns, roofed cavities, water
-displacement by backfill, gas coupling and pail/field exchange remain separate
+displacement by backfill, gas coupling and the paired pail/material join remain separate
 work. The main game queries generated geometry beyond this bounded water
 ownership; unmodeled soil is not implicitly dry.

@@ -84,7 +84,7 @@ test('stone removal source, unchanged water and receipt commit together once acr
   assert.equal(current.soilState.timeS, prior.soilState.timeS);
   assert.equal(current.soilState.steps, prior.soilState.steps);
   assert.equal(current.soilState.initialTotalKg, prior.soilState.initialTotalKg);
-  assert.equal(current.initialWaterKg, prior.initialWaterKg);
+  assert.equal(current.soilState.boundaryKg, prior.soilState.boundaryKg);
   assert.equal(current.world.revision, prior.world.revision + 1);
   const stone = current.exports.filter(entry => entry.kind === 'impermeable');
   assert.deepEqual(stone, [{ id: 'excavation:cell:1,12,128', kind: 'impermeable',

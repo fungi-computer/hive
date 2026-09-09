@@ -1,7 +1,8 @@
 import { compensatedSum, requireCondition } from './soil.mjs';
 import { dryPitReference } from './pit.mjs';
+import { assertWorldRecord as exactRecord, assertWorldArray } from '../../world/data-contract.mjs';
 
-export const VERSION = 'rigid-richards-connected-volume-be-v1';
+export const VERSION = 'rigid-richards-boundary-volume-be-v2';
 export const NUMERICS = Object.freeze({ solveKg: 1e-10, acceptedKg: 2e-9, closureKg: 2e-9,
   balanceKg: 2e-11, linearKg: 1e-10, minDtS: 1e-6, maxDtS: 120, maxIntervalS: 7200 });
 export const freezeState = s => Object.freeze({ ...s, massKg: Object.freeze([...s.massKg]) });
@@ -10,6 +11,34 @@ export const balanceTolerance = total => NUMERICS.balanceKg + 64 * Number.EPSILO
 export const maxAbs = values => values.reduce((n, x) => Math.max(n, Math.abs(x)), 0);
 export const canonicalIds = g => g.nodes.map((_, i) => i).sort((a, b) =>
   g.nodes[a].id < g.nodes[b].id ? -1 : g.nodes[a].id > g.nodes[b].id ? 1 : 0);
+
+/** Reject unresolved arithmetic using operand-scale IEEE roundoff only. The
+ * whole-state mass tolerance is not permission to lose a small transfer. */
+export function changeMass(before, delta) {
+  const after = before + delta;
+  requireCondition(Number.isFinite(before) && Number.isFinite(delta) && Number.isFinite(after),
+    'finite representable mass change');
+  if (delta === 0) return before;
+  const represented = after - before;
+  const error = represented - delta;
+  const uncertainty = 4 * Number.EPSILON * Math.max(Math.abs(before), Math.abs(after), Math.abs(delta));
+  requireCondition(Math.sign(represented) === Math.sign(delta) &&
+    uncertainty < Math.abs(delta) && Math.abs(error) <= uncertainty,
+    'mass change lost at current arithmetic resolution');
+  return after;
+}
+
+function massBalance(initialTotalKg, boundaryKg, totalMassKg) {
+  requireCondition(Number.isFinite(initialTotalKg) && initialTotalKg > 0 &&
+    Number.isFinite(boundaryKg) && Number.isFinite(totalMassKg), 'finite regional mass ledger');
+  // Cancel the largest opposing ledger terms before the small remaining stock.
+  // A historical reference must not inflate the current physical allowance.
+  const scaleKg = Math.abs(totalMassKg);
+  const terms = [totalMassKg, -initialTotalKg, -boundaryKg].sort((a, b) => Math.abs(b) - Math.abs(a));
+  const residualKg = compensatedSum(terms);
+  requireCondition(Math.abs(residualKg) <= balanceTolerance(scaleKg), 'finite regional mass balance');
+  return { residualKg, scaleKg };
+}
 
 export function validHead(node, h) {
   return Number.isFinite(h) && h >= node.minHeadM && h <= node.maxHeadM &&
@@ -42,31 +71,30 @@ export function canonicalAnchors(g, massKg) {
 }
 
 export function validateState(g, identity, s) {
-  const keys = ['version', 'identity', 'massKg', 'initialTotalKg', 'timeS', 'steps'].sort().join('|');
-  requireCondition(s && typeof s === 'object' && Object.keys(s).sort().join('|') === keys,
+  exactRecord(s, ['version', 'identity', 'massKg', 'initialTotalKg', 'boundaryKg', 'timeS', 'steps'],
     'canonical porous-region state fields');
   requireCondition(s.version === VERSION && s.identity === identity, 'region geometry/definition/solver identity');
   requireCondition(Number.isFinite(s.timeS) && s.timeS >= 0 && Number.isSafeInteger(s.steps) && s.steps >= 0,
     'canonical porous-region clock');
-  requireCondition(Array.isArray(s.massKg) && s.massKg.length === g.nodes.length &&
-    s.massKg.every((m, i) => Number.isFinite(m) && m >= g.nodes[i].minMassKg && m <= g.nodes[i].maxMassKg &&
+  assertWorldArray(s.massKg, g.nodes.length, 'canonical dense mass array');
+  requireCondition(s.massKg.length === g.nodes.length && s.massKg.every((m, i) => Number.isFinite(m) && m >= g.nodes[i].minMassKg && m <= g.nodes[i].maxMassKg &&
       (g.nodes[i].kind !== 'reservoir' || g.nodes[i].portCount === 1 || m > 0)),
     'exact pore/boundary capacity and wet multi-port reservoir stock');
   const totalMassKg = compensatedSum(s.massKg);
-  requireCondition(Number.isFinite(s.initialTotalKg) && s.initialTotalKg > 0 &&
-    Math.abs(totalMassKg - s.initialTotalKg) <= balanceTolerance(s.initialTotalKg), 'finite regional mass balance');
-  return { totalMassKg, anchors: canonicalAnchors(g, s.massKg) };
+  const balance = massBalance(s.initialTotalKg, s.boundaryKg, totalMassKg);
+  return { totalMassKg, ...balance, anchors: canonicalAnchors(g, s.massKg) };
 }
 
 export function initialState(g, identity, input) {
-  requireCondition(input && Object.keys(input).join('|') === 'stocks' && Array.isArray(input.stocks) &&
-    input.stocks.length === g.nodes.length, 'one explicit stock entry per geometry node');
+  exactRecord(input, ['stocks'], 'initial stock fields');
+  assertWorldArray(input.stocks, g.nodes.length, 'bounded initial stocks');
+  requireCondition(input.stocks.length === g.nodes.length, 'one explicit stock entry per geometry node');
   const index = new Map(g.nodes.map((n, i) => [n.id, i])), seen = new Set(), massKg = Array(g.nodes.length);
   for (const entry of input.stocks) {
-    requireCondition(entry && Object.keys(entry).sort().join('|') === 'massKg|nodeId' &&
-      index.has(entry.nodeId) && !seen.has(entry.nodeId), 'unique known stock ID and exact initial fields');
+    exactRecord(entry, ['massKg', 'nodeId'], 'initial stock entry');
+    requireCondition(index.has(entry.nodeId) && !seen.has(entry.nodeId), 'unique known stock ID and exact initial fields');
     seen.add(entry.nodeId); massKg[index.get(entry.nodeId)] = entry.massKg;
   }
-  const s = { version: VERSION, identity, massKg, initialTotalKg: compensatedSum(massKg), timeS: 0, steps: 0 };
+  const s = { version: VERSION, identity, massKg, initialTotalKg: compensatedSum(massKg), boundaryKg: 0, timeS: 0, steps: 0 };
   validateState(g, identity, s); return freezeState(s);
 }

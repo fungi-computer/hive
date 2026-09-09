@@ -43,8 +43,8 @@ test('only admitted immutable checkpoints reuse derived data; untrusted wire and
 
   const wire = structuredClone(cut);
   const admitted = adapter.parse(wire);
-  wire.exports[0].waterKg += 1;
-  assert.throws(() => adapter.parse(wire), /retain the original water/);
+  wire.exports[0].waterKg = 1000;
+  assert.throws(() => adapter.parse(wire), /source pore capacity/);
   assert.equal(adapter.encode(admitted), prior);
   let calls = 0;
   const accessor = { ...cut };

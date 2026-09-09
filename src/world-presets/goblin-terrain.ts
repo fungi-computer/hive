@@ -31,10 +31,10 @@ export type GeneratedTerrain = {
     readonly identity: string;
     readonly massKg: readonly number[];
     readonly initialTotalKg: number;
+    readonly boundaryKg: number;
     readonly timeS: number;
     readonly steps: number;
   };
-  readonly initialWaterKg: number;
   readonly exports: readonly ({
     readonly id: string;
     readonly at: readonly [number, number, number];
