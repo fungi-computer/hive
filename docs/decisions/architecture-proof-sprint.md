@@ -28,6 +28,16 @@ first live voxel seepage caller is in the environment worktree: generated-world
 query, finite pit depth, explicit minute advancement and exact local checkpoint
 reopen. Scene laws and an initial build passed; visual acceptance remains pending.
 Neither checkpoint claims new DO environmental commitment or hosted gameplay.
+The current-codec cleanup subsequently found a ration-sink material enum omission
+after completed eating; the same writer owns its correction and completed-eating
+round-trip law before gameplay integration. The phase checkpoint is not a claim
+that every current save state already passes.
+
+**Rolling source handoff:** PMs own complete bounded implementation/fix/proof and
+isolated-branch commits. Pinned checkpoints enable parallel review; they do not
+park a writer by default. King Bolete keeps serial integration and publication.
+Current chunks are the whole current-save cleanup and already-authorized native
+editor project ownership, with no expensive editor browser continuation.
 
 **Latest development policy, Levi September 9:** breaking engine/game APIs and
 save formats are allowed. Do not implement legacy shims, compatibility wrappers,
