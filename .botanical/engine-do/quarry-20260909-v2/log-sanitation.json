@@ -1,0 +1,26 @@
+{
+  "status": "sanitized",
+  "reason": "Wrangler truncated local per-run bindings bypassed full-token replacement. Full binding lines removed from retained logs. All owned runtimes are stopped. No runtime or physical proof changes, no lifecycle rerun.",
+  "files": [
+    {
+      "path": ".botanical/engine-do/quarry-20260909-v2/wrangler-0.log",
+      "originalSha256": "56ca404564bf233752877509373c8a61decb7eb47de8af238920c8986fcb8263",
+      "sanitizedSha256": "913631c55941e4572e8953e5949c0a51e75f8e91ee90fdfb2d3c1e567c9ba39a",
+      "bindingLinesRemoved": 3
+    },
+    {
+      "path": ".botanical/engine-do/quarry-20260909-v2/wrangler-1.log",
+      "originalSha256": "0ff60652ea6cd398b52ec186fbb3cb5a78fbbdd727d9e6eebca6778ac17e90da",
+      "sanitizedSha256": "666418b9f65706e5eea053167e62dfbad183587d9ead1becdee6395b90cb99a2",
+      "bindingLinesRemoved": 3
+    },
+    {
+      "path": ".botanical/engine-do/quarry-20260909-v2/wrangler-2.log",
+      "originalSha256": "114f5f0d8ed3415b0433949f9e6b14c20b94a7beb64ffa9f1c135c5ebebf9797",
+      "sanitizedSha256": "b2c5506cfefdd35c5dad2b4e1dceb3738d65b17cf2ac5e58ed75d9753ed9155a",
+      "bindingLinesRemoved": 3
+    }
+  ],
+  "futureProofSourceSha256": "e5de3a20bdeae8dbb4635d6c717820edf6c97c9b31e8b9db90ea972f25ed5171",
+  "runtimeCheckpoint": "checkpoint.json retains the exact executed proof source hash; future source differs only in log redaction."
+}

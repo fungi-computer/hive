@@ -3,6 +3,7 @@
 import * as THREE from "three";
 import { scene, box, ball, cylinder, mesh, group } from "./geometry.js";
 import { mugwortBundle } from "./herbs.js";
+import { rationParcel } from "./food.js";
 
 import { pail, PAIL_GRIP } from "./pail.js";
 const PAIL_POSES = {
@@ -63,10 +64,12 @@ function arms(
   moving,
   { shoulder, spread, length, sleeve, hand, action = "idle" },
 ) {
-  const carryingHerb = ["carry-herb", "carry-soil"].includes(action);
+  const carryingParcel = ["carry-herb", "carry-soil", "carry-ration"].includes(
+    action,
+  );
   if (action === "dig") action = "build";
   const carryingPail = Object.hasOwn(PAIL_POSES, action);
-  if (carryingHerb) action = "carry";
+  if (carryingParcel) action = "carry";
   if (action === "pickup-herb") action = "pickup";
   const hands = [];
   for (const side of [-1, 1]) {
@@ -84,18 +87,29 @@ function arms(
       arm.rotation.x = side < 0 ? stroke[Math.floor(phase * 8) % 8] : -0.2;
       arm.rotation.z = side < 0 ? -0.04 : 0.22;
     }
-    if (action === "carry") arm.rotation.x = carryingHerb ? -0.55 : -1.15;
+    if (action === "carry") arm.rotation.x = carryingParcel ? -0.55 : -1.15;
+    if (action === "eat") {
+      arm.rotation.x =
+        side < 0 ? -1.05 + Math.sin(phase * Math.PI * 2) * 0.12 : -0.4;
+      arm.rotation.z = -side * 0.1;
+      arm.rotation.y = side < 0 ? 0.65 : 0;
+    }
     if (carryingPail && side === 1) {
       arm.rotation.x = -0.12 + Math.sin(phase * Math.PI * 2) * 0.05;
       arm.rotation.z = 0.5;
     }
     limb(arm, sleeve, length, 0.14);
     const elbow = group(arm, 0, -length, 0);
-    elbow.rotation.x = carryingHerb
-      ? -0.95
-      : action === "build"
-        ? -0.45
-        : -0.12;
+    elbow.rotation.x =
+      action === "eat"
+        ? side < 0
+          ? -1.65
+          : -0.85
+        : carryingParcel
+          ? -0.95
+          : action === "build"
+            ? -0.45
+            : -0.12;
     limb(elbow, sleeve, length * 0.85, 0.105);
     const palm = group(elbow, 0, -length * 0.9, 0.015);
     ball(palm, hand, 0, -0.025, 0, 0.057, 0.075, 0.06);
@@ -194,6 +208,19 @@ function workGear(body, hands, pose) {
   }
   if (pose === "carry-herb") {
     carryHerb(body, hands);
+    return;
+  }
+  if (pose === "carry-ration" || pose === "eat") {
+    const palms = hands.map((hand) =>
+      body.worldToLocal(hand.getWorldPosition(new THREE.Vector3())),
+    );
+    const center =
+      pose === "eat"
+        ? palms[0]
+        : palms[0].clone().add(palms[1]).multiplyScalar(0.5);
+    const parcel = rationParcel(body);
+    parcel.position.set(center.x, center.y - 0.055, center.z + 0.025);
+    if (pose === "eat") parcel.scale.setScalar(0.6);
     return;
   }
   if (pose === "carry-soil") {
@@ -718,6 +745,7 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
     pose === "carry" ||
     pose === "carry-herb" ||
     pose === "carry-soil" ||
+    pose === "carry-ration" ||
     Object.hasOwn(PAIL_POSES, pose);
   const body = group(
     puppet,

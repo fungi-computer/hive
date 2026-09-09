@@ -1,4 +1,5 @@
 import type { Actor, ActorId, Body, Clearing, Scope } from "./model.ts";
+import { initialNeeds } from "./needs.ts";
 
 export function body(x: number, z: number): Body {
   return { x, z, level: 0, dir: 0, mode: "idle", path: [], leg: 0, work: 0 };
@@ -16,7 +17,7 @@ export function actor(
     name,
     figure,
     drafted: false,
-    rest: 80,
+    needs: initialNeeds(),
     routine: false,
     allowedWork: {
       chop: true,
