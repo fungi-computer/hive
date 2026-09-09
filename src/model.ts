@@ -24,6 +24,7 @@ export type Material =
   | "ale"
   | "spent-grain"
   | "soil"
+  | "stone"
   | "ration";
 import type * as PhysicalMaterials from "./engine/materials/types.ts";
 export type ItemLot = PhysicalMaterials.ItemLot<Material>;

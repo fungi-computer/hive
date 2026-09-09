@@ -1,3 +1,4 @@
+import { excavationYield } from "./terrain-yields.ts";
 import type { Actor, Clearing, Job, Site } from "./model.ts";
 import { finishActivity, finishJob } from "./activity-lifecycle.ts";
 import {
@@ -228,7 +229,7 @@ function readyWork(
   return { status: "ready", actor, target };
 }
 
-/** Excavated field stock and its one ordinary soil lot are prepared together. */
+/** Exact removal provenance and its game-defined bulk yield prepare together. */
 function prepareExcavation(
   state: Clearing,
   materials: Clearing["materials"],
@@ -236,7 +237,17 @@ function prepareExcavation(
   target: Extract<WorkTarget, { kind: "dig" }>,
 ): GeometryEdit | Refusal {
   const terrain = excavateTerrain(state.terrain, target.job.voxel);
-  const result = createGroundLot(materials, "soil", 1, cell(actor));
+  const yield_ = excavationYield(
+    state.terrain.exports,
+    terrain.exports,
+    target.job.voxel,
+  );
+  const result = createGroundLot(
+    materials,
+    yield_.material,
+    yield_.quantity,
+    cell(actor),
+  );
   if (!result.ok) return materialRefusal(result.reason);
   return {
     status: "prepared",

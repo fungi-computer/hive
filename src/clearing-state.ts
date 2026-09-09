@@ -1,3 +1,4 @@
+import { terrainYieldProblem } from "./terrain-yields.ts";
 import { materialContainerFacts } from "./material-container-facts.ts";
 import {
   deconstructionTargetProblem,
@@ -65,7 +66,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 20 as const;
+const SAVE_SCHEMA = 21 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -223,7 +224,7 @@ const recipeMaterial = z.enum([
   "ale",
   "spent-grain",
 ]);
-const material = z.enum([...recipeMaterial.options, "soil", "ration"]);
+const material = z.enum([...recipeMaterial.options, "soil", "stone", "ration"]);
 const sinkMaterial = z.enum([...recipeMaterial.options, "ration"]);
 const lot = z
   .object({
@@ -1969,14 +1970,11 @@ function validateConservation({ state }: RelationContext): void {
       .length * rationPerCache;
   if (ration !== expectedRations)
     fail(`ration conservation is ${ration}, expected ${expectedRations}`);
-  const soil = state.materials.lots.reduce(
-    (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
-    0,
+  const yieldProblem = terrainYieldProblem(
+    state.terrain.exports,
+    state.materials.lots,
   );
-  if (soil !== state.terrain.exports.length)
-    fail(
-      `soil conservation is ${soil}, expected ${state.terrain.exports.length}`,
-    );
+  if (yieldProblem) fail(yieldProblem);
 }
 
 function validateTerrain({ state }: RelationContext): void {

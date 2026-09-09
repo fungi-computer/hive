@@ -279,7 +279,7 @@ test("actual WASM mugwort uses existing contents and permanent cancel preserves 
 
 test("current vessel format rejects schema 18 rather than migrating single-content work", () => {
   const saved = snapshotFor(createClearing());
-  assert.equal(saved.schema, 20);
+  assert.equal(saved.schema, 21);
   saved.schema = 18;
   assert.throws(() => restoreSnapshot(saved), /20/);
 });
