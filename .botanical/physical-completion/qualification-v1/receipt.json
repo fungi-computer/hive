@@ -1,0 +1,181 @@
+{
+  "recordedAt": "2026-09-09T18:15:06.715978+00:00",
+  "root": "/home/levi/src/hive-worktrees/physical-completion-join",
+  "pin": "797ed9cbe0454edd56d70b3005997fd3306504f4",
+  "driverSha256": "f976f4ebd13e8b11eab851611c288e7ecf782a8e37c412668ee5170f550feac8",
+  "command": "run-proof.sh bash .botanical/physical-completion/qualify.sh 797ed9cbe0454edd56d70b3005997fd3306504f4",
+  "execSession": 95062,
+  "scope": "run-u4562.scope",
+  "invocation": "d9d410d5ab1c4e608e24ce02d9055bb4",
+  "exit": 1,
+  "stage": "fallow",
+  "laws": {
+    "passed": 8,
+    "failed": 0,
+    "scope": "seven direct physical/custody fixtures plus one actual-WASM two-person shared-clock law"
+  },
+  "strictAppTypes": {
+    "exit": 0,
+    "skipLibCheck": false
+  },
+  "diffExit": 0,
+  "fallow": {
+    "exit": 1,
+    "attribution": {
+      "gate": "new-only",
+      "dead_code_introduced": 0,
+      "dead_code_inherited": 7,
+      "complexity_introduced": 4,
+      "complexity_inherited": 35,
+      "duplication_introduced": 1,
+      "duplication_inherited": 6,
+      "styling_introduced": 0,
+      "styling_inherited": 0,
+      "duplication_demoted": 0
+    },
+    "newComplexity": [
+      {
+        "path": "src/physical-completion.ts",
+        "name": "readyWork",
+        "line": 164,
+        "col": 0,
+        "cyclomatic": 21,
+        "cognitive": 21,
+        "line_count": 37,
+        "param_count": 2,
+        "exceeded": "all",
+        "severity": "critical",
+        "crap": 116.3,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/clearing-state.ts",
+        "name": "validatePhysicalWork",
+        "line": 2003,
+        "col": 0,
+        "cyclomatic": 16,
+        "cognitive": 30,
+        "line_count": 31,
+        "param_count": 1,
+        "react_prop_count": 1,
+        "exceeded": "cognitive_crap",
+        "severity": "high",
+        "crap": 71.3,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/physical-completion.ts",
+        "name": "prepareEdit",
+        "line": 204,
+        "col": 0,
+        "cyclomatic": 15,
+        "cognitive": 32,
+        "line_count": 69,
+        "param_count": 2,
+        "exceeded": "cognitive_crap",
+        "severity": "high",
+        "crap": 63.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/physical-completion.ts",
+        "name": "resolveWork",
+        "line": 67,
+        "col": 0,
+        "cyclomatic": 13,
+        "cognitive": 4,
+        "line_count": 28,
+        "param_count": 3,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 49.5,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "introduced": true
+      }
+    ],
+    "disposition": "Source correction pending for three readiness/preparation/current-save responsibility hotspots. Keep low-cognitive resolveWork estimated-coverage advisory and explicit build/deconstruct lookup clone without score-only wrappers. No gate-pass or final integration claim."
+  },
+  "cleanup": {
+    "terminalCollected": true,
+    "activeState": "inactive",
+    "subState": "dead",
+    "controlGroup": "",
+    "serverOrListenerStarted": false
+  },
+  "limits": [
+    "No physics matrix, browser, build, benchmark, native DO or deployment",
+    "Authored intermediate fixtures do not establish earned gameplay or hosted durability",
+    "Root has not accepted final source integration pending bounded responsibility corrections"
+  ],
+  "sourceFiles": [
+    {
+      "path": "src/activity-lifecycle.ts",
+      "sha256": "67573d9b717de7a4a2905d9b46c86ad2998f9ddcd73b0deb7749622816ac9f07"
+    },
+    {
+      "path": "src/activity.ts",
+      "sha256": "36be39983b53809d29b1505b7dbc55f7d6511355ea5328eb03ecfe705126386e"
+    },
+    {
+      "path": "src/clearing-state.ts",
+      "sha256": "a90e7c017c85b4f44fe5b48ae4e32610b9fa22540ae7dba730d88409ae2861b4"
+    },
+    {
+      "path": "src/jobs.ts",
+      "sha256": "9fc30e4f330d47c9e87423a111ae333626c6114639d07692640cd30f711a61e0"
+    },
+    {
+      "path": "src/material-container-facts.ts",
+      "sha256": "2e736d55ef6db4dc0ae5910c0929c9dfd9c985c7ad85885f02c53ec1d64979ff"
+    },
+    {
+      "path": "src/orders.ts",
+      "sha256": "3efdbd3a80aa8985cccc08296bb5ffe066c4da9032b56efe309c8e62740363b7"
+    },
+    {
+      "path": "src/physical-completion.test.js",
+      "sha256": "c77be1af90d9a9507eb18b458a3def9fa4b235fb86de70feac0ed96e80efc0ba"
+    },
+    {
+      "path": "src/physical-completion.ts",
+      "sha256": "c50f7e54fad45e58b3f01653291ed1518f9fafb9587f0c5ecada1ed5b8e1cbb3"
+    },
+    {
+      "path": "src/routine.ts",
+      "sha256": "27bad78afafd753c863b0dc2e95127c715d1b09b77a526040c01d910a9cddc04"
+    }
+  ],
+  "logs": [
+    {
+      "path": "diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fallow.json",
+      "sha256": "9644a954a2a561097cf0e8f53a87e9df9221b3a9830aa7b90cf24a42c6110184"
+    },
+    {
+      "path": "fallow.log",
+      "sha256": "f975eed1adabf7f794fcb5c172a38931e7a318d9a029adfe9108d419cb143eeb"
+    },
+    {
+      "path": "laws.log",
+      "sha256": "f7564ff17b0b832a18d2b4ea2810799000a2054d0db59aca7056485365b98e5c"
+    },
+    {
+      "path": "status.txt",
+      "sha256": "a2bba25b9407d65d022ee84c3650270f937d1f95de685e0cc1bc060a63e7abe9"
+    },
+    {
+      "path": "types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "head": "d334dd64aade4d8fb14a8d52bbab755d0e246f0a",
+  "base": "74e28210644cef01abeb1cb8c34f309a90333da4",
+  "root": "/home/levi/src/hive-worktrees/physical-completion",
+  "branch": "engine/physical-completion-20260909",
+  "evidence": "SOURCE ONLY: eight authored laws, none executed. No test/type/Fallow/runtime/build gate released.",
+  "files": [
+    {
+      "path": "src/activity-lifecycle.ts",
+      "sha256": "67573d9b717de7a4a2905d9b46c86ad2998f9ddcd73b0deb7749622816ac9f07"
+    },
+    {
+      "path": "src/activity.ts",
+      "sha256": "36be39983b53809d29b1505b7dbc55f7d6511355ea5328eb03ecfe705126386e"
+    },
+    {
+      "path": "src/clearing-state.ts",
+      "sha256": "a90e7c017c85b4f44fe5b48ae4e32610b9fa22540ae7dba730d88409ae2861b4"
+    },
+    {
+      "path": "src/jobs.ts",
+      "sha256": "9fc30e4f330d47c9e87423a111ae333626c6114639d07692640cd30f711a61e0"
+    },
+    {
+      "path": "src/material-container-facts.ts",
+      "sha256": "2e736d55ef6db4dc0ae5910c0929c9dfd9c985c7ad85885f02c53ec1d64979ff"
+    },
+    {
+      "path": "src/orders.ts",
+      "sha256": "3efdbd3a80aa8985cccc08296bb5ffe066c4da9032b56efe309c8e62740363b7"
+    },
+    {
+      "path": "src/physical-completion.test.js",
+      "sha256": "c77be1af90d9a9507eb18b458a3def9fa4b235fb86de70feac0ed96e80efc0ba"
+    },
+    {
+      "path": "src/physical-completion.ts",
+      "sha256": "c50f7e54fad45e58b3f01653291ed1518f9fafb9587f0c5ecada1ed5b8e1cbb3"
+    },
+    {
+      "path": "src/routine.ts",
+      "sha256": "27bad78afafd753c863b0dc2e95127c715d1b09b77a526040c01d910a9cddc04"
+    }
+  ],
+  "priorSourceCheckpoint": "120492c9926eb8b529786f4e6e9cd1fae4d1ddd5",
+  "joinedPin": "797ed9cbe0454edd56d70b3005997fd3306504f4",
+  "joinedBase": "5052b46fc052399c5a3463df87534365336d5e5a",
+  "driverSha256": "f976f4ebd13e8b11eab851611c288e7ecf782a8e37c412668ee5170f550feac8",
+  "reviewSha256": "86940ea8090d48f28b8d81fd99e657b312e5b5eca18853ada493ecc066d8c082",
+  "execution": "not run"
+}
