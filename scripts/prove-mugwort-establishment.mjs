@@ -90,6 +90,7 @@ try {
     await waitState(() => window.__GOBLIN.state.paused);
   }
   assert.equal((await state()).paused, true);
+  const pausedAdmissionTick = (await state()).tick;
 
   if (!(await page.locator("#herb-tool").count()))
     await page.getByRole("button", { name: "Build", exact: true }).click();
@@ -117,7 +118,7 @@ try {
   assert.equal(sowJob.scope.actors, null);
   assert.equal(
     (await state()).tick,
-    0,
+    pausedAdmissionTick,
     "paused admission must not advance time",
   );
 
