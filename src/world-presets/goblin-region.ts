@@ -50,7 +50,7 @@ type Input = z.infer<typeof inputSchema>;
 export function createGoblinRegionProgram(
   colony: Optimizer,
 ): RegionProgram<State, Input> {
-  const programId = `goblin-wet20-water1kg-v1:${optimizerBuildIdentity(colony)}`;
+  const programId = `goblin-wet21-yield054-v1:${optimizerBuildIdentity(colony)}`;
   const computeCost = colony.compute_cost.bind(colony);
   const optimize = colony.optimize.bind(colony);
   const optimizer = Object.freeze({ compute_cost: computeCost, optimize });

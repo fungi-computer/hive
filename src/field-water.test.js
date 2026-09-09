@@ -84,7 +84,7 @@ test("paid held water returns to the actual pit and is drawn back with one mater
   );
   assert.deepEqual(f.state.materials.sinks, []);
   const saved = snapshotFor(f.state);
-  assert.equal(saved.schema, 20);
+  assert.equal(saved.schema, 21);
   assert.deepEqual(restoreSnapshot(saved).state.terrain, f.state.terrain);
   assert.deepEqual(restoreSnapshot(saved).state.materials, f.state.materials);
   assert.throws(() => parseClosedTerrain(f.state.terrain), /no external/);

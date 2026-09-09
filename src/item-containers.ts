@@ -37,6 +37,7 @@ export const MATERIAL_DEFINITIONS = checkedMaterialDefinitions<Material>({
   ale: { carry: "portion" },
   "spent-grain": { carry: "portion" },
   soil: { carry: "portion" },
+  stone: { carry: "portion" },
   ration: { carry: "portion" },
 });
 export function vesselContainer(lot: LotId): ContainerId {
