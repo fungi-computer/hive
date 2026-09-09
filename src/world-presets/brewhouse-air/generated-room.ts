@@ -32,7 +32,7 @@ function worldBounds() {
 
 /** Boundary masks follow physical neighbors; an unmodeled roofed continuation
  * cannot become an outdoor reservoir or an artificial closed wall. */
-export function roomExteriorFaces(
+export function roomExteriorBoundary(
   query: ReturnType<typeof createStructureGeometry>,
   requested: Parameters<typeof query.region>[0],
   ambientPlaneY: number,
@@ -43,9 +43,20 @@ export function roomExteriorFaces(
     throw new Error(
       `brewhouse needs neighboring air region at ${unresolved.faceId}`,
     );
-  return Object.freeze(
-    faces.filter((face) => face.state === "closed").map((face) => face.faceId),
-  );
+  return Object.freeze({
+    openSides: Object.freeze([
+      ...new Set(
+        faces
+          .filter((face) => face.state === "outdoor")
+          .map((face) => face.side),
+      ),
+    ]),
+    closedFaces: Object.freeze(
+      faces
+        .filter((face) => face.state === "closed")
+        .map((face) => face.faceId),
+    ),
+  });
 }
 
 function checkedTerrain(input: GeneratedTerrain) {
@@ -215,7 +226,7 @@ export function generatedBrewhouseRoom(
       },
     ),
     environment = query.region(roomBounds),
-    exteriorFaces = roomExteriorFaces(query, roomBounds, ambientPlaneY),
+    exterior = roomExteriorBoundary(query, roomBounds, ambientPlaneY),
     baseDefinition = {
       version: "voxel-air-definition-v1" as const,
       regionId: BREWHOUSE_ROOM.id,
@@ -226,7 +237,7 @@ export function generatedBrewhouseRoom(
       ),
       spacingM: [...environment.spacingM],
       solidCells: [...environment.solidCellIds],
-      openSides: ["x-", "x+", "y-", "y+", "z-", "z+"] as const,
+      openSides: exterior.openSides,
       model: { ...BREWHOUSE_AIR_MODEL },
     },
     shutter = shutterFaces(baseDefinition),
@@ -235,7 +246,7 @@ export function generatedBrewhouseRoom(
       closedFaces: [
         ...new Set([
           ...environment.closedFaceIds,
-          ...exteriorFaces,
+          ...exterior.closedFaces,
           ...(opening.open ? [] : shutter),
         ]),
       ],

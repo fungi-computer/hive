@@ -290,7 +290,7 @@ export function compilePhysicalGeometry(
       throw new Error("physical boundary query budget exceeded");
     const result: {
       readonly faceId: string;
-      readonly side: string;
+      readonly side: `${Axis}${"-" | "+"}`;
       readonly state: "closed" | "outdoor" | "needs-neighbor";
     }[] = [];
     eachCell(b, (at) => {
@@ -306,7 +306,7 @@ export function compilePhysicalGeometry(
           result.push(
             Object.freeze({
               faceId: faceId(axis, faceAt),
-              side: `${axis}${direction === -1 ? "-" : "+"}`,
+              side: `${axis}${direction === -1 ? "-" : "+"}` as const,
               state: exterior(at, axis, direction, plane),
             }),
           );
