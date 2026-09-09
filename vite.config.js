@@ -17,6 +17,7 @@ export default defineConfig({
         goblinDenStudy: "goblin-den-study.html",
         goblinMessStudy: "goblin-mess-study.html",
         gasHeatLab: "gas-heat-lab.html",
+        soilWaterLab: "soil-water-lab.html",
       },
     },
   },

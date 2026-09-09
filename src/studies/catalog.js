@@ -6,10 +6,10 @@ export const STUDY_GROUPS = Object.freeze([
       {
         id: "water-lab",
         title: "Water Lab",
-        href: null,
+        href: "/soil-water-lab.html",
         scope:
-          "Recorded native fluid evidence is ready; its study page has not joined yet.",
-        evidence: "Recorded native experiment",
+          "Recorded 201-frame nonlinear soil-block playback; controls only select saved physical samples.",
+        evidence: "Recorded physical experiment",
       },
       {
         id: "gas-heat-lab",
