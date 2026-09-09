@@ -366,7 +366,31 @@ integration; it is not due tomorrow. Model terminals do not prove game results.
 Polished ecology/water/air making-of stories retain their actual experiment
 labels; private transcripts stay private and provider savings need measurement.
 
-**Shallow digging and backfill are live**, runtime
+**New water-world study is live, September 9:** `/wet-clearing.html`, also linked
+from `/study`, on the existing game preview. Release source
+`4a6931c4c6c4454431651c330ff8ec15dd980b1a` is pushed on
+`release/wet-clearing-20260909`; deployment
+`30835156-fdcd-48c6-9d4f-5333001c06ea`. This adds the actual generated-voxel and
+finite soil-water consumer, leaving every previous gameplay artifact unchanged.
+Select the marked block, Dig, then Wait ten minutes. Local input reached600s,
+12.57L in the hole,1.26cm depth and4320.32L total accounted for. The local
+`u4077` command exited1 because screenshot capture exhausted its45-second
+guard after those facts appeared; page errors were empty and owned browser and
+listener closed. No rendered/narrow/hosted-browser acceptance is claimed.
+`u4079` compared44 served new/study/game-entry assets, with zero mismatches.
+Evidence is in the wet-release worktree's
+`.botanical/wet-clearing-release/`. This is one local pit with checkpoint
+reopen/download; connected overflow, air/heat and the environment DO join remain
+required engine work. Publishing this requested demonstration does not finish
+the engine or replace its deep-dig/tower target.
+
+The current engine branch also merged the reviewed strict schema17 cleanup
+`60250d1` plus `7a428b2`: an outcome cannot be saved while its consumption is
+still active. Shared physical/reference validation remains. This source is not
+part of the frozen gameplay deployment. The next surface-exchange decision is
+recorded in the environment branch's `docs/decisions/voxel-surface-exchange.md`.
+
+**Shallow digging and backfill remain live**, runtime
 `449e9b8a642dc1c9e6d815f8e7417c143ba1e574`, same-preview deployment
 `ad099b8c-0c97-4432-bc8a-8ae92781a460`. Build → Dig/Backfill supports persistent
 paused shared rectangle designations. Workers use a safe rim; each removed
