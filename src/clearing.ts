@@ -46,6 +46,7 @@ export function createClearing(seed = 42): Clearing {
       bindings: [],
       transformations: [],
       consumptions: [],
+      sinks: [],
       embedded: [],
       nextLotId: 1,
       consumedWood: 0,
@@ -120,8 +121,8 @@ function advanceDrafted(
 }
 function advanceHerbGrowth(state: Clearing): void {
   for (const herb of state.herbs) {
-    if (herb.plantedAt === null || herb.stage === "ready") continue;
-    const stage = mugwortStage(state.tick - herb.plantedAt);
+    if (herb.establishment === null || herb.stage === "ready") continue;
+    const stage = mugwortStage(state.tick - herb.establishment.at);
     if (stage === herb.stage) continue;
     herb.stage = stage;
     herb.work = 0;

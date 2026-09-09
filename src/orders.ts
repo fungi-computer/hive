@@ -123,6 +123,18 @@ export function commandProblem(s: Clearing, c: Command): string {
       ? "Only ready mugwort can be harvested."
       : "";
   }
+  if (c.kind === "water-mugwort") {
+    const herb = s.herbs.find((entry) => entry.id === c.herb);
+    return !herb
+      ? "That mugwort is no longer planted."
+      : herb.stage !== "planted" || herb.establishment !== null
+        ? "That mugwort is already established."
+        : s.jobs.some(
+              (job) => job.kind === "water-mugwort" && job.target === c.herb,
+            )
+          ? "That mugwort is already waiting for water."
+          : scopeProblem(s, c);
+  }
   if (c.kind === "sow" && (!inside(c) || placementOccupant(s, c)))
     return "Choose clear ground.";
   if (c.kind === "cancel" || c.kind === "next") {
@@ -179,7 +191,7 @@ function scope(
     | BrewCommand
     | TapCommand
     | ClearSpentGrainCommand
-    | Extract<Command, { kind: "fill-kettle" }>,
+    | Extract<Command, { kind: "fill-kettle" | "water-mugwort" }>,
 ): Scope {
   return c.kind === "store"
     ? { party: c.party, actors: null }
@@ -194,7 +206,7 @@ function add(
     | BrewCommand
     | TapCommand
     | ClearSpentGrainCommand
-    | Extract<Command, { kind: "fill-kettle" }>,
+    | Extract<Command, { kind: "fill-kettle" | "water-mugwort" }>,
 ) {
   const sc = scope(c),
     id = `job-${s.nextId++}`;
@@ -308,6 +320,15 @@ function add(
       reason: "Ordered",
       routine: false,
     };
+  else if (c.kind === "water-mugwort")
+    j = {
+      id,
+      kind: "water-mugwort",
+      target: c.herb,
+      scope: sc,
+      reason: "Ordered",
+      routine: false,
+    };
   else if (c.kind === "sow") {
     const h = {
       id: `herb-${s.nextId++}`,
@@ -317,6 +338,7 @@ function add(
       level: c.level,
       stage: "ordered" as const,
       work: 0,
+      establishment: null,
       plantedAt: null,
     };
     s.herbs.push(h);
@@ -378,16 +400,23 @@ function cancel(s: Clearing, id: string) {
       });
       if (!r.ok) throw new Error(r.reason);
     }
-  } else if (j.kind === "fill-kettle") {
+  } else if (j.kind === "fill-kettle" || j.kind === "water-mugwort") {
     const active = s.operations.find((operation) => operation.job === j.id);
     if (active) {
-      const actor = s.actors[active.actor];
-      if (!actor) throw new Error("fill operation has missing actor");
-      const released = interruptOperationPail(s.materials, active.id, {
-        cell: { x: actor.x, z: actor.z, level: actor.level },
-        legal: true,
-      });
-      if (!released.ok) throw new Error(released.reason);
+      const custody = s.materials.transfers.find(
+        (transfer) =>
+          transfer.owner.kind === "operation" &&
+          transfer.owner.operation === active.id,
+      );
+      if (custody) {
+        const actor = s.actors[custody.actor];
+        if (!actor) throw new Error("water operation has missing actor");
+        const released = interruptOperationPail(s.materials, active.id, {
+          cell: { x: actor.x, z: actor.z, level: actor.level },
+          legal: true,
+        });
+        if (!released.ok) throw new Error(released.reason);
+      }
       retireOperationPail(s.materials, active.id);
       s.operations = s.operations.filter((operation) => operation !== active);
     }
@@ -439,6 +468,7 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "store" ||
     c.kind === "repair-cache" ||
     c.kind === "fill-kettle" ||
+    c.kind === "water-mugwort" ||
     c.kind === "brew" ||
     c.kind === "tap" ||
     c.kind === "clear-spent-grain" ||

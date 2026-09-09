@@ -153,12 +153,19 @@ export type RecipeConsumption = {
   readonly material: Material;
   readonly quantity: PositiveInt;
 };
+/** Durable physical removal without creating a second inventory or event stream. */
+export type MaterialSinkReceipt = {
+  readonly id: string;
+  readonly material: Material;
+  readonly quantity: PositiveInt;
+};
 export type MaterialsState = {
   lots: ItemLot[];
   transfers: Transfer[];
   bindings: MaterialBinding[];
   transformations: RecipeTransformation[];
   consumptions: RecipeConsumption[];
+  sinks: MaterialSinkReceipt[];
   embedded: EmbeddedMaterial[];
   nextLotId: number;
   consumedWood: number;
@@ -203,6 +210,7 @@ export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "deconstruct"; site: string }
     | ({ kind: "sow" } & Cell)
     | { kind: "harvest"; herb: HerbId }
+    | { kind: "water-mugwort"; herb: HerbId }
     | { kind: "rest" }
   );
 export type StoreCommand = {
@@ -266,6 +274,10 @@ export type BuildJob = JobBase & { kind: "build"; target: string };
 export type DeconstructJob = JobBase & { kind: "deconstruct"; target: string };
 export type SowJob = JobBase & { kind: "sow"; target: HerbId };
 export type HarvestJob = JobBase & { kind: "harvest"; target: HerbId };
+export type WaterMugwortJob = JobBase & {
+  kind: "water-mugwort";
+  target: HerbId;
+};
 export type StoreJob = JobBase & {
   kind: "store";
   source: LotId;
@@ -299,6 +311,7 @@ export type Job =
   | DeconstructJob
   | SowJob
   | HarvestJob
+  | WaterMugwortJob
   | StoreJob
   | RestJob
   | RepairCacheJob
@@ -319,7 +332,7 @@ export type SowActivity = ActivityBase & { kind: "sow" };
 export type HarvestActivity = ActivityBase & { kind: "harvest" };
 export type TransferActivity = ActivityBase & { kind: "transfer" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
-export type BrewWaterActivity = ActivityBase & { kind: "brew-water" };
+export type WaterDeliveryActivity = ActivityBase & { kind: "water-delivery" };
 export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
 export type BrewActivity = ActivityBase & { kind: "brew" };
 export type TapActivity = ActivityBase & { kind: "tap" };
@@ -334,7 +347,7 @@ export type Activity =
   | HarvestActivity
   | TransferActivity
   | SleepActivity
-  | BrewWaterActivity
+  | WaterDeliveryActivity
   | RepairCacheActivity
   | BrewActivity
   | TapActivity
@@ -364,6 +377,11 @@ export type Herb = Cell & {
   kind: "mugwort";
   stage: HerbStage;
   work: number;
+  /** The one establishment fact carries either verified water or legacy trajectory. */
+  establishment:
+    | null
+    | { readonly kind: "legacy"; readonly at: number }
+    | { readonly kind: "water"; readonly at: number; readonly receipt: string };
   plantedAt: number | null;
 };
 export type Site = Cell & {
@@ -379,13 +397,17 @@ export type StoryEvent = {
   tick: number;
   text: string;
 };
-/** The one saved identity for cache repair, pail custody, draw and pour. */
-export type BrewWaterOperation = {
+/** Semantic completion belongs to the checked water-delivery target resolver. */
+export type WaterDeliveryTarget =
+  | { readonly kind: "kettle"; readonly station: string }
+  | { readonly kind: "mugwort"; readonly herb: HerbId };
+/** One saved pail/water operation, independent of its current executor. */
+export type WaterDeliveryOperation = {
   id: OperationId;
   job: JobId;
-  actor: ActorId;
   spring: FeatureId;
-  station: string;
+  target: WaterDeliveryTarget;
+  quantity: PositiveInt;
   pail: LotId;
   water: LotId | null;
   /** Incomplete effect phase; successful pour retires this operation. */
@@ -414,7 +436,7 @@ export type Clearing = {
   materials: MaterialsState;
   sources: SourceFeature[];
   pendingSources: PendingFeatureIntroduction[];
-  operations: BrewWaterOperation[];
+  operations: WaterDeliveryOperation[];
   processes: BrewProcess[];
   rocks: Cell[];
   watcher: Cell;

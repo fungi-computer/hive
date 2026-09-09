@@ -427,7 +427,9 @@ export function removalProblem(state, site, person = null) {
         job.target === site.id,
     );
     const hasOperation = state.operations.some(
-      (operation) => operation.station === site.id,
+      (operation) =>
+        operation.target.kind === "kettle" &&
+        operation.target.station === site.id,
     );
     const hasBinding = state.materials.bindings.some(
       (binding) =>

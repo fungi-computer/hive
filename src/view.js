@@ -82,6 +82,16 @@ export function carriedActorFrame(tick, pose, mode, frames) {
     : animationFrame(tick, pose, frames);
 }
 
+/** A planted herb does not grow until its canonical establishment fact exists. */
+export function herbGrowthProgress(herb, tick) {
+  if (herb.stage === "ordered") return herb.work / SOW_TICKS;
+  if (herb.stage === "ready") return herb.work / HARVEST_TICKS;
+  const establishedAt = herb.establishment?.at;
+  return establishedAt === undefined
+    ? 0
+    : Math.min(1, (tick - establishedAt) / HERB_READY_TICKS);
+}
+
 export function createView(app, world, camera, art, initial, input) {
   world.addChild(new Sprite(art.ground));
   const route = new Graphics();
@@ -592,12 +602,7 @@ export function createView(app, world, camera, art, initial, input) {
           width: 2,
           color: 0xe6c477,
         });
-      const progress =
-        herb.stage === "ordered"
-          ? herb.work / SOW_TICKS
-          : herb.stage === "ready"
-            ? herb.work / HARVEST_TICKS
-            : Math.min(1, (state.tick - herb.plantedAt) / HERB_READY_TICKS);
+      const progress = herbGrowthProgress(herb, state.tick);
       marks.rect(projected.x - 10, projected.y + 7, 20, 2).fill(0x21362e);
       marks
         .rect(projected.x - 10, projected.y + 7, 20 * progress, 1)

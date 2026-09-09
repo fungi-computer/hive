@@ -700,6 +700,7 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
     ...cell(6, 5),
     stage: "ordered",
     work: SOW_TICKS - 1,
+    establishment: null,
     plantedAt: null,
   });
   state.jobs.push({
@@ -876,17 +877,17 @@ test("actual libcolony cancellation returns buffered wood and preserves v7 conse
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
 });
 
-test("actual libcolony grows one sown mugwort at its 20/80/240 thresholds", () => {
+test("established mugwort grows at its 20/80/240 thresholds", () => {
   const state = createClearing(80);
   actualStep(state, [{ kind: "sow", x: 6, z: 8 }]);
   for (let i = 0; i < 400 && state.herbs[0]?.stage === "ordered"; i++)
     actualStep(state);
   const herb = state.herbs[0];
   assert.equal(herb.stage, "planted");
-  const plantedAt = herb.plantedAt;
-  while (state.tick < plantedAt + 80) actualStep(state);
+  herb.establishment = { kind: "legacy", at: state.tick };
+  while (state.tick < herb.establishment.at + 80) actualStep(state);
   assert.equal(herb.stage, "growing");
-  while (state.tick < plantedAt + 240) actualStep(state);
+  while (state.tick < herb.establishment.at + 240) actualStep(state);
   assert.equal(herb.stage, "ready");
 });
 
@@ -1208,6 +1209,111 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(paused)));
 });
 
+test("actual libcolony establishes one newly sown mugwort with one recoverable pail draw", () => {
+  let state = createClearing(93);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  const spring = state.sources.find((source) => source.kind === "spring");
+  cache.repaired = true;
+  state.actors.sedge.drafted = true;
+  assert.deepEqual(actualStep(state, [{ kind: "sow", x: 7, z: 7 }]), [
+    { status: "applied" },
+  ]);
+  for (let tick = 0; tick < 400 && state.herbs[0]?.stage !== "planted"; tick++)
+    actualStep(state);
+  const herb = state.herbs[0];
+  assert.equal(herb.stage, "planted");
+  assert.equal(herb.establishment, null);
+
+  assert.deepEqual(
+    actualStep(state, [{ kind: "water-mugwort", herb: herb.id }]),
+    [{ status: "applied" }],
+  );
+  assert.equal(state.operations.length, 1);
+  assert.deepEqual(state.operations[0].target, {
+    kind: "mugwort",
+    herb: herb.id,
+  });
+  assert.equal(state.operations[0].quantity, 2);
+  const operationId = state.operations[0].id;
+  state.paused = true;
+  state = restoreSnapshot(snapshotFor(state)).state;
+  assert.equal(state.operations.length, 1);
+  assert.equal(state.materials.transfers.length, 1);
+  state.paused = false;
+  for (let tick = 0; tick < 1_000 && state.operations.length !== 0; tick++)
+    actualStep(state);
+
+  const established = state.herbs.find((candidate) => candidate.id === herb.id);
+  assert.equal(established.establishment?.kind, "water");
+  assert.equal(established.establishment?.receipt, state.materials.sinks[0].id);
+  assert.equal(state.materials.sinks.length, 1);
+  assert.deepEqual(state.materials.sinks[0], {
+    id: `water-delivery-sink:${operationId}`,
+    material: "water",
+    quantity: 2,
+  });
+  assert.equal(
+    containerQuantity(state.materials, `source:${spring.id}`, "water"),
+    6,
+  );
+  assert.equal(
+    state.jobs.some((job) => job.kind === "water-mugwort"),
+    false,
+  );
+  assert.equal(
+    actualStep(state, [{ kind: "water-mugwort", herb: herb.id }])[0].status,
+    "rejected",
+  );
+  actualRun(state, 240);
+  assert.equal(established.stage, "ready");
+  const water = materialQuantity(state.materials, "water");
+  assert.equal(water.live + water.consumed, 8);
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+});
+
+test("canceling mugwort water delivery releases the pail and never establishes the plant", () => {
+  const state = createClearing(94);
+  const cache = state.sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  cache.repaired = true;
+  state.actors.sedge.drafted = true;
+  state.herbs.push({
+    id: "herb-cancel",
+    kind: "mugwort",
+    ...cell(7, 7),
+    stage: "planted",
+    work: 0,
+    plantedAt: state.tick,
+    establishment: null,
+  });
+  actualStep(state, [{ kind: "water-mugwort", herb: "herb-cancel" }]);
+  for (
+    let tick = 0;
+    tick < 700 && state.operations[0]?.phase !== "pour";
+    tick++
+  )
+    actualStep(state);
+  const operation = state.operations[0];
+  assert.equal(operation.phase, "pour");
+  assert.deepEqual(
+    actualStep(state, [{ kind: "cancel", job: operation.job }]),
+    [{ status: "applied" }],
+  );
+  assert.equal(state.operations.length, 0);
+  assert.equal(state.materials.transfers.length, 0);
+  assert.equal(state.materials.bindings.length, 0);
+  assert.equal(state.herbs[0].establishment, null);
+  assert.equal(state.materials.sinks.length, 0);
+  assert.equal(
+    state.materials.lots.find((lot) => lot.id === operation.pail).location.kind,
+    "ground",
+  );
+  assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
+});
+
 test("one cache pail admits only the earlier shared fill job", () => {
   const state = createClearing(94);
   const cache = state.sources.find(
@@ -1239,7 +1345,10 @@ test("one cache pail admits only the earlier shared fill job", () => {
     { kind: "fill-kettle", station: "station-second" },
   ]);
   assert.equal(state.operations.length, 1);
-  assert.equal(state.operations[0].station, "station-first");
+  assert.deepEqual(state.operations[0].target, {
+    kind: "kettle",
+    station: "station-first",
+  });
   assert.equal(state.materials.bindings.length, 1);
   assert.equal(state.materials.transfers.length, 1);
   assert.equal(state.materials.transfers[0].phase.kind, "reserved");
@@ -1291,9 +1400,9 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
   state.operations.push({
     id: "fill-cancel",
     job: "job-fill-cancel",
-    actor: "rowan",
     spring: spring.id,
-    station: station.id,
+    target: { kind: "kettle", station: station.id },
+    quantity: 2,
     pail: "cancel-pail",
     water: "cancel-water",
     phase: "pour",
@@ -1316,7 +1425,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     phase: { kind: "carrying", lot: "cancel-pail" },
   });
   state.actors.rowan.task = {
-    kind: "brew-water",
+    kind: "water-delivery",
     job: "job-fill-cancel",
     target: "fill-cancel",
     duration: 1,
@@ -1372,6 +1481,7 @@ function readyHerbalAleState() {
     kind: "mugwort",
     stage: "ready",
     work: 0,
+    establishment: { kind: "legacy", at: 0 },
     plantedAt: 0,
     ...cell(7, 9),
   });
@@ -1767,6 +1877,7 @@ test("actual libcolony stages, interrupts, reloads, prepares, and ferments herba
     kind: "mugwort",
     stage: "ready",
     work: 0,
+    establishment: { kind: "legacy", at: 0 },
     plantedAt: 0,
     ...cell(7, 9),
   });
@@ -1888,14 +1999,20 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
   state.operations.push({
     id: "fill-active",
     job: "fill-job",
-    actor: "rowan",
     spring: state.sources.find((source) => source.kind === "spring").id,
-    station: station.id,
+    target: { kind: "kettle", station: station.id },
+    quantity: 2,
     pail: "unused-pail",
     water: null,
     phase: "acquire",
   });
   assert.equal(removalProblem(state, station), "The brew station is occupied.");
+  state.operations[0].target = { kind: "mugwort", herb: "herb-unrelated" };
+  assert.equal(
+    removalProblem(state, station),
+    null,
+    "a plant delivery does not claim an unrelated brew station",
+  );
   state.operations = [];
   state.jobs.push({
     id: "brew-job",

@@ -62,6 +62,7 @@ const ACTIVITIES = {
   sow: "Planting mugwort",
   harvest: "Harvesting mugwort",
   "brew-water": "Filling brew kettle",
+  "water-delivery": "Delivering water",
   brew: "Brewing herbal ale",
   tap: "Tapping herbal ale",
   sleep: "Sleeping in the bedroll",
@@ -431,6 +432,19 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     stage: herb.stage,
     work: herb.work,
     plantedAt: herb.plantedAt,
+    establishment: herb.establishment?.kind ?? null,
+    establishedAt: herb.establishment?.at ?? null,
+  }));
+  const waterDeliveriesNext = state.operations.map((operation) => ({
+    id: operation.id,
+    job: operation.job,
+    targetKind: operation.target.kind,
+    targetId:
+      operation.target.kind === "kettle"
+        ? operation.target.station
+        : operation.target.herb,
+    phase: operation.phase,
+    quantity: operation.quantity,
   }));
   const lotsNext = state.materials.lots.map((lot) => ({
     id: lot.id,
@@ -485,6 +499,14 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     )
       ? previous.sources
       : sourcesNext;
+  const waterDeliveries =
+    previous &&
+    waterDeliveriesNext.length === previous.waterDeliveries.length &&
+    waterDeliveriesNext.every((operation, index) =>
+      sameObject(operation, previous.waterDeliveries[index]),
+    )
+      ? previous.waterDeliveries
+      : waterDeliveriesNext;
   const demand =
     state.demand &&
     previous?.demand &&
@@ -512,6 +534,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     sites,
     structures,
     herbs,
+    waterDeliveries,
     lots,
     sources,
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
@@ -542,23 +565,25 @@ function orderModel(display, job) {
         ? "Plant mugwort"
         : job.kind === "harvest"
           ? "Harvest mugwort"
-          : job.kind === "rest"
-            ? job.routine
-              ? "Sleep until morning"
-              : "Rest in bedroll"
-            : job.kind === "store"
-              ? "Store material"
-              : job.kind === "repair-cache"
-                ? "Repair reclaimed cache"
-                : job.kind === "fill-kettle"
-                  ? "Fill brew-station kettle"
-                  : job.kind === "brew"
-                    ? "Brew herbal ale"
-                    : job.kind === "tap"
-                      ? "Tap herbal ale"
-                      : site
-                        ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
-                        : "Work order";
+          : job.kind === "water-mugwort"
+            ? "Water mugwort"
+            : job.kind === "rest"
+              ? job.routine
+                ? "Sleep until morning"
+                : "Rest in bedroll"
+              : job.kind === "store"
+                ? "Store material"
+                : job.kind === "repair-cache"
+                  ? "Repair reclaimed cache"
+                  : job.kind === "fill-kettle"
+                    ? "Fill brew-station kettle"
+                    : job.kind === "brew"
+                      ? "Brew herbal ale"
+                      : job.kind === "tap"
+                        ? "Tap herbal ale"
+                        : site
+                          ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
+                          : "Work order";
   const detail =
     job.kind === "store"
       ? site
@@ -700,7 +725,19 @@ const targetAtom = atom((get) => {
   }
   if (target.kind === "herb") {
     const herb = facts.herbs.find((candidate) => candidate.id === target.id);
-    return herb ? { kind: "herb", ...herb } : null;
+    if (!herb) return null;
+    const waterJob = facts.jobs.find(
+      (job) => job.kind === "water-mugwort" && job.target === herb.id,
+    );
+    return {
+      kind: "herb",
+      ...herb,
+      waterDelivery: waterJob
+        ? facts.waterDeliveries.find(
+            (operation) => operation.job === waterJob.id,
+          ) || null
+        : null,
+    };
   }
   if (target.kind === "lot") {
     const lot = facts.lots.find((candidate) => candidate.id === target.id);
@@ -1487,6 +1524,29 @@ function Target({ model: m, send }) {
         ? "Harvest in progress"
         : "Harvest queued"
       : "Harvest mugwort";
+    const waterJob = m.orders.find(
+      (job) => job.kind === "water-mugwort" && job.target === m.target.id,
+    );
+    const needsWater =
+      m.target.stage === "planted" && m.target.establishment === null;
+    const waterLabel = waterJob
+      ? waterJob.active
+        ? "Watering in progress"
+        : "Water queued"
+      : "Water mugwort";
+    const waterStatus = waterJob
+      ? waterJob.active
+        ? m.target.waterDelivery?.phase === "acquire"
+          ? "A home member is recovering the shared pail."
+          : m.target.waterDelivery?.phase === "draw"
+            ? "A home member is drawing water."
+            : "A home member is carrying water to this mugwort."
+        : waterJob.reason || "Waiting for shared water delivery."
+      : needsWater
+        ? "Needs water · Deliver 2 water once to begin growth."
+        : m.target.establishment
+          ? "Established · Growing normally."
+          : null;
     return (
       <Card
         variant="outline"
@@ -1508,9 +1568,34 @@ function Target({ model: m, send }) {
           </Button>
         </div>
         <p className="muted">
-          {m.target.stage[0].toUpperCase() + m.target.stage.slice(1)} ·{" "}
-          {m.target.x}, {m.target.z} · {levelName(m.target.level)}
+          {needsWater
+            ? "Needs water"
+            : m.target.stage[0].toUpperCase() + m.target.stage.slice(1)}{" "}
+          · {m.target.x}, {m.target.z} · {levelName(m.target.level)}
         </p>
+        {waterStatus && (
+          <small className="action-reason" data-status="water-mugwort">
+            {waterStatus}
+          </small>
+        )}
+        {(needsWater || waterJob) && (
+          <Button
+            id="water-mugwort"
+            data-action="water-mugwort"
+            data-herb={m.target.id}
+            variant="primary"
+            disabled={!!waterJob}
+            aria-label={waterLabel}
+            onClick={() =>
+              send({
+                kind: "command",
+                command: { kind: "water-mugwort", herb: m.target.id },
+              })
+            }
+          >
+            {waterLabel}
+          </Button>
+        )}
         {m.target.stage === "ready" && (
           <Button
             id="harvest-herb"

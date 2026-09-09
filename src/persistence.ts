@@ -34,9 +34,15 @@ import {
   recipeOutputActionForWire,
   recipeOutputConsumptionAction,
 } from "./recipes.ts";
+import {
+  resolveWaterDelivery,
+  waterDeliveryQuantity,
+  waterDeliveryTargetForJob,
+} from "./water-delivery.ts";
+import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 12 as const;
+const SAVE_SCHEMA = 13 as const;
 const SAVE_DB_NAME = "hive-local-world";
 const SAVE_STORE = "world";
 const SAVE_KEY = "current";
@@ -66,7 +72,7 @@ const allowedWork = z
   })
   .strict();
 const allowedWorkV11 = allowedWork.omit({ craft: true });
-const activity = z.discriminatedUnion("kind", [
+const v12Activity = z.discriminatedUnion("kind", [
   z
     .object({
       job: id,
@@ -159,7 +165,7 @@ const activity = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-const actor = cell
+const v12Actor = cell
   .extend({
     id,
     name: z.string(),
@@ -188,7 +194,7 @@ const actor = cell
     rest: nonNegativeScalar,
     routine: z.boolean(),
     allowedWork,
-    task: activity.nullable(),
+    task: v12Activity.nullable(),
     assignment: z
       .object({ character: id, task: id, cost: finite })
       .strict()
@@ -196,7 +202,7 @@ const actor = cell
   })
   .strict();
 const jobBase = { id, scope, reason: z.string(), routine: z.boolean() };
-const job = z.discriminatedUnion("kind", [
+const v12Job = z.discriminatedUnion("kind", [
   z.object({ ...jobBase, kind: z.literal("chop"), target: id }).strict(),
   z.object({ ...jobBase, kind: z.literal("build"), target: id }).strict(),
   z.object({ ...jobBase, kind: z.literal("deconstruct"), target: id }).strict(),
@@ -233,6 +239,66 @@ const job = z.discriminatedUnion("kind", [
       transformation: id,
       progress: nonNegative,
     })
+    .strict(),
+]);
+const currentActivityKind = <Kind extends string>(kind: Kind) =>
+  z
+    .object({ job: id, target: id, duration: positive, kind: z.literal(kind) })
+    .strict();
+const activity = z.discriminatedUnion("kind", [
+  currentActivityKind("chop"),
+  currentActivityKind("build"),
+  currentActivityKind("deconstruct"),
+  currentActivityKind("sow"),
+  currentActivityKind("harvest"),
+  currentActivityKind("transfer"),
+  currentActivityKind("sleep"),
+  currentActivityKind("repair-cache"),
+  currentActivityKind("water-delivery"),
+  currentActivityKind("brew"),
+  currentActivityKind("tap"),
+  currentActivityKind("clear-spent-grain"),
+]);
+const actor = cell
+  .extend({
+    id,
+    name: z.string(),
+    figure: z.string(),
+    dir: integer,
+    mode: z.enum([
+      "idle",
+      "walk",
+      "chop",
+      "build",
+      "deconstruct",
+      "sow",
+      "harvest",
+      "transfer",
+      "sleep",
+      "repair-cache",
+      "water-delivery",
+      "brew",
+      "tap",
+      "clear-spent-grain",
+    ]),
+    path: z.array(cell),
+    leg: nonNegative,
+    work: nonNegative,
+    drafted: z.boolean(),
+    rest: nonNegativeScalar,
+    routine: z.boolean(),
+    allowedWork,
+    task: activity.nullable(),
+    assignment: z
+      .object({ character: id, task: id, cost: finite })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+const job = z.discriminatedUnion("kind", [
+  ...v12Job.options,
+  z
+    .object({ ...jobBase, kind: z.literal("water-mugwort"), target: id })
     .strict(),
 ]);
 /** Exact schema-11 activity/job wire: Craft and Brew did not exist yet. */
@@ -325,7 +391,7 @@ const v11Job = z.discriminatedUnion("kind", [
     .strict(),
   z.object({ ...jobBase, kind: z.literal("fill-kettle"), target: id }).strict(),
 ]);
-const actorV11 = actor
+const actorV11 = v12Actor
   .extend({
     mode: z.enum([
       "idle",
@@ -505,13 +571,13 @@ const sourceFeature = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-const stateSchema = z
+const v12StateSchema = z
   .object({
     seed: finite,
     tick: nonNegative,
     paused: z.boolean(),
     nextId: nonNegative,
-    actors: z.record(id, actor),
+    actors: z.record(id, v12Actor),
     parties: z.record(id, z.object({ id, members: z.array(id) }).strict()),
     cat: cell
       .extend({
@@ -664,7 +730,7 @@ const stateSchema = z
     ),
     operations: z.array(brewWaterOperation),
     processes: z.array(brewProcess),
-    jobs: z.array(job),
+    jobs: z.array(v12Job),
     workDirty: z.boolean(),
     felled: nonNegative,
     finishedJobs: nonNegative,
@@ -682,6 +748,50 @@ const stateSchema = z
     notice: z.string(),
   })
   .strict();
+const waterDeliveryOperation = z
+  .object({
+    id,
+    job: id,
+    spring: id,
+    target: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("kettle"), station: id }).strict(),
+      z.object({ kind: z.literal("mugwort"), herb: id }).strict(),
+    ]),
+    pail: id,
+    quantity: positive,
+    water: id.nullable(),
+    phase: z.enum(["acquire", "draw", "pour"]),
+  })
+  .strict();
+const currentHerb = cell
+  .extend({
+    id,
+    kind: z.literal("mugwort"),
+    stage: z.enum(["ordered", "planted", "growing", "ready"]),
+    work: nonNegative,
+    establishment: z
+      .discriminatedUnion("kind", [
+        z.object({ kind: z.literal("legacy"), at: nonNegative }).strict(),
+        z
+          .object({ kind: z.literal("water"), at: nonNegative, receipt: id })
+          .strict(),
+      ])
+      .nullable(),
+    plantedAt: nonNegative.nullable(),
+  })
+  .strict();
+const stateSchema = v12StateSchema.extend({
+  actors: z.record(id, actor),
+  herbs: z.array(currentHerb),
+  materials: v12StateSchema.shape.materials.extend({
+    sinks: z
+      .array(z.object({ id, material, quantity: positive }).strict())
+      .default([]),
+  }),
+  operations: z.array(waterDeliveryOperation),
+  jobs: z.array(job),
+});
+type V12SavedClearing = z.infer<typeof v12StateSchema>;
 type SavedClearing = Omit<Clearing, "commands">;
 /** Schema 11 predates Craft and saved processes; parse it strictly before filling defaults. */
 const v11LegacyBinding = z
@@ -720,12 +830,12 @@ const v11LegacyTransformation = z
     ),
   })
   .strict();
-const v11StateSchema = stateSchema
+const v11StateSchema = v12StateSchema
   .omit({ actors: true, jobs: true, processes: true, materials: true })
   .extend({
     actors: z.record(id, actorV11),
     jobs: z.array(v11Job),
-    materials: stateSchema.shape.materials
+    materials: v12StateSchema.shape.materials
       .omit({ bindings: true, transformations: true })
       .extend({
         bindings: z.array(
@@ -745,7 +855,7 @@ type V11SavedClearing = z.infer<typeof v11StateSchema>;
 const v10StateSchema = v11StateSchema
   .omit({ materials: true })
   .extend({
-    materials: stateSchema.shape.materials
+    materials: v12StateSchema.shape.materials
       .omit({
         lots: true,
         transfers: true,
@@ -769,6 +879,14 @@ const envelopeSchema = z
     savedState: savedSchema,
   })
   .strict();
+const v12EnvelopeSchema = z
+  .object({
+    kind: z.literal(SAVE_KIND),
+    schema: z.literal(12),
+    revision: nonNegative,
+    savedState: v12StateSchema,
+  })
+  .strict();
 export type SerializedClearing = SavedClearing;
 export type SaveEnvelope = z.infer<typeof envelopeSchema>;
 const v10EnvelopeSchema = z
@@ -788,7 +906,7 @@ const v11EnvelopeSchema = z
   })
   .strict();
 function fail(message: string): never {
-  throw new Error(`Invalid v12 save: ${message}`);
+  throw new Error(`Invalid schema 13 save: ${message}`);
 }
 
 function liveState(state: SavedClearing): Clearing {
@@ -812,16 +930,19 @@ function activityMatchesJob(
           !source.repaired,
       )
     );
-  if (task.kind === "brew-water") {
+  if (task.kind === "water-delivery") {
     const operation = state.operations.find(
       (entry) => entry.id === task.target,
     );
     return (
-      job.kind === "fill-kettle" &&
+      (job.kind === "fill-kettle" || job.kind === "water-mugwort") &&
       operation?.job === job.id &&
-      operation.actor === actorId &&
-      operation.station === job.target &&
-      true
+      state.materials.transfers.some(
+        (transfer) =>
+          transfer.actor === actorId &&
+          transfer.owner.kind === "operation" &&
+          transfer.owner.operation === operation.id,
+      )
     );
   }
   if (task.kind === "brew") {
@@ -1094,16 +1215,8 @@ function validateMaterialBindings({
     const operation = state.operations.find((entry) => entry.id === use.id);
     if (!operation || operation.pail !== use.vessel)
       fail(`vessel use ${use.id} has no matching operation`);
-    const actor = state.actors[operation.actor];
-    const active =
-      actor?.task?.kind === "brew-water" &&
-      actor.task.target === operation.id &&
-      actor.task.job === operation.job &&
-      actor.assignment?.task === operation.job;
-    if (
-      custody.length !== (active ? 1 : 0) ||
-      (active && custody[0].actor !== operation.actor)
-    )
+    const active = operationIsActive(state, operation);
+    if (custody.length !== (active ? 1 : 0))
       fail(`vessel use ${use.id} has invalid executor custody`);
   }
   for (const [lotId, quantity] of reservedPortions) {
@@ -1464,57 +1577,103 @@ function validateContainerLots({ state, containers }: RelationContext): void {
   }
 }
 
+function validateMaterialSinks({ state }: RelationContext): void {
+  const ids = new Set<string>();
+  for (const sink of state.materials.sinks) {
+    if (ids.has(sink.id)) fail(`duplicate material sink ${sink.id}`);
+    ids.add(sink.id);
+  }
+}
+
+function validateHerbEstablishments({ state }: RelationContext): void {
+  const sinks = new Map(state.materials.sinks.map((sink) => [sink.id, sink]));
+  const linkedReceipts = new Set<string>();
+  for (const herb of state.herbs) {
+    const establishment = herb.establishment;
+    if (establishment === null) {
+      if (herb.stage === "growing" || herb.stage === "ready")
+        fail(`herb ${herb.id} grows without establishment`);
+      continue;
+    }
+    if (establishment.at > state.tick || herb.stage === "ordered")
+      fail(`herb ${herb.id} has invalid establishment`);
+    if (establishment.kind === "legacy") continue;
+    const sink = sinks.get(establishment.receipt);
+    if (
+      !sink ||
+      sink.material !== "water" ||
+      sink.quantity !== MUGWORT_ESTABLISHMENT_WATER ||
+      linkedReceipts.has(establishment.receipt)
+    )
+      fail(`herb ${herb.id} has invalid water establishment receipt`);
+    linkedReceipts.add(establishment.receipt);
+  }
+  for (const sink of state.materials.sinks)
+    if (sink.material === "water" && !linkedReceipts.has(sink.id))
+      fail(`water sink ${sink.id} has no establishment`);
+}
+
 function operationIsActive(
   state: SavedClearing,
   operation: SavedClearing["operations"][number],
 ): boolean {
-  const actor = state.actors[operation.actor];
-  return !!(
-    actor?.task?.kind === "brew-water" &&
-    actor.task.target === operation.id &&
-    actor.task.job === operation.job &&
-    actor.assignment?.task === operation.job
-  );
+  return state.materials.transfers.some((transfer) => {
+    const actor = state.actors[transfer.actor];
+    return (
+      transfer.owner.kind === "operation" &&
+      transfer.owner.operation === operation.id &&
+      actor?.task?.kind === "water-delivery" &&
+      actor.task.target === operation.id &&
+      actor.task.job === operation.job &&
+      actor.assignment?.task === operation.job
+    );
+  });
 }
 
 function validateOperationEndpoints(
-  { state, sites, containers }: RelationContext,
+  { state }: RelationContext,
   operation: SavedClearing["operations"][number],
 ): void {
-  const actor = state.actors[operation.actor];
   const spring = state.sources.find(
     (source) => source.id === operation.spring && source.kind === "spring",
   );
-  const station = sites.get(operation.station);
   const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
+  const delivery = resolveWaterDelivery(liveState(state), operation.target);
   if (
-    !actor ||
     !spring ||
-    !station ||
-    station.type !== "brew-station" ||
-    station.finishedAt === null ||
+    !delivery ||
+    delivery.quantity !== operation.quantity ||
     !pail ||
     pail.material !== "pail" ||
-    pail.quantity !== 1 ||
-    !siteMaterialEndpoint(station, "kettle")
+    pail.quantity !== 1
   )
-    fail(`brew operation ${operation.id} has invalid endpoint`);
+    fail(`water operation ${operation.id} has invalid endpoint`);
 }
 
 function validateOperationCustody(
-  { state, jobs, sites }: RelationContext,
+  { state, jobs }: RelationContext,
   operation: SavedClearing["operations"][number],
 ): void {
   const job = jobs.get(operation.job);
-  const station = sites.get(operation.station)!;
   const custody = state.materials.transfers.filter(
     (transfer) =>
       transfer.owner.kind === "operation" &&
       transfer.owner.operation === operation.id,
   );
   const active = operationIsActive(state, operation);
-  if (!job || job.kind !== "fill-kettle" || job.target !== station.id)
-    fail(`brew operation ${operation.id} lacks fill job`);
+  const expected = job && waterDeliveryTargetForJob(liveState(state), job);
+  if (
+    !job ||
+    !expected ||
+    expected.kind !== operation.target.kind ||
+    (expected.kind === "kettle" &&
+      operation.target.kind === "kettle" &&
+      expected.station !== operation.target.station) ||
+    (expected.kind === "mugwort" &&
+      operation.target.kind === "mugwort" &&
+      expected.herb !== operation.target.herb)
+  )
+    fail(`water operation ${operation.id} lacks delivery job`);
   if (custody.length !== (active ? 1 : 0))
     fail(`brew operation ${operation.id} lacks pail custody`);
   const use = state.materials.bindings.find(
@@ -1523,12 +1682,8 @@ function validateOperationCustody(
     ): candidate is Extract<typeof candidate, { kind: "vessel-use" }> =>
       candidate.kind === "vessel-use" && candidate.id === operation.id,
   );
-  if (
-    !use ||
-    use.vessel !== operation.pail ||
-    (active && custody[0].actor !== operation.actor)
-  )
-    fail(`brew operation ${operation.id} has invalid pail custody`);
+  if (!use || use.vessel !== operation.pail)
+    fail(`water operation ${operation.id} has invalid pail custody`);
 }
 
 function validateOperationWater(
@@ -1537,7 +1692,7 @@ function validateOperationWater(
 ): void {
   const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
   const interior = pail && portableContainerInterior(pail);
-  if (!interior) fail(`brew operation ${operation.id} has invalid pail`);
+  if (!interior) fail(`water operation ${operation.id} has invalid pail`);
   const water = operation.water
     ? state.materials.lots.find((lot) => lot.id === operation.water)
     : null;
@@ -1549,23 +1704,24 @@ function validateOperationWater(
   );
   if (operation.phase === "acquire" || operation.phase === "draw") {
     if (operation.water !== null || interiorWater.length !== 0)
-      fail(`brew operation ${operation.id} has premature water`);
+      fail(`water operation ${operation.id} has premature water`);
   } else if (
     !water ||
     water.material !== "water" ||
-    water.quantity !== 2 ||
+    water.quantity !== operation.quantity ||
     water.location.kind !== "container" ||
     water.location.container !== interior.id ||
     interiorWater.length !== 1
   )
-    fail(`brew operation ${operation.id} has invalid water custody`);
+    fail(`water operation ${operation.id} has invalid water custody`);
 }
 
 function validateOperations(context: RelationContext): void {
   const { state } = context;
   const ids = new Set<string>();
   for (const operation of state.operations) {
-    if (ids.has(operation.id)) fail(`duplicate brew operation ${operation.id}`);
+    if (ids.has(operation.id))
+      fail(`duplicate water operation ${operation.id}`);
     ids.add(operation.id);
     validateOperationEndpoints(context, operation);
     validateOperationCustody(context, operation);
@@ -1772,7 +1928,7 @@ function validateReservedTransfer(
     );
     const actor = state.actors[transfer.actor];
     const active =
-      actor?.task?.kind === "brew-water" &&
+      actor?.task?.kind === "water-delivery" &&
       actor.task.target === operation?.id &&
       actor.task.job === operation?.job &&
       actor.assignment?.task === operation?.job;
@@ -2085,7 +2241,12 @@ function validateConservation({ state }: RelationContext): void {
     state.materials.lots.reduce(
       (sum, lot) => sum + (lot.material === "water" ? lot.quantity : 0),
       0,
-    ) + transformed("water");
+    ) +
+    transformed("water") +
+    state.materials.sinks.reduce(
+      (sum, sink) => sum + (sink.material === "water" ? sink.quantity : 0),
+      0,
+    );
   const springWater = state.sources
     .filter((source) => source.kind === "spring")
     .reduce((sum, source) => sum + sourceContainerSpec(source).capacity, 0);
@@ -2102,6 +2263,8 @@ function validateRelations(
   const context = relationContext(state);
   validateJobScopes(context);
   validateContainerLots(context);
+  validateMaterialSinks(context);
+  validateHerbEstablishments(context);
   validateOperations(context);
   validateMaterialBindings(context);
   validateTransformations(context);
@@ -2121,10 +2284,113 @@ function validateClearing(value: unknown): SerializedClearing {
   return validateRelations(savedSchema.parse(value));
 }
 
+function v12KettleDeliveryQuantity(station: string): PositiveInt {
+  const quantity = waterDeliveryQuantity({ kind: "kettle", station });
+  if (quantity === null)
+    throw new Error("missing checked kettle water requirement");
+  return quantity;
+}
+
+/** Convert only after predecessor-only executor custody has been checked. */
+function v12CurrentRelationView(predecessor: V12SavedClearing): SavedClearing {
+  return {
+    ...predecessor,
+    actors: Object.fromEntries(
+      Object.entries(predecessor.actors).map(([actorId, actor]) => [
+        actorId,
+        {
+          ...actor,
+          mode: actor.mode === "brew-water" ? "water-delivery" : actor.mode,
+          task:
+            actor.task?.kind === "brew-water"
+              ? { ...actor.task, kind: "water-delivery" as const }
+              : actor.task,
+        },
+      ]),
+    ),
+    herbs: predecessor.herbs.map((herb) => ({
+      ...herb,
+      establishment:
+        herb.stage === "ordered"
+          ? null
+          : { kind: "legacy" as const, at: herb.plantedAt ?? predecessor.tick },
+    })),
+    materials: { ...predecessor.materials, sinks: [] },
+    operations: predecessor.operations.map((operation) => ({
+      id: operation.id,
+      job: operation.job,
+      spring: operation.spring,
+      target: { kind: "kettle" as const, station: operation.station },
+      quantity: v12KettleDeliveryQuantity(operation.station),
+      pail: operation.pail,
+      water: operation.water,
+      phase: operation.phase,
+    })),
+  };
+}
+
+/** Schema 12 is structurally strict and relation-checked before conversion. */
+function validateV12Relations(state: V12SavedClearing): void {
+  const operationIds = new Set<string>();
+  for (const operation of state.operations) {
+    if (operationIds.has(operation.id))
+      fail(`duplicate brew operation ${operation.id}`);
+    operationIds.add(operation.id);
+    const job = state.jobs.find((entry) => entry.id === operation.job);
+    const actor = state.actors[operation.actor];
+    const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
+    const use = state.materials.bindings.find(
+      (binding) =>
+        binding.kind === "vessel-use" &&
+        binding.id === operation.id &&
+        binding.vessel === operation.pail,
+    );
+    const custody = state.materials.transfers.filter(
+      (transfer) =>
+        transfer.actor === operation.actor &&
+        transfer.owner.kind === "operation" &&
+        transfer.owner.operation === operation.id &&
+        transfer.intent.kind === "use" &&
+        transfer.intent.operation === operation.id,
+    );
+    const allCustody = state.materials.transfers.filter(
+      (transfer) =>
+        transfer.owner.kind === "operation" &&
+        transfer.owner.operation === operation.id,
+    );
+    const active =
+      actor?.task?.kind === "brew-water" &&
+      actor.task.target === operation.id &&
+      actor.task.job === operation.job &&
+      actor.assignment?.task === operation.job;
+    if (
+      !job ||
+      job.kind !== "fill-kettle" ||
+      job.target !== operation.station ||
+      !actor ||
+      !pail ||
+      pail.material !== "pail" ||
+      pail.quantity !== 1 ||
+      !use ||
+      custody.length !== (active ? 1 : 0) ||
+      allCustody.length !== custody.length
+    )
+      fail(`brew operation ${operation.id} has invalid executor custody`);
+  }
+  // The view changes only representation after old executor custody was proven;
+  // shared material/process/topology joins remain predecessor admission laws.
+  validateRelations(v12CurrentRelationView(state));
+}
+
+function convertV12State(predecessor: V12SavedClearing): SavedClearing {
+  validateV12Relations(predecessor);
+  return validateRelations(v12CurrentRelationView(predecessor));
+}
+
 /** Schema 10 is parsed and relation-checked in its shipped shape before later additions. */
 function convertV10State(predecessor: V10SavedClearing): SavedClearing {
   const { vesselUses, ...materials } = predecessor.materials;
-  const state: SavedClearing = {
+  const state: V12SavedClearing = {
     ...predecessor,
     actors: Object.fromEntries(
       Object.entries(predecessor.actors).map(([actorId, actor]) => [
@@ -2144,8 +2410,8 @@ function convertV10State(predecessor: V10SavedClearing): SavedClearing {
       consumptions: [],
     },
   };
-  validateRelations(state);
-  const live = { ...structuredClone(state), commands: [] };
+  const validated = v12StateSchema.parse(state);
+  const live = { ...structuredClone(convertV12State(validated)), commands: [] };
   introduceRecipeCacheSupplies(live);
   const { commands: _commands, ...saved } = live;
   return saved;
@@ -2154,7 +2420,7 @@ function convertV10State(predecessor: V10SavedClearing): SavedClearing {
 function convertV11State(predecessor: V11SavedClearing): SavedClearing {
   const role = (material: "malt" | "water" | "mugwort" | "wood") =>
     material === "wood" ? "fuel" : material;
-  const bindings: SavedClearing["materials"]["bindings"] =
+  const bindings: V12SavedClearing["materials"]["bindings"] =
     predecessor.materials.bindings.map((binding) =>
       binding.kind === "vessel-use"
         ? binding
@@ -2186,7 +2452,7 @@ function convertV11State(predecessor: V11SavedClearing): SavedClearing {
             };
           })(),
     );
-  const state: SavedClearing = {
+  const state: V12SavedClearing = {
     ...predecessor,
     actors: Object.fromEntries(
       Object.entries(predecessor.actors).map(([actorId, actor]) => [
@@ -2212,7 +2478,7 @@ function convertV11State(predecessor: V11SavedClearing): SavedClearing {
       consumptions: [],
     },
   };
-  return validateRelations(state);
+  return convertV12State(v12StateSchema.parse(state));
 }
 
 function validateSaveEnvelope(value: unknown): SaveEnvelope {
@@ -2226,6 +2492,20 @@ function validateSaveEnvelope(value: unknown): SaveEnvelope {
     return {
       ...current,
       savedState: validateRelations(current.savedState),
+    };
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "schema" in value &&
+    value.schema === 12
+  ) {
+    const predecessor = v12EnvelopeSchema.parse(value);
+    return {
+      kind: SAVE_KIND,
+      schema: SAVE_SCHEMA,
+      revision: predecessor.revision,
+      savedState: convertV12State(predecessor.savedState),
     };
   }
   if (
@@ -2256,7 +2536,7 @@ function validateSaveEnvelope(value: unknown): SaveEnvelope {
       savedState: validateRelations(convertV10State(predecessor.savedState)),
     };
   }
-  throw new Error("Invalid v12 save: unsupported predecessor schema");
+  throw new Error("Invalid schema 13 save: unsupported predecessor schema");
 }
 export function snapshotFor(state: Clearing): SaveEnvelope {
   const { commands: _commands, ...savedState } = structuredClone(state);

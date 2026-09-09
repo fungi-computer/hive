@@ -17,14 +17,12 @@ import { blockedCells, sameCell, sourceAccessCells } from "./world.js";
 import { approach, pathTicks, route, beginWalk } from "./movement.js";
 import {
   BUILDINGS,
-  brewKettle,
   constructionBuffer,
   removalProblem,
   roofSupported,
   shelfContainer,
   resolveMaterialEndpoint,
   shelteredBeds,
-  brewStationAccessCells,
   workApproach,
 } from "./construction.js";
 import {
@@ -59,6 +57,10 @@ import {
 import { recipeOutputActionForWire } from "./recipes.ts";
 import { CHOP_TICKS, interruptWork } from "./activity.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
+import {
+  resolveWaterDelivery,
+  waterDeliveryTargetForJob,
+} from "./water-delivery.ts";
 type Candidate = {
   activity: Activity;
   path: Cell[];
@@ -72,7 +74,13 @@ type Candidate = {
     /** The resolved route exists only for this scheduling pass. */
     destinationReachableWithPayload: boolean;
   };
-  brew?: { station: string; spring: string; pail: string; operation?: string };
+  water?: {
+    target: import("./model.ts").WaterDeliveryTarget;
+    quantity: import("./model.ts").PositiveInt;
+    spring: string;
+    pail: string;
+    operation?: string;
+  };
   recipe?: {
     id: string;
     station: string;
@@ -396,24 +404,32 @@ function repairCacheOption(
     },
   };
 }
-function fillKettleOption(
+function waterDeliveryOption(
   state: Clearing,
   person: Actor,
-  job: Extract<Job, { kind: "fill-kettle" }>,
+  job: Extract<Job, { kind: "fill-kettle" | "water-mugwort" }>,
   blocked: Set<string>,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const existing = state.operations.find(
     (operation) => operation.job === job.id,
   );
-  const station = state.sites.find(
-    (site) =>
-      site.id === (existing?.station ?? job.target) &&
-      site.type === "brew-station" &&
-      site.finishedAt !== null,
-  );
-  if (!station) return no("Waiting for a finished brew station");
-  if (containerQuantity(state.materials, brewKettle(station).id, "water") >= 2)
+  const target = existing?.target ?? waterDeliveryTargetForJob(state, job);
+  const destination = target && resolveWaterDelivery(state, target);
+  if (!destination)
+    return no(
+      job.kind === "fill-kettle"
+        ? "Waiting for a finished brew station"
+        : "Waiting for planted mugwort",
+    );
+  if (existing && existing.quantity !== destination.quantity)
+    return no("Waiting for the checked water requirement");
+  if (
+    destination.destination &&
+    containerQuantity(state.materials, destination.destination.id, "water") +
+      destination.quantity >
+      destination.destination.capacity
+  )
     return no("The kettle is full");
   const phase = existing?.phase ?? "acquire";
   if (
@@ -472,39 +488,44 @@ function fillKettleOption(
   if (
     phase !== "pour" &&
     (!spring ||
-      containerQuantity(state.materials, `source:${spring.id}`, "water") < 2)
+      containerQuantity(state.materials, `source:${spring.id}`, "water") <
+        destination.quantity)
   )
     return no("Waiting for the spring");
   const pailAt = selected.path.at(-1) ?? person;
   const springPath = spring
     ? nearestPath(state, pailAt, sourceAccessCells(spring), blocked)
     : [];
-  const stationPath = spring
+  const deliveryPath = spring
     ? springPath &&
       nearestPath(
         state,
         springPath.at(-1) ?? pailAt,
-        brewStationAccessCells(station),
+        destination.access,
         blocked,
       )
-    : nearestPath(state, pailAt, brewStationAccessCells(station), blocked);
-  if (!stationPath || (spring && !springPath))
-    return no("No route from pail to kettle");
+    : nearestPath(state, pailAt, destination.access, blocked);
+  if (!deliveryPath || (spring && !springPath))
+    return no("No route from pail to water destination");
   return {
-    reason: "Ready to fill the kettle",
+    reason:
+      job.kind === "fill-kettle"
+        ? "Ready to fill the kettle"
+        : "Ready to water mugwort",
     candidate: {
       ...make(
         job,
-        "brew-water",
+        "water-delivery",
         "pending-operation",
         selected.path,
         1,
         pathTicks(person, selected.path) +
           pathTicks(pailAt, springPath) +
-          pathTicks(springPath.at(-1) ?? pailAt, stationPath),
+          pathTicks(springPath.at(-1) ?? pailAt, deliveryPath),
       ),
-      brew: {
-        station: station.id,
+      water: {
+        target,
+        quantity: existing?.quantity ?? destination.quantity,
         spring: existing?.spring ?? spring!.id,
         pail: selected.lot.id,
         operation: existing?.id,
@@ -741,8 +762,8 @@ function option(
 ): Options {
   if (j.kind === "repair-cache")
     return repairCacheOption(state, p, j, b, sourceFacts);
-  if (j.kind === "fill-kettle")
-    return fillKettleOption(state, p, j, b, sourceFacts);
+  if (j.kind === "fill-kettle" || j.kind === "water-mugwort")
+    return waterDeliveryOption(state, p, j, b, sourceFacts);
   if (j.kind === "brew") return brewOption(state, p, j, b, sourceFacts);
   if (j.kind === "tap" || j.kind === "clear-spent-grain")
     return recipeOutputOption(state, p, j, b);
@@ -840,7 +861,7 @@ function automatic(a: Activity): WorkType | null {
     ? "haul"
     : a.kind === "repair-cache"
       ? "build"
-      : a.kind === "brew-water"
+      : a.kind === "water-delivery"
         ? "haul"
         : a.kind === "brew"
           ? "craft"
@@ -984,8 +1005,8 @@ export function assignWork(state: Clearing, colony: Colony): void {
         continue;
       c.activity.target = state.materials.transfers.at(-1)!.id;
     }
-    if (c.brew) {
-      const id = c.brew.operation ?? `brew-water-${state.nextId}`;
+    if (c.water) {
+      const id = c.water.operation ?? `water-delivery-${state.nextId}`;
       const existing = state.operations.find(
         (operation) => operation.id === id,
       );
@@ -1003,16 +1024,15 @@ export function assignWork(state: Clearing, colony: Colony): void {
           state.workDirty = true;
           continue;
         }
-        existing.actor = p.id;
         state.nextId++;
       } else {
         state.operations.push({
           id,
           job: m.task,
-          actor: p.id,
-          station: c.brew.station,
-          spring: c.brew.spring,
-          pail: c.brew.pail,
+          target: c.water.target,
+          quantity: c.water.quantity,
+          spring: c.water.spring,
+          pail: c.water.pail,
           water: null,
           phase: "acquire",
         });
@@ -1020,7 +1040,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
           id: `vessel-use-${id}`,
           operation: id,
           actor: p.id,
-          vessel: c.brew.pail,
+          vessel: c.water.pail,
           access: {
             sourceReachable: true,
             destinationReachableWithPayload: true,

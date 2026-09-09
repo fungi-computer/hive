@@ -19,6 +19,8 @@ function v10Envelope(change = () => {}) {
   const saved = snapshotFor(createClearing());
   const predecessor = structuredClone(saved);
   predecessor.schema = 10;
+  delete predecessor.savedState.materials.sinks;
+  for (const herb of predecessor.savedState.herbs) delete herb.establishment;
   delete predecessor.savedState.processes;
   for (const actor of Object.values(predecessor.savedState.actors))
     delete actor.allowedWork.craft;
@@ -36,6 +38,8 @@ function v10Envelope(change = () => {}) {
 function v11Envelope(change = () => {}) {
   const predecessor = structuredClone(snapshotFor(createClearing()));
   predecessor.schema = 11;
+  delete predecessor.savedState.materials.sinks;
+  for (const herb of predecessor.savedState.herbs) delete herb.establishment;
   delete predecessor.savedState.processes;
   for (const actor of Object.values(predecessor.savedState.actors))
     delete actor.allowedWork.craft;
@@ -184,7 +188,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v12 snapshots omit commands and restore paused", () => {
+test("v13 snapshots omit commands and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -193,7 +197,7 @@ test("v12 snapshots omit commands and restore paused", () => {
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 12);
+  assert.equal(saved.schema, 13);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
@@ -449,7 +453,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {
   const restored = restoreSnapshot(v10Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 12);
+  assert.equal(snapshotFor(restored.state).schema, 13);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -610,15 +614,15 @@ test("a held pail use reloads only with its matching operation custody", () => {
     state.operations.push({
       id: "fill-kettle-a",
       job: "job-fill",
-      actor: "rowan",
       spring: spring.id,
-      station: "station-a",
+      target: { kind: "kettle", station: "station-a" },
+      quantity: 2,
       pail: "pail-a",
       water: "pail-water-a",
       phase: "pour",
     });
     state.actors.rowan.task = {
-      kind: "brew-water",
+      kind: "water-delivery",
       job: "job-fill",
       target: "fill-kettle-a",
       duration: 1,
@@ -641,7 +645,188 @@ test("a held pail use reloads only with its matching operation custody", () => {
   );
 
   saved.savedState.materials.transfers[0].owner.operation = "wrong-operation";
-  assert.throws(() => restoreSnapshot(saved), /pail custody/);
+  assert.throws(() => restoreSnapshot(saved), /(pail custody|held-use owner)/);
+});
+
+test("schema 12 validates executor-bound Fill custody before converting it", () => {
+  const saved = envelope((state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:station-a",
+      material: "wood",
+      quantity: 6,
+    });
+    state.felled = 1;
+    state.jobs.push(job("job-fill", "fill-kettle", "station-a"));
+    state.materials.lots.push({
+      id: "pail-a",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "hand", actor: "rowan" },
+    });
+    state.materials.bindings.push({
+      kind: "vessel-use",
+      id: "fill-kettle-a",
+      vessel: "pail-a",
+    });
+    state.materials.transfers.push({
+      id: "pail-use-a",
+      actor: "rowan",
+      owner: { kind: "operation", operation: "fill-kettle-a" },
+      request: {
+        source: { kind: "exact-lot", lot: "pail-a" },
+        quantityPolicy: "whole-lot",
+        quantity: 1,
+      },
+      intent: { kind: "use", operation: "fill-kettle-a" },
+      phase: { kind: "carrying", lot: "pail-a" },
+    });
+    state.operations.push({
+      id: "fill-kettle-a",
+      job: "job-fill",
+      spring: spring.id,
+      target: { kind: "kettle", station: "station-a" },
+      quantity: 2,
+      pail: "pail-a",
+      water: null,
+      phase: "draw",
+    });
+    state.actors.rowan.task = {
+      kind: "water-delivery",
+      job: "job-fill",
+      target: "fill-kettle-a",
+      duration: 1,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-fill",
+      cost: 1,
+    };
+  });
+  const predecessor = structuredClone(saved);
+  predecessor.schema = 12;
+  delete predecessor.savedState.materials.sinks;
+  for (const herb of predecessor.savedState.herbs) delete herb.establishment;
+  const operation = predecessor.savedState.operations[0];
+  operation.actor = "rowan";
+  operation.station = operation.target.station;
+  delete operation.target;
+  delete operation.quantity;
+  predecessor.savedState.actors.rowan.task.kind = "brew-water";
+
+  const restored = restoreSnapshot(predecessor);
+  assert.deepEqual(restored.state.operations[0].target, {
+    kind: "kettle",
+    station: "station-a",
+  });
+  assert.equal(restored.state.operations[0].id, "fill-kettle-a");
+  assert.equal(restored.state.operations[0].quantity, 2);
+
+  const wrongExecutor = structuredClone(predecessor);
+  wrongExecutor.savedState.operations[0].actor = "sedge";
+  assert.throws(() => restoreSnapshot(wrongExecutor), /executor custody/);
+});
+
+test("current water operations pin target quantity and establishment receipts", () => {
+  const active = envelope((state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.sites.push(site("station-a", "brew-station", { finishedAt: 0 }));
+    state.materials.embedded.push({
+      container: "construction-buffer:station-a",
+      material: "wood",
+      quantity: 6,
+    });
+    state.felled = 1;
+    state.jobs.push(job("job-fill", "fill-kettle", "station-a"));
+    state.materials.lots.push({
+      id: "pail-a",
+      material: "pail",
+      quantity: 1,
+      location: { kind: "hand", actor: "rowan" },
+    });
+    state.materials.bindings.push({
+      kind: "vessel-use",
+      id: "fill-a",
+      vessel: "pail-a",
+    });
+    state.materials.transfers.push({
+      id: "pail-use-a",
+      actor: "rowan",
+      owner: { kind: "operation", operation: "fill-a" },
+      request: {
+        source: { kind: "exact-lot", lot: "pail-a" },
+        quantityPolicy: "whole-lot",
+        quantity: 1,
+      },
+      intent: { kind: "use", operation: "fill-a" },
+      phase: { kind: "carrying", lot: "pail-a" },
+    });
+    state.operations.push({
+      id: "fill-a",
+      job: "job-fill",
+      spring: spring.id,
+      target: { kind: "kettle", station: "station-a" },
+      quantity: 2,
+      pail: "pail-a",
+      water: null,
+      phase: "draw",
+    });
+    state.actors.rowan.task = {
+      kind: "water-delivery",
+      job: "job-fill",
+      target: "fill-a",
+      duration: 1,
+    };
+    state.actors.rowan.assignment = {
+      character: "rowan",
+      task: "job-fill",
+      cost: 1,
+    };
+  });
+  assert.doesNotThrow(() => restoreSnapshot(active));
+  const wrongQuantity = structuredClone(active);
+  wrongQuantity.savedState.operations[0].quantity = 1;
+  assert.throws(() => restoreSnapshot(wrongQuantity), /invalid endpoint/);
+
+  const established = envelope((state) => {
+    const spring = state.sources.find((source) => source.kind === "spring");
+    state.materials.lots.find(
+      (lot) => lot.id === `source-lot:${spring.id}`,
+    ).quantity = 6;
+    state.materials.sinks.push({
+      id: "water-establishment-a",
+      material: "water",
+      quantity: 2,
+    });
+    state.herbs.push({
+      id: "herb-a",
+      kind: "mugwort",
+      stage: "planted",
+      work: 0,
+      plantedAt: 0,
+      establishment: {
+        kind: "water",
+        at: 0,
+        receipt: "water-establishment-a",
+      },
+      ...cell(7, 7),
+    });
+  });
+  assert.doesNotThrow(() => restoreSnapshot(established));
+  const missingReceipt = structuredClone(established);
+  missingReceipt.savedState.herbs[0].establishment.receipt = "missing";
+  assert.throws(
+    () => restoreSnapshot(missingReceipt),
+    /water establishment receipt/,
+  );
+  const replay = structuredClone(established);
+  replay.savedState.herbs.push({
+    ...replay.savedState.herbs[0],
+    id: "herb-replay",
+    x: 8,
+  });
+  assert.throws(() => restoreSnapshot(replay), /water establishment receipt/);
 });
 
 test("schema 10 rejects actor-bound pail bindings as an unpublished wire shape", () => {
@@ -681,7 +866,7 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
       location: { kind: "ground", ...cell(3, 3) },
     });
     const spring = state.sources.find((source) => source.kind === "spring");
-    for (const [id, jobId, station, actor] of [
+    for (const [id, jobId, station] of [
       ["fill-a", "job-fill-a", "station-a", "rowan"],
       ["fill-b", "job-fill-b", "station-b", "sedge"],
     ]) {
@@ -689,9 +874,9 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
       state.operations.push({
         id,
         job: jobId,
-        actor,
         spring: spring.id,
-        station,
+        target: { kind: "kettle", station },
+        quantity: 2,
         pail: "parked-pail",
         water: null,
         phase: "acquire",
@@ -760,6 +945,7 @@ test("schema 11 validates one exact brew binding and its provenance without live
       stage: "ready",
       work: 0,
       plantedAt: 0,
+      establishment: { kind: "legacy", at: 0 },
       ...cell(2, 2),
     });
     state.harvestedHerbs = 1;
@@ -870,6 +1056,7 @@ test("schema 11 aggregates recipe portion promises across distinct brew bindings
       stage: "ready",
       work: 0,
       plantedAt: 0,
+      establishment: { kind: "legacy", at: 0 },
       ...cell(2, 2),
     });
     state.harvestedHerbs = 1;
@@ -1062,10 +1249,13 @@ rejects(
   /pending source .* is invalid/,
 );
 
-test("schema 11 accepts only strict schema 10 or schema 11 predecessors", () => {
+test("schema 13 reports unsupported predecessors truthfully", () => {
   const unsupported = snapshotFor(createClearing());
   unsupported.schema = 7;
-  assert.throws(() => restoreSnapshot(unsupported));
+  assert.throws(
+    () => restoreSnapshot(unsupported),
+    /Invalid schema 13 save: unsupported predecessor schema/,
+  );
   const malformed = v10Envelope((state) => {
     state.extra = true;
   });

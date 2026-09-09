@@ -1,17 +1,16 @@
 import type {
   Activity,
   Actor,
-  BrewWaterOperation,
   Cell,
   Clearing,
   Site,
   Transfer,
+  WaterDeliveryOperation,
 } from "./model.ts";
 import { blockedCells, sameCell, sourceAccessCells } from "./world.js";
 import { beginWalk, route, walk, face } from "./movement.js";
 import {
   BUILDINGS,
-  brewKettle,
   brewStationAccessCells,
   constructionBuffer,
   removalProblem,
@@ -50,6 +49,11 @@ import { isNight } from "./routine.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 import { attendBrew, attendRecipeOutput } from "./brewing.ts";
 import { recipeOutputActionForWire } from "./recipes.ts";
+import {
+  resolveWaterDelivery,
+  settleWaterDelivery,
+  waterDeliveryTargetForJob,
+} from "./water-delivery.ts";
 export const CHOP_TICKS = 80;
 function groundCell(at: Cell): Cell {
   return { x: at.x, z: at.z, level: at.level };
@@ -67,7 +71,7 @@ export function finishActivity(state: Clearing, p: Actor): void {
 }
 export function interruptWork(state: Clearing, p: Actor): void {
   const operation =
-    p.task?.kind === "brew-water"
+    p.task?.kind === "water-delivery"
       ? state.operations.find((entry) => entry.id === p.task?.target)
       : undefined;
   const r = operation
@@ -234,6 +238,7 @@ function herb(s: Clearing, p: Actor, t: Activity) {
     h.stage = "planted";
     h.work = 0;
     h.plantedAt = s.tick;
+    h.establishment = null;
     finishJob(s, p, t.job);
   } else {
     s.herbs = s.herbs.filter((x) => x !== h);
@@ -314,10 +319,10 @@ function repairCache(s: Clearing, p: Actor, t: Activity): void {
   s.notice = "The reclaimed cache is open.";
   finishJob(s, p, t.job);
 }
-function acquireBrewPail(
+function acquireWaterPail(
   s: Clearing,
   p: Actor,
-  operation: BrewWaterOperation,
+  operation: WaterDeliveryOperation,
   held: Transfer,
 ): boolean {
   if (held.phase.kind === "carrying") return true;
@@ -353,10 +358,10 @@ function acquireBrewPail(
   return true;
 }
 
-function drawBrewWater(
+function drawWater(
   s: Clearing,
   p: Actor,
-  operation: BrewWaterOperation,
+  operation: WaterDeliveryOperation,
 ): boolean {
   if (operation.phase !== "draw") return true;
   const spring = s.sources.find(
@@ -371,7 +376,7 @@ function drawBrewWater(
     operation: operation.id,
     source: sourceContainerSpec(spring),
     sourceLot: `source-lot:${spring.id}`,
-    quantity: 2,
+    quantity: operation.quantity,
     access: {
       sourceReachable: true,
       destinationReachableWithPayload: true,
@@ -386,50 +391,24 @@ function drawBrewWater(
   return true;
 }
 
-function pourBrewWater(
-  s: Clearing,
-  p: Actor,
-  t: Activity,
-  operation: BrewWaterOperation,
-  station: Site,
-): void {
-  if (operation.phase !== "pour") return;
-  if (!accessWork(s, p, brewStationAccessCells(station))) return;
-  const poured = pourPailWater(s.materials, {
-    operation: operation.id,
-    destination: brewKettle(station),
-    sourceLot: operation.water ?? "",
-    quantity: 2,
-    access: {
-      sourceReachable: true,
-      destinationReachableWithPayload: true,
-    },
-  });
-  if (!poured.ok) {
-    interruptWork(s, p);
-    return;
-  }
-  const settled = interruptOperationPail(s.materials, operation.id, {
-    cell: groundCell(p),
-    legal: true,
-  });
-  if (!settled.ok) throw new Error(settled.reason);
-  retireOperationPail(s.materials, operation.id);
-  s.notice = "The kettle holds two water.";
-  finishJob(s, p, t.job);
-  s.operations = s.operations.filter((entry) => entry !== operation);
-}
-
-function brewWater(s: Clearing, p: Actor, t: Activity): void {
+function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
   const operation = s.operations.find((entry) => entry.id === t.target);
   const job = s.jobs.find((entry) => entry.id === t.job);
+  const expected = job && waterDeliveryTargetForJob(s, job);
   const pail =
     operation && s.materials.lots.find((lot) => lot.id === operation.pail);
   if (
     !operation ||
-    operation.actor !== p.id ||
     operation.job !== t.job ||
-    job?.kind !== "fill-kettle" ||
+    (job?.kind !== "fill-kettle" && job?.kind !== "water-mugwort") ||
+    !expected ||
+    operation.target.kind !== expected.kind ||
+    (operation.target.kind === "kettle" &&
+      expected.kind === "kettle" &&
+      operation.target.station !== expected.station) ||
+    (operation.target.kind === "mugwort" &&
+      expected.kind === "mugwort" &&
+      operation.target.herb !== expected.herb) ||
     !pail ||
     pail.material !== "pail"
   ) {
@@ -454,19 +433,32 @@ function brewWater(s: Clearing, p: Actor, t: Activity): void {
     interruptWork(s, p);
     return;
   }
-  const station = s.sites.find(
-    (site) =>
-      site.id === operation.station &&
-      site.type === "brew-station" &&
-      site.finishedAt !== null,
-  );
-  if (!station) {
+  const destination = resolveWaterDelivery(s, operation.target);
+  if (!destination) {
     interruptWork(s, p);
     return;
   }
-  if (!acquireBrewPail(s, p, operation, held)) return;
-  if (!drawBrewWater(s, p, operation)) return;
-  pourBrewWater(s, p, t, operation, station);
+  if (!acquireWaterPail(s, p, operation, held)) return;
+  if (!drawWater(s, p, operation)) return;
+  if (operation.phase !== "pour") return;
+  if (!accessWork(s, p, destination.access)) return;
+  const settled = settleWaterDelivery(s, operation);
+  if (!settled.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  const released = interruptOperationPail(s.materials, operation.id, {
+    cell: groundCell(p),
+    legal: true,
+  });
+  if (!released.ok) throw new Error(released.reason);
+  retireOperationPail(s.materials, operation.id);
+  s.notice =
+    operation.target.kind === "kettle"
+      ? "The kettle holds two water."
+      : "The mugwort is established.";
+  finishJob(s, p, t.job);
+  s.operations = s.operations.filter((entry) => entry !== operation);
 }
 function brew(s: Clearing, p: Actor, t: Activity): void {
   const process = s.processes.find((candidate) => candidate.id === t.target);
@@ -549,7 +541,7 @@ export function advanceWork(s: Clearing, p: Actor): void {
   const t = p.task;
   if (!t) return;
   if (t.kind === "repair-cache") return repairCache(s, p, t);
-  if (t.kind === "brew-water") return brewWater(s, p, t);
+  if (t.kind === "water-delivery") return waterDelivery(s, p, t);
   if (t.kind === "brew") return brew(s, p, t);
   if (t.kind === "tap" || t.kind === "clear-spent-grain")
     return recipeOutput(s, p, t);

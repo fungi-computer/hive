@@ -45,6 +45,7 @@ export type MaterialFailure =
   | "invalid-positive-integer"
   | "invalid-allocator"
   | "duplicate-lot"
+  | "duplicate-sink"
   | "duplicate-transfer"
   | "lot-not-found"
   | "transfer-not-found"
@@ -370,7 +371,14 @@ export function materialQuantity(
         total + (entry.material === material ? entry.quantity : 0),
       0,
     ),
-    consumed: material === "wood" ? state.consumedWood : 0,
+    consumed:
+      material === "wood"
+        ? state.consumedWood
+        : state.sinks.reduce(
+            (total, sink) =>
+              total + (sink.material === material ? sink.quantity : 0),
+            0,
+          ),
   };
 }
 
@@ -1143,6 +1151,40 @@ export function pourPailWater(
     quantity: input.quantity,
     access: input.access,
   });
+}
+
+/** A checked consumer may settle an exact held portion into an immutable receipt. */
+export function sinkHeldPortion(
+  state: MaterialsState,
+  input: {
+    id: string;
+    operation: string;
+    sourceLot: LotId;
+    material: Material;
+    quantity: number;
+  },
+): MaterialResult<{ id: string }> {
+  if (state.sinks.some((sink) => sink.id === input.id))
+    return failure("duplicate-sink");
+  const held = heldUsePail(state, input.operation);
+  if (!held.ok) return held;
+  const lot = lotById(state, input.sourceLot);
+  if (
+    !lot ||
+    lot.material !== input.material ||
+    lot.location.kind !== "container" ||
+    lot.location.container !== held.value.interior.id ||
+    lot.quantity !== input.quantity ||
+    !isPositiveInt(input.quantity)
+  )
+    return failure("source-insufficient");
+  state.lots = state.lots.filter((candidate) => candidate !== lot);
+  state.sinks.push({
+    id: input.id,
+    material: input.material,
+    quantity: input.quantity,
+  });
+  return success({ id: input.id });
 }
 
 /** Fully resolved by a content owner; the material kernel knows no recipe roles. */

@@ -172,6 +172,18 @@ export function recipeDefinition(id: RecipeId): RecipeDefinition {
   throw new Error(`unknown recipe ${id}`);
 }
 
+/** The current Fill Kettle consumer asks its recipe owner, never a transport phase. */
+export function brewStationWaterRequirement(): PositiveInt | null {
+  const definition = recipeDefinition(HERBAL_ALE_V1.id);
+  const requirements = definition.consumed.filter(
+    (entry) =>
+      entry.role === "water" &&
+      entry.material === "water" &&
+      entry.slot === definition.stationSlot,
+  );
+  return requirements.length === 1 ? requirements[0].quantity : null;
+}
+
 /** Definitions, not the material kernel, authorize exact output disposal quanta. */
 export function recipeOutputConsumptionAction(
   definition: RecipeDefinition,

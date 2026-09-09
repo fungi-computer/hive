@@ -8,7 +8,11 @@ import {
   stationVisualProfile,
 } from "./brew-station-profiles.js";
 import { figure } from "./art/figures.js";
-import { carriedActorFrame, carriedActorPose } from "./view.js";
+import {
+  carriedActorFrame,
+  carriedActorPose,
+  herbGrowthProgress,
+} from "./view.js";
 import {
   dispatchUiAction,
   requiredToolLevel,
@@ -49,6 +53,19 @@ test("Tap stays a shared station-only catalog command", () => {
   const action = {
     kind: "command",
     command: { kind: "tap", station: "site-brew", actors: null },
+  };
+  dispatchUiAction(action, {
+    run: (received) => forwarded.push(received),
+    level: null,
+  });
+  assert.deepEqual(forwarded, [action]);
+});
+
+test("Water mugwort stays a target-only catalog command", () => {
+  const forwarded = [];
+  const action = {
+    kind: "command",
+    command: { kind: "water-mugwort", herb: "herb-1" },
   };
   dispatchUiAction(action, {
     run: (received) => forwarded.push(received),
@@ -198,6 +215,18 @@ test("carried pail art reads vessel water from the canonical lot container", () 
   assert.equal(
     carriedActorPose({ lots: [] }, { material: "mugwort" }, "transfer"),
     "carry-herb",
+  );
+});
+
+test("unestablished mugwort has no visual growth until canonical establishment", () => {
+  const planted = { stage: "planted", work: 0, establishment: null };
+  assert.equal(herbGrowthProgress(planted, 400), 0);
+  assert.equal(
+    herbGrowthProgress(
+      { ...planted, establishment: { kind: "water", at: 300 } },
+      400,
+    ),
+    100 / 240,
   );
 });
 

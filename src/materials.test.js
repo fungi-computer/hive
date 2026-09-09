@@ -46,6 +46,7 @@ const fresh = (lots = []) => ({
   bindings: [],
   transformations: [],
   consumptions: [],
+  sinks: [],
   embedded: [],
   nextLotId: 1,
   consumedWood: 0,
