@@ -1,4 +1,4 @@
-import { structureEnvironment } from "../../structure-environment.ts";
+import { createStructureGeometry } from "../../structure-environment.ts";
 import { SIZE, TREE_CELLS } from "../../world.js";
 import {
   parseTerrain,
@@ -28,6 +28,35 @@ function worldBounds() {
     min: worldCoordinate(BREWHOUSE_ROOM.bounds.min),
     max: worldCoordinate(BREWHOUSE_ROOM.bounds.max),
   };
+}
+
+/** Boundary masks follow physical neighbors; an unmodeled roofed continuation
+ * cannot become an outdoor reservoir or an artificial closed wall. */
+export function roomExteriorBoundary(
+  query: ReturnType<typeof createStructureGeometry>,
+  requested: Parameters<typeof query.region>[0],
+  ambientPlaneY: number,
+) {
+  const faces = query.boundary(requested, ambientPlaneY);
+  const unresolved = faces.find((face) => face.state === "needs-neighbor");
+  if (unresolved)
+    throw new Error(
+      `brewhouse needs neighboring air region at ${unresolved.faceId}`,
+    );
+  return Object.freeze({
+    openSides: Object.freeze([
+      ...new Set(
+        faces
+          .filter((face) => face.state === "outdoor")
+          .map((face) => face.side),
+      ),
+    ]),
+    closedFaces: Object.freeze(
+      faces
+        .filter((face) => face.state === "closed")
+        .map((face) => face.faceId),
+    ),
+  });
 }
 
 function checkedTerrain(input: GeneratedTerrain) {
@@ -181,10 +210,23 @@ export function generatedBrewhouseRoom(
 ) {
   const opening = checkedOpening(openingInput),
     { terrain, geometry } = checkedTerrain(terrainInput),
-    environment = structureEnvironment(
+    roomBounds = worldBounds(),
+    // Explicit ambient plane at the registered terrain's upper face. Query
+    // through the full known vertical extent; the solver still owns504 cells.
+    ambientPlaneY = geometry.bounds.max[1],
+    query = createStructureGeometry(
       { terrain: geometry, sites: BREWHOUSE_ROOM.sites },
-      worldBounds(),
+      {
+        min: [
+          roomBounds.min[0] - 1,
+          roomBounds.min[1] - 1,
+          roomBounds.min[2] - 1,
+        ],
+        max: [roomBounds.max[0] + 1, ambientPlaneY, roomBounds.max[2] + 1],
+      },
     ),
+    environment = query.region(roomBounds),
+    exterior = roomExteriorBoundary(query, roomBounds, ambientPlaneY),
     baseDefinition = {
       version: "voxel-air-definition-v1" as const,
       regionId: BREWHOUSE_ROOM.id,
@@ -195,19 +237,23 @@ export function generatedBrewhouseRoom(
       ),
       spacingM: [...environment.spacingM],
       solidCells: [...environment.solidCellIds],
-      openSides: ["x-", "x+", "z-", "z+", "y+"] as const,
+      openSides: exterior.openSides,
       model: { ...BREWHOUSE_AIR_MODEL },
     },
     shutter = shutterFaces(baseDefinition),
     definition = {
       ...baseDefinition,
       closedFaces: [
-        ...environment.closedFaceIds,
-        ...(opening.open ? [] : shutter),
+        ...new Set([
+          ...environment.closedFaceIds,
+          ...exterior.closedFaces,
+          ...(opening.open ? [] : shutter),
+        ]),
       ],
     };
   return Object.freeze({
     definition,
+    ambientPlaneY,
     initialAir: emptyAir(definition),
     frame: Object.freeze({ ...TERRAIN_FRAME }),
     terrainBounds: Object.freeze({

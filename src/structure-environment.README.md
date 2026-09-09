@@ -74,3 +74,49 @@ Current generated-terrain join: all eight geometry laws passed with the six join
 main-world laws in u4230 /18ad50d8299243a5b9007181cfcdca78. These use the registered
 frame and real exact excavation. Historical proof IDs above retain their original
 source meaning; they do not qualify the new terrain owner.
+
+## Shared physical queries and room boundaries
+
+`createStructureGeometry({terrain, sites}, queryBounds)` translates the same
+completed building facts into opaque axis-aligned primitives for
+`engine/world/physical-geometry.ts`. The engine privately indexes solid vertical
+intervals and axis-face planes, preserving the registered immutable terrain point
+capability. It does not sample the enclosing3D volume during compilation. The
+existing `structureEnvironment` descriptor is a region query over that owner;
+there is no second terrain/structure raster implementation.
+
+Query bounds and raster bounds are distinct. The declared finite query envelope
+must fit the registered terrain. Primitive count is bounded at8192 and indexed
+footprint/face entries at65536. Individual region rasters still contain at most
+1024 cells; vertical clearance visits at most4097 cell/face levels (4096 upward
+steps). A whole region-boundary request has a conservative65536-step budget.
+Malformed/excessive requests reject; out-of-envelope point/face queries and
+unproved clearance return unresolved. No query grants physical edit permission.
+
+`point`, `face`, `verticalClearance`, `exterior`, and `boundary` use the same
+private index as `region`. An actual separating face or adjacent solid is closed.
+An empty neighbor is outdoor only when the actual bounded upward path reaches
+the caller's explicit ambient plane. An overhead roof/overhang does not become a
+wall between adjacent empty cells: this is `needs-neighbor`, and the room producer
+rejects it. The registered upper face may be an explicit ambient plane; its
+physical face is checked. Nothing above the declared registered plane is claimed.
+Primitives outside registered terrain reject, including unrepresentable roofs.
+
+The current generated brewhouse keeps its504 solver cells and existing foundation
+support check. It compiles a sparse query envelope with one extra horizontal
+neighbor layer and vertical extent through the terrain's registered upper face
+(currently worldY64), declares that face ambient, and checks every boundary.
+Boundary masks close actual solid/separating neighbors; all remaining admitted
+faces connect to proven outdoor. This replaces unconditional outdoor side labels. A side is marked ambient only
+when its classification includes an outdoor face; the wholly solid floor remains
+absent from openSides, preserving the current no-slip boundary.
+The shutter remains the existing explicit interior physical face addition.
+No solver, navigation, terrain, material, art, field state or saved schema changed.
+
+Mixed open/closed faces on one side still expose an existing air-stencil
+limitation: tangential outside ghosts use side membership rather than each
+face mask. This producer does not solve that numerical boundary; Root owns it.
+
+New sparse-query and generated-room boundary laws are authored only pending
+Root's gate. Existing geometry laws remain unchanged. This source checkpoint
+claims no executed law, type, numerical, browser, native, or performance result.
