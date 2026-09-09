@@ -4,6 +4,8 @@
 
 Build a small set of well-owned mechanisms that combine into many kinds of play. New content should normally be definitions, assets and configuration over existing behavior. Read the implementation and its immediate callers before designing an extension.
 
+**Breaking changes are allowed during development (Levi, September 9).** Do not add backward-compatibility shims, legacy adapters, fallback APIs, old-save migrations or parallel old implementations unless Levi explicitly requests compatibility. Change the real callers together and remove superseded paths. Version the current format and reject unsupported versions clearly. Current-format save/reload, durable recovery, command replay and conservation still must work; they are not backward compatibility. This supersedes historical migration/compatibility requirements below and in older plans. Preserved source and proof archives are evidence, not a reason to keep old code running.
+
 - **Favor composition over inheritance.** The engine exposes reusable systems through small capabilities and owned operations; Goblin composes those systems with its definitions. Do not build subclass trees for games, species, items or work. Declare dependencies, deterministic ordering and saved-data versions at the composition boundary; composing systems cannot grant duplicate mutation authority or bypass the durable transaction. Prove the boundary with actual consumers before adding abstraction layers.
 
 - **Share behavior, not just syntax.** Before adding a haul, growth, crafting, storage, interaction or lifecycle path, identify the existing owner. Extend that owner when the same rules apply. A third special-purpose copy is a signal to consolidate the existing consumers, not create another adapter around the duplication. Keep real semantic differences explicit.
@@ -43,7 +45,7 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 - UI commands, buttons, hotkeys and help share the checked interaction catalog and current OpenTUI keymap. Jotai owns UI choices/display projections; XState owns gestures. Paused commands may change accepted intent while movement/work remains frozen.
 - Reuse the original Three → low-resolution bake → Pixi pipeline. World geometry, picking and ordering share coordinate contracts. Cached visuals and temporary pooled objects have disposal/reset rules and never replace persistent identity.
 - Generated terrain, map summaries, residency and simulation activation are distinct. Keep one versioned world generator and bounded query/work budgets; map LOD does not generate every fine tile underneath it. Offscreen does not mean offsimulation. The playable clearing remains deliberately small until Levi changes that direction.
-- Preserve versioned saves, raw recovery and explicit migrations. Validate relational laws in addition to structural schemas. A cache is rebuilt from canonical state rather than saved as independent truth.
+- Keep current saves versioned and validate relational laws as well as structural schemas. Reject unsupported old formats; do not add migration code under the current breaking-change policy. A cache is rebuilt from canonical state rather than saved as independent truth.
 
 ## Delivery and review
 
