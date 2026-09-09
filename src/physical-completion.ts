@@ -93,26 +93,75 @@ function resolveWork(
   return { actor, job };
 }
 
+type WorkTarget = {
+  required: number;
+  progress: number;
+} & (
+  | { kind: "dig"; job: Extract<PhysicalJob, { kind: "dig" }> }
+  | { kind: "build"; job: Extract<PhysicalJob, { kind: "build" }>; site: Site }
+  | {
+      kind: "deconstruct";
+      job: Extract<PhysicalJob, { kind: "deconstruct" }>;
+      site: Site;
+    }
+);
+
+/** Resolve the target-owned duration/progress and structure identity together. */
+function resolveTarget(
+  state: Clearing,
+  actor: Actor,
+  job: PhysicalJob,
+): WorkTarget | Refusal {
+  if (job.kind === "dig")
+    return {
+      kind: "dig",
+      job,
+      required: TERRAIN_WORK_TICKS,
+      progress: actor.work,
+    };
+  const site = state.sites.find((site) => site.id === job.target);
+  if (!site) return invalid("The structure no longer exists.");
+  if (job.kind === "build") {
+    if (site.finishedAt !== null)
+      return invalid("The structure is already finished.");
+    return {
+      kind: "build",
+      job,
+      site,
+      required: BUILDINGS[site.type].ticks,
+      progress: site.work,
+    };
+  }
+  const problem = deconstructionTargetProblem(state, job.target, job.id);
+  if (problem) return invalid(problem);
+  return {
+    kind: "deconstruct",
+    job,
+    site,
+    required: BUILDINGS[site.type].deconstructTicks,
+    progress: actor.work,
+  };
+}
+
 /** Current reach/occupancy is a settlement precondition, never saved permission. */
 function accessProblem(
   state: Clearing,
   actor: Actor,
-  job: PhysicalJob,
-  site: Site | null,
+  target: WorkTarget,
 ): Refusal | null {
-  if (job.kind === "dig") {
-    const problem = terrainDigProblem(state.terrain, job.voxel);
+  if (target.kind === "dig") {
+    const problem = terrainDigProblem(state.terrain, target.job.voxel);
     if (problem) return invalid(problem);
-    const at = terrainColumn(job.voxel);
+    const at = terrainColumn(target.job.voxel);
     const blocked = terrainEditProblem(state, at);
     if (blocked) return waiting(blocked);
     if (!terrainRimCells(state, at).some((rim) => sameCell(actor, rim)))
       return waiting("Waiting for safe excavation access.");
   } else {
-    if (!workPosition(state, actor, site, job.kind))
+    if (!workPosition(state, actor, target.site, target.kind))
       return waiting("Waiting for construction access.");
-    if (job.kind === "deconstruct") {
-      const problem = removalProblem(state, site, actor);
+    if (target.kind === "deconstruct") {
+      const problem = removalProblem(state, target.site, actor);
       if (problem) return waiting(problem);
     }
   }
@@ -142,22 +191,18 @@ function validateCandidate(prospective: Clearing): void {
     }
 }
 
-type ReadyWork = {
-  status: "ready";
-  actor: Actor;
-  job: PhysicalJob;
-  site: Site | null;
-  required: number;
-};
-type PreparedEdit = {
+type ReadyWork = { status: "ready"; actor: Actor; target: WorkTarget };
+type GeometryEdit = {
   status: "prepared";
-  work: ReadyWork;
-  materials: Clearing["materials"];
   terrain: Clearing["terrain"];
   sites: Site[];
-  finishedSite: Site | null;
+  finishedSite: { original: Site; finished: Site } | null;
   retired: Set<string>;
   notice: string;
+};
+type PreparedEdit = GeometryEdit & {
+  work: ReadyWork;
+  materials: Clearing["materials"];
 };
 
 /** Resolve live work and every precondition before allocating a material branch. */
@@ -169,106 +214,146 @@ function readyWork(
   const resolved = resolveWork(state, input.actorId, input.jobId);
   if (!resolved) return invalid("Physical work no longer matches its worker.");
   const { actor, job } = resolved;
-  const site =
-    job.kind === "dig"
-      ? null
-      : state.sites.find((site) => site.id === job.target);
-  if (job.kind !== "dig" && !site)
-    return invalid("The structure no longer exists.");
-  if (job.kind === "deconstruct") {
-    const problem = deconstructionTargetProblem(state, job.target, job.id);
-    if (problem) return invalid(problem);
-  }
-  if (job.kind === "build" && site!.finishedAt !== null)
-    return invalid("The structure is already finished.");
-  const required =
-    job.kind === "dig"
-      ? TERRAIN_WORK_TICKS
-      : job.kind === "build"
-        ? BUILDINGS[site!.type].ticks
-        : BUILDINGS[site!.type].deconstructTicks;
-  const progress = job.kind === "build" ? site!.work : actor.work;
+  const target = resolveTarget(state, actor, job);
+  if ("status" in target) return target;
+  const { required, progress } = target;
   if (!Number.isSafeInteger(progress) || progress < 0 || progress >= required)
     throw new Error("invalid-physical-work-progress");
   if (progress !== required - 1)
     return invalid("Physical work is not ready to settle.");
-  const access = accessProblem(state, actor, job, site ?? null);
+  const access = accessProblem(state, actor, target);
   if (access) return access;
   if (!Number.isSafeInteger(state.finishedJobs + 1))
     throw new Error("invalid-finished-job-counter");
-  return { status: "ready", actor, job, site: site ?? null, required };
+  return { status: "ready", actor, target };
 }
 
-/** All owner operations and joined validation finish on this detached branch.
- * A refusal or exception leaves both physical facts and work handles untouched. */
-function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
-  const { actor, job, site, required } = work;
-  const materials = structuredClone(state.materials);
-  let terrain = state.terrain;
-  let sites = state.sites;
-  let finishedSite: Site | null = null;
-  const retired = new Set<string>();
-  if (job.kind === "dig") {
-    terrain = excavateTerrain(state.terrain, job.voxel);
-    const result = createGroundLot(materials, "soil", 1, cell(actor));
-    if (!result.ok) return materialRefusal(result.reason);
-  } else if (job.kind === "build") {
-    const result = embedConstruction(
-      materials,
-      constructionBuffer(site),
-      "wood",
-      BUILDINGS[site!.type].wood,
-    );
-    if (!result.ok) return materialRefusal(result.reason);
-    finishedSite = { ...site!, work: required, finishedAt: state.tick };
-    sites = state.sites.map((current) =>
-      current === site ? finishedSite! : current,
-    );
-  } else {
-    if (site!.type === "shelf") {
-      const destination = shelfContainer(site!.id);
-      const released = releaseContainer(materials, destination, {
-        contentsDrop: { cell: cell(site!), legal: true },
-        carriedDrops: Object.fromEntries(
-          Object.values(state.actors).map((current) => [
-            current.id,
-            { cell: cell(current), legal: true },
-          ]),
-        ),
-      });
-      if (!released.ok) return materialRefusal(released.reason);
-      for (const owner of released.value.owners)
-        if (owner.kind === "job") retired.add(owner.job);
-      for (const pending of state.jobs)
-        if (pending.kind === "store" && pending.destination === destination.id)
-          retired.add(pending.id);
-    }
-    const result = salvageConstruction(
-      materials,
-      constructionBuffer(site),
-      BUILDINGS[site!.type].salvageWood,
-      { cell: cell(site!), legal: true },
-    );
-    if (!result.ok) return materialRefusal(result.reason);
-    sites = state.sites.filter((current) => current !== site);
-  }
-  validateCandidate({ ...state, materials, terrain, sites });
-  const notice =
-    job.kind === "dig"
-      ? "Soil is piled beside the hole."
-      : job.kind === "build"
-        ? `${BUILDINGS[site!.type].label} finished.`
-        : state.notice;
+/** Excavated field stock and its one ordinary soil lot are prepared together. */
+function prepareExcavation(
+  state: Clearing,
+  materials: Clearing["materials"],
+  actor: Actor,
+  target: Extract<WorkTarget, { kind: "dig" }>,
+): GeometryEdit | Refusal {
+  const terrain = excavateTerrain(state.terrain, target.job.voxel);
+  const result = createGroundLot(materials, "soil", 1, cell(actor));
+  if (!result.ok) return materialRefusal(result.reason);
   return {
     status: "prepared",
-    work,
-    materials,
     terrain,
-    sites,
-    finishedSite,
-    retired,
-    notice,
+    sites: state.sites,
+    finishedSite: null,
+    retired: new Set(),
+    notice: "Soil is piled beside the hole.",
   };
+}
+
+/** Embedding and the completed site must become visible in the same publication. */
+function prepareConstruction(
+  state: Clearing,
+  materials: Clearing["materials"],
+  target: Extract<WorkTarget, { kind: "build" }>,
+): GeometryEdit | Refusal {
+  const { site, required } = target;
+  const result = embedConstruction(
+    materials,
+    constructionBuffer(site),
+    "wood",
+    BUILDINGS[site.type].wood,
+  );
+  if (!result.ok) return materialRefusal(result.reason);
+  const finished = { ...site, work: required, finishedAt: state.tick };
+  return {
+    status: "prepared",
+    terrain: state.terrain,
+    sites: state.sites.map((current) =>
+      current === site ? finished : current,
+    ),
+    finishedSite: { original: site, finished },
+    retired: new Set(),
+    notice: `${BUILDINGS[site.type].label} finished.`,
+  };
+}
+
+/** Ejection determines exact affected transfer owners; no live task is retired yet. */
+function prepareShelfRelease(
+  state: Clearing,
+  materials: Clearing["materials"],
+  site: Site,
+): Set<string> | Refusal {
+  const destination = shelfContainer(site.id);
+  const released = releaseContainer(materials, destination, {
+    contentsDrop: { cell: cell(site), legal: true },
+    carriedDrops: Object.fromEntries(
+      Object.values(state.actors).map((actor) => [
+        actor.id,
+        { cell: cell(actor), legal: true },
+      ]),
+    ),
+  });
+  if (!released.ok) return materialRefusal(released.reason);
+  const retired = new Set<string>();
+  for (const owner of released.value.owners)
+    if (owner.kind === "job") retired.add(owner.job);
+  for (const pending of state.jobs)
+    if (pending.kind === "store" && pending.destination === destination.id)
+      retired.add(pending.id);
+  return retired;
+}
+
+/** Shelf release and salvage share the branch, including late allocation failure. */
+function prepareRemoval(
+  state: Clearing,
+  materials: Clearing["materials"],
+  target: Extract<WorkTarget, { kind: "deconstruct" }>,
+): GeometryEdit | Refusal {
+  const { site } = target;
+  const retired =
+    site.type === "shelf"
+      ? prepareShelfRelease(state, materials, site)
+      : new Set<string>();
+  if (!(retired instanceof Set)) return retired;
+  const result = salvageConstruction(
+    materials,
+    constructionBuffer(site),
+    BUILDINGS[site.type].salvageWood,
+    { cell: cell(site), legal: true },
+  );
+  if (!result.ok) return materialRefusal(result.reason);
+  return {
+    status: "prepared",
+    terrain: state.terrain,
+    sites: state.sites.filter((current) => current !== site),
+    finishedSite: null,
+    retired,
+    notice: state.notice,
+  };
+}
+
+/** One material branch, one exhaustive physical operation, then joined validation. */
+function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
+  const materials = structuredClone(state.materials);
+  const { target, actor } = work;
+  let edit: GeometryEdit | Refusal;
+  switch (target.kind) {
+    case "dig":
+      edit = prepareExcavation(state, materials, actor, target);
+      break;
+    case "build":
+      edit = prepareConstruction(state, materials, target);
+      break;
+    case "deconstruct":
+      edit = prepareRemoval(state, materials, target);
+      break;
+  }
+  if (edit.status !== "prepared") return edit;
+  validateCandidate({
+    ...state,
+    materials,
+    terrain: edit.terrain,
+    sites: edit.sites,
+  });
+  return { ...edit, work, materials };
 }
 
 /** No owner calls or validation remain: publish facts and retire exact work.
@@ -280,18 +365,18 @@ function publishEdit(state: Clearing, prepared: PreparedEdit): void {
     sites,
     finishedSite,
     retired,
-    work: { actor, job, site },
+    work: { actor, target },
   } = prepared;
   Object.assign(state.materials, materials);
   state.terrain = terrain;
-  if (finishedSite) Object.assign(site!, finishedSite);
+  if (finishedSite) Object.assign(finishedSite.original, finishedSite.finished);
   else state.sites = sites;
   for (const current of Object.values(state.actors))
     if (current.task && retired.has(current.task.job))
       finishActivity(state, current);
   state.jobs = state.jobs.filter((pending) => !retired.has(pending.id));
   state.notice = prepared.notice;
-  finishJob(state, actor, job.id);
+  finishJob(state, actor, target.job.id);
 }
 
 /** The only completion entry: checked live work → detached preparation → publication. */

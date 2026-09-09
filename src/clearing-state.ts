@@ -1999,37 +1999,46 @@ function validateTerrain({ state }: RelationContext): void {
   validateDigTargets(state);
 }
 
-/** Last incomplete progress remains schedulable after cancellation/reload. */
-function validatePhysicalWork({ state }: RelationContext): void {
+/** An unfinished structure always retains positive remaining build work. */
+function validateSiteWork({ state }: RelationContext): void {
   for (const site of state.sites)
     if (site.finishedAt === null && site.work >= BUILDINGS[site.type].ticks)
       fail(`unfinished structure ${site.id} has completed work`);
+}
+
+/** Actor-local progress cannot record a physical completion without settlement. */
+function validateActorPhysicalWork({ state }: RelationContext): void {
   for (const actor of Object.values(state.actors)) {
     const task = actor.task;
     if (!task) continue;
-    if (task.kind === "dig" && actor.work >= TERRAIN_WORK_TICKS)
-      fail(`actor ${actor.id} has completed excavation progress`);
-    if (task.kind === "build" || task.kind === "deconstruct") {
-      const site = state.sites.find((site) => site.id === task.target);
-      if (site) {
-        const required =
-          task.kind === "build"
-            ? BUILDINGS[site.type].ticks
-            : BUILDINGS[site.type].deconstructTicks;
-        if (actor.work >= required)
-          fail(`actor ${actor.id} has completed ${task.kind} progress`);
-      }
+    if (task.kind === "dig") {
+      if (actor.work >= TERRAIN_WORK_TICKS)
+        fail(`actor ${actor.id} has completed excavation progress`);
+      continue;
     }
+    if (task.kind !== "build" && task.kind !== "deconstruct") continue;
+    const site = state.sites.find((site) => site.id === task.target);
+    if (!site) continue; // The actor/job reference validator owns missing targets.
+    const required =
+      task.kind === "build"
+        ? BUILDINGS[site.type].ticks
+        : BUILDINGS[site.type].deconstructTicks;
+    if (actor.work >= required)
+      fail(`actor ${actor.id} has completed ${task.kind} progress`);
   }
-  for (const job of state.jobs)
-    if (job.kind === "deconstruct") {
-      const problem = deconstructionTargetProblem(
-        liveState(state),
-        job.target,
-        job.id,
-      );
-      if (problem) fail(`deconstruction job ${job.id}: ${problem}`);
-    }
+}
+
+/** Identity survives temporary occupancy; only settlement checks removal access. */
+function validateDeconstructionTargets({ state }: RelationContext): void {
+  for (const job of state.jobs) {
+    if (job.kind !== "deconstruct") continue;
+    const problem = deconstructionTargetProblem(
+      liveState(state),
+      job.target,
+      job.id,
+    );
+    if (problem) fail(`deconstruction job ${job.id}: ${problem}`);
+  }
 }
 /** Admitted exact work retains one live target, independently of occupancy. */
 function validateDigTargets(state: SavedClearing): void {
@@ -2065,7 +2074,9 @@ function validateRelations(state: SavedClearing): SavedClearing {
   validateEmbeddings(context);
   validateSiteTopology(context);
   validateTerrain(context);
-  validatePhysicalWork(context);
+  validateSiteWork(context);
+  validateActorPhysicalWork(context);
+  validateDeconstructionTargets(context);
   validateConservation(context);
   return state;
 }
