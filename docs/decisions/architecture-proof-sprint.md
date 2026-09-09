@@ -11,6 +11,20 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Primary runtime constraint, reaffirmed by Levi September 9:** Hive's engine
+will run in Cloudflare Durable Objects. This governs the current extraction;
+it is not a later hosting optimization. A process may disappear between any
+two effects. Acknowledged commands, physical changes, work custody, tick/revision
+and outgoing event obligations must recover from durable storage without relying
+on the old process. Bounded RAM and rebuildable caches remain useful. Current
+material and voxel snapshot tests establish in-process laws and serialization,
+not the missing DO transaction/restart boundary. The
+[DO durability contract](local-snapshots-and-durable-ai-jobs.md) owns the required
+atomicity, Watchdog reevaluation, first failure-injection consumer and remaining
+source gaps. Its acceptance is part of engine completion, not an optional later
+AI feature. Existing backend publication limits remain; a local actual-DO
+runtime proof and source integration do not claim a deployed game backend.
+
 **Direct scope amendment from Levi, September 9:** engine acceptance includes
 deep digging and multi-storey witch towers. The deliberately small clearing
 limits horizontal play space, not vertical capability. The current one-voxel
@@ -100,6 +114,18 @@ first while the overall engine goal remains unfinished.
 | Water, soil, air and heat in real play | Player excavation changes finite flow/soil exchange, including underground spaces and vertically separated occupied volumes; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure across stacked rooms. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. One surface height per column may serve a compatible surface-water subcase but cannot own the whole excavatable world. Reference playback and visual bubbles do not pass this exit. |
 | Engine controller door | An authored public Mycelium module registers input/output schemas and handlers over the scoped engine API, then the existing execute tool and sandbox invoke it. Use Knapsack only where the actual host needs connection discovery; neither a generic MCP adapter nor a custom client catalog is required. Keep platform imports in the integration consumer, outside the headless physical owner. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A deterministic host proof can establish those laws through a real execute-tool invocation. The later live Camel/Shiitake match is separate evidence of model play. |
 | Integration, budgets and distribution | Goblin consumes the same accepted modules and remains playable through a short dig/build/supply/care trace. A consumer installs/runs the documented engine entry from a clean checkout with pinned definitions and snapshots. Record actual candidate/path/optimizer/field/render/save costs and peak/resident memory separately on named hardware. Freeze workload sizes, fixed-step budgets, field tolerances and browser response targets before final performance acceptance; exceeding them remains a blocker, not an invitation to relabel the load. Source/caller review, focused laws, visible interaction and hosted artifact parity each state their own evidence. |
+
+**Durability qualification across these exits:** the extracted owners must also
+run inside the real DO storage/runtime boundary with committed command identity,
+atomic world/material/work/receipt updates and durable event obligations. Kill
+and recreate the instance around commit and delivery boundaries; retry the same
+command and wake; prove no lost acknowledged intent, duplicated goods, torn
+terrain/resource changes or repeated physical completion. A database transaction
+must not leave a failed candidate published in RAM. Measure storage writes,
+commit latency, reconstruction and bounded advance work along with computation.
+Watchdog is the preferred existing host-job owner to qualify against this
+consumer, not rejected because the playable browser uses IndexedDB. It does not
+replace the deterministic physics step or libcolony's pawn assignment.
 
 Performance acceptance covers the named active workload, not hundreds of idle
 pawns. Deterministic work budgets bound simulation; wall-clock scheduling can

@@ -16,6 +16,16 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 
 ## Runtime boundaries
 
+- **Durable Objects are Hive's target engine runtime and a primary design
+  constraint.** Design extraction around disposable processes, durable command
+  identity, atomic world/work/result commitment and restart recovery now. RAM
+  may hold bounded working state and rebuildable caches; it cannot be the only
+  record of an acknowledged command or completed physical effect. Save/restore
+  laws alone do not prove crash durability. Reuse Botanical's actual Watchdog
+  and owner-transaction capabilities where they fit; the old browser/IndexedDB
+  reason for deferring host durability is superseded. Read the
+  [DO durability contract](docs/decisions/local-snapshots-and-durable-ai-jobs.md)
+  before accepting engine mutations, scheduling or persistence boundaries.
 - Keep Hive engine mechanisms independent of Goblin content, presentation and
   Fungi host authority. Follow the [engine/asset/game boundary decision](docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md).
   Split ownership inside current files before moving packages. The engine must

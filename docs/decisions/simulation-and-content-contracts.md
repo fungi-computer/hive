@@ -293,7 +293,16 @@ Performance: actual 5/25/50/100-actor useful workloads with scarce materials, to
 
 These are later contracts; local Save/Continue still restores paused with no offline advancement. First prove two clients against one authoritative simulation before distributing physical interactions. A coordination region can contain many storage chunks and several small spaces. Its membership/owner epoch is explicit. A national boundary, camera rectangle or work group does not create a server owner.
 
-The intended host adapter can use a Durable Object for a bounded coordination unit. [Cloudflare's guidance](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#model-your-durable-objects-around-your-atom-of-coordination) supports this shape; it does not choose our unit or make cross-object operations atomic. No per-cell/per-pawn/per-render-chunk DOs or one global world lock. Hot interacting regions remain together initially. Splitting continuously coupled water/combat across authorities requires a separately proved boundary protocol; it is not earned by entity portal transfer.
+**Levi reaffirmed September 9: the engine will run in Durable Objects.** This is
+a primary constraint on the current extraction; the
+[DO durability contract](local-snapshots-and-durable-ai-jobs.md) owns current
+Watchdog reuse and restart acceptance. The host uses a DO for a bounded
+coordination unit. [Cloudflare's guidance](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#model-your-durable-objects-around-your-atom-of-coordination)
+supports this shape; it does not choose our unit or make cross-object operations
+atomic. No per-cell/per-pawn/per-render-chunk DOs or one global world lock. Hot
+interacting regions remain together initially. Splitting continuously coupled
+water/combat across authorities requires a separately proved boundary protocol;
+it is not earned by entity portal transfer.
 
 The adapter authenticates, routes to current owner epoch, admits bounded commands, commits touched records/receipt/outbox in its storage transaction, then publishes revisioned projections. `busy`/`catching-up`/`needs-data` are explicit outcomes. A second connection cannot advance an independent copy. Client predictions remain presentation with authoritative reconciliation; resources/claims/encounters are never settled twice to hide latency.
 

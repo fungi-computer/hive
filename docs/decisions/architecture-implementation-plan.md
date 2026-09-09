@@ -113,6 +113,25 @@ and repair order. Engine capability/execution consolidation precedes publication
 of the retained care candidate. Earlier control/brewing/Delivery sequences below
 are historical and must not restart released work or refill retired Herdr lanes.
 
+## Durable Object authority is a primary constraint — September 9
+
+Levi explicitly reaffirmed that Hive runs in DOs. Engine extraction must expose
+a coherent commit boundary and reconstructible state now; caller-driven RAM
+mutation plus eventual autosave is insufficient for the hosted authority.
+The [DO durability contract](local-snapshots-and-durable-ai-jobs.md) supersedes
+earlier deferral language for this target. Reevaluate actual Watchdog reuse over
+the DO's structural SQL/transaction owner, using Botanical's current admission,
+receipt, fencing and wake lessons. Do not copy private Woodstock or add a second
+durability engine. Fixed-step world work remains a different responsibility
+from durable host-job execution.
+
+Every first-shape review now asks what survives abrupt instance loss, where the
+command and physical effect commit, how rejected persistence discards candidate
+RAM, and which result is replayed after acknowledgement loss. Module snapshots
+and LRU eviction tests are useful lower-level laws, not completion of this host
+boundary. Browser-local preservation remains supported while the same physical
+owners gain the real DO consumer.
+
 ## Engine API design from the Botanical source review — September 9
 
 Levi asked Game CTO to read the Botanical Field Guide and actual BirdDog,
