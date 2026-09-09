@@ -1,0 +1,23 @@
+✔ qualified warm/dilute method retains the independent frozen source checkpoint (67.726931ms)
+✔ finite sources and an exterior vent preserve local/total smoke and heat accounting (82.883009ms)
+✔ opening and closing internal faces split/rejoin continuity without resetting stocks or clock (46.993776ms)
+✔ encoded continuation rebuilds numerical caches and exactly preserves velocity history (29.656128ms)
+✔ source, definition and save boundaries reject malformed plain data without invoking accessors (11.270681ms)
+✔ every scalar stage enforces warm and dilute limits before any state or source commits (24.992216ms)
+✔ request-local clock solves decimal tails and512 accepted intervals without clock snapping (168.63872ms)
+✔ projection exhaustion and sealed volume edits preserve the complete input (13.310796ms)
+✔ actual CFL retries and partial advancement cannot exceed caller work limits (6.530024ms)
+✔ closing a duct removes its deepest cells first and exports the actual boundary parcel (47.536533ms)
+✔ opening a frontier draws existing air inward instead of creating ambient in the hole (8.540947ms)
+✔ a four-voxel wall preserves budgets and accepts retained-face projection (36.766216ms)
+✔ masked exterior and a later sealed parcel return blocked with no candidate to commit (9.687604ms)
+✔ volume edits reject mixed topology, simultaneous openings and oversized event shapes (17.919514ms)
+✔ tiny boundary parcels survive from zero but reject unresolved historical-ledger increments (6.444064ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1097.546069

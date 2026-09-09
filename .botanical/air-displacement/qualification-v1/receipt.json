@@ -1,0 +1,39 @@
+{
+  "pin": "dd3b340902f940daf463abc3fc49cd7423dbe253",
+  "command": "run-proof.sh bash .botanical/air-displacement/qualify.sh dd3b340902f940daf463abc3fc49cd7423dbe253",
+  "driverSha256": "057993002928837ca51a0dfb36d339fb58c1d28926d91023f7a9474d3d9a818f",
+  "scope": "run-u4552.scope",
+  "invocation": "88fe7a8fdd48499a875787542ef050a2",
+  "execSession": 58301,
+  "exitCode": 1,
+  "lastStage": "fallow",
+  "sourceFilesMatched": 26,
+  "results": {
+    "air": "15/15 pass",
+    "sharedField": "2/2 pass",
+    "compactEvent": "1/1 pass",
+    "strictAirTypes": "pass",
+    "strictAppTypes": "pass; skipLibCheck=false",
+    "diff": "pass",
+    "fallow": "exit1; introduced estimated-coverage CRAP advisory membership CC11/cog12; inherited findings retained"
+  },
+  "closure": {
+    "scopeActiveState": "inactive",
+    "scopeSubState": "dead",
+    "controlGroup": "",
+    "scopeResult": "success",
+    "serversStarted": 0,
+    "listenersStarted": 0
+  },
+  "logs": {
+    "laws.log": "221691cf5409b8f49a09ed5a3a58eefb07e74b6f26ee4321ef12630dd35101d8",
+    "field.log": "2fa9ddeff077806fce12cc6d224e2a01ad768c8cbf2ac8fff87851412bc8965f",
+    "event.log": "9ed1787c05374edd1e3b94698befa32fa285cd9ddac3503d327a33fc25a6763a",
+    "air-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "app-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diff.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fallow.log": "f79070be91db616b25d7072bd8eae434efc3d59f585bae4005199a200919466d",
+    "fallow.json": "39d362ca8c9db16a2ce57e912554a7385e3bd4787e1ffe194fe29012ccc7fde1",
+    "status.txt": "ca2b30786625e123561de7c7b8de114d668570ebdc9eaef87e555caf82efe3bf"
+  }
+}
