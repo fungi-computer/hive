@@ -1,0 +1,27 @@
+✔ one host-clock profile supplies finite rates and exhausts without another cursor (11.378779ms)
+✔ partitioned host intervals release the same finite totals for content-defined channels (3.781249ms)
+✔ represented source-end equality does not manufacture a short coast segment (1.532981ms)
+✔ large host clocks and interval partitions cannot enlarge a finite release (0.744051ms)
+✔ a real short active piece, coast or owed remainder is retained by rejection (0.502958ms)
+✔ invalid definitions and clocks fail before a release plan exists (2.586658ms)
+✔ sparse physical query preserves large finite envelopes without rasterizing terrain (46.160959ms)
+✔ adjacent closure differs from roofed empty continuation and explicit vertical clearance (4.069764ms)
+✔ zero-volume roofs and bounded clearance never become implicit ambient (5.232625ms)
+✔ structure environment: admitted unfinished wall never seals; completed fact seals four voxels (87.328382ms)
+✔ structure environment: zero-volume floor and roof use one storey datum; doorway is an opening (17.22484ms)
+✔ structure environment: actual stair footprint and landing stay open without a fictional floor (26.412266ms)
+✔ structure environment: signed storey levels are geometry data, not a schema migration (10.532303ms)
+✔ structure environment: generated point solidity reflects exact excavation (42.730038ms)
+✔ structure environment: supported definitions use the existing directional footprint (21.674115ms)
+✔ structure environment: malformed definitions, unknown structures and out-of-domain regions reject (12.343362ms)
+✔ structure environment: plain immutable descriptor cannot mutate canonical input or retained facts (18.276946ms)
+✔ registered504-cell room preserves exact wall and interior-face geometry with checked exterior masks (1079.178927ms)
+✔ roof outside the raster leaves an empty continuation that the actual producer refuses (536.711107ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4794.186036

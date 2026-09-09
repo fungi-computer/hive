@@ -1,0 +1,187 @@
+{
+  "recordedAt": "2026-09-09T22:47:03.827663+00:00",
+  "root": "/home/levi/src/hive-worktrees/finite-emissions",
+  "pin": "5da4c2fabe9f3b6083e1f79f30bcd6ae5b41e9b9",
+  "driverSha256": "907cd355873a3b0ac13803637a261b8f95aa40255c3171766f1a387ebda6a391",
+  "command": "run-proof.sh bash .botanical/room-source-join/qualify.sh 5da4c2fabe9f3b6083e1f79f30bcd6ae5b41e9b9",
+  "execSession": 25911,
+  "scope": "run-u4592.scope",
+  "invocation": "370d2c0b219f431fa44c7c04c1167244",
+  "exit": 1,
+  "stage": "fallow",
+  "laws": {
+    "passed": 19,
+    "failed": 0,
+    "durationMs": 4794.186036
+  },
+  "actualSQLiteRegionCallers": {
+    "passed": 3,
+    "failed": 0,
+    "durationMs": 45877.500551
+  },
+  "strictAppTypes": {
+    "exit": 0,
+    "skipLibCheck": false
+  },
+  "diffExit": 0,
+  "fallow": {
+    "exit": 1,
+    "elapsedMs": 19288,
+    "attribution": {
+      "gate": "new-only",
+      "dead_code_introduced": 3,
+      "dead_code_inherited": 7,
+      "complexity_introduced": 5,
+      "complexity_inherited": 2,
+      "duplication_introduced": 0,
+      "duplication_inherited": 0,
+      "styling_introduced": 0,
+      "styling_inherited": 0,
+      "duplication_demoted": 0
+    },
+    "introducedFindings": [
+      {
+        "path": "src/world-presets/brewhouse-air/generated-room-geometry.test.js",
+        "name": "<arrow>",
+        "line": 36,
+        "cyclomatic": 17,
+        "cognitive": 33,
+        "line_count": 50,
+        "exceeded": "cognitive_crap",
+        "severity": "high",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/engine/world/physical-geometry.ts",
+        "name": "exterior",
+        "line": 214,
+        "cyclomatic": 14,
+        "cognitive": 11,
+        "line_count": 31,
+        "exceeded": "crap",
+        "severity": "high",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/engine/world/physical-geometry.ts",
+        "name": "verticalClearance",
+        "line": 195,
+        "cyclomatic": 10,
+        "cognitive": 9,
+        "line_count": 19,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/world-presets/brewhouse-air/region.ts",
+        "name": "execute",
+        "line": 215,
+        "cyclomatic": 10,
+        "cognitive": 8,
+        "line_count": 40,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "coverage_source": "estimated",
+        "introduced": true
+      },
+      {
+        "path": "src/engine/environment/finite-release.test.js",
+        "name": "<arrow>",
+        "line": 74,
+        "cyclomatic": 7,
+        "cognitive": 17,
+        "line_count": 35,
+        "exceeded": "cognitive",
+        "severity": "moderate",
+        "introduced": true
+      }
+    ],
+    "disposition": "PENDING source disposition. Three introduced unused exported types and five complexity findings. No green audit or final integration claim."
+  },
+  "cleanup": {
+    "terminalCollected": true,
+    "activeState": "inactive",
+    "subState": "dead",
+    "controlGroup": "",
+    "serverOrListenerStarted": false,
+    "windowReturnedToDelivery": true
+  },
+  "limits": [
+    "No historical solver matrix or physical-completion replay",
+    "No build/browser/benchmark/native DO/deploy",
+    "Actual room consumer remains independent of main Clearing air and fixed-tick source membership",
+    "Mixed boundary momentum stencil correction is separate unrun source"
+  ],
+  "sourceFiles": [
+    {
+      "path": "src/engine/environment/finite-release.test.js",
+      "sha256": "571e92069048ef70dca4892774f10c6c5cb96bfaaff41e90223409a00d11bc5f"
+    },
+    {
+      "path": "src/engine/environment/finite-release.ts",
+      "sha256": "b8faa4bb7b66b0ae62bcbe0d55234db7324b4b39b0c56e517aa7585b1092d098"
+    },
+    {
+      "path": "src/engine/world/physical-geometry.test.js",
+      "sha256": "d32523b8948ae4a2583caef664cf80c210594772925b1a4032ebe55bb865b04b"
+    },
+    {
+      "path": "src/engine/world/physical-geometry.ts",
+      "sha256": "89d8ce9e9d06eb4b1bff3fb9cd7968f36e4c2d05e4221c016cbb823760f955ed"
+    },
+    {
+      "path": "src/structure-environment.README.md",
+      "sha256": "7a2e38de36d3d851426f1e679a3845091fca5db151ec10de4af47da324c5bbc6"
+    },
+    {
+      "path": "src/structure-environment.ts",
+      "sha256": "d1023abd7e19fbea4e64311596722ad790132be5c0deae3756b24c082e904af0"
+    },
+    {
+      "path": "src/world-presets/brewhouse-air/generated-room-geometry.test.js",
+      "sha256": "5941175773b6b52f589962e243bd85835a306c844a36aa1cc1ad8cccf38c33f3"
+    },
+    {
+      "path": "src/world-presets/brewhouse-air/generated-room.ts",
+      "sha256": "8bae669b970eab35e51a5f866fc80331defcb984f5b322304be62b8eb577294c"
+    },
+    {
+      "path": "src/world-presets/brewhouse-air/region.ts",
+      "sha256": "6459fc1bdde94002af219d265ea486eb5b04ae06cfcab72284c3310011ef558d"
+    }
+  ],
+  "logs": [
+    {
+      "path": "diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fallow.json",
+      "sha256": "c757cba0e4cbf512e5a1b6942b9f4a7bf347ee9fd3412c8f278e8d241cf356cf"
+    },
+    {
+      "path": "fallow.log",
+      "sha256": "f7188e5105cb7f5de2ccc940d0afcbe2c25426e1f6e1558fded85fc2b9d32d41"
+    },
+    {
+      "path": "laws.log",
+      "sha256": "69c8edbd6f4fee7c99f7d29dc08446d06ff77ce15d65b9d4623d89e7942494fa"
+    },
+    {
+      "path": "region.log",
+      "sha256": "95b8ee566b07f5758de2e695f013d20d0610f7aca84581d339ba5accd93198fb"
+    },
+    {
+      "path": "status.txt",
+      "sha256": "10bb9a679c24c4ee14267cee80ee0cf919c99382f263128bc8878f5e9ac63697"
+    },
+    {
+      "path": "types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

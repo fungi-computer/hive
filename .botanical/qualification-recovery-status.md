@@ -1,0 +1,1 @@
+u4592 room qualification: 19+3 laws and strict types passed; whole command exit1 at Fallow. Actual source remains unaccepted pending correction. Stencil patch is unrun source-only WIP preserved privately; no physics acceptance claim. No credentials, sessions, or private transcripts copied.
