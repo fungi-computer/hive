@@ -11,6 +11,14 @@ export const STUDY_GROUPS = Object.freeze([
         evidence: "Live local world",
       },
       {
+        id: "brewhouse-air",
+        title: "Warm air in the brewhouse",
+        href: "/brewhouse-air.html",
+        scope:
+          "Ignite one finite wood dose and advance measured heat and passive tracer through an authored two-storey room. Browser-local checkpoint; no safety or server claim.",
+        evidence: "Live local world",
+      },
+      {
         id: "water-lab",
         title: "Water Lab",
         href: "/soil-water-lab.html",

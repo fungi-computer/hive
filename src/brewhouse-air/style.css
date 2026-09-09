@@ -1,0 +1,173 @@
+body {
+  margin: 0;
+  background: var(--stipe-canvas);
+  color: var(--color-base-content);
+}
+
+#study-content {
+  width: min(100% - 2rem, 76rem);
+  margin: 0 auto;
+  padding: 1rem 0 3rem;
+}
+
+.air-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.air-heading p {
+  margin: 0 0 0.2rem;
+  color: var(--stipe-fg-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.air-heading h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+}
+
+.air-heading span {
+  display: block;
+  max-width: 66ch;
+  margin-top: 0.45rem;
+  color: var(--stipe-fg-muted);
+  line-height: 1.45;
+}
+
+.air-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 0.9fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.air-world {
+  min-height: 26rem;
+  overflow: hidden;
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
+  background:
+    radial-gradient(circle at 50% 30%, rgb(122 119 91 / 20%), transparent 60%),
+    var(--color-base-200);
+}
+
+.air-world canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.air-panel .card-body,
+.air-legend .card-body {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.air-status {
+  min-height: 2.7em;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.air-actions,
+.air-view-controls,
+.air-field-controls,
+.air-checkpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.air-view-controls {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-base-300);
+}
+
+.air-field-controls {
+  padding-top: 0.1rem;
+}
+
+.air-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 0.9rem;
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-base-300);
+}
+
+.air-facts div {
+  min-width: 0;
+}
+
+.air-facts dt {
+  color: var(--stipe-fg-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.air-facts dd {
+  margin: 0.18rem 0 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.air-legend {
+  margin-top: 1rem;
+}
+
+.air-legend p {
+  max-width: 90ch;
+  margin: 0;
+  color: var(--stipe-fg-muted);
+  line-height: 1.5;
+}
+
+.air-key {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid currentColor;
+  vertical-align: -0.08rem;
+}
+
+.air-key.heat {
+  background: #ed8b3a;
+}
+
+.air-key.smoke {
+  background: #9bb0b5;
+}
+
+@media (max-width: 850px) {
+  .air-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .air-world {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  #study-content {
+    width: min(100% - 1.25rem, 76rem);
+  }
+
+  .air-heading {
+    display: grid;
+  }
+
+  .air-facts {
+    grid-template-columns: 1fr;
+  }
+}

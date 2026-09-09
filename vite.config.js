@@ -15,6 +15,7 @@ export default defineConfig({
         clearingMinimapStudy: "clearing-minimap-study.html",
         worldLab: "world-lab.html",
         wetClearing: "wet-clearing.html",
+        brewhouseAir: "brewhouse-air.html",
         goblinDenStudy: "goblin-den-study.html",
         goblinMessStudy: "goblin-mess-study.html",
         gasHeatLab: "gas-heat-lab.html",
