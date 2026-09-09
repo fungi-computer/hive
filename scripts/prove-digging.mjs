@@ -24,6 +24,7 @@ const evidence = {
     entriesPerKind: 20,
     textChars: 2048,
     readTimeoutMs: 2000,
+    startupTextChars: 4096,
   },
   checks: [],
   browserClosed: false,
@@ -47,6 +48,14 @@ async function ready(page, phase) {
             loadingText:
               document.querySelector("#loading")?.textContent?.slice(0, 2048) ??
               null,
+            mainEntered:
+              document.querySelector("#loading")?.dataset.startupMain ===
+              "entered",
+            startupStages:
+              document
+                .querySelector("#loading")
+                ?.dataset.startup?.slice(0, 4096) ?? null,
+            visibilityState: document.visibilityState,
             documentReadyState: document.readyState,
             goblinPresent: "__GOBLIN" in window,
             artReady: window.__GOBLIN?.artReady === true,

@@ -191,7 +191,19 @@ function createWaterBake(renderer) {
   };
 }
 
-export async function bakeArt() {
+export async function bakeArt(onProgress = () => {}) {
+  let completedTextures = 0;
+  let detail = "Preparing the drawing tools";
+  const report = (waitingFor = null) =>
+    onProgress({ detail, completedTextures, waitingFor });
+  report();
+  function bakeStartup(...args) {
+    report();
+    const texture = bake(...args);
+    completedTextures++;
+    report();
+    return texture;
+  }
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
     antialias: false,
@@ -202,8 +214,17 @@ export async function bakeArt() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const portrait = camera(80, 80),
     prop = camera(112, 112, 1.1);
+  detail = "Drawing the landscape";
+  report();
   const art = {
-    ground: bake(renderer, clearing(), worldCamera, WIDTH, HEIGHT, false),
+    ground: bakeStartup(
+      renderer,
+      clearing(),
+      worldCamera,
+      WIDTH,
+      HEIGHT,
+      false,
+    ),
     figures: {},
     tree: {},
     herbs: { mugwort: {} },
@@ -245,13 +266,15 @@ export async function bakeArt() {
   ]) {
     const target = (art.figures[kind] = {});
     for (const pose of poses) {
+      detail = `Drawing ${kind}: ${pose}`;
+      report();
       target[pose] = [];
       for (let direction = 0; direction < 4; direction++) {
         const count =
           pose === "sleep" || (pose === "idle" && kind === "goblin") ? 1 : 8;
         target[pose].push(
           Array.from({ length: count }, (_, frame) =>
-            bake(
+            bakeStartup(
               renderer,
               figure(kind, frame / count, (direction * Math.PI) / 2, pose),
               portrait,
@@ -261,14 +284,26 @@ export async function bakeArt() {
           ),
         );
       }
+      report("animation-frame");
       await new Promise((resolve) => requestAnimationFrame(resolve));
+      report();
     }
   }
+  detail = "Drawing trees and plants";
+  report();
   for (const stage of ["standing", "notched", "stump"])
-    art.tree[stage] = bake(renderer, tree(stage), prop, 112, 112);
+    art.tree[stage] = bakeStartup(renderer, tree(stage), prop, 112, 112);
   for (const stage of MUGWORT_STAGES)
-    art.herbs.mugwort[stage] = bake(renderer, mugwort(stage), prop, 112, 112);
+    art.herbs.mugwort[stage] = bakeStartup(
+      renderer,
+      mugwort(stage),
+      prop,
+      112,
+      112,
+    );
   for (const type of Object.keys(BUILDINGS)) {
+    detail = `Drawing ${type}`;
+    report();
     art.buildings[type] = {};
     const stages =
       type === "shelf"
@@ -276,7 +311,7 @@ export async function bakeArt() {
         : ["stakes", "frame", "finished"];
     for (const stage of stages)
       art.buildings[type][stage] = [0, 1].map((direction) =>
-        bake(renderer, building(type, stage, direction), prop, 112, 112),
+        bakeStartup(renderer, building(type, stage, direction), prop, 112, 112),
       );
     if (type === "brew-station")
       art.buildings[type].profiles = Object.fromEntries(
@@ -285,7 +320,7 @@ export async function bakeArt() {
           [0, 1].map((direction) => {
             const frames = profile === "prepare-attended" ? 8 : 1;
             return Array.from({ length: frames }, (_, frame) =>
-              bake(
+              bakeStartup(
                 renderer,
                 stationScene("finished", direction, {
                   profile,
@@ -300,13 +335,21 @@ export async function bakeArt() {
         ]),
       );
   }
+  detail = "Drawing supplies and furnishings";
+  report();
   for (const fill of ["dry", "low", "full"])
-    art.sources.spring[fill] = bake(renderer, basinScene(fill), prop, 112, 112);
+    art.sources.spring[fill] = bakeStartup(
+      renderer,
+      basinScene(fill),
+      prop,
+      112,
+      112,
+    );
   for (const [state, sealed] of [
     ["sealed", true],
     ["repaired", false],
   ])
-    art.sources.cache[state] = bake(
+    art.sources.cache[state] = bakeStartup(
       renderer,
       propScene((parent) => brewerCache(parent, sealed)),
       prop,
@@ -317,7 +360,7 @@ export async function bakeArt() {
     ["empty", 0],
     ["filled", 2],
   ])
-    art.pail[state] = bake(
+    art.pail[state] = bakeStartup(
       renderer,
       propScene((parent) => pail(parent, units)),
       prop,
@@ -326,20 +369,28 @@ export async function bakeArt() {
     );
   for (const profile of PROFILES)
     art.mixedShelf[profile.key] = [0, 1].map((direction) =>
-      bake(renderer, mixedShelf(profile.key, direction), prop, 112, 112),
+      bakeStartup(renderer, mixedShelf(profile.key, direction), prop, 112, 112),
     );
   for (const stage of ["stakes", "frame", "finished"])
     art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
-      bake(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
+      bakeStartup(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
     );
   for (let amount = 1; amount <= 6; amount++)
-    art.wood[amount] = bake(renderer, woodPile(amount), prop, 112, 112);
+    art.wood[amount] = bakeStartup(renderer, woodPile(amount), prop, 112, 112);
   for (let amount = 1; amount <= 3; amount++)
-    art.soil[amount] = bake(renderer, soilPile(amount), prop, 112, 112);
+    art.soil[amount] = bakeStartup(renderer, soilPile(amount), prop, 112, 112);
   for (let amount = 1; amount <= 3; amount++)
-    art.ration[amount] = bake(renderer, rationPile(amount), prop, 112, 112);
+    art.ration[amount] = bakeStartup(
+      renderer,
+      rationPile(amount),
+      prop,
+      112,
+      112,
+    );
   // This one retained renderer rebakes terrain only after a physical edit/load.
   // It never updates simulation state or time. View owns replacement textures.
+  detail = "Preparing water rendering";
+  report();
   const waterBake = createWaterBake(renderer);
   art.bakeTerrainWater = waterBake.bake;
   art.bakeTerrain = (terrain, previous, changedCells) =>
