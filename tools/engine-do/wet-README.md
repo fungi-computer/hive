@@ -48,3 +48,26 @@ and command transaction/lifecycle now have separate responsibilities; current
 maximum is commandAuthority CC10/cognitive9. Remaining estimated-coverage
 advisories cover authority, routing, command execution and the proof process-stop
 helper (CC7/cognitive8). No engine source or suppression changed for this audit.
+
+## Native result
+
+Native proof **u4164 /17ae3b862f4f44efaad2ab9d1f5d6428 passed**, exit 0, against
+source checkpoint `4b0874a` on baseline `edc3de6`. All seven declared checks passed.
+The two abrupt runtime kills and final graceful shutdown each closed their owned
+listener. The first runtime logged a retained broken-pipe diagnostic during
+readiness, before command checks; its cause was not qualified. The runtime
+continued and all exact persisted-row/reconstruction assertions passed.
+
+Final state: three cuts, 1.62 m³ of finite source-voxel spoil, exactly six seconds
+of field time, 0.7225940236518458 kg in pit water, and 7680.57051564467 kg total
+original water. Conservation residual was 9.094947017729282e-13 kg. Both cut and
+advance receipts survived the withheld response and process replacement, with
+no duplicate physical cut, spoil export, event or field advancement.
+
+Evidence is retained under `.botanical/engine-do/wet-host/native-v1` in the
+`wet-region-host` worktree: receipt.json, raw SQLite, cut/advance before/after
+snapshots, final.json, three sanitized Wrangler logs, metafile.json and all 128
+transitive source/dependency hashes. Post-run readback found no hash mismatch.
+The wrapper transcript is `.botanical/engine-do/wet-host/native-v1.log`.
+Runtime versions: Wrangler4.127.1, workerd1.20260828.1,
+Miniflare5.20260828.0-alpha, esbuild0.28.2 and Zod4.5.4.
