@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createWetClearing } from './wet-clearing.mjs';
 import { createExcavationAdapter } from './excavation.mjs';
 import { createVolumeGeometry } from '../../engine/environment/soil/index.js';
+import { createVoxelWorld, MATERIAL } from '../height-caves.mjs';
 
 const bounds = { min: [-4, 11, 124], max: [5, 18, 133] };
 const column = (adapter, state, at) => adapter.read(state).soil.nodes.find(node =>
@@ -52,11 +53,19 @@ test('unknown side water, actual stone floor and corruption reject without chang
   assert.throws(() => adapter.parse(missing), /one wet-spoil/);
   const wrong = structuredClone(cut); wrong.soilState.identity += 'wrong';
   assert.throws(() => adapter.parse(wrong), /identity/);
+  const outside = structuredClone(cut);
+  const world = createVoxelWorld(outside.world.identity, { checkpoint: outside.world });
+  assert.equal(world.readPoint({ x: 3, y: target[1], z: target[2] }), MATERIAL.soil);
+  assert.equal(world.edit({ expectedRevision: 1, cells: [{ x: 3, y: target[1], z: target[2],
+    expectedMaterial: MATERIAL.soil, material: MATERIAL.air }] }).ok, true);
+  outside.world = world.save();
+  assert.throws(() => adapter.parse(outside), /exactly match the removed/);
   assert.equal(adapter.encode(cut), frozen);
 });
 
 test('all known stock capacities are derived from current world geometry, without saved duplicate columns', () => {
-  const { adapter, input } = createWetClearing({ connected: true });
+  const recipe = createWetClearing({ connected: true }), { adapter, input } = recipe;
+  assert.equal(Object.hasOwn(recipe, 'world'), false, 'recipe exposes no second mutable world');
   const geometry = createVolumeGeometry(adapter.definition.baseSoilGeometry);
   assert.equal(geometry.nodes.length, 32);
   assert.deepEqual(Object.keys(input).sort(), ['version', 'identity', 'world', 'soilState', 'initialWaterKg', 'exports'].sort());

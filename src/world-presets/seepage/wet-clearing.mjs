@@ -35,6 +35,6 @@ export function createWetClearing({ soleTargetAnchor = false, connected = false 
   const water = soil.initial({ stocks });
   const adapter = createExcavationAdapter({ worldIdentity: id, baseSoilGeometry: soil.geometry, surfaceCoefficient: .5 });
   const input = adapter.initial({ world: world.save(), soilState: water });
-  return { adapter, input, target, targetId, command: { at: target }, world, source: { id, columns: connected ? 16 : 9,
+  return { adapter, input, target, targetId, command: { at: target }, source: { id, columns: connected ? 16 : 9,
     generatedSoilCells: cells.length, seed: spec.seed, waterTableYM, soleTargetAnchor } };
 }

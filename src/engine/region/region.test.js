@@ -2,41 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { openRegion } from "./index.ts";
+import { sqliteTestOwner } from "./sqlite-test-owner.mjs";
 import { createQuarryRegionProgram } from "../../world-presets/excavation-region.ts";
 
 function fixture(t, limits, program = createQuarryRegionProgram) {
   const db = new DatabaseSync(":memory:");
   t.after(() => db.close());
   let failReceipt = false;
-  const owner = {
-    sql: {
-      exec(statement, ...bindings) {
-        if (statement.startsWith("CREATE TABLE")) {
-          db.exec(statement);
-          return { toArray: () => [] };
-        }
-        const rows = db.prepare(statement).all(...bindings);
-        // Fail after a real INSERT while the native transaction is still open.
-        if (
-          failReceipt &&
-          statement.startsWith("INSERT INTO hive_region_receipts")
-        )
-          throw new Error("injected-storage-failure");
-        return { toArray: () => rows };
-      },
-    },
-    transactionSync(operation) {
-      db.exec("BEGIN");
-      try {
-        const result = operation();
-        db.exec("COMMIT");
-        return result;
-      } catch (error) {
-        db.exec("ROLLBACK");
-        throw error;
-      }
-    },
-  };
+  const owner = sqliteTestOwner(db, statement => {
+    if (failReceipt && statement.startsWith("INSERT INTO hive_region_receipts"))
+      throw new Error("injected-storage-failure");
+  });
   const open = (policy = limits) =>
     openRegion({
       owner,

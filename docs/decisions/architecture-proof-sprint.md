@@ -164,9 +164,12 @@ owns the environment worktree and integration. Native `engine_core_pm` owns the
 isolated controllers worktree: public Mycelium authored operations through the
 current Mule Effect/Stream execute path and actual Codemode/DO SQLite. Native
 `u4101` passed lost-response/restart/replay, scope and one-effect laws. Installed
-declaration closure remains separate: remove `skipLibCheck`, supply maintained
-optional peers, and resolve actual host type environments without compatibility
-shims. No provider call or controller backend deployment is implied.
+declaration closure now passes separately (`u4121`, `skipLibCheck:false`, pinned
+maintained optional peers). The combined generated Worker and Node ambient
+declarations still conflict externally (`u4106`); there is no shim or suppression.
+The source packet is `7bb871a`, joined as `6cbe352`. No provider call or controller
+backend deployment is implied. Its owner continues the actual Goblin delegated
+player consumer; that later source is distinct from the accepted quarry proof.
 
 The environmental numerical clock correction `d0ab751` is reviewed and joined as
 `7d134f6`; `u4102` passed 11 focused clock/connected-column laws. Root's current
@@ -176,7 +179,9 @@ vector and clock. The original one-cut physical reference remains within its
 unchanged tolerance (`u4107`, 12 affected laws). The actual generated 4x4,
 32-porous-cell consumer supports two adjacent cuts and paired surface exchange
 (`u4108`, three laws), including exact current-state reopening. This is source
-evidence, not a newly rendered or hosted interaction. Review remains in progress.
+evidence, not a newly rendered or hosted interaction. Independent review accepted
+`1df187f` after removing the unused mutable world returned by the recipe; the
+correction and explicit off-domain checkpoint rejection passed `u4131` (3 laws).
 The browser consumer is updated for a water-column array but still exposes its
 previous one-cut interaction until the coupled control join.
 
@@ -194,6 +199,15 @@ the current owner deliberately rejects. Add a qualified sealed-floor boundary
 before claiming a generated 0.54 m ledge/deep-hole outcome. The following Region
 join must commit terrain, water, wet-spoil and command receipt together through
 the existing owner; the local study worker is not a separate durable authority.
+
+**World transaction source checkpoint:** the independent generated wet-world
+RegionProgram now uses that existing owner. `u4122` passed 15 affected laws over
+real Node SQLite: two cuts, water advance, exact receipt replay/reopen, separate
+player/host grants and failure after state/event/receipt writes with complete
+rollback. Those laws also retain the existing quarry and actual-WASM Goblin
+checks after sharing their SQLite test owner. `u4128` passes application types.
+This is not yet the Cloudflare water-field host/restart proof, nor the whole-game
+pawn/environment transaction. The local browser is not the durable game host.
 
 **Active source handoff after `512c698`:** `engine_core_pm` owns the first actual
 Goblin-region source join: `src/orders.ts`, new command admission schema/tests,
