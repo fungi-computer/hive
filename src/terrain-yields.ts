@@ -6,6 +6,12 @@ import type {
 
 type RemovalRecord = GeneratedTerrain["exports"][number];
 type YieldMaterial = Extract<Material, "soil" | "stone">;
+type YieldDefinition = {
+  readonly kind: RemovalRecord["kind"];
+  readonly material: YieldMaterial;
+  readonly portionVolumeM3: 0.54;
+  readonly quantity: 1;
+};
 /** One game bulk portion is a removed1×.54×1m voxel, not a kilogram.
  * Pore water remains entirely in the engine removal/field ledger. */
 export const TERRAIN_YIELDS = Object.freeze({
@@ -21,7 +27,7 @@ export const TERRAIN_YIELDS = Object.freeze({
     portionVolumeM3: 0.54,
     quantity: 1,
   } as const),
-});
+} satisfies Record<RemovalRecord["materialId"], YieldDefinition>);
 const sourceId = (at: readonly number[]) => `excavation:cell:${at.join()}`;
 
 /** Interpret an already owner-validated removal record; this never authorizes a cut. */
