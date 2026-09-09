@@ -1,3 +1,8 @@
+import { finishActivity, finishJob } from "./activity-lifecycle.ts";
+import {
+  settlePhysicalEdit,
+  TERRAIN_WORK_TICKS,
+} from "./physical-completion.ts";
 import { drawFieldWater } from "./field-water.ts";
 import { resolveWaterSupply } from "./water-supply.ts";
 import { type AccessOutcome } from "./engine/work/index.ts";
@@ -26,7 +31,6 @@ import {
   removalProblem,
   resolveMaterialDestination,
   resolveMaterialEndpoint,
-  shelfContainer,
   shelteredBeds,
   workPosition,
   workPositions,
@@ -36,11 +40,8 @@ import {
   createGroundLot,
   deliverTransfer,
   drawPailWater,
-  embedConstruction,
   interruptTransfer,
   pickupTransfer,
-  releaseContainer,
-  salvageConstruction,
   transferForActor,
 } from "./materials.ts";
 import {
@@ -69,26 +70,10 @@ import {
   settleWaterDelivery,
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
-import {
-  terrainColumn,
-  terrainDigProblem,
-  excavateTerrain,
-} from "./terrain.ts";
+import { terrainColumn, terrainDigProblem } from "./terrain.ts";
 export const CHOP_TICKS = 80;
-const TERRAIN_TICKS = 40;
 function groundCell(at: Cell): Cell {
   return { x: at.x, z: at.z, level: at.level };
-}
-export function finishActivity(state: Clearing, p: Actor): void {
-  Object.assign(p, {
-    mode: "idle",
-    task: null,
-    assignment: null,
-    path: [],
-    leg: 0,
-    work: 0,
-  });
-  state.workDirty = true;
 }
 export function interruptWork(state: Clearing, p: Actor): void {
   const operation =
@@ -115,11 +100,6 @@ export function interruptWork(state: Clearing, p: Actor): void {
       : interruptTransfer(state.materials, p.id, drop);
   if (!r.ok) throw new Error(r.reason);
   finishActivity(state, p);
-}
-function finishJob(s: Clearing, p: Actor, id: string) {
-  s.jobs = s.jobs.filter((j) => j.id !== id);
-  s.finishedJobs++;
-  finishActivity(s, p);
 }
 function transferEndpoint(s: Clearing, id: string) {
   const site = resolveMaterialDestination(s.sites, id);
@@ -149,22 +129,23 @@ function terrainWork(
     return;
   }
   const at = terrainColumn(job.voxel);
-  if (terrainEditProblem(s, at) || terrainDigProblem(s.terrain, job.voxel)) {
+  if (terrainDigProblem(s.terrain, job.voxel)) {
     interruptWork(s, p);
+    return;
+  }
+  const blocked = terrainEditProblem(s, at);
+  if (blocked) {
+    job.reason = blocked;
     return;
   }
   const rim = terrainRimCells(s, at);
   if (!accessWork(s, p, rim)) return;
   face(p, at);
-  if (++p.work < TERRAIN_TICKS) return;
-  const next = excavateTerrain(s.terrain, job.voxel);
-  const created = createGroundLot(s.materials, "soil", 1, groundCell(p));
-  if (!created.ok)
-    throw new Error(`excavation soil admission failed: ${created.reason}`);
-  s.terrain = next;
-  s.notice = "Soil is piled beside the hole.";
-  s.workDirty = true;
-  finishJob(s, p, job.id);
+  if (p.work + 1 < TERRAIN_WORK_TICKS) {
+    p.work++;
+    return;
+  }
+  completePhysicalWork(s, p, job);
 }
 
 function transfer(s: Clearing, p: Actor, t: Activity) {
@@ -211,79 +192,41 @@ function transfer(s: Clearing, p: Actor, t: Activity) {
     finishJob(s, p, owner.job);
   else finishActivity(s, p);
 }
+function completePhysicalWork(s: Clearing, p: Actor, job: Job): void {
+  const result = settlePhysicalEdit(s, { actorId: p.id, jobId: job.id });
+  if (result.status === "waiting") job.reason = result.reason;
+  else if (result.status === "invalid") interruptWork(s, p);
+}
 function build(s: Clearing, p: Actor, t: Activity) {
-  const site = s.sites.find((x) => x.id === t.target);
-  if (!site) {
+  const site = s.sites.find((site) => site.id === t.target);
+  const job = s.jobs.find((job) => job.id === t.job);
+  if (!site || !job) {
     interruptWork(s, p);
     return;
   }
-  if (++site.work < BUILDINGS[site.type].ticks) {
-    p.work = site.work;
+  if (site.work + 1 < BUILDINGS[site.type].ticks) {
+    p.work = ++site.work;
     return;
   }
-  const r = embedConstruction(
-    s.materials,
-    constructionBuffer(site),
-    "wood",
-    BUILDINGS[site.type].wood,
-  );
-  if (!r.ok) {
-    interruptWork(s, p);
-    return;
-  }
-  site.finishedAt = s.tick;
-  s.notice = `${BUILDINGS[site.type].label} finished.`;
-  finishJob(s, p, t.job);
+  completePhysicalWork(s, p, job);
 }
 function deconstruct(s: Clearing, p: Actor, t: Activity) {
-  const site = s.sites.find((x) => x.id === t.target);
-  if (!site || removalProblem(s, site, p)) {
+  const site = s.sites.find((site) => site.id === t.target);
+  const job = s.jobs.find((job) => job.id === t.job);
+  if (!site || !job) {
     interruptWork(s, p);
     return;
   }
-  if (++p.work < BUILDINGS[site.type].deconstructTicks) return;
-  if (site.type === "shelf") {
-    const rel = releaseContainer(s.materials, shelfContainer(site.id), {
-      contentsDrop: { cell: groundCell(site), legal: true },
-      carriedDrops: Object.fromEntries(
-        Object.values(s.actors).map((a) => [
-          a.id,
-          { cell: { x: a.x, z: a.z, level: a.level }, legal: true },
-        ]),
-      ),
-    });
-    if (!rel.ok) {
-      interruptWork(s, p);
-      return;
-    }
-    const releasedJobs = new Set(
-      rel.value.owners.flatMap((owner) =>
-        owner.kind === "job" ? [owner.job] : [],
-      ),
-    );
-    for (const job of s.jobs)
-      if (
-        job.kind === "store" &&
-        job.destination === shelfContainer(site.id).id
-      )
-        releasedJobs.add(job.id);
-    for (const actor of Object.values(s.actors))
-      if (actor.task && releasedJobs.has(actor.task.job))
-        finishActivity(s, actor);
-    s.jobs = s.jobs.filter((job) => !releasedJobs.has(job.id));
-  }
-  const sal = salvageConstruction(
-    s.materials,
-    constructionBuffer(site),
-    BUILDINGS[site.type].salvageWood,
-    { cell: groundCell(site), legal: true },
-  );
-  if (!sal.ok) {
-    interruptWork(s, p);
+  const blocked = removalProblem(s, site, p);
+  if (blocked) {
+    job.reason = blocked;
     return;
   }
-  s.sites = s.sites.filter((x) => x.id !== site.id);
-  finishJob(s, p, t.job);
+  if (p.work + 1 < BUILDINGS[site.type].deconstructTicks) {
+    p.work++;
+    return;
+  }
+  completePhysicalWork(s, p, job);
 }
 function herb(s: Clearing, p: Actor, t: Activity) {
   const h = s.herbs.find((x) => x.id === t.target);

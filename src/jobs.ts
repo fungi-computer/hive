@@ -1,3 +1,4 @@
+import { TERRAIN_WORK_TICKS } from "./physical-completion.ts";
 import { waterSupplyOptions, type WaterSupply } from "./water-supply.ts";
 import type {
   Activity,
@@ -101,7 +102,6 @@ type Candidate = {
   };
 };
 type Options = { reason: string; candidate: Candidate | null };
-const TERRAIN_TICKS = 40;
 const no = (reason: string): Options => ({ reason, candidate: null });
 const make = (
   job: Job,
@@ -825,7 +825,7 @@ function rimWorkOption(
           job.kind,
           job.id,
           path,
-          TERRAIN_TICKS,
+          TERRAIN_WORK_TICKS,
           pathTicks(person, path),
         ),
       }
