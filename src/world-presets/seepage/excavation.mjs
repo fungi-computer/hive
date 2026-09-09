@@ -161,9 +161,9 @@ function pitPorts(contacts) {
 export function createExcavationAdapter(input) {
   exactFields(input, ['worldIdentity', 'regionId'], 'explicit adapter binding');
   requireCondition(identifier(input.regionId), 'bound region ID');
-  const config = own({ worldIdentity: ordered(input.worldIdentity), regionId: input.regionId });
+  const admittedWorld = restoreWorld(input.worldIdentity, null);
+  const config = own({ worldIdentity: ordered(admittedWorld.describe().identity), regionId: input.regionId });
   const identity = JSON.stringify({ version: VERSION, ...config });
-  restoreWorld(config.worldIdentity, null); // Admit recipe before exposing operations.
 
   function initial(input) {
     exactFields(input, ['world', 'soilGeometry', 'soilState'], 'initial canonical world/soil inputs');

@@ -50,6 +50,12 @@ test("direct initial input rejects world accessors without running them", () => 
   assert.throws(() => adapter.initial({ world, soilGeometry: input.soilGeometry,
     soilState: input.soilState }), /fields|record|properties/);
   assert.equal(calls, 0);
+  const identity = structuredClone(input.world.identity);
+  Object.defineProperty(identity.base, "heightSeed", { enumerable: true,
+    get() { calls++; return "unexpected"; } });
+  assert.throws(() => createExcavationAdapter({ worldIdentity: identity,
+    regionId: input.soilGeometry.regionId }), /properties/);
+  assert.equal(calls, 0);
 });
 
 test("shared soil geometry takes consumer metric and coefficients, outside world bounds/content", () => {

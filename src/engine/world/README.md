@@ -41,10 +41,10 @@ claim the later deep excavation, traversal or environmental gameplay join.
   counters and disposable recipe caches may change during preflight.
 - Saving includes world identity, generator ID and normalized layout/palette.
   Loading validates these, bounded counts and every retained relation before
-  admitting edits. The preset alone reads the old recipe-specific codec 2 and
-  maps it to engine checkpoint schema 1; new writes use the engine envelope.
-  Loading does not mutate/rewrite the supplied old object. Six frozen material
-  brick hashes and a real predecessor save check geography and migration.
+  admitting edits. Only the current engine envelope is read; unsupported old
+  formats reject without migration. Six frozen material brick hashes preserve
+  geography evidence. Current edits/save/reopen are tested through the same
+  owner; predecessor data remains reference evidence, not a live reader.
 - `readPoint` never allocates a brick. `readBrick`, `save`, `describe` and
   `inspect` return detached values. `inspect` reports actual generated versus
   edited material and revision. It is a developer/internal read: the future
