@@ -1,0 +1,38 @@
+{
+  "root": "/home/levi/src/hive-worktrees/gameplay-water-release",
+  "runtimePin": "210b85d722e4d074eeff34d3653d109882c02655",
+  "commands": [
+    {
+      "args": [
+        "node_modules/vite/bin/vite.js",
+        "preview",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5198",
+        "--strictPort"
+      ],
+      "pid": 1087387
+    },
+    {
+      "args": [
+        ".botanical/gameplay-water-input-v2/prove-water.mjs",
+        "http://127.0.0.1:5198/",
+        ".botanical/gameplay-water-input-v2/browser"
+      ],
+      "pid": 1087423,
+      "result": {
+        "code": 1,
+        "signal": null
+      }
+    }
+  ],
+  "childrenClosed": true,
+  "reusedBuild": ".botanical/gameplay-water-release/dist-sha256.json",
+  "error": "window-browser failed: {\"code\":1,\"signal\":null}",
+  "serverExit": {
+    "code": 143,
+    "signal": null
+  },
+  "listenerClosed": true
+}

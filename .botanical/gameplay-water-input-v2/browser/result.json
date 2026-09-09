@@ -1,0 +1,33 @@
+{
+  "base": "http://127.0.0.1:5198/",
+  "fixture": "public Sedge parking, earned [0,14,128] dig, exposed hollow inspection and paused interaction guards",
+  "runtimePin": "210b85d722e4d074eeff34d3653d109882c02655",
+  "errors": [],
+  "consoleErrors": [],
+  "failedRequests": [],
+  "moduleResponses": [],
+  "diagnosticsLimit": {
+    "entriesPerKind": 20,
+    "textChars": 2048,
+    "readTimeoutMs": 2000,
+    "startupTextChars": 4096
+  },
+  "checks": [],
+  "browserClosed": true,
+  "readinessFailure": {
+    "phase": "initial",
+    "loadingText": "\n        Goblin Bed & BreakfastPreparing the game\n      ",
+    "mainEntered": true,
+    "startupStages": "[{\"id\":\"art\",\"label\":\"Drawing the clearing\",\"status\":\"complete\",\"startedAt\":822.5,\"completedAt\":72214.60000002384,\"detail\":\"Preparing water rendering\",\"completedTextures\":1291,\"waitingFor\":null},{\"id\":\"optimizer\",\"label\":\"Preparing the game\",\"status\":\"complete\",\"startedAt\":3285.600000023842,\"completedAt\":9019.600000023842,\"detail\":\"\"},{\"id\":\"storage\",\"label\":\"Loading your saved clearing\",\"status\":\"complete\",\"startedAt\":3288.7000000476837,\"completedAt\":8996.400000035763,\"detail\":\"\"},{\"id\":\"display\",\"label\":\"Preparing the game\",\"status\":\"running\",\"startedAt\":72214.70000004768,\"completedAt\":null,\"detail\":\"\"},{\"id\":\"game\",\"label\":\"Preparing the game\",\"status\":\"waiting\",\"startedAt\":null,\"completedAt\":null,\"detail\":\"\"}]",
+    "visibilityState": "visible",
+    "documentReadyState": "complete",
+    "goblinPresent": false,
+    "artReady": false,
+    "canvasCount": 0
+  },
+  "failureSelection": {},
+  "primaryError": {
+    "name": "TimeoutError",
+    "message": "page.waitForFunction: Timeout 60000ms exceeded."
+  }
+}

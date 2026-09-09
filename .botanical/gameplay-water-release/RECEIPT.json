@@ -1,0 +1,58 @@
+{
+  "root": "/home/levi/src/hive-worktrees/gameplay-water-release",
+  "runtimePin": "210b85d722e4d074eeff34d3653d109882c02655",
+  "commands": [
+    {
+      "args": [
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "pid": 1070033,
+      "result": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "args": [
+        "node_modules/vite/bin/vite.js",
+        "preview",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5198",
+        "--strictPort"
+      ],
+      "pid": 1070356
+    },
+    {
+      "args": [
+        ".botanical/gameplay-water-release/prove-water.mjs",
+        "http://127.0.0.1:5198/",
+        ".botanical/gameplay-water-release/browser"
+      ],
+      "pid": 1070424,
+      "result": {
+        "code": 1,
+        "signal": null
+      }
+    }
+  ],
+  "childrenClosed": true,
+  "error": "window-browser failed: {\"code\":1,\"signal\":null}",
+  "serverExit": {
+    "code": 143,
+    "signal": null
+  },
+  "listenerClosed": true,
+  "scope": "run-u4603.scope",
+  "invocation": "2b6d730e9eb743418ae99ba10c4dd741",
+  "execSession": 32734,
+  "exitCode": 1,
+  "terminalCollected": true,
+  "scopeClosed": true,
+  "port5198Free": true,
+  "classification": "Build and actual earned Dig passed; first field-card click intercepted by foreground actor according to saved image and source. No observed post-click event; inspection/narrow not proved.",
+  "personalImageReview": "completed.png viewed by King Bolete",
+  "driverSha256": "608e5139ddcc2dae54d01a00b69c70d4ad34be72893d83a4cf8cb8f6b565178c"
+}
