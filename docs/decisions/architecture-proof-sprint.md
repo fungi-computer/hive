@@ -20,13 +20,18 @@ paragraph. The engine/asset and launch amendments below are current authorized
 work within this owning sprint. The environmental gameplay joins remain owed;
 an MCP export success does not finish that saved goal.
 
-### Proposed engine completion contract — for joint CTO acceptance
+### Engine completion contract — jointly reviewed v0 scope
 
 Levi's September 9 amendment makes the **first reusable Hive engine** the next
 goal, with Astra retaining its present model and Session through acceptance.
 The original unfinished environmental work is included. The native tool has no
 goal edit/resume operation; until a supported UI replacement is confirmed,
 this explicit objective owns the new direction without a false completion.
+
+Botanical CTO reviewed `47e7729` and accepted this as a declared small-world v0
+scope. That is agreement on the target, not source or engine acceptance: each
+row still requires its actual consumer and evidence. Keep the current Astra
+model and working Session until the agreed engine finish is accepted.
 
 **Goal text:** Complete Hive v0 as a reusable, headless, Shiitake-ready sandbox
 engine extracted from the actual Goblin implementation. Prove that Goblin and
@@ -50,7 +55,7 @@ first while the overall engine goal remains unfinished.
 | Capabilities, work and persistence | Resolve body/navigation/carry/container/source/work/needs capabilities through narrow owners. Current wood/herb/soil/water/food consumers share applicable supply/transfer/execution rules; final domain effects stay typed. Kettle filling, planting water, drinking and eating no longer orchestrate separate phase machines. Another supported vessel, consumable and recipe are definition changes. Snapshot phase/custody validation uses domain facts; both reproduced save defects are closed. Cancellation, contested stock, moving/lost targets, partial pickup and load preserve quantity/ownership and settle effects once. |
 | Edited world and generation | One versioned, stepped generator supplies height/sea level, biome fields and bounded cave/feature queries. Coarse maps and fine samples share that owner. Generated base + sparse edits + resident field state stay distinct. Adjacent-chunk edit/evict/reload proof preserves seams and state without generating the whole world. Geometry feeds separate movement/support/contact/picking queries; topology invalidation is owned. Keep the playable clearing tiny and publish its supported excavation/vertical envelope explicitly. |
 | Water, soil, air and heat in real play | A player-created shallow channel/pit changes finite flow/soil exchange; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. Reference playback and visual bubbles do not pass this exit. |
-| Engine controller door | An ordinary scoped engine API is callable through the actual maintained Mycelium/Knapsack host path; no custom agent scheduler/catalog or parallel game loop. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; command retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A real execute-tool call must reach this owner. A later live human-vs-Shiitake match remains its own product proof; a synthetic caller does not claim model play. |
+| Engine controller door | An authored public Mycelium module registers input/output schemas and handlers over the scoped engine API, then the existing execute tool and sandbox invoke it. Use Knapsack only where the actual host needs connection discovery; neither a generic MCP adapter nor a custom client catalog is required. Keep platform imports in the integration consumer, outside the headless physical owner. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A deterministic host proof can establish those laws through a real execute-tool invocation. The later live Camel/Shiitake match is separate evidence of model play. |
 | Integration, budgets and distribution | Goblin consumes the same accepted modules and remains playable through a short dig/build/supply/care trace. A consumer installs/runs the documented engine entry from a clean checkout with pinned definitions and snapshots. Record actual candidate/path/optimizer/field/render/save costs and peak/resident memory separately on named hardware. Freeze workload sizes, fixed-step budgets, field tolerances and browser response targets before final performance acceptance; exceeding them remains a blocker, not an invitation to relabel the load. Source/caller review, focused laws, visible interaction and hosted artifact parity each state their own evidence. |
 
 Performance acceptance covers the named active workload, not hundreds of idle
@@ -60,6 +65,10 @@ must publish the tested actor/job/resident-cell/chunk counts and frame/fixed-ste
 budgets so a larger-world claim cannot outgrow the measured result. Exact final
 workload numbers are selected jointly from the first extraction baseline, rather
 than inventing a supported population in a planning document.
+Freeze numerical tolerances from those same named consumers and baseline before
+the final comparison. Preserve declared physical sources/sinks when selecting
+budgets; changing a reservoir boundary to make a benchmark pass changes the
+experiment rather than improving its implementation.
 
 Deferred game content (nations, religions, courts, realms, deep breeding, spiral
 towers and the whole social ecosystem) does not gate this engine version.
@@ -70,17 +79,26 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
-Botanical confirmed the two-PM shape. Native Astra-low `engine_core_pm` owns the
-first coupled repair packet in needs/persistence and its focused laws, followed
-by the source-grounded material extraction checkpoint. Native Astra-low
-`asset_product_pm` owns new `src/asset-pipeline/**` scene document/editor work,
-away from frozen MCP `886d542`. Each has a saved bounded active goal and reports
-source/caller decisions, corrections and proof to Game CTO. Supporting workers
+Botanical confirmed the two-PM shape. Native Astra-low `engine_core_pm` completed
+the accepted needs/persistence repair packet and now owns the single coupled
+material extraction, existing Goblin consumers and independent ore depot.
+Native Astra-low `asset_product_pm` completed the accepted scene document/editor
+checkpoint and now owns the original-pack schema/compiler/MCP caller join in
+`src/asset-pipeline/**` and `tools/asset-mcp/assets.mjs`. The existing hosting
+handoff remains pinned to immutable MCP `886d542` and its retained viewer package.
+Both PMs acknowledged new bounded saved goals in their existing native Sessions;
+neither completed an unfinished goal merely to replace it. Their source/caller
+decisions, corrections and proof report to Game CTO. Supporting workers
 and independent reviews share the real slot limit; do not occupy every slot
 with another coordinator. Root Game CTO keeps architecture, original-art review,
 serial source acceptance/Git/build/deploy; Botanical owns sites/shared Caps and
 the separate MCP hosting route. Existing dirty source and parked sessions remain
 preserved. No model switch is authorized before engine acceptance.
+
+Every UI consumer, including labs/studies and asset tools, uses Caps. Botanical
+owns the shared component source and editable source-registry direction. Hive
+keeps its current packed public package until the agreed registry/package join
+is released; there is no new shared writer or local Caps fork in this outcome.
 
 **Latest joint direction, 2026-09-09:** finish deriving the reusable sandbox
 engine from Goblin and prove it through actual game and independent consumers.

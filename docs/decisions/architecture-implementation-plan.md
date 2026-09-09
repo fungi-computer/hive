@@ -15,6 +15,88 @@ and repair order. Engine capability/execution consolidation precedes publication
 of the retained care candidate. Earlier control/brewing/Delivery sequences below
 are historical and must not restart released work or refill retired Herdr lanes.
 
+## Engine API design from the Botanical source review — September 9
+
+Levi asked Game CTO to read the Botanical Field Guide and actual BirdDog,
+Watchdog, Shiitake and Woodstock implementations. The useful standard is a
+small domain interface over a deep owner, with one implementation and explicit
+lifecycle. It is not a requirement to put every module in its own package or
+replace fixed simulation steps with asynchronous jobs.
+
+The Field Guide's software-shape and ownership-and-seams chapters require
+closed domain unions, parsing at real boundaries, bounded work, atomic
+transitions, and a net reduction in duplicated ownership. A relationship
+between existing owners gets one typed integration boundary; it does not earn a
+second queue, store or lifecycle. Function length is a review signal, not a
+decomposition quota.
+
+The checked examples establish concrete design lessons:
+
+- **Shiitake** exposes an addressed `Session` with commands, reads and owned
+  observation. Its Promise interface uses the same Effect implementation.
+  Model, storage and host capabilities enter at construction. Hive should have
+  a typed supported consumer interface; renderer, game UI and AI adapters must
+  not coordinate private simulation fields or maintain alternate engines.
+- **Woodstock** is deliberately private inside Shiitake. Its command admission
+  joins the request receipt and work pointer in one owner transaction. Exact
+  retry reuses the acceptance; changed input with the same identity conflicts.
+  Hive's physical owner likewise owns admission, custody and completion laws.
+  An HTTP/MCP success or a caller's retry cache cannot substitute for them.
+- **Watchdog** publishes generic work lifecycle operations and accepts an
+  executor. It does not interpret the work payload. Hive should separate the
+  shared execution/transfer rules from recipe, plant and character meaning.
+  Watchdog's durable host scheduling is not a replacement for libcolony or the
+  deterministic movement/work/field clock.
+- **BirdDog** owns addressed agent correspondence over generic work, including
+  its outbox boundary. That is an example of composing two existing owners
+  without teaching the lower owner about agents. Hive's controller integration
+  translates committed game events and allowed actions; transport delivery
+  cannot apply physical effects or turn a retry into another action.
+
+### Immediate acceptance rules for the extraction
+
+1. Separate the supported engine entry from private implementation helpers.
+   Moving fifty helpers into a factory and re-exporting them all is not a
+   finished public API. Compatibility imports can remain during a recoverable
+   checkpoint, but source review must identify their removal or internal scope.
+2. A game/UI/controller requests an outcome such as storing a lot. The engine's
+   work/material owners coordinate reservation, travel, pickup, delivery and
+   interruption. A low-level transfer API may serve the executor; each game
+   feature must not become another executor itself.
+3. One resolved material definition and one container derivation supply every
+   current consumer. Admission records the resolved physical obligation;
+   mutation and restore use the same phase/custody predicates. Persistence
+   retains game references and historical migration checks, not a second copy
+   of transfer rules. Missing historical evidence is not manufactured on load.
+4. Keep ordinary typed outcomes explicit: accepted work is distinct from
+   completed work; unavailable stock, full destination, stale intent and
+   interruption are not generic errors or silent returns. Retry semantics
+   belong to the operation whose effect could repeat.
+5. Read models are projections of the owner. Shiitake's `watch` registers
+   observation before taking its baseline and returns cleanup with the stream;
+   that is the model to follow when Hive joins live baseline/change observation.
+   Do not add a general event bus or a second saved UI state to emulate it.
+6. Keep snapshots/version migration, query invalidation, active claims and
+   temporary resource cleanup local to their actual owners. A private deep
+   module can deserve extensive laws without becoming a public package.
+
+The first caller proof remains Goblin construction/storage plus the independent
+five-unit ore depot using the same material implementation. Its caller should
+need neither Goblin imports nor manual edits to internal arrays. The later
+controller proof authors public Mycelium schema/handler operations over that
+engine interface and invokes them through the existing execute tool/sandbox.
+This review does not add an engine dependency on BirdDog, Watchdog, Woodstock,
+Effect, a server framework or a new scheduler. Each real integration must show
+which existing ownership it removes and which lifecycle it preserves.
+
+Source trace: Botanical `packages/shiitake/src/client.ts` (`ShiitakeSession`),
+`internal/coordinator.ts` (`acceptAndWakeCommand`, `watchSession`),
+`internal/woodstock/session-store.ts` (`acceptSessionCommand`), and
+`src/internal/run-scope.ts` (`acquiredTools`); BirdDog and Watchdog public
+`src/index.ts` contracts. Woodstock's accepted private-module ADR explains why
+its durable complexity is not another public package. This is source/design
+evidence, not a new execution or hosted proof of those packages.
+
 ## Read this before assigning a writer
 
 The product is a home in a living world: build it, welcome people, discover and learn, prepare for journeys, and bring something valuable back. Ecology, knowledge, relationships and magic change what the home can do. The small clearing remains the place to judge fun. The [product synthesis](a-home-between-realms.md) explains the journey; these companion contracts turn it into engineering decisions:
