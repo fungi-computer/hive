@@ -1340,6 +1340,7 @@ function validateHerbEstablishments({ state }: RelationContext): void {
       careOutcomeIds.has(outcome.id) ||
       operationId === null ||
       outcome.id !== `care-outcome:${operationId}` ||
+      state.operations.some((operation) => operation.id === operationId) ||
       outcome.tick > state.tick ||
       !state.actors[outcome.actor] ||
       outcome.need !== definition.effect.need ||
