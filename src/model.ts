@@ -32,10 +32,14 @@ export type TransferRequest = PhysicalMaterials.TransferRequest<Material>;
 export type MaterialBinding = PhysicalMaterials.MaterialBinding<Material>;
 export type Transfer = PhysicalMaterials.Transfer<Material>;
 export type EmbeddedMaterial = PhysicalMaterials.EmbeddedMaterial<Material>;
-export type RecipeTransformation = PhysicalMaterials.RecipeTransformation<Material>;
+export type RecipeTransformation =
+  PhysicalMaterials.RecipeTransformation<Material>;
 export type RecipeConsumption = PhysicalMaterials.RecipeConsumption<Material>;
-export type MaterialSinkReceipt = PhysicalMaterials.MaterialSinkReceipt<Material>;
-export type MaterialsState = PhysicalMaterials.MaterialsState<Material> & { consumedWood: number };
+export type MaterialSinkReceipt =
+  PhysicalMaterials.MaterialSinkReceipt<Material>;
+export type MaterialsState = PhysicalMaterials.MaterialsState<Material> & {
+  consumedWood: number;
+};
 export type ItemLotLocation = PhysicalMaterials.ItemLotLocation;
 export type TransferOrigin = PhysicalMaterials.TransferOrigin;
 export type CarryIntent = PhysicalMaterials.CarryIntent;
@@ -313,9 +317,7 @@ export type WaterDeliveryOperation = {
   target: WaterDeliveryTarget;
   quantity: PositiveInt;
   pail: LotId;
-  water: LotId | null;
-  /** Incomplete effect phase; successful pour retires this operation. */
-  phase: "acquire" | "draw" | "pour";
+  execution: import("./engine/work/index.ts").WorkProgress;
 };
 /** A ration is carried by the ordinary operation-owned use transfer. */
 export type ConsumeOperation = {
@@ -324,6 +326,7 @@ export type ConsumeOperation = {
   job: JobId;
   actor: ActorId;
   definition: string;
+  execution: import("./engine/work/index.ts").WorkProgress;
 };
 export type CareOutcome = {
   id: string;

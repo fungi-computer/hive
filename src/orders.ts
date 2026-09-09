@@ -1,3 +1,4 @@
+import { finiteWorkOwner } from "./water-delivery.ts";
 import type {
   Clearing,
   Command,
@@ -21,12 +22,7 @@ import {
   recipeOutputReadiness,
 } from "./brewing.ts";
 import { recipeOutputActionForWire } from "./recipes.ts";
-import {
-  containerContents,
-  interruptOperationPail,
-  releaseContainer,
-  retireOperationUse,
-} from "./materials.ts";
+import { containerContents, releaseContainer } from "./materials.ts";
 import {
   blockedCells,
   cellKey,
@@ -173,7 +169,10 @@ export function commandProblem(s: Clearing, c: Command): string {
   if (c.kind === "cancel" || c.kind === "next") {
     const job = s.jobs.find((entry) => entry.id === c.job);
     if (!job) return "That order is no longer available.";
-    if (job.kind === "care" && !s.parties[c.party]?.members.includes(job.target))
+    if (
+      job.kind === "care" &&
+      !s.parties[c.party]?.members.includes(job.target)
+    )
       return "Only home members' care can be ordered.";
     if (c.kind === "cancel" && job.kind === "repair-cache") {
       const cache = s.sources.find((source) => source.id === job.target);
@@ -473,15 +472,19 @@ function cancel(s: Clearing, id: string) {
           transfer.owner.operation === active.id,
       );
       const actor = custody ? s.actors[custody.actor] : undefined;
-      if (custody && !actor) throw new Error("water operation has missing actor");
-      const released = interruptOperationPail(s.materials, active.id, actor
-        ? { cell: { x: actor.x, z: actor.z, level: actor.level }, legal: true }
-        : undefined);
+      if (custody && !actor)
+        throw new Error("water operation has missing actor");
+      const released = finiteWorkOwner.interrupt(s.operations, s.materials, {
+        kind: "release",
+        operation: active.id,
+        drop: actor
+          ? {
+              cell: { x: actor.x, z: actor.z, level: actor.level },
+              legal: true,
+            }
+          : undefined,
+      });
       if (!released.ok) throw new Error(released.reason);
-      s.operations = s.operations.filter((operation) => operation !== active);
-    } else if (active?.kind === "consume") {
-      retireOperationUse(s.materials, active.id);
-      s.operations = s.operations.filter((operation) => operation !== active);
     }
   } else if (j.kind === "brew") {
     const released = cancelPreparingBrew(s, j.id);
@@ -515,7 +518,12 @@ export function admitCommand(s: Clearing, c: Command): CommandAdmission {
   const createdJobs: string[] = [];
   if (c.kind === "rest") {
     for (const actor of new Set(c.actors!)) {
-      if (s.jobs.some((job) => job.kind === "care" && job.target === actor && job.need === "rest"))
+      if (
+        s.jobs.some(
+          (job) =>
+            job.kind === "care" && job.target === actor && job.need === "rest",
+        )
+      )
         continue;
       createdJobs.push(add(s, { ...c, actors: [actor] }));
     }

@@ -1,5 +1,13 @@
+import {
+  workProgressSchema,
+  workProgressProblem,
+} from "./engine/work/index.ts";
 import type { Material } from "./model.ts";
-import { validateMaterialState, historicalTransferPhaseProblem, containerCapacityProblem } from "./materials.ts";
+import {
+  validateMaterialState,
+  historicalTransferPhaseProblem,
+  containerCapacityProblem,
+} from "./materials.ts";
 import { z } from "zod";
 import type {
   Clearing,
@@ -63,7 +71,7 @@ import {
 } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 16 as const;
+const SAVE_SCHEMA = 17 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -994,7 +1002,9 @@ const careWaterTarget = z
   .object({ kind: z.literal("hydration"), actor: id })
   .strict();
 const currentWaterOperation = waterDeliveryOperation
+  .omit({ water: true, phase: true })
   .extend({
+    execution: workProgressSchema,
     kind: z.literal("water-delivery"),
     target: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("kettle"), station: id }).strict(),
@@ -1010,6 +1020,7 @@ const consumeOperation = z
     job: id,
     actor: id,
     definition: id,
+    execution: workProgressSchema,
   })
   .strict();
 const v15StateSchema = v14StateSchema
@@ -1030,7 +1041,12 @@ const v15StateSchema = v14StateSchema
           z.union([
             v14StateSchema.shape.materials.shape.bindings.element,
             z
-              .object({ kind: z.literal("operation-use"), id, lot: id, quantity: positive })
+              .object({
+                kind: z.literal("operation-use"),
+                id,
+                lot: id,
+                quantity: positive,
+              })
               .strict(),
           ]),
         ),
@@ -1058,25 +1074,45 @@ const v15StateSchema = v14StateSchema
   })
   .strict();
 /** Schema 15 remains strict; schema 16 retains admitted physical material obligations. */
-const currentStateSchema = v15StateSchema.extend({
-  materials: v15StateSchema.shape.materials.extend({
-    transfers: z.array(currentTransfer.extend({ resolvedMaterial: currentMaterial }).strict()),
-  }).strict(),
-}).strict();
+const currentStateSchema = v15StateSchema
+  .extend({
+    materials: v15StateSchema.shape.materials
+      .extend({
+        transfers: z.array(
+          currentTransfer
+            .extend({ resolvedMaterial: currentMaterial })
+            .strict(),
+        ),
+      })
+      .strict(),
+  })
+  .strict();
 
-function resolveHistoricalMaterials<T extends {
-  lots: { id: string; material: Material }[];
-  transfers: { phase: { kind: "reserved"; sourceLot: string } | { kind: "carrying"; lot: string } }[];
-}>(materials: T) {
+function resolveHistoricalMaterials<
+  T extends {
+    lots: { id: string; material: Material }[];
+    transfers: {
+      phase:
+        | { kind: "reserved"; sourceLot: string }
+        | { kind: "carrying"; lot: string };
+    }[];
+  },
+>(materials: T) {
   const { transfers, ...rest } = materials;
-  return { ...rest, transfers: transfers.map((transfer: T["transfers"][number]) => {
-    const lotId = transfer.phase.kind === "reserved" ? transfer.phase.sourceLot : transfer.phase.lot;
-    const lot = materials.lots.find((entry) => entry.id === lotId);
-    if (!lot) fail("historical transfer has missing material lot");
-    // Old saves never recorded an obligation. This migration retains their
-    // validated physical fact; it cannot reconstruct discarded source history.
-    return { ...transfer, resolvedMaterial: lot.material };
-  }) };
+  return {
+    ...rest,
+    transfers: transfers.map((transfer: T["transfers"][number]) => {
+      const lotId =
+        transfer.phase.kind === "reserved"
+          ? transfer.phase.sourceLot
+          : transfer.phase.lot;
+      const lot = materials.lots.find((entry) => entry.id === lotId);
+      if (!lot) fail("historical transfer has missing material lot");
+      // Old saves never recorded an obligation. This migration retains their
+      // validated physical fact; it cannot reconstruct discarded source history.
+      return { ...transfer, resolvedMaterial: lot.material };
+    }),
+  };
 }
 
 type V12SavedClearing = z.infer<typeof v12StateSchema>;
@@ -1359,11 +1395,16 @@ type RelationContext = {
 function validateMaterialLots(state: SavedClearing, historical: boolean): void {
   const lotIds = new Set<string>();
   for (const lot of state.materials.lots) {
-    if (historical && lotIds.has(lot.id)) fail(`duplicate material lot ${lot.id}`);
+    if (historical && lotIds.has(lot.id))
+      fail(`duplicate material lot ${lot.id}`);
     lotIds.add(lot.id);
     if (historical && lot.material === "pail" && lot.quantity !== 1)
       fail(`vessel lot ${lot.id} must have quantity 1`);
-    if (historical && lot.material === "water" && lot.location.kind !== "container")
+    if (
+      historical &&
+      lot.material === "water" &&
+      lot.location.kind !== "container"
+    )
       fail(`water lot ${lot.id} must be contained`);
     if (lot.location.kind === "hand" && !state.actors[lot.location.actor])
       fail(`hand lot ${lot.id} has missing actor ${lot.location.actor}`);
@@ -1384,7 +1425,8 @@ function validateMaterialBindings({
   const reservedPortions = new Map<string, number>();
   const promisedContainers = new Set<string>();
   for (const use of state.materials.bindings) {
-    if (historical && ids.has(use.id)) fail(`duplicate material binding ${use.id}`);
+    if (historical && ids.has(use.id))
+      fail(`duplicate material binding ${use.id}`);
     ids.add(use.id);
     if (use.kind === "recipe") {
       if (historical && stations.has(use.station))
@@ -1557,7 +1599,8 @@ function validateMaterialBindings({
         fail(`operation use ${use.id} has invalid bound portion`);
       continue;
     }
-    if (historical && vessels.has(use.vessel)) fail(`duplicate vessel binding ${use.vessel}`);
+    if (historical && vessels.has(use.vessel))
+      fail(`duplicate vessel binding ${use.vessel}`);
     vessels.add(use.vessel);
     const lot = state.materials.lots.find(
       (candidate) => candidate.id === use.vessel,
@@ -1934,7 +1977,8 @@ function validateJobScopes({ state }: RelationContext): void {
     )
       fail(`party ${partyId} has invalid members`);
   }
-  const careJobs: Extract<SavedClearing["jobs"][number], { kind: "care" }>[] = [];
+  const careJobs: Extract<SavedClearing["jobs"][number], { kind: "care" }>[] =
+    [];
   for (const job of state.jobs) {
     if (job.kind === "care") {
       if (
@@ -1943,8 +1987,7 @@ function validateJobScopes({ state }: RelationContext): void {
         (job.policy === "automatic" && job.routine) ||
         (job.policy === "manual-rest" &&
           (job.need !== "rest" || job.routine)) ||
-        (job.policy === "routine-rest" &&
-          (job.need !== "rest" || !job.routine))
+        (job.policy === "routine-rest" && (job.need !== "rest" || !job.routine))
       )
         fail(`care job ${job.id} has invalid actor or intent policy`);
       careJobs.push(job);
@@ -2121,17 +2164,31 @@ function validateOperationWater(
   const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
   const interior = pail && portableContainerInterior(pail);
   if (!interior) fail(`water operation ${operation.id} has invalid pail`);
-  const water = operation.water
-    ? state.materials.lots.find((lot) => lot.id === operation.water)
+  const content =
+    operation.execution.phase === "deliver"
+      ? operation.execution.content
+      : null;
+  const water = content
+    ? state.materials.lots.find((lot) => lot.id === content)
     : null;
+  if (
+    workProgressProblem(operation.execution, {
+      kind: "vessel",
+      interruption: "park",
+    })
+  )
+    fail(`invalid vessel progress ${operation.id}`);
   const interiorWater = state.materials.lots.filter(
     (lot) =>
       lot.material === "water" &&
       lot.location.kind === "container" &&
       lot.location.container === interior.id,
   );
-  if (operation.phase === "acquire" || operation.phase === "draw") {
-    if (operation.water !== null || interiorWater.length !== 0)
+  if (
+    operation.execution.phase === "acquire" ||
+    operation.execution.phase === "draw"
+  ) {
+    if (interiorWater.length !== 0)
       fail(`water operation ${operation.id} has premature water`);
   } else if (
     !water ||
@@ -2189,6 +2246,21 @@ function validateOperations(context: RelationContext): void {
         consumeActors.has(operation.actor)
       )
         fail(`consume operation ${operation.id} has invalid custody`);
+      if (
+        workProgressProblem(operation.execution, {
+          kind: "portion",
+          interruption: "release",
+          attendTicks: definition!.attendTicks!,
+        })
+      )
+        fail(`invalid portion progress ${operation.id}`);
+      if (actor!.work !== 0)
+        fail(`consume progress must belong to operation ${operation.id}`);
+      if (
+        (operation.execution.phase === "attend") !==
+        (transfers[0].phase.kind === "carrying")
+      )
+        fail(`consume progress disagrees with custody ${operation.id}`);
       consumeJobs.add(operation.job);
       consumeActors.add(operation.actor);
     }
@@ -2530,7 +2602,8 @@ function validateTransfers(context: RelationContext): void {
   const { state } = context;
   const transferIds = new Set<string>();
   for (const transfer of state.materials.transfers) {
-    if (context.historical && transferIds.has(transfer.id)) fail(`duplicate transfer ${transfer.id}`);
+    if (context.historical && transferIds.has(transfer.id))
+      fail(`duplicate transfer ${transfer.id}`);
     transferIds.add(transfer.id);
   }
   transferIds.clear();
@@ -2548,16 +2621,24 @@ function validateTransfers(context: RelationContext): void {
       transfer.owner.kind === "job"
         ? `job/${transfer.owner.job}/${transfer.owner.step}`
         : `operation/${transfer.owner.operation}`;
-    if (context.historical && owners.has(ownerKey)) fail(`duplicate transfer owner ${ownerKey}`);
+    if (context.historical && owners.has(ownerKey))
+      fail(`duplicate transfer owner ${ownerKey}`);
     owners.add(ownerKey);
     const destination = validateTransferOwner(context, transfer);
     const lot = transferLot(state, transfer);
     if (context.historical) {
-      const phaseProblem = historicalTransferPhaseProblem(state.materials, transfer);
-      if (phaseProblem) fail(`transfer ${transfer.id} has invalid physical phase: ${phaseProblem}`);
+      const phaseProblem = historicalTransferPhaseProblem(
+        state.materials,
+        transfer,
+      );
+      if (phaseProblem)
+        fail(
+          `transfer ${transfer.id} has invalid physical phase: ${phaseProblem}`,
+        );
     }
     if (
-      context.historical && destination &&
+      context.historical &&
+      destination &&
       (!destination.accepts.includes(lot.material) ||
         transfer.request.quantity *
           (destination.bulk[lot.material] ?? Infinity) >
@@ -2574,7 +2655,10 @@ function validateTransfers(context: RelationContext): void {
   }
 }
 
-function validateContainerCapacity({ state, containers }: RelationContext): void {
+function validateContainerCapacity({
+  state,
+  containers,
+}: RelationContext): void {
   for (const destination of containers.values()) {
     const problem = containerCapacityProblem(state.materials, destination);
     if (problem && problem !== "container-embedded")
@@ -2667,7 +2751,10 @@ function validateSiteTopology({ state }: RelationContext): void {
   }
 }
 
-function validateConservation({ state, sourceDefinitions }: RelationContext): void {
+function validateConservation({
+  state,
+  sourceDefinitions,
+}: RelationContext): void {
   const transformed = (material: string) =>
     state.materials.transformations.reduce(
       (sum, transformation) =>
@@ -2734,8 +2821,7 @@ function validateConservation({ state, sourceDefinitions }: RelationContext): vo
     );
   if (water !== springWater)
     fail(`water conservation is ${water}, expected ${springWater}`);
-  const activeDefinitions =
-    sourceDefinitions ?? FINITE_SOURCE_DEFINITIONS;
+  const activeDefinitions = sourceDefinitions ?? FINITE_SOURCE_DEFINITIONS;
   const rationPerCache = activeDefinitions
     .filter((definition) => definition.kind === "reclaimed-timber-cache")
     .flatMap((definition) => definition.initial)
@@ -2754,9 +2840,8 @@ function validateConservation({ state, sourceDefinitions }: RelationContext): vo
       0,
     );
   const expectedRations =
-    state.sources.filter(
-      (source) => source.kind === "reclaimed-timber-cache",
-    ).length * rationPerCache;
+    state.sources.filter((source) => source.kind === "reclaimed-timber-cache")
+      .length * rationPerCache;
   if (ration !== expectedRations)
     fail(`ration conservation is ${ration}, expected ${expectedRations}`);
   const soil = state.materials.lots.reduce(
@@ -2828,7 +2913,8 @@ function validateRelations(
   validateRecipeConsumptions(context);
   validateBrewProcesses(context);
   validateRecipeOutputJobs(context);
-  if (!historical) validateMaterialState(state.materials, [...context.containers.values()]);
+  if (!historical)
+    validateMaterialState(state.materials, [...context.containers.values()]);
   validateTransfers(context);
   if (historical) validateContainerCapacity(context);
   validateActorJobRelations(context);
@@ -2843,394 +2929,9 @@ export function parseSerializedClearing(value: unknown): SerializedClearing {
   return validateRelations(savedSchema.parse(value));
 }
 
-function v12KettleDeliveryQuantity(station: string): PositiveInt {
-  const quantity = waterDeliveryQuantity({ kind: "kettle", station });
-  if (quantity === null)
-    throw new Error("missing checked kettle water requirement");
-  return quantity;
-}
-
-/** Convert only after predecessor-only executor custody has been checked. */
-function v12CurrentRelationView(predecessor: V12SavedClearing): SavedClearing {
-  const { rested: _rested, ...withoutRested } = predecessor;
-  return {
-    ...withoutRested,
-    terrain: authoredClearingTerrain(),
-    actors: Object.fromEntries(
-      Object.entries(predecessor.actors).map(([actorId, actor]) => [
-        actorId,
-        (() => {
-          const { rest, ...withoutRest } = actor;
-          return {
-          ...withoutRest,
-          needs: initialNeeds(predecessor.tick, actor.rest),
-          mode: actor.mode === "brew-water" ? "water-delivery" : actor.mode,
-          task:
-            actor.task?.kind === "brew-water"
-              ? { ...actor.task, kind: "water-delivery" as const }
-              : actor.task,
-          };
-        })(),
-      ]),
-    ),
-    herbs: predecessor.herbs.map((herb) => ({
-      ...herb,
-      establishment:
-        herb.stage === "ordered"
-          ? null
-          : { kind: "legacy" as const, at: herb.plantedAt ?? predecessor.tick },
-    })),
-    materials: { ...predecessor.materials, sinks: [] },
-    operations: predecessor.operations.map((operation) => ({
-      kind: "water-delivery" as const,
-      id: operation.id,
-      job: operation.job,
-      spring: operation.spring,
-      target: { kind: "kettle" as const, station: operation.station },
-      quantity: v12KettleDeliveryQuantity(operation.station),
-      pail: operation.pail,
-      water: operation.water,
-      phase: operation.phase,
-    })),
-    careOutcomes: [],
-  } as unknown as SavedClearing;
-}
-
-/** Schema 13 is admitted in its exact shipped shape before flat terrain is added. */
-function convertV13State(predecessor: V13SavedClearing): SavedClearing {
-  return convertV14State(
-    v14StateSchema.parse({
-      ...predecessor,
-      terrain: authoredClearingTerrain(),
-    }),
-  );
-}
-/** Maps only representation; frozen source facts still govern this relation view. */
-function v14CurrentRelationView(
-  predecessor: z.infer<typeof v14StateSchema>,
-): SavedClearing {
-  const { rested: _rested, ...withoutRested } = predecessor;
-  return v15StateSchema.parse({
-    ...withoutRested,
-    actors: Object.fromEntries(
-      Object.entries(predecessor.actors).map(([actorId, actor]) => {
-        const { rest, ...withoutRest } = actor;
-        return [
-          actorId,
-          { ...withoutRest, needs: initialNeeds(predecessor.tick, rest) },
-        ];
-      }),
-    ),
-    jobs: predecessor.jobs.map((job) =>
-      job.kind === "rest"
-        ? {
-            id: job.id,
-            kind: "care" as const,
-            target: job.target,
-            need: "rest" as const,
-            policy: job.routine
-              ? ("routine-rest" as const)
-              : ("manual-rest" as const),
-            reason: job.reason,
-            routine: job.routine,
-          }
-        : job,
-    ),
-    materials: predecessor.materials,
-    operations: predecessor.operations.map((operation) => ({
-      ...operation,
-      kind: "water-delivery" as const,
-    })),
-    careOutcomes: [],
-  }) as unknown as SavedClearing;
-}
-
-/** Frozen v14 source budgets are checked before current care stock is added. */
-function validateV14Relations(
-  state: z.infer<typeof v14StateSchema>,
-): SavedClearing {
-  return validateRelations(
-    v14CurrentRelationView(state),
-    true,
-    V14_FINITE_SOURCE_DEFINITIONS,
-    true,
-  );
-}
-
-/** v14 is parsed and relation-checked before this one-way provision conversion. */
-function convertV14State(
-  predecessor: z.infer<typeof v14StateSchema>,
-): SavedClearing {
-  const historical = validateV14Relations(predecessor);
-  const live = { ...structuredClone(historical), materials: resolveHistoricalMaterials(historical.materials), commands: [] };
-  introduceCurrentFiniteSourceProvisions(live);
-  const { commands: _commands, ...converted } = live;
-  return validateRelations(savedSchema.parse(converted));
-}
-
-/** Schema 12 is structurally strict and relation-checked before conversion. */
-function validateV12Relations(state: V12SavedClearing): SavedClearing {
-  const operationIds = new Set<string>();
-  for (const operation of state.operations) {
-    if (operationIds.has(operation.id))
-      fail(`duplicate brew operation ${operation.id}`);
-    operationIds.add(operation.id);
-    const job = state.jobs.find((entry) => entry.id === operation.job);
-    const actor = state.actors[operation.actor];
-    const pail = state.materials.lots.find((lot) => lot.id === operation.pail);
-    const use = state.materials.bindings.find(
-      (binding) =>
-        binding.kind === "vessel-use" &&
-        binding.id === operation.id &&
-        binding.vessel === operation.pail,
-    );
-    const custody = state.materials.transfers.filter(
-      (transfer) =>
-        transfer.actor === operation.actor &&
-        transfer.owner.kind === "operation" &&
-        transfer.owner.operation === operation.id &&
-        transfer.intent.kind === "use" &&
-        transfer.intent.operation === operation.id,
-    );
-    const allCustody = state.materials.transfers.filter(
-      (transfer) =>
-        transfer.owner.kind === "operation" &&
-        transfer.owner.operation === operation.id,
-    );
-    const active =
-      actor?.task?.kind === "brew-water" &&
-      actor.task.target === operation.id &&
-      actor.task.job === operation.job &&
-      actor.assignment?.task === operation.job;
-    if (
-      !job ||
-      job.kind !== "fill-kettle" ||
-      job.target !== operation.station ||
-      !actor ||
-      !pail ||
-      pail.material !== "pail" ||
-      pail.quantity !== 1 ||
-      !use ||
-      custody.length !== (active ? 1 : 0) ||
-      allCustody.length !== custody.length
-    )
-      fail(`brew operation ${operation.id} has invalid executor custody`);
-  }
-  // The view changes only representation after old executor custody was proven;
-  // shared material/process/topology joins remain predecessor admission laws.
-  const historical = v15StateSchema.parse(v12CurrentRelationView(state)) as unknown as SavedClearing;
-  return validateRelations(
-    historical,
-    true,
-    V14_FINITE_SOURCE_DEFINITIONS,
-    true,
-  );
-}
-
-function convertV12State(predecessor: V12SavedClearing): SavedClearing {
-  const historical = validateV12Relations(predecessor);
-  const live = { ...structuredClone(historical), materials: resolveHistoricalMaterials(historical.materials), commands: [] };
-  introduceCurrentFiniteSourceProvisions(live);
-  const { commands: _commands, ...converted } = live;
-  return validateRelations(savedSchema.parse(converted));
-}
-
-/** Schema 10 is parsed and relation-checked in its shipped shape before later additions. */
-function convertV10State(predecessor: V10SavedClearing): SavedClearing {
-  const { vesselUses, ...materials } = predecessor.materials;
-  const state: V12SavedClearing = {
-    ...predecessor,
-    actors: Object.fromEntries(
-      Object.entries(predecessor.actors).map(([actorId, actor]) => [
-        actorId,
-        { ...actor, allowedWork: { ...actor.allowedWork, craft: true } },
-      ]),
-    ),
-    processes: [],
-    materials: {
-      ...materials,
-      bindings: vesselUses.map((use) => ({
-        kind: "vessel-use" as const,
-        id: use.id,
-        vessel: use.vessel,
-      })),
-      transformations: [],
-      consumptions: [],
-    },
-  };
-  const validated = v12StateSchema.parse(state);
-  const historical = validateV12Relations(validated);
-  const live = { ...structuredClone(historical), materials: resolveHistoricalMaterials(historical.materials), commands: [] };
-  introduceRecipeCacheSupplies(live);
-  validateRelations(
-    savedSchema.parse(
-      (({ commands: _commands, ...saved }) => saved)(live),
-    ),
-    true,
-    V14_FINITE_SOURCE_DEFINITIONS,
-    true,
-  );
-  introduceCurrentFiniteSourceProvisions(live);
-  const { commands: _commands, ...saved } = live;
-  return validateRelations(savedSchema.parse(saved));
-}
-
-function convertV11State(predecessor: V11SavedClearing): SavedClearing {
-  const role = (material: "malt" | "water" | "mugwort" | "wood") =>
-    material === "wood" ? "fuel" : material;
-  const bindings: V12SavedClearing["materials"]["bindings"] =
-    predecessor.materials.bindings.map((binding) =>
-      binding.kind === "vessel-use"
-        ? binding
-        : (() => {
-            const definition = recipeDefinition(binding.recipe);
-            const legacyRetained = [binding.barm, binding.keg];
-            const legacyPromises = [binding.output, binding.tray];
-            return {
-              kind: "recipe" as const,
-              id: binding.id,
-              definition: definition.id,
-              station: binding.station,
-              consumed: binding.portions.map((portion) => ({
-                role: role(portion.material),
-                ...portion,
-              })),
-              retained: definition.retained.map((requirement, index) => ({
-                role: requirement.role,
-                lot: legacyRetained[index],
-                material: requirement.material,
-                quantity: requirement.quantity,
-              })),
-              promises: definition.promises.map((requirement, index) => ({
-                role: requirement.role,
-                destination: legacyPromises[index],
-                material: requirement.material,
-                quantity: requirement.quantity,
-              })),
-            };
-          })(),
-    ) as unknown as V12SavedClearing["materials"]["bindings"];
-  const state: V12SavedClearing = {
-    ...predecessor,
-    actors: Object.fromEntries(
-      Object.entries(predecessor.actors).map(([actorId, actor]) => [
-        actorId,
-        { ...actor, allowedWork: { ...actor.allowedWork, craft: true } },
-      ]),
-    ),
-    processes: [],
-    materials: {
-      ...predecessor.materials,
-      bindings,
-      transformations: predecessor.materials.transformations.map(
-        (transformation) => ({
-          id: transformation.id,
-          definition: transformation.recipe,
-          inputs: transformation.inputs.map((input) => ({
-            role: role(input.material),
-            ...input,
-          })),
-          settlement: null,
-        }),
-      ),
-      consumptions: [],
-    },
-  };
-  return convertV12State(v12StateSchema.parse(state));
-}
-
 function validateSaveEnvelope(value: unknown): SaveEnvelope {
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "schema" in value &&
-    value.schema === SAVE_SCHEMA
-  ) {
-    const current = envelopeSchema.parse(value);
-    return {
-      ...current,
-      savedState: validateRelations(current.savedState),
-    };
-  }
-  if (typeof value === "object" && value !== null && "schema" in value && value.schema === 15) {
-    const predecessor = envelopeSchema.extend({ schema: z.literal(15), savedState: v15StateSchema }).parse(value);
-    validateRelations(predecessor.savedState as unknown as SavedClearing, true, undefined, true);
-    return { ...predecessor, schema: SAVE_SCHEMA, savedState: parseSerializedClearing({
-      ...predecessor.savedState,
-      materials: resolveHistoricalMaterials(predecessor.savedState.materials),
-    }) };
-  }
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "schema" in value &&
-    value.schema === 14
-  ) {
-    const predecessor = v14EnvelopeSchema.parse(value);
-    return {
-      kind: SAVE_KIND,
-      schema: SAVE_SCHEMA,
-      revision: predecessor.revision,
-      savedState: convertV14State(predecessor.savedState),
-    };
-  }
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "schema" in value &&
-    value.schema === 13
-  ) {
-    const predecessor = v13EnvelopeSchema.parse(value);
-    return {
-      kind: SAVE_KIND,
-      schema: SAVE_SCHEMA,
-      revision: predecessor.revision,
-      savedState: convertV13State(predecessor.savedState),
-    };
-  }
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "schema" in value &&
-    value.schema === 12
-  ) {
-    const predecessor = v12EnvelopeSchema.parse(value);
-    return {
-      kind: SAVE_KIND,
-      schema: SAVE_SCHEMA,
-      revision: predecessor.revision,
-      savedState: convertV12State(predecessor.savedState),
-    };
-  }
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "schema" in value &&
-    value.schema === 11
-  ) {
-    const predecessor = v11EnvelopeSchema.parse(value);
-    return {
-      kind: SAVE_KIND,
-      schema: SAVE_SCHEMA,
-      revision: predecessor.revision,
-      savedState: convertV11State(predecessor.savedState),
-    };
-  }
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "schema" in value &&
-    value.schema === 10
-  ) {
-    const predecessor = v10EnvelopeSchema.parse(value);
-    return {
-      kind: SAVE_KIND,
-      schema: SAVE_SCHEMA,
-      revision: predecessor.revision,
-      savedState: validateRelations(convertV10State(predecessor.savedState)),
-    };
-  }
-  throw new Error("Invalid Hive save: unsupported predecessor schema");
+  const current = envelopeSchema.parse(value);
+  return { ...current, savedState: validateRelations(current.savedState) };
 }
 /** Current physical/game facts only. Browser command diagnostics are not saved intent. */
 export function serializeClearing(state: Clearing): SerializedClearing {

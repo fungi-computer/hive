@@ -15,7 +15,7 @@ type State = { clearing: SerializedClearing };
 type Input = z.infer<typeof inputSchema>;
 /** Goblin rules/content over the unchanged transactional region owner. */
 export function createGoblinRegionProgram(colony: Optimizer): RegionProgram<State, Input> {
-  const programId = `goblin-v1:${optimizerBuildIdentity(colony)}`;
+  const programId = `goblin-save17-v1:${optimizerBuildIdentity(colony)}`;
   const computeCost = colony.compute_cost.bind(colony);
   const optimize = colony.optimize.bind(colony);
   const optimizer = Object.freeze({ compute_cost: computeCost, optimize });
