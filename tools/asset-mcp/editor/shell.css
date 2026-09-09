@@ -1,6 +1,6 @@
 :root {
-  font-family: "Nunito", sans-serif;
-  color-scheme: light dark;
+  --font-sans: "Nunito", sans-serif;
+  font-family: var(--font-sans);
 }
 body {
   margin: 0;
@@ -9,8 +9,8 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--background, #161b18);
-  color: var(--foreground, #f2f3ee);
+  background: var(--color-base-100);
+  color: var(--color-base-content);
 }
 .studio header {
   display: flex;
