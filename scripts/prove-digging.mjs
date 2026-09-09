@@ -17,23 +17,105 @@ const evidence = {
   base,
   fixture: "paused exact [0,14,128], actual pawn cut, save/reload",
   errors: [],
+  consoleErrors: [],
+  failedRequests: [],
+  moduleResponses: [],
+  diagnosticsLimit: {
+    entriesPerKind: 20,
+    textChars: 2048,
+    readTimeoutMs: 2000,
+  },
   checks: [],
   browserClosed: false,
 };
-let browser;
+const bounded = (value) => String(value ?? "").slice(0, 2048);
+function retain(list, value) {
+  if (list.length < 20) list.push(value);
+}
+async function ready(page, phase) {
+  try {
+    await page.waitForFunction(() => window.__GOBLIN?.artReady, undefined, {
+      timeout: 60000,
+    });
+  } catch (error) {
+    let timer;
+    try {
+      evidence.readinessFailure = {
+        phase,
+        ...(await Promise.race([
+          page.evaluate(() => ({
+            loadingText:
+              document.querySelector("#loading")?.textContent?.slice(0, 2048) ??
+              null,
+            documentReadyState: document.readyState,
+            goblinPresent: "__GOBLIN" in window,
+            artReady: window.__GOBLIN?.artReady === true,
+            canvasCount: document.querySelectorAll("canvas").length,
+          })),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error("Diagnostic read timed out")),
+              2000,
+            );
+          }),
+        ])),
+      };
+    } catch (diagnosticError) {
+      evidence.readinessFailure = {
+        phase,
+        collectionError: bounded(diagnosticError.message),
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+    throw error;
+  }
+}
+let browser, primaryError;
 try {
   browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH,
     headless: true,
+    args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
   });
   const page = await browser.newPage({
     viewport: { width: 1280, height: 900 },
   });
-  page.on("pageerror", (error) => evidence.errors.push(error.message));
-  await page.goto(base);
-  await page.waitForFunction(() => window.__GOBLIN?.artReady, undefined, {
-    timeout: 60000,
+  page.on("pageerror", (error) =>
+    retain(evidence.errors, bounded(error.message)),
+  );
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const at = message.location();
+    retain(evidence.consoleErrors, {
+      text: bounded(message.text()),
+      url: bounded(at.url),
+      line: at.lineNumber,
+      column: at.columnNumber,
+    });
   });
+  page.on("requestfailed", (request) =>
+    retain(evidence.failedRequests, {
+      url: bounded(request.url()),
+      type: request.resourceType(),
+      failure: bounded(request.failure()?.errorText),
+    }),
+  );
+  page.on("response", (response) => {
+    const url = response.url(),
+      type = response.request().resourceType();
+    if (
+      !response.ok() &&
+      (type === "script" || /\.[cm]?[jt]sx?(?:[?#]|$)/.test(url))
+    )
+      retain(evidence.moduleResponses, {
+        url: bounded(url),
+        status: response.status(),
+        type,
+      });
+  });
+  await page.goto(base);
+  await ready(page, "initial");
   await page.locator("#reset").click();
   await page.waitForFunction(
     () => window.__GOBLIN.state.paused && window.__GOBLIN.state.tick === 0,
@@ -92,10 +174,7 @@ try {
     { timeout: 30000 },
   );
   await page.reload();
-  await page.waitForFunction(() => window.__GOBLIN?.artReady, undefined, {
-    timeout: 60000,
-  });
-  await page.locator("#continue").click();
+  await ready(page, "reload");
   await page.waitForFunction(
     () => window.__GOBLIN.state.terrain.exports.length === 1,
   );
@@ -106,17 +185,34 @@ try {
   assert.deepEqual(restored.materials, completed.materials);
   await page.screenshot({ path: join(output, "restored.png") });
   evidence.checks.push(
-    "browser Continue restores exact generated terrain/materials and stays paused",
+    "browser reload restores exact generated terrain/materials paused before Continue",
   );
   assert.deepEqual(evidence.errors, []);
+} catch (error) {
+  primaryError = error;
+  evidence.primaryError = {
+    name: bounded(error.name),
+    message: bounded(error.message),
+  };
 } finally {
   if (browser) {
-    await browser.close();
-    evidence.browserClosed = true;
+    try {
+      await browser.close();
+      evidence.browserClosed = true;
+    } catch (error) {
+      evidence.cleanupError = bounded(error.message);
+      primaryError ??= error;
+    }
   }
-  await writeFile(
-    join(output, "result.json"),
-    JSON.stringify(evidence, null, 2),
-  );
+  try {
+    await writeFile(
+      join(output, "result.json"),
+      JSON.stringify(evidence, null, 2),
+    );
+  } catch (error) {
+    console.error("Evidence write failed:", bounded(error.message));
+    primaryError ??= error;
+  }
 }
+if (primaryError) throw primaryError;
 console.log(JSON.stringify(evidence));
