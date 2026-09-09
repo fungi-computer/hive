@@ -11,6 +11,15 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Saved goal reconciliation, September 9:** native Game CTO Session
+`01a0791e-7ac8-7cc0-90dd-48f8d164e526` retains the unfinished goal to solve and
+integrate water, gas/heat and world generation with executable evidence. The
+native goal tool reports it **paused**; it has not been completed or replaced.
+Later native-worker custody supersedes its old visible-Delivery staffing
+paragraph. The engine/asset and launch amendments below are current authorized
+work within this owning sprint. The environmental gameplay joins remain owed;
+an MCP export success does not finish that saved goal.
+
 **Latest joint direction, 2026-09-09:** finish deriving the reusable sandbox
 engine from Goblin and prove it through actual game and independent consumers.
 Shiitake integration is a core engine capability: scoped observations, controller
@@ -18,6 +27,16 @@ actions/events and durable results, as defined by
 [Vishnu's many faces](vishnus-many-faces.md). The finite ore depot is the agreed
 first independent material-owner proof, paired with existing construction and
 shelf consumers. It is not an already extracted engine or a completed AI match.
+
+**Launch amendment, September 9:** Levi requires a real Three asset MCP demo
+alongside Copper Familiar for September 10. The first stdio client/tool/export
+and rendered original-asset result is now implemented under `tools/asset-mcp`;
+the maintained Streamable HTTP Worker uses the same operations. Botanical owns
+remote `mcp.shiit.app/mcp` routing/deployment and site publication. Source/local
+proof does not mean remote deployment. The checked 28-tool Fiend capability
+target and next scene-editor cuts are in
+[the asset MCP decision](asset-mcp-demo-and-scene-editor.md). Preserve the dirty
+care/engine candidate; this released asset seam proceeds independently.
 
 Game and Botanical CTOs jointly selected Copper Familiar's real rotate/cutaway/
 floor interaction, a playable-clearing link and explicit launch signup as the

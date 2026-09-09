@@ -1,0 +1,45 @@
+{
+  "name": "Copper Familiar workshop",
+  "assets": [
+    {
+      "id": "kettle",
+      "position": [
+        -1.2,
+        0,
+        0
+      ],
+      "rotationY": 0,
+      "kind": "kettle",
+      "parameters": {}
+    },
+    {
+      "id": "bench",
+      "position": [
+        0.5,
+        0,
+        0
+      ],
+      "rotationY": 0,
+      "kind": "bench",
+      "parameters": {
+        "width": 1.2,
+        "depth": 0.5,
+        "height": 0.7
+      }
+    },
+    {
+      "id": "bottle",
+      "position": [
+        0.5,
+        0.7,
+        0
+      ],
+      "rotationY": 0,
+      "kind": "bottle",
+      "parameters": {
+        "color": "#88687e",
+        "size": 1
+      }
+    }
+  ]
+}

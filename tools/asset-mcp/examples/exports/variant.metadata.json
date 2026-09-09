@@ -1,0 +1,30 @@
+{
+  "format": "three-object-json",
+  "threeRevision": "185",
+  "sha256": "796cd995a5468f3e77b13213ed4a2a0001b09ca6ad2f2bc7b4a4a4613a49cc58",
+  "bytes": 28544,
+  "bounds": {
+    "min": [
+      -1.9099999785423278,
+      -1.4901161138336505e-9,
+      -0.7113101976716872
+    ],
+    "max": [
+      1.4880254032927005,
+      1.8633601164066258,
+      0.7113101976716872
+    ]
+  },
+  "stats": {
+    "nodes": 60,
+    "meshes": 51,
+    "triangles": 1220,
+    "geometries": 51,
+    "materials": 13
+  },
+  "builders": [
+    "src/studies/brewhouse/props.js:kettle",
+    "src/studies/brewhouse/props.js:bench",
+    "src/studies/brewhouse/props.js:bottle"
+  ]
+}

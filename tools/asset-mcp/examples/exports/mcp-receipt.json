@@ -1,0 +1,758 @@
+{
+  "transport": "stdio",
+  "sdk": {
+    "client": "2.0.0",
+    "server": "2.0.0"
+  },
+  "proof": "Real MCP child process, discovery, tool calls and exported artifacts; rendering is verified separately.",
+  "checks": [
+    {
+      "name": "actual-discovery-and-catalog",
+      "passed": true
+    },
+    {
+      "name": "configured-scene-export",
+      "passed": true
+    },
+    {
+      "name": "parameters-change-materials-and-geometry",
+      "passed": true
+    },
+    {
+      "name": "unknown-asset-kind",
+      "rejected": true,
+      "surface": "tool-result",
+      "content": [
+        {
+          "type": "text",
+          "text": "Input validation error: Invalid arguments for tool hive_build_scene: assets.0.kind: Invalid discriminator value. Expected 'kettle' | 'bench' | 'bottle' | 'bookcase'"
+        }
+      ]
+    },
+    {
+      "name": "unknown-parameter",
+      "rejected": true,
+      "surface": "tool-result",
+      "content": [
+        {
+          "type": "text",
+          "text": "Input validation error: Invalid arguments for tool hive_build_scene: assets.0.parameters: Unrecognized key: \"execute\""
+        }
+      ]
+    },
+    {
+      "name": "unbounded-scene-count",
+      "rejected": true,
+      "surface": "tool-result",
+      "content": [
+        {
+          "type": "text",
+          "text": "Input validation error: Invalid arguments for tool hive_build_scene: assets: Too big: expected array to have <=24 items"
+        }
+      ]
+    },
+    {
+      "name": "duplicate-asset-identity",
+      "rejected": true,
+      "surface": "tool-result",
+      "content": [
+        {
+          "type": "text",
+          "text": "Input validation error: Invalid arguments for tool hive_build_scene: assets.1.id: Asset IDs must be unique within a scene"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "baseline",
+      "file": "baseline.three.json",
+      "sha256": "ec33d735fff0bde5ba315a43eeb5bdb61f3ebdbad56fa1961a78955725c20e9a",
+      "bytes": 28539
+    },
+    {
+      "name": "variant",
+      "file": "variant.three.json",
+      "sha256": "796cd995a5468f3e77b13213ed4a2a0001b09ca6ad2f2bc7b4a4a4613a49cc58",
+      "bytes": 28544
+    }
+  ],
+  "childPid": 220993,
+  "protocolEra": "modern",
+  "server": {
+    "name": "hive-original-assets",
+    "version": "0.1.0"
+  },
+  "tools": [
+    {
+      "name": "hive_asset_catalog",
+      "title": "Original Hive asset catalog",
+      "description": "List the original asset builders, supported parameters, and scene limits.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "hive_build_scene",
+      "title": "Build an original Hive asset scene",
+      "description": "Compose configured original Hive assets and return portable Three.js Object JSON with recipe and export metadata. This creates no game entities and writes no server files.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "default": "Copper Familiar workbench",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "assets": {
+            "minItems": 1,
+            "maxItems": 24,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                    },
+                    "position": {
+                      "default": [
+                        0,
+                        0,
+                        0
+                      ],
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        }
+                      ],
+                      "items": false,
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotationY": {
+                      "default": 0,
+                      "description": "Yaw in degrees",
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "kettle"
+                    },
+                    "parameters": {
+                      "default": {},
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                    },
+                    "position": {
+                      "default": [
+                        0,
+                        0,
+                        0
+                      ],
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        }
+                      ],
+                      "items": false,
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotationY": {
+                      "default": 0,
+                      "description": "Yaw in degrees",
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "bench"
+                    },
+                    "parameters": {
+                      "default": {},
+                      "type": "object",
+                      "properties": {
+                        "width": {
+                          "default": 1.8,
+                          "type": "number",
+                          "minimum": 0.6,
+                          "maximum": 3
+                        },
+                        "depth": {
+                          "default": 0.75,
+                          "type": "number",
+                          "minimum": 0.4,
+                          "maximum": 1.4
+                        },
+                        "height": {
+                          "default": 0.81,
+                          "type": "number",
+                          "minimum": 0.4,
+                          "maximum": 1.4
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                    },
+                    "position": {
+                      "default": [
+                        0,
+                        0,
+                        0
+                      ],
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        }
+                      ],
+                      "items": false,
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotationY": {
+                      "default": 0,
+                      "description": "Yaw in degrees",
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "bottle"
+                    },
+                    "parameters": {
+                      "default": {},
+                      "type": "object",
+                      "properties": {
+                        "color": {
+                          "default": "#728e79",
+                          "type": "string",
+                          "enum": [
+                            "#728e79",
+                            "#88687e",
+                            "#b86842",
+                            "#4c626e",
+                            "#b78754",
+                            "#c0ae7e"
+                          ]
+                        },
+                        "size": {
+                          "default": 1,
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 2
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                    },
+                    "position": {
+                      "default": [
+                        0,
+                        0,
+                        0
+                      ],
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -8,
+                          "maximum": 8
+                        }
+                      ],
+                      "items": false,
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotationY": {
+                      "default": 0,
+                      "description": "Yaw in degrees",
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "bookcase"
+                    },
+                    "parameters": {
+                      "default": {},
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "assets"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "recipe": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "default": "Copper Familiar workbench",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "assets": {
+                "minItems": 1,
+                "maxItems": 24,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                        },
+                        "position": {
+                          "default": [
+                            0,
+                            0,
+                            0
+                          ],
+                          "type": "array",
+                          "prefixItems": [
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            }
+                          ],
+                          "items": false,
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "rotationY": {
+                          "default": 0,
+                          "description": "Yaw in degrees",
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "kettle"
+                        },
+                        "parameters": {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "position",
+                        "rotationY",
+                        "kind",
+                        "parameters"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                        },
+                        "position": {
+                          "default": [
+                            0,
+                            0,
+                            0
+                          ],
+                          "type": "array",
+                          "prefixItems": [
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            }
+                          ],
+                          "items": false,
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "rotationY": {
+                          "default": 0,
+                          "description": "Yaw in degrees",
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "bench"
+                        },
+                        "parameters": {
+                          "type": "object",
+                          "properties": {
+                            "width": {
+                              "default": 1.8,
+                              "type": "number",
+                              "minimum": 0.6,
+                              "maximum": 3
+                            },
+                            "depth": {
+                              "default": 0.75,
+                              "type": "number",
+                              "minimum": 0.4,
+                              "maximum": 1.4
+                            },
+                            "height": {
+                              "default": 0.81,
+                              "type": "number",
+                              "minimum": 0.4,
+                              "maximum": 1.4
+                            }
+                          },
+                          "required": [
+                            "width",
+                            "depth",
+                            "height"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "position",
+                        "rotationY",
+                        "kind",
+                        "parameters"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                        },
+                        "position": {
+                          "default": [
+                            0,
+                            0,
+                            0
+                          ],
+                          "type": "array",
+                          "prefixItems": [
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            }
+                          ],
+                          "items": false,
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "rotationY": {
+                          "default": 0,
+                          "description": "Yaw in degrees",
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "bottle"
+                        },
+                        "parameters": {
+                          "type": "object",
+                          "properties": {
+                            "color": {
+                              "default": "#728e79",
+                              "type": "string",
+                              "enum": [
+                                "#728e79",
+                                "#88687e",
+                                "#b86842",
+                                "#4c626e",
+                                "#b78754",
+                                "#c0ae7e"
+                              ]
+                            },
+                            "size": {
+                              "default": 1,
+                              "type": "number",
+                              "minimum": 0.5,
+                              "maximum": 2
+                            }
+                          },
+                          "required": [
+                            "color",
+                            "size"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "position",
+                        "rotationY",
+                        "kind",
+                        "parameters"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+                        },
+                        "position": {
+                          "default": [
+                            0,
+                            0,
+                            0
+                          ],
+                          "type": "array",
+                          "prefixItems": [
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            },
+                            {
+                              "type": "number",
+                              "minimum": -8,
+                              "maximum": 8
+                            }
+                          ],
+                          "items": false,
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "rotationY": {
+                          "default": 0,
+                          "description": "Yaw in degrees",
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "bookcase"
+                        },
+                        "parameters": {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "position",
+                        "rotationY",
+                        "kind",
+                        "parameters"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "name",
+              "assets"
+            ],
+            "additionalProperties": false
+          },
+          "scene": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "metadata": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "recipe",
+          "scene",
+          "metadata"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "closed": true,
+  "errors": [],
+  "stderr": ""
+}
