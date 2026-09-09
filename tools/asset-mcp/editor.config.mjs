@@ -79,7 +79,7 @@ export default defineConfig({
       async closeBundle() {
         const output = resolve(
           root,
-          "../../../.botanical/asset-mcp/editor-theme-checkpoint-20260909",
+          "../../../.botanical/asset-mcp/editor-compact-shell-checkpoint-20260909",
         );
         await mkdir(output, { recursive: true });
         for (const file of rawFiles)
@@ -98,7 +98,7 @@ export default defineConfig({
     },
   ],
   build: {
-    outDir: "../../../.botanical/asset-mcp/editor-theme-checkpoint-20260909",
+    outDir: "../../../.botanical/asset-mcp/editor-compact-shell-checkpoint-20260909",
     emptyOutDir: true,
     rollupOptions: { input: resolve(root, "index.html") },
   },

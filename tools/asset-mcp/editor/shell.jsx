@@ -135,10 +135,11 @@ function Studio() {
       <header>
         <div>
           <strong>Hive asset studio</strong>
-          <p>Original assets · full Three.js editor</p>
+          <p>Original assets · Three.js editor</p>
         </div>
         <nav aria-label="Studio actions">
           <Button
+            size="sm"
             disabled={!ready}
             variant="outline"
             onClick={() => file.current.click()}
@@ -146,6 +147,7 @@ function Studio() {
             Open project or recipe
           </Button>
           <Button
+            size="sm"
             disabled={!ready}
             onClick={() =>
               save(
@@ -158,6 +160,7 @@ function Studio() {
             Save project
           </Button>
           <Button
+            size="sm"
             disabled={!ready}
             variant="outline"
             onClick={() =>
@@ -167,6 +170,7 @@ function Studio() {
             Three JSON
           </Button>
           <Button
+            size="sm"
             disabled={!ready}
             variant="outline"
             onClick={() =>
@@ -185,9 +189,8 @@ function Studio() {
         sandbox="allow-scripts allow-same-origin allow-downloads allow-modals"
       />
       <footer>
-        Editor controls are upstream Three.js. Projects save full scene edits;
-        original recipes remain provenance. File editing is local, with no
-        shared live sync. Project scripts and publishing are disabled.
+        Upstream Three.js controls · Local project files · No live sync or
+        scripts
       </footer>
       <input hidden type="file" ref={file} accept=".json" onChange={open} />
     </main>
