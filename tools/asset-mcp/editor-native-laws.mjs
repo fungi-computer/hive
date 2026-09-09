@@ -171,31 +171,38 @@ test("native attach preserves detached light target world transform and serializ
   releaseScene(restored);
 });
 
-test("failed camera admission disposes actually parsed native resources", async () => {
-  const input = packet();
-  input.project.camera = new THREE.Object3D().toJSON();
-  const originalGeometry = THREE.BufferGeometry.prototype.dispose,
-    originalMaterial = THREE.Material.prototype.dispose;
-  let geometries = 0,
-    materials = 0;
-  THREE.BufferGeometry.prototype.dispose = function () {
-    geometries++;
-    return originalGeometry.call(this);
-  };
-  THREE.Material.prototype.dispose = function () {
-    materials++;
-    return originalMaterial.call(this);
+test("resource-bearing non-camera roots reject before native allocation", async () => {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(),
+    new THREE.MeshStandardMaterial(),
+  );
+  const scene = new THREE.Scene();
+  scene.add(mesh);
+  const roots = [mesh.toJSON(), scene.toJSON(), new THREE.Object3D().toJSON()];
+  const nativeParse = THREE.ObjectLoader.prototype.parseAsync;
+  let allocations = 0;
+  THREE.ObjectLoader.prototype.parseAsync = function (...args) {
+    allocations++;
+    return nativeParse.apply(this, args);
   };
   try {
-    await assert.rejects(
-      admitEditorProject(encode(input), false),
-      /Invalid project camera/,
+    for (const root of roots) {
+      const input = packet();
+      input.project.camera = root;
+      await assert.rejects(
+        admitEditorProject(encode(input), false),
+        /Invalid project camera/,
+      );
+    }
+    assert.equal(
+      allocations,
+      0,
+      "Neither scene nor rejected camera resources allocated",
     );
   } finally {
-    THREE.BufferGeometry.prototype.dispose = originalGeometry;
-    THREE.Material.prototype.dispose = originalMaterial;
+    THREE.ObjectLoader.prototype.parseAsync = nativeParse;
+    releaseScene(scene);
   }
-  assert(geometries > 0 && materials > 0);
 });
 
 test("native history admission rejects malformed transforms, duplicate IDs and executable records", () => {

@@ -56,6 +56,12 @@ function admitProjectData(input, original) {
   if (!original) {
     checkView(project);
     if (!project.camera?.object) throw new Error("Missing project camera");
+    if (
+      !["PerspectiveCamera", "OrthographicCamera"].includes(
+        project.camera.object.type,
+      )
+    )
+      throw new Error("Invalid project camera");
   }
   const settings = original ? null : rendererSettings(project.project);
   const provenance = JSON.stringify(
@@ -73,10 +79,9 @@ export async function admitEditorProject(bytes, original) {
   );
   const loader = new THREE.ObjectLoader();
   const scene = await loader.parseAsync(project.scene);
+  let camera = null;
   try {
-    const camera = project.camera
-      ? await loader.parseAsync(project.camera)
-      : null;
+    camera = project.camera ? await loader.parseAsync(project.camera) : null;
     if (camera && !camera.isPerspectiveCamera && !camera.isOrthographicCamera)
       throw new Error("Invalid project camera");
     if (original) {
@@ -86,6 +91,7 @@ export async function admitEditorProject(bytes, original) {
     return { scene, camera, project, settings, provenance };
   } catch (error) {
     releaseScene(scene);
+    if (camera) releaseScene(camera);
     throw error;
   }
 }
