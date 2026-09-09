@@ -225,7 +225,7 @@ durable payload only at a real server boundary. Do not add Watchdog, SQLite,
 liveness probes, wakes, an external executor, or a second scheduler to the
 current local browser save.
 
-## Account-bound Goblin entry — peer proposal, September 9
+## Account-bound Goblin entry — agreed peer boundary, September 9
 
 This is a planning response to Botanical's existing
 `issues/marketing-launch/08-connect-fungi-accounts-to-goblin.md`, not an account
@@ -245,14 +245,22 @@ host to construct its principal. Its full checkpoint/debug read is not a player
 observation. The existing public Mycelium consumer captures a host-selected
 principal and actor but its rest/dig observation is narrower than the full HUD.
 
-Proposed first product boundary: one private clearing owned by the authenticated
-account. Do not silently equate a personal platform Team, a game party, a pawn
-and an account. The account-to-permitted-world relation and stable role/body
-grant belong at the game host's ordinary authenticated entry; Better Auth remains
-Botanical's identity owner. Use the current public App/host mechanism that
-Botanical can actually qualify, or agree its missing seam before implementation.
-Do not invent a privileged Hub endpoint or pass a client-supplied owner into the
-engine. A separate game-origin page cannot rely on Hub's host-only cookie.
+The agreed first product boundary is one private clearing owned by its signed-in
+player. Botanical supplies an **opaque, pairwise App-scoped customer identity**
+through its public App authority path. Global user IDs, personal Teams, game
+parties and pawns are different facts; none substitutes for that customer
+authority. The customer-to-permitted-world relation and stable role/body grant
+belong to the game host. Better Auth remains Botanical's identity owner.
+
+This uses Botanical's existing
+`wiki/3-resources/decisions/adr-app-platform-and-joint-ui-backend-contracts-v1.md`
+(public customer identity) and
+`adr-app-instance-runtime-identity-and-lifecycle-v1.md` (Instance identity).
+The public App runtime remains **Deployment-owned**. Player/world ownership is
+game data inside that runtime, not a new account-owned App Instance kind or an
+invented shared Team Installation. Do not expose global user IDs to App code,
+invent a privileged Hub endpoint or accept a client-selected owner. A separate
+game-origin page cannot rely on Hub's host-only cookie.
 
 That host must authorize startup/read, command, receipt replay and reopen for
 the requested world, then route to its existing Region/DO owner. Use stable
@@ -261,7 +269,7 @@ host-constructed principals rather than growing the proof harness's global
 player view; world knowledge and debug grants still apply. In account mode the
 browser becomes a projection/command client and stops independently advancing
 or confirming that server-owned world. Rebuildable local caches must be keyed
-by the selected account and world and cannot authenticate access. This work
+by the selected App customer and world and cannot authenticate access. This work
 reuses the existing engine command/receipt boundary and durable wake contract.
 
 Preserve anonymous `world/current` bytes unassociated and unchanged across
@@ -277,8 +285,17 @@ into a shared economy or overwrite an existing account world by default.
 First joint acceptance should demonstrate two accounts on the same browser:
 owned-world startup, cross-account read/command/replay denial, sign-out removal
 of access, lost-ack retry and exact DO reopen, while the anonymous local bytes
-remain intact. The unresolved peer decision is which current ordinary Fungi
-host/App admission supplies the verified account/grant to this game operation.
-Botanical owns that host capability; Game CTO owns world membership, projections
-and source integration. No new identity database or custom agent protocol is
-required by this proposal.
+remain intact. Botanical's September 9 source comparison identifies the current
+implementation gap: accepted e5 authenticates the actor for Team/Notes admission
+but sends no player subject to the backend. Current Agar/Media work captures
+Computer-operation authority but rejects backend Instances and supplies no
+public customer/world entry. These are peer-reported current-source limits,
+not conclusions from the older retained-root trace above.
+
+Therefore qualify generic public App/customer admission and its actual browser
+and backend caller before connecting Goblin. The authority choice is settled;
+the producer is not accepted yet. Botanical owns that host capability under
+issue08; Game CTO owns world membership, projections and game integration.
+This decision authorizes no game identity/backend writer or heavy run, and does
+not displace field-water work. No new identity database or custom agent protocol
+is required.

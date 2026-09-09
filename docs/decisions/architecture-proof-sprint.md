@@ -220,9 +220,13 @@ Goblin DO harness, isolated `field-region-host` at `add6906`. It must share the
 lawful authored fixture, existing fault/restart/receipt lifecycle and preserve
 the former digging evidence. No native launch, browser, build or deployment is
 released; Root owns actual heavy execution through Delivery. Sol completed the
-accounts-to-Goblin source trace in ignored notes; the peer proposal is in the
-[DO contract](local-snapshots-and-durable-ai-jobs.md#account-bound-goblin-entry--peer-proposal-september-9).
-No account writer, server or identity store is authorized. Root retains
+accounts-to-Goblin source trace in ignored notes. The agreed
+[DO contract boundary](local-snapshots-and-durable-ai-jobs.md#account-bound-goblin-entry--agreed-peer-boundary-september-9)
+uses opaque pairwise App-scoped customer identity; the public App runtime is
+Deployment-owned, while private world ownership is game data. Botanical must
+qualify public customer admission through its real browser/backend caller before
+the game connects. Anonymous saves remain untouched. No account writer, server
+or identity store is authorized. Root retains
 integration and actual rendered/DO qualification; frozen prior input evidence
 remains.
 
