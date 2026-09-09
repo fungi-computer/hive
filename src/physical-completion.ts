@@ -26,10 +26,10 @@ import { waterConservationProblem } from "./field-water.ts";
 import { waterSupplyProblem } from "./water-supply.ts";
 
 export const TERRAIN_WORK_TICKS = 40;
-type Result =
-  { status: "completed" } | { status: "waiting" | "invalid"; reason: string };
-const waiting = (reason: string): Result => ({ status: "waiting", reason });
-const invalid = (reason: string): Result => ({ status: "invalid", reason });
+type Refusal = { status: "waiting" | "invalid"; reason: string };
+type Result = { status: "completed" } | Refusal;
+const waiting = (reason: string): Refusal => ({ status: "waiting", reason });
+const invalid = (reason: string): Refusal => ({ status: "invalid", reason });
 
 /** Target identity only: transient occupancy is checked when work settles. */
 export function deconstructionTargetProblem(
@@ -48,7 +48,7 @@ export function deconstructionTargetProblem(
     : "";
 }
 
-function materialRefusal(reason: MaterialFailure): Result {
+function materialRefusal(reason: MaterialFailure): Refusal {
   if (
     reason === "container-incomplete" ||
     reason === "container-has-incoming" ||
@@ -99,7 +99,7 @@ function accessProblem(
   actor: Actor,
   job: PhysicalJob,
   site: Site | null,
-): Result | null {
+): Refusal | null {
   if (job.kind === "dig") {
     const problem = terrainDigProblem(state.terrain, job.voxel);
     if (problem) return invalid(problem);
@@ -142,12 +142,29 @@ function validateCandidate(prospective: Clearing): void {
     }
 }
 
-/** One detached material settlement and prospective geometry; no physical effect
- * or related-job cleanup is published until every fallible owner operation passes. */
-export function settlePhysicalEdit(
+type ReadyWork = {
+  status: "ready";
+  actor: Actor;
+  job: PhysicalJob;
+  site: Site | null;
+  required: number;
+};
+type PreparedEdit = {
+  status: "prepared";
+  work: ReadyWork;
+  materials: Clearing["materials"];
+  terrain: Clearing["terrain"];
+  sites: Site[];
+  finishedSite: Site | null;
+  retired: Set<string>;
+  notice: string;
+};
+
+/** Resolve live work and every precondition before allocating a material branch. */
+function readyWork(
   state: Clearing,
   input: { actorId: string; jobId: string },
-): Result {
+): ReadyWork | Refusal {
   if (state.paused) return waiting("Work is paused.");
   const resolved = resolveWork(state, input.actorId, input.jobId);
   if (!resolved) return invalid("Physical work no longer matches its worker.");
@@ -179,9 +196,17 @@ export function settlePhysicalEdit(
   if (access) return access;
   if (!Number.isSafeInteger(state.finishedJobs + 1))
     throw new Error("invalid-finished-job-counter");
+  return { status: "ready", actor, job, site: site ?? null, required };
+}
+
+/** All owner operations and joined validation finish on this detached branch.
+ * A refusal or exception leaves both physical facts and work handles untouched. */
+function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
+  const { actor, job, site, required } = work;
   const materials = structuredClone(state.materials);
   let terrain = state.terrain;
   let sites = state.sites;
+  let finishedSite: Site | null = null;
   const retired = new Set<string>();
   if (job.kind === "dig") {
     terrain = excavateTerrain(state.terrain, job.voxel);
@@ -195,10 +220,9 @@ export function settlePhysicalEdit(
       BUILDINGS[site!.type].wood,
     );
     if (!result.ok) return materialRefusal(result.reason);
+    finishedSite = { ...site!, work: required, finishedAt: state.tick };
     sites = state.sites.map((current) =>
-      current === site
-        ? { ...current, work: required, finishedAt: state.tick }
-        : current,
+      current === site ? finishedSite! : current,
     );
   } else {
     if (site!.type === "shelf") {
@@ -229,26 +253,56 @@ export function settlePhysicalEdit(
     sites = state.sites.filter((current) => current !== site);
   }
   validateCandidate({ ...state, materials, terrain, sites });
-  // Only infallible publication/cleanup remains. Keep handles held by the actor
-  // iteration and work callbacks; detached arrays become the one current owner.
-  Object.assign(state.materials, materials);
-  state.terrain = terrain;
-  if (job.kind === "build")
-    Object.assign(
-      site!,
-      sites.find((current) => current.id === site!.id)!,
-    );
-  else state.sites = sites;
-  for (const current of Object.values(state.actors))
-    if (current.task && retired.has(current.task.job))
-      finishActivity(state, current);
-  state.jobs = state.jobs.filter((pending) => !retired.has(pending.id));
-  state.notice =
+  const notice =
     job.kind === "dig"
       ? "Soil is piled beside the hole."
       : job.kind === "build"
         ? `${BUILDINGS[site!.type].label} finished.`
         : state.notice;
+  return {
+    status: "prepared",
+    work,
+    materials,
+    terrain,
+    sites,
+    finishedSite,
+    retired,
+    notice,
+  };
+}
+
+/** No owner calls or validation remain: publish facts and retire exact work.
+ * Retain the handles used by the current actor iteration and callbacks. */
+function publishEdit(state: Clearing, prepared: PreparedEdit): void {
+  const {
+    materials,
+    terrain,
+    sites,
+    finishedSite,
+    retired,
+    work: { actor, job, site },
+  } = prepared;
+  Object.assign(state.materials, materials);
+  state.terrain = terrain;
+  if (finishedSite) Object.assign(site!, finishedSite);
+  else state.sites = sites;
+  for (const current of Object.values(state.actors))
+    if (current.task && retired.has(current.task.job))
+      finishActivity(state, current);
+  state.jobs = state.jobs.filter((pending) => !retired.has(pending.id));
+  state.notice = prepared.notice;
   finishJob(state, actor, job.id);
+}
+
+/** The only completion entry: checked live work → detached preparation → publication. */
+export function settlePhysicalEdit(
+  state: Clearing,
+  input: { actorId: string; jobId: string },
+): Result {
+  const work = readyWork(state, input);
+  if (work.status !== "ready") return work;
+  const prepared = prepareEdit(state, work);
+  if (prepared.status !== "prepared") return prepared;
+  publishEdit(state, prepared);
   return { status: "completed" };
 }

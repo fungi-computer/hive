@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createClearing } from "./clearing.ts";
+import { createClearing, advanceTicks } from "./clearing.ts";
+import { readFileSync } from "node:fs";
+import { loadOptimizer } from "./engine/colony/loader.ts";
 import { advanceWork, interruptWork } from "./activity.ts";
 import { admitCommand } from "./orders.ts";
 import { snapshotFor, restoreSnapshot } from "./clearing-state.ts";
@@ -14,7 +16,8 @@ import {
   TERRAIN_WORK_TICKS,
 } from "./physical-completion.ts";
 import { terrainRimCells } from "./world.js";
-import { terrainColumn } from "./terrain.ts";
+import { terrainColumn, terrainFacts } from "./terrain.ts";
+import { STEP_SECONDS } from "./ticker.js";
 
 const scope = { party: "home", actors: null };
 const cell = (x, z) => ({ x, z, level: 0 });
@@ -316,4 +319,70 @@ test("paused final work is inert and unfinished deconstruction targets are rejec
   const before = JSON.stringify(state);
   assert.equal(settle(state).status, "waiting");
   assert.equal(JSON.stringify(state), before);
+});
+
+test("one waiting final build preserves another actor and the actual clock/terrain tick", async () => {
+  const optimizer = await loadOptimizer(
+    await WebAssembly.compile(
+      readFileSync(new URL("./engine/colony/colony.wasm", import.meta.url)),
+    ),
+  );
+  // Authored valid work frontier, not a claim that these jobs were earned by
+  // preceding simulation: Rowan is at the last build tick, Sedge is chopping.
+  const state = createClearing(),
+    site = structure(state, "wall", false);
+  const { job } = worker(state, "build", site.id, BUILDINGS.wall.ticks);
+  state.materials.lots.find((lot) => lot.id === "build-wood").location = {
+    kind: "ground",
+    ...cell(4, 4),
+  };
+  state.parties.home.members.push("sedge");
+  const tree = state.trees[0];
+  tree.work = 5;
+  state.jobs.push({
+    id: "chop-job",
+    kind: "chop",
+    target: tree.id,
+    scope,
+    reason: "Ordered",
+    routine: false,
+  });
+  Object.assign(state.actors.sedge, cell(tree.x, tree.z + 1), {
+    mode: "chop",
+    work: 5,
+    task: { kind: "chop", job: "chop-job", target: tree.id, duration: 75 },
+    assignment: { character: "sedge", task: "chop-job", cost: 0 },
+  });
+  currentSave(state);
+  const materials = structuredClone(state.materials);
+  const initialTime = terrainFacts(state.terrain).timeS;
+  advanceTicks(state, optimizer, 1);
+  assert.equal(state.tick, 1);
+  assert.equal(terrainFacts(state.terrain).timeS, initialTime + STEP_SECONDS);
+  assert.equal(
+    state.sites.find((candidate) => candidate.id === site.id).work,
+    BUILDINGS.wall.ticks - 1,
+  );
+  assert.equal(
+    state.sites.find((candidate) => candidate.id === site.id).finishedAt,
+    null,
+  );
+  assert.equal(state.actors.rowan.work, BUILDINGS.wall.ticks - 1);
+  assert.equal(state.actors.rowan.task.job, job.id);
+  assert.equal(state.actors.rowan.assignment.task, job.id);
+  assert.match(
+    state.jobs.find((candidate) => candidate.id === job.id).reason,
+    /Waiting for materials/,
+  );
+  assert.equal(
+    state.trees.find((candidate) => candidate.id === tree.id).work,
+    6,
+  );
+  // Chopping owns progress on the tree; actor.work is not a second chop clock.
+  assert.equal(state.actors.sedge.work, 5);
+  assert.equal(state.actors.sedge.task.job, "chop-job");
+  assert.equal(state.actors.sedge.assignment.task, "chop-job");
+  assert.equal(state.finishedJobs, 0);
+  assert.deepEqual(state.materials, materials);
+  currentSave(state);
 });
