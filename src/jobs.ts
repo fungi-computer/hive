@@ -1,3 +1,4 @@
+import { waterSupplyOptions, type WaterSupply } from "./water-supply.ts";
 import type {
   Activity,
   Actor,
@@ -83,7 +84,7 @@ type Candidate = {
   water?: {
     target: import("./model.ts").WaterDeliveryTarget;
     quantity: import("./model.ts").PositiveInt;
-    spring: string;
+    supply: WaterSupply;
     pail: string;
     operation?: string;
   };
@@ -417,6 +418,74 @@ function repairCacheOption(
     },
   };
 }
+/** Route ranking considers every eligible supply; stock selection never grants reach. */
+function waterDeliveryRoute(
+  state: Clearing,
+  person: Actor,
+  blocked: Set<string>,
+  pailFacts: readonly { lot: import("./model.ts").ItemLot }[],
+  destination: NonNullable<ReturnType<typeof resolveWaterDelivery>>,
+  existing?: import("./model.ts").WaterDeliveryOperation,
+) {
+  const candidates = pailFacts
+    .flatMap(({ lot }) => {
+      const cache = state.sources.find(
+        (source) =>
+          lot.location.kind === "container" &&
+          lot.location.container === sourcePailContainer(source.id),
+      );
+      const access =
+        lot.location.kind === "ground"
+          ? [lot.location]
+          : cache && sourceIsOpen(cache)
+            ? sourceAccessCells(cache)
+            : [];
+      const path =
+        lot.location.kind === "hand" && lot.location.actor === person.id
+          ? []
+          : nearestPath(state, person, access, blocked);
+      return path ? [{ lot, path }] : [];
+    })
+    .sort(
+      (left, right) =>
+        pathTicks(person, left.path) - pathTicks(person, right.path),
+    );
+  const routes = candidates
+    .flatMap((selected) => {
+      const pailAt = selected.path.at(-1) ?? person;
+      const supplies =
+        existing?.execution.phase === "deliver"
+          ? [{ supply: existing!.supply, source: null }]
+          : waterSupplyOptions(state, selected.lot.id, destination.quantity);
+      return supplies.flatMap((supply) => {
+        const sourcePath = supply.source
+          ? nearestPath(state, pailAt, supply.source.accessCells, blocked)
+          : [];
+        if (!sourcePath) return [];
+        const sourceAt = sourcePath.at(-1) ?? pailAt;
+        const deliveryPath = nearestPath(
+          state,
+          sourceAt,
+          destination.access,
+          blocked,
+        );
+        if (!deliveryPath) return [];
+        const travel =
+          pathTicks(person, selected.path) +
+          pathTicks(pailAt, sourcePath) +
+          pathTicks(sourceAt, deliveryPath);
+        return [{ selected, supply: supply.supply, travel }];
+      });
+    })
+    .sort(
+      (a, b) =>
+        a.travel - b.travel ||
+        a.selected.lot.id.localeCompare(b.selected.lot.id),
+    );
+  const route = routes[0];
+  return route ?? null;
+}
+
 function waterDeliveryOption(
   state: Clearing,
   person: Actor,
@@ -447,7 +516,6 @@ function waterDeliveryOption(
       destination.destination.capacity
   )
     return no("The kettle is full");
-  const phase = existing?.execution.phase ?? "acquire";
   if (
     existing &&
     !state.materials.bindings.some(
@@ -468,61 +536,16 @@ function waterDeliveryOption(
     : sourceFacts.filter(
         ({ lot }) => lot.material === "pail" && lot.quantity === 1,
       );
-  const candidates = pailFacts
-    .flatMap(({ lot }) => {
-      const cache = state.sources.find(
-        (source) =>
-          lot.location.kind === "container" &&
-          lot.location.container === sourcePailContainer(source.id),
-      );
-      const access =
-        lot.location.kind === "ground"
-          ? [lot.location]
-          : cache && sourceIsOpen(cache)
-            ? sourceAccessCells(cache)
-            : [];
-      const path =
-        lot.location.kind === "hand" && lot.location.actor === person.id
-          ? []
-          : nearestPath(state, person, access, blocked);
-      return path ? [{ lot, path }] : [];
-    })
-    .sort(
-      (left, right) =>
-        pathTicks(person, left.path) - pathTicks(person, right.path),
-    );
-  const selected = candidates[0];
-  if (!selected) return no("Waiting for the recoverable pail");
-  const spring =
-    phase === "deliver"
-      ? undefined
-      : state.sources.find(
-          (source) =>
-            source.id === existing?.spring ||
-            (!existing && source.kind === "spring"),
-        );
-  if (
-    phase !== "deliver" &&
-    (!spring ||
-      containerQuantity(state.materials, `source:${spring.id}`, "water") <
-        destination.quantity)
-  )
-    return no("Waiting for the spring");
-  const pailAt = selected.path.at(-1) ?? person;
-  const springPath = spring
-    ? nearestPath(state, pailAt, sourceAccessCells(spring), blocked)
-    : [];
-  const deliveryPath = spring
-    ? springPath &&
-      nearestPath(
-        state,
-        springPath.at(-1) ?? pailAt,
-        destination.access,
-        blocked,
-      )
-    : nearestPath(state, pailAt, destination.access, blocked);
-  if (!deliveryPath || (spring && !springPath))
-    return no("No route from pail to water destination");
+  const route = waterDeliveryRoute(
+    state,
+    person,
+    blocked,
+    pailFacts,
+    destination,
+    existing,
+  );
+  if (!route) return no("Waiting for a reachable pail and enough water");
+  const { selected } = route;
   return {
     reason:
       job.kind === "fill-kettle"
@@ -537,14 +560,12 @@ function waterDeliveryOption(
         "pending-operation",
         selected.path,
         1,
-        pathTicks(person, selected.path) +
-          pathTicks(pailAt, springPath) +
-          pathTicks(springPath.at(-1) ?? pailAt, deliveryPath),
+        route.travel,
       ),
       water: {
         target,
         quantity: existing?.quantity ?? destination.quantity,
-        spring: existing?.spring ?? spring!.id,
+        supply: route.supply,
         pail: selected.lot.id,
         operation: existing?.id,
       },
@@ -1289,6 +1310,8 @@ export function assignWork(state: Clearing, colony: Colony): void {
           state.workDirty = true;
           continue;
         }
+        if (existing.execution.phase !== "deliver")
+          existing.supply = c.water.supply;
         state.nextId++;
       } else {
         const record: import("./model.ts").WaterDeliveryOperation = {
@@ -1297,7 +1320,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
           job: m.task,
           target: c.water.target,
           quantity: c.water.quantity,
-          spring: c.water.spring,
+          supply: c.water.supply,
           pail: c.water.pail,
           execution: { phase: "acquire" },
         };

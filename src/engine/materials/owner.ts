@@ -1,3 +1,4 @@
+import { planContainerDebit, type MaterialPortion } from "./portions.ts";
 import { createMaterialQueries } from "./queries.ts";
 import {
   resolvePortableInterior,
@@ -526,67 +527,78 @@ export function createMaterialOwner<M extends string>(
     return success(held);
   }
 
-  function moveContainerPortion(
+  function moveContainerPortions(
     state: MaterialsState,
     input: {
       source: ContainerSpec;
       destination: ContainerSpec;
-      sourceLot: LotId;
+      portions: readonly MaterialPortion[];
       material: Material;
       quantity: number;
       access: TransferAccess;
     },
-  ): MaterialResult<ItemLot> {
-    if (!isPositiveInt(input.quantity))
-      return failure("invalid-positive-integer");
+  ): MaterialResult<MaterialPortion[]> {
     if (input.source.id === input.destination.id)
       return failure("destination-mismatch");
     const sourceProblem = validateContainer(input.source);
     if (sourceProblem) return failure(sourceProblem);
-    if (
-      !destinationAccepts(input.source, input.material) ||
-      !destinationAccepts(input.destination, input.material)
-    )
-      return failure("destination-mismatch");
-    const source = lotById(state, input.sourceLot);
-    if (
-      !source ||
-      source.material !== input.material ||
-      source.location.kind !== "container" ||
-      source.location.container !== input.source.id
-    )
+    if (!input.source.accepts.includes(input.material))
       return failure("source-ineligible");
-    if (availableQuantity(state, source.id) < input.quantity)
-      return failure("source-insufficient");
+    const planned = planContainerDebit(
+      state,
+      {
+        container: input.source.id,
+        material: input.material,
+        portions: input.portions,
+        quantity: input.quantity,
+      },
+      availableQuantity,
+    );
+    if (!planned.ok) return planned;
     if (!input.access.sourceReachable) return failure("source-unreachable");
     if (!input.access.destinationReachableWithPayload)
       return failure("destination-unreachable");
-    const capacityProblem = admitContainerCapacity(state, {
+    const capacity = admitContainerCapacity(state, {
       destination: input.destination,
       material: input.material,
-      quantity: input.quantity as PositiveInt,
+      quantity: input.quantity,
     });
-    if (capacityProblem) return failure(capacityProblem);
-    let allocation: MaterialResult<{ id: LotId; nextLotId: number }> | null =
-      null;
-    if (source.quantity !== input.quantity) {
-      allocation = allocateLotId(state);
-      if (!allocation.ok) return allocation;
+    if (capacity) return failure(capacity);
+    // Reserve every split identity against a detached allocator cursor before any debit.
+    const cursor = { ...state, nextLotId: state.nextLotId };
+    const ids: string[] = [];
+    for (const { lot, quantity } of planned.value) {
+      if (lot.quantity === quantity) ids.push(lot.id);
+      else {
+        const allocation = allocateLotId(cursor);
+        if (!allocation.ok) return allocation;
+        ids.push(allocation.value.id);
+        cursor.nextLotId = allocation.value.nextLotId;
+      }
     }
-    if (allocation) {
-      source.quantity = (source.quantity - input.quantity) as PositiveInt;
-      const moved: ItemLot = {
-        id: allocation.value.id,
-        material: input.material,
-        quantity: input.quantity as PositiveInt,
-        location: { kind: "container", container: input.destination.id },
+    planned.value.forEach(({ lot, quantity }, index) => {
+      const location = {
+        kind: "container" as const,
+        container: input.destination.id,
       };
-      state.lots.push(moved);
-      state.nextLotId = allocation.value.nextLotId;
-      return success(moved);
-    }
-    source.location = { kind: "container", container: input.destination.id };
-    return success(source);
+      if (lot.quantity === quantity) lot.location = location;
+      else {
+        lot.quantity = (lot.quantity - quantity) as PositiveInt;
+        state.lots.push({
+          id: ids[index]!,
+          material: lot.material,
+          quantity: quantity as PositiveInt,
+          location,
+        });
+      }
+    });
+    state.nextLotId = cursor.nextLotId;
+    return success(
+      planned.value.map(({ quantity }, index) => ({
+        lot: ids[index]!,
+        quantity,
+      })),
+    );
   }
 
   function interruptExactTransfer(
@@ -759,7 +771,7 @@ export function createMaterialOwner<M extends string>(
     reserveTransfer,
     pickupTransfer,
     deliverTransfer,
-    moveContainerPortion,
+    moveContainerPortions,
     interruptTransfer,
     releaseContainer,
     embedContainer,

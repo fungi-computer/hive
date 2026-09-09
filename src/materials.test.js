@@ -22,7 +22,7 @@ import {
   embedConstruction,
   interruptTransfer,
   materialQuantity,
-  moveContainerPortion,
+  moveContainerPortions,
   parkOperationPail,
   pickupTransfer,
   pourPailWater,
@@ -513,10 +513,10 @@ test("incoming exact-lot capacity uses its carried payload after a partial picku
   assert.equal(pickupTransfer(materials, "incoming-mugwort", access).ok, true);
   materials.lots = materials.lots.filter((lot) => lot.id !== "mugwort-source");
   assert.equal(
-    moveContainerPortion(materials, {
+    moveContainerPortions(materials, {
       source: herbCache,
       destination: shelf,
-      sourceLot: "mugwort-other",
+      portions: [{ lot: "mugwort-other", quantity: 1 }],
       material: "mugwort",
       quantity: 1,
       access,
@@ -589,10 +589,10 @@ test("ordinary transfers reject water hand cargo while vessel moves stay contain
   materials.lots[0].location = { kind: "hand", actor: "rowan" };
   materials.transfers[0].phase = { kind: "carrying", lot: "water-source" };
   assert.deepEqual(
-    moveContainerPortion(materials, {
+    moveContainerPortions(materials, {
       source: spring,
       destination: kettle,
-      sourceLot: "water-other",
+      portions: [{ lot: "water-other", quantity: 1 }],
       material: "water",
       quantity: 1,
       access,
@@ -683,7 +683,7 @@ test("one held pail draws and pours exactly two finite water units", () => {
     drawPailWater(materials, {
       operation: "fill-kettle-a",
       source: spring,
-      sourceLot: "source-lot:feature:spring",
+      portions: [{ lot: "source-lot:feature:spring", quantity: 2 }],
       quantity: 2,
       access,
     }).ok,
@@ -695,7 +695,7 @@ test("one held pail draws and pours exactly two finite water units", () => {
     pourPailWater(materials, {
       operation: "fill-kettle-a",
       destination: kettle,
-      sourceLot: "lot-1",
+      portions: [{ lot: "lot-1", quantity: 2 }],
       quantity: 2,
       access,
     }).ok,
@@ -742,7 +742,7 @@ test("interrupting a filled held pail drops one vessel but preserves its operati
     drawPailWater(materials, {
       operation: "fill-kettle-a",
       source: spring,
-      sourceLot: "source-lot:feature:spring",
+      portions: [{ lot: "source-lot:feature:spring", quantity: 2 }],
       quantity: 2,
       access,
     }).ok,

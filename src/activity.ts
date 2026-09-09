@@ -1,3 +1,4 @@
+import { resolveWaterSupply } from "./water-supply.ts";
 import { type AccessOutcome } from "./engine/work/index.ts";
 import type {
   Activity,
@@ -37,7 +38,6 @@ import {
   embedConstruction,
   interruptTransfer,
   pickupTransfer,
-  pourPailWater,
   releaseContainer,
   salvageConstruction,
   transferForActor,
@@ -54,7 +54,6 @@ import {
   resolveCacheRepairBuffer,
   resolveMaterialWithdrawal,
   resolveOpenFiniteSourceContainer,
-  sourceContainerSpec,
   sourceIsOpen,
   sourcePailContainer,
 } from "./finite-sources.ts";
@@ -473,35 +472,34 @@ function finiteWork(s: Clearing, p: Actor, t: Activity): void {
       },
       draw() {
         if (operation.kind !== "water-delivery") return { status: "invalid" };
-        const spring = s.sources.find(
-          (source) =>
-            source.id === operation.spring && source.kind === "spring",
+        const supply = resolveWaterSupply(
+          s,
+          operation.pail,
+          operation.quantity,
+          operation.supply,
         );
-        if (!spring) return { status: "invalid" };
-        const access = approachWork(s, p, sourceAccessCells(spring));
+        if (!supply) return { status: "invalid" };
+        if (!supply.source)
+          return { status: "ready", contents: supply.contents };
+        const access = approachWork(s, p, supply.source.accessCells);
         if (access !== "ready") return { status: access };
-        const sourceLot = s.materials.lots
-          .filter(
-            (lot) =>
-              lot.material === "water" &&
-              lot.location.kind === "container" &&
-              lot.location.container === sourceContainerSpec(spring).id &&
-              lot.quantity >= operation.quantity,
-          )
-          .sort((a, b) => a.id.localeCompare(b.id))[0];
-        if (!sourceLot) return { status: "invalid" };
         const drawn = drawPailWater(s.materials, {
           operation: operation.id,
-          source: sourceContainerSpec(spring),
-          sourceLot: sourceLot.id,
-          quantity: operation.quantity,
+          source: supply.source.provider,
+          portions: supply.portions,
+          quantity: supply.deficit,
           access: {
             sourceReachable: true,
             destinationReachableWithPayload: true,
           },
         });
         return drawn.ok
-          ? { status: "ready", content: drawn.value.id }
+          ? {
+              status: "ready",
+              contents: [...supply.contents, ...drawn.value].sort((a, b) =>
+                a.lot.localeCompare(b.lot),
+              ),
+            }
           : { status: "invalid" };
       },
       deliver() {

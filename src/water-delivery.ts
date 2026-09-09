@@ -137,7 +137,7 @@ export function settleWaterDelivery(
     const poured = pourPailWater(state.materials, {
       operation: operation.id,
       destination: resolved.destination,
-      sourceLot: operation.execution.content,
+      portions: operation.execution.contents,
       quantity: operation.quantity,
       access: {
         sourceReachable: true,
@@ -151,7 +151,6 @@ export function settleWaterDelivery(
     return settleCareConsumption(state, {
       actor: target.actor,
       operation,
-      lot: operation.execution.content,
     })
       ? { ok: true }
       : { ok: false, reason: "destination-unavailable" };
@@ -164,7 +163,7 @@ export function settleWaterDelivery(
   const consumed = sinkHeldPortion(state.materials, {
     id: `water-delivery-sink:${operation.id}`,
     operation: operation.id,
-    sourceLot: operation.execution.content,
+    portions: operation.execution.contents,
     material: "water",
     quantity: operation.quantity,
   });

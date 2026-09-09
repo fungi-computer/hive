@@ -41,7 +41,7 @@ export const {
   reserveTransfer,
   pickupTransfer,
   deliverTransfer,
-  moveContainerPortion,
+  moveContainerPortions,
   interruptTransfer,
   releaseContainer,
   embedContainer: embedConstruction,
@@ -52,6 +52,7 @@ export const {
   remainingContainerQuantity,
 } = materialOwner;
 export const {
+  selectContainerPortions,
   sourceContainer,
   bindingPromiseQuantity,
   availableMaterialFacts,

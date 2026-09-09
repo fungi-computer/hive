@@ -307,7 +307,7 @@ export type WaterDeliveryOperation = {
   kind: "water-delivery";
   id: OperationId;
   job: JobId;
-  spring: FeatureId;
+  supply: import("./water-supply.ts").WaterSupply;
   target: WaterDeliveryTarget;
   quantity: PositiveInt;
   pail: LotId;
