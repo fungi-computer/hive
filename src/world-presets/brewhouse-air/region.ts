@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { createAir } from "../../engine/environment/air/index.js";
+import {
+  createFiniteRelease,
+  type ReleaseSegment,
+} from "../../engine/environment/finite-release.ts";
 import type { Json, RegionProgram } from "../../engine/region/index.ts";
 import type { MaterialsState } from "../../engine/materials/index.ts";
 import type { Material } from "../../model.ts";
@@ -58,43 +62,27 @@ const roomFor = (state: Pick<State, "terrain" | "opening">) =>
   generatedBrewhouseRoom(state.terrain, state.opening);
 const airOwner = (state: Pick<State, "terrain" | "opening">) =>
   createAir(roomFor(state).definition);
-
-function emittedFraction(state: State) {
-  return state.burn === null
-    ? 0
-    : Math.min(1, (state.air.timeS - state.burn.startS) / ROOM_FUEL.durationS);
-}
-function fuelRemainingS(state: State) {
-  return state.burn === null
-    ? 0
-    : Math.max(0, state.burn.startS + ROOM_FUEL.durationS - state.air.timeS);
-}
-function advanceProblem(state: State, seconds: number) {
-  const before = fuelRemainingS(state),
-    firing = Math.min(seconds, before),
-    coast = seconds - firing,
-    after = Math.max(0, before - firing);
-  return [firing, coast, after].some(
-    (interval) => interval > 0 && interval < ROOM_MIN_FIELD_INTERVAL_S,
-  )
-    ? "fuel-boundary-below-field-interval"
-    : null;
-}
+const dose = createFiniteRelease({
+  durationS: ROOM_FUEL.durationS,
+  totals: { smokeKg: ROOM_FUEL.smokeKg, heatJ: ROOM_FUEL.heatJ },
+});
 function validateSourceJoin(state: State) {
   if (state.air.timeS !== terrainFacts(state.terrain).timeS)
     throw new Error("room field clocks disagree");
   if (state.burn !== null && state.burn.startS > state.air.timeS)
     throw new Error("room fuel starts after the physical clock");
-  const remainingS = fuelRemainingS(state);
+  const { remainingS, released } = dose.read(
+    state.burn?.startS ?? null,
+    state.air.timeS,
+  );
   if (remainingS > 0 && remainingS < ROOM_MIN_FIELD_INTERVAL_S)
     throw new Error("room fuel remainder is below the shared field interval");
   validateRoomFuel(state.materials, state.burn !== null);
-  const fraction = emittedFraction(state);
   if (
     state.air.initialHeatJ !== 0 ||
     state.air.initialSmokeKg !== 0 ||
-    Math.abs(state.air.heatSourceJ - ROOM_FUEL.heatJ * fraction) > 1e-5 ||
-    Math.abs(state.air.smokeSourceKg - ROOM_FUEL.smokeKg * fraction) > 1e-10
+    Math.abs(state.air.heatSourceJ - released.heatJ) > 1e-5 ||
+    Math.abs(state.air.smokeSourceKg - released.smokeKg) > 1e-10
   )
     throw new Error(
       "air sources disagree with finite fuel transformation and clock",
@@ -247,10 +235,18 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
           break;
         }
         case "advance": {
-          const problem = advanceProblem(candidate, command.seconds);
-          if (problem)
-            return { status: "rejected", result: { reason: problem } };
-          advanceRoom(candidate, command.seconds);
+          const plan = dose.plan(
+            candidate.burn?.startS ?? null,
+            candidate.air.timeS,
+            command.seconds,
+            ROOM_MIN_FIELD_INTERVAL_S,
+          );
+          if (plan.status === "blocked")
+            return {
+              status: "rejected",
+              result: { reason: "fuel-boundary-below-field-interval" },
+            };
+          advanceRoom(candidate, plan.segments);
           break;
         }
       }
@@ -259,28 +255,27 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
   };
 }
 
-function advanceRoom(candidate: State, seconds: number) {
+function advanceRoom(
+  candidate: State,
+  segments: readonly ReleaseSegment<"heatJ" | "smokeKg">[],
+) {
   const registered = roomFor(candidate),
     owner = createAir(registered.definition);
-  const fuelLeftS = fuelRemainingS(candidate);
-  const firingS = Math.min(seconds, fuelLeftS);
   let next = candidate.air,
     terrain = candidate.terrain;
-  if (firingS > 0) {
-    next = owner.advance(next, firingS, {
-      sources: [
-        {
-          cellId: registered.sourceCell,
-          smokeKgS: ROOM_FUEL.smokeKg / ROOM_FUEL.durationS,
-          heatJS: ROOM_FUEL.heatJ / ROOM_FUEL.durationS,
-        },
-      ],
+  for (const segment of segments) {
+    next = owner.advance(next, segment.seconds, {
+      sources: segment.rates
+        ? [
+            {
+              cellId: registered.sourceCell,
+              smokeKgS: segment.rates.smokeKg,
+              heatJS: segment.rates.heatJ,
+            },
+          ]
+        : [],
     }).state;
-    terrain = advanceTerrain(terrain, firingS);
-  }
-  if (seconds > firingS) {
-    next = owner.advance(next, seconds - firingS).state;
-    terrain = advanceTerrain(terrain, seconds - firingS);
+    terrain = advanceTerrain(terrain, segment.seconds);
   }
   if (next.timeS !== terrainFacts(terrain).timeS)
     throw new Error("room field clocks disagree after advance");
@@ -304,7 +299,8 @@ export function roomResult(state: State): Record<string, Json> {
     ventOpen: state.opening.open,
     emittedSmokeKg: state.air.smokeSourceKg,
     emittedHeatJ: state.air.heatSourceJ,
-    remainingDoseFraction: state.burn === null ? 1 : 1 - emittedFraction(state),
+    remainingDoseFraction:
+      1 - dose.read(state.burn?.startS ?? null, state.air.timeS).fraction,
     terrainRevision: state.terrain.world.revision,
     excavatedVoxels: state.terrain.exports.length,
     exportedWaterKg: state.terrain.exports.reduce(
