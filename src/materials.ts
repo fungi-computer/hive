@@ -70,6 +70,8 @@ export const {
   parkOperationVessel: parkOperationPail,
   rebindOperationVessel: rebindOperationPail,
   retireOperationUse,
+  importVesselContents,
+  exportVesselContents,
   sinkHeldPortion,
   sinkHeldOperationPortion,
   interruptOperation: interruptOperationPail,

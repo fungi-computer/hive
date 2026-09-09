@@ -59,12 +59,27 @@ export function initialTerrain(): GeneratedTerrain {
   return recipe.parseClosedState(recipe.input);
 }
 export function parseTerrain(value: unknown): GeneratedTerrain {
-  const state: GeneratedTerrain = recipe.parseClosedState(value);
+  const state: GeneratedTerrain = recipe.parseState(value);
   // The engine consumer can deepen stone. Main-game yields still own only soil;
   // do not admit an imported stone source as a soil item through the old count.
   if (state.exports.some((source) => source.kind !== "porous"))
     throw new Error("Main-game stone material yields are not yet supported.");
   return state;
+}
+/** Consumers without a material counterpart retain closed-boundary admission. */
+export function parseClosedTerrain(value: unknown): GeneratedTerrain {
+  return recipe.parseClosedState(parseTerrain(value));
+}
+/** Trusted composition only: the game pairs this physical successor with materials
+ * before publication. This operation alone grants no outside stock or actor reach. */
+export function exchangeTerrainWater(
+  state: GeneratedTerrain,
+  input: { nodeId: string; direction: "withdraw" | "deposit"; massKg: number },
+) {
+  const result = adapter.exchange(parseTerrain(state), input);
+  const next: GeneratedTerrain = result.state;
+  projections.set(next.world, projection(state));
+  return { state: next, receipt: result.receipt };
 }
 export function terrainFacts(state: GeneratedTerrain) {
   return adapter.read(parseTerrain(state));
@@ -73,7 +88,10 @@ export function advanceTerrain(
   state: GeneratedTerrain,
   seconds: number,
 ): GeneratedTerrain {
-  const next: GeneratedTerrain = adapter.advance(parseTerrain(state), seconds).state;
+  const next: GeneratedTerrain = adapter.advance(
+    parseTerrain(state),
+    seconds,
+  ).state;
   // Field advancement changes water only. Share the read projection through this
   // known transition; unrelated restores never alias merely by revision.
   projections.set(next.world, projection(state));

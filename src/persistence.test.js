@@ -177,7 +177,7 @@ test("current snapshots retain authored terrain, omit commands, and restore paus
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 19);
+  assert.equal(saved.schema, 20);
   assert.deepEqual(saved.savedState.terrain, state.terrain);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
@@ -447,7 +447,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("current reload preserves finite supplies and partial source contents", () => {
   const restored = restoreSnapshot(envelope());
-  assert.equal(snapshotFor(restored.state).schema, 19);
+  assert.equal(snapshotFor(restored.state).schema, 20);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",

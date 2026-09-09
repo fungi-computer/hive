@@ -2,6 +2,8 @@
 export {
   initialTerrain,
   parseTerrain,
+  parseClosedTerrain,
+  exchangeTerrainWater,
   terrainFacts,
   advanceTerrain,
   excavateTerrain,

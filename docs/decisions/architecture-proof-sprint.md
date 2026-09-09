@@ -198,6 +198,23 @@ producer/Region/view read-only. Sol continues the same bounded writer chunk;
 Root found and routed its half-tile display mismatch against center-addressed
 terrain. No physics or original builder change is needed for that correction.
 
+**Current paired field/material source:** Root now owns the schema20 paired
+primitive and fixed-baseline save law described in
+[field water and vessel work](field-water-and-vessel-work.md#current-paired-source-checkpoint).
+Actual held portions and a real column pay each other; all fallible checks occur
+before either successor is published. Initial9 laws passed u4466; strengthened
+late-field failure and app types passed u4475. Shared supply/activity callers
+and Region replay/rollback remain to join. No new browser or deployment.
+
+**Generated-room source ready:** Sol pinned `fad0657` with10 affected laws
+u4465 and app types u4456. Root and Meitner accepted the three corrections:
+shared terrain/site/air coordinates, geometry identity across same-revision
+histories, and rejection of fuel splits/remainders smaller than the public field
+interval. Serial integration must use `parseClosedTerrain` because this room has
+no material-water counterpart. It remains an authored starting house on actual
+generated terrain, outside full Clearing; tree permeability and fixed air-volume
+limits remain. No new rendering, ventilation-benefit or DO claim.
+
 The following records preserve prior evidence and completed custody history.
 
 **Latest actual input witness:** diagnostic `u4391` at runtime `09e813a`, fixture

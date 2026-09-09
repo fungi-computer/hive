@@ -41,6 +41,41 @@ an inferred complete trajectory from a scalar balance. `u4384` passed three
 new real-consumer laws, `u4387` types passed, and `u4388` Fallow retained only
 existing content-ID/estimated-coverage advisories. No numerical or native rerun.
 
+## Current paired source checkpoint
+
+Root has implemented `src/field-water.ts` as the Goblin composition of the
+existing physical exchange and generic held-vessel import/export owners. The
+binding declares one water portion as one kg/one litre, validates an actual
+worker holding the operation pail at a dry reachable rim, prepares both owners
+before publication, and preserves the material handle retained by work callbacks.
+A return removes actual held portions without adding a consumption sink. It is
+currently a trusted draw-phase primitive, not a new player command or pour job.
+
+Current schema20 replaces the closed material-only total with the joined
+`b + S + (M - M0) kg = 0` law. The field recipe still checks its original F0;
+terrain queries are intrinsic, while consumers with no paid counterpart use
+`parseClosedTerrain`. The standalone wet Region/worker remain closed. This is a
+breaking current format, without an old-format reader or an exchange ledger
+copied into the game.
+
+Initial field/save/closed-consumer laws passed9/9 in u4466. The strengthened
+late-field-overdraft law passed in u4475 with app strict typechecking: a real
+empty2-unit pail cannot withdraw2kg from a1kg column, and neither owner changes.
+The first strengthening tried to return a new lot into the authored finite
+spring and was correctly rejected by its content validator (u4469); the fixture
+now moves the remaining unit into an actual constructed kettle. A missed test
+identifier (u4471), missing optional tsx invocation (u4474), and non-executable
+Prettier entry (u4478) are preserved setup/fixture failures, not physics failures.
+Use ordinary Node24 and the installed formatter through Node.
+
+Fallow u4477 found three exports awaiting the already-planned supply caller and
+one combined preflight complexity hotspot. Root split actual work/custody
+resolution from field reach/balance admission; no new state owner. No duplicate,
+cycle or security finding in that file. Supply selection, existing activity/work
+callers and Region replay/rollback of the paired operation are still the next
+joined outcome. This checkpoint does not establish field-fed gameplay or a
+current DO/hosted result.
+
 Readiness provenance: ignored source packet SHA256
 `e4a4ec985760cb0d025aa4efaed112ac295a42d53ddde0d226385a607cb1227e`.
 The original read-only source observations and rejected algebra are retained

@@ -1,3 +1,4 @@
+import { waterConservationProblem } from "./field-water.ts";
 import { waterSupplySchema, waterSupplyProblem } from "./water-supply.ts";
 import { materialPortionsSchema } from "./engine/materials/index.ts";
 import {
@@ -62,7 +63,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 19 as const;
+const SAVE_SCHEMA = 20 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -1953,21 +1954,8 @@ function validateConservation({ state }: RelationContext): void {
     fail(
       `mugwort conservation is ${mugwort}, expected ${state.harvestedHerbs}`,
     );
-  const water =
-    state.materials.lots.reduce(
-      (sum, lot) => sum + (lot.material === "water" ? lot.quantity : 0),
-      0,
-    ) +
-    transformed("water") +
-    state.materials.sinks.reduce(
-      (sum, sink) => sum + (sink.material === "water" ? sink.quantity : 0),
-      0,
-    );
-  const springWater = state.sources
-    .filter((source) => source.kind === "spring")
-    .reduce((sum, source) => sum + sourceContainerSpec(source).capacity, 0);
-  if (water !== springWater)
-    fail(`water conservation is ${water}, expected ${springWater}`);
+  const waterProblem = waterConservationProblem(state);
+  if (waterProblem) fail(waterProblem);
   const activeDefinitions = FINITE_SOURCE_DEFINITIONS;
   const rationPerCache = activeDefinitions
     .filter((definition) => definition.kind === "reclaimed-timber-cache")

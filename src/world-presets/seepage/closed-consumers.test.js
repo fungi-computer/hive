@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { openRegion } from '../../engine/region/index.ts';
 import { sqliteTestOwner } from '../../engine/region/sqlite-test-owner.mjs';
-import { parseTerrain, advanceTerrain, terrainFacts, terrainCell, terrainWater,
+import { parseTerrain, parseClosedTerrain, advanceTerrain, terrainFacts, terrainCell, terrainWater,
   excavateTerrain } from '../goblin-terrain.ts';
 import { createWetClearing } from './wet-clearing.mjs';
 import { createWetRegionProgram } from './region.ts';
@@ -16,7 +16,7 @@ function fixture() {
 }
 function rejectClosed(recipe, value, error) {
   assert.throws(() => recipe.parseClosedState(value), error);
-  assert.throws(() => parseTerrain(value), error);
+  assert.throws(() => parseClosedTerrain(value), error);
   assert.throws(() => createWetRegionProgram().parseState({ environment: value }), error);
 }
 
@@ -34,7 +34,7 @@ test('closed game and independent recipe preserve actual flow and porous export 
   assert.equal(reopened.exports.length, 2);
 });
 
-test('closed consumers reject plausible spoil forgery and a real but unpaired field deposit', () => {
+test('closed consumers reject unpaired field deposits while intrinsic terrain keeps the registered baseline', () => {
   const recipe = fixture(), { adapter, state } = recipe;
   const forged = structuredClone(state);
   forged.exports[0].waterKg -= 1;
@@ -48,7 +48,7 @@ test('closed consumers reject plausible spoil forgery and a real but unpaired fi
   for (const readOrChange of [() => terrainFacts(supplied), () => terrainWater(supplied),
     () => terrainCell(supplied, 7, 9), () => advanceTerrain(supplied, .2),
     () => excavateTerrain(supplied, [1, 14, 128])])
-    assert.throws(readOrChange, /no external water exchange/);
+    assert.doesNotThrow(readOrChange);
   // Editing the historical reference as well would hide the transfer from a
   // net-exchange-only check. The concrete recipe owns the known starting stock.
   const hidden = structuredClone(supplied);
