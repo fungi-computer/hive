@@ -1,3 +1,8 @@
+import { materialContainerFacts } from "./material-container-facts.ts";
+import {
+  deconstructionTargetProblem,
+  TERRAIN_WORK_TICKS,
+} from "./physical-completion.ts";
 import { waterConservationProblem } from "./field-water.ts";
 import { waterSupplySchema, waterSupplyProblem } from "./water-supply.ts";
 import { materialPortionsSchema } from "./engine/materials/index.ts";
@@ -32,7 +37,6 @@ import {
   resolveMaterialDestination,
   roofSupported,
   siteMaterialEndpoint,
-  siteMaterialEndpoints,
 } from "./construction.js";
 import {
   containerQuantity,
@@ -44,8 +48,6 @@ import {
   finiteSourceProblem,
   FINITE_SOURCE_DEFINITIONS,
   cacheRepairBuffer,
-  sourcePailContainerSpec,
-  sourceSuppliesContainerSpec,
   sourceContainerSpec,
 } from "./finite-sources.ts";
 import {
@@ -1212,24 +1214,12 @@ function relationContext(state: SavedClearing): RelationContext {
   const sites = new Map(state.sites.map((site) => [site.id, site]));
   if (jobs.size !== state.jobs.length) fail("duplicate job ID");
   if (sites.size !== state.sites.length) fail("duplicate site ID");
-  const containers = new Map<string, ContainerSpec>();
-  for (const site of state.sites)
-    for (const endpoint of siteMaterialEndpoints(site))
-      containers.set(endpoint.destination.id, endpoint.destination);
-  for (const feature of state.sources) {
-    containers.set(sourceContainer(feature.id), sourceContainerSpec(feature));
-    const repair = cacheRepairBuffer(feature);
-    if (feature.kind === "reclaimed-timber-cache" && !feature.repaired)
-      containers.set(repair!.id, repair!);
-    const pail = sourcePailContainerSpec(feature);
-    if (pail) containers.set(pail.id, pail);
-    const supplies = sourceSuppliesContainerSpec(feature);
-    if (supplies) containers.set(supplies.id, supplies);
-  }
-  for (const lot of state.materials.lots) {
-    const interior = portableContainerInterior(lot);
-    if (interior) containers.set(interior.id, interior);
-  }
+  const containers = new Map(
+    materialContainerFacts(liveState(state)).map((container) => [
+      container.id,
+      container,
+    ]),
+  );
   return { state, jobs, sites, containers };
 }
 
@@ -2008,6 +1998,39 @@ function validateTerrain({ state }: RelationContext): void {
       fail(`actor ${actor.id} lacks standing terrain`);
   validateDigTargets(state);
 }
+
+/** Last incomplete progress remains schedulable after cancellation/reload. */
+function validatePhysicalWork({ state }: RelationContext): void {
+  for (const site of state.sites)
+    if (site.finishedAt === null && site.work >= BUILDINGS[site.type].ticks)
+      fail(`unfinished structure ${site.id} has completed work`);
+  for (const actor of Object.values(state.actors)) {
+    const task = actor.task;
+    if (!task) continue;
+    if (task.kind === "dig" && actor.work >= TERRAIN_WORK_TICKS)
+      fail(`actor ${actor.id} has completed excavation progress`);
+    if (task.kind === "build" || task.kind === "deconstruct") {
+      const site = state.sites.find((site) => site.id === task.target);
+      if (site) {
+        const required =
+          task.kind === "build"
+            ? BUILDINGS[site.type].ticks
+            : BUILDINGS[site.type].deconstructTicks;
+        if (actor.work >= required)
+          fail(`actor ${actor.id} has completed ${task.kind} progress`);
+      }
+    }
+  }
+  for (const job of state.jobs)
+    if (job.kind === "deconstruct") {
+      const problem = deconstructionTargetProblem(
+        liveState(state),
+        job.target,
+        job.id,
+      );
+      if (problem) fail(`deconstruction job ${job.id}: ${problem}`);
+    }
+}
 /** Admitted exact work retains one live target, independently of occupancy. */
 function validateDigTargets(state: SavedClearing): void {
   const targets = new Set<string>();
@@ -2042,6 +2065,7 @@ function validateRelations(state: SavedClearing): SavedClearing {
   validateEmbeddings(context);
   validateSiteTopology(context);
   validateTerrain(context);
+  validatePhysicalWork(context);
   validateConservation(context);
   return state;
 }

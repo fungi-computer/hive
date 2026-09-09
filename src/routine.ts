@@ -1,7 +1,7 @@
 import type { Clearing } from "./model.ts";
 import { transferForActor } from "./materials.ts";
 import { members } from "./actors.ts";
-import { finishActivity } from "./activity.ts";
+import { finishActivity } from "./activity-lifecycle.ts";
 import { shelteredBeds } from "./construction.js";
 
 // Eight minutes at 1× leaves time to lay out and build a first home.

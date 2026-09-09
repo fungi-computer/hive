@@ -1,3 +1,4 @@
+import { deconstructionTargetProblem } from "./physical-completion.ts";
 import { finiteWorkOwner } from "./water-delivery.ts";
 import type {
   Clearing,
@@ -116,6 +117,8 @@ export function commandProblem(s: Clearing, c: Command): string {
         : scopeProblem(s, c);
   }
   if (c.kind === "build") return placementProblem(s, c);
+  if (c.kind === "deconstruct")
+    return deconstructionTargetProblem(s, c.site) || scopeProblem(s, c);
   if (c.kind === "dig") {
     const at = terrainColumn(c.voxel);
     const problem =
