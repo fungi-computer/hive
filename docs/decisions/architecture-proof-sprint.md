@@ -226,11 +226,20 @@ passed. Root read Fallow u4508: command estimated-coverage and inherited fetch/
 stop/other-harness duplication advisories remain, without suppression or a green
 audit claim. No physical laws were repeated for the fixture extraction.
 
-The exact native command is queued through Delivery after Morel push10 and
-the corrected Media session. It has not run; no native result, new database or
-listener is claimed. Root retains actual execution and cleanup in frozen
-`field-region-host`. No browser, build, benchmark, old digging replay or deployment
-is released. Sol completed the
+**Actual native qualification now passed:** after Delivery's release, Root ran
+the unchanged command once as u4514, invocation
+`343fb54fef2547a6a63eaf9ed41694e4`, exit0. Five actual owned local DO starts proved
+return and ordinary draw/tick receipt rollback, exact restart/lost-ack replay,
+authorization/conflict rejection, and real continued walking with the same held
+portions. Two units returned to the field and two were drawn; material/field
+coupled residual remained0 and no consumption sink appeared. All82 captured
+local source/config hashes match the integrated candidate. Complete evidence is
+`field-region-host/.botanical/field-region-host/native-v1/REPORT.md` and receipt
+SHA256 `6a6a40e6c25b6ba229ace738b63aadbd56d2a2c597a87082ecc4b04fb7be62f8`.
+All five owned PIDs and port39505 closed; scope inactive/dead with empty
+ControlGroup. Delivery has the returned window. The fixture is authored current
+work state; autonomous wake, browser/account entry and hosted acceptance remain
+separate. No build, benchmark, old digging replay or deployment ran. Sol completed the
 accounts-to-Goblin source trace in ignored notes. The agreed
 [DO contract boundary](local-snapshots-and-durable-ai-jobs.md#account-bound-goblin-entry--agreed-peer-boundary-september-9)
 uses opaque pairwise App-scoped customer identity; the public App runtime is
