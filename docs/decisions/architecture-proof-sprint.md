@@ -180,6 +180,18 @@ existing lot identities: drink1 from2, retain1, draw only1, then deliver2 to the
 kettle. Kettle, gardening and hydration must share that correction. These are
 accepted implementation boundaries, not completed pail/field gameplay.
 
+The diagnostic fixture is pinned `696bd2a`, integrated as `f37c001` with the
+previously reviewed launch/paused-restore setup. Runtime remains `09e813a`.
+Root owns the next queued input-only command in frozen `goblin-wet`; it waits
+for Delivery's actual release and replays no benchmark or law suite. Hume now
+owns the complete shared partial-pail/material-portions caller change in
+`/home/levi/src/hive-worktrees/vessel-portions`, branch
+`engine/vessel-portions-20260909`. It retains the existing closed finite supply
+budget; field sourcing is the later serial paired join. Meitner continues the
+independent physical exchange/remap in `deep-water`. Neither writer changes the
+frozen diagnostic runtime or the other's source; original air presentation stays
+accepted as source only.
+
 
 **Latest measured correction, September 9:** the first full main-game workload
 is retained at `goblin-wet` pin `4afe1c4`. `u4325` completed the frozen 20/80/60
