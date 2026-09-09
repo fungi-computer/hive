@@ -1,5 +1,6 @@
 import { selectContainerPortions } from "./portions.ts";
 export { materialPortionsSchema, type MaterialPortion } from "./portions.ts";
+export type { ExportedVesselContents } from "./held-use.ts";
 import { validateMaterialRelations } from "./relations.ts";
 import { checkedMaterialDefinitions } from "./definitions.ts";
 import { createMaterialRecovery } from "./recovery.ts";
