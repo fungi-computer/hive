@@ -46,11 +46,11 @@ can add supported links over the same contact surfaces without a second world.
 
 Levi explicitly asks for ordinary up/down traversal of one voxel without stairs,
 with animation and a movement penalty. Adopt this as the initial human movement
-profile. The current vertical voxel is0.54m; this is a noticeable step/clamber,
-not a whole2.16m storey. It is a pending implementation decision, not shipped
-movement. The current `movement.js` still charges6 ticks for every same-level
-edge and18 for every different-level edge, while `route` uses breadth-first
-search and `world.js` still restricts standing levels to0/1.
+profile. The current vertical voxel is 0.54 m; this is a noticeable step/clamber,
+not a whole 2.16 m storey. It is a pending implementation decision, not shipped
+movement. The current `movement.js` still charges 6 ticks for every same-level
+edge and 18 for every different-level edge, while `route` uses breadth-first
+search and `world.js` still restricts standing levels to 0/1.
 
 For an adjacent horizontal cell, the shared physical query finds a supported
 standing surface at the same height or exactly one voxel higher/lower. Admit an
@@ -62,8 +62,8 @@ Repeated step edges let a worker descend a terraced excavation and return with
 the same carried item. They cannot mine from a surface position into a deep
 shaft. Work reach uses that actual supported foot position and tool profile.
 
-Initial game-tuning values are6 ticks for a flat edge,12 for a one-voxel ascent,
-and9 for descent. These are definition-owned starting values, not measured
+Initial game-tuning values are 6 ticks for a flat edge, 12 for a one-voxel ascent,
+and 9 for descent. These are definition-owned starting values, not measured
 balance or universal engine constants. Stairs and ramps remain useful routes
 for larger height changes and repeated hauling. Carry/load and creature
 profiles can alter admitted movement and cost through the same owner; do not
