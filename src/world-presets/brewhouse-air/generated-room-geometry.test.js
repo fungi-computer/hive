@@ -6,7 +6,10 @@ import {
   TERRAIN_FRAME,
 } from "../goblin-terrain.ts";
 import { createStructureGeometry } from "../../structure-environment.ts";
-import { generatedBrewhouseRoom, roomExteriorFaces } from "./generated-room.ts";
+import {
+  generatedBrewhouseRoom,
+  roomExteriorBoundary,
+} from "./generated-room.ts";
 import { BREWHOUSE_ROOM } from "./room.ts";
 const world = ([x, y, z]) => [
   x + TERRAIN_FRAME.x,
@@ -36,6 +39,14 @@ test("registered504-cell room preserves exact wall and interior-face geometry wi
     revision: 0,
   });
   assert.deepEqual(room.definition.size, [8, 9, 7]);
+  assert.deepEqual(
+    [...room.definition.openSides].sort(),
+    ["x-", "x+", "z-", "z+", "y+"].sort(),
+  );
+  assert(
+    !room.definition.openSides.includes("y-"),
+    "wholly closed floor retains the existing no-slip side policy",
+  );
   const expectedSolids = [];
   for (let level = 0; level < 2; level++)
     for (let x = 4; x <= 9; x++)
@@ -55,10 +66,10 @@ test("registered504-cell room preserves exact wall and interior-face geometry wi
   const physical = query(BREWHOUSE_ROOM.sites),
     raster = physical.region(bounds);
   assert.deepEqual(raster.closedFaceIds, expectedFaces.sort());
-  const exterior = roomExteriorFaces(physical, bounds, room.ambientPlaneY);
+  const exterior = roomExteriorBoundary(physical, bounds, room.ambientPlaneY);
   assert.deepEqual(
     [...room.definition.closedFaces].sort(),
-    [...new Set([...expectedFaces, ...exterior])].sort(),
+    [...new Set([...expectedFaces, ...exterior.closedFaces])].sort(),
   );
   assert.equal(
     room.ambientPlaneY,
@@ -70,7 +81,7 @@ test("registered504-cell room preserves exact wall and interior-face geometry wi
   );
   for (let x = 3; x < 11; x++)
     for (let z = 3; z < 10; z++)
-      assert(exterior.includes(`y:${world([x, 0, z]).join()}`));
+      assert(exterior.closedFaces.includes(`y:${world([x, 0, z]).join()}`));
 });
 
 test("roof outside the raster leaves an empty continuation that the actual producer refuses", () => {
@@ -103,7 +114,7 @@ test("roof outside the raster leaves an empty continuation that the actual produ
     "needs-neighbor",
   );
   assert.throws(
-    () => roomExteriorFaces(roofed, bounds, plane),
+    () => roomExteriorBoundary(roofed, bounds, plane),
     /needs neighboring air region/,
   );
   assert.equal(

@@ -107,9 +107,15 @@ support check. It compiles a sparse query envelope with one extra horizontal
 neighbor layer and vertical extent through the terrain's registered upper face
 (currently worldY64), declares that face ambient, and checks every boundary.
 Boundary masks close actual solid/separating neighbors; all remaining admitted
-faces connect to proven outdoor. This replaces unconditional outdoor side labels.
+faces connect to proven outdoor. This replaces unconditional outdoor side labels. A side is marked ambient only
+when its classification includes an outdoor face; the wholly solid floor remains
+absent from openSides, preserving the current no-slip boundary.
 The shutter remains the existing explicit interior physical face addition.
 No solver, navigation, terrain, material, art, field state or saved schema changed.
+
+Mixed open/closed faces on one side still expose an existing air-stencil
+limitation: tangential outside ghosts use side membership rather than each
+face mask. This producer does not solve that numerical boundary; Root owns it.
 
 New sparse-query and generated-room boundary laws are authored only pending
 Root's gate. Existing geometry laws remain unchanged. This source checkpoint
