@@ -187,8 +187,22 @@ caller reuses a mutable checkpoint object. Ten projection/codec/picking laws
 (`u4334`), four actual-pawn/UI/isolation laws (`u4339`) and strict declarations
 (`u4340`) passed. Fallow retained only existing exhaustive UI-dispatch complexity
 in the inspected scope. The next benchmark retains the exact workload and
-records the intervening deep-water source merge separately. Performance and
-rendered acceptance remain open until that actual run.
+records the intervening deep-water source merge separately.
+
+The corrected run `u4342` completed that benchmark on `09e813a`: mean wall
+time per tick was 12.25/25.41/5.48ms for the same three workloads; aggregate
+CPU per tick was 3.52/6.65/1.54ms. The 20 full-map query passes used 1.061ms CPU,
+down from 587.054ms. A/B p95 wall times were still 117.76/58.21ms, so full
+50ms/20Hz acceptance remains open. This is one shared-host sample, not a browser
+frame-rate or population claim. Source hashes and both benchmark results remain.
+
+`u4342` then exited1 before opening desktop Chromium, which also requires
+`libcups.so.2`, `libcairo.so.2` and `libpango-1.0.so.0` beyond the provisioned
+library set. All owned processes and port5198 closed; the window was returned.
+Root's offline linker inspection found that the existing matching Playwright
+headless shell1243 resolves every listed dependency with that same library path.
+The next authorized attempt therefore uses it for the missing input/render proof
+only. No benchmark, unchanged laws, editor test or install is needed again.
 
 **Deep-water source checkpoint:** reviewed `905f170` is joined as `9977f85`.
 The same generated-world excavation and finite stock owner now deepens an
