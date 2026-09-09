@@ -74,6 +74,14 @@ body {
   outline: 3px solid var(--color-primary);
   outline-offset: 2px;
 }
+.soil-water-excavation-cell {
+  --soil-water-change: 0.12;
+  --soil-water-intensity: 0.3;
+}
+.soil-water-excavation-pit {
+  --soil-water-change: 0.72;
+  --soil-water-intensity: 0.72;
+}
 .soil-water-cell strong,
 .soil-water-cell span,
 .soil-water-cell small {

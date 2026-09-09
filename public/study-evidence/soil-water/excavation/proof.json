@@ -1,0 +1,430 @@
+{
+  "inventory": {
+    "CONTRACT.md": "2327336d21c8babd9bb15f70558beef69cb41e8dbedf63e767ab079cd9c58125",
+    "BOUNDARY.md": "37c451dbc64c53032357f1b72a2e5c2ad4cc61e6e94356e0fcc8d2350e596d15",
+    "world-binding.mjs": "737f8095d085fc9fe0c8935ea02ef1533538326a350fcc7714dc77c283336e6c",
+    "excavation.mjs": "34b33c747f764bf1dcc7ba55a51c062938393240dd59fa803caebefdf7e695dd",
+    "fixture.mjs": "dc2062221abdb39c2440077f118d8137facd9f16403b98fc7218be5f4e8bcbcb",
+    "qualify.mjs": "547dfeb496900c3dc474edb65020c61b982876b77c854c1ce8d4b4c675d33682",
+    "volume-with-pit-v1/pit.mjs": "2f6b7065835ad2078ecf048f96104ca42b660b35b9484f6e1e38e86b46399e16",
+    "volume-with-pit-v1/geometry.mjs": "147b3b62e090844d5d0f4a675d5d01e03c66677498447fe678057609a55ac104",
+    "volume-with-pit-v1/faces.mjs": "ef409d6b041d885963bf30f84ab63ea801cd6b69594d230741078fd4682c9cbf",
+    "volume-with-pit-v1/state.mjs": "f2cfa872d955bf326e405415b7d1a7304780bc574dde2e1b681108b9364088df",
+    "volume-with-pit-v1/residual.mjs": "b30ab60ecef97a9d91222b98af7ad31f6401304bb76ac6685b6ff71570d593d8",
+    "volume-with-pit-v1/guess.mjs": "666cd8f7f14388ec789d446fd8689a674ee4e8c10fdcb40cd8aed10112d17341",
+    "volume-with-pit-v1/linear.mjs": "4ede98c670b6bee94ceeb0c342888973302bf7f4624999efc3a1e51e5f0e7613",
+    "volume-with-pit-v1/newton.mjs": "df612a3cf2509a6a6b66312e861128f93c04eb159b7b962371443eb2df816059",
+    "volume-with-pit-v1/closure.mjs": "f9046f422c529bcd96a210e58f8edf5808f911e540fa50b17fd926c02f45af7f",
+    "volume-with-pit-v1/volume.mjs": "5e75a75ad9ded602721a5be429745c4ec34d710ee329827828e59636ca43fa39",
+    "../volume-v1/geometry.mjs": "d82adab5f53189974ed8ff1b3249f10f244013f6d8e586faab631ac2870e9889",
+    "../volume-v1/faces.mjs": "bd99ba60e1c9c0960e492e51f1f6612cadd389fe0f209e521518515d931b9551",
+    "../volume-v1/state.mjs": "f375b04fbd851c240f2aadbaedbf27edddc558446a1193fa8c5ab91edfb0d1a8",
+    "../volume-v1/residual.mjs": "e3b97b509763f564dbac997f26299caa7f223dca58032e30fa70144f65dcc394",
+    "../volume-v1/guess.mjs": "682b43f910c8c7daefed4d9eabdb12debee38f8836e94f157c4aae7082bc634c",
+    "../volume-v1/linear.mjs": "4243e23277ffada0b41649367c5cdc6c08347a07b2a06d1f5fb9cd6597db0f2c",
+    "../volume-v1/newton.mjs": "b130c62ed02af581821184bbd35e06c9969f632a8e69e2d8a0874e0ed5422d89",
+    "../volume-v1/closure.mjs": "684203674f11205e2bd352b62b1ee6ec419eb0964491122caebebd500b7d6921",
+    "../volume-v1/volume.mjs": "c54d5470e512483a76ddee0f1e235ad73464b23d26fc9e1dd3d79bf6a69542fd",
+    "../volume-v1/first-caller.mjs": "a74eedf188ba958a63a39fec6365a9f455d1d44822f755b9fedd7e0ae31af3cb",
+    "../column-v1/source-v2/soil.mjs": "8664df3a99269437a88d8f33ef26ad2b61d961ca802f31f28d7473b885aff6d1",
+    "../pit-face-v1/DECISION.md": "1e48b11a0ed7b969437959e965b7da87794ecf6720be81798e6f01cb25cc9324",
+    "../pit-face-v1/vertical-face.mjs": "37d468f546b0818cc59b59d4f40beced449903b7f4d82d8057ee4219216001ca",
+    "../../worldgen/coordinate-hash-v1/voxel-world.mjs": "59a51f9cbb4b4e1229c6aea2cd1956220e0a96d66341feb2841eea08e0b65351",
+    "../../worldgen/coordinate-hash-v1/terrain.js": "66279f7dc089a18b5263dce48c1128413af048e4b68f8b614b75b4feef892f3b",
+    "../../worldgen/coordinate-hash-v1/features.mjs": "247ec9319c9bff937eee385bf540f73e0c9533969e4194cfc04df086d1bc3add",
+    "../../worldgen/coordinate-hash-v1/lattice-hash.mjs": "eae43f3c20f871dca2cd39d7f7c495334eda51b3a17dec35f0739b1dfdd18e24"
+  },
+  "groups": [
+    {
+      "name": "original reservoir and moving-column consumer remains exactly compatible",
+      "checks": 2,
+      "steps": 10,
+      "work": {
+        "evaluations": 30,
+        "evaluationLimit": 250000,
+        "faceEvaluations": 150,
+        "iterations": 10,
+        "lineTrials": 10,
+        "rejected": 0,
+        "guessEdgeVisits": 100,
+        "guessNodeReads": 60,
+        "guessProjections": 19,
+        "matrixBuilds": 10,
+        "matrixAssemblyAdds": 200,
+        "peakDenseBytes": 288,
+        "pivotComparisons": 150,
+        "matrixSwapEntries": 0,
+        "factorDivisions": 150,
+        "matrixUpdates": 550,
+        "matrixUpdateLimit": 30000000,
+        "rhsUpdates": 150,
+        "backSubProducts": 150,
+        "backSubDivisions": 60,
+        "maxLinearResidualKg": 5.551115123125783e-17,
+        "closureFaceVisits": 50,
+        "closureTreeVisits": 50
+      }
+    },
+    {
+      "name": "one real generated soil edit exports wet spoil and retains every other stock",
+      "checks": 11,
+      "source": {
+        "id": {
+          "worldId": "one-generated-soil-excavation",
+          "spaceId": "surface",
+          "base": {
+            "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+            "heightSeed": "hive-world-lab-seed-20260907",
+            "codecSchema": 2,
+            "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+            "voxelRecipe": "height-sea-connected-caves-v3",
+            "features": {
+              "id": "pit-gallery-capsules-v1",
+              "regionMetres": 128,
+              "candidateJitterCells": 20,
+              "dryMarginLevels": 3,
+              "radiusMetres": 1.35,
+              "points": [
+                [
+                  0,
+                  2,
+                  0
+                ],
+                [
+                  0,
+                  -5,
+                  0
+                ],
+                [
+                  8,
+                  -10,
+                  6
+                ],
+                [
+                  20,
+                  -18,
+                  10
+                ]
+              ],
+              "chamberRadiiMetres": [
+                3.8,
+                2.4,
+                3.4
+              ],
+              "cacheCapRegions": 16,
+              "sampling": "physical-voxel-centres"
+            },
+            "units": {
+              "horizontalMetres": 1,
+              "verticalMetres": 0.54,
+              "voxelsPerStorey": 4
+            },
+            "bounds": {
+              "minX": -2048,
+              "maxX": 2048,
+              "minZ": -2048,
+              "maxZ": 2048,
+              "minY": -64,
+              "maxY": 64
+            },
+            "brickSide": 16,
+            "residentBrickCap": 8,
+            "cave": {
+              "id": "global-trilinear-two-octave-cave-v1",
+              "sampleNamespace": "height-sea-cave-density-v2",
+              "macro": {
+                "horizontalMetres": 32,
+                "verticalMetres": 18,
+                "weight": 0.78,
+                "salt": "cave-macro"
+              },
+              "detail": {
+                "horizontalMetres": 11,
+                "verticalMetres": 7,
+                "weight": 0.22,
+                "salt": "cave-detail"
+              },
+              "voidThreshold": 0.42,
+              "protectedSolidLayers": 3
+            }
+          }
+        },
+        "columns": 9,
+        "generatedSoilCells": 18,
+        "seed": "hive-world-lab-seed-20260907",
+        "waterTableYM": 7.710000000000001,
+        "soleTargetAnchor": false
+      },
+      "exportedKg": 237.03565722779186,
+      "balance": {
+        "retainedWaterKg": 4083.2852578223346,
+        "exportWaterKg": 237.03565722779186,
+        "pitWaterKg": 0,
+        "totalWaterKg": 4320.320915050126,
+        "residualKg": -9.094947017729282e-13
+      },
+      "contacts": [
+        {
+          "faceId": "x:0,14,128",
+          "axis": 0,
+          "sign": -1,
+          "neighbor": [
+            -1,
+            14,
+            128
+          ],
+          "material": "soil",
+          "soilNodeId": "cell:-1,14,128",
+          "centerM": [
+            0,
+            7.83,
+            128.5
+          ],
+          "areaM2": 0.54
+        },
+        {
+          "faceId": "x:1,14,128",
+          "axis": 0,
+          "sign": 1,
+          "neighbor": [
+            1,
+            14,
+            128
+          ],
+          "material": "soil",
+          "soilNodeId": "cell:1,14,128",
+          "centerM": [
+            1,
+            7.83,
+            128.5
+          ],
+          "areaM2": 0.54
+        },
+        {
+          "faceId": "y:0,14,128",
+          "axis": 1,
+          "sign": -1,
+          "neighbor": [
+            0,
+            13,
+            128
+          ],
+          "material": "soil",
+          "soilNodeId": "cell:0,13,128",
+          "centerM": [
+            0.5,
+            7.5600000000000005,
+            128.5
+          ],
+          "areaM2": 1
+        },
+        {
+          "faceId": "y:0,15,128",
+          "axis": 1,
+          "sign": 1,
+          "neighbor": [
+            0,
+            15,
+            128
+          ],
+          "material": "open",
+          "soilNodeId": null,
+          "centerM": [
+            0.5,
+            8.100000000000001,
+            128.5
+          ],
+          "areaM2": 1
+        },
+        {
+          "faceId": "z:0,14,128",
+          "axis": 2,
+          "sign": -1,
+          "neighbor": [
+            0,
+            14,
+            127
+          ],
+          "material": "soil",
+          "soilNodeId": "cell:0,14,127",
+          "centerM": [
+            0.5,
+            7.83,
+            128
+          ],
+          "areaM2": 0.54
+        },
+        {
+          "faceId": "z:0,14,129",
+          "axis": 2,
+          "sign": 1,
+          "neighbor": [
+            0,
+            14,
+            129
+          ],
+          "material": "soil",
+          "soilNodeId": "cell:0,14,129",
+          "centerM": [
+            0.5,
+            7.83,
+            129
+          ],
+          "areaM2": 0.54
+        }
+      ]
+    },
+    {
+      "name": "actual signed faces, partial-depth Jacobian and saturated dry-pit reference",
+      "checks": 343,
+      "maxDifferenceKgPerM": 1.4251781976781785e-8,
+      "perturbationM": 0.000001,
+      "derivativeCases": 324,
+      "dryReference": [
+        {
+          "node": 17,
+          "headM": 0,
+          "totalHeadM": 7.5600000000000005,
+          "cause": "exposed-saturated-side-atmospheric-reference"
+        }
+      ],
+      "saturatedPitKg": 0.059598353009499117,
+      "work": {
+        "evaluations": 13,
+        "evaluationLimit": 250000,
+        "faceEvaluations": 429,
+        "iterations": 7,
+        "lineTrials": 11,
+        "rejected": 0,
+        "guessEdgeVisits": 66,
+        "guessNodeReads": 18,
+        "guessProjections": 8,
+        "matrixBuilds": 7,
+        "matrixAssemblyAdds": 924,
+        "peakDenseBytes": 2592,
+        "pivotComparisons": 1071,
+        "matrixSwapEntries": 18,
+        "factorDivisions": 1071,
+        "matrixUpdates": 12495,
+        "matrixUpdateLimit": 30000000,
+        "rhsUpdates": 1071,
+        "backSubProducts": 1071,
+        "backSubDivisions": 126,
+        "maxLinearResidualKg": 3.255317022887727e-17,
+        "closureFaceVisits": 33,
+        "closureTreeVisits": 17
+      }
+    },
+    {
+      "name": "one ordinary unlined excavation fills by side and floor seepage and restarts while moving",
+      "checks": 313,
+      "flow": {
+        "values": [
+          {
+            "id": "x:0,14,128",
+            "role": "side",
+            "outwardKg": 0.8161749818785918
+          },
+          {
+            "id": "x:1,14,128",
+            "role": "side",
+            "outwardKg": 0.8161749788350261
+          },
+          {
+            "id": "y:0,14,128",
+            "role": "floor",
+            "outwardKg": 9.300728934574245
+          },
+          {
+            "id": "z:0,14,128",
+            "role": "side",
+            "outwardKg": 0.8161749781700586
+          },
+          {
+            "id": "z:0,14,129",
+            "role": "side",
+            "outwardKg": 0.8161749781700586
+          }
+        ],
+        "floorKg": 9.300728934574245,
+        "sidesKg": 3.264699917053735
+      },
+      "balance": {
+        "retainedWaterKg": 4070.7198289707067,
+        "exportWaterKg": 237.03565722779186,
+        "pitWaterKg": 12.565428851627985,
+        "totalWaterKg": 4320.320915050126,
+        "residualKg": -9.094947017729282e-13
+      },
+      "restartPitKg": 6.693430939792961,
+      "work": {
+        "evaluations": 400,
+        "evaluationLimit": 250000,
+        "faceEvaluations": 13200,
+        "iterations": 200,
+        "lineTrials": 200,
+        "rejected": 0,
+        "guessEdgeVisits": 6600,
+        "guessNodeReads": 1800,
+        "guessProjections": 1,
+        "matrixBuilds": 200,
+        "matrixAssemblyAdds": 26400,
+        "peakDenseBytes": 2592,
+        "pivotComparisons": 30600,
+        "matrixSwapEntries": 0,
+        "factorDivisions": 30600,
+        "matrixUpdates": 357000,
+        "matrixUpdateLimit": 30000000,
+        "rhsUpdates": 30600,
+        "backSubProducts": 30600,
+        "backSubDivisions": 3600,
+        "maxLinearResidualKg": 1.734723475976807e-16,
+        "closureFaceVisits": 3300,
+        "closureTreeVisits": 1700
+      },
+      "residualMaxima": {
+        "mixedKg": 1.691003934101154e-10,
+        "constitutiveKg": 4.440892098500626e-16,
+        "darcyKg": 1.390510987603344e-10,
+        "darcyM3S": 2.31751831267224e-14,
+        "pairKg": 4.263256414560601e-13,
+        "totalKg": 0,
+        "treeCorrectionKg": 1.3905109878743944e-10,
+        "rootCompatibilityKg": 4.5473000365170435e-13,
+        "initialContinuityKg": 1.691003934101154e-10,
+        "chordDifferenceKg": 0,
+        "complementarityM2": 0,
+        "stockClosureKg": 1.6916062994809522e-10
+      },
+      "recordingFrames": 100
+    },
+    {
+      "name": "unsupported edits, backfill, rim and work failures preserve canonical input",
+      "checks": 13,
+      "rejectedKinds": 7,
+      "finiteGasClaim": false,
+      "backfill": "unsupported",
+      "overflow": "unsupported"
+    }
+  ],
+  "progress": [],
+  "fixture": {
+    "columns": [
+      3,
+      3
+    ],
+    "soilLayers": 2,
+    "horizonS": 600,
+    "dtS": 6,
+    "restartS": 300,
+    "minimumPitKg": 0.001,
+    "minimumEachPathKg": 0.000001
+  },
+  "checks": 682,
+  "elapsedMs": 2004.0318800000002,
+  "cpuMicros": {
+    "user": 1755484,
+    "system": 58947
+  },
+  "rssBytes": 94027776
+}

@@ -17,11 +17,12 @@ import {
 import { Slider } from "@fungi.computer/caps/components/slider";
 import {
   DEPTHS,
+  SOIL_RECORDING_CASES,
   changeScale,
   depthCenterSliceEntry,
   depthSlice,
   frameFacts,
-  loadRecording,
+  loadRecordings,
   voxelKey,
 } from "./recording.js";
 import "./style.css";
@@ -56,7 +57,7 @@ function SoilCell({ entry, scale, selected, onSelect }) {
   );
 }
 
-function SoilWaterLab({ recording }) {
+function BlockPlayback({ recording }) {
   const [depthId, setDepthId] = useState("top");
   const [frameIndex, setFrameIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -98,22 +99,7 @@ function SoilWaterLab({ recording }) {
   }
 
   return (
-    <section className="soil-water-lab" aria-labelledby="soil-water-title">
-      <header className="soil-water-heading">
-        <div>
-          <p>Water Lab</p>
-          <h1 id="soil-water-title">Recorded 3D soil block playback</h1>
-          <span>
-            Saved physical frames from a fixed nonlinear soil experiment.
-            Controls choose recorded samples; they do not run a solver in the
-            browser.
-          </span>
-        </div>
-        <Badge tone="info" size="sm">
-          Recorded physical playback · not live
-        </Badge>
-      </header>
-
+    <>
       <Card variant="outline">
         <CardHeader>
           <CardTitle>Finite pond, modest redistribution</CardTitle>
@@ -286,6 +272,317 @@ function SoilWaterLab({ recording }) {
         water, oxygen, gas transport, terrain integration, or a gameplay water
         system.
       </p>
+    </>
+  );
+}
+
+function ExcavationCell({ cell, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      className={`soil-water-cell soil-water-excavation-cell soil-water-excavation-${cell.kind}`}
+      aria-pressed={selected}
+      onClick={onSelect}
+      title={`${cell.id}\n${cell.kind}\n${format(cell.massKg, 6)} kg`}
+    >
+      <strong>
+        {cell.at[0]}, {cell.at[2]}
+      </strong>
+      <span>{cell.kind === "pit" ? "Open pit" : "Soil"}</span>
+      <small>{format(cell.massKg, 5)} kg</small>
+    </button>
+  );
+}
+
+function ExcavationPlayback({ recording }) {
+  const [frameIndex, setFrameIndex] = useState(0);
+  const [depthY, setDepthY] = useState(recording.depths[0]);
+  const [playing, setPlaying] = useState(false);
+  const [selectedId, setSelectedId] = useState(recording.pitId);
+  const finalFrame = recording.frames.length - 1;
+  const frame = recording.frames[frameIndex];
+  const pit = frame.cells.find((cell) => cell.id === recording.pitId);
+  const slice = frame.cells
+    .filter((cell) => cell.at[1] === depthY)
+    .sort(
+      (left, right) => left.at[2] - right.at[2] || left.at[0] - right.at[0],
+    );
+  const selected =
+    slice.find((cell) => cell.id === selectedId) ??
+    slice.find((cell) => cell.at[0] === 0 && cell.at[2] === 128) ??
+    slice[0];
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    const timer = window.setInterval(() => {
+      setFrameIndex((current) => {
+        if (current >= finalFrame) {
+          setPlaying(false);
+          return current;
+        }
+        return current + 1;
+      });
+    }, 150);
+    return () => window.clearInterval(timer);
+  }, [finalFrame, playing]);
+
+  function selectFrame(value) {
+    setPlaying(false);
+    setFrameIndex(Math.max(0, Math.min(finalFrame, Math.round(Number(value)))));
+  }
+
+  function selectDepth(nextDepthY) {
+    const nextSlice = frame.cells.filter((cell) => cell.at[1] === nextDepthY);
+    const centre =
+      nextSlice.find((cell) => cell.at[0] === 0 && cell.at[2] === 128) ??
+      nextSlice[0];
+    setDepthY(nextDepthY);
+    setSelectedId(centre.id);
+  }
+
+  return (
+    <>
+      <Card variant="outline">
+        <CardHeader>
+          <CardTitle>Actual unlined excavation</CardTitle>
+          <CardDescription>
+            The initial saved frame is the already-excavated, dry pit. The next
+            100 samples are the accepted 6-second physical record through 600
+            seconds; controls do not run excavation or seepage.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Tabs
+        value={String(depthY)}
+        onValueChange={(value) => selectDepth(Number(value))}
+        className="soil-water-tabs"
+      >
+        <TabsList aria-label="Excavation layer">
+          {recording.depths.map((layer) => (
+            <TabsTrigger key={layer} value={String(layer)}>
+              {layer === 14 ? "Rim / pit" : "Floor layer"}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {recording.depths.map((layer) => (
+          <TabsContent key={layer} value={String(layer)}>
+            <Card variant="surface" className="soil-water-frame-card">
+              <CardHeader>
+                <CardTitle>
+                  Saved y={layer} cells at {frame.timeS} s
+                </CardTitle>
+                <CardDescription>
+                  This is the accepted edited voxel neighbourhood, including the
+                  actual hole rather than a generated replacement terrain view.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="soil-water-slice" aria-label="Excavation cells">
+                  {slice.map((cell) => (
+                    <ExcavationCell
+                      cell={cell}
+                      key={cell.id}
+                      selected={cell.id === selectedId}
+                      onSelect={() => setSelectedId(cell.id)}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      <Card variant="outline" className="soil-water-facts-card">
+        <CardHeader>
+          <CardTitle>Exact saved pit and selected-cell facts</CardTitle>
+          <CardDescription>
+            Pit water is a vented, quasi-static recorded stock. It is not a
+            finite gas inventory, overflow result, backfill model, or
+            world-scale groundwater claim.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl className="soil-water-facts">
+            <div>
+              <dt>Recorded clock</dt>
+              <dd>{frame.timeS} s</dd>
+            </div>
+            <div>
+              <dt>Pit water</dt>
+              <dd>{format(pit.massKg, 6)} kg</dd>
+            </div>
+            <div>
+              <dt>Pit volume</dt>
+              <dd>{format(pit.massKg, 6)} L</dd>
+            </div>
+            <div>
+              <dt>Pit depth</dt>
+              <dd>{format(pit.depthM, 6)} m</dd>
+            </div>
+            <div>
+              <dt>Selected cell</dt>
+              <dd>{selected.at.join(", ")}</dd>
+            </div>
+            <div>
+              <dt>Selected water</dt>
+              <dd>{format(selected.massKg, 6)} kg</dd>
+            </div>
+            <div>
+              <dt>Wet-spoil export</dt>
+              <dd>{format(recording.wetSpoilKg, 6)} kg</dd>
+            </div>
+          </dl>
+          <label
+            className="soil-water-frame-selector"
+            htmlFor="soil-excavation-frame"
+          >
+            <span>Saved excavation frame</span>
+            <Slider
+              id="soil-excavation-frame"
+              data-soil-excavation-frame
+              tone="info"
+              min={0}
+              max={finalFrame}
+              step={1}
+              value={frameIndex}
+              aria-valuetext={`Saved excavation frame ${frameIndex + 1} of ${recording.frames.length}, ${frame.timeS} seconds`}
+              onChange={(event) => selectFrame(event.target.value)}
+            />
+          </label>
+          <div
+            className="soil-water-controls"
+            role="group"
+            aria-label="Saved excavation playback controls"
+          >
+            <Button
+              size="sm"
+              disabled={frameIndex === finalFrame && !playing}
+              onClick={() => setPlaying((value) => !value)}
+            >
+              {playing ? "Pause" : "Play saved frames"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={frameIndex === finalFrame}
+              onClick={() =>
+                setFrameIndex((value) => Math.min(value + 1, finalFrame))
+              }
+            >
+              Step saved frame
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={frameIndex === 0}
+              onClick={() => {
+                setPlaying(false);
+                setFrameIndex(0);
+              }}
+            >
+              First excavated frame
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card variant="outline" className="soil-water-evidence-card">
+        <CardHeader>
+          <CardTitle>Recorded seepage and restart evidence</CardTitle>
+          <CardDescription>
+            These are fixed diagnostics copied from the accepted physical
+            packet, not values recomputed by this page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl className="soil-water-facts">
+            {recording.evidence.flow.values.map((entry) => (
+              <div key={entry.id}>
+                <dt>
+                  {entry.role === "floor" ? "Porous floor" : `Side ${entry.id}`}
+                </dt>
+                <dd>{format(entry.outwardKg, 9)} kg</dd>
+              </div>
+            ))}
+            <div>
+              <dt>Restart checkpoint at 300 s (exact continuation)</dt>
+              <dd>{format(recording.evidence.restartPitKg, 6)} kg</dd>
+            </div>
+            <div>
+              <dt>Balance residual</dt>
+              <dd>
+                {recording.evidence.balance.residualKg.toExponential(3)} kg
+              </dd>
+            </div>
+            <div>
+              <dt>Matrix builds / updates</dt>
+              <dd>
+                {recording.evidence.work.matrixBuilds} /{" "}
+                {format(recording.evidence.work.matrixUpdates, 0)}
+              </dd>
+            </div>
+            <div>
+              <dt>Maximum mixed residual</dt>
+              <dd>
+                {recording.evidence.residualMaxima.mixedKg.toExponential(3)} kg
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+
+      <p className="soil-water-limits">
+        This recorded physical playback shows vented, small soil seepage only.
+        It does not establish finite gas, overflow, backfill, live digging, a
+        game source, or a world-scale water model.
+      </p>
+    </>
+  );
+}
+
+function SoilWaterLab({ recordings }) {
+  const [caseId, setCaseId] = useState("block");
+  return (
+    <section className="soil-water-lab" aria-labelledby="soil-water-title">
+      <header className="soil-water-heading">
+        <div>
+          <p>Water Lab</p>
+          <h1 id="soil-water-title">Recorded soil-water playback</h1>
+          <span>
+            Saved physical frames from fixed experiments. Controls select saved
+            samples; they do not run a solver in the browser.
+          </span>
+        </div>
+        <Badge tone="info" size="sm">
+          Recorded physical playback · not live
+        </Badge>
+      </header>
+
+      <Tabs
+        value={caseId}
+        onValueChange={setCaseId}
+        className="soil-water-tabs"
+      >
+        <TabsList aria-label="Recorded soil-water case">
+          {SOIL_RECORDING_CASES.map((entry) => (
+            <TabsTrigger
+              key={entry.id}
+              value={entry.id}
+              data-soil-case={entry.id}
+            >
+              {entry.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value="block">
+          <BlockPlayback recording={recordings.block} />
+        </TabsContent>
+        <TabsContent value="excavation">
+          <ExcavationPlayback recording={recordings.excavation} />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }
@@ -293,16 +590,16 @@ function SoilWaterLab({ recording }) {
 export function SoilWaterLabLoader() {
   const [state, setState] = useState({
     status: "loading",
-    recording: null,
+    recordings: null,
     error: null,
   });
   useEffect(() => {
     let active = true;
-    loadRecording().then(
-      (recording) =>
-        active && setState({ status: "ready", recording, error: null }),
+    loadRecordings().then(
+      (recordings) =>
+        active && setState({ status: "ready", recordings, error: null }),
       (error) =>
-        active && setState({ status: "error", recording: null, error }),
+        active && setState({ status: "error", recordings: null, error }),
     );
     return () => {
       active = false;
@@ -316,5 +613,5 @@ export function SoilWaterLabLoader() {
         Could not load the recorded soil study: {String(state.error)}
       </p>
     );
-  return <SoilWaterLab recording={state.recording} />;
+  return <SoilWaterLab recordings={state.recordings} />;
 }
