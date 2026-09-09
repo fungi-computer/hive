@@ -2,6 +2,19 @@
 
 Game CTO plan, started 2026-09-07 and finalized 2026-09-08. Levi explicitly requests detailed plans for bounded implementers, including high-performance world generation and the interlocking living world. This selects architectural boundaries and orders the evidence required to adopt them. It is not approval to ship every future system in one sprint, adopt an unmeasured library, start paid resources or open large-world gameplay.
 
+## Current precedence — 2026-09-09
+
+The [engine/asset/game decision](hive-engine-asset-pipeline-and-goblin-boundaries.md)
+now governs module and product ownership. Hive supplies reusable physical-world,
+material and execution mechanisms; Goblin supplies content and game policy; the
+asset pipeline supplies original reusable visuals through a common authoring API.
+Fungi host/account/billing integration remains a separate platform boundary.
+Read the [current sprint](architecture-proof-sprint.md) and
+[current source audit](current-systems-review-and-module-plan.md) for live status
+and repair order. Engine capability/execution consolidation precedes publication
+of the retained care candidate. Earlier control/brewing/Delivery sequences below
+are historical and must not restart released work or refill retired Herdr lanes.
+
 ## Read this before assigning a writer
 
 The product is a home in a living world: build it, welcome people, discover and learn, prepare for journeys, and bring something valuable back. Ecology, knowledge, relationships and magic change what the home can do. The small clearing remains the place to judge fun. The [product synthesis](a-home-between-realms.md) explains the journey; these companion contracts turn it into engineering decisions:
@@ -15,7 +28,7 @@ The product is a home in a living world: build it, welcome people, discover and 
 
 Those documents give proposed API/data shapes with explicit maturity limits. Implement only the subset needed by the assigned consumer. Existing owners are replaced only when source/caller evidence establishes the need. Do not scaffold empty systems in anticipation of the complete game.
 
-### Newer control/work precedence
+### Historical control/work precedence (2026-09-08)
 
 The [controls floor-priority recut](controls-floor-priority-recut.md) is newer
 than this master plan for current ordering: controls proceed first, then all wood
@@ -34,7 +47,7 @@ unified-work, world/performance and rendering seams: one measured derived index,
 one joint optimizer, paused-command invalidation before observers, and spatial
 lookup kept separate. They do not add a dependency or general ECS.
 
-## Current status and source baseline
+## Historical status and source baseline (2026-09-08)
 
 During this planning pass, Delivery published upstairs candidate `32cd4235e22a6f7d456c3100d87fa8abd89475cd` on the existing feature preview. Local HEAD was independently read at that revision. Delivery reports exact hosted asset parity and preserved local topology/material/save laws. The final browser trace reached the earned-material upstairs fixture; later complete sleep/save/reload browser assertions were not finished, and the long trace was stopped under Levi's publish-and-move-on direction. This plan neither reruns nor upgrades that evidence claim.
 

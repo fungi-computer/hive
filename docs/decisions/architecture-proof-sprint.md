@@ -37,7 +37,18 @@ proof/static entrypoints, upstream exports and the existing activity/routine
 cycle were not deleted to produce a green audit. The source/caller review and
 focused behavior evidence establish this release; the audit is not claimed clean.
 
-**Active next outcome: shared physical care, before the first inn visitor.**
+**Active next outcome: engine capability/execution boundaries, using shared
+physical care as the next playable consumer before the first inn visitor.**
+Levi's current engine/game audit is recorded in the
+[Hive engine, asset pipeline and Goblin boundary decision](hive-engine-asset-pipeline-and-goblin-boundaries.md).
+It separates reusable world/material/work mechanisms, original art packs and
+bake/export, Goblin policy/content/UI, and eventual Fungi App authority. No package
+move or backend is implemented by that decision. Correct the proven save defects,
+then consolidate current endpoint/supply/execution consumers before care ships.
+The next physical engine outcome remains useful tiny-map water/soil and room
+ventilation; the asset workbench/MCP seam can advance independently at released
+file boundaries. Do not restart broad numerical studies or discard the retained
+needs candidate to perform this extraction.
 The [current whole-game audit](current-systems-review-and-module-plan.md)
 now owns the immediate repair order: two reproduced save/phase-policy defects,
 then endpoint/capability/supply/execution composition before care publication.

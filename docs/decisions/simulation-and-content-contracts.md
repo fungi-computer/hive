@@ -180,6 +180,14 @@ art. This is accepted future authoring direction and a feasibility assessment,
 not an implemented service or public/backend deployment. The current gameplay
 audit/care repair queue remains active.
 
+Levi subsequently made the product separation explicit: a reusable Hive engine,
+Goblin as its game consumer, and a paid MCP-accessible asset-authoring product
+with eventual Fungi App distribution. The
+[engine/asset/game decision](hive-engine-asset-pipeline-and-goblin-boundaries.md)
+owns those dependencies, the current capability extraction and App maturity
+limits. This API plan supplies the authoring details; it does not create billing
+or move platform authority into the baker.
+
 The achievable first product is a reusable original-art kit with a common
 authoring API consumed by both an MCP adapter and a future Caps workbench.
 MCP supplies discovery, typed tool calls and preview/artifact responses; the

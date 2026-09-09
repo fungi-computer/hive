@@ -16,6 +16,12 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 
 ## Runtime boundaries
 
+- Keep Hive engine mechanisms independent of Goblin content, presentation and
+  Fungi host authority. Follow the [engine/asset/game boundary decision](docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md).
+  Split ownership inside current files before moving packages. The engine must
+  become usable headlessly; asset authoring must not import live `Clearing` state.
+  Game and workbench consume the same original pack and bake/export owner.
+  A visual asset cannot create physical capabilities or inventory by itself.
 - Keep the existing deterministic simulation and actual libcolony optimizer as owners. Narrow candidate work before expensive paths; preserve joint assignment, personal-order policy and cargo continuation. Rendering and cosmetic animation never advance authoritative time or settle resources.
 - UI commands, buttons, hotkeys and help share the checked interaction catalog and current OpenTUI keymap. Jotai owns UI choices/display projections; XState owns gestures. Paused commands may change accepted intent while movement/work remains frozen.
 - Reuse the original Three → low-resolution bake → Pixi pipeline. World geometry, picking and ordering share coordinate contracts. Cached visuals and temporary pooled objects have disposal/reset rules and never replace persistent identity.
@@ -41,6 +47,7 @@ Publish coherent authorized interims to the existing feature preview and tell Le
 Read the current-status section of [the architecture-proof sprint](docs/decisions/architecture-proof-sprint.md) before assigning work. Historical paragraphs are evidence, not a competing active queue. Follow the applicable deeper contract:
 
 - [Architecture implementation and module plan](docs/decisions/architecture-implementation-plan.md)
+- [Hive engine, asset pipeline and Goblin game boundaries](docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md)
 - [Current whole-game source audit and repair order](docs/decisions/current-systems-review-and-module-plan.md)
 - [Controls priority](docs/decisions/controls-floor-priority-recut.md)
 - [Unified work/material algebra](docs/decisions/unified-work-algebra-recut.md)
