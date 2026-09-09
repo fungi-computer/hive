@@ -1,6 +1,7 @@
 // Adapted from Hive 14cfa809: the fixed-step accumulator remains the sole door
 // from wall time to gameplay. The clearing uses 50 ms steps, independent of future SSE delivery.
-const STEP_MS = 50;
+export const STEP_MS = 50;
+export const STEP_SECONDS = STEP_MS / 1000;
 const MAX_FRAME_DELTA_MS = 100;
 export function createTicker() {
   return { acc: 0, steps: 0, lastDeltaMs: 0 };

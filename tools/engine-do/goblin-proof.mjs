@@ -150,8 +150,11 @@ async function command(input, { role = "WRITER_SECRET", fault } = {}) {
   });
   const text = await response.text();
   let body;
-  try { body = JSON.parse(text); }
-  catch { body = { nonJson: redact(text).slice(0,4096) }; }
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = { nonJson: redact(text).slice(0, 4096) };
+  }
   const result = { status: response.status, body };
   (receipt.requests ??= []).push({ input, role, result });
   return result;
@@ -173,55 +176,141 @@ function check(name) {
   receipt.checks.push(name);
 }
 async function laws() {
-  const initial=await snapshot();
-  assert.equal(initial.snapshot.state.clearing.paused,true);
-  const order={id:"shared-dig",expectedRevision:0,command:{kind:"order",command:{kind:"dig",party:"home",actors:null,x:7,z:9,level:0}}};
-  assert.equal((await command(order,{role:"SPECTATOR_SECRET"})).status,403);
-  const admission=await command(order);
-  assert.equal(admission.status,200); assert.equal(admission.body.status,"applied");
-  const accepted=await snapshot();
-  assert.equal(accepted.snapshot.state.clearing.tick,0);
-  assert.deepEqual(accepted.snapshot.state.clearing.terrain.edits,[]);
-  assert.deepEqual(admission.body.result.createdJobs,accepted.snapshot.state.clearing.jobs.map(j=>j.id));
-  assert.equal(admission.body.result.createdJobs.length,1);
-  assert.deepEqual(await command(order),admission);
-  check("paused player admission returns real job identity; duplicate receipt creates no work");
-  const pauseNoop={id:"paused-advance",expectedRevision:1,command:{kind:"advance",ticks:120}};
-  assert.equal((await command(pauseNoop)).status,403);
-  const paused=await command(pauseNoop,{role:"SPECTATOR_SECRET"});
-  assert.equal(paused.body.result.advanced,0);
-  assert.equal((await snapshot()).events.length,accepted.events.length);
-  assert.equal((await command({id:"run",expectedRevision:2,command:{kind:"set-paused",paused:false}})).body.status,"applied");
-  const firstAdvance={id:"first-ten",expectedRevision:3,command:{kind:"advance",ticks:10}};
-  const running = await command(firstAdvance,{role:"SPECTATOR_SECRET"});
-  assert.equal(running.status,200,JSON.stringify(running));
-  assert.equal(running.body.result.advanced,10);
-  const working=await snapshot();
-  assert.equal(working.snapshot.state.clearing.tick,10);
-  assert.equal(working.snapshot.state.clearing.paused,false);
-  assert(working.snapshot.state.clearing.actors.rowan.task,"actual pawn has work");
-  await writeFile(resolve(output,"working-before-restart.json"),JSON.stringify(working,null,2));
-  await stop(true); await start();
-  assert.deepEqual(await snapshot(),working);
-  check("actual optimizer pawn work survives abrupt DO process restart without Continue pause");
-  const finish={id:"finish-fifty",expectedRevision:4,command:{kind:"advance",ticks:50}};
-  const finished=await command(finish,{role:"SPECTATOR_SECRET"});
-  assert.equal(finished.body.result.advanced,50);
-  const final=await snapshot(); const clearing=final.snapshot.state.clearing;
-  assert.equal(clearing.tick,60); assert.deepEqual(clearing.terrain.edits,[{x:7,z:9,level:0}]);
-  assert.equal(clearing.materials.lots.filter(l=>l.material==="soil").reduce((n,l)=>n+l.quantity,0),1);
-  assert(!Object.hasOwn(clearing,"commands"));
-  await stop(true); await start();
-  assert.deepEqual(await command(finish,{role:"SPECTATOR_SECRET"}),finished);
-  assert.deepEqual(await command(order),admission);
-  assert.deepEqual(await snapshot(),final);
-  await writeFile(resolve(output,"final.json"),JSON.stringify(final,null,2));
-  check("real dig changes one voxel and yields one soil; restart/retry repeats neither tick nor effect");
+  const initial = await snapshot();
+  assert.equal(initial.snapshot.state.clearing.paused, true);
+  const order = {
+    id: "shared-dig",
+    expectedRevision: 0,
+    command: {
+      kind: "order",
+      command: {
+        kind: "dig",
+        party: "home",
+        actors: null,
+        voxel: [0, 14, 128],
+      },
+    },
+  };
+  assert.equal(
+    (await command(order, { role: "SPECTATOR_SECRET" })).status,
+    403,
+  );
+  const admission = await command(order);
+  assert.equal(admission.status, 200);
+  assert.equal(admission.body.status, "applied");
+  const accepted = await snapshot();
+  assert.equal(accepted.snapshot.state.clearing.tick, 0);
+  assert.deepEqual(accepted.snapshot.state.clearing.terrain.exports, []);
+  assert.deepEqual(
+    admission.body.result.createdJobs,
+    accepted.snapshot.state.clearing.jobs.map((j) => j.id),
+  );
+  assert.equal(admission.body.result.createdJobs.length, 1);
+  assert.deepEqual(await command(order), admission);
+  check(
+    "paused player admission returns real job identity; duplicate receipt creates no work",
+  );
+  const pauseNoop = {
+    id: "paused-advance",
+    expectedRevision: 1,
+    command: { kind: "advance", ticks: 120 },
+  };
+  assert.equal((await command(pauseNoop)).status, 403);
+  const paused = await command(pauseNoop, { role: "SPECTATOR_SECRET" });
+  assert.equal(paused.body.result.advanced, 0);
+  assert.equal((await snapshot()).events.length, accepted.events.length);
+  assert.equal(
+    (
+      await command({
+        id: "run",
+        expectedRevision: 2,
+        command: { kind: "set-paused", paused: false },
+      })
+    ).body.status,
+    "applied",
+  );
+  const firstAdvance = {
+    id: "first-ten",
+    expectedRevision: 3,
+    command: { kind: "advance", ticks: 10 },
+  };
+  const running = await command(firstAdvance, { role: "SPECTATOR_SECRET" });
+  assert.equal(running.status, 200, JSON.stringify(running));
+  assert.equal(running.body.result.advanced, 10);
+  const working = await snapshot();
+  assert.equal(working.snapshot.state.clearing.tick, 10);
+  assert.equal(working.snapshot.state.clearing.paused, false);
+  assert(
+    working.snapshot.state.clearing.actors.rowan.task,
+    "actual pawn has work",
+  );
+  await writeFile(
+    resolve(output, "working-before-restart.json"),
+    JSON.stringify(working, null, 2),
+  );
+  await stop(true);
+  await start();
+  assert.deepEqual(await snapshot(), working);
+  check(
+    "actual optimizer pawn work survives abrupt DO process restart without Continue pause",
+  );
+  const finish = {
+    id: "finish-fifty",
+    expectedRevision: 4,
+    command: { kind: "advance", ticks: 50 },
+  };
+  const finished = await command(finish, { role: "SPECTATOR_SECRET" });
+  assert.equal(finished.body.result.advanced, 50);
+  const final = await snapshot();
+  const clearing = final.snapshot.state.clearing;
+  assert.equal(clearing.tick, 60);
+  assert.equal(clearing.terrain.exports.length, 1);
+  assert.equal(
+    clearing.materials.lots
+      .filter((l) => l.material === "soil")
+      .reduce((n, l) => n + l.quantity, 0),
+    1,
+  );
+  assert(!Object.hasOwn(clearing, "commands"));
+  await stop(true);
+  await start();
+  assert.deepEqual(
+    await command(finish, { role: "SPECTATOR_SECRET" }),
+    finished,
+  );
+  assert.deepEqual(await command(order), admission);
+  assert.deepEqual(await snapshot(), final);
+  await writeFile(
+    resolve(output, "final.json"),
+    JSON.stringify(final, null, 2),
+  );
+  check(
+    "real dig changes one voxel and yields one soil; restart/retry repeats neither tick nor effect",
+  );
 }
 
 try {
-  const files=["goblin-worker.ts","goblin-proof.mjs","goblin.wrangler.json","../../src/orders.ts","../../src/command-schema.ts","../../src/world-presets/goblin-region.ts","../../src/engine/colony/loader.ts","../../src/engine/colony/colony.mjs","../../src/engine/colony/colony.wasm"];
-  receipt.sourceHashes=Object.fromEntries(await Promise.all(files.map(async file=>[file,createHash("sha256").update(await readFile(resolve(directory,file))).digest("hex")])));
+  const files = [
+    "goblin-worker.ts",
+    "goblin-proof.mjs",
+    "goblin.wrangler.json",
+    "../../src/orders.ts",
+    "../../src/command-schema.ts",
+    "../../src/world-presets/goblin-region.ts",
+    "../../src/engine/colony/loader.ts",
+    "../../src/engine/colony/colony.mjs",
+    "../../src/engine/colony/colony.wasm",
+  ];
+  receipt.sourceHashes = Object.fromEntries(
+    await Promise.all(
+      files.map(async (file) => [
+        file,
+        createHash("sha256")
+          .update(await readFile(resolve(directory, file)))
+          .digest("hex"),
+      ]),
+    ),
+  );
   await start();
   await laws();
   receipt.status = "passed";

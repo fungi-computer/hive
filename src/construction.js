@@ -548,7 +548,7 @@ export function placementProblem(state, at) {
       (cell) => !terrainCell(state.terrain, cell.x, cell.z).support,
     )
   )
-    return "Backfill this ground before building over it.";
+    return "Choose ground that supports this building.";
   if (at.type === "floor") {
     if (at.level !== 1) return "Upper floors belong on level 1.";
     if (crossLevelSurfaceConflict(state, at))

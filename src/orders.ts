@@ -33,7 +33,7 @@ import {
   terrainRimCells,
 } from "./world.js";
 import { route, beginWalk } from "./movement.js";
-import { terrainCell, terrainBackfillBuffer } from "./terrain.ts";
+import { terrainCell, terrainColumn, terrainDigProblem } from "./terrain.ts";
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
 export function commandProblem(s: Clearing, c: Command): string {
@@ -116,29 +116,18 @@ export function commandProblem(s: Clearing, c: Command): string {
         : scopeProblem(s, c);
   }
   if (c.kind === "build") return placementProblem(s, c);
-  if (c.kind === "dig" || c.kind === "backfill") {
-    const geometry = terrainCell(s.terrain, c.x, c.z);
-    if (c.level !== 0 || !inside(c))
-      return "Choose shallow ground in the clearing.";
-    if (c.kind === "dig" ? !geometry.solid : geometry.solid)
-      return c.kind === "dig"
-        ? "That shallow voxel is already removed."
-        : "That ground is already filled.";
-    const occupied = terrainEditProblem(s, c);
-    if (occupied) return occupied;
+  if (c.kind === "dig") {
+    const at = terrainColumn(c.voxel);
+    const problem =
+      terrainDigProblem(s.terrain, c.voxel) || terrainEditProblem(s, at);
+    if (problem) return problem;
     if (
       s.jobs.some(
-        (job) =>
-          (job.kind === "dig" || job.kind === "backfill") &&
-          job.x === c.x &&
-          job.z === c.z,
+        (job) => job.kind === "dig" && job.voxel.join() === c.voxel.join(),
       )
     )
-      return "That ground already has a terrain order.";
-    if (
-      !terrainRimCells(s, c).some((cell) => !blockedCells(s).has(cellKey(cell)))
-    )
-      return "No safe cardinal rim reaches that ground.";
+      return "That voxel is already designated.";
+    if (!terrainRimCells(s, at).length) return "No safe standing rim.";
     return scopeProblem(s, c);
   }
   if (c.kind === "harvest") {
@@ -193,16 +182,6 @@ export function commandProblem(s: Clearing, c: Command): string {
       brewForJob(s, job.id)?.phase !== "prepare"
     )
       return "A committed batch cannot be cancelled.";
-    if (c.kind === "cancel" && job.kind === "backfill") {
-      const buffer = terrainBackfillBuffer(job.id);
-      if (
-        containerContents(s.materials, buffer.id).length > 0 &&
-        !terrainRimCells(s, job).some(
-          (cell) => !blockedCells(s).has(cellKey(cell)),
-        )
-      )
-        return "No legal place to release the backfill soil.";
-    }
     return "";
   }
   if (c.kind === "draft" || c.kind === "undraft" || c.kind === "go") {
@@ -348,13 +327,11 @@ function add(
       reason: "Ordered",
       routine: false,
     };
-  else if (c.kind === "dig" || c.kind === "backfill")
+  else if (c.kind === "dig")
     j = {
       id,
       kind: c.kind,
-      x: c.x,
-      z: c.z,
-      level: 0,
+      voxel: [...c.voxel],
       scope: sc,
       reason: "Ordered",
       routine: false,
@@ -489,21 +466,6 @@ function cancel(s: Clearing, id: string) {
   } else if (j.kind === "brew") {
     const released = cancelPreparingBrew(s, j.id);
     if (!released.ok) throw new Error(released.reason);
-  } else if (j.kind === "backfill") {
-    const buffer = terrainBackfillBuffer(j.id);
-    const drop = terrainRimCells(s, j).find(
-      (cell) => !blockedCells(s).has(cellKey(cell)),
-    );
-    if (containerContents(s.materials, buffer.id).length > 0) {
-      if (!drop) throw new Error("no legal backfill-buffer drop");
-      const released = releaseContainer(s.materials, buffer, {
-        contentsDrop: { cell: drop, legal: true },
-        carriedDrops: Object.fromEntries(
-          Object.values(s.actors).map((p) => [p.id, { cell: p, legal: true }]),
-        ),
-      });
-      if (!released.ok) throw new Error(released.reason);
-    }
   }
   s.jobs = s.jobs.filter((x) => x.id !== id);
   s.workDirty = true;
@@ -559,7 +521,6 @@ export function admitCommand(s: Clearing, c: Command): CommandAdmission {
   } else if (
     c.kind === "chop" ||
     c.kind === "dig" ||
-    c.kind === "backfill" ||
     c.kind === "build" ||
     c.kind === "deconstruct" ||
     c.kind === "sow" ||

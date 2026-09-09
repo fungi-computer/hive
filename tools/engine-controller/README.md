@@ -115,7 +115,7 @@ are not deletion authority.
 
 `goblin.mts` registers the same public authored-module owner against the actual
 Goblin RegionProgram. The server selects one actor and at most 64 known shallow
-dig cells. Guest inputs are typed personal `rest` or `dig`; the consumer compiles
+exact world dig voxels (`knownDigVoxels`). Guest inputs are typed personal `rest` or `dig`; the consumer compiles
 those to existing home-party orders for that actor. It cannot pause, advance,
 recruit or choose another actor/principal. Observation contains only the bound
 actor's position and needs, clock/pause, revision and the explicitly disclosed
@@ -160,3 +160,8 @@ Strict platform declaration checking including the Goblin consumer and laws pass
 u4133 /ed6793a0212d4d4e8621b8241ae5cc37 with skipLibCheck:false. The separately
 documented combined Worker/Node ambient conflict remains unresolved; this check
 and the Goblin laws do not claim that full native-host declaration closure.
+
+The generated-wet main-world join replaces local-cell dig commands with
+`{kind:"dig", voxel:[worldX,worldY,worldZ]}` and bumps the Goblin RegionProgram
+identity to `goblin-wet18-v1:<optimizer-build>`. Old controller proof IDs above
+remain evidence for the earlier source; current source laws qualify this join.

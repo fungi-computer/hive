@@ -1,13 +1,22 @@
 import { z } from "zod";
 import { BUILDINGS, footprint } from "./construction.js";
-import { SIZE } from "./world.js";
-import {
-  AUTHORED_CLEARING_TERRAIN,
-  TERRAIN_VOXEL_METRIC,
-  terrainCell,
-} from "./terrain.ts";
-import type { BuildingKind, Site, TerrainState } from "./model.ts";
-
+import type { BuildingKind, Site } from "./model.ts";
+export type StructureTerrainGeometry = {
+  readonly identity: string;
+  readonly revision: number;
+  readonly spacingM: readonly [number, number, number];
+  readonly frame: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly storeyVoxels: number;
+  };
+  readonly bounds: {
+    readonly min: readonly [number, number, number];
+    readonly max: readonly [number, number, number];
+  };
+  solidAt(x: number, y: number, z: number): boolean;
+};
 const integer = z.number().int().min(-1_000_000).max(1_000_000);
 const coordinate = z.tuple([integer, integer, integer]);
 const boundsSchema = z
@@ -21,16 +30,6 @@ const boundsSchema = z
       context.addIssue({
         code: "custom",
         message: "region must contain 1..1024 voxels",
-      });
-    if (
-      bounds.min[0] < 0 ||
-      bounds.min[2] < 0 ||
-      bounds.max[0] > SIZE ||
-      bounds.max[2] > SIZE
-    )
-      context.addIssue({
-        code: "custom",
-        message: "region exceeds authored clearing terrain",
       });
   });
 const shapeSchema = z.discriminatedUnion("kind", [
@@ -53,25 +52,6 @@ const siteSchema = z.object({
   direction: z.union([z.literal(0), z.literal(1)]),
   finishedAt: z.number().int().nonnegative().nullable(),
 });
-const terrainSchema = z.object({
-  base: z.literal(AUTHORED_CLEARING_TERRAIN),
-  revision: z.number().int().nonnegative(),
-  edits: z.array(
-    z.strictObject({
-      x: z
-        .number()
-        .int()
-        .min(0)
-        .max(SIZE - 1),
-      z: z
-        .number()
-        .int()
-        .min(0)
-        .max(SIZE - 1),
-      level: z.literal(0),
-    }),
-  ),
-});
 // Compile-time coverage follows the actual game's building union; every kind
 // must provide metadata, while runtime parsing refuses an invalid shape.
 const definitions: Record<BuildingKind, { environment: unknown }> = BUILDINGS;
@@ -91,27 +71,26 @@ function inColumn(bounds: Bounds, x: number, z: number) {
   );
 }
 function terrainSolids(
-  terrain: TerrainState,
+  terrain: StructureTerrainGeometry,
   bounds: Bounds,
   solid: Set<string>,
 ) {
   for (let x = bounds.min[0]; x < bounds.max[0]; x++)
-    for (let z = bounds.min[2]; z < bounds.max[2]; z++) {
-      const surfaceY =
-        terrainCell(terrain, x, z).height / TERRAIN_VOXEL_METRIC.verticalM;
-      for (let y = bounds.min[1]; y < Math.min(bounds.max[1], surfaceY); y++)
-        solid.add(cellId(x, y, z));
-    }
+    for (let y = bounds.min[1]; y < bounds.max[1]; y++)
+      for (let z = bounds.min[2]; z < bounds.max[2]; z++)
+        if (terrain.solidAt(x, y, z)) solid.add(cellId(x, y, z));
 }
 function addStructure(
   site: z.infer<typeof siteSchema>,
   shape: z.infer<typeof shapeSchema>,
   bounds: Bounds,
+  frame: StructureTerrainGeometry["frame"],
   solid: Set<string>,
   closed: Set<string>,
 ) {
-  const baseY = site.level * 4;
-  for (const at of footprint(site)) {
+  const baseY = frame.y + site.level * frame.storeyVoxels;
+  for (const local of footprint(site)) {
+    const at = { x: local.x + frame.x, z: local.z + frame.z };
     if (!inColumn(bounds, at.x, at.z)) continue;
     switch (shape.kind) {
       case "solid-column":
@@ -144,11 +123,16 @@ function addStructure(
  * No navigation, rendering, saved cache or second mutable world participates.
  */
 export function structureEnvironment(
-  source: { terrain: TerrainState; sites: readonly GeometrySite[] },
+  source: { terrain: StructureTerrainGeometry; sites: readonly GeometrySite[] },
   requested: z.input<typeof boundsSchema>,
 ) {
   const bounds = boundsSchema.parse(requested),
-    terrain = terrainSchema.parse(source.terrain);
+    terrain = source.terrain;
+  if (
+    bounds.min.some((value, axis) => value < terrain.bounds.min[axis]) ||
+    bounds.max.some((value, axis) => value > terrain.bounds.max[axis])
+  )
+    throw new Error("region exceeds registered terrain geometry");
   const shapes = new Map(
     Object.entries(definitions).map(([kind, definition]) => [
       kind,
@@ -163,7 +147,7 @@ export function structureEnvironment(
     const shape = shapes.get(site.type);
     if (!shape) throw new Error(`unknown structure environment: ${site.type}`);
     if (site.finishedAt !== null)
-      addStructure(site, shape, bounds, solid, closed);
+      addStructure(site, shape, bounds, terrain.frame, solid, closed);
   }
   return Object.freeze({
     version: "goblin-structure-environment-v1" as const,
@@ -171,19 +155,15 @@ export function structureEnvironment(
       min: Object.freeze(bounds.min),
       max: Object.freeze(bounds.max),
     }),
-    spacingM: Object.freeze([
-      TERRAIN_VOXEL_METRIC.horizontalM,
-      TERRAIN_VOXEL_METRIC.verticalM,
-      TERRAIN_VOXEL_METRIC.horizontalM,
-    ] as const),
+    spacingM: Object.freeze([...terrain.spacingM]),
     exterior: "unspecified" as const,
     solidCellIds: Object.freeze([...solid].sort()),
     closedFaceIds: Object.freeze([...closed].sort()),
     provenance: Object.freeze({
-      terrainBase: terrain.base,
+      terrainIdentity: terrain.identity,
       terrainRevision: terrain.revision,
-      terrainMeaning: "solid-below-authored-surface" as const,
-      storeyVoxels: 4,
+      terrainMeaning: "registered-point-solidity" as const,
+      frame: Object.freeze({ ...terrain.frame }),
       footprintOwner: "construction.footprint" as const,
       completedSites: Object.freeze(
         sites

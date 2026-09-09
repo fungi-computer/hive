@@ -1,3 +1,5 @@
+import { terrainSurfaces } from "./terrain-surface-geometry.js";
+import { terrainCell, terrainGeometryKey } from "./terrain.ts";
 // Original Three geometry -> fixed low-resolution canvas textures -> Pixi.
 // Reference pictures never enter this pipeline.
 import * as THREE from "three";
@@ -38,7 +40,7 @@ function propScene(draw) {
   draw(result);
   return result;
 }
-export function bake(renderer, s, c, w, h, ink = true) {
+export function bake(renderer, s, c, w, h, ink = true, releaseGeometry = true) {
   renderer.setSize(w, h, false);
   renderer.render(s, c);
   const canvas = document.createElement("canvas");
@@ -48,7 +50,7 @@ export function bake(renderer, s, c, w, h, ink = true) {
   ctx.drawImage(renderer.domElement, 0, 0);
   if (ink) outline(ctx, w, h);
   s.traverse((o) => {
-    if (o.geometry) o.geometry.dispose();
+    if (releaseGeometry && o.geometry) o.geometry.dispose();
   });
   const texture = Texture.from(canvas);
   texture.source.scaleMode = "nearest";
@@ -61,11 +63,15 @@ export function anchor(c) {
 }
 function bakeTerrainPatch(renderer, terrain, previous, changedCells) {
   // Bake only exposed earth, clipped to the union of actual top openings.
-  // The static board is never rebuilt by a dig; fill restores its original top.
+  // Original board art is clipped where canonical generated surfaces differ.
   // Both this mask and mouse picking use the same world-space cell faces.
   const points = changedCells.flatMap(({ x, z }) =>
     [-2, 2].flatMap((dx) =>
-      [-2, 2].flatMap((dz) => [0, -0.8].map((y) => project(x + dx, z + dz, y))),
+      [-2, 2].flatMap((dz) =>
+        [0, terrainCell(terrain, x, z).height].map((y) =>
+          project(x + dx, z + dz, y),
+        ),
+      ),
     ),
   );
   const left = Math.max(0, Math.floor(Math.min(...points.map((p) => p.x))) - 2);
@@ -94,7 +100,7 @@ function bakeTerrainPatch(renderer, terrain, previous, changedCells) {
   const context = canvas.getContext("2d");
   context.drawImage(previous.source.resource, 0, 0);
   context.beginPath();
-  for (const { x, z } of terrain.edits) {
+  for (const { x, z } of changedCells) {
     const points = [
       [-0.5, -0.5],
       [0.5, -0.5],
@@ -112,6 +118,60 @@ function bakeTerrainPatch(renderer, terrain, previous, changedCells) {
   const texture = Texture.from(canvas);
   texture.source.scaleMode = "nearest";
   return texture;
+}
+
+/** Existing bake pipeline: terrain writes depth only, so finite water cannot
+ * paint through the near rim. All geometry is a disposable physical query. */
+function createWaterBake(renderer) {
+  const result = scene();
+  const mask = new THREE.MeshBasicMaterial({
+    colorWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const liquid = new THREE.MeshLambertMaterial({
+    color: "#397986",
+    side: THREE.DoubleSide,
+  });
+  let geometryKey = null,
+    planes = [];
+  return (terrain, water) => {
+    const nextKey = terrainGeometryKey(terrain);
+    if (nextKey !== geometryKey) {
+      for (const child of [...result.children]) {
+        if (!child.isMesh) continue;
+        child.geometry.dispose();
+        result.remove(child);
+      }
+      geometryKey = nextKey;
+      planes = [];
+      for (const face of terrainSurfaces(terrain, 15)) {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(
+            face.vertices.flatMap(({ x, y, z }) => [x - 7, y, z - 7]),
+            3,
+          ),
+        );
+        geometry.setIndex([0, 1, 2, 0, 2, 3]);
+        const mesh = new THREE.Mesh(geometry, mask);
+        mesh.renderOrder = -1;
+        result.add(mesh);
+      }
+      for (const surface of water) {
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), liquid);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(surface.x - 7, surface.height, surface.z - 7);
+        result.add(mesh);
+        planes.push(mesh);
+      }
+    }
+    water.forEach((surface, index) => {
+      planes[index].position.y = surface.height;
+      planes[index].visible = surface.depthM > 0;
+    });
+    return bake(renderer, result, worldCamera, WIDTH, HEIGHT, false, false);
+  };
 }
 
 export async function bakeArt() {
@@ -263,6 +323,7 @@ export async function bakeArt() {
     art.ration[amount] = bake(renderer, rationPile(amount), prop, 112, 112);
   // This one retained renderer rebakes terrain only after a physical edit/load.
   // It never updates simulation state or time. View owns replacement textures.
+  art.bakeTerrainWater = createWaterBake(renderer);
   art.bakeTerrain = (terrain, previous, changedCells) =>
     bakeTerrainPatch(renderer, terrain, previous, changedCells);
   art.dispose = () => renderer.dispose();

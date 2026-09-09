@@ -1,6 +1,6 @@
 // One finite clearing. Logical storeys are explicit; rendering may interpolate
 // between them, but simulation positions remain integer cells.
-import { terrainCell } from "./terrain.ts";
+import { terrainCell, terrainColumn } from "./terrain.ts";
 export const SIZE = 15;
 export const WATCHER = { x: 13, z: 2, level: 0 };
 export const ROCKS = [
@@ -114,7 +114,8 @@ export function placementOccupant(state, at, excludeId = null) {
 }
 /** Occupancy is checked separately from terrain geometry so completion can revalidate it. */
 export function terrainEditProblem(state, at) {
-  if (!inside(at) || at.level !== 0) return "That is not shallow ground.";
+  if (!inside(at) || at.level !== 0)
+    return "That is outside the current standing level.";
   const body = [...Object.values(state.actors), state.cat];
   if (body.some((pawn) => sameCell(pawn, at)))
     return "Someone is standing there.";
@@ -137,12 +138,12 @@ export function terrainEditProblem(state, at) {
   if (groundLotsAt(state, at).length) return "Loose goods occupy that ground.";
   return null;
 }
-/** Safe cardinal rim cells; workers do not enter a shallow hole in this release. */
+/** Safe cardinal rim cells; workers remain on the registered standing datum. */
 export function terrainRimCells(state, at) {
   const terrainTargets = new Set(
     state.jobs
-      .filter((job) => job.kind === "dig" || job.kind === "backfill")
-      .map((job) => cellKey(job)),
+      .filter((job) => job.kind === "dig")
+      .map((job) => cellKey(terrainColumn(job.voxel))),
   );
   return neighbors(at).filter(
     (cell) =>
@@ -195,8 +196,10 @@ export function blockedCells(state) {
         .flatMap(siteCells),
     ].map(cellKey),
   );
-  for (const edit of state.terrain.edits)
-    blocked.add(cellKey({ x: edit.x, z: edit.z, level: 0 }));
+  for (let x = 0; x < SIZE; x++)
+    for (let z = 0; z < SIZE; z++)
+      if (!terrainCell(state.terrain, x, z).support)
+        blocked.add(cellKey({ x, z, level: 0 }));
   for (const stair of state.sites)
     if (stair.type === "stair")
       for (const cell of stairCells(stair).slice(1)) blocked.add(cellKey(cell));

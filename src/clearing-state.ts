@@ -10,7 +10,16 @@ import type {
   PositiveInt,
   WaterDeliveryOperation,
 } from "./model.ts";
-import { AUTHORED_CLEARING_TERRAIN, terrainBackfillBuffer } from "./terrain.ts";
+import {
+  parseTerrain,
+  terrainColumn,
+  terrainCell,
+  terrainDigProblem,
+  voxelSchema,
+  terrainFacts,
+  terrainExcavatedColumns,
+} from "./terrain.ts";
+import { STEP_SECONDS } from "./ticker.js";
 import { inside, sameCell, terrainEditProblem } from "./world.js";
 import {
   BUILDINGS,
@@ -51,7 +60,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 17 as const;
+const SAVE_SCHEMA = 18 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -95,7 +104,6 @@ const activity = z.discriminatedUnion("kind", [
   currentActivityKind("tap"),
   currentActivityKind("clear-spent-grain"),
   currentActivityKind("dig"),
-  currentActivityKind("backfill"),
   currentActivityKind("consume"),
 ]);
 const actor = cell
@@ -115,7 +123,6 @@ const actor = cell
     mode: z.enum([
       "consume",
       "dig",
-      "backfill",
       "idle",
       "walk",
       "chop",
@@ -197,24 +204,7 @@ const job = z.discriminatedUnion("kind", [
   z
     .object({ ...jobBase, kind: z.literal("water-mugwort"), target: id })
     .strict(),
-  z
-    .object({
-      ...jobBase,
-      kind: z.literal("dig"),
-      x: integer,
-      z: integer,
-      level: z.literal(0),
-    })
-    .strict(),
-  z
-    .object({
-      ...jobBase,
-      kind: z.literal("backfill"),
-      x: integer,
-      z: integer,
-      level: z.literal(0),
-    })
-    .strict(),
+  z.object({ ...jobBase, kind: z.literal("dig"), voxel: voxelSchema }).strict(),
   careJob,
 ]);
 const recipeMaterial = z.enum([
@@ -365,9 +355,6 @@ const herb = cell
     plantedAt: nonNegative.nullable(),
   })
   .strict();
-const terrainEdit = z
-  .object({ x: integer, z: integer, level: z.literal(0) })
-  .strict();
 const waterOperation = z
   .object({
     id,
@@ -396,13 +383,7 @@ const consumeOperation = z
   .strict();
 const currentStateSchema = z
   .object({
-    terrain: z
-      .object({
-        base: z.literal(AUTHORED_CLEARING_TERRAIN),
-        edits: z.array(terrainEdit),
-        revision: nonNegative,
-      })
-      .strict(),
+    terrain: z.unknown().transform(parseTerrain),
     careOutcomes: z.array(
       z
         .object({
@@ -713,10 +694,7 @@ function activityMatchesJob(
     const repair = state.sources.find(
       (source) => cacheRepairBuffer(source)?.id === destinationId,
     );
-    const terrain =
-      job.kind === "backfill" &&
-      destinationId === terrainBackfillBuffer(job.id).id;
-    if (!resolved && !repair && !terrain) return false;
+    if (!resolved && !repair) return false;
     return (
       (resolved?.destination.id === destinationId &&
         job.kind === "build" &&
@@ -728,8 +706,7 @@ function activityMatchesJob(
         destinationId === cacheRepairBuffer(repair)?.id) ||
       (job.kind === "brew" &&
         resolved?.site.id === job.target &&
-        resolved.destination.id === destinationId) ||
-      terrain
+        resolved.destination.id === destinationId)
     );
   }
   if (job.kind === "care" && job.need === "rest")
@@ -743,7 +720,7 @@ function activityMatchesJob(
           site.finishedAt !== null,
       )
     );
-  if (job.kind === "dig" || job.kind === "backfill")
+  if (job.kind === "dig")
     return task.kind === job.kind && task.target === job.id;
   if (task.kind !== job.kind || task.target !== job.target) return false;
   return job.kind === "chop"
@@ -1246,12 +1223,6 @@ function relationContext(state: SavedClearing): RelationContext {
     const supplies = sourceSuppliesContainerSpec(feature);
     if (supplies) containers.set(supplies.id, supplies);
   }
-  for (const job of state.jobs)
-    if (job.kind === "backfill")
-      containers.set(
-        terrainBackfillBuffer(job.id).id,
-        terrainBackfillBuffer(job.id),
-      );
   for (const lot of state.materials.lots) {
     const interior = portableContainerInterior(lot);
     if (interior) containers.set(interior.id, interior);
@@ -1728,12 +1699,9 @@ function validateTransferOwner(
     (owner.kind === "repair-cache" &&
       (!repairSource ||
         transfer.intent.destination !== cacheRepairBuffer(repairSource)?.id)) ||
-    (owner.kind === "backfill" &&
-      transfer.intent.destination !== terrainBackfillBuffer(owner.id).id) ||
     (owner.kind !== "build" &&
       owner.kind !== "store" &&
       owner.kind !== "repair-cache" &&
-      owner.kind !== "backfill" &&
       owner.kind !== "brew")
   )
     fail(`transfer ${transfer.id} does not match owner destination`);
@@ -1751,11 +1719,6 @@ function validateTransferOwner(
       (transfer.request.source.kind === "exact-lot" ||
         transfer.request.source.material !== "wood" ||
         transfer.request.quantityPolicy !== "portion")) ||
-    (owner.kind === "backfill" &&
-      (transfer.request.source.kind === "exact-lot" ||
-        transfer.request.source.material !== "soil" ||
-        transfer.request.quantityPolicy !== "portion" ||
-        transfer.request.quantity !== 1)) ||
     (owner.kind === "brew" && transfer.request.source.kind !== "exact-lot")
   )
     fail(`transfer ${transfer.id} does not match owner request`);
@@ -2034,50 +1997,44 @@ function validateConservation({ state }: RelationContext): void {
     (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
     0,
   );
-  if (soil !== state.terrain.edits.length)
+  if (soil !== state.terrain.exports.length)
     fail(
-      `soil conservation is ${soil}, expected ${state.terrain.edits.length}`,
+      `soil conservation is ${soil}, expected ${state.terrain.exports.length}`,
     );
 }
 
-function validateTerrainEdits(state: SavedClearing): Set<string> {
-  if (state.terrain.base !== AUTHORED_CLEARING_TERRAIN)
-    fail("unknown terrain base");
-  const edits = new Set<string>();
-  for (const edit of state.terrain.edits) {
-    const key = `${edit.x},${edit.z},${edit.level}`;
-    if (!inside(edit) || edit.level !== 0 || edits.has(key))
-      fail(`invalid terrain edit ${key}`);
-    const occupant = terrainEditProblem(liveState(state), edit);
-    if (occupant) fail(`terrain edit ${key} is occupied: ${occupant}`);
-    edits.add(key);
-  }
-  return edits;
-}
-
-function validateTerrainJobTargets(
-  state: SavedClearing,
-  edits: ReadonlySet<string>,
-): void {
-  const jobTargets = new Set<string>();
-  for (const job of state.jobs) {
-    if (job.kind !== "dig" && job.kind !== "backfill") continue;
-    if (!inside(job) || job.level !== 0)
-      fail(`terrain job ${job.id} has invalid target`);
-    const key = `${job.x},${job.z},0`;
-    if (jobTargets.has(key)) fail(`duplicate terrain job target ${key}`);
-    jobTargets.add(key);
-    const removed = edits.has(`${job.x},${job.z},0`);
-    if (
-      (job.kind === "dig" && removed) ||
-      (job.kind === "backfill" && !removed)
-    )
-      fail(`terrain job ${job.id} has stale geometry`);
-  }
-}
-
 function validateTerrain({ state }: RelationContext): void {
-  validateTerrainJobTargets(state, validateTerrainEdits(state));
+  const facts = terrainFacts(state.terrain);
+  if (Math.abs(facts.timeS - state.tick * STEP_SECONDS) > 1e-8)
+    fail("terrain and game clocks disagree");
+  for (const at of terrainExcavatedColumns(state.terrain)) {
+    const problem = terrainEditProblem(liveState(state), at);
+    if (problem) fail(`occupied excavation: ${problem}`);
+  }
+  for (const actor of [
+    ...Object.values(state.actors),
+    { ...state.cat, id: "cat" },
+  ])
+    if (
+      actor.level === 0 &&
+      !terrainCell(state.terrain, actor.x, actor.z).support
+    )
+      fail(`actor ${actor.id} lacks standing terrain`);
+  validateDigTargets(state);
+}
+/** Admitted exact work retains one live target, independently of occupancy. */
+function validateDigTargets(state: SavedClearing): void {
+  const targets = new Set<string>();
+  for (const job of state.jobs) {
+    if (job.kind !== "dig") continue;
+    const key = job.voxel.join();
+    if (targets.has(key)) fail(`duplicate terrain job target ${key}`);
+    targets.add(key);
+    const problem = terrainDigProblem(state.terrain, job.voxel);
+    if (problem) fail(`terrain job ${job.id}: ${problem}`);
+    const at = terrainColumn(job.voxel);
+    if (!inside(at)) fail(`terrain job ${job.id} is outside the clearing`);
+  }
 }
 
 function validateRelations(state: SavedClearing): SavedClearing {

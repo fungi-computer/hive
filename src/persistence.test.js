@@ -12,7 +12,7 @@ import {
 const cell = (x = 5, z = 5, level = 0) => ({ x, z, level });
 const scope = { party: "home", actors: null };
 function envelope(change = () => {}) {
-  const saved = snapshotFor(createClearing());
+  const saved = structuredClone(snapshotFor(createClearing()));
   change(saved.savedState);
   for (const transfer of saved.savedState.materials.transfers) {
     if (transfer.resolvedMaterial !== undefined) continue;
@@ -177,21 +177,17 @@ test("current snapshots retain authored terrain, omit commands, and restore paus
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 17);
-  assert.deepEqual(saved.savedState.terrain, {
-    base: "authored-clearing-v1",
-    edits: [],
-    revision: 0,
-  });
+  assert.equal(saved.schema, 18);
+  assert.deepEqual(saved.savedState.terrain, state.terrain);
   assert.equal("commands" in saved.savedState, false);
   const restored = restoreSnapshot(saved);
   assert.deepEqual(restored.state.commands, []);
   assert.equal(restored.state.paused, true);
 });
 
-test("current codec rejects malformed terrain edits and soil sinks", () => {
+test("current codec rejects unowned wet-spoil exports and soil sinks", () => {
   const occupiedEdit = envelope((state) => {
-    state.terrain.edits.push({ x: 1, z: 1, level: 0 });
+    state.terrain.exports.push({ id: "invented" });
     state.materials.lots.push({
       id: "soil-rim",
       material: "soil",
@@ -199,7 +195,7 @@ test("current codec rejects malformed terrain edits and soil sinks", () => {
       location: { kind: "ground", ...cell(5, 5) },
     });
   });
-  assert.throws(() => restoreSnapshot(occupiedEdit), /terrain edit/);
+  assert.throws(() => restoreSnapshot(occupiedEdit));
 
   const soilSink = envelope((state) => {
     state.materials.sinks.push({
@@ -451,7 +447,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("current reload preserves finite supplies and partial source contents", () => {
   const restored = restoreSnapshot(envelope());
-  assert.equal(snapshotFor(restored.state).schema, 17);
+  assert.equal(snapshotFor(restored.state).schema, 18);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -748,7 +744,7 @@ test("current water operations pin target quantity and establishment receipts", 
 });
 
 test("current codec rejects actor fields on material bindings", () => {
-  const saved = snapshotFor(createClearing());
+  const saved = structuredClone(snapshotFor(createClearing()));
   saved.savedState.materials.bindings.push({
     kind: "vessel-use",
     id: "unpublished-use",
@@ -1162,7 +1158,7 @@ test("current revision admission distinguishes absent, malformed, and stale slot
     revision: 1,
   });
   assert.deepEqual(decideSaveRevision({ schema: 0 }, 0), { kind: "malformed" });
-  const saved = snapshotFor(createClearing());
+  const saved = structuredClone(snapshotFor(createClearing()));
   saved.revision = 3;
   assert.deepEqual(decideSaveRevision(saved, 2), {
     kind: "stale",

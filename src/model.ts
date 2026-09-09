@@ -82,7 +82,10 @@ export type Scope = { party: PartyId; actors: ActorId[] | null };
 
 export type WorkCommand = Scope & { direct?: boolean } & (
     | { kind: "chop"; tree: string }
-    | ({ kind: "dig" | "backfill" } & Cell)
+    | {
+        kind: "dig";
+        voxel: import("./world-presets/goblin-terrain.ts").TerrainVoxel;
+      }
     | ({ kind: "build"; type: BuildingKind; direction: number } & Cell)
     | { kind: "deconstruct"; site: string }
     | ({ kind: "sow" } & Cell)
@@ -194,17 +197,9 @@ export type ClearSpentGrainJob = JobBase & {
 };
 export type DigJob = JobBase & {
   kind: "dig";
-  x: number;
-  z: number;
-  level: 0;
+  voxel: import("./world-presets/goblin-terrain.ts").TerrainVoxel;
 };
-export type BackfillJob = JobBase & {
-  kind: "backfill";
-  x: number;
-  z: number;
-  level: 0;
-};
-export type TerrainJob = DigJob | BackfillJob;
+export type TerrainJob = DigJob;
 export type Job =
   | ChopJob
   | BuildJob
@@ -241,8 +236,7 @@ export type TapActivity = ActivityBase & { kind: "tap" };
 export type ClearSpentGrainActivity = ActivityBase & {
   kind: "clear-spent-grain";
 };
-export type TerrainActivity =
-  (ActivityBase & { kind: "dig" }) | (ActivityBase & { kind: "backfill" });
+export type TerrainActivity = ActivityBase & { kind: "dig" };
 export type Activity =
   | ChopActivity
   | BuildActivity
@@ -353,12 +347,8 @@ export type BrewProcess = {
   progress: number;
   enteredAt: number;
 };
-export type TerrainEdit = { x: number; z: number; level: 0 };
-export type TerrainState = {
-  base: "authored-clearing-v1";
-  edits: TerrainEdit[];
-  revision: number;
-};
+export type TerrainState =
+  import("./world-presets/goblin-terrain.ts").GeneratedTerrain;
 export type Clearing = {
   seed: number;
   tick: number;
