@@ -15,15 +15,18 @@ Current tools:
   promise of stable Three UUIDs between independently generated exports.
 
 Both are public art operations. They neither call a model nor accept scripts,
-filesystem paths, external textures, credentials or game commands. Recipe version
-and durable scene editing will be added with the scene-document owner, not a
-transport-local store. Current exports are independent immutable results.
+filesystem paths, external textures, credentials or game commands. The compatible
+MCP recipe now resolves into the versioned scene document and shared original-pack
+compiler in `src/asset-pipeline`. Its pure editor supports bounded atomic edits;
+these two MCP tools do not yet expose shared scene editing or durable hosted IDs.
+Current exports are independent immutable results.
 
 ## Run from the repository
 
 This is currently a **repository tool**, not an independently published npm
 package. It imports `src/studies/brewhouse/props.js` and its original art modules.
-Use the feature branch containing this directory and Node 24:
+Use the feature branch containing this directory and Node 24 or newer. This
+source tool uses Node's native erasable TypeScript support; it needs no loader:
 
 ```sh
 npm ci

@@ -45,6 +45,43 @@ documented repo-tool interpretation. Seven risk findings use estimated absent
 coverage; actual request-boundary/browser checks are retained separately.
 Nothing was deleted or suppressed to make the audit appear clean.
 
+## Shared scene owner accepted, September 9
+
+The compatible MCP operations now compile through `src/asset-pipeline`: one
+versioned document, checked original-pack definitions, atomic ordered edits and
+the original Three builders. The old recipe parser becomes a compatibility
+adapter; its degrees convert once to the document's local Euler radians. The
+compiler owns output limits, geometry cleanup and per-object material clones.
+It does not dispose shared original palette materials. Catalog parameter types
+and exhaustive builder dispatch prevent advertising a builder with a mismatched
+schema. Node source execution requires Node 24 or later; Worker bundling uses
+the existing maintained transport. No dependency version changed.
+
+Independent source review accepted the corrected compiler/callers. Eleven
+focused laws and strict types passed; after Fallow identified batch-edit
+cognitive complexity, mutation of one edit and subtree removal were separated
+from atomic batch admission. The six existing editor laws and focused types
+passed again (`u3754`, `u3755`). Fallow `u3743` found no clones. Its unused-file
+findings had zero discovered entrypoints because the scan root excluded the
+actual MCP consumer. Its estimated-coverage warnings are advisory; the compiler
+and relation checks remain explicit reviewed responsibilities. No source was
+deleted or suppressed to hide those findings.
+
+Real stdio `u3722` and local HTTP `u3742` both exported through this owner. HTTP
+also checked current/legacy clients, byte limits, batch rejection and public
+CORS; its owned server closed with no runtime errors. Browser `u3740` loaded the
+exact exports, rotated them, downloaded identical bytes and fit normal/390px
+layouts with no errors. Astra personally accepted the two native renders and
+both viewer screenshots. Earlier browser attempts failed before page launch on
+missing full-Chrome host libraries; the existing headless-shell runtime passed.
+Receipts and failed attempts remain under `.botanical/asset-mcp/`.
+
+This is a source/local transport/render milestone. The two public tools retain
+their compatible contract; they do not yet expose shared editable scene IDs,
+history, GLB or server capture. Botanical's earlier hosting handoff remains
+pinned to `886d542` and its viewer archive until Botanical explicitly selects
+this source update. No new remote deployment or completed engine is claimed.
+
 ## Fiend: checked reference, not a guessed feature list
 
 An official SDK client connected to

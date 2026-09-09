@@ -11,22 +11,23 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
-**Saved goal reconciliation, September 9:** native Game CTO Session
-`01a0791e-7ac8-7cc0-90dd-48f8d164e526` retains the unfinished goal to solve and
-integrate water, gas/heat and world generation with executable evidence. The
-native goal tool reports it **paused**; it has not been completed or replaced.
-Later native-worker custody supersedes its old visible-Delivery staffing
-paragraph. The engine/asset and launch amendments below are current authorized
-work within this owning sprint. The environmental gameplay joins remain owed;
-an MCP export success does not finish that saved goal.
+**Saved goal reconciliation, September 9:** Levi pasted and activated the full
+Hive v0 objective in native Game CTO Session
+`01a0791e-7ac8-7cc0-90dd-48f8d164e526`. The goal tool now reports **active**;
+Game CTO read the referenced attachment before continuing. Its six completion
+requirements match the contract below, including the unfinished water, gas/heat
+and world-generation gameplay joins. The earlier paused environmental goal and
+visible-Delivery paragraph are historical; no model or Session restart occurred.
+An MCP export success does not finish the engine goal.
 
 ### Engine completion contract — jointly reviewed v0 scope
 
 Levi's September 9 amendment makes the **first reusable Hive engine** the next
 goal, with Astra retaining its present model and Session through acceptance.
-The original unfinished environmental work is included. The native tool has no
-goal edit/resume operation; until a supported UI replacement is confirmed,
-this explicit objective owns the new direction without a false completion.
+The original unfinished environmental work is included. Before Levi's new goal
+activation, the native status-only tools could not replace it and Game CTO did
+not falsely complete it as an editing workaround. The full engine objective now
+owns continuation in this same Session.
 
 Botanical CTO reviewed `47e7729` and accepted this as a declared small-world v0
 scope. That is agreement on the target, not source or engine acceptance: each
