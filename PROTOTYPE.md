@@ -6,9 +6,11 @@
 all work and ship digging with native Codex sub-agents, then continue the shared
 needs slice. At `bf12e99`, Game Delivery acknowledged release of all source, Git,
 build, proof, browser and same-preview deployment custody with no active owned
-process. Astra is sole integrator. Native Terra workers own the coupled digging
-core and independent controls; Sol reviews actual source/callers; Astra owns
-terrain geometry/art and final integration. The visible game lanes stay parked
+process. Astra is sole integrator. Native Terra workers completed digging and
+controls; Sol reviewed actual source/callers. Runtime `449e9b8` is hosted with
+shallow Dig/Backfill, physical soil and schema-14 paused reload. The next native
+outcome is shared hunger/thirst/rest; Astra owns original art and integration.
+The visible game lanes stay parked
 with sessions/evidence preserved. The unrelated modified proof script and 19
 untracked files remain untouched. The older visible-PM pattern below is retained
 as history, not a requirement to refill those panes or replace these native authors.

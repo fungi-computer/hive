@@ -82,6 +82,38 @@ smoke, bad water or every disease.
 
 ### First implementation boundary
 
+Current implementation decisions (Astra, 2026-09-09, after shipped digging
+`449e9b8`): one schema-15 physical-care checkpoint precedes a new inn visitor.
+Rowan and the already-present, unrecruited Sedge use the same applicable needs;
+joining the colony preserves those values and active care. Care intent belongs
+to the actor, independently of membership in a work party. The ordinary optimizer
+may assign a non-member their own care; it does not thereby grant shared work or
+player control. Food uses an operation-owned ordinary use transfer, while drinking
+extends the existing pail operation with an actor target. No new cargo or pantry
+buffer is introduced. The same needs owner credits checked material consumption
+or actual reserved sleep contact. Bed reservation is exclusive between active
+sleepers; a full furniture-navigation redesign is a later joined outcome.
+
+The repaired reclaimed cache supplies six finite rations and access to the pail.
+The spring budget becomes sixteen portions: the original eight plus an explicit,
+once-only eight-portion care introduction. Conversion validates the complete old
+schema-14 state and its original budgets first. Introduction cannot edit an old
+source lot that may already have moved, consumed or disappeared, refill on load,
+or bypass a pending source placement. Content definitions own these supplies;
+the generic material kernel does not recognize a ration or named spring grant.
+The first source review must settle provenance, capacity and historical-reader
+compatibility before the rest of the migration expands.
+
+Initial nourishment/hydration are 100. At normal speed, the authored rate from
+100 to the request threshold of 35 takes ten minutes for food and six for water;
+one actual portion restores 60, capped at 100. These are first-playtest balancing
+choices, not real human metabolism. Existing rest starts/rates migrate faithfully;
+sleep targets a recover threshold of 90. Nonurgent care begins at an idle boundary
+and commits through the physical action. Draft continues depletion but suppresses
+self-care. This checkpoint has no starvation death, collapse or forced undrafting.
+Shortages show the physical cause and next action. Later crop/guest replenishment
+remains necessary for a sustainable inn; six rations are not an endless food loop.
+
 Migrate existing `Actor.rest`, `clearing.step` rest decrement, sleep recovery and
 `routine.updateRoutine` decisions together. The new need state cannot coexist
 indefinitely with an independently mutable rest meter. Keep need advancement

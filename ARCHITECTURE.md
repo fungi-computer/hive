@@ -28,6 +28,11 @@ now records the current small-world sequence: shallow digging; shared needs and
 social hospitality; useful garden water; brewhouse heat and ventilation. Existing
 common goods, mixed storage, brewing and mugwort establishment are the baseline,
 not tasks to repeat. The independent World Lab does not expand live gameplay.
+Shallow Dig/Backfill is now hosted at runtime `449e9b8`: one terrain edit owner,
+shared visible-face geometry for baking/picking, ordinary soil transfers, and
+schema-14 terrain/material conservation. The current sprint records focused
+hosted behavior and 72-file runtime/page parity separately from retained lab
+experiments. Shared physical care is the next implementation outcome.
 The current [needs/social study](docs/decisions/living-world-system-contracts.md)
 uses Hospitality, Prison Labor, Dubs and social-mod callers to define reusable
 people, care, access and relationship ownership. At settled `bf12e99`, Astra took

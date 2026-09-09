@@ -9,6 +9,41 @@ including the stale schema-12 paragraph that still schedules plant watering.
 Historical plans remain evidence. This document is a plan, not a new runtime,
 hosted interaction, performance or full simulation-completion claim.
 
+## Current release and active outcome
+
+**Shallow digging and backfill are live**, runtime
+`449e9b8a642dc1c9e6d815f8e7417c143ba1e574`, same-preview deployment
+`ad099b8c-0c97-4432-bc8a-8ae92781a460`. Build → Dig/Backfill supports persistent
+paused shared rectangle designations. Workers use a safe rim; each removed
+0.54 m voxel creates one ordinary soil unit, and backfill carries/consumes one
+unit through the existing material owner. Schema 14 retains terrain edits and
+validates their soil balance. Existing authored clearings keep their layout.
+
+Evidence: 89 actual-WASM clearing/persistence laws; four actual gesture/terrain
+picking laws; typecheck and final build passed. Focused hosted `run-u3583`
+physically dug two adjacent cells, preserved terrain/materials/actors and tick
+through paused reload, then backfilled one cell with exactly one soil consumed.
+Normal and 390px controls passed content containment; Astra viewed both hosted
+screenshots. `run-u3584` compared 72 served HTML/JS/CSS/WASM files with the proved
+dist, with no mismatches. Evidence is retained in `.botanical/digging/hosted-1/`
+and `hosted-parity.json`. This does not claim digging inside holes, collapse,
+flowing water, caves or large-world simulation.
+
+Fallow `run-u3579` exited 1 advisory. The new terrain job planner was split by
+rim eligibility, route, supply selection and ordinary transfer preparation;
+unneeded new exports were removed. Remaining touched hotspots include save-version
+dispatch, terrain work, command flushing and terrain face generation. Preserved
+proof/static entrypoints, upstream exports and the existing activity/routine
+cycle were not deleted to produce a green audit. The source/caller review and
+focused behavior evidence establish this release; the audit is not claimed clean.
+
+**Active next outcome: shared physical care, before the first inn visitor.**
+Native Terra owns the coupled schema-15 needs/material/job migration; native Sol
+reviews its first source shape and immediate callers. A second Terra is preparing
+the HUD read-only until the core API is stable. Astra retains original art,
+product decisions and sole Git/build/proof/deploy custody. No Herdr lane is refilled.
+The old modified proof and 19 untracked files remain preserved.
+
 ## Product outcome and actual baseline
 
 **Build a strange little home, change the land to support it, welcome a goblin,
@@ -18,10 +53,9 @@ The 15×15 clearing stays small. Bigger scenery cannot compensate for a weak loo
 
 Production already has paused shared orders, work preferences, Draft/Go, upstairs
 construction, local saves, common goods/transfer custody, mixed shelves, brewing,
-and one-time carried-water establishment of mugwort. Current `src/persistence.ts`
-is schema 13. Delivery reports these on the existing feature preview; its release
-records distinguish local interaction from hosted byte parity. No new browser
-suite was run for this plan.
+and one-time carried-water establishment of mugwort. The plan's original baseline
+was schema 13 at `bf12e99`; the current schema-14 digging release is recorded above.
+Earlier delivery records distinguish local interaction from hosted byte parity.
 
 The important gaps are visible in source:
 
@@ -29,9 +63,9 @@ The important gaps are visible in source:
   receives a drink benefit or hospitality outcome. Four malt and eight water in
   `finite-sources.ts` support only two batches plus establishing their two new
   mugwort plants. There is no sustainable livelihood yet.
-- `world.js` treats ground support as implicit and permits storeys 0/1;
-  `view.js` draws a baked board; `camera.js` picks a selected plane. Digging needs
-  real terrain, exposed faces and support queries in the playable caller.
+- The digging release replaces implicit flat-ground support with canonical terrain
+  queries and face picking. Logical storeys remain 0/1; opening and walking inside
+  deeper volumes require the later topology/contact work.
 - Beds remain ordinary route space, and the cat still chooses ground-only paths.
   The retained furniture/contact contract is relevant before overnight guests.
 - `feed.js` supplies an initial demand and shelter approval. That is not yet a
@@ -297,13 +331,13 @@ deploy subprocess. The unrelated modified `scripts/prove.mjs` and 19 untracked
 files remain untouched. Levi then explicitly requested all-work takeover and
 native Codex implementation. Delivery acknowledged release of Git/build/proof/
 browser/deploy custody too; Astra is sole integrator. Native Terra core and controls
-writers plus a read-only Sol reviewer are active on digging; Astra owns terrain
-geometry/art and integration. No reference CFD simulation resumes.
+writers plus a read-only Sol reviewer completed digging; current native custody
+is recorded above. Astra owns original geometry/art and integration. No reference
+CFD simulation resumes.
 
-The next implementation brief is **Release 1, shallow editable ground**, followed
-by its safe backfill checkpoint. The first contract is authored flat terrain plus sparse removed voxels, each
-0.54 m deep; one removed voxel yields one ordinary soil unit representing that
-recoverable volume. Backfill uses the same materials/transfer owner. Subsequent lanes receive one
+Release 1, shallow editable ground and safe backfill, is complete. The next
+implementation brief is **Release 2, shared physical care**, with the specific
+source and provisioning decisions in the needs/social contract. Subsequent lanes receive one
 accepted outcome and exact files, not the whole horizon. Personal playtests after
 each release decide refinements. No calendar ETA is credible before those first
 working shapes; each useful interim ships independently on the same preview.
