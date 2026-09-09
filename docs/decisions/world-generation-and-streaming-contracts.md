@@ -47,6 +47,12 @@ can add supported links over the same contact surfaces without a second world.
 Levi additionally requires four object orientations and world rotation in the
 engine **and** demo. The first control is four quarter-turn camera views. A
 placement's saved orientation is world-relative, independently of the camera.
+His clarification is about an actual placement restriction, not primarily art
+reuse: `hud.jsx` toggles `direction === 0 ? 1 : 0`, `world.js:stairCells`
+supports only positive X/positive Z, and the saved-site schema only admits 0/1.
+The stair entrance cannot face either opposite direction. Fix the joined control,
+signed footprint/endpoints and versioned save admission; merely adding more
+images would leave the bug intact. Preserve old 0/1 meanings during migration.
 Rotating the view never rotates or rewrites terrain, rooms, actor paths, jobs or
 stored item locations. Direction-sensitive footprints, stair endpoints and
 access points support all four directions. Symmetry may deduplicate equivalent
