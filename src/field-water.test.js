@@ -21,12 +21,11 @@ import { finiteWorkOwner } from "./water-delivery.ts";
 import { advanceFiniteWork } from "./engine/work/progress.ts";
 import { BUILDINGS, constructionBuffer, brewKettle } from "./construction.js";
 import {
-  FIELD_WATER,
   fieldWaterBalance,
-  fieldWaterSources,
   drawFieldWater,
   returnFieldWater,
 } from "./field-water.ts";
+import { FIELD_WATER, fieldWaterSources } from "./field-water-source.ts";
 const access = { sourceReachable: true, destinationReachableWithPayload: true };
 const reference = {
   binding: FIELD_WATER.id,
@@ -279,5 +278,123 @@ test("world admission rejects plausible unpaired physical and material edits ins
     const bad = structuredClone(f.state);
     change(bad);
     assert.throws(() => snapshotFor(bad), /water|quantity/);
+  }
+});
+
+test("Goblin Region returns one held portion pair across rollback, lost acknowledgement and reopening", async (t) => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const { readFile } = await import("node:fs/promises");
+  const { loadOptimizer } = await import("./engine/colony/loader.ts");
+  const { createGoblinRegionProgram } =
+    await import("./world-presets/goblin-region.ts");
+  const { openRegion } = await import("./engine/region/index.ts");
+  const { sqliteTestOwner } =
+    await import("./engine/region/sqlite-test-owner.mjs");
+  const { serializeClearing } = await import("./clearing-state.ts");
+  const colony = await loadOptimizer(
+    await WebAssembly.compile(
+      await readFile(new URL("./engine/colony/colony.wasm", import.meta.url)),
+    ),
+  );
+  const f = fixture(),
+    db = new DatabaseSync(":memory:");
+  t.after(() => db.close());
+  let fail = false;
+  const owner = sqliteTestOwner(db, (sql) => {
+    if (fail && sql.startsWith("INSERT INTO hive_region_receipts"))
+      throw new Error("injected-paired-receipt-write");
+  });
+  // Lawful authored intermediate work from the same fixture as the primitive
+  // laws. Only initial content differs; commands, parsing and execution are the
+  // actual Goblin program. This is not an earned-work or native-DO witness.
+  const program = {
+    ...createGoblinRegionProgram(colony),
+    initial: () => ({ clearing: serializeClearing(f.state) }),
+  };
+  const open = () => openRegion({ owner, region: "field-vessel", program });
+  const region = open(),
+    before = region.readCommitted();
+  const request = {
+    id: "return-held-water",
+    expectedRevision: 0,
+    command: {
+      kind: "return-field-water",
+      ...reference,
+      operation: f.operation.id,
+      quantity: 2,
+      portions: selectContainerPortions(
+        f.state.materials,
+        f.interior.id,
+        "water",
+        2,
+      ).portions,
+    },
+  };
+  assert.throws(
+    () => region.dispatch("goblin-player", request),
+    /region-forbidden/,
+  );
+  assert.deepEqual(region.readCommitted(), before);
+  fail = true;
+  assert.throws(
+    () => region.dispatch("goblin-host", request),
+    /injected-paired-receipt-write/,
+  );
+  assert.deepEqual(region.readCommitted(), before);
+  assert.deepEqual(open().readCommitted(), before);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) n FROM hive_region_receipts").get().n,
+    0,
+  );
+  assert.equal(
+    db.prepare("SELECT COUNT(*) n FROM hive_region_events").get().n,
+    0,
+  );
+  fail = false;
+  const receipt = region.dispatch("goblin-host", request),
+    paid = region.readCommitted();
+  assert.equal(receipt.status, "applied");
+  assert.equal(paid.revision, 1);
+  assert.equal(pit(paid.state.clearing).massKg, 2);
+  assert.equal(
+    containerQuantity(paid.state.clearing.materials, f.interior.id, "water"),
+    0,
+  );
+  assert.deepEqual(paid.state.clearing.materials.sinks, []);
+  assert.equal(fieldWaterBalance(paid.state.clearing).residualKg, 0);
+  const reopened = open();
+  assert.deepEqual(reopened.readCommitted(), paid);
+  assert.deepEqual(reopened.dispatch("goblin-host", request), receipt);
+  assert.deepEqual(reopened.readCommitted(), paid);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) n FROM hive_region_events").get().n,
+    1,
+  );
+  assert.equal(
+    reopened.dispatch("goblin-host", {
+      ...request,
+      id: "return-empty-again",
+      expectedRevision: 1,
+    }).status,
+    "rejected",
+  );
+  assert.deepEqual(reopened.readCommitted(), paid);
+});
+
+test("return cannot invalidate a contents-only or masked missing supply reference", () => {
+  for (const supply of [
+    { kind: "contents" },
+    { kind: "container", container: "missing-external-source" },
+  ]) {
+    const f = fixture();
+    f.operation.supply = supply;
+    assert.doesNotThrow(() => snapshotFor(f.state));
+    unchanged(f, () => deposit(f, 1));
+    assert.doesNotThrow(() => snapshotFor(f.state));
+    assert.equal(pit(f.state).massKg, 0);
+    assert.equal(
+      containerQuantity(f.state.materials, f.interior.id, "water"),
+      2,
+    );
   }
 });

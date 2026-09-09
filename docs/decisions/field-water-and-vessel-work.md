@@ -76,6 +76,27 @@ callers and Region replay/rollback of the paired operation are still the next
 joined outcome. This checkpoint does not establish field-fed gameplay or a
 current DO/hosted result.
 
+Independent paired-source review found one real pending-reference defect: a
+return could empty a contents-only supply, or reveal a previously masked missing
+external endpoint, and leave an unsavable operation. The paired successor now
+uses the existing `waterSupplyProblem` before publication. To keep that rule
+single-owned without an import cycle, physical binding/reference/reach queries
+live in `field-water-source.ts`; `field-water.ts` owns the material/field pairing
+and balance. There is no old-path reexport or second supply validator. Root's
+new law checks both failed returns preserve the complete valid original state.
+
+The actual Goblin Region now admits a strict host-only `return-field-water`
+command through that same primitive. Its existing transaction owns state,
+event and receipt. Focused Node SQLite law u4480 proves player rejection,
+rollback after both physical halves and the attempted receipt write, exact
+reopen, lost-ack replay, and refusal to return emptied contents under another
+command ID. The fixture is a validated authored intermediate work state using
+the real Goblin parser/executor, not earned work or native Cloudflare evidence.
+The same two-law check proves the joined generated-room consumer rejects a
+real but unpaired deposit through `parseClosedTerrain`; app types passed.
+Forward field sourcing through real assigned work is Hume's current isolated
+`field-supply` writer at aeb216b. Root retains the paired primitive and Region.
+
 Readiness provenance: ignored source packet SHA256
 `e4a4ec985760cb0d025aa4efaed112ac295a42d53ddde0d226385a607cb1227e`.
 The original read-only source observations and rejected algebra are retained
