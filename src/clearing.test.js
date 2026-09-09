@@ -972,7 +972,10 @@ test("actual libcolony creates a night routine in a sheltered room and clears it
   state.tick = 4_800;
   state.actors.rowan.routine = true;
   actualStep(state);
-  const routine = state.jobs.find((job) => job.kind === "care" && job.policy === "routine-rest" && job.routine);
+  const routine = state.jobs.find(
+    (job) =>
+      job.kind === "care" && job.policy === "routine-rest" && job.routine,
+  );
   assert.ok(routine);
   Object.assign(state.actors.rowan, {
     ...cell(7, 7),
@@ -1112,17 +1115,17 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
     actualStep(state, [{ kind: "fill-kettle", station: station.id }]),
     [{ status: "applied" }],
   );
-  assert.equal(state.operations[0]?.phase, "acquire");
+  assert.equal(state.operations[0]?.execution.phase, "acquire");
   assert.equal(state.materials.transfers[0]?.phase.kind, "reserved");
   assert.doesNotThrow(() => restoreSnapshot(snapshotFor(state)));
   for (
     let tick = 0;
-    tick < 700 && state.operations[0]?.phase !== "pour";
+    tick < 700 && state.operations[0]?.execution.phase !== "deliver";
     tick++
   )
     actualStep(state);
   const operation = state.operations[0];
-  assert.equal(operation.phase, "pour");
+  assert.equal(operation.execution.phase, "deliver");
   assert.equal(
     containerQuantity(state.materials, `source:${spring.id}`, "water"),
     14,
@@ -1143,7 +1146,7 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
   const paused = restoreSnapshot(snapshotFor(state)).state;
   assert.equal(paused.paused, true);
   assert.equal(paused.operations[0].id, operation.id);
-  assert.equal(paused.operations[0].phase, "pour");
+  assert.equal(paused.operations[0].execution.phase, "deliver");
   assert.equal(paused.actors.rowan.task, null);
   paused.jobs.unshift({
     id: "personal-chop-after-pour",
@@ -1297,12 +1300,12 @@ test("canceling mugwort water delivery releases the pail and never establishes t
   actualStep(state, [{ kind: "water-mugwort", herb: "herb-cancel" }]);
   for (
     let tick = 0;
-    tick < 700 && state.operations[0]?.phase !== "pour";
+    tick < 700 && state.operations[0]?.execution.phase !== "deliver";
     tick++
   )
     actualStep(state);
   const operation = state.operations[0];
-  assert.equal(operation.phase, "pour");
+  assert.equal(operation.execution.phase, "deliver");
   assert.deepEqual(
     actualStep(state, [{ kind: "cancel", job: operation.job }]),
     [{ status: "applied" }],
@@ -1411,7 +1414,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     quantity: 2,
     pail: "cancel-pail",
     water: "cancel-water",
-    phase: "pour",
+    phase: "deliver",
   });
   state.materials.bindings.push({
     kind: "vessel-use",

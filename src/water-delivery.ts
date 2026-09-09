@@ -1,3 +1,4 @@
+import { createFiniteWorkOwner } from "./engine/work/index.ts";
 import type {
   Clearing,
   PositiveInt,
@@ -12,6 +13,11 @@ import {
   mugwortNeedsWater,
 } from "./herbs.ts";
 import {
+  acquirePailForOperation,
+  acquireLotForOperation,
+  rebindOperationPail,
+  parkOperationPail,
+  interruptOperationPail,
   pourPailWater,
   sinkHeldPortion,
   type ContainerSpec,
@@ -20,6 +26,32 @@ import { brewStationWaterRequirement } from "./recipes.ts";
 import { neighbors } from "./world.js";
 import { settleCareConsumption } from "./needs.ts";
 
+/** One configured lifecycle over existing material state; no second work ledger. */
+export const finiteWorkOwner = createFiniteWorkOwner<
+  import("./model.ts").Material
+>({
+  acquireVesselForOperation: acquirePailForOperation,
+  acquireLotForOperation,
+  rebindOperationVessel: rebindOperationPail,
+  parkOperationVessel: parkOperationPail,
+  interruptOperation: interruptOperationPail,
+});
+
+export function sameWaterDeliveryTarget(
+  a: WaterDeliveryTarget,
+  b: WaterDeliveryTarget,
+): boolean {
+  if (a.kind !== b.kind) return false;
+  switch (a.kind) {
+    case "kettle":
+      return b.kind === "kettle" && a.station === b.station;
+    case "mugwort":
+      return b.kind === "mugwort" && a.herb === b.herb;
+    case "hydration":
+      return b.kind === "hydration" && a.actor === b.actor;
+  }
+}
+
 export type ResolvedWaterDelivery = {
   target: WaterDeliveryTarget;
   access: readonly { x: number; z: number; level: number }[];
@@ -27,7 +59,7 @@ export type ResolvedWaterDelivery = {
   quantity: PositiveInt;
 };
 
-/** The two current consumers share one pail phase machine, not one inventory. */
+/** Kettle filling, plant watering and drinking share the vessel work definition. */
 export function waterDeliveryQuantity(
   target: WaterDeliveryTarget,
 ): PositiveInt | null {
@@ -98,15 +130,14 @@ export function settleWaterDelivery(
   if (
     !resolved ||
     resolved.quantity !== operation.quantity ||
-    operation.phase !== "pour" ||
-    operation.water === null
+    operation.execution.phase !== "deliver"
   )
     return { ok: false, reason: "destination-unavailable" };
   if (resolved.destination) {
     const poured = pourPailWater(state.materials, {
       operation: operation.id,
       destination: resolved.destination,
-      sourceLot: operation.water,
+      sourceLot: operation.execution.content,
       quantity: operation.quantity,
       access: {
         sourceReachable: true,
@@ -120,7 +151,7 @@ export function settleWaterDelivery(
     return settleCareConsumption(state, {
       actor: target.actor,
       operation,
-      lot: operation.water,
+      lot: operation.execution.content,
     })
       ? { ok: true }
       : { ok: false, reason: "destination-unavailable" };
@@ -133,7 +164,7 @@ export function settleWaterDelivery(
   const consumed = sinkHeldPortion(state.materials, {
     id: `water-delivery-sink:${operation.id}`,
     operation: operation.id,
-    sourceLot: operation.water,
+    sourceLot: operation.execution.content,
     material: "water",
     quantity: operation.quantity,
   });

@@ -36,11 +36,8 @@ import {
 } from "./finite-sources.ts";
 import {
   availableMaterialFacts,
-  acquireLotForOperation,
-  acquirePailForOperation,
   containerQuantity,
   remainingContainerQuantity,
-  rebindOperationPail,
   reserveTransfer,
   transferForActor,
   type ContainerSpec,
@@ -62,6 +59,7 @@ import { CHOP_TICKS, interruptWork } from "./activity.ts";
 import { terrainBackfillBuffer, terrainCell } from "./terrain.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 import {
+  finiteWorkOwner,
   resolveWaterDelivery,
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
@@ -449,7 +447,7 @@ function waterDeliveryOption(
       destination.destination.capacity
   )
     return no("The kettle is full");
-  const phase = existing?.phase ?? "acquire";
+  const phase = existing?.execution.phase ?? "acquire";
   if (
     existing &&
     !state.materials.bindings.some(
@@ -496,7 +494,7 @@ function waterDeliveryOption(
   const selected = candidates[0];
   if (!selected) return no("Waiting for the recoverable pail");
   const spring =
-    phase === "pour"
+    phase === "deliver"
       ? undefined
       : state.sources.find(
           (source) =>
@@ -504,7 +502,7 @@ function waterDeliveryOption(
             (!existing && source.kind === "spring"),
         );
   if (
-    phase !== "pour" &&
+    phase !== "deliver" &&
     (!spring ||
       containerQuantity(state.materials, `source:${spring.id}`, "water") <
         destination.quantity)
@@ -1379,22 +1377,26 @@ export function assignWork(state: Clearing, colony: Colony): void {
           operation.kind === "water-delivery" && operation.id === id,
       );
       if (existing) {
-        const rebound = rebindOperationPail(state.materials, {
-          id: `vessel-use-${id}-${state.nextId}`,
-          operation: existing.id,
-          actor: p.id,
-          access: {
-            sourceReachable: true,
-            destinationReachableWithPayload: true,
+        const rebound = finiteWorkOwner.attach(
+          state.operations,
+          state.materials,
+          {
+            id: `vessel-use-${id}-${state.nextId}`,
+            operation: existing.id,
+            actor: p.id,
+            access: {
+              sourceReachable: true,
+              destinationReachableWithPayload: true,
+            },
           },
-        });
+        );
         if (!rebound.ok) {
           state.workDirty = true;
           continue;
         }
         state.nextId++;
       } else {
-        state.operations.push({
+        const record: import("./model.ts").WaterDeliveryOperation = {
           kind: "water-delivery",
           id,
           job: m.task,
@@ -1402,23 +1404,27 @@ export function assignWork(state: Clearing, colony: Colony): void {
           quantity: c.water.quantity,
           spring: c.water.spring,
           pail: c.water.pail,
-          water: null,
-          phase: "acquire",
-        });
-        const acquired = acquirePailForOperation(state.materials, {
-          id: `vessel-use-${id}`,
-          operation: id,
-          actor: p.id,
-          vessel: c.water.pail,
-          access: {
-            sourceReachable: true,
-            destinationReachableWithPayload: true,
+          execution: { phase: "acquire" },
+        };
+        const acquired = finiteWorkOwner.admit(
+          state.operations,
+          state.materials,
+          record,
+          {
+            kind: "vessel",
+            request: {
+              id: `vessel-use-${id}`,
+              operation: id,
+              actor: p.id,
+              vessel: c.water.pail,
+              access: {
+                sourceReachable: true,
+                destinationReachableWithPayload: true,
+              },
+            },
           },
-        });
+        );
         if (!acquired.ok) {
-          state.operations = state.operations.filter(
-            (operation) => operation.id !== id,
-          );
           state.workDirty = true;
           continue;
         }
@@ -1438,29 +1444,37 @@ export function assignWork(state: Clearing, colony: Colony): void {
         state.workDirty = true;
         continue;
       }
-      const acquired = acquireLotForOperation(state.materials, {
-        id: `consume-use-${id}`,
-        operation: id,
-        actor: p.id,
-        lot: c.consume.sourceLot,
-        material: c.consume.material,
-        quantity: c.consume.quantity,
-        access: {
-          sourceReachable: true,
-          destinationReachableWithPayload: true,
+      const acquired = finiteWorkOwner.admit(
+        state.operations,
+        state.materials,
+        {
+          kind: "consume",
+          id,
+          job: m.task,
+          actor: p.id,
+          definition: definition.id,
+          execution: { phase: "acquire" },
         },
-      });
+        {
+          kind: "portion",
+          request: {
+            id: `consume-use-${id}`,
+            operation: id,
+            actor: p.id,
+            lot: c.consume.sourceLot,
+            material: c.consume.material,
+            quantity: c.consume.quantity,
+            access: {
+              sourceReachable: true,
+              destinationReachableWithPayload: true,
+            },
+          },
+        },
+      );
       if (!acquired.ok) {
         state.workDirty = true;
         continue;
       }
-      state.operations.push({
-        kind: "consume",
-        id,
-        job: m.task,
-        actor: p.id,
-        definition: definition.id,
-      });
       state.nextId++;
       c.activity.target = id;
     }
