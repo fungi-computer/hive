@@ -5,6 +5,17 @@ import {
 } from "./portions.ts";
 import type * as T from "./types.ts";
 import type { createMaterialOwner } from "./owner.ts";
+
+/** A material-side transfer fact; the caller owns any outside counterpart. */
+export type ExportedVesselContents<M extends string> = {
+  readonly operation: string;
+  readonly vessel: T.LotId;
+  readonly container: T.ContainerId;
+  readonly material: M;
+  readonly quantity: T.PositiveInt;
+  readonly portions: readonly Readonly<MaterialPortion>[];
+};
+
 export function createHeldUses<M extends string>(
   owner: ReturnType<typeof createMaterialOwner<M>>,
 ) {
@@ -25,6 +36,12 @@ export function createHeldUses<M extends string>(
   type Material = M;
   type ContainerSpec = T.ContainerSpec<M>;
   type MaterialResult<V> = T.MaterialResult<V>;
+  type VesselPortionRequest = {
+    operation: string;
+    material: Material;
+    quantity: number;
+    portions: readonly MaterialPortion[];
+  };
   const failure = <V>(reason: MaterialFailure): MaterialResult<V> => ({
     ok: false,
     reason,
@@ -290,19 +307,27 @@ export function createHeldUses<M extends string>(
     });
   }
 
-  /** A checked consumer may settle an exact held portion into an immutable receipt. */
-  function sinkHeldPortion(
+  /** Admit outside material into the actual held vessel, without a fake source. */
+  function importVesselContents(
     state: MaterialsState,
-    input: {
-      id: string;
-      operation: string;
-      portions: readonly MaterialPortion[];
-      material: Material;
-      quantity: number;
-    },
-  ): MaterialResult<{ id: string }> {
-    if (state.sinks.some((sink) => sink.id === input.id))
-      return failure("duplicate-sink");
+    input: { operation: string; material: Material; quantity: number },
+  ): MaterialResult<MaterialPortion> {
+    const held = heldUseVessel(state, input.operation);
+    if (!held.ok) return held;
+    const admitted = owner.introduceFiniteSourceLot(state, {
+      source: held.value.interior,
+      material: input.material,
+      quantity: input.quantity,
+    });
+    if (!admitted.ok) return admitted;
+    return success({
+      lot: admitted.value.id,
+      quantity: admitted.value.quantity,
+    });
+  }
+
+  /** Consumption and outward transfer share held custody plus complete debit admission. */
+  function planHeldDebit(state: MaterialsState, input: VesselPortionRequest) {
     const held = heldUseVessel(state, input.operation);
     if (!held.ok) return held;
     const planned = planContainerDebit(
@@ -316,7 +341,43 @@ export function createHeldUses<M extends string>(
       owner.internal.availableQuantity,
     );
     if (!planned.ok) return planned;
-    debitContainer(state, planned.value);
+    return success({ held: held.value, debits: planned.value });
+  }
+
+  /** Transfer material out of a held vessel; this is not an end-use sink. */
+  function exportVesselContents(
+    state: MaterialsState,
+    input: VesselPortionRequest,
+  ): MaterialResult<ExportedVesselContents<Material>> {
+    const planned = planHeldDebit(state, input);
+    if (!planned.ok) return planned;
+    const { held, debits } = planned.value;
+    const fact = Object.freeze({
+      operation: input.operation,
+      vessel: held.lot.id,
+      container: held.interior.id,
+      material: input.material,
+      quantity: input.quantity as PositiveInt,
+      portions: Object.freeze(
+        debits.map(({ lot, quantity }) =>
+          Object.freeze({ lot: lot.id, quantity }),
+        ),
+      ),
+    });
+    debitContainer(state, debits);
+    return success(fact);
+  }
+
+  /** A checked consumer may settle an exact held portion into an immutable receipt. */
+  function sinkHeldPortion(
+    state: MaterialsState,
+    input: VesselPortionRequest & { id: string },
+  ): MaterialResult<{ id: string }> {
+    if (state.sinks.some((sink) => sink.id === input.id))
+      return failure("duplicate-sink");
+    const planned = planHeldDebit(state, input);
+    if (!planned.ok) return planned;
+    debitContainer(state, planned.value.debits);
     state.sinks.push({
       id: input.id,
       material: input.material,
@@ -416,6 +477,8 @@ export function createHeldUses<M extends string>(
     retireOperationUse,
     drawVesselContents,
     pourVesselContents,
+    importVesselContents,
+    exportVesselContents,
     sinkHeldPortion,
     sinkHeldOperationPortion,
     interruptOperation,

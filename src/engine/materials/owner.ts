@@ -166,7 +166,7 @@ export function createMaterialOwner<M extends string>(
       source: ContainerSpec;
       material: Material;
       quantity: number;
-      preferredId: LotId;
+      preferredId?: LotId;
     },
   ): MaterialResult<ItemLot> {
     if (!isPositiveInt(input.quantity))
@@ -181,15 +181,25 @@ export function createMaterialOwner<M extends string>(
       quantity: input.quantity as PositiveInt,
     });
     if (capacityProblem) return failure(capacityProblem);
-    if (state.lots.some((lot) => lot.id === input.preferredId))
-      return failure("duplicate-lot");
+    let id: LotId;
     let nextLotId = state.nextLotId;
+    if (input.preferredId !== undefined) {
+      if (state.lots.some((lot) => lot.id === input.preferredId))
+        return failure("duplicate-lot");
+      id = input.preferredId;
+    } else {
+      const allocation = allocateLotId(state);
+      if (!allocation.ok) return allocation;
+      ({ id, nextLotId } = allocation.value);
+    }
     const lot: ItemLot = {
-      id: input.preferredId,
+      id,
       material: input.material,
       quantity: input.quantity as PositiveInt,
       location: { kind: "container", container: input.source.id },
     };
+    const invalidLot = lotProblem(lot);
+    if (invalidLot) return failure(invalidLot);
     state.lots.push(lot);
     state.nextLotId = nextLotId;
     return success(lot);

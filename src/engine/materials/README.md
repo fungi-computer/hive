@@ -40,3 +40,34 @@ Private modules are split by responsibility: `owner.ts` mutates transfers/contai
 sinks, `settlement.ts` owns resolved recipe accounting, `recovery.ts` owns removal and
 embedding recovery, and `definitions.ts` derives portable interiors once. Their internal
 helpers are not supported import paths for game features or independent consumers.
+
+## Held-vessel boundary transfers
+
+`uses.importVesselContents(state, {operation, material, quantity})` admits an exact
+positive integer quantity into the operation's real held vessel and returns the new
+`{lot, quantity}` portion. Its checked material definition and actual interior supply
+the admission/capacity rules. The existing `introduceFiniteSourceLot` owner performs
+lot validation, capacity admission, ID allocation and commitment together. Authored
+source configuration may still provide its own `preferredId`; omitting it uses the
+ordinary allocator. A vessel boundary caller never chooses the new ID: no caller-supplied
+ID or temporary source container is needed. Failed admission leaves lots and allocator
+unchanged. Repeated imports preserve separate physical lot identities.
+
+`uses.exportVesselContents(state, {operation, material, quantity, portions})` checks
+the same held custody and every exact portion before removing any stock. A partial
+debit keeps the original remainder ID; an exhausted lot is removed. The returned frozen
+`ExportedVesselContents` fact names the operation, vessel, interior, material, quantity
+and exact debited portions. It owns its returned data rather than aliasing mutable lots
+or caller input. This outward transfer appends no consumption sink or saved ledger.
+
+These are trusted material-side operations, not permission to create resources through
+player commands. They establish no outside source, receiver, physical-unit conversion,
+reach or durable exactly-once effect. The composing consumer must resolve those facts,
+perform both sides on a detached candidate, check its joined conservation law and
+commit the candidate with its ordinary durable command receipt. Retrying import alone
+may create another portion; a transfer fact is not an independent replay database.
+An actual end-use consumer continues to use `sinkHeldPortion`, whose irreversible
+consumption receipt has a different meaning from transfer to an outside receiver.
+
+Focused material-side laws are in `vessel-boundary.test.js`; they do not prove the
+outside counterpart, Region commitment, physical solver or a browser interaction.
