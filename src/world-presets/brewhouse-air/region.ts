@@ -123,14 +123,26 @@ function changeVent(candidate: State, open: boolean) {
       status: "rejected" as const,
       result: { reason: "opening-unchanged" },
     };
-  const opening = {
+  const oldGeometryRevision = candidate.opening.revision,
+    opening = {
       open,
-      revision: candidate.opening.revision + 1,
+      revision: oldGeometryRevision + 1,
     },
+    registered = generatedBrewhouseRoom(candidate.terrain, opening),
     rebound = airOwner(candidate).rebind(
       candidate.air,
-      generatedBrewhouseRoom(candidate.terrain, opening).definition,
+      registered.definition,
     );
+  const openedFaceCount = rebound.receipt.newFaces.length,
+    closedFaceCount = rebound.receipt.closedFaces.length,
+    changedFaceCount = registered.shutterFaces.length;
+  if (
+    (open &&
+      (openedFaceCount !== changedFaceCount || closedFaceCount !== 0)) ||
+    (!open &&
+      (openedFaceCount !== 0 || closedFaceCount !== changedFaceCount))
+  )
+    throw new Error("brewhouse shutter changed unexpected air faces");
   candidate.air = rebound.state;
   candidate.opening = opening;
   return {
@@ -139,9 +151,20 @@ function changeVent(candidate: State, open: boolean) {
     events: [
       {
         kind: "vent",
-        ...rebound.receipt,
-        newFaces: [...rebound.receipt.newFaces],
-        closedFaces: [...rebound.receipt.closedFaces],
+        open,
+        oldGeometryRevision,
+        newGeometryRevision: opening.revision,
+        timeS: rebound.receipt.timeS,
+        openedFaceCount,
+        closedFaceCount,
+        oldKineticJ: rebound.receipt.oldKineticJ,
+        mappedKineticJ: rebound.receipt.mappedKineticJ,
+        newKineticJ: rebound.receipt.newKineticJ,
+        kineticChangeJ: rebound.receipt.kineticChangeJ,
+        boundaryDissipationJ: rebound.receipt.boundaryDissipationJ,
+        divergenceM3S: rebound.receipt.divergenceM3S,
+        thermalTransferJ: rebound.receipt.thermalTransferJ,
+        smokeTransferKg: rebound.receipt.smokeTransferKg,
       },
     ],
   };

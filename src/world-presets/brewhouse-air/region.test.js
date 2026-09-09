@@ -29,11 +29,12 @@ function fixture(t) {
     fail: (value) => {
       failure = value;
     },
-    open: () =>
+    open: (limits) =>
       openRegion({
         owner,
         region: "brewhouse",
         program: createBrewhouseAirProgram(),
+        limits,
       }),
   };
 }
@@ -249,6 +250,96 @@ test("vent edit keeps physical stocks and reports dissipation; grants and unpaid
   const mismatchedClock = structuredClone(after.state);
   mismatchedClock.terrain.soilState.timeS += 0.1;
   assert.throws(() => program.parseState(mismatchedClock));
+});
+
+test("vent events are bounded committed physical summaries with exact replay", (t) => {
+  const f = fixture(t),
+    limits = { eventBytes: 512 },
+    region = f.open(limits),
+    opening = command("open-compact", 0, { kind: "vent", open: true }),
+    receipt = region.dispatch("room-player", opening),
+    committed = region.readCommitted(),
+    events = region.readEvents(0),
+    event = events[0],
+    payload = event.event.payload;
+  assert.equal(receipt.status, "applied");
+  assert.equal(events.length, 1);
+  assert.equal(event.event.revision, committed.revision);
+  assert.equal(payload.kind, "vent");
+  assert.equal(payload.open, committed.state.opening.open);
+  assert.equal(payload.oldGeometryRevision, 0);
+  assert.equal(
+    payload.newGeometryRevision,
+    committed.state.opening.revision,
+  );
+  assert.equal(payload.timeS, committed.state.air.timeS);
+  assert.equal(
+    payload.openedFaceCount,
+    generatedBrewhouseRoom(
+      committed.state.terrain,
+      committed.state.opening,
+    ).shutterFaces.length,
+  );
+  assert.equal(payload.closedFaceCount, 0);
+  assert.equal(
+    payload.kineticChangeJ,
+    payload.newKineticJ - payload.oldKineticJ,
+  );
+  assert.equal(
+    payload.boundaryDissipationJ,
+    Math.max(0, -payload.kineticChangeJ),
+  );
+  assert.equal(payload.thermalTransferJ, 0);
+  assert.equal(payload.smokeTransferKg, 0);
+  assert(Number.isFinite(payload.divergenceM3S));
+  assert.deepEqual(Object.keys(payload).sort(), [
+    "boundaryDissipationJ",
+    "closedFaceCount",
+    "divergenceM3S",
+    "kind",
+    "kineticChangeJ",
+    "mappedKineticJ",
+    "newGeometryRevision",
+    "newKineticJ",
+    "oldGeometryRevision",
+    "oldKineticJ",
+    "open",
+    "openedFaceCount",
+    "smokeTransferKg",
+    "thermalTransferJ",
+    "timeS",
+  ]);
+  assert(
+    new TextEncoder().encode(JSON.stringify(event.event)).byteLength <=
+      limits.eventBytes,
+  );
+
+  const reopened = f.open(limits);
+  assert.deepEqual(reopened.dispatch("room-player", opening), receipt);
+  assert.deepEqual(reopened.readCommitted(), committed);
+  assert.deepEqual(reopened.readEvents(0), events);
+
+  reopened.dispatch(
+    "room-player",
+    command("close-compact", 1, { kind: "vent", open: false }),
+  );
+  const closed = reopened.readCommitted(),
+    closeEvent = reopened.readEvents(1)[0].event,
+    closePayload = closeEvent.payload;
+  assert.equal(closeEvent.revision, closed.revision);
+  assert.equal(closePayload.open, closed.state.opening.open);
+  assert.equal(closePayload.oldGeometryRevision, 1);
+  assert.equal(closePayload.newGeometryRevision, 2);
+  assert.equal(closePayload.openedFaceCount, 0);
+  assert.equal(
+    closePayload.closedFaceCount,
+    generatedBrewhouseRoom(closed.state.terrain, closed.state.opening)
+      .shutterFaces.length,
+  );
+  assert(
+    new TextEncoder().encode(JSON.stringify(closeEvent)).byteLength <=
+      limits.eventBytes,
+  );
 });
 
 test("real exterior excavation co-saves wet spoil while the generated room rejects loss of collar support", (t) => {
