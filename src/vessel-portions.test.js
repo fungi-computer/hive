@@ -281,5 +281,5 @@ test("current vessel format rejects schema 18 rather than migrating single-conte
   const saved = snapshotFor(createClearing());
   assert.equal(saved.schema, 20);
   saved.schema = 18;
-  assert.throws(() => restoreSnapshot(saved), /19/);
+  assert.throws(() => restoreSnapshot(saved), /20/);
 });

@@ -1,3 +1,4 @@
+import { drawFieldWater } from "./field-water.ts";
 import { resolveWaterSupply } from "./water-supply.ts";
 import { type AccessOutcome } from "./engine/work/index.ts";
 import type {
@@ -483,16 +484,26 @@ function finiteWork(s: Clearing, p: Actor, t: Activity): void {
           return { status: "ready", contents: supply.contents };
         const access = approachWork(s, p, supply.source.accessCells);
         if (access !== "ready") return { status: access };
-        const drawn = drawPailWater(s.materials, {
-          operation: operation.id,
-          source: supply.source.provider,
-          portions: supply.portions,
-          quantity: supply.deficit,
-          access: {
-            sourceReachable: true,
-            destinationReachableWithPayload: true,
-          },
-        });
+        const drawn =
+          supply.source.kind === "field"
+            ? operation.supply.kind === "field"
+              ? drawFieldWater(s, {
+                  operation: operation.id,
+                  binding: operation.supply.binding,
+                  nodeId: operation.supply.nodeId,
+                  quantity: supply.deficit,
+                })
+              : { ok: false as const, reason: "field-supply-mismatch" }
+            : drawPailWater(s.materials, {
+                operation: operation.id,
+                source: supply.source.provider,
+                portions: supply.portions,
+                quantity: supply.deficit,
+                access: {
+                  sourceReachable: true,
+                  destinationReachableWithPayload: true,
+                },
+              });
         return drawn.ok
           ? {
               status: "ready",
