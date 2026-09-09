@@ -425,15 +425,15 @@ flowchart LR
 The host and simulation are parts of one authority, not independent state
 writers. Persistence and transport do not reimplement job settlement.
 
-| Concept | Owns | Does not own |
-| --- | --- | --- |
-| World authority | Sole active writer for all actors, parties, jobs, claims and material in this world, regardless of chunk residency; its tick and admitted commands | A person's permanent player identity |
-| Actor record | Stable ID, position, activity, needs and carried material | Another copy of party membership |
-| Party record | Member IDs, scoped orders and travel intent | Copies of its people or their inventories |
-| Job record | Kind, party/actor scope and stable target reference | A second mutable copy of order or activity status |
-| Terrain chunk | Terrain and local object records in a spatial region | A separate game clock or automatic server boundary |
-| Resource claim | A promise against available stock/destination capacity | Additional physical material |
-| Renderer | Sprites, camera, selection, visibility | Work progress, inventory or elapsed game time |
+| Concept         | Owns                                                                                                                                               | Does not own                                       |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| World authority | Sole active writer for all actors, parties, jobs, claims and material in this world, regardless of chunk residency; its tick and admitted commands | A person's permanent player identity               |
+| Actor record    | Stable ID, position, activity, needs and carried material                                                                                          | Another copy of party membership                   |
+| Party record    | Member IDs, scoped orders and travel intent                                                                                                        | Copies of its people or their inventories          |
+| Job record      | Kind, party/actor scope and stable target reference                                                                                                | A second mutable copy of order or activity status  |
+| Terrain chunk   | Terrain and local object records in a spatial region                                                                                               | A separate game clock or automatic server boundary |
+| Resource claim  | A promise against available stock/destination capacity                                                                                             | Additional physical material                       |
+| Renderer        | Sprites, camera, selection, visibility                                                                                                             | Work progress, inventory or elapsed game time      |
 
 Record rows describe field ownership under that one writer, not separate
 services. Loading a chunk never gives it authority over a person.
@@ -707,6 +707,9 @@ Three-to-sprite wind study: grass clumps and leaf canopies have a few authored
 wind poses, staggered phases and stable placement. Trunks can stay still while
 canopies move. Keep pixel scale, depth, overhang and transparent sorting readable;
 do not add a general foliage engine before the motion looks good in the game.
+The reviewed [living ground, grass and water art direction](docs/decisions/living-ground-grass-and-water-art.md)
+extends that accepted foliage vocabulary while keeping substrate, wetness,
+fertility, water physics and their presentation under distinct owners.
 
 He also requests Diablo-style rotatable backpack packing, with hand-held work
 cargo separate from that grid. Stable item instances eventually have exactly one
@@ -839,13 +842,13 @@ implementation or authorization for live AI in the home candidate.
 
 ## Implementation sequence and evidence
 
-| Slice | Observable result | Source responsibilities and decisive proof |
-| --- | --- | --- |
-| 1. Full-viewport two-person home | The world fills the window. Inspect Rowan, issue direct/queued contextual work, recruit an outsider and have both share supplies correctly. Names are readable and Bramble explains the loop. | First review the new surface/inspector and an actual chop outcome. Type `clearing/jobs/resources` and definitions, add actor/party IDs and claims, adapt `main/hud/view`. Two people/two orders/one scarce pile cannot duplicate material; cancellation refunds reachable wood; existing home/rest/pause/replay and keyboard-focus checks remain valid. |
-| 2. Upper-floor bedroom | Build a modest loft, carry materials upstairs, build and use its bed. | Extend `world/movement/construction/art/home` and view together. Explicit stair edges/work positions, supported footprints, correct cutaway/picking, and blocked-stair negative case. Review intended-scale pixels before more vertical content. |
-| 3. Local caravan and streamed terrain | One person leaves with earned cargo, crosses a chunk boundary and returns while the other keeps working at home. | Replace finite-grid/data/camera assumptions through `world/movement/construction/view/art/clearing/scale`. Keep home data pinned offscreen; save/evict/reload a third modified unoccupied chunk. Restart from a committed snapshot and preserve actors, cargo, jobs, stumps and construction. |
-| 4. Same-world multiplayer host | Two clients control their own people against one authoritative world. | First resolve hosted optimizer memory/runtime fit. Then local DO storage/socket proof, duplicate commands, reconnect and eviction; remote deployment requires its own concrete authorized backend candidate. |
-| 5. Homeland visits and background work | A caravan enters another persistent home; its identities and possessions survive departure/arrival and offline work. | Actual two-owner transfer recovery, permissions and bounded catch-up parity. Add spell demonstrations and paid AI only as separately bounded consumers of these foundations. |
+| Slice                                  | Observable result                                                                                                                                                                             | Source responsibilities and decisive proof                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Full-viewport two-person home       | The world fills the window. Inspect Rowan, issue direct/queued contextual work, recruit an outsider and have both share supplies correctly. Names are readable and Bramble explains the loop. | First review the new surface/inspector and an actual chop outcome. Type `clearing/jobs/resources` and definitions, add actor/party IDs and claims, adapt `main/hud/view`. Two people/two orders/one scarce pile cannot duplicate material; cancellation refunds reachable wood; existing home/rest/pause/replay and keyboard-focus checks remain valid. |
+| 2. Upper-floor bedroom                 | Build a modest loft, carry materials upstairs, build and use its bed.                                                                                                                         | Extend `world/movement/construction/art/home` and view together. Explicit stair edges/work positions, supported footprints, correct cutaway/picking, and blocked-stair negative case. Review intended-scale pixels before more vertical content.                                                                                                        |
+| 3. Local caravan and streamed terrain  | One person leaves with earned cargo, crosses a chunk boundary and returns while the other keeps working at home.                                                                              | Replace finite-grid/data/camera assumptions through `world/movement/construction/view/art/clearing/scale`. Keep home data pinned offscreen; save/evict/reload a third modified unoccupied chunk. Restart from a committed snapshot and preserve actors, cargo, jobs, stumps and construction.                                                           |
+| 4. Same-world multiplayer host         | Two clients control their own people against one authoritative world.                                                                                                                         | First resolve hosted optimizer memory/runtime fit. Then local DO storage/socket proof, duplicate commands, reconnect and eviction; remote deployment requires its own concrete authorized backend candidate.                                                                                                                                            |
+| 5. Homeland visits and background work | A caravan enters another persistent home; its identities and possessions survive departure/arrival and offline work.                                                                          | Actual two-owner transfer recovery, permissions and bounded catch-up parity. Add spell demonstrations and paid AI only as separately bounded consumers of these foundations.                                                                                                                                                                            |
 
 These are coherent increments, not parallel writers for coupled game seams.
 Astra owns the core implementation; bounded reviews inspect the actual first

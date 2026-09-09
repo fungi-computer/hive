@@ -536,6 +536,9 @@ Levi's notes for the next round, recorded without expanding this interim:
 - Soft, painterly wind in original animated grass clumps and separate leaf
   canopies, baked from a few Three geometry poses with staggered phases. Begin
   with a small visual study; decorative wind is not a simulation scheduler.
+  The reviewed [living ground, grass and water art direction](docs/decisions/living-ground-grass-and-water-art.md)
+  reuses the accepted foliage source while keeping soil, wetness, fertility and
+  physical water as separate authoritative facts.
 - Diablo-like backpack packing with rotatable item footprints. Backpack contents,
   equipped gear and visible hauling cargo are distinct locations with one owner
   per physical item. Large logs may occupy the arms without occupying backpack
