@@ -86,29 +86,43 @@ function facesOf(size, origin, spacing, area, fluid, openings, walls) {
   return { faces, lookup };
 }
 
-function stencilsOf(size, faces, lookup, openings) {
+function stencilsOf(size, faces, lookup) {
+  const insideFace = (axis, at) =>
+    at.every((v, d) => v >= 0 && v <= size[d] - (d === axis ? 0 : 1));
   function faceIndex(axis, at) {
-    if (at.some((v, d) => v < 0 || v > size[d] - (d === axis ? 0 : 1)))
-      return -1;
-    return lookup[axis].get(key(at)) ?? -1;
+    return insideFace(axis, at) ? (lookup[axis].get(key(at)) ?? -1) : -1;
   }
-  function outsideOpen(axis, at) {
-    return at.some(
-      (p, d) =>
-        (p < 0 && openings.has(AXES[d] + "-")) ||
-        (p > size[d] - (axis === d ? 0 : 1) && openings.has(AXES[d] + "+")),
-    );
+  function exteriorGhost(f, d, sign) {
+    // A normal component exists here only for an admitted open boundary face.
+    if (d === f.axis) return 1;
+    const patch = [...f.at];
+    patch[d] = sign < 0 ? 0 : size[d];
+    let count = 0,
+      open = 0;
+    // The tangential component's dual support covers these equal-area patches.
+    // At its own domain edge only one patch belongs to the represented volume.
+    for (const offset of [-1, 0]) {
+      patch[f.axis] = f.at[f.axis] + offset;
+      if (!insideFace(d, patch)) continue;
+      count++;
+      if (faceIndex(d, patch) >= 0) open++;
+    }
+    if (count === 0)
+      throw new Error("boundary component has no physical support");
+    return (2 * open) / count - 1;
   }
   function neighbor(f, d, sign) {
     const at = [...f.at];
     at[d] += sign;
     const index = faceIndex(f.axis, at);
-    if (index < 0)
+    if (index < 0) {
+      const outside = at[d] < 0 || at[d] > size[d] - (d === f.axis ? 0 : 1);
       return {
         index: -1,
         other: 0,
-        center: outsideOpen(f.axis, at) ? 1 : d === f.axis ? 0 : -1,
+        center: outside ? exteriorGhost(f, d, sign) : d === f.axis ? 0 : -1,
       };
+    }
     if (d === f.axis) return { index, other: 1, center: 0 };
     const a = [...f.at];
     a[d] += sign > 0 ? 1 : 0;
@@ -223,7 +237,7 @@ export function compileGeometry({
     thermalDiffusivity,
     tracerDiffusivity,
     buoyancy,
-    ...stencilsOf(size, faces, lookup, openings),
+    ...stencilsOf(size, faces, lookup),
     ...pressureComponents(fluid, faces),
   };
 }
