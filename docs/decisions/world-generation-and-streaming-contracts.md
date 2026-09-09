@@ -42,6 +42,58 @@ questions using that same placement. Repeated stairs, ramps and capability-
 checked traversal links replace a global one-stair special case. Cat jumping
 can add supported links over the same contact surfaces without a second world.
 
+### One-voxel stepping and clambering — September 9
+
+Levi explicitly asks for ordinary up/down traversal of one voxel without stairs,
+with animation and a movement penalty. Adopt this as the initial human movement
+profile. The current vertical voxel is0.54m; this is a noticeable step/clamber,
+not a whole2.16m storey. It is a pending implementation decision, not shipped
+movement. The current `movement.js` still charges6 ticks for every same-level
+edge and18 for every different-level edge, while `route` uses breadth-first
+search and `world.js` still restricts standing levels to0/1.
+
+For an adjacent horizontal cell, the shared physical query finds a supported
+standing surface at the same height or exactly one voxel higher/lower. Admit an
+edge only if the body/payload fits at the destination and through the movement,
+the supporting geometry exists, and the destination is allowed/known. Empty air
+is not a landing; a two-voxel cliff does not become an ordinary downward edge.
+Missing resident data remains needs-data, not walkable or forbidden geometry.
+Repeated step edges let a worker descend a terraced excavation and return with
+the same carried item. They cannot mine from a surface position into a deep
+shaft. Work reach uses that actual supported foot position and tool profile.
+
+Initial game-tuning values are6 ticks for a flat edge,12 for a one-voxel ascent,
+and9 for descent. These are definition-owned starting values, not measured
+balance or universal engine constants. Stairs and ramps remain useful routes
+for larger height changes and repeated hauling. Carry/load and creature
+profiles can alter admitted movement and cost through the same owner; do not
+create a cat-only graph or name-based exception. Larger cat jumps and deliberate
+falls remain distinct capability-checked edges, not an expanded human step.
+
+Replace unweighted breadth-first selection with bounded cost-aware routing over
+these same admitted edges. The route planner, arrival estimates and executor use
+the same duration/cost facts, so a slightly longer flat path can beat repeated
+clambering. Freeze an active edge's duration at admission; a later load/profile
+change cannot reinterpret its saved progress halfway through the move.
+
+The movement owner records the physical endpoints, edge kind, duration and
+progress. Rendering derives a short crouch/lift/foot-plant ascent or controlled
+step-down from that progress using the original Three-to-Pixi character assets.
+The carried item follows the same body pose; cosmetic interpolation does not
+settle movement, create a second physical position or advance paused time.
+Geometry edits must respect the active traversal's occupied/swept space; a new
+wall or removed landing waits rather than clipping the body or snapping it
+through terrain. Commands may change the subsequent route at safe footing.
+Save/reopen retains the same admitted movement and item custody.
+
+The first joined demonstration is a pawn walking up/down generated one-voxel
+ledges, choosing between a flat detour and a stepped route, then digging and
+hauling through a small terraced pit. Check low ceilings, blocked landings,
+carrying, pause/reload and an edit during a step. This is followed by repeated
+stairs and deeper excavation under the full vertical acceptance below; the
+step fixture does not shrink that requirement to one level. No new movement
+writer or animation bake is launched by recording this decision.
+
 ### Four orientations and a rotating world view
 
 Levi additionally requires four object orientations and world rotation in the
