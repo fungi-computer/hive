@@ -173,6 +173,106 @@ Caps owns shared visual primitives; game UI owns menus, inspectors and compositi
 
 Original Three geometry produces only the needed appearance/pose recipes through the low-resolution bake, cached under appearance/asset-version keys. Do not bake the Cartesian product of every head/body/outfit. Physical tool/item IDs drive the correct art attachment/pose; decorative images never supply inventory. Palette/LUT/foliage studies remain independent presentation work with native/game-scale review by Astra. Offscreen rendering can stop; simulation obligations cannot.
 
+## Proposed asset-authoring MCP — 2026-09-09
+
+Levi wants other people and their AI clients to make assets using Hive's original
+art. This is accepted future authoring direction and a feasibility assessment,
+not an implemented service or public/backend deployment. The current gameplay
+audit/care repair queue remains active.
+
+The achievable first product is a reusable original-art kit with a common
+authoring API consumed by both an MCP adapter and a future Caps workbench.
+MCP supplies discovery, typed tool calls and preview/artifact responses; the
+authoring API owns validated drafts, composition, rendering and export. The game
+keeps using the same source builders and bake conventions. Do not maintain a
+separate public generator with different geometry, style or anchors.
+
+### Existing foundation and actual missing work
+
+- `src/art/geometry.js` provides original mesh primitives and the shared light
+  rig. `src/art/scale.js` provides the orthographic camera/metric but also imports
+  clearing size/projection; separate reusable camera facts from game placement
+  when extracting the authoring seam.
+- `src/studies/brewhouse/props.js` has 14 registered builders, including kettle,
+  barrel, bookshelf, bottles, workbench and lantern. `template.js` demonstrates
+  composed room dressing. These are useful starting assets, not a validated
+  public parameter schema. Builder signatures and ownership of parent groups
+  differ; a common options object cannot simply be forwarded to all of them.
+- `src/art.js:bake` combines WebGL rendering, outline pixels, alpha metadata,
+  Pixi texture creation and geometry disposal. Extract a shared canvas/image
+  bake result used by both the existing Pixi adapter and asset exports. A retained
+  authoring preview owns its own scene lifecycle; exporting cannot follow a
+  destructive bake that has already disposed its source geometry.
+- The ignored kettle trial has already proved standard Three r185 Object JSON
+  export/reload and a retained browser scene. It does not prove GLB export,
+  parameterized versions of every asset, reusable sprite-sheet packaging or
+  public multi-user rendering.
+- `src/art/figures.js:figure` offers authored character kind, pose, phase and
+  facing. Arbitrary head/body/clothing swaps still need the planned attachment
+  and rig contract. Start public authoring with props and small compositions;
+  add character assembly after that real boundary exists.
+
+### First user loop and API shape
+
+A user asks their AI to build a witch's workspace with a table, colored bottles,
+a bookshelf and a lantern. The agent discovers available parts and allowed options,
+assembles a draft, returns a native/game-scale preview, changes the requested
+part and exports a reusable asset bundle.
+
+Proposed bounded tool families:
+
+| Operation | Result and owner |
+| --- | --- |
+| Catalog/search and describe part | Versioned builder IDs, actual supported parameters, defaults/ranges, dimensions, placement/attachment metadata and example thumbnails. Include shareable provenance and style presets. |
+| Compose/revise draft | Validated manifest of part-version references, parameters and transforms, plus a draft revision. Stable node IDs let a later edit replace one bottle without regenerating unrelated parts. |
+| Preview | Existing camera/light/palette/outline presets, actual game-scale and enlarged pixel views; supported facings/poses only. Return pixels plus clipping/bounds/anchor diagnostics. |
+| Export | Versioned composition manifest and source references; Three JSON first, then separately proved GLB and transparent PNG/sprite sheets with frame/anchor metadata. Artifact identity pins builder versions, seed, render settings and output hashes. |
+
+Keep scene description declarative. Content IDs select registered builders and
+supported typed operations. New independent geometry can later arrive through a
+reviewed builder contribution or a bounded composition of supported primitives.
+The initial remote service does not evaluate arbitrary submitted JavaScript.
+Users can vary supported parts broadly without receiving access to the game
+process or its source workspace.
+
+All clients use the same draft/render/export API. If previews become asynchronous,
+return a real render-job ID and status/artifact lookup; successful job admission
+does not mean the image exists. Reuse the eventual host's ordinary job facilities,
+not a new game scheduler. Cache by pinned input/version/settings. Cross-GPU pixel
+identity is not promised until an actual pinned rendering environment establishes it.
+
+Exported bounds and anchors describe art. Collision, navigation, work contacts,
+capacity and recipe behavior remain validated game definitions; placing a barrel
+mesh in a draft does not grant it storage or spawn goods in a live world.
+
+### Public service and phased acceptance
+
+1. Internal MCP: one non-game authoring workspace, the existing prop kit,
+   validated composition, visual preview and manifest/Three JSON export. Accept
+   only after an actual MCP client discovers parts, composes a multi-part object,
+   revises one part and receives the corresponding rendered/exported artifact.
+2. Shareable asset packs: explicit public part versions, provenance/license
+   metadata, reliable sprite sheets and a simple browsable Caps authoring page.
+   Original geometry is the source library; third-party inspiration files are
+   not silently included in the public catalog.
+3. Hosted multi-user authoring: authenticated project workspaces, isolated render
+   work, request/geometry/pixel/frame limits, cancel/retry behavior and bounded
+   artifact storage. Coordinate identity and hosting with Botanical's existing
+   platform owners. No public service or new hosting resource is launched by
+   this planning note.
+
+The MCP adapter is a small part of this work. The substantial reusable investment
+is turning the current art factories into a versioned, discoverable kit and
+making the bake/export lifecycle independent of Pixi startup. Freeform character
+rigging and unrestricted mesh authoring are larger later additions.
+
+Primary protocol references: MCP supports typed tools, structured results, image
+content and resource links in the [tools specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
+The [transport specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+covers local stdio and remote Streamable HTTP. Authentication, Origin validation
+and workspace authorization belong to the actual hosted boundary; the earlier
+third-party devtools bridge is not the public asset service.
+
 ## Focused proofs and deletion expectations
 
 Brewing: finite input origin; mixed capacity conflict; interrupted pickup keeps identity; transformed input is not refunded twice; paused mid-process exact restore; full output destination; one completion/output; second supported recipe added as data. Test outcome balances and observable state, not private helper call counts.
