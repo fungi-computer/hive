@@ -159,7 +159,21 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
-**Latest actual input witness:** `u4344` at unchanged `09e813a` used the matching
+**Latest actual input witness:** diagnostic `u4391` at runtime `09e813a`, fixture
+`696bd2a`, again timed out at initial readiness after60seconds. The bounded
+document read succeeded: original loading text, document complete, no
+`__GOBLIN`, no DOM canvas, and empty page/console/request/module-error arrays.
+This does not identify which module or startup task is pending. No gameplay
+input/check or screenshot ran. Browser/runner cleanup completed; Vite803936
+exited143, driver804014 exited1, both PIDs disappeared, port5198 was clear and
+the owned scope inactive/dead with empty ControlGroup. Delivery has the returned
+window. Original evidence and `WINDOW-RESULT.md` remain under frozen goblin-wet
+`.botanical/goblin-wet-startup`. Hume now owns actual startup progress and bounded
+DOM diagnostic facts in isolated `game-startup` at base `2991691`; no timeout
+increase, skipped asset/WASM/storage work or automatic rerun. The partial-pail
+packet is clean `a0c32f4`, released for Root and independent review.
+
+The prior `u4344` at unchanged `09e813a` used the matching
 headless-shell1243 and provisioned libraries. Browser launch and page navigation
 succeeded; the first `window.__GOBLIN.artReady` wait timed out after60seconds.
 No game inputs, assertions or screenshots ran. The page-error array was empty,
@@ -168,8 +182,7 @@ is unqualified. Browser close completed, Vite exited143, both recorded child
 PIDs disappeared, port5198 was clear and the owned scope inactive/dead. The
 window was returned to Delivery. Preserve the two earlier before-page desktop
 Chrome failures and the already-completed benchmark; neither is being rerun.
-Hume owns source-only readiness/caller diagnosis, with no permission to guess a
-runtime correction or increase the timeout to make the check pass.
+Its unknown startup cause prompted the later diagnostic-only fixture.
 
 **Next physical composition:** the reviewed [field-water/vessel contract](field-water-and-vessel-work.md)
 keeps one fixed original field baseline and one signed boundary total, with exact
@@ -190,17 +203,21 @@ accepted implementation boundaries, not completed pail/field gameplay.
 
 The diagnostic fixture is pinned `696bd2a`, integrated as `f37c001` with the
 previously reviewed launch/paused-restore setup. Runtime remains `09e813a`.
-Root owns the next queued input-only command in frozen `goblin-wet`; it waits
-for Delivery's actual release and replays no benchmark or law suite. Hume now
-owns the complete shared partial-pail/material-portions caller change in
+Root executed it once as `u4391` and returned the window. Hume completed the
+shared partial-pail/material-portions caller change in
 `/home/levi/src/hive-worktrees/vessel-portions`, branch
 `engine/vessel-portions-20260909`. It retains the existing closed finite supply
 budget; field sourcing is the later serial paired join. Meitner released the
-physical files and independently reviewed the closed-consumer prescription.
+physical files, accepted Root's implemented closed-consumer guard, and now
+independently reviews the clean partial-pail packet while Root traces the join.
 Neither source chunk changes the frozen diagnostic runtime. The generated-room
 read-only recut is complete: actual terrain supports the existing footprint and
 collar; the [air contract](gameplay-air-owner.md) records the next shared producer
-and its limits. Original air presentation remains accepted as source only.
+and its limits. Sol owns that bounded producer/Region/view implementation in
+`generated-room`, branch `engine/generated-room-20260909`, base `2991691`;
+original `air-view` is preserved and clean. Original air presentation remains
+accepted as source only. Neither active writer owns Root's environment worktree,
+the frozen startup evidence, shared Caps or a browser/build/deployment window.
 
 
 **Latest measured correction, September 9:** the first full main-game workload
