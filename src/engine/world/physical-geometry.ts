@@ -3,7 +3,6 @@ import { z } from "zod";
 export type Coordinate = readonly [number, number, number];
 export type Bounds = { readonly min: Coordinate; readonly max: Coordinate };
 /** Axis vocabulary shared by public face and exterior queries. */
-// fallow-ignore-next-line unused-type
 export type Axis = "x" | "y" | "z";
 export type SolidGeometry = {
   readonly bounds: Bounds;
