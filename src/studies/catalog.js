@@ -4,6 +4,13 @@ export const STUDY_GROUPS = Object.freeze([
     title: "Environment & world",
     studies: [
       {
+        id: "wet-clearing",
+        title: "A hole in wet ground",
+        href: "/wet-clearing.html",
+        scope: "Dig one actual generated voxel and advance finite groundwater seepage. Local checkpoint reopen; no server or spill claim.",
+        evidence: "Live local world",
+      },
+      {
         id: "water-lab",
         title: "Water Lab",
         href: "/soil-water-lab.html",

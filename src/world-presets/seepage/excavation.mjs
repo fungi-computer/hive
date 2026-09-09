@@ -1,4 +1,5 @@
 import { MATERIAL } from '../height-caves.mjs';
+import { readScene } from './scene.mjs';
 import { createVolume, createVolumeGeometry, balanceTolerance, compensatedSum } from '../../engine/environment/soil/index.js';
 import { key, xyz, same, ordered, immutable, exactFields, coordinate, restoreWorld,
   assertRegionWorld, pitContacts, assertVented, excavateWorld, metric, requireCondition } from './world-binding.mjs';
@@ -202,6 +203,7 @@ export function createExcavationAdapter(input) {
   }
 
   return Object.freeze({ identity, initial, excavate,
+    scene: (state, bounds) => readScene(validate(config, identity, state), state, bounds),
     read: state => {
       const checked = validate(config, identity, state);
       return { balance: checked.balance, contacts: checked.contacts, soil: checked.facts,

@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fixedExcavationFixture } from "../../fixtures/generated-seepage.mjs";
+import { createWetClearing } from "./wet-clearing.mjs";
 import { createExcavationAdapter } from "./excavation.mjs";
 import { createVolume, createVolumeGeometry } from "../../engine/environment/soil/index.js";
 const reference = JSON.parse(readFileSync(new URL("../../fixtures/seepage-reference.json", import.meta.url), "utf8")).facts;
 
 test("generated voxel excavation conserves pore water and resumes seepage exactly", () => {
-  const { adapter, input, command } = fixedExcavationFixture();
+  const { adapter, input, command } = createWetClearing();
   const frozen = JSON.stringify(input);
   const dug = adapter.excavate(input, command);
   assert.equal(JSON.stringify(input), frozen);
@@ -32,7 +32,7 @@ test("generated voxel excavation conserves pore water and resumes seepage exactl
 });
 
 test("unsupported saves and corrupt custody reject without migration", () => {
-  const { adapter, input, command } = fixedExcavationFixture();
+  const { adapter, input, command } = createWetClearing();
   const state = adapter.excavate(input, command).state;
   const old = { ...state, version: "obsolete" };
   assert.throws(() => adapter.decode(JSON.stringify(old)), /identity/);
@@ -43,7 +43,7 @@ test("unsupported saves and corrupt custody reject without migration", () => {
 });
 
 test("direct initial input rejects world accessors without running them", () => {
-  const { adapter, input } = fixedExcavationFixture();
+  const { adapter, input } = createWetClearing();
   let calls = 0;
   const world = { ...input.world };
   Object.defineProperty(world, "changes", { enumerable: true, get() { calls++; return []; } });
@@ -59,7 +59,7 @@ test("direct initial input rejects world accessors without running them", () => 
 });
 
 test("shared soil geometry takes consumer metric and coefficients, outside world bounds/content", () => {
-  const { input } = fixedExcavationFixture();
+  const { input } = createWetClearing();
   const definition = { ...input.soilGeometry.definitions[0], id: "other-soil" };
   const descriptor = { regionId: "independent-soil", revision: 0,
     spacingM: [2, 1, 3], exterior: "closed", definitions: [definition],

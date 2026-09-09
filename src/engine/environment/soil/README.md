@@ -17,7 +17,7 @@ This is the retained rigid-pore Richards owner, with fixed-temperature liquid,
 series-resistance Darcy faces and bounded implicit advancement. The original
 source hashes are in `provenance.json`. Those research sources remain evidence;
 new consumers import this implementation. The synthetic loam and water-table
-initial condition live in `fixtures/generated-seepage.mjs` and are not assertions
+initial condition live in `world-presets/seepage/wet-clearing.mjs` and are not assertions
 about actual soil or water inferred from a terrain color.
 
 Current admitted limits are 64 porous cells, 8 reservoirs, 72 unknowns and one

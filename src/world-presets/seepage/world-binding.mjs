@@ -1,5 +1,5 @@
 import { createVoxelWorld, MATERIAL } from '../height-caves.mjs';
-import { assertWorldRecord } from '../../engine/world/data-contract.mjs';
+import { assertWorldRecord, assertWorldArray } from '../../engine/world/data-contract.mjs';
 export function requireCondition(ok, message) { if (!ok) throw new Error(message); }
 
 export const key = at => at.join(',');
@@ -18,6 +18,7 @@ export const immutable = value => {
 };
 export const exactFields = assertWorldRecord;
 export function coordinate(at) {
+  assertWorldArray(at, 3, 'voxel coordinate');
   requireCondition(Array.isArray(at) && at.length === 3 &&
     [0, 1, 2].every(i => Object.hasOwn(at, i) && Number.isSafeInteger(at[i])),
     'three owned signed integer coordinates');

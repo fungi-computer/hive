@@ -1,4 +1,4 @@
-// Bounded plain data shared by world definitions and predecessor adapters.
+// Bounded plain data shared by world definitions and current owner boundaries.
 function ordered(value) {
   if (Array.isArray(value)) return value.map(ordered);
   if (!value || typeof value !== "object") return value;
