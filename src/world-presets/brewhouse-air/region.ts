@@ -7,7 +7,7 @@ import {
   advanceTerrain,
   excavateTerrain,
   initialTerrain,
-  parseTerrain,
+  parseClosedTerrain,
   terrainDigProblem,
   terrainFacts,
   type GeneratedTerrain,
@@ -102,7 +102,7 @@ function validateSourceJoin(state: State) {
 }
 function parseState(value: unknown): State {
   const parsed = stateSchema.parse(value),
-    terrain = parseTerrain(parsed.terrain),
+    terrain = parseClosedTerrain(parsed.terrain),
     registered = generatedBrewhouseRoom(terrain, parsed.opening),
     owner = createAir(registered.definition);
   const state: State = {

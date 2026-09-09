@@ -203,15 +203,18 @@ primitive and fixed-baseline save law described in
 [field water and vessel work](field-water-and-vessel-work.md#current-paired-source-checkpoint).
 Actual held portions and a real column pay each other; all fallible checks occur
 before either successor is published. Initial9 laws passed u4466; strengthened
-late-field failure and app types passed u4475. Shared supply/activity callers
-and Region replay/rollback remain to join. No new browser or deployment.
+late-field failure and app types passed u4475/u4479. The host-only Region return
+now passes Node SQLite rollback, lost-ack replay, reopen and no-double-effect
+u4480; actual Cloudflare evidence is separate. Hume owns shared supply/activity
+callers in isolated `field-supply`; Meitner reviews paired source read-only. No
+new browser or deployment.
 
 **Generated-room source ready:** Sol pinned `fad0657` with10 affected laws
 u4465 and app types u4456. Root and Meitner accepted the three corrections:
 shared terrain/site/air coordinates, geometry identity across same-revision
 histories, and rejection of fuel splits/remainders smaller than the public field
-interval. Serial integration must use `parseClosedTerrain` because this room has
-no material-water counterpart. It remains an authored starting house on actual
+interval. Joined as `8257657`; the serial `parseClosedTerrain` recut rejects an unpaired
+water deposit in u4480 because this room has no material-water counterpart. It remains an authored starting house on actual
 generated terrain, outside full Clearing; tree permeability and fixed air-volume
 limits remain. No new rendering, ventilation-benefit or DO claim.
 

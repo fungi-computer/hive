@@ -323,3 +323,24 @@ test("real exterior excavation co-saves wet spoil while the generated room rejec
     /world edits exactly match single-voxel solid removals/,
   );
 });
+
+test("generated room admission rejects an outside water exchange without a material counterpart", async () => {
+  const { exchangeTerrainWater } = await import("../goblin-terrain.ts");
+  const p = createBrewhouseAirProgram(),
+    s = p.initial();
+  assert.equal(
+    p.execute(s, { kind: "excavate", at: [0, 14, 129] }).status,
+    "applied",
+  );
+  assert.doesNotThrow(() => p.parseState(s));
+  const unpaired = {
+    ...s,
+    terrain: exchangeTerrainWater(s.terrain, {
+      nodeId: "reservoir:column-p0-p129",
+      direction: "deposit",
+      massKg: 2,
+    }).state,
+  };
+  assert.throws(() => p.parseState(unpaired), /no external water exchange/);
+  assert.doesNotThrow(() => p.parseState(s));
+});
