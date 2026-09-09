@@ -26,6 +26,10 @@ function explain(error) {
     return "The stocked wood has already been burned.";
   if (error === "opening-unchanged")
     return "The upper shutter is already in that position.";
+  if (error === "brewhouse-support-required")
+    return "That cut would remove support beneath the brewhouse air collar.";
+  if (error === "fuel-boundary-below-field-interval")
+    return "Choose a wait that reaches the end of the fire without leaving a fraction too small for either field.";
   return `The room could not do that: ${error}`;
 }
 
@@ -35,6 +39,8 @@ function noticeFor(data, previousTime) {
       return "The hearth is lit. It will burn for six seconds as time advances.";
     case "vent":
       return `Upper shutter ${data.scene.result.ventOpen ? "opened" : "closed"}. Watch how the smoke moves between the floors.`;
+    case "excavate":
+      return "Dug one admitted soil voxel outside the room; its wet spoil remains accounted in the saved terrain.";
     case "advance":
       return `Waited ${data.result.timeS - previousTime} seconds.`;
     case "reopen":
@@ -77,6 +83,14 @@ function RoomControls({ busy, result, scene, send, turnView }) {
         onClick={() => send("vent", { open: !result.ventOpen })}
       >
         {result?.ventOpen ? "Close" : "Open"} upper shutter
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy || !result || result.excavatedVoxels > 0}
+        onClick={() => send("excavate")}
+      >
+        Dig outside room
       </Button>
       <Button
         size="sm"
@@ -166,6 +180,14 @@ function RoomFacts({ result }) {
         <dd>{result.ventOpen ? "Open" : "Closed"}</dd>
       </div>
       <div>
+        <dt>Ground</dt>
+        <dd>
+          {result.excavatedVoxels === 0
+            ? "Generated surface intact"
+            : `1 wet-soil voxel removed · ${format(result.exportedWaterKg, 3)} kg water in spoil`}
+        </dd>
+      </div>
+      <div>
         <dt>Downstairs</dt>
         <dd>
           {format(result.downstairs.temperatureK - 273.15, 3)} °C ·{" "}
@@ -233,12 +255,14 @@ function TechnicalDetails({ result }) {
           <p>
             In the retained 66-second comparison, opening the upper shutter
             increased tracer past the upstairs measurement by 50.4–50.5%, with
-            almost none reaching the exterior. This is an authored room study,
-            not the complete generated game-world air join. It does not
-            establish safe ventilation, accuracy for stronger fires or finer
-            spatial behavior, chemical combustion, oxygen, or actor exposure.
-            The saved room lives only in this page unless downloaded; there is
-            no server durability or autonomous time.
+            almost none reaching the exterior. This authored starting house uses
+            the generated terrain and a co-saved soil field, but is not inserted
+            into the full Clearing. It does not establish safe ventilation,
+            accuracy for stronger fires or finer spatial behavior, chemical
+            combustion, oxygen, or actor exposure. The saved room lives only in
+            this page unless downloaded; there is no server durability or
+            autonomous time. The three visible collar trees are permeable
+            subvoxel scenery in this air approximation.
           </p>
         </details>
       </CardContent>
@@ -255,7 +279,9 @@ function BrewhouseAir() {
   const sceneTime = useRef(0);
   const [scene, setScene] = useState(null);
   const [busy, setBusy] = useState(true);
-  const [notice, setNotice] = useState("Opening the authored brewhouse…");
+  const [notice, setNotice] = useState(
+    "Opening the brewhouse on generated terrain…",
+  );
   const [turn, setTurn] = useState(0);
   const [layer, setLayer] = useState("cutaway");
   const [showHeat, setShowHeat] = useState(false);
@@ -343,7 +369,7 @@ function BrewhouseAir() {
     <>
       <section className="air-heading">
         <div>
-          <p>Authored two-storey room study</p>
+          <p>Authored starting house on generated terrain</p>
           <h1>Warm air in the brewhouse</h1>
           <span>
             Light the stocked hearth, wait, and compare the air downstairs and

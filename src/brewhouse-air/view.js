@@ -1,13 +1,14 @@
 import * as THREE from "three";
 import { Application, Sprite, Texture } from "pixi.js";
 import { camera } from "../art/prop-camera.js";
-import { box, scene as litScene } from "../art/geometry.js";
+import { scene as litScene } from "../art/geometry.js";
+import { tree } from "../art/clearing.js";
 import { building, wallJoint } from "../art/home.js";
 import { kettleFire } from "../art/brew-vessel.js";
+import { createRoomDisplayFrame } from "./display-frame.js";
 
 const WIDTH = 640;
 const HEIGHT = 400;
-const STOREY_HEIGHT_M = 4 * 0.54;
 const REFERENCE_TEMPERATURE_K = 293.15;
 export const AIR_VISUAL_SCALE = Object.freeze({
   heatDeltaK: 0.5,
@@ -122,15 +123,15 @@ function siteVisible(site, layer, perimeter, turn) {
   return true;
 }
 
-function cellVisible(cell, layer) {
-  const y = cell.at[1];
+function cellVisible(cell, layer, frame) {
+  const y = cell.at[1] - frame.y;
   if (layer === "ground") return y >= 0 && y < 4;
   if (layer === "upstairs") return y >= 4 && y < 8;
   if (layer === "cutaway") return y >= 0 && y < 8;
   return true;
 }
 
-function addSiteArt(site, structural, target, centerX, centerZ, burning) {
+function addSiteArt(site, structural, target, display, burning) {
   const art =
     site.type === "wall"
       ? wallJoint("finished", wallMask(site, structural))
@@ -141,15 +142,32 @@ function addSiteArt(site, structural, target, centerX, centerZ, burning) {
     kettleFire(station, 0);
   }
   const anchor = new THREE.Group();
-  // Station art owns its positive-cell (.5,.5) datum internally. Every other
-  // building is centered on the current corner-addressed voxel.
-  anchor.position.set(
-    site.x + (site.type === "brew-station" ? 0 : 0.5) - centerX,
-    site.level * STOREY_HEIGHT_M,
-    site.z + (site.type === "brew-station" ? 0 : 0.5) - centerZ,
-  );
+  // Original builders share the logical site anchor. Station art owns the
+  // positive-footprint half-cell offset inside its unchanged group.
+  anchor.position.fromArray(display.site(site));
   moveArt(art, anchor);
   target.add(anchor);
+}
+
+function addTreeArt(treeFact, target, display) {
+  const anchor = new THREE.Group();
+  anchor.position.fromArray(display.column(treeFact));
+  moveArt(tree("standing"), anchor);
+  target.add(anchor);
+}
+
+function terrainFace(face, material, target, display) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      face.vertices.flatMap((point) => display.surface(point)),
+      3,
+    ),
+  );
+  geometry.setIndex([0, 1, 2, 0, 2, 3]);
+  geometry.computeVertexNormals();
+  target.add(new THREE.Mesh(geometry, material));
 }
 
 function shutterBar(marker, material, x, y, width, height) {
@@ -161,28 +179,31 @@ function shutterBar(marker, material, x, y, width, height) {
   marker.add(bar);
 }
 
-function addShutterMarker(scene, layer, target, centerX, centerZ, materials) {
+function addShutterMarker(scene, layer, target, display, materials) {
   if (layer === "ground") return;
   const upperDoor = scene.sites.find(
     (site) => site.type === "door" && site.level === 1,
   );
   if (!upperDoor) throw new Error("brewhouse upper shutter site is missing");
-  const marker = new THREE.Group();
-  marker.position.set(
-    upperDoor.x + 0.5 - centerX,
-    STOREY_HEIGHT_M * 1.5,
-    upperDoor.z - centerZ,
+  const marker = new THREE.Group(),
+    storeyHeight = scene.frame.storeyVoxels * scene.metric[1];
+  marker.position.fromArray(
+    display.zFace({
+      x: upperDoor.x,
+      y: upperDoor.level * scene.frame.storeyVoxels + 2,
+      z: upperDoor.z,
+    }),
   );
   if (scene.result.ventOpen) {
     for (const bar of [
-      [-0.45, 0, 0.06, STOREY_HEIGHT_M],
-      [0.45, 0, 0.06, STOREY_HEIGHT_M],
-      [0, STOREY_HEIGHT_M / 2, 0.96, 0.06],
-      [0, -STOREY_HEIGHT_M / 2, 0.96, 0.06],
+      [-0.45, 0, 0.06, storeyHeight],
+      [0.45, 0, 0.06, storeyHeight],
+      [0, storeyHeight / 2, 0.96, 0.06],
+      [0, -storeyHeight / 2, 0.96, 0.06],
     ])
       shutterBar(marker, materials.open, ...bar);
   } else {
-    shutterBar(marker, materials.closed, 0, 0, 0.9, STOREY_HEIGHT_M);
+    shutterBar(marker, materials.closed, 0, 0, 0.9, storeyHeight);
   }
   target.add(marker);
 }
@@ -201,7 +222,7 @@ export async function createBrewhouseAirView(host) {
   host.append(app.canvas);
   app.canvas.setAttribute(
     "aria-label",
-    "Isometric authored two-storey brewhouse with optional heat and smoke overlays",
+    "Isometric two-storey brewhouse on generated terrain with optional heat and smoke overlays",
   );
 
   const renderer = new THREE.WebGLRenderer({
@@ -215,8 +236,9 @@ export async function createBrewhouseAirView(host) {
   const world = litScene();
   const room = new THREE.Group();
   const staticRoot = new THREE.Group();
+  const waterRoot = new THREE.Group();
   const fieldRoot = new THREE.Group();
-  room.add(staticRoot, fieldRoot);
+  room.add(staticRoot, waterRoot, fieldRoot);
   world.add(room);
   const viewCamera = camera(WIDTH, HEIGHT, 2.3);
   viewCamera.zoom = 1.45;
@@ -225,6 +247,24 @@ export async function createBrewhouseAirView(host) {
   const cellGeometry = new THREE.BoxGeometry(1, 1, 1);
   const heatMaterials = makeMaterials("#ed8b3a", 0.12, 0.52);
   const smokeMaterials = makeMaterials("#9bb0b5", 0.16, 0.64);
+  const terrainMaterials = Object.freeze({
+    ground: new THREE.MeshLambertMaterial({
+      color: "#697e44",
+      side: THREE.DoubleSide,
+    }),
+    "pit-floor": new THREE.MeshLambertMaterial({
+      color: "#806143",
+      side: THREE.DoubleSide,
+    }),
+    "cut-wall": new THREE.MeshLambertMaterial({
+      color: "#9a744f",
+      side: THREE.DoubleSide,
+    }),
+  });
+  const waterMaterial = new THREE.MeshLambertMaterial({
+    color: "#397986",
+    side: THREE.DoubleSide,
+  });
   const shutterClosedMaterial = new THREE.MeshBasicMaterial({
     color: "#806548",
     opacity: 0.72,
@@ -247,25 +287,23 @@ export async function createBrewhouseAirView(host) {
     fieldRoot.clear();
   }
 
+  function clearWater() {
+    for (const child of [...waterRoot.children]) {
+      child.geometry.dispose();
+      waterRoot.remove(child);
+    }
+  }
+
   function buildStatic(scene, layer, turn) {
     const burning =
       scene.result.fuelUnits === 0 && scene.result.remainingDoseFraction > 0;
-    const key = `${layer}:${turn}:${scene.result.ventOpen}:${burning}`;
+    const key = `${layer}:${turn}:${scene.result.ventOpen}:${burning}:${scene.terrain.key}`;
     if (staticKey === key) return;
     staticKey = key;
     clearStatic();
-    const centerX = (scene.bounds.min[0] + scene.bounds.max[0]) / 2;
-    const centerZ = (scene.bounds.min[2] + scene.bounds.max[2]) / 2;
-    box(
-      staticRoot,
-      "#3b4130",
-      0,
-      -0.18,
-      0,
-      scene.bounds.max[0] - scene.bounds.min[0],
-      0.36,
-      scene.bounds.max[2] - scene.bounds.min[2],
-    );
+    const display = createRoomDisplayFrame(scene);
+    for (const face of scene.terrain.faces)
+      terrainFace(face, terrainMaterials[face.kind], staticRoot, display);
     const structural = new Set(
       scene.sites
         .filter((site) => site.type === "wall" || site.type === "door")
@@ -274,27 +312,39 @@ export async function createBrewhouseAirView(host) {
     const perimeter = wallPerimeter(scene.sites);
     for (const site of scene.sites)
       if (siteVisible(site, layer, perimeter, turn))
-        addSiteArt(site, structural, staticRoot, centerX, centerZ, burning);
-    addShutterMarker(scene, layer, staticRoot, centerX, centerZ, {
+        addSiteArt(site, structural, staticRoot, display, burning);
+    if (layer !== "upstairs")
+      for (const treeFact of scene.trees)
+        addTreeArt(treeFact, staticRoot, display);
+    addShutterMarker(scene, layer, staticRoot, display, {
       closed: shutterClosedMaterial,
       open: shutterOpenMaterial,
     });
   }
 
+  function buildWater(scene) {
+    clearWater();
+    const display = createRoomDisplayFrame(scene);
+    for (const water of scene.terrain.water) {
+      if (water.depthM <= 0) continue;
+      const pool = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial);
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.fromArray(display.column(water));
+      waterRoot.add(pool);
+    }
+  }
+
   function buildField(scene, layer, fields) {
     clearField();
-    const centerX = (scene.bounds.min[0] + scene.bounds.max[0]) / 2;
-    const centerZ = (scene.bounds.min[2] + scene.bounds.max[2]) / 2;
+    const display = createRoomDisplayFrame(scene);
     for (const cell of scene.cells) {
-      if (!cellVisible(cell, layer)) continue;
+      if (!cellVisible(cell, layer, scene.frame)) continue;
       const heatBin = binFor(
         Math.max(0, cell.temperatureK - REFERENCE_TEMPERATURE_K),
         AIR_VISUAL_SCALE.heatDeltaK,
       );
       const smokeBin = binFor(cell.smokeKgM3, AIR_VISUAL_SCALE.smokeKgM3);
-      const x = (cell.at[0] + 0.5) * scene.metric[0] - centerX;
-      const y = (cell.at[1] + 0.5) * scene.metric[1];
-      const z = (cell.at[2] + 0.5) * scene.metric[2] - centerZ;
+      const [x, y, z] = display.cell(cell.at);
       if (fields.heat && heatBin >= 0) {
         const heat = new THREE.Mesh(cellGeometry, heatMaterials[heatBin]);
         heat.position.set(x, y, z);
@@ -336,17 +386,22 @@ export async function createBrewhouseAirView(host) {
   return {
     draw(scene, turn, layer, fields) {
       buildStatic(scene, layer, turn);
+      buildWater(scene);
       buildField(scene, layer, fields);
       room.rotation.y = turn * Math.PI * 0.5;
       bake();
     },
     destroy() {
       clearStatic();
+      clearWater();
       clearField();
       previousTexture?.destroy(true);
       cellGeometry.dispose();
       for (const material of [...heatMaterials, ...smokeMaterials])
         material.dispose();
+      for (const material of Object.values(terrainMaterials))
+        material.dispose();
+      waterMaterial.dispose();
       shutterClosedMaterial.dispose();
       shutterOpenMaterial.dispose();
       renderer.dispose();
