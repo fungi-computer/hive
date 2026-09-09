@@ -17,16 +17,23 @@ Further accepted future seams are recorded in
 [modular character art and technology gates](docs/decisions/modular-art-and-technology-gates.md).
 The future environment/opening proof boundary is in
 [environmental fields and openings](docs/decisions/environmental-fields-and-openings.md).
-Its latest reviewed direction provisionally prefers a new isolated Rust numerical
-core with browser-WASM/native-fixture parity; C++ remains the concrete-library or
-existing-build-path fallback. No benchmark, solver acceptance, third numerical
-sweep or production join follows from that preference.
+Its current 2026-09-09 direction targets voxel-scale gameplay accuracy and bounded
+updates, preserving earlier CFD experiments as reference evidence. Rust/WASM or
+maintained C can serve a measured hot kernel; a port or finer numerical reference
+is not a prerequisite for the next playable slice.
 The current local-save/later durable-AI boundary is in
 [local snapshots and durable AI jobs](docs/decisions/local-snapshots-and-durable-ai-jobs.md).
 The accepted [architecture-proof sprint](docs/decisions/architecture-proof-sprint.md)
-now records the current small-world sequence: trustworthy controls, one unified
-goods/transfer owner, mixed storage, the first honest brew, then one ecology
-consumer. The independent World Lab does not expand live gameplay.
+now records the current small-world sequence: shallow digging; shared needs and
+social hospitality; useful garden water; brewhouse heat and ventilation. Existing
+common goods, mixed storage, brewing and mugwort establishment are the baseline,
+not tasks to repeat. The independent World Lab does not expand live gameplay.
+The current [needs/social study](docs/decisions/living-world-system-contracts.md)
+uses Hospitality, Prison Labor, Dubs and social-mod callers to define reusable
+people, care, access and relationship ownership. At settled `bf12e99`, Astra took
+returned plan/docs/source decisions personally. Levi then requested native Codex
+implementation; Delivery explicitly released Git/build/proof/browser/deploy too.
+Astra is sole integrator; parked visible sessions and all prior evidence remain.
 The deferred [storyteller role](docs/decisions/rimworld-storyteller-role-20260908.md)
 is a deterministic no-LLM incident director rather than narration. Shiitake may
 occasionally direct larger interventions through the same authority/history/
@@ -78,6 +85,11 @@ Camera and cutaway change visibility/presentation only, never saved physical
 state; unresolved depth cases retain current behavior.
 
 ## Delivery ownership
+
+Current 2026-09-09 supersession: Astra has all implementation and integration
+custody after Delivery’s explicit `bf12e99` release. Native Codex workers now
+implement bounded outcomes with independent review. The visible-lane pattern
+below is historical and does not override Levi’s latest instruction.
 
 Astra is peer Game CTO and owns game direction, difficult architecture, staffing
 and personal review of changed original art. The visible Sol `game-delivery` lead

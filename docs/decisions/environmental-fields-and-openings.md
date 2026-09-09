@@ -1,5 +1,44 @@
 # Environmental fields, openings, and horticulture
 
+## Current production fidelity and sequence — 2026-09-09
+
+Levi corrected the excessive reference fidelity for this voxel-isometric game.
+This section supersedes earlier solver-escalation and language-priority wording.
+The [current playable sprint](architecture-proof-sprint.md) now owns the release
+sequence: editable shallow terrain; shared needs/social hospitality; useful garden
+water; then brewhouse heat/smoke and ventilation. The full water/gas/worldgen goal
+is not complete. This is a production target, not a new validated solver claim.
+
+- Start near one control volume per actual voxel, with explicit face areas,
+  distances and volumes. Current geometry contract is 1 m × 0.54 m × 1 m and
+  four vertical voxels per 2.16 m storey. Solver grids do not redefine art heights.
+- Start water/air advancement every two/four existing 20 Hz ticks (10/5 Hz), with
+  bounded stability work and slower soil/thermal updates where appropriate.
+  Visual interpolation is separate. One paused game clock freezes all physical
+  advancement.
+- Require believable pooling, channel diversion, wet/dry transitions, ventilation
+  and useful environmental consequences. Fraction-of-voxel level accuracy is the
+  starting aim; an initial 5% of voxel-height comparison is a proposed calibration
+  target, not a universal acceptance rule or an achieved result. Millimetre waves
+  and centimetre-grid CFD are reference experiments, not gameplay requirements.
+- Preserve strict physical custody and bounded measured numeric drift: no free
+  source, double fuel burn, deleted wet spoil or quantity reset on load. Field ↔
+  pail transfers must preserve physical units and sub-portion remainders.
+- Target a few milliseconds per update on the representative active clearing,
+  measuring tail latency after edits, memory and other simulation/render costs.
+  This has not been achieved by the reference results. Start with the smallest
+  justified implementation; Rust/WASM or maintained C can serve a measured hot
+  kernel, but no language port is the next playable outcome.
+
+Preserve the accepted recorded 2D wave and excavation/seepage evidence. Park the
+proposed fine-grid 3D reference, the native restart overlay and unfinished full
+thermal reference at their saved checkpoints. No more expensive runs follow from
+their old conditional approvals. The next numerical proof must exercise the
+production-scale geometry and actual consumer. Outdoor pits can explicitly assume
+vented atmosphere; sealed flooding, compressed gas and pipe pressure need later
+supported laws. Source/display readiness and hosted recorded playback remain
+distinct from main-game physical behavior.
+
 **Status:** direct Levi direction, 2026-09-07. This is a future environmental
 proof boundary, not a current home/controls implementation or a selected solver.
 

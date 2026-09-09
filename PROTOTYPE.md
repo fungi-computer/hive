@@ -2,9 +2,20 @@
 
 ## Game CTO custody (Levi, 2026-09-07)
 
+**Current supersession, 2026-09-09:** Levi explicitly asked Astra to take over
+all work and ship digging with native Codex sub-agents, then continue the shared
+needs slice. At `bf12e99`, Game Delivery acknowledged release of all source, Git,
+build, proof, browser and same-preview deployment custody with no active owned
+process. Astra is sole integrator. Native Terra workers own the coupled digging
+core and independent controls; Sol reviews actual source/callers; Astra owns
+terrain geometry/art and final integration. The visible game lanes stay parked
+with sessions/evidence preserved. The unrelated modified proof script and 19
+untracked files remain untouched. The older visible-PM pattern below is retained
+as history, not a requirement to refill those panes or replace these native authors.
+
 Astra is peer Game CTO and owns game direction, difficult architecture, staffing
 and personal review of changed original art. The visible Sol `game-delivery` lead
-already holds ordinary source, Git, build/proof scheduling and same-preview
+previously held ordinary source, Git, build/proof scheduling and same-preview
 publication custody. The earlier `016b1a02` transfer and Sedge art reservation are
 historical handoffs, not current pending permissions. Later explicit per-file
 art/implementation handoffs govern current writers. Routine source correction and

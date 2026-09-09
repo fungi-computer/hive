@@ -24,7 +24,7 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 
 ## Delivery and review
 
-The visible Game Delivery lead owns routine source acceptance, file custody, Git, proofs and same-preview releases. Keep one writer per coupled seam and one integration owner; agree shared-file boundaries before editing. Astra owns game direction, difficult architecture and personal review of changed original art. Routine source work and unchanged accepted art do not wait for a second CTO gate.
+Current explicit supersession (Levi, 2026-09-09): Astra owns source acceptance, file custody, Git, proofs and same-preview releases. Game Delivery explicitly released all custody at `bf12e99`; the visible lanes remain parked with their sessions and evidence preserved. Use native Codex sub-agents with task-appropriate models for bounded implementation and independent review. Keep one writer per coupled seam and one integration owner; agree shared-file boundaries before editing. Astra owns game direction, difficult architecture and personal review of changed original art. Routine source work and unchanged accepted art do not wait for a second CTO gate.
 
 Keep independent ready outcomes advancing while coupled work is reviewed. Use bounded implementation and independent source/caller review; delegate decisions within the assigned outcome. Preserve active authors, dirty/untracked files, accepted studies and prior evidence. Keep plans and outcomes in existing issues and documents, not a new management framework.
 
