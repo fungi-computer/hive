@@ -76,6 +76,34 @@ export function createExcavationAdapter(input) {
   const identity = JSON.stringify({ version: VERSION, ...definition });
   const config = { ...definition, baseNodes: new Map(base.nodes.map(node => [node.id, node])) };
 
+  // Only checkpoints produced by this owner enter the cache. Unknown objects,
+  // including frozen objects or a matching revision, still cross full admission.
+  // Keys are weak: a discarded world does not leave a resident simulation behind.
+  const admissions = new WeakMap();
+  function remember(checked) {
+    immutable(checked.facts);
+    immutable(checked.contacts);
+    immutable(checked.balance);
+    admissions.set(checked.state, checked);
+    return checked;
+  }
+  function admit(input) {
+    const known = input !== null && typeof input === 'object' ? admissions.get(input) : null;
+    return known ?? remember(validate(config, identity, input));
+  }
+  function acceptWaterAdvance(checked, soil) {
+    // The pure volume owner has changed only stock/time. World, exports, metric
+    // and compiled topology remain the same immutable facts. Validate the new
+    // physical stock and cross-owner balance, without regenerating the world.
+    const state = Object.freeze({ ...checked.state, soilState: soil });
+    const facts = checked.owner.read(soil);
+    const balance = validateLedger(config, state, facts, checked.removed, checked.physical.voxelM3);
+    // Numeric text can grow despite unchanged geometry. Keep the exact wire
+    // size/data budget before publication; a hot result must remain savable.
+    encodeData(state, MAX_ENCODED);
+    return remember({ ...checked, state, soil, facts, balance });
+  }
+
   function initial(input) {
     exactFields(input, ['world', 'soilState'], 'initial canonical world/soil inputs');
     const supplied = own(input), world = restoreWorld(config.worldIdentity, supplied.world);
@@ -83,49 +111,51 @@ export function createExcavationAdapter(input) {
     const owner = createVolume(config.baseSoilGeometry), soil = owner.decode(JSON.stringify(supplied.soilState));
     const state = own({ version: VERSION, identity, world: world.save(), soilState: soil,
       initialWaterKg: soil.initialTotalKg, exports: [] });
-    return validate(config, identity, state).state;
+    return admit(state).state;
   }
 
   function excavate(input, rawCommand) {
     exactFields(rawCommand, ['at'], 'coordinate-only excavation command');
-    const at = coordinate(rawCommand.at), checked = validate(config, identity, input);
+    const at = coordinate(rawCommand.at), checked = admit(input);
     const sourceId = soilNodeId(at), source = config.baseNodes.get(sourceId);
     const stock = checked.facts.nodes.find(node => node.nodeId === sourceId);
     requireCondition(source && stock, 'excavation targets one remaining owned world-soil voxel');
-    excavateWorld(checked.world, { at, expectedWorldRevision: checked.world.describe().revision });
-    const candidate = deriveTopology(config, checked.world);
+    // Never edit the retained read projection: failed and successful cuts must
+    // leave both the prior checkpoint and its future scene queries unchanged.
+    const world = restoreWorld(config.worldIdentity, checked.state.world);
+    excavateWorld(world, { at, expectedWorldRevision: world.describe().revision });
+    const candidate = deriveTopology(config, world);
     const soil = remapStock(candidate.owner, checked.facts, sourceId, checked.soil);
     const exports = [...checked.state.exports, { id: exportId(sourceId), fromNodeId: sourceId,
       soilId: source.soilId, waterKg: stock.massKg, sourceVoxelM3: checked.physical.voxelM3 }]
       .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-    const state = own({ ...checked.state, world: checked.world.save(), soilState: soil, exports });
-    const accepted = validate(config, identity, state);
+    const state = own({ ...checked.state, world: world.save(), soilState: soil, exports });
+    const accepted = admit(state);
     // Retry belongs to Region receipts. This operation performs one actual cut;
     // a second direct call on an open voxel is a domain rejection.
     return { state: accepted.state, balance: accepted.balance, contacts: accepted.contacts };
   }
 
   return Object.freeze({ identity, definition, initial, excavate,
-    parse: input => validate(config, identity, input).state,
+    parse: input => admit(input).state,
     scene: (input, bounds) => {
-      const checked = validate(config, identity, input);
+      const checked = admit(input);
       return readScene(checked, checked.state, bounds);
     },
     read: input => {
-      const checked = validate(config, identity, input);
+      const checked = admit(input);
       return { balance: checked.balance, contacts: checked.contacts, soil: checked.facts,
         hydraulicStatus: checked.columns.length === 0 ? 'original-volume-owner' : 'connected-finite-columns',
         finiteGas: false, timeS: checked.soil.timeS, steps: checked.soil.steps };
     },
-    encode: input => encodeData(validate(config, identity, input).state, MAX_ENCODED),
-    decode: raw => validate(config, identity, decodeData(raw, MAX_ENCODED)).state,
+    encode: input => encodeData(admit(input).state, MAX_ENCODED),
+    decode: raw => admit(decodeData(raw, MAX_ENCODED)).state,
     advance: (input, intervalS) => {
       requireCondition(Number.isFinite(intervalS) && intervalS >= 0 && intervalS <= 600,
         'bounded local physical advance in0..600 seconds');
-      const checked = validate(config, identity, input);
+      const checked = admit(input);
       const result = checked.owner.advance(checked.soil, intervalS, { dtMaxS: 6 });
-      const next = own({ ...checked.state, soilState: result.state });
-      const accepted = validate(config, identity, next);
+      const accepted = acceptWaterAdvance(checked, result.state);
       return { state: accepted.state, receipt: result.receipt, work: result.work, balance: accepted.balance };
     },
   });
