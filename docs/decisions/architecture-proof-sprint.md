@@ -11,6 +11,24 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Editor proof cost correction, Levi September 9:** stop expensive editor browser
+traces. The active owned `u4034` scope was stopped; browser and listener closed.
+Do not launch replacements or repeat unchanged native-editor functionality to
+gate compact outer chrome. Keep source review, existing accepted `5171299`
+functional evidence and direct visual feedback; disclose that new narrow/export
+checks did not finish. Compact shell source is `8518cc5`, with the existing build
+and a personally viewed desktop frame. Package it for ordinary Botanical hosting
+without inventing another browser approval gate. Engine work continues.
+
+**Current source milestones:** shared finite vessel/portion execution is reviewed
+and committed in `d2d20b2`; kettle, plant watering, hydration and nourishment share
+phase/cleanup ownership. Current save17 replaces the older formats; actual Goblin
+admission/work/reconstruction laws pass with its changed content identity. The
+first live voxel seepage caller is in the environment worktree: generated-world
+query, finite pit depth, explicit minute advancement and exact local checkpoint
+reopen. Scene laws and an initial build passed; visual acceptance remains pending.
+Neither checkpoint claims new DO environmental commitment or hosted gameplay.
+
 **Latest development policy, Levi September 9:** breaking engine/game APIs and
 save formats are allowed. Do not implement legacy shims, compatibility wrappers,
 old-save migrations or parallel old execution paths unless Levi explicitly asks
