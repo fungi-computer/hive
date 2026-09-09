@@ -17,6 +17,7 @@ const evidence = {
   claims: {},
 };
 let browser;
+let page;
 
 const key = (cell) => `${cell.x},${cell.z},${cell.level ?? 0}`;
 
@@ -55,7 +56,7 @@ try {
     executablePath,
     args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
   });
-  const page = await browser.newPage({
+  page = await browser.newPage({
     viewport: { width: 1280, height: 800 },
   });
   page.setDefaultTimeout(45_000);
@@ -81,6 +82,26 @@ try {
     );
   const waitState = (predicate, value = null) =>
     page.waitForFunction(predicate, value);
+  const closeTarget = async () => {
+    const close = page.locator(".target-window button.close");
+    if (await close.count()) await close.first().click();
+  };
+  const inspect = async (kind, id, cell) => {
+    const point = await project(cell.x, cell.z);
+    for (const [dx, dy] of [
+      [0, -12],
+      [0, -24],
+      [-12, -18],
+      [12, -18],
+      [0, 0],
+    ]) {
+      await closeTarget();
+      await page.mouse.click(point.x + dx, point.y + dy);
+      await page.waitForTimeout(80);
+      if ((await selection())[kind] === id) return;
+    }
+    throw new Error(`could not inspect ${kind}:${id}`);
+  };
 
   const continueButton = page.locator("#continue");
   if (await continueButton.count()) {
@@ -90,6 +111,41 @@ try {
     await waitState(() => window.__GOBLIN.state.paused);
   }
   assert.equal((await state()).paused, true);
+
+  // A fresh clearing's sole pail is inside the sealed cache. Exercise the
+  // ordinary UI prerequisite instead of injecting a recoverable pail.
+  const oak = (await state()).trees.find((tree) => tree.felledAt === null);
+  assert.ok(oak);
+  await inspect("tree", oak.id, oak);
+  await page.locator("#mark-chop").click();
+  await page.locator("#pause").click();
+  await waitState(
+    (id) =>
+      window.__GOBLIN.state.trees.find((tree) => tree.id === id)?.felledAt !==
+      null,
+    oak.id,
+  );
+  await page.locator("#pause").click();
+  await waitState(() => window.__GOBLIN.state.paused);
+  const cache = (await state()).sources.find(
+    (source) => source.kind === "reclaimed-timber-cache",
+  );
+  assert.ok(cache);
+  await inspect("source", cache.id, cache);
+  await page.locator("#repair-cache").click();
+  await page.locator("#pause").click();
+  await waitState(
+    (id) =>
+      window.__GOBLIN.state.sources.find((source) => source.id === id)
+        ?.repaired === true,
+    cache.id,
+  );
+  await page.locator("#pause").click();
+  await waitState(() => window.__GOBLIN.state.paused);
+  evidence.claims.pailPrerequisite = {
+    cache: cache.id,
+    repairedThroughUi: true,
+  };
   const pausedAdmissionTick = (await state()).tick;
 
   if (!(await page.locator("#herb-tool").count()))
@@ -232,6 +288,11 @@ try {
   assert.deepEqual(evidence.errors, []);
 } catch (error) {
   evidence.failure = { message: error.message, stack: error.stack };
+  if (page) {
+    evidence.failure.state = await page
+      .evaluate(() => window.__GOBLIN?.state ?? null)
+      .catch(() => null);
+  }
   process.exitCode = 1;
 } finally {
   if (browser) await browser.close();
