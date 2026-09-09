@@ -64,6 +64,38 @@ try {
   await page.waitForFunction(() => window.__HIVE_ASSET_VIEWER__?.ready, null, {
     timeout: 25000,
   });
+  await page.evaluate(async () => {
+    await document.fonts.load('16px "Nunito"');
+    await document.fonts.load('16px "Maple Mono"');
+    await document.fonts.ready;
+  });
+  receipt.portable = await page.evaluate(() => ({
+    navigation: [...document.querySelectorAll("nav a")].map(
+      (link) => link.href,
+    ),
+    bodyFont: getComputedStyle(document.body).fontFamily,
+    loadedFaces: [...document.fonts]
+      .filter((face) => face.status === "loaded")
+      .map((face) => face.family),
+    fontAssets: performance
+      .getEntriesByType("resource")
+      .filter((entry) => /\.(woff2|ttf)(?:$|\?)/.test(entry.name))
+      .map((entry) => ({
+        url: entry.name,
+        sameOrigin: new URL(entry.name).origin === location.origin,
+      })),
+  }));
+  assert.deepEqual(receipt.portable.navigation, [
+    "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  ]);
+  assert.match(receipt.portable.bodyFont, /Nunito/);
+  assert(receipt.portable.loadedFaces.some((face) => face.includes("Nunito")));
+  assert(
+    receipt.portable.loadedFaces.some((face) => face.includes("Maple Mono")),
+  );
+  assert.equal(receipt.portable.fontAssets.length, 2);
+  assert(receipt.portable.fontAssets.every((asset) => asset.sameOrigin));
+
   const rendered = await page.evaluate(() =>
     Object.fromEntries(
       [...window.__HIVE_ASSET_VIEWER__.views].map(([name, facts]) => {

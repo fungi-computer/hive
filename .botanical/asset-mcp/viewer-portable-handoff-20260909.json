@@ -1,0 +1,162 @@
+{
+  "scope": "new portable source build; no source revision or publication claim",
+  "artifact": {
+    "path": ".botanical/asset-mcp/copper-mcp-viewer-portable-20260909.tar.gz",
+    "bytes": 531803,
+    "sha256": "bd2ba2953e2dc73753ed32438db5b8223113e2ed1ea1b9be298769c366ea33ca"
+  },
+  "frozenArtifact": {
+    "path": ".botanical/asset-mcp/copper-mcp-viewer-20260909.tar.gz",
+    "bytes": 267059,
+    "sha256": "4d471834d098337f57fa4e7ca5d31d94228b148f43c8f8527c019299ae0a33f3"
+  },
+  "sourceFiles": [
+    {
+      "path": "tools/asset-mcp/viewer.jsx",
+      "bytes": 7076,
+      "sha256": "fa6f61f299f32784ec24d302688369158dbc56f4c501bcf5e47e44c163cd457e"
+    },
+    {
+      "path": "tools/asset-mcp/viewer.css",
+      "bytes": 1606,
+      "sha256": "bb5cfe656fe4f9f681860a0f6629f08b7bdf18597206ffe4928ba553e82b8771"
+    },
+    {
+      "path": "tools/asset-mcp/vite.config.mjs",
+      "bytes": 1052,
+      "sha256": "146de0ebb905cc48039d221da05af44977bcc448abd8112d47c3929a6fe77ad2"
+    },
+    {
+      "path": "tools/asset-mcp/browser-proof.mjs",
+      "bytes": 7358,
+      "sha256": "e8286ba3a7395d23d162cb77ea7054081dc3813c60529497373a17c2cbf674fd"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/README.md",
+      "bytes": 1466,
+      "sha256": "43a83d9ad45a97344870d319f507a8a63b4a42c7b8734f4fbf16bbaf2af672e7"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/caps/fonts.css",
+      "bytes": 43,
+      "sha256": "fb9b33adeb650923322bb2bad1b2f885736b0fe0b777974aa7eae1e320af669f"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/stipe/fonts/MapleMono-OFL.txt",
+      "bytes": 4406,
+      "sha256": "cdb01cb2c0ac2d618ad3fc082275cf3cbe6145a58d558709ec083ce69c702cf0"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/stipe/fonts/MapleMono-VF.woff2",
+      "bytes": 130908,
+      "sha256": "e7080ef37fa8b3a38f71446e53e546634c27ce2cfe97673478cafc029d6344ee"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/stipe/fonts/Nunito-OFL.txt",
+      "bytes": 4385,
+      "sha256": "580df76c95a1ec5ab878ceb25bb3d85c6a076804e9c970c8c6972aea775fdf65"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/stipe/fonts/Nunito-VF.ttf",
+      "bytes": 276932,
+      "sha256": "bb55a5ca5c2042335b3991af27c4d0705d0ef41cac6164ac737fd8f2a1e85207"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/stipe/fonts/README.md",
+      "bytes": 2464,
+      "sha256": "f610429412a0f7c08d1aa6ca4e7d9a99ed378e6031a2dd594389272eca7cbccc"
+    },
+    {
+      "path": "tools/asset-mcp/portable-fonts/stipe/fonts.css",
+      "bytes": 346,
+      "sha256": "f6a8f076e6d0173250f1b87fb147908a6f770e6d12f004fd9d4f3371d60c7ba5"
+    }
+  ],
+  "portableFiles": [
+    {
+      "path": "assets/MapleMono-VF-CCDrizxw.woff2",
+      "bytes": 130908,
+      "sha256": "e7080ef37fa8b3a38f71446e53e546634c27ce2cfe97673478cafc029d6344ee"
+    },
+    {
+      "path": "assets/Nunito-VF-63TK8RbS.ttf",
+      "bytes": 276932,
+      "sha256": "bb55a5ca5c2042335b3991af27c4d0705d0ef41cac6164ac737fd8f2a1e85207"
+    },
+    {
+      "path": "assets/viewer-BmyyTKWX.js",
+      "bytes": 829138,
+      "sha256": "8c9a91e54a4b43e936a00261c2d5a628beeeb734be90e886a58c5c2f1acefbb4"
+    },
+    {
+      "path": "assets/viewer-C9FMqEMe.css",
+      "bytes": 209076,
+      "sha256": "0b295dad6c975f4fdd35ada201f837f3afa746e408bb5019cfef2a5bb8fafdb4"
+    },
+    {
+      "path": "exports/baseline.metadata.json",
+      "bytes": 649,
+      "sha256": "837ee9de5b3dec995f00639bd7967a524632d2a577691787f2a33850e088b7af"
+    },
+    {
+      "path": "exports/baseline.recipe.json",
+      "bytes": 687,
+      "sha256": "016f0d8a62595a631ffa1048b9bc443d9496e419f68786b4f990e0f32fa47a36"
+    },
+    {
+      "path": "exports/baseline.three.json",
+      "bytes": 28539,
+      "sha256": "ec33d735fff0bde5ba315a43eeb5bdb61f3ebdbad56fa1961a78955725c20e9a"
+    },
+    {
+      "path": "exports/mcp-receipt.json",
+      "bytes": 25740,
+      "sha256": "dbee41d83a60f6efeacb8c0becab82040615b40f7020405d78a5d22b3bf75d7a"
+    },
+    {
+      "path": "exports/variant.metadata.json",
+      "bytes": 650,
+      "sha256": "e0fae39d63c41a7c78ca795b43e4a98d9d2a74e11af01255401a0de50379f1db"
+    },
+    {
+      "path": "exports/variant.recipe.json",
+      "bytes": 686,
+      "sha256": "0d3392e0eefc6d00b7f7a0921e2c49d905b1f070b3446f42c0fd006a15e5555e"
+    },
+    {
+      "path": "exports/variant.three.json",
+      "bytes": 28544,
+      "sha256": "796cd995a5468f3e77b13213ed4a2a0001b09ca6ad2f2bc7b4a4a4613a49cc58"
+    },
+    {
+      "path": "font-licenses/MapleMono-OFL.txt",
+      "bytes": 4406,
+      "sha256": "cdb01cb2c0ac2d618ad3fc082275cf3cbe6145a58d558709ec083ce69c702cf0"
+    },
+    {
+      "path": "font-licenses/Nunito-OFL.txt",
+      "bytes": 4385,
+      "sha256": "580df76c95a1ec5ab878ceb25bb3d85c6a076804e9c970c8c6972aea775fdf65"
+    },
+    {
+      "path": "font-licenses/README.md",
+      "bytes": 2464,
+      "sha256": "f610429412a0f7c08d1aa6ca4e7d9a99ed378e6031a2dd594389272eca7cbccc"
+    },
+    {
+      "path": "viewer.html",
+      "bytes": 443,
+      "sha256": "990a65d5c4cfa9155af4cefe727e7255b7287571bac7a01bae62705a338f964d"
+    }
+  ],
+  "proof": {
+    "build": "u3800",
+    "browser": "u3802",
+    "path": ".botanical/asset-mcp/viewer-portable-proof-20260909/proof.json",
+    "personallyViewed": [
+      "normal.png",
+      "narrow-390.png"
+    ]
+  },
+  "portableFileCount": 15
+}

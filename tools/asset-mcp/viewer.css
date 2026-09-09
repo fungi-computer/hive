@@ -1,8 +1,13 @@
+/* Shared Stipe typography stacks; the released loading sheet owns font faces. */
+:root {
+  --font-sans: "Nunito", system-ui, sans-serif;
+  --font-mono: "Maple Mono", ui-monospace, monospace;
+}
 body {
   margin: 0;
   background: #f5eee5;
   color: #454050;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 .asset-workshop {
   max-width: 1080px;

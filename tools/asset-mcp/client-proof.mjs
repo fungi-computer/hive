@@ -168,6 +168,10 @@ try {
   assert.deepEqual(listing.tools.map((tool) => tool.name).sort(), [
     "hive_asset_catalog",
     "hive_build_scene",
+    "hive_scene_create",
+    "hive_scene_edit",
+    "hive_scene_export",
+    "hive_scene_inspect",
   ]);
   assert(
     listing.tools.find((tool) => tool.name === "hive_build_scene").inputSchema

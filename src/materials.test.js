@@ -573,6 +573,7 @@ test("ordinary transfers reject water hand cargo while vessel moves stay contain
 
   materials.transfers.push({
     ...input,
+    resolvedMaterial: "water",
     phase: {
       kind: "reserved",
       sourceLot: "water-source",
@@ -924,6 +925,7 @@ test("material ground locations discard Site and Herb-shaped extras on every set
       quantity: 1,
     },
     intent: { kind: "deliver", destination: "container-a" },
+    resolvedMaterial: "wood",
     phase: { kind: "carrying", lot: "held" },
   });
   assert.equal(
@@ -962,6 +964,7 @@ test("material ground locations discard Site and Herb-shaped extras on every set
       quantity: 1,
     },
     intent: { kind: "deliver", destination: container.id },
+    resolvedMaterial: "wood",
     phase: { kind: "carrying", lot: "carried" },
   });
   assert.equal(

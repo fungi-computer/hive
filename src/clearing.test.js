@@ -308,6 +308,7 @@ test("a carrying transfer is continued by the same actor and interruption marks 
       quantity: 1,
     },
     intent: { kind: "deliver", destination: constructionBuffer(wall).id },
+    resolvedMaterial: "wood",
     phase: { kind: "carrying", lot: "hand-wood" },
   });
   state.workDirty = true;
@@ -364,6 +365,7 @@ test("unfinished shelves accept wood through their construction buffer, not shel
       quantity: 1,
     },
     intent: { kind: "deliver", destination: constructionBuffer(shelf).id },
+    resolvedMaterial: "wood",
     phase: { kind: "carrying", lot: "hand-wood" },
   });
   state.felled = 1;
@@ -627,6 +629,7 @@ test("shelf teardown settles another actor's released transfer before the next s
       quantity: 1,
     },
     intent: { kind: "deliver", destination: shelfContainer(shelf.id).id },
+    resolvedMaterial: "mugwort",
     phase: { kind: "carrying", lot: "mugwort-carry" },
   });
   Object.assign(state.actors.sedge, {
@@ -1425,6 +1428,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
       quantity: 1,
     },
     intent: { kind: "use", operation: "fill-cancel" },
+    resolvedMaterial: "pail",
     phase: { kind: "carrying", lot: "cancel-pail" },
   });
   state.actors.rowan.task = {

@@ -1,5 +1,103 @@
 # Architecture implementation plan
 
+## Opaque engine contracts and composed tools — September 9
+
+Levi's standard is Watchdog's actual **payload-blind job engine**, not a
+Shiitake-specific durability wrapper. Its public `WatchdogQueuedJobSchema` stores
+`payload: Schema.Unknown`, queue and lane; `Watchdog.make` receives structural
+storage, execution, liveness and wake capabilities. Watchdog owns private claims,
+transactional admission, cancellation and settlement while its consumer supplies
+payload meaning. Botanical Field Guide software-shape explicitly requires this
+separation. Game CTO re-read current Watchdog `src/{index,effect}.ts` and README
+on September 9; this is actual source guidance.
+
+Apply that boundary across Hive. The world storage owner need not know that an
+opaque material is tungsten, that Goblin puts it below a certain depth, or that
+it requires a particular tool. Goblin definitions and deterministic registered
+systems supply generation/discovery policy, excavation permission and supported
+physical properties/interactions. The engine owns identity, storage, spatial
+queries, bounds, invalidation, scheduling and lawful mutation. A material kernel
+may require mass, capacity or transport coefficients; these are its typed
+physical inputs, not a hard-coded table of Goblin nouns. Opacity at a generic
+owner does not make conservation or valid references optional.
+
+New content over supported primitives is data. New physical behavior can add a
+versioned typed system handler registered by the consuming game. Saved plans
+contain IDs and checked payloads, not closures, executable strings or callbacks.
+The consumer validates payload meaning; the owner validates its lifecycle and
+structural obligations. Systems propose changes through narrow owners, with
+declared read/write dependencies and deterministic ordering. They cannot mutate
+one another's maps or bypass material/energy balances. No universal event bus,
+all-optional entity record or second game loop is implied by composability.
+
+Current correction before world extraction acceptance: moving a fixed
+air/soil/stone voxel recipe into an engine directory does not make storage
+payload-blind. Separate the opaque voxel/edit/residency owner from that original
+generated-world recipe; prove another material palette and distribution through
+the same owner. Keep the first world's geography and codec identity compatible.
+The material extraction supplies consumer definitions; work and geometry need
+equally real consumer boundaries.
+
+Watchdog remains intended reuse for durable host work in the later Cloudflare
+host. Use its maintained operations when that consumer lands; do not reproduce
+its lease/recovery machinery as a Hive scheduler. The fixed simulation clock and
+libcolony still own in-world time and assignment. A durable host execution receipt
+is distinct from a committed game command and eventual physical work completion.
+
+### Debugging is an engine consumer
+
+Optional diagnostic adapters read the owners' actual queries: geometry/surface/
+hitbox overlays; selection volumes and traversal edges; work eligibility, claims
+and cancellation reasons; material/source/sink balances; water/soil/gas/heat
+fields and exchanges; generator/cache provenance; save/command receipts; and
+separate candidate/path/optimizer/field/render/memory costs. Reuse existing
+picking-debug work and accepted numerical diagnostics, not another world model.
+
+The headless query/trace contract is independent of Pixi, React/Caps, CLI and MCP.
+Consumers may render overlays, inspect a bounded trace or export a snapshot.
+Rendering and original-asset authoring remain their own composable modules; the
+original Three compiler/MCP is already a separate real consumer. Debug adapters
+cannot create a second mutation authority or silently advance time. Use bounded
+trace subscriptions with dispose/reset and visible overflow/retention limits;
+instrumentation is optional and its enabled cost is measured. Do not build a
+generic observability framework before a geometry/claim/field consumer needs it.
+
+Public/player inspection and developer inspection are different grants. Normal
+game and Shiitake tools obey visibility and remembered knowledge; X-ray cannot
+expose a hidden underground dragon through pixels or data. A development MCP
+connection gains full-world debug access only through an explicit host grant,
+never because public asset creation shares the same transport. Repairs use
+typed authoritative operations with receipts rather than editing debug snapshots.
+All graphical debug consumers use public Caps.
+
+The first extraction is grounded in `visual-hit-geometry.js`: today it imports
+Pixi, binds the actual alpha hit area, creates diagnostic spans and draws them
+inside one module. `view.js` calls `picking.renderDebug` and `ui-actions.ts`
+provides the checked picking-debug action. Preserve the useful property that
+the visible outline comes from the actual hit geometry. Separate pure geometry
+and diagnostic records from the optional Pixi drawing adapter as the common
+geometry owner lands; do not create a second set of guessed click rectangles.
+Its current 256-target drawing limit must become a reported truncation rather
+than implying the overlay includes every target. Exported inspection records
+must be detached values, not live display objects or writable simulation maps.
+
+| First debug consumer | Authoritative facts it must expose | Acceptance |
+| --- | --- | --- |
+| Picking, placement and 3D selection | Actual hit silhouette, world surface, view transform, hit target and selection bounds; accepted/rejected target reason | Rotate all four views and change layers; the clicked object and visible outline agree. Debug rendering cannot intercept input or reveal unknown player data. |
+| Material/work inspector | Lot custody, available versus claimed quantity, endpoint capacity and an operation's actual admission/interruption result | Inspect the same contested transfer in Goblin and the headless ore depot. Cancellation, retry and reload show the owner's changed facts without a second claim ledger. |
+| Environmental balance view | Stored amounts, declared sources/sinks and actual per-step exchanges for water, soil, smoke and heat | Digging or ventilation changes both the visible field and the same numerical balance. Sampling a paused field does not run another solver step. |
+| Generator and runtime costs | Recipe identity, signed cell/brick, generated base versus edit, residency/eviction and separately measured simulation/render work | Inspect an edited cell before and after eviction/reload; record bounded query size and diagnostic overhead on the frozen workload. |
+
+Each diagnostic result identifies the world, tick/revision and scope it observes.
+A trace is explicitly bounded and reports dropped events; closing its consumer
+releases subscriptions and retained buffers. Paused reads are legal and cannot
+change physical quantities, elapsed work or random state. No full-world scan,
+serialization or trace allocation belongs in an ordinary frame when diagnostics
+are disabled. An optional adapter may format the same records for Caps, CLI or
+MCP, but transport choice does not define another inspection implementation.
+These are acceptance requirements for the affected engine modules, not a claim
+that the richer debugger is already implemented or remotely exposed.
+
 Game CTO plan, started 2026-09-07 and finalized 2026-09-08. Levi explicitly requests detailed plans for bounded implementers, including high-performance world generation and the interlocking living world. This selects architectural boundaries and orders the evidence required to adopt them. It is not approval to ship every future system in one sprint, adopt an unmeasured library, start paid resources or open large-world gameplay.
 
 ## Current precedence — 2026-09-09
@@ -14,6 +112,88 @@ Read the [current sprint](architecture-proof-sprint.md) and
 and repair order. Engine capability/execution consolidation precedes publication
 of the retained care candidate. Earlier control/brewing/Delivery sequences below
 are historical and must not restart released work or refill retired Herdr lanes.
+
+## Engine API design from the Botanical source review — September 9
+
+Levi asked Game CTO to read the Botanical Field Guide and actual BirdDog,
+Watchdog, Shiitake and Woodstock implementations. The useful standard is a
+small domain interface over a deep owner, with one implementation and explicit
+lifecycle. It is not a requirement to put every module in its own package or
+replace fixed simulation steps with asynchronous jobs.
+
+The Field Guide's software-shape and ownership-and-seams chapters require
+closed domain unions, parsing at real boundaries, bounded work, atomic
+transitions, and a net reduction in duplicated ownership. A relationship
+between existing owners gets one typed integration boundary; it does not earn a
+second queue, store or lifecycle. Function length is a review signal, not a
+decomposition quota.
+
+The checked examples establish concrete design lessons:
+
+- **Shiitake** exposes an addressed `Session` with commands, reads and owned
+  observation. Its Promise interface uses the same Effect implementation.
+  Model, storage and host capabilities enter at construction. Hive should have
+  a typed supported consumer interface; renderer, game UI and AI adapters must
+  not coordinate private simulation fields or maintain alternate engines.
+- **Woodstock** is deliberately private inside Shiitake. Its command admission
+  joins the request receipt and work pointer in one owner transaction. Exact
+  retry reuses the acceptance; changed input with the same identity conflicts.
+  Hive's physical owner likewise owns admission, custody and completion laws.
+  An HTTP/MCP success or a caller's retry cache cannot substitute for them.
+- **Watchdog** publishes generic work lifecycle operations and accepts an
+  executor. It does not interpret the work payload. Hive should separate the
+  shared execution/transfer rules from recipe, plant and character meaning.
+  Watchdog's durable host scheduling is not a replacement for libcolony or the
+  deterministic movement/work/field clock.
+- **BirdDog** owns addressed agent correspondence over generic work, including
+  its outbox boundary. That is an example of composing two existing owners
+  without teaching the lower owner about agents. Hive's controller integration
+  translates committed game events and allowed actions; transport delivery
+  cannot apply physical effects or turn a retry into another action.
+
+### Immediate acceptance rules for the extraction
+
+1. Separate the supported engine entry from private implementation helpers.
+   Moving fifty helpers into a factory and re-exporting them all is not a
+   finished public API. Compatibility imports can remain during a recoverable
+   checkpoint, but source review must identify their removal or internal scope.
+2. A game/UI/controller requests an outcome such as storing a lot. The engine's
+   work/material owners coordinate reservation, travel, pickup, delivery and
+   interruption. A low-level transfer API may serve the executor; each game
+   feature must not become another executor itself.
+3. One resolved material definition and one container derivation supply every
+   current consumer. Admission records the resolved physical obligation;
+   mutation and restore use the same phase/custody predicates. Persistence
+   retains game references and historical migration checks, not a second copy
+   of transfer rules. Missing historical evidence is not manufactured on load.
+4. Keep ordinary typed outcomes explicit: accepted work is distinct from
+   completed work; unavailable stock, full destination, stale intent and
+   interruption are not generic errors or silent returns. Retry semantics
+   belong to the operation whose effect could repeat.
+5. Read models are projections of the owner. Shiitake's `watch` registers
+   observation before taking its baseline and returns cleanup with the stream;
+   that is the model to follow when Hive joins live baseline/change observation.
+   Do not add a general event bus or a second saved UI state to emulate it.
+6. Keep snapshots/version migration, query invalidation, active claims and
+   temporary resource cleanup local to their actual owners. A private deep
+   module can deserve extensive laws without becoming a public package.
+
+The first caller proof remains Goblin construction/storage plus the independent
+five-unit ore depot using the same material implementation. Its caller should
+need neither Goblin imports nor manual edits to internal arrays. The later
+controller proof authors public Mycelium schema/handler operations over that
+engine interface and invokes them through the existing execute tool/sandbox.
+This review does not add an engine dependency on BirdDog, Watchdog, Woodstock,
+Effect, a server framework or a new scheduler. Each real integration must show
+which existing ownership it removes and which lifecycle it preserves.
+
+Source trace: Botanical `packages/shiitake/src/client.ts` (`ShiitakeSession`),
+`internal/coordinator.ts` (`acceptAndWakeCommand`, `watchSession`),
+`internal/woodstock/session-store.ts` (`acceptSessionCommand`), and
+`src/internal/run-scope.ts` (`acquiredTools`); BirdDog and Watchdog public
+`src/index.ts` contracts. Woodstock's accepted private-module ADR explains why
+its durable complexity is not another public package. This is source/design
+evidence, not a new execution or hosted proof of those packages.
 
 ## Read this before assigning a writer
 

@@ -176,6 +176,21 @@ test("actual partial Store pickup restores its split custody and rejects corrupt
   const saved = snapshotFor(state);
   const restored = restoreSnapshot(saved).state;
   assert.deepEqual(restored.materials, state.materials);
+  const predecessor = structuredClone(saved);
+  predecessor.schema = 15;
+  for (const transfer of predecessor.savedState.materials.transfers) delete transfer.resolvedMaterial;
+  const migrated = restoreSnapshot(predecessor).state;
+  assert.equal(migrated.materials.transfers.find((entry) => entry.id === transfer.id).resolvedMaterial, "wood");
+  const invalidPredecessor = structuredClone(predecessor);
+  invalidPredecessor.savedState.materials.transfers[0].request.quantity++;
+  assert.throws(() => restoreSnapshot(invalidPredecessor), /invalid physical phase/);
+  const missingObligation = structuredClone(saved);
+  delete missingObligation.savedState.materials.transfers[0].resolvedMaterial;
+  assert.throws(() => restoreSnapshot(missingObligation), /resolvedMaterial/);
+  const forgedObligation = structuredClone(saved);
+  forgedObligation.savedState.materials.transfers[0].resolvedMaterial = "ration";
+  assert.throws(() => restoreSnapshot(forgedObligation), /invalid transfer phase: source-ineligible/);
+
   for (const corrupt of [
     (s, t) => { t.request.quantityPolicy = "whole-lot"; },
     (s, t) => { t.request.source.lot = "unrelated-source"; },
@@ -191,7 +206,7 @@ test("actual partial Store pickup restores its split custody and rejects corrupt
   const wrongMaterial = structuredClone(saved);
   const materialLots = wrongMaterial.savedState.materials.lots;
   materialLots.find((lot) => lot.id === source.id).material = "ration";
-  assert.throws(() => restoreSnapshot(wrongMaterial), /carrying transfer .* invalid material/);
+  assert.throws(() => restoreSnapshot(wrongMaterial), /invalid transfer phase: source-ineligible/);
   restored.paused = false;
   waitFor(restored, () => !restored.jobs.some((job) => job.id === transfer.owner.job));
   assert.doesNotThrow(() => snapshotFor(restored));
@@ -215,4 +230,35 @@ test("care facts follow active custody despite queued intent order", () => {
   assert.equal(facts.active, "water-delivery");
   assert.equal(facts.reason, active.reason);
   assert.doesNotThrow(() => snapshotFor(state));
+});
+
+test("current save rejects two care chains claiming the same finite ration portion", () => {
+  const state = createClearing();
+  openCache(state);
+  state.actors.rowan.needs.nourishment = 35;
+  waitFor(state, () => state.materials.transfers.some((entry) => entry.actor === "rowan" && entry.intent.kind === "use" && entry.phase.kind === "reserved"));
+  const saved = snapshotFor(state);
+  const s = saved.savedState;
+  const transfer = s.materials.transfers.find((entry) => entry.actor === "rowan" && entry.intent.kind === "use");
+  const operation = s.operations.find((entry) => entry.id === transfer.intent.operation);
+  assert.equal(operation.kind, "consume");
+  const binding = s.materials.bindings.find((entry) => entry.id === operation.id);
+  const job = s.jobs.find((entry) => entry.id === operation.job);
+  const actor = s.actors.rowan;
+  const source = s.materials.lots.find((entry) => entry.id === binding.lot);
+  // Preserve total supply while narrowing this exact source to one real portion.
+  if (source.quantity > 1) {
+    s.materials.lots.push({ ...structuredClone(source), id: "ration-remainder", quantity: source.quantity - 1, location: { kind: "ground", x: 5, z: 5, level: 0 } });
+    source.quantity = 1;
+  }
+  assert.doesNotThrow(() => restoreSnapshot(saved));
+  const bad = structuredClone(saved);
+  const b = bad.savedState;
+  b.jobs.push({ ...structuredClone(job), id: "second-care", target: "sedge" });
+  b.operations.push({ ...structuredClone(operation), id: "second-use", job: "second-care", actor: "sedge" });
+  b.materials.bindings.push({ ...structuredClone(binding), id: "second-use" });
+  b.materials.transfers.push({ ...structuredClone(transfer), id: "second-transfer", actor: "sedge", owner: { kind: "operation", operation: "second-use" }, intent: { kind: "use", operation: "second-use" } });
+  b.actors.sedge.task = { ...structuredClone(actor.task), target: "second-use", job: "second-care" };
+  b.actors.sedge.assignment = { ...structuredClone(actor.assignment), character: "sedge", task: "second-care" };
+  assert.throws(() => restoreSnapshot(bad), /source overbooked/);
 });

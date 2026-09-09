@@ -17,6 +17,15 @@ useful. Compare Botanical's actual Mycelium/Knapsack tool path before adding glu
 The engine must expose useful operations and results; it does not need a new
 agent host, model loop or bespoke wire protocol to make them callable.
 
+The jointly reviewed first controller proof uses public authored Mycelium
+operations/modules: input/output schema plus an engine-backed handler, invoked
+through the existing execute tool and sandbox. Knapsack connection discovery is
+needed only where the actual host needs it; a generic MCP adapter is not a
+prerequisite. A deterministic host proof establishes scope, retry and single
+settlement separately from the later live Camel/Shiitake match. The reusable
+physical engine remains free of platform/provider imports; its maintained
+integration consumer composes these existing public operations.
+
 ## The promise we are defending
 
 Build a cozy, darkly funny home in a world whose people, creatures, water, plants,

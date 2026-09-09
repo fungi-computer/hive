@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Original Hive asset builders exposed through a local MCP connection",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "start": "node server.mjs",

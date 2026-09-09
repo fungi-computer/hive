@@ -26,7 +26,6 @@ import {
   interruptOperationPail,
   releaseContainer,
   retireOperationUse,
-  retireOperationPail,
 } from "./materials.ts";
 import {
   blockedCells,
@@ -472,16 +471,12 @@ function cancel(s: Clearing, id: string) {
           transfer.owner.kind === "operation" &&
           transfer.owner.operation === active.id,
       );
-      if (custody) {
-        const actor = s.actors[custody.actor];
-        if (!actor) throw new Error("water operation has missing actor");
-        const released = interruptOperationPail(s.materials, active.id, {
-          cell: { x: actor.x, z: actor.z, level: actor.level },
-          legal: true,
-        });
-        if (!released.ok) throw new Error(released.reason);
-      }
-      retireOperationPail(s.materials, active.id);
+      const actor = custody ? s.actors[custody.actor] : undefined;
+      if (custody && !actor) throw new Error("water operation has missing actor");
+      const released = interruptOperationPail(s.materials, active.id, actor
+        ? { cell: { x: actor.x, z: actor.z, level: actor.level }, legal: true }
+        : undefined);
+      if (!released.ok) throw new Error(released.reason);
       s.operations = s.operations.filter((operation) => operation !== active);
     } else if (active?.kind === "consume") {
       retireOperationUse(s.materials, active.id);

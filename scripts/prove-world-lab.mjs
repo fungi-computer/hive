@@ -968,18 +968,20 @@ assert(
   "surface section exceeded its 24x16+halo budget or diverged from sampleCell",
 );
 
-const source = await readFile("src/world-lab/terrain.js", "utf8");
+const heightSource = await readFile("src/engine/world/height.js", "utf8");
+const source =
+  heightSource + (await readFile("src/world-lab/terrain.js", "utf8"));
 const sectionSource = await readFile("src/world-lab/section.js", "utf8");
 const mainSource = await readFile("src/world-lab/main.js", "utf8");
 const workerSource = await readFile("src/world-lab/worker.js", "utf8");
 const controlsSource = await readFile("src/world-lab/controls.jsx", "utf8");
 const latticeHashSource = await readFile(
-  "src/world-lab/lattice-hash.mjs",
+  "src/engine/world/lattice-hash.mjs",
   "utf8",
 );
 const pageSource = await readFile("world-lab.html", "utf8");
 const stylesSource = await readFile("src/world-lab/styles.css", "utf8");
-const terrainImports = source.match(/^\s*import[^\n]+$/gm) ?? [];
+const terrainImports = heightSource.match(/^\s*import[^\n]+$/gm) ?? [];
 const helperImportsRuntimeOrSimulation = /^\s*import\s/m.test(
   latticeHashSource,
 );

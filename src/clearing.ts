@@ -1,3 +1,4 @@
+import { createMaterialsState } from "./materials.ts";
 // Commands authorize work. Fixed steps own outcomes; the view reads state.
 import type { Clearing, Colony, Command } from "./model.ts";
 import { createFeed, nextEvent } from "./feed.js";
@@ -42,17 +43,7 @@ export function createClearing(seed = 42): Clearing {
       felledAt: null,
     })),
     herbs: [],
-    materials: {
-      lots: [],
-      transfers: [],
-      bindings: [],
-      transformations: [],
-      consumptions: [],
-      sinks: [],
-      embedded: [],
-      nextLotId: 1,
-      consumedWood: 0,
-    },
+    materials: createMaterialsState(),
     sources: [],
     pendingSources: [],
     operations: [],

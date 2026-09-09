@@ -14,6 +14,11 @@ const scope = { party: "home", actors: null };
 function envelope(change) {
   const saved = snapshotFor(createClearing());
   change(saved.savedState);
+  for (const transfer of saved.savedState.materials.transfers) {
+    if (transfer.resolvedMaterial !== undefined) continue;
+    const lotId = transfer.phase.kind === "carrying" ? transfer.phase.lot : transfer.phase.sourceLot;
+    transfer.resolvedMaterial = saved.savedState.materials.lots.find((lot) => lot.id === lotId)?.material ?? "wood";
+  }
   return saved;
 }
 function v14Envelope(change = () => {}) {
@@ -198,7 +203,7 @@ function buildSupplyEnvelope() {
   });
 }
 
-test("v15 snapshots retain authored terrain, omit commands, and restore paused", () => {
+test("v16 snapshots retain authored terrain, omit commands, and restore paused", () => {
   const state = createClearing();
   state.commands.push({
     kind: "recruit",
@@ -207,7 +212,7 @@ test("v15 snapshots retain authored terrain, omit commands, and restore paused",
     tick: 0,
   });
   const saved = snapshotFor(state);
-  assert.equal(saved.schema, 15);
+  assert.equal(saved.schema, 16);
   assert.deepEqual(saved.savedState.terrain, {
     base: "authored-clearing-v1",
     edits: [],
@@ -344,7 +349,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
   ).location = { kind: "container", container: "kettle:missing" };
   assert.throws(
     () => restoreSnapshot(unknown),
-    /unknown destination kettle:missing/,
+    /recipe binding brew-process has invalid consumed lot malt-stage/,
   );
   const wrongTarget = structuredClone(saved);
   wrongTarget.savedState.jobs.find((entry) => entry.id === "brew-job").target =
@@ -501,7 +506,7 @@ test("station endpoint catalogue restores checked slots and rejects mismatches",
 
 test("valid schema 10 converts bindings and introduces cache supplies once", () => {
   const restored = restoreSnapshot(v10Envelope());
-  assert.equal(snapshotFor(restored.state).schema, 15);
+  assert.equal(snapshotFor(restored.state).schema, 16);
   assert.deepEqual(restored.state.sources.map((source) => source.kind).sort(), [
     "reclaimed-timber-cache",
     "spring",
@@ -694,7 +699,7 @@ test("a held pail use reloads only with its matching operation custody", () => {
   );
 
   saved.savedState.materials.transfers[0].owner.operation = "wrong-operation";
-  assert.throws(() => restoreSnapshot(saved), /(pail custody|held-use owner)/);
+  assert.throws(() => restoreSnapshot(saved), /invalid use custody/);
 });
 
 test("schema 12 validates executor-bound Fill custody before converting it", () => {
@@ -942,7 +947,7 @@ test("schema 10 rejects two parked operations bound to one physical pail", () =>
       });
     }
   });
-  assert.throws(() => restoreSnapshot(saved), /duplicate vessel binding/);
+  assert.throws(() => restoreSnapshot(saved), /source overbooked/);
 });
 
 test("schema 10 converts cache recipe lots exactly once", () => {
@@ -1029,7 +1034,7 @@ test("schema 11 validates one exact brew binding and its provenance without live
   });
   assert.throws(
     () => restoreSnapshot(duplicate),
-    /duplicate recipe station binding/,
+    /invalid recipe station/,
   );
   const corrupt = structuredClone(saved);
   corrupt.savedState.materials.bindings[0].consumed[0].quantity = 1;
@@ -1082,7 +1087,7 @@ test("schema 11 validates one exact brew binding and its provenance without live
         capacity.savedState.materials.bindings[0].promises[0].destination,
     },
   });
-  assert.throws(() => restoreSnapshot(capacity), /recipe binding capacity/);
+  assert.throws(() => restoreSnapshot(capacity), /invalid capacity: destination-full/);
 });
 
 test("schema 11 aggregates recipe portion promises across distinct brew bindings", () => {
@@ -1151,7 +1156,7 @@ test("schema 11 aggregates recipe portion promises across distinct brew bindings
   });
   assert.throws(
     () => restoreSnapshot(saved),
-    /recipe portions exceed source lot/,
+    /source overbooked/,
   );
 });
 
@@ -1309,7 +1314,7 @@ test("schema 14 reports unsupported predecessors truthfully", () => {
   unsupported.schema = 7;
   assert.throws(
     () => restoreSnapshot(unsupported),
-    /Invalid schema 14 save: unsupported predecessor schema/,
+    /Invalid Hive save: unsupported predecessor schema/,
   );
   const malformed = v10Envelope((state) => {
     state.extra = true;
@@ -1432,7 +1437,7 @@ rejects(
       },
     );
   },
-  /duplicate material lot lot-a/,
+  /duplicate lot/,
 );
 
 rejects(
@@ -1445,7 +1450,7 @@ rejects(
       location: { kind: "ground", ...cell(4, 4) },
     });
   },
-  /vessel lot pail-stack must have quantity 1/,
+  /invalid lot: vessel-invalid/,
 );
 
 rejects(
@@ -1462,7 +1467,7 @@ rejects(
       location: { kind: "ground", ...cell(4, 4) },
     });
   },
-  /water lot loose-water must be contained/,
+  /invalid lot: source-ineligible/,
 );
 
 rejects(
@@ -1489,7 +1494,7 @@ rejects(
       transfer("transfer-a"),
     );
   },
-  /duplicate transfer transfer-a/,
+  /duplicate transfer/,
 );
 
 rejects(
@@ -1502,7 +1507,7 @@ rejects(
       location: { kind: "hand", actor: "rowan" },
     });
   },
-  /lacks unique transfer custody/,
+  /orphan hand lot/,
 );
 
 rejects(
@@ -1515,7 +1520,7 @@ rejects(
       location: { kind: "container", container: "shelf:missing" },
     });
   },
-  /unknown destination shelf:missing/,
+  /unknown or incompatible container/,
 );
 
 rejects(
@@ -1533,6 +1538,7 @@ rejects(
 rejects(
   "restore rejects a transfer whose owner job is absent",
   (state) => {
+    state.sites.push(site("site-a"));
     state.materials.lots.push({
       id: "wood-a",
       material: "wood",
@@ -1597,7 +1603,7 @@ rejects(
       }),
     );
   },
-  /mismatched quantity/,
+  /invalid transfer phase: source-insufficient/,
 );
 
 rejects(
@@ -1649,7 +1655,7 @@ rejects(
       cost: 1,
     };
   },
-  /reserved source wood-a exceeds quantity/,
+  /source overbooked/,
 );
 
 rejects(
@@ -1701,7 +1707,7 @@ rejects(
       cost: 1,
     };
   },
-  /container construction-buffer:site-a exceeds capacity/,
+  /invalid capacity: destination-full/,
 );
 
 rejects(
@@ -1728,7 +1734,7 @@ rejects(
       },
     );
   },
-  /container shelf:shelf-a exceeds capacity/,
+  /invalid capacity: destination-full/,
 );
 
 rejects(
@@ -1764,7 +1770,7 @@ rejects(
       }),
     );
   },
-  /carrying transfer transfer-a has invalid material/,
+  /invalid transfer phase: source-ineligible/,
 );
 
 rejects(

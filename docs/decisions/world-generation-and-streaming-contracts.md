@@ -1,5 +1,118 @@
 # World generation and streaming contracts
 
+## Vertical-world amendment, September 9
+
+Levi explicitly requires deep digging and witch towers as the reusable engine
+target. Keep the small horizontal clearing; remove one-down/one-up as engine
+assumptions. Game CTO owns this source decision and serial integration. Earlier
+Delivery ownership and shallow-only restrictions below are historical.
+
+Actual source explains the inconsistency: `world.js:inside` clamps logical
+levels to 0/1, `stairLanding` always returns 1 and `navigationNeighbors` finds
+one stair; `construction.js` admits floors only on 1 and stairs only on 0,
+with a separate upstairs-room routine. `terrain.ts` stores a removed ground
+voxel rather than a general solid/void overlay. These are coupled topology and
+persistence limitations, not a missing extra floor button. The roof's asset and
+caller describe a cover above its base, while the floor describes its own
+walking surface. A player should not have to learn that internal distinction.
+
+### One physical coordinate and placement convention
+
+Use signed integer voxel coordinates with the existing 1 m horizontal and
+0.54 m vertical metric. A storey is a convenient four-voxel view/build increment,
+not the smallest navigable height or a 0/1 physical union. Terrain, placements,
+surface contacts, actor feet, fluid cells and endpoint access resolve to that
+same geometry. Rendering may interpolate traversal; interpolation does not
+become a second physical location.
+
+Floor and roof tools target the displayed horizontal surface at its actual
+height. The ghost, level control, inspection and committed placement agree.
+A flat walkable floor can be the ceiling of the room beneath it without a
+duplicate roof object. Thatch/sloped roof definitions supply their distinct
+shape and walkability. Asset pivots and local offsets are rendering metadata;
+they cannot silently advance the command's destination by one storey. Walls
+span upward from their selected base surface. All tools use the same checked
+placement owner and maintained interaction catalog.
+
+The geometry owner distinguishes full terrain solids, structural volumes and
+walkable/covering surfaces. Do not represent every thin floor or pipe as a whole
+solid cube, or collapse everything into an air-cell flag. Derived support,
+room/ventilation connectivity, path clearance and picking answer different
+questions using that same placement. Repeated stairs, ramps and capability-
+checked traversal links replace a global one-stair special case. Cat jumping
+can add supported links over the same contact surfaces without a second world.
+
+### Four orientations and a rotating world view
+
+Levi additionally requires four object orientations and world rotation in the
+engine **and** demo. The first control is four quarter-turn camera views. A
+placement's saved orientation is world-relative, independently of the camera.
+His clarification is about an actual placement restriction, not primarily art
+reuse: `hud.jsx` toggles `direction === 0 ? 1 : 0`, `world.js:stairCells`
+supports only positive X/positive Z, and the saved-site schema only admits 0/1.
+The stair entrance cannot face either opposite direction. Fix the joined control,
+signed footprint/endpoints and versioned save admission; merely adding more
+images would leave the bug intact. Preserve old 0/1 meanings during migration.
+Rotating the view never rotates or rewrites terrain, rooms, actor paths, jobs or
+stored item locations. Direction-sensitive footprints, stair endpoints and
+access points support all four directions. Symmetry may deduplicate equivalent
+geometry/bakes; it cannot make a one-ended stair face only two directions.
+
+One view transform owns world-to-screen projection and its picking inverse.
+Depth ordering/contact segments, hit silhouettes, selected-height cutaway,
+hover/drag geometry and visible directional assets use that same camera state.
+Do not repair individual callers with unrelated sign swaps. Keep the Three
+original geometry and low-resolution bake to Pixi pipeline; derive necessary
+camera/object facings from those originals rather than mirror asymmetric pixels
+or rotate a finished isometric image in screen space. Original art/caller review
+remains personal Game CTO work. Camera choice belongs in UI preferences, not
+the physical simulation clock.
+
+Acceptance rotates an asymmetric stair/bed/tower fixture through all four views,
+selects the same real surfaces/objects, places all four stair directions with
+correct endpoints, checks foreground occlusion and floor/roof previews, and
+follows actors/held items through vertical traversal. View rotation while paused
+must not change physical state. Save/reload preserves world orientation and
+world positions; normal and narrow controls remain usable. This joins the
+geometry/vertical migration, not an isolated CSS/canvas rotation feature.
+
+### Bounded depth without allocating the entire world
+
+Use sparse three-dimensional bricks and a configured world envelope. Retained
+studies already provide a signed [-64,64) voxel-height envelope with 16-cube
+bricks and bounded residency; that is a useful first comparison fixture, not
+a promised player limit or measured gameplay capacity. Freeze final supported
+depth, tower height, active field cells and traversal workload before acceptance.
+Choose those numbers from a real deep excavation and tower fixture, not the
+number of empty levels that can be displayed. A cold brick is generated only
+when required; edits and physical field state survive cache eviction. Inactive
+simulation policy remains explicit and is not inferred from camera visibility.
+
+Water and gases must account for stacked caves/rooms, opened floors and vertical
+connections. A surface heightfield is useful for coarse geography and compatible
+surface flow, but cannot represent a cave underneath that surface. Retain the
+useful numerical studies without forcing their restricted geometry onto the
+game. Use voxel-game fidelity and declared work budgets; this amendment does
+not authorize returning to fine-grid CFD as the acceptance target.
+
+### Migration and the proof that closes this requirement
+
+Strictly validate old saves before mapping their storey positions into physical
+voxel coordinates. Preserve the exact positions of old roofs, floors, actors,
+lots and stair endpoints through explicit legacy anchor conversion; do not
+reinterpret an old roof as a ground tile. Keep raw recovery and versioned
+generator identity. The authored clearing can remain an authored base recipe
+over the same edit/query owner as procedural worlds.
+
+Acceptance must exercise an earned-resource multi-storey tower and excavation
+through multiple vertical bricks, with underground traversal and real carried
+items; consistent floor/roof placement at several heights; correctly separated
+stacked rooms; opening a connection that changes water/air behavior; removal
+and support invalidation; paused intent; and save/evict/reload of edited geometry,
+physical fields and active work. Existing shallow-save migration and ordinary
+ground-level play must remain correct. A standalone brick codec, a taller render
+or an expanded numeric bound alone does not satisfy this contract.
+
 The [Excalibur depth review](excalibur-depth-source-review.md) is only a bounded
 render/depth reference: spatial lookup, residency and simulation remain separate;
 it does not change this world's streaming or performance contract.

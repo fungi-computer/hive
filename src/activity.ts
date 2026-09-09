@@ -35,13 +35,12 @@ import {
   drawPailWater,
   embedConstruction,
   interruptOperationPail,
+  cancelMaterialUse,
   interruptTransfer,
   parkOperationPail,
   pickupTransfer,
   pourPailWater,
   releaseContainer,
-  retireOperationPail,
-  retireOperationUse,
   salvageConstruction,
   transferForActor,
 } from "./materials.ts";
@@ -109,14 +108,17 @@ export function interruptWork(state: Clearing, p: Actor): void {
           legal: true,
         },
       })
-    : interruptTransfer(state.materials, p.id, {
+    : p.task?.kind === "consume"
+      ? cancelMaterialUse(state.materials, p.task.target, {
+          cell: { x: p.x, z: p.z, level: p.level }, legal: true,
+        })
+      : interruptTransfer(state.materials, p.id, {
         cell: { x: p.x, z: p.z, level: p.level },
         legal: true,
       });
   if (!r.ok) throw new Error(r.reason);
   if (p.task?.kind === "consume") {
     const operationId = p.task.target;
-    retireOperationUse(state.materials, operationId);
     state.operations = state.operations.filter(
       (entry) => entry.id !== operationId,
     );
@@ -576,7 +578,6 @@ function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
     legal: true,
   });
   if (!released.ok) throw new Error(released.reason);
-  retireOperationPail(s.materials, operation.id);
   s.notice =
     operation.target.kind === "kettle"
       ? "The kettle holds two water."

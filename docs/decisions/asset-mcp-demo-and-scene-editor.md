@@ -6,6 +6,39 @@ site and remote routing; Hive owns original assets, operations, SDK server and
 client/render evidence. The agreed remote address is `mcp.shiit.app/mcp`; the
 game domain is `goblin.shiit.app`. Neither spelling establishes a live deployment.
 
+## Portable hosting fit, September 9
+
+Botanical's source review found that the frozen `886d542` viewer has host-relative
+links to `/brewhouse-study.html`, `/study` and `/`, and lacks the current shared
+font faces. Preserve that archive and its evidence. The existing asset PM owns
+a new source-built portable artifact with public Caps/Stipe fonts and a supplied,
+verified absolute game URL; omit destinations not established on the host.
+Current Hive tarballs do not include the new font export. Botanical released
+the exact read-only `packages/caps/src/fonts.css` and `packages/stipe/fonts.css`
+plus adjacent Nunito/Maple Mono assets, both OFL licenses and README provenance
+for this bundle. Preserve those sheets and relative font URLs through the
+maintained bundler; no recreated font-face rules, shared source edits or package
+rebuild are needed. The portable manifest owns exact released source hashes.
+Installed public Caps controls stay unchanged; do not claim the old package
+supplies these font assets or copy unrelated shared source.
+
+The new handoff must identify source revision, file inventory and archive hash,
+and include actual normal/narrow rendered proof, font loading and working
+navigation/export. Marketing owns copying the accepted artifact under
+`shiit.app/public/workshops/copper-assets` and its Astro project entry; Botanical
+owns publication. This hosting correction is independent of vertical engine
+acceptance and does not authorize copying engine source into the marketing site.
+
+The corrected portable source is accepted: build `u3800` and actual browser
+`u3802` prove both same-origin fonts loaded, the sole verified game link, normal
+and 390px layouts, rotation and byte-identical downloads. Game CTO personally
+viewed both screenshots and verified the 12 source hashes plus both archive
+hashes. The new 15-file archive is
+`.botanical/asset-mcp/copper-mcp-viewer-portable-20260909.tar.gz`, SHA256
+`bd2ba2953e2dc73753ed32438db5b8223113e2ed1ea1b9be298769c366ea33ca`.
+Its inventory and proof live beside it; the old archive remains unchanged.
+This accepts local portable output, not Botanical's later public copy/deployment.
+
 ## Real first consumer
 
 `tools/asset-mcp/assets.mjs` defines narrow, transport-independent art operations
@@ -44,6 +77,43 @@ entrypoints and seven dependencies supplied by the parent repository need the
 documented repo-tool interpretation. Seven risk findings use estimated absent
 coverage; actual request-boundary/browser checks are retained separately.
 Nothing was deleted or suppressed to make the audit appear clean.
+
+## Shared scene owner accepted, September 9
+
+The compatible MCP operations now compile through `src/asset-pipeline`: one
+versioned document, checked original-pack definitions, atomic ordered edits and
+the original Three builders. The old recipe parser becomes a compatibility
+adapter; its degrees convert once to the document's local Euler radians. The
+compiler owns output limits, geometry cleanup and per-object material clones.
+It does not dispose shared original palette materials. Catalog parameter types
+and exhaustive builder dispatch prevent advertising a builder with a mismatched
+schema. Node source execution requires Node 24 or later; Worker bundling uses
+the existing maintained transport. No dependency version changed.
+
+Independent source review accepted the corrected compiler/callers. Eleven
+focused laws and strict types passed; after Fallow identified batch-edit
+cognitive complexity, mutation of one edit and subtree removal were separated
+from atomic batch admission. The six existing editor laws and focused types
+passed again (`u3754`, `u3755`). Fallow `u3743` found no clones. Its unused-file
+findings had zero discovered entrypoints because the scan root excluded the
+actual MCP consumer. Its estimated-coverage warnings are advisory; the compiler
+and relation checks remain explicit reviewed responsibilities. No source was
+deleted or suppressed to hide those findings.
+
+Real stdio `u3722` and local HTTP `u3742` both exported through this owner. HTTP
+also checked current/legacy clients, byte limits, batch rejection and public
+CORS; its owned server closed with no runtime errors. Browser `u3740` loaded the
+exact exports, rotated them, downloaded identical bytes and fit normal/390px
+layouts with no errors. Astra personally accepted the two native renders and
+both viewer screenshots. Earlier browser attempts failed before page launch on
+missing full-Chrome host libraries; the existing headless-shell runtime passed.
+Receipts and failed attempts remain under `.botanical/asset-mcp/`.
+
+This is a source/local transport/render milestone. The two public tools retain
+their compatible contract; they do not yet expose shared editable scene IDs,
+history, GLB or server capture. Botanical's earlier hosting handoff remains
+pinned to `886d542` and its viewer archive until Botanical explicitly selects
+this source update. No new remote deployment or completed engine is claimed.
 
 ## Fiend: checked reference, not a guessed feature list
 
