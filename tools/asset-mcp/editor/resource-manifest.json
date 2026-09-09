@@ -1,0 +1,1550 @@
+{
+  "commit": "e69f76ed41069827b72550d9a4b1e3901ab61e3b",
+  "threeRevision": 186,
+  "dependencyPins": {
+    "three-gpu-pathtracer": "0.0.23",
+    "three-mesh-bvh": "0.7.4",
+    "draco": "1.5.7"
+  },
+  "unresolvedBareImports": [
+    "https://cdn.jsdelivr.net/npm/mp4box@2.3.0/+esm"
+  ],
+  "files": [
+    {
+      "path": "build/three.core.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/build/three.core.js",
+      "bytes": 1458113,
+      "sha256": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6"
+    },
+    {
+      "path": "build/three.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/build/three.module.js",
+      "bytes": 662772,
+      "sha256": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea"
+    },
+    {
+      "path": "build/three.tsl.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/build/three.tsl.js",
+      "bytes": 36854,
+      "sha256": "6e6b92d8ce467818944f73815a96abadc6392fb34de577d479a23810b6aeeed0"
+    },
+    {
+      "path": "build/three.webgpu.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/build/three.webgpu.js",
+      "bytes": 2284823,
+      "sha256": "a78400fa1d359e81fcc12b84ed0a89a7fbecb4b8373e28ae8f9d2b11f6ea13bc"
+    },
+    {
+      "path": "build/three.webgpu.nodes.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/build/three.webgpu.nodes.js",
+      "bytes": 2276182,
+      "sha256": "a6a3a3b59fff0496783cd77162f1733141af31d4b596a5a77004b4f1790d53f6"
+    },
+    {
+      "path": "editor/css/main.css",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/css/main.css",
+      "bytes": 14486,
+      "sha256": "13f14276613cd6f7834cade32e74968ad0b84de6c2108bd29d23e57f86091fdc"
+    },
+    {
+      "path": "editor/docs/Implementing additional commands for undo-redo.md",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/docs/Implementing additional commands for undo-redo.md",
+      "bytes": 4261,
+      "sha256": "5e2689e584872ddf06a7cc3494a767cf20b11b0c2f9aba0c98d3ee43874c77c6"
+    },
+    {
+      "path": "editor/docs/Writing unit tests for undo-redo commands.md",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/docs/Writing unit tests for undo-redo commands.md",
+      "bytes": 3252,
+      "sha256": "3abad32c8172997ef85b86146e4349c87de2299ab660fb13d78fa60cb8850236"
+    },
+    {
+      "path": "editor/examples/arkanoid.app.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/examples/arkanoid.app.json",
+      "bytes": 9336,
+      "sha256": "500b7f7ba24b1a1b775d05966b1305ed50521c50d4147093e807b75613eee0ed"
+    },
+    {
+      "path": "editor/examples/camera.app.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/examples/camera.app.json",
+      "bytes": 6143,
+      "sha256": "be8794c481e8c4f4958c51858a95c487de230504162799a1e95fddda88e2fd26"
+    },
+    {
+      "path": "editor/examples/particles.app.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/examples/particles.app.json",
+      "bytes": 3879,
+      "sha256": "126fe938349cd23e0b9ac09c237b92bca6e00c467d9f8c0bddec79dbdbb9645b"
+    },
+    {
+      "path": "editor/examples/pong.app.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/examples/pong.app.json",
+      "bytes": 5689,
+      "sha256": "38077ef271d15c42ca046c4ba3536193d99850b25eec1be3a45a58db1d2a43ce"
+    },
+    {
+      "path": "editor/examples/shaders.app.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/examples/shaders.app.json",
+      "bytes": 2263,
+      "sha256": "aa3b6c4b5838f593875fac272a7b373b7a9e212b354923af4fc2c0dd158e21f7"
+    },
+    {
+      "path": "editor/images/icon.png",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/images/icon.png",
+      "bytes": 3229,
+      "sha256": "4c2e2b6ebaacb16c31c48412e3e6ab2c8241ecb1c30512da591afeedcae510f9"
+    },
+    {
+      "path": "editor/images/icon.xcf",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/images/icon.xcf",
+      "bytes": 19634,
+      "sha256": "1c44410f62b26a9667de5d5bd9e96f7b313d38f61cae1257037b144792287940"
+    },
+    {
+      "path": "editor/images/rotate.svg",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/images/rotate.svg",
+      "bytes": 1294,
+      "sha256": "a277ca507781d73f86ad530ddd4d4cd9705e62bfd11f3a8a6d4e53515122b81e"
+    },
+    {
+      "path": "editor/images/scale.svg",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/images/scale.svg",
+      "bytes": 2695,
+      "sha256": "d25ce50c6ae9e9fbcb39d0d8ffda68043dba38c8947a0e012af35d062803c72d"
+    },
+    {
+      "path": "editor/images/translate.svg",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/images/translate.svg",
+      "bytes": 4512,
+      "sha256": "d930c96a43fd37ccbab3929dc10647c6b94c2e54bd643bb6abde0fc0a598f1b2"
+    },
+    {
+      "path": "editor/index.html",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/index.html",
+      "bytes": 7720,
+      "sha256": "1e186dca4fd7f15d3fea1f137406e250786b5fcd2451cf8677c65a77946aad36"
+    },
+    {
+      "path": "editor/js/Animation.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Animation.js",
+      "bytes": 15417,
+      "sha256": "1d47972dd3b92c1c28a44f0699b6b0e770a5cfcddc8959db87f2d9ef4d982983"
+    },
+    {
+      "path": "editor/js/AnimationResizer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/AnimationResizer.js",
+      "bytes": 1570,
+      "sha256": "c00ed55040734a1d22f4db6616f077ea4ac43e8d340918d0974f1f5ba9fbc1d3"
+    },
+    {
+      "path": "editor/js/Command.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Command.js",
+      "bytes": 618,
+      "sha256": "bf433ed17d9a0e6cae32b27f37baa31c0c8ade2812447ecc948c9dd78440b921"
+    },
+    {
+      "path": "editor/js/commands/AddObjectCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/AddObjectCommand.js",
+      "bytes": 1043,
+      "sha256": "b84c4e5fa1731216b55889c7ab1cf23d011e8910bf3bba015eb7ee64dc7df733"
+    },
+    {
+      "path": "editor/js/commands/AddScriptCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/AddScriptCommand.js",
+      "bytes": 1349,
+      "sha256": "0994dc0f1f40f4aa4750450a5879e5711f1b9efedbff458692e16e594ea85333"
+    },
+    {
+      "path": "editor/js/commands/Commands.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/Commands.js",
+      "bytes": 1534,
+      "sha256": "ae242a9c660d4b3bf0cea90a42030f523294c3f840d17c562bc8a8e1d2f3ba8a"
+    },
+    {
+      "path": "editor/js/commands/MoveObjectCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/MoveObjectCommand.js",
+      "bytes": 2831,
+      "sha256": "eefffbbeb7bc5ac892aad2d2d451eb199ad68277c67f902e909c5a6a0e32ff73"
+    },
+    {
+      "path": "editor/js/commands/MultiCmdsCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/MultiCmdsCommand.js",
+      "bytes": 1458,
+      "sha256": "6eacfdde05f8353169a8d9cb0ee97af8bad9354c1becf3b6d7279d724d9f8051"
+    },
+    {
+      "path": "editor/js/commands/RemoveObjectCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/RemoveObjectCommand.js",
+      "bytes": 1480,
+      "sha256": "a34c834f42995353aa7015138f9553f507e959d911c3ae8569fad94c7d5d76d9"
+    },
+    {
+      "path": "editor/js/commands/RemoveScriptCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/RemoveScriptCommand.js",
+      "bytes": 1504,
+      "sha256": "0c7c5333c2b0659f751bb0efa219474cfb231db509460012d2469d8022085928"
+    },
+    {
+      "path": "editor/js/commands/SetColorCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetColorCommand.js",
+      "bytes": 1538,
+      "sha256": "62e736e745a6afde24956764b629e40f7ad4602d7c1ce2e7c696dcf7f614011e"
+    },
+    {
+      "path": "editor/js/commands/SetGeometryCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetGeometryCommand.js",
+      "bytes": 1806,
+      "sha256": "706590f7e00ac128288ec6b9dbb74724f4b958f7a8816a48cebf2e07632be676"
+    },
+    {
+      "path": "editor/js/commands/SetGeometryValueCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetGeometryValueCommand.js",
+      "bytes": 1678,
+      "sha256": "69d8547ba1fd38e81c14a0b9bf9e804095e7fd17d920636bf0ed57758436c9e5"
+    },
+    {
+      "path": "editor/js/commands/SetMaterialColorCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetMaterialColorCommand.js",
+      "bytes": 2051,
+      "sha256": "d0fe7f05dd4775e9343d8e59b4e8d512ce203e6c155737caa8feb00435fbb18b"
+    },
+    {
+      "path": "editor/js/commands/SetMaterialCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetMaterialCommand.js",
+      "bytes": 1932,
+      "sha256": "77fc3541d14f0cff5555509a60efd0cec1e39cb29300a4167afccd2d8558036f"
+    },
+    {
+      "path": "editor/js/commands/SetMaterialMapCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetMaterialMapCommand.js",
+      "bytes": 3206,
+      "sha256": "5b996bceefafc1eec38d360d5ce9dde4845d5dece4b716f7c459a05b48f99045"
+    },
+    {
+      "path": "editor/js/commands/SetMaterialRangeCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetMaterialRangeCommand.js",
+      "bytes": 2379,
+      "sha256": "48dedfd94508f44c76c9adf61a33a20031e3cc14535f29f4b29cac5a3c02734f"
+    },
+    {
+      "path": "editor/js/commands/SetMaterialValueCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetMaterialValueCommand.js",
+      "bytes": 2202,
+      "sha256": "4755d152cb200b9d19064ab75d77f15c80993fa240a2d7a5bc5dabf4fdb6e517"
+    },
+    {
+      "path": "editor/js/commands/SetMaterialVectorCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetMaterialVectorCommand.js",
+      "bytes": 2071,
+      "sha256": "041e73c64e6bf2727b7428fb11f294e8642c2782863fd7e45dfcbe7cb0f5d8b7"
+    },
+    {
+      "path": "editor/js/commands/SetPositionCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetPositionCommand.js",
+      "bytes": 1727,
+      "sha256": "2c5812855e0109d09c724f1c63444604161c8e8fe1e690b88aa61b7c4e0ee2be"
+    },
+    {
+      "path": "editor/js/commands/SetRotationCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetRotationCommand.js",
+      "bytes": 1717,
+      "sha256": "530bf35ef3b3c037e6b4ba37f62643332bb0e841f6cc159e563d50f5cf5ec710"
+    },
+    {
+      "path": "editor/js/commands/SetScaleCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetScaleCommand.js",
+      "bytes": 1637,
+      "sha256": "7263ce59626fa91d2279477be821f4c5a13522471a77b80269cf9b8acd108476"
+    },
+    {
+      "path": "editor/js/commands/SetSceneCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetSceneCommand.js",
+      "bytes": 2251,
+      "sha256": "4a1c4c511509366d0795424dbd613cc3975c5e22723ba6d78f6f35e0868528c5"
+    },
+    {
+      "path": "editor/js/commands/SetScriptValueCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetScriptValueCommand.js",
+      "bytes": 1694,
+      "sha256": "bdc8c511454cea5a6b4dd7658c5e065f74cc29bae213ec8981078c29cc8fa6ae"
+    },
+    {
+      "path": "editor/js/commands/SetShadowValueCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetShadowValueCommand.js",
+      "bytes": 1521,
+      "sha256": "cb5678e169aeb865050175ff4425df722082c8ef73d2185a74756198336422ff"
+    },
+    {
+      "path": "editor/js/commands/SetTextureParametersCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetTextureParametersCommand.js",
+      "bytes": 2434,
+      "sha256": "790b388aac11e4376fa1a86506ccb2fc895bad507a40dd97dc95945df296d354"
+    },
+    {
+      "path": "editor/js/commands/SetUuidCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetUuidCommand.js",
+      "bytes": 1271,
+      "sha256": "3ac89671213e6fc232000e1d47caa1d53821645cc40331e83ee34fd66c35ff34"
+    },
+    {
+      "path": "editor/js/commands/SetValueCommand.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/commands/SetValueCommand.js",
+      "bytes": 1586,
+      "sha256": "8ff548c4e083a848c5a72a8b02749c01bb95b281b4c2a2731823e2995b0294d0"
+    },
+    {
+      "path": "editor/js/Config.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Config.js",
+      "bytes": 1788,
+      "sha256": "eba1a1feec65c8399819b30de569414ba589ed69de6dbb0d863e69ee01adc911"
+    },
+    {
+      "path": "editor/js/Editor.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Editor.js",
+      "bytes": 18198,
+      "sha256": "124ac8bff971ec89f0eed5c1e0a9d1e9a178e66e35d4c5c4b02953f4e91a9fe3"
+    },
+    {
+      "path": "editor/js/EditorControls.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/EditorControls.js",
+      "bytes": 9949,
+      "sha256": "a20fd28bedbafdcd43df55f40a890c0adae3a0fcd03e51adc116c107a6ad2d02"
+    },
+    {
+      "path": "editor/js/GLTFImportDialog.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/GLTFImportDialog.js",
+      "bytes": 2309,
+      "sha256": "c1e8172f9f71c53b3a0283ece57887ed04d2b20459c6a097c8d485799fef3cae"
+    },
+    {
+      "path": "editor/js/History.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/History.js",
+      "bytes": 6013,
+      "sha256": "13671b7af827bc01327b7b9c64573ffbea9ccc34ec8153f42bcf78760b0fd3fe"
+    },
+    {
+      "path": "editor/js/libs/acorn/acorn_loose.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/acorn/acorn_loose.js",
+      "bytes": 42267,
+      "sha256": "f33b1b1e8ba02c7f78656bb66f7ee70d702cd1c94195511430866f41edb9d02d"
+    },
+    {
+      "path": "editor/js/libs/acorn/acorn.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/acorn/acorn.js",
+      "bytes": 112170,
+      "sha256": "5adfb18b15c5eb96a51e7e49fdc888ce5a99dd18b305f87a244aeaea4d5aa629"
+    },
+    {
+      "path": "editor/js/libs/acorn/walk.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/acorn/walk.js",
+      "bytes": 11758,
+      "sha256": "6f6175a2a24ca586bc81438df7035bb3863ad82694833ee449a164f99c059e72"
+    },
+    {
+      "path": "editor/js/libs/app.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/app.js",
+      "bytes": 5935,
+      "sha256": "a3044c7fa29a56261b0ca7573220f85ca311fdabf41c032699e5526a2210a734"
+    },
+    {
+      "path": "editor/js/libs/app/index.html",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/app/index.html",
+      "bytes": 1155,
+      "sha256": "292b8293d20d7f56ca831a2fcdc6419e6fefe36b0d4c1af282cfe75d25c9f840"
+    },
+    {
+      "path": "editor/js/libs/codemirror/addon/dialog.css",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/addon/dialog.css",
+      "bytes": 507,
+      "sha256": "5df690d771f12118348562dd2a90060433ae2edeccd0908abcaa4480b1e3e468"
+    },
+    {
+      "path": "editor/js/libs/codemirror/addon/dialog.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/addon/dialog.js",
+      "bytes": 5250,
+      "sha256": "f823db8445973fc7be842dbe5278211e8971e7ab9ffd8ce9c403c68171fbe31d"
+    },
+    {
+      "path": "editor/js/libs/codemirror/addon/show-hint.css",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/addon/show-hint.css",
+      "bytes": 623,
+      "sha256": "f4f8c8d48c155dcbf8e04dfb29b0d500974460d08204adfe0dda3be7bb3a2fc8"
+    },
+    {
+      "path": "editor/js/libs/codemirror/addon/show-hint.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/addon/show-hint.js",
+      "bytes": 19981,
+      "sha256": "be880d5b21820a163127e5adfe008582fad272c413bd260ea019157726799d32"
+    },
+    {
+      "path": "editor/js/libs/codemirror/addon/tern.css",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/addon/tern.css",
+      "bytes": 1872,
+      "sha256": "107542ab314a1db5eb9ee84f7f2543f9fcf7e03e472a35edef2c5fd84fa308f7"
+    },
+    {
+      "path": "editor/js/libs/codemirror/addon/tern.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/addon/tern.js",
+      "bytes": 26219,
+      "sha256": "bb690874b56764c6c65b13e35d78a5d97cfee5d3e5814622449bb5d3cc5498aa"
+    },
+    {
+      "path": "editor/js/libs/codemirror/codemirror.css",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/codemirror.css",
+      "bytes": 8720,
+      "sha256": "eb494ea972d2661ef86f7f6ac656dd6786d721e49c9c1b46e1eb967e4b6f9bf3"
+    },
+    {
+      "path": "editor/js/libs/codemirror/codemirror.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/codemirror.js",
+      "bytes": 400208,
+      "sha256": "d03e9fa93fd33399bb99b98e2956cd2e799a56775663796a42b74af4ee1119b0"
+    },
+    {
+      "path": "editor/js/libs/codemirror/mode/glsl.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/mode/glsl.js",
+      "bytes": 8508,
+      "sha256": "4183b8ea409ea5b52b2f22121d2e95db3bdc8bd23020e975ab10a7c055ac3d55"
+    },
+    {
+      "path": "editor/js/libs/codemirror/mode/javascript.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/mode/javascript.js",
+      "bytes": 38844,
+      "sha256": "ea968e9ea578b68526edd3c113391c6558886ec5942cedb67305fb5cb9456bdf"
+    },
+    {
+      "path": "editor/js/libs/codemirror/theme/monokai.css",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/codemirror/theme/monokai.css",
+      "bytes": 2179,
+      "sha256": "2463dc6fd92019a0c7ca2aaa01d03116b280fa7c6ae01bf21df7c107d9b683e8"
+    },
+    {
+      "path": "editor/js/libs/esprima.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/esprima.js",
+      "bytes": 265580,
+      "sha256": "0d3811557704a646fd2012b3c3a463881997dd24e3a0049647862fbf38a489a3"
+    },
+    {
+      "path": "editor/js/libs/jsonlint.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/jsonlint.js",
+      "bytes": 17290,
+      "sha256": "ce94081be12d9294917590c5cbfab3204141d293573ed1baeb0ad587132509dd"
+    },
+    {
+      "path": "editor/js/libs/signals.min.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/signals.min.js",
+      "bytes": 3230,
+      "sha256": "ee17ae5ef0aa629eaa4a728ba672f3fe59706eb8ae640e5cb3ede7ffe5da6e60"
+    },
+    {
+      "path": "editor/js/libs/tern-threejs/build-defs.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/tern-threejs/build-defs.js",
+      "bytes": 6490,
+      "sha256": "f16f9f3f2ce9ef33ebcb6f0c6d252a25607bd1bfeeb690aa811721e5a2783021"
+    },
+    {
+      "path": "editor/js/libs/ternjs/comment.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/comment.js",
+      "bytes": 2891,
+      "sha256": "c8d1b69fad77e17ff7b4779f3a68ba82069558c3f675aa31a4b10351598d188d"
+    },
+    {
+      "path": "editor/js/libs/ternjs/def.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/def.js",
+      "bytes": 20576,
+      "sha256": "267ecef7d1754d54898e65db32d4f9353303f5f9d8bfa1e39e37e8ebf325c142"
+    },
+    {
+      "path": "editor/js/libs/ternjs/doc_comment.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/doc_comment.js",
+      "bytes": 14301,
+      "sha256": "16b0ae32d53c149330c16408423e30611dca1ae149ad525e153643ae989723b8"
+    },
+    {
+      "path": "editor/js/libs/ternjs/infer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/infer.js",
+      "bytes": 56644,
+      "sha256": "507ac3b413203d0970ca12dfcee3ee906bdce0d3ffb5c2bd7b6b66964ce133ef"
+    },
+    {
+      "path": "editor/js/libs/ternjs/polyfill.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/polyfill.js",
+      "bytes": 9440,
+      "sha256": "901346fec4db7bdda8f7bfea57292ec16b43b299fbfd6de73290f2b14a4fc1a7"
+    },
+    {
+      "path": "editor/js/libs/ternjs/signal.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/signal.js",
+      "bytes": 963,
+      "sha256": "758cee05964007c5294c14226105806888182d25e39fefbd923357f12e691032"
+    },
+    {
+      "path": "editor/js/libs/ternjs/tern.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ternjs/tern.js",
+      "bytes": 34845,
+      "sha256": "acc6634f628164b829b962e6ab0f2491fd09eda6ed184dbe4d1aa7836ba038bb"
+    },
+    {
+      "path": "editor/js/libs/ui.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ui.js",
+      "bytes": 19664,
+      "sha256": "54326d613088f938889cffa30e7dcb0072af71c6c9ae2fa232c8b3f303b4402e"
+    },
+    {
+      "path": "editor/js/libs/ui.three.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/libs/ui.three.js",
+      "bytes": 16763,
+      "sha256": "e06c55fc08277fa7ee999b36784e416122c5d6da3265bb98d5c70cbaacf88062"
+    },
+    {
+      "path": "editor/js/Loader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Loader.js",
+      "bytes": 23354,
+      "sha256": "5d84b086b9d3aed7c2956a2d9660afcce2466fa94cd74ef1e75610a308765143"
+    },
+    {
+      "path": "editor/js/LoaderUtils.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/LoaderUtils.js",
+      "bytes": 1257,
+      "sha256": "fff49dcaafa3f83bd528a4c2e3a33ad55c1d56ca54358d15091c9e48d7d05796"
+    },
+    {
+      "path": "editor/js/Menubar.Add.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.Add.js",
+      "bytes": 15170,
+      "sha256": "fda0ad05ccdf68b7b97a281766221f8eeb3b8a0c4fd3bd7d2e2d6bea01f7533e"
+    },
+    {
+      "path": "editor/js/Menubar.Edit.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.Edit.js",
+      "bytes": 3560,
+      "sha256": "b323b39f13618962f961a636634a297627d201e92d179c34ad6e7edd94663cf6"
+    },
+    {
+      "path": "editor/js/Menubar.File.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.File.js",
+      "bytes": 13182,
+      "sha256": "e34a84adce8d494d7d624e3a55deb5f321a6993d7628dccb77005a9141e23e84"
+    },
+    {
+      "path": "editor/js/Menubar.Help.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.Help.js",
+      "bytes": 1561,
+      "sha256": "30fb716a73c3be7d33e353b03abc385fd0fa17d6ca845c97578ceb33452705ed"
+    },
+    {
+      "path": "editor/js/Menubar.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.js",
+      "bytes": 850,
+      "sha256": "ca21850db2267b00a7db037f10a559a95b334807f97470d508f81b011dc69fa9"
+    },
+    {
+      "path": "editor/js/Menubar.Render.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.Render.js",
+      "bytes": 22049,
+      "sha256": "09675ca46f9758c8cee510b88a45838d7ed53654b5415b9ab181455cded321c4"
+    },
+    {
+      "path": "editor/js/Menubar.Status.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.Status.js",
+      "bytes": 1054,
+      "sha256": "ceaceb7138b34052b7087d0b29afbed3ec6fc886763bf799c907868822f7395a"
+    },
+    {
+      "path": "editor/js/Menubar.View.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Menubar.View.js",
+      "bytes": 4201,
+      "sha256": "e57118214cf24e12e227963f36621168cd12a8397792bb5fbe81b6bbb297dd8e"
+    },
+    {
+      "path": "editor/js/Player.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Player.js",
+      "bytes": 998,
+      "sha256": "df48a234fe92142bc0fc87bdee5b6d29e66756d75791d6a440b3b99b232143b8"
+    },
+    {
+      "path": "editor/js/Resizer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Resizer.js",
+      "bytes": 1760,
+      "sha256": "b4cb77f5da37436d36daa6ff493ed6ff69236c680336321d83183041ac63b010"
+    },
+    {
+      "path": "editor/js/Script.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Script.js",
+      "bytes": 10456,
+      "sha256": "67e7edec0a59338402c41cb9328472223a3318f7e0099dade4d8e6ec397239e1"
+    },
+    {
+      "path": "editor/js/Selector.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Selector.js",
+      "bytes": 5969,
+      "sha256": "9443dcdeb7efae1d05c8e896c528fef9273b5e30d7c200c1ba3e7ee217199e57"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.BoxGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.BoxGeometry.js",
+      "bytes": 3235,
+      "sha256": "36fcab719c13bb42914410584e557efb11fbea2d9d22abb6a1c2b924d1cad674"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.BufferGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.BufferGeometry.js",
+      "bytes": 3473,
+      "sha256": "d8c51c619928b25098d34c523249e0e7104580720067e7e3f90811e431880417"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.CapsuleGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.CapsuleGeometry.js",
+      "bytes": 2840,
+      "sha256": "68d955dc46138001c236c4eee048a57ecfe20b9f309e49bb65671fdb29d62d58"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.CircleGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.CircleGeometry.js",
+      "bytes": 2548,
+      "sha256": "0dfea94fd83b221abf425ad292e1089d8d34c87589c2fbb11c13f357dc9e48a7"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.CylinderGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.CylinderGeometry.js",
+      "bytes": 3283,
+      "sha256": "afbe9fa117a880e4fdaffa503975ce2c5d39062aba77842b77d5b1540a737b1a"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.DodecahedronGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.DodecahedronGeometry.js",
+      "bytes": 1524,
+      "sha256": "5757adbac747d296aef04f02983b33739d082122afd7be27ec066d170ec8fcdb"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.ExtrudeGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.ExtrudeGeometry.js",
+      "bytes": 5661,
+      "sha256": "660357cd21ea55844f42da4c1823ac1c824435443bf30d4efd28a3a2ff34570c"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.IcosahedronGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.IcosahedronGeometry.js",
+      "bytes": 1521,
+      "sha256": "229117e42290c144c41a7ef98ad61b3cc16a4b0f785a4da8307da1fc52924dc4"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.js",
+      "bytes": 10655,
+      "sha256": "5621849528ac288916f4969b2b21d03865a4fee7b352c6032bd604e31404dd34"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.LatheGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.LatheGeometry.js",
+      "bytes": 2478,
+      "sha256": "e9c1d5a0bbeff6e6c8d65146e2ed1d13880a92dc30593df830631bac5b6cf8ab"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.Modifiers.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.Modifiers.js",
+      "bytes": 1863,
+      "sha256": "7fc5c75fd0c4c2c6e4add139f720f9dec936b712e9c41439ca483201e1e87edd"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.OctahedronGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.OctahedronGeometry.js",
+      "bytes": 1519,
+      "sha256": "7cc8e2a983bee58908550e0e150ab6d9d1c87ee62771fe4888ef00fdb7d370c4"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.PlaneGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.PlaneGeometry.js",
+      "bytes": 2388,
+      "sha256": "4c21801ae98160b1b7f9ffcda26e34fbb21ea2e917a57da0646b56cc92e8978d"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.RingGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.RingGeometry.js",
+      "bytes": 3493,
+      "sha256": "e467f046f144ea0858b3a1df7b101358a0e643fce0bfc949ffbb42c6302b0058"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.ShapeGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.ShapeGeometry.js",
+      "bytes": 1677,
+      "sha256": "0839f005d8d2ff2004d825a405c3db0892f33f250df2a0a015c9d73b16d33084"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.SphereGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.SphereGeometry.js",
+      "bytes": 4046,
+      "sha256": "a542beeb9dfe01afd4acfd703e3ef5e86d5d3afa5357a0975a167c5b1ee479d5"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.TetrahedronGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.TetrahedronGeometry.js",
+      "bytes": 1522,
+      "sha256": "3c28c738df7461e691159dab645b9146c1ded09106efa3b5aeee94363e8f7be6"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.TextGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.TextGeometry.js",
+      "bytes": 4082,
+      "sha256": "02db33faecf688b93de96edd20c81c1b386a9403a3a9ee92f82f5d63e4bb238b"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.TorusGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.TorusGeometry.js",
+      "bytes": 2818,
+      "sha256": "920a7c1255dd670b6cf63cf2ca595a34c777acc68795ac5b1d2381ebb3198eee"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.TorusKnotGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.TorusKnotGeometry.js",
+      "bytes": 3002,
+      "sha256": "21ec79ed0fa1810c386f9a37fbd609fc13a60add9b0fa6e53c7fe275c0e9b053"
+    },
+    {
+      "path": "editor/js/Sidebar.Geometry.TubeGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Geometry.TubeGeometry.js",
+      "bytes": 3920,
+      "sha256": "70bdfa49dcbb23268f01af77218b6e64074765f93c4ccd1053154a080e2da716"
+    },
+    {
+      "path": "editor/js/Sidebar.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.js",
+      "bytes": 1199,
+      "sha256": "d5988f9df4ab30d01625ef2af260952b63916f70aaeeaf52e9033ed0bf33f9f2"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.BooleanProperty.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.BooleanProperty.js",
+      "bytes": 1298,
+      "sha256": "53ab07f857e63835be84ad41796cf623a76011a719e967715ff5e88bb104dc7c"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.ColorProperty.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.ColorProperty.js",
+      "bytes": 1929,
+      "sha256": "ecf7686b2c599bb4cc23a8f30ba860abe022160010a8f580a36101c7b4b1f564"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.ConstantProperty.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.ConstantProperty.js",
+      "bytes": 1335,
+      "sha256": "dbf3f6dc154ede00ed6f85821fd415638b5ff719f861325d19dac273c666a0fe"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.js",
+      "bytes": 23393,
+      "sha256": "6d58f01eaaa1e822c11b523f011e5bdd1c28dbf12ea51189b5bfa2f099f691fc"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.MapProperty.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.MapProperty.js",
+      "bytes": 6951,
+      "sha256": "6b6808bd5bdd03416340f05f9ccaba83b5019d267171f2427530fb5e80f4f663"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.NumberProperty.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.NumberProperty.js",
+      "bytes": 1397,
+      "sha256": "32ae67e15463ec75a021630f6bf4133d444b0902ffebf0157ae2eca8dfceb6ac"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.Program.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.Program.js",
+      "bytes": 1700,
+      "sha256": "438906ce458aad4b10cdb773560c762055ceb20f95bb241866f2ddef7d9db521"
+    },
+    {
+      "path": "editor/js/Sidebar.Material.RangeValueProperty.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Material.RangeValueProperty.js",
+      "bytes": 1683,
+      "sha256": "9e1f45bbeff704cfcd7ff9a63b1a7934473175c53a28aa2c8abf1c3cd68de16d"
+    },
+    {
+      "path": "editor/js/Sidebar.Object.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Object.js",
+      "bytes": 24458,
+      "sha256": "ce7f9e5b9220aec100d94fd2fd136a6cd9f20a264e6ebe1c5ad46fa115fd7743"
+    },
+    {
+      "path": "editor/js/Sidebar.Project.App.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Project.App.js",
+      "bytes": 5223,
+      "sha256": "cc8455098b97c6aa392bca1723fc897d492bafe2e8aaa90127e9e87c34b5ddac"
+    },
+    {
+      "path": "editor/js/Sidebar.Project.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Project.js",
+      "bytes": 537,
+      "sha256": "c160df449d9b73e42de3c36a3965a56153f43ba5cb9d7b95ed118b46587fa5e0"
+    },
+    {
+      "path": "editor/js/Sidebar.Project.Materials.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Project.Materials.js",
+      "bytes": 1919,
+      "sha256": "b6ee7e2d23e0524aadd65fadbe8477075e45bdd2274009977e3c58bec10f8745"
+    },
+    {
+      "path": "editor/js/Sidebar.Project.Renderer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Project.Renderer.js",
+      "bytes": 6153,
+      "sha256": "4cb47b0cf6e0a55955667a35a8b1e796d325e68970a8f2e3dc57b2f1a6801427"
+    },
+    {
+      "path": "editor/js/Sidebar.Project.Resources.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Project.Resources.js",
+      "bytes": 6605,
+      "sha256": "a76d0cf0c9721bc55867e62aaefc3fc82ee1fee002de78ca893cb407ec8ee6bf"
+    },
+    {
+      "path": "editor/js/Sidebar.Properties.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Properties.js",
+      "bytes": 2048,
+      "sha256": "b423bde0346347c685cdf6e9abb6efb9a6ac90d2241549310768c25a8ee71f97"
+    },
+    {
+      "path": "editor/js/Sidebar.Scene.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Scene.js",
+      "bytes": 14849,
+      "sha256": "eaa90aae0f01067ec30a9af8a55babe41fea0e11c644e2a0905d8a701b02bcc9"
+    },
+    {
+      "path": "editor/js/Sidebar.Script.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Script.js",
+      "bytes": 2815,
+      "sha256": "b7193c06678fa64db5c71ba01f3cc3b8affb61e5eff5134ab4c5b5e0c0fbce13"
+    },
+    {
+      "path": "editor/js/Sidebar.Settings.History.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Settings.History.js",
+      "bytes": 2896,
+      "sha256": "5d501370a086c7e0c5bf231ba71869fe3e6bb2f528ec7ebbabda23f5c4d1d972"
+    },
+    {
+      "path": "editor/js/Sidebar.Settings.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Settings.js",
+      "bytes": 1383,
+      "sha256": "d7b406a92a663afa6e4b6b2f79df964a94b356d31c7ac997119626469bb65f57"
+    },
+    {
+      "path": "editor/js/Sidebar.Settings.Shortcuts.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Sidebar.Settings.Shortcuts.js",
+      "bytes": 5278,
+      "sha256": "60c2baee4416138d5784b9f5507fb8fc72677a480006bc75abf1d7addcbcd435"
+    },
+    {
+      "path": "editor/js/Storage.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Storage.js",
+      "bytes": 2005,
+      "sha256": "df0d4757404c7c346c1ef3b254cfeb5706502d2c49e2980e728ef5b7d8956eb8"
+    },
+    {
+      "path": "editor/js/Strings.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Strings.js",
+      "bytes": 123815,
+      "sha256": "712ae1a9930c2235d28a26a6885da4cb6af78e4677ff291638f32ee4254d9ca5"
+    },
+    {
+      "path": "editor/js/TextureParametersDialog.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/TextureParametersDialog.js",
+      "bytes": 9627,
+      "sha256": "c25d07bed016a28cba926555b2191eb8f9b8a9d2907fc97d7fb06834d267b386"
+    },
+    {
+      "path": "editor/js/Toolbar.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Toolbar.js",
+      "bytes": 1806,
+      "sha256": "249cc64b50c06e6f0d2391a6e64cc06428ffa8b40e19031b174b42ab67ca3779"
+    },
+    {
+      "path": "editor/js/Viewport.Controls.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Viewport.Controls.js",
+      "bytes": 1870,
+      "sha256": "81da786c2a9217bee95df5ddc1b5775b48b76dfd0cf4c14b1d6fae9030444533"
+    },
+    {
+      "path": "editor/js/Viewport.Info.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Viewport.Info.js",
+      "bytes": 4570,
+      "sha256": "cf0c3121a84acd23cbe8c96a2f9818ebd66fca200f20a50311178325e4ba217f"
+    },
+    {
+      "path": "editor/js/Viewport.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Viewport.js",
+      "bytes": 20181,
+      "sha256": "597f323c2b9c8c7e6f87bc92192baf5ecd940edb9533198b0c8dcbdcf706e196"
+    },
+    {
+      "path": "editor/js/Viewport.Pathtracer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Viewport.Pathtracer.js",
+      "bytes": 1476,
+      "sha256": "fb6db5372b2ddff88e86289aeb3c27c76ac0dfca14edd58acd923ecfd6b83965"
+    },
+    {
+      "path": "editor/js/Viewport.ViewHelper.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Viewport.ViewHelper.js",
+      "bytes": 777,
+      "sha256": "506e713f9d128090303cc8d078d686ffdbe0a31c58d0492f170887947fa1ea21"
+    },
+    {
+      "path": "editor/js/Viewport.XR.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/js/Viewport.XR.js",
+      "bytes": 5536,
+      "sha256": "af5f857e56d9c9e55e99efd1ed8011ce4d8c163e8d3523093870be586311e800"
+    },
+    {
+      "path": "editor/manifest.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/manifest.json",
+      "bytes": 239,
+      "sha256": "4abc25026942d6c54c8ddd03a28d72075d3071f572d2d2bb8c9f88f6d8d3ab66"
+    },
+    {
+      "path": "editor/sw.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/editor/sw.js",
+      "bytes": 270,
+      "sha256": "bb065e715293c540ed6a7ac54faecf681dc10bfc8a753463259adddcbc3c203f"
+    },
+    {
+      "path": "examples/fonts/droid/droid_sans_bold.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/droid_sans_bold.typeface.json",
+      "bytes": 329885,
+      "sha256": "ec40f077e0695e4ce9f74e9953034312eb6d1d5a9eb6c584b1eb0fd84077fb81"
+    },
+    {
+      "path": "examples/fonts/droid/droid_sans_mono_regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/droid_sans_mono_regular.typeface.json",
+      "bytes": 190569,
+      "sha256": "c60f23330c5911f5f3640901f0dedf0c02cfc9982e0b5a99e2f1ef30eebc4e6f"
+    },
+    {
+      "path": "examples/fonts/droid/droid_sans_regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/droid_sans_regular.typeface.json",
+      "bytes": 319895,
+      "sha256": "8f0570e6cbb9b0230dc8a19b1942fd414191f0f3bfc76e3f413c2f9cfccd2eac"
+    },
+    {
+      "path": "examples/fonts/droid/droid_serif_bold.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/droid_serif_bold.typeface.json",
+      "bytes": 485403,
+      "sha256": "e9a71de592e239acc3da3601cfbad53836931f498f409ab68535140f2045f29d"
+    },
+    {
+      "path": "examples/fonts/droid/droid_serif_regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/droid_serif_regular.typeface.json",
+      "bytes": 477058,
+      "sha256": "99ff855b8c18bcec3428745f576a75bfb0da5f63fe52c23f2484c2e655c2c64a"
+    },
+    {
+      "path": "examples/fonts/droid/NOTICE",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/NOTICE",
+      "bytes": 10695,
+      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+    },
+    {
+      "path": "examples/fonts/droid/README.txt",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/droid/README.txt",
+      "bytes": 692,
+      "sha256": "c8b88077052fed912b3f724c0ed230c501cf4e18833af7ca44338d3cd0b093e2"
+    },
+    {
+      "path": "examples/fonts/gentilis_bold.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/gentilis_bold.typeface.json",
+      "bytes": 649318,
+      "sha256": "c028fd9c4017e34f1bf46694e4c23479cd22b812d0308f5dfc7446412c41d88c"
+    },
+    {
+      "path": "examples/fonts/gentilis_regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/gentilis_regular.typeface.json",
+      "bytes": 627529,
+      "sha256": "7ed95f2faa30f59dbe7cfb145b97c42a6ba1188cd2eec01ca61485e8c83ee9de"
+    },
+    {
+      "path": "examples/fonts/helvetiker_bold.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/helvetiker_bold.typeface.json",
+      "bytes": 61632,
+      "sha256": "bd68159ee0b8d10fe24b9daa2e32f19686f9d8269a79dc8d44203a66298bfa2f"
+    },
+    {
+      "path": "examples/fonts/helvetiker_regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/helvetiker_regular.typeface.json",
+      "bytes": 63182,
+      "sha256": "d5c5467690f74061179a292af83bd85c4c551e0f106b2af99714f11184c96981"
+    },
+    {
+      "path": "examples/fonts/LICENSE",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/LICENSE",
+      "bytes": 2006,
+      "sha256": "35e8279356d7890871c4fce804d157e3f21456a7311ef2caab5cb4705c71b6bd"
+    },
+    {
+      "path": "examples/fonts/MPLUSRounded1c/MPLUSRounded1c-Regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/MPLUSRounded1c/MPLUSRounded1c-Regular.typeface.json",
+      "bytes": 63950,
+      "sha256": "89d43653ab7ef8d9d2a08afc815ed510e818511929d71c91e2a5156082971455"
+    },
+    {
+      "path": "examples/fonts/MPLUSRounded1c/OFL.txt",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/MPLUSRounded1c/OFL.txt",
+      "bytes": 4303,
+      "sha256": "76efb90a3bf8d7d91a3498d15fb409ee59ff43b0bf614b4afa0a947b6d7c75d3"
+    },
+    {
+      "path": "examples/fonts/optimer_bold.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/optimer_bold.typeface.json",
+      "bytes": 112249,
+      "sha256": "d690a5f45706db0c15c39313cc36f8ce62ef154c6a21923809814a89f6df7c98"
+    },
+    {
+      "path": "examples/fonts/optimer_regular.typeface.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/optimer_regular.typeface.json",
+      "bytes": 110666,
+      "sha256": "17e5e14d94d66e0e60eed3bfde403fcfa3e677f3c914e4cbed264c0c0ba95175"
+    },
+    {
+      "path": "examples/fonts/README.md",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/README.md",
+      "bytes": 334,
+      "sha256": "502a6cab7895e6132f0a6946c6979933d3959b1d769de04b85682b30626b4340"
+    },
+    {
+      "path": "examples/fonts/ttf/kenpixel.ttf",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/ttf/kenpixel.ttf",
+      "bytes": 18068,
+      "sha256": "fd42226067fc44707d41ef9f43597574c6a0fd415249416b38cf93371a7a611a"
+    },
+    {
+      "path": "examples/fonts/ttf/README.md",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/fonts/ttf/README.md",
+      "bytes": 188,
+      "sha256": "839a0690ee62d559779bd978fa28828f1686db0071f46b5febca8c553af16039"
+    },
+    {
+      "path": "examples/jsm/controls/TransformControls.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/controls/TransformControls.js",
+      "bytes": 51706,
+      "sha256": "151befe25bb0d68626f9a6b033625b7b0cf6848e39ba71623b7bed8e3df565d6"
+    },
+    {
+      "path": "examples/jsm/curves/NURBSCurve.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/curves/NURBSCurve.js",
+      "bytes": 3888,
+      "sha256": "bef2607618a7778455e71a1f0bd206951c382d313e2e245808cc7d3533d60fb6"
+    },
+    {
+      "path": "examples/jsm/curves/NURBSUtils.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/curves/NURBSUtils.js",
+      "bytes": 10802,
+      "sha256": "c6bd7c4137d585098923f189687898ea3e8762ea3ecbe255d749a56353894379"
+    },
+    {
+      "path": "examples/jsm/environments/ColorEnvironment.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/environments/ColorEnvironment.js",
+      "bytes": 1401,
+      "sha256": "f17a9824d3deadd199bbfc17672636ddc79bb9cc0940a8942ca77c8239576e0a"
+    },
+    {
+      "path": "examples/jsm/environments/RoomEnvironment.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/environments/RoomEnvironment.js",
+      "bytes": 4960,
+      "sha256": "55f466192cc84298755a424c5e040345006b2ee1455589b3b54126c2ea4123f4"
+    },
+    {
+      "path": "examples/jsm/exporters/DRACOExporter.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/exporters/DRACOExporter.js",
+      "bytes": 9086,
+      "sha256": "f782bdd5a3e71a696b3c576d82a3f264fd7457d26a3e5e05ce524e44769e3dc9"
+    },
+    {
+      "path": "examples/jsm/exporters/GLTFExporter.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/exporters/GLTFExporter.js",
+      "bytes": 93570,
+      "sha256": "d766b04f233fa8bc72bfaebacaac5ecb832c30ca3695ce8d84bbb7dccccdc842"
+    },
+    {
+      "path": "examples/jsm/exporters/OBJExporter.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/exporters/OBJExporter.js",
+      "bytes": 6070,
+      "sha256": "2df529483eec685ec5c9a52f6a370acc654592aeeb495a8e862d8bb6d3d5063e"
+    },
+    {
+      "path": "examples/jsm/exporters/PLYExporter.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/exporters/PLYExporter.js",
+      "bytes": 20567,
+      "sha256": "fe795b326d9101d0d4bdf77c259d10e76b4f7826471cca792b58c70fcd994d40"
+    },
+    {
+      "path": "examples/jsm/exporters/STLExporter.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/exporters/STLExporter.js",
+      "bytes": 4884,
+      "sha256": "6508e5f79d120c7fdb677430342179609b27f59942dd6a2e215eef3ff60a7e60"
+    },
+    {
+      "path": "examples/jsm/exporters/USDZExporter.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/exporters/USDZExporter.js",
+      "bytes": 35574,
+      "sha256": "06e27fd44bab2172929717aa076a7c264dd24a9071357aea415028aaad2df794"
+    },
+    {
+      "path": "examples/jsm/geometries/TextGeometry.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/geometries/TextGeometry.js",
+      "bytes": 3312,
+      "sha256": "edf69c1cd6087c84d020156d1adbb29b40b098e4cbe8da4c0c36bbadc58dceac"
+    },
+    {
+      "path": "examples/jsm/helpers/AnimationPathHelper.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/helpers/AnimationPathHelper.js",
+      "bytes": 6400,
+      "sha256": "c881341e6231e41f965b300536453cb02b4499a20a6f9f063726628b7e2701b7"
+    },
+    {
+      "path": "examples/jsm/helpers/VertexNormalsHelper.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/helpers/VertexNormalsHelper.js",
+      "bytes": 3458,
+      "sha256": "666a1219d95010e4d5d290f08774af2c327b7bcd368ebdec29a111805c8b7ecc"
+    },
+    {
+      "path": "examples/jsm/helpers/ViewHelper.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/helpers/ViewHelper.js",
+      "bytes": 12826,
+      "sha256": "3572685243e0e532c09bb7498d5802459ddabf2d8ef41450f4013e78faba1ddf"
+    },
+    {
+      "path": "examples/jsm/interactive/HTMLMesh.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/interactive/HTMLMesh.js",
+      "bytes": 14543,
+      "sha256": "a339c0e28d65ab54da4369b8d760c8260e6461b12cbe78a58be36d90088ad7b1"
+    },
+    {
+      "path": "examples/jsm/interactive/InteractiveGroup.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/interactive/InteractiveGroup.js",
+      "bytes": 5806,
+      "sha256": "94a817946503e646e743dfa45203ae09fc1f917bbf7a1e3636b08ac3ecb2493f"
+    },
+    {
+      "path": "examples/jsm/libs/basis/basis_transcoder.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/basis/basis_transcoder.js",
+      "bytes": 57529,
+      "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
+    },
+    {
+      "path": "examples/jsm/libs/basis/basis_transcoder.wasm",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/basis/basis_transcoder.wasm",
+      "bytes": 527333,
+      "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a"
+    },
+    {
+      "path": "examples/jsm/libs/basis/README.md",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/basis/README.md",
+      "bytes": 1388,
+      "sha256": "a578df416c1e0852e9c36a1cf91b4d28d91a251294f87ce610a3bc7ca4df15e0"
+    },
+    {
+      "path": "examples/jsm/libs/chevrotain.module.min.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/chevrotain.module.min.js",
+      "bytes": 157440,
+      "sha256": "026047366a9bdd0961eb79857fd5d84db204589942193012aabe7e3bee381045"
+    },
+    {
+      "path": "examples/jsm/libs/demuxer_mp4.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/demuxer_mp4.js",
+      "bytes": 3526,
+      "sha256": "4da4e39595c0522a45a4bd126294f88c87ed13313d944173b8ae4990dc792b83"
+    },
+    {
+      "path": "examples/jsm/libs/draco/draco_decoder.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/draco_decoder.js",
+      "bytes": 719410,
+      "sha256": "30e4d486fa020737af10e3c56197693e5b904bdc05b8bfa5d7b06751dec6da04"
+    },
+    {
+      "path": "examples/jsm/libs/draco/draco_decoder.wasm",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/draco_decoder.wasm",
+      "bytes": 285747,
+      "sha256": "c55a594e8ffd18426d36b27fea9618af3df5e173640a3e56d46f09d76f0574f2"
+    },
+    {
+      "path": "examples/jsm/libs/draco/draco_wasm_wrapper.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/draco_wasm_wrapper.js",
+      "bytes": 58763,
+      "sha256": "e8049906ef3f8f75d3456c22a3f31bfdfe5b5b5bd09ccdec613b9e9a49d554d8"
+    },
+    {
+      "path": "examples/jsm/libs/draco/gltf/draco_decoder.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/gltf/draco_decoder.js",
+      "bytes": 512465,
+      "sha256": "8625489da79a805f4f2a7d511c3e52d8b4085608a9d2a4d5f4f9de5db0aea04f"
+    },
+    {
+      "path": "examples/jsm/libs/draco/gltf/draco_decoder.wasm",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/gltf/draco_decoder.wasm",
+      "bytes": 192420,
+      "sha256": "a680d927bed9cb864ddbd63521868891af2bfbe755092761b4837487618df8ac"
+    },
+    {
+      "path": "examples/jsm/libs/draco/gltf/draco_wasm_wrapper.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/gltf/draco_wasm_wrapper.js",
+      "bytes": 58456,
+      "sha256": "8bb2952d2ba7d67e1414f8df819410cb0434a666be53f671fff75f68843d76f6"
+    },
+    {
+      "path": "examples/jsm/libs/draco/README.md",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/draco/README.md",
+      "bytes": 1395,
+      "sha256": "839850a67c93f6b26d3cc038a45bd8289e3cfdf15531e69339e8eb1282b4eb76"
+    },
+    {
+      "path": "examples/jsm/libs/fflate.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/fflate.module.js",
+      "bytes": 89384,
+      "sha256": "209a4412eb48ce609edb4391992a792ffcc3983d30ee7e2b0b89a8c470f3cd8a"
+    },
+    {
+      "path": "examples/jsm/libs/ktx-parse.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/ktx-parse.module.js",
+      "bytes": 19932,
+      "sha256": "f40c491f6c44dde511268121f778a0050e73b1a15fd844c1ae2c78c73213eafc"
+    },
+    {
+      "path": "examples/jsm/libs/lil-gui.module.min.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/lil-gui.module.min.js",
+      "bytes": 29526,
+      "sha256": "5e31e7fc4d3a1268550b948463eabe06c7a6c03c158ccb99c78616d2c9682518"
+    },
+    {
+      "path": "examples/jsm/libs/meshopt_clusterizer.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/meshopt_clusterizer.module.js",
+      "bytes": 35425,
+      "sha256": "07f08ffbee4400f0fc2cbf5df5870eb75cf7a16b5311427c8026c7be9815994e"
+    },
+    {
+      "path": "examples/jsm/libs/meshopt_decoder.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/meshopt_decoder.module.js",
+      "bytes": 29256,
+      "sha256": "d428e73a000057c6c94bfcedc3412d0c2dc14ca8800e88553aab05113ad2bf19"
+    },
+    {
+      "path": "examples/jsm/libs/meshopt_simplifier.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/meshopt_simplifier.module.js",
+      "bytes": 55177,
+      "sha256": "614402ffac05c8a40711f0d9a5d9a904dadc3ee2e7ed56d4568751dbd7fc8c35"
+    },
+    {
+      "path": "examples/jsm/libs/mikktspace.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/mikktspace.module.js",
+      "bytes": 48841,
+      "sha256": "f415ebd2f7bbe4ac06439be40d2ca4a11bb17123009bb33582176b1b21a14dac"
+    },
+    {
+      "path": "examples/jsm/libs/motion-controllers.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/motion-controllers.module.js",
+      "bytes": 13492,
+      "sha256": "4bf534b98dbb0f3e90b1332ac4d49c7d7747253768970abc7e4133b7700b75b1"
+    },
+    {
+      "path": "examples/jsm/libs/potpack.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/potpack.module.js",
+      "bytes": 3951,
+      "sha256": "f69a7f3173b088188a936ef203da9fc74175dee3443ca7804a060b3f19efc6c8"
+    },
+    {
+      "path": "examples/jsm/libs/stats.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/stats.module.js",
+      "bytes": 3514,
+      "sha256": "2c71a2f70e89c69e46c2e285fb171bac3dcfd498a85400e94ad5aaf6044ffc06"
+    },
+    {
+      "path": "examples/jsm/libs/surfaceNet.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/surfaceNet.js",
+      "bytes": 5545,
+      "sha256": "a3b63a8038ed712471310583d91ba8c0afb29dfd99ab80e41afca354f69ed4ff"
+    },
+    {
+      "path": "examples/jsm/libs/tween.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/tween.module.js",
+      "bytes": 32316,
+      "sha256": "b61c18c59bff9810f43d5750849fde620b225ff4e9013dc51bcece4b027d69a9"
+    },
+    {
+      "path": "examples/jsm/libs/utif.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/utif.module.js",
+      "bytes": 100835,
+      "sha256": "728b196cb49f7349abc4055df9ad8e1e99f93fddeb22e1fb2334436c9997adeb"
+    },
+    {
+      "path": "examples/jsm/libs/zstddec.module.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/libs/zstddec.module.js",
+      "bytes": 39754,
+      "sha256": "5cbf818e842628a4464e748594a6deae18ceddda3c2f541e7b3a0ff5fc7611e2"
+    },
+    {
+      "path": "examples/jsm/loaders/3DMLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/3DMLoader.js",
+      "bytes": 43945,
+      "sha256": "18d44a9b6e28c52f3d2fe8d9706eaffe0342961fde88f73cd497fa673dd8c40a"
+    },
+    {
+      "path": "examples/jsm/loaders/3MFLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/3MFLoader.js",
+      "bytes": 44293,
+      "sha256": "7282b67069807190795a3382d01a0bfddeaa6ea77867977072703aefd8b88bd6"
+    },
+    {
+      "path": "examples/jsm/loaders/AMFLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/AMFLoader.js",
+      "bytes": 11435,
+      "sha256": "79a321834200d8b7029bd3c6e08df8d6f86bf78150e5fd3e6b36e76d82dc4d7d"
+    },
+    {
+      "path": "examples/jsm/loaders/collada/ColladaComposer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/collada/ColladaComposer.js",
+      "bytes": 66711,
+      "sha256": "d96f4dcf36bc6a30a4d385bce511ed10e27893d1824074daa97ac863df1232e8"
+    },
+    {
+      "path": "examples/jsm/loaders/collada/ColladaParser.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/collada/ColladaParser.js",
+      "bytes": 36839,
+      "sha256": "d9532ab17f1d9e2919deba8029d759d5dcaed2f21195ded9e29491f719b1a0c6"
+    },
+    {
+      "path": "examples/jsm/loaders/ColladaLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/ColladaLoader.js",
+      "bytes": 3988,
+      "sha256": "b150c67c4bf98ed1eec3cf291e1bd00fc53016488bcefadd7a24f659e86e52d9"
+    },
+    {
+      "path": "examples/jsm/loaders/DRACOLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/DRACOLoader.js",
+      "bytes": 19030,
+      "sha256": "fdafdf4aa11bbc65d89adb338efd844bedf94073702f9049240ff1f1ea48ad5f"
+    },
+    {
+      "path": "examples/jsm/loaders/EXRLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/EXRLoader.js",
+      "bytes": 86154,
+      "sha256": "1355b32a2ee1226bffd0f96558f3d21e300832813ab70d51ec971025ebc34d5d"
+    },
+    {
+      "path": "examples/jsm/loaders/FBXLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/FBXLoader.js",
+      "bytes": 113372,
+      "sha256": "7fb8586158a2cf98477b2ee40a82ebec10a81040c70369bb177043375c355322"
+    },
+    {
+      "path": "examples/jsm/loaders/FontLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/FontLoader.js",
+      "bytes": 5292,
+      "sha256": "a8d78ab85e596ef6c274023ee165520000f010011553dbfafe5c966387aca3d8"
+    },
+    {
+      "path": "examples/jsm/loaders/GLTFLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/GLTFLoader.js",
+      "bytes": 117570,
+      "sha256": "131c0f78c01d19368ae495caa65b3adaa10487810a36a05bb5901b769a35ac16"
+    },
+    {
+      "path": "examples/jsm/loaders/HDRLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/HDRLoader.js",
+      "bytes": 12079,
+      "sha256": "0986b578f9acd14cec74e5ee85e07f45e681b40bcd229a601a0391201f9b5ff1"
+    },
+    {
+      "path": "examples/jsm/loaders/KMZLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/KMZLoader.js",
+      "bytes": 3298,
+      "sha256": "26d2f8e77c60312979da205030865b371e217e76ed8bdeaca79b063257c7a93e"
+    },
+    {
+      "path": "examples/jsm/loaders/KTX2Loader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/KTX2Loader.js",
+      "bytes": 36567,
+      "sha256": "3a3233ce3409443076d3414b78832e1405fcfac5ecb34d367365fd0781127d6c"
+    },
+    {
+      "path": "examples/jsm/loaders/LDrawLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/LDrawLoader.js",
+      "bytes": 61141,
+      "sha256": "dbc5877629f24f8a740152cc25b4d2acb1adae698278d4b380338626186451d5"
+    },
+    {
+      "path": "examples/jsm/loaders/MD2Loader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/MD2Loader.js",
+      "bytes": 13625,
+      "sha256": "6b63e78ba7c109030bc341442a4704aaacf599e50f47524ca15eff92d94ff7a7"
+    },
+    {
+      "path": "examples/jsm/loaders/MTLLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/MTLLoader.js",
+      "bytes": 11356,
+      "sha256": "f1f8f0c6fcfa09671cb609954ea436521d835606853c110c5aff2dc8188f5e61"
+    },
+    {
+      "path": "examples/jsm/loaders/OBJLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/OBJLoader.js",
+      "bytes": 22916,
+      "sha256": "86c8384e269b75a21d502d438e3f0dc2e09dc61b6e6da6b81947f5b119112bf8"
+    },
+    {
+      "path": "examples/jsm/loaders/PCDLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/PCDLoader.js",
+      "bytes": 16583,
+      "sha256": "776232b808ba62d660cbbd78b5661c8418d26479a1cdf58d66f465e21e594a1b"
+    },
+    {
+      "path": "examples/jsm/loaders/PLYLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/PLYLoader.js",
+      "bytes": 21869,
+      "sha256": "67b8c1015209b89081a92fdd69dc9df4a61284c3e9f8bb5380e441e4c64e5111"
+    },
+    {
+      "path": "examples/jsm/loaders/STLLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/STLLoader.js",
+      "bytes": 10715,
+      "sha256": "023ed97f848b633d8bcd53d4db3b996d29d0c644088700691297c552257d480b"
+    },
+    {
+      "path": "examples/jsm/loaders/SVGLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/SVGLoader.js",
+      "bytes": 76850,
+      "sha256": "a58536582ec55d41d9ed8bedaf0633398cf9004110cb4a9741d572bded4a3129"
+    },
+    {
+      "path": "examples/jsm/loaders/TDSLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/TDSLoader.js",
+      "bytes": 25168,
+      "sha256": "44ddcadff60e929f39bdf4aaca13b2315baea19169cfca3527507d10c77e557e"
+    },
+    {
+      "path": "examples/jsm/loaders/TGALoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/TGALoader.js",
+      "bytes": 11792,
+      "sha256": "da4cfa0c050b8076a63596f36f6e5a54a4a8271774a5301482996be030505c43"
+    },
+    {
+      "path": "examples/jsm/loaders/usd/USDAParser.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/usd/USDAParser.js",
+      "bytes": 19382,
+      "sha256": "de0fdef9cf8d392a4799b73b64adb678c1324176366635de47d1c738e315de0a"
+    },
+    {
+      "path": "examples/jsm/loaders/usd/USDComposer.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/usd/USDComposer.js",
+      "bytes": 112351,
+      "sha256": "ab69972fe70cdb53a6ffa935ba4dbe541cbac4dc6c1b28faa3a3ad389e15cefb"
+    },
+    {
+      "path": "examples/jsm/loaders/usd/USDCParser.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/usd/USDCParser.js",
+      "bytes": 43367,
+      "sha256": "636747f63b4e118d67f0b6336cb0986cee616e87951e368b1c14948018d5df8e"
+    },
+    {
+      "path": "examples/jsm/loaders/USDLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/USDLoader.js",
+      "bytes": 7358,
+      "sha256": "2fc767b02d8f8e7c30610f4daef50a09c0616cf23d2a455473a6ef12d4477ae9"
+    },
+    {
+      "path": "examples/jsm/loaders/VOXLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/VOXLoader.js",
+      "bytes": 21829,
+      "sha256": "c632abb3f0c9e4df3c0385c9d56d5fd8926b49445eafdc5f1f63ab33dd162cf5"
+    },
+    {
+      "path": "examples/jsm/loaders/VRMLLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/VRMLLoader.js",
+      "bytes": 76363,
+      "sha256": "731e9e9e993f81d6a641862ec68d6d329be17274880544aa8da245fc6b189361"
+    },
+    {
+      "path": "examples/jsm/loaders/XYZLoader.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/loaders/XYZLoader.js",
+      "bytes": 3280,
+      "sha256": "e19780545ea436de1848dea2b6b54a226e82657c9c167ed91584e6bd6b3dcb8e"
+    },
+    {
+      "path": "examples/jsm/math/ColorSpaces.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/math/ColorSpaces.js",
+      "bytes": 4290,
+      "sha256": "cc35c01c793cd17ccded7bc8142abffd3ce0d60dd6de8d5d216983bd05aee262"
+    },
+    {
+      "path": "examples/jsm/postprocessing/Pass.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/postprocessing/Pass.js",
+      "bytes": 4218,
+      "sha256": "444b409c235ead986893c472e720da1b779a56985c7d10b279c7944b52bd61c5"
+    },
+    {
+      "path": "examples/jsm/utils/BufferGeometryUtils.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/utils/BufferGeometryUtils.js",
+      "bytes": 37712,
+      "sha256": "9fb63427ce6641fa14fd0baff9cc4d1b5f9c3d85fd084bf2e90e803c44ec1797"
+    },
+    {
+      "path": "examples/jsm/utils/SkeletonUtils.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/utils/SkeletonUtils.js",
+      "bytes": 11535,
+      "sha256": "b1632a703206c3d830de9fcbe515696770d04b71a15ee6b50afa6d2c3298c86f"
+    },
+    {
+      "path": "examples/jsm/utils/WorkerPool.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/utils/WorkerPool.js",
+      "bytes": 3110,
+      "sha256": "5ac7095fd566bc9ae48376055fd66edf27cb9ebbf9e1269dc206bfd4933ae9eb"
+    },
+    {
+      "path": "examples/jsm/webxr/XRControllerModelFactory.js",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/examples/jsm/webxr/XRControllerModelFactory.js",
+      "bytes": 10185,
+      "sha256": "401dcb638ca3de94dd0a7744dd7a1c0d20374c73695b3d4e890eac6100e56877"
+    },
+    {
+      "path": "external/bvh-LICENSE",
+      "source": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.4/LICENSE",
+      "bytes": 1072,
+      "sha256": "b106ef6198a9862ed2b5b873e944ecf3583c631a84a7462d400ecc1910ce7fee"
+    },
+    {
+      "path": "external/bvh.js",
+      "source": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.4/build/index.module.js",
+      "bytes": 186732,
+      "sha256": "56c4511480fcd0e3c3125a473ffdbf6f5e2a8d0d6ab23a869260c124cec62814"
+    },
+    {
+      "path": "external/draco_encoder.js",
+      "source": "https://cdn.jsdelivr.net/gh/google/draco@1.5.7/javascript/draco_encoder.js",
+      "bytes": 880075,
+      "sha256": "ce9e4e70adfdcfbff8a46d557efe96ea38ec085274a97eedd869da8ee07b47d8"
+    },
+    {
+      "path": "external/draco-LICENSE",
+      "source": "https://cdn.jsdelivr.net/gh/google/draco@1.5.7/LICENSE",
+      "bytes": 13898,
+      "sha256": "d3709b0fb4b8a94bbb1d02b8a2e484f258b0d9c5c5a01f940391f3fe662cd1a4"
+    },
+    {
+      "path": "external/pathtracer-LICENSE",
+      "source": "https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.23/LICENSE",
+      "bytes": 1072,
+      "sha256": "2df239f3787d174fbd6ead7bc4c748bee526564aa2e67315afcae47e15552e00"
+    },
+    {
+      "path": "external/pathtracer.js",
+      "source": "https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.23/build/index.module.js",
+      "bytes": 221705,
+      "sha256": "ab9d976a596107b04ae4010be0e7e4fb3147b84dfee8536c7db9b7e69189548c"
+    },
+    {
+      "path": "LICENSE",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/LICENSE",
+      "bytes": 1081,
+      "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+    },
+    {
+      "path": "package.json",
+      "source": "https://raw.githubusercontent.com/mrdoob/three.js/e69f76ed41069827b72550d9a4b1e3901ab61e3b/package.json",
+      "bytes": 3672,
+      "sha256": "ab4ff6950aab522dfe6980f19914a5eb2cadb689a36c6c44f4d3869c5e46dc89"
+    }
+  ]
+}

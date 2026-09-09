@@ -141,3 +141,15 @@ wrapper and the documented headless browser environment, as required by AGENTS.
 The next [scene-editor contract](../../docs/decisions/asset-mcp-demo-and-scene-editor.md)
 records the full inspected Fiend capability target. The document API supports the bounded geometry above; persisted collaborative
 editing, GLB and remote capture remain future work.
+
+### Full editor source candidate
+
+`editor/` contains a pinned upstream Three.js editor with a Caps shell. The existing
+scene compiler supplies original asset inputs; upstream Editor/History owns the
+subsequent baked editing session. Full editor projects, Three JSON and GLB are
+separate outputs, with the original document retained as provenance. Arbitrary
+mesh edits are not silently converted back into recipe-v1. This local file workflow
+is distinct from hosted scene links or live MCP synchronization. The inner editor
+controls remain upstream UI using the released fonts. Scripts and app publishing
+are disabled; source/readiness review is still pending. See `editor/README.md` for
+the exact pin, resource manifest and isolated build boundary.

@@ -1,0 +1,45 @@
+/* Upstream internal widgets, using the same released font faces as the Caps shell. */
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Nunito", sans-serif;
+}
+#info,
+#animation,
+.Number {
+  font-family: "Maple Mono", monospace;
+}
+#scriptTab,
+#app {
+  display: none !important;
+}
+@media (max-width: 650px) {
+  #menubar {
+    height: 36px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  #viewport {
+    top: 36px;
+    right: 0;
+    bottom: 42%;
+  }
+  #viewport.with-animation {
+    bottom: 42% !important;
+  }
+  #sidebar {
+    top: 58%;
+    width: 100%;
+    bottom: 0;
+  }
+  #toolbar {
+    bottom: calc(42% + 10px) !important;
+  }
+  #resizer,
+  #animation,
+  #animation-resizer {
+    display: none;
+  }
+}

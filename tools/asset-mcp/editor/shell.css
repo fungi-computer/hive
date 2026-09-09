@@ -1,0 +1,58 @@
+:root {
+  font-family: "Nunito", sans-serif;
+  color-scheme: light dark;
+}
+body {
+  margin: 0;
+}
+.studio {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background, #161b18);
+  color: var(--foreground, #f2f3ee);
+}
+.studio header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  flex-wrap: wrap;
+}
+.studio header strong {
+  font-size: 1.2rem;
+}
+.studio header p {
+  margin: 0.15rem 0 0;
+}
+.studio nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.studio [role="status"] {
+  margin: 0;
+  padding: 0.25rem 1rem 0.6rem;
+}
+.studio iframe {
+  width: 100%;
+  min-height: 720px;
+  height: calc(100dvh - 155px);
+  border: 0;
+  flex: 1;
+}
+.studio footer {
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+@media (max-width: 650px) {
+  .studio iframe {
+    height: 850px;
+    min-height: 850px;
+  }
+  .studio nav {
+    gap: 0.4rem;
+  }
+}
