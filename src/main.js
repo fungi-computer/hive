@@ -1,3 +1,5 @@
+import { groundInspectionGesture } from "./ui-actions.ts";
+import { fieldInspectionAt } from "./field-inspection.ts";
 import { createStartupReporter, renderStartup } from "./startup.js";
 import { Application, Container } from "pixi.js";
 import { bakeArt } from "./art.js";
@@ -149,6 +151,7 @@ async function startGame() {
       herb: inspectedTarget?.kind === "herb" ? inspectedTarget.id : null,
       lot: inspectedTarget?.kind === "lot" ? inspectedTarget.id : null,
       source: inspectedTarget?.kind === "source" ? inspectedTarget.id : null,
+      fieldWater: current.fieldWater,
       site: inspectedTarget?.kind === "site" ? inspectedTarget.id : null,
       tool: current.tool,
       phase: current.phase,
@@ -722,6 +725,17 @@ async function startGame() {
         hud.dispatch({ kind: "placement-result", point: point(end, screen) });
         return;
       }
+      if (groundInspectionGesture(fixed.machine.context)) {
+        const reference = fieldInspectionAt(state, end);
+        if (reference) {
+          hud.dispatch({
+            kind: "inspect-field-water",
+            reference,
+            point: screen,
+          });
+          return;
+        }
+      }
       if (fixed.gesture === "box") {
         const box = fixed.machine.context;
         const left = Math.min(box.start.screen.x, box.end.screen.x);
@@ -757,7 +771,13 @@ async function startGame() {
     },
     ground() {
       const current = hud.view();
-      if (!current.tool && current.machine.context.gesture !== "box")
+      // Pointertap follows release. Keep the field card just opened by the
+      // completed click; drag-box releases still follow ordinary selection.
+      if (
+        !current.tool &&
+        current.machine.context.gesture !== "box" &&
+        current.inspectedTarget?.kind !== "field-water"
+      )
         hud.dispatch({ kind: "close-target" });
     },
     groundRight(at, screen) {

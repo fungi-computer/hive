@@ -93,7 +93,7 @@ export function BrewStationPanel({ station, context, deconstructJob, send }) {
         {station.tapJob
           ? `${station.tapJob.reason} · progress ${station.tapJob.progress}`
           : station.tapReady
-            ? "A served portion is consumed; personal inventory and needs do not exist yet."
+            ? "A served ale portion is consumed. Ale does not currently satisfy thirst."
             : "No live ale is available to serve."}
       </small>
       <small className="action-reason" data-status="clear-spent-grain">
