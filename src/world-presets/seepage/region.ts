@@ -19,7 +19,7 @@ export function createWetRegionProgram(): RegionProgram<State, Command> {
   const recipe = createWetClearing({ connected: true }), adapter = recipe.adapter;
   function parseState(value: unknown): State {
     const state = stateSchema.parse(value);
-    return { environment: adapter.parse(state.environment) };
+    return { environment: recipe.parseClosedState(state.environment) };
   }
   return {
     id: "generated-wet-clearing-v7",

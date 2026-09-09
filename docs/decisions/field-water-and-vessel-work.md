@@ -4,14 +4,13 @@ Accepted design recut by King Bolete, September 9. This is the next bounded
 composition after the reviewed generated-water query correction. Source review
 of the physical state/adapter, held-use/material owner, work progress and actual
 activity/destination callers agrees with the corrected readiness below.
-Implementation and game/DO acceptance remain outstanding.
+Physical implementation is pinned `cfd8456` and integrated as `abcf9f8`.
+Game pairing and current-version DO acceptance remain outstanding.
 
-Source custody: Meitner owns the physical exchange, fixed-baseline state and
-excavation-remap portion in the existing deep-water worktree, plus directly
-necessary current type/format/read callers. It does not own game jobs, materials,
-UI, hosts or rendering. Root retains the paired field/material admission and
-serial game join. Hume's unchanged main-water proof and subsequent source-only
-startup diagnosis remain separate. One coherent current-format change removes
+Meitner released the reviewed physical files to Root. Hume owns partial-pail
+material/work and all current destination callers in `vessel-portions`; Root
+owns the paired field/material admission and serial game join. The unchanged
+main-water diagnostic remains frozen and Root-owned. One current-format change removes
 the duplicate outer water baseline; no predecessor reader or shim.
 
 The initial physical operation transfers finite mass to/from a real free-water
@@ -21,6 +20,16 @@ candidate. Do not relax the main game's closed material budget merely because
 the physical owner supports a boundary. The first material work chunk must
 reuse partial pails and all current destinations together before field sourcing
 is accepted in gameplay.
+
+Current closed products now share the concrete recipe's `parseClosedState`:
+exact original `initialTotalKg` plus zero derived `boundaryKg + spoilKg` within
+the existing current-field-stock tolerance. The pure physical adapter remains
+open to a caller-paid exchange. Goblin's public terrain operations, standalone
+wet Region and worker publication/reopen use closed admission until their real
+counterpart exists. This proves present net stock/reference consistency, not
+an inferred complete trajectory from a scalar balance. `u4384` passed three
+new real-consumer laws, `u4387` types passed, and `u4388` Fallow retained only
+existing content-ID/estimated-coverage advisories. No numerical or native rerun.
 
 Readiness provenance: ignored source packet SHA256
 `e4a4ec985760cb0d025aa4efaed112ac295a42d53ddde0d226385a607cb1227e`.

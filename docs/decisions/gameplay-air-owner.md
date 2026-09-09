@@ -19,6 +19,50 @@ failed solve cannot consume fuel or publish part of the candidate. Field time is
 advanced by the existing host clock; neither a renderer nor the field creates a
 timer, job engine or independent durable scheduler.
 
+## Generated-room implementation recut, September 9
+
+The read-only caller study against `0db583d` found the actual generated terrain
+supports every column of the existing room and its exterior collar. All56
+columns in local `[3,11) × [3,10)` have surface voxel y14 under frame y15;
+all30 occupied site columns are supported. This is not a flat-map assumption:
+12 other clearing columns are lower. Bounded source queries `u4352` and `u4359`
+passed; no rendered or new numerical acceptance follows from those checks.
+The full ignored study is at `air-view/.botanical/research/generated-brewhouse-air-handoff-20260909.md`,
+SHA256 `51b4841a2ae7a5684bddb340574d571ea84d8a92bd88fa35fa471cc86696156d`.
+
+One generated-room producer must replace the authored foundation in the live
+room consumer. It reads parsed canonical terrain and the one registered
+completed-site geometry source through `terrainGeometry`/`structureEnvironment`.
+Numeric local coordinates translate through the admitted frame; world bounds
+are `[-4,15,122]..[4,24,129]`,504 cells with136 solids. Source is
+`cell:-2,15,124`, readings `cell:0,17,125` and `cell:-1,21,125`, and the upper
+shutter comprises `z:0,19..22,127`. Verify metric, support across the entire
+collar, expected site facts, source/readings in fluid cells and explicit lateral/
+top ambient boundaries. Reject unsupported geometry rather than inventing a
+new foundation, moving terrain or erasing foliage.
+
+Co-save terrain and air in the existing strict Region state with finite fuel.
+Reconstruct the same geometry at restore; reject mismatched field identity or
+unsupported in-domain volume/support changes atomically. A supported external
+excavation preserves the room volume and keeps its real spoil in terrain state.
+The upper shutter remains a zero-volume rebind. Both active field owners receive
+the same admitted advance interval and must agree on time at parse/commit; a
+failed successor leaves both fields and fuel unchanged. No renderer clock or
+second saved elapsed-time field. Do not add arbitrary site-edit controls to
+qualify rejection: use the real producer/admission and existing Region boundary.
+
+The worker and voxel view consume that same producer's terrain/frame/sites.
+Replace the decorative flat slab using existing generated terrain presentation,
+translate global field cells back through the frame, and retain original art.
+Three trees in the outside collar stay visible; subvoxel vegetation is currently
+permeable scenery, not displaced air. Registered starting-house geometry may
+remain immutable content in this independent consumer. Inserting it into full
+Clearing later requires actual embedded construction material facts; this chunk
+must not claim pawn-built or paid construction. General fluid-volume remapping,
+water displacing air, chemical combustion and a hosted backend remain outside
+this bounded join. Existing numerical vent evidence and its failed beneficial-
+ventilation expectation stay explicit; do not retune the scenario to hide it.
+
 ## Chosen existing method
 
 Reuse the retained 3D Boussinesq caller, shared projection/private geometry and

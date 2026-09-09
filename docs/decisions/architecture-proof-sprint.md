@@ -174,8 +174,16 @@ runtime correction or increase the timeout to make the check pass.
 **Next physical composition:** the reviewed [field-water/vessel contract](field-water-and-vessel-work.md)
 keeps one fixed original field baseline and one signed boundary total, with exact
 removed-soil records and material water completing the joined conservation law.
-Meitner owns that isolated physical state/exchange/remap implementation; Root
-retains paired material/game admission. Partial pails use checked portions over
+Meitner's physical state/exchange/remap is pinned `cfd8456`, integrated locally
+as `abcf9f8`. Seven new laws,35 affected laws and types passed in its owned
+source packet; no new native/hosted result is implied. Root has added shared
+closed-consumer admission: the recipe binds its exact initial stock and rejects
+unpaired net water imports/exports. Goblin queries/mutations, the independent
+Region and the wet worker all use that check. Three new consumer laws passed
+`u4384`, including actual SQLite corrupt-checkpoint reopen; types `u4387` passed.
+Four-file Fallow `u4388` completed with no duplicate/cycle/security findings;
+existing unused content-ID and estimated worker-coverage advisories remain.
+Root retains paired material/game admission. Partial pails use checked portions over
 existing lot identities: drink1 from2, retain1, draw only1, then deliver2 to the
 kettle. Kettle, gardening and hydration must share that correction. These are
 accepted implementation boundaries, not completed pail/field gameplay.
@@ -187,10 +195,12 @@ for Delivery's actual release and replays no benchmark or law suite. Hume now
 owns the complete shared partial-pail/material-portions caller change in
 `/home/levi/src/hive-worktrees/vessel-portions`, branch
 `engine/vessel-portions-20260909`. It retains the existing closed finite supply
-budget; field sourcing is the later serial paired join. Meitner continues the
-independent physical exchange/remap in `deep-water`. Neither writer changes the
-frozen diagnostic runtime or the other's source; original air presentation stays
-accepted as source only.
+budget; field sourcing is the later serial paired join. Meitner released the
+physical files and independently reviewed the closed-consumer prescription.
+Neither source chunk changes the frozen diagnostic runtime. The generated-room
+read-only recut is complete: actual terrain supports the existing footprint and
+collar; the [air contract](gameplay-air-owner.md) records the next shared producer
+and its limits. Original air presentation remains accepted as source only.
 
 
 **Latest measured correction, September 9:** the first full main-game workload

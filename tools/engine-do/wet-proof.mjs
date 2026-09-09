@@ -392,7 +392,7 @@ async function laws() {
     409,
   );
   assert.deepEqual(await durable(), finalSql);
-  const reconstructed = recipe.adapter.parse(final.snapshot.state.environment);
+  const reconstructed = recipe.parseClosedState(final.snapshot.state.environment);
   assert.deepEqual(reconstructed, final.snapshot.state.environment);
   receipt.physical = {
     cuts: 3,

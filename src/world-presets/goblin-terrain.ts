@@ -56,10 +56,10 @@ export type GeneratedTerrain = {
   ))[];
 };
 export function initialTerrain(): GeneratedTerrain {
-  return adapter.parse(recipe.input);
+  return recipe.parseClosedState(recipe.input);
 }
 export function parseTerrain(value: unknown): GeneratedTerrain {
-  const state: GeneratedTerrain = adapter.parse(value);
+  const state: GeneratedTerrain = recipe.parseClosedState(value);
   // The engine consumer can deepen stone. Main-game yields still own only soil;
   // do not admit an imported stone source as a soil item through the old count.
   if (state.exports.some((source) => source.kind !== "porous"))
@@ -67,13 +67,13 @@ export function parseTerrain(value: unknown): GeneratedTerrain {
   return state;
 }
 export function terrainFacts(state: GeneratedTerrain) {
-  return adapter.read(state);
+  return adapter.read(parseTerrain(state));
 }
 export function advanceTerrain(
   state: GeneratedTerrain,
   seconds: number,
 ): GeneratedTerrain {
-  const next: GeneratedTerrain = adapter.advance(state, seconds).state;
+  const next: GeneratedTerrain = adapter.advance(parseTerrain(state), seconds).state;
   // Field advancement changes water only. Share the read projection through this
   // known transition; unrelated restores never alias merely by revision.
   projections.set(next.world, projection(state));
@@ -172,7 +172,7 @@ const projections = new WeakMap<object, ReturnType<typeof createProjection>>();
 function projection(state: GeneratedTerrain) {
   // Unknown/mutable inputs cross the maintained owner's full validation. Only
   // its detached immutable checkpoint becomes a cache key, never the input.
-  const checked: GeneratedTerrain = adapter.parse(state);
+  const checked: GeneratedTerrain = parseTerrain(state);
   let known = projections.get(checked.world);
   if (!known) {
     known = createProjection(checked);
@@ -224,7 +224,7 @@ function prepareExcavation(
     )
   )
     return { ok: false, problem: "This soil cannot be dug here." };
-  const admitted: GeneratedTerrain = adapter.parse(state);
+  const admitted: GeneratedTerrain = parseTerrain(state);
   let cached = preparations.get(admitted);
   if (!cached) {
     cached = new Map();
@@ -318,7 +318,7 @@ const waterViews = new WeakMap<
   }[]
 >();
 export function terrainWater(state: GeneratedTerrain) {
-  const checked: GeneratedTerrain = adapter.parse(state);
+  const checked: GeneratedTerrain = parseTerrain(state);
   let water = waterViews.get(checked);
   if (!water) {
     water = Object.freeze(

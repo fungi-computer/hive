@@ -1,6 +1,6 @@
 import { worldIdentity, createVoxelWorld, MATERIAL } from '../height-caves.mjs';
 import { createWorldSpec, sampleTerrain } from '../height.js';
-import { createVolume, createVolumeGeometry } from '../../engine/environment/soil/index.js';
+import { createVolume, createVolumeGeometry, balanceTolerance } from '../../engine/environment/soil/index.js';
 import { requireCondition, metric } from './world-binding.mjs';
 const REFERENCE_SOIL = Object.freeze({ id: 'synthetic-rigid-loam-si-v1', thetaR: 0.05, porosity: 0.45, alphaPerM: 2, n: 2, ksMPerS: 1e-4, ell: 0.5, minHeadM: -4, maxHeadM: 8, densityKgM3: 1000 });
 import { createExcavationAdapter } from './excavation.mjs';
@@ -35,6 +35,17 @@ export function createWetClearing({ soleTargetAnchor = false, connected = false 
   const water = soil.initial({ stocks });
   const adapter = createExcavationAdapter({ worldIdentity: id, baseSoilGeometry: soil.geometry, surfaceCoefficient: .5 });
   const input = adapter.initial({ world: world.save(), soilState: water });
-  return { adapter, input, target, targetId, command: { at: target }, source: { id, columns: connected ? 16 : 9,
+  // These consumers have excavation and flow, but no external water transfer.
+  // The physical owner admits open-boundary states; this recipe owns the known
+  // initial stock and the requirement that every exported kg remains in spoil.
+  function parseClosedState(value) {
+    const state = adapter.parse(value), facts = adapter.read(state);
+    requireCondition(state.soilState.initialTotalKg === input.soilState.initialTotalKg,
+      'closed clearing retains its defined initial water stock');
+    requireCondition(Math.abs(facts.balance.exchangeWaterKg) <= balanceTolerance(facts.soil.totalMassKg),
+      'closed clearing has no external water exchange');
+    return state;
+  }
+  return { adapter, input, parseClosedState, target, targetId, command: { at: target }, source: { id, columns: connected ? 16 : 9,
     generatedSoilCells: cells.length, seed: spec.seed, waterTableYM, soleTargetAnchor } };
 }

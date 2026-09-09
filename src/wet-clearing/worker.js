@@ -17,13 +17,14 @@ self.onmessage = ({ data }) => {
       case 'reopen': {
         const checkpoint = recipe.adapter.encode(state);
         const fresh = newClearing();
-        const restored = fresh.adapter.decode(checkpoint);
+        const restored = fresh.parseClosedState(fresh.adapter.decode(checkpoint));
         if (fresh.adapter.encode(restored) !== checkpoint) throw new Error('Checkpoint changed on reopen');
         candidateRecipe = fresh; candidateState = restored; break;
       }
       case 'reset': candidateRecipe = newClearing(); candidateState = candidateRecipe.input; break;
       default: throw new Error('Unknown wet-clearing action');
     }
+    candidateState = candidateRecipe.parseClosedState(candidateState);
     const response = { id: data.id, action: data.action, seconds: data.seconds ?? null, ok: true,
       scene: candidateRecipe.adapter.scene(candidateState, bounds), target: candidateRecipe.target,
       checkpoint: candidateRecipe.adapter.encode(candidateState) };

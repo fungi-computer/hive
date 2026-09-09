@@ -37,7 +37,7 @@ assert.ok(Math.abs(scene.balance.residualKg) < 2e-9);
 
 const checkpoint = adapter.encode(flowing);
 const reopened = createWetClearing({ connected: true });
-const restored = reopened.adapter.decode(checkpoint);
+const restored = reopened.parseClosedState(reopened.adapter.decode(checkpoint));
 assert.equal(reopened.adapter.encode(restored), checkpoint);
 assert.deepEqual(reopened.adapter.scene(restored, bounds), scene);
 
