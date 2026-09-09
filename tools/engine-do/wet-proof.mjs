@@ -382,7 +382,7 @@ async function laws() {
   assert.equal(final.snapshot.state.environment.world.revision, 3);
   assert.equal(final.snapshot.state.environment.exports.length, 3);
   assert(facts.balance.pitWaterKg > 0);
-  assert(Math.abs(facts.balance.totalWaterKg - state.initialWaterKg) < 2e-9);
+  assert(Math.abs(facts.balance.totalWaterKg - state.soilState.initialTotalKg) < 2e-9);
   assert(Math.abs(facts.balance.residualKg) < 2e-9);
   const finalSql = await durable();
   assert.equal(finalSql.receipts.length, 4);

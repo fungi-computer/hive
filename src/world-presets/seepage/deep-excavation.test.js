@@ -33,7 +33,7 @@ function compareFlow(adapter, state) {
     assert.ok(result.receipt.maxAbsMetrics.mixedKg <= 2e-9);
     assert.ok(result.receipt.maxAbsMetrics.faceLawKg <= 2e-9);
   }
-  assert.ok(Math.abs(facts.balance.residualKg) <= balanceTolerance(state.initialWaterKg));
+  assert.ok(Math.abs(facts.balance.residualKg) <= balanceTolerance(facts.soil.totalMassKg));
   const geometry = createVolumeGeometry(owner.geometry);
   facts.soil.nodes.forEach((node, i) => {
     assert.ok(node.massKg >= geometry.nodes[i].minMassKg && node.massKg <= geometry.nodes[i].maxMassKg);
@@ -71,7 +71,7 @@ test('actual generated stone deepens a wet column through y=0 to17 cells with th
   assert.equal(threePit.rimYM, 15 * .54);
   assert.equal(threeFacts.timeS, before.timeS);
   assert.equal(threeFacts.steps, before.steps);
-  assert.equal(three.initialWaterKg, two.initialWaterKg);
+  assert.equal(three.soilState.boundaryKg, two.soilState.boundaryKg);
   assert.equal(three.soilState.initialTotalKg, two.soilState.initialTotalKg);
   assert.deepEqual(three.exports.filter(entry => entry.kind === 'porous'), two.exports);
   const stone = three.exports.find(entry => entry.kind === 'impermeable');
@@ -116,7 +116,7 @@ test('actual generated stone deepens a wet column through y=0 to17 cells with th
     reservoirs: deepFlow.owner.geometry.reservoirs.map(column => column.id === 'column-p1-p128'
       ? { ...column, heightCells: 33 } : column) }), /column height in1\.\.32/);
   t.diagnostic(JSON.stringify({ threeCell: shortFlow.measurement, seventeenCell: deepFlow.measurement,
-    initialWaterKg: state.initialWaterKg, removedSoil: 3, removedStone: 15,
+    initialTotalKg: state.soilState.initialTotalKg, boundaryKg: state.soilState.boundaryKg, removedSoil: 3, removedStone: 15,
     removedVolumeM3: state.exports.length * .54, hydraulicUnknowns: deep.soil.nodes.length }));
 });
 

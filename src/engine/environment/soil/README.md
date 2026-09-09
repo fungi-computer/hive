@@ -7,7 +7,7 @@ The engine contains no Goblin material IDs, generated geography or initial-water
 recipe. `world-presets/seepage` binds it to the current height/cave world.
 
 `createVolume(definition)` compiles derived geometry. `initial`, `advance`,
-`read`, `encode` and `decode` operate on the one canonical mass/clock state.
+`exchange`, `read`, `encode` and `decode` operate on the one canonical mass/clock state.
 Advancement returns a detached result and a paired-face receipt; it never commits
 time or storage itself. Failed numerical/work admission leaves the input intact.
 The host must commit the new field with related terrain/material changes through
@@ -52,7 +52,7 @@ unmodeled lateral outlets. The separate generated-world consumer now qualifies
 a17-cell shaft through actual stone, with29 remaining porous nodes and two
 columns; the32-height geometry limit bounds enumeration, not a32-cell hydraulic
 capacity claim. Terrain backfill, isolated/disconnected components,
-free-falling travel, gas coupling and pail/material exchange remain unfinished.
+free-falling travel, gas coupling and the paired pail/material join remain unfinished.
 These are not replaced by the surface approximation.
 
 Sealed columns use nonnegative depth as their head unknown: they have no porous
@@ -66,6 +66,51 @@ The sealed-floor laws cover dry-to-wet seepage, dry-state rejection, retained
 water identity while deepening, the actual 0.54m ledge and drainage refinement.
 The preset still owns proving that a particular world material supplies this
 sealed boundary and rebuilding its actual contacts after excavation.
+
+## Finite boundary transfers
+
+Current state format is `rigid-richards-boundary-volume-be-v2`. Initial stock
+creation fixes `initialTotalKg` once and initializes `boundaryKg:0`. The latter
+is signed cumulative physical boundary transfer, positive into the owned field,
+including water exported when geometry removes a porous voxel. It is accounting,
+not another spendable stock. Canonical masses satisfy
+`sum(massKg) = initialTotalKg + boundaryKg`. Internal face exchanges preserve
+both reference and boundary exactly; neither changes merely because time runs.
+
+`exchange(state, {nodeId, direction:'withdraw'|'deposit', massKg})` returns a
+detached `{state, receipt}`. The receipt contains the stable node, requested kg,
+direction, before/after node kg, before/after boundary kg and unchanged time.
+It changes exactly one live free-water node: a finite reservoir or vented column.
+It cannot scoop pore water, create a material lot or establish actor reach. The
+caller must atomically commit the actual receiving/debiting counterpart, using
+its ordinary operation and Region receipt ownership. No new scheduler, receipt
+database or material-to-SI conversion belongs here.
+
+Input records/arrays use the existing headless plain-data boundary, rejecting
+accessors and extra fields before reading values. Positive finite mass, strict
+available stock and remaining capacity are checked before arithmetic. There is
+no overdraft tolerance or min/max clamp. Both node and boundary additions must
+resolve a nonzero change with correct direction; roundoff uses four times IEEE
+epsilon at the operand scale and must remain below the requested effect. An
+exact tiny addition to zero can succeed below `NUMERICS.balanceKg`; that global
+balance allowance is not a minimum transfer amount. Overflow, unresolved
+arithmetic and unsupported resulting dry-pressure anchors reject the whole
+candidate, including a failure after node arithmetic but before boundary join.
+
+`changeMass(beforeKg, signedDeltaKg)` is the public arithmetic utility used by
+this transfer and consumer-owned geometry remapping. It validates only the
+representable addition, not availability/capacity or the whole field. Zero
+delta preserves the exact original value. Remapping still validates the final
+state against its new geometry, preserving reference, time and surviving IDs.
+
+Whole-state residual evaluation cancels largest opposing ledger terms first;
+its unchanged mass tolerance scales with actual current stock, not a potentially
+large historical reference. Internal face receipts likewise use current stock
+for their existing IEEE roundoff allowance. These changes neither alter the
+PDE nor relax `NUMERICS`. Focused laws include2kg out/in leaving1.4kg, strict
+empty/full rejection, legal tiny transfers, unresolved second-half arithmetic,
+current reopen and ordinary flow after exchange. They do not establish material
+custody, gameplay reach, DO durability or a new world-size benchmark.
 
 Breaking changes are allowed. Only the current format is read; no legacy
 compatibility reader is included.

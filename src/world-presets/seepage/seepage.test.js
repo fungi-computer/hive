@@ -27,7 +27,7 @@ test("generated voxel excavation conserves pore water and resumes seepage exactl
   const physicalExports = entries => entries.map(({ soilId, waterKg, sourceVoxelM3 }) =>
     ({ soilId, waterKg, sourceVoxelM3 }));
   assert.deepEqual(physicalExports(whole.state.exports), physicalExports(reference.exports));
-  assert.equal(whole.state.initialWaterKg, reference.initialWaterKg);
+  assert.equal(whole.state.soilState.initialTotalKg, reference.initialWaterKg);
   whole.state.soilState.massKg.forEach((mass, i) =>
     assert.ok(Math.abs(mass-reference.soilState.massKg[i]) <= 2e-9));
   assert.ok(Math.abs(whole.balance.pitWaterKg - 12.565428851627985) < 1e-10);
@@ -44,8 +44,8 @@ test("unsupported saves and corrupt custody reject without migration", () => {
   const state = adapter.excavate(input, command).state;
   const old = { ...state, version: "obsolete" };
   assert.throws(() => adapter.decode(JSON.stringify(old)), /identity/);
-  const corrupt = structuredClone(state); corrupt.exports[0].waterKg += 1;
-  assert.throws(() => adapter.decode(JSON.stringify(corrupt)), /retain the original water/);
+  const corrupt = structuredClone(state); corrupt.exports[0].waterKg = 1000;
+  assert.throws(() => adapter.decode(JSON.stringify(corrupt)), /source pore capacity/);
   const wrongMetric = structuredClone(adapter.definition); wrongMetric.baseSoilGeometry.spacingM = [1, 1, 1];
   assert.throws(() => createExcavationAdapter(wrongMetric), /world metric/);
 });

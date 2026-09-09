@@ -108,6 +108,6 @@ test('all known stock capacities are derived from current world geometry, withou
   assert.equal(Object.hasOwn(recipe, 'world'), false, 'recipe exposes no second mutable world');
   const geometry = createVolumeGeometry(adapter.definition.baseSoilGeometry);
   assert.equal(geometry.nodes.length, 32);
-  assert.deepEqual(Object.keys(input).sort(), ['version', 'identity', 'world', 'soilState', 'initialWaterKg', 'exports'].sort());
+  assert.deepEqual(Object.keys(input).sort(), ['version', 'identity', 'world', 'soilState', 'exports'].sort());
   assert.throws(() => adapter.parse({ ...input, soilGeometry: geometry.descriptor }), /checkpoint fields/);
 });

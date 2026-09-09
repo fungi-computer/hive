@@ -4,6 +4,7 @@ import { ConvergenceFailure } from './newton.mjs';
 import { solveStep } from './closure.mjs';
 import { VERSION, NUMERICS, freezeState, initialState, validateState, maxAbs } from './state.mjs';
 import { SURFACE_EXCHANGE_VERSION } from './surface-exchange.mjs';
+import { exchangeMass } from './exchange.mjs';
 
 function admitRequest(g, identity, input, intervalS, options) {
   validateState(g, identity, input);
@@ -85,13 +86,15 @@ function receiptBalance(g, input, state, receipt) {
   const pairKg = maxAbs(paired.map((m, i) => m - state.massKg[i]));
   const totalKg = compensatedSum(state.massKg) - compensatedSum(input.massKg);
   requireCondition(Number.isFinite(pairKg) && pairKg <= NUMERICS.acceptedKg +
-    64 * Number.EPSILON * input.initialTotalKg, 'aggregate paired face receipt differs from canonical result');
+    64 * Number.EPSILON * Math.max(compensatedSum(input.massKg), compensatedSum(state.massKg)),
+    'aggregate paired face receipt differs from canonical result');
   return { pairKg, totalKg };
 }
 
 function readFacts(g, identity, state) {
   const checked = validateState(g, identity, state);
-  return { totalMassKg: checked.totalMassKg, nodes: g.nodes.map((node, i) => {
+  return { totalMassKg: checked.totalMassKg, initialTotalKg: state.initialTotalKg,
+    boundaryKg: state.boundaryKg, residualKg: checked.residualKg, nodes: g.nodes.map((node, i) => {
     const massKg = state.massKg[i];
     if (node.kind !== 'soil') return { nodeId: node.id, kind: node.kind, massKg,
       depthM: massKg / (g.densityKgM3 * node.areaM2), ports: node.portCount,
@@ -145,6 +148,7 @@ export function createVolume(descriptor) {
 
   return Object.freeze({ identity, geometry: g.descriptor, initial: input => initialState(g, identity, input),
     read: state => readFacts(g, identity, state), advance,
+    exchange: (state, command) => exchangeMass(g, identity, state, command),
     encode: state => { validateState(g, identity, state); return JSON.stringify(state); },
     decode: raw => {
       requireCondition(typeof raw === 'string' && raw.length <= 131072, 'bounded encoded regional water state');

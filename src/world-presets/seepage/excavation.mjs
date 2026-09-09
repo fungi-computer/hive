@@ -1,14 +1,14 @@
 import { readScene } from './scene.mjs';
-import { createVolume, createVolumeGeometry } from '../../engine/environment/soil/index.js';
+import { createVolume, createVolumeGeometry, changeMass } from '../../engine/environment/soil/index.js';
 import { encode as encodeData, decode as decodeData } from '../../engine/region/codec.ts';
 import { same, ordered, immutable, exactFields, coordinate, restoreWorld,
   excavateWorld, metric, requireCondition } from './world-binding.mjs';
 import { deriveTopology, assertBaseGeometry } from './topology.mjs';
 import { removalSource, validateLedger } from './source-record.mjs';
 
-const VERSION = 'height-caves-connected-excavation-v6';
+const VERSION = 'height-caves-connected-excavation-v7';
 const MAX_ENCODED = 1048576;
-const STATE_FIELDS = ['version', 'identity', 'world', 'soilState', 'initialWaterKg', 'exports'];
+const STATE_FIELDS = ['version', 'identity', 'world', 'soilState', 'exports'];
 const own = value => immutable(decodeData(encodeData(value, MAX_ENCODED), MAX_ENCODED));
 const sameData = (a, b) => same(ordered(a), ordered(b));
 
@@ -28,17 +28,17 @@ function validate(config, identity, input) {
 
 function remapStock(owner, facts, removedId, clock) {
   const previous = new Map(facts.nodes.map(node => [node.nodeId, node.massKg]));
+  const removedWaterKg = removedId === null ? 0 : previous.get(removedId);
   if (removedId !== null) previous.delete(removedId);
   const geometry = createVolumeGeometry(owner.geometry);
-  const initial = owner.initial({ stocks: geometry.nodes.map(node => {
+  const massKg = geometry.nodes.map(node => {
     requireCondition(previous.has(node.id) || node.kind === 'pit', 'surviving pore stock retains its owner');
-    return { nodeId: node.id, massKg: previous.get(node.id) ?? 0 };
-  }) });
-  // An impermeable cut changes only geometry. Keep its accumulated reference
-  // total too, rather than rebase it on a rounded sum of otherwise exact stocks.
-  return owner.decode(JSON.stringify({ ...initial,
-    initialTotalKg: removedId === null ? clock.initialTotalKg : initial.initialTotalKg,
-    timeS: clock.timeS, steps: clock.steps }));
+    return previous.get(node.id) ?? 0;
+  });
+  // Removed pore water crosses the same physical boundary as other transfers.
+  // Neither excavation nor an added empty column creates a new initial stock.
+  return owner.decode(JSON.stringify({ ...clock, identity: owner.identity, massKg,
+    boundaryKg: changeMass(clock.boundaryKg, -removedWaterKg) }));
 }
 
 export function createExcavationAdapter(input) {
@@ -88,7 +88,7 @@ export function createExcavationAdapter(input) {
     assertBaseGeometry(world, config.baseSoilGeometry);
     const owner = createVolume(config.baseSoilGeometry), soil = owner.decode(JSON.stringify(supplied.soilState));
     const state = own({ version: VERSION, identity, world: world.save(), soilState: soil,
-      initialWaterKg: soil.initialTotalKg, exports: [] });
+      exports: [] });
     return admit(state).state;
   }
 
@@ -141,6 +141,11 @@ export function createExcavationAdapter(input) {
       const result = checked.owner.advance(checked.soil, intervalS, { dtMaxS: 6 });
       const accepted = acceptWaterAdvance(checked, result.state);
       return { state: accepted.state, receipt: result.receipt, work: result.work, balance: accepted.balance };
+    },
+    exchange: (input, command) => {
+      const checked = admit(input), result = checked.owner.exchange(checked.soil, command);
+      const accepted = acceptWaterAdvance(checked, result.state);
+      return { state: accepted.state, receipt: result.receipt, balance: accepted.balance };
     },
   });
 }
