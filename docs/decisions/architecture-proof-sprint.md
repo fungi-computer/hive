@@ -214,12 +214,23 @@ field source; returns can choose another reached receiver but cannot invalidate
 the pending supply. Both rules reuse current owners. No new native Cloudflare,
 browser, benchmark, build or deployment is implied.
 
-Hume and Meitner have released accepted field source/review. Hume's next
-source-only outcome is the same bounded paired witness over the existing native
-Goblin DO harness, isolated `field-region-host` at `add6906`. It must share the
-lawful authored fixture, existing fault/restart/receipt lifecycle and preserve
-the former digging evidence. No native launch, browser, build or deployment is
-released; Root owns actual heavy execution through Delivery. Sol completed the
+Hume's native field/pail witness source `6bfa2dd` is accepted by Root and
+Meitner, joined as `b647d3e` with all six hashes matched. The same authored held
+fixture now feeds Node laws and the existing native Goblin harness; fixed local
+configuration selects a separate field DO identity. The prepared trace checks
+return and ordinary draw/tick receipt failure, lost-ack restart/replay, and actual
+continued walking without a second draw. It uses the existing process/credential/
+receipt owners and at most five runtime starts. Strict host and transitive app
+declarations passed u4506; fixture validation/sizing u4507 and final syntax u4510
+passed. Root read Fallow u4508: command estimated-coverage and inherited fetch/
+stop/other-harness duplication advisories remain, without suppression or a green
+audit claim. No physical laws were repeated for the fixture extraction.
+
+The exact native command is queued through Delivery after Morel push10 and
+the corrected Media session. It has not run; no native result, new database or
+listener is claimed. Root retains actual execution and cleanup in frozen
+`field-region-host`. No browser, build, benchmark, old digging replay or deployment
+is released. Sol completed the
 accounts-to-Goblin source trace in ignored notes. The agreed
 [DO contract boundary](local-snapshots-and-durable-ai-jobs.md#account-bound-goblin-entry--agreed-peer-boundary-september-9)
 uses opaque pairwise App-scoped customer identity; the public App runtime is
