@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { advanceTerrain } from "./terrain.ts";
 import { createClearing } from "./clearing.ts";
 import {
   serializeClearing,
@@ -13,6 +14,7 @@ test("current region reconstruction preserves running/paused state and detached 
     const state = createClearing();
     state.paused = paused;
     state.tick = 37;
+    state.terrain = advanceTerrain(state.terrain, 37 * 0.05);
     state.commands.push({
       kind: "recruit",
       party: "home",
@@ -34,8 +36,8 @@ test("current region reconstruction preserves running/paused state and detached 
 
 test("live reconstruction checks the same terrain/material relations and accepts no historical envelope", () => {
   const state = createClearing();
-  const wire = serializeClearing(state);
-  wire.terrain.edits.push({ x: 4, z: 8, level: 0 });
+  const wire = structuredClone(serializeClearing(state));
+  wire.terrain.exports.push({ id: "invented" });
   assert.throws(() => parseLiveClearing(wire));
   assert.throws(() =>
     restoreSnapshot({ ...snapshotFor(state), savedState: wire }),
@@ -45,8 +47,8 @@ test("live reconstruction checks the same terrain/material relations and accepts
 
 test("current envelope rejects every unsupported predecessor without upgrading its state", () => {
   const current = snapshotFor(createClearing());
-  assert.equal(current.schema, 17);
-  for (const schema of [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18]) {
+  assert.equal(current.schema, 18);
+  for (const schema of [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19]) {
     const unsupported = { ...structuredClone(current), schema };
     const before = structuredClone(unsupported);
     assert.throws(() => restoreSnapshot(unsupported));

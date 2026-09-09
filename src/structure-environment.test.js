@@ -4,9 +4,22 @@ import { createClearing } from "./clearing.ts";
 import { admitCommand } from "./orders.ts";
 import { BUILDINGS, footprint } from "./construction.js";
 import { stairLanding } from "./world.js";
-import { removeShallowVoxel } from "./terrain.ts";
-import { structureEnvironment } from "./structure-environment.ts";
-const region = (min = [4, -2, 4], max = [9, 9, 9]) => ({ min, max });
+import { excavateTerrain, terrainGeometry, TERRAIN_FRAME } from "./terrain.ts";
+import { structureEnvironment as queryEnvironment } from "./structure-environment.ts";
+const worldAt = ([x, y, z]) => [
+  x + TERRAIN_FRAME.x,
+  y + TERRAIN_FRAME.y,
+  z + TERRAIN_FRAME.z,
+];
+const region = (min = [4, -2, 4], max = [9, 9, 9]) => ({
+  min: worldAt(min),
+  max: worldAt(max),
+});
+const structureEnvironment = (state, bounds) =>
+  queryEnvironment(
+    { terrain: terrainGeometry(state.terrain), sites: state.sites },
+    bounds,
+  );
 const site = (id, type, x, z, level = 0, direction = 0) => ({
   id,
   type,
@@ -17,8 +30,8 @@ const site = (id, type, x, z, level = 0, direction = 0) => ({
   work: 0,
   finishedAt: 0,
 });
-const cell = (x, y, z) => `cell:${x},${y},${z}`;
-const face = (x, y, z) => `y:${x},${y},${z}`;
+const cell = (x, y, z) => `cell:${worldAt([x, y, z]).join()}`;
+const face = (x, y, z) => `y:${worldAt([x, y, z]).join()}`;
 
 test("structure environment: admitted unfinished wall never seals; completed fact seals four voxels", () => {
   const state = createClearing();
@@ -122,16 +135,16 @@ test("structure environment: signed storey levels are geometry data, not a schem
   }
 });
 
-test("structure environment: canonical shallow terrain controls the opened voxel and deeper ground", () => {
+test("structure environment: generated point solidity reflects exact excavation", () => {
   const state = createClearing(),
-    bounds = region([5, -2, 5], [6, 1, 6]);
+    bounds = region([7, -2, 9], [8, 1, 10]);
   assert.deepEqual(structureEnvironment(state, bounds).solidCellIds, [
-    cell(5, -1, 5),
-    cell(5, -2, 5),
+    cell(7, -2, 9),
+    cell(7, -1, 9),
   ]);
-  removeShallowVoxel(state.terrain, { x: 5, z: 5, level: 0 });
+  state.terrain = excavateTerrain(state.terrain, [0, 14, 128]);
   const geometry = structureEnvironment(state, bounds);
-  assert.deepEqual(geometry.solidCellIds, [cell(5, -2, 5)]);
+  assert.deepEqual(geometry.solidCellIds, [cell(7, -2, 9)]);
   assert.equal(geometry.provenance.terrainRevision, 1);
 });
 
@@ -150,7 +163,9 @@ test("structure environment: supported definitions use the existing directional 
       for (let y = 0; y < 4; y++)
         assert(geometry.solidCellIds.includes(cell(at.x, y, at.z)));
     assert.equal(
-      geometry.solidCellIds.filter((id) => !id.includes(",-")).length,
+      geometry.solidCellIds.filter(
+        (id) => Number(id.split(",")[1]) >= TERRAIN_FRAME.y,
+      ).length,
       8,
     );
   }

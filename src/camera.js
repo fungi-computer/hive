@@ -139,6 +139,9 @@ export function createCamera(app, host, world) {
       return { x: p.x * zoom + world.x, y: p.y * zoom + world.y };
     },
     cell,
+    terrainFace(point) {
+      return terrainPicker.pick(local(point));
+    },
     setTerrain(terrain) {
       terrainPicker.update(terrain);
     },

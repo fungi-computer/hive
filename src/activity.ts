@@ -70,10 +70,9 @@ import {
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
 import {
-  backfillShallowVoxel,
-  removeShallowVoxel,
-  terrainBackfillBuffer,
-  terrainCell,
+  terrainColumn,
+  terrainDigProblem,
+  excavateTerrain,
 } from "./terrain.ts";
 export const CHOP_TICKS = 80;
 const TERRAIN_TICKS = 40;
@@ -133,78 +132,41 @@ function transferEndpoint(s: Clearing, id: string) {
       target: repair.source,
       access: sourceAccessCells(repair.source),
     };
-  const terrainJob = s.jobs.find(
-    (job): job is Extract<Job, { kind: "backfill" }> =>
-      job.kind === "backfill" && terrainBackfillBuffer(job.id).id === id,
-  );
-  return terrainJob
-    ? {
-        destination: terrainBackfillBuffer(terrainJob.id),
-        target: terrainJob,
-        access: terrainRimCells(s, terrainJob),
-      }
-    : null;
+  return null;
 }
+
 function terrainWork(
   s: Clearing,
   p: Actor,
-  t: Extract<Activity, { kind: "dig" | "backfill" }>,
+  t: Extract<Activity, { kind: "dig" }>,
 ): void {
   const job = s.jobs.find(
-    (candidate): candidate is Extract<Job, { kind: "dig" | "backfill" }> =>
-      candidate.id === t.job && candidate.kind === t.kind,
+    (candidate): candidate is Extract<Job, { kind: "dig" }> =>
+      candidate.id === t.job && candidate.kind === "dig",
   );
-  if (!job || t.target !== job.id || terrainEditProblem(s, job)) {
+  if (!job || t.target !== job.id) {
     interruptWork(s, p);
     return;
   }
-  const geometry = terrainCell(s.terrain, job.x, job.z);
-  if (
-    (job.kind === "dig" && !geometry.solid) ||
-    (job.kind === "backfill" && geometry.solid)
-  ) {
+  const at = terrainColumn(job.voxel);
+  if (terrainEditProblem(s, at) || terrainDigProblem(s.terrain, job.voxel)) {
     interruptWork(s, p);
     return;
   }
-  const rim = terrainRimCells(s, job);
+  const rim = terrainRimCells(s, at);
   if (!accessWork(s, p, rim)) return;
-  face(p, job);
+  face(p, at);
   if (++p.work < TERRAIN_TICKS) return;
-  if (job.kind === "dig") {
-    const created = createGroundLot(s.materials, "soil", 1, groundCell(p));
-    if (!created.ok || !removeShallowVoxel(s.terrain, job)) {
-      interruptWork(s, p);
-      return;
-    }
-    s.notice = "One shallow soil voxel is on the rim.";
-  } else {
-    const buffer = terrainBackfillBuffer(job.id);
-    const soil = s.materials.lots.find(
-      (lot) =>
-        lot.material === "soil" &&
-        lot.location.kind === "container" &&
-        lot.location.container === buffer.id &&
-        lot.quantity >= 1,
-    );
-    if (!soil) {
-      interruptWork(s, p);
-      return;
-    }
-    const consumed = consumeContainerPortion(s.materials, {
-      lot: soil.id,
-      container: buffer.id,
-      material: "soil",
-      quantity: 1,
-    });
-    if (!consumed.ok || !backfillShallowVoxel(s.terrain, job)) {
-      interruptWork(s, p);
-      return;
-    }
-    s.notice = "The shallow ground is backfilled.";
-  }
+  const next = excavateTerrain(s.terrain, job.voxel);
+  const created = createGroundLot(s.materials, "soil", 1, groundCell(p));
+  if (!created.ok)
+    throw new Error(`excavation soil admission failed: ${created.reason}`);
+  s.terrain = next;
+  s.notice = "Soil is piled beside the hole.";
   s.workDirty = true;
   finishJob(s, p, job.id);
 }
+
 function transfer(s: Clearing, p: Actor, t: Activity) {
   const x = s.materials.transfers.find((x) => x.id === t.target);
   if (!x) {
@@ -667,7 +629,7 @@ export function advanceWork(s: Clearing, p: Actor): void {
   if (t.kind === "brew") return brew(s, p, t);
   if (t.kind === "tap" || t.kind === "clear-spent-grain")
     return recipeOutput(s, p, t);
-  if (t.kind === "dig" || t.kind === "backfill") return terrainWork(s, p, t);
+  if (t.kind === "dig") return terrainWork(s, p, t);
   const target =
     t.kind === "transfer"
       ? (() => {

@@ -1,4 +1,4 @@
-import { Sprite, Container, Graphics, Text } from "pixi.js";
+import { Texture, Sprite, Container, Graphics, Text } from "pixi.js";
 import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.js";
 import { WATCHER, inside } from "./world.js";
@@ -9,7 +9,14 @@ import { createConstructionView } from "./construction-view.js";
 import { createVisualHitGeometryOwner } from "./visual-hit-geometry.js";
 import { carriedLot, containerQuantity, vesselContainer } from "./materials.ts";
 import { sourceContainerSpec, sourceIsOpen } from "./finite-sources.ts";
-import { terrainCell } from "./terrain.ts";
+import {
+  terrainCell,
+  terrainRevision as terrainVersion,
+  terrainChangedColumns,
+  terrainColumn,
+  terrainWater,
+  terrainGeometryKey,
+} from "./terrain.ts";
 import { terrainDesignationCells } from "./ui-actions.ts";
 import { commandProblem } from "./orders.ts";
 
@@ -69,7 +76,7 @@ export function carriedActorPose(materials, hand, mode) {
   if (hand?.material === "soil") return "carry-soil";
   if (hand?.material === "ration")
     return mode === "consume" ? "eat" : "carry-ration";
-  if (["dig", "backfill"].includes(mode)) return "dig";
+  if (["dig"].includes(mode)) return "dig";
   return hand?.material === "mugwort"
     ? "carry-herb"
     : mode === "walk" && hand?.material === "wood"
@@ -110,19 +117,56 @@ export function createView(app, world, camera, art, initial, input) {
     terrainRevision = -1;
   function drawTerrain(state) {
     if (
-      terrainSource === state.terrain &&
-      terrainRevision === state.terrain.revision
+      terrainSource === terrainGeometryKey(state.terrain) &&
+      terrainRevision === terrainVersion(state.terrain)
     )
       return;
-    terrainSource = state.terrain;
-    terrainRevision = state.terrain.revision;
+    terrainSource = terrainGeometryKey(state.terrain);
+    terrainRevision = terrainVersion(state.terrain);
     const previous = ground.texture;
-    ground.texture = state.terrain.edits.length
-      ? art.bakeTerrain(state.terrain, art.ground, state.terrain.edits)
+    ground.texture = terrainChangedColumns(state.terrain).length
+      ? art.bakeTerrain(
+          state.terrain,
+          art.ground,
+          terrainChangedColumns(state.terrain),
+        )
       : art.ground;
     if (previous !== ground.texture && previous !== art.ground)
       previous.destroy(true);
     camera.setTerrain(state.terrain);
+  }
+  const wetSurface = new Sprite(Texture.EMPTY);
+  wetSurface.eventMode = "none";
+  world.addChild(wetSurface);
+  let waterCheckpoint = null,
+    waterPixels = null;
+  function drawWater(state) {
+    if (waterCheckpoint === state.terrain) return;
+    waterCheckpoint = state.terrain;
+    const water = terrainWater(state.terrain);
+    // The same rounded projection as the existing low-resolution bake. This
+    // invalidates on visible geometry, without throttling physical advancement.
+    const pixels = JSON.stringify([
+      terrainGeometryKey(state.terrain),
+      water.map((surface) => [
+        surface.depthM > 0,
+        [-0.5, 0.5].flatMap((dx) =>
+          [-0.5, 0.5].map((dz) =>
+            projectCell(
+              { x: surface.x + dx, z: surface.z + dz },
+              surface.height,
+            ),
+          ),
+        ),
+      ]),
+    ]);
+    if (pixels === waterPixels) return;
+    waterPixels = pixels;
+    const previous = wetSurface.texture;
+    wetSurface.texture = water.some((column) => column.depthM > 0)
+      ? art.bakeTerrainWater(state.terrain, water)
+      : Texture.EMPTY;
+    if (previous !== Texture.EMPTY) previous.destroy(true);
   }
   drawTerrain(initial);
   const route = new Graphics();
@@ -768,13 +812,13 @@ export function createView(app, world, camera, art, initial, input) {
         .stroke({ width: 1, color, alpha: 0.8 });
     }
     for (const job of state.jobs)
-      if (job.kind === "dig" || job.kind === "backfill")
-        tile(job, 0xdcb56c, 0.18);
-    if (!["dig", "backfill"].includes(selection.tool) || !selection.at) return;
+      if (job.kind === "dig") tile(terrainColumn(job.voxel), 0xdcb56c, 0.18);
+    if (!["dig"].includes(selection.tool) || !selection.at) return;
     const cells = terrainDesignationCells(
       selection.tool,
       selection.drag,
       selection.at,
+      state.terrain,
     );
     for (const cell of cells) {
       const problem = commandProblem(state, {
@@ -782,7 +826,7 @@ export function createView(app, world, camera, art, initial, input) {
         party: "home",
         actors: null,
       });
-      tile(cell, problem ? 0xe48b78 : 0xbad597, 0.3);
+      tile(terrainColumn(cell.voxel), problem ? 0xe48b78 : 0xbad597, 0.3);
     }
   }
 
@@ -802,6 +846,7 @@ export function createView(app, world, camera, art, initial, input) {
   return {
     render(state, selection) {
       drawTerrain(state);
+      drawWater(state);
       drawTerrainMarks(state, selection);
       drawTrees(state, selection);
       drawSources(state, selection);
@@ -820,7 +865,7 @@ export function createView(app, world, camera, art, initial, input) {
       goblin.container.alpha = selection.level === 0 ? 1 : 0.18;
       construction.render(
         state,
-        ["chop", "dig", "backfill"].includes(selection.tool)
+        ["chop", "dig"].includes(selection.tool)
           ? { ...selection, tool: null }
           : selection,
       );

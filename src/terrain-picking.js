@@ -1,3 +1,4 @@
+import { terrainRevision, terrainGeometryKey } from "./terrain.ts";
 import { Raycaster, Vector2, Vector3 } from "three";
 import { worldCamera, WIDTH, HEIGHT } from "./art/scale.js";
 import { terrainSurfaces } from "./terrain-surface-geometry.js";
@@ -12,9 +13,13 @@ export function createTerrainPicker(size) {
     revision = -1,
     triangles = [];
   function update(terrain) {
-    if (source === terrain && revision === terrain.revision) return;
-    source = terrain;
-    revision = terrain.revision;
+    if (
+      source === terrainGeometryKey(terrain) &&
+      revision === terrainRevision(terrain)
+    )
+      return;
+    source = terrainGeometryKey(terrain);
+    revision = terrainRevision(terrain);
     const center = (size - 1) / 2;
     triangles = terrainSurfaces(terrain, size).flatMap((face) => {
       const points = face.vertices.map(

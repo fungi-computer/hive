@@ -2058,29 +2058,6 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
   assert.equal(removalProblem(state, station), "The brew station is occupied.");
 });
 
-test("actual libcolony digs one shallow voxel to its rim then backfills through one soil transfer", () => {
-  const state = createClearing();
-  const target = { x: 7, z: 9, level: 0 };
-  assert.deepEqual(actualStep(state, [{ kind: "dig", ...target }]), [
-    { status: "applied" },
-  ]);
-  actualRun(state, 55);
-  assert.deepEqual(state.terrain.edits, [target]);
-  const soil = state.materials.lots.find((lot) => lot.material === "soil");
-  assert.equal(soil?.quantity, 1);
-  assert.equal(soil?.location.kind, "ground");
-  assert.notDeepEqual(soil?.location, { kind: "ground", ...target });
-  assert.deepEqual(actualStep(state, [{ kind: "backfill", ...target }]), [
-    { status: "applied" },
-  ]);
-  actualRun(state, 90);
-  assert.deepEqual(state.terrain.edits, []);
-  assert.equal(
-    state.materials.lots.some((lot) => lot.material === "soil"),
-    false,
-  );
-});
-
 test("actual libcolony finishes an adjacent two-cell trench across a paused reload without spoiling either target", () => {
   const state = createClearing();
   state.parties.home.members.push("sedge");
@@ -2088,8 +2065,8 @@ test("actual libcolony finishes an adjacent two-cell trench across a paused relo
   const right = { x: 8, z: 9, level: 0 };
   assert.deepEqual(
     actualStep(state, [
-      { kind: "dig", ...left },
-      { kind: "dig", ...right },
+      { kind: "dig", voxel: [0, 14, 128] },
+      { kind: "dig", voxel: [1, 14, 128] },
     ]),
     [{ status: "applied" }, { status: "applied" }],
   );
@@ -2099,8 +2076,8 @@ test("actual libcolony finishes an adjacent two-cell trench across a paused relo
   restored.paused = false;
   actualRun(restored, 125);
   assert.deepEqual(
-    new Set(restored.terrain.edits.map(({ x, z }) => `${x},${z}`)),
-    new Set(["7,9", "8,9"]),
+    new Set(restored.terrain.exports.map((entry) => entry.fromNodeId)),
+    new Set(["cell:0,14,128", "cell:1,14,128"]),
   );
   const soil = restored.materials.lots.filter((lot) => lot.material === "soil");
   assert.equal(
@@ -2116,50 +2093,14 @@ test("actual libcolony finishes an adjacent two-cell trench across a paused relo
   );
 });
 
-test("drafting then cancelling a carrying backfill preserves its one real soil lot", () => {
-  const state = createClearing();
-  const target = { x: 7, z: 9, level: 0 };
-  actualStep(state, [{ kind: "dig", ...target }]);
-  actualRun(state, 55);
-  actualStep(state, [{ kind: "backfill", ...target }]);
-  actualRun(state, 10);
-  assert.equal(
-    state.materials.lots.reduce(
-      (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
-      0,
-    ),
-    1,
-  );
-  actualStep(state, [{ kind: "draft", actor: "rowan" }]);
-  const fill = state.jobs.find((job) => job.kind === "backfill");
-  assert.ok(fill);
-  assert.deepEqual(actualStep(state, [{ kind: "cancel", job: fill.id }]), [
-    { status: "applied" },
-  ]);
-  assert.deepEqual(state.terrain.edits, [target]);
-  assert.equal(state.materials.transfers.length, 0);
-  assert.equal(
-    state.materials.lots.reduce(
-      (sum, lot) => sum + (lot.material === "soil" ? lot.quantity : 0),
-      0,
-    ),
-    1,
-  );
-  assert.ok(
-    state.materials.lots.some(
-      (lot) => lot.material === "soil" && lot.location.kind === "ground",
-    ),
-  );
-});
-
 test("a new loose occupant interrupts a dig before settlement without minting soil", () => {
   const state = createClearing();
   const target = { x: 7, z: 9, level: 0 };
-  actualStep(state, [{ kind: "dig", ...target }]);
+  actualStep(state, [{ kind: "dig", voxel: [0, 14, 128] }]);
   actualRun(state, 12);
   assert.equal(createGroundLot(state.materials, "pail", 1, target).ok, true);
   actualRun(state, 55);
-  assert.deepEqual(state.terrain.edits, []);
+  assert.deepEqual(state.terrain.exports, []);
   assert.equal(
     state.materials.lots.some((lot) => lot.material === "soil"),
     false,

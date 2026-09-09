@@ -1,7 +1,8 @@
 # Goblin structure environment geometry
 
 `structureEnvironment({terrain, sites}, {min, max})` derives immutable plain
-geometry facts from current authored terrain and completed construction sites.
+geometry facts from a registered point-solidity terrain capability and completed construction sites.
+Goblin supplies `terrainGeometry(state.terrain)` from its one generated wet world.
 The half-open region uses world voxel `[x,y,z]` coordinates and contains at most
 1024 cells. Horizontal bounds must remain inside the finite 15×15 clearing;
 coordinates are integers within ±1,000,000 and input sites are limited to 4096.
@@ -15,8 +16,8 @@ collar before creating an atmosphere domain. Empty queried space is not an
 implicit ambient reservoir or a sealed room.
 
 Every BUILDINGS entry declares its environment shape. A completed wall occupies
-four vertical voxels starting at `site.level*4`; floor is a zero-volume face at
-that datum and roof is a face at `(site.level+1)*4`. Doors, stairs, beds, shelves
+four vertical voxels starting at `frame.y + site.level*frame.storeyVoxels`; floor is a zero-volume face at
+that datum and roof is a face at `frame.y + (site.level+1)*frame.storeyVoxels`. Doors, stairs, beds, shelves
 and brewing furniture are explicitly permeable in this first model. The query
 uses actual `construction.footprint()` for width and supported direction 0/1.
 It does not use `blockedCells`, occupancy, navigation costs or rendered pixels.
@@ -28,11 +29,12 @@ floor. This query never inserts a synthetic landing floor. Signed integer site
 levels use the same formulas, including negative levels; that is a geometry
 contract, not a migration of Goblin's current saved/admitted levels 0/1.
 
-Terrain is the existing authored height field: solid below the current surface
-at 0m, or -.54m for a removed shallow voxel. Deeper ground remains solid. The
-query neither generates terrain outside the clearing nor authorizes deeper
-excavation. Unknown building types, absent/invalid shape definitions, unsupported
-terrain identity, malformed positions and out-of-domain bounds reject.
+Terrain solidity comes from actual generated voxel points, including caves. The
+registered Goblin frame is `[-7,15,119]`, with four voxels per storey; local (7,9)
+therefore stands above world voxel [0,14,128]. Bounds use the registered world's
+half-open vertical extent and the finite map's horizontal extent. Unknown building
+types, absent/invalid shape definitions, malformed positions and out-of-domain
+bounds reject. There is no authored height-field fallback.
 
 Provenance includes terrain identity/revision, checked building shapes, completed
 site geometry facts, metric and limits. These are detached descriptive inputs,
@@ -40,13 +42,13 @@ not new ownership of site completion, support, resources or physical fields.
 Actors, trees and other non-building content are outside this bounded query.
 No gas, heat, fuel, atmosphere solver or rendering is introduced here.
 
-Focused proof from the worktree root uses the shared run-proof wrapper around:
+Historical initial-shape proof from the worktree root uses the shared run-proof wrapper around:
 
 ```sh
 node --test --test-name-pattern='structure environment|actual libcolony admits legal stairs' src/structure-environment.test.js src/clearing.test.js
 ```
 
-Eight geometry laws plus the existing actual-libcolony stair admission law passed
+The original authored-terrain shape: eight geometry laws plus the existing actual-libcolony stair admission law passed
 u4175 /12d360d6551e47c480c6393c47bee24d. They cover unfinished/completed walls,
 zero-volume floor/roof faces, doorway and stair openings, signed levels, actual
 terrain edits, directional footprint reuse, malformed bounds/metadata and deep
@@ -67,3 +69,8 @@ its concrete lower-support reason and unchanged site facts. The earlier comparis
 to an empty string could also pass for successful null. The corrected affected
 law passed u4183 /3e1e76c370bd4ac49f8dfc0a88a2da7a for both supported directions;
 no production behavior changed and no broad suite was repeated.
+
+Current generated-terrain join: all eight geometry laws passed with the six joined
+main-world laws in u4230 /18ad50d8299243a5b9007181cfcdca78. These use the registered
+frame and real exact excavation. Historical proof IDs above retain their original
+source meaning; they do not qualify the new terrain owner.

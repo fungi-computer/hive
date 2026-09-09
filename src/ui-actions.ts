@@ -1,7 +1,9 @@
+import { terrainCell } from "./terrain.ts";
+import type { TerrainState } from "./model.ts";
 import type { BuildingKind, Cell, Command } from "./model.ts";
 import { setup } from "xstate";
 
-export type TerrainToolKind = "dig" | "backfill";
+export type TerrainToolKind = "dig";
 export type ToolKind = "chop" | BuildingKind | "herb" | TerrainToolKind;
 export type LogicalLevel = 0 | 1;
 
@@ -10,14 +12,8 @@ export const TERRAIN_TOOL_CATALOG = [
   {
     kind: "dig",
     label: "Dig",
-    detail: "remove one shallow soil voxel · shared Build work",
-    title: "Designate shallow excavation",
-  },
-  {
-    kind: "backfill",
-    label: "Backfill",
-    detail: "fill one shallow pit with soil · shared Build work",
-    title: "Designate shallow backfill",
+    detail: "remove one owned soil voxel · shared Build work",
+    title: "Designate finite soil excavation",
   },
 ] as const satisfies readonly {
   readonly kind: TerrainToolKind;
@@ -64,25 +60,28 @@ export type GesturePoint = {
 
 export type TerrainDesignation = {
   readonly kind: TerrainToolKind;
-  readonly x: number;
-  readonly z: number;
-  readonly level: 0;
+  readonly voxel: import("./world-presets/goblin-terrain.ts").TerrainVoxel;
 };
-
-/** The gesture selects a rectangle only. Terrain admission owns every law. */
+/** Capture exact exposed voxel identities at selection; admission never retargets. */
 export function terrainDesignationCells(
   kind: TerrainToolKind,
   start: Pick<GesturePoint["cell"], "x" | "z"> | null,
   end: Pick<GesturePoint["cell"], "x" | "z">,
+  terrain: TerrainState,
 ): TerrainDesignation[] {
-  const from = start ?? end;
-  const left = Math.min(from.x, end.x);
-  const right = Math.max(from.x, end.x);
-  const top = Math.min(from.z, end.z);
-  const bottom = Math.max(from.z, end.z);
-  const cells: TerrainDesignation[] = [];
-  for (let z = top; z <= bottom; z++)
-    for (let x = left; x <= right; x++) cells.push({ kind, x, z, level: 0 });
+  const from = start ?? end,
+    cells: TerrainDesignation[] = [];
+  for (
+    let z = Math.max(0, Math.min(from.z, end.z));
+    z <= Math.min(14, Math.max(from.z, end.z));
+    z++
+  )
+    for (
+      let x = Math.max(0, Math.min(from.x, end.x));
+      x <= Math.min(14, Math.max(from.x, end.x));
+      x++
+    )
+      cells.push({ kind, voxel: terrainCell(terrain, x, z).voxel });
   return cells;
 }
 
@@ -431,7 +430,6 @@ export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
     case "chop":
     case "herb":
     case "dig":
-    case "backfill":
       return 0;
     case "wall":
     case "door":

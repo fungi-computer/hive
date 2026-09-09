@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { initialTerrain } from "./terrain.ts";
 import { createActor } from "xstate";
 import {
   decideLevelTransition,
@@ -32,17 +33,18 @@ test("Dig remains armed through hover, one release, and stroke cancellation", ()
       "dig",
       released.context.start?.cell ?? null,
       released.context.end.cell,
+      initialTerrain(),
     ),
     [
-      { kind: "dig", x: 2, z: 3, level: 0 },
-      { kind: "dig", x: 3, z: 3, level: 0 },
-      { kind: "dig", x: 4, z: 3, level: 0 },
-      { kind: "dig", x: 2, z: 4, level: 0 },
-      { kind: "dig", x: 3, z: 4, level: 0 },
-      { kind: "dig", x: 4, z: 4, level: 0 },
-      { kind: "dig", x: 2, z: 5, level: 0 },
-      { kind: "dig", x: 3, z: 5, level: 0 },
-      { kind: "dig", x: 4, z: 5, level: 0 },
+      { kind: "dig", voxel: [-5, 14, 122] },
+      { kind: "dig", voxel: [-4, 14, 122] },
+      { kind: "dig", voxel: [-3, 14, 122] },
+      { kind: "dig", voxel: [-5, 14, 123] },
+      { kind: "dig", voxel: [-4, 14, 123] },
+      { kind: "dig", voxel: [-3, 14, 123] },
+      { kind: "dig", voxel: [-5, 14, 124] },
+      { kind: "dig", voxel: [-4, 14, 124] },
+      { kind: "dig", voxel: [-3, 14, 124] },
     ],
   );
 
@@ -59,14 +61,13 @@ test("Dig remains armed through hover, one release, and stroke cancellation", ()
 
 test("terrain tools disarm on Escape and when Ground switches to Upper", () => {
   const actor = createActor(toolMachine).start();
-  actor.send({ type: "TOOL", tool: "backfill" });
+  actor.send({ type: "TOOL", tool: "dig" });
   actor.send({ type: "ESCAPE" });
   assert.equal(actor.getSnapshot().value, "idle");
   assert.equal(actor.getSnapshot().context.tool, null);
 
   assert.equal(requiredToolLevel("dig"), 0);
-  assert.equal(requiredToolLevel("backfill"), 0);
-  assert.deepEqual(decideLevelTransition(0, 1, "backfill"), {
+  assert.deepEqual(decideLevelTransition(0, 1, "dig"), {
     changed: true,
     level: 1,
     disarm: true,

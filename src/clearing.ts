@@ -19,7 +19,8 @@ import { updateRoutine } from "./routine.ts";
 import { admitCommands, type CommandResult } from "./orders.ts";
 import { route, beginWalk, walk } from "./movement.js";
 import { mugwortStage } from "./herbs.ts";
-import { authoredClearingTerrain } from "./terrain.ts";
+import { initialTerrain, advanceTerrain } from "./terrain.ts";
+import { STEP_SECONDS } from "./ticker.js";
 import { advanceNeeds, queueAutomaticCare } from "./needs.ts";
 
 export function createClearing(seed = 42): Clearing {
@@ -49,7 +50,7 @@ export function createClearing(seed = 42): Clearing {
     operations: [],
     careOutcomes: [],
     processes: [],
-    terrain: authoredClearingTerrain(),
+    terrain: initialTerrain(),
     rocks: structuredClone(ROCKS),
     watcher: { ...WATCHER },
     sites: [],
@@ -123,7 +124,7 @@ function advanceHerbGrowth(state: Clearing): void {
     state.workDirty = true;
   }
 }
-export function step(
+function advanceCandidate(
   state: Clearing,
   colony: Colony,
   commands: Command[] = [],
@@ -138,6 +139,7 @@ export function step(
     advanceWork(state, person);
     advanceDrafted(state, person);
   }
+  state.terrain = advanceTerrain(state.terrain, STEP_SECONDS);
   advanceBrewing(state);
   advanceHerbGrowth(state);
   assignWork(state, colony);
@@ -145,4 +147,45 @@ export function step(
   const event = nextEvent(state.feed, state.tick, shelteredBeds(state).length);
   if (event) state.demand = event;
   return results;
+}
+
+/** One publication boundary for browser ticks and disposable Region batches. */
+function commitTicks(
+  state: Clearing,
+  colony: Colony,
+  ticks: number,
+  commands: Command[],
+): CommandResult[] {
+  const { terrain, ...body } = state;
+  const candidate: Clearing = { ...structuredClone(body), terrain };
+  let results: CommandResult[] = [];
+  for (let count = 0; count < ticks; count++) {
+    const admitted = advanceCandidate(
+      candidate,
+      colony,
+      count === 0 ? commands : [],
+    );
+    if (count === 0) results = admitted;
+    if (candidate.paused) break;
+  }
+  Object.assign(state, candidate);
+  return results;
+}
+export function step(
+  state: Clearing,
+  colony: Colony,
+  commands: Command[] = [],
+): CommandResult[] {
+  if (state.paused && commands.length === 0) return [];
+  return commitTicks(state, colony, 1, commands);
+}
+/** Host grants a bounded batch; intermediate states never escape this owner. */
+export function advanceTicks(
+  state: Clearing,
+  colony: Colony,
+  ticks: number,
+): void {
+  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > 120)
+    throw new Error("invalid-tick-batch");
+  if (!state.paused) commitTicks(state, colony, ticks, []);
 }

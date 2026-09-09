@@ -319,7 +319,7 @@ async function startGame() {
       const tool = terrainDesignation[0].meta.terrainDesignation;
       notice = accepted
         ? `Applied ${accepted} shared ${tool} designation${accepted === 1 ? "" : "s"}${rejected ? `; ${terrainDesignation.length - accepted} rejected: ${rejected.reason}` : "."}`
-        : `${tool === "dig" ? "Dig" : "Backfill"} designation rejected: ${rejected?.reason || "no target was applied."}`;
+        : `Dig designation rejected: ${rejected?.reason || "no target was applied."}`;
     } else if (designation.length) {
       const acceptedIds = designation
         .filter((result) => result.status === "applied")
@@ -366,7 +366,6 @@ async function startGame() {
       command.kind === "build" ||
       command.kind === "deconstruct" ||
       command.kind === "dig" ||
-      command.kind === "backfill" ||
       command.kind === "sow" ||
       command.kind === "harvest" ||
       command.kind === "store" ||
@@ -696,11 +695,17 @@ async function startGame() {
         hud.dispatch({ kind: "placement-result", point: point(cell, screen) });
         return;
       }
-      if (fixed.tool === "dig" || fixed.tool === "backfill") {
-        hud.dispatch({
-          kind: "submit-terrain-designation",
-          cells: terrainDesignationCells(fixed.tool, start, end),
-        });
+      if (fixed.tool === "dig") {
+        const cells = terrainDesignationCells(
+          fixed.tool,
+          start,
+          end,
+          state.terrain,
+        );
+        const face = camera.terrainFace(screen);
+        if (cells.length === 1 && face?.ownerVoxel)
+          cells[0] = { kind: "dig", voxel: face.ownerVoxel };
+        hud.dispatch({ kind: "submit-terrain-designation", cells });
         hud.dispatch({ kind: "placement-result", point: point(end, screen) });
         return;
       }
