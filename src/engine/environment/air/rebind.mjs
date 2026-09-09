@@ -3,6 +3,7 @@ import { admitDefinition, buildGeometry } from "./definition.mjs";
 import { project } from "./projection.mjs";
 import { copyState, validateState } from "./state.mjs";
 import { LIMITS, newWork } from "./request.mjs";
+import { displace } from "./displacement.mjs";
 
 function kineticJ(g, velocities) {
   return sum(
@@ -14,17 +15,10 @@ function kineticJ(g, velocities) {
 }
 
 function compatible(old, next) {
-  for (const key of [
-    "regionId",
-    "origin",
-    "size",
-    "spacingM",
-    "solidCells",
-    "model",
-  ])
+  for (const key of ["regionId", "origin", "size", "spacingM", "model"])
     assert(
       JSON.stringify(old[key]) === JSON.stringify(next[key]),
-      "air rebind requires unchanged fluid cells, volumes and model",
+      "air rebind requires unchanged domain, voxel metric and model",
     );
   assert(
     next.revision > old.revision,
@@ -47,6 +41,7 @@ export function rebind(g, identity, state, rawDefinition, options, identityOf) {
   compatible(g.definition, definition);
   const nextGeometry = buildGeometry(definition),
     nextIdentity = identityOf(definition);
+  const displaced = displace(g, nextGeometry, state);
   const oldVelocity = new Map(
     g.faces.map((f) => [f.id, state.velocityMPS[f.k]]),
   );
@@ -60,10 +55,10 @@ export function rebind(g, identity, state, rawDefinition, options, identityOf) {
   assert(
     Number.isFinite(changeJ) &&
       changeJ <= 1e-10 + 64 * Number.EPSILON * Math.max(1, oldKineticJ),
-    "passive opening change cannot create resolved kinetic energy",
+    "passive geometry change cannot create resolved kinetic energy",
   );
   const next = copyState({
-    ...state,
+    ...displaced.state,
     identity: nextIdentity,
     velocityMPS: Array.from(projected.velocity),
   });
@@ -86,8 +81,7 @@ export function rebind(g, identity, state, rawDefinition, options, identityOf) {
       kineticChangeJ: changeJ,
       boundaryDissipationJ: Math.max(0, -changeJ),
       divergenceM3S: projected.divergence,
-      thermalTransferJ: 0,
-      smokeTransferKg: 0,
+      ...displaced.receipt,
     },
     work,
   };

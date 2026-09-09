@@ -284,7 +284,7 @@ test("request-local clock solves decimal tails and512 accepted intervals without
   );
 });
 
-test("projection exhaustion and unsupported volume edits preserve the complete input", () => {
+test("projection exhaustion and sealed volume edits preserve the complete input", () => {
   const { owner, state } = initial(definition(), heatAt);
   unchanged(
     state,
@@ -304,7 +304,7 @@ test("projection exhaustion and unsupported volume edits preserve the complete i
         state,
         definition({ revision: 1, solidCells: ["cell:0,0,0"] }),
       ),
-    /unchanged/,
+    /real open route/,
   );
   unchanged(
     state,
@@ -337,9 +337,9 @@ test("actual CFL retries and partial advancement cannot exceed caller work limit
   const moving = owner.decode(
     JSON.stringify({
       ...state,
-      velocityMPS: owner.read(state).faces.map((f) =>
-        f.faceId.startsWith("x:") ? 5 : 0,
-      ),
+      velocityMPS: owner
+        .read(state)
+        .faces.map((f) => (f.faceId.startsWith("x:") ? 5 : 0)),
     }),
   );
   // Uniform open-duct velocity is divergence free; its scalar CFL requires

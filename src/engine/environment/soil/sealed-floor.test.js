@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createVolume, createVolumeGeometry, compensatedSum, changeMass } from './index.js';
+import { createVolume, createVolumeGeometry, compensatedSum, changeQuantity } from './index.js';
 import { mixedResidual } from './residual.mjs';
 import { canonicalAnchors } from './state.mjs';
 
@@ -75,7 +75,7 @@ test('deepening remaps the same finite water identity and exports only the remov
   const retained = new Map(priorFacts.nodes.map(node => [node.nodeId, node.massKg]));
   const state = next.owner.decode(JSON.stringify({ ...wet, identity: next.owner.identity,
     massKg: next.geometry.nodes.map(node => retained.get(node.id)),
-    boundaryKg: changeMass(wet.boundaryKg, -removed.massKg) }));
+    boundaryKg: changeQuantity(wet.boundaryKg, -removed.massKg) }));
   assert.equal(state.initialTotalKg, wet.initialTotalKg);
   assert.equal(water(before.owner, wet).capacityKg, 540);
   assert.equal(water(next.owner, state).capacityKg, 1080);

@@ -12,21 +12,6 @@ export const maxAbs = values => values.reduce((n, x) => Math.max(n, Math.abs(x))
 export const canonicalIds = g => g.nodes.map((_, i) => i).sort((a, b) =>
   g.nodes[a].id < g.nodes[b].id ? -1 : g.nodes[a].id > g.nodes[b].id ? 1 : 0);
 
-/** Reject unresolved arithmetic using operand-scale IEEE roundoff only. The
- * whole-state mass tolerance is not permission to lose a small transfer. */
-export function changeMass(before, delta) {
-  const after = before + delta;
-  requireCondition(Number.isFinite(before) && Number.isFinite(delta) && Number.isFinite(after),
-    'finite representable mass change');
-  if (delta === 0) return before;
-  const represented = after - before;
-  const error = represented - delta;
-  const uncertainty = 4 * Number.EPSILON * Math.max(Math.abs(before), Math.abs(after), Math.abs(delta));
-  requireCondition(Math.sign(represented) === Math.sign(delta) &&
-    uncertainty < Math.abs(delta) && Math.abs(error) <= uncertainty,
-    'mass change lost at current arithmetic resolution');
-  return after;
-}
 
 function massBalance(initialTotalKg, boundaryKg, totalMassKg) {
   requireCondition(Number.isFinite(initialTotalKg) && initialTotalKg > 0 &&

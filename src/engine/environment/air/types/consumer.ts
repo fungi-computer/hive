@@ -69,6 +69,18 @@ function consume(input: AirInitialInput, externalDefinition: unknown) {
     rebound.receipt.kineticChangeJ;
   const reopened = createAir(rebound.definition);
   reopened.read(reopened.decode(reopened.encode(rebound.state)));
+  const edited = reopened.rebind(rebound.state, {
+    ...reopened.definition,
+    revision: 2,
+    solidCells: ["cell:0,0,0"],
+  } satisfies AirDefinition);
+  const exportedM3: number = edited.receipt.airExportM3;
+  for (const crossing of edited.receipt.boundaryCrossings) {
+    const direction: "import" | "export" = crossing.direction;
+    // @ts-expect-error Private displacement paths are not saved/public history.
+    crossing.path;
+    void direction;
+  }
 
   // @ts-expect-error No pressure-in-Pascals state is exposed by this approximation.
   facts.pressurePa;
@@ -97,6 +109,7 @@ function consume(input: AirInitialInput, externalDefinition: unknown) {
     faceM3,
     evaluatedFaces,
     kineticChange,
+    exportedM3,
   };
 }
 

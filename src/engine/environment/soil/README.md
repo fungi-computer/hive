@@ -97,7 +97,7 @@ balance allowance is not a minimum transfer amount. Overflow, unresolved
 arithmetic and unsupported resulting dry-pressure anchors reject the whole
 candidate, including a failure after node arithmetic but before boundary join.
 
-`changeMass(beforeKg, signedDeltaKg)` is the public arithmetic utility used by
+`changeQuantity(beforeKg, signedDeltaKg)` is the public arithmetic utility used by
 this transfer and consumer-owned geometry remapping. It validates only the
 representable addition, not availability/capacity or the whole field. Zero
 delta preserves the exact original value. Remapping still validates the final

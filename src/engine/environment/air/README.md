@@ -1,6 +1,6 @@
 # Bounded voxel air
 
-`createAir` owns fixed-volume warm air, passive smoke and signed sensible-heat
+`createAir` owns warm air on fixed-metric voxels, passive smoke and signed sensible-heat
 anomaly. This is the retained qualified Boussinesq momentum/projection and
 MC/SSPRK2 scalar method, with a current plain-data boundary and bounded stepping.
 `provenance.json` pins the immutable research inputs; no runtime imports those
@@ -97,7 +97,7 @@ compression, flooded-cell displacement, radiation, solid heat storage, real
 weather or total internal+kinetic+gravitational energy conservation. Its bulk
 warm/dilute assumption must also describe the actual chosen source workload.
 
-## Changing openings without changing volume
+## Geometry edits through the same owner
 
 ```js
 const rebound = air.rebind(state, {
@@ -107,19 +107,55 @@ const newAir = createAir(rebound.definition);
 newAir.read(rebound.state);
 ```
 
-Only open sides/closed faces and a newer revision may change. Fluid-cell IDs,
-volumes, region, origin and model constants remain identical. Scalar stocks,
-source/boundary ledgers and time survive exactly; existing face velocities map
-by global ID, new faces start at zero, and one shared projection restores each
-component's continuity constraint. Opening/closing can split/rejoin pressure
-components; compatibility and gauge-cell residual checks are retained.
+An opening-only edit changes open sides/closed faces and revision, preserving
+all scalar stocks, ledgers and time exactly. A dry solid edit instead adds OR
+removes at most four fluid voxels, preserving explicit face masks/open sides.
+Both require identical domain bounds, voxel metric, region and model. The
+four-voxel bound covers one current completed wall; one excavation opens one
+voxel. Callers must use the actual serial physical-edit order, not combine an
+entire tick's unrelated edits into a mixed batch.
 
-The rebind reports kinetic energy before mapping, after mapping and after
-projection, using `rho * faceArea * faceDistance` as each velocity degree's
-physical metric. Any loss is declared boundary/projection dissipation; no heat
-is invented to offset it. A passive change producing energy beyond roundoff
-rejects. Changed solid/water volumes reject until a displacement law exists.
-No silent reset or initialization of new room air is supported.
+Volume edits use deterministic whole-cell parcel displacement through actual
+open faces to a declared outdoor boundary. Removing a fluid cell pushes its
+parcel down that path and exports the previous parcel at the outdoor end.
+Opening a cell pulls existing parcels inward and admits reference air only at
+that outdoor end. The deepest removable cell goes first; additions use the
+nearest currently reachable frontier. Equal distances use stable cell IDs;
+shortest routes use stable face IDs. Already removed or not-yet-filled cells
+cannot carry parcels. A blocked later stage rejects the whole detached edit.
+A solid outside the boundary must be masked by the producer; array edges do not
+establish outdoor air.
+
+The receipt records changed cells and at most four actual boundary crossings,
+with signed heat/smoke and carrier volume. Per-edit laws are new stock plus net
+boundary transfer equals old stock, and fluid-volume change equals import minus
+export. Time, steps and initial/source history stay unchanged. This is not a
+finite carrier-mass law; airImportM3/airExportM3 also contain ordinary transport's
+gross exchanges. Heat remains an anomaly, so a cold exported parcel has negative
+heatJ. Boundary additions share the field-water arithmetic owner's operand-scale
+resolution gate; whole-state tolerances cannot excuse an unresolved tiny edit.
+Global smoke/heat balance tolerances remain1e-10kg/1e-5J; the edit volume residual
+limit is1e-10m³. No stock is clamped or rescaled.
+
+Retained face velocities map by global ID, new faces start at zero, and the
+existing metric projection restores continuity. Kinetic energy before mapping,
+after mapping and after projection uses rho*faceArea*faceDistance. A passive
+energy increase beyond existing roundoff admission rejects; any loss is reported,
+never converted into heat. This instantaneous construction approximation does
+not resolve transient displacement jets, wall/pressure work or compressed gas.
+
+Sealed net-volume edits, simultaneous volume-and-opening edits, mixed additions
+and removals, liquid volume fractions and domain resize reject or remain outside
+this API. The caller must also preserve a valid receiver for any still-owed
+physical source; the remap neither moves a kettle nor forgives unpaid emissions.
+Current wet excavations need a separate coupled liquid-volume policy before this
+dry primitive can be joined there. No room-footprint freeze is the solution.
+
+The method identity includes this displacement version, so old method states
+reject rather than silently adopt it. The raw rebind receipt still includes full
+old/new definition identities and changed faces: it is **not** promised to fit a
+Region's event limit merely because there are four parcel crossings. A host
+commits the actual definition/state and emits an explicitly bounded event result.
 
 ## Evidence boundary
 
@@ -144,3 +180,10 @@ entrypoint was deleted/suppressed. `facesOf` cognitive30→7, component discover
 16→6; scalar stage20 is split into stability, transfers and source application.
 `transferFaces` remains cognitive14 and the momentum predictor15. This is source
 qualification and actual small native evidence, not a room-performance claim.
+
+Dry-displacement source checkpoint is under review in Root's air-displacement
+worktree. Its new focused laws cover ordered removal/addition, an actual current
+four-voxel wall shape, masked/sealed routes, detached failure, signed anomaly,
+tiny arithmetic and exact current-format reopen. These laws have not yet run;
+no new numerical, main-game, liquid-displacement, browser or DO acceptance is
+claimed by their presence. Ordinary transport/projection source is unchanged.

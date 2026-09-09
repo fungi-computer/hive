@@ -1,5 +1,5 @@
 import { readScene } from './scene.mjs';
-import { createVolume, createVolumeGeometry, changeMass } from '../../engine/environment/soil/index.js';
+import { createVolume, createVolumeGeometry, changeQuantity } from '../../engine/environment/soil/index.js';
 import { encode as encodeData, decode as decodeData } from '../../engine/region/codec.ts';
 import { same, ordered, immutable, exactFields, coordinate, restoreWorld,
   excavateWorld, metric, requireCondition } from './world-binding.mjs';
@@ -38,7 +38,7 @@ function remapStock(owner, facts, removedId, clock) {
   // Removed pore water crosses the same physical boundary as other transfers.
   // Neither excavation nor an added empty column creates a new initial stock.
   return owner.decode(JSON.stringify({ ...clock, identity: owner.identity, massKg,
-    boundaryKg: changeMass(clock.boundaryKg, -removedWaterKg) }));
+    boundaryKg: changeQuantity(clock.boundaryKg, -removedWaterKg) }));
 }
 
 export function createExcavationAdapter(input) {

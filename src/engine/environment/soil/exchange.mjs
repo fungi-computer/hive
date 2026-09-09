@@ -1,5 +1,6 @@
 import { requireCondition } from './soil.mjs';
-import { changeMass, validateState, freezeState } from './state.mjs';
+import { validateState, freezeState } from './state.mjs';
+import { changeQuantity } from '../arithmetic.mjs';
 import { assertWorldRecord as exactRecord } from '../../world/data-contract.mjs';
 
 /** A domain-boundary transfer, not a source of new game inventory. The caller
@@ -16,7 +17,7 @@ export function exchangeMass(g, identity, input, command) {
   requireCondition(command.massKg <= (withdrawal ? beforeKg - node.minMassKg : node.maxMassKg - beforeKg),
     withdrawal ? 'insufficient finite water' : 'finite water capacity exceeded');
   const delta = withdrawal ? -command.massKg : command.massKg;
-  const afterKg = changeMass(beforeKg, delta), boundaryKg = changeMass(input.boundaryKg, delta);
+  const afterKg = changeQuantity(beforeKg, delta), boundaryKg = changeQuantity(input.boundaryKg, delta);
   const massKg = [...input.massKg]; massKg[index] = afterKg;
   const state = freezeState({ ...input, massKg, boundaryKg });
   validateState(g, identity, state);

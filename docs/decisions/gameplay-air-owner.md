@@ -186,3 +186,34 @@ failed-candidate rollback and exact replay/reopen. Measure computation, geometry
 change, state/receipt storage and rendering separately. Rendered and hosted proof
 must show that actual scene; no more expensive editor browsing or broad historical
 CFD matrices are implied by this decision.
+
+## Dry volume-change source boundary — September 9
+
+Root owns isolated `engine/air-displacement-20260909`, based on `c38cfa1`.
+Meitner's read-only AIR-VOLUME-EDIT-PROPOSAL is accepted as a bounded direction,
+not as full wet-hole or main-game acceptance. The same air rebind owner now has
+a candidate whole-voxel displacement primitive: at most four monotone changed
+cells per actual physical edit, unchanged grid/model/explicit opening masks,
+shortest real-face routes to declared outdoors, deepest removals first and
+reachable additions first. This keeps smoke/heat localized to a real path and
+accounts the actual boundary parcel instead of deleting the new wall's contents
+or conjuring ambient air at a dug cell. Every failure is detached and atomic.
+
+One shared quantity-arithmetic owner serves both finite field exchange and air
+boundary increments. It preserves the earlier operand-scale roundoff rule; the
+existing whole-field tolerance is not permission to lose a small transfer.
+There is no new transport solver, fine grid, density model or compatibility shim.
+
+Remaining caller decisions stay explicit: sealed volume edits need a real vent
+or a different pressure model; wet pits need non-overlapping liquid/air volume;
+the producer must mask underground and unknown outside faces; owed fuel
+emissions cannot lose their real receiver. The proposed560-cell first-layer
+domain is a declared future consumer, not a reset of the accepted504-cell room.
+A completed construction edit needs a preflight/commit path that reports its
+blocked physical condition without repeatedly failing unrelated whole ticks.
+The current four-cell event cap is not an all-actor or120-tick batch cap.
+
+Numerical laws and typed consumer are source only pending a bounded affected
+window. No source-only review qualifies a rendered wall, digging displacement,
+main air save, Region rollback or performance. The accepted field/pail u4514
+receipt remains separate.

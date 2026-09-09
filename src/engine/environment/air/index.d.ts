@@ -209,9 +209,24 @@ export interface AirRebindReceipt {
   readonly kineticChangeJ: number;
   readonly boundaryDissipationJ: number;
   readonly divergenceM3S: number;
-  /** Rebind never converts projection dissipation to scalar stocks. */
-  readonly thermalTransferJ: 0;
-  readonly smokeTransferKg: 0;
+  /** Signed outward scalar exchange from displacement, never projection heat. */
+  readonly thermalTransferJ: number;
+  readonly smokeTransferKg: number;
+  readonly addedCells: readonly AirCellId[];
+  readonly removedCells: readonly AirCellId[];
+  readonly volumeChangeM3: number;
+  readonly airImportM3: number;
+  readonly airExportM3: number;
+  /** At most four whole-cell crossings at actual outdoor faces. */
+  readonly boundaryCrossings: readonly {
+    readonly cellId: AirCellId;
+    readonly faceId: AirFaceId;
+    readonly direction: "import" | "export";
+    readonly volumeM3: number;
+    readonly smokeKg: number;
+    /** Signed anomaly of the exported parcel; reference imports carry zero. */
+    readonly heatJ: number;
+  }[];
 }
 
 export interface AirRebindResult {
@@ -235,8 +250,12 @@ export interface Air {
     intervalS: number,
     options?: AirAdvanceOptions,
   ) => AirAdvanceResult;
-  /** Validates a newer definition with unchanged fluid cells, volume and model.
-   * Only opening masks/sides may differ. Its result belongs to the new identity.
+  /** Same domain, voxel metric and model, with a newer geometry revision.
+   * Opening-only changes preserve stocks. A dry volume edit adds OR removes at
+   * most four fluid cells through real outdoor paths, with unchanged explicit
+   * opening masks/sides. Sealed or mixed edits reject atomically. No liquid
+   * displacement, finite-pressure or domain-resize behavior is implied.
+   * Its detached result belongs to the new identity.
    */
   readonly rebind: (
     state: AirState,

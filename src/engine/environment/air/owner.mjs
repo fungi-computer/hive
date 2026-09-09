@@ -17,7 +17,7 @@ const identityOf = (definition) =>
     transport: "muscl-mc-ssprk2-v1",
     momentum: "boussinesq-upwind-project-v1",
     clock: "request-local-compensated-v1",
-    openings: "fixed-volume-metric-projection-v1",
+    geometryChanges: "vented-whole-voxel-displacement-v1",
   });
 
 /** One private metric/transport/projection owner. No borrowed numerical geometry
