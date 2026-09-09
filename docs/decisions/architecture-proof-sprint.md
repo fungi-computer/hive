@@ -159,9 +159,22 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
-**Latest checkpoint, September 9 (supersedes the staffing below):** King Bolete
-owns the environment worktree and integration. Native `engine_core_pm` owns the
-isolated controllers worktree: public Mycelium authored operations through the
+**Latest custody, September 9 (supersedes the staffing below):** King Bolete
+owns the environment worktree, actual finite fuel/air consumer and integration.
+Native `engine_core_pm` now owns the isolated `goblin-wet` worktree's coupled
+main-game generated terrain/water migration, including its immediate projection,
+save and command callers. All 225 map columns need the same generated geometry;
+the current 32-cell soil patch is a bounded simulation capability, not the extent
+of the map. The single registered frame supplies the actual surface datum.
+This interim does not finish the accepted deep-vertical/world-coverage target.
+The independent air owner and typed entry are settled; native source review and
+the completed room numerical study are separate from Root's finite material join.
+Wet UI source is reviewed/joined and awaits a coherent release. No retired Hive
+Herdr role is refilled. Routine milestones and actual heavy-window closure go to
+Botanical `delivery-lead` Shimeji; cross-owner decisions remain peer CTO work.
+
+**Completed controller checkpoint:** the isolated controllers worktree supplied
+public Mycelium authored operations through the
 current Mule Effect/Stream execute path and actual Codemode/DO SQLite. Native
 `u4101` passed lost-response/restart/replay, scope and one-effect laws. Installed
 declaration closure now passes separately (`u4121`, `skipLibCheck:false`, pinned
@@ -176,16 +189,12 @@ host-driven excavation and receipt replay; strict platform types passed `u4133`.
 That evidence is distinct from the quarry's native execute sandbox and does not
 claim a live model, independent player accounts or a deployed Goblin backend.
 
-Current native owners continue in isolated worktrees: `engine_core_pm` owns only
-`tools/engine-do/wet-*` in `wet-region-host`, qualifying the actual wet RegionProgram
-under native SQLite rollback and lost-acknowledgment restart; `scene_document_review`
-owns `src/wet-clearing/**` and `tools/wet-clearing/**` in `wet-ui`, exposing adjacent
-and deeper excavation with shorter bounded waits; `water_exchange_review` owns
-the extracted warm-air/smoke numerical owner in `air`. Root owns the actual
-world/building/material joins, numerical acceptance and serial integration.
-Botanical's restored `delivery-lead` Shimeji coordinates its routine queue and
-shared heavy-proof windows; Hive integration stays with King Bolete. No retired
-Hive Herdr role is refilled. No expensive editor browser work is authorized.
+The native wet-region source/proof lane is complete and released. Wet UI source
+`1886e10`/`4a36d8e` is joined as `4f9f9d5`/`3724cb5`: actual connected adjacent
+and deeper excavation, explicit short wait, checkpoint reopening and atomic
+worker publication. Its affected adapter/worker check, typecheck and build passed
+`u4180`/`u4181`/`u4182`; no new rendered/hosted claim follows. Expensive editor
+browser work remains stopped. Hive integration stays with King Bolete.
 
 The environmental numerical clock correction `d0ab751` is reviewed and joined as
 `7d134f6`; `u4102` passed 11 focused clock/connected-column laws. Root's current
@@ -198,8 +207,8 @@ unchanged tolerance (`u4107`, 12 affected laws). The actual generated 4x4,
 evidence, not a newly rendered or hosted interaction. Independent review accepted
 `1df187f` after removing the unused mutable world returned by the recipe; the
 correction and explicit off-domain checkpoint rejection passed `u4131` (3 laws).
-The browser consumer is updated for a water-column array but still exposes its
-previous one-cut interaction until the coupled control join.
+The reviewed local browser source now exposes the connected-column interaction;
+the hosted release below still has its previously published one-cut behavior.
 
 The published water study remains `4a6931c`, deployment `30835156`, at
 `/wet-clearing.html` on the same preview. It supports one actual local dig and
@@ -220,7 +229,8 @@ generated-world/region laws: finite downhill transfer, exact reopening and total
 water error below 2e-9 kg. The predeclared six-second comparison with 0.1-second
 steps stayed within 0.0054 m of column height. This does not establish arbitrary
 stone digging, flooded sealed rooms, backfill displacement, long-time accuracy or
-new rendered interaction. Native DO water qualification and the UI join are next.
+new rendered interaction. Native DO qualification and source UI join are recorded
+below; main-game pawn/environment integration remains unfinished.
 
 **World transaction source checkpoint:** the independent generated wet-world
 RegionProgram now uses that existing owner. `u4122` passed 15 affected laws over
@@ -228,8 +238,23 @@ real Node SQLite: two cuts, water advance, exact receipt replay/reopen, separate
 player/host grants and failure after state/event/receipt writes with complete
 rollback. Those laws also retain the existing quarry and actual-WASM Goblin
 checks after sharing their SQLite test owner. `u4128` passes application types.
-This is not yet the Cloudflare water-field host/restart proof, nor the whole-game
-pawn/environment transaction. The local browser is not the durable game host.
+The following native water proof now qualifies that separate host boundary;
+neither proves the whole-game pawn/environment transaction. The local browser is
+not the durable game host.
+
+**Native water transaction checkpoint:** source `4b0874a` and result `754b65a`
+are integrated as `32bffe2`/`8e206bc`. Strict Worker-only declarations passed
+`u4151` with `skipLibCheck:false`. Actual local DO run `u4164` passed seven
+checks: three real cuts through the two soil layers to stone, rollback after the
+native receipt INSERT for both excavation and water advancement, and lost-response
+process termination/reconstruction/replay for each operation. External read-only
+SQLite observed committed receipts before acknowledgment and unchanged rows after
+restart before any DO request. Final field time is six seconds, with 0.722594 kg
+in the holes and 7680.570516 kg total water; residual 9.094947e-13 kg. All three
+owned runtimes/listeners closed. The retained first runtime logged a broken pipe
+during readiness; its cause is unqualified and the later physical checks passed.
+No new wake scheduler, backend publication, cross-region exchange or performance
+acceptance follows. The heavy window was returned to Botanical delivery-lead.
 
 **Air selection:** use the retained qualified Boussinesq airflow and MC scalar
 transport for the first fixed-volume, mildly heated, dilute-smoke brewhouse.
@@ -239,6 +264,24 @@ numerical work; the newer sealed finite-gas experiments do not supply open vents
 No flame-temperature, oxygen depletion, compression or full thermal-energy claim
 follows. The numerical owner, actual room consumer and rendered game remain
 separate acceptance steps under the same engine goal.
+
+**Finite room source checkpoint:** the extracted air owner `bcfde49` is joined
+as `b007230`; its exact typed public entry `e436307` is joined as `d43af97`.
+Nine focused runtime laws and the strict isolated type consumer passed separately.
+Root's [actual two-storey room](../../src/world-presets/brewhouse-air/README.md)
+uses the existing building query, one real stocked hearth lot, shared material
+recipe settlement, field clock and Region transaction. `u4203` passed three
+Node SQLite source laws for paid emission, partial-dose reopen/replay, rollback
+and grants. Review's initial remaining-dose display correction passed the one
+affected law `u4211`; the real public-type caller passes `u4221`.
+
+The independent 504-voxel room study `u4207` is explicitly **exit 1**: opening
+the upper shutter increased upstairs smoke exposure by about50%, instead of the
+predeclared reduction. The single time refinement reproduced that change within
+0.6%; source/stock/boundary balances passed. It establishes a reproducible harmful
+air-path response under the declared approximation, not safe ventilation or smoke
+clearance. Preserve the original failed criterion and both histories. No room
+render, actor-health, main-game join, DO crash or deployed-air claim follows.
 
 ### Historical source handoffs below
 
