@@ -132,12 +132,42 @@ that this first air owner models sealed-water pressure or general phase exchange
 
 ## Actual next joins
 
-The numerical writer owns `src/engine/environment/air/**` in its isolated branch,
-with focused laws and provenance. Root owns the building/material consumer: derive
-completed walls, floor/roof faces and stair openings from current world facts;
-provide an actual outside collar/replacement-air route; derive a finite source
-from existing material settlement. The current old voxel binder reads terrain
-only and seals all edges, so it is not that building join.
+The shared air owner and generated-room producer are integrated through
+`8257657`/`66c5b6f`. That independent consumer still owns separate room material,
+opening and burn state. Current Goblin Clearing is schema20 and has no air field
+or emissions record. Its main simulation and save cannot inherit the room's
+acceptance merely by displaying that room.
+
+Root's current source read identifies these remaining boundaries:
+
+- `brewing.attendBrew` calls the existing material owner's
+  `completeRecipePrepare` before entering fermentation. That transformation
+  already records the one consumed wood portion under the recipe's fuel role.
+  A shared finite-emissions mechanism must bind one budget to that paid input;
+  another independent hearth debit or an unbacked Light command is not the join.
+  Before preparation completes, cancellation creates no emissions obligation.
+  Afterward, pause/retry/reload must retain it independently of worker animation.
+  The six-second warm-room yield is game content, not wood's chemical energy.
+- The current room site array is authored content, not full Clearing `Site`
+  records with construction work and embedded material. The proposed starting
+  house must have explicit finite starting-stock provenance if used in a game
+  scenario. Fabricated felling history or a pawn-built claim is not acceptable.
+- The main `commitTicks` already evaluates a detached candidate. Future source,
+  air, terrain, process and saved-state changes must publish there together.
+  Use the canonical physical field time; the current terrain-to-game-tick law
+  allows `1e-8` seconds of representation error. Do not replace it with exact
+  floating-point equality to `tick * STEP_SECONDS`, or introduce another timer.
+- Fixed-volume air rebind currently rejects any changed fluid/solid membership.
+  Walls and digging can change that membership in normal Clearing play. A
+  conservative geometry-change rule remains necessary before broad integration;
+  freezing the whole room footprint against player edits is not an accepted
+  solution for the main game. The independent immutable-room consumer retains
+  its narrower contract while Root resolves this boundary.
+
+This is the next source design work, not a release of a new air writer, new
+solver, starting-house scenario or additional numerical run. The current
+field/pail native proof remains independently queued. The same registered
+geometry and outside air route must eventually serve physics and the main view.
 
 First acceptance requires the same room/source/interval with vent closed/open,
 local upstairs smoke response and accounted exterior export, finite source debit,
