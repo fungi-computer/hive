@@ -6,6 +6,12 @@ import {
 import { createClearing, advanceTicks } from "../clearing.ts";
 import { admitCommand } from "../orders.ts";
 import { commandSchema } from "../command-schema.ts";
+import { materialPortionsSchema } from "../engine/materials/index.ts";
+import {
+  FIELD_WATER,
+  fieldWaterReferenceSchema,
+} from "../field-water-source.ts";
+import { returnFieldWater } from "../field-water.ts";
 import {
   parseSerializedClearing,
   parseLiveClearing,
@@ -22,6 +28,15 @@ const stateSchema = z
 const inputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("order"), command: commandSchema }).strict(),
   z.object({ kind: z.literal("set-paused"), paused: z.boolean() }).strict(),
+  z
+    .object({
+      kind: z.literal("return-field-water"),
+      ...fieldWaterReferenceSchema.shape,
+      operation: z.string().min(1).max(160),
+      quantity: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      portions: materialPortionsSchema,
+    })
+    .strict(),
   z
     .object({
       kind: z.literal("advance"),
@@ -49,13 +64,31 @@ export function createGoblinRegionProgram(
     parseState: (value) => stateSchema.parse(value),
     parseCommand: (value) => inputSchema.parse(value),
     authorize(principal, input) {
-      return input.kind === "advance"
+      return input.kind === "advance" || input.kind === "return-field-water"
         ? principal === "goblin-host"
         : principal === "goblin-player" &&
             (input.kind === "set-paused" || input.command.party === "home");
     },
     execute(candidate, input): RegionTransition {
       const clearing = parseLiveClearing(candidate.clearing);
+      if (input.kind === "return-field-water") {
+        const returned = returnFieldWater(clearing, input);
+        if (!returned.ok)
+          return { status: "rejected", result: { reason: returned.reason } };
+        candidate.clearing = serializeClearing(clearing);
+        const result = {
+          operation: input.operation,
+          nodeId: input.nodeId,
+          quantity: input.quantity,
+          massKg: input.quantity * FIELD_WATER.kgPerUnit,
+          tick: clearing.tick,
+        };
+        return {
+          status: "applied",
+          result,
+          events: [{ kind: "field-water-returned", ...result }],
+        };
+      }
       if (input.kind === "order") {
         const result = admitCommand(clearing, input.command);
         if (result.status === "rejected")
