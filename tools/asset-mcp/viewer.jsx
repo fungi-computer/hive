@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@fungi.computer/caps/components/card";
 import "@fungi.computer/caps/styles.css";
+import "./portable-fonts/caps/fonts.css";
 import { camera } from "../../src/art/prop-camera.js";
 import "./viewer.css";
 
@@ -180,9 +181,9 @@ function Workshop() {
   return (
     <main className="asset-workshop">
       <nav aria-label="Workshop navigation">
-        <a href="/brewhouse-study.html">Copper Familiar</a>
-        <a href="/study">All studies</a>
-        <a href="/">Play the clearing</a>
+        <a href="https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/">
+          Play the clearing
+        </a>
       </nav>
       <header>
         <p className="asset-eyebrow">

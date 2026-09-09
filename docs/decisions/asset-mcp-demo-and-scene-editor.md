@@ -29,6 +29,16 @@ navigation/export. Marketing owns copying the accepted artifact under
 owns publication. This hosting correction is independent of vertical engine
 acceptance and does not authorize copying engine source into the marketing site.
 
+The corrected portable source is accepted: build `u3800` and actual browser
+`u3802` prove both same-origin fonts loaded, the sole verified game link, normal
+and 390px layouts, rotation and byte-identical downloads. Game CTO personally
+viewed both screenshots and verified the 12 source hashes plus both archive
+hashes. The new 15-file archive is
+`.botanical/asset-mcp/copper-mcp-viewer-portable-20260909.tar.gz`, SHA256
+`bd2ba2953e2dc73753ed32438db5b8223113e2ed1ea1b9be298769c366ea33ca`.
+Its inventory and proof live beside it; the old archive remains unchanged.
+This accepts local portable output, not Botanical's later public copy/deployment.
+
 ## Real first consumer
 
 `tools/asset-mcp/assets.mjs` defines narrow, transport-independent art operations
