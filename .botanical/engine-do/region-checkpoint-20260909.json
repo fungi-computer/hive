@@ -1,0 +1,117 @@
+{
+  "status": "source-reviewed-local-runtime-proved",
+  "goal": "full Hive v0 remains active",
+  "nodeSqlite": {
+    "scope": "run-u3868.scope",
+    "invocation": "994e5f46f11f427a8d47e92817d5b734",
+    "exit": 0,
+    "laws": 9
+  },
+  "actualDo": {
+    "scope": "run-u3865.scope",
+    "invocation": "104922a8468f462e8c2a01f252214f57",
+    "exit": 0,
+    "evidence": "quarry-20260909-v2/checkpoint.json",
+    "logSanitation": "quarry-20260909-v2/log-sanitation.json"
+  },
+  "sourceInventoryTiming": "Captured after completed proof with all engine/preset source frozen during the run. Source below excludes the logging-only harness correction; actual harness hashes remain in its checkpoint.",
+  "source": {
+    "src/engine/materials/definitions.ts": {
+      "sha256": "941b31d6c503a0e169ffc90c62f1c01d97dbd64e4d686eb01f7d41c0bae549be",
+      "mtimeNs": 1788937271269694871
+    },
+    "src/engine/materials/held-use.ts": {
+      "sha256": "49afec6a409b38cb92aa9f4a33329846fdd9c85dff2153a42f899d9551618aa8",
+      "mtimeNs": 1788938533248218725
+    },
+    "src/engine/materials/index.ts": {
+      "sha256": "7c27c135a2cf9173e44f50893b40a7277e79252f6f24daa584dfa9712c6112be",
+      "mtimeNs": 1788938533051216855
+    },
+    "src/engine/materials/materials.test.js": {
+      "sha256": "affa42e287a062f1c4b3fe110bb6f5f4f3e351506e2ea479c7ad9301933cbf83",
+      "mtimeNs": 1788938533437220519
+    },
+    "src/engine/materials/owner.ts": {
+      "sha256": "3e7b725b3dc0f58b5352b44d3dbd169feb27232c413f557ee302db9809011993",
+      "mtimeNs": 1788937865213750765
+    },
+    "src/engine/materials/queries.ts": {
+      "sha256": "c369c720c8b8f4a86e6c7974dcd4ab1a4f4716b26fa877344be51ddc418a976b",
+      "mtimeNs": 1788937272197701203
+    },
+    "src/engine/materials/recovery.ts": {
+      "sha256": "401085755721b12e7420d57b71f2cb8622f274e04a5f936c22d6bf546fa9697b",
+      "mtimeNs": 1788936833302709209
+    },
+    "src/engine/materials/relations.ts": {
+      "sha256": "4757fd9856b3e933a10b9a694b0ca67a5b13ca3c8d80f01012cbf44d54d34963",
+      "mtimeNs": 1788941753743804875
+    },
+    "src/engine/materials/schema.ts": {
+      "sha256": "a5963fda3a255e78e12d68109a4e3d940b1da603ba5cc87703e277792524186e",
+      "mtimeNs": 1788937272386702493
+    },
+    "src/engine/materials/settlement.ts": {
+      "sha256": "1d69a5a80beee516a3f98bd759cc15e14b987baf68e3acbfaa1b200d1c37bbc3",
+      "mtimeNs": 1788938284871711009
+    },
+    "src/engine/materials/types.ts": {
+      "sha256": "12dd9fa20b282202385eea114691f647351048119b7d05533d7da4b52bf26e72",
+      "mtimeNs": 1788936833608711292
+    },
+    "src/engine/region/codec.ts": {
+      "sha256": "17119b557fcda6c689feba3feebe81c11f5b04806e748802f09c8197a97c96e1",
+      "mtimeNs": 1788943114085762414
+    },
+    "src/engine/region/index.ts": {
+      "sha256": "9981e57eb070ac25ec194a59b7d967d7674b150688d2abedbcc3a9db2e30acfa",
+      "mtimeNs": 1788943774382599989
+    },
+    "src/engine/region/region.test.js": {
+      "sha256": "38904eff40d244821dfba10c2f37c8b92c45bd54c9e55d230042fcc0a4b1fa52",
+      "mtimeNs": 1788943776148612928
+    },
+    "src/engine/world/data-contract.mjs": {
+      "sha256": "415ef0730149ea790adb4a330fd8ac83571b7966d0c215ced0bb145a819d4601",
+      "mtimeNs": 1788941377231057715
+    },
+    "src/engine/world/index.js": {
+      "sha256": "90147f0c4a967c0d6c01a40ab5073920c26c746f61dfe97f315013901fe712f3",
+      "mtimeNs": 1788941196214740843
+    },
+    "src/engine/world/lattice-hash.mjs": {
+      "sha256": "ccaa0e206c01a81d5483068003de8faf0a2f9af1e7cfad807ac3ed37add71cfc",
+      "mtimeNs": 1788938620715034195
+    },
+    "src/engine/world/voxel-contract.mjs": {
+      "sha256": "399a5ec2e2be628ee6b772aa56df1e8ad4f4ad2524bfd2dad1b5e7290fe25c59",
+      "mtimeNs": 1788941461542672092
+    },
+    "src/engine/world/voxel-store.test.js": {
+      "sha256": "20233136b9c35dc4ab295523a58e29c9a71c84f9c601335097b73ef570bd7ee4",
+      "mtimeNs": 1788941461683673120
+    },
+    "src/engine/world/voxel-world.mjs": {
+      "sha256": "10b427f352f523edc69a91deb06ee05c1ea1216a060da37348c1655f6b1315a4",
+      "mtimeNs": 1788941377676060956
+    },
+    "src/engine/world/world.test.js": {
+      "sha256": "d98614b360e796f9f3cc2eafd979f8e5095bccec9fa5a8f53bb785b6df74504a",
+      "mtimeNs": 1788941377753061517
+    },
+    "src/world-presets/excavation-region.ts": {
+      "sha256": "72cf7e2d1c6a9e6681ca9915f02d7ad63ba217bb83622bcf0c5899fa7abaf87f",
+      "mtimeNs": 1788943114438765000
+    }
+  },
+  "limits": [
+    "local runtime only",
+    "fixed-tick quarry consumer",
+    "explicit failed acknowledgment, not literal socket loss",
+    "transaction exception, not process kill inside open SQL transaction",
+    "finite receipts/events, no pruning",
+    "no autonomous wake or Watchdog join yet",
+    "Goblin full-state integration pending"
+  ]
+}

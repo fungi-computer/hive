@@ -3,8 +3,7 @@
 export type ActorId = string;
 export type PartyId = string;
 export type JobId = string;
-declare const positiveIntBrand: unique symbol;
-export type PositiveInt = number & { readonly [positiveIntBrand]: true };
+export type PositiveInt = import("./engine/materials/types.ts").PositiveInt;
 export type LotId = string;
 export type TransferId = string;
 export type ContainerId = string;
@@ -24,153 +23,25 @@ export type Material =
   | "keg"
   | "ale"
   | "spent-grain"
-  | "soil";
-export type ItemLotLocation =
-  | ({ kind: "ground" } & Cell)
-  | { kind: "hand"; actor: ActorId }
-  | { kind: "container"; container: ContainerId };
-export type ItemLot = {
-  id: LotId;
-  material: Material;
-  quantity: PositiveInt;
-  location: ItemLotLocation;
-};
-export type SourcePolicy =
-  | { readonly kind: "eligible-ground"; readonly material: Material }
-  | {
-      readonly kind: "eligible-container";
-      readonly material: Material;
-      readonly container: ContainerId;
-    }
-  | { readonly kind: "exact-lot"; readonly lot: LotId };
-export type TransferOrigin =
-  | { readonly kind: "ground"; readonly cell: Cell }
-  | { readonly kind: "container"; readonly container: ContainerId };
-export type TransferRequest = {
-  readonly source: SourcePolicy;
-  /** A whole request preserves one source lot; a portion may split it. */
-  readonly quantityPolicy: "whole-lot" | "portion";
-  readonly quantity: PositiveInt;
-};
-/** A held item is either promised to a container or retained for one operation. */
-export type CarryIntent =
-  | { readonly kind: "deliver"; readonly destination: ContainerId }
-  | { readonly kind: "use"; readonly operation: OperationId };
-export type JobTransferOwner = {
-  readonly kind: "job";
-  readonly job: JobId;
-  readonly step: string;
-};
-export type OperationTransferOwner = {
-  readonly kind: "operation";
-  readonly operation: OperationId;
-};
-export type TransferOwner = JobTransferOwner | OperationTransferOwner;
-/** Durable material promises outlive the worker currently moving a lot. */
-export type MaterialBinding =
-  | {
-      readonly kind: "vessel-use";
-      readonly id: OperationId;
-      readonly vessel: LotId;
-    }
-  | {
-      /** A resolved physical plan; recipe semantics stay with its definition. */
-      readonly kind: "recipe";
-      readonly id: OperationId;
-      readonly definition: RecipeId;
-      readonly station: ContainerId;
-      readonly consumed: readonly {
-        readonly role: string;
-        readonly lot: LotId;
-        readonly material: Material;
-        readonly quantity: PositiveInt;
-      }[];
-      readonly retained: readonly {
-        readonly role: string;
-        readonly lot: LotId;
-        readonly material: Material;
-        readonly quantity: PositiveInt;
-      }[];
-      readonly promises: readonly {
-        readonly role: string;
-        readonly destination: ContainerId;
-        readonly material: Material;
-        readonly quantity: PositiveInt;
-      }[];
-    };
-export type Transfer = {
-  readonly id: TransferId;
-  readonly actor: ActorId;
-  /** Consumer-defined opaque identity; the material kernel never branches on it. */
-  readonly owner: TransferOwner;
-  readonly request: TransferRequest;
-  readonly intent: CarryIntent;
-  phase:
-    | {
-        kind: "reserved";
-        sourceLot: LotId;
-        quantity: PositiveInt;
-        origin: TransferOrigin;
-      }
-    | { kind: "carrying"; lot: LotId };
-};
-export type EmbeddedMaterial = {
-  container: ContainerId;
-  material: Material;
-  quantity: PositiveInt;
-};
-/** Immutable provenance and, after settlement, durable output receipt. */
-export type RecipeTransformation = {
-  readonly id: OperationId;
-  readonly definition: RecipeId;
-  readonly inputs: readonly {
-    readonly role: string;
-    readonly lot: LotId;
-    readonly material: Material;
-    readonly quantity: PositiveInt;
-  }[];
-  /** Null is an attended/fermenting transformation with its live binding. */
-  readonly settlement: null | {
-    readonly station: ContainerId;
-    readonly retained: readonly {
-      readonly role: string;
-      readonly lot: LotId;
-      readonly material: Material;
-      readonly quantity: PositiveInt;
-    }[];
-    readonly outputs: readonly {
-      readonly role: string;
-      readonly destination: ContainerId;
-      readonly material: Material;
-      readonly quantity: PositiveInt;
-    }[];
-  };
-};
-/** A durable settled-output consumption; its physical lot may later be gone. */
-export type RecipeConsumption = {
-  readonly id: OperationId;
-  readonly transformation: OperationId;
-  readonly role: string;
-  readonly material: Material;
-  readonly quantity: PositiveInt;
-};
-/** Durable physical removal without creating a second inventory or event stream. */
-export type MaterialSinkReceipt = {
-  readonly id: string;
-  readonly material: Material;
-  readonly quantity: PositiveInt;
-};
-export type MaterialsState = {
-  lots: ItemLot[];
-  transfers: Transfer[];
-  bindings: MaterialBinding[];
-  transformations: RecipeTransformation[];
-  consumptions: RecipeConsumption[];
-  sinks: MaterialSinkReceipt[];
-  embedded: EmbeddedMaterial[];
-  nextLotId: number;
-  consumedWood: number;
-};
+  | "soil"
+  | "ration";
+import type * as PhysicalMaterials from "./engine/materials/types.ts";
+export type ItemLot = PhysicalMaterials.ItemLot<Material>;
+export type SourcePolicy = PhysicalMaterials.SourcePolicy<Material>;
+export type TransferRequest = PhysicalMaterials.TransferRequest<Material>;
+export type MaterialBinding = PhysicalMaterials.MaterialBinding<Material>;
+export type Transfer = PhysicalMaterials.Transfer<Material>;
+export type EmbeddedMaterial = PhysicalMaterials.EmbeddedMaterial<Material>;
+export type RecipeTransformation = PhysicalMaterials.RecipeTransformation<Material>;
+export type RecipeConsumption = PhysicalMaterials.RecipeConsumption<Material>;
+export type MaterialSinkReceipt = PhysicalMaterials.MaterialSinkReceipt<Material>;
+export type MaterialsState = PhysicalMaterials.MaterialsState<Material> & { consumedWood: number };
+export type ItemLotLocation = PhysicalMaterials.ItemLotLocation;
+export type TransferOrigin = PhysicalMaterials.TransferOrigin;
+export type CarryIntent = PhysicalMaterials.CarryIntent;
+export type JobTransferOwner = PhysicalMaterials.JobTransferOwner;
+export type OperationTransferOwner = PhysicalMaterials.OperationTransferOwner;
+export type TransferOwner = PhysicalMaterials.TransferOwner;
 export type FeatureId = string;
 export type SourceFeatureKind = "spring" | "reclaimed-timber-cache";
 type SourceFeatureBase = Cell & {
@@ -285,7 +156,17 @@ export type StoreJob = JobBase & {
   source: LotId;
   destination: ContainerId;
 };
-export type RestJob = JobBase & { kind: "rest"; target: ActorId };
+/** Personal physical care is deliberately outside a work-party scope. */
+export type CareNeed = "nourishment" | "hydration" | "rest";
+export type CareJob = {
+  id: JobId;
+  kind: "care";
+  target: ActorId;
+  need: CareNeed;
+  policy: "automatic" | "manual-rest" | "routine-rest";
+  reason: string;
+  routine: boolean;
+};
 export type RepairCacheJob = JobBase & {
   kind: "repair-cache";
   target: FeatureId;
@@ -328,7 +209,7 @@ export type Job =
   | HarvestJob
   | WaterMugwortJob
   | StoreJob
-  | RestJob
+  | CareJob
   | RepairCacheJob
   | FillKettleJob
   | BrewJob
@@ -348,6 +229,7 @@ export type SowActivity = ActivityBase & { kind: "sow" };
 export type HarvestActivity = ActivityBase & { kind: "harvest" };
 export type TransferActivity = ActivityBase & { kind: "transfer" };
 export type SleepActivity = ActivityBase & { kind: "sleep" };
+export type ConsumeActivity = ActivityBase & { kind: "consume" };
 export type WaterDeliveryActivity = ActivityBase & { kind: "water-delivery" };
 export type RepairCacheActivity = ActivityBase & { kind: "repair-cache" };
 export type BrewActivity = ActivityBase & { kind: "brew" };
@@ -365,6 +247,7 @@ export type Activity =
   | HarvestActivity
   | TransferActivity
   | SleepActivity
+  | ConsumeActivity
   | WaterDeliveryActivity
   | RepairCacheActivity
   | BrewActivity
@@ -383,7 +266,7 @@ export type Actor = Body & {
   name: string;
   figure: string;
   drafted: boolean;
-  rest: number;
+  needs: Needs;
   routine: boolean;
   allowedWork: AllowedWork;
   task: Activity | null;
@@ -419,9 +302,11 @@ export type StoryEvent = {
 /** Semantic completion belongs to the checked water-delivery target resolver. */
 export type WaterDeliveryTarget =
   | { readonly kind: "kettle"; readonly station: string }
-  | { readonly kind: "mugwort"; readonly herb: HerbId };
+  | { readonly kind: "mugwort"; readonly herb: HerbId }
+  | { readonly kind: "hydration"; readonly actor: ActorId };
 /** One saved pail/water operation, independent of its current executor. */
 export type WaterDeliveryOperation = {
+  kind: "water-delivery";
   id: OperationId;
   job: JobId;
   spring: FeatureId;
@@ -431,6 +316,29 @@ export type WaterDeliveryOperation = {
   water: LotId | null;
   /** Incomplete effect phase; successful pour retires this operation. */
   phase: "acquire" | "draw" | "pour";
+};
+/** A ration is carried by the ordinary operation-owned use transfer. */
+export type ConsumeOperation = {
+  kind: "consume";
+  id: OperationId;
+  job: JobId;
+  actor: ActorId;
+  definition: string;
+};
+export type CareOutcome = {
+  id: string;
+  receipt: string;
+  actor: ActorId;
+  need: "nourishment" | "hydration";
+  definition: string;
+  amount: number;
+  tick: number;
+};
+export type Needs = {
+  advancedAt: number;
+  nourishment: number;
+  hydration: number;
+  rest: number;
 };
 /** The process owner advances this one saved process; workers attend PREPARE/KEG. */
 export type BrewProcess = {
@@ -461,7 +369,8 @@ export type Clearing = {
   materials: MaterialsState;
   sources: SourceFeature[];
   pendingSources: PendingFeatureIntroduction[];
-  operations: WaterDeliveryOperation[];
+  operations: (WaterDeliveryOperation | ConsumeOperation)[];
+  careOutcomes: CareOutcome[];
   processes: BrewProcess[];
   terrain: TerrainState;
   rocks: Cell[];
@@ -473,7 +382,6 @@ export type Clearing = {
   workDirty: boolean;
   felled: number;
   finishedJobs: number;
-  rested: number;
   harvestedHerbs: number;
   commands: (Command & { tick: number })[];
   feed: {

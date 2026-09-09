@@ -1,0 +1,90 @@
+{
+  "snapshot": {
+    "region": "quarry-proof-v1",
+    "programId": "quarry-region-v1",
+    "revision": 1,
+    "state": {
+      "world": {
+        "schema": 1,
+        "identity": {
+          "world": "durable-quarry",
+          "recipe": "quarry-v1"
+        },
+        "generatorId": "quarry-bands-v1",
+        "layout": {
+          "bounds": {
+            "minX": -4,
+            "maxX": 4,
+            "minY": -8,
+            "maxY": 4,
+            "minZ": -4,
+            "maxZ": 4
+          },
+          "brickSide": 4,
+          "materialIds": [
+            9,
+            275,
+            45000
+          ]
+        },
+        "revision": 1,
+        "changes": [
+          {
+            "x": 0,
+            "y": -1,
+            "z": 0,
+            "material": 9,
+            "revision": 1
+          }
+        ]
+      },
+      "materials": {
+        "schema": 1,
+        "state": {
+          "lots": [
+            {
+              "id": "lot-1",
+              "material": "chalk",
+              "quantity": 1,
+              "location": {
+                "x": 0,
+                "z": 0,
+                "level": 0,
+                "kind": "ground"
+              }
+            }
+          ],
+          "transfers": [],
+          "bindings": [],
+          "transformations": [],
+          "consumptions": [],
+          "sinks": [],
+          "embedded": [],
+          "nextLotId": 2
+        }
+      },
+      "excavated": 1,
+      "tick": 0
+    }
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "event": {
+        "id": "quarry-proof-v1:1:0",
+        "payload": {
+          "at": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "kind": "excavated",
+          "lot": "lot-1",
+          "material": "chalk",
+          "quantity": 1
+        },
+        "revision": 1
+      }
+    }
+  ]
+}

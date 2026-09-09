@@ -1,0 +1,50 @@
+{
+  "observedAt": 1788945503502,
+  "region": [
+    {
+      "singleton": 1,
+      "region_id": "watchdog-quarry-proof-v1",
+      "program_id": "quarry-region-v1",
+      "limits_json": "{\"commandBytes\":8192,\"eventBytes\":8192,\"events\":4096,\"receipts\":4096,\"resultBytes\":8192,\"stateBytes\":262144,\"storageBytes\":8388608}",
+      "revision": 0,
+      "state_json": "{\"excavated\":0,\"materials\":{\"schema\":1,\"state\":{\"bindings\":[],\"consumptions\":[],\"embedded\":[],\"lots\":[],\"nextLotId\":1,\"sinks\":[],\"transfers\":[],\"transformations\":[]}},\"tick\":0,\"world\":{\"changes\":[],\"generatorId\":\"quarry-bands-v1\",\"identity\":{\"recipe\":\"quarry-v1\",\"world\":\"durable-quarry\"},\"layout\":{\"bounds\":{\"maxX\":4,\"maxY\":4,\"maxZ\":4,\"minX\":-4,\"minY\":-8,\"minZ\":-4},\"brickSide\":4,\"materialIds\":[9,275,45000]},\"revision\":0,\"schema\":1}}",
+      "receipt_count": 0,
+      "event_count": 0,
+      "event_sequence": 0,
+      "state_bytes": 435,
+      "receipt_bytes": 0,
+      "event_bytes": 0
+    }
+  ],
+  "receipts": [],
+  "events": [],
+  "jobs": [
+    {
+      "sequence": 1,
+      "job_id": "[\"watchdog-quarry-proof-v1\",\"quarry-builder\",\"queued-restart\"]",
+      "queue_name": "quarry",
+      "lane": "host-command",
+      "priority": 0,
+      "payload_json": "{\"principal\":\"quarry-builder\",\"input\":{\"id\":\"queued-restart\",\"expectedRevision\":0,\"command\":{\"kind\":\"excavate\",\"at\":{\"x\":0,\"y\":-1,\"z\":0}}}}",
+      "recovery_max": 1,
+      "state": "queued",
+      "outcome": null,
+      "claim_token": null,
+      "recovery_count": 0,
+      "cancellation_id": null
+    }
+  ],
+  "barriers": [
+    {
+      "job_id": "[\"watchdog-quarry-proof-v1\",\"quarry-builder\",\"queued-restart\"]",
+      "barrier": null
+    }
+  ],
+  "witness": [
+    {
+      "singleton": 1,
+      "alarms": 0,
+      "repairs": 0
+    }
+  ]
+}

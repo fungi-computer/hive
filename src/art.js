@@ -13,6 +13,7 @@ import { brewerCache } from "./art/brew-supplies.js";
 import { pail } from "./art/pail.js";
 import { scene } from "./art/geometry.js";
 import { soilPile } from "./art/soil.js";
+import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
 import { STATION_VISUAL_PROFILES } from "./brew-station-profiles.js";
 import { BUILDINGS } from "./construction.js";
@@ -134,6 +135,7 @@ export async function bakeArt() {
     pail: {},
     wood: {},
     soil: {},
+    ration: {},
     wallJoints: {},
     mixedShelf: {},
     pawnAnchor: anchor(portrait),
@@ -146,6 +148,8 @@ export async function bakeArt() {
     "build",
     "dig",
     "carry-soil",
+    "carry-ration",
+    "eat",
     "carry",
     "carry-herb",
     "carry-pail-empty",
@@ -255,6 +259,8 @@ export async function bakeArt() {
     art.wood[amount] = bake(renderer, woodPile(amount), prop, 112, 112);
   for (let amount = 1; amount <= 3; amount++)
     art.soil[amount] = bake(renderer, soilPile(amount), prop, 112, 112);
+  for (let amount = 1; amount <= 3; amount++)
+    art.ration[amount] = bake(renderer, rationPile(amount), prop, 112, 112);
   // This one retained renderer rebakes terrain only after a physical edit/load.
   // It never updates simulation state or time. View owns replacement textures.
   art.bakeTerrain = (terrain, previous, changedCells) =>

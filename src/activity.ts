@@ -26,6 +26,7 @@ import {
   shelfContainer,
   shelteredBeds,
   workPosition,
+  workPositions,
 } from "./construction.js";
 import {
   consumeContainerPortion,
@@ -34,19 +35,26 @@ import {
   drawPailWater,
   embedConstruction,
   interruptOperationPail,
+  cancelMaterialUse,
   interruptTransfer,
   parkOperationPail,
   pickupTransfer,
   pourPailWater,
   releaseContainer,
-  retireOperationPail,
   salvageConstruction,
   transferForActor,
 } from "./materials.ts";
 import {
+  advanceRestContact,
+  consumableCareDefinition,
+  REST_CONTACT,
+  settleCareConsumption,
+} from "./needs.ts";
+import {
   repairReclaimedCache,
   cacheRepairBuffer,
   resolveCacheRepairBuffer,
+  resolveMaterialWithdrawal,
   resolveOpenFiniteSourceContainer,
   sourceContainerSpec,
   sourceIsOpen,
@@ -86,7 +94,10 @@ export function finishActivity(state: Clearing, p: Actor): void {
 export function interruptWork(state: Clearing, p: Actor): void {
   const operation =
     p.task?.kind === "water-delivery"
-      ? state.operations.find((entry) => entry.id === p.task?.target)
+      ? state.operations.find(
+          (entry): entry is WaterDeliveryOperation =>
+            entry.kind === "water-delivery" && entry.id === p.task?.target,
+        )
       : undefined;
   const r = operation
     ? parkOperationPail(state.materials, {
@@ -97,11 +108,21 @@ export function interruptWork(state: Clearing, p: Actor): void {
           legal: true,
         },
       })
-    : interruptTransfer(state.materials, p.id, {
+    : p.task?.kind === "consume"
+      ? cancelMaterialUse(state.materials, p.task.target, {
+          cell: { x: p.x, z: p.z, level: p.level }, legal: true,
+        })
+      : interruptTransfer(state.materials, p.id, {
         cell: { x: p.x, z: p.z, level: p.level },
         legal: true,
       });
   if (!r.ok) throw new Error(r.reason);
+  if (p.task?.kind === "consume") {
+    const operationId = p.task.target;
+    state.operations = state.operations.filter(
+      (entry) => entry.id !== operationId,
+    );
+  }
   finishActivity(state, p);
 }
 function finishJob(s: Clearing, p: Actor, id: string) {
@@ -456,10 +477,23 @@ function drawWater(
     return false;
   }
   if (!accessWork(s, p, sourceAccessCells(spring))) return false;
+  const sourceLot = s.materials.lots
+    .filter(
+      (lot) =>
+        lot.material === "water" &&
+        lot.location.kind === "container" &&
+        lot.location.container === sourceContainerSpec(spring).id &&
+        lot.quantity >= operation.quantity,
+    )
+    .sort((left, right) => left.id.localeCompare(right.id))[0];
+  if (!sourceLot) {
+    interruptWork(s, p);
+    return false;
+  }
   const drawn = drawPailWater(s.materials, {
     operation: operation.id,
     source: sourceContainerSpec(spring),
-    sourceLot: `source-lot:${spring.id}`,
+    sourceLot: sourceLot.id,
     quantity: operation.quantity,
     access: {
       sourceReachable: true,
@@ -476,7 +510,10 @@ function drawWater(
 }
 
 function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
-  const operation = s.operations.find((entry) => entry.id === t.target);
+  const operation = s.operations.find(
+    (entry): entry is WaterDeliveryOperation =>
+      entry.kind === "water-delivery" && entry.id === t.target,
+  );
   const job = s.jobs.find((entry) => entry.id === t.job);
   const expected = job && waterDeliveryTargetForJob(s, job);
   const pail =
@@ -484,7 +521,9 @@ function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
   if (
     !operation ||
     operation.job !== t.job ||
-    (job?.kind !== "fill-kettle" && job?.kind !== "water-mugwort") ||
+    (job?.kind !== "fill-kettle" &&
+      job?.kind !== "water-mugwort" &&
+      job?.kind !== "care") ||
     !expected ||
     operation.target.kind !== expected.kind ||
     (operation.target.kind === "kettle" &&
@@ -493,6 +532,9 @@ function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
     (operation.target.kind === "mugwort" &&
       expected.kind === "mugwort" &&
       operation.target.herb !== expected.herb) ||
+    (operation.target.kind === "hydration" &&
+      expected.kind === "hydration" &&
+      operation.target.actor !== expected.actor) ||
     !pail ||
     pail.material !== "pail"
   ) {
@@ -517,14 +559,14 @@ function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
     interruptWork(s, p);
     return;
   }
+  if (!acquireWaterPail(s, p, operation, held)) return;
+  if (!drawWater(s, p, operation)) return;
+  if (operation.phase !== "pour") return;
   const destination = resolveWaterDelivery(s, operation.target);
   if (!destination) {
     interruptWork(s, p);
     return;
   }
-  if (!acquireWaterPail(s, p, operation, held)) return;
-  if (!drawWater(s, p, operation)) return;
-  if (operation.phase !== "pour") return;
   if (!accessWork(s, p, destination.access)) return;
   const settled = settleWaterDelivery(s, operation);
   if (!settled.ok) {
@@ -536,13 +578,48 @@ function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
     legal: true,
   });
   if (!released.ok) throw new Error(released.reason);
-  retireOperationPail(s.materials, operation.id);
   s.notice =
     operation.target.kind === "kettle"
       ? "The kettle holds two water."
-      : "The mugwort is established.";
+      : operation.target.kind === "mugwort"
+        ? "The mugwort is established."
+        : "Water restores hydration.";
   finishJob(s, p, t.job);
   s.operations = s.operations.filter((entry) => entry !== operation);
+}
+function consume(s: Clearing, p: Actor, t: Activity): void {
+  const operation = s.operations.find(
+    (entry): entry is import("./model.ts").ConsumeOperation =>
+      entry.kind === "consume" && entry.id === t.target,
+  );
+  const job = s.jobs.find((entry) => entry.id === t.job);
+  const held = transferForActor(s.materials, p.id);
+  const definition =
+    operation && consumableCareDefinition(operation.definition);
+  if (
+    !operation ||
+    !definition ||
+    job?.kind !== "care" ||
+    job.target !== p.id ||
+    job.need !== definition.effect.need ||
+    operation.job !== job.id ||
+    operation.actor !== p.id ||
+    !held ||
+    held.phase.kind !== "carrying"
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (++p.work < definition.attendTicks) return;
+  if (
+    !settleCareConsumption(s, { actor: p.id, operation, lot: held.phase.lot })
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  s.operations = s.operations.filter((entry) => entry !== operation);
+  s.notice = "A ration restores nourishment.";
+  finishJob(s, p, t.job);
 }
 function brew(s: Clearing, p: Actor, t: Activity): void {
   const process = s.processes.find((candidate) => candidate.id === t.target);
@@ -626,6 +703,44 @@ export function advanceWork(s: Clearing, p: Actor): void {
   if (!t) return;
   if (t.kind === "repair-cache") return repairCache(s, p, t);
   if (t.kind === "water-delivery") return waterDelivery(s, p, t);
+  if (t.kind === "consume") {
+    const transfer = transferForActor(s.materials, p.id);
+    if (!transfer || transfer.intent.kind !== "use") {
+      interruptWork(s, p);
+      return;
+    }
+    if (transfer.phase.kind === "reserved") {
+      const withdrawal =
+        transfer.phase.origin.kind === "container"
+          ? resolveMaterialWithdrawal(s, transfer.phase.origin.container)
+          : null;
+      const reachable =
+        transfer.phase.origin.kind === "ground"
+          ? accessWork(s, p, [transfer.phase.origin.cell])
+          : withdrawal?.kind === "site"
+            ? accessWork(s, p, workPositions(s, withdrawal.site, "build"))
+            : withdrawal?.kind === "finite-source"
+              ? accessWork(s, p, withdrawal.accessCells)
+              : false;
+      if (!reachable) {
+        if (transfer.phase.origin.kind === "container" && !withdrawal)
+          interruptWork(s, p);
+        return;
+      }
+      if (
+        !pickupTransfer(s.materials, transfer.id, {
+          sourceReachable: true,
+          destinationReachableWithPayload: true,
+        }).ok
+      ) {
+        interruptWork(s, p);
+        return;
+      }
+      return;
+    }
+    consume(s, p, t);
+    return;
+  }
   if (t.kind === "brew") return brew(s, p, t);
   if (t.kind === "tap" || t.kind === "clear-spent-grain")
     return recipeOutput(s, p, t);
@@ -724,9 +839,12 @@ export function advanceWork(s: Clearing, p: Actor): void {
       finishJob(s, p, t.job);
     }
   } else if (t.kind === "sleep") {
-    p.rest = Math.min(100, p.rest + 0.3);
+    if (!advanceRestContact(s, { actor: p.id, job: t.job, bed: t.target })) {
+      interruptWork(s, p);
+      return;
+    }
     if (
-      p.rest >= 95 &&
+      p.needs.rest >= REST_CONTACT.recoverAt &&
       !(s.jobs.find((j) => j.id === t.job)?.routine && isNight(s))
     )
       finishJob(s, p, t.job);
