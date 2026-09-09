@@ -6,7 +6,7 @@ export const soilNodeId = at => `cell:${key(at)}`;
 const signed = n => n < 0 ? `n${-n}` : `p${n}`;
 const columnId = at => `column-${signed(at[0])}-${signed(at[2])}`;
 
-function columnsFrom(removed) {
+function columnsFrom(world, removed) {
   const groups = new Map();
   for (const cell of removed) {
     const id = columnId(cell.at);
@@ -17,7 +17,11 @@ function columnsFrom(removed) {
     cells.sort((a, b) => a[1] - b[1]);
     requireCondition(cells.every((at, i) => at[1] === cells[0][1] + i),
       'excavated column is one contiguous vertical air run');
-    return { id, kind: 'vented-pit', at: [...cells[0]], heightCells: cells.length };
+    const at = [...cells[0]], floor = world.readPoint(xyz([at[0], at[1] - 1, at[2]]));
+    requireCondition(floor === MATERIAL.soil || floor === MATERIAL.stone,
+      'finite column has an actual soil or stone bottom, not an unmodeled opening');
+    return { id, kind: 'vented-pit', at, heightCells: cells.length,
+      bottom: floor === MATERIAL.soil ? 'porous' : 'sealed' };
   }).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
@@ -38,8 +42,8 @@ function columnContacts(world, descriptor, columns, removed) {
     assertVented(world, [at[0], at[1] + heightCells - 1, at[2]]);
     for (const face of exposedColumnFaces(world, descriptor, column)) {
       const floor = face.axis === 1;
-      requireCondition(!floor || face.material === 'soil',
-        'this water owner requires a porous floor; solid-floor excavation is not yet admitted');
+      requireCondition(!floor || face.material === (column.bottom === 'porous' ? 'soil' : 'stone'),
+        'column bottom binding agrees with actual world material');
       requireCondition(face.material !== 'open' || open.has(key(face.neighbor)),
         'open lateral outlet must belong to another finite column');
       contacts.push({ ...face, reservoirId: id });
@@ -77,7 +81,7 @@ export function deriveTopology(config, world) {
     checkpoint.changes.every(change => change.material === MATERIAL.air &&
       removedKeys.has(key([change.x, change.y, change.z]))),
     'world edits exactly match the removed base porous cells');
-  const columns = columnsFrom(removed);
+  const columns = columnsFrom(world, removed);
   const descriptor = { ...config.baseSoilGeometry, revision: checkpoint.revision, cells: remaining,
     reservoirs: columns, surfaceEdges: surfaceEdges(columns, config.surfaceCoefficient) };
   const { ports, contacts } = columnContacts(world, descriptor, columns, removed);

@@ -60,7 +60,7 @@ test('host time and player excavation grants are distinct; unsupported geometry 
   assert.throws(() => region.dispatch('wet-world-host', dig('wrong', 0)), /forbidden/);
   region.dispatch('wet-world-player', dig('first', 0));
   const before = region.readCommitted();
-  assert.throws(() => region.dispatch('wet-world-player', dig('stone-floor', 1, 0, 13)), /porous floor/);
+  assert.throws(() => region.dispatch('wet-world-player', dig('unowned-stone', 1, 0, 12)), /remaining owned/);
   assert.deepEqual(region.readCommitted(), before);
   assert.equal(region.readEvents(0).length, 1);
 });

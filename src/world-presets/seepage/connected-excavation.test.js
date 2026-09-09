@@ -4,6 +4,7 @@ import { createWetClearing } from './wet-clearing.mjs';
 import { createExcavationAdapter } from './excavation.mjs';
 import { createVolumeGeometry } from '../../engine/environment/soil/index.js';
 import { createVoxelWorld, MATERIAL } from '../height-caves.mjs';
+import { deriveTopology } from './topology.mjs';
 
 const bounds = { min: [-4, 11, 124], max: [5, 18, 133] };
 const column = (adapter, state, at) => adapter.read(state).soil.nodes.find(node =>
@@ -42,10 +43,10 @@ test('two real generated cuts regenerate shared contacts, preserve prior water a
   assert.deepEqual(fresh.advance(restored, 6).state, adapter.advance(flowing.state, 6).state);
 });
 
-test('unknown side water, actual stone floor and corruption reject without changing the current owner', () => {
+test('unknown side water, unowned stone excavation and corruption reject without changing the current owner', () => {
   const { adapter, input, target } = createWetClearing({ connected: true });
   const cut = adapter.excavate(input, { at: target }).state, frozen = adapter.encode(cut);
-  assert.throws(() => adapter.excavate(cut, { at: [target[0], target[1] - 1, target[2]] }), /porous floor/);
+  assert.throws(() => adapter.excavate(cut, { at: [target[0], target[1] - 2, target[2]] }), /remaining owned/);
   assert.throws(() => adapter.excavate(cut, { at: [-1, target[1], target[2]] }), /canonical water ownership/);
   const duplicate = structuredClone(cut); duplicate.exports.push({ ...duplicate.exports[0] });
   assert.throws(() => adapter.parse(duplicate), /one wet-spoil/);
@@ -61,6 +62,45 @@ test('unknown side water, actual stone floor and corruption reject without chang
   outside.world = world.save();
   assert.throws(() => adapter.parse(outside), /exactly match the removed/);
   assert.equal(adapter.encode(cut), frozen);
+});
+
+test('deepening to real generated stone makes a0.54m ledge and preserves the same water owner', () => {
+  const { adapter, input, command, target } = createWetClearing({ connected: true });
+  const first = adapter.advance(adapter.excavate(input, command).state, 300).state;
+  const nextAt = [1, target[1], target[2]];
+  const two = adapter.excavate(first, { at: nextAt }).state;
+  const deepAt = [nextAt[0], nextAt[1] - 1, nextAt[2]];
+  const lowerBefore = column(adapter, two, nextAt), frozen = adapter.encode(two);
+  const deep = adapter.excavate(two, { at: deepAt }).state;
+  const lowerAfter = column(adapter, deep, deepAt);
+  assert.equal(adapter.encode(two), frozen);
+  assert.equal(lowerAfter.nodeId, lowerBefore.nodeId);
+  assert.equal(lowerAfter.massKg, lowerBefore.massKg);
+  assert.equal(lowerAfter.bottom, 'sealed');
+  assert.equal(lowerAfter.heightCells, 2);
+  assert.equal(lowerAfter.capacityKg, 1080);
+  assert.equal(lowerAfter.rimYM, lowerBefore.rimYM);
+  assert.equal(deep.exports.length, 3);
+  assert.equal(deep.soilState.timeS, two.soilState.timeS);
+  assert.equal(deep.soilState.steps, two.soilState.steps);
+  const currentWorld = createVoxelWorld(deep.world.identity, { checkpoint: deep.world });
+  assert.equal(currentWorld.readPoint({ x: deepAt[0], y: deepAt[1] - 1, z: deepAt[2] }), MATERIAL.stone);
+  const { owner } = deriveTopology(adapter.definition, currentWorld);
+  const coarse = adapter.advance(deep, 6);
+  const fine = owner.advance(deep.soilState, 6, { dtMaxS: .1 });
+  const edge = coarse.receipt.faceIds.findIndex(id => id.startsWith('surface:'));
+  assert.ok(edge >= 0 && coarse.receipt.faceTransferKg[edge] > 0);
+  assert.ok(column(adapter, coarse.state, deepAt).massKg > 0);
+  assert.ok(Math.abs(coarse.balance.residualKg) < 2e-9);
+  // Predeclared game-scale comparison for this generated32-node/6s consumer:
+  // water-height error within1% of one0.54m voxel, alongside strict conservation.
+  const reference = owner.read(fine.state).nodes.filter(node => node.kind === 'pit');
+  const errorM = Math.max(...reference.map(node => Math.abs(node.depthM -
+    adapter.read(coarse.state).soil.nodes.find(actual => actual.nodeId === node.nodeId).depthM)));
+  assert.ok(errorM <= .0054, `six-second water-height error${errorM}m`);
+  const fresh = createExcavationAdapter(adapter.definition);
+  const restored = fresh.decode(adapter.encode(coarse.state));
+  assert.deepEqual(fresh.advance(restored, 6).state, adapter.advance(coarse.state, 6).state);
 });
 
 test('all known stock capacities are derived from current world geometry, without saved duplicate columns', () => {

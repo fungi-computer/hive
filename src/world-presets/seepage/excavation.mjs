@@ -5,7 +5,7 @@ import { same, ordered, immutable, exactFields, coordinate, restoreWorld,
   excavateWorld, metric, requireCondition } from './world-binding.mjs';
 import { deriveTopology, assertBaseGeometry, soilNodeId } from './topology.mjs';
 
-const VERSION = 'height-caves-connected-excavation-v4';
+const VERSION = 'height-caves-connected-excavation-v5';
 const MAX_ENCODED = 1048576;
 const STATE_FIELDS = ['version', 'identity', 'world', 'soilState', 'initialWaterKg', 'exports'];
 const own = value => immutable(decodeData(encodeData(value, MAX_ENCODED), MAX_ENCODED));
