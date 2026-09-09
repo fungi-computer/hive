@@ -44,6 +44,57 @@ its claim/recovery machinery as a Hive scheduler. The fixed simulation clock and
 libcolony still own in-world time and assignment. A durable host execution receipt
 is distinct from a committed game command and eventual physical work completion.
 
+### Engine systems compose into a game — Levi's Plug clarification
+
+Levi explicitly meant the **engine**, not the Three editor: reusable open-source
+systems should have a small extension contract, and Goblin Bed & Breakfast should
+be their composition with game definitions. The Plug comparison expresses this
+product requirement; it does not select an Elixir dependency or imply that an
+HTTP middleware chain supplies simulation semantics.
+
+Current source has useful beginnings, not this completed surface:
+`engine/region` admits a `RegionProgram` and owns transactional state/receipts;
+`engine/materials` accepts definitions; `engine/world` accepts an opaque generator.
+`world-presets/goblin-region.ts` still calls the existing monolithic Clearing step.
+A successful Goblin DO restart therefore does not prove independently composable
+work, needs or environmental systems.
+
+The first composition must assemble these actual owners. Each registered system
+declares a stable identity/version, validated definitions, owned saved data and
+migration, required capabilities and typed operations. Dependencies and conflicts
+are checked before a world opens. A system queries other owners and invokes their
+operations on the transaction's detached candidate; it receives no unrestricted
+mutable world map. Cross-owner effects commit together with the command receipt.
+The region persists the resolved system/version configuration so changing package
+order or code cannot silently reinterpret a saved world.
+
+There remains one deterministic clock and assignment owner. Work phases run in
+explicit dependency order with fixed work budgets; they do not each start timers,
+Promises, alarms or their own optimizer. Independent systems may compose only
+where their declared resource effects permit it. Watchdog/native DO wake belongs
+to the host; external speech, network calls and publication follow durable event
+obligations after physical commit. Registered code is reconstructed at startup;
+saved plans contain checked IDs/data, never callbacks.
+
+Illustrative desired authoring shape (not an implemented API):
+
+```ts
+const goblin = composeWorld({
+  systems: [materials, bodiesAndMovement, work, waterAndSoil, needs],
+  definitions: [goblinTerrain, goblinBodies, farming, brewing, hospitality],
+});
+const region = openRegion({ owner: durableObjectStorage, program: goblin });
+```
+
+The acceptance test is a second game/consumer assembling the same maintained
+systems with different content, plus a second supported recipe without editing
+the engine. Removing or upgrading a system with saved dependents requires an
+explicit migration or rejects before mutation. Cycles, missing capabilities,
+duplicate state/operation ownership and conflicting execution order reject at
+composition. A wrapper around Clearing, a universal event bus, or another copy
+of hauling cannot satisfy this. Package the boundaries once the real consumers
+prove them; do not create a plugin language or runtime loader as a substitute.
+
 ### Debugging is an engine consumer
 
 Optional diagnostic adapters read the owners' actual queries: geometry/surface/
