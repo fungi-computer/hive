@@ -159,6 +159,45 @@ its progress neither replaces nor completes water/gas/world integration.
 
 ### Current parallel custody
 
+**Latest measured correction, September 9:** the first full main-game workload
+is retained at `goblin-wet` pin `4afe1c4`. `u4325` completed the frozen 20/80/60
+tick benchmark, then failed before opening Chromium because `libnspr4.so` was
+not on the browser child's library path. There is no input/render evidence from
+that attempt. All owned processes and port 5198 closed; the shared window was
+returned. The existing provisioned browser-library directory is recorded for
+the next authorized child invocation; no installation or rerun was started.
+
+The full-game 50ms target remains **unmet**: mean wall time per tick was
+178.9/119.5/74.6ms; aggregate CPU per tick was52.5/40.8/31.7ms. These are a
+shared-host run, not isolated browser capacity or per-tick p95 CPU. Separate
+samples measured 20 field advances at 26.252ms CPU, versus 20 full 225-column
+query passes at 587.054ms CPU. The samples are not additive profiling. Source
+inspection found repeated world-description copying and schema construction
+inside tile queries. `engine_core_pm` now owns that bounded query/projection
+correction in `goblin-wet` after importing `9977f85`; unchanged physics, exact
+outputs, invalidation and branch isolation are required. Another benchmark or
+browser session waits for Delivery's release. Preserve the original failure.
+
+**Deep-water source checkpoint:** reviewed `905f170` is joined as `9977f85`.
+The same generated-world excavation and finite stock owner now deepens an
+existing vented shaft through real stone. One tagged record per removed voxel
+distinguishes porous water-bearing soil from impermeable stone; stone exports
+zero water and creates no fictitious pore node. Current format is v6 with no
+predecessor reader. The actual 17-cell witness crosses y=0 while preserving the
+same nonzero water stock, column identity, clock and reference total. Its31
+hydraulic unknowns cover 29 porous nodes and two columns; the geometry limit of
+32 cells per column is not a 32-cell hydraulic qualification. The 17-cell flow
+refinement error is 0.180mm against the unchanged 5.4mm tolerance.
+
+Final six deep/Region laws (`u4326`), 12 affected existing laws (`u4322`), strict
+types (`u4323`) and the named actual-libcolony trench/save/soil-yield law (`u4329`)
+passed. Root read the source and Fallow findings; retained contact complexity
+and estimated-coverage advisories remain. This is source/Node SQLite evidence,
+not a new native DO, browser or hosted result. Main-game stone items remain
+gated until the real material/work caller joins them. The released water reader
+now traces field-to-pail units and custody in ignored notes only; it owns no
+concurrent material or main-terrain writer.
+
 **Latest custody, September 9 (supersedes the staffing below):** King Bolete
 owns the environment worktree, actual finite fuel/air consumer and integration.
 Native `engine_core_pm` pinned the isolated `goblin-wet` worktree's coupled
@@ -305,6 +344,16 @@ predeclared reduction. The single time refinement reproduced that change within
 air-path response under the declared approximation, not safe ventilation or smoke
 clearance. Preserve the original failed criterion and both histories. No room
 render, actor-health, main-game join, DO crash or deployed-air claim follows.
+
+**Authored-room presentation checkpoint:** `scene_document_review` pinned
+`033bf881` in its isolated `air-view` worktree. Two worker laws (`u4302`) and
+source/syntax checks passed. Its original Three-to-Pixi view consumes the actual
+room's cells, finite fuel and shutter state, with optional fixed-scale heat/smoke
+overlays. It is receiving a source-only plain-language presentation pass and
+unchanged kettle-fire geometry composed only while the real fuel is burning.
+It has no browser/rendered-art or hosted acceptance yet. The room uses the
+explicit foundation in `9c98db2`, matched to the numerical scenario; that authored
+foundation is not the generated playable world's completed air producer join.
 
 ### Historical source handoffs below
 
