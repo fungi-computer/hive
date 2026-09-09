@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "include": [
     "../../src/engine/controllers/mycelium.mts",
-    "quarry.mts"
+    "quarry.mts",
+    "goblin.mts",
+    "goblin.test.mts"
   ],
   "compilerOptions": {
     "lib": [
