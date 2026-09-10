@@ -595,7 +595,7 @@ export function createHiveClient({
         }
         frameEpoch = event.epoch;
         frameSequence = event.sequence;
-        interpolation.push(event);
+        interpolation.push(event, performance.now());
         draw();
         renderHud();
       }

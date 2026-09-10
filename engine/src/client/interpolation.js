@@ -34,15 +34,17 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
   let latestSequence = -1;
   let anchor;
   let paused = false;
+  let awaitingAnchor = false;
   let frozen;
   function reset(nextEpoch) {
     frames.length = 0;
     epoch = nextEpoch;
     latestSequence = -1;
     anchor = undefined;
+    awaitingAnchor = false;
     frozen = undefined;
   }
-  function push(frame) {
+  function push(frame, receivedAt = performance.now()) {
     if (
       !Number.isInteger(frame.sequence) ||
       !Number.isFinite(frame.time) ||
@@ -57,6 +59,10 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     const discontinuity =
       latestSequence >= 0 && frame.sequence !== latestSequence + 1;
     latestSequence = frame.sequence;
+    if (anchor === undefined && Number.isFinite(receivedAt)) {
+      anchor = receivedAt - frame.time * 1000;
+      awaitingAnchor = false;
+    }
     frames.push({
       epoch: frame.epoch,
       sequence: frame.sequence,
@@ -65,7 +71,6 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
       facts: copyFacts(frame.facts),
     });
     if (frames.length > MAX_FRAMES) frames.shift();
-    if (anchor === undefined) anchor = undefined;
     return true;
   }
   function render(
@@ -81,9 +86,11 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     if (paused) {
       paused = false;
       anchor = undefined;
+      awaitingAnchor = true;
       frozen = undefined;
     }
     const latest = frames.at(-1);
+    if (awaitingAnchor) return copyFacts(latest.facts);
     anchor ??= now - latest.time * 1000;
     const target = (now - anchor - delayMs) / 1000;
     let before = frames[0],
