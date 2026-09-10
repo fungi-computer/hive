@@ -138,6 +138,15 @@ export interface GamePack {
   readonly components: readonly ComponentDefinition<any>[];
   readonly systems: readonly SystemDefinition[];
   readonly initialActions?: readonly ActionRequest[];
+  readonly commands?: Readonly<
+    Record<
+      string,
+      (
+        context: Pick<ReadContext, "query">,
+        input: unknown,
+      ) => readonly ActionRequest[]
+    >
+  >;
 }
 export interface GamePackTransport {
   readonly id: GameId;

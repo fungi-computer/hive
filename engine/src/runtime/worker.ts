@@ -8,6 +8,11 @@ import { GameSession } from "./session";
 import type { SessionSnapshot } from "./session";
 
 export type WorkerCommand =
+  | {
+      readonly type: "command";
+      readonly name: string;
+      readonly input?: unknown;
+    }
   | { readonly type: "start"; readonly game: string; readonly seed?: number }
   | { readonly type: "pause" | "resume" | "reset" }
   | { readonly type: "step"; readonly delta: number }
@@ -54,6 +59,8 @@ export class WorkerRuntime {
         session.reset();
         this.emit({ type: "frame", facts: session.renderFacts() });
       } else if (command.type === "action") session.request(command.action);
+      else if (command.type === "command")
+        session.command(command.name, command.input);
       else if (command.type === "save")
         this.emit({ type: "saved", snapshot: session.save() });
       else if (command.type === "restore") {

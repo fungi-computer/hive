@@ -92,11 +92,35 @@ export const survivalPack: GamePack = {
   version: 1,
   components: [Position, FoodLot, Carrying, Selected, Survivor, Condition],
   systems: [survival],
+  commands: {
+    takeFood(context) {
+      const lot = context.query(query(FoodLot)).find((row) => {
+        const value = row.get(FoodLot);
+        return (
+          value.container === lockerId &&
+          value.kind === "bread" &&
+          value.quantity > 0
+        );
+      });
+      if (!lot) throw new Error("The locker is empty");
+      return [transfer(lot.id, lockerId, survivorId, 1)];
+    },
+    eatFood(context) {
+      const lot = context.query(query(FoodLot)).find((row) => {
+        const value = row.get(FoodLot);
+        return (
+          value.container === survivorId &&
+          value.kind === "bread" &&
+          value.quantity > 0
+        );
+      });
+      if (!lot) throw new Error("Pick up some bread first");
+      return [consume(survivorId, lot.id, 1)];
+    },
+  },
   definition: encodeDefinition(
     "survival",
     [Position, FoodLot, Carrying, Selected, Survivor, Condition],
     survivalInitial,
   ),
 };
-export const takeFood = () => transfer(foodId, lockerId, survivorId, 1);
-export const eatFood = () => consume(survivorId, foodId, 1);

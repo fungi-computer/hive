@@ -98,6 +98,18 @@ export class GameSession {
       throw new Error("pending action limit reached");
     this.pendingActions.push(checkedAction(action));
   }
+  command(name: string, input: unknown): void {
+    const handler = this.pack.commands?.[name];
+    if (!handler || !Object.hasOwn(this.pack.commands ?? {}, name))
+      throw new Error("unknown game command");
+    const actions = handler(
+      { query: (spec) => this.port.query(spec) },
+      structuredClone(input),
+    ).map(checkedAction);
+    if (this.pendingActions.length + actions.length > 128)
+      throw new Error("pending action limit reached");
+    this.pendingActions.push(...actions);
+  }
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta))
       throw new Error("delta must be finite and between zero and one second");

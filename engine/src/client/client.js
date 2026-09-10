@@ -119,7 +119,7 @@ export function createHiveClient({
             "div",
             { className: "hive-actions" },
             mode === "survival"
-              ? "WASD / arrows move · E open · F consume"
+              ? "Select survivor · WASD / arrows move · E take bread · F eat"
               : "Click selects · Shift adds · drag selects a group · right click orders",
           ),
           React.createElement(
@@ -297,8 +297,7 @@ export function createHiveClient({
     if (isTypingTarget(event.target)) return;
     const key = event.key.toLowerCase();
     if (mode === "survival") {
-      const id = state.selectedIds[0],
-        lot = state.selectedIds[1];
+      const id = state.selectedIds[0];
       const actor = state.subjects.find((subject) => subject.id === id);
       if (
         [
@@ -334,14 +333,10 @@ export function createHiveClient({
           kind: "action",
           action: { kind: "move", entity: id, destination },
         });
-      } else if ((key === "e" || key === "f") && id && lot)
-        emit({
-          kind: "action",
-          action:
-            key === "e"
-              ? { kind: "transfer", lot, from: lot, to: id, quantity: 1 }
-              : { kind: "consume", entity: id, lot, quantity: 1 },
-        });
+      } else if (key === "e" || key === "f") {
+        event.preventDefault();
+        runtime.send({ type: "command", name: key === "e" ? "takeFood" : "eatFood" });
+      }
     }
   }
   async function start() {
