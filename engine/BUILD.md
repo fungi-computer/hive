@@ -207,3 +207,9 @@ and nondecreasing display time. u4947 passed six laws and failed the added recov
 fixture because its single initial snapshot did not exercise starvation. Corrected
 two-snapshot fixture alone passed u4948. Existing six laws were not replayed.
 No browser smoothness or online-host claim follows from these isolated checks.
+
+King personally viewed the 32-frame goblin contact sheet at
+`.botanical/fresh-walk-art/contact.png`: four orientations, eight walk frames
+from the unchanged original figure builder. Silhouette/leg motion and fixed bake
+placement are accepted as asset evidence. This does not yet prove client motion
+under actual input. Generated bank bytes are committed together after this review.
