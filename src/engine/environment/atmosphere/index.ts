@@ -47,7 +47,7 @@ function owner(compiled: CompiledAtmosphere) {
     ) => advanceAtmosphere(compiled, state, seconds, options),
     rebind: (state: unknown, nextDefinition: unknown) => {
       const next = compileAtmosphere(nextDefinition);
-      return rebindAtmosphere(compiled, state, next.definition, next);
+      return rebindAtmosphere(compiled, state, next.definition);
     },
     encode: (state: unknown) => {
       const encoded = JSON.stringify(validateState(compiled, state));

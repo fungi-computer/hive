@@ -161,10 +161,9 @@ export function rebindAtmosphere(
   old: CompiledAtmosphere,
   input: unknown,
   nextInput: unknown,
-  nextCompiled?: CompiledAtmosphere,
 ): AtmosphereRebindResult {
   const state = validateState(old, input),
-    next = nextCompiled ?? compileAtmosphere(nextInput);
+    next = compileAtmosphere(nextInput);
   if (
     !samePolicy(old, next) ||
     next.definition.revision <= old.definition.revision

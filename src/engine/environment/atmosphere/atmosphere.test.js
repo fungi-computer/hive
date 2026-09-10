@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createAtmosphere } from "./index.ts";
+import { compileAtmosphere, updateAtmosphereGeometry } from "./definition.ts";
 
 const ambient = { pressurePa: 100_000, temperatureK: 300 };
 const model = {
@@ -576,4 +577,69 @@ test("rebound state belongs to its next definition, never the previous owner", (
     smokeKg: 0,
     heatJ: 0,
   });
+});
+
+test("metric successor retains topology and admits only its canonical compiled definition", () => {
+  const before = compileAtmosphere(
+    definition({
+      volumes: [
+        volume("a", [member("cell:0,0,0")]),
+        volume("b", [member("cell:1,0,0")]),
+      ],
+      openings: [opening("door", "a", "b")],
+    }),
+  );
+  const delta = {
+    geometryIdentity: "metrics:1",
+    revision: 1,
+    memberVolumes: [{ volumeId: "a", cellId: "cell:0,0,0", volumeM3: 0.9 }],
+    openingAreas: [{ openingId: "door", areaM2: 0.8 }],
+  };
+  const next = updateAtmosphereGeometry(before, delta);
+  assert.strictEqual(next.cellOwner, before.cellOwner);
+  assert.strictEqual(next.volumeIndex, before.volumeIndex);
+  assert.strictEqual(next.openingIndex, before.openingIndex);
+  assert.strictEqual(next.volumes[1], before.volumes[1]);
+  assert.strictEqual(next.volumeById.get("a"), next.volumes[0]);
+  assert.equal(next.volumes[0].volumeM3, 0.9);
+  assert.equal(next.openings[0].areaM2, 0.8);
+  assert.strictEqual(compileAtmosphere(next.definition), next);
+  const cold = compileAtmosphere(structuredClone(next.definition));
+  assert.notStrictEqual(cold, next);
+  assert.equal(cold.identity, next.identity);
+  assert.deepEqual(cold.volumes, next.volumes);
+  assert.throws(
+    () =>
+      updateAtmosphereGeometry(before, {
+        ...delta,
+        memberVolumes: [{ volumeId: "b", cellId: "cell:0,0,0", volumeM3: 1 }],
+      }),
+    /belongs|unknown/,
+  );
+  assert.throws(
+    () =>
+      updateAtmosphereGeometry(before, {
+        ...delta,
+        memberVolumes: [...delta.memberVolumes, ...delta.memberVolumes],
+      }),
+    /duplicate/,
+  );
+  assert.throws(() =>
+    updateAtmosphereGeometry(before, {
+      ...delta,
+      openingAreas: [{ openingId: "door", areaM2: 0 }],
+    }),
+  );
+  const bad = structuredClone(next.definition);
+  bad.openings[0].fromCellId = "missing";
+  assert.throws(() => compileAtmosphere(bad), /endpoints/);
+  const owner = createAtmosphere(before.definition);
+  const successor = createAtmosphere(next.definition);
+  const rebound = owner.rebind(initial(owner), next.definition);
+  assert.equal(rebound.status, "applied");
+  assert.strictEqual(successor.admit(rebound.state), rebound.state);
+  assert.deepEqual(
+    successor.decode(successor.encode(rebound.state)),
+    rebound.state,
+  );
 });
