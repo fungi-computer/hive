@@ -21,6 +21,7 @@ export type WorkerCommand =
   | { readonly type: "restore"; readonly snapshot: SessionSnapshot };
 export type WorkerEvent =
   | { readonly type: "ready"; readonly game: string }
+  | { readonly type: "restored" }
   | { readonly type: "state"; readonly paused: boolean }
   | { readonly type: "frame"; readonly facts: readonly RenderFact[] }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
@@ -66,6 +67,7 @@ export class WorkerRuntime {
         this.emit({ type: "saved", snapshot: session.save() });
       else if (command.type === "restore") {
         session.restore(command.snapshot);
+        this.emit({ type: "restored" });
         this.emit({ type: "frame", facts: session.renderFacts() });
       } else if (command.type === "step") {
         const results = session.step(command.delta);
