@@ -1,3 +1,4 @@
+import { checkedAction } from "./actions";
 import type { ActionRequest, ActionResult, GamePack, KernelPort, QuerySpec, QueryRow, RandomSource, SimulationClock, WriteContext, WriteIntent } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -28,7 +29,7 @@ export class GameSession {
   get isPaused(): boolean { return this.paused; }
   reset(): void { this.random.restore(this.seed); this.paused = false; this.now = 0; this.tick = 0; this.pendingActions = []; this.start(); }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] { return this.port.query(spec); }
-  request(action: ActionRequest): void { if (this.pendingActions.length >= 256) throw new Error("pending action limit reached"); this.pendingActions.push(structuredClone(action)); }
+  request(action: ActionRequest): void { if (this.pendingActions.length >= 128) throw new Error("pending action limit reached"); this.pendingActions.push(checkedAction(action)); }
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta)) throw new Error("delta must be finite and between zero and one second");
     if (this.paused) return [];
@@ -37,6 +38,7 @@ export class GameSession {
       const clock: SimulationClock = Object.freeze({ now: this.now, delta, tick: this.tick });
       const writes: WriteIntent[] = [];
       const actions: ActionRequest[] = this.pendingActions.splice(0);
+      let systemActionCount = 0;
       const context: WriteContext = {
       clock, random: this.random,
       query: spec => this.port.query(spec),
@@ -44,7 +46,10 @@ export class GameSession {
         if (["hive.position", "hive.body", "hive.container", "hive.lot", "hive.carrying", "hive.destination", "hive.obstacle", "hive.visual"].includes(definition.id)) throw new Error(`Physical component ${definition.id} is kernel-owned`);
         writes.push({ component: definition.id, entity, value });
       },
-      action: action => actions.push(action),
+      action: action => {
+        if (++systemActionCount > 128) throw new Error("game systems exceeded 128 actions per step");
+        actions.push(checkedAction(action));
+      },
       };
       for (const definition of this.pack.systems) {
         if (definition.every !== undefined && this.tick % definition.every !== 0) continue;
@@ -62,11 +67,8 @@ export class GameSession {
   save(): SessionSnapshot { return { format: "hive-session", version: 2, game: this.pack.id, gameVersion: this.pack.version, paused: this.paused, kernel: this.port.snapshot(), now: this.now, tick: this.tick, random: this.random.state(), pendingActions: structuredClone(this.pendingActions), systems: this.pack.systems.map(system => ({ id: system.id, version: system.version })) }; }
   restore(snapshot: SessionSnapshot): void {
     if (snapshot.format !== "hive-session" || snapshot.version !== 2 || snapshot.game !== this.pack.id || snapshot.gameVersion !== this.pack.version || typeof snapshot.paused !== "boolean" || snapshot.now < 0 || !Number.isFinite(snapshot.now) || !Number.isSafeInteger(snapshot.tick) || snapshot.tick < 0 || !Number.isInteger(snapshot.random) || snapshot.random < 0 || snapshot.random > 0xffffffff) throw new Error("invalid session snapshot");
-    if (!Array.isArray(snapshot.pendingActions) || snapshot.pendingActions.length > 256 || !Array.isArray(snapshot.systems)) throw new Error("invalid session queues");
-    const pending = structuredClone(snapshot.pendingActions);
-    for (const action of pending) {
-      if (!action || !["move", "transfer", "consume"].includes(action.kind)) throw new Error("invalid pending action");
-    }
+    if (!Array.isArray(snapshot.pendingActions) || snapshot.pendingActions.length > 128 || !Array.isArray(snapshot.systems)) throw new Error("invalid session queues");
+    const pending = snapshot.pendingActions.map(checkedAction);
     const canonical = JSON.parse(snapshot.kernel.json);
     const definition = JSON.parse(new TextDecoder().decode(this.pack.definition));
     if (canonical.scene?.game !== this.pack.id || canonical.time !== snapshot.now || canonical.revision !== snapshot.kernel.revision) throw new Error("snapshot world does not match session");
