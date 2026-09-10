@@ -4,6 +4,7 @@ import type { Footing } from "../world/footing.ts";
 export type { Footing } from "../world/footing.ts";
 export type Profile = Readonly<{
   clearanceVoxels: number;
+  maxWadingDepthM: number;
   flatTicks: number;
   upTicks: number;
   downTicks: number;
@@ -32,7 +33,12 @@ export type Space = {
     axis: "x" | "y" | "z",
     at: readonly [number, number, number],
   ): "closed" | "open" | "unresolved";
-  access(at: Footing): "allowed" | "blocked" | "needs-data";
+  /** Query eligibility for this occupied/swept cell relative to the actual
+   * body base; physical point/face clearance remains navigation-owned. */
+  access(
+    at: Footing,
+    body: Readonly<{ footing: Footing; profile: Profile }>,
+  ): "allowed" | "blocked" | "needs-data";
   links: readonly Link[];
 };
 export type Admission =
@@ -53,7 +59,9 @@ function checkedProfile(p: Profile) {
     ![p.clearanceVoxels, p.flatTicks, p.upTicks, p.downTicks].every(
       (n) => Number.isSafeInteger(n) && n > 0 && n <= 4096,
     ) ||
-    p.clearanceVoxels > 32
+    p.clearanceVoxels > 32 ||
+    !Number.isFinite(p.maxWadingDepthM) ||
+    p.maxWadingDepthM < 0
   )
     throw new Error("invalid navigation profile");
 }
@@ -61,11 +69,12 @@ function clearance(
   space: Space,
   p: Footing,
   height: number,
+  profile: Profile,
 ): "clear" | "blocked" | "needs-data" {
   for (let offset = 0; offset < height; offset++) {
     const y = p.y + offset;
     if (!Number.isSafeInteger(y)) return "needs-data";
-    const access = space.access({ x: p.x, y, z: p.z });
+    const access = space.access({ x: p.x, y, z: p.z }, { footing: p, profile });
     if (access !== "allowed") return access;
     const material = space.point([p.x, y, p.z]);
     if (material === "unresolved") return "needs-data";
@@ -105,7 +114,7 @@ export function standing(
 ): "supported" | "blocked" | "needs-data" {
   checkedPoint(p);
   checkedProfile(profile);
-  const room = clearance(space, p, profile.clearanceVoxels);
+  const room = clearance(space, p, profile.clearanceVoxels, profile);
   return room === "clear" ? supported(space, p) : room;
 }
 function checkedLink(link: Link): void {
@@ -156,10 +165,11 @@ function swept(
   space: Space,
   points: readonly Footing[],
   height: number,
+  profile: Profile,
 ): "clear" | "blocked" | "needs-data" {
   for (let i = 0; i < points.length; i++) {
     const p = points[i],
-      room = clearance(space, p, height);
+      room = clearance(space, p, height, profile);
     if (room !== "clear") return room;
     if (i === 0) continue;
     const prior = points[i - 1],
@@ -170,13 +180,14 @@ function swept(
       // higher-foot sweep may cross horizontally; the low column retains its
       // own vertical sweep up to that elevation.
       if (column.y === high) {
-        const upper = clearance(space, column, height);
+        const upper = clearance(space, column, height, profile);
         if (upper !== "clear") return upper;
       } else {
         const clear = clearance(
           space,
           column,
           height + Math.abs(prior.y - p.y),
+          profile,
         );
         if (clear !== "clear") return clear;
       }
@@ -268,7 +279,12 @@ export function admitEdge(
   }
   let unknown = false;
   for (const candidate of edgeChoices(space, from, to, profile)) {
-    const result = swept(space, candidate.points, profile.clearanceVoxels);
+    const result = swept(
+      space,
+      candidate.points,
+      profile.clearanceVoxels,
+      profile,
+    );
     if (result !== "clear") {
       unknown ||= result === "needs-data";
       continue;
@@ -301,12 +317,17 @@ function linkStillSupports(space: Space, edge: Edge): boolean {
     current.every((at, i) => same(at, edge.sweep[i]))
   );
 }
-export function edgeStillClear(space: Space, edge: Edge): boolean {
+export function edgeStillClear(
+  space: Space,
+  edge: Edge,
+  profile: Profile,
+): boolean {
+  checkedProfile(profile);
   return (
     linkStillSupports(space, edge) &&
     supported(space, edge.from) === "supported" &&
     supported(space, edge.to) === "supported" &&
-    swept(space, edge.sweep, edge.clearanceVoxels) === "clear"
+    swept(space, edge.sweep, edge.clearanceVoxels, profile) === "clear"
   );
 }
 
@@ -495,7 +516,7 @@ export function advanceRoute(
 ): Advance {
   const travel = body.traversal;
   if (!travel) return "idle";
-  if (!edgeStillClear(space, travel.edge)) return "waiting";
+  if (!edgeStillClear(space, travel.edge, profile)) return "waiting";
   travel.elapsed++;
   if (travel.elapsed < travel.edge.duration) return "moving";
   Object.assign(body, copy(travel.edge.to));
