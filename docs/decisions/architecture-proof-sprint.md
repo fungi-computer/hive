@@ -67,6 +67,13 @@ geometry limits. The stopped environment qualification remains unstarted;
 its earlier heavy-window release was explicitly withdrawn, and no numerical
 result is inferred from its prepared packet.
 
+**Structural spans, reaffirmed September10:** floors/roofs must span usable rooms
+without a wall under every tile. Hume's current vertical outcome owns one bounded
+support query, with a configurable six-step first Goblin span and real connected
+structural anchors. Enclosure, furniture occupancy and floor placement do not
+create unlimited support. Cover supported doorways; retain safe waiting on loss
+of support. Collapse is explicitly deferred. See the [current support decision](isometric-order-and-structural-support.md#current-support-direction--september-10).
+
 Actual `u4622` passed six desktop assertions: public Sedge parking, paused Dig,
 pawn completion/one soil lot, exact hollow inspection, close/box behavior and
 armed-Dig/right-click cancellation/reinspection. The earned hollow displayed

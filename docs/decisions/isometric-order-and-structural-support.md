@@ -1,5 +1,51 @@
 # Isometric ordering and structural support
 
+## Current support direction — September 10
+
+Levi explicitly reaffirmed that floors must span between supports, with spacing
+similar to RimWorld roofing. Collapse remains later work. This is part of the
+current playable vertical-world outcome, not an optional post-art follow-up.
+The released game does not yet implement it. The local d889904 query still
+accepts enclosed rooms or a directly underlying wall and excludes doorways;
+that is not the requested bounded structural-span owner.
+
+First Goblin rule: floors and roofs may reach **six horizontal tile steps** from
+a real load-bearing anchor. This is our configurable starting rule, not a claim
+of exact current RimWorld distance parity. Count cardinal surface connections
+without resetting distance at each floor tile. Every completed tile must have a
+finished connected path to an independently supported anchor within that span.
+Do not relay a chain of unsupported floors forever, or let a vertical cycle
+support itself. Roots come from actual terrain or completed structural definitions
+with a supported foundation, including wall tops and load-bearing door frames.
+Furniture does not become an anchor simply because it occupies space.
+
+One support query, parameterized by floor/roof content rules, serves preview,
+work readiness, detached completion, saved-state validation and prospective
+removal. Shelter/enclosure is a different query: an enclosed enormous room does
+not imply an unlimited span, and an open-sided platform need not be enclosed.
+Doorways do not receive a blanket no-floor-above exception. Planned surfaces may
+show future supported paths; physical completion waits for the supporting path
+to exist. Floors and roofs retain their distinct walkability and physical-face
+semantics at the same selected surface-height convention.
+
+Support overlays/feedback should show the anchor/reach and unsupported portion.
+Until collapse is implemented, new unsupported construction waits and removal
+of the last support waits for dependents; no surprise deletion, falling actors
+or debris is introduced. Revalidate all affected finished structures before
+publishing a removal, not only floors or an outer save check afterward.
+
+Hume owns this in the existing vertical-play lane together with actual stair
+construction access and slice/knowledge corrections. Root owns source review,
+integration and the eventual playable proof. No runtime or deployment acceptance
+is implied here. This supersedes the historical3×3-post-only proposal, two-level
+restriction and compatibility fallback below; current clean-break rules apply.
+
+Primary historical reference: [Tynan's roofing description](https://ludeon.com/blog/2013/08/sun-shadows/)
+confirms that roofing/support/collapse were connected game mechanisms. The
+[Roof Support Tool author's source](https://github.com/Rock5/RoofSupportTool)
+is a useful support-range visualization reference. Neither is used as evidence
+that Hive's six-step policy has been implemented or matches modern RimWorld exactly.
+
 Game CTO source/design disposition, 2026-09-08. Direct Levi feedback after upstairs publication: Rowan/bed overlaps look wrong; long isometric objects need footprint-aware ordering; a post should support roughly a 3×3 upper platform; eventual unsupported-roof collapse is desirable. This separates a current render defect from a support extension and later destructive simulation. No runtime or proof ran in this review.
 
 ## Confirmed renderer weakness
