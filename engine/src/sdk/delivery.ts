@@ -44,10 +44,10 @@ export const deliverySystem = system({
     const controls = ctx.query(query(DeliveryControl));
     const positions = ctx.query(query(Position));
     const lots = ctx.query(query(MaterialLot));
-    const activeActors = new Set(
+    const occupiedActors = new Set(
       tasks
         .map((row) => row.get(DeliveryTask))
-        .filter((task) => task.actor !== null && task.phase !== "complete")
+        .filter((task) => task.actor !== null)
         .map((task) => task.actor as EntityId),
     );
     const idleTasks = tasks.filter((row) => {
@@ -57,7 +57,7 @@ export const deliverySystem = system({
     });
     const candidates = controls.flatMap((controlRow) => {
       const control = controlRow.get(DeliveryControl);
-      if (!control.enabled || activeActors.has(controlRow.id)) return [];
+      if (!control.enabled || occupiedActors.has(controlRow.id)) return [];
       const actorPosition = positions.find((row) => row.id === controlRow.id)?.get(Position);
       if (!actorPosition) return [];
       return idleTasks.flatMap((taskRow) => {
@@ -84,7 +84,7 @@ export const deliverySystem = system({
         quantity: control.quantity,
         phase: "to-source",
       });
-      activeActors.add(assignment.worker);
+      occupiedActors.add(assignment.worker);
     }
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
@@ -100,8 +100,8 @@ export const deliverySystem = system({
       const lotState = lot?.get(MaterialLot);
       const actorLot = lots.find(
         (row) =>
-          row.get(MaterialLot).container === state.actor &&
-          row.get(MaterialLot).kind === state.material,
+          row.id === state.sourceLot &&
+          row.get(MaterialLot).container === state.actor,
       );
       const actorLotState = actorLot?.get(MaterialLot);
       if (!control?.enabled) {
@@ -142,11 +142,7 @@ export const deliverySystem = system({
         ctx.action(move(state.actor, destination.get(Position)));
       } else if (
         state.phase === "to-destination" &&
-        lots.some(
-          (row) =>
-            row.get(MaterialLot).container === state.destination &&
-            row.get(MaterialLot).kind === state.material,
-        )
+        lotState?.container === state.destination
       ) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "complete" });
       } else if (
