@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 #[serde(rename_all = "camelCase")]
 struct ImpactEvent {
     id: String,
+    sequence: u64,
     projectile_id: String,
     source_id: String,
     target_id: String,
@@ -18,6 +19,36 @@ struct ImpactEvent {
     point: Vector3,
     normal: Vector3,
     velocity: Vector3,
+}
+
+fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -> bool {
+    let bounds = [
+        (cell.0 as f64 - 0.5, cell.0 as f64 + 0.5),
+        (cell.2 as f64 - 0.5, cell.2 as f64 + 0.5),
+    ];
+    let coordinates = [(start.x, end.x), (start.z, end.z)];
+    let mut minimum = 0.0;
+    let mut maximum = 1.0;
+    for (axis, (from, to)) in coordinates.into_iter().enumerate() {
+        let delta = to - from;
+        if delta.abs() <= f64::EPSILON {
+            if from < bounds[axis].0 || from > bounds[axis].1 {
+                return false;
+            }
+            continue;
+        }
+        let mut entry = (bounds[axis].0 - from) / delta;
+        let mut exit = (bounds[axis].1 - from) / delta;
+        if entry > exit {
+            std::mem::swap(&mut entry, &mut exit);
+        }
+        minimum = minimum.max(entry);
+        maximum = maximum.min(exit);
+        if minimum > maximum {
+            return false;
+        }
+    }
+    true
 }
 
 pub struct Kernel {
@@ -35,6 +66,8 @@ pub struct Kernel {
     next_lot: u64,
     next_projectile: u64,
     next_impact: u64,
+    projectile_count: usize,
+    collider_ids: BTreeSet<String>,
     state_weight: usize,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
@@ -58,6 +91,8 @@ impl Kernel {
             next_lot: 1,
             next_projectile: 1,
             next_impact: 1,
+            projectile_count: 0,
+            collider_ids: BTreeSet::new(),
             state_weight: 0,
         }
     }
@@ -102,6 +137,17 @@ impl Kernel {
             }
         }
         world.rebuild_physical_indexes(build_routes)?;
+        world.projectile_count = world
+            .ids
+            .values()
+            .filter(|entity| world.ecs.get::<Projectile>(**entity).is_some())
+            .count();
+        world.collider_ids = world
+            .ids
+            .iter()
+            .filter(|(_, entity)| world.ecs.get::<Collider>(**entity).is_some())
+            .map(|(id, _)| id.clone())
+            .collect();
         world.state_weight = 1024
             + serde_json::to_vec(&world.registry.schemas.values().collect::<Vec<_>>())
                 .map_err(|e| e.to_string())?
@@ -524,6 +570,8 @@ impl Kernel {
             || state.next_lot == 0
             || state.next_projectile == 0
             || state.next_impact == 0
+            || state.next_projectile > 9_007_199_254_740_991
+            || state.next_impact > 9_007_199_254_740_991
             || state.revision > 9_007_199_254_740_991
         {
             return Err("invalid current snapshot".into());
@@ -541,6 +589,13 @@ impl Kernel {
         candidate.next_lot = state.next_lot;
         candidate.next_projectile = state.next_projectile;
         candidate.next_impact = state.next_impact;
+        for id in candidate.ids.keys() {
+            if let Some(sequence) = id.strip_prefix("shot.").and_then(|value| value.parse::<u64>().ok()) {
+                if sequence >= candidate.next_projectile {
+                    return Err("snapshot projectile counter collides with entity".into());
+                }
+            }
+        }
         *self = candidate;
         Ok(())
     }
@@ -588,9 +643,12 @@ impl Kernel {
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
     pub fn advance_json(&mut self, input: &str) -> Result<String> {
+        if input.len() > 1024 * 1024 {
+            return Err("batch too large".into());
+        }
         let needs_staging = serde_json::from_str::<Batch>(input)
             .map(|batch| {
-                !self.projectile_ids().is_empty()
+                self.projectile_count > 0
                     || batch.actions.iter().any(|action| {
                         matches!(action, Action::Launch { .. } | Action::Displace { .. })
                     })
@@ -662,7 +720,7 @@ impl Kernel {
             .actions
             .into_iter()
             .map(|action| {
-                let result = self.apply_action(action);
+                let result = self.apply_action(action, batch.delta);
                 ActionResult {
                     accepted: result.is_ok(),
                     projectile_id: result.as_ref().ok().and_then(|id| id.clone()),
@@ -671,8 +729,8 @@ impl Kernel {
                 }
             })
             .collect::<Vec<_>>();
-        self.advance_movement(batch.delta);
         let impacts = self.advance_projectiles(batch.delta)?;
+        self.advance_movement(batch.delta);
         self.time += batch.delta;
         serde_json::to_string(&json!({"revision":self.revision,"results":results,"impacts":impacts}))
             .map_err(|e| e.to_string())
@@ -699,7 +757,7 @@ impl Kernel {
         }
         Ok(())
     }
-    fn apply_action(&mut self, action: Action) -> Result<Option<String>> {
+    fn apply_action(&mut self, action: Action, delta: f64) -> Result<Option<String>> {
         match action {
             Action::Move {
                 entity,
@@ -765,7 +823,7 @@ impl Kernel {
                 launcher,
                 ammunition,
                 velocity,
-            } => self.launch(&launcher, &ammunition, velocity),
+            } => self.launch(&launcher, &ammunition, velocity, delta),
             Action::Displace { entity, delta } => {
                 self.displace(&entity, delta)?;
                 Ok(None)
@@ -779,7 +837,13 @@ impl Kernel {
             .map(|(id, _)| id.clone())
             .collect()
     }
-    fn launch(&mut self, launcher_id: &str, ammunition: &str, velocity: Vector3) -> Result<Option<String>> {
+    fn launch(
+        &mut self,
+        launcher_id: &str,
+        ammunition: &str,
+        velocity: Vector3,
+        delta: f64,
+    ) -> Result<Option<String>> {
         let launcher_entity = self.entity(launcher_id)?;
         let launcher = self
             .ecs
@@ -806,16 +870,51 @@ impl Kernel {
         if !speed.is_finite() || speed <= 0.0 || speed > launcher.max_speed {
             return Err("launch velocity exceeds launcher limit".into());
         }
-        if self.projectile_ids().len() >= combat::MAX_ACTIVE_PROJECTILES || self.ids.len() >= 16384 {
+        if self.projectile_count >= combat::MAX_ACTIVE_PROJECTILES || self.ids.len() >= 16384 {
             return Err("projectile capacity exhausted".into());
         }
         let radians = launcher_position.facing * std::f64::consts::FRAC_PI_2;
         let (sin, cos) = radians.sin_cos();
         let muzzle_x = cos * launcher.muzzle_x - sin * launcher.muzzle_z;
         let muzzle_z = sin * launcher.muzzle_x + cos * launcher.muzzle_z;
-        let support_velocity = self.world_linear_velocity(launcher_entity, 0)?;
+        let support_velocity = self.world_linear_velocity(launcher_entity, delta)?;
         let projectile_id = format!("shot.{}", self.next_projectile);
-        self.next_projectile = self.next_projectile.checked_add(1).ok_or("projectile ID exhausted")?;
+        let next_projectile = self.next_projectile.checked_add(1).ok_or("projectile ID exhausted")?;
+        if self.known.contains(&projectile_id) {
+            return Err("projectile ID collides with existing entity".into());
+        }
+        let projected_weight = self.state_weight
+            + projectile_id.len()
+            + 128
+            + self.registry.weight(
+                "hive.position",
+                &record(&Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }),
+            )
+            + self.registry.weight(
+                "hive.projectile",
+                &record(&Projectile {
+                    launcher: launcher_id.into(),
+                    velocity_x: velocity.x,
+                    velocity_y: velocity.y,
+                    velocity_z: velocity.z,
+                    radius: launcher.projectile_radius,
+                    age: 0.0,
+                    distance: 0.0,
+                    max_range: launcher.max_range,
+                    max_lifetime: launcher.max_lifetime,
+                }),
+            )
+            + self.registry.weight(
+                "hive.visual",
+                &record(&Visual {
+                    sprite: launcher.projectile_sprite.clone(),
+                    label: launcher.projectile_label.clone(),
+                }),
+            );
+        if projected_weight > STATE_BYTES {
+            return Err("region canonical state capacity".into());
+        }
+        self.next_projectile = next_projectile;
         lot.quantity -= 1;
         self.ecs.entity_mut(lot_entity).insert(lot);
         let projectile_entity = self.ecs.spawn((
@@ -837,13 +936,15 @@ impl Kernel {
                 max_range: launcher.max_range,
                 max_lifetime: launcher.max_lifetime,
             },
+            Visual {
+                sprite: launcher.projectile_sprite,
+                label: launcher.projectile_label,
+            },
         )).id();
         self.ids.insert(projectile_id.clone(), projectile_entity);
         self.known.insert(projectile_id.clone());
+        self.projectile_count += 1;
         self.refresh_state_weight();
-        if self.state_weight > STATE_BYTES {
-            return Err("region canonical state capacity".into());
-        }
         Ok(Some(projectile_id))
     }
     fn displace(&mut self, id: &str, delta: Vector3) -> Result<()> {
@@ -856,10 +957,21 @@ impl Kernel {
         }
         let entity = self.entity(id)?;
         let current = *self.ecs.get::<Position>(entity).ok_or("no position")?;
+        if delta.y.abs() > 1e-9 {
+            return Err("vertical displacement is unsupported on current surfaces".into());
+        }
+        let (local_x, local_z) = if let Some(support_id) = self.support_id(entity) {
+            let support = self.world_pose(&support_id)?;
+            let radians = support.facing * std::f64::consts::FRAC_PI_2;
+            let (sin, cos) = radians.sin_cos();
+            (cos * delta.x + sin * delta.z, -sin * delta.x + cos * delta.z)
+        } else {
+            (delta.x, delta.z)
+        };
         let target = Point {
-            x: current.x + delta.x,
-            y: current.y + delta.y,
-            z: current.z + delta.z,
+            x: current.x + local_x,
+            y: current.y,
+            z: current.z + local_z,
             frame: self.support_id(entity),
         };
         if let Some(bounds) = self.frame_bounds(target.frame.as_deref())? {
@@ -871,14 +983,27 @@ impl Kernel {
                 return Err("displacement leaves support surface".into());
             }
         }
-        if navigation::cell(target.clone()) != navigation::cell(navigation::point(current)) {
-            return Err("displacement crosses a navigation cell".into());
+        let min_x = current.x.min(target.x).floor() as i32 - 1;
+        let max_x = current.x.max(target.x).ceil() as i32 + 1;
+        let min_z = current.z.min(target.z).floor() as i32 - 1;
+        let max_z = current.z.max(target.z).ceil() as i32 + 1;
+        if let Some(blocked) = self.blocked_by_frame.get(&self.support_id(entity)) {
+            for x in min_x..=max_x {
+                for z in min_z..=max_z {
+                    let cell = (x, navigation::cell(navigation::point(current)).1, z);
+                    if blocked.contains(&cell) && segment_intersects_cell(&navigation::point(current), &target, cell) {
+                        return Err("displacement enters an obstacle".into());
+                    }
+                }
+            }
         }
-        if self.blocked_by_frame
-            .get(&self.support_id(entity))
-            .is_some_and(|blocked| blocked.contains(&navigation::cell(target.clone())))
-        {
-            return Err("displacement enters an obstacle".into());
+        if self.ecs.get::<Destination>(entity).is_some() {
+            let destination = self.ecs.get::<Destination>(entity).cloned().ok_or("missing destination")?;
+            self.state_weight = self.state_weight.saturating_sub(
+                self.registry.weight("hive.destination", &record(&destination)),
+            );
+            self.ecs.entity_mut(entity).remove::<Destination>();
+            self.routes.remove(&entity);
         }
         self.ecs.entity_mut(entity).insert(Position {
             x: target.x,
@@ -888,34 +1013,38 @@ impl Kernel {
         });
         Ok(())
     }
-    fn world_linear_velocity(&self, entity: Entity, depth: usize) -> Result<[f64; 3]> {
+    fn predicted_world_pose(&self, entity: Entity, delta: f64, depth: usize) -> Result<Position> {
         if depth > 16 {
             return Err("support chain exceeds depth 16".into());
         }
         let local = *self.ecs.get::<Position>(entity).ok_or("no position")?;
-        let mut velocity = [0.0; 3];
+        let mut predicted = local;
         if let Some(path) = self.routes.get(&entity) {
-            if let Some(next) = path.front() {
-                let speed = self.ecs.get::<Body>(entity).map_or(0.0, |body| body.speed);
-                let dx = next.x - local.x;
-                let dz = next.z - local.z;
-                let length = (dx * dx + dz * dz).sqrt();
-                if length > 1e-9 {
-                    velocity[0] = dx / length * speed;
-                    velocity[2] = dz / length * speed;
-                }
-            }
+            let mut remaining = path.clone();
+            let speed = self.ecs.get::<Body>(entity).map_or(0.0, |body| body.speed);
+            navigation::advance(&mut predicted, &mut remaining, speed * delta);
         }
         if let Some(support) = self.ecs.get::<Support>(entity) {
             let parent = self.entity(&support.entity)?;
-            let parent_position = *self.ecs.get::<Position>(parent).ok_or("no support position")?;
-            let parent_velocity = self.world_linear_velocity(parent, depth + 1)?;
+            let parent_position = self.predicted_world_pose(parent, delta, depth + 1)?;
             let radians = parent_position.facing * std::f64::consts::FRAC_PI_2;
             let (sin, cos) = radians.sin_cos();
-            let rotated = [cos * velocity[0] - sin * velocity[2], velocity[1], sin * velocity[0] + cos * velocity[2]];
-            velocity = [rotated[0] + parent_velocity[0], rotated[1] + parent_velocity[1], rotated[2] + parent_velocity[2]];
+            return Ok(Position {
+                x: parent_position.x + cos * predicted.x - sin * predicted.z,
+                y: parent_position.y + predicted.y,
+                z: parent_position.z + sin * predicted.x + cos * predicted.z,
+                facing: parent_position.facing + predicted.facing,
+            });
         }
-        Ok(velocity)
+        Ok(predicted)
+    }
+    fn world_linear_velocity(&self, entity: Entity, delta: f64) -> Result<[f64; 3]> {
+        if delta <= 0.0 {
+            return Ok([0.0; 3]);
+        }
+        let start = self.world_pose_entity(entity, 0)?;
+        let end = self.predicted_world_pose(entity, delta, 0)?;
+        Ok([(end.x - start.x) / delta, (end.y - start.y) / delta, (end.z - start.z) / delta])
     }
     fn advance_projectiles(&mut self, delta: f64) -> Result<Vec<ImpactEvent>> {
         let mut impacts = Vec::new();
@@ -940,16 +1069,56 @@ impl Kernel {
                 self.ecs.despawn(entity);
                 self.ids.remove(&projectile_id);
                 self.known.remove(&projectile_id);
+                self.projectile_count = self.projectile_count.saturating_sub(1);
                 continue;
             }
             let mut candidates = Vec::new();
-            for (target_id, target_entity) in &self.ids {
+            let projectile_end = [
+                position.x + projectile.velocity_x * sweep_delta,
+                position.y + projectile.velocity_y * sweep_delta,
+                position.z + projectile.velocity_z * sweep_delta,
+            ];
+            for target_id in &self.collider_ids {
                 if target_id == &projectile_id || target_id == &projectile.launcher {
                     continue;
                 }
+                let target_entity = self.ids.get(target_id).ok_or("collider index is stale")?;
                 let Some(collider) = self.ecs.get::<Collider>(*target_entity) else { continue };
                 let target_position = self.world_pose_entity(*target_entity, 0)?;
-                let target_velocity = self.world_linear_velocity(*target_entity, 0)?;
+                let target_end = self.predicted_world_pose(*target_entity, sweep_delta, 0)?;
+                if matches!(collider.shape, ColliderShape::Cuboid)
+                    && (target_end.facing - target_position.facing).abs() > 1e-9
+                {
+                    continue;
+                }
+                let target_velocity = self.world_linear_velocity(*target_entity, sweep_delta)?;
+                let extent = match collider.shape {
+                    ColliderShape::Ball => collider.radius,
+                    ColliderShape::Cuboid => collider.half_x.max(collider.half_y).max(collider.half_z),
+                } + projectile.radius;
+                let projectile_min = [
+                    position.x.min(projectile_end[0]) - extent,
+                    position.y.min(projectile_end[1]) - extent,
+                    position.z.min(projectile_end[2]) - extent,
+                ];
+                let projectile_max = [
+                    position.x.max(projectile_end[0]) + extent,
+                    position.y.max(projectile_end[1]) + extent,
+                    position.z.max(projectile_end[2]) + extent,
+                ];
+                let target_min = [
+                    target_position.x.min(target_end.x) - extent,
+                    target_position.y.min(target_end.y) - extent,
+                    target_position.z.min(target_end.z) - extent,
+                ];
+                let target_max = [
+                    target_position.x.max(target_end.x) + extent,
+                    target_position.y.max(target_end.y) + extent,
+                    target_position.z.max(target_end.z) + extent,
+                ];
+                if (0..3).any(|axis| projectile_max[axis] < target_min[axis] || target_max[axis] < projectile_min[axis]) {
+                    continue;
+                }
                 candidates.push(collision::Collider {
                     id: target_id.clone(),
                     shape: match collider.shape {
@@ -962,6 +1131,9 @@ impl Kernel {
                 });
             }
             candidates.sort_by(|a, b| a.id.cmp(&b.id));
+            if candidates.len() > 256 {
+                return Err("swept collider candidate budget exceeded".into());
+            }
             let hit = collision::sweep_projectile(
                 &collision::Projectile {
                     id: projectile_id.clone(),
@@ -977,10 +1149,14 @@ impl Kernel {
                 if impacts.len() >= combat::MAX_IMPACTS_PER_STEP {
                     return Err("impact event budget exceeded".into());
                 }
+                if self.next_impact > 9_007_199_254_740_991 {
+                    return Err("impact sequence exhausted".into());
+                }
                 let impact_id = format!("{}/impact.{}", projectile_id, self.next_impact);
                 self.next_impact = self.next_impact.checked_add(1).ok_or("impact ID exhausted")?;
                 impacts.push(ImpactEvent {
                     id: impact_id,
+                    sequence: self.next_impact - 1,
                     projectile_id: projectile_id.clone(),
                     source_id: projectile.launcher.clone(),
                     target_id: hit.target_id,
@@ -992,10 +1168,12 @@ impl Kernel {
                 self.ecs.despawn(entity);
                 self.ids.remove(&projectile_id);
                 self.known.remove(&projectile_id);
+                self.projectile_count = self.projectile_count.saturating_sub(1);
             } else if sweep_delta < delta || sweep_delta <= 0.0 {
                 self.ecs.despawn(entity);
                 self.ids.remove(&projectile_id);
                 self.known.remove(&projectile_id);
+                self.projectile_count = self.projectile_count.saturating_sub(1);
             } else {
                 let distance = projectile.distance + speed * delta;
                 self.ecs.entity_mut(entity).insert((
@@ -1099,5 +1277,121 @@ impl Kernel {
                 true
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod combat_tests {
+    use super::Kernel;
+    use serde_json::json;
+
+    fn combat_scene() -> String {
+        serde_json::to_string(&json!({
+            "format": "hive-game",
+            "version": 1,
+            "game": "formation-combat",
+            "components": [],
+            "initial": [
+                {"id":"cannon", "components": {
+                    "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
+                    "hive.container":{"capacity":4},
+                    "hive.launcher":{"ammoKind":"cannonball","muzzleX":0.0,"muzzleY":0.0,"muzzleZ":0.0,"maxSpeed":20.0,"projectileRadius":0.1,"maxRange":20.0,"maxLifetime":5.0,"projectileSprite":"cannonball","projectileLabel":"Cannonball"}
+                }},
+                {"id":"ball", "components": {
+                    "hive.position":{"x":3.0,"y":0.0,"z":0.0,"facing":0.0},
+                    "hive.collider":{"shape":"ball","radius":0.5,"halfX":0.0,"halfY":0.0,"halfZ":0.0,"yaw":0.0}
+                }},
+                {"id":"ammo", "components": {
+                    "hive.lot":{"kind":"cannonball","quantity":1,"container":"cannon"}
+                }}
+            ]
+        }))
+        .expect("combat fixture")
+    }
+
+    #[test]
+    fn public_advance_returns_one_launch_and_one_new_impact() {
+        let mut kernel = Kernel::new();
+        kernel.load(&combat_scene()).expect("load combat fixture");
+        let response = kernel
+            .advance_json(
+                r#"{"delta":0.5,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("launch and sweep");
+        let value: serde_json::Value = serde_json::from_str(&response).expect("response JSON");
+        assert_eq!(value["results"][0]["accepted"], true);
+        assert_eq!(value["results"][0]["projectileId"], "shot.1");
+        assert_eq!(value["impacts"][0]["sourceId"], "cannon");
+        assert_eq!(value["impacts"][0]["targetId"], "ball");
+        assert!(value["impacts"][0]["time"].as_f64().unwrap() > 0.0);
+    }
+
+    #[test]
+    fn rejected_launch_does_not_spend_ammo_or_allocate_projectile() {
+        let mut kernel = Kernel::new();
+        kernel.load(&combat_scene()).expect("load combat fixture");
+        let response = kernel
+            .advance_json(
+                r#"{"delta":0.0,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":100.0,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("rejected action remains a valid batch");
+        let value: serde_json::Value = serde_json::from_str(&response).expect("response JSON");
+        assert_eq!(value["results"][0]["accepted"], false);
+        let rows: serde_json::Value = serde_json::from_str(
+            &kernel.query_json(r#"["hive.lot"]"#).expect("lot query"),
+        )
+        .expect("lot JSON");
+        let ammo = rows
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == "ammo")
+            .expect("ammo lot");
+        assert_eq!(ammo["components"]["hive.lot"]["quantity"], 1);
+        assert!(!kernel
+            .render_json()
+            .expect("render")
+            .contains("shot.1"));
+    }
+
+    #[test]
+    fn public_displace_crosses_cells_without_teleporting_through_obstacle() {
+        let scene = combat_scene().replace(
+            "\"hive.collider\":{\"shape\":\"ball\",\"radius\":0.5,\"halfX\":0.0,\"halfY\":0.0,\"halfZ\":0.0,\"yaw\":0.0}",
+            "\"hive.collider\":{\"shape\":\"ball\",\"radius\":0.5,\"halfX\":0.0,\"halfY\":0.0,\"halfZ\":0.0,\"yaw\":0.0},\"hive.obstacle\":{\"occupied\":false}",
+        );
+        let mut kernel = Kernel::new();
+        kernel.load(&scene).expect("load combat fixture");
+        let response = kernel
+            .advance_json(
+                r#"{"delta":0.0,"writes":[],"actions":[{"kind":"displace","entity":"cannon","delta":{"x":1.5,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("displace across cells");
+        let value: serde_json::Value = serde_json::from_str(&response).expect("response JSON");
+        assert_eq!(value["results"][0]["accepted"], true);
+        let facts: serde_json::Value = serde_json::from_str(&kernel.render_json().expect("render"))
+            .expect("render JSON");
+        let cannon = facts
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|fact| fact["id"] == "cannon")
+            .expect("cannon fact");
+        assert_eq!(cannon["local"]["position"]["x"], 1.5);
+    }
+
+    #[test]
+    fn public_snapshot_restores_in_flight_projectile_and_counter() {
+        let mut kernel = Kernel::new();
+        kernel.load(&combat_scene()).expect("load combat fixture");
+        kernel
+            .advance_json(
+                r#"{"delta":0.05,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("launch");
+        let snapshot = kernel.snapshot_json().expect("snapshot");
+        let mut restored = Kernel::new();
+        restored.restore_json(&snapshot).expect("restore");
+        assert_eq!(restored.snapshot_json().expect("restored snapshot"), snapshot);
     }
 }
