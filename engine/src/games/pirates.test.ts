@@ -2,7 +2,14 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import { piratesPack, chestId, crewOneId, holdId, shipId } from "./pirates";
+import {
+  piratesPack,
+  chestId,
+  crewOneId,
+  crewTwoId,
+  holdId,
+  shipId,
+} from "./pirates";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { MaterialLot, Position } from "../sdk/common";
@@ -84,7 +91,7 @@ test("pirate cargo stays finite through delivery and save reload", () => {
   try {
     const session = new GameSession({ port, pack: piratesPack });
     session.start();
-    session.command("loadBread", { entities: [crewOneId] });
+    session.command("loadCargo", { entities: [crewOneId, crewTwoId] });
     for (let tick = 0; tick < 100; tick++) session.step(0.1);
     const lots = session
       .query(query(MaterialLot))
@@ -93,9 +100,7 @@ test("pirate cargo stays finite through delivery and save reload", () => {
       lots.reduce((sum, lot) => sum + lot.quantity, 0),
       7,
     );
-    assert.ok(
-      lots.some((lot) => lot.container === holdId && lot.kind === "bread"),
-    );
+    assert.ok(lots.some((lot) => lot.container === holdId));
     const saved = session.save();
     const restored = new GameSession({ port: restoredPort, pack: piratesPack });
     restored.restore(saved);

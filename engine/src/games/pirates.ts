@@ -31,7 +31,6 @@ const breadId = entity("pirates.bread");
 const woodId = entity("pirates.wood");
 const breadTaskId = entity("pirates.delivery.bread");
 const woodTaskId = entity("pirates.delivery.wood");
-const crewIds = [crewOneId, crewTwoId] as const;
 
 const shipFrame = shipId;
 const piratesInitial = [
@@ -166,27 +165,27 @@ function selectedEntities(input: unknown): EntityId[] {
     throw new Error("selection must contain distinct entities");
   return selected;
 }
-function selectedCrew(context: Pick<ReadContext, "query">, input: unknown) {
-  const parsed = moveInput.parse(input);
-  const selected = selectedEntities({ entities: parsed.entities });
-  if (selected.some((id) => !(crewIds as readonly EntityId[]).includes(id)))
-    throw new Error("only crew can use this command");
+function controlledCrew(
+  context: Pick<ReadContext, "query">,
+  selected: readonly EntityId[],
+) {
   const crewRows = context.query(query(PirateCrew));
-  if (selected.some((id) => !crewRows.some((row) => row.id === id)))
-    throw new Error("only crew can use this command");
+  if (
+    selected.some(
+      (id) =>
+        !crewRows.some(
+          (row) => row.id === id && row.get(PirateCrew).controlled,
+        ),
+    )
+  )
+    throw new Error("selected entities must be controlled crew");
   const rows = context.query(query(Support));
   const supports = selected.map(
     (id) => rows.find((row) => row.id === id)?.get(Support).entity,
   );
   if (supports.some((support: unknown) => support !== shipFrame))
     throw new Error("crew must remain supported by the ship");
-  return {
-    selected,
-    destination: {
-      ...parsed.destination,
-      frame: parsed.destination.frame as EntityId | null,
-    },
-  };
+  return selected;
 }
 
 export const piratesPack: GamePack = {
@@ -210,11 +209,15 @@ export const piratesPack: GamePack = {
           selected.length === 1 &&
           shipRows.some((row) => row.id === selected[0]);
         if (allCrew) {
-          const crew = selectedCrew(context, input);
-          if (crew.destination.frame !== shipFrame)
+          const crew = controlledCrew(context, selected);
+          if (parsed.destination.frame !== shipFrame)
             throw new Error("crew destinations must name the ship frame");
+          const destination = {
+            ...parsed.destination,
+            frame: parsed.destination.frame as EntityId | null,
+          };
           return {
-            actions: crew.selected.map((id) => move(id, crew.destination, 0)),
+            actions: crew.map((id) => move(id, destination, 0)),
             writes: [],
           };
         }
@@ -261,41 +264,19 @@ export const piratesPack: GamePack = {
         };
       },
     }),
-    loadBread: command({
-      reads: [PirateCrew],
+    loadCargo: command({
+      reads: [PirateCrew, Support],
       writes: [DeliveryControl],
-      run(_context, input) {
+      run(context, input) {
         const selected = selectedEntities(input);
-        if (selected.length !== 1 || selected[0] !== crewOneId)
-          throw new Error("bread is assigned to deckhand one");
+        const crew = controlledCrew(context, selected);
         return {
           actions: [],
-          writes: [
-            {
-              component: DeliveryControl.id,
-              entity: crewOneId,
-              value: { enabled: true, quantity: 1 },
-            },
-          ],
-        };
-      },
-    }),
-    loadWood: command({
-      reads: [PirateCrew],
-      writes: [DeliveryControl],
-      run(_context, input) {
-        const selected = selectedEntities(input);
-        if (selected.length !== 1 || selected[0] !== crewTwoId)
-          throw new Error("wood is assigned to deckhand two");
-        return {
-          actions: [],
-          writes: [
-            {
-              component: DeliveryControl.id,
-              entity: crewTwoId,
-              value: { enabled: true, quantity: 1 },
-            },
-          ],
+          writes: crew.map((entity) => ({
+            component: DeliveryControl.id,
+            entity,
+            value: { enabled: true, quantity: 1 },
+          })),
         };
       },
     }),
@@ -304,16 +285,10 @@ export const piratesPack: GamePack = {
   presentation: {
     controls: [
       {
-        id: "load-bread",
-        label: "Load bread",
-        command: "loadBread",
-        input: { entities: [crewOneId] },
-      },
-      {
-        id: "load-wood",
-        label: "Load wood",
-        command: "loadWood",
-        input: { entities: [crewTwoId] },
+        id: "load-cargo",
+        label: "Load cargo",
+        command: "loadCargo",
+        input: { entities: [crewOneId, crewTwoId] },
       },
       {
         id: "turn-east",
