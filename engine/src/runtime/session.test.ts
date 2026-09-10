@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { GameSession } from "./session";
-import { command } from "../sdk/authoring";
+import { command, entity } from "../sdk/authoring";
 import { Position, Support, Surface } from "../sdk/common";
 import type {
   AssignmentCandidate,
@@ -71,7 +71,7 @@ class TestPort implements KernelPort {
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] {
     return _spec.components.some((component) => component.id === morale.id)
       ? [{
-          id: "actor",
+          id: entity("actor"),
           get: <V extends object>(_definition: ComponentDefinition<V>) => ({ value: 0 } as V),
         }]
       : [];
@@ -185,9 +185,9 @@ test("a rejected action returns its result while the simulation step advances", 
 const impact: Impact = {
   id: "impact.1",
   sequence: 1,
-  projectileId: "projectile.1",
-  sourceId: "source.1",
-  targetId: "target.1",
+  projectileId: entity("projectile.1"),
+  sourceId: entity("source.1"),
+  targetId: entity("target.1"),
   time: 0.1,
   point: { x: 1, y: 0, z: 0 },
   normal: { x: -1, y: 0, z: 0 },
@@ -284,7 +284,7 @@ test("consumer failure rolls back authored writes and retries the impact once", 
     writes: [morale],
     run: (context) => {
       if (context.impacts.length > 0) {
-        context.write(morale, "actor", { value: 9 });
+        context.write(morale, entity("actor"), { value: 9 });
         if (fail) throw new Error("authored consumer failed");
       }
     },
