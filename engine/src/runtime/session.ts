@@ -329,9 +329,12 @@ export class GameSession {
       return;
     }
     if (this.pendingImpacts.length === 0) return;
-    const frontiers = [...this.impactFrontiers.values()];
-    if (frontiers.some((frontier) => frontier === null)) return;
-    const removeThrough = Math.min(...frontiers) as number;
+    const frontiers: number[] = [];
+    for (const frontier of this.impactFrontiers.values()) {
+      if (frontier === null) return;
+      frontiers.push(frontier);
+    }
+    const removeThrough = Math.min(...frontiers);
     this.pendingImpacts = this.pendingImpacts.filter(
       (impact) => impact.sequence > removeThrough,
     );
@@ -434,7 +437,7 @@ export class GameSession {
       this.random.restore(before.random);
       this.pendingActions = [...before.pendingActions];
       this.pendingWrites = [...before.pendingWrites];
-      this.pendingImpacts = structuredClone(before.pendingImpacts);
+      this.pendingImpacts = [...structuredClone(before.pendingImpacts)];
       this.impactHighWater = before.impactHighWater;
       this.impactFrontiers = new Map(
         before.impactFrontiers.map((frontier) => [frontier.system, frontier.sequence]),

@@ -33,6 +33,7 @@ export function authoringContractProof(): void {
   guarded.run({
     clock: { now: 0, delta: 1, tick: 0 },
     random: { next: () => 0.5 },
+    impacts: [],
     outcomes: [],
     query: () => [],
     assign: () => [],
