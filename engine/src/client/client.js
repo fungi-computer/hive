@@ -88,6 +88,8 @@ export function createHiveClient({
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
+  let frameSequence = 0;
+  let frameEpoch;
   let groundSprite = null;
   let art = null;
   let resizeObserver = null;
@@ -276,6 +278,7 @@ export function createHiveClient({
         .sample(state.subjects, {
           now: performance.now(),
           paused: state.paused,
+          sequence: frameSequence,
         })
         .map((sample) => [sample.id, sample]),
     );
@@ -489,6 +492,7 @@ export function createHiveClient({
     const pack = await loadStaticArtPack();
     art = pack.art;
     state.disposeArt = pack.dispose;
+    app.ticker.add(draw);
     draw();
     renderHud();
     app.canvas.addEventListener("pointerdown", pointerDown);
@@ -567,6 +571,9 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "frame") {
+        if (frameEpoch !== event.epoch) animationClock.reset();
+        frameEpoch = event.epoch;
+        frameSequence = event.sequence;
         state.subjects = event.facts
           .filter((fact) => fact.pose?.position)
           .map((fact) => ({
@@ -628,6 +635,7 @@ export function createHiveClient({
     dispose() {
       if (state.disposed) return;
       state.disposed = true;
+      app.ticker?.remove(draw);
       unsubscribeRuntime?.();
       runtime?.dispose();
       hudRoot.unmount();

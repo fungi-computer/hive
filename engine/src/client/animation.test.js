@@ -3,6 +3,13 @@ import { test } from "node:test";
 import { createAnimationClock, animationFrames } from "./animation.js";
 
 const actor = (id, x, z, facing = 0) => ({ id, x, y: 0, z, facing });
+test("extra render frames retain walking until a new stationary sample", () => {
+  const clock = createAnimationClock();
+  clock.sample([actor("a", 0, 0)], { now: 0, sequence: 1 });
+  assert.equal(clock.sample([actor("a", 1, 0)], { now: 33, sequence: 2 })[0].walking, true);
+  assert.equal(clock.sample([actor("a", 1, 0)], { now: 50, sequence: 2 })[0].walking, true);
+  assert.equal(clock.sample([actor("a", 1, 0)], { now: 66, sequence: 3 })[0].walking, false);
+});
 test("movement samples select walk and measured direction, stationary samples return idle", () => {
   const clock = createAnimationClock({ frameMs: 100 });
   assert.deepEqual(clock.sample([actor("a", 0, 0)], { now: 0 }), [
@@ -12,7 +19,7 @@ test("movement samples select walk and measured direction, stationary samples re
     { id: "a", walking: true, direction: 1, frame: 2 },
   ]);
   assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 350 }), [
-    { id: "a", walking: false, direction: 1, frame: 2 },
+    { id: "a", walking: false, direction: 0, frame: 0 },
   ]);
 });
 test("pause freezes history and reset clears teleport-looking motion", () => {

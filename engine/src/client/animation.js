@@ -13,7 +13,7 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
   let phase = 0;
   let lastNow;
   return {
-    sample(subjects, { now = 0, paused = false, reset = false } = {}) {
+    sample(subjects, { now = 0, paused = false, reset = false, sequence } = {}) {
       if (reset) {
         history.clear();
         states.clear();
@@ -42,6 +42,7 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
           continue;
         }
         const previous = history.get(subject.id);
+        const repeated = sequence !== undefined && previous?.sequence === sequence;
         const dx = previous ? subject.x - previous.x : 0;
         const dz = previous ? subject.z - previous.z : 0;
         const moved = Boolean(
@@ -50,14 +51,14 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
         const direction = directionFromVector(dx, dz, subject.facing);
         const state = {
           id: subject.id,
-          walking: moved,
-          direction,
-          frame: moved
+          walking: repeated ? states.get(subject.id)?.walking ?? false : moved,
+          direction: repeated ? states.get(subject.id)?.direction ?? direction : direction,
+          frame: (repeated ? states.get(subject.id)?.walking : moved)
             ? Math.floor(phase / frameMs)
             : Math.floor(phase / (frameMs * 4)),
         };
         sampled.push(state);
-        history.set(subject.id, { x: subject.x, y: subject.y, z: subject.z });
+        history.set(subject.id, { x: subject.x, y: subject.y, z: subject.z, sequence });
         states.set(subject.id, state);
       }
       return sampled;
