@@ -1,5 +1,6 @@
 import { project, groundPoint } from "./geometry.js";
 import { presentationCommand } from "../presentation.ts";
+import { animationFrames, createAnimationClock } from "./animation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -55,15 +56,19 @@ export function createHiveClient({
       state.pendingSave = true;
       state.message = "Save requested…";
       runtime.send({ type: "save" });
-    } else if (runtime && action.kind === "reset")
+    } else if (runtime && action.kind === "reset") {
+      animationClock.reset();
+      animationNow = 0;
       runtime.send({ type: "reset" });
-    else if (action.kind === "continue") {
+    } else if (action.kind === "continue") {
       try {
         const saved = localStorage.getItem(saveKey);
         if (!saved) throw new Error("No saved world yet");
         const snapshot = JSON.parse(saved);
         state.pendingRestore = true;
         state.message = "Continue requested…";
+        animationClock.reset();
+        animationNow = 0;
         runtime.send({ type: "restore", snapshot });
       } catch (error) {
         state.pendingRestore = false;
@@ -80,6 +85,11 @@ export function createHiveClient({
   root.replaceChildren(canvasHost, hud);
   const app = new Application();
   const overlay = new Container();
+  const actorLayer = new Container();
+  const actorCache = new Map();
+  const animationClock = createAnimationClock();
+  let groundSprite = null;
+  let animationNow = 0;
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
@@ -248,57 +258,90 @@ export function createHiveClient({
   }
   function draw() {
     if (!app.stage) return;
-    for (const child of overlay.removeChildren())
-      child.destroy?.({ children: true, texture: false, textureSource: false });
-    const ground = art?.ground
-      ? new Sprite(art.ground)
-      : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
-    ground.anchor?.set?.(0.5);
-    ground.position.set(
+    if (!groundSprite) {
+      groundSprite = art?.ground
+        ? new Sprite(art.ground)
+        : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
+      groundSprite.anchor?.set?.(0.5);
+      overlay.addChild(groundSprite, actorLayer);
+    }
+    groundSprite.position.set(
       320 * camera.zoom + camera.x,
       200 * camera.zoom + camera.y,
     );
-    ground.scale.set(camera.zoom);
-    overlay.addChild(ground);
-    const subjectTexture =
-      art?.figures?.goblin?.idle?.[0]?.[0] || art?.figures?.cat?.idle?.[0]?.[0];
+    groundSprite.scale.set(camera.zoom);
+    animationNow += 16;
+    const animationById = new Map(
+      animationClock
+        .sample(state.subjects, { now: animationNow, paused: state.paused })
+        .map((sample) => [sample.id, sample]),
+    );
+    const liveIds = new Set(state.subjects.map((subject) => subject.id));
+    for (const [id, entry] of actorCache) {
+      if (liveIds.has(id)) continue;
+      entry.container.destroy({
+        children: true,
+        texture: false,
+        textureSource: false,
+      });
+      actorCache.delete(id);
+    }
     for (const subject of [...state.subjects].sort(
       (a, b) => a.x + a.z - b.x - b.z,
     )) {
       subject.screen = screenPoint(subject);
-      const marker = new Graphics()
-        .ellipse(subject.screen.x, subject.screen.y, 18, 9)
+      const isContainer = subject.visual === "crate";
+      let entry = actorCache.get(subject.id);
+      if (!entry) {
+        entry = {
+          container: new Container(),
+          marker: new Graphics(),
+          pawn: new Sprite(),
+          label: new Text({
+            style: {
+              fontFamily: getComputedStyle(root).fontFamily,
+              fontSize: 12,
+              fill: 0xf7edcf,
+            },
+          }),
+        };
+        entry.container.eventMode = "none";
+        entry.container.addChild(entry.marker, entry.pawn, entry.label);
+        actorLayer.addChild(entry.container);
+        actorCache.set(subject.id, entry);
+      }
+      const animation = animationById.get(subject.id);
+      entry.marker
+        .clear()
+        .ellipse(0, 0, 18, 9)
         .stroke({
           color: state.selectedIds.includes(subject.id) ? 0xe8c779 : 0x5f8f7c,
           width: 2,
         });
-      marker.eventMode = "none";
-      if (state.selectedIds.includes(subject.id)) overlay.addChild(marker);
-      else marker.destroy();
-      const isContainer = subject.visual === "crate";
+      entry.marker.visible = state.selectedIds.includes(subject.id);
+      const figure = art?.figures?.goblin || art?.figures?.cat;
+      const frames = isContainer
+        ? []
+        : animationFrames(
+            figure,
+            animation?.direction ?? 0,
+            animation?.walking ?? false,
+          );
       const texture = isContainer
         ? art?.buildings?.shelf?.finished?.[0]
-        : subjectTexture;
-      if (texture) {
-        const pawn = new Sprite(texture);
-        pawn.anchor.set(0.5, isContainer ? art.propAnchor.y : art.pawnAnchor.y);
-        pawn.position.set(subject.screen.x, subject.screen.y);
-        pawn.scale.set(camera.zoom);
-        pawn.eventMode = "none";
-        overlay.addChild(pawn);
-      }
-      const label = new Text({
-        text: subject.name,
-        style: {
-          fontFamily: getComputedStyle(root).fontFamily,
-          fontSize: 12,
-          fill: 0xf7edcf,
-        },
-      });
-      label.anchor.set(0.5, 1);
-      label.position.set(subject.screen.x, subject.screen.y - 12);
-      if (state.selectedIds.includes(subject.id)) overlay.addChild(label);
-      else label.destroy();
+        : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
+      if (texture) entry.pawn.texture = texture;
+      entry.pawn.visible = Boolean(texture);
+      entry.pawn.anchor.set(
+        0.5,
+        isContainer ? art.propAnchor.y : art.pawnAnchor.y,
+      );
+      entry.pawn.scale.set(camera.zoom);
+      entry.label.text = subject.name;
+      entry.label.anchor.set(0.5, 1);
+      entry.label.position.set(0, -12);
+      entry.label.visible = state.selectedIds.includes(subject.id);
+      entry.container.position.set(subject.screen.x, subject.screen.y);
     }
     const drag = gesture.getSnapshot().context;
     if (
@@ -527,6 +570,7 @@ export function createHiveClient({
             x: fact.pose.position.x,
             y: fact.pose.position.y,
             z: fact.pose.position.z,
+            facing: fact.pose.facing,
             visual: fact.visual,
             screen: { x: 0, y: 0 },
           }));

@@ -1,0 +1,39 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { createAnimationClock, animationFrames } from "./animation.js";
+
+const actor = (id, x, z, facing = 0) => ({ id, x, y: 0, z, facing });
+test("movement samples select walk and measured direction, stationary samples return idle", () => {
+  const clock = createAnimationClock({ frameMs: 100 });
+  assert.deepEqual(clock.sample([actor("a", 0, 0)], { now: 0 }), [
+    { id: "a", walking: false, direction: 0, frame: 0 },
+  ]);
+  assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 250 }), [
+    { id: "a", walking: true, direction: 1, frame: 2 },
+  ]);
+  assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 350 }), [
+    { id: "a", walking: false, direction: 1, frame: 2 },
+  ]);
+});
+test("pause freezes history and reset clears teleport-looking motion", () => {
+  const clock = createAnimationClock();
+  clock.sample([actor("a", 0, 0)], { now: 0 });
+  const frozen = clock.sample([actor("a", 1, 0)], {
+    now: 100,
+    paused: true,
+  })[0];
+  assert.deepEqual(
+    clock.sample([actor("a", 0, 0)], { now: 200, paused: true })[0],
+    frozen,
+  );
+  clock.reset();
+  assert.equal(clock.sample([actor("a", 5, 5)], { now: 0 })[0].walking, false);
+});
+test("walk falls back to the actual idle bank when no walk frames exist", () => {
+  const idle = ["idle-frame"];
+  assert.deepEqual(animationFrames({ idle: [idle] }, 0, true), idle);
+  assert.deepEqual(
+    animationFrames({ idle: [idle], walk: [["walk-frame"]] }, 0, true),
+    ["walk-frame"],
+  );
+});
