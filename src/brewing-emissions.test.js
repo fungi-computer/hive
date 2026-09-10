@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createClearing, step } from "./clearing.ts";
 import { BUILDINGS, siteMaterialEndpoint } from "./construction.js";
-import { admitBrew, attendBrew, brewStationReadiness } from "./brewing.ts";
+import {
+  admitBrew,
+  attendBrew,
+  brewStationReadiness,
+  brewAtmosphereProblem,
+} from "./brewing.ts";
 import { HERBAL_ALE_V1 } from "./recipes.ts";
 import { placementFooting } from "./game-space.ts";
 import { terrainEnvironment } from "./terrain.ts";
@@ -25,6 +30,14 @@ const geometry = (state) => ({
 });
 const facts = (state) =>
   airEnvironmentFacts(state.air, state.water, geometry(state));
+
+function elapsedTicks(state, ticks) {
+  for (let tick = 0; tick < ticks; tick++)
+    Object.assign(
+      state,
+      advancePaidEnvironment(state, state.materials, geometry(state), 1),
+    );
+}
 
 // Explicit staged-input fixture: this proves real payment/environment callers,
 // not gathering, construction cost or an earned whole-game save.
@@ -111,10 +124,7 @@ test("actual brew payment and finite air release keep one receipt through pause 
   step(state, null);
   assert.deepEqual(state, paused);
   state.paused = false;
-  Object.assign(
-    state,
-    advancePaidEnvironment(state, state.materials, geometry(state), 107),
-  );
+  elapsedTicks(state, 107);
   const source = geometry(state);
   const water = parseWaterEnvironment(structuredClone(state.water), source);
   const air = parseAirEnvironment(structuredClone(state.air), water, source);
@@ -124,10 +134,7 @@ test("actual brew payment and finite air release keep one receipt through pause 
     airEnvironmentFacts(air, water, source),
   );
   Object.assign(state, { water, air, atmosphereReleases });
-  Object.assign(
-    state,
-    advancePaidEnvironment(state, state.materials, source, 13),
-  );
+  elapsedTicks(state, 13);
   assert.equal(state.atmosphereReleases.obligations[0].elapsedTicks, 120);
   const emitted = facts(state).source;
   for (const [quantity, expected] of Object.entries(
@@ -143,6 +150,28 @@ test("actual brew payment and finite air release keep one receipt through pause 
   );
   assert.deepEqual(facts(state).source, emitted);
   assert.deepEqual(state.materials, paid);
+});
+
+test("saved active source cannot move to another existing gas cell", () => {
+  const { state, receiver } = readyBatch();
+  assert.equal(attendBrew(state, "paid-batch").value, "fermenting");
+  assert.equal(brewAtmosphereProblem(state), null);
+  const another = facts(state).cells.find((cell) => cell.id !== receiver);
+  assert(another);
+  const moved = {
+    ...state.atmosphereReleases,
+    obligations: state.atmosphereReleases.obligations.map((entry) => ({
+      ...entry,
+      cellId: another.id,
+    })),
+  };
+  // Both cells exist and source totals still match, so generic air admission
+  // succeeds. The actual game's material/process/station relation rejects it.
+  parsePaidAtmosphereReleases(moved, state.materials, facts(state));
+  assert.match(
+    brewAtmosphereProblem({ ...state, atmosphereReleases: moved }),
+    /detached from its hearth/,
+  );
 });
 
 test("a flooded source waits before payment and cannot replace an already owed receiver", () => {

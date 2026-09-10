@@ -33,7 +33,10 @@ import { placementFooting } from "./game-space.ts";
 import { terrainEnvironment } from "./terrain.ts";
 import { GOBLIN_BREW_ATMOSPHERE_RELEASE } from "./world-presets/goblin-atmosphere.ts";
 import { airEnvironmentFacts } from "./world-presets/goblin-environment/air-state.ts";
-import { registerPaidAtmosphereRelease } from "./world-presets/goblin-environment/paid-releases.ts";
+import {
+  registerPaidAtmosphereRelease,
+  paidAtmosphereReleaseFacts,
+} from "./world-presets/goblin-environment/paid-releases.ts";
 
 export type BrewSupplyRequirement = {
   role: string;
@@ -668,6 +671,44 @@ type BrewAttendance =
   | MaterialResult<"working" | "fermenting" | "settled">
   | { readonly ok: true; readonly value: "waiting"; readonly reason: string };
 
+function brewSourceCell(station: Site): string {
+  const at = placementFooting(station);
+  const offset = GOBLIN_BREW_ATMOSPHERE_RELEASE.sourceOffsetVoxels;
+  return `cell:${at.x + offset[0]},${at.y + offset[1]},${at.z + offset[2]}`;
+}
+
+/** While a burn is owed, its actual process/station owns physical placement.
+ * Completed obligations retain provenance without requiring a live station. */
+export function brewAtmosphereProblem(state: Clearing): string | null {
+  const releases = paidAtmosphereReleaseFacts(
+    state.atmosphereReleases,
+    state.materials,
+    airEnvironmentFacts(state.air, state.water, {
+      terrain: terrainEnvironment(state.terrain),
+      sites: state.sites,
+    }),
+  );
+  const processes = new Map(
+    state.processes.map((process) => [process.binding, process]),
+  );
+  const stations = new Map(state.sites.map((site) => [site.id, site]));
+  for (const release of releases.obligations) {
+    if (release.remainingS === 0) continue;
+    const process = processes.get(release.transformationId);
+    const station = process && stations.get(process.station);
+    if (
+      !process ||
+      process.phase !== "ferment" ||
+      !station ||
+      station.type !== "brew-station" ||
+      station.finishedAt === null ||
+      release.cellId !== brewSourceCell(station)
+    )
+      return `Paid atmosphere release ${release.transformationId} is detached from its hearth`;
+  }
+  return null;
+}
+
 /** One payment and its owed physical release commit together. Work at this
  * boundary can wait without consuming inputs or losing its actor/job claim. */
 function prepareFueledBatch(
@@ -684,9 +725,6 @@ function prepareFueledBatch(
   const materials = structuredClone(state.materials);
   const consumed = completeRecipePrepare(materials, process.binding);
   if (!consumed.ok) return consumed;
-  const at = placementFooting(station);
-  const offset = GOBLIN_BREW_ATMOSPHERE_RELEASE.sourceOffsetVoxels;
-  const cellId = `cell:${at.x + offset[0]},${at.y + offset[1]},${at.z + offset[2]}`;
   const release = registerPaidAtmosphereRelease(
     state.atmosphereReleases,
     materials,
@@ -695,7 +733,7 @@ function prepareFueledBatch(
       sites: state.sites,
     }),
     process.binding,
-    cellId,
+    brewSourceCell(station),
   );
   if (release.status === "blocked")
     return {

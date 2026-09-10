@@ -6,6 +6,7 @@ import {
   airEnvironmentFacts,
 } from "./world-presets/goblin-environment/air-state.ts";
 import { parsePaidAtmosphereReleases } from "./world-presets/goblin-environment/paid-releases.ts";
+import { brewAtmosphereProblem } from "./brewing.ts";
 import { explorationSchema, explorationProblem } from "./exploration.ts";
 import { navigationStateProblem } from "./navigation-space.ts";
 import { excavationTarget } from "./excavation.ts";
@@ -1598,11 +1599,11 @@ function brewProcessPhaseValid(
   return (
     (process.phase === "prepare" &&
       !transformed &&
-      process.progress <= prepare) ||
+      process.progress < prepare) ||
     (process.phase === "ferment" &&
       transformed &&
       process.progress <= ferment) ||
-    (process.phase === "keg" && transformed && process.progress <= keg)
+    (process.phase === "keg" && transformed && process.progress < keg)
   );
 }
 
@@ -2098,6 +2099,8 @@ function validateRelations(state: SavedClearing): SavedClearing {
   validateTransformations(context);
   validateRecipeConsumptions(context);
   validateBrewProcesses(context);
+  const atmosphereProblem = brewAtmosphereProblem(liveState(state));
+  if (atmosphereProblem) fail(atmosphereProblem);
   validateRecipeOutputJobs(context);
   validateMaterialState(state.materials, [...context.containers.values()]);
   validateTransfers(context);
