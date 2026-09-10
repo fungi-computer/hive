@@ -864,7 +864,8 @@ export function createView(app, world, camera, art, initial, input) {
     }
     for (const job of state.jobs)
       if (job.kind === "dig") tile(terrainColumn(job.voxel), 0xdcb56c, 0.18);
-    if (selection.fieldWater) tile(selection.fieldWater, 0xe6c477, 0.12);
+    if (selection.fieldWater)
+      tile(worldView(selection.fieldWater), 0xe6c477, 0.12);
     if (!["dig"].includes(selection.tool) || !selection.at) return;
     const cells = terrainDesignationCells(
       selection.tool,
