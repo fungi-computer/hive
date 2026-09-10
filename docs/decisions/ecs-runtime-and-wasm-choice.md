@@ -168,6 +168,84 @@ the performance of native loops is also wrong. Runtime-defined custom component
 storage and its query behavior need explicit qualification before promising a
 general engine extension surface.
 
+## Actual size and TypeScript authoring requirement
+
+Levi's follow-up asks whether the performance benefit justifies the undertaking,
+how much code exists, and explicitly retains **mostly TypeScript game authoring**.
+This remains an architectural discussion, not an accepted rewrite assignment.
+
+At integration `ca45aa3`, a tracked-source inventory counted physical lines,
+including blanks, comments and declarations, in JS/TS source extensions:
+
+| Scope | Non-test lines | Meaning for a possible migration |
+| --- | ---: | --- |
+| All `src/` | 51,020 | Includes game, engine, rendering, authoring and studies; not the port size. |
+| Existing `src/engine/` | 12,332 | Already extracted mechanisms, including multiple environmental implementations. |
+| Selected top-level simulation/game-rule files | 9,522 | 36 files covering work, construction, activity, orders, navigation, needs, field callers and related owners; still mixed, not all intended for Rust. |
+| Tests under `src/` | 22,163 | Separate behavioral evidence; public-boundary tests can remain TypeScript. |
+
+The engine row includes approximately 6,289 environment lines, 3,674 materials,
+1,009 world geometry, 635 navigation and 725 region/work/colony lines. The selected
+mixed-logic row excludes model declarations and the 2,206-line Clearing state
+validator. World presets add another 5,181 non-test lines outside those two rows;
+their game configuration and qualification fixtures must not be blindly ported.
+The counts identify code to assess, not an estimate of equally many new Rust
+lines. Dependencies, generated host declarations, assets, build output and proof
+scripts are not a reason to enlarge the runtime rewrite.
+
+The mixed-logic selection consists of jobs, finite-sources, construction, brewing,
+activity, physical-completion, orders, navigation-space, needs, field-water,
+clearing, exploration, field-water-source, materials, terrain-removals,
+water-delivery, structure-environment, water-supply, structure-support,
+terrain-yields, excavation, movement, world, game-space, job-cancellation,
+room-space, actors, routine, activity-lifecycle, item-containers,
+material-container-facts, herbs, matching, terrain, colony and resources, using
+their current JS/TS paths.
+
+**TypeScript authors must be able to write real game behavior**, including new
+rules, authored state, economic policy, needs consequences and storyteller
+systems. They must not be restricted to selecting precompiled Goblin recipes.
+Proposed split:
+
+- Rust owns selected reusable high-volume operations and their compact state.
+  Dense terrain/water fields use chunk arrays; an ECS is not a requirement for
+  every voxel. Existing libcolony remains its own compiled optimizer.
+- TypeScript game systems read bounded projections or batches and submit typed
+  operations at declared execution points. Authored game state joins the same
+  candidate revision and durable commit as the engine state. Opaque game data is
+  validated/versioned by its owning game system, not interpreted as Goblin rules
+  by the engine. One physical fact still has one owner.
+- TypeScript continues to own the public SDK, host integration, controller
+  capabilities, UI and original asset/rendering pipeline. Untrusted player
+  scripts retain the scoped execution/admission boundary; no writable WASM heap
+  is exposed merely to simplify authoring.
+
+Bevy's normal Rust component/system API does not itself provide this TypeScript
+SDK. Qualify custom authored state, queries and a TS rule against the chosen
+storage model before selecting a whole-engine ECS. A new game mechanic expressed
+through supported operations should not require recompiling the engine. An
+entirely new high-volume native algorithm may require an engine extension. No
+claim that arbitrary per-entity TS callbacks gain Rust execution speed follows.
+
+My judgment: a Rust-backed core is credible for the long-term engine, but a full
+migration is not yet justified by measured Hive results. Our large existing JS
+speedup came from removing work, and source review still finds avoidable scans,
+allocation and render invalidation. A literal translation preserves those costs.
+The difficult work is data ownership, bulk language boundaries, revision/save
+encoding, failed-commit recovery and a useful authoring API, not translating
+arithmetic. A complete core conversion should be budgeted as a multi-week
+integration effort with uncertain scope, not an overnight optimization or a
+delivery promise based on line count.
+
+The smallest decision-quality outcome is a coherent existing expensive field
+operation in Rust/WASM, called through the real TypeScript owner, with matching
+finite-stock behavior and total boundary/restore/memory costs included. Use the
+existing headless workload and then the existing DO host boundary; do not reopen
+the cancelled browser witness or create a separate public math lab. Assess the
+benefit to the whole tick before expanding to materials, navigation and work.
+This proposal does not authorize starting those runs or keeping a permanent
+parallel implementation.
+
 ## DO constraints survive the language choice
 
 Cloudflare documents shared isolate globals, disposable object memory,
