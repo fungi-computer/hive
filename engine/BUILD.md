@@ -147,3 +147,21 @@ query import, duplicate survival definition key, facing disconnected from normal
 march commands, and a retreat control that cannot affect the initial units.
 The same isolated writer owns corrections and meaningful physical consumer laws.
 No build, publication or additional browser run follows this source checkpoint.
+
+Game controls joined through c98ad02. u4917 strict TS passed, five affected game
+laws passed and the old two-second formation arrival assertion failed on the new
+crate detour. u4918 reran only that corrected four-second law and passed, retaining
+exact destination checks. Empty filtered files are not authored laws. Both scopes
+inactive/dead/empty. Actual checks cover delivery pause/custody/resume, survival
+split-lot consumption, authored meal recovery, facing/retreat and game projections.
+
+u4920 (invocation b6afe71e5c16463c94eec5fbea3f567d) passed the updated native DO
+fixture on c98ad02. Three owned process starts used the same SQLite store.
+Consumption/retry stayed at revision 6 with seven bread; failed step preserved
+revision 8. Authored meal intent persisted at revision 9 across abrupt restart,
+replayed the same command receipt and applied once at revision 10 with no pending
+writes. Source: tools/fresh-engine-do/proof.mjs; actual evidence:
+.botanical/fresh-do/native-v4/survival-proof.json and survival-proof-receipt.json.
+Scope inactive/dead/empty, port 8789 clear, generated config removed. This closes
+the current local schema-4/native restart witness; it is not hosted DO, alarm,
+multiplayer capacity or new browser evidence. Deployment remains held for bedtime.

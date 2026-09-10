@@ -9,20 +9,20 @@ const configs = {
   colony: {
     title: "Colony",
     subtitle:
-      "A worker carries one finite meal to a hungry guest; interrupt and watch custody resume.",
+      "Choose a one- or two-piece food delivery. Pause the worker mid-trip, inspect the carried food, then resume.",
     source: "./source/colony.ts",
   },
   survival: {
     title: "Survival",
     subtitle:
-      "One survivor, one body, and direct actions through the same client.",
+      "Take and eat finite bread, watch hunger, and change how much a meal restores.",
     source: "./source/survival.ts",
   },
   formations: {
     title: "Formations",
     orderCommand: "march",
     subtitle:
-      "Select a small group and set a destination; the formation marches together.",
+      "Choose facing, drag-select your group, and right-click to march around the crate. Raise the retreat threshold to send them home.",
     source: "./source/formations.ts",
   },
 };
