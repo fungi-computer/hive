@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveStaticVisual } from "./visual-resolver.js";
+import { CANNON_VISUAL_BINDINGS } from "./visual-bindings.js";
 
 const texture = (name) => ({ name });
 const art = {
@@ -29,12 +30,12 @@ test("static resolver handles fixed and facing paths through one checked helper"
   }, 2);
   assert.equal(ship.texture.name, "ship-2");
   assert.equal(ship.anchor.y, 0.82);
-  const cannonball = resolveStaticVisual(art, {
-    kind: "static",
-    path: ["projectiles", "cannonball"],
-    facing: false,
-    anchor: "propAnchor",
-  });
+  for (let facing = 0; facing < 4; facing += 1) {
+    const cannon = resolveStaticVisual(art, CANNON_VISUAL_BINDINGS["formation.cannon"], facing);
+    assert.equal(cannon.texture, art.props.cannon[facing]);
+    assert.equal(cannon.anchor, art.propAnchor);
+  }
+  const cannonball = resolveStaticVisual(art, CANNON_VISUAL_BINDINGS["formation.cannonball"]);
   assert.equal(cannonball.texture.name, "cannonball");
 });
 

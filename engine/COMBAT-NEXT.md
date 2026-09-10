@@ -133,3 +133,29 @@ revision. Prove this through the public native entrypoint, not only by wrapping
 it in a GameSession test. Avoid adding unconditional duplicate whole-world work
 to scenes without projectiles; measure the actual first-shot consumer before
 claiming the approach scales to a large formation.
+
+## Qualified collision and visual boundary — September 10
+
+The isolated cannon-kernel source at `6af2238` pins `parry3d-f64` 0.30.2
+with required-features/std/alloc/enhanced-determinism. Native u5094 passed six
+focused sweep laws; its remaining crossing assertion demanded sub-nanosecond
+precision. Diagnostic u5098 found TOI 0.46500000158074634 versus analytical
+0.465, with contact on the expected face. The corrected law checks time error
+as travel distance plus contact position/normal within 1/1024 world unit.
+This is a game-scale test tolerance, not a changed solver parameter.
+
+Actual u5099 exited zero: the corrected crossing law passed and the real
+wasm32-unknown-unknown target checked successfully. Its scope is inactive/dead
+with an empty control group. These results qualify the query dependency; they
+do not prove integrated firing, performance capacity, or deployed combat.
+
+Actual u5102 exited zero: both static resolver laws and the one new cannon
+manifest-family law passed. The resolver test uses actual exported cannon
+bindings for all four facings. Original cannon geometry has not yet been baked
+or personally reviewed at game scale; the published art bank is unchanged.
+
+Native firing remains in the isolated cannon-kernel lane. Native returns new
+impacts only; GameSession owns durable pending delivery and consumer frontiers.
+Active-shot capacity rejects new launches, never deletes existing flight.
+Range/lifetime clip the sweep interval before testing contact. Ordinary steps
+without shots or fallible combat operations retain their existing fast path.
