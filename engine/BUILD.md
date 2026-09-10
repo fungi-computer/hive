@@ -353,3 +353,13 @@ starting a browser runtime. All four authored pack exports and core authoring
 functions are present. Strict TypeScript passes; one selected public-import law
 plus six filtered file wrappers, not seven domain laws. Scope inactive/dead/empty.
 The public release is unchanged; this fixes the author-facing module boundary.
+
+## Shared committed observations — u5015
+
+Joined04e9681/2d324c4 passes one actual WASM projection/no-mutation law, strict
+engine TypeScript, and native pirate DO witness including /observe. Two concurrent
+authorized reads match at committed revision16; unauthorized read returns403;
+world snapshot is unchanged by observation. Runtime restart/replay and resumed
+route remain passing with the changed host. Two starts, exit0, scope inactive/dead
+and empty. Observation output excludes proof receipts and secrets. This is a
+local host read consumer, not yet a network-connected playable client.
