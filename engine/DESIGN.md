@@ -631,3 +631,11 @@ Required affected proof is fractional progression with repeated orders and
 save/restore, plus retained obstacle rejection, then the actual colony consumer.
 This blocks full foundation acceptance; it does not invalidate the separately
 proved cannon, finite quantities or hosted publication receipts.
+
+Route correction native qualification u5163 passed: generated fractional route
+round-trip, obstacle-cut rejection, and repeated same-destination .1 advancement
+with restore on every step and eventual arrival. Three authored laws, not the
+filtered empty test wrappers. Scope closed. Source995215a retains routes for
+unchanged destinations and uses start-cell waypoints only when crossing cells.
+Actual-WASM colony consumer regression647e02c is queued directly behind the
+maintained WASM rebuild u5167; neither is assumed passed or deployed yet.
