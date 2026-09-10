@@ -603,10 +603,10 @@ The implementation and evidence have different remaining gaps:
 
 | Requirement | Current evidence | Remaining acceptance |
 | --- | --- | --- |
-| Shared playable pages | Four public DO pages; real raft and cannon browser actions; byte-equal hosted release | Bounded colony delivery/interruption and survival take/eat public-input checks, reusing the same client |
+| Shared playable pages | Four public DO pages; real raft and cannon browser actions; byte-equal hosted release | Closed by u5174 colony delivery/interruption and u5178 survival movement/take/eat/reopen; u5174 overall failed at survival focus and is not a whole-command pass |
 | Contrasting TypeScript rules | Actual colony delivery, survival hunger/fatigue, formation morale/damage and pirate support consumers | No missing implementation identified by current source audit |
 | Custom state without Rust edits | Independent fatigue consumer and save/restore law; TypeScript health/morale over native impacts | Public combat SDK exports corrected at018d263; headless import u5147 passes |
-| Shared controls, quantities and saves | Native/Session laws plus per-pack recovery receipts and public raft reopen | Current native3/session5 cannon crash/retry passed u5149; public food/delivery checks remain |
+| Shared controls, quantities and saves | Native/Session laws plus per-pack recovery receipts and public raft reopen | Current native3/session5 cannon crash/retry passed u5149; public food/delivery checks closed by u5174/u5178 |
 | Durable recovery without duplicate effects | Earlier per-pack SQLite DO restart/lost-response/rollback evidence | New in-flight projectile/pending consequence witness u5149 passed; no hosted crash injection claimed |
 
 These are narrow closures of the declared foundation, not permission to reopen a
@@ -614,7 +614,7 @@ full browser matrix. The current public cannon is a useful accepted interim.
 Moving-ship cannon reuse, deeper ecology, world transfers and large battles stay
 subsequent engine work; do not claim them from this foundation's checks.
 
-### Current acceptance blocker: fractional route recovery
+### Historical acceptance blocker: fractional route recovery — resolved
 
 Public colony input u5152 admitted delivery, preserved cargo during interruption,
 and resumed, but did not complete. Continuous actualWASM runs completed; adding
@@ -645,3 +645,21 @@ public interrupted delivery u5174 and survival-only food/reopen u5178 pass.
 Publication u5181 matches all143 files. See BUILD.md for exact artifacts and
 preserved failure limits. Full foundation acceptance audit remains a separate
 requirement-by-requirement review, not implied by one successful release.
+
+### September 10 final audit checkpoint
+
+King re-read the original five completion requirements and the current public
+interaction receipts at7423f79. The colony part of u5174 completed delivery after
+interruption with cargo; its subsequent survival focus failure remains recorded.
+The corrected survival-only u5178 passed movement, finite food consumption,
+authored meal-recovery changes and paused reopen. Hosted u5181 matches143 files.
+These close the stale public-input gaps in the table above.
+
+An independent read-only source/evidence review is checking the custom-component
+and durable authored-effect requirements. The goal remains active until that
+review is reconciled with the actual implementation; no additional browser
+matrix is requested. The proposed next product sequence is shared interaction
+polish, a complete Goblin hospitality loop, one objective per contrasting game,
+then reusable vertical construction and inexpensive environmental consequences.
+Shared multiplayer is a separate next proof: current public worlds are private
+per-browser capabilities, not an accepted two-player world.
