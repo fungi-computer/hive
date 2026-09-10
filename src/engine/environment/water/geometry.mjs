@@ -25,6 +25,9 @@ export function freeze(value) {
 }
 const positive = (n) => Number.isFinite(n) && n > 0;
 const rate = (n) => Number.isFinite(n) && n >= 0;
+// Only a definition produced by this compiler can reuse its compiled data.
+// Equal-looking external JSON still crosses the complete admission boundary.
+const compiledDefinitions = new WeakMap();
 function coordinate(at) {
   array(at, 3, "water coordinate");
   check(
@@ -161,8 +164,14 @@ function compileFaces(inputs, nodes, spacing, limits) {
 /** Definitions contain actual 3D cells and admitted openings. No pit, map,
  * elevation whitelist, implied exterior or material-name interpretation. */
 export function compileWater(raw, admittedLimits) {
-  const limits = waterLimits(admittedLimits),
-    input = copyData(raw, limits);
+  const limits = waterLimits(admittedLimits);
+  const known = compiledDefinitions.get(raw);
+  if (
+    known &&
+    Object.keys(limits).every((key) => limits[key] === known.limits[key])
+  )
+    return known;
+  const input = copyData(raw, limits);
   record(
     input,
     [
@@ -241,7 +250,7 @@ export function compileWater(raw, admittedLimits) {
     neighbors[face.a].push({ to: face.b, face: index });
     neighbors[face.b].push({ to: face.a, face: index });
   });
-  return {
+  const compiled = {
     limits,
     definition,
     identity,
@@ -250,4 +259,6 @@ export function compileWater(raw, admittedLimits) {
     neighbors: freeze(neighbors),
     index: new Map(nodes.map((node, i) => [node.id, i])),
   };
+  compiledDefinitions.set(definition, compiled);
+  return compiled;
 }

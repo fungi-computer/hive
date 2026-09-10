@@ -88,6 +88,10 @@ type Binding = ReturnType<typeof binding>;
 type WaterFacts = ReturnType<typeof readWaterFacts>;
 const admitted = new WeakMap<WaterEnvironment, Binding>();
 const observations = new WeakMap<WaterEnvironment, WaterFacts>();
+const geometryObservations = new WeakMap<
+  WaterEnvironment,
+  ReturnType<typeof readGeometry>
+>();
 function remember(value: WaterEnvironment, bound: Binding): WaterEnvironment {
   const state = freeze(value) as WaterEnvironment;
   admitted.set(state, bound);
@@ -184,10 +188,23 @@ export function waterEnvironmentGeometry(
   source: EnvironmentGeometry,
 ) {
   const { state, bound } = current(input, source);
+  let result = geometryObservations.get(state);
+  if (!result) {
+    result = readGeometry(state, bound, waterEnvironmentFacts(state, source));
+    geometryObservations.set(state, result);
+  }
+  return result;
+}
+
+function readGeometry(
+  state: WaterEnvironment,
+  bound: Binding,
+  facts: WaterFacts,
+) {
   return Object.freeze({
     physical: bound.physical,
     definition: bound.owner.definition,
-    facts: waterEnvironmentFacts(state, source),
+    facts,
     geometryRevision: state.geometryRevision,
     ceilingY: state.ceilingY,
   });

@@ -514,6 +514,30 @@ test("stone opening adds no water and face closure preserves both existing stock
   assert.equal(expanded.receipt.removedPoreWater.length, 0);
   assert.equal(expanded.state.massKg[1], 0);
   const next = createWater(expanded.definition);
+  assert.equal(
+    next.parse(expanded.state),
+    expanded.state,
+    "rebind successor belongs to the actual next compiled owner",
+  );
+  const foreign = structuredClone(expanded.state);
+  assert.notEqual(
+    next.parse(foreign),
+    foreign,
+    "external data still crosses admission even with a matching identity",
+  );
+  foreign.massKg[0] = -1;
+  assert.throws(() => next.parse(foreign), /nonnegative/);
+  assert.throws(
+    () =>
+      createWater(expanded.definition, {
+        cells: 1,
+        faces: 6144,
+        wireBytes: 2097152,
+        dataNodes: 65536,
+      }),
+    /water cells/,
+    "a reused definition cannot bypass a different admission limit",
+  );
   const split = next.rebind(expanded.state, {
     ...expanded.definition,
     revision: 2,
