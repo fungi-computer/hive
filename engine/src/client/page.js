@@ -1,4 +1,5 @@
 import "./client.css";
+import { PIRATE_VISUAL_BINDINGS } from "./visual-bindings.js";
 import "@fungi.computer/caps/styles.css";
 import "@fungi.computer/stipe/fonts.css";
 import { createHiveClient } from "./client.js";
@@ -9,6 +10,7 @@ const configs = {
   pirates: {
     title: "Timber raft",
     environment: "water",
+    visualBindings: PIRATE_VISUAL_BINDINGS,
     subtitle: "Sail the raft, walk its deck, and carry finite supplies into the hold. Save and continue your voyage.",
     orderCommand: "move",
     source: "./source/pirates.ts",

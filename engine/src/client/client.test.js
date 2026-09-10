@@ -4,7 +4,6 @@ import { isTypingTarget, selectionFromSubjects } from "./controls.js";
 import {
   DEFAULT_VISUAL_BINDINGS,
   PIRATE_VISUAL_BINDINGS,
-  visualBindingsFor,
 } from "./visual-bindings.js";
 
 test("shared selection chooses subjects inside a screen box", () => {
@@ -34,5 +33,5 @@ test("content visual bindings keep pirate art out of the renderer defaults", () 
     kind: "container",
     key: "shelf",
   });
-  assert.equal(visualBindingsFor("pirate")["pirate.ship"].key, "ship");
+  assert.equal(PIRATE_VISUAL_BINDINGS["pirate.ship"].key, "ship");
 });

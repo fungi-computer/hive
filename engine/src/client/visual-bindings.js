@@ -14,9 +14,3 @@ export const PIRATE_VISUAL_BINDINGS = Object.freeze({
   "pirate.hold": Object.freeze({ kind: "container", key: "shelf" }),
   "pirate.deck-obstacle": Object.freeze({ kind: "container", key: "shelf" }),
 });
-
-export function visualBindingsFor(mode) {
-  return mode === "pirate"
-    ? { ...DEFAULT_VISUAL_BINDINGS, ...PIRATE_VISUAL_BINDINGS }
-    : DEFAULT_VISUAL_BINDINGS;
-}
