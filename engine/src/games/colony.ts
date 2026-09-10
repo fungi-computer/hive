@@ -118,7 +118,7 @@ function deliveryWrites(
   const parsed = inputOf(input);
   const selected = selectedWorkers(context, input);
   const quantity = parsed.quantity;
-  if (enabled && quantity !== undefined && quantity !== 1 && quantity !== 2)
+  if (enabled && !preserveCurrentQuantity && quantity !== 1 && quantity !== 2)
     throw new Error("delivery quantity must be one or two");
   return selected.map((worker) => {
     const active = activeTaskFor(context, worker);

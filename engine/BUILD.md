@@ -186,3 +186,9 @@ filtered files are not extra laws. Both scopes inactive/dead/empty. New local WA
 SHA bcd660dd77e35947520fb9a18c2d395a70dcad6c9d3e77df2a03f81d3f780d25.
 No browser build/deployment occurred. Colony integration of this operation remains
 with the isolated fresh-colony-orders author.
+
+### Selected colony orders and display review
+
+The two-worker colony now uses the Rust assignment door for distinct finite delivery tasks. Focused u4934 passed three authored laws covering distinct assignments, paused carrying restore/resume, and completed-order rejection. u4939 passed the one additional missing-quantity law: malformed delivery intent leaves the exact saved state unchanged. Its command exited 0 and scope is inactive/dead with an empty ControlGroup. Filtered runner file wrappers are not additional authored laws.
+
+Shared display interpolation is under source correction, not integrated or visually accepted. Review found duplicate ticker registration, an ineffective resume test, and dropped-frame/clock handling requiring correction. No new deployment or rendered animation claim follows from these source checks.

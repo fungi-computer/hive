@@ -110,6 +110,23 @@ test("paused carrying custody survives restore and resumes delivery", () => {
   }
 });
 
+test("missing delivery quantity rejects without changing accepted intent", () => {
+  const { port, session } = makeSession();
+  try {
+    session.start();
+    session.command("deliver", { quantity: 2, entities: ["colony.worker.1"] });
+    session.step(0.1);
+    const before = session.save();
+    assert.throws(
+      () => session.command("deliver", { entities: ["colony.worker.1"] }),
+      /quantity/,
+    );
+    assert.deepEqual(session.save(), before);
+  } finally {
+    port.dispose();
+  }
+});
+
 test("completed delivery rejects a new command instead of duplicating custody", () => {
   const { port, session } = makeSession();
   try {
