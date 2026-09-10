@@ -1,3 +1,5 @@
+import { worldView, viewLayer } from "../../game-space.ts";
+import { visualPosition } from "../../movement.ts";
 import React, {
   useEffect,
   useLayoutEffect,
@@ -13,32 +15,29 @@ import { createClearing } from "../../clearing.ts";
 import { SIZE } from "../../world.js";
 import "./study.css";
 
-// This caller is intentionally run only after these new files are staged into
-// Delivery's clean 19b324b / 09a9f48 worktree. It reads that baseline's real
-// createClearing/world/footprint/camera modules; do not run it from a coupled
-// dirty gameplay worktree.
+// Frozen presentation of the current source-owned clearing; historical study
+// artifacts retain their own source pins.
 
 function frozenFacts(state) {
   return Object.freeze({
     size: SIZE,
     actors: Object.freeze(
-      Object.values(state.actors).map((actor) =>
-        Object.freeze({
+      Object.values(state.actors).map((actor) => {
+        const position = visualPosition(actor);
+        return Object.freeze({
           id: actor.id,
           name: actor.name,
-          x: actor.x,
-          z: actor.z,
-          level: actor.level,
-        }),
-      ),
+          ...worldView(position),
+          level: viewLayer(position),
+        });
+      }),
     ),
     trees: Object.freeze(
       state.trees.map((tree) =>
         Object.freeze({
           id: tree.id,
-          x: tree.x,
-          z: tree.z,
-          level: tree.level,
+          ...worldView(tree),
+          level: viewLayer(tree),
           felled: tree.felledAt !== null,
         }),
       ),

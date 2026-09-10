@@ -873,8 +873,10 @@ export function createView(app, world, camera, art, initial, input) {
       drawActors(state, selection);
       drawSelectionBox(selection);
       cat.container.eventMode = goblin.container.eventMode = "none";
-      put(cat.container, visualPosition(state.cat), 0.4);
-      cat.container.alpha = selection.level === 0 ? 1 : 0.18;
+      const catPosition = visualPosition(state.cat);
+      put(cat.container, catPosition, 0.4);
+      cat.container.alpha =
+        viewLayer(catPosition) === selection.level ? 1 : 0.18;
       const catFrames = art.figures.cat[state.cat.mode][state.cat.dir];
       cat.sprite.texture =
         catFrames[animationFrame(state.tick, state.cat.mode, catFrames)];

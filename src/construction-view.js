@@ -1,12 +1,14 @@
 import { Container, Graphics, Sprite, Text } from "pixi.js";
 import { projectCell } from "./art/scale.js";
+import { SIZE, placementOccupant } from "./world.js";
 import {
-  SIZE,
-  cellKey,
-  inside,
-  neighbors,
-  placementOccupant,
-} from "./world.js";
+  placementKey,
+  insidePlacement,
+  placementNeighbors,
+  placementFooting,
+  worldView,
+} from "./game-space.ts";
+import { visualPosition } from "./movement.ts";
 import {
   BUILDINGS,
   footprint,
@@ -76,12 +78,12 @@ function tile(graphics, cell, color, alpha) {
 }
 function wallMask(site, sites) {
   let mask = 0;
-  neighbors(site).forEach((cell, index) => {
+  placementNeighbors(site).forEach((cell, index) => {
     if (
       sites.some(
         (s) =>
           (s.type === "wall" || s.type === "door") &&
-          cellKey(s) === cellKey(cell),
+          placementKey(s) === placementKey(cell),
       )
     )
       mask |= 1 << index;
@@ -126,9 +128,14 @@ export function createConstructionView(world, art, bodies, input, picking) {
       [0, indoors(state, 0)],
       [1, indoors(state, 1)],
     ]);
-    const indoorActors = followActors.filter((actor) =>
-      interiors.get(actor.level)?.has(cellKey(actor)),
-    );
+    const indoorActors = followActors
+      .map((actor) => ({
+        footing: worldView(actor),
+        position: worldView(visualPosition(actor)),
+      }))
+      .filter(({ footing }) =>
+        interiors.get(footing.level)?.has(placementKey(footing)),
+      );
     for (const site of state.sites) {
       if (!sites.has(site.id)) {
         const s = sprite(art.buildings[site.type].stakes[site.direction]);
@@ -169,10 +176,9 @@ export function createConstructionView(world, art, bodies, input, picking) {
         selection.cutaway &&
         finished &&
         indoorActors.some(
-          (actor) =>
-            site.x + site.z >= actor.x + actor.z &&
-            Math.abs(at.x - projectCell({ ...actor, level: site.level }).x) <
-              45,
+          ({ position }) =>
+            site.x + site.z >= position.x + position.z &&
+            Math.abs(at.x - projectCell(position).x) < 45,
         );
       const cutawayCover =
         cutawayWall || (site.type === "roof" && selection.cutaway && finished);
@@ -266,7 +272,9 @@ export function createConstructionView(world, art, bodies, input, picking) {
         herbPreview.clear();
         const cell = selection.at;
         const problem =
-          !cell || !inside(cell) || !!placementOccupant(state, cell);
+          !cell ||
+          !insidePlacement(cell) ||
+          !!placementOccupant(state, placementFooting(cell));
         if (cell) tile(grid, cell, problem ? 0xe48b78 : 0xbee0aa, 0.3);
         if (cell) {
           const projected = projectCell(cell);

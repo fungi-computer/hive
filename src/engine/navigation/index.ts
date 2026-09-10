@@ -186,6 +186,73 @@ function swept(
   }
   return "clear";
 }
+type EdgeChoice = {
+  kind: Edge["kind"];
+  duration: number;
+  points: readonly Footing[];
+  link: string | null;
+};
+function ordinaryChoice(
+  from: Footing,
+  to: Footing,
+  profile: Profile,
+): EdgeChoice | null {
+  const horizontal = Math.abs(to.x - from.x) + Math.abs(to.z - from.z),
+    dy = to.y - from.y;
+  if (horizontal !== 1 || Math.abs(dy) > 1) return null;
+  return {
+    kind: dy === 0 ? "flat" : dy > 0 ? "up" : "down",
+    duration:
+      dy === 0
+        ? profile.flatTicks
+        : dy > 0
+          ? profile.upTicks
+          : profile.downTicks,
+    points: [from, to],
+    link: null,
+  };
+}
+/** Candidate enumeration is separate from current clearance. Parallel content
+ * identities compete on paid cost; definition order grants no priority. */
+function edgeChoices(
+  space: Space,
+  from: Footing,
+  to: Footing,
+  profile: Profile,
+): EdgeChoice[] {
+  const ordinary = ordinaryChoice(from, to, profile);
+  const candidates: EdgeChoice[] = ordinary ? [ordinary] : [];
+  const identities = new Set<string>();
+  for (const link of space.links) {
+    checkedLink(link);
+    if (identities.has(link.id))
+      throw new Error("duplicate navigation link identity");
+    identities.add(link.id);
+    if (!(
+      (same(link.from, from) && same(link.to, to)) ||
+      (same(link.to, from) && same(link.from, to))
+    ))
+      continue;
+    candidates.push({
+      kind: "stair",
+      duration: link.duration,
+      link: link.id,
+      points: same(link.from, from)
+        ? [from, ...link.via, to]
+        : [from, ...link.via.toReversed(), to],
+    });
+  }
+  candidates.sort(
+    (left, right) =>
+      left.duration - right.duration ||
+      ((left.link ?? "") < (right.link ?? "")
+        ? -1
+        : (left.link ?? "") > (right.link ?? "")
+          ? 1
+          : 0),
+  );
+  return candidates;
+}
 export function admitEdge(
   space: Space,
   from: Footing,
@@ -199,51 +266,29 @@ export function admitEdge(
     const support = standing(space, p, profile);
     if (support !== "supported") return { kind: support };
   }
-  let kind: Edge["kind"], duration: number, points: readonly Footing[];
-  let linkId: string | null = null;
-  const horizontal = Math.abs(to.x - from.x) + Math.abs(to.z - from.z),
-    dy = to.y - from.y;
-  if (horizontal === 1 && Math.abs(dy) <= 1) {
-    kind = dy === 0 ? "flat" : dy > 0 ? "up" : "down";
-    duration =
-      dy === 0
-        ? profile.flatTicks
-        : dy > 0
-          ? profile.upTicks
-          : profile.downTicks;
-    points = [from, to];
-  } else {
-    const link = space.links.find(
-      (link) =>
-        (same(link.from, from) && same(link.to, to)) ||
-        (same(link.to, from) && same(link.from, to)),
-    );
-    if (!link) return { kind: "blocked" };
-    checkedLink(link);
-    kind = "stair";
-    linkId = link.id;
-    duration = link.duration;
-    points = same(link.from, from)
-      ? [from, ...link.via, to]
-      : [from, ...link.via.toReversed(), to];
-    if (!Number.isSafeInteger(duration) || duration < 1)
-      throw new Error("invalid stair duration");
+  let unknown = false;
+  for (const candidate of edgeChoices(space, from, to, profile)) {
+    const result = swept(space, candidate.points, profile.clearanceVoxels);
+    if (result !== "clear") {
+      unknown ||= result === "needs-data";
+      continue;
+    }
+    return {
+      kind: "edge",
+      edge: Object.freeze({
+        from: copy(from),
+        to: copy(to),
+        kind: candidate.kind,
+        link: candidate.link,
+        duration: candidate.duration,
+        clearanceVoxels: profile.clearanceVoxels,
+        sweep: Object.freeze(candidate.points.map(copy)),
+      }),
+    };
   }
-  const sweep = swept(space, points, profile.clearanceVoxels);
-  if (sweep !== "clear") return { kind: sweep };
-  return {
-    kind: "edge",
-    edge: Object.freeze({
-      from: copy(from),
-      to: copy(to),
-      kind,
-      link: linkId,
-      duration,
-      clearanceVoxels: profile.clearanceVoxels,
-      sweep: Object.freeze(points.map(copy)),
-    }),
-  };
+  return { kind: unknown ? "needs-data" : "blocked" };
 }
+
 function linkStillSupports(space: Space, edge: Edge): boolean {
   if (edge.kind !== "stair") return edge.link === null;
   const link = space.links.find((candidate) => candidate.id === edge.link);
@@ -372,14 +417,17 @@ export function route(
       if (same(link.from, current.point)) candidates.push(link.to);
       else if (same(link.to, current.point)) candidates.push(link.from);
     }
+    const considered = new Set<string>();
     for (const next of candidates) {
+      const id = key(next);
+      if (considered.has(id)) continue;
+      considered.add(id);
       const admitted = admitEdge(space, current.point, next, profile);
       if (admitted.kind !== "edge") {
         unknown ||= admitted.kind === "needs-data";
         continue;
       }
-      const cost = current.cost + admitted.edge.duration,
-        id = key(next);
+      const cost = current.cost + admitted.edge.duration;
       if (cost >= (costs.get(id) ?? Infinity)) continue;
       costs.set(id, cost);
       previous.set(id, admitted.edge);
@@ -515,23 +563,13 @@ export function traversalProblem(
     )
       return "stair duration disagrees with registered link";
   } else {
-    const dy = edge.to.y - edge.from.y;
-    const kind =
-      dy === 0 ? "flat" : dy === 1 ? "up" : dy === -1 ? "down" : null;
-    const duration =
-      kind === "flat"
-        ? profile.flatTicks
-        : kind === "up"
-          ? profile.upTicks
-          : profile.downTicks;
+    const expected = ordinaryChoice(edge.from, edge.to, profile);
     if (
-      Math.abs(edge.to.x - edge.from.x) + Math.abs(edge.to.z - edge.from.z) !==
-        1 ||
-      kind === null ||
-      kind !== edge.kind ||
+      !expected ||
+      edge.kind !== expected.kind ||
       edge.link !== null ||
       edge.sweep.length !== 2 ||
-      edge.duration !== duration
+      edge.duration !== expected.duration
     )
       return "ordinary edge disagrees with registered step policy";
   }

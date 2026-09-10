@@ -8,7 +8,9 @@ the registered world composition. An unknown boundary is not empty ground.
 `route` chooses deterministic minimum paid cost within a 4096-visited-footing
 budget. Ordinary cardinal edges change height by at most one voxel. A profile
 provides clearance and flat/up/down durations. Explicit links carry stable IDs
-and their actual swept points; removing a link invalidates its admitted edge even
+and their actual swept points. Admission compares the ordinary edge and every
+matching link, choosing the cheapest clear edge; equal costs use stable link
+identity, with the ordinary edge first on a tie. Link IDs must be unique. Removing a link invalidates its admitted edge even
 when its endpoint floors remain. Admission checks the whole swept body, not just
 endpoint occupancy.
 

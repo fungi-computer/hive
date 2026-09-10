@@ -150,3 +150,34 @@ test("repeated explicit stair links retain their own identities across a route",
     "route",
   );
 });
+
+test("parallel links choose the cheapest clear edge with stable identity, including ordinary alternatives", () => {
+  const from = p(0),
+    to = p(2);
+  const detour = [p(0, 0, 1), p(1, 0, 1), p(2, 0, 1)];
+  const links = [
+    { id: "blocked", from, to, via: [p(1)], duration: 6 },
+    { id: "expensive", from, to, via: detour, duration: 30 },
+    { id: "clear-z", from, to, via: detour, duration: 12 },
+    { id: "clear-a", from, to, via: detour, duration: 12 },
+  ];
+  const obstruction = { kind: "solid", min: [1, 0, 0], max: [2, 4, 1] };
+  for (const ordered of [links, links.toReversed()]) {
+    const geometry = space([obstruction], ordered);
+    const admitted = admitEdge(geometry, from, to, human);
+    assert.equal(admitted.kind, "edge");
+    assert.equal(admitted.edge.link, "clear-a");
+    assert.equal(admitted.edge.duration, 12);
+    const found = route(geometry, from, to, human);
+    assert.equal(found.kind, "route");
+    assert.equal(found.ticks, 12);
+  }
+  const adjacent = space(
+    [],
+    [{ id: "short-link", from, to: p(1), via: [], duration: 3 }],
+  );
+  const admitted = admitEdge(adjacent, from, p(1), human);
+  assert.equal(admitted.kind, "edge");
+  assert.equal(admitted.edge.link, "short-link");
+  assert.equal(admitted.edge.duration, 3);
+});
