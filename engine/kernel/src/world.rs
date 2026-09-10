@@ -188,8 +188,7 @@ impl Kernel {
         let blocked = self
             .blocked_by_frame
             .get(&frame)
-            .cloned()
-            .unwrap_or_default();
+            .expect("rebuilt obstacle frame index");
         navigation::route(
             navigation::point(start),
             destination.clone(),
@@ -273,6 +272,12 @@ impl Kernel {
             }
             if self.ecs.get::<Container>(*entity).is_some() {
                 self.contents.entry(id.clone()).or_default();
+            }
+        }
+        self.blocked_by_frame.entry(None).or_default();
+        for (id, entity) in &self.ids {
+            if self.ecs.get::<Surface>(*entity).is_some() {
+                self.blocked_by_frame.entry(Some(id.clone())).or_default();
             }
         }
         for (id, entity) in &self.ids {
