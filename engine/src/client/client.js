@@ -32,6 +32,7 @@ export function createHiveClient({
   runtime,
   orderCommand,
   controlHelp,
+  selectionShortcuts = [],
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
 }) {
@@ -105,6 +106,12 @@ export function createHiveClient({
   let resizeObserver = null;
   let unsubscribeRuntime = null;
 
+  function selectEntities(ids) {
+    state.selectedIds = ids;
+    emit({ kind: "select", entities: ids });
+    renderHud();
+    draw();
+  }
   function renderHud() {
     const act = (kind) => {
       if (kind === "reset") {
@@ -133,6 +140,13 @@ export function createHiveClient({
           React.createElement(
             "div",
             { className: "hive-controls" },
+            ...selectionShortcuts.map(({ id, label }) => React.createElement(
+              Button,
+              { key: id, size: "sm", variant: "outline",
+                disabled: !state.subjects.some((subject) => subject.id === id),
+                onClick: () => selectEntities([id]) },
+              label,
+            )),
             React.createElement(
               Button,
               { onClick: () => act("pause"), size: "sm" },
@@ -456,7 +470,11 @@ export function createHiveClient({
       top: Math.min(drag.start.y, end.y),
       bottom: Math.max(drag.start.y, end.y),
     };
-    const click = box.left === box.right && box.top === box.bottom;
+    const click = Math.hypot(end.x - drag.start.x, end.y - drag.start.y) <= 5;
+    if (click) {
+      box.left = box.right = end.x;
+      box.top = box.bottom = end.y;
+    }
     const directHit = selectionFromSubjects(state.subjects, box, false, []);
     let hit = selectionFromSubjects(
       state.subjects,
@@ -474,10 +492,7 @@ export function createHiveClient({
       );
       if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.id])] : [deck.id];
     }
-    state.selectedIds = hit;
-    emit({ kind: "select", entities: state.selectedIds });
-    renderHud();
-    draw();
+    selectEntities(hit);
   }
   function contextMenu(event) {
     event.preventDefault();
