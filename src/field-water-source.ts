@@ -91,7 +91,7 @@ function accessCells(
   }
   return result;
 }
-/** Candidate footings are checked for real support, dryness, knowledge and fixed
+/** Candidate footings are checked for real support, body access, knowledge and fixed
  * occupancy. The actual worker's route and current draw recheck remain separate. */
 export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
   const space = createNavigationSpaces(state)();

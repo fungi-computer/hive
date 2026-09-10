@@ -19,7 +19,12 @@ import {
   workPositions,
   indoors,
 } from "./construction.js";
-import { terrainGeometry, TERRAIN_FRAME } from "./terrain.ts";
+import {
+  terrainEnvironment,
+  terrainGeometry,
+  TERRAIN_FRAME,
+} from "./terrain.ts";
+import { prepareEnvironmentGeometry } from "./world-presets/goblin-environment/environment-state.ts";
 import { createStructureGeometry } from "./structure-environment.ts";
 import {
   createNavigationSpaces,
@@ -329,7 +334,25 @@ test("a finite room-and-platform plan has real work access at every authored com
   assert(VERTICAL_LAYOUT_WOOD <= 8 * 6 + 10 - 1);
   for (const next of plan) {
     assert.equal(placementProblem(state, next), "", next.id);
-    const candidate = { ...state, sites: [...state.sites, next] };
+    const beforeGeometry = {
+      terrain: terrainEnvironment(state.terrain),
+      sites: state.sites,
+    };
+    const afterGeometry = {
+      ...beforeGeometry,
+      sites: [...state.sites, next],
+    };
+    const prepared = prepareEnvironmentGeometry(
+      state,
+      beforeGeometry,
+      afterGeometry,
+    );
+    assert.equal(prepared.status, "applied", next.id);
+    const candidate = {
+      ...state,
+      ...prepared.state,
+      sites: afterGeometry.sites,
+    };
     assert.equal(structureSupportProblem(candidate), null, next.id);
     const before = createNavigationSpaces(state)(),
       after = createNavigationSpaces(candidate)();
@@ -341,7 +364,7 @@ test("a finite room-and-platform plan has real work access at every authored com
       ),
       `actual work access for ${next.id}`,
     );
-    state.sites.push(next);
+    Object.assign(state, candidate);
   }
   assert(indoors(state, 0).has("5,5,0"));
   for (const level of [1, 2])
