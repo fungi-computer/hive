@@ -2,6 +2,8 @@ import {
   terrainSurfaces,
   observedTerrainSurfaces,
 } from "./terrain-surface-geometry.js";
+import { waterSurfaces } from "./water-surfaces.ts";
+import { SIZE } from "./world.js";
 import { currentVisibility } from "./exploration.ts";
 import { Texture, Sprite, Container, Graphics, Text } from "pixi.js";
 import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
@@ -19,7 +21,6 @@ import {
   terrainRevision as terrainVersion,
   terrainChangedColumns,
   terrainColumn,
-  terrainWater,
   terrainGeometryKey,
 } from "./terrain.ts";
 import { terrainDesignationCells } from "./ui-actions.ts";
@@ -123,7 +124,8 @@ export function createView(app, world, camera, art, initial, input) {
   let terrainSource = null,
     terrainRevision = -1,
     terrainLevel = null,
-    terrainExploration = null;
+    terrainExploration = null,
+    terrainFaces = [];
   function drawTerrain(state, selection) {
     if (
       terrainSource === terrainGeometryKey(state.terrain) &&
@@ -162,23 +164,54 @@ export function createView(app, world, camera, art, initial, input) {
       previous !== Texture.EMPTY
     )
       previous.destroy(true);
+    terrainFaces = faces;
     camera.setTerrain(faces);
   }
   const wetSurface = new Sprite(Texture.EMPTY);
   wetSurface.eventMode = "none";
   world.addChild(wetSurface);
   let waterCheckpoint = null,
-    waterPixels = null;
-  function drawWater(state) {
-    if (waterCheckpoint === state.terrain) return;
-    waterCheckpoint = state.terrain;
-    const water = terrainWater(state.terrain);
-    // The same rounded projection as the existing low-resolution bake. This
-    // invalidates on visible geometry, without throttling physical advancement.
+    waterContext = null,
+    waterPixels = null,
+    waterExploration = null,
+    waterFaces = null,
+    waterMaskPixels = null;
+  function drawWater(state, selection) {
+    const context = JSON.stringify([
+      selection.level,
+      Object.values(state.actors).map(({ x, y, z }) => [x, y, z]),
+      state.sites
+        .filter((site) => site.finishedAt !== null)
+        .map(({ id, type, x, z, level, direction }) => [
+          id,
+          type,
+          x,
+          z,
+          level,
+          direction,
+        ]),
+    ]);
+    if (
+      waterCheckpoint === state.water &&
+      context === waterContext &&
+      waterExploration === state.exploration &&
+      waterFaces === terrainFaces
+    )
+      return;
+    if (waterFaces !== terrainFaces)
+      waterMaskPixels = terrainFaces.map((face) =>
+        face.vertices.map(({ x, y, z }) => projectCell({ x, z }, y)),
+      );
+    waterCheckpoint = state.water;
+    waterContext = context;
+    waterExploration = state.exploration;
+    waterFaces = terrainFaces;
+    const water = waterSurfaces(state, selection.level);
+    // Actual low-resolution projected pixels, not a simulation-time throttle.
     const pixels = JSON.stringify([
-      terrainGeometryKey(state.terrain),
+      waterMaskPixels,
       water.map((surface) => [
-        surface.depthM > 0,
+        surface.id,
         [-0.5, 0.5].flatMap((dx) =>
           [-0.5, 0.5].map((dz) =>
             projectCell(
@@ -190,11 +223,13 @@ export function createView(app, world, camera, art, initial, input) {
       ]),
     ]);
     if (pixels === waterPixels) return;
-    waterPixels = pixels;
+    const slice = water.length
+      ? art.bakeTerrainWater(water, terrainFaces)
+      : { texture: Texture.EMPTY, x: 0, y: 0 };
     const previous = wetSurface.texture;
-    wetSurface.texture = water.some((column) => column.depthM > 0)
-      ? art.bakeTerrainWater(state.terrain, water)
-      : Texture.EMPTY;
+    wetSurface.texture = slice.texture;
+    wetSurface.position.set(slice.x, slice.y);
+    waterPixels = pixels;
     if (previous !== Texture.EMPTY) previous.destroy(true);
   }
   drawTerrain(initial, { level: 0 });
@@ -907,8 +942,7 @@ export function createView(app, world, camera, art, initial, input) {
     render(state, selection) {
       visible = currentVisibility(state);
       drawTerrain(state, selection);
-      if (selection.level === 0) drawWater(state);
-      wetSurface.visible = selection.level === 0;
+      drawWater(state, selection);
       drawTerrainMarks(state, selection);
       drawTrees(state, selection);
       drawSources(state, selection);
