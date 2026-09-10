@@ -177,6 +177,22 @@ export function waterEnvironmentFacts(
   return facts;
 }
 
+/** Derived physical input for the composed air owner. Reuse the exact admitted
+ * geometry instead of building a second interpretation of terrain and sites. */
+export function waterEnvironmentGeometry(
+  input: WaterEnvironment,
+  source: EnvironmentGeometry,
+) {
+  const { state, bound } = current(input, source);
+  return Object.freeze({
+    physical: bound.physical,
+    definition: bound.owner.definition,
+    facts: waterEnvironmentFacts(state, source),
+    geometryRevision: state.geometryRevision,
+    ceilingY: state.ceilingY,
+  });
+}
+
 /** Detached candidate only. The physical-completion caller must pair removed
  * pore water with its exact spoil record and obtain air admission before commit. */
 export function prepareWaterEnvironmentGeometry(
