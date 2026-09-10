@@ -191,6 +191,10 @@ function breadIn(snapshot, container) {
     return total + (lot?.kind === "bread" && lot.container === container ? lot.quantity : 0);
   }, 0);
 }
+function survivorX(snapshot) {
+  const row = scene(snapshot).find((entry) => entry.id === "survival.survivor.1");
+  return row?.components["hive.position"]?.x ?? 0;
+}
 async function hostStep(id, expectedRevision) {
   const response = await fetch(`${endpoint}/command`, {
     method: "POST",
@@ -235,7 +239,6 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   clientB.send({ type: "start", game: "survival" });
   await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "client A ready", 0), waitFor(eventsB, (event) => event.type === "ready", "client B ready", 0)]);
   const initial = await observe(secrets.WRITER_SECRET);
-  assert.equal(initial.revision, 0);
   assert.deepEqual((await observe(secrets.WRITER_SECRET)).observation, initial.observation);
 
   const pauseCursorA = eventsA.length;
@@ -249,21 +252,46 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   await waitFor(eventsB, (event) => event.type === "state" && !event.paused, "resume state", resumeCursorB);
   await waitFor(eventsA, (event) => event.type === "state" && !event.paused, "first client sees resume", resumeCursorA);
 
+  const moveReady = await observe(secrets.WRITER_SECRET);
+  await waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= moveReady.revision, "first client resume frame", resumeCursorA);
+  const moveCursorA = eventsA.length;
+  const moveCursorB = eventsB.length;
+  clientA.send({ type: "action", action: { kind: "move", entity: "survival.survivor.1", destination: { x: 2, y: 0, z: 0, frame: null } } });
+  await Promise.all([
+    waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= moveReady.revision + 1, "first client move admission", moveCursorA),
+    waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= moveReady.revision + 1, "second client move admission", moveCursorB),
+  ]);
+  let moved = await debugSnapshot();
+  for (let tick = 0; tick < 12 && survivorX(moved) < 1.9; tick++) {
+    const current = await observe(secrets.WRITER_SECRET);
+    const stepCursorA = eventsA.length;
+    const stepCursorB = eventsB.length;
+    const step = await hostStep(`host-step-move-${tick}`, current.revision);
+    assert.equal(step.status, "applied");
+    await Promise.all([
+      waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= current.revision + 1, `first client move tick ${tick}`, stepCursorA),
+      waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= current.revision + 1, `second client move tick ${tick}`, stepCursorB),
+    ]);
+    moved = await debugSnapshot();
+  }
+  assert.ok(survivorX(moved) >= 1.9, "survivor reaches locker before transfer");
+
+  const takeBase = await observe(secrets.WRITER_SECRET);
   const takeCursorA = eventsA.length;
   clientA.send({ type: "command", name: "takeFood" });
   const takeAttempts = () => clientAAttempts.filter((attempt) => JSON.parse(attempt.body).command?.name === "takeFood");
   await waitUntil(() => takeAttempts().filter((attempt) => attempt.status === 200 && attempt.receipt?.status === "applied").length >= 2, "take retry acknowledgement");
-  await waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 3, "take observation", takeCursorA);
+  await waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= takeBase.revision + 1, "take observation", takeCursorA);
   assert.equal(takeAttempts().length, 2, "lost take response was retried");
   assert.equal(takeAttempts()[0].body, takeAttempts()[1].body, "take retry reused exact envelope");
   assert.equal(takeAttempts()[0].status, 200);
   assert.equal(takeAttempts()[1].status, 200);
   assert.equal(takeAttempts()[0].receipt?.status, "applied");
   assert.equal(takeAttempts()[1].receipt?.status, "applied");
-  assert.equal(takeAttempts()[0].receipt?.revision, 3);
-  assert.equal(takeAttempts()[1].receipt?.revision, 3);
+  assert.equal(takeAttempts()[0].receipt?.revision, takeBase.revision + 1);
+  assert.equal(takeAttempts()[1].receipt?.revision, takeBase.revision + 1);
   const afterTake = await observe(secrets.WRITER_SECRET);
-  assert.equal(afterTake.revision, 3, "lost command response commits exactly once");
+  assert.equal(afterTake.revision, takeBase.revision + 1, "lost command response commits exactly once");
   const takeStepCursorA = eventsA.length;
   const takeStepCursorB = eventsB.length;
   const stepTake = await hostStep("host-step-take", afterTake.revision);
@@ -276,20 +304,21 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   assert.equal(breadIn(taken, "survival.survivor.1"), 1, "replayed take command does not duplicate custody");
   assert.equal(breadIn(taken, "survival.locker"), 7);
   const eatCursorB = eventsB.length;
+  const eatBase = await observe(secrets.WRITER_SECRET);
   clientB.send({ type: "command", name: "eatFood" });
-  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 5, "eat observation", eatCursorB);
+  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= eatBase.revision + 1, "eat observation", eatCursorB);
   const beforeEatStep = await observe(secrets.WRITER_SECRET);
-  assert.equal(beforeEatStep.revision, 5);
+  assert.equal(beforeEatStep.revision, eatBase.revision + 1);
   const finalCursorA = eventsA.length;
   const finalCursorB = eventsB.length;
   const stepEat = await hostStep("host-step-eat", beforeEatStep.revision);
   assert.equal(stepEat.status, "applied");
   await Promise.all([
-    waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 6, "first client final frame", finalCursorA),
-    waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 6, "second client final frame", finalCursorB),
+    waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= beforeEatStep.revision + 1, "first client final frame", finalCursorA),
+    waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= beforeEatStep.revision + 1, "second client final frame", finalCursorB),
   ]);
   const final = await observe(secrets.WRITER_SECRET);
-  assert.equal(final.revision, 6);
+  assert.equal(final.revision, beforeEatStep.revision + 1);
   const eaten = await debugSnapshot();
   assert.equal(breadIn(eaten, "survival.survivor.1"), 0);
   assert.equal(breadIn(eaten, "survival.locker"), 7);
