@@ -125,7 +125,10 @@ test("unknown records are copied without invoking accessors", () => {
 
 test("nonpositive absolute temperature is outside the physical envelope", () => {
   const owner = createAtmosphere(
-      definition({ volumes: [volume("room", [member("cell:0,0,0")])] }),
+      definition({
+        volumes: [volume("room", [member("cell:0,0,0")])],
+        override: { maxTemperatureDeltaK: 1_000 },
+      }),
     ),
     state = initial(owner),
     heatJ =

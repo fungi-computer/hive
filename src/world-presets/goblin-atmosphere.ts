@@ -35,6 +35,13 @@ export type GasGeometrySnapshot = {
   readonly openFaces: readonly GasFace[];
 };
 
+export const GOBLIN_ATMOSPHERE_LIMITS = Object.freeze({
+  cells: 4096,
+  faces: 2048,
+  bandCells: 256,
+  bandSpanM: 8,
+});
+
 const gasCellSchema = z.strictObject({
   id: z.string().min(1).max(160),
   x: z.number().finite(),
@@ -52,8 +59,8 @@ const gasFaceSchema = z.strictObject({
 const gasGeometrySchema = z.strictObject({
   identity: z.string().min(1).max(16_384),
   revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  cells: z.array(gasCellSchema).min(1).max(8192),
-  openFaces: z.array(gasFaceSchema).max(8192),
+  cells: z.array(gasCellSchema).min(1).max(GOBLIN_ATMOSPHERE_LIMITS.cells),
+  openFaces: z.array(gasFaceSchema).max(GOBLIN_ATMOSPHERE_LIMITS.faces),
 });
 
 export const GOBLIN_ATMOSPHERE_AMBIENT = Object.freeze({
@@ -138,6 +145,16 @@ function finitePositive(value: number, label: string) {
     throw new TypeError(`${label} must be finite and positive`);
 }
 
+function sameMixingBand(left: GasCell, right: GasCell) {
+  const band = (value: number) =>
+    Math.floor(value / GOBLIN_ATMOSPHERE_LIMITS.bandSpanM);
+  return (
+    left.y === right.y &&
+    band(left.x) === band(right.x) &&
+    band(left.z) === band(right.z)
+  );
+}
+
 /** Compile an exact physical free-volume/open-face snapshot. Horizontal open
  * cells share a cheap well-mixed band unless a registered site face separates
  * them. Vertical shafts, doors and ambient boundaries remain explicit edges. */
@@ -173,7 +190,7 @@ export function goblinAtmosphereFromGeometry(
       b = face.b === null ? null : cells.get(face.b);
     if (!a || (face.b !== null && !b) || face.a === face.b)
       throw new Error(`gas face ${face.id} has invalid endpoints`);
-    if (b && a.y === b.y && !separators.has(face.id))
+    if (b && sameMixingBand(a, b) && !separators.has(face.id))
       components.join(a.id, b.id);
   }
   for (const separator of separators)
@@ -190,6 +207,8 @@ export function goblinAtmosphereFromGeometry(
   const volumes: AtmosphereVolumeDefinition[] = [],
     owner = new Map<string, string>();
   for (const group of grouped.values()) {
+    if (group.length > GOBLIN_ATMOSPHERE_LIMITS.bandCells)
+      throw new Error("gas mixing band exceeds its cell budget");
     group.sort((a, b) => compare(a.id, b.id));
     const id = `band:${group[0].id}`;
     volumes.push({

@@ -131,11 +131,10 @@ function balance(state: AtmosphereState) {
   return result;
 }
 
-export function validateState(
+function validateAdmittedState(
   g: CompiledAtmosphere,
-  input: unknown,
+  state: AtmosphereState,
 ): AtmosphereState {
-  const state = stateSchema.parse(copyAtmosphereData(input));
   if (
     state.identity !== g.identity ||
     state.parcels.length !== g.volumes.length ||
@@ -147,6 +146,49 @@ export function validateState(
   );
   balance(state);
   return state;
+}
+
+export function validateState(
+  g: CompiledAtmosphere,
+  input: unknown,
+): AtmosphereState {
+  return validateAdmittedState(g, stateSchema.parse(copyAtmosphereData(input)));
+}
+
+/** Internal candidates derive solely from an admitted detached state. Recheck
+ * their finite stock/ledger and physical laws without reparsing static identity. */
+export function validateCandidateState(
+  g: CompiledAtmosphere,
+  state: AtmosphereState,
+) {
+  const finiteScalars = [
+      state.initialCarrierKg,
+      state.initialSmokeKg,
+      state.initialHeatJ,
+      state.smokeSourceKg,
+      state.heatSourceJ,
+      state.carrierBoundaryKg,
+      state.smokeBoundaryKg,
+      state.heatBoundaryJ,
+      ...state.parcels.flatMap((parcel) => [
+        parcel.carrierKg,
+        parcel.smokeKg,
+        parcel.heatJ,
+      ]),
+    ],
+    nonnegative = [
+      state.initialCarrierKg,
+      state.initialSmokeKg,
+      state.smokeSourceKg,
+      ...state.parcels.flatMap((parcel) => [parcel.carrierKg, parcel.smokeKg]),
+    ];
+  if (
+    finiteScalars.some((value) => !Number.isFinite(value)) ||
+    state.initialCarrierKg <= 0 ||
+    nonnegative.some((value) => value < 0)
+  )
+    throw new Error("atmosphere candidate stock is not finite and bounded");
+  return validateAdmittedState(g, state);
 }
 
 export function copyState(state: AtmosphereState): AtmosphereState {
@@ -188,7 +230,7 @@ export function initialState(g: CompiledAtmosphere, input: unknown) {
     smokeBoundaryKg: 0,
     heatBoundaryJ: 0,
   };
-  validateState(g, state);
+  validateCandidateState(g, state);
   return copyState(state);
 }
 
