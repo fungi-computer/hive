@@ -16,6 +16,7 @@ import { brewerCache } from "./art/brew-supplies.js";
 import { pail } from "./art/pail.js";
 import { scene } from "./art/geometry.js";
 import { soilPile } from "./art/soil.js";
+import { stonePile } from "./art/stone.js";
 import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
 import {
@@ -394,6 +395,7 @@ export async function bakeArt(onProgress = () => {}) {
       pail: {},
       wood: {},
       soil: {},
+      stone: {},
       ration: {},
       wallJoints: {},
       mixedShelf: {},
@@ -407,6 +409,7 @@ export async function bakeArt(onProgress = () => {}) {
       "build",
       "dig",
       "carry-soil",
+      "carry-stone",
       "carry-ration",
       "eat",
       "carry",
@@ -558,14 +561,18 @@ export async function bakeArt(onProgress = () => {}) {
         112,
         112,
       );
-    for (let amount = 1; amount <= 3; amount++)
-      art.soil[amount] = bakeStartup(
-        renderer,
-        soilPile(amount),
-        prop,
-        112,
-        112,
-      );
+    for (const [material, pile] of [
+      ["soil", soilPile],
+      ["stone", stonePile],
+    ])
+      for (let amount = 1; amount <= 3; amount++)
+        art[material][amount] = bakeStartup(
+          renderer,
+          pile(amount),
+          prop,
+          112,
+          112,
+        );
     for (let amount = 1; amount <= 3; amount++)
       art.ration[amount] = bakeStartup(
         renderer,

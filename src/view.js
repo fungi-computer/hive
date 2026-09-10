@@ -90,6 +90,7 @@ export function carriedActorPose(materials, hand, mode) {
         : "carry-pail-empty";
   }
   if (hand?.material === "soil") return "carry-soil";
+  if (hand?.material === "stone") return "carry-stone";
   if (hand?.material === "ration")
     return mode === "consume" ? "eat" : "carry-ration";
   if (["dig"].includes(mode)) return "dig";
@@ -105,6 +106,7 @@ function stationaryCarryPose(pose, mode) {
     mode !== "walk" &&
     (pose === "carry-herb" ||
       pose === "carry-soil" ||
+      pose === "carry-stone" ||
       pose === "carry-ration" ||
       pose.startsWith("carry-pail-"))
   );
@@ -645,26 +647,28 @@ export function createView(app, world, camera, art, initial, input) {
     }
   }
 
-  const pileTexture = (lot) =>
-    lot.material === "ration"
-      ? art.ration[Math.min(3, lot.quantity)]
-      : lot.material === "soil"
-        ? art.soil[Math.min(3, lot.quantity)]
-        : art.wood[Math.min(6, lot.quantity)];
+  const pileBanks = new Map([
+    ["wood", { frames: art.wood, maximum: 6 }],
+    ["soil", { frames: art.soil, maximum: 3 }],
+    ["stone", { frames: art.stone, maximum: 3 }],
+    ["ration", { frames: art.ration, maximum: 3 }],
+  ]);
+  const pileTexture = (lot) => {
+    const bank = pileBanks.get(lot.material);
+    return bank.frames[Math.min(bank.maximum, lot.quantity)];
+  };
   function drawPiles(state, selection) {
-    const groundWoodLots = state.materials.lots.filter(
-      (lot) =>
-        ["wood", "soil", "ration"].includes(lot.material) &&
-        lot.location.kind === "ground",
+    const groundLots = state.materials.lots.filter(
+      (lot) => pileBanks.has(lot.material) && lot.location.kind === "ground",
     );
     for (const [id, view] of piles) {
-      if (!groundWoodLots.some((lot) => lot.id === id)) {
+      if (!groundLots.some((lot) => lot.id === id)) {
         picking.remove(view.container);
         view.container.destroy({ children: true });
         piles.delete(id);
       }
     }
-    for (const lot of groundWoodLots) {
+    for (const lot of groundLots) {
       if (!piles.has(lot.id)) {
         const view = body(pileTexture(lot), art.propAnchor, 7);
         const count = label(String(lot.quantity), 7);

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { scene, box, ball, cylinder, mesh, group } from "./geometry.js";
 import { mugwortBundle } from "./herbs.js";
 import { rationParcel } from "./food.js";
+import { stoneFragments } from "./stone.js";
 
 import { pail, PAIL_GRIP } from "./pail.js";
 const PAIL_POSES = {
@@ -64,9 +65,12 @@ function arms(
   moving,
   { shoulder, spread, length, sleeve, hand, action = "idle" },
 ) {
-  const carryingParcel = ["carry-herb", "carry-soil", "carry-ration"].includes(
-    action,
-  );
+  const carryingParcel = [
+    "carry-herb",
+    "carry-soil",
+    "carry-stone",
+    "carry-ration",
+  ].includes(action);
   if (action === "dig") action = "build";
   const carryingPail = Object.hasOwn(PAIL_POSES, action);
   if (carryingParcel) action = "carry";
@@ -223,15 +227,19 @@ function workGear(body, hands, pose) {
     if (pose === "eat") parcel.scale.setScalar(0.6);
     return;
   }
-  if (pose === "carry-soil") {
+  if (pose === "carry-soil" || pose === "carry-stone") {
     const palms = hands.map((hand) =>
       body.worldToLocal(hand.getWorldPosition(new THREE.Vector3())),
     );
     const center = palms[0].clone().add(palms[1]).multiplyScalar(0.5);
-    // A cloth gathering sack reads as earth custody without a log/axe prop.
+    // A shared cloth gathering sack follows the palms for either loose material.
     const sack = group(body, center.x, center.y - 0.13, center.z + 0.03);
     ball(sack, "#ac9162", 0, 0, 0, 0.24, 0.22, 0.18);
-    ball(sack, "#72523c", 0, 0.15, 0, 0.2, 0.075, 0.15);
+    if (pose === "carry-stone") {
+      const contents = stoneFragments(sack, 2);
+      contents.scale.set(0.65, 0.65, 0.65);
+      contents.position.y = 0.105;
+    } else ball(sack, "#72523c", 0, 0.15, 0, 0.2, 0.075, 0.15);
     return;
   }
   if (pose === "dig") {
@@ -745,6 +753,7 @@ export function figure(kind, phase = 0, direction = 0, pose = "idle") {
     pose === "carry" ||
     pose === "carry-herb" ||
     pose === "carry-soil" ||
+    pose === "carry-stone" ||
     pose === "carry-ration" ||
     Object.hasOwn(PAIL_POSES, pose);
   const body = group(
