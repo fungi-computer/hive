@@ -1,4 +1,4 @@
-:root { font-family: Stipe, system-ui, sans-serif; color-scheme: dark; }
+:root { font-family: var(--font-sans), sans-serif; color: var(--color-base-content); color-scheme: light; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: radial-gradient(circle at 70% 5%, color-mix(in srgb, var(--color-primary) 22%, var(--color-base-300)), var(--color-base-200) 58%); }
 .hive-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 30vw); min-height: 100vh; gap: 16px; padding: 16px; }
