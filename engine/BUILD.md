@@ -313,3 +313,13 @@ exit0 and owned scope inactive/dead/empty. This check exposed broad point hits
 selecting two crew and an obstacle, so its attempted manual crew move is NOT
 accepted movement evidence. The shared nearest-point selection correction is
 underway before release. Existing native crew route laws remain separate.
+
+## Four-game release — d3b914a
+
+Actual u5002 build plus manual deckhand browser movement/save passed; nearest
+selection returns only crew1, support remains pirates.ship. Five client laws pass.
+Prior same-kernel cargo/Continue and raft movement evidence retained. u5005
+publication exit0 deployment c12d0753-fe29-47ff-8bb7-a8725021bbd1. All143 served
+files match frozen dist after seven initial propagation mismatches cleared on
+readback. 112 non-engine files preserved. Public /engine/pirates.html is playable.
+This remains browser Worker/WASM; new pirate native-DO fixture is source-only.
