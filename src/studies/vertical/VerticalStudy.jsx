@@ -15,6 +15,7 @@ import { loadStaticArtPack } from "../../art/static-pack.js";
 import { buildingVisualPlacement } from "../../construction.js";
 import { projectCell } from "../../art/scale.js";
 import { structureDepth } from "../../visual-order.js";
+import { wallMask } from "../../wall-appearance.js";
 import {
   VERTICAL_LAYOUT,
   VERTICAL_LAYOUT_LABEL,
@@ -23,7 +24,8 @@ import {
 const WIDTH = 640;
 const HEIGHT = 400;
 const LAYERS = [
-  ["cutaway", "Roof / whole cutaway"],
+  ["whole", "Whole building"],
+  ["cutaway", "Cutaway"],
   ["ground", "Ground"],
   ["upper-1", "Storey +1"],
   ["upper-2", "Storey +2"],
@@ -31,16 +33,19 @@ const LAYERS = [
 ];
 
 function showSite(site, layer) {
-  if (layer === "cutaway") return true;
+  if (layer === "whole" || layer === "cutaway") return true;
   if (layer === "ground") return site.level === 0;
   if (layer === "upper-1") return site.level === 1;
   if (layer === "upper-2") return site.level === 2;
   return site.level === 3;
 }
 
-function displaySite(site, art) {
+function displaySite(site, art, sites) {
   const finished = { ...site, direction: 0, work: 0, finishedAt: 0 };
-  const texture = art.buildings[site.type].finished[finished.direction];
+  const texture =
+    site.type === "wall"
+      ? art.wallJoints.finished[wallMask(finished, sites)]
+      : art.buildings[site.type].finished[finished.direction];
   const sprite = new Sprite(texture);
   sprite.anchor.set(art.propAnchor.x, art.propAnchor.y);
   const at = projectCell(buildingVisualPlacement(finished));
@@ -48,6 +53,10 @@ function displaySite(site, art) {
   sprite.zIndex = structureDepth(finished);
   sprite.eventMode = "none";
   sprite.verticalSite = site;
+  sprite.verticalCutaway =
+    site.type === "roof" ||
+    ((site.type === "wall" || site.type === "door") &&
+      (site.x === 7 || site.z === 7));
   return sprite;
 }
 
@@ -56,10 +65,21 @@ function VerticalStudy() {
   const appRef = useRef(null);
   const [layer, setLayer] = useState("cutaway");
   const [zoom, setZoom] = useState(1);
+  const layerRef = useRef(layer);
+  const zoomRef = useRef(zoom);
+  const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Loading the checked original art bank…");
   useEffect(() => {
     let cancelled = false;
     let pack;
+    let app;
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      app?.destroy(true, { children: true, texture: false, textureSource: false });
+      pack?.dispose();
+    };
     async function start() {
       try {
         pack = await loadStaticArtPack({
@@ -68,10 +88,10 @@ function VerticalStudy() {
           },
         });
         if (cancelled) {
-          pack.dispose();
+          release();
           return;
         }
-        const app = new Application();
+        app = new Application();
         await app.init({
           width: WIDTH,
           height: HEIGHT,
@@ -81,39 +101,67 @@ function VerticalStudy() {
           preference: "webgl",
         });
         if (cancelled) {
-          app.destroy(true, { children: true });
+          release();
           return;
         }
         app.canvas.setAttribute("aria-label", "Three-storey authored layout");
         stageRef.current.append(app.canvas);
         appRef.current = app;
-        const sprites = VERTICAL_LAYOUT.map((site) => displaySite(site, pack.art));
+        const sprites = VERTICAL_LAYOUT.map((site) =>
+          displaySite(site, pack.art, VERTICAL_LAYOUT),
+        );
         for (const sprite of sprites) app.stage.addChild(sprite);
         app.stage.sortableChildren = true;
-        app.stage.scale.set(zoom);
-        app.stage.position.set((WIDTH * (1 - zoom)) / 2, (HEIGHT * (1 - zoom)) / 2);
+        for (const child of app.stage.children) {
+          child.visible = showSite(child.verticalSite, layerRef.current);
+          child.alpha =
+            layerRef.current === "cutaway" && child.verticalCutaway ? 0.24 : 1;
+        }
+        app.stop();
+        const bounds = app.stage.getLocalBounds();
+        app.stage.pivot.set(
+          bounds.x + bounds.width / 2,
+          bounds.y + bounds.height / 2,
+        );
+        const fit = Math.min(
+          (WIDTH - 32) / bounds.width,
+          (HEIGHT - 32) / bounds.height,
+          1.2,
+        );
+        zoomRef.current = fit;
+        app.stage.scale.set(fit);
+        app.stage.position.set(WIDTH / 2, HEIGHT / 2);
+        app.render();
+        setZoom(fit);
+        setReady(true);
         setStatus(`${VERTICAL_LAYOUT_LABEL} · ${VERTICAL_LAYOUT.length} authored pieces`);
       } catch (error) {
+        release();
         if (!cancelled) setStatus(`Original art could not load: ${error.message}`);
       }
     }
     start();
     return () => {
       cancelled = true;
-      appRef.current?.destroy(true, { children: true, texture: false, textureSource: false });
+      release();
       appRef.current = null;
-      pack?.dispose();
+      setReady(false);
       stageRef.current?.replaceChildren();
     };
   }, []);
 
   useEffect(() => {
+    layerRef.current = layer;
+    zoomRef.current = zoom;
     const app = appRef.current;
     if (!app) return;
-    for (const child of app.stage.children)
+    for (const child of app.stage.children) {
       child.visible = showSite(child.verticalSite, layer);
+      child.alpha = layer === "cutaway" && child.verticalCutaway ? 0.24 : 1;
+    }
     app.stage.scale.set(zoom);
-    app.stage.position.set((WIDTH * (1 - zoom)) / 2, (HEIGHT * (1 - zoom)) / 2);
+    app.stage.position.set(WIDTH / 2, HEIGHT / 2);
+    app.render();
   }, [layer, zoom]);
 
   return (
@@ -137,15 +185,16 @@ function VerticalStudy() {
                 size="sm"
                 variant={layer === id ? "primary" : "outline"}
                 aria-pressed={layer === id}
+                disabled={!ready}
                 onClick={() => setLayer(id)}
               >
                 {label}
               </Button>
             ))}
-            <Button size="sm" variant="outline" onClick={() => setZoom((value) => Math.max(0.7, value - 0.2))}>
+            <Button size="sm" variant="outline" disabled={!ready} onClick={() => setZoom((value) => Math.max(0.7, value - 0.2))}>
               Zoom −
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setZoom((value) => Math.min(1.8, value + 0.2))}>
+            <Button size="sm" variant="outline" disabled={!ready} onClick={() => setZoom((value) => Math.min(1.8, value + 0.2))}>
               Zoom +
             </Button>
           </div>
