@@ -4,18 +4,20 @@ King Bolete · September 10, 2026 · implementation guiding packet
 
 ## Current playable interim — September 10
 
-The first browser/WASM pages are live at
+The three browser/WASM pages are live at
 https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/ .
-Runtime source 3478538; deployment 4d780b7b-64a3-4e0f-a456-dd5f914e002b.
-All141 combined hosted files match the accepted local output;112 existing
-clearing/study files remain byte-identical. Local checks prove all3 render/pause,
-plus survival pointer movement, take/eat, browser Save and paused Continue.
-Actual headless TS/WASM tests prove colony delivery, repeated survival meals with
-restore and formation movement. Native12 laws and strict TS passed.
-This is a small browser interim, not completion: DO host/restart/retry, richer
-formation controls, region-scale world systems, and capacity claims remain open.
-No hosted browser matrix or narrow-view proof was run. The former browser queue
-was released locally after Delivery explicitly parked/excluded Hive coordination.
+Current published source is `7cea479`, deployment
+`51594c50-d4aa-48df-84d6-e624e2cec9aa`; all 141 served files match the frozen
+release. The 112 existing clearing/study files remain preserved. This interim
+adds original walking sprites, shared interpolation, corrected ground picking,
+stable viewport sizing and two-worker Rust assignment. The public simulation
+still runs in browser Workers, not hosted Durable Objects.
+
+Local moving-support and native save-format-2 work follows this release. Its
+focused native and TS laws are recorded in BUILD.md; the older DO restart
+witness does not qualify the changed native format. The fourth pirate consumer
+is being joined with shared cargo, controls and original timber-raft art.
+It is not deployed yet. No large-world or multiplayer capacity is claimed.
 
 ### Local DO milestone after the browser release
 
@@ -58,11 +60,10 @@ an author-created source commit alone does not establish a working custom rule.
 
 ### Current delivery cadence amendment
 
-Levi is going to bed and explicitly asks for implementation over frequent demo
-publication. Keep current demos live, hold routine deployments and batch the next
-coherent release. This temporarily supersedes the hourly publication cadence;
-it does not remove the playable-consumer requirements or authorize hidden scope
-expansion.
+Levi now requests deployment at the next logical demo. Publish the coherent
+pirate/moving-support checkpoint once its actual interactions are accepted;
+retain the live three-game interim meanwhile. Avoid deployments of individual
+internal changes. This supersedes the earlier bedtime deployment pause.
 
 ## Read this first
 

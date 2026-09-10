@@ -264,3 +264,14 @@ laws passed (including passive ship motion stays idle), and six authored
 world-pose/colony laws passed on actual new WASM. Filtered file wrappers are not
 additional laws. Snapshot format2 now preserves remaining route progress.
 No new DO restart or hosted pirate claim. Public source7cea479 remains unchanged.
+
+## Original vessel bank — u4983
+
+Maintained static exporter completed exit 0 at source f6afec4. Owned scope is
+inactive/dead. New v2 bank contains 1,410 textures (four added vessel facings),
+manifest SHA256 d6bba196acfb207f0f8eb1c682439a85c2c1513dac867ef56e5858895bae1e08.
+King personally viewed the four facings in the nearest-neighbor contact sheet
+`.botanical/fresh-ship-export/contact.png`: readable timber raft, bounded deck,
+small sail; no full sailing-ship claim. This accepts original sprite appearance,
+not crew depth ordering or game interaction. Existing v1 bank remains preserved
+for the previously published consumer. Pirate client composition is still open.
