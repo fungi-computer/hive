@@ -11,10 +11,13 @@ assert(
   process.argv[2] === "--output" &&
     (process.argv.length === 4 ||
       (process.argv.length === 6 && process.argv[4] === "--pack")),
-  "Usage: node proof.mjs --output <directory> [--pack survival|pirates]",
+  "Usage: node proof.mjs --output <directory> [--pack survival|pirates|colony|formations]",
 );
 const packId = process.argv[5] ?? "survival";
-assert(packId === "survival" || packId === "pirates", "unsupported proof pack");
+assert(
+  ["survival", "pirates", "colony", "formations"].includes(packId),
+  "unsupported proof pack",
+);
 const directory = fileURLToPath(new URL(".", import.meta.url));
 const output = resolve(process.argv[3]);
 await mkdir(dirname(output), { recursive: true });
@@ -40,6 +43,8 @@ const files = [
   "../../engine/src/sdk/delivery.ts",
   "../../engine/src/games/survival.ts",
   "../../engine/src/games/pirates.ts",
+  "../../engine/src/games/colony.ts",
+  "../../engine/src/games/formations.ts",
   "../../engine/generated/hive_kernel.js",
   "../../engine/generated/hive_kernel.d.ts",
   "../../engine/generated/hive_kernel_bg.wasm",
@@ -206,7 +211,11 @@ async function checkObservation(committed) {
   assert.ok(first.observation.facts.length > 0);
   assert.ok(first.observation.facts.length <= 512);
   assert.deepEqual(Object.keys(first).sort(), ["observation", "revision"]);
-  assert.deepEqual(await snapshot(), committed, "observations cannot mutate world");
+  assert.deepEqual(
+    await snapshot(),
+    committed,
+    "observations cannot mutate world",
+  );
   return first;
 }
 const request = (id, expectedRevision, command) => ({
@@ -251,6 +260,38 @@ function pirateTotalCargo(snapshot) {
   );
 }
 function pirateRoutes(snapshot) {
+  return JSON.parse(snapshot.snapshot.state.session.kernel.json).routes;
+}
+function colonyScene(snapshot) {
+  return kernelScene(snapshot).initial;
+}
+function colonyLots(snapshot) {
+  return colonyScene(snapshot)
+    .filter((entry) => entry.components["hive.lot"])
+    .map((entry) => entry.components["hive.lot"]);
+}
+function colonyTotal(snapshot) {
+  return colonyLots(snapshot).reduce((total, lot) => total + lot.quantity, 0);
+}
+function colonyGuestFood(snapshot) {
+  return colonyLots(snapshot)
+    .filter((lot) => lot.container === "colony.guest.1")
+    .reduce((total, lot) => total + lot.quantity, 0);
+}
+function colonyTaskPhase(snapshot, id) {
+  return colonyScene(snapshot).find((entry) => entry.id === id)?.components[
+    "hive.delivery-task"
+  ]?.phase;
+}
+function formationPosition(snapshot, id) {
+  return kernelScene(snapshot).initial.find((entry) => entry.id === id)
+    ?.components["hive.position"];
+}
+function formationMorale(snapshot, id) {
+  return kernelScene(snapshot).initial.find((entry) => entry.id === id)
+    ?.components["formations.morale"]?.value;
+}
+function formationRoutes(snapshot) {
   return JSON.parse(snapshot.snapshot.state.session.kernel.json).routes;
 }
 async function runPirateProof(initial) {
@@ -426,6 +467,164 @@ async function runPirateProof(initial) {
     observation,
   };
 }
+async function runColonyProof(initial) {
+  let revision = 0;
+  const dispatch = async (id, value, role = "WRITER_SECRET", fault) => {
+    const result = await command(request(id, revision, value), role, fault);
+    if (result.status === 200) revision++;
+    return result;
+  };
+  const deliver = {
+    kind: "command",
+    name: "deliver",
+    input: {
+      entities: ["colony.worker.1", "colony.worker.2"],
+      quantity: 2,
+    },
+  };
+  const deliverReceipt = await dispatch("colony-deliver", deliver);
+  assert.equal(deliverReceipt.status, 200);
+  const queued = await snapshot();
+  assert.equal(queued.snapshot.revision, 1);
+  assert.equal(queued.snapshot.state.session.pendingWrites.length, 2);
+
+  await stop();
+  await start();
+  assert.deepEqual(await snapshot(), queued);
+  assert.deepEqual(
+    await command(request("colony-deliver", 0, deliver)),
+    deliverReceipt,
+  );
+  revision = 1;
+
+  const lostStep = request("colony-first-step", revision, {
+    kind: "step",
+    delta: 1,
+  });
+  assert.equal(
+    (await command(lostStep, "HOST_SECRET", "after-commit")).status,
+    503,
+  );
+  const committed = await snapshot();
+  assert.equal(committed.snapshot.revision, 2);
+  assert.equal(colonyTotal(committed), 6);
+  assert.ok(
+    colonyScene(committed).some((entry) =>
+      entry.id.startsWith("colony.worker."),
+    ),
+  );
+  const replay = await command(lostStep, "HOST_SECRET");
+  assert.equal(replay.status, 200);
+  // The replay response is checked against a second replay; no second
+  // physical tick or lot mutation is permitted by the region receipt.
+  assert.deepEqual(await command(lostStep, "HOST_SECRET"), replay);
+  revision = 2;
+  for (let tick = 0; tick < 180; tick++) {
+    const result = await dispatch(
+      `colony-step-${tick}`,
+      {
+        kind: "step",
+        delta: 0.1,
+      },
+      "HOST_SECRET",
+    );
+    assert.equal(result.status, 200);
+  }
+  const completed = await snapshot();
+  assert.equal(colonyTotal(completed), 6);
+  assert.equal(colonyGuestFood(completed), 4);
+  assert.equal(colonyTaskPhase(completed, "colony.delivery.1"), "complete");
+  assert.equal(colonyTaskPhase(completed, "colony.delivery.2"), "complete");
+  const observation = await checkObservation(completed);
+  return { initial, queued, committed, completed, observation };
+}
+async function runFormationProof(initial) {
+  let revision = 0;
+  const dispatch = async (id, value, role = "WRITER_SECRET", fault) => {
+    const result = await command(request(id, revision, value), role, fault);
+    if (result.status === 200) revision++;
+    return result;
+  };
+  const threshold = {
+    kind: "command",
+    name: "setRetreatThreshold",
+    input: { retreatBelow: 90 },
+  };
+  assert.equal((await dispatch("formations-threshold", threshold)).status, 200);
+  const march = {
+    kind: "command",
+    name: "march",
+    input: {
+      entities: ["formations.unit.1", "formations.unit.2", "formations.unit.3"],
+      destination: { x: 8, y: 0, z: 8, frame: null },
+      facing: 1,
+    },
+  };
+  assert.equal((await dispatch("formations-march", march)).status, 200);
+  const queued = await snapshot();
+  assert.equal(queued.snapshot.revision, 2);
+  assert.equal(
+    queued.snapshot.state.session.pendingWrites.some(
+      (write) => write.component === "formations.settings",
+    ),
+    true,
+  );
+
+  await stop();
+  await start();
+  assert.deepEqual(await snapshot(), queued);
+  const thresholdReplay = await command(
+    request("formations-threshold", 0, threshold),
+  );
+  assert.equal(thresholdReplay.status, 200);
+  assert.deepEqual(
+    await command(request("formations-threshold", 0, threshold)),
+    thresholdReplay,
+  );
+  const marchReplay = await command(request("formations-march", 1, march));
+  assert.equal(marchReplay.status, 200);
+  assert.deepEqual(
+    await command(request("formations-march", 1, march)),
+    marchReplay,
+  );
+  revision = 2;
+  const lostStep = request("formations-step", revision, {
+    kind: "step",
+    delta: 1,
+  });
+  assert.equal(
+    (await command(lostStep, "HOST_SECRET", "after-commit")).status,
+    503,
+  );
+  const committed = await snapshot();
+  assert.equal(committed.snapshot.revision, 3);
+  assert.equal(formationMorale(committed, "formations.unit.1"), 80);
+  assert.ok(
+    formationRoutes(committed).length > 0,
+    "formation route must be committed",
+  );
+  const replay = await command(lostStep, "HOST_SECRET");
+  assert.equal(replay.status, 200);
+  assert.deepEqual(await command(lostStep, "HOST_SECRET"), replay);
+  assert.deepEqual(await snapshot(), committed);
+  revision = 3;
+  const resumed = await dispatch(
+    "formations-resumed-step",
+    {
+      kind: "step",
+      delta: 1,
+    },
+    "HOST_SECRET",
+  );
+  assert.equal(resumed.status, 200);
+  const advanced = await snapshot();
+  assert.notDeepEqual(
+    formationPosition(advanced, "formations.unit.1"),
+    formationPosition(committed, "formations.unit.1"),
+  );
+  const observation = await checkObservation(advanced);
+  return { initial, queued, committed, advanced, observation };
+}
 try {
   await start();
   const initial = await snapshot();
@@ -438,6 +637,26 @@ try {
     );
     await writeFile(
       resolve(output, "pirate-proof-receipt.json"),
+      JSON.stringify({ status: "succeeded", starts }, null, 2),
+    );
+  } else if (packId === "colony") {
+    const evidence = await runColonyProof(initial);
+    await writeFile(
+      resolve(output, "colony-proof.json"),
+      JSON.stringify(evidence, null, 2),
+    );
+    await writeFile(
+      resolve(output, "colony-proof-receipt.json"),
+      JSON.stringify({ status: "succeeded", starts }, null, 2),
+    );
+  } else if (packId === "formations") {
+    const evidence = await runFormationProof(initial);
+    await writeFile(
+      resolve(output, "formations-proof.json"),
+      JSON.stringify(evidence, null, 2),
+    );
+    await writeFile(
+      resolve(output, "formations-proof-receipt.json"),
       JSON.stringify({ status: "succeeded", starts }, null, 2),
     );
   } else {
