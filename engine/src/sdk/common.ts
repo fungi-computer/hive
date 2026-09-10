@@ -45,7 +45,7 @@ export const move = (
   entity: EntityId,
   destination: Vec3,
   facing = 0,
-): ActionRequest => ({ kind: "move", entity, destination, facing });
+): ActionRequest => ({ kind: "move", entity, destination: { x: destination.x, y: destination.y, z: destination.z }, facing });
 export const transfer = (
   lot: EntityId,
   from: EntityId,
