@@ -123,3 +123,12 @@ closing u4883's numeric restore failure. Scope inactive/dead/empty.
 Levi's bedtime amendment pauses routine publications: batch the next release and
 continue implementation. Live browser remains 3478538; corrected local dist is
 held, not advertised as hosted.
+
+Authored commands / shared presentation join 85b542f: u4906 strict TS passed and
+one new actual WASM law passed for paused pending writes, last intent replacement,
+committed-only reads, immutable query values, missing-reference rejection, fresh
+instance restore, forged system-write rejection and failed-step queue recovery.
+Filtered runner additionally counts an empty session file; one authored law ran.
+u4905 type failures were fixed at actual joined imports/fixtures, not bypassed.
+This source adds session format 4 and rejects prior versions; it is not deployed.
+Game-specific controls and fact providers are the next consumer work.
