@@ -420,3 +420,35 @@ test("prospective wall geometry waits for an existing loose pail without publish
   );
   currentSave(state);
 });
+
+test("removing the last rooted roof support waits without publishing or resetting work", () => {
+  const state = createClearing();
+  const wall = structure(state, "wall");
+  const roof = {
+    ...wall,
+    id: "supported-roof",
+    type: "roof",
+    level: wall.level + 1,
+    work: BUILDINGS.roof.ticks,
+  };
+  state.sites.push(roof);
+  state.materials.lots.find((lot) => lot.id === "remaining-wood").quantity -=
+    BUILDINGS.roof.wood;
+  state.materials.embedded.push({
+    container: constructionBuffer(roof).id,
+    material: "wood",
+    quantity: BUILDINGS.roof.wood,
+  });
+  const { actor } = worker(
+    state,
+    "deconstruct",
+    wall.id,
+    BUILDINGS.wall.deconstructTicks,
+  );
+  currentSave(state);
+  const before = JSON.stringify(state);
+  assert.equal(settle(state).status, "waiting");
+  assert.equal(JSON.stringify(state), before);
+  assert.equal(actor.work, BUILDINGS.wall.deconstructTicks - 1);
+  currentSave(state);
+});

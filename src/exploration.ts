@@ -55,25 +55,50 @@ type Query = ReturnType<typeof createStructureGeometry>;
  * crossed face/cell; a diagonal corner cannot reveal space through a wall. */
 function lineVisible(query: Query, from: Footing, target: Footing): boolean {
   const at = tuple(from),
-    end = tuple(target),
-    delta = end.map((v, i) => v - at[i]);
+    end = tuple(target);
+  const delta = end.map((v, i) => v - at[i]);
   const step = delta.map(Math.sign),
-    interval = delta.map((v) => (v ? 1 / Math.abs(v) : Infinity));
-  const next = interval.map((v) => v / 2);
+    distance = delta.map(Math.abs),
+    crossed = [0, 0, 0];
   for (let count = 0; count <= HUMAN_SIGHT.radiusVoxels * 3; count++) {
     if (at.every((v, i) => v === end[i]))
       return query.point(at) !== "unresolved";
-    const time = Math.min(...next);
-    for (let axis = 0; axis < 3; axis++) {
-      if (next[axis] !== time) continue;
-      const face = [...at] as [number, number, number];
-      if (step[axis] > 0) face[axis]++;
-      if (query.face(axes[axis], face) !== "open") return false;
+    const moving = [0, 1, 2].filter((axis) => distance[axis] > 0);
+    let first = moving[0];
+    for (const axis of moving)
+      if (
+        (2 * crossed[axis] + 1) * distance[first] <
+        (2 * crossed[first] + 1) * distance[axis]
+      )
+        first = axis;
+    const tied = moving.filter(
+      (axis) =>
+        (2 * crossed[axis] + 1) * distance[first] ===
+        (2 * crossed[first] + 1) * distance[axis],
+    );
+    // Check every nonempty subset of this exact tied crossing before moving.
+    // This includes both sides of an edge and all seven cells at a corner.
+    for (let mask = 1; mask < 1 << tied.length; mask++) {
+      const candidate = [...at] as [number, number, number];
+      for (let bit = 0; bit < tied.length; bit++)
+        if (mask & (1 << bit)) candidate[tied[bit]] += step[tied[bit]];
+      for (let bit = 0; bit < tied.length; bit++) {
+        if (!(mask & (1 << bit))) continue;
+        const axis = tied[bit],
+          face = [...candidate] as [number, number, number];
+        if (step[axis] < 0) face[axis]++;
+        if (query.face(axes[axis], face) !== "open") return false;
+      }
+      const point = query.point(candidate);
+      if (
+        point === "unresolved" ||
+        (point === "solid" && !candidate.every((v, i) => v === end[i]))
+      )
+        return false;
+    }
+    for (const axis of tied) {
       at[axis] += step[axis];
-      next[axis] += interval[axis];
-      const point = query.point(at);
-      if (point === "unresolved") return false;
-      if (point === "solid") return at.every((v, i) => v === end[i]);
+      crossed[axis]++;
     }
   }
   return false;

@@ -1,3 +1,4 @@
+import { structuralSupport } from "./structure-support.js";
 import { roomInterior } from "./room-space.ts";
 import { createStructureGeometry } from "./structure-environment.ts";
 import { knownFootings } from "./exploration.ts";
@@ -35,6 +36,7 @@ import { terrainGeometry } from "./terrain.ts";
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
   wall: {
+    support: { kind: "column" },
     environment: { kind: "solid-column", heightVoxels: 4 },
     label: "Timber wall",
     wood: 1,
@@ -43,6 +45,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   door: {
+    support: { kind: "column" },
     environment: { kind: "permeable" },
     label: "Doorway",
     wood: 2,
@@ -51,6 +54,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   roof: {
+    support: { kind: "span", maxSteps: 6 },
     environment: { kind: "y-face", offsetVoxels: 0 },
     visualBaseOffset: -1,
     walkable: false,
@@ -77,6 +81,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   floor: {
+    support: { kind: "span", maxSteps: 6 },
     environment: { kind: "y-face", offsetVoxels: 0 },
     label: "Upper floor",
     wood: 1,
@@ -315,9 +320,6 @@ function finishedSiteAt(state, cell, type = null) {
   );
 }
 export function floorSupported(state, cell) {
-  const lower = { ...cell, level: cell.level - 1 };
-  if (!insidePlacement(lower)) return false;
-  if (terrainSupports(state, cell)) return true;
   if (
     state.sites.some(
       (site) =>
@@ -326,16 +328,7 @@ export function floorSupported(state, cell) {
     )
   )
     return false;
-  if (
-    state.sites.some(
-      (site) => samePlacement(site, lower) && site.type === "door",
-    )
-  )
-    return false;
-  return (
-    interiorAt(state, lower.level).has(placementKey(lower)) ||
-    finishedSiteAt(state, lower, "wall")
-  );
+  return structuralSupport(state, { ...cell, type: "floor" }).span(cell);
 }
 /** Floor and roof are alternative physical faces at the same selected height. */
 function crossLevelSurfaceConflict(state, site) {
@@ -390,32 +383,48 @@ export function buildingSupportProblem(state, site) {
     : "Waiting for a supported building surface.";
 }
 
-function terrainSupports(state, cell) {
-  const terrain = terrainGeometry(state.terrain),
-    at = placementFooting(cell);
-  if (at.y - 1 < terrain.bounds.min[1] || at.y >= terrain.bounds.max[1])
-    return false;
-  return (
-    terrain.solidAt(at.x, at.y - 1, at.z) && !terrain.solidAt(at.x, at.y, at.z)
-  );
+/** The same stable dependency law is used for saves and prospective edits. */
+export function structureSupportProblem(state) {
+  for (const site of state.sites)
+    if (
+      (site.finishedAt !== null || site.type === "floor") &&
+      buildingSupportProblem(state, site)
+    )
+      return `unsupported ${site.type} ${site.id}`;
+  return null;
 }
+
 export function surfaceSupported(state, cell) {
-  return terrainSupports(state, cell) || builtSurface(state, cell);
+  return structuralSupport(state).surface(cell);
+}
+
+/** A builder can work from one neighboring cell, including the existing
+ * diagonal corner reach. Route admission still requires a supported body. */
+function neighboringWorkCells(at) {
+  const cells = [];
+  for (let dx = -1; dx <= 1; dx++)
+    for (let dz = -1; dz <= 1; dz++)
+      if (dx || dz) cells.push({ x: at.x + dx, z: at.z + dz, level: at.level });
+  return cells.filter(insidePlacement);
 }
 
 export function workPositions(state, site, operation = "build") {
   if (site.type === "brew-station") return brewStationAccessCells(site);
   if (
-    (site.type === "roof" ||
-      (site.type === "floor" && !terrainSupports(state, site))) &&
+    (site.type === "roof" || site.type === "floor") &&
     operation !== "deconstruct"
   ) {
     const lower = { ...site, level: site.level - 1 };
-    return [lower, ...placementNeighbors(lower)]
+    return [
+      lower,
+      ...neighboringWorkCells(lower),
+      ...neighboringWorkCells(site),
+    ]
       .filter(insidePlacement)
       .map(placementFooting);
   }
   const positions = placementNeighbors(site).filter(insidePlacement);
+  if (site.type === "stair") positions.push(site);
   // A dragged closed outline must not strand its last corner behind its two
   // finished neighbors. Construction can reach that corner from the interior
   // diagonal, and delivery must revalidate that same work position. Movement
@@ -424,27 +433,21 @@ export function workPositions(state, site, operation = "build") {
     operation !== "deconstruct" &&
     (site.type === "wall" || site.type === "door")
   )
-    for (const [x, z] of [
-      [-1, -1],
-      [-1, 1],
-      [1, -1],
-      [1, 1],
-    ]) {
-      const diagonal = {
-        x: site.x + x,
-        z: site.z + z,
-        level: site.level,
-      };
-      if (insidePlacement(diagonal)) positions.push(diagonal);
-    }
+    positions.push(...neighboringWorkCells(site));
   if (
     (site.type === "floor" || site.type === "roof") &&
     operation === "deconstruct"
   ) {
     const lower = { ...site, level: site.level - 1 };
-    positions.push(lower, ...placementNeighbors(lower));
+    positions.push(lower, ...neighboringWorkCells(lower));
   }
-  return positions.filter(insidePlacement).map(placementFooting);
+  return positions
+    .filter(insidePlacement)
+    .filter(
+      (cell, index, cells) =>
+        cells.findIndex((other) => samePlacement(other, cell)) === index,
+    )
+    .map(placementFooting);
 }
 export function workPosition(state, person, site, operation = "build") {
   return workPositions(state, site, operation).some((cell) =>
@@ -530,15 +533,8 @@ export function removalProblem(state, site, person = null) {
     ...state,
     sites: state.sites.filter((candidate) => candidate.id !== site.id),
   };
-  if (
-    state.sites.some(
-      (candidate) =>
-        candidate.id !== site.id &&
-        candidate.type === "floor" &&
-        !floorSupported(prospectiveState, candidate),
-    )
-  )
-    return "Waiting for upper structures to be removed first";
+  const support = structureSupportProblem(prospectiveState);
+  if (support) return `Waiting for dependent structures: ${support}`;
   if (site.type === "floor") {
     const surface = { x: site.x, z: site.z, level: site.level };
     if (
@@ -662,7 +658,9 @@ export function placementProblem(state, at) {
     if (crossLevelSurfaceConflict(state, at))
       return "A floor and roof cannot occupy the same surface.";
     if (!floorSupported(state, at))
-      return "The floor needs ground or a supported room below.";
+      return "The floor needs a connected span within six tiles of support.";
+  } else if (at.type === "roof" && !roofSupported(state, at)) {
+    return "The roof needs a connected span within six tiles of support.";
   } else if (at.type === "stair") {
     if (!surfaceSupported(state, at))
       return "The stair needs a supported starting surface.";
@@ -865,20 +863,8 @@ function interiorAt(state, level) {
 export function indoors(state, level = 0) {
   return new Set(interiorAt(state, level));
 }
-export function roofSupported(
-  state,
-  site,
-  interior = indoors(state, site.level - 1),
-) {
-  return (
-    interior.has(placementKey({ ...site, level: site.level - 1 })) ||
-    state.sites.some(
-      (s) =>
-        samePlacement(s, { ...site, level: site.level - 1 }) &&
-        s.finishedAt !== null &&
-        (s.type === "wall" || s.type === "door"),
-    )
-  );
+export function roofSupported(state, site) {
+  return structuralSupport(state, { ...site, type: "roof" }).span(site);
 }
 export function shelteredBeds(state) {
   const beds = state.sites.filter(

@@ -39,7 +39,7 @@ import {
   constructionBuffer,
   resolveMaterialDestination,
   buildingEnvelopeProblem,
-  buildingSupportProblem,
+  structureSupportProblem,
   siteMaterialEndpoint,
 } from "./construction.js";
 import {
@@ -1915,12 +1915,9 @@ function validateSiteTopology({ state }: RelationContext): void {
       ).length !== 1
     )
       fail(`finished site ${site.id} lacks construction embedding`);
-    if (
-      (site.finishedAt !== null || site.type === "floor") &&
-      buildingSupportProblem(liveState(state), site)
-    )
-      fail(`unsupported ${site.type} ${site.id}`);
   }
+  const support = structureSupportProblem(liveState(state));
+  if (support) fail(support);
 }
 
 function validateConservation({ state }: RelationContext): void {

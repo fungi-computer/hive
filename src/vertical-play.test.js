@@ -13,6 +13,9 @@ import {
   buildingEnvelopeProblem,
   buildingVisualPlacement,
   floorSupported,
+  roofSupported,
+  structureSupportProblem,
+  workPositions,
   indoors,
 } from "./construction.js";
 import { terrainGeometry, TERRAIN_FRAME } from "./terrain.ts";
@@ -21,7 +24,7 @@ import {
   createNavigationSpaces,
   HUMAN_NAVIGATION,
 } from "./navigation-space.ts";
-import { route } from "./engine/navigation/index.ts";
+import { route, standing } from "./engine/navigation/index.ts";
 import {
   observeClearing,
   currentlyVisible,
@@ -252,4 +255,111 @@ test("the same room query separates two authored underground chambers with one p
     geometry.point([upperFloor.x, upperFloor.y - 1, upperFloor.z]),
     "empty",
   );
+});
+
+test("six-step spans stay rooted across segments and door frames without self-support", () => {
+  const state = createClearing();
+  const anchor = site("frame", "door", 5, 5, 0);
+  state.sites.push(anchor);
+  for (let x = 5; x <= 11; x++) {
+    const floor = site(`span:${x}`, "floor", x, 5, 1);
+    assert(floorSupported(state, floor));
+    state.sites.push(floor);
+  }
+  assert(!floorSupported(state, { x: 12, z: 5, level: 1 }));
+  assert(roofSupported(state, { x: 10, z: 6, level: 1 }));
+  assert(!roofSupported(state, { x: 11, z: 6, level: 1 }));
+  assert.equal(structureSupportProblem(state), null);
+  state.sites = state.sites.filter((entry) => entry.id !== anchor.id);
+  assert.notEqual(structureSupportProblem(state), null);
+  assert(!floorSupported(state, { x: 6, z: 5, level: 1 }));
+  state.sites.push(site("bed-is-not-an-anchor", "bed", 5, 5, 0));
+  assert(!floorSupported(state, { x: 5, z: 5, level: 1 }));
+});
+
+test("stair delivery and construction share its real lower endpoint and corner work positions", () => {
+  const state = createClearing();
+  const stair = site("stair", "stair", 8, 2, 0);
+  assert(
+    workPositions(state, stair).some(
+      (at) =>
+        at.x === placementFooting(stair).x &&
+        at.y === placementFooting(stair).y &&
+        at.z === placementFooting(stair).z,
+    ),
+  );
+  const floor = site("corner", "floor", 5, 5, 1);
+  assert(
+    workPositions(state, floor).some((at) => {
+      const corner = placementFooting({ x: 4, z: 4, level: 0 });
+      return at.x === corner.x && at.y === corner.y && at.z === corner.z;
+    }),
+  );
+});
+
+test("tied sight crossings check the alternate corner cell and horizontal face", () => {
+  const state = createClearing(),
+    from = placementFooting({ x: 5, z: 5, level: 0 });
+  // Authored observers isolate one line of sight, not a saved/earned fixture.
+  for (const actor of Object.values(state.actors)) Object.assign(actor, from);
+  const diagonal = { x: from.x + 1, y: from.y + 3, z: from.z + 1 };
+  assert(currentlyVisible(state, diagonal));
+  state.sites.push(site("alternate-corner", "wall", 5, 6, 0));
+  assert(!currentlyVisible(state, diagonal));
+  state.sites = [site("alternate-face", "floor", 5, 5, 1)];
+  assert(!currentlyVisible(state, { x: from.x + 1, y: from.y + 4, z: from.z }));
+});
+
+test("a finite room-and-platform plan has real work access at every authored completion", () => {
+  const state = createClearing(),
+    plan = [];
+  const add = (type, x, z, level) =>
+    plan.push(site(`plan:${plan.length}`, type, x, z, level));
+  // This is a query/admission sequence over authored completed facts. It does
+  // not grant timber, run construction ticks, or claim an earned main save.
+  add("brew-station", 5, 5, 0);
+  for (let x = 4; x <= 7; x++)
+    for (let z = 4; z <= 7; z++)
+      if (x === 4 || x === 7 || z === 4 || z === 7)
+        add(x === 5 && z === 7 ? "door" : "wall", x, z, 0);
+  add("stair", 8, 3, 0);
+  for (let x = 5; x <= 6; x++)
+    for (let z = 5; z <= 6; z++) add("floor", x, z, 1);
+  add("wall", 7, 4, 1);
+  add("stair", 8, 5, 1);
+  for (const x of [7, 6]) for (let z = 5; z <= 7; z++) add("floor", x, z, 2);
+  add("wall", 7, 4, 2);
+  for (const x of [7, 6]) for (let z = 5; z <= 7; z++) add("roof", x, z, 3);
+  assert.equal(
+    plan.reduce((sum, next) => sum + BUILDINGS[next.type].wood, 0),
+    43,
+  );
+  assert(43 <= 8 * 6 + 10 - 1);
+  for (const next of plan) {
+    assert.equal(placementProblem(state, next), "", next.id);
+    const candidate = { ...state, sites: [...state.sites, next] };
+    assert.equal(structureSupportProblem(candidate), null, next.id);
+    const before = createNavigationSpaces(state)(),
+      after = createNavigationSpaces(candidate)();
+    assert(
+      workPositions(state, next).some(
+        (at) =>
+          route(before, state.actors.rowan, at, HUMAN_NAVIGATION).kind ===
+            "route" && standing(after, at, HUMAN_NAVIGATION) === "supported",
+      ),
+      `actual work access for ${next.id}`,
+    );
+    state.sites.push(next);
+  }
+  assert(indoors(state, 0).has("5,5,0"));
+  for (const level of [1, 2])
+    assert.equal(
+      route(
+        createNavigationSpaces(state)(),
+        state.actors.rowan,
+        placementFooting({ x: 6, z: 5, level }),
+        HUMAN_NAVIGATION,
+      ).kind,
+      "route",
+    );
 });

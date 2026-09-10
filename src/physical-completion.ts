@@ -5,6 +5,7 @@ import { finishActivity, finishJob } from "./activity-lifecycle.ts";
 import {
   BUILDINGS,
   buildingSupportProblem,
+  structureSupportProblem,
   constructionBuffer,
   removalProblem,
   shelfContainer,
@@ -373,6 +374,8 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
     terrain: edit.terrain,
     sites: edit.sites,
   };
+  const support = structureSupportProblem(candidate);
+  if (support) return waiting(`Waiting for dependent structures: ${support}`);
   const bodyProblem = physicalOccupancyProblem(candidate);
   if (bodyProblem) return waiting(bodyProblem);
   validateCandidate(candidate);

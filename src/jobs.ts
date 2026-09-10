@@ -23,7 +23,7 @@ import {
   BUILDINGS,
   constructionBuffer,
   removalProblem,
-  roofSupported,
+  buildingSupportProblem,
   shelfContainer,
   resolveMaterialEndpoint,
   shelteredBeds,
@@ -142,8 +142,8 @@ function constructionTransferOption(
   if (t) return no("Wood is on its way");
   const site = state.sites.find((s) => s.id === job.target);
   if (!site) return no("Waiting for site");
-  if (site.type === "roof" && !roofSupported(state, site))
-    return no("Waiting for enclosing walls and a doorway");
+  const support = buildingSupportProblem(state, site);
+  if (support) return no(support);
   const destination = constructionBuffer(site);
   const requiredWood = BUILDINGS[site.type].wood;
   const have = containerQuantity(state.materials, destination.id, "wood");
