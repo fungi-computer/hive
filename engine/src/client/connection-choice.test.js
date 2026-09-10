@@ -118,7 +118,9 @@ test("failed new-world construction retains the current remote connection", () =
     },
   });
   fail = true;
-  assert.throws(() => choice.persistence.newWorld(), /constructor failed/);
+  let replaced = false;
+  assert.throws(() => choice.persistence.newWorld(() => { replaced = true; }), /constructor failed/);
+  assert.equal(replaced, false);
   assert.equal(calls.length, 1);
   choice.runtime.send({ type: "start", game: "formations" });
   assert.deepEqual(calls[0].runtime.sent, [{ type: "start", game: "formations" }]);

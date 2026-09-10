@@ -73,17 +73,15 @@ export function createHiveClient({
       state.message = "Save requested…";
       persistence.save?.();
     } else if (runtime && action.kind === "reset") {
-      state.selectedIds = [];
-      state.hoverId = null;
-      const wasReady = state.ready;
-      prepareNewWorld(persistence.online);
       try {
         persistence.newWorld((remote) => {
+          state.selectedIds = [];
+          state.hoverId = null;
+          prepareNewWorld(remote);
           state.message = remote ? "Starting a new server world…" : "Resetting the browser world…";
           if (remote) runtime.send({ type: "start", game: mode });
         });
       } catch (error) {
-        state.ready = wasReady;
         state.message = `Could not start a new world: ${error.message}`;
       }
     } else if (action.kind === "continue") {
