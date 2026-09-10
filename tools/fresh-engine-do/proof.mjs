@@ -308,9 +308,35 @@ try {
     503,
   );
   assert.deepEqual(await snapshot(), rollbackCandidate);
+  // Authored intent must survive process loss before its physical tick runs.
+  const ruleRequest = request("meal-rule", 8, {
+    kind: "command",
+    name: "setMealRule",
+    input: { recovery: 10 },
+  });
+  const ruleReceipt = await command(ruleRequest);
+  assert.equal(ruleReceipt.status, 200);
+  const queuedRule = await snapshot();
+  assert.equal(queuedRule.snapshot.revision, 9);
+  assert.equal(queuedRule.snapshot.state.session.pendingWrites.length, 1);
   await stop();
   await start();
-  assert.deepEqual(await snapshot(), rollbackCandidate);
+  assert.deepEqual(await snapshot(), queuedRule);
+  assert.deepEqual(await command(ruleRequest), ruleReceipt);
+  assert.deepEqual(await snapshot(), queuedRule);
+  assert.equal(
+    (await command(request("apply-rule", 9, { kind: "step", delta: 1 }), "HOST_SECRET")).status,
+    200,
+  );
+  const appliedRule = await snapshot();
+  assert.equal(appliedRule.snapshot.revision, 10);
+  assert.equal(appliedRule.snapshot.state.session.pendingWrites.length, 0);
+  assert.equal(
+    kernelScene(appliedRule).initial.find((row) => row.id === "survival.survivor.1")
+      .components["survival.meal-rule"].recovery,
+    10,
+  );
+  assert.equal(totalBread(appliedRule), 7);
   await writeFile(
     resolve(output, "survival-proof.json"),
     JSON.stringify(
@@ -322,6 +348,8 @@ try {
         afterOutcome,
         rollbackBefore,
         rollbackCandidate,
+        queuedRule,
+        appliedRule,
         observed,
       },
       null,
