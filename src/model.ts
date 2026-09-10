@@ -371,6 +371,7 @@ export type Clearing = {
   careOutcomes: CareOutcome[];
   processes: BrewProcess[];
   terrain: TerrainState;
+  water: import("./world-presets/goblin-environment/water-state.ts").WaterEnvironment;
   exploration: import("./exploration.ts").Exploration;
   rocks: Cell[];
   watcher: Cell;
