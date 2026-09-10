@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -13,6 +13,7 @@ assert(
 );
 const directory = fileURLToPath(new URL(".", import.meta.url));
 const output = resolve(process.argv[3]);
+await mkdir(dirname(output), { recursive: true });
 await mkdir(output);
 const secrets = Object.fromEntries(
   ["WRITER_SECRET", "HOST_SECRET", "DEBUG_SECRET"].map((key) => [
