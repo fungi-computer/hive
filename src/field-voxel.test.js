@@ -138,8 +138,21 @@ test("shallow surface water can be drawn from an adjacent dry same-height footin
 test("prospective edits and restore share support protection for every fixed-ground kind", () => {
   for (const kind of ["trees", "herbs", "rocks", "watcher", "sources"]) {
     const state = createClearing();
+    if (kind === "herbs")
+      state.herbs.push({
+        id: "authored-support-mugwort",
+        kind: "mugwort",
+        x: 0,
+        y: 15,
+        z: 128,
+        stage: "ordered",
+        work: 0,
+        establishment: null,
+        plantedAt: null,
+      });
     // Authored relocation isolates this existing kind's support law, not earned play.
     const occupant = kind === "watcher" ? state.watcher : state[kind][0];
+    assert(occupant, `${kind} fixture must provide an occupant`);
     Object.assign(occupant, { x: 0, y: 15, z: 128 });
     assert.equal(physicalOccupancyProblem(state), null, kind);
     assert.equal(navigationStateProblem(state), null, kind);
