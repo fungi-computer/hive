@@ -32,13 +32,14 @@ must preserve the existing clearing's frozen files. Original art and authored
 example source are included byte-for-byte. No browser/server acceptance follows
 merely from compilation.
 
-The current TypeScript session format is version 4. It saves queued authored
+The current TypeScript session format is version 5. It also retains bounded pending
+projectile impacts and their delivery frontiers. It saves queued authored
 writes as well as the previous physical
 step's ordered action outcomes with the world and RNG state. Authored systems can
 react on the following step; rejected actions are explicitly distinguishable.
 Pause does not consume outcomes, and successful stepping replaces them, so save
-and restore do not repeat an authored response. The eventual DO host must commit
-this whole session atomically; these in-process fields alone are not durability.
+and restore do not repeat an authored response. The DO Region host commits this whole session atomically; in-process fields
+alone are not durability. Native restart/rollback evidence is recorded below.
 Pending player input is bounded at 128 actions; authored systems have another 128
 per step, within the native 256-action batch. Malformed input is rejected before
 queueing; physically unavailable actions return normal rejections.

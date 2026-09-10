@@ -663,3 +663,30 @@ polish, a complete Goblin hospitality loop, one objective per contrasting game,
 then reusable vertical construction and inexpensive environmental consequences.
 Shared multiplayer is a separate next proof: current public worlds are private
 per-browser capabilities, not an accepted two-player world.
+
+## Foundation completion review — September 10
+
+King reviewed the five original requirements against source and retained receipts,
+with an independent read-only SDK/DO review. The declared small foundation is
+accepted; this is not acceptance of the future full sandbox or shared multiplayer.
+
+| Original requirement | Acceptance evidence and scope |
+| --- | --- |
+| Three playable examples on one site | Four linked pages use client/page.js and the same built client. Actual hosted-DO colony interruption/delivery u5174, survival take/eat/reopen u5178, cannon firing u5139 and raft sailing/reopen u5078. Latest publication u5181 matches143 files. u5174's later survival focus failure remains a failed overall command, corrected only in survival u5178. |
+| Contrasting TypeScript rules over one engine | games/colony.ts, survival.ts, formations.ts and pirates.ts compose SDK systems. WorkerRuntime and createSessionRegionProgram both use GameSession and wasmKernelPort. No game-specific second simulation. |
+| New custom component/rule without Rust changes | runtime/games.test.ts orchard law adds numeric/boolean state, advances it and restores into an independent native instance. Actual unchanged-WASM u4880 passed; fatigue and cannon health/morale are additional real authored consumers. |
+| Shared controls, finite resources, supported save/reload | Shared client/controls.js, original static art, native lot/transfer ownership; public food and raft reopen above. Current route u5163 and actual-WASM colony u5167 preserve cargo through pause and restore every host step. Current session5 cannon save/flight recovery u5149 passes. |
+| Authored state and physical effects survive actual DO restart/retry | Maintained tools/fresh-engine-do/proof.mjs stops/starts native workerd over the same SQLite store. u5149 session5 preserves in-flight ammunition, replays a lost response without another shot, rolls back an injected failed commitment, then applies health/morale once. Earlier per-pack receipts remain historical evidence, not mislabeled current-format reruns. |
+
+The independent reviewer confirmed the shared source boundary and identified the
+stale BUILD session4 description, now corrected. Its proposed additional hosted
+crash injection is not part of the original native-DO acceptance requirement.
+Public cannon evidence explicitly uses the actual hosted DO, despite serving the
+exact client build through the bounded browser fixture. No live fault endpoint
+was added. Hosted outer-transaction fault injection remains unproved.
+
+Future design is retained in this packet: deep terrain/multiple storeys, sleeping
+regions, inexpensive finite water/gas, and scoped Shiitake controllers. Large
+battles, cross-region transfers, shared-player admission, accounts, ship cannons
+and ecological gameplay are not implemented by this foundation. No population
+capacity claim follows from these small fixtures.
