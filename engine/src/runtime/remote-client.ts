@@ -62,11 +62,17 @@ function parseJsonOrUndefined(text: string): unknown {
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
+function safeNonnegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
 function vec3(value: unknown): value is Vec3 {
   return isRecord(value) && finite(value.x) && finite(value.y) && finite(value.z);
 }
 function worldPosition(value: unknown): value is WorldPosition {
-  return vec3(value) && finite(value.facing);
+  return isRecord(value) && finite(value.x) && finite(value.y) && finite(value.z) && finite(value.facing);
+}
+function pose(value: unknown): boolean {
+  return isRecord(value) && vec3(value.position) && finite(value.facing);
 }
 function surface(value: unknown): value is SupportSurface {
   return (
@@ -78,7 +84,7 @@ function surface(value: unknown): value is SupportSurface {
 function renderFact(value: unknown): value is RenderFact {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)
     return false;
-  if (value.pose !== undefined && (!isRecord(value.pose) || !vec3(value.pose.position) || !finite(value.pose.facing))) return false;
+  if (value.pose !== undefined && !pose(value.pose)) return false;
   if (value.local !== undefined && !worldPosition(value.local)) return false;
   if (value.support !== undefined && value.support !== null && typeof value.support !== "string") return false;
   if (value.surface !== undefined && value.surface !== null && !surface(value.surface)) return false;
@@ -168,14 +174,14 @@ async function requestJson(
   }
 }
 function parseObservation(value: unknown): ObservationWire {
-  if (!isRecord(value) || !Number.isSafeInteger(value.revision) || value.revision < 0) throw new Error("invalid remote observation revision");
+  if (!isRecord(value) || !safeNonnegativeInteger(value.revision)) throw new Error("invalid remote observation revision");
   const observation = value.observation;
   if (!isRecord(observation)) throw new Error("missing remote observation");
   const facts = observation.facts;
   const presentationFacts = observation.presentationFacts;
   const presentationControls = observation.presentationControls;
   if (typeof observation.paused !== "boolean" || !finite(observation.time) || observation.time < 0 ||
-    !Number.isSafeInteger(observation.epoch) || observation.epoch < 0 || !Number.isSafeInteger(observation.sequence) || observation.sequence < 0 ||
+    !safeNonnegativeInteger(observation.epoch) || !safeNonnegativeInteger(observation.sequence) ||
     !Array.isArray(facts) || facts.length > 512 || facts.some((item) => !renderFact(item)) ||
     !Array.isArray(presentationFacts) || presentationFacts.length > 32 || presentationFacts.some((item) => !presentationFact(item)) ||
     !Array.isArray(presentationControls) || presentationControls.length > 16 || presentationControls.some((item) => !presentationControl(item)))
@@ -200,7 +206,7 @@ function safeId(create?: () => string): string {
 }
 function actionResult(value: unknown): value is ActionResult {
   return isRecord(value) && typeof value.accepted === "boolean" &&
-    Number.isSafeInteger(value.revision) && value.revision >= 0 &&
+    safeNonnegativeInteger(value.revision) &&
     (value.reason === undefined || (typeof value.reason === "string" && value.reason.length <= 256));
 }
 
@@ -322,7 +328,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
             await poll();
             return;
           }
-          if (receipt.status !== "applied" || !Number.isSafeInteger(receipt.revision) || receipt.revision < 0)
+          if (receipt.status !== "applied" || !safeNonnegativeInteger(receipt.revision))
             throw new Error("invalid remote command receipt");
           if (receipt.revision > (revision ?? -1)) awaitRevision = receipt.revision;
           const payload = receipt.result;
