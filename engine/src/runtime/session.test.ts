@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { GameSession } from "./session";
+import { command } from "../sdk/authoring";
 import type {
   ActionRequest,
   ActionResult,
@@ -229,6 +230,19 @@ test("queued input is cloned when requested", () => {
       .destination.x,
     1,
   );
+});
+
+test("command writes are rejected atomically when undeclared or untargeted", () => {
+  const port = new TestPort();
+  const value = new GameSession({ port, pack: { ...pack(port, undefined), commands: {
+    bad: command({ writes: [morale], run: () => ({ actions: [], writes: [{ entity: "missing" as never, component: morale.id, value: { value: 4 } }] }) }),
+  } }, seed: 3 });
+  value.start();
+  const before = value.save();
+  assert.throws(() => value.command("bad", null));
+  assert.deepEqual(value.save().pendingActions, before.pendingActions);
+  assert.deepEqual(value.save().pendingWrites, []);
+  assert.equal(value.save().version, 4);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {
