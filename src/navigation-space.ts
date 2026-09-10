@@ -110,7 +110,8 @@ function buildNavigationSpaces(state: Clearing) {
   if (!wet) {
     wet = new Map();
     for (const cell of water.cells)
-      if (cell.kind === "void" && cell.massKg > 0) wet.set(cell.at.join(), cell);
+      if (cell.kind === "void" && cell.massKg > 0)
+        wet.set(cell.at.join(), cell);
     wetMaps.set(water, wet);
   }
   const links = Object.freeze(stairs(state));
@@ -201,8 +202,15 @@ type NavigationCache = {
   space: ReturnType<typeof buildNavigationSpaces>;
 };
 const navigationCaches = new WeakMap<Clearing, NavigationCache>();
-const wetMaps = new WeakMap<object, Map<string, { at: readonly number[]; liquidVolumeM3: number }>>();
-function navigationStamp(state: Clearing): { sites: string; trees: string; fixed: string } {
+const wetMaps = new WeakMap<
+  object,
+  Map<string, { at: readonly number[]; liquidVolumeM3: number }>
+>();
+function navigationStamp(state: Clearing): {
+  sites: string;
+  trees: string;
+  fixed: string;
+} {
   return {
     sites: JSON.stringify(
       state.sites.map(({ id, type, x, z, level, direction, finishedAt }) => [
@@ -230,13 +238,20 @@ export function createNavigationSpaces(state: Clearing) {
     stamp = navigationStamp(state),
     cached = navigationCaches.get(state);
   if (
-    cached && cached.terrain === terrain && cached.water === state.water &&
-    cached.sites === state.sites && cached.siteStamp === stamp.sites &&
-    cached.trees === state.trees && cached.treeStamp === stamp.trees &&
+    cached &&
+    cached.terrain === terrain &&
+    cached.water === state.water &&
+    cached.sites === state.sites &&
+    cached.siteStamp === stamp.sites &&
+    cached.trees === state.trees &&
+    cached.treeStamp === stamp.trees &&
     cached.fixedStamp === stamp.fixed &&
-    cached.rocks === state.rocks && cached.watcher === state.watcher &&
-    cached.sources === state.sources && cached.exploration === state.exploration
-  ) return cached.space;
+    cached.rocks === state.rocks &&
+    cached.watcher === state.watcher &&
+    cached.sources === state.sources &&
+    cached.exploration === state.exploration
+  )
+    return cached.space;
   const space = buildNavigationSpaces(state);
   navigationCaches.set(state, {
     terrain,

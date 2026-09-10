@@ -196,7 +196,8 @@ export function updateGoblinGasGeometry(
 
   const cells = new Map<string, GasCellLike>();
   for (const cell of waterDefinition.cells) {
-    const id = cellId(cell.at), fact = byId.get(id);
+    const id = cellId(cell.at),
+      fact = byId.get(id);
     if (!fact || fact.kind !== cell.kind || cell.kind !== "void") continue;
     const freeVolume = freeVolumeM3(fact, voxelM3);
     if (!Number.isFinite(freeVolume) || freeVolume < 0)
@@ -233,8 +234,7 @@ export function updateGoblinGasGeometry(
         old = previousFaces.get(faceIdValue);
       const nextFact = byId.get(nextId)!;
       const physicalFace = physical.face(AXES[axis], nextAt);
-      if (physicalFace === "unresolved")
-        return { status: "rebuild" as const };
+      if (physicalFace === "unresolved") return { status: "rebuild" as const };
       if (physicalFace === "closed") continue;
       const areaM2 = internalAreaM2(
         axis,
@@ -264,11 +264,15 @@ export function updateGoblinGasGeometry(
   )
     return { status: "rebuild" as const };
   const changed =
-    updatedCells.some((cell, index) => cell!.freeVolumeM3 !== previous.cells[index].freeVolumeM3) ||
+    updatedCells.some(
+      (cell, index) =>
+        cell!.freeVolumeM3 !== previous.cells[index].freeVolumeM3,
+    ) ||
     updatedFaces.some(
       (face) => face.areaM2 !== previousFaces.get(face.id)!.areaM2,
     );
-  if (!changed) return { status: "reused" as const, snapshot: previous, changed: false };
+  if (!changed)
+    return { status: "reused" as const, snapshot: previous, changed: false };
   return {
     status: "reused" as const,
     changed: true,

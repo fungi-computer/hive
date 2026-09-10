@@ -324,7 +324,13 @@ export function updateGoblinAtmosphereGeometry(
         if (!cell) throw new Error(`gas topology lost ${member.cellId}`);
         return cell.freeVolumeM3 === member.volumeM3
           ? []
-          : [{ volumeId: volume.id, cellId: member.cellId, volumeM3: cell.freeVolumeM3 }];
+          : [
+              {
+                volumeId: volume.id,
+                cellId: member.cellId,
+                volumeM3: cell.freeVolumeM3,
+              },
+            ];
       }),
     ),
     openingAreas = previous.definition.openings.flatMap((opening) => {

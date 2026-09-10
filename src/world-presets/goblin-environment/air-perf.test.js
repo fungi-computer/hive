@@ -10,10 +10,7 @@ import {
   waterEnvironmentFacts,
   waterEnvironmentGeometry,
 } from "./water-state.ts";
-import {
-  goblinGasGeometry,
-  updateGoblinGasGeometry,
-} from "./gas-geometry.ts";
+import { goblinGasGeometry, updateGoblinGasGeometry } from "./gas-geometry.ts";
 import {
   goblinAtmosphereFromGeometry,
   updateGoblinAtmosphereGeometry,

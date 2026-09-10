@@ -31,9 +31,15 @@ function cut(state, at) {
 
 test("clearing query projections reuse unchanged owner inputs", () => {
   const state = createClearing();
-  assert.strictEqual(createNavigationSpaces(state), createNavigationSpaces(state));
+  assert.strictEqual(
+    createNavigationSpaces(state),
+    createNavigationSpaces(state),
+  );
   assert.strictEqual(fieldWaterSources(state), fieldWaterSources(state));
-  assert.strictEqual(clearingAirPresentation(state), clearingAirPresentation(state));
+  assert.strictEqual(
+    clearingAirPresentation(state),
+    clearingAirPresentation(state),
+  );
 });
 
 test("mutable site and actor arrays invalidate dependent projections", () => {
@@ -95,12 +101,16 @@ test("field source access follows a real fixed rim obstacle", () => {
   }));
   state.trees.push(...blockers);
   assert.equal(
-    fieldWaterSources(state).some((candidate) => candidate.nodeId === source.nodeId),
+    fieldWaterSources(state).some(
+      (candidate) => candidate.nodeId === source.nodeId,
+    ),
     false,
   );
   for (const blocker of blockers) blocker.felledAt = 1;
   assert(
-    fieldWaterSources(state).some((candidate) => candidate.nodeId === source.nodeId),
+    fieldWaterSources(state).some(
+      (candidate) => candidate.nodeId === source.nodeId,
+    ),
   );
 });
 
@@ -109,12 +119,19 @@ test("field source facts invalidate on an admitted water stock change", () => {
   cut(state, [0, 14, 128]);
   cut(state, [0, 13, 128]);
   cut(state, [1, 14, 128]);
-  const source = { terrain: terrainEnvironment(state.terrain), sites: state.sites };
+  const source = {
+    terrain: terrainEnvironment(state.terrain),
+    sites: state.sites,
+  };
   const reference = {
     binding: FIELD_WATER.id,
     nodeId: "cell:0,15,128",
   };
-  const base = { water: state.water, air: state.air, atmosphereReleases: state.atmosphereReleases };
+  const base = {
+    water: state.water,
+    air: state.air,
+    atmosphereReleases: state.atmosphereReleases,
+  };
   const deposited = prepareEnvironmentWaterTransfer(base, source, {
     id: reference.nodeId,
     direction: "deposit",
@@ -126,7 +143,11 @@ test("field source facts invalidate on an admitted water stock change", () => {
   state.atmosphereReleases = deposited.state.atmosphereReleases;
   const before = fieldWaterSources(state);
   const withdrawn = prepareEnvironmentWaterTransfer(
-    { water: state.water, air: state.air, atmosphereReleases: state.atmosphereReleases },
+    {
+      water: state.water,
+      air: state.air,
+      atmosphereReleases: state.atmosphereReleases,
+    },
     source,
     { id: reference.nodeId, direction: "withdraw", massKg: 2.25 },
   );

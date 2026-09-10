@@ -140,7 +140,8 @@ function summarizeLayers(cells: readonly ClearingAirCell[]) {
 export function clearingAirPresentation(
   state: Clearing,
 ): ClearingAirPresentation {
-  const known = cache.get(state.air), sight = currentSightKey(state);
+  const known = cache.get(state.air),
+    sight = currentSightKey(state);
   if (
     known &&
     known.tick === state.tick &&

@@ -6,10 +6,7 @@ import {
 import { compensatedSum } from "../../engine/environment/arithmetic.mjs";
 import { decode, encode } from "../../engine/region/codec.ts";
 import { GOBLIN_WORLD_IDENTITY, GOBLIN_WATER_LIMITS } from "./content.ts";
-import {
-  goblinGasGeometry,
-  updateGoblinGasGeometry,
-} from "./gas-geometry.ts";
+import { goblinGasGeometry, updateGoblinGasGeometry } from "./gas-geometry.ts";
 import { createVoxelWorld } from "../height-caves.mjs";
 import {
   goblinAtmosphereFromGeometry,
@@ -92,7 +89,7 @@ function observe(
     (previous.waterPhysical !== geometry.physical ||
       previous.waterDefinition !== geometry.definition)
       ? Math.max(previous.geometryRevision, geometry.geometryRevision)
-      : previous?.geometryRevision ?? geometry.geometryRevision;
+      : (previous?.geometryRevision ?? geometry.geometryRevision);
   let gas: GasSnapshot;
   if (
     previous &&
@@ -170,10 +167,10 @@ function compileBinding(
     previous &&
     observation.waterPhysical === previous.observation.waterPhysical &&
     observation.waterDefinition === previous.observation.waterDefinition
-      ? updateGoblinAtmosphereGeometry(snapshot, previous.registered) ??
+      ? (updateGoblinAtmosphereGeometry(snapshot, previous.registered) ??
         goblinAtmosphereFromGeometry(snapshot, {
           regionId: GOBLIN_WORLD_IDENTITY.worldId,
-        })
+        }))
       : goblinAtmosphereFromGeometry(snapshot, {
           regionId: GOBLIN_WORLD_IDENTITY.worldId,
         });

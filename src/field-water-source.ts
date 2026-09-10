@@ -63,15 +63,21 @@ function fieldCacheMatches(
   cached: FieldCache | undefined,
   stamp: string,
 ): cached is FieldCache {
-  return !!cached && cached.water === state.water && cached.terrain === state.terrain &&
-    cached.sites === state.sites && cached.siteStamp === stamp;
+  return (
+    !!cached &&
+    cached.water === state.water &&
+    cached.terrain === state.terrain &&
+    cached.sites === state.sites &&
+    cached.siteStamp === stamp
+  );
 }
 export type FieldWaterSource = FieldWaterReference & {
   accessCells: readonly Cell[];
   availableUnits: number;
 };
 export function fieldWaterCells(state: FieldWaterState): readonly FieldCell[] {
-  const stamp = siteStamp(state.sites), cached = fieldCaches.get(state as object);
+  const stamp = siteStamp(state.sites),
+    cached = fieldCaches.get(state as object);
   if (fieldCacheMatches(state, cached, stamp)) return cached.cells;
   const cells = waterEnvironmentFacts(state.water, {
     terrain: terrainEnvironment(state.terrain),
@@ -136,21 +142,30 @@ function accessCells(
 }
 /** Candidate footings are checked for real support, body access, knowledge and fixed
  * occupancy. The actual worker's route and current draw recheck remain separate. */
-export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
-  const stamp = siteStamp(state.sites), cached = fieldCaches.get(state);
+export function fieldWaterSources(
+  state: Clearing,
+): readonly FieldWaterSource[] {
+  const stamp = siteStamp(state.sites),
+    cached = fieldCaches.get(state);
   const navigation = createNavigationSpaces(state);
-  if (fieldCacheMatches(state, cached, stamp) && cached.navigation === navigation && cached.sources)
+  if (
+    fieldCacheMatches(state, cached, stamp) &&
+    cached.navigation === navigation &&
+    cached.sources
+  )
     return cached.sources;
   const space = navigation();
   const known = knownFootings(state);
   const sources = fieldWaterCells(state)
     .filter((cell) => cell.massKg >= FIELD_WATER.kgPerUnit)
-    .map((cell) => Object.freeze({
-      binding: FIELD_WATER.id,
-      nodeId: cell.id,
-      availableUnits: Math.floor(cell.massKg / FIELD_WATER.kgPerUnit),
-      accessCells: Object.freeze(accessCells(state, cell, space, known)),
-    }))
+    .map((cell) =>
+      Object.freeze({
+        binding: FIELD_WATER.id,
+        nodeId: cell.id,
+        availableUnits: Math.floor(cell.massKg / FIELD_WATER.kgPerUnit),
+        accessCells: Object.freeze(accessCells(state, cell, space, known)),
+      }),
+    )
     .filter((source) => source.accessCells.length > 0)
     .sort((a, b) => a.nodeId.localeCompare(b.nodeId));
   const stableSources = Object.freeze(sources);
@@ -169,9 +184,14 @@ export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
   return stableSources;
 }
 export function fieldWaterSupplyKey(state: Clearing): string {
-  const stamp = siteStamp(state.sites), cached = fieldCaches.get(state);
+  const stamp = siteStamp(state.sites),
+    cached = fieldCaches.get(state);
   const navigation = createNavigationSpaces(state);
-  if (fieldCacheMatches(state, cached, stamp) && cached.navigation === navigation && cached.supplyKey !== undefined)
+  if (
+    fieldCacheMatches(state, cached, stamp) &&
+    cached.navigation === navigation &&
+    cached.supplyKey !== undefined
+  )
     return cached.supplyKey;
   fieldWaterSources(state);
   return fieldCaches.get(state)?.supplyKey ?? "[]";
