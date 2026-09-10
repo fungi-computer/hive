@@ -85,6 +85,7 @@ vision; it does not add a routine approval gate or override current user directi
 Read the current-status section of [the architecture-proof sprint](docs/decisions/architecture-proof-sprint.md) before assigning work. Historical paragraphs are evidence, not a competing active queue. Follow the applicable deeper contract:
 
 - [Colyseus, Screeps and sleeping regions](docs/decisions/colyseus-and-sleeping-world-research.md): Screeps is a major motivation by direct Levi direction; programmable players and persistent consequences fit Hive, while global perpetual ticking does not.
+- [Screeps programmable-colony study](docs/decisions/screeps-programmable-colonies-study.md): enabled saved code can control people while humans are offline. Separate script decisions, ordinary work, simulation detail and model calls; reuse Mycelium's existing Dynamic Worker execution boundary.
 - [Architecture implementation and module plan](docs/decisions/architecture-implementation-plan.md)
 - [Hive engine, asset pipeline and Goblin game boundaries](docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md)
 - [Current whole-game source audit and repair order](docs/decisions/current-systems-review-and-module-plan.md)
