@@ -51,8 +51,13 @@ execution. Hume's water-view correction and completed art packet are integrated;
 his current source trace found that underground Dig still forces Ground and
 rectangles still select exposed columns. Stone output also lacks ground/carry
 presentation. These are concrete remaining gameplay work, not new solver needs.
-Ampere owns the actual Clearing air presentation in `clearing-air-view`, including
-Root's Air action-dispatch correction. Meitner independently accepted Root's
+Ampere's Clearing air presentation is integrated through `3ca39c4`: current-sight
+smoke/heat marks, Celsius feedback and the checked Air toggle. Its cache follows
+detached actor/site publication, including paused commands. The authored laws and
+rendering remain unqualified. Hume now owns the exact observed-slice Dig caller
+in `underground-controls`; Chestnut owns the requested explorable vertical layout
+study and shared fixture declaration in `vertical-study`, away from game controls.
+Meitner independently accepted Root's
 `8f119c1` save-lifetime correction from source: owed integer burn ticks cannot
 outlive the owning fermentation. Its new law remains unrun. The same native
 Sessions and isolated worktrees remain; no fresh capacity, raster or startup-speed

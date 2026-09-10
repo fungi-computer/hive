@@ -1,5 +1,23 @@
 # Game CTO → coordinated shiit.app product/marketing handoff
 
+## Current availability — September 10
+
+This paragraph supersedes the historical water/editor statuses below. The main
+Goblin preview remains runtime `210b85d` with browser simulation and IndexedDB
+saves. Its desktop Dig/water interaction and 100-file hosted parity were observed;
+the 390px resize failed and its accidental 32-cell Dig restriction is still live.
+The earlier dedicated wet-clearing `4a6931c` and compact editor `8518cc5` were
+published; the editor remains at https://hive-editor-review.levi-fe0.workers.dev/.
+No new game deployment occurred during the current combined source join.
+
+The original prepared-art bank passed u4692 and is now committed locally in
+`f4825c0`: 1,307 image entries, mainly character animation frames, packed into
+three atlases plus ground/manifest (4.76 MB total). Root viewed all four PNGs and
+matched exact source and output hashes. Startup speed, in-game raster behavior
+and whole-map environmental performance remain unmeasured. Whole-clearing finite
+water, paid brewing smoke/heat, current saves and vertical consumers are being
+joined in the actual game; do not market them as a new hosted playable result.
+
 ## Latest publishing checkpoint — King Bolete, September 9
 
 This section supersedes availability and staffing claims in the historical
