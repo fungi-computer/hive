@@ -1,4 +1,6 @@
 import { excavationYield } from "./terrain-yields.ts";
+import { prepareTerrainRemoval } from "./terrain-removals.ts";
+import { prepareWaterEnvironmentGeometry } from "./world-presets/goblin-environment/water-state.ts";
 import { physicalOccupancyProblem } from "./navigation-space.ts";
 import { placementFooting } from "./game-space.ts";
 import type { Actor, Clearing, Job, Site } from "./model.ts";
@@ -22,11 +24,12 @@ import {
 } from "./materials.ts";
 import { materialContainerFacts } from "./material-container-facts.ts";
 import {
-  terrainColumn,
   terrainDigProblem,
   excavateTerrain,
+  terrainEnvironment,
 } from "./terrain.ts";
-import { sameCell, terrainEditProblem, terrainRimCells } from "./world.js";
+import { sameCell } from "./world.js";
+import { excavationTargetProblem, excavationPositions } from "./excavation.ts";
 import { waterConservationProblem } from "./field-water.ts";
 import { waterSupplyProblem } from "./water-supply.ts";
 
@@ -157,10 +160,13 @@ function accessProblem(
   if (target.kind === "dig") {
     const problem = terrainDigProblem(state.terrain, target.job.voxel);
     if (problem) return invalid(problem);
-    const at = placementFooting(terrainColumn(target.job.voxel));
-    const blocked = terrainEditProblem(state, at);
+    const blocked = excavationTargetProblem(state, target.job.voxel);
     if (blocked) return waiting(blocked);
-    if (!terrainRimCells(state, at).some((rim) => sameCell(actor, rim)))
+    if (
+      !excavationPositions(state, target.job.voxel).some((rim) =>
+        sameCell(actor, rim),
+      )
+    )
       return waiting("Waiting for safe excavation access.");
   } else {
     if (!workPosition(state, actor, target.site, target.kind))
@@ -212,6 +218,8 @@ type GeometryEdit = {
 type PreparedEdit = GeometryEdit & {
   work: ReadyWork;
   materials: Clearing["materials"];
+  water: Clearing["water"];
+  terrainRemovals: Clearing["terrainRemovals"];
 };
 
 /** Resolve live work and every precondition before allocating a material branch. */
@@ -240,30 +248,16 @@ function readyWork(
 /** Exact removal provenance and its game-defined bulk yield prepare together. */
 function prepareExcavation(
   state: Clearing,
-  materials: Clearing["materials"],
-  actor: Actor,
   target: Extract<WorkTarget, { kind: "dig" }>,
 ): GeometryEdit | Refusal {
   const terrain = excavateTerrain(state.terrain, target.job.voxel);
-  const yield_ = excavationYield(
-    state.terrain.exports,
-    terrain.exports,
-    target.job.voxel,
-  );
-  const result = createGroundLot(
-    materials,
-    yield_.material,
-    yield_.quantity,
-    cell(actor),
-  );
-  if (!result.ok) return materialRefusal(result.reason);
   return {
     status: "prepared",
     terrain,
     sites: state.sites,
     finishedSite: null,
     retired: new Set(),
-    notice: "Soil is piled beside the hole.",
+    notice: "Excavated material is piled beside the work.",
   };
 }
 
@@ -356,7 +350,7 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
   let edit: GeometryEdit | Refusal;
   switch (target.kind) {
     case "dig":
-      edit = prepareExcavation(state, materials, actor, target);
+      edit = prepareExcavation(state, target);
       break;
     case "build":
       edit = prepareConstruction(state, materials, target);
@@ -366,6 +360,43 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
       break;
   }
   if (edit.status !== "prepared") return edit;
+  const environmental = prepareWaterEnvironmentGeometry(
+    state.water,
+    {
+      terrain: terrainEnvironment(state.terrain),
+      sites: state.sites,
+    },
+    {
+      terrain: terrainEnvironment(edit.terrain),
+      sites: edit.sites,
+    },
+  );
+  if (environmental.status === "blocked")
+    return waiting("Waiting for space to displace the water.");
+  let terrainRemovals = state.terrainRemovals;
+  if (target.kind === "dig") {
+    terrainRemovals = prepareTerrainRemoval(
+      state.terrainRemovals,
+      state.terrain,
+      edit.terrain,
+      target.job.voxel,
+      environmental.receipt.removedPoreWater,
+    );
+    const yield_ = excavationYield(
+      state.terrainRemovals,
+      terrainRemovals,
+      target.job.voxel,
+    );
+    const result = createGroundLot(
+      materials,
+      yield_.material,
+      yield_.quantity,
+      cell(actor),
+    );
+    if (!result.ok) return materialRefusal(result.reason);
+  } else if (environmental.receipt.removedPoreWater.length) {
+    throw new Error("construction cannot discard porous terrain water");
+  }
   const retired = edit.retired;
   if (
     Object.values(state.actors).some(
@@ -383,6 +414,8 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
     ...state,
     materials,
     terrain: edit.terrain,
+    water: environmental.state,
+    terrainRemovals,
     sites: edit.sites,
   };
   const support = structureSupportProblem(candidate);
@@ -390,7 +423,13 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
   const bodyProblem = physicalOccupancyProblem(candidate);
   if (bodyProblem) return waiting(bodyProblem);
   validateCandidate(candidate);
-  return { ...edit, work, materials };
+  return {
+    ...edit,
+    work,
+    materials,
+    water: environmental.state,
+    terrainRemovals,
+  };
 }
 
 /** No owner calls or validation remain: publish facts and retire exact work.
@@ -399,6 +438,8 @@ function publishEdit(state: Clearing, prepared: PreparedEdit): void {
   const {
     materials,
     terrain,
+    water,
+    terrainRemovals,
     sites,
     finishedSite,
     retired,
@@ -406,6 +447,8 @@ function publishEdit(state: Clearing, prepared: PreparedEdit): void {
   } = prepared;
   Object.assign(state.materials, materials);
   state.terrain = terrain;
+  state.water = water;
+  state.terrainRemovals = terrainRemovals;
   if (finishedSite) Object.assign(finishedSite.original, finishedSite.finished);
   else state.sites = sites;
   for (const current of Object.values(state.actors))

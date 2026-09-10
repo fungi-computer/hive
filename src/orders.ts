@@ -29,15 +29,9 @@ import {
 } from "./brewing.ts";
 import { recipeOutputActionForWire } from "./recipes.ts";
 import { containerContents } from "./materials.ts";
-import {
-  inside,
-  placementOccupant,
-  sourceAccessCells,
-  terrainEditProblem,
-  terrainRimCells,
-} from "./world.js";
+import { inside, placementOccupant, sourceAccessCells } from "./world.js";
 import { movement } from "./movement.ts";
-import { terrainCell, terrainColumn, terrainDigProblem } from "./terrain.ts";
+import { excavationTargetProblem, excavationPositions } from "./excavation.ts";
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
 export function commandProblem(s: Clearing, c: Command): string {
@@ -123,9 +117,7 @@ export function commandProblem(s: Clearing, c: Command): string {
   if (c.kind === "deconstruct")
     return deconstructionTargetProblem(s, c.site) || scopeProblem(s, c);
   if (c.kind === "dig") {
-    const at = placementFooting(terrainColumn(c.voxel));
-    const problem =
-      terrainDigProblem(s.terrain, c.voxel) || terrainEditProblem(s, at);
+    const problem = excavationTargetProblem(s, c.voxel);
     if (problem) return problem;
     if (
       s.jobs.some(
@@ -133,7 +125,8 @@ export function commandProblem(s: Clearing, c: Command): string {
       )
     )
       return "That voxel is already designated.";
-    if (!terrainRimCells(s, at).length) return "No safe standing rim.";
+    if (!excavationPositions(s, c.voxel).length)
+      return "No safe excavation position.";
     return scopeProblem(s, c);
   }
   if (c.kind === "harvest") {

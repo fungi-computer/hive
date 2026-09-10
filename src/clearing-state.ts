@@ -1,4 +1,6 @@
 import { terrainYieldProblem } from "./terrain-yields.ts";
+import { parseTerrainRemovals } from "./terrain-removals.ts";
+import { parseWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
 import { explorationSchema, explorationProblem } from "./exploration.ts";
 import { navigationStateProblem } from "./navigation-space.ts";
 import { placementFooting } from "./game-space.ts";
@@ -30,11 +32,10 @@ import {
   terrainCell,
   terrainDigProblem,
   voxelSchema,
-  terrainFacts,
+  terrainEnvironment,
   terrainExcavatedColumns,
 } from "./terrain.ts";
-import { STEP_SECONDS } from "./ticker.js";
-import { inside, sameCell, terrainEditProblem } from "./world.js";
+import { inside, sameCell } from "./world.js";
 import {
   BUILDINGS,
   constructionBuffer,
@@ -70,7 +71,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 23 as const;
+const SAVE_SCHEMA = 24 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -403,6 +404,8 @@ const consumeOperation = z
 const currentStateSchema = z
   .object({
     terrain: z.unknown().transform(parseTerrain),
+    water: z.unknown(),
+    terrainRemovals: z.unknown(),
     exploration: explorationSchema,
     careOutcomes: z.array(
       z
@@ -611,7 +614,18 @@ const currentStateSchema = z
 type SavedClearing = Omit<Clearing, "commands">;
 type SavedWaterOperation = WaterDeliveryOperation;
 const savedSchema = currentStateSchema.transform(
-  (value): SavedClearing => value as SavedClearing,
+  (value): SavedClearing =>
+    ({
+      ...value,
+      water: parseWaterEnvironment(value.water, {
+        terrain: terrainEnvironment(value.terrain),
+        sites: value.sites,
+      }),
+      terrainRemovals: parseTerrainRemovals(
+        value.terrainRemovals,
+        value.terrain,
+      ),
+    }) as SavedClearing,
 );
 const envelopeSchema = z
   .object({
@@ -1991,16 +2005,13 @@ function validateConservation({ state }: RelationContext): void {
   if (ration !== expectedRations)
     fail(`ration conservation is ${ration}, expected ${expectedRations}`);
   const yieldProblem = terrainYieldProblem(
-    state.terrain.exports,
+    state.terrainRemovals,
     state.materials.lots,
   );
   if (yieldProblem) fail(yieldProblem);
 }
 
 function validateTerrain({ state }: RelationContext): void {
-  const facts = terrainFacts(state.terrain);
-  if (Math.abs(facts.timeS - state.tick * STEP_SECONDS) > 1e-8)
-    fail("terrain and game clocks disagree");
   const navigationProblem = navigationStateProblem(liveState(state));
   if (navigationProblem) fail(navigationProblem);
   validateDigTargets(state);

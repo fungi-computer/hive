@@ -5,11 +5,13 @@ import type {
   WaterDeliveryOperation,
 } from "./model.ts";
 import type { MaterialPortion } from "./engine/materials/index.ts";
+import { compensatedSum } from "./engine/environment/arithmetic.mjs";
+import { terrainEnvironment } from "./terrain.ts";
+import { removedWaterKg } from "./terrain-removals.ts";
 import {
-  balanceTolerance,
-  compensatedSum,
-} from "./engine/environment/soil/index.js";
-import { terrainFacts, exchangeTerrainWater } from "./terrain.ts";
+  waterEnvironmentFacts,
+  exchangeWaterEnvironment,
+} from "./world-presets/goblin-environment/water-state.ts";
 import {
   importVesselContents,
   exportVesselContents,
@@ -24,7 +26,10 @@ import {
   type FieldWaterReference,
 } from "./field-water-source.ts";
 
-type WaterState = Pick<Clearing, "materials" | "sources" | "terrain">;
+type WaterState = Pick<
+  Clearing,
+  "materials" | "sources" | "terrain" | "sites" | "water" | "terrainRemovals"
+>;
 
 /** Current live/processed/consumed portions complete the physical boundary.
  * No cumulative material counter or second historical field baseline is saved. */
@@ -56,12 +61,16 @@ export function fieldWaterBalance(state: WaterState) {
     !Number.isSafeInteger(initialMaterialUnits)
   )
     throw new Error("water material total exceeds exact integer capacity");
-  const facts = terrainFacts(state.terrain);
+  const facts = waterEnvironmentFacts(state.water, {
+    terrain: terrainEnvironment(state.terrain),
+    sites: state.sites,
+  });
   const residualKg = compensatedSum([
-    facts.balance.exchangeWaterKg,
+    facts.boundaryKg,
+    removedWaterKg(state.terrainRemovals),
     FIELD_WATER.kgPerUnit * (materialUnits - initialMaterialUnits),
   ]);
-  const toleranceKg = balanceTolerance(facts.soil.totalMassKg);
+  const toleranceKg = 1e-9 + 64 * Number.EPSILON * facts.initialTotalKg;
   return { materialUnits, initialMaterialUnits, residualKg, toleranceKg };
 }
 export function waterConservationProblem(state: WaterState): string | null {
@@ -136,8 +145,7 @@ function preflight(
   );
   if (
     !access.some(
-      (cell) =>
-        actor.x === cell.x && actor.y === cell.y && actor.z === cell.z,
+      (cell) => actor.x === cell.x && actor.y === cell.y && actor.z === cell.z,
     ) ||
     actor.mode === "walk"
   )
@@ -149,17 +157,20 @@ function preflight(
 function commitPair(
   state: Clearing,
   materials: MaterialsState,
-  terrain: Clearing["terrain"],
+  water: Clearing["water"],
   operation: WaterDeliveryOperation,
 ): void {
   const problem = waterConservationProblem({
     materials,
-    terrain,
+    terrain: state.terrain,
+    sites: state.sites,
+    terrainRemovals: state.terrainRemovals,
+    water,
     sources: state.sources,
   });
   if (problem) throw new Error(problem);
   const referenceProblem = waterSupplyProblem(
-    { ...state, materials, terrain },
+    { ...state, materials, water },
     operation.pail,
     operation.quantity,
     operation.supply,
@@ -170,7 +181,7 @@ function commitPair(
   // The work owner retains this state object across its draw/deliver callbacks.
   // Preserve that handle while replacing its privately prepared contents.
   Object.assign(state.materials, materials);
-  state.terrain = terrain;
+  state.water = water;
   state.workDirty = true;
 }
 
@@ -188,11 +199,18 @@ export function drawFieldWater(
   });
   if (!supplied.ok) return supplied;
   try {
-    const next = exchangeTerrainWater(state.terrain, {
-      nodeId: input.nodeId,
-      direction: "withdraw",
-      massKg: input.quantity * FIELD_WATER.kgPerUnit,
-    });
+    const next = exchangeWaterEnvironment(
+      state.water,
+      {
+        terrain: terrainEnvironment(state.terrain),
+        sites: state.sites,
+      },
+      {
+        id: input.nodeId,
+        direction: "withdraw",
+        massKg: input.quantity * FIELD_WATER.kgPerUnit,
+      },
+    );
     commitPair(state, materials, next.state, admitted.value);
   } catch (error) {
     return {
@@ -224,11 +242,18 @@ export function returnFieldWater(
   });
   if (!released.ok) return released;
   try {
-    const next = exchangeTerrainWater(state.terrain, {
-      nodeId: input.nodeId,
-      direction: "deposit",
-      massKg: input.quantity * FIELD_WATER.kgPerUnit,
-    });
+    const next = exchangeWaterEnvironment(
+      state.water,
+      {
+        terrain: terrainEnvironment(state.terrain),
+        sites: state.sites,
+      },
+      {
+        id: input.nodeId,
+        direction: "deposit",
+        massKg: input.quantity * FIELD_WATER.kgPerUnit,
+      },
+    );
     commitPair(state, materials, next.state, admitted.value);
   } catch (error) {
     return {

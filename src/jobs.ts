@@ -16,7 +16,7 @@ import type {
 import { inScope } from "./actors.ts";
 import { optimizeEligible } from "./matching.ts";
 import { sameCell, sourceAccessCells, neighbors } from "./world.js";
-import { terrainEditProblem, terrainRimCells } from "./world.js";
+import { excavationTargetProblem, excavationPositions } from "./excavation.ts";
 import { movement, type RoutePlan, type BodyRoutes } from "./movement.ts";
 import { placementFooting } from "./game-space.ts";
 import {
@@ -60,7 +60,6 @@ import {
 import { recipeOutputActionForWire } from "./recipes.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { interruptWork } from "./activity-lifecycle.ts";
-import { terrainColumn, terrainDigProblem } from "./terrain.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 import {
   finiteWorkOwner,
@@ -765,11 +764,9 @@ function terrainRimCandidate(
   job: Extract<Job, { kind: "dig" }>,
   paths: BodyRoutes,
 ): TerrainRim | Options {
-  const target = placementFooting(terrainColumn(job.voxel));
-  if (terrainEditProblem(state, target)) return no("Ground is occupied");
-  const problem = terrainDigProblem(state.terrain, job.voxel);
+  const problem = excavationTargetProblem(state, job.voxel);
   if (problem) return no(problem);
-  const rim = terrainRimCells(state, target).filter((cell) =>
+  const rim = excavationPositions(state, job.voxel).filter((cell) =>
     paths.standing(cell),
   );
   return rim.length ? { rim } : no("No safe cardinal rim");

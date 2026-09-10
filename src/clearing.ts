@@ -18,7 +18,12 @@ import { movement, stopWalking } from "./movement.ts";
 import { interruptWork } from "./activity-lifecycle.ts";
 import { advanceCancellations } from "./job-cancellation.ts";
 import { mugwortStage } from "./herbs.ts";
-import { initialTerrain, advanceTerrain } from "./terrain.ts";
+import { initialTerrain, terrainEnvironment } from "./terrain.ts";
+import { initialTerrainRemovals } from "./terrain-removals.ts";
+import {
+  initialWaterEnvironment,
+  advanceWaterEnvironment,
+} from "./world-presets/goblin-environment/water-state.ts";
 import { STEP_SECONDS } from "./ticker.js";
 import { advanceNeeds, queueAutomaticCare } from "./needs.ts";
 
@@ -62,6 +67,11 @@ export function createClearing(seed = 42): Clearing {
     careOutcomes: [],
     processes: [],
     terrain,
+    water: initialWaterEnvironment({
+      terrain: terrainEnvironment(terrain),
+      sites: [],
+    }),
+    terrainRemovals: initialTerrainRemovals(terrain),
     exploration: initialExploration(),
     rocks: ROCKS.map((at) => groundFooting(terrain, at)),
     watcher: groundFooting(terrain, WATCHER),
@@ -163,7 +173,14 @@ function advanceCandidate(
   }
   advanceCancellations(state);
   const waterSupplyBefore = fieldWaterSupplyKey(state);
-  state.terrain = advanceTerrain(state.terrain, STEP_SECONDS);
+  state.water = advanceWaterEnvironment(
+    state.water,
+    {
+      terrain: terrainEnvironment(state.terrain),
+      sites: state.sites,
+    },
+    STEP_SECONDS,
+  ).state;
   if (fieldWaterSupplyKey(state) !== waterSupplyBefore) state.workDirty = true;
   advanceBrewing(state);
   advanceHerbGrowth(state);
@@ -182,10 +199,12 @@ function commitTicks(
   ticks: number,
   commands: Command[],
 ): CommandResult[] {
-  const { terrain, exploration, ...body } = state;
+  const { terrain, water, terrainRemovals, exploration, ...body } = state;
   const candidate: Clearing = {
     ...structuredClone(body),
     terrain,
+    water,
+    terrainRemovals,
     exploration,
   };
   let results: CommandResult[] = [];

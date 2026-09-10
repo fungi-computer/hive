@@ -19,12 +19,7 @@ import type {
   Site,
   Transfer,
 } from "./model.ts";
-import {
-  sameCell,
-  sourceAccessCells,
-  terrainEditProblem,
-  terrainRimCells,
-} from "./world.js";
+import { sameCell, sourceAccessCells } from "./world.js";
 import { movement, face } from "./movement.ts";
 import { placementFooting } from "./game-space.ts";
 import {
@@ -72,7 +67,12 @@ import {
   settleWaterDelivery,
   waterDeliveryTargetForJob,
 } from "./water-delivery.ts";
-import { terrainColumn, terrainDigProblem } from "./terrain.ts";
+import { terrainDigProblem } from "./terrain.ts";
+import {
+  excavationTarget,
+  excavationTargetProblem,
+  excavationPositions,
+} from "./excavation.ts";
 export const CHOP_TICKS = 80;
 function groundCell(at: Cell): Cell {
   return { x: at.x, y: at.y, z: at.z };
@@ -104,17 +104,17 @@ function terrainWork(
     interruptWork(s, p);
     return;
   }
-  const at = placementFooting(terrainColumn(job.voxel));
+  const at = excavationTarget(job.voxel);
   if (terrainDigProblem(s.terrain, job.voxel)) {
     interruptWork(s, p);
     return;
   }
-  const blocked = terrainEditProblem(s, at);
+  const blocked = excavationTargetProblem(s, job.voxel);
   if (blocked) {
     job.reason = blocked;
     return;
   }
-  const rim = terrainRimCells(s, at);
+  const rim = excavationPositions(s, job.voxel);
   if (!accessWork(s, p, rim)) return;
   face(p, at);
   if (p.work + 1 < TERRAIN_WORK_TICKS) {

@@ -1,10 +1,7 @@
 import type { ItemLot, Material } from "./model.ts";
-import type {
-  GeneratedTerrain,
-  TerrainVoxel,
-} from "./world-presets/goblin-terrain.ts";
+import type { TerrainVoxel } from "./world-presets/goblin-terrain.ts";
+import type { TerrainRemoval as RemovalRecord } from "./terrain-removals.ts";
 
-type RemovalRecord = GeneratedTerrain["exports"][number];
 type YieldMaterial = Extract<Material, "soil" | "stone">;
 type YieldDefinition = {
   readonly kind: RemovalRecord["kind"];
