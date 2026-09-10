@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import { piratesPack, chestId, crewOneId, shipId } from "./pirates";
+import { piratesPack, chestId, crewOneId, holdId, shipId } from "./pirates";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { MaterialLot, Position } from "../sdk/common";
@@ -16,7 +16,7 @@ test("pirate ship movement carries supported crew without changing local pose", 
     const session = new GameSession({ port, pack: piratesPack });
     session.start();
     const before = port.worldPoses([shipId, crewOneId]);
-    session.command("moveShip", {
+    session.command("move", {
       entities: [shipId],
       destination: { x: 3, y: 0, z: 0, frame: null },
     });
@@ -43,13 +43,13 @@ test("pirate crew route stays on the ship frame and rejects mixed-frame movement
     session.start();
     assert.throws(
       () =>
-        session.command("moveCrew", {
+        session.command("move", {
           entities: [crewOneId],
           destination: { x: 0, y: 1, z: 0, frame: null },
         }),
       /ship frame/,
     );
-    session.command("moveCrew", {
+    session.command("move", {
       entities: [crewOneId],
       destination: { x: 1, y: 1, z: 1, frame: shipId },
     });
@@ -59,11 +59,19 @@ test("pirate crew route stays on the ship frame and rejects mixed-frame movement
     assert.ok(pose.local.x > -1);
     assert.throws(
       () =>
-        session.command("moveCrew", {
+        session.command("move", {
           entities: [chestId],
           destination: { x: 1, y: 1, z: 1, frame: shipId },
         }),
       /only crew/,
+    );
+    assert.throws(
+      () =>
+        session.command("move", {
+          entities: [shipId, crewOneId],
+          destination: { x: 1, y: 0, z: 0, frame: null },
+        }),
+      /matching frame/,
     );
   } finally {
     port.dispose();
@@ -86,13 +94,13 @@ test("pirate cargo stays finite through delivery and save reload", () => {
       7,
     );
     assert.ok(
-      lots.some((lot) => lot.container === crewOneId && lot.kind === "bread"),
+      lots.some((lot) => lot.container === holdId && lot.kind === "bread"),
     );
     const saved = session.save();
     const restored = new GameSession({ port: restoredPort, pack: piratesPack });
     restored.restore(saved);
     assert.deepEqual(restored.save(), saved);
-    assert.equal(restored.query(query(Position)).length, 5);
+    assert.equal(restored.query(query(Position)).length, 6);
   } finally {
     port.dispose();
     restoredPort.dispose();
