@@ -1,5 +1,17 @@
 # World generation and streaming contracts
 
+## Sleeping-world amendment — September 10
+
+Levi explicitly prefers an alive-feeling world with aggressive approximation of
+unobserved activity. Both browser and DO hosts remain targets. A generated chunk,
+visible map tile or previously visited place does not require a perpetually
+running DO. Persistent changes survive sleep; supported changes over elapsed time
+may be resolved lazily or at meaningful deadlines. Follow the newer
+[host and sleeping-region policy](local-snapshots-and-durable-ai-jobs.md#browser-and-do-hosts-with-sleeping-regions--september-10).
+This supersedes any inference below that offscreen world continuity requires
+continuous detailed stepping. Rendering residency, simulation detail, durable
+ownership and player knowledge remain distinct. No runtime change is claimed.
+
 ## Vertical-world amendment, September 9
 
 Levi explicitly requires deep digging and witch towers as the reusable engine
