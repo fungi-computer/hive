@@ -77,3 +77,25 @@ retention protocol before general long-running public play. Do not silently
 remove receipts and allow an old command ID to execute again. This is a required
 host design correction, not a reason to change the proven small-world simulation
 or claim the current proof host is production-ready.
+
+### First clock implementation boundary
+
+Reuse the current `RegionProgram` parse/authorize/execute and state/event commit
+path. Do not implement another SQL world writer. Add a bounded host-owned
+ordered occurrence stream at that owner: one registered clock principal, next
+sequence, last canonical request and last result. Its storage is constant-size.
+The previous sequence with identical bytes can return its receipt; conflicting
+bytes reject. Older sequences reject as retired and never execute. Gaps reject.
+A caller observing a retired occurrence refreshes the committed clock frontier;
+it does not mint a replacement occurrence. Ordinary player command receipts keep
+their existing semantics until a separate explicit retention contract is joined.
+
+An occurrence contains a bounded range of fixed simulation steps. Its application,
+frontier update and next durable wake commit together. Native alarms can repeat
+the occurrence after interruption; they cannot choose a new sequence solely
+because a process restarted. If the commit fails, the detached session is dropped.
+Extract the shared existing commit responsibility before adding this caller, so
+receipt/event/storage limits still have one enforcement path. Qualify unchanged
+frontier on fault, same-occurrence replay, retired-occurrence rejection and two
+consecutive ranges with no skipped or duplicated physical steps. No live clock
+implementation or storage-format change has landed from this plan.
