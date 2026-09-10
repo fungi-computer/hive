@@ -1,4 +1,4 @@
-import { component, query, system } from "../sdk/authoring";
+import { component, entity, query, system } from "../sdk/authoring";
 import { Carrying, FoodLot, Position, Selected, consume, encodeDefinition } from "../sdk/common";
 import type { GamePack } from "../contracts";
 
@@ -13,4 +13,6 @@ export const survival = system({ id: "survival.hunger", version: 1, reads: [Surv
     if (row.value.controlled && lot && hunger > 60) ctx.action(consume(row.id, lot.id, 1));
   }
 });
-export const survivalPack: GamePack = { id: "survival", version: 1, components: [Position, FoodLot, Carrying, Selected, Survivor, Condition], systems: [survival], definition: encodeDefinition("survival", [Position, FoodLot, Carrying, Selected, Survivor, Condition]) };
+const survivorId = entity("survival.survivor.1"), lockerId = entity("survival.locker"), foodId = entity("survival.food.1");
+const survivalInitial = [{ id: survivorId, components: { "hive.position": { x: 0, y: 0, z: 0, facing: 0 }, "survival.survivor": { controlled: true }, "survival.condition": { hunger: 40, wellbeing: 100 } } }, { id: lockerId, components: { "hive.position": { x: 2, y: 0, z: 0, facing: 0 } } }, { id: foodId, components: { "hive.food": { quantity: 8, kind: "bread", container: lockerId } } }];
+export const survivalPack: GamePack = { id: "survival", version: 1, components: [Position, FoodLot, Carrying, Selected, Survivor, Condition], systems: [survival], definition: encodeDefinition("survival", [Position, FoodLot, Carrying, Selected, Survivor, Condition], survivalInitial) };
