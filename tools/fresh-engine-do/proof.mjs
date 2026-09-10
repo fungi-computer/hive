@@ -225,6 +225,9 @@ function pirateTotalCargo(snapshot) {
     0,
   );
 }
+function pirateRoutes(snapshot) {
+  return JSON.parse(snapshot.snapshot.state.session.kernel.json).routes;
+}
 async function runPirateProof(initial) {
   let revision = 0;
   const dispatch = async (id, value, role = "WRITER_SECRET", fault) => {
@@ -233,10 +236,10 @@ async function runPirateProof(initial) {
     return result;
   };
   const shipMove = {
-    kind: "action",
-    action: {
-      kind: "move",
-      entity: "pirates.ship",
+    kind: "command",
+    name: "move",
+    input: {
+      entities: ["pirates.ship"],
       destination: { x: 3, y: 0, z: 0, frame: null },
     },
   };
@@ -256,10 +259,10 @@ async function runPirateProof(initial) {
   assert.equal(piratePosition(movedShip, "pirates.crew.1").x, -1);
 
   const crewMove = {
-    kind: "action",
-    action: {
-      kind: "move",
-      entity: "pirates.crew.1",
+    kind: "command",
+    name: "move",
+    input: {
+      entities: ["pirates.crew.1"],
       destination: { x: 1, y: 1, z: 1, frame: "pirates.ship" },
     },
   };
@@ -275,7 +278,17 @@ async function runPirateProof(initial) {
     200,
   );
   const crewMoved = await snapshot();
-  assert.ok(piratePosition(crewMoved, "pirates.crew.1").x > -1);
+  const crewBeforeCargo = piratePosition(crewMoved, "pirates.crew.1");
+  assert.ok(
+    crewBeforeCargo.x !== -1 || crewBeforeCargo.z !== 0,
+    "crew route must make physical progress",
+  );
+  assert.equal(
+    kernelScene(crewMoved).initial.find(
+      (entry) => entry.id === "pirates.crew.1",
+    ).components["hive.support"].entity,
+    "pirates.ship",
+  );
 
   assert.equal(
     (
@@ -303,10 +316,10 @@ async function runPirateProof(initial) {
   assert.ok(pirateCargo(cargo, "pirates.hold") > 0);
 
   const rollbackAction = {
-    kind: "action",
-    action: {
-      kind: "move",
-      entity: "pirates.ship",
+    kind: "command",
+    name: "move",
+    input: {
+      entities: ["pirates.ship"],
       destination: { x: -2, y: 0, z: 0, frame: null },
     },
   };
@@ -327,11 +340,11 @@ async function runPirateProof(initial) {
   revision = rollbackCandidate.snapshot.revision;
 
   const lostAction = {
-    kind: "action",
-    action: {
-      kind: "move",
-      entity: "pirates.ship",
-      destination: { x: 2, y: 0, z: 0, frame: null },
+    kind: "command",
+    name: "move",
+    input: {
+      entities: ["pirates.ship"],
+      destination: { x: -3, y: 0, z: 0, frame: null },
     },
   };
   assert.equal((await dispatch("pirate-lost-action", lostAction)).status, 200);
@@ -345,14 +358,36 @@ async function runPirateProof(initial) {
   );
   const committed = await snapshot();
   assert.ok(committed.snapshot.revision > rollbackCandidate.snapshot.revision);
+  assert.ok(pirateRoutes(committed).some((route) => route.path.length > 0));
+  const crewBeforeRestart = piratePosition(committed, "pirates.crew.1");
   await stop();
   await start();
-  assert.deepEqual(await snapshot(), committed);
+  const restarted = await snapshot();
+  assert.equal(
+    restarted.snapshot.state.session.kernel.json,
+    committed.snapshot.state.session.kernel.json,
+  );
   const replay = await command(lostStep, "HOST_SECRET");
   assert.equal(replay.status, 200);
   assert.deepEqual(await command(lostStep, "HOST_SECRET"), replay);
   const replayed = await snapshot();
   assert.deepEqual(replayed.snapshot, committed.snapshot);
+  revision = committed.snapshot.revision;
+  const resumed = await dispatch(
+    "pirate-resumed-step",
+    { kind: "step", delta: 1 },
+    "HOST_SECRET",
+  );
+  assert.equal(resumed.status, 200);
+  const resumedSnapshot = await snapshot();
+  assert.notEqual(
+    piratePosition(resumedSnapshot, "pirates.ship").x,
+    piratePosition(committed, "pirates.ship").x,
+  );
+  assert.deepEqual(
+    piratePosition(resumedSnapshot, "pirates.crew.1"),
+    crewBeforeRestart,
+  );
   return {
     initial,
     movedShip,
@@ -361,6 +396,7 @@ async function runPirateProof(initial) {
     rollbackCandidate,
     committed,
     replayed,
+    resumedSnapshot,
   };
 }
 try {
@@ -545,7 +581,7 @@ try {
   }
 } catch (error) {
   await writeFile(
-    resolve(output, "survival-proof-receipt.json"),
+    resolve(output, `${packId}-proof-receipt.json`),
     JSON.stringify(
       {
         status: "failed",
