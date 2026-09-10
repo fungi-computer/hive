@@ -172,7 +172,7 @@ function topologyCells(snapshot: GasGeometrySnapshot) {
 function topologyFaces(snapshot: GasGeometrySnapshot) {
   return Object.freeze(
     snapshot.openFaces
-      .map(({ id, a, b }) => Object.freeze({ id, a, b }))
+      .map(({ id, a, b, distanceM }) => Object.freeze({ id, a, b, distanceM }))
       .sort((left, right) => compare(left.id, right.id)),
   );
 }
@@ -314,7 +314,12 @@ export function updateGoblinAtmosphereGeometry(
     faces.size !== previous.topologyFaces.length ||
     previous.topologyFaces.some((face) => {
       const current = faces.get(face.id);
-      return !current || current.a !== face.a || current.b !== face.b;
+      return (
+        !current ||
+        current.a !== face.a ||
+        current.b !== face.b ||
+        current.distanceM !== face.distanceM
+      );
     })
   )
     return null;

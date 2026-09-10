@@ -100,3 +100,25 @@ test("a void volume boundary change takes the conservative gas rebuild route", (
   assert.strictEqual(successor.topologyFaces, owner.topologyFaces);
   assert.notStrictEqual(successor, owner);
 });
+
+test("changed face distance cannot masquerade as a stock metric update", () => {
+  const gas = {
+    identity: "metric-distance:0",
+    revision: 0,
+    cells: [{ id: "room", x: 0, y: 0, z: 0, freeVolumeM3: 1 }],
+    openFaces: [{ id: "vent", a: "room", b: null, areaM2: 1, distanceM: 1 }],
+  };
+  const owner = goblinAtmosphereFromGeometry(gas, { regionId: "distance-law" });
+  const changed = {
+    ...gas,
+    revision: 1,
+    identity: "metric-distance:1",
+    openFaces: [{ ...gas.openFaces[0], distanceM: 2 }],
+  };
+  assert.equal(updateGoblinAtmosphereGeometry(changed, owner), null);
+  assert.equal(
+    goblinAtmosphereFromGeometry(changed, { regionId: "distance-law" })
+      .definition.openings[0].distanceM,
+    2,
+  );
+});
