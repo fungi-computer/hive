@@ -75,3 +75,18 @@ unused component definitions. It does not establish DO execution or recovery.
 The local DO witness is undergoing source review before its first invocation;
 it must prove physical consumption, same-command replay after process restart,
 conflicting reuse rejection, and rollback of a physical step. No DO is deployed.
+
+Local native DO acceptance: root 07ef860, u4878 exit 0, invocation
+d8bd1d1b4aff47b38af5fb15d8c8a0a8. Three owned runtime starts used the same persisted
+SQLite store and generated WASM. Survival move/take/eat reduced bread from 8 to 7;
+after lost acknowledgement and abrupt runtime restart, exact command replay kept
+revision 6/tick 3 and did not consume again. Conflicting reuse returned 409. The
+following step applied the exact saved TypeScript hunger consequence. Injected
+receipt-write failure rolled back native movement and session state together; a
+second restart retained revision 8/tick 4 with its pending command.
+Evidence: .botanical/fresh-do/native-v2/{survival-proof,survival-proof-receipt}.json.
+Scope inactive/dead/empty, no 8789 listener, ordinary reuse bind available; temporary
+config removed. A separate Python bind without reuse hit TCP TIME_WAIT, not a live
+listener. Initial u4876 stopped before readiness on unsupported compatibility date;
+09-04 matches the installed runtime. No hosted DO, automatic alarm, large-world
+capacity or multiplayer browser claim follows from this bounded native proof.

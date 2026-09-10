@@ -17,6 +17,14 @@ formation controls, region-scale world systems, and capacity claims remain open.
 No hosted browser matrix or narrow-view proof was run. The former browser queue
 was released locally after Delivery explicitly parked/excluded Hive coordination.
 
+### Local DO milestone after the browser release
+
+The same survival pack and Rust/WASM now pass local native Durable Object
+consumption/restart/retry and transaction rollback at 07ef860 (u4878). Saved
+TypeScript hunger consequences survive the restart too. This closes the first
+actual server recovery witness; the public pages still run browser Workers.
+Hosted DO play, autonomous wake and population capacity remain unproved.
+
 ## Read this first
 
 Build an engine that people can use to write different games in TypeScript,
