@@ -11,6 +11,7 @@ import {
 import {
   initialAirEnvironment,
   airEnvironmentFacts,
+  airEnvironmentAdmission,
   parseAirEnvironment,
 } from "./air-state.ts";
 import { initialPaidAtmosphereReleases } from "./paid-releases.ts";
@@ -30,7 +31,7 @@ function original() {
       air,
       atmosphereReleases: initialPaidAtmosphereReleases(
         createMaterialsState(),
-        airEnvironmentFacts(air, water, source),
+        airEnvironmentAdmission(air, water, source),
       ),
     },
   };

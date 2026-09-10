@@ -9,9 +9,9 @@ import {
   GOBLIN_BREW_ATMOSPHERE_RELEASE,
   paidBrewAtmosphereRelease,
 } from "../goblin-atmosphere.ts";
-import type { airEnvironmentFacts } from "./air-state.ts";
+import type { airEnvironmentAdmission } from "./air-state.ts";
 
-type AirFacts = ReturnType<typeof airEnvironmentFacts>;
+type AirAdmission = ReturnType<typeof airEnvironmentAdmission>;
 export type PaidAtmosphereRelease = Readonly<{
   transformationId: string;
   cellId: string;
@@ -100,7 +100,7 @@ function sameQuantity(actual: number, expected: number, terms: number) {
 
 function validateLedger(
   obligations: readonly PaidAtmosphereRelease[],
-  air: AirFacts,
+  air: AirAdmission,
 ) {
   const expected = releasedTotals(obligations),
     arithmeticTerms = obligations.reduce(
@@ -165,11 +165,9 @@ function parsedState(input: unknown) {
   }) satisfies PaidAtmosphereReleases;
 }
 
-function receiverAdmission(state: PaidAtmosphereReleases, air: AirFacts) {
-  const available = new Set(air.cells.map((cell) => cell.id));
+function receiverAdmission(state: PaidAtmosphereReleases, air: AirAdmission) {
   return state.obligations.some(
-    (entry) =>
-      entry.elapsedTicks < RELEASE_TICKS && !available.has(entry.cellId),
+    (entry) => entry.elapsedTicks < RELEASE_TICKS && !air.hasCell(entry.cellId),
   )
     ? Object.freeze({
         status: "blocked" as const,
@@ -181,7 +179,7 @@ function receiverAdmission(state: PaidAtmosphereReleases, air: AirFacts) {
 function admittedState(
   input: unknown,
   materials: MaterialsState,
-  air: AirFacts,
+  air: AirAdmission,
   allowedMissing: string | null = null,
 ) {
   const state = parsedState(input),
@@ -209,7 +207,7 @@ function admittedState(
 
 function requirePaidAtmosphereReceivers(
   state: PaidAtmosphereReleases,
-  air: AirFacts,
+  air: AirAdmission,
 ) {
   if (receiverAdmission(state, air).status === "blocked")
     throw new Error("active paid atmosphere source cell unavailable");
@@ -220,14 +218,14 @@ function requirePaidAtmosphereReceivers(
  * material receipt. Every still-owed release must keep its exact gas cell. */
 export function admitPaidAtmosphereReceivers(
   input: unknown,
-  prospectiveAir: AirFacts,
+  prospectiveAir: AirAdmission,
 ) {
   return receiverAdmission(parsedState(input), prospectiveAir);
 }
 
 export function initialPaidAtmosphereReleases(
   materials: MaterialsState,
-  air: AirFacts,
+  air: AirAdmission,
 ) {
   return requirePaidAtmosphereReceivers(
     admittedState(
@@ -242,7 +240,7 @@ export function initialPaidAtmosphereReleases(
 export function parsePaidAtmosphereReleases(
   input: unknown,
   materials: MaterialsState,
-  air: AirFacts,
+  air: AirAdmission,
 ) {
   return requirePaidAtmosphereReceivers(
     admittedState(input, materials, air),
@@ -255,7 +253,7 @@ export function parsePaidAtmosphereReleases(
 export function registerPaidAtmosphereRelease(
   input: unknown,
   materials: MaterialsState,
-  air: AirFacts,
+  air: AirAdmission,
   transformationId: string,
   cellId: string,
 ) {
@@ -299,7 +297,7 @@ export function registerPaidAtmosphereRelease(
 export function paidAtmosphereReleaseFacts(
   input: unknown,
   materials: MaterialsState,
-  air: AirFacts,
+  air: AirAdmission,
 ) {
   const state = parsePaidAtmosphereReleases(input, materials, air);
   return Object.freeze({
@@ -349,7 +347,7 @@ function intervalBoundaries(state: PaidAtmosphereReleases, ticks: number) {
 export function planPaidAtmosphereTicks(
   input: unknown,
   materials: MaterialsState,
-  air: AirFacts,
+  air: AirAdmission,
   ticks: number,
 ) {
   tickSchema.parse(ticks);

@@ -251,6 +251,9 @@ export function goblinAtmosphereFromGeometry(
   return Object.freeze({
     definition: atmosphere.definition,
     identity: atmosphere.identity,
+    hasCell(cellId: string) {
+      return owner.has(cellId);
+    },
     volumeAt(cellId: string) {
       const volumeId = owner.get(cellId);
       if (!volumeId) throw new Error(`gas geometry has no volume at ${cellId}`);

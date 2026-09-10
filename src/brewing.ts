@@ -32,7 +32,7 @@ import { siteMaterialEndpoint } from "./construction.js";
 import { placementFooting } from "./game-space.ts";
 import { terrainEnvironment } from "./terrain.ts";
 import { GOBLIN_BREW_ATMOSPHERE_RELEASE } from "./world-presets/goblin-atmosphere.ts";
-import { airEnvironmentFacts } from "./world-presets/goblin-environment/air-state.ts";
+import { airEnvironmentAdmission } from "./world-presets/goblin-environment/air-state.ts";
 import {
   registerPaidAtmosphereRelease,
   paidAtmosphereReleaseFacts,
@@ -683,7 +683,7 @@ export function brewAtmosphereProblem(state: Clearing): string | null {
   const releases = paidAtmosphereReleaseFacts(
     state.atmosphereReleases,
     state.materials,
-    airEnvironmentFacts(state.air, state.water, {
+    airEnvironmentAdmission(state.air, state.water, {
       terrain: terrainEnvironment(state.terrain),
       sites: state.sites,
     }),
@@ -736,7 +736,7 @@ function prepareFueledBatch(
   const release = registerPaidAtmosphereRelease(
     state.atmosphereReleases,
     materials,
-    airEnvironmentFacts(state.air, state.water, {
+    airEnvironmentAdmission(state.air, state.water, {
       terrain: terrainEnvironment(state.terrain),
       sites: state.sites,
     }),

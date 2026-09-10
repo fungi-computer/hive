@@ -15,6 +15,7 @@ import { terrainEnvironment } from "./terrain.ts";
 import { GOBLIN_BREW_ATMOSPHERE_RELEASE } from "./world-presets/goblin-atmosphere.ts";
 import {
   airEnvironmentFacts,
+  airEnvironmentAdmission,
   parseAirEnvironment,
 } from "./world-presets/goblin-environment/air-state.ts";
 import {
@@ -31,6 +32,8 @@ const geometry = (state) => ({
 });
 const facts = (state) =>
   airEnvironmentFacts(state.air, state.water, geometry(state));
+const admission = (state) =>
+  airEnvironmentAdmission(state.air, state.water, geometry(state));
 
 function elapsedTicks(state, ticks) {
   for (let tick = 0; tick < ticks; tick++)
@@ -132,7 +135,7 @@ test("actual brew payment and finite air release keep one receipt through pause 
   const atmosphereReleases = parsePaidAtmosphereReleases(
     structuredClone(state.atmosphereReleases),
     state.materials,
-    airEnvironmentFacts(air, water, source),
+    airEnvironmentAdmission(air, water, source),
   );
   Object.assign(state, { water, air, atmosphereReleases });
   elapsedTicks(state, 13);
@@ -168,7 +171,7 @@ test("saved active source cannot move to another existing gas cell", () => {
   };
   // Both cells exist and source totals still match, so generic air admission
   // succeeds. The actual game's material/process/station relation rejects it.
-  parsePaidAtmosphereReleases(moved, state.materials, facts(state));
+  parsePaidAtmosphereReleases(moved, state.materials, admission(state));
   assert.match(
     brewAtmosphereProblem({ ...state, atmosphereReleases: moved }),
     /detached from its hearth/,
@@ -185,7 +188,7 @@ test("saved fermentation must keep its receiver for every remaining paid release
     parsePaidAtmosphereReleases(
       state.atmosphereReleases,
       state.materials,
-      facts(state),
+      admission(state),
     );
     assert.match(brewAtmosphereProblem(state), /outlives its fermentation/);
   }

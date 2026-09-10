@@ -7,7 +7,7 @@ import {
 } from "./water-state.ts";
 import {
   advanceAirEnvironment,
-  airEnvironmentFacts,
+  airEnvironmentAdmission,
   prepareAirEnvironmentGeometry,
   type AirEnvironment,
   type CellAtmosphereSource,
@@ -48,7 +48,7 @@ function pairWater(
     };
   const receiver = admitPaidAtmosphereReceivers(
     before.atmosphereReleases,
-    airEnvironmentFacts(air.state, water, afterSource),
+    airEnvironmentAdmission(air.state, water, afterSource),
   );
   if (receiver.status === "blocked")
     return {
@@ -146,7 +146,7 @@ export function advancePaidEnvironment(
   const plan = planPaidAtmosphereTicks(
     input.atmosphereReleases,
     materials,
-    airEnvironmentFacts(input.air, input.water, source),
+    airEnvironmentAdmission(input.air, input.water, source),
     ticks,
   );
   // Committed states and prospective geometry both require active receivers.

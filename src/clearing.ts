@@ -23,7 +23,7 @@ import { initialTerrainRemovals } from "./terrain-removals.ts";
 import { initialWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
 import {
   initialAirEnvironment,
-  airEnvironmentFacts,
+  airEnvironmentAdmission,
 } from "./world-presets/goblin-environment/air-state.ts";
 import { initialPaidAtmosphereReleases } from "./world-presets/goblin-environment/paid-releases.ts";
 import { advancePaidEnvironment } from "./world-presets/goblin-environment/environment-state.ts";
@@ -77,7 +77,7 @@ export function createClearing(seed = 42): Clearing {
     air,
     atmosphereReleases: initialPaidAtmosphereReleases(
       materials,
-      airEnvironmentFacts(air, water, environmentSource),
+      airEnvironmentAdmission(air, water, environmentSource),
     ),
     terrainRemovals: initialTerrainRemovals(terrain),
     exploration: initialExploration(),

@@ -291,6 +291,24 @@ export function airEnvironmentFacts(
   return result;
 }
 
+/** Physical release admission needs the canonical source ledger and receiver
+ * membership, without constructing per-cell pressure/temperature display facts.
+ * The existing geometry admission still rejects stale or untrusted input. */
+export function airEnvironmentAdmission(
+  input: AirEnvironment,
+  water: WaterEnvironment,
+  source: EnvironmentGeometry,
+) {
+  const { state, binding } = current(input, water, source);
+  return Object.freeze({
+    source: Object.freeze({
+      smokeKg: state.air.smokeSourceKg,
+      heatJ: state.air.heatSourceJ,
+    }),
+    hasCell: binding.registered.hasCell,
+  });
+}
+
 /** Prepare a detached candidate for a paired water/solid geometry transition.
  * An unchanged void-water/source projection avoids atmosphere reconstruction. */
 export function prepareAirEnvironmentGeometry(

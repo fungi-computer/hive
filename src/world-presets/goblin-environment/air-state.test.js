@@ -16,6 +16,7 @@ import {
 } from "./water-state.ts";
 import {
   advanceAirEnvironment,
+  airEnvironmentAdmission,
   airEnvironmentFacts,
   initialAirEnvironment,
   parseAirEnvironment,
@@ -66,6 +67,68 @@ function excavated(fixture) {
   assert.equal(water.status, "applied");
   return { target, source, water: water.state };
 }
+
+test("release admission follows current source totals and exact receiver geometry through cold restore", () => {
+  const fixture = original();
+  const facts = airEnvironmentFacts(fixture.air, fixture.water, fixture.source);
+  const initial = airEnvironmentAdmission(
+    fixture.air,
+    fixture.water,
+    fixture.source,
+  );
+  assert.deepEqual(initial.source, facts.source);
+  assert(facts.cells.every((cell) => initial.hasCell(cell.id)));
+  assert.equal(initial.hasCell("missing-cell"), false);
+
+  const advanced = advanceAirEnvironment(
+    fixture.air,
+    fixture.water,
+    fixture.source,
+    0.25,
+    [{ cellId: facts.cells[0].id, smokeKgS: 1e-7, heatJS: 1 }],
+  );
+  const warm = airEnvironmentAdmission(
+    advanced.state,
+    fixture.water,
+    fixture.source,
+  );
+  const cold = airEnvironmentAdmission(
+    structuredClone(advanced.state),
+    fixture.water,
+    fixture.source,
+  );
+  assert.deepEqual(warm.source, {
+    smokeKg: advanced.receipt.sourceSmokeKg,
+    heatJ: advanced.receipt.sourceHeatJ,
+  });
+  assert.deepEqual(cold.source, warm.source);
+  assert(facts.cells.every((cell) => cold.hasCell(cell.id)));
+  assert.deepEqual(initial.source, { smokeKg: 0, heatJ: 0 });
+
+  const changed = excavated(fixture);
+  assert.equal(warm.hasCell(changed.target.id), false);
+  assert.throws(
+    () =>
+      airEnvironmentAdmission(advanced.state, changed.water, changed.source),
+    /predates|identity|definition/,
+  );
+  const rebound = prepareAirEnvironmentGeometry(
+    advanced.state,
+    fixture.water,
+    fixture.source,
+    changed.water,
+    changed.source,
+  );
+  assert.equal(rebound.status, "applied");
+  const next = airEnvironmentAdmission(
+    rebound.state,
+    changed.water,
+    changed.source,
+  );
+  assert.equal(next.hasCell(changed.target.id), true);
+  assert.equal(warm.hasCell(changed.target.id), false);
+  assert.deepEqual(next.source, warm.source);
+});
 
 test("cold air admission rebuilds exact geometry and binds the original ambient reference", () => {
   const fixture = original(),

@@ -57,9 +57,10 @@ function materials(transformations = []) {
 }
 
 function air(smokeKg = 0, heatJ = 0, cellIds = ["gas:hearth"]) {
+  const available = new Set(cellIds);
   return {
     source: { smokeKg, heatJ },
-    cells: cellIds.map((id) => ({ id })),
+    hasCell: (id) => available.has(id),
   };
 }
 

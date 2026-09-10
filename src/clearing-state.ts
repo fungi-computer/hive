@@ -3,7 +3,7 @@ import { parseTerrainRemovals } from "./terrain-removals.ts";
 import { parseWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
 import {
   parseAirEnvironment,
-  airEnvironmentFacts,
+  airEnvironmentAdmission,
 } from "./world-presets/goblin-environment/air-state.ts";
 import { parsePaidAtmosphereReleases } from "./world-presets/goblin-environment/paid-releases.ts";
 import { brewAtmosphereProblem } from "./brewing.ts";
@@ -634,7 +634,7 @@ const savedSchema = currentStateSchema.transform((value): SavedClearing => {
     atmosphereReleases: parsePaidAtmosphereReleases(
       value.atmosphereReleases,
       value.materials,
-      airEnvironmentFacts(air, water, source),
+      airEnvironmentAdmission(air, water, source),
     ),
     terrainRemovals: parseTerrainRemovals(value.terrainRemovals, value.terrain),
   } as SavedClearing;
