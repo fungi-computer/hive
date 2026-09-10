@@ -50,6 +50,14 @@ export const STUDY_GROUPS = Object.freeze([
           "A bounded browser terrain generator with local inspection and residency measurements.",
         evidence: "Live browser study",
       },
+      {
+        id: "vertical-layout",
+        title: "Three storeys, one support route",
+        href: "/vertical-study.html",
+        scope:
+          "Authored layout: Ground + two upper floors; support/routes fixture, not an earned build.",
+        evidence: "Interactive original-art study",
+      },
     ],
   },
   {

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-theme="mocha">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Three storeys — Vertical layout study</title>
+  </head>
+  <body>
+    <div data-study-chrome data-study-id="vertical-layout"></div>
+    <main id="study-content" tabindex="-1">
+      <p class="eyebrow">HIVE · ORIGINAL BUILDING LAYOUT</p>
+      <h1>Three storeys, one support route</h1>
+      <p class="intro">
+        An explorable art study of the finite room-and-platform fixture used by
+        the vertical support and navigation law.
+      </p>
+      <div class="card bg-base-200 border border-base-300">
+        <div class="card-body">
+          <div id="vertical-views" class="controls" role="group" aria-label="Building layer">
+            <button class="btn btn-sm btn-primary" data-layer="cutaway" aria-pressed="true">Cutaway</button>
+            <button class="btn btn-sm" data-layer="ground" aria-pressed="false">Ground</button>
+            <button class="btn btn-sm" data-layer="upper" aria-pressed="false">Upper floors</button>
+            <button class="btn btn-sm" data-layer="roof" aria-pressed="false">Roof</button>
+            <button class="btn btn-sm" id="zoom-out">Zoom −</button>
+            <button class="btn btn-sm" id="zoom-in">Zoom +</button>
+          </div>
+          <div class="stage"><canvas id="vertical-canvas" aria-label="Three-storey authored building layout"></canvas></div>
+          <p id="vertical-status" role="status">Drawing authored layout…</p>
+        </div>
+      </div>
+      <p class="note" id="vertical-note"></p>
+      <p class="note">The page shares the test fixture's authored coordinates and displays prepared original geometry. It does not run construction, award timber, mutate a player save, or claim a playable game build.</p>
+    </main>
+    <script type="module" src="/src/studies/StudyChrome.jsx"></script>
+    <script type="module" src="/src/studies/vertical/main.js"></script>
+  </body>
+</html>
