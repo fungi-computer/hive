@@ -20,6 +20,8 @@ import {
   indoors,
 } from "./construction.js";
 import {
+  excavateTerrain,
+  terrainMaterial,
   terrainEnvironment,
   terrainGeometry,
   TERRAIN_FRAME,
@@ -32,6 +34,7 @@ import {
 } from "./navigation-space.ts";
 import { route, standing } from "./engine/navigation/index.ts";
 import {
+  explorationSchema,
   observeClearing,
   currentlyVisible,
   knownFootings,
@@ -395,4 +398,101 @@ test("finished support queries reuse current facts while genuine proposals stay 
   assert.equal(structuralSupport(state), current);
   assert.equal(structuralSupport(state, { ...floor }), current);
   assert(current.span(floor));
+});
+
+test("roofed adjacent descent is observed from the body column with eye-based occlusion", () => {
+  const state = createClearing();
+  const a = { x: 1, y: 10, z: 129 },
+    b = { x: 0, y: 9, z: 129 };
+  // Authored geometry and observers isolate perception. No earned excavation,
+  // material/water/air transaction or current whole-save validity is claimed.
+  const hollow = (x, y, z) => {
+    if (terrainMaterial(state.terrain, [x, y, z]) !== 0)
+      state.terrain = excavateTerrain(state.terrain, [x, y, z]);
+  };
+  for (let y = 10; y <= 13; y++) {
+    hollow(1, y, 129);
+    hollow(0, y, 129);
+  }
+  assert.notEqual(
+    terrainMaterial(state.terrain, [0, 14, 129]),
+    0,
+    "actual retained roof",
+  );
+  assert.notEqual(
+    terrainMaterial(state.terrain, [0, 9, 129]),
+    0,
+    "actual next Dig target",
+  );
+  for (const actor of Object.values(state.actors)) Object.assign(actor, a);
+  state.exploration = { version: 1, observed: [] };
+  assert(
+    currentlyVisible(state, { ...b, y: 10 }),
+    "the next work-height opening is visible",
+  );
+  observeClearing(state);
+  const before = state.exploration;
+  const beforeBytes = JSON.stringify(before);
+  hollow(0, 9, 129);
+  assert.equal(
+    knownFootings({ ...state, exploration: { version: 1, observed: [] } })(b),
+    false,
+    "roofed target is not granted exposed-surface knowledge",
+  );
+  assert(
+    currentlyVisible(state, b),
+    "adjacent lower footing lies within body-relative range",
+  );
+  observeClearing(state);
+  assert(knownFootings(state)(b));
+  assert.equal(
+    state.exploration.observed.find(
+      (fact) => fact.at.x === b.x && fact.at.y === b.y && fact.at.z === b.z,
+    ).solid,
+    false,
+  );
+  assert.equal(
+    JSON.stringify(before),
+    beforeBytes,
+    "previous memory was not mutated",
+  );
+  // Same physical floor face blocks the eye ray even though the target remains in range.
+  state.sites.push(site("sight-floor", "floor", 7, 10, -1));
+  assert(!currentlyVisible(state, b));
+  observeClearing(state);
+  assert(
+    knownFootings(state)(b),
+    "remembered knowledge is not current visibility",
+  );
+});
+
+test("cold observation records retain known lower cells without granting current sight", () => {
+  const state = createClearing();
+  const from = placementFooting({ x: 5, z: 5, level: 0 });
+  for (const actor of Object.values(state.actors)) Object.assign(actor, from);
+  const target = { x: from.x + 1, y: from.y - 1, z: from.z };
+  if (terrainMaterial(state.terrain, [target.x, target.y, target.z]) !== 0)
+    state.terrain = excavateTerrain(state.terrain, [
+      target.x,
+      target.y,
+      target.z,
+    ]);
+  assert(currentlyVisible(state, target));
+  observeClearing(state);
+  state.sites.push(site("closed-floor", "floor", 6, 5, 0));
+  const restored = {
+    ...state,
+    exploration: explorationSchema.parse(
+      JSON.parse(JSON.stringify(state.exploration)),
+    ),
+  };
+  assert(knownFootings(restored)(target));
+  assert(!currentlyVisible(restored, target));
+  const memory = JSON.stringify(restored.exploration);
+  currentlyVisible(restored, target);
+  assert.equal(
+    JSON.stringify(restored.exploration),
+    memory,
+    "queries never discover or update saved memory",
+  );
 });
