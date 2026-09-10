@@ -29,7 +29,9 @@ export const formations = system({
         .query(query(FormationSettings))[0]
         ?.get(FormationSettings);
       if (settings && morale.value < settings.retreatBelow)
-        ctx.action(move(unit.id, { x: -4, y: 0, z: -4 }, settings.facing));
+        ctx.action(
+          move(unit.id, { x: -4, y: 0, z: -4, frame: null }, settings.facing),
+        );
     }
   },
 });
@@ -79,6 +81,7 @@ export const formationsPack: GamePack = {
                 x: z.number().finite(),
                 y: z.number().finite(),
                 z: z.number().finite(),
+                frame: z.null(),
               })
               .strict(),
             facing: z.number().int().min(0).max(3).optional(),
@@ -121,6 +124,7 @@ export const formationsPack: GamePack = {
                   x: order.destination.x + rotated.x,
                   y: order.destination.y,
                   z: order.destination.z + rotated.z,
+                  frame: order.destination.frame,
                 },
                 facing,
               );

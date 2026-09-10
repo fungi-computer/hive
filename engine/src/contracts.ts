@@ -8,6 +8,8 @@ export const RESERVED_COMPONENTS = [
   "hive.container",
   "hive.lot",
   "hive.destination",
+  "hive.support",
+  "hive.surface",
   "hive.obstacle",
   "hive.visual",
 ] as const;
@@ -19,9 +21,29 @@ export interface Vec3 {
   readonly y: number;
   readonly z: number;
 }
+export interface MoveDestination extends Vec3 {
+  readonly frame: EntityId | null;
+}
 export interface Pose {
   readonly position: Vec3;
   readonly facing: number;
+}
+export interface WorldPosition extends Vec3 {
+  readonly facing: number;
+}
+export interface Surface {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+  readonly height: number;
+}
+export interface WorldPose {
+  readonly id: EntityId;
+  readonly local: WorldPosition;
+  readonly world: WorldPosition;
+  readonly support: EntityId | null;
+  readonly surface: Surface | null;
 }
 
 export interface ComponentDefinition<T extends object> {
@@ -56,7 +78,7 @@ export type ActionRequest =
   | {
       readonly kind: "move";
       readonly entity: EntityId;
-      readonly destination: Vec3;
+      readonly destination: MoveDestination;
       readonly facing?: number;
     }
   | {
@@ -82,7 +104,11 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
-export interface AssignmentCandidate { readonly worker: EntityId; readonly task: EntityId; readonly cost: number }
+export interface AssignmentCandidate {
+  readonly worker: EntityId;
+  readonly task: EntityId;
+  readonly cost: number;
+}
 export interface AssignmentPair extends AssignmentCandidate {}
 
 export interface SimulationClock {
@@ -98,7 +124,11 @@ export interface ReadContext {
   readonly outcomes: readonly ActionOutcome[];
   readonly random: RandomSource;
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
-  assign(candidates: readonly AssignmentCandidate[], maxEdges?: number): readonly AssignmentPair[];
+  worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
+  assign(
+    candidates: readonly AssignmentCandidate[],
+    maxEdges?: number,
+  ): readonly AssignmentPair[];
 }
 export interface WriteContext extends ReadContext {
   write<T extends object>(
@@ -120,13 +150,16 @@ export interface SystemDefinition {
 export interface RenderFact {
   readonly id: EntityId;
   readonly pose?: Pose;
+  readonly local?: WorldPosition;
+  readonly support?: EntityId | null;
+  readonly surface?: Surface | null;
   readonly visual?: string;
   readonly label?: string;
   readonly selected?: boolean;
 }
 export interface KernelSnapshot {
   readonly format: "hive-kernel";
-  readonly version: 1;
+  readonly version: 2;
   readonly revision: number;
   readonly time: number;
   readonly json: string;
@@ -145,7 +178,11 @@ export interface KernelPort {
   readonly snapshot: () => KernelSnapshot;
   readonly restore: (snapshot: KernelSnapshot) => void;
   readonly renderFacts: (limit?: number) => readonly RenderFact[];
-  readonly assign: (candidates: readonly AssignmentCandidate[], maxEdges?: number) => readonly AssignmentPair[];
+  readonly worldPoses: (entities: readonly EntityId[]) => readonly WorldPose[];
+  readonly assign: (
+    candidates: readonly AssignmentCandidate[],
+    maxEdges?: number,
+  ) => readonly AssignmentPair[];
 }
 export interface GamePack {
   readonly id: GameId;

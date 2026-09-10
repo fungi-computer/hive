@@ -1,5 +1,6 @@
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
+import { Position, Support, Surface } from "../sdk/common";
 import type {
   ActionRequest,
   ActionResult,
@@ -14,6 +15,7 @@ import type {
   WriteContext,
   WriteIntent,
   EntityId,
+  WorldPose,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -118,6 +120,21 @@ export class GameSession {
     maxEdges = 128,
   ) {
     return this.port.assign(candidates, maxEdges);
+  }
+  private worldPoses(
+    entities: readonly EntityId[],
+    reads: readonly import("../contracts").ComponentDefinition<any>[],
+  ): readonly WorldPose[] {
+    const declared = new Set(reads.map((component) => component.id));
+    if (
+      !declared.has(Position.id) ||
+      !declared.has(Support.id) ||
+      !declared.has(Surface.id)
+    )
+      throw new Error(
+        "world poses require hive.position, hive.support, and hive.surface reads",
+      );
+    return this.port.worldPoses(entities);
   }
   request(action: ActionRequest): void {
     if (this.pendingActions.length >= 128)
@@ -268,10 +285,13 @@ export class GameSession {
       const writes: WriteIntent[] = [...queuedWrites];
       const actions: ActionRequest[] = this.pendingActions.splice(0);
       let systemActionCount = 0;
+      let activeReads: readonly import("../contracts").ComponentDefinition<any>[] =
+        [];
       const context: WriteContext = {
         clock,
         random: this.random,
         assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
+        worldPoses: (entities) => this.worldPoses(entities, activeReads),
         outcomes: structuredClone(this.outcomes),
         query: (spec) => this.queryOverlay(spec, queuedWrites),
         write: (definition, entity, value) => {
@@ -290,6 +310,7 @@ export class GameSession {
         )
           continue;
         const beforeWrites = writes.length;
+        activeReads = definition.reads;
         definition.run(context);
         writes.push(
           ...this.validateWrites(

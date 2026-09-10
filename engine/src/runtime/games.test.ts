@@ -17,17 +17,33 @@ test("display frames identify time and reset discontinuities", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const events: WorkerEvent[] = [];
-    const runtime = new WorkerRuntime(port, { survival: survivalPack }, (event) => events.push(event));
+    const runtime = new WorkerRuntime(
+      port,
+      { survival: survivalPack },
+      (event) => events.push(event),
+    );
     runtime.command({ type: "start", game: "survival" });
     runtime.command({ type: "step", delta: 0.1 });
     runtime.command({ type: "pause" });
     runtime.command({ type: "step", delta: 0.1 });
     runtime.command({ type: "reset" });
-    assert.deepEqual(events.filter((event) => event.type === "error"), []);
+    assert.deepEqual(
+      events.filter((event) => event.type === "error"),
+      [],
+    );
     const frames = events.filter((event) => event.type === "frame");
-    assert.deepEqual(frames.map(({ time, epoch, sequence }) => [time, epoch, sequence]),
-      [[0, 1, 1], [0.1, 1, 2], [0.1, 1, 3], [0, 2, 4]]);
-  } finally { port.dispose(); }
+    assert.deepEqual(
+      frames.map(({ time, epoch, sequence }) => [time, epoch, sequence]),
+      [
+        [0, 1, 1],
+        [0.1, 1, 2],
+        [0.1, 1, 3],
+        [0, 2, 4],
+      ],
+    );
+  } finally {
+    port.dispose();
+  }
 });
 
 test("native assignment chooses joint pairs without mutating the world", () => {
@@ -45,9 +61,14 @@ test("native assignment chooses joint pairs without mutating the world", () => {
       { worker: "worker.1", task: "task.2", cost: 2 },
       { worker: "worker.2", task: "task.1", cost: 2 },
     ]);
-    assert.deepEqual(session.assign([...candidates].reverse()), session.assign(candidates));
+    assert.deepEqual(
+      session.assign([...candidates].reverse()),
+      session.assign(candidates),
+    );
     assert.deepEqual(session.save(), before);
-  } finally { port.dispose(); }
+  } finally {
+    port.dispose();
+  }
 });
 
 test("independently authored fatigue follows movement and survives restore", () => {
@@ -63,7 +84,7 @@ test("independently authored fatigue follows movement and survives restore", () 
     session.request({
       kind: "move",
       entity: entity("survival.survivor.1"),
-      destination: { x: 2, y: 0, z: 0 },
+      destination: { x: 2, y: 0, z: 0, frame: null },
     });
     session.step(0.1);
     session.step(0.1);
@@ -166,7 +187,7 @@ test("survival can take and eat successive split lots, including after restore",
     session.request({
       kind: "move",
       entity: entity("survival.survivor.1"),
-      destination: { x: 2, y: 0, z: 0 },
+      destination: { x: 2, y: 0, z: 0, frame: null },
     });
     for (let i = 0; i < 15; i++) session.step(0.1);
     for (let meal = 0; meal < 2; meal++) {
@@ -196,7 +217,7 @@ test("formation actors move independently through the same kernel", () => {
     session.start();
     session.command("march", {
       entities: ["formations.unit.3", "formations.unit.1", "formations.unit.2"],
-      destination: { x: 2, y: 0, z: 2 },
+      destination: { x: 2, y: 0, z: 2, frame: null },
     });
     // The authored crate requires a detour; allow four seconds at 1.5 cells/s.
     for (let i = 0; i < 40; i++) session.step(0.1);
@@ -225,7 +246,7 @@ test("formation settings change actual march and retreat destinations", () => {
     session.command("setFacing", { facing: 1 });
     session.command("march", {
       entities: ["formations.unit.1", "formations.unit.2", "formations.unit.3"],
-      destination: { x: 4, y: 0, z: 3 },
+      destination: { x: 4, y: 0, z: 3, frame: null },
     });
     for (let i = 0; i < 60; i++) session.step(0.1);
     const positions = () =>
@@ -257,7 +278,7 @@ test("authored meal recovery changes the physical consumption outcome", () => {
     session.request({
       kind: "move",
       entity: entity("survival.survivor.1"),
-      destination: { x: 2, y: 0, z: 0 },
+      destination: { x: 2, y: 0, z: 0, frame: null },
     });
     for (let i = 0; i < 15; i++) session.step(0.1);
     session.command("takeFood", null);

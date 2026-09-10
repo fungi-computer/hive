@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { GameSession } from "./session";
 import { command } from "../sdk/authoring";
+import { Position, Support, Surface } from "../sdk/common";
 import type {
   AssignmentCandidate,
   ActionRequest,
@@ -15,6 +16,7 @@ import type {
   WriteIntent,
   KernelSnapshot,
   SystemDefinition,
+  WorldPose,
 } from "../contracts";
 
 const morale: ComponentDefinition<{ value: number }> = {
@@ -40,12 +42,13 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private json = JSON.stringify({
     format: "hive-kernel",
-    version: 1,
+    version: 2,
     revision: 0,
     time: 0,
     scene: {
       game: "colony",
       initial: [],
+      routes: [],
       components: [
         { id: "test.morale", version: 1, fields: { value: "number" } },
       ],
@@ -86,7 +89,7 @@ class TestPort implements KernelPort {
   snapshot(): KernelSnapshot {
     return {
       format: "hive-kernel",
-      version: 1,
+      version: 2,
       revision: this.revision,
       time: JSON.parse(this.json).time,
       json: this.json,
@@ -99,7 +102,16 @@ class TestPort implements KernelPort {
   renderFacts(_limit?: number): readonly RenderFact[] {
     return [];
   }
-  assign(candidates: readonly AssignmentCandidate[]): readonly AssignmentCandidate[] { return candidates.slice(0, 128); }
+  worldPoses(
+    _entities: readonly import("../contracts").EntityId[],
+  ): readonly WorldPose[] {
+    return [];
+  }
+  assign(
+    candidates: readonly AssignmentCandidate[],
+  ): readonly AssignmentCandidate[] {
+    return candidates.slice(0, 128);
+  }
 }
 
 function pack(
@@ -152,7 +164,7 @@ test("invalid restores do not mutate queued actions, game time, or the port", ()
   const queued = {
     kind: "move",
     entity: "actor",
-    destination: { x: 1, y: 0, z: 0 },
+    destination: { x: 1, y: 0, z: 0, frame: null },
   } as ActionRequest;
   const { value, port } = session(undefined, undefined, 7, [queued]);
   const before = value.save();
@@ -224,7 +236,7 @@ test("queued input is cloned when requested", () => {
   const request = {
     kind: "move",
     entity: "actor",
-    destination: { x: 1, y: 2, z: 3 },
+    destination: { x: 1, y: 2, z: 3, frame: null },
   } as Extract<ActionRequest, { kind: "move" }>;
   value.request(request);
   (request.destination as { x: number }).x = 99;
@@ -340,4 +352,34 @@ test("a rejected consume produces no physical effect", () => {
   assert.equal(results[0].accepted, false);
   assert.equal(port.acceptedConsumes, 0);
   assert.equal(value.save().outcomes[0].result.accepted, false);
+});
+
+test("world pose access is limited to declared physical reads", () => {
+  let requested = 0;
+  const port = new TestPort();
+  port.worldPoses = (entities) => {
+    requested += entities.length;
+    return [];
+  };
+  const forbidden: SystemDefinition = {
+    id: "test.pose-forbidden",
+    version: 1,
+    reads: [Position],
+    writes: [],
+    run: (context) => {
+      context.worldPoses(["actor" as import("../contracts").EntityId]);
+    },
+  };
+  const value = session(port, forbidden, 5).value;
+  assert.throws(() => value.step(0.1), /world poses require/);
+  assert.equal(requested, 0);
+
+  const allowed: SystemDefinition = {
+    ...forbidden,
+    id: "test.pose-allowed",
+    reads: [Position, Support, Surface],
+  };
+  const allowedValue = session(port, allowed, 5).value;
+  allowedValue.step(0.1);
+  assert.equal(requested, 1);
 });

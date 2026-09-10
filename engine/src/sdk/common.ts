@@ -3,7 +3,7 @@ import type {
   ActionRequest,
   ComponentDefinition,
   EntityId,
-  Vec3,
+  MoveDestination,
 } from "../contracts";
 
 /** Native movement capability; game systems may query it but cannot write it. */
@@ -21,6 +21,26 @@ export const Position = component<{
   version: 1,
   fields: { x: "number", y: "number", z: "number", facing: "number" },
 });
+export const Support = component<{ entity: EntityId }>("hive.support", {
+  version: 1,
+  fields: { entity: "entity" },
+});
+export const Surface = component<{
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  height: number;
+}>("hive.surface", {
+  version: 1,
+  fields: {
+    minX: "number",
+    maxX: "number",
+    minZ: "number",
+    maxZ: "number",
+    height: "number",
+  },
+});
 export const MaterialLot = component<{
   quantity: number;
   kind: string;
@@ -34,18 +54,30 @@ export const Destination = component<{
   y: number;
   z: number;
   facing: number;
+  frame: EntityId | null;
 }>("hive.destination", {
   version: 1,
-  fields: { x: "number", y: "number", z: "number", facing: "number" },
+  fields: {
+    x: "number",
+    y: "number",
+    z: "number",
+    facing: "number",
+    frame: "nullable-entity",
+  },
 });
 export const move = (
   entity: EntityId,
-  destination: Vec3,
+  destination: MoveDestination,
   facing = 0,
 ): ActionRequest => ({
   kind: "move",
   entity,
-  destination: { x: destination.x, y: destination.y, z: destination.z },
+  destination: {
+    x: destination.x,
+    y: destination.y,
+    z: destination.z,
+    frame: destination.frame,
+  },
   facing,
 });
 export const transfer = (
@@ -70,6 +102,8 @@ const RESERVED = new Set([
   "hive.container",
   "hive.lot",
   "hive.destination",
+  "hive.support",
+  "hive.surface",
   "hive.obstacle",
   "hive.visual",
 ]);

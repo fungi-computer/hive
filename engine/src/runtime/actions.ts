@@ -27,10 +27,11 @@ export function checkedAction(value: unknown): ActionRequest {
         id(action.entity) &&
         !!at &&
         typeof at === "object" &&
-        Object.keys(at).length === 3 &&
+        Object.keys(at).length === 4 &&
         coordinate(at.x) &&
         coordinate(at.y) &&
         coordinate(at.z) &&
+        (at.frame === null || id(at.frame)) &&
         (action.facing === undefined || coordinate(action.facing));
       break;
     }
