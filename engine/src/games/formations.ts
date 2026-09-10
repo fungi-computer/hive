@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { component, entity, query, system } from "../sdk/authoring";
 import {
   Destination,
@@ -48,6 +49,42 @@ export const formationsPack: GamePack = {
   version: 1,
   components: [Position, Destination, Selected, FormationMember, Morale],
   systems: [formations],
+  commands: {
+    march(context, raw) {
+      const order = z
+        .object({
+          entities: z.array(z.string()).min(1).max(128),
+          destination: z
+            .object({
+              x: z.number().finite(),
+              y: z.number().finite(),
+              z: z.number().finite(),
+            })
+            .strict(),
+        })
+        .strict()
+        .parse(raw);
+      const requested = new Set(order.entities);
+      const members = context
+        .query(query(FormationMember))
+        .filter((row) => requested.has(row.id))
+        .sort(
+          (a, b) =>
+            a.get(FormationMember).slot - b.get(FormationMember).slot ||
+            a.id.localeCompare(b.id),
+        );
+      if (members.length !== requested.size)
+        throw new Error("Select formation members to march");
+      const columns = Math.min(3, members.length);
+      return members.map((member, index) =>
+        move(member.id, {
+          x: order.destination.x + (index % columns) - Math.floor(columns / 2),
+          y: order.destination.y,
+          z: order.destination.z + Math.floor(index / columns),
+        }),
+      );
+    },
+  },
   definition: encodeDefinition(
     "formations",
     [Position, Destination, Selected, FormationMember, Morale],

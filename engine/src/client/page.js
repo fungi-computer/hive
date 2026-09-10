@@ -19,6 +19,7 @@ const configs = {
   },
   formations: {
     title: "Formations",
+    orderCommand: "march",
     subtitle: "Select a group, set a destination, and practice a morale rule.",
     source: "./source/formations.ts",
   },

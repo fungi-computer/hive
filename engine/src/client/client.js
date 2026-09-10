@@ -24,6 +24,7 @@ export function createHiveClient({
   subtitle,
   source,
   runtime,
+  orderCommand,
 }) {
   const state = {
     paused: false,
@@ -318,6 +319,15 @@ export function createHiveClient({
       (at.x - camera.x) / camera.zoom,
       (at.y - camera.y) / camera.zoom,
     );
+    if (orderCommand) {
+      if (state.selectedIds.length)
+        runtime.send({
+          type: "command",
+          name: orderCommand,
+          input: { entities: state.selectedIds, destination: world },
+        });
+      return;
+    }
     for (const id of state.selectedIds)
       emit({
         kind: "action",

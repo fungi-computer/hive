@@ -70,16 +70,18 @@ test("formation actors move independently through the same kernel", () => {
   try {
     const session = new GameSession({ port, pack: formationsPack });
     session.start();
-    for (let i = 1; i <= 3; i++)
-      session.request({
-        kind: "move",
-        entity: entity(`formations.unit.${i}`),
-        destination: { x: i, y: 0, z: 2 },
-      });
+    session.command("march", {
+      entities: ["formations.unit.3", "formations.unit.1", "formations.unit.2"],
+      destination: { x: 2, y: 0, z: 2 },
+    });
     for (let i = 0; i < 20; i++) session.step(0.1);
     assert.deepEqual(
       session.query(query(Position)).map((row) => row.get(Position).z),
       [2, 2, 2],
+    );
+    assert.deepEqual(
+      session.query(query(Position)).map((row) => row.get(Position).x),
+      [1, 2, 3],
     );
   } finally {
     port.dispose();

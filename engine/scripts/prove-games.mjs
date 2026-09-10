@@ -17,6 +17,7 @@ const result = spawnSync(
   process.execPath,
   [
     "--test",
+    ...process.argv.slice(2),
     ".botanical/fresh-game-laws/session.test.mjs",
     ".botanical/fresh-game-laws/games.test.mjs",
   ],
