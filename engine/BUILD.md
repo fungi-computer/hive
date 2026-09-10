@@ -105,3 +105,9 @@ failed because native JSON time 0.39600000000000013 became 0.3960000000000002.
 No tolerance was introduced; native JSON round-trip correction is in progress.
 Root viewed survival-joined.png. Scope inactive/dead/empty and 5197 clear. This
 candidate is not deployed; prior browser 3478538 remains live.
+
+Native correction 11d0d1f enables serde_json float_roundtrip. Within u4894, the
+new exact fractional snapshot regression passed (one named law, 12 existing laws
+filtered). WASM compilation is still pending at this checkpoint. Prior live
+3478538 engine assets were recovered into .botanical/fresh-browser/rollback-3478538:
+all 29 files matched the published manifest, preserving the exact browser rollback.
