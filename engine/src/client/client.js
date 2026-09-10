@@ -6,7 +6,8 @@ import { Card, CardContent } from "@fungi.computer/caps/components/card";
 import { loadStaticArtPack } from "../../../src/art/static-pack.js";
 import { isTypingTarget, selectionFromSubjects, pointerGestureMachine } from "./controls.js";
 import { createActor } from "xstate";
-import { createKeys } from "../../../src/keys.js";
+import { createDefaultHtmlKeymap } from "@opentui/keymap/html";
+import { createBindingLookup, formatCommandBindings } from "@opentui/keymap/extras";
 
 export function createHiveClient({ root, mode, title, subtitle, source, runtime = null }) {
   const state = { paused: false, selectedIds: [], hoverId: null, dragging: null, disposed: false, subjects: [], message: runtime ? "Connecting to the world…" : "Runtime pending — waiting for the browser Worker." };
@@ -37,7 +38,7 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
   function screenPoint(subject) { return { x: subject.x * camera.zoom + camera.x, y: subject.y * camera.zoom + camera.y }; }
   function draw() {
     if (!app.stage) return;
-    overlay.removeChildren();
+    for (const child of overlay.removeChildren()) child.destroy?.({ children: true, texture: false, textureSource: false });
     const ground = art?.ground ? new Sprite(art.ground) : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
     ground.anchor?.set?.(0.5); ground.position.set(320 + camera.x, 200 + camera.y); ground.scale.set(camera.zoom); overlay.addChild(ground);
     const subjectTexture = art?.figures?.goblin?.idle?.[0]?.[0] || art?.figures?.cat?.idle?.[0]?.[0];
@@ -46,21 +47,30 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
       const marker = new Graphics().ellipse(subject.screen.x, subject.screen.y, 18, 9).stroke({ color: state.selectedIds.includes(subject.id) ? 0xe8c779 : 0x5f8f7c, width: 2 });
       marker.eventMode = "none"; overlay.addChild(marker);
       if (subjectTexture) { const pawn = new Sprite(subjectTexture); pawn.anchor.set(0.5, art.pawnAnchor?.y ?? 0.75); pawn.position.set(subject.screen.x, subject.screen.y); pawn.scale.set(.62); pawn.eventMode = "none"; overlay.addChild(pawn); }
-      const label = new Text({ text: subject.name, style: { fontFamily: "Stipe, sans-serif", fontSize: 12, fill: 0xf7edcf } }); label.anchor.set(0.5, 1); label.position.set(subject.screen.x, subject.screen.y - 12); overlay.addChild(label);
+      const label = new Text({ text: subject.name, style: { fontFamily: "var(--font-sans)", fontSize: 12, fill: 0xf7edcf } }); label.anchor.set(0.5, 1); label.position.set(subject.screen.x, subject.screen.y - 12); overlay.addChild(label);
     }
+    const drag = gesture.getSnapshot().context;
+    if (gesture.getSnapshot().value === "dragging" && drag.start && drag.current) overlay.addChild(new Graphics().rect(Math.min(drag.start.x, drag.current.x), Math.min(drag.start.y, drag.current.y), Math.abs(drag.current.x - drag.start.x), Math.abs(drag.current.y - drag.start.y)).fill({ color: 0xe8c779, alpha: .12 }).stroke({ color: 0xe8c779, width: 1 }));
   }
   function point(event) { const rect = app.canvas.getBoundingClientRect(); return { x: event.clientX - rect.left, y: event.clientY - rect.top }; }
-  function pointerDown(event) { if (isTypingTarget(event.target) || event.button !== 0) return; gesture.send({ type: "BEGIN" }); state.dragging = { start: point(event), current: point(event), additive: event.shiftKey }; app.canvas.setPointerCapture?.(event.pointerId); }
-  function pointerMove(event) { if (!state.dragging) return; state.dragging.current = point(event); }
-  function pointerUp(event) { if (!state.dragging) return; gesture.send({ type: "END" }); const drag = state.dragging; state.dragging = null; const end = point(event); const box = { left: Math.min(drag.start.x, end.x), right: Math.max(drag.start.x, end.x), top: Math.min(drag.start.y, end.y), bottom: Math.max(drag.start.y, end.y) }; const hit = selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds); state.selectedIds = hit; emit({ kind: "select", entities: state.selectedIds }); renderHud(); draw(); }
-  function contextMenu(event) { event.preventDefault(); const at = point(event); emit({ kind: mode === "formations" ? "group-order" : "move", entities: state.selectedIds, destination: { x: at.x, y: 0, z: at.y }, facing: 0 }); }
-  function keydown(event) { if (isTypingTarget(event.target)) return; const key = event.key.toLowerCase(); if (key === " " || key === "spacebar") { event.preventDefault(); state.paused = !state.paused; emit({ kind: "pause" }); renderHud(); } else if (mode === "survival" && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) emit({ kind: "move", direction: key }); else if (key === "escape") { state.dragging = null; state.selectedIds = []; renderHud(); draw(); } }
+  function pointerDown(event) { if (isTypingTarget(event.target) || event.button !== 0) return; const at = point(event); gesture.send({ type: "BEGIN", point: at, additive: event.shiftKey }); app.canvas.setPointerCapture?.(event.pointerId); }
+  function pointerMove(event) { if (gesture.getSnapshot().value !== "dragging") return; gesture.send({ type: "MOVE", point: point(event) }); draw(); }
+  function pointerUp(event) { const snapshot = gesture.getSnapshot(); if (snapshot.value !== "dragging") return; const drag = snapshot.context; gesture.send({ type: "END" }); const end = point(event); const box = { left: Math.min(drag.start.x, end.x), right: Math.max(drag.start.x, end.x), top: Math.min(drag.start.y, end.y), bottom: Math.max(drag.start.y, end.y) }; const hit = selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds); state.selectedIds = hit; emit({ kind: "select", entities: state.selectedIds }); renderHud(); draw(); }
+  function contextMenu(event) { event.preventDefault(); const at = point(event); const world = { x: (at.x - camera.x - 280) / 36, y: 0, z: (at.y - camera.y - 180) / 24 }; emit({ kind: mode === "formations" ? "group-order" : "move", entity: state.selectedIds[0], group: state.selectedIds[0], destination: world, facing: 0 }); }
+  function keydown(event) { if (isTypingTarget(event.target)) return; const key = event.key.toLowerCase(); if (mode === "survival" && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) emit({ kind: "move", entity: state.selectedIds[0], destination: { x: 0, y: 0, z: 0 } }); }
   async function start() {
     await app.init({ resizeTo: canvasHost, backgroundAlpha: 0, antialias: false, resolution: 1 }); canvasHost.appendChild(app.canvas); app.stage.addChild(overlay); const pack = await loadStaticArtPack(); art = pack.art; state.disposeArt = pack.dispose; draw(); renderHud();
-    app.canvas.addEventListener("pointerdown", pointerDown); app.canvas.addEventListener("pointermove", pointerMove); app.canvas.addEventListener("pointerup", pointerUp); app.canvas.addEventListener("contextmenu", contextMenu); app.canvas.addEventListener("pointercancel", () => { gesture.send({ type: "CANCEL" }); state.dragging = null; }); window.addEventListener("keydown", keydown); resizeObserver = new ResizeObserver(draw); resizeObserver.observe(canvasHost);
-    createKeys(root, () => state, emit, renderHud);
+    app.canvas.addEventListener("pointerdown", pointerDown); app.canvas.addEventListener("pointermove", pointerMove); app.canvas.addEventListener("pointerup", pointerUp); app.canvas.addEventListener("contextmenu", contextMenu); app.canvas.addEventListener("pointercancel", () => { gesture.send({ type: "CANCEL" }); state.dragging = null; }); window.addEventListener("keydown", keydown); app.canvas.addEventListener("wheel", (event) => { event.preventDefault(); camera.zoom = Math.max(.7, Math.min(2, camera.zoom + (event.deltaY < 0 ? .1 : -.1))); draw(); }, { passive: false }); resizeObserver = new ResizeObserver(draw); resizeObserver.observe(canvasHost);
+    const keymap = createDefaultHtmlKeymap(root);
+    const bindings = createBindingLookup({ "sim.pause": "space", "ui.close": "escape", "camera.left": "left", "camera.right": "right", "camera.up": "up", "camera.down": "down" });
+    keymap.registerLayer({ target: root, targetMode: "focus-within", enabled: () => !isTypingTarget(document.activeElement), bindings: bindings.bindings, commands: [
+      { name: "sim.pause", desc: "Pause / resume", run: () => emit({ kind: state.paused ? "resume" : "pause" }) },
+      { name: "ui.close", desc: "Cancel selection", run: () => { gesture.send({ type: "CANCEL" }); state.selectedIds = []; renderHud(); draw(); } },
+      ...[["camera.left", -24, 0], ["camera.right", 24, 0], ["camera.up", 0, -24], ["camera.down", 0, 24]].map(([name, x, y]) => ({ name, desc: "Pan camera", run: () => { camera.x += x; camera.y += y; draw(); } })),
+    ] });
+    keymap.on("state", renderHud);
     runtime?.subscribe?.((event) => { if (event.type === "frame") { state.subjects = event.facts.filter((fact) => fact.pose?.position).map((fact) => ({ id: fact.id, name: fact.label || fact.id, x: fact.pose.position.x * 36 + 280, y: fact.pose.position.z * 24 + 180, visual: fact.visual, screen: { x: 0, y: 0 } })); draw(); renderHud(); } if (event.type === "error") { state.message = event.message; renderHud(); } });
   }
   start().catch((error) => { state.message = `Art unavailable: ${error.message}`; renderHud(); });
-  return { state, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }, dispose() { if (state.disposed) return; state.disposed = true; gesture.stop(); resizeObserver?.disconnect(); window.removeEventListener("keydown", keydown); app.canvas?.removeEventListener("pointerdown", pointerDown); app.canvas?.removeEventListener("pointermove", pointerMove); app.canvas?.removeEventListener("pointerup", pointerUp); app.canvas?.removeEventListener("contextmenu", contextMenu); state.disposeArt?.(); overlay.removeChildren().forEach((child) => child.destroy?.({ children: true })); app.destroy(true, { children: true, texture: false, textureSource: false }); }, send: emit };
+  return { state, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }, dispose() { if (state.disposed) return; state.disposed = true; gesture.stop(); resizeObserver?.disconnect(); window.removeEventListener("keydown", keydown); app.canvas?.removeEventListener("pointerdown", pointerDown); app.canvas?.removeEventListener("pointermove", pointerMove); app.canvas?.removeEventListener("pointerup", pointerUp); app.canvas?.removeEventListener("contextmenu", contextMenu); state.disposeArt?.(); for (const child of overlay.removeChildren()) child.destroy?.({ children: true, texture: false, textureSource: false }); app.destroy(true, { children: true, texture: false, textureSource: false }); }, send: emit };
 }

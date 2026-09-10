@@ -4,7 +4,12 @@ import { createMachine } from "xstate";
 export const pointerGestureMachine = createMachine({
   id: "hive-pointer-gesture",
   initial: "idle",
-  states: { idle: { on: { BEGIN: "dragging" } }, dragging: { on: { END: "idle", CANCEL: "idle" } } },
+  context: { start: null, current: null, additive: false },
+  states: { idle: { on: { BEGIN: { target: "dragging", actions: "begin" } } }, dragging: { on: { MOVE: { actions: "move" }, END: "idle", CANCEL: "idle" } } },
+  actions: {
+    begin: ({ context, event }) => Object.assign(context, { start: event.point, current: event.point, additive: event.additive }),
+    move: ({ context, event }) => Object.assign(context, { current: event.point }),
+  },
 });
 
 export function isTypingTarget(target) {

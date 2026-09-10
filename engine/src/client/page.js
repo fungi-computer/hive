@@ -1,13 +1,13 @@
 import "./client.css";
 import "@fungi.computer/caps/styles.css";
-import "@fungi.computer/stipe/styles.css";
+import "@fungi.computer/stipe/fonts.css";
 import { createHiveClient } from "./client.js";
 
 const mode = document.body.dataset.mode || "hub";
 const configs = {
-  colony: { title: "Colony", subtitle: "Select workers and send a shared delivery order.", source: "./src/games/colony.ts" },
-  survival: { title: "Survival", subtitle: "One survivor, one body, and direct actions through the same client.", source: "./src/games/survival.ts" },
-  formations: { title: "Formations", subtitle: "Select a group, set a destination, and practice a morale rule.", source: "./src/games/formations.ts" },
+  colony: { title: "Colony", subtitle: "Select workers and send a shared delivery order.", source: "./source/colony.ts" },
+  survival: { title: "Survival", subtitle: "One survivor, one body, and direct actions through the same client.", source: "./source/survival.ts" },
+  formations: { title: "Formations", subtitle: "Select a group, set a destination, and practice a morale rule.", source: "./source/formations.ts" },
 };
 const root = document.querySelector("#hive-app");
 const queryMode = new URLSearchParams(location.search).get("game");
