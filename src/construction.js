@@ -593,7 +593,7 @@ function sitesConflict(left, right) {
 }
 export function placementProblem(state, at) {
   if (!at || !BUILDINGS[at.type]) return "Choose something to build.";
-  if (!footprint(at).every(inside))
+  if (!footprint(at).every(insidePlacement))
     return "Keep the footprint inside the clearing.";
   if (
     footprint(at).some(
@@ -742,16 +742,16 @@ export function indoors(state, level = 0) {
     state.sites
       .filter(
         (s) =>
-          s.finishedAt !== null && (s.type === "wall" || s.type === "door"),
+          s.level === level && s.finishedAt !== null && (s.type === "wall" || s.type === "door"),
       )
-      .map(cellKey),
+      .map(placementKey),
   );
   const outside = new Set(),
     queue = [];
   for (let x = 0; x < SIZE; x++)
-    for (const z of [0, SIZE - 1]) queue.push({ x, z });
+    for (const z of [0, SIZE - 1]) queue.push({ x, z, level });
   for (let z = 1; z < SIZE - 1; z++)
-    for (const x of [0, SIZE - 1]) queue.push({ x, z });
+    for (const x of [0, SIZE - 1]) queue.push({ x, z, level });
   for (let i = 0; i < queue.length; i++) {
     const cell = queue[i],
       key = placementKey(cell);
@@ -763,7 +763,7 @@ export function indoors(state, level = 0) {
   const result = new Set();
   for (let x = 0; x < SIZE; x++)
     for (let z = 0; z < SIZE; z++) {
-      const key = placementKey({ x, z });
+      const key = placementKey({ x, z, level });
       if (!outside.has(key) && !boundary.has(key)) result.add(key);
     }
   return result;
@@ -783,7 +783,7 @@ function upstairsIndoors(state) {
           site.finishedAt !== null &&
           (site.type === "wall" || site.type === "door"),
       )
-      .flatMap((site) => footprint(site).map(cellKey)),
+      .flatMap((site) => footprint(site).map(placementKey)),
   );
   const outside = new Set();
   const queue = [];
