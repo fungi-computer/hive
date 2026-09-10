@@ -64,6 +64,18 @@ impl Registry {
                     ("y", FieldType::Number),
                     ("z", FieldType::Number),
                     ("facing", FieldType::Number),
+                    ("frame", FieldType::NullableEntity),
+                ],
+            ),
+            ("hive.support", vec![("entity", FieldType::Entity)]),
+            (
+                "hive.surface",
+                vec![
+                    ("min_x", FieldType::Number),
+                    ("max_x", FieldType::Number),
+                    ("min_z", FieldType::Number),
+                    ("max_z", FieldType::Number),
+                    ("height", FieldType::Number),
                 ],
             ),
             ("hive.obstacle", vec![("occupied", FieldType::Boolean)]),
@@ -92,6 +104,8 @@ impl Registry {
                 "hive.container" => world.register_component::<Container>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.destination" => world.register_component::<Destination>(),
+                "hive.support" => world.register_component::<Support>(),
+                "hive.surface" => world.register_component::<Surface>(),
                 "hive.obstacle" => world.register_component::<Obstacle>(),
                 "hive.visual" => world.register_component::<Visual>(),
                 _ => {
@@ -123,6 +137,8 @@ impl Registry {
                 | "hive.container"
                 | "hive.lot"
                 | "hive.destination"
+                | "hive.support"
+                | "hive.surface"
                 | "hive.obstacle"
                 | "hive.visual"
         )
@@ -216,6 +232,12 @@ impl Registry {
                     .entity_mut(entity)
                     .insert(decode::<Destination>(value)?);
             }
+            "hive.support" => {
+                world.entity_mut(entity).insert(decode::<Support>(value)?);
+            }
+            "hive.surface" => {
+                world.entity_mut(entity).insert(decode::<Surface>(value)?);
+            }
             "hive.obstacle" => {
                 world.entity_mut(entity).insert(decode::<Obstacle>(value)?);
             }
@@ -241,6 +263,8 @@ impl Registry {
             "hive.container" => world.get::<Container>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),
+            "hive.support" => world.get::<Support>(entity).map(record),
+            "hive.surface" => world.get::<Surface>(entity).map(record),
             "hive.obstacle" => world.get::<Obstacle>(entity).map(record),
             "hive.visual" => world.get::<Visual>(entity).map(record),
             _ => {

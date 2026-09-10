@@ -39,6 +39,21 @@ pub struct Destination {
     pub y: f64,
     pub z: f64,
     pub facing: f64,
+    pub frame: Option<String>,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Support {
+    pub entity: String,
+}
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Surface {
+    pub min_x: f64,
+    pub max_x: f64,
+    pub min_z: f64,
+    pub max_z: f64,
+    pub height: f64,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -104,12 +119,13 @@ pub struct Write {
     pub component: String,
     pub value: Record,
 }
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    pub frame: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]

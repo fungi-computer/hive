@@ -98,9 +98,146 @@ impl Kernel {
         }
         Ok(world)
     }
+    fn support_id(&self, entity: Entity) -> Option<String> {
+        self.ecs
+            .get::<Support>(entity)
+            .map(|support| support.entity.clone())
+    }
+    fn surface(&self, id: &str) -> Result<Surface> {
+        let entity = self.entity(id)?;
+        self.ecs
+            .get::<Surface>(entity)
+            .copied()
+            .ok_or_else(|| format!("support {id} has no surface"))
+    }
+    fn support_chain(&self, id: &str) -> Result<()> {
+        let mut current = id.to_string();
+        let mut seen = BTreeSet::new();
+        for _ in 0..16 {
+            let entity = self.entity(&current)?;
+            if !seen.insert(current.clone()) {
+                return Err("cyclic support reference".into());
+            }
+            let Some(support) = self.ecs.get::<Support>(entity) else {
+                return Ok(());
+            };
+            if seen.contains(&support.entity) {
+                return Err("cyclic support reference".into());
+            }
+            self.surface(&support.entity)?;
+            current = support.entity.clone();
+        }
+        Err("support chain exceeds depth 16".into())
+    }
+    fn world_pose_entity(&self, entity: Entity, depth: usize) -> Result<Position> {
+        if depth > 16 {
+            return Err("support chain exceeds depth 16".into());
+        }
+        let local = *self.ecs.get::<Position>(entity).ok_or("no position")?;
+        let Some(support_id) = self.support_id(entity) else {
+            return Ok(local);
+        };
+        let support = self.entity(&support_id)?;
+        let parent = self.world_pose_entity(support, depth + 1)?;
+        let radians = parent.facing * std::f64::consts::FRAC_PI_2;
+        let (sin, cos) = radians.sin_cos();
+        Ok(Position {
+            x: parent.x + cos * local.x - sin * local.z,
+            y: parent.y + local.y,
+            z: parent.z + sin * local.x + cos * local.z,
+            facing: parent.facing + local.facing,
+        })
+    }
+    fn world_pose(&self, id: &str) -> Result<Position> {
+        self.world_pose_entity(self.entity(id)?, 0)
+    }
+    fn frame_bounds(&self, frame: Option<&str>) -> Result<Option<navigation::Bounds>> {
+        frame
+            .map(|id| {
+                let surface = self.surface(id)?;
+                Ok(navigation::Bounds {
+                    min_x: surface.min_x,
+                    max_x: surface.max_x,
+                    min_z: surface.min_z,
+                    max_z: surface.max_z,
+                })
+            })
+            .transpose()
+    }
+    fn blocked_for_frame(&self, frame: Option<&str>) -> BTreeSet<navigation::Cell> {
+        self.ids
+            .iter()
+            .filter_map(|(_, entity)| {
+                let obstacle = self.ecs.get::<Obstacle>(*entity)?;
+                if !obstacle.occupied || self.support_id(*entity).as_deref() != frame {
+                    return None;
+                }
+                self.ecs
+                    .get::<Position>(*entity)
+                    .map(|position| navigation::cell(navigation::point(*position)))
+            })
+            .collect()
+    }
+    fn route_for(
+        &self,
+        entity: Entity,
+        start: Position,
+        destination: &Point,
+    ) -> Result<VecDeque<Point>> {
+        let frame = self.support_id(entity);
+        if destination.frame.as_deref() != frame.as_deref() {
+            return Err("destination frame does not match actor support".into());
+        }
+        if let Some(frame_id) = frame.as_deref() {
+            let surface = self.surface(frame_id)?;
+            if (start.y - surface.height).abs() > 1e-9
+                || (destination.y - surface.height).abs() > 1e-9
+            {
+                return Err("position is not on support surface".into());
+            }
+        }
+        navigation::route(
+            navigation::point(start),
+            destination.clone(),
+            &self.blocked_for_frame(frame.as_deref()),
+            self.frame_bounds(frame.as_deref())?,
+        )
+    }
     fn rebuild_physical_indexes(&mut self) -> Result<()> {
+        self.blocked.clear();
+        self.routes.clear();
         for (id, entity) in &self.ids {
             let position = self.ecs.get::<Position>(*entity);
+            if let Some(surface) = self.ecs.get::<Surface>(*entity) {
+                if !surface.min_x.is_finite()
+                    || !surface.max_x.is_finite()
+                    || !surface.min_z.is_finite()
+                    || !surface.max_z.is_finite()
+                    || !surface.height.is_finite()
+                    || surface.min_x > surface.max_x
+                    || surface.min_z > surface.max_z
+                {
+                    return Err("invalid support surface".into());
+                }
+                if position.is_none() {
+                    return Err("surface needs position".into());
+                }
+            }
+            if let Some(support) = self.ecs.get::<Support>(*entity) {
+                self.entity(&support.entity)?;
+                self.surface(&support.entity)?;
+                self.support_chain(id)?;
+                let local = position.ok_or("supported entity needs position")?;
+                let surface = self.surface(&support.entity)?;
+                if (local.y - surface.height).abs() > 1e-9
+                    || local.x < surface.min_x
+                    || local.x > surface.max_x
+                    || local.z < surface.min_z
+                    || local.z > surface.max_z
+                {
+                    return Err("position is outside support surface".into());
+                }
+            }
             if let Some(p) = position {
                 if [p.x, p.y, p.z, p.facing]
                     .iter()
@@ -124,7 +261,9 @@ impl Kernel {
                     return Err("static obstacle cannot also be a movable body".into());
                 }
                 let p = position.ok_or("obstacle needs position")?;
-                self.blocked.insert(navigation::cell(navigation::point(*p)));
+                if self.support_id(*entity).is_none() {
+                    self.blocked.insert(navigation::cell(navigation::point(*p)));
+                }
             }
             if let Some(lot) = self.ecs.get::<Lot>(*entity) {
                 let owner = self.entity(&lot.container)?;
@@ -159,14 +298,15 @@ impl Kernel {
                 }
                 self.routes.insert(
                     *entity,
-                    navigation::route(
-                        navigation::point(p),
-                        Point {
+                    self.route_for(
+                        *entity,
+                        p,
+                        &Point {
                             x: target.x,
                             y: target.y,
                             z: target.z,
+                            frame: target.frame.clone(),
                         },
-                        &self.blocked,
                     )?,
                 );
             }
@@ -289,11 +429,41 @@ impl Kernel {
     }
     pub fn render_json(&self) -> Result<String> {
         let facts=self.ids.iter().filter_map(|(id,e)| {
-            let p=self.ecs.get::<Position>(*e)?;
+            let local=self.ecs.get::<Position>(*e)?;
+            let p=self.world_pose_entity(*e, 0).ok()?;
             let visual=self.ecs.get::<Visual>(*e);
-            Some(json!({"id":id,"pose":{"position":{"x":p.x,"y":p.y,"z":p.z},"facing":p.facing},"visual":visual.map(|v|&v.sprite),"label":visual.map(|v|&v.label)}))
+            Some(json!({
+                "id":id,
+                "pose":{"position":{"x":p.x,"y":p.y,"z":p.z},"facing":p.facing},
+                "local":{"position":{"x":local.x,"y":local.y,"z":local.z},"facing":local.facing},
+                "support":self.support_id(*e),
+                "visual":visual.map(|v|&v.sprite),
+                "label":visual.map(|v|&v.label)
+            }))
         }).collect::<Vec<_>>();
         serde_json::to_string(&facts).map_err(|e| e.to_string())
+    }
+    pub fn world_pose_json(&self, input: &str) -> Result<String> {
+        if input.len() > 16 * 1024 {
+            return Err("world pose query too large".into());
+        }
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|e| e.to_string())?;
+        if ids.is_empty() || ids.len() > 128 {
+            return Err("invalid world pose query size".into());
+        }
+        let mut rows = Vec::with_capacity(ids.len());
+        for id in ids {
+            let entity = self.entity(&id)?;
+            let local = *self.ecs.get::<Position>(entity).ok_or("no position")?;
+            let world = self.world_pose(&id)?;
+            rows.push(json!({
+                "id": id,
+                "local": local,
+                "world": world,
+                "support": self.support_id(entity),
+            }));
+        }
+        serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
     pub fn advance_json(&mut self, input: &str) -> Result<String> {
         if input.len() > 1024 * 1024 {
@@ -378,15 +548,9 @@ impl Kernel {
             .sum()
     }
     fn contact(&self, a: Entity, b: Entity) -> Result<()> {
-        let a = self
-            .ecs
-            .get::<Position>(a)
-            .ok_or("source has no physical position")?;
-        let b = self
-            .ecs
-            .get::<Position>(b)
-            .ok_or("destination has no physical position")?;
-        if navigation::distance(navigation::point(*a), navigation::point(*b)) > 1.5 {
+        let a = self.world_pose_entity(a, 0)?;
+        let b = self.world_pose_entity(b, 0)?;
+        if navigation::distance(navigation::point(a), navigation::point(b)) > 1.5 {
             return Err("out of reach".into());
         }
         Ok(())
@@ -405,12 +569,13 @@ impl Kernel {
                 if !facing.is_finite() || facing.abs() > 1_000_000.0 {
                     return Err("invalid facing".into());
                 }
-                let path = navigation::route(navigation::point(p), destination, &self.blocked)?;
+                let path = self.route_for(e, p, &destination)?;
                 let target = Destination {
                     x: destination.x,
                     y: destination.y,
                     z: destination.z,
                     facing,
+                    frame: destination.frame,
                 };
                 let extra = if self.ecs.get::<Destination>(e).is_some() {
                     0
