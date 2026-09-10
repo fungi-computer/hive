@@ -1,8 +1,15 @@
 import { decode, encode, type Json } from "../../region/codec.ts";
-
-export const ATMOSPHERE_DATA_BYTES = 1024 * 1024;
+import { ATMOSPHERE_LIMITS } from "./limits.ts";
 
 /** Reject executable/accessor inputs and detach repeated plain references. */
 export function copyAtmosphereData(input: unknown): Json {
-  return decode(encode(input, ATMOSPHERE_DATA_BYTES), ATMOSPHERE_DATA_BYTES);
+  return decode(
+    encode(
+      input,
+      ATMOSPHERE_LIMITS.encodedStateBytes,
+      ATMOSPHERE_LIMITS.dataNodes,
+    ),
+    ATMOSPHERE_LIMITS.encodedStateBytes,
+    ATMOSPHERE_LIMITS.dataNodes,
+  );
 }
