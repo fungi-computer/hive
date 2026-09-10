@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { CompiledAtmosphere, CompiledVolume } from "./definition.ts";
+import {
+  ATMOSPHERE_LIMITS,
+  type CompiledAtmosphere,
+  type CompiledVolume,
+} from "./definition.ts";
+import { copyAtmosphereData } from "./data.ts";
 import type {
   AtmosphereFacts,
   AtmosphereParcel,
@@ -15,8 +20,11 @@ const parcelSchema = z.strictObject({
 });
 const stateSchema = z.strictObject({
   version: z.literal("connected-atmosphere-state-v1"),
-  identity: z.string().min(1),
-  parcels: z.array(parcelSchema).min(1),
+  identity: z
+    .string()
+    .min(1)
+    .max(ATMOSPHERE_LIMITS.encodedStateBytes / 2),
+  parcels: z.array(parcelSchema).min(1).max(ATMOSPHERE_LIMITS.volumes),
   initialCarrierKg: finite.positive(),
   initialSmokeKg: finite.nonnegative(),
   initialHeatJ: finite,
@@ -77,10 +85,10 @@ function validatePhysicalParcel(
     model = g.definition.model;
   if (
     !Number.isFinite(temperatureK) ||
+    temperatureK <= 0 ||
     Math.abs(temperatureK - g.definition.ambient.temperatureK) >
       model.maxTemperatureDeltaK ||
     !Number.isFinite(pressureRatio) ||
-    (parcel.carrierKg > 0 && pressureRatio < 1 / model.maxPressureRatio) ||
     pressureRatio > model.maxPressureRatio ||
     (parcel.carrierKg === 0
       ? parcel.smokeKg !== 0 || parcel.heatJ !== 0
@@ -127,7 +135,7 @@ export function validateState(
   g: CompiledAtmosphere,
   input: unknown,
 ): AtmosphereState {
-  const state = stateSchema.parse(input);
+  const state = stateSchema.parse(copyAtmosphereData(input));
   if (
     state.identity !== g.identity ||
     state.parcels.length !== g.volumes.length ||
@@ -151,7 +159,10 @@ export function copyState(state: AtmosphereState): AtmosphereState {
 }
 
 export function initialState(g: CompiledAtmosphere, input: unknown) {
-  const parsed = z.array(parcelSchema).parse(input);
+  const parsed = z
+    .array(parcelSchema)
+    .max(ATMOSPHERE_LIMITS.volumes)
+    .parse(copyAtmosphereData(input));
   if (
     parsed.length !== g.volumes.length ||
     new Set(parsed.map((entry) => entry.volumeId)).size !== parsed.length

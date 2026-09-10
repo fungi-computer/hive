@@ -12,11 +12,15 @@ import type {
   AtmosphereSource,
   AtmosphereState,
 } from "./types.ts";
+import { copyAtmosphereData } from "./data.ts";
 
 const sourceSchema = z.strictObject({
   volumeId: z.string().min(1).max(160),
   smokeKgS: z.number().finite().nonnegative(),
   heatJS: z.number().finite(),
+});
+const optionsSchema = z.strictObject({
+  sources: z.array(sourceSchema).max(ATMOSPHERE_LIMITS.sources).optional(),
 });
 
 type MutableParcel = {
@@ -37,10 +41,7 @@ function mutableState(state: AtmosphereState): MutableState {
   return { ...state, parcels: state.parcels.map((entry) => ({ ...entry })) };
 }
 
-function admittedSources(
-  g: CompiledAtmosphere,
-  input: readonly AtmosphereSource[],
-) {
+function admittedSources(g: CompiledAtmosphere, input: unknown) {
   const parsed = z
     .array(sourceSchema)
     .max(ATMOSPHERE_LIMITS.sources)
@@ -312,7 +313,8 @@ export function advanceAtmosphere(
     (seconds > 0 && seconds < ATMOSPHERE_LIMITS.minIntervalS)
   )
     throw new TypeError("invalid bounded atmosphere interval");
-  const sources = admittedSources(g, options.sources ?? []),
+  const admittedOptions = optionsSchema.parse(copyAtmosphereData(options)),
+    sources = admittedSources(g, admittedOptions.sources ?? []),
     steps =
       seconds === 0 ? 0 : Math.ceil(seconds / g.definition.model.maxStepS);
   if (steps > ATMOSPHERE_LIMITS.steps)

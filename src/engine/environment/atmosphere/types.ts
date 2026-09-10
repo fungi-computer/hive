@@ -30,6 +30,7 @@ export type AtmosphereModel = {
   readonly pressureVelocityMPSPa: number;
   readonly maxStepS: number;
   readonly maxExchangeFraction: number;
+  /** Upper pressure admission envelope; vacuum and finite underpressure are valid. */
   readonly maxPressureRatio: number;
   readonly maxTemperatureDeltaK: number;
   readonly maxSmokeMassFraction: number;

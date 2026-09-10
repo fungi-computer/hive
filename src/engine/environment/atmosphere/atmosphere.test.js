@@ -30,7 +30,7 @@ const cellByVolume = {
   cut: "cell:0,0,0",
   receiver: "cell:1,0,0",
 };
-const opening = (id, from, to, elevationM = 1) => ({
+const opening = (id, from, to, elevationM = 1, permeability = 1) => ({
   id,
   from,
   fromCellId: cellByVolume[from],
@@ -39,7 +39,7 @@ const opening = (id, from, to, elevationM = 1) => ({
   areaM2: 1,
   distanceM: 1,
   elevationM,
-  permeability: 1,
+  permeability,
 });
 function definition({ volumes, openings = [], revision = 0, override = {} }) {
   return {
@@ -82,6 +82,64 @@ test("state is detached, exact-definition-bound and has no physical clock", () =
   assert.throws(
     () => owner.decode(JSON.stringify({ ...state, ignored: true })),
     /unrecognized|Unrecognized|invalid/i,
+  );
+});
+
+test("unknown records are copied without invoking accessors", () => {
+  let definitionReads = 0,
+    stateReads = 0,
+    optionReads = 0;
+  const malformedDefinition = { ...definition({ volumes: [] }) };
+  Object.defineProperty(malformedDefinition, "volumes", {
+    enumerable: true,
+    get() {
+      definitionReads++;
+      return [];
+    },
+  });
+  assert.throws(() => createAtmosphere(malformedDefinition), /record|data/i);
+  const owner = createAtmosphere(
+      definition({ volumes: [volume("room", [member("cell:0,0,0")])] }),
+    ),
+    state = initial(owner),
+    malformedState = { ...state },
+    options = {};
+  Object.defineProperty(malformedState, "parcels", {
+    enumerable: true,
+    get() {
+      stateReads++;
+      return state.parcels;
+    },
+  });
+  Object.defineProperty(options, "sources", {
+    enumerable: true,
+    get() {
+      optionReads++;
+      return [];
+    },
+  });
+  assert.throws(() => owner.read(malformedState), /record|data/i);
+  assert.throws(() => owner.advance(state, 1, options), /record|data/i);
+  assert.deepEqual([definitionReads, stateReads, optionReads], [0, 0, 0]);
+});
+
+test("nonpositive absolute temperature is outside the physical envelope", () => {
+  const owner = createAtmosphere(
+      definition({ volumes: [volume("room", [member("cell:0,0,0")])] }),
+    ),
+    state = initial(owner),
+    heatJ =
+      -state.parcels[0].carrierKg *
+      model.heatCapacityJKgK *
+      (ambient.temperatureK + 1);
+  assert.throws(
+    () =>
+      owner.read({
+        ...state,
+        parcels: [{ ...state.parcels[0], heatJ }],
+        initialHeatJ: heatJ,
+      }),
+    /envelope/,
   );
 });
 
@@ -210,6 +268,27 @@ test("shrink displaces stock only through a face on the changed cell", () => {
   assert.equal(result.status, "applied");
   assert.equal(result.state.parcels[0].smokeKg, 0.0005);
   assert.equal(result.receipt.smokeBoundaryKg, 0.0005);
+
+  const sealedOwner = createAtmosphere(
+      definition({
+        volumes: [volume("room", [member("cell:0,0,0")])],
+        openings: [opening("closed", "room", null, 1, 0)],
+      }),
+    ),
+    sealedState = initial(sealedOwner, {
+      room: { smokeKg: 0.001, heatJ: 20 },
+    }),
+    sealedResult = sealedOwner.rebind(
+      sealedState,
+      definition({
+        revision: 1,
+        volumes: [volume("room", [member("cell:0,0,0", 0.8)])],
+        openings: [opening("closed", "room", null, 1, 0)],
+      }),
+    );
+  assert.equal(sealedResult.status, "applied");
+  assert.equal(sealedResult.state.parcels[0].smokeKg, 0.001);
+  assert.equal(sealedResult.receipt.smokeBoundaryKg, 0);
 });
 
 test("last-volume displacement needs an old physical route", () => {
@@ -244,7 +323,7 @@ test("last-volume displacement needs an old physical route", () => {
   });
 });
 
-test("new space starts empty and is filled only by elapsed face exchange", () => {
+test("new space starts empty and fills gradually through elapsed face exchange", () => {
   const owner = createAtmosphere(
       definition({ volumes: [volume("a", [member("cell:0,0,0")])] }),
     ),
@@ -267,10 +346,23 @@ test("new space starts empty and is filled only by elapsed face exchange", () =>
     result.state.parcels.find((entry) => entry.volumeId === "b").carrierKg,
     0,
   );
-  const after = createAtmosphere(connected).advance(result.state, 1).state;
-  assert.ok(
-    after.parcels.find((entry) => entry.volumeId === "b").carrierKg > 0,
+  const connectedOwner = createAtmosphere(connected),
+    admitted = [
+      result.state.parcels.find((entry) => entry.volumeId === "b").carrierKg,
+    ];
+  let after = result.state;
+  for (let count = 0; count < 4; count++) {
+    after = connectedOwner.advance(after, 0.25).state;
+    admitted.push(
+      after.parcels.find((entry) => entry.volumeId === "b").carrierKg,
+    );
+  }
+  assert(
+    admitted.every(
+      (amount, index) => index === 0 || amount > admitted[index - 1],
+    ),
   );
+  assert.equal(connectedOwner.read(after).balance.carrierKg, 0);
 
   const isolated = definition({
     revision: 1,

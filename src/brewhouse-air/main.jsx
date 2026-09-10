@@ -4,7 +4,7 @@ import { Badge } from "@fungi.computer/caps/components/badge";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Card, CardContent } from "@fungi.computer/caps/components/card";
 import "@fungi.computer/caps/styles.css";
-import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel.ts";
+import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel-definition.ts";
 import { AIR_VISUAL_SCALE, createBrewhouseAirView } from "./view.js";
 import "./style.css";
 

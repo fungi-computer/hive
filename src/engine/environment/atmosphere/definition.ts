@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { changeQuantity } from "../arithmetic.mjs";
+import { ATMOSPHERE_DATA_BYTES, copyAtmosphereData } from "./data.ts";
 import type { AtmosphereDefinition } from "./types.ts";
 
 export const ATMOSPHERE_LIMITS = Object.freeze({
@@ -7,7 +8,7 @@ export const ATMOSPHERE_LIMITS = Object.freeze({
   members: 8192,
   openings: 8192,
   sources: 32,
-  encodedStateBytes: 1024 * 1024,
+  encodedStateBytes: ATMOSPHERE_DATA_BYTES,
   intervalS: 6,
   minIntervalS: 1e-6,
   steps: 128,
@@ -108,7 +109,7 @@ function aggregateVolume(
 }
 
 export function compileAtmosphere(input: unknown): CompiledAtmosphere {
-  const parsed = schema.parse(input);
+  const parsed = schema.parse(copyAtmosphereData(input));
   unique(
     parsed.volumes.map((entry) => entry.id),
     "volume ids",
@@ -178,6 +179,32 @@ export function compileAtmosphere(input: unknown): CompiledAtmosphere {
     ATMOSPHERE_LIMITS.encodedStateBytes / 2
   )
     throw new Error("atmosphere definition identity exceeds its byte budget");
+  // A finite JavaScript number serializes in fewer than 32 ASCII bytes. The
+  // longer string placeholders make this a conservative complete-wire bound.
+  const widest = "0".repeat(32),
+    canonicalStateEnvelope = JSON.stringify({
+      version: "connected-atmosphere-state-v1",
+      identity,
+      parcels: volumes.map((entry) => ({
+        volumeId: entry.id,
+        carrierKg: widest,
+        smokeKg: widest,
+        heatJ: -widest,
+      })),
+      initialCarrierKg: widest,
+      initialSmokeKg: widest,
+      initialHeatJ: -widest,
+      smokeSourceKg: widest,
+      heatSourceJ: -widest,
+      carrierBoundaryKg: -widest,
+      smokeBoundaryKg: -widest,
+      heatBoundaryJ: -widest,
+    });
+  if (
+    new TextEncoder().encode(canonicalStateEnvelope).byteLength >
+    ATMOSPHERE_LIMITS.encodedStateBytes
+  )
+    throw new Error("atmosphere canonical state exceeds its byte budget");
   const ambientDensityKgM3 =
     definition.ambient.pressurePa /
     (definition.model.specificGasConstantJKgK *

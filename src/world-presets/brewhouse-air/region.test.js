@@ -5,7 +5,7 @@ import { openRegion } from "../../engine/region/index.ts";
 import { createAir } from "../../engine/environment/air/index.js";
 import { sqliteTestOwner } from "../../engine/region/sqlite-test-owner.mjs";
 import { createBrewhouseAirProgram, roomResult } from "./region.ts";
-import { ROOM_FUEL } from "./fuel.ts";
+import { ROOM_FUEL } from "./fuel-definition.ts";
 import { ROOM_MIN_FIELD_INTERVAL_S } from "./room.ts";
 import { generatedBrewhouseRoom } from "./generated-room.ts";
 import {

@@ -6,19 +6,12 @@ import { MATERIAL_DEFINITIONS } from "../../item-containers.ts";
 import { siteMaterialEndpoint } from "../../construction.js";
 import type { Material, PositiveInt } from "../../model.ts";
 import { BREWHOUSE_ROOM } from "./room.ts";
+import { ROOM_FUEL } from "./fuel-definition.ts";
 
 /** Goblin content, not a combustion/oxygen model. These are the declared warm
  * room-directed yields of one prepared wood dose, not wood's chemical energy.
  * The material owner supplies the ordinary transformation and finite custody.
  */
-export const ROOM_FUEL = Object.freeze({
-  definition: "warm-room-wood-dose-v1",
-  operation: "room-hearth-dose",
-  initialLot: "room-firewood:1",
-  durationS: 6,
-  heatJ: 1800,
-  smokeKg: 0.0002,
-});
 export const roomMaterials = createMaterialOwner(MATERIAL_DEFINITIONS);
 const station = BREWHOUSE_ROOM.sites.find(
   (site) => site.type === "brew-station",

@@ -115,6 +115,7 @@ function directDisplacementRoute(
         .map((member) => member.cellId),
     );
   for (const opening of old.openings) {
+    if (opening.permeability === 0) continue;
     const fromLost = contracted.has(opening.fromCellId),
       toLost = opening.toCellId !== null && contracted.has(opening.toCellId);
     if (!fromLost && !toLost) continue;

@@ -18,6 +18,13 @@ source and signed boundary ledgers. The model is a game-scale well-mixed volume
 approximation. It does not resolve velocity, flames, chemistry, oxygen,
 radiation, acoustics or CFD pressure.
 
+Definitions, initial parcels, saves and advance options cross the shared bounded
+plain-data codec before their strict schemas. Vacuum and finite underpressure are
+valid transient states, allowing newly opened void to fill gradually. The upper
+pressure envelope and strictly positive absolute-temperature envelope remain
+atomic admission limits. Definition admission also budgets the complete
+canonical save envelope, including escaped identity and repeated parcel IDs.
+
 `rebind` is the serial physical-edit preflight. Stock follows stable member-cell
 overlap. Shrink retains and compresses that stock. Removing the final positive
 volume forces its parcel through the old physical opening graph to a surviving
