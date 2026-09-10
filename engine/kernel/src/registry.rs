@@ -80,6 +80,44 @@ impl Registry {
             ),
             ("hive.obstacle", vec![("occupied", FieldType::Boolean)]),
             (
+                "hive.collider",
+                vec![
+                    ("shape", FieldType::String),
+                    ("radius", FieldType::Number),
+                    ("halfX", FieldType::Number),
+                    ("halfY", FieldType::Number),
+                    ("halfZ", FieldType::Number),
+                    ("yaw", FieldType::Number),
+                ],
+            ),
+            (
+                "hive.launcher",
+                vec![
+                    ("ammoKind", FieldType::String),
+                    ("muzzleX", FieldType::Number),
+                    ("muzzleY", FieldType::Number),
+                    ("muzzleZ", FieldType::Number),
+                    ("maxSpeed", FieldType::Number),
+                    ("projectileRadius", FieldType::Number),
+                    ("maxRange", FieldType::Number),
+                    ("maxLifetime", FieldType::Number),
+                ],
+            ),
+            (
+                "hive.projectile",
+                vec![
+                    ("launcher", FieldType::Entity),
+                    ("velocityX", FieldType::Number),
+                    ("velocityY", FieldType::Number),
+                    ("velocityZ", FieldType::Number),
+                    ("radius", FieldType::Number),
+                    ("age", FieldType::Number),
+                    ("distance", FieldType::Number),
+                    ("maxRange", FieldType::Number),
+                    ("maxLifetime", FieldType::Number),
+                ],
+            ),
+            (
                 "hive.visual",
                 vec![("sprite", FieldType::String), ("label", FieldType::String)],
             ),
@@ -107,6 +145,9 @@ impl Registry {
                 "hive.support" => world.register_component::<Support>(),
                 "hive.surface" => world.register_component::<Surface>(),
                 "hive.obstacle" => world.register_component::<Obstacle>(),
+                "hive.collider" => world.register_component::<Collider>(),
+                "hive.launcher" => world.register_component::<Launcher>(),
+                "hive.projectile" => world.register_component::<Projectile>(),
                 "hive.visual" => world.register_component::<Visual>(),
                 _ => {
                     // All dynamic insertions use AuthoredRecord, a Send+Sync
@@ -140,6 +181,9 @@ impl Registry {
                 | "hive.support"
                 | "hive.surface"
                 | "hive.obstacle"
+                | "hive.collider"
+                | "hive.launcher"
+                | "hive.projectile"
                 | "hive.visual"
         )
     }
@@ -203,6 +247,72 @@ impl Registry {
                     return Err("invalid lot".into());
                 }
             }
+            "hive.collider" => {
+                let collider: Collider = decode(value)?;
+                if !collider.radius.is_finite()
+                    || !collider.half_x.is_finite()
+                    || !collider.half_y.is_finite()
+                    || !collider.half_z.is_finite()
+                    || !collider.yaw.is_finite()
+                    || collider.radius < 0.0
+                    || collider.half_x < 0.0
+                    || collider.half_y < 0.0
+                    || collider.half_z < 0.0
+                {
+                    return Err("invalid collider".into());
+                }
+                match collider.shape {
+                    ColliderShape::Ball if collider.radius <= 0.0 => {
+                        return Err("ball collider requires radius".into())
+                    }
+                    ColliderShape::Cuboid
+                        if collider.half_x <= 0.0
+                            || collider.half_y <= 0.0
+                            || collider.half_z <= 0.0 =>
+                    {
+                        return Err("cuboid collider requires half extents".into())
+                    }
+                    _ => {}
+                }
+            }
+            "hive.launcher" => {
+                let launcher: Launcher = decode(value)?;
+                if !valid_id(&launcher.ammo_kind)
+                    || !launcher.muzzle_x.is_finite()
+                    || !launcher.muzzle_y.is_finite()
+                    || !launcher.muzzle_z.is_finite()
+                    || !launcher.max_speed.is_finite()
+                    || !launcher.projectile_radius.is_finite()
+                    || !launcher.max_range.is_finite()
+                    || !launcher.max_lifetime.is_finite()
+                    || launcher.max_speed <= 0.0
+                    || launcher.projectile_radius <= 0.0
+                    || launcher.max_range <= 0.0
+                    || launcher.max_lifetime <= 0.0
+                {
+                    return Err("invalid launcher".into());
+                }
+            }
+            "hive.projectile" => {
+                let projectile: Projectile = decode(value)?;
+                if !valid_id(&projectile.launcher)
+                    || !projectile.velocity_x.is_finite()
+                    || !projectile.velocity_y.is_finite()
+                    || !projectile.velocity_z.is_finite()
+                    || !projectile.radius.is_finite()
+                    || !projectile.age.is_finite()
+                    || !projectile.distance.is_finite()
+                    || !projectile.max_range.is_finite()
+                    || !projectile.max_lifetime.is_finite()
+                    || projectile.radius <= 0.0
+                    || projectile.age < 0.0
+                    || projectile.distance < 0.0
+                    || projectile.max_range <= 0.0
+                    || projectile.max_lifetime <= 0.0
+                {
+                    return Err("invalid projectile".into());
+                }
+            }
             _ => {}
         }
         Ok(())
@@ -241,6 +351,15 @@ impl Registry {
             "hive.obstacle" => {
                 world.entity_mut(entity).insert(decode::<Obstacle>(value)?);
             }
+            "hive.collider" => {
+                world.entity_mut(entity).insert(decode::<Collider>(value)?);
+            }
+            "hive.launcher" => {
+                world.entity_mut(entity).insert(decode::<Launcher>(value)?);
+            }
+            "hive.projectile" => {
+                world.entity_mut(entity).insert(decode::<Projectile>(value)?);
+            }
             "hive.visual" => {
                 world.entity_mut(entity).insert(decode::<Visual>(value)?);
             }
@@ -266,6 +385,9 @@ impl Registry {
             "hive.support" => world.get::<Support>(entity).map(record),
             "hive.surface" => world.get::<Surface>(entity).map(record),
             "hive.obstacle" => world.get::<Obstacle>(entity).map(record),
+            "hive.collider" => world.get::<Collider>(entity).map(record),
+            "hive.launcher" => world.get::<Launcher>(entity).map(record),
+            "hive.projectile" => world.get::<Projectile>(entity).map(record),
             "hive.visual" => world.get::<Visual>(entity).map(record),
             _ => {
                 let id = *self.ids.get(name)?;

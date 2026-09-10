@@ -1,10 +1,24 @@
-use crate::{components::*, navigation, registry::Registry};
+use crate::{collision, combat, components::*, navigation, registry::Registry};
 use bevy_ecs::{
     prelude::{Entity, World},
     query::{QueryBuilder, QueryState},
 };
+use serde::Serialize;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ImpactEvent {
+    id: String,
+    projectile_id: String,
+    source_id: String,
+    target_id: String,
+    time: f64,
+    point: Vector3,
+    normal: Vector3,
+    velocity: Vector3,
+}
 
 pub struct Kernel {
     ecs: World,
@@ -19,6 +33,8 @@ pub struct Kernel {
     revision: u64,
     time: f64,
     next_lot: u64,
+    next_projectile: u64,
+    next_impact: u64,
     state_weight: usize,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
@@ -40,6 +56,8 @@ impl Kernel {
             revision: 0,
             time: 0.0,
             next_lot: 1,
+            next_projectile: 1,
+            next_impact: 1,
             state_weight: 0,
         }
     }
@@ -105,6 +123,21 @@ impl Kernel {
         self.ecs
             .get::<Support>(entity)
             .map(|support| support.entity.clone())
+    }
+    fn refresh_state_weight(&mut self) {
+        let mut weight = 1024
+            + serde_json::to_vec(&self.registry.schemas.values().collect::<Vec<_>>())
+                .expect("physical schemas")
+                .len();
+        for (id, entity) in &self.ids {
+            weight += id.len() + 128;
+            for name in self.registry.schemas.keys() {
+                if let Some(value) = self.registry.read(&self.ecs, *entity, name) {
+                    weight += self.registry.weight(name, &value);
+                }
+            }
+        }
+        self.state_weight = weight;
     }
     fn surface(&self, id: &str) -> Result<Surface> {
         let entity = self.entity(id)?;
@@ -462,10 +495,12 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 2,
+            version: 3,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
+            next_projectile: self.next_projectile,
+            next_impact: self.next_impact,
             scene: Scene {
                 format: "hive-game".into(),
                 version: 1,
@@ -483,10 +518,12 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 2
+            || state.version != 3
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
+            || state.next_projectile == 0
+            || state.next_impact == 0
             || state.revision > 9_007_199_254_740_991
         {
             return Err("invalid current snapshot".into());
@@ -502,6 +539,8 @@ impl Kernel {
         candidate.revision = state.revision;
         candidate.time = state.time;
         candidate.next_lot = state.next_lot;
+        candidate.next_projectile = state.next_projectile;
+        candidate.next_impact = state.next_impact;
         *self = candidate;
         Ok(())
     }
@@ -549,6 +588,26 @@ impl Kernel {
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
     pub fn advance_json(&mut self, input: &str) -> Result<String> {
+        let needs_staging = serde_json::from_str::<Batch>(input)
+            .map(|batch| {
+                !self.projectile_ids().is_empty()
+                    || batch.actions.iter().any(|action| {
+                        matches!(action, Action::Launch { .. } | Action::Displace { .. })
+                    })
+            })
+            .unwrap_or(false);
+        if needs_staging {
+            let before = self.snapshot_json()?;
+            let result = self.advance_json_inner(input);
+            if result.is_err() {
+                self.restore_json(&before)?;
+            }
+            return result;
+        }
+        self.advance_json_inner(input)
+    }
+
+    fn advance_json_inner(&mut self, input: &str) -> Result<String> {
         if input.len() > 1024 * 1024 {
             return Err("batch too large".into());
         }
@@ -606,14 +665,16 @@ impl Kernel {
                 let result = self.apply_action(action);
                 ActionResult {
                     accepted: result.is_ok(),
+                    projectile_id: result.as_ref().ok().and_then(|id| id.clone()),
                     reason: result.err(),
                     revision: self.revision,
                 }
             })
             .collect::<Vec<_>>();
         self.advance_movement(batch.delta);
+        let impacts = self.advance_projectiles(batch.delta)?;
         self.time += batch.delta;
-        serde_json::to_string(&json!({"revision":self.revision,"results":results}))
+        serde_json::to_string(&json!({"revision":self.revision,"results":results,"impacts":impacts}))
             .map_err(|e| e.to_string())
     }
     fn entity(&self, id: &str) -> Result<Entity> {
@@ -638,7 +699,7 @@ impl Kernel {
         }
         Ok(())
     }
-    fn apply_action(&mut self, action: Action) -> Result<()> {
+    fn apply_action(&mut self, action: Action) -> Result<Option<String>> {
         match action {
             Action::Move {
                 entity,
@@ -671,14 +732,16 @@ impl Kernel {
                 self.ecs.entity_mut(e).insert(target);
                 self.state_weight += extra;
                 self.routes.insert(e, path);
-                Ok(())
+                Ok(None)
             }
             Action::Transfer {
                 lot,
                 from,
                 to,
                 quantity,
-            } => self.transfer(&lot, &from, &to, quantity),
+            } => self
+                .transfer(&lot, &from, &to, quantity)
+                .map(|()| None),
             Action::Consume {
                 entity,
                 lot,
@@ -696,9 +759,261 @@ impl Kernel {
                 }
                 stock.quantity -= quantity;
                 self.ecs.entity_mut(e).insert(stock);
-                Ok(())
+                Ok(None)
+            }
+            Action::Launch {
+                launcher,
+                ammunition,
+                velocity,
+            } => self.launch(&launcher, &ammunition, velocity),
+            Action::Displace { entity, delta } => {
+                self.displace(&entity, delta)?;
+                Ok(None)
             }
         }
+    }
+    fn projectile_ids(&self) -> Vec<String> {
+        self.ids
+            .iter()
+            .filter(|(_, entity)| self.ecs.get::<Projectile>(**entity).is_some())
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+    fn launch(&mut self, launcher_id: &str, ammunition: &str, velocity: Vector3) -> Result<Option<String>> {
+        let launcher_entity = self.entity(launcher_id)?;
+        let launcher = self
+            .ecs
+            .get::<Launcher>(launcher_entity)
+            .cloned()
+            .ok_or("entity is not a launcher")?;
+        let launcher_position = self.world_pose(launcher_id)?;
+        let lot_entity = self.entity(ammunition)?;
+        let mut lot = self
+            .ecs
+            .get::<Lot>(lot_entity)
+            .cloned()
+            .ok_or("ammunition is not a lot")?;
+        if lot.container != launcher_id || lot.kind != launcher.ammo_kind || lot.quantity == 0 {
+            return Err("ammunition is not held by launcher".into());
+        }
+        if [velocity.x, velocity.y, velocity.z]
+            .iter()
+            .any(|value| !value.is_finite())
+        {
+            return Err("invalid launch velocity".into());
+        }
+        let speed = (velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z).sqrt();
+        if !speed.is_finite() || speed <= 0.0 || speed > launcher.max_speed {
+            return Err("launch velocity exceeds launcher limit".into());
+        }
+        if self.projectile_ids().len() >= combat::MAX_ACTIVE_PROJECTILES || self.ids.len() >= 16384 {
+            return Err("projectile capacity exhausted".into());
+        }
+        let radians = launcher_position.facing * std::f64::consts::FRAC_PI_2;
+        let (sin, cos) = radians.sin_cos();
+        let muzzle_x = cos * launcher.muzzle_x - sin * launcher.muzzle_z;
+        let muzzle_z = sin * launcher.muzzle_x + cos * launcher.muzzle_z;
+        let support_velocity = self.world_linear_velocity(launcher_entity, 0)?;
+        let projectile_id = format!("shot.{}", self.next_projectile);
+        self.next_projectile = self.next_projectile.checked_add(1).ok_or("projectile ID exhausted")?;
+        lot.quantity -= 1;
+        self.ecs.entity_mut(lot_entity).insert(lot);
+        let projectile_entity = self.ecs.spawn((
+            ExternalId(projectile_id.clone()),
+            Position {
+                x: launcher_position.x + muzzle_x,
+                y: launcher_position.y + launcher.muzzle_y,
+                z: launcher_position.z + muzzle_z,
+                facing: launcher_position.facing,
+            },
+            Projectile {
+                launcher: launcher_id.into(),
+                velocity_x: velocity.x + support_velocity[0],
+                velocity_y: velocity.y + support_velocity[1],
+                velocity_z: velocity.z + support_velocity[2],
+                radius: launcher.projectile_radius,
+                age: 0.0,
+                distance: 0.0,
+                max_range: launcher.max_range,
+                max_lifetime: launcher.max_lifetime,
+            },
+        )).id();
+        self.ids.insert(projectile_id.clone(), projectile_entity);
+        self.known.insert(projectile_id.clone());
+        self.refresh_state_weight();
+        if self.state_weight > STATE_BYTES {
+            return Err("region canonical state capacity".into());
+        }
+        Ok(Some(projectile_id))
+    }
+    fn displace(&mut self, id: &str, delta: Vector3) -> Result<()> {
+        if [delta.x, delta.y, delta.z]
+            .iter()
+            .any(|value| !value.is_finite())
+            || (delta.x * delta.x + delta.y * delta.y + delta.z * delta.z).sqrt() > 2.0
+        {
+            return Err("invalid displacement".into());
+        }
+        let entity = self.entity(id)?;
+        let current = *self.ecs.get::<Position>(entity).ok_or("no position")?;
+        let target = Point {
+            x: current.x + delta.x,
+            y: current.y + delta.y,
+            z: current.z + delta.z,
+            frame: self.support_id(entity),
+        };
+        if let Some(bounds) = self.frame_bounds(target.frame.as_deref())? {
+            if target.x < bounds.min_x
+                || target.x > bounds.max_x
+                || target.z < bounds.min_z
+                || target.z > bounds.max_z
+            {
+                return Err("displacement leaves support surface".into());
+            }
+        }
+        if navigation::cell(target.clone()) != navigation::cell(navigation::point(current)) {
+            return Err("displacement crosses a navigation cell".into());
+        }
+        if self.blocked_by_frame
+            .get(&self.support_id(entity))
+            .is_some_and(|blocked| blocked.contains(&navigation::cell(target.clone())))
+        {
+            return Err("displacement enters an obstacle".into());
+        }
+        self.ecs.entity_mut(entity).insert(Position {
+            x: target.x,
+            y: target.y,
+            z: target.z,
+            facing: current.facing,
+        });
+        Ok(())
+    }
+    fn world_linear_velocity(&self, entity: Entity, depth: usize) -> Result<[f64; 3]> {
+        if depth > 16 {
+            return Err("support chain exceeds depth 16".into());
+        }
+        let local = *self.ecs.get::<Position>(entity).ok_or("no position")?;
+        let mut velocity = [0.0; 3];
+        if let Some(path) = self.routes.get(&entity) {
+            if let Some(next) = path.front() {
+                let speed = self.ecs.get::<Body>(entity).map_or(0.0, |body| body.speed);
+                let dx = next.x - local.x;
+                let dz = next.z - local.z;
+                let length = (dx * dx + dz * dz).sqrt();
+                if length > 1e-9 {
+                    velocity[0] = dx / length * speed;
+                    velocity[2] = dz / length * speed;
+                }
+            }
+        }
+        if let Some(support) = self.ecs.get::<Support>(entity) {
+            let parent = self.entity(&support.entity)?;
+            let parent_position = *self.ecs.get::<Position>(parent).ok_or("no support position")?;
+            let parent_velocity = self.world_linear_velocity(parent, depth + 1)?;
+            let radians = parent_position.facing * std::f64::consts::FRAC_PI_2;
+            let (sin, cos) = radians.sin_cos();
+            let rotated = [cos * velocity[0] - sin * velocity[2], velocity[1], sin * velocity[0] + cos * velocity[2]];
+            velocity = [rotated[0] + parent_velocity[0], rotated[1] + parent_velocity[1], rotated[2] + parent_velocity[2]];
+        }
+        Ok(velocity)
+    }
+    fn advance_projectiles(&mut self, delta: f64) -> Result<Vec<ImpactEvent>> {
+        let mut impacts = Vec::new();
+        for projectile_id in self.projectile_ids() {
+            let entity = self.entity(&projectile_id)?;
+            let projectile = self.ecs.get::<Projectile>(entity).cloned().ok_or("missing projectile")?;
+            let position = *self.ecs.get::<Position>(entity).ok_or("projectile has no position")?;
+            let speed = (projectile.velocity_x * projectile.velocity_x
+                + projectile.velocity_y * projectile.velocity_y
+                + projectile.velocity_z * projectile.velocity_z)
+                .sqrt();
+            let sweep_delta = combat::sweep_interval(
+                delta,
+                projectile.age,
+                projectile.distance,
+                speed,
+                projectile.max_lifetime,
+                projectile.max_range,
+            )
+            .map_err(|error| error.to_string())?;
+            if sweep_delta <= 0.0 {
+                self.ecs.despawn(entity);
+                self.ids.remove(&projectile_id);
+                self.known.remove(&projectile_id);
+                continue;
+            }
+            let mut candidates = Vec::new();
+            for (target_id, target_entity) in &self.ids {
+                if target_id == &projectile_id || target_id == &projectile.launcher {
+                    continue;
+                }
+                let Some(collider) = self.ecs.get::<Collider>(*target_entity) else { continue };
+                let target_position = self.world_pose_entity(*target_entity, 0)?;
+                let target_velocity = self.world_linear_velocity(*target_entity, 0)?;
+                candidates.push(collision::Collider {
+                    id: target_id.clone(),
+                    shape: match collider.shape {
+                        ColliderShape::Ball => collision::ColliderShape::Ball { radius: collider.radius },
+                        ColliderShape::Cuboid => collision::ColliderShape::Cuboid { half_extents: [collider.half_x, collider.half_y, collider.half_z] },
+                    },
+                    origin: [target_position.x, target_position.y, target_position.z],
+                    linear_velocity: target_velocity,
+                    yaw: target_position.facing * std::f64::consts::FRAC_PI_2 + collider.yaw,
+                });
+            }
+            candidates.sort_by(|a, b| a.id.cmp(&b.id));
+            let hit = collision::sweep_projectile(
+                &collision::Projectile {
+                    id: projectile_id.clone(),
+                    radius: projectile.radius,
+                    origin: [position.x, position.y, position.z],
+                    linear_velocity: [projectile.velocity_x, projectile.velocity_y, projectile.velocity_z],
+                },
+                &candidates,
+                sweep_delta,
+            )
+            .map_err(|error| error.to_string())?;
+            if let Some(hit) = hit {
+                if impacts.len() >= combat::MAX_IMPACTS_PER_STEP {
+                    return Err("impact event budget exceeded".into());
+                }
+                let impact_id = format!("{}/impact.{}", projectile_id, self.next_impact);
+                self.next_impact = self.next_impact.checked_add(1).ok_or("impact ID exhausted")?;
+                impacts.push(ImpactEvent {
+                    id: impact_id,
+                    projectile_id: projectile_id.clone(),
+                    source_id: projectile.launcher.clone(),
+                    target_id: hit.target_id,
+                    time: self.time + hit.time,
+                    point: Vector3 { x: hit.point[0], y: hit.point[1], z: hit.point[2] },
+                    normal: Vector3 { x: hit.normal[0], y: hit.normal[1], z: hit.normal[2] },
+                    velocity: Vector3 { x: projectile.velocity_x, y: projectile.velocity_y, z: projectile.velocity_z },
+                });
+                self.ecs.despawn(entity);
+                self.ids.remove(&projectile_id);
+                self.known.remove(&projectile_id);
+            } else if sweep_delta < delta || sweep_delta <= 0.0 {
+                self.ecs.despawn(entity);
+                self.ids.remove(&projectile_id);
+                self.known.remove(&projectile_id);
+            } else {
+                let distance = projectile.distance + speed * delta;
+                self.ecs.entity_mut(entity).insert((
+                    Position {
+                        x: position.x + projectile.velocity_x * delta,
+                        y: position.y + projectile.velocity_y * delta,
+                        z: position.z + projectile.velocity_z * delta,
+                        facing: position.facing,
+                    },
+                    Projectile { age: projectile.age + delta, distance, ..projectile },
+                ));
+            }
+        }
+        self.refresh_state_weight();
+        if self.state_weight > STATE_BYTES {
+            return Err("region canonical state capacity".into());
+        }
+        Ok(impacts)
     }
     fn transfer(&mut self, lot: &str, from: &str, to: &str, quantity: u32) -> Result<()> {
         if quantity == 0 || from == to {
