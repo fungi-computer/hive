@@ -1,3 +1,4 @@
+import { sliceCamera } from "./art/slice-camera.js";
 import { terrainCell } from "./terrain.ts";
 // Original Three geometry -> fixed low-resolution canvas textures -> Pixi.
 // Reference pictures never enter this pipeline.
@@ -130,7 +131,7 @@ function bakeTerrainPatch(renderer, terrain, previous, changedCells, faces) {
 
 /** One bounded projected viewport for terrain slices and their water overlay.
  * Signed offsets remain in the original camera frame, never clamped to the board. */
-function sliceViewport(renderer, vertices) {
+function sliceViewport(renderer, vertices, depthVertices = vertices) {
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
@@ -160,7 +161,7 @@ function sliceViewport(renderer, vertices) {
     )
   )
     throw new Error("Projected slice exceeds the renderer texture limit.");
-  const camera = worldCamera.clone();
+  const camera = sliceCamera(worldCamera, depthVertices);
   camera.setViewOffset(WIDTH, HEIGHT, x, y, width, height);
   return { x, y, width, height, camera };
 }
@@ -189,7 +190,7 @@ function createWaterBake(renderer) {
     masks.length = 0;
     maskFaces = null;
   }
-  function draw(water, faces) {
+  function draw(water, faces, occluders = []) {
     if (disposed) throw new Error("Water baker is disposed");
     if (!water.length) return { texture: Texture.EMPTY, x: 0, y: 0 };
     if (faces !== maskFaces) {
@@ -232,20 +233,48 @@ function createWaterBake(renderer) {
         })),
       ),
     );
-    const viewport = sliceViewport(renderer, vertices);
-    return {
-      texture: bake(
-        renderer,
-        result,
-        viewport.camera,
-        viewport.width,
-        viewport.height,
-        false,
-        false,
-      ),
-      x: viewport.x,
-      y: viewport.y,
-    };
+    const viewport = sliceViewport(renderer, vertices, [
+      ...vertices,
+      ...faces.flatMap((face) => face.vertices),
+    ]);
+    const texture = bake(
+      renderer,
+      result,
+      viewport.camera,
+      viewport.width,
+      viewport.height,
+      false,
+      false,
+    );
+    if (occluders.length) {
+      // Reuse original registered alpha spans; no new image readback or art geometry.
+      const canvas = texture.source.resource;
+      const context = canvas.getContext("2d");
+      context.globalCompositeOperation = "destination-out";
+      for (const { silhouette, x, y, alpha } of occluders) {
+        context.globalAlpha = alpha;
+        for (let row = 0; row < silhouette.height; row++) {
+          for (
+            let i = silhouette.rows[row] * 2;
+            i < silhouette.rows[row + 1] * 2;
+            i += 2
+          ) {
+            const start = silhouette.spans[i],
+              end = silhouette.spans[i + 1];
+            context.fillRect(
+              x - viewport.x + start,
+              y - viewport.y + row,
+              end - start + 1,
+              1,
+            );
+          }
+        }
+      }
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = "source-over";
+      texture.source.update();
+    }
+    return { texture, x: viewport.x, y: viewport.y };
   }
   return {
     bake: draw,

@@ -1,3 +1,4 @@
+import { structureDepth } from "./visual-order.js";
 import { Container, Graphics, Sprite, Text } from "pixi.js";
 import { projectCell } from "./art/scale.js";
 import { SIZE, placementOccupant } from "./world.js";
@@ -227,11 +228,8 @@ export function createConstructionView(world, art, bodies, input, picking) {
       view.eventMode =
         finished && activeLevel && !cutawayCover ? "static" : "none";
       view.cursor = finished ? "pointer" : "default";
-      view.zIndex =
-        site.x +
-        site.z +
-        (site.level ?? 0) * 0.35 +
-        (site.type === "roof" ? 0.6 : 0.15);
+      view.zIndex = structureDepth(site);
+      view.waterOrderSite = site;
       view.alpha = !activeLevel
         ? site.type === "roof" || site.type === "floor"
           ? selection.cutaway
