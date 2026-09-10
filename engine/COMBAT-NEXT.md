@@ -171,3 +171,26 @@ Manifest SHA256: `3d62bfd593c5cf532eaf5469b15294e9f73eb92d8c098162f14a18ecffb783
 Only atlas-2 and manifest changed in the tracked bank; prior bank is preserved
 in the ignored export packet. This accepts native sprites, not in-game
 placement, projectile alignment during movement, or hosted cannon play.
+
+### Frozen impact wire and first playable command
+
+The shared impact record is `{id, sequence, projectileId, sourceId, targetId,
+time, point, normal, velocity}`. Vectors are `{x,y,z}`; time is absolute
+simulation seconds. Sequence is a positive safe integer from the native saved
+impact counter and defines delivery order; times may differ within one step.
+Session saves a scalar producer high-water plus consumer frontiers, compacts
+the prefix consumed by everyone before admitting new backlog, and rejects
+already-consumed sequences without retaining an unbounded ID set.
+
+The first formation command should use the existing pack presentation controls:
+select/march the existing soldiers, then Fire cannon launches a finite round
+from a positioned cannon toward their formation. Inspect exposes ammunition,
+health and morale. No new gesture engine is needed for the first playable shot;
+point-target aiming can reuse the shared command/selection intent afterward.
+A hit applies TypeScript damage/morale and requests native displacement; a miss
+still spends the round. Projectile visual identity comes from launcher content
+definition, never a Rust branch on `formation.cannonball`.
+
+The native and Session writers have separate worktrees. Root owns final
+Launch/Displace SDK callers and formation content after these native shapes
+settle; the already-exported cannon assets are independent of those callers.
