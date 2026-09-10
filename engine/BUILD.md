@@ -430,3 +430,20 @@ Pose with nested position, not the flat WorldPose query value. contracts.ts and
 remote validation now match the native output, including null visual/label.
 The kernel and its render payload did not change. This is local network/physical
 acceptance, not the pending public autonomous host or deployment.
+
+## Public DO join — September 10
+
+Actual public-host native witness u5070 exited 0 with two owned runtime starts.
+It used the same public token routes and remote client: missing token rejected,
+two private worlds isolated, one paused while the other advanced, a lost applied
+pause response retried byte-identically at the same revision, and both clients
+were disposed before restart. Read-only native SQLite showed the selected world's
+clock sequence advance after restart before any game request. Port 8789 and the
+owned scope were closed. Evidence: `.botanical/public-host-native-v1/`.
+This is local native evidence, not yet a hosted release or a public-host injected
+outer-rollback witness; earlier Region rollback evidence remains separate.
+
+Remote stale-intent qualification u5067 passed six laws and failed one erroneous
+poll-count assertion (4 actual, 5 expected). The test retained its timer after
+failure; the exact owned scope was terminated normally and collected exit143.
+The corrected test owns disposal and expects the actual bounded four polls.
