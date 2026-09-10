@@ -2,6 +2,21 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## Current playable interim — September 10
+
+The first browser/WASM pages are live at
+https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/ .
+Runtime source 3478538; deployment 4d780b7b-64a3-4e0f-a456-dd5f914e002b.
+All141 combined hosted files match the accepted local output;112 existing
+clearing/study files remain byte-identical. Local checks prove all3 render/pause,
+plus survival pointer movement, take/eat, browser Save and paused Continue.
+Actual headless TS/WASM tests prove colony delivery, repeated survival meals with
+restore and formation movement. Native12 laws and strict TS passed.
+This is a small browser interim, not completion: DO host/restart/retry, richer
+formation controls, region-scale world systems, and capacity claims remain open.
+No hosted browser matrix or narrow-view proof was run. The former browser queue
+was released locally after Delivery explicitly parked/excluded Hive coordination.
+
 ## Read this first
 
 Build an engine that people can use to write different games in TypeScript,

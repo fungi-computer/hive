@@ -56,3 +56,12 @@ checks; root viewed all three captures in .botanical/fresh-browser. Scope dead,
 empty control group and port5197 clear. No page errors. This is not movement-input,
 save-button, narrow-view, hosted, or DO proof. Pantry/locker visual mapping and
 label overlap remain visible corrections. Nothing from this checkpoint is hosted.
+
+Publication supersedes the earlier unhosted status: source3478538 client correction
+built in u4864. Local input u4865 passed pointer selection/order, food take/eat,
+Save and paused Continue; exact restored snapshot comparison is limited by the
+saved-message observation, so full restore correctness remains headless evidence.
+Root viewed survival-input.png. Ordinary same-preview upload u4869 exit0,
+deployment4d780b7b-64a3-4e0f-a456-dd5f914e002b; u4870 readback141/141. Initial
+u4868 lacked an exported token; corrected SAME subprocess sourcing/export worked.
+No credential rotation. All owned scopes dead/empty, browser port5197 clear.
