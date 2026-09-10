@@ -8,7 +8,7 @@ const owner = createMaterialOwner({
 const mine = { id: "mine", capacity: 5, accepts: ["ore"], bulk: { ore: 1 } };
 const bin = { id: "bin", capacity: 2, accepts: ["ore"], bulk: { ore: 1 } };
 const access = { sourceReachable: true, destinationReachableWithPayload: true };
-const drop = { cell: { x: 0, z: 0, level: 0 }, legal: true };
+const drop = { cell: { x: 0, y: 0, z: 0 }, legal: true };
 const fresh = () => owner.createState();
 const total = (state) => state.lots.reduce((sum, lot) => sum + lot.quantity, 0);
 const reserve = (state, id, actor, source = "ore-grant", quantity = 2) =>

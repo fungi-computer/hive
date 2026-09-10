@@ -1,8 +1,10 @@
+import { placementFooting } from "./game-space.ts";
+import { interruptWork } from "./activity-lifecycle.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFileSync } from "node:fs";
-import { advanceWork, CHOP_TICKS, interruptWork } from "./activity.ts";
+import { advanceWork, CHOP_TICKS } from "./activity.ts";
 import { createClearing, step as advance } from "./clearing.ts";
 import {
   BUILDINGS,
@@ -24,7 +26,8 @@ import {
 import { restoreSnapshot, snapshotFor } from "./persistence.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 
-const cell = (x, z, level = 0) => ({ x, z, level });
+const placement = (x, z, level = 0) => ({ x, z, level });
+const cell = (x, z, level = 0) => placementFooting(placement(x, z, level));
 const shared = { party: "home", actors: null };
 const personal = (actor) => ({ party: "home", actors: [actor] });
 const wasmColony = await new Promise((resolve, reject) => {
@@ -90,7 +93,7 @@ const colony = {
   },
 };
 function site(id, type, finishedAt = null) {
-  return { id, type, ...cell(7, 9), direction: 0, work: 0, finishedAt };
+  return { id, type, ...placement(7, 9), direction: 0, work: 0, finishedAt };
 }
 function conserve(state) {
   const wood = materialQuantity(state.materials, "wood");
@@ -129,6 +132,7 @@ test("optimizer commits its already-resolved one-unit source, request, destinati
     id: "job-door",
     kind: "build",
     target: door.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -176,6 +180,7 @@ test("a personal-first edge and a shared edge keep two workers distinct", () => 
       id: "job-rowan",
       kind: "build",
       target: left.id,
+      lifecycle: "active",
       scope: personal("rowan"),
       reason: "Ordered",
       routine: false,
@@ -184,6 +189,7 @@ test("a personal-first edge and a shared edge keep two workers distinct", () => 
       id: "job-sedge",
       kind: "build",
       target: right.id,
+      lifecycle: "active",
       scope: shared,
       reason: "Ordered",
       routine: false,
@@ -224,6 +230,7 @@ test("personal work bypasses preferences while shared work still honors them", (
       id: "personal-chop",
       kind: "chop",
       target: "oak-1",
+      lifecycle: "active",
       scope: personal("rowan"),
       reason: "Ordered",
       routine: false,
@@ -232,6 +239,7 @@ test("personal work bypasses preferences while shared work still honors them", (
       id: "shared-chop",
       kind: "chop",
       target: "oak-2",
+      lifecycle: "active",
       scope: shared,
       reason: "Ordered",
       routine: false,
@@ -254,6 +262,7 @@ test("queue order wins scarce-source revalidation before actor ID", () => {
       id: "early-sedge",
       kind: "build",
       target: early.id,
+      lifecycle: "active",
       scope: personal("sedge"),
       reason: "Ordered",
       routine: false,
@@ -262,6 +271,7 @@ test("queue order wins scarce-source revalidation before actor ID", () => {
       id: "late-rowan",
       kind: "build",
       target: late.id,
+      lifecycle: "active",
       scope: personal("rowan"),
       reason: "Ordered",
       routine: false,
@@ -288,6 +298,7 @@ test("a carrying transfer is continued by the same actor and interruption marks 
     id: "job-wall",
     kind: "build",
     target: wall.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -333,6 +344,7 @@ test("unfinished shelves accept wood through their construction buffer, not shel
     id: "job-build-shelf",
     kind: "build",
     target: shelf.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -409,6 +421,7 @@ test("a normal wall withdraws stored wood through the common transfer lifecycle"
     id: "build-wall",
     kind: "build",
     target: wall.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -489,6 +502,7 @@ test("wall and shelf deconstruction salvage construction buffers and eject only 
     id: "job-wall",
     kind: "deconstruct",
     target: wall.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -540,6 +554,7 @@ test("wall and shelf deconstruction salvage construction buffers and eject only 
     id: "job-shelf",
     kind: "deconstruct",
     target: shelf.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -561,9 +576,9 @@ test("wall and shelf deconstruction salvage construction buffers and eject only 
     (lot) => lot.id === "mugwort-shelf",
   );
   assert.equal(ejected.location.kind, "ground");
-  assert.equal(ejected.location.x, 9);
-  assert.equal(ejected.location.z, 9);
-  assert.equal(ejected.location.level, 0);
+  assert.equal(ejected.location.x, cell(9, 9).x);
+  assert.equal(ejected.location.z, cell(9, 9).z);
+  assert.equal(ejected.location.y, cell(9, 9).y);
   assert.equal(state.materials.embedded.length, 0);
   conserve(state);
 });
@@ -606,6 +621,7 @@ test("shelf teardown settles another actor's released transfer before the next s
       kind: "store",
       source: "mugwort-carry",
       destination: shelfContainer(shelf.id).id,
+      lifecycle: "active",
       scope: shared,
       reason: "Ordered",
       routine: false,
@@ -614,6 +630,7 @@ test("shelf teardown settles another actor's released transfer before the next s
       id: "job-deconstruct",
       kind: "deconstruct",
       target: shelf.id,
+      lifecycle: "active",
       scope: shared,
       reason: "Ordered",
       routine: false,
@@ -675,6 +692,7 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
     id: "job-chop",
     kind: "chop",
     target: "oak-a",
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -711,6 +729,7 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
     id: "job-sow",
     kind: "sow",
     target: "herb-a",
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -730,6 +749,7 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
     id: "job-harvest",
     kind: "harvest",
     target: "herb-a",
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -762,6 +782,7 @@ test("chop, sow, harvest, and rest retain their non-transfer outcomes", () => {
   });
   state.jobs.push({
     id: "job-rest",
+    lifecycle: "active",
     kind: "care",
     target: "rowan",
     need: "rest",
@@ -838,12 +859,12 @@ test("actual libcolony admits legal stairs and rejects unsupported topology", ()
   const state = createClearing(78);
   state.paused = true;
   const [stair, floor] = actualStep(state, [
-    { kind: "build", type: "stair", x: 5, z: 5, direction: 0 },
-    { kind: "build", type: "floor", x: 5, z: 5, level: 0, direction: 0 },
+    { kind: "build", type: "stair", x: 5, z: 5, level: 0, direction: 0 },
+    { kind: "build", type: "floor", x: 5, z: 5, level: 1, direction: 0 },
   ]);
   assert.deepEqual(stair, { status: "applied" });
   assert.equal(floor.status, "rejected");
-  assert.match(floor.reason, /Upper floors belong/);
+  assert.match(floor.reason, /floor needs|floor and roof/);
   assert.equal(state.sites[0].type, "stair");
 });
 
@@ -952,11 +973,11 @@ test("actual libcolony preserves recruit/scope admission and one scarce source",
 
 test("actual libcolony creates a night routine in a sheltered room and clears it at dawn", () => {
   const state = createClearing(83);
-  const finished = (id, type, x, z, direction = 0) =>
+  const finished = (id, type, x, z, direction = 0, level = 0) =>
     state.sites.push({
       id,
       type,
-      ...cell(x, z),
+      ...placement(x, z, level),
       direction,
       work: BUILDINGS[type].ticks,
       finishedAt: 1,
@@ -967,8 +988,8 @@ test("actual libcolony creates a night routine in a sheltered room and clears it
         finished(`wall-${x}-${z}`, "wall", x, z);
   finished("door", "door", 7, 9);
   finished("bed", "bed", 7, 7);
-  finished("roof", "roof", 7, 7);
-  finished("roof-next", "roof", 7, 8);
+  finished("roof", "roof", 7, 7, 0, 1);
+  finished("roof-next", "roof", 7, 8, 0, 1);
   state.tick = 4_800;
   state.actors.rowan.routine = true;
   actualStep(state);
@@ -1087,7 +1108,7 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
   const station = {
     id: "station-a",
     type: "brew-station",
-    ...cell(7, 5),
+    ...placement(7, 5),
     direction: 0,
     work: BUILDINGS["brew-station"].ticks,
     finishedAt: 0,
@@ -1152,6 +1173,7 @@ test("actual libcolony repairs once, pauses a filled pail, and resumes one fill 
     id: "personal-chop-after-pour",
     kind: "chop",
     target: paused.trees[0].id,
+    lifecycle: "active",
     scope: personal("rowan"),
     reason: "Ordered",
     routine: false,
@@ -1335,7 +1357,7 @@ test("one cache pail admits only the earlier shared fill job", () => {
     const station = {
       id,
       type: "brew-station",
-      ...cell(x, 5),
+      ...placement(x, 5),
       direction: 0,
       work: BUILDINGS["brew-station"].ticks,
       finishedAt: 0,
@@ -1368,7 +1390,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
   const station = {
     id: "station-cancel",
     type: "brew-station",
-    ...cell(7, 5),
+    ...placement(7, 5),
     direction: 0,
     work: BUILDINGS["brew-station"].ticks,
     finishedAt: 0,
@@ -1401,6 +1423,7 @@ test("canceling an incomplete fill drops its same filled pail and retires the li
     id: "job-fill-cancel",
     kind: "fill-kettle",
     target: station.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Ordered",
     routine: false,
@@ -1476,7 +1499,7 @@ function readyHerbalAleState() {
   const station = {
     id: "station-herbal-ale",
     type: "brew-station",
-    ...cell(7, 5),
+    ...placement(7, 5),
     direction: 0,
     work: BUILDINGS["brew-station"].ticks,
     finishedAt: 0,
@@ -2033,6 +2056,7 @@ test("brew-station removal stays blocked for staged, Fill, and fermenting owners
     id: "brew-job",
     kind: "brew",
     target: station.id,
+    lifecycle: "active",
     scope: shared,
     reason: "Fermenting",
     routine: false,
@@ -2093,14 +2117,19 @@ test("actual libcolony finishes an adjacent two-cell trench across a paused relo
     soil.every(
       (lot) =>
         lot.location.kind === "ground" &&
-        !["7,9", "8,9"].includes(`${lot.location.x},${lot.location.z}`),
+        ![cell(7, 9), cell(8, 9)].some(
+          (at) =>
+            at.x === lot.location.x &&
+            at.y === lot.location.y &&
+            at.z === lot.location.z,
+        ),
     ),
   );
 });
 
 test("a new loose occupant interrupts a dig before settlement without minting soil", () => {
   const state = createClearing();
-  const target = { x: 7, z: 9, level: 0 };
+  const target = cell(7, 9);
   actualStep(state, [{ kind: "dig", voxel: [0, 14, 128] }]);
   actualRun(state, 12);
   assert.equal(createGroundLot(state.materials, "pail", 1, target).ok, true);

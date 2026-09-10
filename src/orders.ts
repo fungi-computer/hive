@@ -1,5 +1,11 @@
+import { standing } from "./engine/navigation/index.ts";
+import {
+  createNavigationSpaces,
+  HUMAN_NAVIGATION,
+} from "./navigation-space.ts";
+import { cancelJob } from "./job-cancellation.ts";
+import { placementFooting, insidePlacement } from "./game-space.ts";
 import { deconstructionTargetProblem } from "./physical-completion.ts";
-import { finiteWorkOwner } from "./water-delivery.ts";
 import type {
   Clearing,
   Command,
@@ -13,27 +19,24 @@ import type {
   WorkCommand,
 } from "./model.ts";
 import { inScope, scopeProblem } from "./actors.ts";
-import { constructionBuffer, placementProblem } from "./construction.js";
+import { placementProblem } from "./construction.js";
 import { cacheRepairBuffer, sourceIsOpen } from "./finite-sources.ts";
-import { interruptWork } from "./activity.ts";
+import { interruptWork } from "./activity-lifecycle.ts";
 import {
   brewForJob,
   brewStationOutputProblem,
-  cancelPreparingBrew,
   recipeOutputReadiness,
 } from "./brewing.ts";
 import { recipeOutputActionForWire } from "./recipes.ts";
-import { containerContents, releaseContainer } from "./materials.ts";
+import { containerContents } from "./materials.ts";
 import {
-  blockedCells,
-  cellKey,
   inside,
   placementOccupant,
   sourceAccessCells,
   terrainEditProblem,
   terrainRimCells,
 } from "./world.js";
-import { route, beginWalk } from "./movement.js";
+import { movement } from "./movement.ts";
 import { terrainCell, terrainColumn, terrainDigProblem } from "./terrain.ts";
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
@@ -120,7 +123,7 @@ export function commandProblem(s: Clearing, c: Command): string {
   if (c.kind === "deconstruct")
     return deconstructionTargetProblem(s, c.site) || scopeProblem(s, c);
   if (c.kind === "dig") {
-    const at = terrainColumn(c.voxel);
+    const at = placementFooting(terrainColumn(c.voxel));
     const problem =
       terrainDigProblem(s.terrain, c.voxel) || terrainEditProblem(s, at);
     if (problem) return problem;
@@ -153,8 +156,9 @@ export function commandProblem(s: Clearing, c: Command): string {
   }
   if (
     c.kind === "sow" &&
-    (!inside(c) ||
-      placementOccupant(s, c) ||
+    (c.level !== 0 ||
+      !insidePlacement(c) ||
+      placementOccupant(s, placementFooting(c)) ||
       !terrainCell(s.terrain, c.x, c.z).support)
   )
     return "Choose clear ground.";
@@ -173,7 +177,9 @@ export function commandProblem(s: Clearing, c: Command): string {
         buffer &&
         containerContents(s.materials, buffer.id).length > 0 &&
         !sourceAccessCells(cache!).some(
-          (cell) => !blockedCells(s).has(cellKey(cell)),
+          (cell) =>
+            standing(createNavigationSpaces(s)(), cell, HUMAN_NAVIGATION) ===
+            "supported",
         )
       )
         return "No legal place to release the repair wood.";
@@ -190,14 +196,13 @@ export function commandProblem(s: Clearing, c: Command): string {
   if (c.kind === "draft" || c.kind === "undraft" || c.kind === "go") {
     const p = s.actors[c.actor],
       party = s.parties[c.party];
-    return !p || !party?.members.includes(c.actor)
-      ? "Choose a home member."
-      : c.kind === "go" &&
-          (!p.drafted ||
-            !inside(c.target) ||
-            blockedCells(s).has(cellKey(c.target)))
-        ? "Choose reachable clear ground."
-        : "";
+    if (!p || !party?.members.includes(c.actor)) return "Choose a home member.";
+    if (c.kind !== "go") return "";
+    if (p.workDisposition === "interrupt-at-footing")
+      return "Wait until they finish stepping and put down their work.";
+    return !p.drafted || !inside(c.target) || !movement(s).canGo(p, c.target)
+      ? "Choose reachable clear ground."
+      : "";
   }
   if (c.kind === "recruit") {
     const party = s.parties[c.party];
@@ -241,6 +246,7 @@ function add(
   let j: Job;
   if (c.kind === "store")
     j = {
+      lifecycle: "active",
       id,
       kind: "store",
       source: c.lot,
@@ -254,6 +260,7 @@ function add(
       (source) => source.kind === "reclaimed-timber-cache",
     )!;
     j = {
+      lifecycle: "active",
       id,
       kind: "repair-cache",
       target: cache.id,
@@ -263,6 +270,7 @@ function add(
     };
   } else if (c.kind === "fill-kettle")
     j = {
+      lifecycle: "active",
       id,
       kind: "fill-kettle",
       target: c.station,
@@ -272,6 +280,7 @@ function add(
     };
   else if (c.kind === "brew")
     j = {
+      lifecycle: "active",
       id,
       kind: "brew",
       target: c.station,
@@ -292,6 +301,7 @@ function add(
     );
     if (readiness.kind !== "ready") throw new Error(readiness.reason);
     j = {
+      lifecycle: "active",
       id,
       kind: c.kind,
       target: c.station,
@@ -314,6 +324,7 @@ function add(
     };
     s.sites.push(site);
     j = {
+      lifecycle: "active",
       id,
       kind: "build",
       target: site.id,
@@ -323,6 +334,7 @@ function add(
     };
   } else if (c.kind === "chop")
     j = {
+      lifecycle: "active",
       id,
       kind: "chop",
       target: c.tree,
@@ -332,6 +344,7 @@ function add(
     };
   else if (c.kind === "dig")
     j = {
+      lifecycle: "active",
       id,
       kind: c.kind,
       voxel: [...c.voxel],
@@ -341,6 +354,7 @@ function add(
     };
   else if (c.kind === "deconstruct")
     j = {
+      lifecycle: "active",
       id,
       kind: "deconstruct",
       target: c.site,
@@ -350,6 +364,7 @@ function add(
     };
   else if (c.kind === "harvest")
     j = {
+      lifecycle: "active",
       id,
       kind: "harvest",
       target: c.herb,
@@ -359,6 +374,7 @@ function add(
     };
   else if (c.kind === "water-mugwort")
     j = {
+      lifecycle: "active",
       id,
       kind: "water-mugwort",
       target: c.herb,
@@ -370,9 +386,7 @@ function add(
     const h = {
       id: `herb-${s.nextId++}`,
       kind: "mugwort" as const,
-      x: c.x,
-      z: c.z,
-      level: c.level,
+      ...placementFooting(c),
       stage: "ordered" as const,
       work: 0,
       establishment: null,
@@ -380,6 +394,7 @@ function add(
     };
     s.herbs.push(h);
     j = {
+      lifecycle: "active",
       id,
       kind: "sow",
       target: h.id,
@@ -389,6 +404,7 @@ function add(
     };
   } else
     j = {
+      lifecycle: "active",
       id,
       kind: "care",
       target: sc.actors![0],
@@ -400,78 +416,6 @@ function add(
   s.jobs.push(j);
   s.workDirty = true;
   return j.id;
-}
-function cancel(s: Clearing, id: string) {
-  const j = s.jobs.find((x) => x.id === id);
-  if (!j) return;
-  for (const p of Object.values(s.actors))
-    if (p.task?.job === id) interruptWork(s, p);
-  if (j.kind === "build") {
-    const site = s.sites.find((x) => x.id === j.target);
-    if (site) {
-      const r = releaseContainer(s.materials, constructionBuffer(site), {
-        contentsDrop: {
-          cell: { x: site.x, z: site.z, level: site.level },
-          legal: true,
-        },
-        carriedDrops: Object.fromEntries(
-          Object.values(s.actors).map((p) => [p.id, { cell: p, legal: true }]),
-        ),
-      });
-      if (!r.ok) throw new Error(r.reason);
-      s.sites = s.sites.filter((x) => x !== site);
-    }
-  } else if (j.kind === "repair-cache") {
-    const cache = s.sources.find((source) => source.id === j.target);
-    const buffer = cache && cacheRepairBuffer(cache);
-    const drop = cache
-      ? sourceAccessCells(cache).find(
-          (cell) => !blockedCells(s).has(cellKey(cell)),
-        )
-      : undefined;
-    if (buffer && containerContents(s.materials, buffer.id).length > 0) {
-      if (!drop) throw new Error("no legal repair-buffer drop");
-      const r = releaseContainer(s.materials, buffer, {
-        contentsDrop: { cell: drop, legal: true },
-        carriedDrops: Object.fromEntries(
-          Object.values(s.actors).map((p) => [p.id, { cell: p, legal: true }]),
-        ),
-      });
-      if (!r.ok) throw new Error(r.reason);
-    }
-  } else if (
-    j.kind === "fill-kettle" ||
-    j.kind === "water-mugwort" ||
-    j.kind === "care"
-  ) {
-    const active = s.operations.find((operation) => operation.job === j.id);
-    if (active?.kind === "water-delivery") {
-      const custody = s.materials.transfers.find(
-        (transfer) =>
-          transfer.owner.kind === "operation" &&
-          transfer.owner.operation === active.id,
-      );
-      const actor = custody ? s.actors[custody.actor] : undefined;
-      if (custody && !actor)
-        throw new Error("water operation has missing actor");
-      const released = finiteWorkOwner.interrupt(s.operations, s.materials, {
-        kind: "release",
-        operation: active.id,
-        drop: actor
-          ? {
-              cell: { x: actor.x, z: actor.z, level: actor.level },
-              legal: true,
-            }
-          : undefined,
-      });
-      if (!released.ok) throw new Error(released.reason);
-    }
-  } else if (j.kind === "brew") {
-    const released = cancelPreparingBrew(s, j.id);
-    if (!released.ok) throw new Error(released.reason);
-  }
-  s.jobs = s.jobs.filter((x) => x.id !== id);
-  s.workDirty = true;
 }
 export type CommandAdmission =
   | { status: "applied"; createdJobs: string[] }
@@ -493,7 +437,7 @@ export function admitCommand(s: Clearing, c: Command): CommandAdmission {
       createdJobs.push(add(s, { ...c, actors: [actor] }));
     }
   } else if (c.kind === "cancel") {
-    cancel(s, c.job);
+    cancelJob(s, c.job);
   } else if (c.kind === "next") {
     const j = s.jobs.find((x) => x.id === c.job)!;
     s.jobs = [j, ...s.jobs.filter((x) => x !== j)];
@@ -504,12 +448,15 @@ export function admitCommand(s: Clearing, c: Command): CommandAdmission {
     p.drafted = true;
     s.workDirty = true;
   } else if (c.kind === "undraft") {
+    interruptWork(s, s.actors[c.actor]);
     s.actors[c.actor].drafted = false;
     s.workDirty = true;
   } else if (c.kind === "go") {
-    const p = s.actors[c.actor],
-      path = route(p, c.target, blockedCells(s), s);
-    if (path) beginWalk(p, path);
+    if (!movement(s).go(s.actors[c.actor], c.target))
+      return {
+        status: "rejected",
+        reason: "That route is not currently clear.",
+      };
   } else if (c.kind === "work") {
     for (const p of Object.values(s.actors))
       if (inScope(s, p, c)) p.allowedWork[c.work] = c.enabled;

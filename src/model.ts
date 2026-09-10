@@ -67,7 +67,8 @@ export type PendingFeatureIntroduction = {
   preferred: Cell;
 };
 export type HerbId = string;
-export type Cell = { x: number; z: number; level: number };
+export type Cell = import("./engine/world/footing.ts").Footing;
+export type Placement = import("./game-space.ts").Placement;
 export type BuildingKind =
   | "wall"
   | "door"
@@ -87,9 +88,9 @@ export type WorkCommand = Scope & { direct?: boolean } & (
         kind: "dig";
         voxel: import("./world-presets/goblin-terrain.ts").TerrainVoxel;
       }
-    | ({ kind: "build"; type: BuildingKind; direction: number } & Cell)
+    | ({ kind: "build"; type: BuildingKind; direction: number } & Placement)
     | { kind: "deconstruct"; site: string }
-    | ({ kind: "sow" } & Cell)
+    | ({ kind: "sow" } & Placement)
     | { kind: "harvest"; herb: HerbId }
     | { kind: "water-mugwort"; herb: HerbId }
     | { kind: "rest" }
@@ -146,6 +147,7 @@ export type Command =
 
 type JobBase = {
   id: JobId;
+  lifecycle: "active" | "canceling";
   scope: Scope;
   reason: string;
   routine: boolean;
@@ -168,6 +170,7 @@ export type StoreJob = JobBase & {
 export type CareNeed = "nourishment" | "hydration" | "rest";
 export type CareJob = {
   id: JobId;
+  lifecycle: "active" | "canceling";
   kind: "care";
   target: ActorId;
   need: CareNeed;
@@ -256,11 +259,12 @@ export type Activity =
 export type Body = Cell & {
   dir: number;
   mode: "idle" | "walk" | Activity["kind"];
-  path: Cell[];
-  leg: number;
+  traversal: import("./engine/navigation/index.ts").Traversal | null;
+  navigationProfile: "upright" | "small";
   work: number;
 };
 export type Actor = Body & {
+  workDisposition: "continue" | "interrupt-at-footing";
   id: ActorId;
   name: string;
   figure: string;
@@ -285,7 +289,7 @@ export type Herb = Cell & {
     | { readonly kind: "water"; readonly at: number; readonly receipt: string };
   plantedAt: number | null;
 };
-export type Site = Cell & {
+export type Site = Placement & {
   id: string;
   type: BuildingKind;
   direction: number;
@@ -367,6 +371,7 @@ export type Clearing = {
   careOutcomes: CareOutcome[];
   processes: BrewProcess[];
   terrain: TerrainState;
+  exploration: import("./exploration.ts").Exploration;
   rocks: Cell[];
   watcher: Cell;
   sites: Site[];

@@ -1,4 +1,6 @@
+export const MATERIAL_SNAPSHOT_SCHEMA = 2 as const;
 import { z } from "zod";
+import { footingSchema } from "../world/footing.ts";
 import type {
   MaterialDefinitions,
   MaterialsState,
@@ -20,13 +22,7 @@ export function materialStateSchema<M extends string>(
     .positive()
     .max(Number.MAX_SAFE_INTEGER)
     .transform((value) => value as PositiveInt);
-  const cell = z
-    .object({
-      x: z.number().finite(),
-      z: z.number().finite(),
-      level: z.number().int(),
-    })
-    .strict();
+  const cell = footingSchema;
   const lot = z
     .object({
       id,
@@ -163,6 +159,9 @@ export function materialSnapshotSchema<M extends string>(
   definitions: MaterialDefinitions<M>,
 ) {
   return z
-    .object({ schema: z.literal(1), state: materialStateSchema(definitions) })
+    .object({
+      schema: z.literal(MATERIAL_SNAPSHOT_SCHEMA),
+      state: materialStateSchema(definitions),
+    })
     .strict();
 }

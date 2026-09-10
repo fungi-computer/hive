@@ -3,7 +3,12 @@ import {
   createBindingLookup,
   formatCommandBindings,
 } from "@opentui/keymap/extras";
-import { DEBUG_PICKING_CONTROL, LEVEL_NAVIGATION } from "./ui-actions.ts";
+import {
+  DEBUG_PICKING_CONTROL,
+  LEVEL_NAVIGATION,
+  levelNavigationEnabled,
+  levelNavigationAction,
+} from "./ui-actions.ts";
 
 const LEVEL_INPUT_SELECTOR =
   "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='checkbox']";
@@ -179,8 +184,9 @@ export function createKeys(root, read, send, changed) {
       key: control.key,
       title: control.title,
       levelNavigation: true,
-      enabled: () => control.enabled(read().level),
-      action: () => ({ ...control.action }),
+      enabled: () =>
+        levelNavigationEnabled(read().level, control.delta, read().levels),
+      action: () => levelNavigationAction(read().level, control.delta),
     })),
   ];
   function pageNavigationOwned(event) {

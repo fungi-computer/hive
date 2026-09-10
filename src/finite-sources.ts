@@ -5,7 +5,8 @@ import type {
   SourceFeature,
   SourceFeatureKind,
 } from "./model.ts";
-import { SIZE, sourceAccessCells } from "./world.js";
+import { SIZE, sourceAccessCells, sameCell, inside } from "./world.js";
+import { placementFooting, groundFooting } from "./game-space.ts";
 import {
   constructionBuffer,
   footprint,
@@ -53,7 +54,7 @@ export type FiniteSourceDefinition =
 export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
   {
     kind: "spring",
-    preferred: { x: 13, z: 13, level: 0 },
+    preferred: placementFooting({ x: 13, z: 13, level: 0 }),
     access: "open",
     provider: { material: "water", capacity: 16 as PositiveInt },
     initial: [
@@ -68,7 +69,7 @@ export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
   },
   {
     kind: "reclaimed-timber-cache",
-    preferred: { x: 1, z: 13, level: 0 },
+    preferred: placementFooting({ x: 1, z: 13, level: 0 }),
     access: "sealed",
     provider: { material: "wood", capacity: 10 as PositiveInt },
     pail: { capacity: 1 as PositiveInt },
@@ -85,32 +86,33 @@ export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
 ];
 
 /** Frozen source facts shared by schema 10–14 admission and migration. */
-export const V14_FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
-  {
-    kind: "spring",
-    preferred: { x: 13, z: 13, level: 0 },
-    access: "open",
-    provider: { material: "water", capacity: 8 as PositiveInt },
-    initial: [
-      { slot: "provider", material: "water", quantity: 8 as PositiveInt },
-    ],
-  },
-  {
-    kind: "reclaimed-timber-cache",
-    preferred: { x: 1, z: 13, level: 0 },
-    access: "sealed",
-    provider: { material: "wood", capacity: 10 as PositiveInt },
-    pail: { capacity: 1 as PositiveInt },
-    supplies: { capacity: 6 as PositiveInt },
-    initial: [
-      { slot: "provider", material: "wood", quantity: 10 as PositiveInt },
-      { slot: "pail", material: "pail", quantity: 1 as PositiveInt },
-      { slot: "supplies", material: "malt", quantity: 4 as PositiveInt },
-      { slot: "supplies", material: "barm", quantity: 1 as PositiveInt },
-      { slot: "supplies", material: "keg", quantity: 1 as PositiveInt },
-    ],
-  },
-];
+export const V14_FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] =
+  [
+    {
+      kind: "spring",
+      preferred: placementFooting({ x: 13, z: 13, level: 0 }),
+      access: "open",
+      provider: { material: "water", capacity: 8 as PositiveInt },
+      initial: [
+        { slot: "provider", material: "water", quantity: 8 as PositiveInt },
+      ],
+    },
+    {
+      kind: "reclaimed-timber-cache",
+      preferred: placementFooting({ x: 1, z: 13, level: 0 }),
+      access: "sealed",
+      provider: { material: "wood", capacity: 10 as PositiveInt },
+      pail: { capacity: 1 as PositiveInt },
+      supplies: { capacity: 6 as PositiveInt },
+      initial: [
+        { slot: "provider", material: "wood", quantity: 10 as PositiveInt },
+        { slot: "pail", material: "pail", quantity: 1 as PositiveInt },
+        { slot: "supplies", material: "malt", quantity: 4 as PositiveInt },
+        { slot: "supplies", material: "barm", quantity: 1 as PositiveInt },
+        { slot: "supplies", material: "keg", quantity: 1 as PositiveInt },
+      ],
+    },
+  ];
 
 type SourceState = Pick<
   Clearing,
@@ -122,30 +124,13 @@ type SourceState = Pick<
   | "materials"
   | "rocks"
   | "watcher"
+  | "terrain"
   | "sites"
   | "jobs"
   | "sources"
   | "pendingSources"
   | "operations"
 > & { notice: string };
-
-function sameCell(a: Cell, b: Cell): boolean {
-  return a.x === b.x && a.z === b.z && a.level === b.level;
-}
-
-function inside(cell: Cell): boolean {
-  return (
-    Number.isInteger(cell.x) &&
-    Number.isInteger(cell.z) &&
-    Number.isInteger(cell.level) &&
-    cell.x >= 0 &&
-    cell.z >= 0 &&
-    cell.x < SIZE &&
-    cell.z < SIZE &&
-    cell.level >= 0 &&
-    cell.level <= 1
-  );
-}
 
 function featureIdMatches(kind: SourceFeatureKind, id: string): boolean {
   return new RegExp(`^feature:${kind}(?::[1-9][0-9]*)?$`).test(id);
@@ -155,9 +140,7 @@ function sourceDefinition(
   kind: SourceFeatureKind,
   definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
 ): FiniteSourceDefinition {
-  const definition = definitions.find(
-    (candidate) => candidate.kind === kind,
-  );
+  const definition = definitions.find((candidate) => candidate.kind === kind);
   if (!definition) throw new Error(`unknown finite source ${kind}`);
   return definition;
 }
@@ -192,9 +175,9 @@ function initialLotId(
   initial: FiniteSourceDefinition["initial"][number],
 ): string {
   return initial.slot === "provider"
-    ? ("identity" in initial && initial.identity === "care-grant"
-        ? `needs-water-lot:${id}`
-        : `source-lot:${id}`)
+    ? "identity" in initial && initial.identity === "care-grant"
+      ? `needs-water-lot:${id}`
+      : `source-lot:${id}`
     : initial.slot === "pail"
       ? sourcePailLot(id)
       : sourceSupplyLot(id, initial.material);
@@ -450,12 +433,14 @@ function physicalOccupancy(state: SourceState): Cell[] {
     ...state.rocks,
     state.watcher,
     state.cat,
-    ...state.cat.path,
+    ...(state.cat.traversal?.edge.sweep ?? []),
     ...Object.values(state.actors),
-    ...Object.values(state.actors).flatMap((actor) => actor.path),
+    ...Object.values(state.actors).flatMap(
+      (actor) => actor.traversal?.edge.sweep ?? [],
+    ),
     ...state.trees,
     ...state.herbs,
-    ...state.sites.flatMap(footprint),
+    ...state.sites.flatMap((site) => footprint(site).map(placementFooting)),
     ...state.materials.lots.flatMap((lot) =>
       lot.location.kind === "ground" ? [lot.location] : [],
     ),
@@ -477,10 +462,15 @@ function nextFeatureId(kind: SourceFeatureKind, used: Set<string>): string {
   }
 }
 
-function featureCell(preferred: Cell, occupied: readonly Cell[]): Cell | null {
+function featureCell(
+  terrain: Clearing["terrain"],
+  preferred: Cell,
+  occupied: readonly Cell[],
+): Cell | null {
   const candidates: Cell[] = [];
   for (let z = 0; z < SIZE; z++)
-    for (let x = 0; x < SIZE; x++) candidates.push({ x, z, level: 0 });
+    for (let x = 0; x < SIZE; x++)
+      candidates.push(groundFooting(terrain, { x, z }));
   candidates.sort(
     (a, b) =>
       Math.abs(a.x - preferred.x) +
@@ -524,7 +514,7 @@ function planFiniteSources(
       )
     )
       return null;
-    const cell = featureCell(definition.preferred, occupied);
+    const cell = featureCell(state.terrain, definition.preferred, occupied);
     if (!cell) return null;
     used.add(id);
     for (const key of sourceInitialIdentityKeys({ id, kind: definition.kind }))
@@ -568,7 +558,7 @@ function commitSourcePlan(
             access: "open",
             x: cell.x,
             z: cell.z,
-            level: cell.level,
+            y: cell.y,
           }
         : {
             id,
@@ -577,7 +567,7 @@ function commitSourcePlan(
             repaired: false,
             x: cell.x,
             z: cell.z,
-            level: cell.level,
+            y: cell.y,
           },
     );
 }
@@ -681,9 +671,7 @@ export function introduceCurrentFiniteSourceProvisions(
       predecessor.initial.map((entry) => initialLotId(source.id, entry)),
     );
     return current.initial
-      .filter(
-        (entry) => !predecessorIds.has(initialLotId(source.id, entry)),
-      )
+      .filter((entry) => !predecessorIds.has(initialLotId(source.id, entry)))
       .map((entry) => ({ source, entry }));
   });
   const foreign = foreignIdentityKeys(state);
@@ -757,13 +745,13 @@ export function finiteSourceProblem(
   const namedLotIds = new Set<string>();
   const occupied = new Set(
     physicalOccupancy({ ...state, sources: [] }).map(
-      (cell) => `${cell.x},${cell.z},${cell.level}`,
+      (cell) => `${cell.x},${cell.y},${cell.z}`,
     ),
   );
   const used = identityKeys({ ...state, sources: [], pendingSources: [] });
   const fixed = fixedIdentityKeys(state);
   for (const source of state.sources) {
-    const key = `${source.x},${source.z},${source.level}`;
+    const key = `${source.x},${source.y},${source.z}`;
     const definition = sourceDefinition(source.kind, definitions);
     const provider = sourceContainerSpec(source, definitions);
     const namedLotId = `source-lot:${source.id}`;
@@ -840,7 +828,9 @@ export function finiteSourceProblem(
     )
       return `source ${source.id} has invalid finite contents`;
     for (const [lotId, entry] of providerIds) {
-      const lot = state.materials.lots.find((candidate) => candidate.id === lotId);
+      const lot = state.materials.lots.find(
+        (candidate) => candidate.id === lotId,
+      );
       if (
         lot &&
         (lot.material !== entry.material || lot.quantity > entry.quantity)

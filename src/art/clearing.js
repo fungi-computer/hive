@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { batchStaticScene } from "./static-batch.js";
-import { terrainSurfaces } from "../terrain-surface-geometry.js";
 import {
   scene,
   box,
@@ -184,9 +183,9 @@ export function tree(stage) {
 
 /** Only newly exposed soil is rebaked. The orthographic opening mask removes
  * the old top surface in the composite, while the same faces own picking. */
-export function excavationScene(terrain) {
+export function excavationScene(faces) {
   const s = scene();
-  for (const face of terrainSurfaces(terrain, SIZE)) {
+  for (const face of faces) {
     if (face.kind === "ground") continue;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(

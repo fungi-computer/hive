@@ -142,8 +142,8 @@ export function createCamera(app, host, world) {
     terrainFace(point) {
       return terrainPicker.pick(local(point));
     },
-    setTerrain(terrain) {
-      terrainPicker.update(terrain);
+    setTerrain(faces) {
+      terrainPicker.update(faces);
     },
     pan(dx, dy) {
       center.x -= dx / zoom;
@@ -170,7 +170,7 @@ export function createCamera(app, host, world) {
       Object.assign(center, { x: WIDTH / 2, y: HEIGHT / 2 });
       update();
     },
-    snapshot(size) {
+    snapshot(size, levels) {
       const corners = [
         { x: 0, y: 0 },
         { x: app.screen.width, y: 0 },
@@ -179,13 +179,21 @@ export function createCamera(app, host, world) {
       ];
       return {
         zoom,
-        visibleAreas: [0, 1].map((level) => ({
-          kind: "quantized-visible-area",
-          points: quantizedVisibleArea(
-            corners.map((point) => cell(point, level)),
-            size,
-          ),
-        })),
+        visibleAreas: Object.fromEntries(
+          Array.from(
+            { length: levels.max - levels.min + 1 },
+            (_, offset) => levels.min + offset,
+          ).map((level) => [
+            level,
+            {
+              kind: "quantized-visible-area",
+              points: quantizedVisibleArea(
+                corners.map((point) => cell(point, level)),
+                size,
+              ),
+            },
+          ]),
+        ),
       };
     },
     subscribe(listener) {

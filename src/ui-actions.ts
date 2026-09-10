@@ -1,3 +1,4 @@
+import { levelLabel, type Placement } from "./game-space.ts";
 import type { FieldWaterReference } from "./field-water-source.ts";
 import { terrainCell } from "./terrain.ts";
 import type { TerrainState } from "./model.ts";
@@ -6,7 +7,8 @@ import { setup } from "xstate";
 
 export type TerrainToolKind = "dig";
 export type ToolKind = "chop" | BuildingKind | "herb" | TerrainToolKind;
-export type LogicalLevel = 0 | 1;
+export type LogicalLevel = number;
+export type LevelRange = Readonly<{ min: number; max: number }>;
 
 /** Checked terrain controls share their labels and help with their typed tool. */
 export const TERRAIN_TOOL_CATALOG = [
@@ -30,11 +32,11 @@ export type LocalGoodsLot = {
     readonly kind: string;
     readonly x?: number;
     readonly z?: number;
-    readonly level?: number;
+    readonly y?: number;
   };
 };
 
-/** Returns projected loose lots at one exact logical cell, including level. */
+/** Returns projected loose lots at one exact physical footing. */
 export function localGoodsAt<T extends LocalGoodsLot>(
   lots: readonly T[],
   at: Cell,
@@ -44,7 +46,7 @@ export function localGoodsAt<T extends LocalGoodsLot>(
       lot.location.kind === "ground" &&
       lot.location.x === at.x &&
       lot.location.z === at.z &&
-      lot.location.level === at.level,
+      lot.location.y === at.y,
   );
 }
 
@@ -376,10 +378,11 @@ export type UiAction =
   | { kind: "notice"; text: string }
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number }
-  | { kind: "recenter"; cell: Cell };
+  | { kind: "recenter"; cell: Placement };
 
 export type UiEffect =
   | { kind: "notice"; text: string }
+  | { kind: "go-at-point"; actor: string; point: GesturePoint }
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
   | { kind: "submit-designation"; targetIds: string[] }
@@ -397,38 +400,35 @@ export type UiEffect =
     }
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number }
-  | { kind: "recenter"; cell: Cell };
-
-export type LevelNavigationControl = {
-  readonly name: string;
-  readonly level: LogicalLevel;
-  readonly label: "Ground" | "Upper";
-  readonly key: "pageup" | "pagedown";
-  readonly title: string;
-  readonly enabled: (current: LogicalLevel) => boolean;
-  readonly action: { kind: "level"; level: LogicalLevel };
-};
+  | { kind: "recenter"; cell: Placement };
 
 export const LEVEL_NAVIGATION = [
   {
-    name: "view.level.ground",
-    level: 0,
-    label: "Ground",
+    name: "view.level.down",
+    label: "Lower",
     key: "pagedown",
-    title: "Show Ground level",
-    enabled: (current: LogicalLevel) => current !== 0,
-    action: { kind: "level", level: 0 },
+    delta: -1,
+    title: "View one storey lower",
   },
   {
-    name: "view.level.upper",
-    level: 1,
-    label: "Upper",
+    name: "view.level.up",
+    label: "Higher",
     key: "pageup",
-    title: "Show Upper level",
-    enabled: (current: LogicalLevel) => current !== 1,
-    action: { kind: "level", level: 1 },
+    delta: 1,
+    title: "View one storey higher",
   },
-] as const satisfies readonly LevelNavigationControl[];
+] as const;
+
+export function levelNavigationAction(current: number, delta: -1 | 1) {
+  return { kind: "level" as const, level: current + delta };
+}
+export function levelNavigationEnabled(
+  current: number,
+  delta: -1 | 1,
+  range: LevelRange,
+): boolean {
+  return current + delta >= range.min && current + delta <= range.max;
+}
 
 export const DEBUG_PICKING_CONTROL = {
   name: "view.debug-picking",
@@ -446,14 +446,13 @@ export const DEBUG_PICKING_CONTROL = {
 
 export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
   switch (tool) {
-    case "floor":
-      return 1;
-    case "stair":
-    case "brew-station":
     case "chop":
     case "herb":
     case "dig":
       return 0;
+    case "floor":
+    case "stair":
+    case "brew-station":
     case "wall":
     case "door":
     case "roof":
@@ -491,13 +490,14 @@ export function decideLevelTransition(
     level: requested,
     disarm,
     notice: disarm
-      ? `${requested === 1 ? "Upper" : "Ground"} selected; the armed tool was disarmed because it is unavailable on this level.`
+      ? `${levelLabel(requested)} selected; the armed tool was disarmed because it is unavailable on this level.`
       : null,
   };
 }
 
 export type LevelActionOwner = {
   readonly currentLevel: () => LogicalLevel;
+  readonly range: () => LevelRange;
   readonly armedTool: () => ToolKind | null;
   readonly resetGesture: () => void;
   readonly disarmTool: () => void;
@@ -510,6 +510,13 @@ export function dispatchLevelAction(
   action: Extract<UiAction, { kind: "level" }>,
   owner: LevelActionOwner,
 ): void {
+  const range = owner.range();
+  if (
+    !Number.isInteger(action.level) ||
+    action.level < range.min ||
+    action.level > range.max
+  )
+    return;
   const transition = decideLevelTransition(
     owner.currentLevel(),
     action.level,

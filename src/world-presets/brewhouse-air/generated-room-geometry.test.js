@@ -116,7 +116,7 @@ test("roof outside the raster leaves an empty continuation that the actual produ
       type: "roof",
       x: 2,
       z: 5,
-      level: 1,
+      level: 2,
       direction: 0,
       finishedAt: 0,
     },

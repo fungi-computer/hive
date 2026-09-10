@@ -137,7 +137,7 @@ function preflight(
   if (
     !access.some(
       (cell) =>
-        actor.x === cell.x && actor.z === cell.z && actor.level === cell.level,
+        actor.x === cell.x && actor.y === cell.y && actor.z === cell.z,
     ) ||
     actor.mode === "walk"
   )

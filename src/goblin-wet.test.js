@@ -19,7 +19,8 @@ import {
   terrainWater,
 } from "./terrain.ts";
 import { structureEnvironment } from "./structure-environment.ts";
-import { blockedCells } from "./world.js";
+import { movement } from "./movement.ts";
+import { groundFooting, placementFooting } from "./game-space.ts";
 import { STEP_SECONDS } from "./ticker.js";
 import { loadOptimizer } from "./engine/colony/loader.ts";
 import { createGoblinRegionProgram } from "./world-presets/goblin-region.ts";
@@ -61,8 +62,19 @@ test("main wet: all225 world queries, exact standing datum, finite collar and re
     for (let z = 0; z < 15; z++)
       supported += Number(terrainCell(state.terrain, x, z).support);
   assert.equal(supported, 213);
-  assert(blockedCells(state).has("14,0,0"));
-  assert(!blockedCells(state).has("7,9,0"));
+  const routes = movement(state).forBody(state.actors.rowan);
+  assert.equal(
+    routes.standing(placementFooting({ x: 14, z: 0, level: 0 })),
+    false,
+  );
+  assert.equal(
+    routes.standing(groundFooting(state.terrain, { x: 14, z: 0 })),
+    true,
+  );
+  assert.equal(
+    routes.standing(groundFooting(state.terrain, { x: 7, z: 9 })),
+    true,
+  );
   assert.deepEqual(terrainCell(state.terrain, 7, 9).voxel, first);
   assert(terrainDigProblem(state.terrain, [-1, 14, 128]));
   assert.equal(terrainDigProblem(state.terrain, first), null);

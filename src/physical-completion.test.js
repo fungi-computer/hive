@@ -1,9 +1,11 @@
+import { placementFooting } from "./game-space.ts";
+import { interruptWork } from "./activity-lifecycle.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createClearing, advanceTicks } from "./clearing.ts";
 import { readFileSync } from "node:fs";
 import { loadOptimizer } from "./engine/colony/loader.ts";
-import { advanceWork, interruptWork } from "./activity.ts";
+import { advanceWork } from "./activity.ts";
 import { admitCommand } from "./orders.ts";
 import { snapshotFor, restoreSnapshot } from "./clearing-state.ts";
 import {
@@ -20,12 +22,14 @@ import { terrainColumn, terrainFacts } from "./terrain.ts";
 import { STEP_SECONDS } from "./ticker.js";
 
 const scope = { party: "home", actors: null };
-const cell = (x, z) => ({ x, z, level: 0 });
+const cell = (x, z) => placementFooting({ x, z, level: 0 });
 function structure(state, type = "shelf", finished = true) {
   const site = {
     id: "test-site",
     type,
-    ...cell(9, 9),
+    x: 9,
+    z: 9,
+    level: 0,
     direction: 0,
     work: finished ? BUILDINGS[type].ticks : BUILDINGS[type].ticks - 1,
     finishedAt: finished ? 0 : null,
@@ -55,6 +59,7 @@ function structure(state, type = "shelf", finished = true) {
 }
 function worker(state, kind, target, duration, at = cell(9, 8)) {
   const job = {
+    lifecycle: "active",
     id: "test-job",
     kind,
     target,
@@ -105,6 +110,7 @@ function shelfFixture() {
     },
   );
   state.jobs.push({
+    lifecycle: "active",
     id: "store-job",
     kind: "store",
     source: "carried-herb",
@@ -253,7 +259,7 @@ test("excavation allocator failure preserves terrain and final progress, success
     "dig",
     "unused",
     TERRAIN_WORK_TICKS,
-    terrainRimCells(state, terrainColumn(voxel))[0],
+    terrainRimCells(state, placementFooting(terrainColumn(voxel)))[0],
   );
   delete job.target;
   job.voxel = voxel;
@@ -287,7 +293,10 @@ test("transient upstairs occupancy waits without resetting progress or invalidat
     site.id,
     BUILDINGS.stair.deconstructTicks,
   );
-  Object.assign(state.actors.sedge, { x: 9, z: 11, level: 1 });
+  Object.assign(
+    state.actors.sedge,
+    placementFooting({ x: 9, z: 11, level: 1 }),
+  );
   const progress = actor.work;
   advanceWork(state, actor);
   assert.equal(actor.work, progress);
@@ -340,6 +349,7 @@ test("one waiting final build preserves another actor and the actual clock/terra
   const tree = state.trees[0];
   tree.work = 5;
   state.jobs.push({
+    lifecycle: "active",
     id: "chop-job",
     kind: "chop",
     target: tree.id,
@@ -347,12 +357,16 @@ test("one waiting final build preserves another actor and the actual clock/terra
     reason: "Ordered",
     routine: false,
   });
-  Object.assign(state.actors.sedge, cell(tree.x, tree.z + 1), {
-    mode: "chop",
-    work: 5,
-    task: { kind: "chop", job: "chop-job", target: tree.id, duration: 75 },
-    assignment: { character: "sedge", task: "chop-job", cost: 0 },
-  });
+  Object.assign(
+    state.actors.sedge,
+    { x: tree.x, y: tree.y, z: tree.z + 1 },
+    {
+      mode: "chop",
+      work: 5,
+      task: { kind: "chop", job: "chop-job", target: tree.id, duration: 75 },
+      assignment: { character: "sedge", task: "chop-job", cost: 0 },
+    },
+  );
   currentSave(state);
   const materials = structuredClone(state.materials);
   const initialTime = terrainFacts(state.terrain).timeS;
@@ -384,5 +398,57 @@ test("one waiting final build preserves another actor and the actual clock/terra
   assert.equal(state.actors.sedge.assignment.task, "chop-job");
   assert.equal(state.finishedJobs, 0);
   assert.deepEqual(state.materials, materials);
+  currentSave(state);
+});
+
+test("prospective wall geometry waits for an existing loose pail without publishing materials", () => {
+  const state = createClearing(),
+    site = structure(state, "wall", false);
+  worker(state, "build", site.id, BUILDINGS.wall.ticks);
+  const pail = state.materials.lots.find((lot) => lot.material === "pail");
+  const original = structuredClone(pail.location);
+  pail.location = { kind: "ground", ...placementFooting(site) };
+  currentSave(state);
+  const before = JSON.stringify(state);
+  assert.equal(settle(state).status, "waiting");
+  assert.equal(JSON.stringify(state), before);
+  pail.location = original;
+  assert.equal(settle(state).status, "completed");
+  assert.equal(
+    state.materials.lots.find((lot) => lot.id === pail.id).quantity,
+    1,
+  );
+  currentSave(state);
+});
+
+test("removing the last rooted roof support waits without publishing or resetting work", () => {
+  const state = createClearing();
+  const wall = structure(state, "wall");
+  const roof = {
+    ...wall,
+    id: "supported-roof",
+    type: "roof",
+    level: wall.level + 1,
+    work: BUILDINGS.roof.ticks,
+  };
+  state.sites.push(roof);
+  state.materials.lots.find((lot) => lot.id === "remaining-wood").quantity -=
+    BUILDINGS.roof.wood;
+  state.materials.embedded.push({
+    container: constructionBuffer(roof).id,
+    material: "wood",
+    quantity: BUILDINGS.roof.wood,
+  });
+  const { actor } = worker(
+    state,
+    "deconstruct",
+    wall.id,
+    BUILDINGS.wall.deconstructTicks,
+  );
+  currentSave(state);
+  const before = JSON.stringify(state);
+  assert.equal(settle(state).status, "waiting");
+  assert.equal(JSON.stringify(state), before);
+  assert.equal(actor.work, BUILDINGS.wall.deconstructTicks - 1);
   currentSave(state);
 });

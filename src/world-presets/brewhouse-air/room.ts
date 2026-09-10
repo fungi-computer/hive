@@ -33,7 +33,7 @@ function upperDeck() {
     for (let z = 5; z <= 7; z++) {
       // Current ramp/headroom consumes all three cells of this run.
       if (x !== 8) sites.push(site("floor", x, z, 1));
-      sites.push(site("roof", x, z, 1));
+      sites.push(site("roof", x, z, 2));
     }
   return sites;
 }

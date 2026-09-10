@@ -1,23 +1,42 @@
+import { structuralSupport } from "./structure-support.js";
+import { roomInterior } from "./room-space.ts";
+import { createStructureGeometry } from "./structure-environment.ts";
+import { knownFootings } from "./exploration.ts";
 import {
-  cellKey,
-  inside,
-  sameCell,
-  neighbors,
-  SIZE,
-  blockedCells,
+  createNavigationSpaces,
+  stairLink,
+  HUMAN_NAVIGATION,
+  bodyProfile,
+  bodyContact,
+} from "./navigation-space.ts";
+import {
+  route as physicalRoute,
+  standing,
+  admitEdge,
+} from "./engine/navigation/index.ts";
+import {
   groundLotsAt,
   placementOccupant,
   stairCells,
   stairHeadroom,
   stairLanding,
-  upperSurface,
+  builtSurface,
 } from "./world.js";
-import { pathTicks, route } from "./movement.js";
-import { terrainCell } from "./terrain.ts";
+import {
+  placementFooting,
+  worldView,
+  placementKey,
+  insidePlacement,
+  samePlacement,
+  placementNeighbors,
+} from "./game-space.ts";
+import { sameCell } from "./world.js";
+import { terrainGeometry } from "./terrain.ts";
 
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
 export const BUILDINGS = {
   wall: {
+    support: { kind: "column" },
     environment: { kind: "solid-column", heightVoxels: 4 },
     label: "Timber wall",
     wood: 1,
@@ -26,6 +45,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   door: {
+    support: { kind: "column" },
     environment: { kind: "permeable" },
     label: "Doorway",
     wood: 2,
@@ -34,7 +54,10 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   roof: {
-    environment: { kind: "y-face", offsetVoxels: 4 },
+    support: { kind: "span", maxSteps: 6 },
+    environment: { kind: "y-face", offsetVoxels: 0 },
+    visualBaseOffset: -1,
+    walkable: false,
     label: "Thatch roof",
     wood: 1,
     ticks: 24,
@@ -58,6 +81,7 @@ export const BUILDINGS = {
     salvageWood: 1,
   },
   floor: {
+    support: { kind: "span", maxSteps: 6 },
     environment: { kind: "y-face", offsetVoxels: 0 },
     label: "Upper floor",
     wood: 1,
@@ -279,133 +303,171 @@ export function brewStationAccessCells(site) {
           { x: site.x + 2, z: site.z, level: site.level },
           { x: site.x + 2, z: site.z + 1, level: site.level },
         ];
-  return cells.filter(
-    (cell, index) =>
-      inside(cell) &&
-      cells.findIndex((other) => sameCell(other, cell)) === index,
-  );
+  return cells
+    .filter(
+      (cell, index) =>
+        insidePlacement(cell) &&
+        cells.findIndex((other) => samePlacement(other, cell)) === index,
+    )
+    .map(placementFooting);
 }
 function finishedSiteAt(state, cell, type = null) {
   return state.sites.some(
     (site) =>
       site.finishedAt !== null &&
       (!type || site.type === type) &&
-      footprint(site).some((occupied) => sameCell(occupied, cell)),
+      footprint(site).some((occupied) => samePlacement(occupied, cell)),
   );
 }
 export function floorSupported(state, cell) {
-  const lower = { x: cell.x, z: cell.z, level: 0 };
-  if (cell.level !== 1 || !inside(lower)) return false;
   if (
     state.sites.some(
       (site) =>
         site.type === "stair" &&
-        stairHeadroom(site).some((headroom) => sameCell(headroom, cell)),
+        stairHeadroom(site).some((headroom) => samePlacement(headroom, cell)),
     )
   )
     return false;
-  if (
-    state.sites.some(
-      (site) =>
-        sameCell(site, lower) && (site.type === "roof" || site.type === "door"),
-    )
-  )
-    return false;
-  return (
-    indoors(state, 0).has(cellKey(lower)) ||
-    finishedSiteAt(state, lower, "wall")
-  );
+  return structuralSupport(state, { ...cell, type: "floor" }).span(cell);
 }
+/** Floor and roof are alternative physical faces at the same selected height. */
 function crossLevelSurfaceConflict(state, site) {
-  const upperFloor = site.type === "floor" && site.level === 1;
-  const lowerCover =
-    site.level === 0 && (site.type === "roof" || site.type === "door");
-  if (!upperFloor && !lowerCover) return false;
+  if (site.type !== "floor" && site.type !== "roof") return false;
   return state.sites.some(
     (other) =>
       other.id !== site.id &&
-      (upperFloor
-        ? other.level === 0 && (other.type === "roof" || other.type === "door")
-        : other.type === "floor" && other.level === 1) &&
-      other.x === site.x &&
-      other.z === site.z,
+      (other.type === "floor" || other.type === "roof") &&
+      samePlacement(other, site),
   );
 }
-function upperSupported(state, cell) {
-  return upperSurface(state, cell);
+
+/** Original roof textures are authored above a room base. Only their draw
+ * anchor moves; the saved placement and picking target remain the surface. */
+export function buildingVisualPlacement(site) {
+  return {
+    ...site,
+    level: site.level + (BUILDINGS[site.type].visualBaseOffset ?? 0),
+  };
 }
+
+export function buildingEnvelopeProblem(state, site) {
+  if (!footprint(site).every(insidePlacement))
+    return "Keep the footprint inside the clearing.";
+  const { bounds, frame } = terrainGeometry(state.terrain);
+  const y = placementFooting(site).y;
+  const shape = BUILDINGS[site.type].environment;
+  const lower = site.type === "roof" ? y - frame.storeyVoxels : y;
+  const upper =
+    shape.kind === "y-face"
+      ? y
+      : y + frame.storeyVoxels * (site.type === "stair" ? 2 : 1);
+  if (lower < bounds.min[1] || upper >= bounds.max[1])
+    return "Keep the building inside the known world height.";
+  return null;
+}
+
+/** Structural dependencies are stable save/settlement facts, unlike temporary
+ * actor occupancy or current route availability. */
+export function buildingSupportProblem(state, site) {
+  if (site.type === "floor")
+    return floorSupported(state, site)
+      ? null
+      : "Waiting for floor support below.";
+  if (site.type === "roof")
+    return roofSupported(state, site)
+      ? null
+      : "Waiting for roof support below.";
+  const cells = site.type === "stair" ? [site] : footprint(site);
+  return cells.every((cell) => surfaceSupported(state, cell))
+    ? null
+    : "Waiting for a supported building surface.";
+}
+
+/** The same stable dependency law is used for saves and prospective edits. */
+export function structureSupportProblem(state) {
+  for (const site of state.sites)
+    if (
+      (site.finishedAt !== null || site.type === "floor") &&
+      buildingSupportProblem(state, site)
+    )
+      return `unsupported ${site.type} ${site.id}`;
+  return null;
+}
+
+export function surfaceSupported(state, cell) {
+  return structuralSupport(state).surface(cell);
+}
+
+/** A builder can work from one neighboring cell, including the existing
+ * diagonal corner reach. Route admission still requires a supported body. */
+function neighboringWorkCells(at) {
+  const cells = [];
+  for (let dx = -1; dx <= 1; dx++)
+    for (let dz = -1; dz <= 1; dz++)
+      if (dx || dz) cells.push({ x: at.x + dx, z: at.z + dz, level: at.level });
+  return cells.filter(insidePlacement);
+}
+
 export function workPositions(state, site, operation = "build") {
   if (site.type === "brew-station") return brewStationAccessCells(site);
   if (
-    site.type === "floor" &&
-    site.level === 1 &&
+    (site.type === "roof" || site.type === "floor") &&
     operation !== "deconstruct"
   ) {
-    const lower = { x: site.x, z: site.z, level: 0 };
-    return [lower, ...neighbors(lower)].filter(inside);
+    const lower = { ...site, level: site.level - 1 };
+    return [
+      lower,
+      ...neighboringWorkCells(lower),
+      ...neighboringWorkCells(site),
+    ]
+      .filter(insidePlacement)
+      .map(placementFooting);
   }
-  const positions = neighbors(site).filter(inside);
+  const positions = placementNeighbors(site).filter(insidePlacement);
+  if (site.type === "stair") positions.push(site);
   // A dragged closed outline must not strand its last corner behind its two
   // finished neighbors. Construction can reach that corner from the interior
   // diagonal, and delivery must revalidate that same work position. Movement
   // and deconstruction keep their cardinal topology.
   if (
     operation !== "deconstruct" &&
-    site.level === 1 &&
     (site.type === "wall" || site.type === "door")
   )
-    for (const [x, z] of [
-      [-1, -1],
-      [-1, 1],
-      [1, -1],
-      [1, 1],
-    ]) {
-      const diagonal = {
-        x: site.x + x,
-        z: site.z + z,
-        level: site.level,
-      };
-      if (inside(diagonal)) positions.push(diagonal);
-    }
+    positions.push(...neighboringWorkCells(site));
   if (
-    site.type === "floor" &&
-    site.level === 1 &&
+    (site.type === "floor" || site.type === "roof") &&
     operation === "deconstruct"
   ) {
-    const lower = { x: site.x, z: site.z, level: 0 };
-    positions.push(lower, ...neighbors(lower));
+    const lower = { ...site, level: site.level - 1 };
+    positions.push(lower, ...neighboringWorkCells(lower));
   }
-  return positions.filter(inside);
+  return positions
+    .filter(insidePlacement)
+    .filter(
+      (cell, index, cells) =>
+        cells.findIndex((other) => samePlacement(other, cell)) === index,
+    )
+    .map(placementFooting);
 }
 export function workPosition(state, person, site, operation = "build") {
   return workPositions(state, site, operation).some((cell) =>
     sameCell(person, cell),
   );
 }
-export function workApproach(state, from, site, blocked, operation = "build") {
-  return (
-    workPositions(state, site, operation)
-      .map((position) => route(from, position, blocked, state))
-      .filter((path) => path !== null)
-      .sort(
-        (left, right) => pathTicks(from, left) - pathTicks(from, right),
-      )[0] ?? null
-  );
+export function workApproach(state, from, site, routes, operation = "build") {
+  return routes.closest(from, workPositions(state, site, operation));
 }
 function coverAt(state, cell) {
-  if (cell.level === 0)
-    return state.sites.some(
-      (site) =>
-        site.finishedAt !== null &&
-        ((site.type === "roof" && sameCell(site, cell)) ||
-          (site.type === "floor" &&
-            site.level === 1 &&
-            site.x === cell.x &&
-            site.z === cell.z)),
-    );
+  const ceiling = { ...cell, level: cell.level + 1 };
+  const terrain = terrainGeometry(state.terrain),
+    at = placementFooting(ceiling);
+  if (at.y < terrain.bounds.max[1] && terrain.solidAt(at.x, at.y, at.z))
+    return true;
   return state.sites.some(
     (site) =>
-      site.finishedAt !== null && site.type === "roof" && sameCell(site, cell),
+      site.finishedAt !== null &&
+      (site.type === "roof" || site.type === "floor") &&
+      samePlacement(site, ceiling),
   );
 }
 /** @param {import("./model.ts").Actor|null} [person] */
@@ -471,55 +533,89 @@ export function removalProblem(state, site, person = null) {
     ...state,
     sites: state.sites.filter((candidate) => candidate.id !== site.id),
   };
-  if (
-    state.sites.some(
-      (candidate) =>
-        candidate.id !== site.id &&
-        candidate.type === "floor" &&
-        candidate.level === 1 &&
-        !floorSupported(prospectiveState, candidate),
-    )
-  )
-    return "Waiting for upper structures to be removed first";
+  const support = structureSupportProblem(prospectiveState);
+  if (support) return `Waiting for dependent structures: ${support}`;
   if (site.type === "floor") {
-    const surface = { x: site.x, z: site.z, level: 1 };
+    const surface = { x: site.x, z: site.z, level: site.level };
     if (
       state.sites.some(
         (candidate) =>
           candidate.id !== site.id &&
-          candidate.level === 1 &&
-          footprint(candidate).some((cell) => sameCell(cell, surface)),
+          candidate.level === site.level &&
+          footprint(candidate).some((cell) => samePlacement(cell, surface)),
       ) ||
       Object.values(state.actors).some(
         (actor) =>
-          (actor.level === 1 && sameCell(actor, surface)) ||
-          actor.path.some((cell) => sameCell(cell, surface)),
+          sameCell(actor, placementFooting(surface)) ||
+          actor.traversal?.edge.sweep.some((cell) =>
+            sameCell(cell, placementFooting(surface)),
+          ),
       ) ||
-      groundLotsAt(state, surface).some((lot) => lot.location.level === 1)
+      groundLotsAt(state, placementFooting(surface)).some(
+        (lot) => worldView(lot.location).level === site.level,
+      )
     )
       return "Waiting for the upper surface to clear";
-    if (person && person.level === 1 && !upperSurface(prospectiveState, person))
+    if (
+      person &&
+      worldView(person).level === site.level &&
+      !builtSurface(prospectiveState, worldView(person))
+    )
       return "Waiting for a supported salvage position";
   }
-  if (
-    site.type === "stair" &&
-    (state.sites.some(
-      (candidate) => candidate.id !== site.id && candidate.level === 1,
-    ) ||
-      Object.values(state.actors).some(
-        (actor) =>
-          actor.level === 1 || actor.path.some((cell) => cell.level === 1),
-      ) ||
-      state.materials.lots.some(
-        (lot) => lot.location.kind === "ground" && lot.location.level === 1,
-      ))
-  )
-    return "Waiting for upstairs structures and materials to clear";
+  if (site.type === "stair" && losesStairAccess(state, prospectiveState, site))
+    return "Waiting for connected upstairs access to remain";
   return null;
 }
+/** A spare stair only replaces access when it belongs to the same traversable
+ * component. Compare actual dependent access against the removed stair's ground
+ * endpoint; unrelated pre-existing inaccessible surfaces confer no dependency. */
+function losesStairAccess(state, prospective, removed) {
+  if (
+    [...Object.values(state.actors), state.cat].some(
+      (body) => body.traversal?.edge.link === removed.id,
+    )
+  )
+    return true;
+  const before = createNavigationSpaces(state),
+    after = createNavigationSpaces(prospective);
+  const ground = placementFooting(removed);
+  const losesRoute = (at, profile, contact = null) =>
+    at.y > ground.y &&
+    physicalRoute(before(contact), at, ground, profile).kind === "route" &&
+    physicalRoute(after(contact), at, ground, profile).kind !== "route";
+  for (const body of [...Object.values(state.actors), state.cat])
+    if (losesRoute(body, bodyProfile(state, body), bodyContact(body)))
+      return true;
+  const dependencies = [
+    ...state.materials.lots.flatMap((lot) =>
+      lot.location.kind === "ground" ? [lot.location] : [],
+    ),
+    ...prospective.sites.flatMap((site) =>
+      site.level > removed.level
+        ? workPositions(prospective, site, "deconstruct")
+        : [],
+    ),
+    ...prospective.sites
+      .filter((site) => site.type === "floor" && site.finishedAt !== null)
+      .map(placementFooting),
+  ];
+  const seen = new Set();
+  for (const at of dependencies) {
+    if (at.y <= ground.y) continue;
+    const key = `${at.x},${at.y},${at.z}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (losesRoute(at, HUMAN_NAVIGATION)) return true;
+  }
+  return false;
+}
+
 function sitesConflict(left, right) {
   if (
-    !footprint(left).some((a) => footprint(right).some((b) => sameCell(a, b)))
+    !footprint(left).some((a) =>
+      footprint(right).some((b) => samePlacement(a, b)),
+    )
   )
     return false;
   if (left.type === "stair" || right.type === "stair") return true;
@@ -541,27 +637,46 @@ function sitesConflict(left, right) {
 }
 export function placementProblem(state, at) {
   if (!at || !BUILDINGS[at.type]) return "Choose something to build.";
-  if (!footprint(at).every(inside))
-    return "Keep the footprint inside the clearing.";
+  const envelope = buildingEnvelopeProblem(state, at);
+  if (envelope) return envelope;
+  const known = knownFootings(state);
+  if (!footprint(at).every((cell) => known(placementFooting(cell))))
+    return "Explore this space before building here.";
+  const terrain = terrainGeometry(state.terrain);
   if (
-    footprint(at).some(
-      (cell) => !terrainCell(state.terrain, cell.x, cell.z).support,
-    )
+    footprint(at).some((cell) => {
+      const footing = placementFooting(cell);
+      const height =
+        BUILDINGS[at.type].environment.kind === "solid-column" ? 4 : 1;
+      for (let dy = 0; dy < height; dy++)
+        if (terrain.solidAt(footing.x, footing.y + dy, footing.z)) return true;
+      return false;
+    })
   )
-    return "Choose ground that supports this building.";
+    return "Excavate clear space before building here.";
   if (at.type === "floor") {
-    if (at.level !== 1) return "Upper floors belong on level 1.";
     if (crossLevelSurfaceConflict(state, at))
-      return "An upper floor cannot share a cell with lower cover or a door.";
+      return "A floor and roof cannot occupy the same surface.";
     if (!floorSupported(state, at))
-      return "The upper floor needs lower support without a roof or door.";
+      return "The floor needs a connected span within six tiles of support.";
+  } else if (at.type === "roof" && !roofSupported(state, at)) {
+    return "The roof needs a connected span within six tiles of support.";
   } else if (at.type === "stair") {
-    if (at.level !== 0) return "The stair ramp belongs on the ground.";
-    if (state.sites.some((site) => site.type === "stair"))
-      return "There is already a stair ramp here.";
+    if (!surfaceSupported(state, at))
+      return "The stair needs a supported starting surface.";
+    const link = stairLink({ ...at, id: at.id ?? "preview-stair" });
+    const space = createNavigationSpaces(state)();
+    const admission = admitEdge(
+      { ...space, links: [link] },
+      link.from,
+      link.to,
+      HUMAN_NAVIGATION,
+    );
+    if (admission.kind !== "edge")
+      return "The stair needs a clear, explored route to its landing.";
     if (
       footprint(at).some((cell) => {
-        const occupant = placementOccupant(state, cell);
+        const occupant = placementOccupant(state, placementFooting(cell));
         return (
           occupant === "tree" ||
           occupant === "rock" ||
@@ -578,14 +693,18 @@ export function placementProblem(state, at) {
       footprint(at).some((cell) =>
         Object.values(state.actors).some(
           (person) =>
-            sameCell(person, cell) ||
-            person.path.some((next) => sameCell(next, cell)),
+            sameCell(person, placementFooting(cell)) ||
+            person.traversal?.edge.sweep.some((next) =>
+              sameCell(next, placementFooting(cell)),
+            ),
         ),
       ) ||
       footprint(at).some(
         (cell) =>
-          sameCell(state.cat, cell) ||
-          state.cat.path.some((next) => sameCell(next, cell)),
+          sameCell(state.cat, placementFooting(cell)) ||
+          state.cat.traversal?.edge.sweep.some((next) =>
+            sameCell(next, placementFooting(cell)),
+          ),
       )
     )
       return "Let the stair ramp clear before placing it.";
@@ -593,32 +712,34 @@ export function placementProblem(state, at) {
       stairHeadroom(at).some((headroom) =>
         state.sites.some(
           (site) =>
-            site.level === 1 &&
+            site.level === at.level + 1 &&
             (site.type === "floor" ||
               (site.type === "roof" &&
                 stairHeadroom(at)
                   .slice(0, 2)
-                  .some((ramp) => sameCell(ramp, headroom)))) &&
-            footprint(site).some((cell) => sameCell(cell, headroom)),
+                  .some((ramp) => samePlacement(ramp, headroom)))) &&
+            footprint(site).some((cell) => samePlacement(cell, headroom)),
         ),
       )
     )
       return "The stair ramp needs clear headroom upstairs.";
-  } else if (at.level === 1) {
+  } else {
     if (
       footprint(at).some((cell) =>
         state.sites.some(
           (site) =>
             site.type === "stair" &&
-            sameCell(stairLanding(site), cell) &&
-            at.type !== "door" &&
-            at.type !== "roof",
+            samePlacement(stairLanding(site), cell) &&
+            at.type !== "door",
         ),
       )
     )
-      return "Only a doorway or roof may use the stair landing.";
-    if (!footprint(at).every((cell) => upperSupported(state, cell)))
-      return "Upper structures need finished floor support.";
+      return "Keep the stair landing open; only a doorway may share it.";
+    if (
+      at.type !== "roof" &&
+      !footprint(at).every((cell) => surfaceSupported(state, cell))
+    )
+      return "The building needs a supported surface.";
     if (
       at.type === "roof" &&
       state.sites.some(
@@ -627,21 +748,21 @@ export function placementProblem(state, at) {
           stairHeadroom(site)
             .slice(0, 2)
             .some((headroom) =>
-              footprint(at).some((cell) => sameCell(cell, headroom)),
+              footprint(at).some((cell) => samePlacement(cell, headroom)),
             ),
       )
     )
       return "The stair ramp needs clear headroom upstairs.";
   }
   const overlaps = (s) =>
-    footprint(s).some((a) => footprint(at).some((b) => sameCell(a, b)));
+    footprint(s).some((a) => footprint(at).some((b) => samePlacement(a, b)));
   if (crossLevelSurfaceConflict(state, at))
-    return "Upper floor and lower cover cannot share a cell.";
+    return "A floor and roof cannot occupy the same surface.";
   if (state.sites.some((s) => overlaps(s) && sitesConflict(s, at)))
     return "There is already a building or blueprint here.";
   if (
     footprint(at).some((cell) => {
-      const occupant = placementOccupant(state, cell);
+      const occupant = placementOccupant(state, placementFooting(cell));
       return (
         occupant === "source" ||
         occupant === "herb" ||
@@ -651,146 +772,137 @@ export function placementProblem(state, at) {
   )
     return "Choose clear ground.";
   if (
-    state.trees.some((t) => t.felledAt === null && overlaps(t)) ||
-    state.rocks.some(overlaps) ||
-    overlaps(state.watcher)
+    state.trees.some((t) => t.felledAt === null && overlaps(worldView(t))) ||
+    state.rocks.some((rock) => overlaps(worldView(rock))) ||
+    overlaps(worldView(state.watcher))
   )
     return "Choose clear ground.";
   if (
     at.type === "wall" &&
     (Object.values(state.actors).some(
       (person) =>
-        sameCell(person, at) || person.path.some((p) => sameCell(p, at)),
+        sameCell(person, placementFooting(at)) ||
+        person.traversal?.edge.sweep.some((p) =>
+          sameCell(p, placementFooting(at)),
+        ),
     ) ||
-      sameCell(state.cat, at) ||
-      state.cat.path.some((p) => sameCell(p, at)))
+      sameCell(state.cat, placementFooting(at)) ||
+      state.cat.traversal?.edge.sweep.some((p) =>
+        sameCell(p, placementFooting(at)),
+      ))
   )
     return "Let the path clear before placing a wall here.";
   if (
     at.type === "wall" &&
-    groundLotsAt(state, at).some((lot) => lot.material === "wood")
+    groundLotsAt(state, placementFooting(at)).some(
+      (lot) => lot.material === "wood",
+    )
   )
     return "Wood is lying here. Use it before building over it.";
   return "";
 }
 // A flood from the map edge finds outdoors. Doors seal a room for shelter,
 // while movement treats their opening as walkable. No room objects to sync.
-export function indoors(state, level = 0) {
-  if (level === 1) return upstairsIndoors(state);
-  const boundary = new Set(
-    state.sites
-      .filter(
-        (s) =>
-          s.finishedAt !== null && (s.type === "wall" || s.type === "door"),
-      )
-      .map(cellKey),
+const roomQueries = new WeakMap();
+function roomsFor(state) {
+  const terrain = terrainGeometry(state.terrain);
+  const finished = state.sites.filter((site) => site.finishedAt !== null);
+  const signature = JSON.stringify(
+    finished.map(({ id, type, x, z, level, direction }) => [
+      id,
+      type,
+      x,
+      z,
+      level,
+      direction,
+    ]),
   );
-  const outside = new Set(),
-    queue = [];
-  for (let x = 0; x < SIZE; x++)
-    for (const z of [0, SIZE - 1]) queue.push({ x, z });
-  for (let z = 1; z < SIZE - 1; z++)
-    for (const x of [0, SIZE - 1]) queue.push({ x, z });
-  for (let i = 0; i < queue.length; i++) {
-    const cell = queue[i],
-      key = cellKey(cell);
-    if (!inside(cell) || boundary.has(key) || outside.has(key)) continue;
-    outside.add(key);
-    queue.push(...neighbors(cell));
-  }
-  const result = new Set();
-  for (let x = 0; x < SIZE; x++)
-    for (let z = 0; z < SIZE; z++) {
-      const key = cellKey({ x, z });
-      if (!outside.has(key) && !boundary.has(key)) result.add(key);
-    }
+  const cached = roomQueries.get(terrain);
+  if (cached?.signature === signature) return cached;
+  const geometry = createStructureGeometry(
+    { terrain, sites: finished },
+    terrain.bounds,
+  );
+  const doors = new Set(
+    finished
+      .filter((site) => site.type === "door")
+      .flatMap((site) => footprint(site).map(placementKey)),
+  );
+  const landings = new Set(
+    finished
+      .filter((site) => site.type === "stair")
+      .map((site) => placementKey(stairLanding(site))),
+  );
+  const result = {
+    signature,
+    terrain,
+    geometry,
+    doors,
+    landings,
+    levels: new Map(),
+  };
+  roomQueries.set(terrain, result);
   return result;
 }
-function upstairsIndoors(state) {
-  const supported = new Set();
-  for (let x = 0; x < SIZE; x++)
-    for (let z = 0; z < SIZE; z++) {
-      const cell = { x, z, level: 1 };
-      if (upperSupported(state, cell)) supported.add(cellKey(cell));
-    }
-  const boundary = new Set(
-    state.sites
-      .filter(
-        (site) =>
-          site.level === 1 &&
-          site.finishedAt !== null &&
-          (site.type === "wall" || site.type === "door"),
-      )
-      .flatMap((site) => footprint(site).map(cellKey)),
-  );
-  const outside = new Set();
-  const queue = [];
-  for (const key of supported) {
-    const [x, z] = key.split(",").map(Number);
-    const cell = { x, z, level: 1 };
-    if (
-      neighbors(cell).some(
-        (next) =>
-          !inside(next) ||
-          (!supported.has(cellKey(next)) && !boundary.has(cellKey(next))),
-      )
-    )
-      queue.push(cell);
+function interiorAt(state, level) {
+  const rooms = roomsFor(state),
+    y = placementFooting({ x: 0, z: 0, level }).y;
+  if (
+    !Number.isInteger(level) ||
+    y < rooms.terrain.bounds.min[1] ||
+    y >= rooms.terrain.bounds.max[1]
+  )
+    return new Set();
+  let result = rooms.levels.get(level);
+  if (!result) {
+    result = roomInterior(rooms.geometry, level, rooms.doors, rooms.landings);
+    rooms.levels.set(level, result);
   }
-  for (let i = 0; i < queue.length; i++) {
-    const cell = queue[i];
-    const key = cellKey(cell);
-    if (outside.has(key) || boundary.has(key)) continue;
-    outside.add(key);
-    for (const next of neighbors(cell))
-      if (supported.has(cellKey(next))) queue.push(next);
-  }
-  return new Set(
-    [...supported].filter((key) => !outside.has(key) && !boundary.has(key)),
-  );
+  return result;
 }
-export function roofSupported(
-  state,
-  site,
-  interior = indoors(state, site.level),
-) {
-  return (
-    interior.has(cellKey(site)) ||
-    state.sites.some(
-      (s) =>
-        sameCell(s, site) &&
-        s.finishedAt !== null &&
-        (s.type === "wall" || s.type === "door"),
-    )
-  );
+export function indoors(state, level = 0) {
+  return new Set(interiorAt(state, level));
+}
+export function roofSupported(state, site) {
+  return structuralSupport(state, { ...site, type: "roof" }).span(site);
 }
 export function shelteredBeds(state) {
   const beds = state.sites.filter(
     (site) => site.type === "bed" && site.finishedAt !== null,
   );
+  const spaces = createNavigationSpaces(state);
   return beds.filter((s) => {
     const interior = indoors(state, s.level);
-    const blocked = blockedCells(state);
+    const space = spaces({ kind: "bed", site: s.id });
     const entrances = state.sites.filter(
       (door) =>
         door.level === s.level &&
         door.type === "door" &&
         door.finishedAt !== null &&
-        neighbors(door).some(
+        placementNeighbors(door).some(
           (cell) =>
-            inside(cell) &&
-            !interior.has(cellKey(cell)) &&
-            (s.level === 1 && !upperSupported(state, cell)
+            insidePlacement(cell) &&
+            !interior.has(placementKey(cell)) &&
+            (!surfaceSupported(state, cell)
               ? true
-              : !blocked.has(cellKey(cell))),
+              : standing(space, placementFooting(cell), HUMAN_NAVIGATION) ===
+                "supported"),
         ),
     );
     return (
-      entrances.some((door) => route(door, s, blocked, state) !== null) &&
+      entrances.some(
+        (door) =>
+          physicalRoute(
+            space,
+            placementFooting(door),
+            placementFooting(s),
+            HUMAN_NAVIGATION,
+          ).kind === "route",
+      ) &&
       footprint(s).every(
         (cell) =>
-          interior.has(cellKey(cell)) &&
-          (s.level === 0 || upperSupported(state, cell)) &&
+          interior.has(placementKey(cell)) &&
+          surfaceSupported(state, cell) &&
           coverAt(state, cell),
       )
     );

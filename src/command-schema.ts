@@ -1,5 +1,6 @@
 import { voxelSchema } from "./terrain.ts";
 import { z } from "zod";
+import { footingSchema } from "./engine/world/footing.ts";
 import type { Command } from "./model.ts";
 const id = z.string().min(1).max(160);
 const integer = z
@@ -73,7 +74,7 @@ export const commandSchema = z.discriminatedUnion("kind", [
       kind: z.literal("go"),
       party: id,
       actor: id,
-      target: z.object(cell).strict(),
+      target: footingSchema,
     })
     .strict(),
   z.object({ kind: z.literal("recruit"), party: id, actor: id }).strict(),

@@ -1,22 +1,35 @@
 import type { Actor, ActorId, Body, Clearing, Scope } from "./model.ts";
 import { initialNeeds } from "./needs.ts";
+import type { Footing } from "./engine/world/footing.ts";
 
-export function body(x: number, z: number): Body {
-  return { x, z, level: 0, dir: 0, mode: "idle", path: [], leg: 0, work: 0 };
+export function body(
+  at: Footing,
+  navigationProfile: Body["navigationProfile"] = "upright",
+): Body {
+  return {
+    x: at.x,
+    y: at.y,
+    z: at.z,
+    dir: 0,
+    mode: "idle",
+    traversal: null,
+    navigationProfile,
+    work: 0,
+  };
 }
 export function actor(
   id: ActorId,
   name: string,
   figure: string,
-  x: number,
-  z: number,
+  at: Footing,
 ): Actor {
   return {
-    ...body(x, z),
+    ...body(at),
     id,
     name,
     figure,
     drafted: false,
+    workDisposition: "continue",
     needs: initialNeeds(),
     routine: false,
     allowedWork: {

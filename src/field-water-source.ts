@@ -1,3 +1,4 @@
+import { placementFooting } from "./game-space.ts";
 import { z } from "zod";
 import type { Cell, Clearing } from "./model.ts";
 import {
@@ -67,7 +68,7 @@ function rimCells(
     const cell = { x: x + dx, z: z + dz, level: 0 };
     // The registered wet footprint is interior to this bounded clearing.
     // Terrain owns standing support; the route owner checks all other occupancy.
-    return terrainCell(state.terrain, cell.x, cell.z).support ? [cell] : [];
+    return terrainCell(state.terrain, cell.x, cell.z).support ? [placementFooting(cell)] : [];
   });
 }
 function canDraw(column: FieldColumn) {
@@ -98,7 +99,7 @@ export function fieldWaterSupplyKey(state: Pick<Clearing, "terrain">): string {
     fieldWaterSources(state).map((source) => [
       source.nodeId,
       source.availableUnits,
-      source.accessCells.map((cell) => [cell.x, cell.z, cell.level]),
+      source.accessCells.map((cell) => [cell.x, cell.y, cell.z]),
     ]),
   );
 }
