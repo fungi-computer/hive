@@ -99,6 +99,32 @@ No unchanged historical matrix or numerical/editor replay is required. Actual
 combined startup/input/render/performance and same-preview publication still
 remain before the playable goal can be complete.
 
+The next reviewed source join at `18ac52d` adds two distinct fixes. The opt-in
+client recorder captures bounded actual step/HUD/view elapsed spans and Pixi
+submission gaps through the existing ticker; it has no separate clock or saved
+authority. Its four laws are authored, not run, and no performance number follows
+from instrumentation. The paid-room measurement needs an already-loaded valid
+checkpoint and public unpause; ordinary Reset stops capture. Root and Ampere
+reviewed ticker order, retention and the corrected single terminal timestamp.
+
+The underground readiness trace found a real roofed-descent knowledge deadlock:
+the eye-centred four-voxel range excluded an adjacent lower foothold that could
+legally be dug. Sight range now measures distance to the occupied foot-to-eye
+column, while the actual eye still owns conservative ray/face occlusion. Root and
+Meitner accepted exact source `4e6ea47`, integrated as `19701b8`/`18ac52d`; its new
+law is an authored geometry and cold observation-memory fixture, not earned
+digging, whole-save, water-safety or two-chamber proof. The retained 30-cut descent
+candidate still needs actual work, material, water and movement qualification.
+
+The earlier clean `341b772` fifteen-law packet remains stopped until its actual
+shared-host release; this source join neither launches it nor changes its pin.
+Original loose/carried stone source `43e4805` is isolated in excavation-art.
+Its new stone textures are absent from the current static bank, so it must not
+join the playable caller until a changed-source export and personal visual review.
+No game or editor deployment has changed. The broader finite watershed and
+multi-DO limits are now explicit in the existing living-world contract; local
+Region durability and numerical laws do not prove distributed world capacity.
+
 **Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
 whole-clearing water and material balance through completion and current saves;
 Dig callers now share physical voxel targets and bounded work reach. `42e333f`
