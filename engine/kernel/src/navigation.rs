@@ -95,6 +95,15 @@ pub fn route(
             frame: end.frame.clone(),
         })
         .collect::<VecDeque<_>>();
+    let start_center = Point {
+        x: from.0 as f64,
+        y: start.y,
+        z: from.2 as f64,
+        frame: end.frame.clone(),
+    };
+    if distance(start.clone(), start_center.clone()) > 1e-9 {
+        result.push_front(start_center);
+    }
     // The end can be between cell centers; it remains an actual world pose.
     if result
         .back()
@@ -136,7 +145,13 @@ pub fn validate_saved_path(
         let dz = (point.z - previous.z).abs();
         let same_cell = cell(point.clone()) == cell(previous.clone());
         let final_point = index + 1 == path.len();
-        let legal = if final_point && same_cell {
+        let legal = if index == 0 && same_cell {
+            // A fractional actor may begin inside the rounded start cell. The
+            // route records its center before cardinal cell-to-cell segments;
+            // this short diagonal remains entirely inside that already
+            // occupied start cell.
+            dx <= 1.0 + 1e-9 && dz <= 1.0 + 1e-9
+        } else if final_point && same_cell {
             dx <= 1.0 + 1e-9 && dz <= 1.0 + 1e-9
         } else {
             (dx <= 1e-9 && dz <= 1.0 + 1e-9)
@@ -175,5 +190,56 @@ pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: 
             position.z = moved.z;
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fractional_partial_route_roundtrips_through_saved_validator() {
+        let start = Point {
+            x: 0.4,
+            y: 0.0,
+            z: 0.4,
+            frame: None,
+        };
+        let end = Point {
+            x: 3.2,
+            y: 0.0,
+            z: 0.4,
+            frame: None,
+        };
+        let path = route(start.clone(), end.clone(), &BTreeSet::new(), None)
+            .expect("fractional route");
+        validate_saved_path(start, &path.clone().into_iter().collect::<Vec<_>>(), end, &BTreeSet::new(), None)
+            .expect("generated route must validate after a save");
+        assert_eq!(path.front().map(|point| (point.x, point.z)), Some((0.0, 0.0)));
+    }
+
+    #[test]
+    fn saved_route_still_rejects_an_obstacle_cut() {
+        let start = Point {
+            x: 0.2,
+            y: 0.0,
+            z: 0.2,
+            frame: None,
+        };
+        let end = Point {
+            x: 2.0,
+            y: 0.0,
+            z: 0.2,
+            frame: None,
+        };
+        let mut blocked = BTreeSet::new();
+        blocked.insert((1, 0, 0));
+        let forged = vec![Point {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+            frame: None,
+        }];
+        assert!(validate_saved_path(start, &forged, end, &blocked, None).is_err());
     }
 }
