@@ -613,3 +613,21 @@ These are narrow closures of the declared foundation, not permission to reopen a
 full browser matrix. The current public cannon is a useful accepted interim.
 Moving-ship cannon reuse, deeper ecology, world transfers and large battles stay
 subsequent engine work; do not claim them from this foundation's checks.
+
+### Current acceptance blocker: fractional route recovery
+
+Public colony input u5152 admitted delivery, preserved cargo during interruption,
+and resumed, but did not complete. Continuous actualWASM runs completed; adding
+save/restore before each .25step (the host's committed-state pattern) failed in
+u5161: saved route cuts across a cell or obstacle. Actual hosted clock u5158 was
+near real time, so do not attribute this to generic server slowness.
+
+The native route producer skips the rounded start center even for fractional
+starts, producing a first diagonal segment the validator rejects. Source fix
+must align producer/validator without allowing obstacle cuts. It must also
+preserve an existing valid route for repeated same-destination commands: blindly
+recentering on each replan would create backward motion at short step intervals.
+Required affected proof is fractional progression with repeated orders and
+save/restore, plus retained obstacle rejection, then the actual colony consumer.
+This blocks full foundation acceptance; it does not invalidate the separately
+proved cannon, finite quantities or hosted publication receipts.
