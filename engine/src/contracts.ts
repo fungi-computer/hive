@@ -140,6 +140,7 @@ export interface GamePack {
   readonly definition: Uint8Array;
   readonly components: readonly ComponentDefinition<any>[];
   readonly systems: readonly SystemDefinition[];
+  readonly presentation?: import("./presentation").GamePresentation;
   readonly initialActions?: readonly ActionRequest[];
   readonly commands?: Readonly<
     Record<
