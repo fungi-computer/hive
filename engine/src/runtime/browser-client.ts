@@ -15,7 +15,7 @@ export function connectBrowserRuntime(options: BrowserConnectionOptions = {}): R
   let disposed = false;
   let stepping = false;
   let cadence: ReturnType<typeof setInterval> | undefined;
-  const onMessage = (event: MessageEvent<WorkerEvent>) => { if (!disposed) { if (event.data.type === "results") stepping = false; for (const listener of listeners) listener(event.data); } };
+  const onMessage = (event: MessageEvent<WorkerEvent>) => { if (!disposed) { if (event.data.type === "results" || event.data.type === "error") stepping = false; for (const listener of listeners) listener(event.data); } };
   worker.addEventListener("message", onMessage);
   const send = (command: WorkerCommand) => { if (disposed) throw new Error("runtime connection disposed"); worker.postMessage(command); };
   const startCadence = (delta: number) => {

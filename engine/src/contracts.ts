@@ -21,8 +21,6 @@ export interface EntityRecord {
 }
 export interface QuerySpec<T extends object = object> {
   readonly components: readonly ComponentDefinition<any>[];
-  readonly where?: (entity: EntityRecord) => boolean;
-  readonly select?: readonly string[];
   readonly __value?: T;
 }
 export interface QueryRow<T extends object = object> { readonly id: EntityId; readonly get: <V extends object>(definition: ComponentDefinition<V>) => V }
@@ -31,13 +29,11 @@ export type WriteIntent = { readonly component: ComponentId; readonly entity: En
 export type ActionRequest =
   | { readonly kind: "move"; readonly entity: EntityId; readonly destination: Vec3; readonly facing?: number }
   | { readonly kind: "transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly quantity: number }
-  | { readonly kind: "consume"; readonly entity: EntityId; readonly lot: EntityId; readonly quantity: number }
-  | { readonly kind: "select"; readonly entities: readonly EntityId[] }
-  | { readonly kind: "group-order"; readonly group: EntityId; readonly destination: Vec3; readonly facing: number };
+  | { readonly kind: "consume"; readonly entity: EntityId; readonly lot: EntityId; readonly quantity: number };
 export interface ActionResult { readonly accepted: boolean; readonly reason?: string; readonly revision: number }
 
 export interface SimulationClock { readonly now: number; readonly delta: number; readonly tick: number }
-export interface RandomSource { next(): number; state(): number; restore(state: number): void }
+export interface RandomSource { next(): number }
 export interface ReadContext {
   readonly clock: SimulationClock;
   readonly random: RandomSource;

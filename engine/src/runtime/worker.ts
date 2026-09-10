@@ -19,18 +19,18 @@ export type WorkerEvent =
 export class WorkerRuntime {
   private session?: GameSession;
   constructor(private readonly kernel: KernelPort, private readonly packs: Readonly<Record<string, GamePack>>, private readonly emit: (event: WorkerEvent) => void) {}
-  async command(command: WorkerCommand): Promise<void> {
+  command(command: WorkerCommand): void {
     try {
-      if (command.type === "start") { const pack = this.packs[command.game]; if (!pack) throw new Error(`unknown game ${command.game}`); this.session = new GameSession({ port: this.kernel, pack, seed: command.seed }); this.session.start(); this.emit({ type: "ready", game: pack.id }); return; }
+      if (command.type === "start") { const pack = this.packs[command.game]; if (!pack) throw new Error(`unknown game ${command.game}`); this.session = new GameSession({ port: this.kernel, pack, seed: command.seed }); this.session.start(); this.emit({ type: "ready", game: pack.id }); this.emit({ type: "frame", facts: this.kernel.renderFacts() }); return; }
       const session = this.session;
       if (!session) throw new Error("runtime has not started");
       if (command.type === "pause") session.pause();
       else if (command.type === "resume") session.resume();
-      else if (command.type === "reset") session.reset();
+      else if (command.type === "reset") { session.reset(); this.emit({ type: "frame", facts: session.renderFacts() }); }
       else if (command.type === "action") session.request(command.action);
-      else if (command.type === "save") this.emit({ type: "saved", snapshot: await session.save() });
-      else if (command.type === "restore") session.restore(command.snapshot);
-      else if (command.type === "step") { const results = await session.step(command.delta); this.emit({ type: "results", results }); this.emit({ type: "frame", facts: await session.renderFacts() }); }
+      else if (command.type === "save") this.emit({ type: "saved", snapshot: session.save() });
+      else if (command.type === "restore") { session.restore(command.snapshot); this.emit({ type: "frame", facts: session.renderFacts() }); }
+      else if (command.type === "step") { const results = session.step(command.delta); this.emit({ type: "results", results }); this.emit({ type: "frame", facts: session.renderFacts() }); }
     } catch (error) { this.emit({ type: "error", message: error instanceof Error ? error.message : String(error) }); }
   }
 }

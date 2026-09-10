@@ -1,11 +1,11 @@
 import type { ActionRequest, ActionResult, GamePack, KernelPort, QuerySpec, QueryRow, RandomSource, SimulationClock, WriteContext, WriteIntent } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
-  private state: number;
-  constructor(seed: number) { this.state = seed >>> 0; }
-  next(): number { this.state = Math.imul(1664525, this.state) + 1013904223 | 0; return (this.state >>> 0) / 0x1_0000_0000; }
-  state(): number { return this.state; }
-  restore(value: number): void { if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new Error("invalid random state"); this.state = value >>> 0; }
+  private value: number;
+  constructor(seed: number) { this.value = seed >>> 0; }
+  next(): number { this.value = Math.imul(1664525, this.value) + 1013904223 | 0; return (this.value >>> 0) / 0x1_0000_0000; }
+  state(): number { return this.value >>> 0; }
+  restore(value: number): void { if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new Error("invalid random state"); this.value = value >>> 0; }
 }
 
 export interface SessionOptions { readonly seed?: number; readonly port: KernelPort; readonly pack: GamePack }
@@ -13,24 +13,25 @@ export interface SessionSnapshot { readonly format: "hive-session"; readonly ver
 export class GameSession {
   readonly pack: GamePack;
   private readonly port: KernelPort;
-  private readonly random: RandomSource;
+  private readonly random: DeterministicRandom;
+  private readonly seed: number;
   private paused = false;
   private now = 0;
   private tick = 0;
   private pendingWrites: WriteIntent[] = [];
   private pendingActions: ActionRequest[] = [];
   constructor(options: SessionOptions) {
-    this.pack = options.pack; this.port = options.port; this.random = new DeterministicRandom(options.seed ?? 1);
+    this.pack = options.pack; this.port = options.port; this.seed = (options.seed ?? 1) >>> 0; this.random = new DeterministicRandom(this.seed);
   }
   start(): void { this.port.load(this.pack.definition); if (this.pack.initialActions) this.pendingActions.push(...this.pack.initialActions); }
   pause(): void { this.paused = true; }
   resume(): void { this.paused = false; }
   get isPaused(): boolean { return this.paused; }
-  reset(): void { this.now = 0; this.tick = 0; this.pendingWrites = []; this.pendingActions = []; this.start(); }
+  reset(): void { this.random.restore(this.seed); this.paused = false; this.now = 0; this.tick = 0; this.pendingWrites = []; this.pendingActions = []; this.start(); }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] { return this.port.query(spec); }
   request(action: ActionRequest): void { this.pendingActions.push(action); }
   step(delta: number): readonly ActionResult[] {
-    if (delta < 0 || !Number.isFinite(delta)) throw new Error("delta must be finite and non-negative");
+    if (delta < 0 || delta > 1 || !Number.isFinite(delta)) throw new Error("delta must be finite and between zero and one second");
     if (this.paused) return [];
     const before = this.save();
     try {
@@ -51,7 +52,6 @@ export class GameSession {
         definition.run(context);
       }
       const results = this.port.advance(delta, writes, actions);
-      if (results.some(result => !result.accepted)) throw new Error(results.find(result => !result.accepted)?.reason ?? "kernel rejected action");
       this.now += delta; this.tick++;
       return results;
     } catch (error) {

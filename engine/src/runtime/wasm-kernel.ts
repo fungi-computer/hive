@@ -18,7 +18,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       const result = JSON.parse(binding.advance(JSON.stringify({ delta, writes, actions }))) as { results: ActionResult[] };
       return result.results;
     },
-    snapshot() { const json = binding.snapshot(); const parsed = JSON.parse(json) as Omit<KernelSnapshot, "json">; return { ...parsed, json }; },
+    snapshot() { const json = binding.snapshot(); const parsed = JSON.parse(json) as Omit<KernelSnapshot, "json">; return { format: parsed.format, version: parsed.version, revision: parsed.revision, time: parsed.time, json }; },
     restore(snapshot) { binding.restore(snapshot.json); },
     renderFacts(limit = 512) { return (JSON.parse(binding.render_facts()) as RenderFact[]).slice(0, limit); },
   };
