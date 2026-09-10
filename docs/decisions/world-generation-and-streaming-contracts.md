@@ -1,5 +1,46 @@
 # World generation and streaming contracts
 
+## Simplified environmental physics must retain 3D topology — September 10
+
+Levi reaffirms multiple upper storeys, deep excavation and caves while asking
+for dramatically simpler water and gas. Simplify the equations and update cost;
+do not shrink the world representation to Ground/Upper or open surface pits.
+These were already requirements of the vertical amendment below. Root owns
+carrying them into the replacement design; this record does not claim runtime
+implementation, tested depth or performance.
+
+- Water ownership must represent multiple separate wet/empty intervals at the
+  same x/z: a surface channel, intact rock, a roofed cave, another rock layer and
+  a deeper chamber. Use signed physical cells or derived connected volumes with
+  actual faces. A single terrain height or permanently vented column cannot be
+  the authoritative representation. An open pit is one valid shape among these.
+- Simpler neighboring finite-water transfers and soil moisture/retention rules
+  may approximate pressure and flow speed. Groundwater entry into a dug chamber
+  still needs a real finite source, capacity and connection. No automatic sky
+  vent, hidden water source or discarded trapped air follows from excavation.
+  Sealed pressure fidelity is an explicit remaining model decision; geometry
+  must represent the chamber even before every pressurized behavior is ready.
+- A lower/upper air-zone proposal means zones **inside each room**, never two
+  world floors. Derive room/height compartments from actual walls, floors,
+  ceilings and openings. Bound subdivision in long caves and tall shafts so
+  smoke does not instantly mix across an entire connected dungeon. Stairs and
+  vents connect the correct heights; an intact floor separates room air above
+  and below. Splits/merges redistribute existing quantities once.
+- The same physical geometry supplies movement clearance, fluid connectivity,
+  excavation, placement and picking. Camera cutaway and selected layer cannot
+  open a physical boundary or reveal an unknown cave through player queries.
+  World state survives save/DO eviction; derived room/face indexes are rebuilt.
+
+The representative vertical acceptance shape is a tower with at least three
+above-ground storeys and two underground chambers at different depths. An
+earned surface channel opens into a roofed chamber; water respects its ceiling
+and exits. A lower fire sends smoke through actual shaft/door connections to a
+high vent, while a closed neighboring chamber stays separate. This uses the
+ordinary materials, jobs, movement, save and room owners. Whole-clearing water
+and the first smoking room are useful delivery checkpoints, not closure of this
+vertical requirement. Measure actual active fluid volumes and work in that
+shape; a large empty coordinate envelope is not a capacity result.
+
 ## Vertical-world amendment, September 9
 
 Levi explicitly requires deep digging and witch towers as the reusable engine

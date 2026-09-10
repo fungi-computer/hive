@@ -25,6 +25,48 @@ history differs), deployment `9e8d5601-9249-4e61-ae6a-c35c469a530d`, on the
 All 100 hosted files match the accepted dist; no rebuild followed the input proof.
 The prior `4a6931c` deployment and its actual published dist remain the rollback.
 
+**Live defect and priority correction, Levi September 10:** the released Dig
+command incorrectly treats membership in the water witness fixture as terrain
+permission. `goblin-terrain.ts` imports `createWetClearing({ connected: true })`
+and rejects voxels absent from its 32 original soil cells. These occupy local
+x6..9/z8..11; the required neighboring water owners leave only the x7..8/z9..10
+interior for straightforward surface cuts, before ordinary occupancy/reach rules.
+The successful chosen-cell witness did not establish map-wide Dig usability.
+Root accepted that incomplete consumer and owns the correction.
+
+A highlight-only patch is withdrawn before runtime edits. Generated material,
+exposure, actor capability/reach and physical occupancy must determine valid
+excavation. The registered water domain is an implementation concern, not a
+coordinate whitelist for the player. Retain genuine map bounds and physical
+constraints. Extend the current field/world ownership so affected terrain and
+neighbor contacts obtain consistent water state before compound completion;
+never bypass the ledger, label unowned soil dry, or silently close a frontier.
+The existing generator supplies material but not water quantity. The remaining
+design/source work therefore includes an explicit deterministic initial stock
+definition, saved water changes and conservation across field activation and
+restore. Work budgets may defer work through the existing owner; they must not
+change a soil material's diggability. This is not yet implemented or qualified.
+
+Root owns the correction in isolated `dig-affordance`; Meitner owns read-only
+source review. Hume's physical-navigation and Ampere's static-art work retain
+their current Sessions/files. Acceptance must exercise distinct valid locations
+across the clearing and field boundaries, plus quantity/retry/restore laws, not
+only the original prepared coordinate. Levi's latest staffing clarification
+retains native Codex authors; no Shiitake worker transition is requested here.
+
+**Model simplification and vertical scope, Levi September 10:** reevaluate the
+runtime water/air methods at voxel-game fidelity before optimizing the existing
+research solvers. Whole-clearing water and smoke from actual room fires are the
+next product outcomes. Simpler finite neighboring transfers, retained soil
+moisture and bounded room/height air compartments are under source review;
+no capacity claim or replacement runtime is accepted yet. Deep caves and
+multiple upper storeys remain mandatory: see the
+[simplified environmental 3D contract](world-generation-and-streaming-contracts.md#simplified-environmental-physics-must-retain-3d-topology--september-10).
+The old vented-pit and two-storey witnesses cannot become permanent engine
+geometry limits. The stopped environment qualification remains unstarted;
+its earlier heavy-window release was explicitly withdrawn, and no numerical
+result is inferred from its prepared packet.
+
 Actual `u4622` passed six desktop assertions: public Sedge parking, paused Dig,
 pawn completion/one soil lot, exact hollow inspection, close/box behavior and
 armed-Dig/right-click cancellation/reinspection. The earned hollow displayed
