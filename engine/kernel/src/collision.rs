@@ -275,8 +275,12 @@ mod tests {
             .expect("valid sweep")
             .expect("crossing hit");
         assert_eq!(hit.target_id, "wall");
-        assert!((hit.time - 0.465).abs() < 1e-9, "actual hit: {hit:?}");
-        assert!(hit.point[0].is_finite());
+        // Judge iterative contact accuracy in world units: less than 1/1024 voxel.
+        let tolerance = 1.0 / 1024.0;
+        assert!((hit.time - 0.465).abs() * 10.0 < tolerance, "actual hit: {hit:?}");
+        assert!((hit.point[0] + 0.25).abs() < tolerance);
+        assert!(hit.point[1].abs() < tolerance && hit.point[2].abs() < tolerance);
+        assert!((hit.normal[0] - 1.0).abs() < tolerance);
     }
 
     #[test]
