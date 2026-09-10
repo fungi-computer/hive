@@ -335,3 +335,13 @@ Before-commit fault rolls back, after-commit lost response replays exactly, and
 finite cargo remains seven units with goods delivered to the hold. Original
 crew local pose remains unchanged by resumed ship movement. This is actual local
 SQLite DO evidence, not a hosted multiplayer or capacity claim.
+
+## Foundation audit after release
+
+Independent source audit identifies remaining hosted-client join, colony/formation
+DO consumer qualification and requested cannon-impact progression. Boarding is
+not part of the accepted starting-aboard raft. Root found SDK index importing
+worker-entry, whose top-level code accesses self and boots WASM. Removed that
+export: Worker installation remains internal to browser entry; public WorkerRuntime
+and GameSession remain available. Added piratesPack beside the other pack exports.
+This is a source correction pending the next affected type/import check.
