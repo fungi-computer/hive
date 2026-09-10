@@ -11,6 +11,17 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Clearing performance implementation active, Levi September 10:** Luna native
+workers own the air producer, navigation/supply queries and short actual-clearing
+measurement, with King Bolete reviewing source and owning water, engine metrics
+and integration. Isolated roots are `clearing-air-perf`, `clearing-query-perf`,
+`clearing-perf-measure` and `clearing-water-perf`. Water owner handoff/query reuse
+and no-transfer allocation changes are integrated at `9723f49` as an unqualified
+candidate; this does not change the live preview. First measure the existing
+caller/rebuild correction before altering field cadence or saved time frontiers.
+Use one frozen baseline and a joined affected gate/candidate comparison, not a
+historical test matrix. The benchmark source pin is `9321d4d`; no result yet.
+
 **Implementation guide, Levi September 10:** the [durable pseudocode guide](engine-implementation-guide.md)
 now owns detailed handoffs for the next chunks: A playable water/gas/terrain hot
 path, B shared headless browser/DO host join, C extracted needs and finite
