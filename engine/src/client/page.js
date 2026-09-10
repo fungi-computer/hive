@@ -8,7 +8,7 @@ const mode = document.body.dataset.mode || "hub";
 const configs = {
   colony: {
     title: "Colony",
-    subtitle: "Select workers and send a shared delivery order.",
+    subtitle: "A worker carries one finite meal to a hungry guest; interrupt and watch custody resume.",
     source: "./source/colony.ts",
   },
   survival: {
@@ -19,8 +19,7 @@ const configs = {
   },
   formations: {
     title: "Formations",
-    orderCommand: "march",
-    subtitle: "Select a group, set a destination, and practice a morale rule.",
+    subtitle: "Select a small group and set a destination; the formation marches together.",
     source: "./source/formations.ts",
   },
 };

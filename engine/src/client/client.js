@@ -33,6 +33,8 @@ export function createHiveClient({
     dragging: null,
     disposed: false,
     subjects: [],
+    pendingSave: false,
+    pendingRestore: false,
     message: runtime
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
@@ -46,13 +48,15 @@ export function createHiveClient({
       runtime.send({ type: "action", action: action.action });
     else if (runtime && action.kind === "pause")
       runtime.send({ type: state.paused ? "resume" : "pause" });
-    else if (runtime && action.kind === "save") runtime.send({ type: "save" });
+    else if (runtime && action.kind === "save") { state.pendingSave = true; state.message = "Save requested…"; runtime.send({ type: "save" }); }
     else if (runtime && action.kind === "reset")
       runtime.send({ type: "reset" });
     else if (action.kind === "continue") {
       try {
         const saved = localStorage.getItem(saveKey);
         if (!saved) throw new Error("No saved world yet");
+        state.pendingRestore = true;
+        state.message = "Continue requested…";
         runtime.send({ type: "restore", snapshot: JSON.parse(saved) });
       } catch (error) {
         state.message = error.message;
@@ -112,13 +116,14 @@ export function createHiveClient({
             ),
             React.createElement(
               Button,
-              { onClick: () => act("save"), size: "sm", variant: "outline" },
+              { onClick: () => act("save"), disabled: state.pendingSave || state.pendingRestore, size: "sm", variant: "outline" },
               "Save",
             ),
             React.createElement(
               Button,
               {
                 onClick: () => act("continue"),
+                disabled: state.pendingSave || state.pendingRestore,
                 size: "sm",
                 variant: "outline",
               },
@@ -319,15 +324,6 @@ export function createHiveClient({
       (at.x - camera.x) / camera.zoom,
       (at.y - camera.y) / camera.zoom,
     );
-    if (orderCommand) {
-      if (state.selectedIds.length)
-        runtime.send({
-          type: "command",
-          name: orderCommand,
-          input: { entities: state.selectedIds, destination: world },
-        });
-      return;
-    }
     for (const id of state.selectedIds)
       emit({
         kind: "action",
@@ -376,10 +372,8 @@ export function createHiveClient({
         });
       } else if (key === "e" || key === "f") {
         event.preventDefault();
-        runtime.send({
-          type: "command",
-          name: key === "e" ? "takeFood" : "eatFood",
-        });
+        const actorId = state.selectedIds[0], lotId = state.selectedIds[1], sourceId = state.selectedIds[2];
+        if (actorId && lotId && (key === "f" || sourceId)) emit({ kind: "action", action: key === "e" ? { kind: "transfer", lot: lotId, from: sourceId, to: actorId, quantity: 1 } : { kind: "consume", entity: actorId, lot: lotId, quantity: 1 } });
       }
     }
   }
@@ -489,6 +483,7 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "saved") {
+        state.pendingSave = false;
         try {
           localStorage.setItem(saveKey, JSON.stringify(event.snapshot));
           state.message = "Saved in this browser";
@@ -501,7 +496,14 @@ export function createHiveClient({
         state.message = "World ready";
         renderHud();
       }
+      if (event.type === "state" && state.pendingRestore) {
+        state.pendingRestore = false;
+        state.message = "Continued from the acknowledged save";
+        renderHud();
+      }
       if (event.type === "error") {
+        state.pendingSave = false;
+        state.pendingRestore = false;
         state.message = event.message;
         renderHud();
       }
