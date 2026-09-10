@@ -351,6 +351,18 @@ behavior, what can be tried, and the next unresolved decision. Give Levi the
 working page as soon as the joined behavior is reviewable. Do not wait for every
 future engine capability to be complete before feedback.
 
+**Levi's hourly demonstration direction:** while actively implementing, aim for
+one small playable or visibly meaningful proof roughly every hour. Choose chunks
+that can reach this feedback loop: a shared control working, a real transfer,
+a custom TS rule changing play, or a saved world returning correctly. Publish
+coherent, clearly labeled interims on the shared demo site when ready; include
+an accurate short description and a useful image or short clip when it helps
+Levi share the result. Use original assets and public example source, never
+private transcripts or credentials. This is a delivery target, not permission
+to fabricate progress or deploy a broken candidate. If an hour produces no
+shareable result, explain the concrete blocker and the smallest next result;
+keep implementation moving without restarting a broad research or proof cycle.
+
 Use focused laws for ownership/retry/custom-state behavior and short changed-input
 checks. Combine checks for a coherent joined candidate; repeat only invalidated
 evidence. Levi cancelled the old clearing browser witness and stopped expensive
