@@ -249,16 +249,17 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
 
   const takeCursorA = eventsA.length;
   clientA.send({ type: "command", name: "takeFood" });
-  await waitUntil(() => clientAAttempts.length >= 2, "take retry");
+  const takeAttempts = () => clientAAttempts.filter((attempt) => JSON.parse(attempt.body).command?.name === "takeFood");
+  await waitUntil(() => takeAttempts().length >= 2, "take retry");
   await waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 3, "take observation", takeCursorA);
-  assert.equal(clientAAttempts.length, 2, "lost take response was retried");
-  assert.equal(clientAAttempts[0].body, clientAAttempts[1].body, "take retry reused exact envelope");
-  assert.equal(clientAAttempts[0].status, 200);
-  assert.equal(clientAAttempts[1].status, 200);
-  assert.equal(clientAAttempts[0].receipt?.status, "applied");
-  assert.equal(clientAAttempts[1].receipt?.status, "applied");
-  assert.equal(clientAAttempts[0].receipt?.revision, 3);
-  assert.equal(clientAAttempts[1].receipt?.revision, 3);
+  assert.equal(takeAttempts().length, 2, "lost take response was retried");
+  assert.equal(takeAttempts()[0].body, takeAttempts()[1].body, "take retry reused exact envelope");
+  assert.equal(takeAttempts()[0].status, 200);
+  assert.equal(takeAttempts()[1].status, 200);
+  assert.equal(takeAttempts()[0].receipt?.status, "applied");
+  assert.equal(takeAttempts()[1].receipt?.status, "applied");
+  assert.equal(takeAttempts()[0].receipt?.revision, 3);
+  assert.equal(takeAttempts()[1].receipt?.revision, 3);
   const afterTake = await observe(secrets.WRITER_SECRET);
   assert.equal(afterTake.revision, 3, "lost command response commits exactly once");
   const takeStepCursorA = eventsA.length;
