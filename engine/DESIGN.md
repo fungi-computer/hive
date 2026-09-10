@@ -38,6 +38,14 @@ The numeric restore correction, changed consumer checks and coherent publication
 remain the immediate release work. Deep-world physics and new host frameworks do
 not replace these concrete player-facing gaps.
 
+### Current delivery cadence amendment
+
+Levi is going to bed and explicitly asks for implementation over frequent demo
+publication. Keep current demos live, hold routine deployments and batch the next
+coherent release. This temporarily supersedes the hourly publication cadence;
+it does not remove the playable-consumer requirements or authorize hidden scope
+expansion.
+
 ## Read this first
 
 Build an engine that people can use to write different games in TypeScript,

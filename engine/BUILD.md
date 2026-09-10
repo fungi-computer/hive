@@ -111,3 +111,15 @@ new exact fractional snapshot regression passed (one named law, 12 existing laws
 filtered). WASM compilation is still pending at this checkpoint. Prior live
 3478538 engine assets were recovered into .botanical/fresh-browser/rollback-3478538:
 all 29 files matched the published manifest, preserving the exact browser rollback.
+
+The corrected WASM built in u4897 (exit 0):
+70c7e77f62793a8b4a0309d0e2502b1b9a4b43c53787ee21a06b2d8c6467dcc8.
+The earlier u4894 native law passed but WASM compilation failed on full root disk.
+Cargo dev-cache cleanup recovered space; after compilation finished, this lane's
+engine/kernel/target moved to /mnt/fungi-data/botanical-work/hive-build-cache/
+fresh-engine-target with a local symlink. No source/store/artifact move.
+u4899 browser build passed; u4900 colony-only exact Save/Continue comparison passed,
+closing u4883's numeric restore failure. Scope inactive/dead/empty.
+Levi's bedtime amendment pauses routine publications: batch the next release and
+continue implementation. Live browser remains 3478538; corrected local dist is
+held, not advertised as hosted.
