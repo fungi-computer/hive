@@ -32,7 +32,8 @@ export const STATIC_ART_RENDER = Object.freeze({
 const SHA256 = /^[a-f0-9]{64}$/;
 const FILE = /^[a-z0-9][a-z0-9._-]*\.png$/;
 const SOURCE = /^(?:src|scripts)\/[A-Za-z0-9._/-]+$|^package-lock\.json$/;
-const KEY = /^(?:[a-z][a-z0-9-]*|0|[1-9][0-9]{0,3})$/;
+// Texture paths preserve the original lower-camelCase art properties.
+const KEY = /^(?:[a-z][A-Za-z0-9-]*|0|[1-9][0-9]{0,3})$/;
 const INHERITED_KEYS = new Set(Object.getOwnPropertyNames(Object.prototype));
 const RESERVED_ROOTS = new Set([
   "ground",
@@ -40,6 +41,7 @@ const RESERVED_ROOTS = new Set([
   "propAnchor",
   "bakeTerrain",
   "bakeTerrainWater",
+  "bakeTerrainSlice",
   "dispose",
 ]);
 
