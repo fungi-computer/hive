@@ -193,6 +193,29 @@ the public website merely to call it an editor.
 
 ## 4. How the API earns its shape
 
+### Character depth is retained, not replaced by the first demos
+
+Levi reaffirmed deep needs, traits, skills and relationships on September 10.
+Retain the [needs/hospitality/social contract](../docs/decisions/living-world-system-contracts.md)
+and its RimWorld/mod research. Hunger and fatigue demonstrate the authoring
+boundary; they are not the intended ceiling of character simulation.
+
+Game-authored capabilities apply to player bodies, workers, guests and prisoners
+through membership, not separate copies of need logic. Traits modify rates and
+preferences; skills modify eligible work, duration and outcomes; directed
+relationship records reference stable people and influence cooperation, conflict
+and recruitment. The engine owns identity, validated references, queries and
+atomic writes/actions. Goblin owns the meanings, definitions and social policies.
+Do not put fixed Goblin personality fields in the Rust kernel or accumulate every
+possible trait as optional fields on one universal pawn.
+
+Changes derived from a completed meal, work or social encounter must follow
+committed outcomes and survive retry/save/restart without awarding the effect
+twice. Bounded relationship queries and scheduled need changes must not require
+all-pairs social scans or continuous ticks in every sleeping region. These are
+design constraints for later consumers, not claims that the current scalar
+schema already provides a complete relationship graph or need scheduler.
+
 Write the three author-facing TS examples alongside the public contract before
 implementing a large engine surface. They must reveal how a creator declares
 new state, asks for relevant entities, writes a rule and invokes a physical action.

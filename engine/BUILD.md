@@ -165,3 +165,13 @@ writes. Source: tools/fresh-engine-do/proof.mjs; actual evidence:
 Scope inactive/dead/empty, port 8789 clear, generated config removed. This closes
 the current local schema-4/native restart witness; it is not hosted DO, alarm,
 multiplayer capacity or new browser evidence. Deployment remains held for bedtime.
+
+Independent author exercise 2007a5d/cd5ad33 joined as f0058cc/5cc0c2e. The author
+used public examples/contracts and exposed the duplicate component-list hazard;
+one shared list corrected pack/encoded registration before qualification.
+u4924 strict types and one named actual-WASM fatigue law passed: actual movement
+increases fatigue, stationary steps reduce it, a second native instance restores
+the custom fields and continues to an identical snapshot. Two empty filtered
+files are not extra laws. Scope inactive/dead/empty. WASM remains exactly
+70c7e77f62793a8b4a0309d0e2502b1b9a4b43c53787ee21a06b2d8c6467dcc8;
+no Rust or generated output changed for the author exercise.

@@ -5,12 +5,51 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { wasmKernelPort } from "./wasm-kernel";
 import { GameSession } from "./session";
 import { colonyPack } from "../games/colony";
-import { survivalPack, Condition } from "../games/survival";
+import { survivalPack, Condition, Fatigue } from "../games/survival";
 import { formationsPack, FormationMember } from "../games/formations";
 import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
+
+test("independently authored fatigue follows movement and survives restore", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const restoredPort = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: survivalPack });
+    session.start();
+    const fatigue = (world: GameSession) =>
+      world.query(query(Fatigue))[0].get(Fatigue);
+    session.step(0.1);
+    assert.equal(fatigue(session).value, 0);
+    session.request({
+      kind: "move",
+      entity: entity("survival.survivor.1"),
+      destination: { x: 2, y: 0, z: 0 },
+    });
+    session.step(0.1);
+    session.step(0.1);
+    assert.ok(fatigue(session).value > 0);
+    for (let i = 0; i < 10; i++) session.step(0.1);
+    const saved = session.save();
+    const restored = new GameSession({
+      port: restoredPort,
+      pack: survivalPack,
+    });
+    restored.restore(saved);
+    assert.deepEqual(fatigue(restored), fatigue(session));
+    const before = fatigue(session).value;
+    for (let i = 0; i < 5; i++) {
+      session.step(0.1);
+      restored.step(0.1);
+    }
+    assert.ok(fatigue(session).value < before);
+    assert.deepEqual(restored.save(), session.save());
+  } finally {
+    port.dispose();
+    restoredPort.dispose();
+  }
+});
 
 test("colony delivery reaches the guest through the actual WASM owner", () => {
   const port = wasmKernelPort(new WasmKernel());
