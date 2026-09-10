@@ -24,7 +24,13 @@ export type WorkerEvent =
   | { readonly type: "ready"; readonly game: string }
   | { readonly type: "restored" }
   | { readonly type: "state"; readonly paused: boolean }
-  | { readonly type: "frame"; readonly facts: readonly RenderFact[] }
+  | {
+      readonly type: "frame";
+      readonly time: number;
+      readonly epoch: number;
+      readonly sequence: number;
+      readonly facts: readonly RenderFact[];
+    }
   | {
       readonly type: "presentation";
       readonly facts: readonly {
@@ -51,6 +57,19 @@ export class WorkerRuntime {
     private readonly packs: Readonly<Record<string, GamePack>>,
     private readonly emit: (event: WorkerEvent) => void,
   ) {}
+  private frameEpoch = 0;
+  private frameSequence = 0;
+  private emitFrame(discontinuity = false): void {
+    if (!this.session) return;
+    if (discontinuity) this.frameEpoch++;
+    this.emit({
+      type: "frame",
+      time: this.session.simulationTime,
+      epoch: this.frameEpoch,
+      sequence: ++this.frameSequence,
+      facts: this.session.renderFacts(),
+    });
+  }
   private emitPresentation(): void {
     if (!this.session) return;
     const pack = this.session.pack;
@@ -73,7 +92,7 @@ export class WorkerRuntime {
         this.session.start();
         this.emit({ type: "ready", game: pack.id });
         this.emit({ type: "state", paused: this.session.isPaused });
-        this.emit({ type: "frame", facts: this.kernel.renderFacts() });
+        this.emitFrame(true);
         this.emitPresentation();
         return;
       }
@@ -83,7 +102,7 @@ export class WorkerRuntime {
       else if (command.type === "resume") session.resume();
       else if (command.type === "reset") {
         session.reset();
-        this.emit({ type: "frame", facts: session.renderFacts() });
+        this.emitFrame(true);
         this.emitPresentation();
       } else if (command.type === "action") session.request(command.action);
       else if (command.type === "command")
@@ -93,12 +112,12 @@ export class WorkerRuntime {
       else if (command.type === "restore") {
         session.restore(command.snapshot);
         this.emit({ type: "restored" });
-        this.emit({ type: "frame", facts: session.renderFacts() });
+        this.emitFrame(true);
         this.emitPresentation();
       } else if (command.type === "step") {
         const results = session.step(command.delta);
         this.emit({ type: "results", results });
-        this.emit({ type: "frame", facts: session.renderFacts() });
+        this.emitFrame();
         this.emitPresentation();
       }
       if (["pause", "resume", "reset", "restore"].includes(command.type))

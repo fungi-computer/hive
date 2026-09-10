@@ -97,6 +97,9 @@ export class GameSession {
   get isPaused(): boolean {
     return this.paused;
   }
+  get simulationTime(): number {
+    return this.now;
+  }
   reset(): void {
     this.random.restore(this.seed);
     this.paused = false;
@@ -110,7 +113,10 @@ export class GameSession {
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     return this.port.query(spec);
   }
-  assign(candidates: readonly import("../contracts").AssignmentCandidate[], maxEdges = 128) {
+  assign(
+    candidates: readonly import("../contracts").AssignmentCandidate[],
+    maxEdges = 128,
+  ) {
     return this.port.assign(candidates, maxEdges);
   }
   request(action: ActionRequest): void {
