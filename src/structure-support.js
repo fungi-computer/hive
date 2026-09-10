@@ -11,23 +11,36 @@ import { SIZE, stairLanding } from "./world.js";
 
 // Rebuildable structural facts. No enclosure, furniture, or completed span can
 // become a new anchor. Only rooted columns and actual terrain seed a height.
-const cache = new WeakMap();
+const currentCache = new WeakMap();
+const proposedCache = new WeakMap();
+const supportFacts = ({ id, type, x, z, level, direction }) => [
+  id,
+  type,
+  x,
+  z,
+  level,
+  direction,
+];
+
 export function structuralSupport(state, proposed = null) {
   const terrain = terrainGeometry(state.terrain);
-  const sites = state.sites.filter(
-    (site) => site.finishedAt !== null && site.id !== proposed?.id,
-  );
-  if (proposed) sites.push(proposed);
-  const stamp = JSON.stringify(
-    sites.map(({ id, type, x, z, level, direction }) => [
-      id,
-      type,
-      x,
-      z,
-      level,
-      direction,
-    ]),
-  );
+  const current = state.sites.filter((site) => site.finishedAt !== null);
+  // A finished-site query is not an edit. Preserve its canonical order and
+  // cache entry; only a genuinely different proposal replaces/appends facts.
+  const proposedFacts = proposed ? supportFacts(proposed) : null;
+  const unchanged =
+    proposedFacts &&
+    current.some((site) =>
+      supportFacts(site).every(
+        (value, index) => value === proposedFacts[index],
+      ),
+    );
+  const edit = proposed && !unchanged ? proposed : null;
+  const sites = edit
+    ? [...current.filter((site) => site.id !== edit.id), edit]
+    : current;
+  const stamp = JSON.stringify(sites.map(supportFacts));
+  const cache = edit ? proposedCache : currentCache;
   const previous = cache.get(terrain);
   if (previous?.stamp === stamp) return previous.query;
   const range = placementLevels(state.terrain),
