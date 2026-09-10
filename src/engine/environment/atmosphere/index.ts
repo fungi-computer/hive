@@ -1,5 +1,10 @@
 import { advanceAtmosphere } from "./advance.ts";
-import { ATMOSPHERE_LIMITS, compileAtmosphere } from "./definition.ts";
+import {
+  ATMOSPHERE_LIMITS,
+  compileAtmosphere,
+  updateAtmosphereGeometry,
+  type CompiledAtmosphere,
+} from "./definition.ts";
 import { rebindAtmosphere } from "./rebind.ts";
 import { atmosphereFacts, initialState, validateState } from "./state.ts";
 
@@ -7,6 +12,7 @@ export type {
   AtmosphereAdvanceReceipt,
   AtmosphereDefinition,
   AtmosphereFacts,
+  AtmosphereGeometryMetricUpdate,
   AtmosphereMember,
   AtmosphereModel,
   AtmosphereOpeningDefinition,
@@ -25,11 +31,13 @@ export { ATMOSPHERE_LIMITS };
  * caller-defined room graph. This owner stores no clock, fuel, release cursor,
  * world cells or durable receipt. All results are detached candidates.
  */
-export function createAtmosphere(input: unknown) {
-  const compiled = compileAtmosphere(input);
+function owner(compiled: CompiledAtmosphere) {
   return Object.freeze({
     definition: compiled.definition,
     identity: compiled.identity,
+    admit: (state: unknown) => validateState(compiled, state),
+    updateGeometry: (input: unknown) =>
+      owner(updateAtmosphereGeometry(compiled, input)),
     initial: (parcels: unknown) => initialState(compiled, parcels),
     read: (state: unknown) => atmosphereFacts(compiled, state),
     advance: (
@@ -37,8 +45,10 @@ export function createAtmosphere(input: unknown) {
       seconds: number,
       options: Parameters<typeof advanceAtmosphere>[3] = {},
     ) => advanceAtmosphere(compiled, state, seconds, options),
-    rebind: (state: unknown, nextDefinition: unknown) =>
-      rebindAtmosphere(compiled, state, nextDefinition),
+    rebind: (state: unknown, nextDefinition: unknown) => {
+      const next = compileAtmosphere(nextDefinition);
+      return rebindAtmosphere(compiled, state, next.definition, next);
+    },
     encode: (state: unknown) => {
       const encoded = JSON.stringify(validateState(compiled, state));
       if (
@@ -58,4 +68,8 @@ export function createAtmosphere(input: unknown) {
       return validateState(compiled, JSON.parse(raw));
     },
   });
+}
+
+export function createAtmosphere(input: unknown) {
+  return owner(compileAtmosphere(input));
 }

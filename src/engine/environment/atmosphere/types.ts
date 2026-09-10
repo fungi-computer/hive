@@ -80,6 +80,20 @@ export type AtmosphereSource = {
   readonly heatJS: number;
 };
 
+export type AtmosphereGeometryMetricUpdate = {
+  readonly geometryIdentity: string;
+  readonly revision: number;
+  readonly memberVolumes: readonly {
+    readonly volumeId: string;
+    readonly cellId: string;
+    readonly volumeM3: number;
+  }[];
+  readonly openingAreas: readonly {
+    readonly openingId: string;
+    readonly areaM2: number;
+  }[];
+};
+
 export type AtmosphereVolumeFacts = AtmosphereParcel & {
   readonly volumeM3: number;
   readonly elevationM: number;
