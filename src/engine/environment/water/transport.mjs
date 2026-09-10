@@ -19,6 +19,8 @@ function touching(g, face, node, amount, other) {
 function request(g, face, masses, dtS) {
   const a = g.nodes[face.a],
     b = g.nodes[face.b];
+  if (mobile(a, masses[face.a]) === 0 && mobile(b, masses[face.b]) === 0)
+    return null;
   // Retained soil moisture is a capacity/rate rule, not a second reservoir.
   const soilIndex =
     a.kind === "soil" && b.kind === "void"
@@ -88,9 +90,17 @@ function request(g, face, masses, dtS) {
 /** All requests see one snapshot. Aggregate shared donor and receiver budgets
  * before applying any face. Incoming water is usable on the next substep only. */
 export function transferStep(g, massKg, dtS) {
-  const requests = g.faces
-    .map((face) => request(g, face, massKg, dtS))
-    .filter((r) => r && r.quantity > 0);
+  const requests = [];
+  for (const face of g.faces) {
+    const proposed = request(g, face, massKg, dtS);
+    if (proposed && proposed.quantity > 0) requests.push(proposed);
+  }
+  if (requests.length === 0)
+    return {
+      massKg,
+      flows: [],
+      work: { faces: g.faces.length, requests: 0, unresolved: 0 },
+    };
   const outgoing = new Float64Array(massKg.length),
     incoming = new Float64Array(massKg.length),
     absorbed = new Float64Array(massKg.length);
@@ -150,7 +160,7 @@ export function transferStep(g, massKg, dtS) {
     });
   }
   return {
-    massKg: next,
+    massKg: flows.length ? next : massKg,
     flows,
     work: { faces: g.faces.length, requests: requests.length, unresolved },
   };

@@ -27,10 +27,12 @@ function sourceSurface(g, mass, i) {
  * each partial source visits its neighbors once. This produces a parent forest,
  * not a separate flood search for every possible donor/receiver pair. */
 function wetForest(g, mass) {
-  const sources = g.nodes
-    .map((node, i) => ({ i, height: head(g, mass, i) }))
-    .filter(({ i }) => sourceSurface(g, mass, i))
-    .sort((a, b) => b.height - a.height || a.i - b.i);
+  const sources = [];
+  for (let i = 0; i < g.nodes.length; i++)
+    if (sourceSurface(g, mass, i))
+      sources.push({ i, height: head(g, mass, i) });
+  sources.sort((a, b) => b.height - a.height || a.i - b.i);
+  if (sources.length === 0) return { paths: [], visits: 0 };
   const parents = new Array(mass.length).fill(null),
     receivers = new Map();
   let visits = 0;
@@ -92,8 +94,20 @@ function wetForest(g, mass) {
  * This phase receives its own fraction of the host interval; its face capacities
  * cannot spend the local phase's time again. Shared necks spend one budget. */
 export function pressureStep(g, mass, dtS, pathBudget) {
-  const forest = wetForest(g, mass),
-    next = [...mass],
+  const forest = wetForest(g, mass);
+  if (forest.paths.length === 0)
+    return {
+      massKg: mass,
+      flows: [],
+      work: {
+        faces: forest.visits,
+        requests: 0,
+        unresolved: 0,
+        pathFaces: 0,
+        pressureDeferred: 0,
+      },
+    };
+  const next = [...mass],
     available = [...mass],
     space = mass.map((amount, i) => g.nodes[i].capacityKg - amount),
     throughput = g.faces.map(
@@ -174,7 +188,7 @@ export function pressureStep(g, mass, dtS, pathBudget) {
     }
   }
   return {
-    massKg: next,
+    massKg: flows.length ? next : mass,
     flows,
     work: {
       faces: forest.visits,

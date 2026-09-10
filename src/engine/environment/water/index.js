@@ -84,7 +84,10 @@ export function createWater(definition, limits) {
         for (const key of Object.keys(work))
           work[key] += (local.work[key] ?? 0) + (pressure.work[key] ?? 0);
       }
-      const next = admission.remember({ ...state, massKg });
+      const next =
+        massKg === state.massKg
+          ? state
+          : admission.remember({ ...state, massKg });
       return {
         state: next,
         receipt: freeze({
