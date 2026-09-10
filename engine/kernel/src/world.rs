@@ -596,6 +596,14 @@ impl Kernel {
                 }
             }
         }
+        for entity in candidate.ids.values() {
+            if let Some(projectile) = candidate.ecs.get::<Projectile>(*entity) {
+                let launcher = candidate.entity(&projectile.launcher)?;
+                if candidate.ecs.get::<Launcher>(launcher).is_none() {
+                    return Err("snapshot projectile launcher lacks launcher capability".into());
+                }
+            }
+        }
         *self = candidate;
         Ok(())
     }
@@ -646,30 +654,23 @@ impl Kernel {
         if input.len() > 1024 * 1024 {
             return Err("batch too large".into());
         }
-        let needs_staging = serde_json::from_str::<Batch>(input)
-            .map(|batch| {
-                self.projectile_count > 0
-                    || batch.actions.iter().any(|action| {
-                        matches!(action, Action::Launch { .. } | Action::Displace { .. })
-                    })
-            })
-            .unwrap_or(false);
+        let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        let needs_staging = self.projectile_count > 0
+            || batch.actions.iter().any(|action| {
+                matches!(action, Action::Launch { .. } | Action::Displace { .. })
+            });
         if needs_staging {
             let before = self.snapshot_json()?;
-            let result = self.advance_json_inner(input);
+            let result = self.advance_batch(batch);
             if result.is_err() {
                 self.restore_json(&before)?;
             }
             return result;
         }
-        self.advance_json_inner(input)
+        self.advance_batch(batch)
     }
 
-    fn advance_json_inner(&mut self, input: &str) -> Result<String> {
-        if input.len() > 1024 * 1024 {
-            return Err("batch too large".into());
-        }
-        let batch: Batch = serde_json::from_str(input).map_err(|e| e.to_string())?;
+    fn advance_batch(&mut self, batch: Batch) -> Result<String> {
         if !batch.delta.is_finite()
             || !(0.0..=1.0).contains(&batch.delta)
             || batch.writes.len() > 4096
@@ -1047,6 +1048,9 @@ impl Kernel {
         Ok([(end.x - start.x) / delta, (end.y - start.y) / delta, (end.z - start.z) / delta])
     }
     fn advance_projectiles(&mut self, delta: f64) -> Result<Vec<ImpactEvent>> {
+        if self.projectile_count == 0 {
+            return Ok(Vec::new());
+        }
         let mut impacts = Vec::new();
         for projectile_id in self.projectile_ids() {
             let entity = self.entity(&projectile_id)?;
@@ -1086,11 +1090,6 @@ impl Kernel {
                 let Some(collider) = self.ecs.get::<Collider>(*target_entity) else { continue };
                 let target_position = self.world_pose_entity(*target_entity, 0)?;
                 let target_end = self.predicted_world_pose(*target_entity, sweep_delta, 0)?;
-                if matches!(collider.shape, ColliderShape::Cuboid)
-                    && (target_end.facing - target_position.facing).abs() > 1e-9
-                {
-                    continue;
-                }
                 let target_velocity = self.world_linear_velocity(*target_entity, sweep_delta)?;
                 let extent = match collider.shape {
                     ColliderShape::Ball => collider.radius,
@@ -1119,6 +1118,14 @@ impl Kernel {
                 if (0..3).any(|axis| projectile_max[axis] < target_min[axis] || target_max[axis] < projectile_min[axis]) {
                     continue;
                 }
+                if matches!(collider.shape, ColliderShape::Cuboid)
+                    && (target_end.facing - target_position.facing).abs() > 1e-9
+                {
+                    return Err("rotating cuboid collision is unsupported".into());
+                }
+                if candidates.len() >= 256 {
+                    return Err("swept collider candidate budget exceeded".into());
+                }
                 candidates.push(collision::Collider {
                     id: target_id.clone(),
                     shape: match collider.shape {
@@ -1131,9 +1138,6 @@ impl Kernel {
                 });
             }
             candidates.sort_by(|a, b| a.id.cmp(&b.id));
-            if candidates.len() > 256 {
-                return Err("swept collider candidate budget exceeded".into());
-            }
             let hit = collision::sweep_projectile(
                 &collision::Projectile {
                     id: projectile_id.clone(),
@@ -1337,6 +1341,7 @@ mod combat_tests {
             .expect("rejected action remains a valid batch");
         let value: serde_json::Value = serde_json::from_str(&response).expect("response JSON");
         assert_eq!(value["results"][0]["accepted"], false);
+        assert_eq!(value["results"][0]["reason"], "launch velocity exceeds launcher limit");
         let rows: serde_json::Value = serde_json::from_str(
             &kernel.query_json(r#"["hive.lot"]"#).expect("lot query"),
         )
@@ -1393,5 +1398,22 @@ mod combat_tests {
         let mut restored = Kernel::new();
         restored.restore_json(&snapshot).expect("restore");
         assert_eq!(restored.snapshot_json().expect("restored snapshot"), snapshot);
+    }
+
+    #[test]
+    fn forged_snapshot_projectile_launcher_is_rejected() {
+        let mut kernel = Kernel::new();
+        kernel.load(&combat_scene()).expect("load combat fixture");
+        kernel
+            .advance_json(
+                r#"{"delta":0.05,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("launch");
+        let snapshot = kernel
+            .snapshot_json()
+            .expect("snapshot")
+            .replace("\"launcher\":\"cannon\"", "\"launcher\":\"ammo\"");
+        let mut restored = Kernel::new();
+        assert!(restored.restore_json(&snapshot).is_err());
     }
 }
