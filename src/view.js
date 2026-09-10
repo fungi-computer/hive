@@ -1,12 +1,12 @@
+import {
+  terrainSurfaces,
+  observedTerrainSurfaces,
+} from "./terrain-surface-geometry.js";
+import { currentVisibility } from "./exploration.ts";
 import { Texture, Sprite, Container, Graphics, Text } from "pixi.js";
 import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.ts";
-import {
-  insidePlacement,
-  worldView,
-  viewLayer,
-  exposedFooting,
-} from "./game-space.ts";
+import { insidePlacement, worldView, viewLayer } from "./game-space.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
@@ -117,29 +117,52 @@ export function herbGrowthProgress(herb, tick) {
 }
 
 export function createView(app, world, camera, art, initial, input) {
+  let visible = currentVisibility(initial);
   const ground = new Sprite(art.ground);
   world.addChild(ground);
   let terrainSource = null,
-    terrainRevision = -1;
-  function drawTerrain(state) {
+    terrainRevision = -1,
+    terrainLevel = null,
+    terrainExploration = null;
+  function drawTerrain(state, selection) {
     if (
       terrainSource === terrainGeometryKey(state.terrain) &&
-      terrainRevision === terrainVersion(state.terrain)
+      terrainRevision === terrainVersion(state.terrain) &&
+      terrainLevel === selection.level &&
+      (selection.level >= 0 || terrainExploration === state.exploration)
     )
       return;
     terrainSource = terrainGeometryKey(state.terrain);
     terrainRevision = terrainVersion(state.terrain);
+    terrainLevel = selection.level;
+    terrainExploration = state.exploration;
+    const faces =
+      selection.level < 0
+        ? observedTerrainSurfaces(state.exploration, selection.level)
+        : terrainSurfaces(state.terrain, SIZE);
     const previous = ground.texture;
-    ground.texture = terrainChangedColumns(state.terrain).length
-      ? art.bakeTerrain(
-          state.terrain,
-          art.ground,
-          terrainChangedColumns(state.terrain),
-        )
-      : art.ground;
-    if (previous !== ground.texture && previous !== art.ground)
+    if (selection.level < 0) {
+      const slice = art.bakeTerrainSlice(faces);
+      ground.texture = slice.texture;
+      ground.position.set(slice.x, slice.y);
+    } else {
+      ground.position.set(0, 0);
+      ground.texture = terrainChangedColumns(state.terrain).length
+        ? art.bakeTerrain(
+            state.terrain,
+            art.ground,
+            terrainChangedColumns(state.terrain),
+            faces,
+          )
+        : art.ground;
+    }
+    if (
+      previous !== ground.texture &&
+      previous !== art.ground &&
+      previous !== Texture.EMPTY
+    )
       previous.destroy(true);
-    camera.setTerrain(state.terrain);
+    camera.setTerrain(faces);
   }
   const wetSurface = new Sprite(Texture.EMPTY);
   wetSurface.eventMode = "none";
@@ -174,7 +197,7 @@ export function createView(app, world, camera, art, initial, input) {
       : Texture.EMPTY;
     if (previous !== Texture.EMPTY) previous.destroy(true);
   }
-  drawTerrain(initial);
+  drawTerrain(initial, { level: 0 });
   const route = new Graphics();
   const marks = new Graphics();
   const selectionBox = new Graphics();
@@ -389,7 +412,7 @@ export function createView(app, world, camera, art, initial, input) {
         source.kind === "spring"
           ? art.sources.spring[stateName]
           : art.sources.cache[stateName];
-      const active = viewLayer(source) === selection.level;
+      const active = viewLayer(source) === selection.level && visible(source);
       view.container.visible = active;
       view.container.eventMode = active && interactive ? "static" : "none";
       put(view.container, source, 0.24);
@@ -453,7 +476,8 @@ export function createView(app, world, camera, art, initial, input) {
         "water",
       );
       const texture = water >= 2 ? art.pail.filled : art.pail.empty;
-      const active = viewLayer(lot.location) === selection.level;
+      const active =
+        viewLayer(lot.location) === selection.level && visible(lot.location);
       view.container.visible = active;
       view.container.eventMode = active && interactive ? "static" : "none";
       put(view.container, lot.location, 0.21);
@@ -523,9 +547,12 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = piles.get(lot.id);
-      view.container.visible = viewLayer(lot.location) === selection.level;
+      view.container.visible =
+        viewLayer(lot.location) === selection.level && visible(lot.location);
       view.container.eventMode =
-        viewLayer(lot.location) === selection.level && !selection.tool
+        viewLayer(lot.location) === selection.level &&
+        visible(lot.location) &&
+        !selection.tool
           ? "static"
           : "none";
       put(view.container, lot.location, 0.22);
@@ -574,10 +601,13 @@ export function createView(app, world, camera, art, initial, input) {
       });
       view.container.rotation = active ? Math.sin(state.tick * 0.6) * 0.013 : 0;
       const at = projectCell(worldView(tree));
-      view.container.visible = true;
-      view.container.alpha = selection.level === 0 ? 1 : 0.18;
+      view.container.visible = visible(tree);
+      view.container.alpha = selection.level === viewLayer(tree) ? 1 : 0.18;
       view.container.eventMode =
-        selection.level === 0 && !selection.tool && !selection.box
+        selection.level === viewLayer(tree) &&
+        visible(tree) &&
+        !selection.tool &&
+        !selection.box
           ? "static"
           : "none";
       if (selection.tree === tree.id || preview.has(tree.id))
@@ -663,15 +693,19 @@ export function createView(app, world, camera, art, initial, input) {
       const view = herbs.get(herb.id);
       const projected = projectCell(worldView(herb));
       put(view.container, herb, 0.18);
-      view.container.visible = viewLayer(herb) === selection.level;
+      view.container.visible =
+        viewLayer(herb) === selection.level && visible(herb);
       view.container.eventMode =
         interactive &&
         viewLayer(herb) === selection.level &&
+        visible(herb) &&
         herb.stage !== "ordered"
           ? "static"
           : "none";
       view.container.visible =
-        viewLayer(herb) === selection.level && herb.stage !== "ordered";
+        viewLayer(herb) === selection.level &&
+        visible(herb) &&
+        herb.stage !== "ordered";
       if (herb.stage !== "ordered")
         view.sprite.texture = art.herbs.mugwort[herb.stage];
       picking.bind(view.container, {
@@ -728,7 +762,8 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = bundles.get(lot.id);
-      const active = viewLayer(lot.location) === selection.level;
+      const active =
+        viewLayer(lot.location) === selection.level && visible(lot.location);
       view.container.visible = active;
       view.container.eventMode =
         active && !selection.tool && !selection.panMode && !selection.box
@@ -758,9 +793,9 @@ export function createView(app, world, camera, art, initial, input) {
     for (const person of Object.values(state.actors)) {
       const view = actors.get(person.id);
       const pos = visualPosition(person);
-      put(view.container, pos, viewLayer(pos) === 1 ? 0.45 : 0.1);
+      put(view.container, pos, 0.45);
       const activeLevel = viewLayer(pos) === selection.level;
-      view.container.visible = exposedFooting(state.terrain, person);
+      view.container.visible = visible(person);
       view.container.alpha = activeLevel ? 1 : 0.18;
       view.container.eventMode = activeLevel ? "static" : "none";
       const hand = carriedLot(state.materials, person.id);
@@ -861,9 +896,18 @@ export function createView(app, world, camera, art, initial, input) {
   }
 
   return {
+    dispose() {
+      if (ground.texture !== art.ground && ground.texture !== Texture.EMPTY)
+        ground.texture.destroy(true);
+      if (wetSurface.texture !== Texture.EMPTY)
+        wetSurface.texture.destroy(true);
+      ground.texture = wetSurface.texture = Texture.EMPTY;
+    },
     render(state, selection) {
-      drawTerrain(state);
-      drawWater(state);
+      visible = currentVisibility(state);
+      drawTerrain(state, selection);
+      if (selection.level === 0) drawWater(state);
+      wetSurface.visible = selection.level === 0;
       drawTerrainMarks(state, selection);
       drawTrees(state, selection);
       drawSources(state, selection);
@@ -881,9 +925,8 @@ export function createView(app, world, camera, art, initial, input) {
       cat.sprite.texture =
         catFrames[animationFrame(state.tick, state.cat.mode, catFrames)];
       put(goblin.container, state.watcher, 0.8);
-      goblin.container.visible =
-        !!state.demand && exposedFooting(state.terrain, state.watcher);
-      cat.container.visible = exposedFooting(state.terrain, state.cat);
+      goblin.container.visible = !!state.demand && visible(state.watcher);
+      cat.container.visible = visible(state.cat);
       goblin.container.alpha = selection.level === 0 ? 1 : 0.18;
       construction.render(
         state,

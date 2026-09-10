@@ -140,3 +140,8 @@
     max-width: 112px;
   }
 }
+
+.clearing-minimap-cell.unknown {
+  background: #171c1b;
+  border-color: #252c29;
+}

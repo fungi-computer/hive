@@ -1,3 +1,4 @@
+import { knownFootings } from "./exploration.ts";
 import { stairLanding } from "./world.js";
 import {
   standing,
@@ -9,8 +10,8 @@ import {
   terrainGeometry,
   terrainFacts,
 } from "./world-presets/goblin-terrain.ts";
-import { footprint } from "./construction.js";
-import { placementFooting, groundFooting, worldView } from "./game-space.ts";
+import { BUILDINGS, footprint } from "./construction.js";
+import { placementFooting } from "./game-space.ts";
 import type { Actor, Body, Clearing } from "./model.ts";
 import type {
   Footing,
@@ -47,28 +48,30 @@ export function carryingProfile(body: Profile, occupiedHand: boolean): Profile {
     : body;
 }
 
+export function stairLink(
+  site: Pick<
+    import("./model.ts").Site,
+    "id" | "x" | "z" | "level" | "direction"
+  >,
+): Link {
+  const from = placementFooting(site),
+    to = placementFooting(stairLanding(site));
+  const dx = site.direction === 1 ? 1 : 0,
+    dz = site.direction === 1 ? 0 : 1;
+  return Object.freeze({
+    id: site.id,
+    from,
+    to: Object.freeze(to),
+    via: Object.freeze([
+      Object.freeze({ x: from.x + dx, y: (from.y + to.y) / 2, z: from.z + dz }),
+    ]),
+    duration: 18,
+  });
+}
 function stairs(state: Clearing): readonly Link[] {
   return state.sites
     .filter((site) => site.type === "stair" && site.finishedAt !== null)
-    .map((site) => {
-      const from = placementFooting(site),
-        to = placementFooting(stairLanding(site)),
-        dx = site.direction === 1 ? 1 : 0,
-        dz = site.direction === 1 ? 0 : 1;
-      return Object.freeze({
-        id: site.id,
-        from,
-        to: Object.freeze(to),
-        via: Object.freeze([
-          Object.freeze({
-            x: from.x + dx,
-            y: (from.y + to.y) / 2,
-            z: from.z + dz,
-          }),
-        ]),
-        duration: 18,
-      });
-    });
+    .map(stairLink);
 }
 
 /** Build a bounded live capability from canonical geometry/content. This is a
@@ -76,16 +79,7 @@ function stairs(state: Clearing): readonly Link[] {
 export function createNavigationSpaces(state: Clearing) {
   const checkpoint = state.terrain;
   const terrain = terrainGeometry(checkpoint);
-  const surfaces = new Map<string, number>();
-  function exposed(at: Footing): boolean {
-    const key = `${at.x},${at.z}`;
-    let y = surfaces.get(key);
-    if (y === undefined) {
-      y = groundFooting(checkpoint, worldView(at)).y;
-      surfaces.set(key, y);
-    }
-    return at.y >= y;
-  }
+  const known = knownFootings(state);
   const geometry = createStructureGeometry(
     { terrain, sites: state.sites },
     terrain.bounds,
@@ -132,7 +126,24 @@ export function createNavigationSpaces(state: Clearing) {
           )
         )
           return "needs-data";
-        if (!exposed(at)) return "needs-data";
+        if (!known(at)) return "needs-data";
+        if (
+          state.sites.some((site) => {
+            const definition = BUILDINGS[site.type];
+            return (
+              site.finishedAt !== null &&
+              "walkable" in definition &&
+              definition.walkable === false &&
+              footprint(site).some((cell) => {
+                const surface = placementFooting(cell);
+                return (
+                  surface.x === at.x && surface.y === at.y && surface.z === at.z
+                );
+              })
+            );
+          })
+        )
+          return "blocked";
         if (
           purpose !== "ground-support" &&
           obstacles.some(

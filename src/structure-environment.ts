@@ -45,7 +45,6 @@ const siteSchema = z.object({
 });
 // Compile-time coverage follows the actual game's building union; every kind
 // must provide metadata, while runtime parsing refuses an invalid shape.
-const definitions: Record<BuildingKind, { environment: unknown }> = BUILDINGS;
 type GeometrySite = Omit<
   Pick<Site, "id" | "type" | "x" | "z" | "level" | "direction" | "finishedAt">,
   "level"
@@ -96,6 +95,7 @@ export function createStructureGeometry(
   requested: Bounds,
 ) {
   const terrain = source.terrain;
+  const definitions: Record<BuildingKind, { environment: unknown }> = BUILDINGS;
   const shapes = new Map(
     Object.entries(definitions).map(([kind, definition]) => [
       kind,
@@ -112,7 +112,7 @@ export function createStructureGeometry(
   }
   const physical = compilePhysicalGeometry(terrain, requested, primitives);
   const metadata = Object.freeze({
-    version: "goblin-structure-environment-v1" as const,
+    version: "goblin-structure-environment-v2" as const,
     spacingM: Object.freeze([...terrain.spacingM]),
     exterior: "unspecified" as const,
     provenance: Object.freeze({

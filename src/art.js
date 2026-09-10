@@ -65,7 +65,7 @@ export function anchor(c) {
   const foot = new THREE.Vector3(0, 0, 0).project(c);
   return { x: 0.5, y: (1 - foot.y) / 2 };
 }
-function bakeTerrainPatch(renderer, terrain, previous, changedCells) {
+function bakeTerrainPatch(renderer, terrain, previous, changedCells, faces) {
   // Bake only exposed earth, clipped to the union of actual top openings.
   // Original board art is clipped where canonical generated surfaces differ.
   // Both this mask and mouse picking use the same world-space cell faces.
@@ -92,7 +92,7 @@ function bakeTerrainPatch(renderer, terrain, previous, changedCells) {
   camera.setViewOffset(WIDTH, HEIGHT, left, top, right - left, bottom - top);
   const patch = bake(
     renderer,
-    excavationScene(terrain),
+    excavationScene(faces),
     camera,
     right - left,
     bottom - top,
@@ -395,8 +395,48 @@ export async function bakeArt(onProgress = () => {}) {
   report();
   const waterBake = createWaterBake(renderer);
   art.bakeTerrainWater = waterBake.bake;
-  art.bakeTerrain = (terrain, previous, changedCells) =>
-    bakeTerrainPatch(renderer, terrain, previous, changedCells);
+  art.bakeTerrain = (terrain, previous, changedCells, faces) =>
+    bakeTerrainPatch(renderer, terrain, previous, changedCells, faces);
+  art.bakeTerrainSlice = (faces) => {
+    if (!faces.length) return { texture: Texture.EMPTY, x: 0, y: 0 };
+    const points = faces.flatMap((face) =>
+      face.vertices.map(({ x, y, z }) => project(x, z, y)),
+    );
+    const x = Math.floor(Math.min(...points.map((p) => p.x))) - 2;
+    const y = Math.floor(Math.min(...points.map((p) => p.y))) - 2;
+    const width = Math.ceil(Math.max(...points.map((p) => p.x))) - x + 3;
+    const height = Math.ceil(Math.max(...points.map((p) => p.y))) - y + 3;
+    const gl = renderer.getContext();
+    const viewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+    const limit = Math.min(
+      renderer.capabilities.maxTextureSize,
+      gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
+      viewport[0],
+      viewport[1],
+    );
+    if (
+      ![width, height].every(
+        (value) => Number.isSafeInteger(value) && value > 0 && value <= limit,
+      )
+    )
+      throw new Error(
+        "Observed terrain slice exceeds the renderer texture limit.",
+      );
+    const camera = worldCamera.clone();
+    camera.setViewOffset(WIDTH, HEIGHT, x, y, width, height);
+    return {
+      texture: bake(
+        renderer,
+        excavationScene(faces),
+        camera,
+        width,
+        height,
+        false,
+      ),
+      x,
+      y,
+    };
+  };
   art.dispose = () => {
     waterBake.dispose();
     renderer.dispose();

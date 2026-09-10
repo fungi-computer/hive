@@ -12,6 +12,7 @@ import { visualPosition } from "./movement.ts";
 import {
   BUILDINGS,
   footprint,
+  buildingVisualPlacement,
   placementProblem,
   indoors,
   constructionBuffer,
@@ -124,10 +125,11 @@ export function createConstructionView(world, art, bodies, input, picking) {
     const followActors = (selection.followActorIds || ["rowan"])
       .map((id) => state.actors[id])
       .filter(Boolean);
-    const interiors = new Map([
-      [0, indoors(state, 0)],
-      [1, indoors(state, 1)],
-    ]);
+    const interiors = new Map(
+      [...new Set(followActors.map((actor) => worldView(actor).level))].map(
+        (level) => [level, indoors(state, level)],
+      ),
+    );
     const indoorActors = followActors
       .map((actor) => ({
         footing: worldView(actor),
@@ -167,10 +169,10 @@ export function createConstructionView(world, art, bodies, input, picking) {
         bodies.addChild(s);
       }
       const view = sites.get(site.id),
-        at = projectCell(site),
+        at = projectCell(buildingVisualPlacement(site)),
         finished = site.finishedAt !== null;
       const activeLevel = site.level === selection.level;
-      const supportContext = selection.level === 1 && site.level === 0;
+      const supportContext = site.level === selection.level - 1;
       const cutawayWall =
         site.type === "wall" &&
         selection.cutaway &&
@@ -229,7 +231,7 @@ export function createConstructionView(world, art, bodies, input, picking) {
         site.x +
         site.z +
         (site.level ?? 0) * 0.35 +
-        (site.level === 1 ? 0.2 : site.type === "roof" ? 0.6 : 0.15);
+        (site.type === "roof" ? 0.6 : 0.15);
       view.alpha = !activeLevel
         ? site.type === "roof" || site.type === "floor"
           ? selection.cutaway
@@ -321,7 +323,7 @@ export function createConstructionView(world, art, bodies, input, picking) {
         if (!problem) valid++;
         for (const p of footprint(at)) tile(grid, p, color, 0.3);
         const ghost = ghosts[i],
-          projected = projectCell(cell);
+          projected = projectCell(buildingVisualPlacement(at));
         ghost.texture =
           art.buildings[selection.tool].finished[selection.direction];
         ghost.position.set(projected.x, projected.y);

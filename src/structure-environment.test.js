@@ -66,7 +66,7 @@ test("structure environment: zero-volume floor and roof use one storey datum; do
     site("wall", "wall", 5, 5),
     site("door", "door", 6, 5),
     site("floor", "floor", 7, 5, 1),
-    site("roof", "roof", 8, 5),
+    site("roof", "roof", 8, 5, 1),
   ];
   const geometry = structureEnvironment(state, region());
   for (let y = 0; y < 4; y++) {
@@ -124,7 +124,7 @@ test("structure environment: signed storey levels are geometry data, not a schem
   for (const level of [-2, -1, 0, 1, 2]) {
     state.sites = [
       site("floor", "floor", 5, 5, level),
-      site("roof", "roof", 6, 5, level),
+      site("roof", "roof", 6, 5, level + 1),
     ];
     const geometry = structureEnvironment(
       state,

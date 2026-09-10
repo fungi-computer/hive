@@ -859,12 +859,12 @@ test("actual libcolony admits legal stairs and rejects unsupported topology", ()
   const state = createClearing(78);
   state.paused = true;
   const [stair, floor] = actualStep(state, [
-    { kind: "build", type: "stair", x: 5, z: 5, direction: 0 },
-    { kind: "build", type: "floor", x: 5, z: 5, level: 0, direction: 0 },
+    { kind: "build", type: "stair", x: 5, z: 5, level: 0, direction: 0 },
+    { kind: "build", type: "floor", x: 5, z: 5, level: 1, direction: 0 },
   ]);
   assert.deepEqual(stair, { status: "applied" });
   assert.equal(floor.status, "rejected");
-  assert.match(floor.reason, /Upper floors belong/);
+  assert.match(floor.reason, /floor needs|floor and roof/);
   assert.equal(state.sites[0].type, "stair");
 });
 
@@ -973,11 +973,11 @@ test("actual libcolony preserves recruit/scope admission and one scarce source",
 
 test("actual libcolony creates a night routine in a sheltered room and clears it at dawn", () => {
   const state = createClearing(83);
-  const finished = (id, type, x, z, direction = 0) =>
+  const finished = (id, type, x, z, direction = 0, level = 0) =>
     state.sites.push({
       id,
       type,
-      ...placement(x, z),
+      ...placement(x, z, level),
       direction,
       work: BUILDINGS[type].ticks,
       finishedAt: 1,
@@ -988,8 +988,8 @@ test("actual libcolony creates a night routine in a sheltered room and clears it
         finished(`wall-${x}-${z}`, "wall", x, z);
   finished("door", "door", 7, 9);
   finished("bed", "bed", 7, 7);
-  finished("roof", "roof", 7, 7);
-  finished("roof-next", "roof", 7, 8);
+  finished("roof", "roof", 7, 7, 0, 1);
+  finished("roof-next", "roof", 7, 8, 0, 1);
   state.tick = 4_800;
   state.actors.rowan.routine = true;
   actualStep(state);

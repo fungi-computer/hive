@@ -2,6 +2,7 @@ import type { Footing } from "./engine/navigation/index.ts";
 import {
   TERRAIN_FRAME,
   terrainCell,
+  terrainGeometry,
   type GeneratedTerrain,
 } from "./world-presets/goblin-terrain.ts";
 
@@ -37,7 +38,8 @@ export const placementKey = (at: Placement): string =>
   `${at.x},${at.z},${at.level}`;
 export const samePlacement = (a: Placement, b: Placement): boolean =>
   placementKey(a) === placementKey(b);
-/** Current authored placement remains the existing two-storey, 15-cell map. */
+/** Horizontal authored map admission. Vertical admission uses the registered
+ * terrain envelope and the actual building shape, never a layer-button limit. */
 export function insidePlacement(at: Placement): boolean {
   return (
     Number.isInteger(at.x) &&
@@ -47,8 +49,9 @@ export function insidePlacement(at: Placement): boolean {
     at.z >= 0 &&
     at.x < 15 &&
     at.z < 15 &&
-    at.level >= 0 &&
-    at.level <= 1
+    Number.isSafeInteger(
+      TERRAIN_FRAME.y + at.level * TERRAIN_FRAME.storeyVoxels,
+    )
   );
 }
 export function placementNeighbors(at: Placement): Placement[] {
@@ -70,11 +73,30 @@ export function groundFooting(
   return { x: voxel[0], y: voxel[1] + 1, z: voxel[2] };
 }
 
-/** Current two-layer presentation: Ground includes exposed excavation floors.
- * This classifies an already-known physical fact; it cannot reveal a cave. */
-export function viewLayer(at: Footing): 0 | 1 {
-  return at.y < TERRAIN_FRAME.y + TERRAIN_FRAME.storeyVoxels ? 0 : 1;
+/** Storey containing an already-known physical position. This projection does
+ * not confer discovery or access to an underground cell. */
+export function viewLayer(at: Footing): number {
+  return Math.floor(worldView(at).level);
 }
+
+/** Selectable full-storey bases, derived from the registered finite world. A
+ * complete four-voxel room must fit; support and knowledge are separate checks. */
+export function placementLevels(terrain: GeneratedTerrain) {
+  const { bounds, frame } = terrainGeometry(terrain);
+  return Object.freeze({
+    min: Math.ceil((bounds.min[1] - frame.y) / frame.storeyVoxels),
+    max: Math.floor((bounds.max[1] - frame.y) / frame.storeyVoxels) - 1,
+  });
+}
+
+export function levelLabel(level: number): string {
+  return level === 0
+    ? "Ground"
+    : level > 0
+      ? `Storey +${level}`
+      : `Depth ${level}`;
+}
+
 export function exposedFooting(
   terrain: GeneratedTerrain,
   at: Footing,

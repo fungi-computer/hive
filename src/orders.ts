@@ -156,7 +156,8 @@ export function commandProblem(s: Clearing, c: Command): string {
   }
   if (
     c.kind === "sow" &&
-    (!insidePlacement(c) ||
+    (c.level !== 0 ||
+      !insidePlacement(c) ||
       placementOccupant(s, placementFooting(c)) ||
       !terrainCell(s.terrain, c.x, c.z).support)
   )

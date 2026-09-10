@@ -1,4 +1,10 @@
-import { viewLayer, worldView } from "./game-space.ts";
+import { currentVisibility, exploredMapCells } from "./exploration.ts";
+import {
+  viewLayer,
+  worldView,
+  placementLevels,
+  levelLabel,
+} from "./game-space.ts";
 import {
   fieldInspectionFacts,
   resolveFieldInspection,
@@ -53,6 +59,8 @@ import {
   dispatchUiAction,
   DEBUG_PICKING_CONTROL,
   LEVEL_NAVIGATION,
+  levelNavigationAction,
+  levelNavigationEnabled,
   TERRAIN_TOOL_CATALOG,
   cameraMoveKeepsTool,
   localGoodsAt,
@@ -85,9 +93,7 @@ function actorActivity(actor) {
   return actor.mode === "walk" ? "Drafted · Going" : "Drafted · Holding";
 }
 
-function levelName(level) {
-  return level === 1 ? "Upper" : "Ground";
-}
+const levelName = levelLabel;
 
 function materialLabel(material) {
   return material
@@ -174,6 +180,7 @@ function sameKeys(a, b) {
 }
 
 function displayFacts(state, notice, speed, zoom, keys, save, previous) {
+  const visible = currentVisibility(state);
   const nextActors = Object.fromEntries(
     Object.values(state.actors).map((actor) => [
       actor.id,
@@ -211,15 +218,17 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
       ? previous.manualRestProblems
       : nextManualRestProblems;
   const homeIds = [...state.parties.home.members];
-  const treesNext = state.trees.map((tree) => ({
-    id: tree.id,
-    x: tree.x,
-    z: tree.z,
-    y: tree.y,
-    level: viewLayer(tree),
-    felled: tree.felledAt !== null,
-    work: tree.work,
-  }));
+  const treesNext = state.trees
+    .filter((tree) => visible(tree))
+    .map((tree) => ({
+      id: tree.id,
+      x: tree.x,
+      z: tree.z,
+      y: tree.y,
+      level: viewLayer(tree),
+      felled: tree.felledAt !== null,
+      work: tree.work,
+    }));
   const jobsNext = state.jobs.map((job) => ({
     id: job.id,
     kind: job.kind,
@@ -282,29 +291,31 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
           : null,
     };
   });
-  const sourcesNext = state.sources.map((source) => {
-    const provider = sourceContainerSpec(source);
-    const pailProvider = sourcePailContainerSpec(source);
-    return {
-      id: source.id,
-      kind: source.kind,
-      x: source.x,
-      z: source.z,
-      y: source.y,
-      level: viewLayer(source),
-      material: provider.accepts[0],
-      quantity: containerQuantity(
-        state.materials,
-        provider.id,
-        provider.accepts[0],
-      ),
-      capacity: provider.capacity,
-      pailQuantity: pailProvider
-        ? containerQuantity(state.materials, pailProvider.id, "pail")
-        : 0,
-      open: sourceIsOpen(source),
-    };
-  });
+  const sourcesNext = state.sources
+    .filter((source) => visible(source))
+    .map((source) => {
+      const provider = sourceContainerSpec(source);
+      const pailProvider = sourcePailContainerSpec(source);
+      return {
+        id: source.id,
+        kind: source.kind,
+        x: source.x,
+        z: source.z,
+        y: source.y,
+        level: viewLayer(source),
+        material: provider.accepts[0],
+        quantity: containerQuantity(
+          state.materials,
+          provider.id,
+          provider.accepts[0],
+        ),
+        capacity: provider.capacity,
+        pailQuantity: pailProvider
+          ? containerQuantity(state.materials, pailProvider.id, "pail")
+          : 0,
+        open: sourceIsOpen(source),
+      };
+    });
   const structures = state.sites.map((site) => ({
     id: site.id,
     type: site.type,
@@ -316,18 +327,20 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
         : []),
     ],
   }));
-  const herbsNext = state.herbs.map((herb) => ({
-    id: herb.id,
-    x: herb.x,
-    z: herb.z,
-    y: herb.y,
-    level: viewLayer(herb),
-    stage: herb.stage,
-    work: herb.work,
-    plantedAt: herb.plantedAt,
-    establishment: herb.establishment?.kind ?? null,
-    establishedAt: herb.establishment?.at ?? null,
-  }));
+  const herbsNext = state.herbs
+    .filter((herb) => visible(herb))
+    .map((herb) => ({
+      id: herb.id,
+      x: herb.x,
+      z: herb.z,
+      y: herb.y,
+      level: viewLayer(herb),
+      stage: herb.stage,
+      work: herb.work,
+      plantedAt: herb.plantedAt,
+      establishment: herb.establishment?.kind ?? null,
+      establishedAt: herb.establishment?.at ?? null,
+    }));
   const waterDeliveriesNext = state.operations
     .filter((operation) => operation.kind === "water-delivery")
     .map((operation) => ({
@@ -372,21 +385,26 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
         source.kind === "reclaimed-timber-cache" && !sourceIsOpen(source),
     ),
   };
-  const lotsNext = state.materials.lots.map((lot) => ({
-    id: lot.id,
-    material: lot.material,
-    amount: lot.quantity,
-    vesselWater:
-      lot.material === "pail"
-        ? containerQuantity(state.materials, vesselContainer(lot.id), "water")
-        : 0,
-    location:
-      lot.location.kind === "container"
-        ? { kind: "stored", site: lot.location.container.replace("shelf:", "") }
-        : lot.location.kind === "hand"
-          ? { kind: "carried", actor: lot.location.actor }
-          : { ...lot.location },
-  }));
+  const lotsNext = state.materials.lots
+    .filter((lot) => lot.location.kind !== "ground" || visible(lot.location))
+    .map((lot) => ({
+      id: lot.id,
+      material: lot.material,
+      amount: lot.quantity,
+      vesselWater:
+        lot.material === "pail"
+          ? containerQuantity(state.materials, vesselContainer(lot.id), "water")
+          : 0,
+      location:
+        lot.location.kind === "container"
+          ? {
+              kind: "stored",
+              site: lot.location.container.replace("shelf:", ""),
+            }
+          : lot.location.kind === "hand"
+            ? { kind: "carried", actor: lot.location.actor }
+            : { ...lot.location },
+    }));
   const trees =
     previous &&
     treesNext.length === previous.trees.length &&
@@ -449,6 +467,8 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   return {
     paused: state.paused,
     size: SIZE,
+    levels: placementLevels(state.terrain),
+    explored: exploredMapCells(state),
     tick: state.tick,
     speed,
     zoom,
@@ -511,15 +531,15 @@ function orderModel(display, job) {
                       : job.kind === "tap"
                         ? "Tap herbal ale"
                         : site
-                          ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
+                          ? `${BUILDINGS[site.type].label} · ${site.x}, ${site.z} · ${levelName(site.level)}`
                           : "Work order";
   const detail =
     job.kind === "store"
       ? site
-        ? ` · Shelf ${site.x}, ${site.z} · ${site.level ? "Upper" : "Ground"}`
+        ? ` · Shelf ${site.x}, ${site.z} · ${levelName(site.level)}`
         : ""
       : site
-        ? ` · ${site.materialsInBuffer}/${BUILDINGS[site.type].wood} wood · ${site.level ? "Upper" : "Ground"}`
+        ? ` · ${site.materialsInBuffer}/${BUILDINGS[site.type].wood} wood · ${levelName(site.level)}`
         : "";
   return {
     id: job.id,
@@ -1928,9 +1948,11 @@ function Hud({ machineSnapshot, send, portraits }) {
     debugPicking: preferences.debugPicking,
     panMode: preferences.panMode,
     level: preferences.level,
+    levels: facts.levels,
     minimap: {
       facts: {
         size: facts.size,
+        explored: facts.explored,
         actors: Object.values(facts.actors).map((actor) => ({
           ...actor,
           ...worldView(actor),
@@ -2130,16 +2152,20 @@ function Hud({ machineSnapshot, send, portraits }) {
           <Key model={m} name="panel.orders" />
         </Button>
         <div className="level-controls" role="group" aria-label="Logical level">
+          <span aria-live="polite">{levelName(m.level)}</span>
           {LEVEL_NAVIGATION.map((control) => (
             <Button
               key={control.name}
-              data-level={control.level}
-              variant={m.level === control.level ? "secondary" : "ghost"}
+              data-level-step={control.delta}
+              variant="ghost"
               size="sm"
               aria-label={control.title}
-              aria-pressed={m.level === control.level}
-              disabled={!control.enabled(m.level)}
-              onClick={() => send(control.action)}
+              disabled={
+                !levelNavigationEnabled(m.level, control.delta, m.levels)
+              }
+              onClick={() =>
+                send(levelNavigationAction(m.level, control.delta))
+              }
             >
               {control.label} <Key model={m} name={control.name} />
             </Button>
@@ -2283,6 +2309,7 @@ export function createHud(host, art, effect) {
       run: runAction,
       level: {
         currentLevel: () => store.get(preferencesAtom).level,
+        range: () => store.get(worldFactsAtom).levels,
         armedTool: () => machine.getSnapshot().context.tool,
         resetGesture: () => machine.send({ type: "LEVEL_CHANGE" }),
         disarmTool: () => machine.send({ type: "TOOL", tool: null }),
@@ -2713,6 +2740,7 @@ export function createHud(host, art, effect) {
       panMode: preferences.panMode,
       direction: preferences.direction,
       level: preferences.level,
+      levels: store.get(worldFactsAtom).levels,
       tool: snapshot.context.tool,
       phase: snapshot.value,
       gesture: snapshot.context.gesture,

@@ -9,6 +9,8 @@ import {
   dispatchUiAction,
   dispatchLevelAction,
   LEVEL_NAVIGATION,
+  levelNavigationAction,
+  levelNavigationEnabled,
   localGoodsAt,
   requiredToolLevel,
 } from "./ui-actions.ts";
@@ -158,43 +160,35 @@ test("camera presentation subscription detaches for BFCache and reattaches once"
   dispose();
 });
 
-test("level navigation catalog owns labels, keys, actions, and limit state", () => {
+test("level controls step across signed storeys and respect the registered range", () => {
+  const range = { min: -3, max: 4 };
   assert.deepEqual(
-    LEVEL_NAVIGATION.map(({ name, level, label, key, action }) => ({
-      name,
-      level,
-      label,
-      key,
-      action,
-    })),
+    LEVEL_NAVIGATION.map(({ key, delta }) => [key, delta]),
     [
-      {
-        name: "view.level.ground",
-        level: 0,
-        label: "Ground",
-        key: "pagedown",
-        action: { kind: "level", level: 0 },
-      },
-      {
-        name: "view.level.upper",
-        level: 1,
-        label: "Upper",
-        key: "pageup",
-        action: { kind: "level", level: 1 },
-      },
+      ["pagedown", -1],
+      ["pageup", 1],
     ],
   );
-  assert.equal(LEVEL_NAVIGATION[0].enabled(0), false);
-  assert.equal(LEVEL_NAVIGATION[0].enabled(1), true);
-  assert.equal(LEVEL_NAVIGATION[1].enabled(0), true);
-  assert.equal(LEVEL_NAVIGATION[1].enabled(1), false);
+  assert.deepEqual(levelNavigationAction(2, 1), { kind: "level", level: 3 });
+  assert.deepEqual(levelNavigationAction(-1, -1), { kind: "level", level: -2 });
+  assert.equal(levelNavigationEnabled(-3, -1, range), false);
+  assert.equal(levelNavigationEnabled(4, 1, range), false);
+  assert.equal(levelNavigationEnabled(0, -1, range), true);
 });
 
 test("tool level policy keeps ordinary buildings and constrains special tools", () => {
-  for (const tool of ["wall", "door", "bed", "roof", "shelf"])
+  for (const tool of [
+    "wall",
+    "door",
+    "bed",
+    "roof",
+    "shelf",
+    "floor",
+    "stair",
+    "brew-station",
+  ])
     assert.equal(requiredToolLevel(tool), null);
-  assert.equal(requiredToolLevel("floor"), 1);
-  for (const tool of ["stair", "chop", "herb"])
+  for (const tool of ["chop", "herb", "dig"])
     assert.equal(requiredToolLevel(tool), 0);
 });
 
@@ -214,16 +208,15 @@ test("level transition policy changes level and disarms only incompatible tools"
   assert.deepEqual(decideLevelTransition(1, 0, "floor"), {
     changed: true,
     level: 0,
-    disarm: true,
-    notice:
-      "Ground selected; the armed tool was disarmed because it is unavailable on this level.",
+    disarm: false,
+    notice: null,
   });
   assert.deepEqual(decideLevelTransition(0, 1, "chop"), {
     changed: true,
     level: 1,
     disarm: true,
     notice:
-      "Upper selected; the armed tool was disarmed because it is unavailable on this level.",
+      "Storey +1 selected; the armed tool was disarmed because it is unavailable on this level.",
   });
 });
 
@@ -234,6 +227,7 @@ test("typed level dispatcher owns the transition and does not forward it", () =>
     { kind: "level", level: 1 },
     {
       currentLevel: () => level,
+      range: () => ({ min: -3, max: 4 }),
       armedTool: () => "floor",
       resetGesture: () => calls.push("reset-gesture"),
       disarmTool: () => calls.push("disarm-tool"),

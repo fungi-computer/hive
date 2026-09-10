@@ -1,10 +1,11 @@
+import { currentlyVisible } from "./exploration.ts";
 import { visualPosition } from "./movement.ts";
 import {
   insidePlacement,
+  placementLevels,
   placementFooting,
   worldView,
   viewLayer,
-  exposedFooting,
 } from "./game-space.ts";
 import { groundInspectionGesture } from "./ui-actions.ts";
 import { fieldInspectionAt } from "./field-inspection.ts";
@@ -48,6 +49,7 @@ export function rectangleTargetIds(state, start, end) {
     .filter(
       (tree) =>
         tree.felledAt === null &&
+        currentlyVisible(state, tree) &&
         !ordered.has(tree.id) &&
         viewLayer(tree) === start.level &&
         worldView(tree).x >= left &&
@@ -180,7 +182,7 @@ async function startGame() {
 
   function publish() {
     hud.update(state, notice, speed, camera.zoom, keys.hints(), saveStatus);
-    hud.updateCamera(camera.snapshot(SIZE));
+    hud.updateCamera(camera.snapshot(SIZE, placementLevels(state.terrain)));
   }
 
   function setSaveStatus(update) {
@@ -463,11 +465,11 @@ async function startGame() {
         break;
       case "go-at-point": {
         const face =
-          action.point.cell.level === 0
+          action.point.cell.level <= 0
             ? camera.terrainFace(action.point.screen)
             : null;
         const target =
-          action.point.cell.level === 1
+          action.point.cell.level > 0
             ? placementFooting(action.point.cell)
             : face && (face.kind === "ground" || face.kind === "pit-floor")
               ? {
@@ -587,7 +589,7 @@ async function startGame() {
 
   const hud = createHud(document.querySelector("#hud"), art, effect);
   const updateCameraPresentation = () =>
-    hud.updateCamera(camera.snapshot(SIZE));
+    hud.updateCamera(camera.snapshot(SIZE, placementLevels(state.terrain)));
   subscribeCameraPresentation(camera, updateCameraPresentation);
   const root = document.querySelector("#game");
   root.tabIndex = -1;
@@ -784,7 +786,7 @@ async function startGame() {
           const projected = camera.project(at.x, at.z, 2, at.level);
           return (
             viewLayer(position) === fixed.level &&
-            exposedFooting(state.terrain, person) &&
+            currentlyVisible(state, person) &&
             projected.x >= left &&
             projected.x <= right &&
             projected.y >= top &&
@@ -836,6 +838,9 @@ async function startGame() {
       if (current.phase !== "dragging") return;
       hud.dispatch({ kind: "cancel-stroke" });
     },
+  });
+  window.addEventListener("pagehide", (event) => {
+    if (!event.persisted) view.dispose();
   });
 
   let cameraDrag = null;

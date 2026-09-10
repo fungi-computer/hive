@@ -1,3 +1,4 @@
+import { levelLabel } from "./game-space.ts";
 import React, { useEffect, useState } from "react";
 import "./clearing-minimap.css";
 
@@ -102,10 +103,18 @@ export function ClearingMinimap({ facts, level, viewport, onRequestCenter }) {
       request(cursor);
     }
   };
+  const explored = new Set(
+    facts.explored
+      .filter((cell) => cell.level === level)
+      .map((cell) => cellKey(cell.x, cell.z)),
+  );
   const cells = [];
   for (let z = 0; z < facts.size; z += 1)
     for (let x = 0; x < facts.size; x += 1) {
-      const marker = markerSummary(markers.get(cellKey(x, z)) ?? []);
+      const known = level >= 0 || explored.has(cellKey(x, z));
+      const marker = known
+        ? markerSummary(markers.get(cellKey(x, z)) ?? [])
+        : { text: "", className: "unknown" };
       const selected = cursor.x === x && cursor.z === z;
       cells.push(
         <span
@@ -126,7 +135,7 @@ export function ClearingMinimap({ facts, level, viewport, onRequestCenter }) {
         <div>
           <p className="clearing-minimap-eyebrow">Local map</p>
           <h2>
-            {level === 1 ? "Upper" : "Ground"} · {facts.size}×{facts.size}
+            {levelLabel(level)} · {facts.size}×{facts.size}
           </h2>
         </div>
         <p className="clearing-minimap-key">
@@ -134,7 +143,7 @@ export function ClearingMinimap({ facts, level, viewport, onRequestCenter }) {
         </p>
       </header>
       <div
-        aria-label={`${level === 1 ? "Upper" : "Ground"} clearing map. Arrow keys move the cell cursor; Enter or Space requests a camera center.`}
+        aria-label={`${levelLabel(level)} clearing map. Arrow keys move the cell cursor; Enter or Space requests a camera center.`}
         className="clearing-minimap-surface"
         data-clearing-minimap-control
         data-testid="clearing-minimap-control"

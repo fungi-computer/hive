@@ -1,7 +1,5 @@
-import { terrainRevision, terrainGeometryKey } from "./terrain.ts";
 import { Raycaster, Vector2, Vector3 } from "three";
 import { worldCamera, WIDTH, HEIGHT } from "./art/scale.js";
-import { terrainSurfaces } from "./terrain-surface-geometry.js";
 
 /** The nearest physical face wins. Cached triangles are rebuilt on terrain
  * revision/load, never stored as world truth. Points are baked-canvas pixels. */
@@ -10,18 +8,12 @@ export function createTerrainPicker(size) {
   const screen = new Vector2();
   const hit = new Vector3();
   let source = null,
-    revision = -1,
     triangles = [];
-  function update(terrain) {
-    if (
-      source === terrainGeometryKey(terrain) &&
-      revision === terrainRevision(terrain)
-    )
-      return;
-    source = terrainGeometryKey(terrain);
-    revision = terrainRevision(terrain);
+  function update(faces) {
+    if (source === faces) return;
+    source = faces;
     const center = (size - 1) / 2;
-    triangles = terrainSurfaces(terrain, size).flatMap((face) => {
+    triangles = faces.flatMap((face) => {
       const points = face.vertices.map(
         ({ x, y, z }) => new Vector3(x - center, y, z - center),
       );
@@ -54,7 +46,6 @@ export function createTerrainPicker(size) {
     },
     clear() {
       source = null;
-      revision = -1;
       triangles = [];
     },
   };

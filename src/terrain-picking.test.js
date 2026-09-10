@@ -19,10 +19,10 @@ function pixel(x, y, z) {
 test("generated face picking matches real floor and occluding rim after edits and reload", () => {
   let terrain = initialTerrain();
   const picker = createTerrainPicker(15);
-  picker.update(terrain);
+  picker.update(terrainSurfaces(terrain, 15));
   assert.deepEqual(picker.pick(pixel(7, 0, 9)).cell, { x: 7, z: 9, level: 0 });
   terrain = excavateTerrain(terrain, [0, 14, 128]);
-  picker.update(terrain);
+  picker.update(terrainSurfaces(terrain, 15));
   const floor = picker.pick(pixel(6.65, -0.54, 8.65));
   assert.equal(floor.kind, "pit-floor");
   assert.deepEqual(floor.cell, { x: 7, z: 9, level: 0 });
@@ -33,9 +33,9 @@ test("generated face picking matches real floor and occluding rim after edits an
   // A point on the far part of the floor is hidden by the nearer intact rim.
   assert.equal(picker.pick(pixel(7.49, -0.54, 9.49)).kind, "ground");
   const loaded = parseTerrain(terrain);
-  picker.update(loaded);
+  picker.update(terrainSurfaces(loaded, 15));
   assert.deepEqual(picker.pick(pixel(6.65, -0.54, 8.65)).cell, floor.cell);
-  picker.update(advanceTerrain(loaded, 0.05));
+  picker.update(terrainSurfaces(advanceTerrain(loaded, 0.05), 15));
   assert.deepEqual(
     picker.pick(pixel(6.65, -0.54, 8.65)).ownerVoxel,
     [0, 13, 128],

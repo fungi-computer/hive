@@ -1,3 +1,4 @@
+import { initialExploration, observeClearing } from "./exploration.ts";
 import { fieldWaterSupplyKey } from "./field-water-source.ts";
 import { createMaterialsState } from "./materials.ts";
 // Commands authorize work. Fixed steps own outcomes; the view reads state.
@@ -61,6 +62,7 @@ export function createClearing(seed = 42): Clearing {
     careOutcomes: [],
     processes: [],
     terrain,
+    exploration: initialExploration(),
     rocks: ROCKS.map((at) => groundFooting(terrain, at)),
     watcher: groundFooting(terrain, WATCHER),
     sites: [],
@@ -75,6 +77,7 @@ export function createClearing(seed = 42): Clearing {
     notice: "A borrowed axe. No home. Bramble seems optimistic.",
   };
   introduceFiniteSources(state);
+  observeClearing(state);
   return state;
 }
 function advanceCat(state: Clearing): void {
@@ -164,6 +167,7 @@ function advanceCandidate(
   if (fieldWaterSupplyKey(state) !== waterSupplyBefore) state.workDirty = true;
   advanceBrewing(state);
   advanceHerbGrowth(state);
+  observeClearing(state);
   assignWork(state, colony);
   advanceCat(state);
   const event = nextEvent(state.feed, state.tick, shelteredBeds(state).length);
@@ -178,8 +182,12 @@ function commitTicks(
   ticks: number,
   commands: Command[],
 ): CommandResult[] {
-  const { terrain, ...body } = state;
-  const candidate: Clearing = { ...structuredClone(body), terrain };
+  const { terrain, exploration, ...body } = state;
+  const candidate: Clearing = {
+    ...structuredClone(body),
+    terrain,
+    exploration,
+  };
   let results: CommandResult[] = [];
   for (let count = 0; count < ticks; count++) {
     const admitted = advanceCandidate(

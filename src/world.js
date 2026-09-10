@@ -165,8 +165,7 @@ export function neighbors(p) {
     [0, -1],
   ].map(([x, z]) => ({ x: p.x + x, y: p.y, z: p.z + z }));
 }
-export function upperSurface(state, at) {
-  if (at.level !== 1) return false;
+export function builtSurface(state, at) {
   return state.sites.some(
     (site) =>
       site.finishedAt !== null &&

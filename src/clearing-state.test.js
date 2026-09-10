@@ -47,8 +47,10 @@ test("live reconstruction checks the same terrain/material relations and accepts
 
 test("current envelope rejects every unsupported predecessor without upgrading its state", () => {
   const current = snapshotFor(createClearing());
-  assert.equal(current.schema, 20);
-  for (const schema of [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]) {
+  assert.equal(current.schema, 23);
+  for (const schema of [
+    7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+  ]) {
     const unsupported = { ...structuredClone(current), schema };
     const before = structuredClone(unsupported);
     assert.throws(() => restoreSnapshot(unsupported));

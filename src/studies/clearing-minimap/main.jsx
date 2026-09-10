@@ -1,3 +1,4 @@
+import { exploredMapCells } from "../../exploration.ts";
 import { worldView, viewLayer } from "../../game-space.ts";
 import { visualPosition } from "../../movement.ts";
 import React, {
@@ -21,6 +22,7 @@ import "./study.css";
 function frozenFacts(state) {
   return Object.freeze({
     size: SIZE,
+    explored: Object.freeze(exploredMapCells(state)),
     actors: Object.freeze(
       Object.values(state.actors).map((actor) => {
         const position = visualPosition(actor);

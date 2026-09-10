@@ -1,5 +1,6 @@
+import { explorationSchema, explorationProblem } from "./exploration.ts";
 import { navigationStateProblem } from "./navigation-space.ts";
-import { placementFooting, insidePlacement } from "./game-space.ts";
+import { placementFooting } from "./game-space.ts";
 import { footingSchema } from "./engine/world/footing.ts";
 import { traversalSchema } from "./engine/navigation/schema.ts";
 import { materialContainerFacts } from "./material-container-facts.ts";
@@ -36,10 +37,9 @@ import { inside, sameCell, terrainEditProblem } from "./world.js";
 import {
   BUILDINGS,
   constructionBuffer,
-  floorSupported,
-  footprint,
   resolveMaterialDestination,
-  roofSupported,
+  buildingEnvelopeProblem,
+  buildingSupportProblem,
   siteMaterialEndpoint,
 } from "./construction.js";
 import {
@@ -69,7 +69,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 22 as const;
+const SAVE_SCHEMA = 23 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -402,6 +402,7 @@ const consumeOperation = z
 const currentStateSchema = z
   .object({
     terrain: z.unknown().transform(parseTerrain),
+    exploration: explorationSchema,
     careOutcomes: z.array(
       z
         .object({
@@ -1905,7 +1906,7 @@ function validateEmbeddings({ state, sites }: RelationContext): void {
 
 function validateSiteTopology({ state }: RelationContext): void {
   for (const site of state.sites) {
-    if (!footprint(site).every(insidePlacement))
+    if (buildingEnvelopeProblem(liveState(state), site))
       fail(`site ${site.id} is outside the clearing`);
     if (
       site.finishedAt !== null &&
@@ -1914,14 +1915,11 @@ function validateSiteTopology({ state }: RelationContext): void {
       ).length !== 1
     )
       fail(`finished site ${site.id} lacks construction embedding`);
-    if (site.type === "floor" && !floorSupported(liveState(state), site))
-      fail(`unsupported floor ${site.id}`);
     if (
-      site.type === "roof" &&
-      site.finishedAt !== null &&
-      !roofSupported(liveState(state), site)
+      (site.finishedAt !== null || site.type === "floor") &&
+      buildingSupportProblem(liveState(state), site)
     )
-      fail(`unsupported roof ${site.id}`);
+      fail(`unsupported ${site.type} ${site.id}`);
   }
 }
 
@@ -2070,6 +2068,8 @@ function validateDigTargets(state: SavedClearing): void {
 }
 
 function validateRelations(state: SavedClearing): SavedClearing {
+  const observationProblem = explorationProblem(liveState(state));
+  if (observationProblem) fail(observationProblem);
   validateMaterialLots(state);
   validateSources(state);
   const context = relationContext(state);

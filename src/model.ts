@@ -370,6 +370,7 @@ export type Clearing = {
   careOutcomes: CareOutcome[];
   processes: BrewProcess[];
   terrain: TerrainState;
+  exploration: import("./exploration.ts").Exploration;
   rocks: Cell[];
   watcher: Cell;
   sites: Site[];

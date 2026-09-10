@@ -4,6 +4,7 @@ import type { Actor, Clearing, Job, Site } from "./model.ts";
 import { finishActivity, finishJob } from "./activity-lifecycle.ts";
 import {
   BUILDINGS,
+  buildingSupportProblem,
   constructionBuffer,
   removalProblem,
   shelfContainer,
@@ -162,6 +163,10 @@ function accessProblem(
   } else {
     if (!workPosition(state, actor, target.site, target.kind))
       return waiting("Waiting for construction access.");
+    if (target.kind === "build") {
+      const problem = buildingSupportProblem(state, target.site);
+      if (problem) return waiting(problem);
+    }
     if (target.kind === "deconstruct") {
       const problem = removalProblem(state, target.site, actor);
       if (problem) return waiting(problem);
