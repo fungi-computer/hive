@@ -43,11 +43,12 @@ export function createGameCost(now = () => performance.now()) {
     lastTick = null;
   function stop(reason) {
     if (phase === "stopped") return;
+    const atMs = now();
     final = {
       reason,
-      atMs: now(),
+      atMs,
       lastTick,
-      terminalGapMs: priorSubmission === null ? null : now() - priorSubmission,
+      terminalGapMs: priorSubmission === null ? null : atMs - priorSubmission,
     };
     phase = "stopped";
     if (current) incompleteFrames++;
