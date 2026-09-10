@@ -397,3 +397,19 @@ corrected those; strict engine types u5038 exit0, scope closed. Root joined the
 three reviewed source commits as 6077d1a/3f4cdbf/651c8b0. No new public network
 host follows. The next isolated native witness will use the real connection
 against the existing authenticated DO host; browser-local remains live.
+
+## Constant-size host clock frontier — ae14d8e
+
+The Region owner now commits ordered host occurrences through the same detached
+candidate/state/event path as player commands. Its versioned retained frontier
+holds next sequence and last canonical request/receipt; exact replay returns the
+same result, while conflicting, retired and skipped sequences cannot execute.
+Clock records include storage accounting and relational reopen validation.
+
+u5023 failed before tests because the isolated lane lacked its read-only dependency
+link. u5025 passed11/12 laws; the remaining corrupted-frontier law correctly
+rejected but expected a different error category. The corrected named law passed
+u5027. u5040 strict types found nullable nextClock access; direct branch narrowing
+1268930 passed strict types u5043. All owned scopes closed inactive/dead/empty.
+The combined source is integrated as705eb39/175233e/ae14d8e. This proves the SQLite
+occurrence owner, not an autonomous alarm or hosted-clock acceptance.
