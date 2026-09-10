@@ -18,7 +18,7 @@ import {
 type Terrain = ReturnType<typeof goblinTerrainProjection>;
 type Physical = ReturnType<typeof compilePhysicalGeometry>;
 type WaterDefinition = ReturnType<typeof goblinWaterGeometry>;
-type WaterFacts = {
+export type GoblinGasWaterFacts = {
   readonly cells: readonly {
     readonly id: string;
     readonly at: Coordinate;
@@ -84,7 +84,7 @@ function admittedWater(
   terrain: Terrain,
   physical: Physical,
   definition: WaterDefinition,
-  facts: WaterFacts,
+  facts: GoblinGasWaterFacts,
   ceilingY: number,
 ) {
   const voxelM3 = GOBLIN_SPACING_M.reduce<number>(
@@ -160,13 +160,136 @@ function internalAreaM2(
   return Math.max(0, dryHeightM) * (axis === 0 ? sz : sx);
 }
 
+function freeVolumeM3(
+  fact: GoblinGasWaterFacts["cells"][number],
+  voxelM3: number,
+) {
+  return fact.massKg === fact.capacityKg ? 0 : voxelM3 - fact.liquidVolumeM3;
+}
+
+/** Update only stock-dependent gas metrics when the admitted water and
+ * physical topology are the same. A missing/new cell or a changed opening
+ * membership asks the caller for the conservative full rebuild. Facts here
+ * come from the already-admitted water owner; the structural checks still
+ * reject an accidentally mismatched definition. */
+export function updateGoblinGasGeometry(
+  previous: GasGeometrySnapshot,
+  physical: Physical,
+  waterDefinition: WaterDefinition,
+  waterFacts: GoblinGasWaterFacts,
+  revision: number,
+  ceilingY: number,
+) {
+  if (!Number.isSafeInteger(revision) || revision < waterDefinition.revision)
+    return { status: "rebuild" as const };
+  void ceilingY;
+  const voxelM3 = GOBLIN_SPACING_M.reduce<number>(
+      (product, value) => product * value,
+      1,
+    ),
+    byId = new Map(waterFacts.cells.map((cell) => [cell.id, cell]));
+  if (
+    byId.size !== waterFacts.cells.length ||
+    byId.size !== waterDefinition.cells.length
+  )
+    return { status: "rebuild" as const };
+
+  const cells = new Map<string, GasCellLike>();
+  for (const cell of waterDefinition.cells) {
+    const id = cellId(cell.at), fact = byId.get(id);
+    if (!fact || fact.kind !== cell.kind || cell.kind !== "void") continue;
+    const freeVolume = freeVolumeM3(fact, voxelM3);
+    if (!Number.isFinite(freeVolume) || freeVolume < 0)
+      return { status: "rebuild" as const };
+    if (freeVolume > 0) cells.set(id, { at: cell.at, freeVolume });
+  }
+  if (
+    cells.size !== previous.cells.length ||
+    previous.cells.some((cell) => !cells.has(cell.id))
+  )
+    return { status: "rebuild" as const };
+
+  const updatedCells = previous.cells.map((cell) => {
+      const next = cells.get(cell.id)!;
+      if (next.freeVolume <= 0) return null;
+      return Object.freeze({ ...cell, freeVolumeM3: next.freeVolume });
+    }),
+    previousFaces = new Map(previous.openFaces.map((face) => [face.id, face])),
+    updatedFaces: GasGeometrySnapshot["openFaces"][number][] = [],
+    emitted = new Set<string>();
+  if (updatedCells.some((cell) => cell === null))
+    return { status: "rebuild" as const };
+
+  const gasIds = new Set(cells.keys());
+  for (const cell of waterDefinition.cells) {
+    const id = cellId(cell.at);
+    if (!gasIds.has(id)) continue;
+    const fact = byId.get(id)!;
+    for (let axis = 0; axis < 3; axis++) {
+      const nextAt = positiveAxis(cell.at, axis),
+        nextId = cellId(nextAt);
+      if (!gasIds.has(nextId)) continue;
+      const faceIdValue = faceId(AXES[axis], nextAt),
+        old = previousFaces.get(faceIdValue);
+      const nextFact = byId.get(nextId)!;
+      const physicalFace = physical.face(AXES[axis], nextAt);
+      if (physicalFace === "unresolved")
+        return { status: "rebuild" as const };
+      if (physicalFace === "closed") continue;
+      const areaM2 = internalAreaM2(
+        axis,
+        fact.liquidVolumeM3,
+        nextFact.liquidVolumeM3,
+      );
+      if (!(areaM2 > 0)) {
+        if (old) return { status: "rebuild" as const };
+        continue;
+      }
+      if (!old || old.a !== id || old.b !== nextId)
+        return { status: "rebuild" as const };
+      emitted.add(faceIdValue);
+      updatedFaces.push(Object.freeze({ ...old, areaM2 }));
+    }
+  }
+  for (const face of previous.openFaces) {
+    if (!face.b) {
+      emitted.add(face.id);
+      updatedFaces.push(face);
+    }
+  }
+  if (
+    emitted.size !== previous.openFaces.length ||
+    updatedFaces.length !== previous.openFaces.length ||
+    previous.openFaces.some((face) => !emitted.has(face.id))
+  )
+    return { status: "rebuild" as const };
+  const changed =
+    updatedCells.some((cell, index) => cell!.freeVolumeM3 !== previous.cells[index].freeVolumeM3) ||
+    updatedFaces.some(
+      (face) => face.areaM2 !== previousFaces.get(face.id)!.areaM2,
+    );
+  if (!changed) return { status: "reused" as const, snapshot: previous, changed: false };
+  return {
+    status: "reused" as const,
+    changed: true,
+    snapshot: Object.freeze({
+      identity: previous.identity,
+      revision,
+      cells: Object.freeze(updatedCells as GasGeometrySnapshot["cells"]),
+      openFaces: Object.freeze(updatedFaces),
+    }),
+  };
+}
+
+type GasCellLike = { readonly at: Coordinate; readonly freeVolume: number };
+
 /** Derive gas capacity and openings from the same actual terrain, structure and
  * water facts. This returns no stock, clock, solver or mutable world. */
 export function goblinGasGeometry(
   terrain: Terrain,
   physical: Physical,
   waterDefinition: WaterDefinition,
-  waterFacts: WaterFacts,
+  waterFacts: GoblinGasWaterFacts,
   revision: number,
   ceilingY: number,
 ): GasGeometrySnapshot {
