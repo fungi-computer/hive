@@ -9,6 +9,8 @@ import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { survivalPack } from "../../engine/src/games/survival";
 import { piratesPack } from "../../engine/src/games/pirates";
+import { colonyPack } from "../../engine/src/games/colony";
+import { formationsPack } from "../../engine/src/games/formations";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 
@@ -25,6 +27,20 @@ function authorized(request: Request, secret: string) {
     Boolean(secret) &&
     request.headers.get("Authorization") === `Bearer ${secret}`
   );
+}
+function packFor(id: string) {
+  switch (id) {
+    case "survival":
+      return survivalPack;
+    case "pirates":
+      return piratesPack;
+    case "colony":
+      return colonyPack;
+    case "formations":
+      return formationsPack;
+    default:
+      throw new Error("unsupported proof pack");
+  }
 }
 
 export class FreshRegion extends DurableObject<Environment> {
@@ -56,8 +72,7 @@ export class FreshRegion extends DurableObject<Environment> {
       if (!/^[a-f0-9]{64}$/.test(env.IMPLEMENTATION_HASH))
         throw new Error("missing immutable implementation hash");
       initSync({ module: wasmBytes });
-      const pack =
-        this.env.PROOF_PACK === "pirates" ? piratesPack : survivalPack;
+      const pack = packFor(this.env.PROOF_PACK);
       const principalPrefix = pack.id;
       const program = createSessionRegionProgram({
         pack,
@@ -93,8 +108,7 @@ export class FreshRegion extends DurableObject<Environment> {
         return new Response("Forbidden", { status: 403 });
       await this.ctx.storage.sync();
       const committed = this.region.readCommitted();
-      const pack =
-        this.env.PROOF_PACK === "pirates" ? piratesPack : survivalPack;
+      const pack = packFor(this.env.PROOF_PACK);
       const port = wasmKernelPort(new WasmKernel());
       try {
         const session = new GameSession({ port, pack, seed: 17 });
@@ -117,7 +131,8 @@ export class FreshRegion extends DurableObject<Environment> {
     }
     if (path !== "/command" || request.method !== "POST")
       return new Response("Not found", { status: 404 });
-    const packId = this.env.PROOF_PACK === "pirates" ? "pirates" : "survival";
+    const packId = this.env.PROOF_PACK;
+    packFor(packId);
     const principal = authorized(request, this.env.WRITER_SECRET)
       ? `${packId}-player`
       : authorized(request, this.env.HOST_SECRET)
@@ -170,7 +185,8 @@ export class FreshRegion extends DurableObject<Environment> {
 }
 export default {
   fetch(request: Request, env: Environment) {
-    const packId = env.PROOF_PACK === "pirates" ? "pirates" : "survival";
+    const packId = env.PROOF_PACK;
+    packFor(packId);
     return env.REGIONS.get(env.REGIONS.idFromName(`${packId}-proof-v1`)).fetch(
       request,
     );
