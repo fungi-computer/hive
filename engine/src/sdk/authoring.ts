@@ -1,7 +1,7 @@
 import type { ComponentDefinition, ComponentId, EntityId, QuerySpec, SystemDefinition, WriteContext } from "../contracts";
 
-type Shape = Record<string, "number" | "boolean" | "string" | "entity" | "entity[]" | "json">;
-const valid = (type: Shape[string], value: unknown): boolean => type === "json" ||
+type Shape = Record<string, "number" | "boolean" | "string" | "entity" | "nullable-entity">;
+const valid = (type: Shape[string], value: unknown): boolean => (type === "nullable-entity" && (value === null || typeof value === "string")) ||
   (type === "number" && typeof value === "number" && Number.isFinite(value)) ||
   (type === "boolean" && typeof value === "boolean") || (type === "string" && typeof value === "string") ||
   (type === "entity" && typeof value === "string") || (type === "entity[]" && Array.isArray(value) && value.every(v => typeof v === "string"));
@@ -25,8 +25,13 @@ export function system(options: SystemOptions): SystemDefinition {
   const writes = options.writes ?? [];
   return Object.freeze({ ...options, reads: options.reads ?? [], writes, run(context: WriteContext) {
     const permitted = new Set(writes.map(c => c.id));
+    const readable = new Set((options.reads ?? []).map(c => c.id));
     const checked: WriteContext = {
       ...context,
+      query(spec) {
+        for (const definition of spec.components) if (!readable.has(definition.id)) throw new Error(`System ${options.id} cannot read ${definition.id}`);
+        return context.query(spec);
+      },
       write(definition, entity, value) {
         if (!permitted.has(definition.id)) throw new Error(`System ${options.id} cannot write ${definition.id}`);
         if (!definition.validate(value)) throw new Error(`Invalid ${definition.id} value`);
