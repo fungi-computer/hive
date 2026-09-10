@@ -9,12 +9,12 @@ import { createActor } from "xstate";
 import { createDefaultHtmlKeymap } from "@opentui/keymap/html";
 import { createBindingLookup, formatCommandBindings } from "@opentui/keymap/extras";
 
-export function createHiveClient({ root, mode, title, subtitle, source, runtime = null }) {
+export function createHiveClient({ root, mode, title, subtitle, source, runtime = null, projection = (x, y, z, dimensions = { x: 36, y: 24 }) => ({ x: x * dimensions.x + z * dimensions.x * 0.5, y: z * dimensions.y - y * dimensions.y }), unprojection = (x, y, dimensions = { x: 36, y: 24 }) => ({ x: x / dimensions.x - y / dimensions.y * 0.5, y: 0, z: y / dimensions.y })) {
   const state = { paused: false, selectedIds: [], hoverId: null, dragging: null, disposed: false, subjects: [], message: runtime ? "Connecting to the world…" : "Runtime pending — waiting for the browser Worker." };
   const gesture = createActor(pointerGestureMachine).start();
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
-  const emit = (action) => { runtime?.send?.(action); notify(); };
+  const emit = (action) => { if (runtime && action.kind === "action") runtime.send({ type: "action", action }); else if (runtime && action.kind === "pause") runtime.send({ type: state.paused ? "resume" : "pause" }); else if (runtime && action.kind === "save") runtime.send({ type: "save" }); else if (runtime && action.kind === "reset") runtime.send({ type: "reset" }); notify(); };
   const canvasHost = document.createElement("div"); canvasHost.className = "hive-canvas";
   const hud = document.createElement("aside"); hud.className = "hive-hud";
   const hudRoot = createRoot(hud);
@@ -35,7 +35,8 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
   }
 
   const camera = { x: 0, y: 0, zoom: 1, reset() { this.x = this.y = 0; this.zoom = 1; draw(); } };
-  function screenPoint(subject) { return { x: subject.x * camera.zoom + camera.x, y: subject.y * camera.zoom + camera.y }; }
+  const dimensions = { x: 36, y: 24 };
+  function screenPoint(subject) { const projected = projection(subject.x, subject.y, subject.z, dimensions); return { x: projected.x * camera.zoom + camera.x + 280, y: projected.y * camera.zoom + camera.y + 180 }; }
   function draw() {
     if (!app.stage) return;
     for (const child of overlay.removeChildren()) child.destroy?.({ children: true, texture: false, textureSource: false });
@@ -56,8 +57,8 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
   function pointerDown(event) { if (isTypingTarget(event.target) || event.button !== 0) return; const at = point(event); gesture.send({ type: "BEGIN", point: at, additive: event.shiftKey }); app.canvas.setPointerCapture?.(event.pointerId); }
   function pointerMove(event) { if (gesture.getSnapshot().value !== "dragging") return; gesture.send({ type: "MOVE", point: point(event) }); draw(); }
   function pointerUp(event) { const snapshot = gesture.getSnapshot(); if (snapshot.value !== "dragging") return; const drag = snapshot.context; gesture.send({ type: "END" }); const end = point(event); const box = { left: Math.min(drag.start.x, end.x), right: Math.max(drag.start.x, end.x), top: Math.min(drag.start.y, end.y), bottom: Math.max(drag.start.y, end.y) }; const hit = selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds); state.selectedIds = hit; emit({ kind: "select", entities: state.selectedIds }); renderHud(); draw(); }
-  function contextMenu(event) { event.preventDefault(); const at = point(event); const world = { x: (at.x - camera.x - 280) / 36, y: 0, z: (at.y - camera.y - 180) / 24 }; emit({ kind: mode === "formations" ? "group-order" : "move", entity: state.selectedIds[0], group: state.selectedIds[0], destination: world, facing: 0 }); }
-  function keydown(event) { if (isTypingTarget(event.target)) return; const key = event.key.toLowerCase(); if (mode === "survival" && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) emit({ kind: "move", entity: state.selectedIds[0], destination: { x: 0, y: 0, z: 0 } }); }
+  function contextMenu(event) { event.preventDefault(); const at = point(event); const world = unprojection((at.x - camera.x - 280) / camera.zoom, (at.y - camera.y - 180) / camera.zoom, dimensions); for (const id of state.selectedIds) emit({ kind: "action", action: { kind: "move", entity: id, destination: world, facing: 0 } }); }
+  function keydown(event) { if (isTypingTarget(event.target)) return; const key = event.key.toLowerCase(); if (mode === "survival") { const id = state.selectedIds[0], lot = state.selectedIds[1]; if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key) && id) { const destination = { x: key === "a" || key === "arrowleft" ? -1 : key === "d" || key === "arrowright" ? 1 : 0, y: 0, z: key === "w" || key === "arrowup" ? -1 : key === "s" || key === "arrowdown" ? 1 : 0 }; emit({ kind: "action", action: { kind: "move", entity: id, destination } }); } else if ((key === "e" || key === "f") && id && lot) emit({ kind: "action", action: key === "e" ? { kind: "transfer", lot, from: lot, to: id, quantity: 1 } : { kind: "consume", entity: id, lot, quantity: 1 } }); } }
   async function start() {
     await app.init({ resizeTo: canvasHost, backgroundAlpha: 0, antialias: false, resolution: 1 }); canvasHost.appendChild(app.canvas); app.stage.addChild(overlay); const pack = await loadStaticArtPack(); art = pack.art; state.disposeArt = pack.dispose; draw(); renderHud();
     app.canvas.addEventListener("pointerdown", pointerDown); app.canvas.addEventListener("pointermove", pointerMove); app.canvas.addEventListener("pointerup", pointerUp); app.canvas.addEventListener("contextmenu", contextMenu); app.canvas.addEventListener("pointercancel", () => { gesture.send({ type: "CANCEL" }); state.dragging = null; }); window.addEventListener("keydown", keydown); app.canvas.addEventListener("wheel", (event) => { event.preventDefault(); camera.zoom = Math.max(.7, Math.min(2, camera.zoom + (event.deltaY < 0 ? .1 : -.1))); draw(); }, { passive: false }); resizeObserver = new ResizeObserver(draw); resizeObserver.observe(canvasHost);
@@ -69,7 +70,8 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
       ...[["camera.left", -24, 0], ["camera.right", 24, 0], ["camera.up", 0, -24], ["camera.down", 0, 24]].map(([name, x, y]) => ({ name, desc: "Pan camera", run: () => { camera.x += x; camera.y += y; draw(); } })),
     ] });
     keymap.on("state", renderHud);
-    runtime?.subscribe?.((event) => { if (event.type === "frame") { state.subjects = event.facts.filter((fact) => fact.pose?.position).map((fact) => ({ id: fact.id, name: fact.label || fact.id, x: fact.pose.position.x * 36 + 280, y: fact.pose.position.z * 24 + 180, visual: fact.visual, screen: { x: 0, y: 0 } })); draw(); renderHud(); } if (event.type === "error") { state.message = event.message; renderHud(); } });
+    runtime?.subscribe?.((event) => { if (event.type === "frame") { state.subjects = event.facts.filter((fact) => fact.pose?.position).map((fact) => ({ id: fact.id, name: fact.label || fact.id, x: fact.pose.position.x, y: fact.pose.position.y, z: fact.pose.position.z, visual: fact.visual, screen: { x: 0, y: 0 } })); draw(); renderHud(); } if (event.type === "error") { state.message = event.message; renderHud(); } });
+    runtime?.send?.({ type: "start", game: mode });
   }
   start().catch((error) => { state.message = `Art unavailable: ${error.message}`; renderHud(); });
   return { state, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }, dispose() { if (state.disposed) return; state.disposed = true; gesture.stop(); resizeObserver?.disconnect(); window.removeEventListener("keydown", keydown); app.canvas?.removeEventListener("pointerdown", pointerDown); app.canvas?.removeEventListener("pointermove", pointerMove); app.canvas?.removeEventListener("pointerup", pointerUp); app.canvas?.removeEventListener("contextmenu", contextMenu); state.disposeArt?.(); for (const child of overlay.removeChildren()) child.destroy?.({ children: true, texture: false, textureSource: false }); app.destroy(true, { children: true, texture: false, textureSource: false }); }, send: emit };

@@ -19,7 +19,9 @@ export function isTypingTarget(target) {
 export function selectionFromSubjects(subjects, box, additive = false, previous = []) {
   const selected = additive ? new Set(previous) : new Set();
   for (const subject of subjects) {
-    if (subject.screen.x >= box.left && subject.screen.x <= box.right && subject.screen.y >= box.top && subject.screen.y <= box.bottom)
+    const left = Math.min(box.left, box.right), right = Math.max(box.left, box.right), top = Math.min(box.top, box.bottom), bottom = Math.max(box.top, box.bottom);
+    const pointHit = left === right && top === bottom && Math.hypot(subject.screen.x - left, subject.screen.y - top) <= (subject.radius ?? 20);
+    if (pointHit || (subject.screen.x >= left && subject.screen.x <= right && subject.screen.y >= top && subject.screen.y <= bottom))
       selected.add(subject.id);
   }
   return [...selected];
