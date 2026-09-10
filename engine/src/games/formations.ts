@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { component, entity, query, system } from "../sdk/authoring";
+import { command, component, entity, query, system } from "../sdk/authoring";
 import { Destination, Position, encodeDefinition, move } from "../sdk/common";
 import type { EntityId, GamePack } from "../contracts";
 
@@ -44,7 +44,7 @@ export const formationsPack: GamePack = {
   components: [Position, Destination, FormationMember, Morale],
   systems: [formations],
   commands: {
-    march(context, raw) {
+    march: command({ reads: [FormationMember], writes: [], run(context, raw) {
       const order = z
         .object({
           entities: z.array(z.string()).min(1).max(128),
@@ -70,14 +70,14 @@ export const formationsPack: GamePack = {
       if (members.length !== requested.size)
         throw new Error("Select formation members to march");
       const columns = Math.min(3, members.length);
-      return members.map((member, index) =>
+      return { actions: members.map((member, index) =>
         move(member.id, {
           x: order.destination.x + (index % columns) - Math.floor(columns / 2),
           y: order.destination.y,
           z: order.destination.z + Math.floor(index / columns),
         }),
-      );
-    },
+      ), writes: [] };
+    }}),
   },
   definition: encodeDefinition(
     "formations",
