@@ -4,6 +4,8 @@ import {
   type RegionSqliteOwner,
 } from "../../src/engine/region/index.ts";
 import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
+import { GameSession } from "../../engine/src/runtime/session";
+import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { survivalPack } from "../../engine/src/games/survival";
 import { piratesPack } from "../../engine/src/games/pirates";
@@ -85,6 +87,33 @@ export class FreshRegion extends DurableObject<Environment> {
         snapshot: this.region.readCommitted(),
         events: this.region.readEvents(0, 128),
       });
+    }
+    if (path === "/observe" && request.method === "GET") {
+      if (!authorized(request, this.env.WRITER_SECRET))
+        return new Response("Forbidden", { status: 403 });
+      await this.ctx.storage.sync();
+      const committed = this.region.readCommitted();
+      const pack =
+        this.env.PROOF_PACK === "pirates" ? piratesPack : survivalPack;
+      const port = wasmKernelPort(new WasmKernel());
+      try {
+        const session = new GameSession({ port, pack, seed: 17 });
+        session.restore(committed.state.session);
+        const observation = buildObservation(session, {
+          epoch: 0,
+          sequence: committed.revision,
+        });
+        return Response.json({
+          revision: committed.revision,
+          observation,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "observe-failed";
+        return Response.json({ error: message }, { status: 500 });
+      } finally {
+        port.dispose();
+      }
     }
     if (path !== "/command" || request.method !== "POST")
       return new Response("Not found", { status: 404 });
