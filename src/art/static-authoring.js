@@ -113,10 +113,18 @@ export async function createStaticArtDraft(onProgress = () => {}) {
     )
       throw new Error("Static art ground dimensions changed");
     const vehicleTextures = textures.filter(
-      ({ path }) => path[0] === "vehicles",
+      ({ path }) => path[0] === "vehicles" && path[1] === "ship",
     );
     if (vehicleTextures.length !== 4)
       throw new Error("Static art must contain four ship vehicle facings");
+    const vehicleFacings = new Set(
+      vehicleTextures.map(({ path }) => path[2]),
+    );
+    if (
+      vehicleFacings.size !== 4 ||
+      ![0, 1, 2, 3].every((direction) => vehicleFacings.has(direction))
+    )
+      throw new Error("Static art ship facings must be directions 0 through 3");
     for (const { texture, path } of vehicleTextures) {
       const canvas = textureCanvas(texture, JSON.stringify(path));
       if (
