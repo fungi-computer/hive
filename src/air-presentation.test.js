@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createClearing } from "./clearing.ts";
+import { createClearing, step } from "./clearing.ts";
 import { currentVisibility } from "./exploration.ts";
+import { groundFooting } from "./game-space.ts";
 import { terrainEnvironment } from "./terrain.ts";
 import {
   clearingAirLayer,
@@ -53,6 +54,40 @@ test("Clearing air exposes canonical heat and smoke without advancing it", () =>
   assert(layer.maxTemperatureC > 20);
   assert(layer.maxSmokeMgM3 > 0);
   assert.notStrictEqual(current, initial);
+});
+
+test("same-tick detached body and site publication rechecks current sight", () => {
+  const state = createClearing(),
+    initial = clearingAirPresentation(state),
+    previousActors = state.actors,
+    previousSites = state.sites;
+  state.paused = true;
+  assert.deepEqual(
+    step(state, null, [{ kind: "recruit", party: "home", actor: "sedge" }]),
+    [{ status: "applied" }],
+  );
+  assert.notStrictEqual(state.actors, previousActors);
+  assert.notStrictEqual(state.sites, previousSites);
+  assert.strictEqual(clearingAirPresentation(state), initial);
+  state.actors = {
+    ...state.actors,
+    rowan: {
+      ...state.actors.rowan,
+      ...groundFooting(state.terrain, { x: 2, z: 2 }),
+    },
+  };
+  state.sites = [...state.sites];
+  const current = clearingAirPresentation(state),
+    visible = currentVisibility(state),
+    cells = current.layers.flatMap((layer) => layer.cells);
+  assert.notStrictEqual(current, initial);
+  assert(cells.length > 0);
+  assert(cells.every((cell) => visible(cell.at)));
+  assert(
+    initial.layers
+      .flatMap((layer) => layer.cells)
+      .some((cell) => !visible(cell.at)),
+  );
 });
 
 function cellId(id) {
