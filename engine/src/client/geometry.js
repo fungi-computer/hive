@@ -19,12 +19,34 @@ const axisZ = project(0, 0, 1);
 const basisX = { x: axisX.x - origin.x, y: axisX.y - origin.y };
 const basisZ = { x: axisZ.x - origin.x, y: axisZ.y - origin.y };
 const determinant = basisX.x * basisZ.y - basisZ.x * basisX.y;
-export function groundPoint(x, y) {
-  const dx = x - origin.x,
-    dy = y - origin.y;
+function planePoint(x, y, height) {
+  const planeOrigin = project(0, height, 0);
+  const dx = x - planeOrigin.x;
+  const dy = y - planeOrigin.y;
   return {
-    x: Math.round((dx * basisZ.y - basisZ.x * dy) / determinant),
-    y: 0,
-    z: Math.round((basisX.x * dy - dx * basisX.y) / determinant),
+    x: (dx * basisZ.y - basisZ.x * dy) / determinant,
+    y: height,
+    z: (basisX.x * dy - dx * basisX.y) / determinant,
   };
+}
+export function groundPoint(x, y) {
+  const point = planePoint(x, y, 0);
+  return { x: Math.round(point.x), y: 0, z: Math.round(point.z) };
+}
+
+/** Pick a displayed horizontal support; native admission checks the returned order. */
+export function surfacePoint(x, y, fact) {
+  const { pose, surface } = fact;
+  if (!pose || !surface) return null;
+  const world = planePoint(x, y, pose.position.y + surface.height);
+  const angle = pose.facing * Math.PI / 2;
+  const dx = world.x - pose.position.x;
+  const dz = world.z - pose.position.z;
+  const localX = Math.cos(angle) * dx + Math.sin(angle) * dz;
+  const localZ = -Math.sin(angle) * dx + Math.cos(angle) * dz;
+  if (localX < surface.minX - 1e-8 || localX > surface.maxX + 1e-8 ||
+      localZ < surface.minZ - 1e-8 || localZ > surface.maxZ + 1e-8) return null;
+  return { x: Math.min(surface.maxX, Math.max(surface.minX, localX)),
+    y: surface.height,
+    z: Math.min(surface.maxZ, Math.max(surface.minZ, localZ)), frame: fact.id };
 }
