@@ -122,6 +122,23 @@ function activeSourceCells(obligations: readonly PaidAtmosphereRelease[]) {
   );
 }
 
+function reserveFinalCursorWire(
+  version: PaidAtmosphereReleases["version"],
+  obligations: readonly PaidAtmosphereRelease[],
+) {
+  encode(
+    {
+      version,
+      obligations: obligations.map((entry) => ({
+        ...entry,
+        elapsedTicks: RELEASE_TICKS,
+      })),
+    },
+    LIMITS.bytes,
+    LIMITS.nodes,
+  );
+}
+
 function parsedState(input: unknown) {
   const parsed = stateSchema.parse(copy(input)),
     obligations = [...parsed.obligations].sort((a, b) =>
@@ -139,6 +156,7 @@ function parsedState(input: unknown) {
     activeSourceCells(obligations).size > ATMOSPHERE_LIMITS.sources
   )
     throw new Error("invalid paid atmosphere release obligations");
+  reserveFinalCursorWire(parsed.version, obligations);
   return Object.freeze({
     version: parsed.version,
     obligations: Object.freeze(
