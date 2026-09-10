@@ -3,15 +3,19 @@ import {
   assertWorldRecord as record,
   assertWorldArray as array,
 } from "../../world/data-contract.mjs";
+import { DEFAULT_WATER_LIMITS, waterLimits } from "./limits.mjs";
 
 export const WATER_DENSITY = 1000;
-export const WIRE_BYTES = 2 * 1024 * 1024;
 export const check = (ok, message) => {
   if (!ok) throw new TypeError(message);
 };
-export const cellId = (at) => `cell:${at.join(",")}`;
-export const copyData = (value) =>
-  decode(encode(value, WIRE_BYTES), WIRE_BYTES);
+const cellId = (at) => `cell:${at.join(",")}`;
+export const copyData = (value, limits = DEFAULT_WATER_LIMITS) =>
+  decode(
+    encode(value, limits.wireBytes, limits.dataNodes),
+    limits.wireBytes,
+    limits.dataNodes,
+  );
 export function freeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     for (const child of Object.values(value)) freeze(child);
@@ -60,8 +64,8 @@ function soilDefinitions(inputs) {
   }
   return soils;
 }
-function compileCells(inputs, soils, spacing) {
-  array(inputs, 2048, "water cells");
+function compileCells(inputs, soils, spacing, limits) {
+  array(inputs, limits.cells, "water cells");
   check(inputs.length > 0, "nonempty declared field");
   const volumeM3 = spacing[0] * spacing[1] * spacing[2];
   check(positive(volumeM3 * WATER_DENSITY), "finite cell water capacity");
@@ -109,8 +113,8 @@ function compileCells(inputs, soils, spacing) {
     })
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
-function compileFaces(inputs, nodes, spacing) {
-  array(inputs, 6144, "water openings");
+function compileFaces(inputs, nodes, spacing, limits) {
+  array(inputs, limits.faces, "water openings");
   const index = new Map(nodes.map((node, i) => [node.id, i])),
     seen = new Set();
   return inputs
@@ -156,8 +160,9 @@ function compileFaces(inputs, nodes, spacing) {
 
 /** Definitions contain actual 3D cells and admitted openings. No pit, map,
  * elevation whitelist, implied exterior or material-name interpretation. */
-export function compileWater(raw) {
-  const input = copyData(raw);
+export function compileWater(raw, admittedLimits) {
+  const limits = waterLimits(admittedLimits),
+    input = copyData(raw, limits);
   record(
     input,
     [
@@ -197,8 +202,8 @@ export function compileWater(raw) {
     "declared near-full pressure connectivity fraction",
   );
   const soils = soilDefinitions(input.soils),
-    nodes = compileCells(input.cells, soils, input.spacingM);
-  const faces = compileFaces(input.faces, nodes, input.spacingM);
+    nodes = compileCells(input.cells, soils, input.spacingM, limits);
+  const faces = compileFaces(input.faces, nodes, input.spacingM, limits);
   const definition = freeze({
     ...input,
     soils: [...input.soils].sort((a, b) =>
@@ -217,7 +222,8 @@ export function compileWater(raw) {
   });
   const identity = encode(
     { version: "finite-voxel-water-v1", definition },
-    WIRE_BYTES,
+    limits.wireBytes,
+    limits.dataNodes,
   );
   // The exact escaped identity dominates the wire. Every remaining state field
   // is a fixed key or finite IEEE number (well below32 UTF-8 bytes). This bound
@@ -227,7 +233,7 @@ export function compileWater(raw) {
     JSON.stringify(identity),
   ).length;
   check(
-    identityBytes + nodes.length * 33 + 1024 <= WIRE_BYTES,
+    identityBytes + nodes.length * 33 + 1024 <= limits.wireBytes,
     "complete water state fits the wire budget",
   );
   const neighbors = nodes.map(() => []);
@@ -236,6 +242,7 @@ export function compileWater(raw) {
     neighbors[face.b].push({ to: face.a, face: index });
   });
   return {
+    limits,
     definition,
     identity,
     nodes: freeze(nodes),

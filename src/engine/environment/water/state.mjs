@@ -5,8 +5,8 @@ import {
 import { check, freeze, copyData } from "./geometry.mjs";
 import { compensatedSum as sum } from "../arithmetic.mjs";
 
-export const VERSION = "finite-voxel-water-v1";
-export function validate(g, state) {
+const VERSION = "finite-voxel-water-v1";
+function validate(g, state) {
   record(
     state,
     ["version", "identity", "massKg", "initialTotalKg", "boundaryKg"],
@@ -44,7 +44,7 @@ export function validate(g, state) {
   return { totalKg, residualKg };
 }
 export function initial(g, raw) {
-  const input = copyData(raw);
+  const input = copyData(raw, g.limits);
   record(input, ["stocks"], "initial water");
   array(input.stocks, g.nodes.length, "initial cell stocks");
   check(
@@ -83,7 +83,7 @@ export function stateAdmission(g) {
   return {
     remember,
     parse(raw) {
-      return trusted.has(raw) ? raw : remember(copyData(raw));
+      return trusted.has(raw) ? raw : remember(copyData(raw, g.limits));
     },
   };
 }

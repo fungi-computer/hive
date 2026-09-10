@@ -279,6 +279,47 @@ test("definition admission reserves enough wire space for the complete saved sto
   );
 });
 
+test("declared field limits admit larger finite geometry without weakening ordinary defaults", () => {
+  const cells = Array.from({ length: 6000 }, (_, x) => emptyCell([x, 0, 0]));
+  const definition = {
+    id: "bounded-regional-field",
+    revision: 0,
+    spacingM: [1, 0.54, 1],
+    soils: [],
+    cells,
+    faces: cells
+      .slice(1)
+      .map((cell, i) => ({ a: cells[i].at, b: cell.at, openFraction: 1 })),
+    fallMPerS: 0,
+    spreadMPerS: 0,
+    pressureWetFraction: 0.999,
+  };
+  assert.throws(() => createWater(definition), /budget|bounded/);
+  const limits = {
+    cells: 6000,
+    faces: 6000,
+    wireBytes: 2 * 1024 * 1024,
+    dataNodes: 200_000,
+  };
+  const owner = createWater(definition, limits);
+  const state = owner.initial({
+    stocks: cells.map((cell) => ({ id: id(cell.at), massKg: 0 })),
+  });
+  assert.deepEqual(owner.decode(owner.encode(state)), state);
+  assert.equal(owner.read(state).totalKg, 0);
+  let accessed = false;
+  const hostile = { ...limits };
+  Object.defineProperty(hostile, "cells", {
+    enumerable: true,
+    get() {
+      accessed = true;
+      return 6000;
+    },
+  });
+  assert.throws(() => createWater(definition, hostile), /exact fields/);
+  assert.equal(accessed, false);
+});
+
 test("a roofed U passage transmits one finite quantity over every full intermediate face", () => {
   const left = [0, 1, 0],
     bottomLeft = [0, 0, 0],

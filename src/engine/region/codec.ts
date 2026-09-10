@@ -2,10 +2,18 @@
 export type Json =
   null | boolean | number | string | Json[] | { [key: string]: Json };
 
-export function encode(value: unknown, maxBytes: number): string {
+/** Hosts may declare a larger structural budget for a bounded dense field.
+ * Byte and structural limits remain separate; ordinary callers keep 65,536. */
+export function encode(
+  value: unknown,
+  maxBytes: number,
+  maxNodes = 65_536,
+): string {
+  if (!Number.isSafeInteger(maxNodes) || maxNodes < 1 || maxNodes > 4_194_304)
+    throw new Error("region-structural-budget-invalid");
   let nodes = 0;
   function visit(input: unknown, depth: number): Json {
-    if (++nodes > 65_536 || depth > 64) throw new Error("region-data-budget");
+    if (++nodes > maxNodes || depth > 64) throw new Error("region-data-budget");
     if (
       input === null ||
       typeof input === "boolean" ||
@@ -49,11 +57,15 @@ export function encode(value: unknown, maxBytes: number): string {
   return wire;
 }
 
-export function decode(wire: string, maxBytes: number): Json {
+export function decode(
+  wire: string,
+  maxBytes: number,
+  maxNodes = 65_536,
+): Json {
   if (new TextEncoder().encode(wire).byteLength > maxBytes)
     throw new Error("region-byte-budget");
   const value = JSON.parse(wire);
   // Validate old storage, including data shape/depth, before the program sees it.
-  encode(value, maxBytes);
+  encode(value, maxBytes, maxNodes);
   return value;
 }

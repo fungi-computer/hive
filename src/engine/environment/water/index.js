@@ -1,13 +1,7 @@
 import { encode, decode } from "../../region/codec.ts";
 import { assertWorldRecord as record } from "../../world/data-contract.mjs";
 import { changeQuantity, compensatedSum } from "../arithmetic.mjs";
-import {
-  compileWater,
-  copyData,
-  check,
-  freeze,
-  WIRE_BYTES,
-} from "./geometry.mjs";
+import { compileWater, copyData, check, freeze } from "./geometry.mjs";
 import { initial, stateAdmission, waterFacts } from "./state.mjs";
 import { transferStep } from "./transport.mjs";
 import { pressureStep } from "./pressure.mjs";
@@ -17,8 +11,8 @@ import { rebindWater } from "./rebind.mjs";
  * physical completion and durable receipt; this module owns only water stocks.
  * Pressure through full roofed channels and gas displacement join before this
  * new owner can replace the current game's excavation consumer. */
-export function createWater(definition) {
-  const g = compileWater(definition),
+export function createWater(definition, limits) {
+  const g = compileWater(definition, limits),
     admission = stateAdmission(g);
   return Object.freeze({
     definition: g.definition,
@@ -28,7 +22,7 @@ export function createWater(definition) {
     read: (input) => waterFacts(g, admission.parse(input)),
     rebind(input, nextDefinition) {
       const state = admission.parse(input),
-        next = compileWater(nextDefinition);
+        next = compileWater(nextDefinition, g.limits);
       const result = rebindWater(g, state, next);
       if (result.status === "blocked") return result;
       return Object.freeze({
@@ -108,7 +102,7 @@ export function createWater(definition) {
     },
     exchange(input, raw) {
       const state = admission.parse(input),
-        command = copyData(raw);
+        command = copyData(raw, g.limits);
       record(command, ["id", "direction", "massKg"], "finite water transfer");
       const i = g.index.get(command.id),
         amount = command.massKg;
@@ -146,7 +140,9 @@ export function createWater(definition) {
         }),
       };
     },
-    encode: (input) => encode(admission.parse(input), WIRE_BYTES),
-    decode: (wire) => admission.parse(decode(wire, WIRE_BYTES)),
+    encode: (input) =>
+      encode(admission.parse(input), g.limits.wireBytes, g.limits.dataNodes),
+    decode: (wire) =>
+      admission.parse(decode(wire, g.limits.wireBytes, g.limits.dataNodes)),
   });
 }
