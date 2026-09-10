@@ -2,6 +2,11 @@
 
 ## Playability-first environment decision — 2026-09-10
 
+The [implementation guide](engine-implementation-guide.md#3-water-local-finite-transport-and-active-work)
+provides water/gas/terrain pseudocode and the concrete caller changes for this
+decision. Its causal air-before-water boundary split is a proposed model-order
+change requiring affected qualification, not an unchanged-source speed claim.
+
 Levi's latest direction is to make the actual game playable and stop spending
 time on unnecessary numerical fidelity. **Celld is the accepted eventual cheap
 Durable Object hosting target.** Detailed tick pricing and per-player compute

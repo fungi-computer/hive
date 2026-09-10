@@ -1,5 +1,16 @@
 # Architecture implementation plan
 
+## Current implementer entry — September 10
+
+Read the [implementation guide](engine-implementation-guide.md) for source-grounded
+pseudocode and current-file responsibilities. It records the latest playable
+water/gas/terrain decision, then headless host separation and shared care/waste
+work. Project Zomboid and a pirate game are durable architecture tests in the
+[cross-game study](hive-engine-asset-pipeline-and-goblin-boundaries.md#cross-game-acceptance-zomboid-style-survival-and-pirates--september-10).
+The guide distinguishes actual exports from proposed internal operations and
+keeps future ships/combat out of the immediate queue. Earlier sections below
+remain design history where their sequence or fidelity differs.
+
 **Current breaking-change policy (Levi, September 9):** favor the clean composed
 engine and update its real callers together. No backward-compatibility shims,
 legacy adapters, migration readers or duplicate old implementations are required.
