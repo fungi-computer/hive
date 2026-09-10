@@ -1,5 +1,11 @@
 # Programmable colonies, distributed time and durable execution
 
+**Priority amendment from Levi, September 10:** accept Celld as the eventual
+cheap DO host. Detailed CPU pricing, player tick allowances and capacity-business
+modelling are deferred; the cost examples below are explanatory research, not
+the next work queue. Retain isolation from runaway programs and useful autonomous
+work. The immediate outcome is the [playable environment correction](environmental-fields-and-openings.md#playability-first-environment-decision--2026-09-10).
+
 ## Findings and recommendation
 
 Screeps demonstrates the central product idea: a player's code controls a colony

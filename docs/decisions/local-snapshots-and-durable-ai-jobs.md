@@ -1,5 +1,12 @@
 # Durable Object engine authority and local snapshots
 
+Levi's latest September 10 hosting direction accepts **Celld as the eventual
+cheap Durable Object target**. Take that as the product premise; defer detailed
+tick billing/allowance design and further hosting-cost investigation. The browser
+host, single online owner, durable effects and disposable-cache rules below
+remain. The [playability-first environment decision](environmental-fields-and-openings.md#playability-first-environment-decision--2026-09-10)
+owns the immediate correction. This records direction, not a new hosted game.
+
 ## Browser and DO hosts with sleeping regions — September 10
 
 Direct Levi clarification: Hive targets both browser and Durable Object hosts.
