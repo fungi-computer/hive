@@ -58,10 +58,7 @@ export function createHiveClient({
       state.message = "Save requested…";
       runtime.send({ type: "save" });
     } else if (runtime && action.kind === "reset") {
-      animationClock.reset();
-      interpolation.reset();
-      frameEpoch = undefined;
-      frameSequence = 0;
+      awaitingEpochTransition = true;
       runtime.send({ type: "reset" });
     } else if (action.kind === "continue") {
       try {
@@ -70,10 +67,7 @@ export function createHiveClient({
         const snapshot = JSON.parse(saved);
         state.pendingRestore = true;
         state.message = "Continue requested…";
-        animationClock.reset();
-        interpolation.reset();
-        frameEpoch = undefined;
-        frameSequence = 0;
+        awaitingEpochTransition = true;
         runtime.send({ type: "restore", snapshot });
       } catch (error) {
         state.pendingRestore = false;
@@ -98,6 +92,7 @@ export function createHiveClient({
   const interpolation = createInterpolationBuffer();
   let frameSequence = 0;
   let frameEpoch;
+  let awaitingEpochTransition = false;
   let groundSprite = null;
   let art = null;
   let resizeObserver = null;
@@ -592,10 +587,18 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "frame") {
+        if (
+          awaitingEpochTransition &&
+          frameEpoch !== undefined &&
+          event.epoch !== frameEpoch
+        )
+          interpolation.reset(event.epoch);
         if (interpolation.push(event, performance.now())) {
-          animationClock.reset();
+          if (frameEpoch !== undefined && frameEpoch !== event.epoch)
+            animationClock.reset();
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
+          awaitingEpochTransition = false;
           draw();
           renderHud();
         }
