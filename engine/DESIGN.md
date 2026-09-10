@@ -27,16 +27,19 @@ Hosted DO play, autonomous wake and population capacity remain unproved.
 
 ### Remaining foundation acceptance work
 
-The five-item goal is not complete. Keep the existing §3 player actions as the
-acceptance target: colony needs player-issued/interruptible delivery and visible
-finite-food custody; survival needs its condition visible; formations needs facing,
-an obstacle and a reachable morale rule. Each page needs one bounded editable rule.
-Use game-owned projections and authored commands over the shared session/client;
-do not create UI-owned quantities or a second simulation. The current automatic
-colony delivery and unused Hospitality rule are interim source, not acceptance.
-The numeric restore correction, changed consumer checks and coherent publication
-remain the immediate release work. Deep-world physics and new host frameworks do
-not replace these concrete player-facing gaps.
+The five-item goal is not complete. Local c98ad02 supplies player-issued delivery,
+pause/resume and custody facts, survival condition and editable meal recovery,
+formation facing, an obstacle and a reachable retreat rule. Six affected WASM
+laws passed across u4917/u4918. Changed browser presentation and publication
+remain open. The numeric restore correction and local schema-4 DO restart/replay
+are proved (u4900/u4920), not hosted server play.
+
+Keep §3 as the acceptance target, including colony selection/work allocation.
+The current command still targets one fixed worker and its completed task cannot
+accept another delivery. The unused Hospitality rule was removed; the independent
+author exercise is now assigned against the frozen public examples/API. Shared
+queries/commands must own these changes, without UI-owned quantities or another
+simulation. Deep-world physics and new host frameworks do not replace these gaps.
 
 ### Current delivery cadence amendment
 
