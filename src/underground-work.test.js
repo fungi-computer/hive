@@ -96,10 +96,11 @@ test("public work earns a descending route and two separately covered spaces wit
     };
   }
   function require(condition, message) {
-    assert(
-      condition,
-      `${message}\n${JSON.stringify(failureFacts()).slice(0, 14000)}`,
-    );
+    if (!condition)
+      assert(
+        condition,
+        `${message}\n${JSON.stringify(failureFacts()).slice(0, 14000)}`,
+      );
   }
   function command(value) {
     state.paused = true;
