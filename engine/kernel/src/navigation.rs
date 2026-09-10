@@ -120,7 +120,7 @@ pub fn validate_saved_path(
                 && point.z <= bounds.max_z
         })
     };
-    let mut previous = start;
+    let mut previous = start.clone();
     for (index, point) in path.iter().enumerate() {
         if [point.x, point.y, point.z]
             .iter()

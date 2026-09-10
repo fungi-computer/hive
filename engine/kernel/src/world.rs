@@ -447,7 +447,7 @@ impl Kernel {
                     .collect(),
             })
             .collect();
-        let mut routes = self
+        let mut routes: Vec<RouteSnapshot> = self
             .routes
             .iter()
             .map(|(entity, path)| RouteSnapshot {
