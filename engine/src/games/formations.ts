@@ -247,28 +247,28 @@ export const formationsPack: GamePack = {
   ),
   presentation: {
     controls: [
-      { id: "fire-cannon", label: "Fire cannon", command: "fire", input: {} },
+      { id: "fire-cannon", label: "Fire downrange", command: "fire", input: {} },
       {
         id: "facing-0",
-        label: "Face north",
+        label: "Formation north",
         command: "setFacing",
         input: { facing: 0 },
       },
       {
         id: "facing-1",
-        label: "Face east",
+        label: "Formation east",
         command: "setFacing",
         input: { facing: 1 },
       },
       {
         id: "facing-2",
-        label: "Face south",
+        label: "Formation south",
         command: "setFacing",
         input: { facing: 2 },
       },
       {
         id: "facing-3",
-        label: "Face west",
+        label: "Formation west",
         command: "setFacing",
         input: { facing: 3 },
       },
@@ -297,7 +297,7 @@ export const formationsPack: GamePack = {
         { id: "lowest-health", label: "Lowest health", value: Math.min(...context.query(query(Health)).map(row => row.get(Health).value)) },
         {
           id: "formation-facing",
-          label: "Facing",
+          label: "Formation facing",
           value: settings?.facing ?? 0,
         },
         {

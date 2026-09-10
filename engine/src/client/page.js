@@ -36,7 +36,7 @@ const configs = {
     title: "Formations",
     orderCommand: "march",
     subtitle:
-      "Choose facing, drag-select your group, and right-click to march around the crate. Raise the retreat threshold to send them home.",
+      "Fire the six-round cannon, watch health and morale change, or drag-select soldiers and right-click to move them out of its path.",
     source: "./source/formations.ts",
   },
 };
