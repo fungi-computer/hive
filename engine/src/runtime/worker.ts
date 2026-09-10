@@ -6,7 +6,7 @@ import type {
 } from "../contracts";
 import { GameSession } from "./session";
 import type { SessionSnapshot } from "./session";
-import { projectPresentation } from "../presentation";
+import { projectPresentation, type PresentationControl } from "../presentation";
 
 export type WorkerCommand =
   | {
@@ -38,12 +38,7 @@ export type WorkerEvent =
         label: string;
         value: string | number | boolean;
       }[];
-      readonly controls: readonly {
-        id: string;
-        label: string;
-        command: string;
-        input?: unknown;
-      }[];
+      readonly controls: readonly PresentationControl[];
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[] }

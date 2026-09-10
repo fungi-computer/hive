@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { wasmKernelPort } from "./wasm-kernel";
 import { GameSession } from "./session";
+import { WorkerRuntime, type WorkerEvent } from "./worker";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition, Fatigue } from "../games/survival";
 import { formationsPack, FormationMember } from "../games/formations";
@@ -11,6 +12,23 @@ import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
+
+test("display frames identify time and reset discontinuities", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const events: WorkerEvent[] = [];
+    const runtime = new WorkerRuntime(port, { survival: survivalPack }, (event) => events.push(event));
+    runtime.command({ type: "start", game: "survival" });
+    runtime.command({ type: "step", delta: 0.1 });
+    runtime.command({ type: "pause" });
+    runtime.command({ type: "step", delta: 0.1 });
+    runtime.command({ type: "reset" });
+    assert.deepEqual(events.filter((event) => event.type === "error"), []);
+    const frames = events.filter((event) => event.type === "frame");
+    assert.deepEqual(frames.map(({ time, epoch, sequence }) => [time, epoch, sequence]),
+      [[0, 1, 1], [0.1, 1, 2], [0.1, 1, 3], [0, 2, 4]]);
+  } finally { port.dispose(); }
+});
 
 test("native assignment chooses joint pairs without mutating the world", () => {
   const port = wasmKernelPort(new WasmKernel());
