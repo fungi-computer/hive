@@ -141,16 +141,14 @@ async function stop() {
     await childExit;
   }
   for (let attempt = 0; attempt < 50; attempt++) {
-    const response = await fetch(`${endpoint}/health`, {
-      signal: AbortSignal.timeout(300),
-    }).catch(() => null);
-    if (!response) {
+    try {
       await freePort();
       return;
+    } catch (error) {
+      if (error.code !== "EADDRINUSE") throw error;
+      await delay(100);
     }
-    await delay(100);
   }
-  await freePort();
   throw new Error("owned listener did not close");
 }
 async function command(input, role = "WRITER_SECRET", fault) {
