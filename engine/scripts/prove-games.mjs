@@ -8,6 +8,7 @@ await build({
     "games.test": "engine/src/runtime/games.test.ts",
     "presentation.test": "engine/src/presentation.test.ts",
     "assignment.test": "engine/src/sdk/assignment.test.ts",
+    "colony-orders.test": "engine/src/runtime/colony-orders.test.ts",
   },
   bundle: true,
   platform: "node",
@@ -24,6 +25,7 @@ const result = spawnSync(
     ".botanical/fresh-game-laws/games.test.mjs",
     ".botanical/fresh-game-laws/presentation.test.mjs",
     ".botanical/fresh-game-laws/assignment.test.mjs",
+    ".botanical/fresh-game-laws/colony-orders.test.mjs",
   ],
   { stdio: "inherit" },
 );

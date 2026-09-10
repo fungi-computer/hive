@@ -94,7 +94,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("deliver", { quantity: 1 });
+    session.command("deliver", { quantity: 1, entities: ["colony.worker.1"] });
     let interrupted = false;
     for (let i = 0; i < 100; i++) {
       session.step(0.1);
@@ -103,7 +103,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
         .find((row) => row.get(MaterialLot).container === "colony.worker.1");
       if (lot) interrupted = true;
       if (lot) {
-        session.command("pauseDelivery", null);
+        session.command("pauseDelivery", { entities: ["colony.worker.1"] });
         session.step(0.1);
         const pausedPosition = session
           .query(query(Position))
@@ -124,7 +124,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
             ?.get(MaterialLot).container,
           "colony.worker.1",
         );
-        session.command("resumeDelivery", null);
+        session.command("resumeDelivery", { entities: ["colony.worker.1"] });
         break;
       }
     }
@@ -150,7 +150,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
     assert.equal(
       colonyPack.presentation
         ?.inspect({ query: (spec) => session.query(spec) })
-        .find((fact) => fact.id === "delivery-phase")?.value,
+        .find((fact) => fact.id === "delivery-phase-1")?.value,
       "complete",
     );
   } finally {
