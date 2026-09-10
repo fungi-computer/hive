@@ -2,6 +2,8 @@
 export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
 export type GameId = string;
+export const RESERVED_COMPONENTS = ["hive.position", "hive.body", "hive.container", "hive.lot", "hive.destination", "hive.obstacle", "hive.visual"] as const;
+export const isReservedComponent = (id: string): boolean => (RESERVED_COMPONENTS as readonly string[]).includes(id);
 
 export interface Vec3 {
   readonly x: number;
