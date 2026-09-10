@@ -161,9 +161,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   constructor(
     private readonly state: DurableObjectState,
-    private readonly env: Environment,
+    private readonly hostEnv: Environment,
   ) {
-    super(state, env);
+    super(state, hostEnv);
     this.owner = {
       sql: {
         exec: <Row extends Record<string, SqlStorageValue | Uint8Array>>(
@@ -177,7 +177,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       transactionSync: (operation) => state.storage.transactionSync(operation),
     };
     this.ready = state.blockConcurrencyWhile(async () => {
-      if (!/^[a-f0-9]{64}$/.test(env.IMPLEMENTATION_HASH))
+      if (!/^[a-f0-9]{64}$/.test(hostEnv.IMPLEMENTATION_HASH))
         throw new Error("missing immutable implementation hash");
       initSync({ module: wasmBytes });
       if (this.hasHostTable()) {
@@ -213,7 +213,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const program = createSessionRegionProgram({
       pack: game,
       createKernel: () => wasmKernelPort(new WasmKernel()),
-      implementationHash: this.env.IMPLEMENTATION_HASH,
+      implementationHash: this.hostEnv.IMPLEMENTATION_HASH,
       ownerPrincipal: playerPrincipal,
       hostPrincipal,
       seed: 17,
@@ -500,7 +500,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   async fetch(request: Request): Promise<Response> {
     await this.ready;
-    const origin = this.env.PUBLIC_ORIGIN;
+    const origin = this.hostEnv.PUBLIC_ORIGIN;
     if (request.method === "OPTIONS")
       return new Response(null, {
         status: request.headers.get("Origin") === origin ? 204 : 403,
