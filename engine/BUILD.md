@@ -304,3 +304,12 @@ public controls. errors=[]; King viewed pirate-initial.png showing original raft
 crew and cargo furniture on water. Command exit0, scope inactive/dead/empty.
 This witness does not yet prove browser deckhand walking, cargo or Continue;
 headless cargo/save laws are separate. No new deployment claimed.
+
+## Browser cargo and Continue — u4997
+
+Same 441dae6 built bytes: real Load cargo moved both finite units to the hold;
+Save, Reset and Continue restored the displayed delivered quantity. errors=[];
+exit0 and owned scope inactive/dead/empty. This check exposed broad point hits
+selecting two crew and an obstacle, so its attempted manual crew move is NOT
+accepted movement evidence. The shared nearest-point selection correction is
+underway before release. Existing native crew route laws remain separate.
