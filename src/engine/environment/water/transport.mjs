@@ -5,8 +5,8 @@ const mobile = (node, amount) => Math.max(0, amount - node.retainedKg);
 function head(g, node, amount) {
   return (
     node.baseM +
-    (g.definition.spacingM[1] * mobile(node, amount)) /
-      (node.capacityKg - node.retainedKg)
+    (mobile(node, amount) / (node.capacityKg - node.retainedKg)) *
+      g.definition.spacingM[1]
   );
 }
 function touching(g, face, node, amount, other) {

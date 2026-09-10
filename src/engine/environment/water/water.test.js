@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createWater } from "./index.js";
+import { compileWater } from "./geometry.mjs";
+import { pressureStep } from "./pressure.mjs";
 
 const soil = {
   id: "loam",
@@ -224,7 +226,7 @@ test("simultaneous wet neighbors share one retained-moisture deficit", () => {
 test("retention must be numeric and derived face area and top must be finite", () => {
   const a = [0, 0, 0],
     b = [1, 0, 0];
-  for (const retention of [null, "0", Infinity])
+  for (const retention of [null, "0"])
     assert.throws(
       () =>
         fixture([emptyCell(a)], [], [0], {
@@ -232,6 +234,13 @@ test("retention must be numeric and derived face area and top must be finite", (
         }),
       /soil pore/,
     );
+  assert.throws(
+    () =>
+      fixture([emptyCell(a)], [], [0], {
+        soils: [{ ...soil, retention: Infinity }],
+      }),
+    /region-data-invalid/,
+  );
   assert.throws(
     () =>
       fixture([a, b].map(emptyCell), [[a, b]], [0, 0], {
@@ -267,6 +276,85 @@ test("definition admission reserves enough wire space for the complete saved sto
       ),
     /complete water state fits/,
   );
+});
+
+test("a roofed U passage transmits one finite quantity over every full intermediate face", () => {
+  const left = [0, 1, 0],
+    bottomLeft = [0, 0, 0],
+    bottomMiddle = [1, 0, 0],
+    bottomRight = [2, 0, 0],
+    right = [2, 1, 0];
+  const { owner, state, definition } = fixture(
+    [left, bottomLeft, bottomMiddle, bottomRight, right].map(emptyCell),
+    [
+      [left, bottomLeft],
+      [bottomLeft, bottomMiddle],
+      [bottomMiddle, bottomRight],
+      [bottomRight, right],
+    ],
+    [432, 540, 540, 540, 108],
+    { spacingM: [1, 0.54, 1] },
+  );
+  const g = compileWater(definition);
+  const result = pressureStep(g, state.massKg, 0.1, 262144);
+  assert.equal(result.flows.length, 4);
+  const amount = result.flows[0].massKg;
+  assert.ok(amount > 0);
+  assert.ok(result.flows.every((flow) => flow.massKg === amount));
+  const next = { ...state, massKg: result.massKg };
+  close(owner.read(next).totalKg, owner.read(state).totalKg);
+  const balances = new Map(g.nodes.map((node) => [node.id, 0]));
+  for (const flow of result.flows) {
+    balances.set(flow.from, balances.get(flow.from) - flow.massKg);
+    balances.set(flow.to, balances.get(flow.to) + flow.massKg);
+  }
+  for (const at of [bottomLeft, bottomMiddle, bottomRight]) {
+    assert.equal(balances.get(id(at)), 0);
+    assert.equal(result.massKg[g.index.get(id(at))], 540);
+  }
+  const dry = [...state.massKg];
+  dry[g.index.get(id(bottomMiddle))] = 0;
+  const blocked = pressureStep(g, dry, 0.1, 262144);
+  assert.equal(
+    blocked.massKg[g.index.get(id(right))],
+    dry[g.index.get(id(right))],
+  );
+  assert.ok(
+    !blocked.flows.some(
+      (flow) => flow.from === id(bottomMiddle) && flow.to === id(bottomRight),
+    ),
+  );
+});
+
+test("pressure branches share a neck budget and exhausted search leaves stock owned", () => {
+  const source = [0, 1, 0],
+    neck = [0, 0, 0],
+    fork = [1, 0, 0],
+    up = [1, 1, 0],
+    far = [2, 0, 0],
+    farUp = [2, 1, 0];
+  const { state, definition } = fixture(
+    [source, neck, fork, up, far, farUp].map(emptyCell),
+    [
+      [source, neck],
+      [neck, fork],
+      [fork, up],
+      [fork, far],
+      [far, farUp],
+    ],
+    [432, 540, 540, 54, 540, 54],
+    { spacingM: [1, 0.54, 1], fallMPerS: 0.001, spreadMPerS: 0.001 },
+  );
+  const g = compileWater(definition),
+    result = pressureStep(g, state.massKg, 0.1, 262144);
+  const shared = result.flows.filter((flow) => flow.faceId === "y:0,1,0");
+  assert.ok(shared.length > 0);
+  const gross = shared.reduce((sum, flow) => sum + flow.massKg, 0);
+  assert.ok(gross <= 1000 * 1 * 0.1 * 0.001);
+  const limited = pressureStep(g, state.massKg, 0.1, 0);
+  assert.deepEqual(limited.massKg, state.massKg);
+  assert.equal(limited.flows.length, 0);
+  assert.ok(limited.work.pressureDeferred > 0);
 });
 
 test("definitions reject hidden data and nonphysical edges before simulation", () => {

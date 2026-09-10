@@ -225,11 +225,17 @@ export function compileWater(raw) {
     identityBytes + nodes.length * 33 + 1024 <= WIRE_BYTES,
     "complete water state fits the wire budget",
   );
+  const neighbors = nodes.map(() => []);
+  faces.forEach((face, index) => {
+    neighbors[face.a].push({ to: face.b, face: index });
+    neighbors[face.b].push({ to: face.a, face: index });
+  });
   return {
     definition,
     identity,
     nodes: freeze(nodes),
     faces: freeze(faces),
+    neighbors: freeze(neighbors),
     index: new Map(nodes.map((node, i) => [node.id, i])),
   };
 }

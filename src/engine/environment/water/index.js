@@ -10,6 +10,7 @@ import {
 } from "./geometry.mjs";
 import { initial, stateAdmission, waterFacts } from "./state.mjs";
 import { transferStep } from "./transport.mjs";
+import { pressureStep } from "./pressure.mjs";
 
 /** Finite game-scale water. The host supplies the interval and owns its clock,
  * physical completion and durable receipt; this module owns only water stocks.
@@ -34,7 +35,13 @@ export function createWater(definition) {
         return {
           state,
           receipt: freeze({ seconds, substeps: [], flows: [] }),
-          work: { faces: 0, requests: 0, unresolved: 0 },
+          work: {
+            faces: 0,
+            requests: 0,
+            unresolved: 0,
+            pathFaces: 0,
+            pressureDeferred: 0,
+          },
         };
       const steps = Math.ceil(seconds / 0.2),
         dtS = seconds / steps;
@@ -45,18 +52,31 @@ export function createWater(definition) {
       let massKg = state.massKg;
       const flows = new Map(),
         substeps = [],
-        work = { faces: 0, requests: 0, unresolved: 0 };
+        work = {
+          faces: 0,
+          requests: 0,
+          unresolved: 0,
+          pathFaces: 0,
+          pressureDeferred: 0,
+        };
       for (let step = 0; step < steps; step++) {
-        const result = transferStep(g, massKg, dtS);
-        massKg = result.massKg;
+        const local = transferStep(g, massKg, dtS / 2);
+        const pressure = pressureStep(
+          g,
+          local.massKg,
+          dtS / 2,
+          262144 - work.pathFaces,
+        );
+        massKg = pressure.massKg;
         substeps.push(dtS);
-        for (const flow of result.flows) {
+        for (const flow of [...local.flows, ...pressure.flows]) {
           const key = `${flow.faceId}:${flow.from}`;
           const prior = flows.get(key);
           if (prior) prior.parts.push(flow.massKg);
           else flows.set(key, { ...flow, parts: [flow.massKg] });
         }
-        for (const key of Object.keys(work)) work[key] += result.work[key];
+        for (const key of Object.keys(work))
+          work[key] += (local.work[key] ?? 0) + (pressure.work[key] ?? 0);
       }
       const next = admission.remember({ ...state, massKg });
       return {

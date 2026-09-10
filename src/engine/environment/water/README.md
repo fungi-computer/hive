@@ -18,8 +18,14 @@ boundary through the existing compound completion owner.
 
 ## Remaining before the actual-game join
 
-- Bounded communicating-vessel flow through full roofed passages; local down/side
-  transfers alone do not establish this behavior.
+- Source contains bounded communicating-vessel flow through full roofed passages;
+  its laws still need execution and the gas join below. Local and pressure phases
+  each receive half the elapsed interval. Pressure discovery visits full cells
+  once from higher supported free surfaces; every path records the same quantity
+  on its actual faces. Shared necks have one gross flow budget. No pressure anchor
+  is invented inside a completely full, sealed component. Work-budget exhaustion
+  reports deferred paths, retaining their stock for future host advances; it is
+  not a closed-face classification or a completed equilibration claim.
 - Topology edits/rebind with actual removed-soil moisture and displaced liquid.
 - The new atmosphere owner's gas-volume/opening admission for flooded cells,
   including retained roof pockets. A zero-liquid-capacity gas check cannot be
@@ -28,7 +34,7 @@ boundary through the existing compound completion owner.
   consumers and actual geometry/picking. No permanent open-pit/one-surface rule.
 - Focused laws, actual active whole-game performance, rendering and deployment.
 
-Eleven focused laws are authored; none has run at this checkpoint. The 578-cell
+Thirteen focused laws are authored; none has run at this checkpoint. The 578-cell
 case uses the actual 1×0.54×1 m voxel metric and specifies a synthetic
 two-soil-layer clearing plus halo workload; it is
 not generated-game or performance evidence. The implementation limits and work
