@@ -36,6 +36,7 @@ export function createHiveClient({
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
   };
+  const saveKey = `hive-fresh-browser/${mode}`;
   const gesture = createActor(pointerGestureMachine).start();
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
@@ -47,6 +48,15 @@ export function createHiveClient({
     else if (runtime && action.kind === "save") runtime.send({ type: "save" });
     else if (runtime && action.kind === "reset")
       runtime.send({ type: "reset" });
+    else if (action.kind === "continue") {
+      try {
+        const saved = localStorage.getItem(saveKey);
+        if (!saved) throw new Error("No saved world yet");
+        runtime.send({ type: "restore", snapshot: JSON.parse(saved) });
+      } catch (error) {
+        state.message = error.message;
+      }
+    }
     notify();
   };
   const canvasHost = document.createElement("div");
@@ -97,12 +107,21 @@ export function createHiveClient({
             React.createElement(
               Button,
               { onClick: () => act("reset"), size: "sm", variant: "secondary" },
-              "Reset view",
+              "Reset world",
             ),
             React.createElement(
               Button,
               { onClick: () => act("save"), size: "sm", variant: "outline" },
               "Save",
+            ),
+            React.createElement(
+              Button,
+              {
+                onClick: () => act("continue"),
+                size: "sm",
+                variant: "outline",
+              },
+              "Continue",
             ),
           ),
           React.createElement(
@@ -197,7 +216,9 @@ export function createHiveClient({
     overlay.addChild(ground);
     const subjectTexture =
       art?.figures?.goblin?.idle?.[0]?.[0] || art?.figures?.cat?.idle?.[0]?.[0];
-    for (const subject of state.subjects) {
+    for (const subject of [...state.subjects].sort(
+      (a, b) => a.x + a.z - b.x - b.z,
+    )) {
       subject.screen = screenPoint(subject);
       const marker = new Graphics()
         .ellipse(subject.screen.x, subject.screen.y, 18, 9)
@@ -206,10 +227,15 @@ export function createHiveClient({
           width: 2,
         });
       marker.eventMode = "none";
-      overlay.addChild(marker);
-      if (subjectTexture) {
-        const pawn = new Sprite(subjectTexture);
-        pawn.anchor.set(0.5, art.pawnAnchor?.y ?? 0.75);
+      if (state.selectedIds.includes(subject.id)) overlay.addChild(marker);
+      else marker.destroy();
+      const isContainer = subject.visual === "crate";
+      const texture = isContainer
+        ? art?.buildings?.shelf?.finished?.[0]
+        : subjectTexture;
+      if (texture) {
+        const pawn = new Sprite(texture);
+        pawn.anchor.set(0.5, isContainer ? art.propAnchor.y : art.pawnAnchor.y);
         pawn.position.set(subject.screen.x, subject.screen.y);
         pawn.scale.set(camera.zoom);
         pawn.eventMode = "none";
@@ -217,11 +243,16 @@ export function createHiveClient({
       }
       const label = new Text({
         text: subject.name,
-        style: { fontFamily: "var(--font-sans)", fontSize: 12, fill: 0xf7edcf },
+        style: {
+          fontFamily: getComputedStyle(root).fontFamily,
+          fontSize: 12,
+          fill: 0xf7edcf,
+        },
       });
       label.anchor.set(0.5, 1);
       label.position.set(subject.screen.x, subject.screen.y - 12);
-      overlay.addChild(label);
+      if (state.selectedIds.includes(subject.id)) overlay.addChild(label);
+      else label.destroy();
     }
     const drag = gesture.getSnapshot().context;
     if (
@@ -335,7 +366,10 @@ export function createHiveClient({
         });
       } else if (key === "e" || key === "f") {
         event.preventDefault();
-        runtime.send({ type: "command", name: key === "e" ? "takeFood" : "eatFood" });
+        runtime.send({
+          type: "command",
+          name: key === "e" ? "takeFood" : "eatFood",
+        });
       }
     }
   }
@@ -442,6 +476,15 @@ export function createHiveClient({
             screen: { x: 0, y: 0 },
           }));
         draw();
+        renderHud();
+      }
+      if (event.type === "saved") {
+        try {
+          localStorage.setItem(saveKey, JSON.stringify(event.snapshot));
+          state.message = "Saved in this browser";
+        } catch (error) {
+          state.message = `Could not save: ${error.message}`;
+        }
         renderHud();
       }
       if (event.type === "ready") {
