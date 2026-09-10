@@ -6,3 +6,6 @@ export { survivalPack } from "../games/survival";
 export { formationsPack } from "../games/formations";
 export { GameSession } from "../runtime/session";
 export { WorkerRuntime } from "../runtime/worker";
+export { installWorkerRuntime } from "../runtime/worker-entry";
+export { wasmKernelPort } from "../runtime/wasm-kernel";
+export { DeliveryTask, deliverySystem } from "./delivery";
