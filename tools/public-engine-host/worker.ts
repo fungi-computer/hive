@@ -81,6 +81,62 @@ function commandKind(input: Record<string, unknown>): string | undefined {
     ? (command as { kind: string }).kind
     : undefined;
 }
+function validateHostRow(row: HostRow): void {
+  if (
+    row.format_version !== 1 ||
+    (row.paused !== 0 && row.paused !== 1) ||
+    !Number.isSafeInteger(row.next_sequence) ||
+    row.next_sequence < 0 ||
+    (row.lease_until_ms !== null &&
+      (!Number.isSafeInteger(row.lease_until_ms) || row.lease_until_ms < 0))
+  )
+    throw new Error("public-host-format");
+  const dueValues = [
+    row.due_sequence,
+    row.due_request_json,
+    row.due_deadline_ms,
+  ];
+  const allNull = dueValues.every((value) => value === null);
+  const allPresent = dueValues.every((value) => value !== null);
+  if (!allNull && !allPresent) throw new Error("public-host-format");
+  if (row.paused === 1 && allPresent) throw new Error("public-host-format");
+  if (allNull) {
+    if (row.paused !== 1 && row.lease_until_ms === null) return;
+    return;
+  }
+  if (
+    !Number.isSafeInteger(row.due_sequence) ||
+    row.due_sequence < 0 ||
+    row.due_sequence !== row.next_sequence ||
+    !Number.isSafeInteger(row.due_deadline_ms) ||
+    row.due_deadline_ms < 0 ||
+    typeof row.due_request_json !== "string" ||
+    new TextEncoder().encode(row.due_request_json).byteLength > 8192
+  )
+    throw new Error("public-host-format");
+  try {
+    const request = JSON.parse(row.due_request_json) as Record<string, unknown>;
+    const command = request.command;
+    if (
+      typeof request.id !== "string" ||
+      request.id.length < 1 ||
+      request.id.length > 160 ||
+      !Number.isSafeInteger(request.expectedRevision) ||
+      request.expectedRevision < 0 ||
+      !command ||
+      typeof command !== "object" ||
+      Array.isArray(command) ||
+      (command as { kind?: unknown }).kind !== "step" ||
+      typeof (command as { delta?: unknown }).delta !== "number" ||
+      !Number.isFinite((command as { delta: number }).delta) ||
+      (command as { delta: number }).delta < 0 ||
+      (command as { delta: number }).delta > 1
+    )
+      throw new Error("invalid");
+  } catch {
+    throw new Error("public-host-format");
+  }
+}
 
 export class PublicEngineRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion>;
@@ -182,12 +238,28 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       ) {
         throw new Error("public-capability-conflict");
       }
-      if (
-        row &&
-        ((row.due_sequence === null) !==
-          (row.due_request_json === null || row.due_deadline_ms === null) ||
-          (row.due_sequence !== null && row.due_sequence !== row.next_sequence))
-      )
+      const stored = row ?? {
+        singleton: 1,
+        format_version: 1,
+        pack,
+        token_hash: tokenHash,
+        paused: 0,
+        next_sequence: 0,
+        lease_until_ms: null,
+        due_sequence: null,
+        due_request_json: null,
+        due_deadline_ms: null,
+      };
+      validateHostRow(stored);
+      const clock = this.owner.sql
+        .exec<{ next_sequence: number }>(
+          "SELECT next_sequence FROM hive_region_clock WHERE singleton=1",
+        )
+        .toArray()[0];
+      if (!clock || clock.next_sequence !== stored.next_sequence)
+        throw new Error("public-host-format");
+      const paused = this.region.readCommitted().state.session.paused;
+      if (stored.paused !== (paused ? 1 : 0))
         throw new Error("public-host-format");
     });
     this.initialized = true;
@@ -264,6 +336,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const row = await this.inTransaction(async () => {
       const current = this.hostRow();
       if (!current) throw new Error("public-host-state");
+      validateHostRow(current);
       const lease = now + LEASE_MS;
       this.owner.sql.exec(
         "UPDATE hive_public_host SET lease_until_ms=? WHERE singleton=1",
@@ -305,6 +378,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       const receipt = this.region.dispatch(`${this.pack}-player`, input);
       const current = this.hostRow();
       if (!current) throw new Error("public-host-state");
+      validateHostRow(current);
       let next = { ...current, lease_until_ms: now + LEASE_MS };
       const paused = this.region.readCommitted().state.session.paused;
       if (receipt.status === "applied" && paused) {
@@ -343,6 +417,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     await this.inTransaction(async () => {
       const row = this.hostRow();
       if (!row) throw new Error("public-host-state");
+      validateHostRow(row);
       if (
         row.paused ||
         row.lease_until_ms === null ||
@@ -361,6 +436,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         };
         await this.arm(cleared);
         return cleared;
+      }
+      if (row.due_deadline_ms > now) {
+        await this.arm(row);
+        return row;
       }
       const request = JSON.parse(row.due_request_json);
       const receipt = this.region.dispatchOccurrence(`${this.pack}-host`, {
