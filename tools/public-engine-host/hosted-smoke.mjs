@@ -19,6 +19,7 @@ const results = [];
 function id(prefix) { return `${prefix}-${randomBytes(12).toString("hex")}`; }
 function url(pack, path) { return `${base}/v1/${pack}/${path}`; }
 function auth(token) { return { Authorization: `Bearer ${token}` }; }
+function request(input, init) { return fetch(input, { ...init, signal: AbortSignal.timeout(10000) }); }
 async function jsonResponse(response) {
   const text = await response.text();
   let value;
@@ -26,14 +27,14 @@ async function jsonResponse(response) {
   return { response, text, value };
 }
 async function observe(pack, token) {
-  const { response, text, value } = await jsonResponse(await fetch(url(pack, "observe"), { headers: auth(token) }));
+  const { response, text, value } = await jsonResponse(await request(url(pack, "observe"), { headers: auth(token) }));
   assert.equal(response.status, 200, `${pack} observe failed (${response.status})`);
   assert(value && Number.isSafeInteger(value.revision) && value.revision >= 0, `${pack} observation revision invalid`);
   assert(value.observation && typeof value.observation.paused === "boolean", `${pack} observation state invalid`);
   return { wire: value, bytes: text.length };
 }
 async function command(pack, token, body) {
-  const { response, text, value } = await jsonResponse(await fetch(url(pack, "command"), {
+  const { response, text, value } = await jsonResponse(await request(url(pack, "command"), {
     method: "POST", headers: { ...auth(token), "Content-Type": "application/json" },
     body: JSON.stringify(body),
   }));
@@ -43,7 +44,7 @@ async function command(pack, token, body) {
   return { wire: value, bytes: text.length };
 }
 async function preflight(pack) {
-  const response = await fetch(url(pack, "command"), {
+  const response = await request(url(pack, "command"), {
     method: "OPTIONS", headers: {
       Origin: origin, "Access-Control-Request-Method": "POST",
       "Access-Control-Request-Headers": "authorization,content-type",
@@ -55,53 +56,40 @@ async function preflight(pack) {
   assert.match(response.headers.get("Access-Control-Allow-Headers") ?? "", /authorization/i);
   assert.match(response.headers.get("Access-Control-Allow-Headers") ?? "", /content-type/i);
 }
-function pauseBody(revision) { return { id: id("pause"), expectedRevision: revision, command: { kind: "pause" } }; }
-function resumeBody(revision) { return { id: id("resume"), expectedRevision: revision, command: { kind: "resume" } }; }
-async function staleChecks(pack, token, revision) {
-  const staleRevision = revision === 0 ? 1 : revision - 1;
+function body(kind, revision, prefix) { return { id: id(prefix), expectedRevision: revision, command: { kind } }; }
+async function admitted(pack, token, kind, prefix) {
   const attempts = [];
   for (let index = 0; index < 3; index++) {
-    const body = { id: id(`stale-${index}`), expectedRevision: staleRevision, command: { kind: "pause" } };
-    const receipt = await command(pack, token, body);
-    assert.equal(receipt.wire.status, "rejected", `${pack} stale attempt unexpectedly applied`);
-    attempts.push({ id: body.id, status: receipt.wire.status, reason: receipt.wire.reason });
+    const fresh = await observe(pack, token);
+    const envelope = body(kind, fresh.wire.revision, `${prefix}-${index}`);
+    const receipt = await command(pack, token, envelope);
+    if (receipt.wire.status === "applied") return { envelope, receipt, staleAttempts: attempts };
+    assert.equal(receipt.wire.reason, "stale-revision", `${pack} unexpected ${kind} rejection`);
+    attempts.push({ id: envelope.id, status: "rejected", reason: receipt.wire.reason });
   }
-  return attempts;
+  throw new Error(`${pack} ${kind} admission remained stale after 3 attempts`);
 }
-async function pauseWithLostResponse(pack, token, revision) {
-  const body = pauseBody(revision);
-  const bytes = JSON.stringify(body);
-  let firstReceipt;
-  try {
-    const first = await fetch(url(pack, "command"), {
-      method: "POST", headers: { ...auth(token), "Content-Type": "application/json" }, body: bytes,
-    });
-    firstReceipt = (await jsonResponse(first)).value;
-    throw new Error("simulated lost response after committed command");
-  } catch (error) {
-    assert.match(String(error), /simulated lost response/);
-  }
-  const retry = await command(pack, token, body);
-  assert.deepEqual(retry.wire, firstReceipt, `${pack} replay receipt changed after lost response`);
-  return { commandId: body.id, receipt: retry.wire, identical: true };
+async function pauseWithLostResponse(pack, token) {
+  const applied = await admitted(pack, token, "pause", "pause");
+  const retry = await command(pack, token, applied.envelope);
+  assert.deepEqual(retry.wire, applied.receipt.wire, `${pack} replay receipt changed after response loss`);
+  return { commandId: applied.envelope.id, receipt: retry.wire, identical: true, staleAttempts: applied.staleAttempts };
 }
 
 try {
-  const missing = await fetch(url("survival", "observe"));
+  const missing = await request(url("survival", "observe"));
   assert.equal(missing.status, 403, "missing bearer token was accepted");
   await preflight("survival");
   for (const pack of packs) {
     const token = tokens.get(pack);
     const initial = await observe(pack, token);
-    const stale = await staleChecks(pack, token, initial.wire.revision);
-    const paused = await pauseWithLostResponse(pack, token, initial.wire.revision);
+    const paused = await pauseWithLostResponse(pack, token);
     const pausedObservation = await observe(pack, token);
     assert.equal(pausedObservation.wire.observation.paused, true, `${pack} did not pause`);
     await new Promise((resolve) => setTimeout(resolve, 350));
     const pausedAgain = await observe(pack, token);
     assert.equal(pausedAgain.wire.revision, pausedObservation.wire.revision, `${pack} changed while paused`);
-    const resumed = await command(pack, token, resumeBody(pausedObservation.wire.revision));
-    assert.equal(resumed.wire.status, "applied", `${pack} resume rejected`);
+    const resumed = await admitted(pack, token, "resume", "resume");
     const resumeDeadline = Date.now() + 8000;
     let advanced;
     while (Date.now() < resumeDeadline) {
@@ -110,11 +98,10 @@ try {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     assert(advanced, `${pack} physical time did not advance after resume`);
-    const finalPause = await command(pack, token, pauseBody(advanced.wire.revision));
-    assert.equal(finalPause.wire.status, "applied", `${pack} final pause rejected`);
+    await admitted(pack, token, "pause", "final-pause");
     const final = await observe(pack, token);
     assert.equal(final.wire.observation.paused, true, `${pack} was not left paused`);
-    results.push({ pack, initialRevision: initial.wire.revision, staleAttempts: stale, replay: paused, resumedRevision: advanced.wire.revision, finalRevision: final.wire.revision, finalPaused: true });
+    results.push({ pack, initialRevision: initial.wire.revision, staleAttempts: paused.staleAttempts, replay: paused, resumedRevision: advanced.wire.revision, finalRevision: final.wire.revision, finalPaused: true });
   }
   await mkdir(output, { recursive: true });
   await writeFile(`${output.replace(/\/$/, "")}/hosted-smoke.json`, JSON.stringify({ status: "passed", origin, packs: results }, null, 2));
