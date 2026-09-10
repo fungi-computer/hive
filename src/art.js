@@ -1,5 +1,4 @@
-import { terrainSurfaces } from "./terrain-surface-geometry.js";
-import { terrainCell, terrainGeometryKey } from "./terrain.ts";
+import { terrainCell } from "./terrain.ts";
 // Original Three geometry -> fixed low-resolution canvas textures -> Pixi.
 // Reference pictures never enter this pipeline.
 import * as THREE from "three";
@@ -126,8 +125,44 @@ function bakeTerrainPatch(renderer, terrain, previous, changedCells, faces) {
   return texture;
 }
 
-/** Existing bake pipeline: terrain writes depth only, so finite water cannot
- * paint through the near rim. All geometry is a disposable physical query. */
+/** One bounded projected viewport for terrain slices and their water overlay.
+ * Signed offsets remain in the original camera frame, never clamped to the board. */
+function sliceViewport(renderer, vertices) {
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (const { x, y, z } of vertices) {
+    const point = project(x, z, y);
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  }
+  const x = Math.floor(minX) - 2,
+    y = Math.floor(minY) - 2;
+  const width = Math.ceil(maxX) - x + 3,
+    height = Math.ceil(maxY) - y + 3;
+  const gl = renderer.getContext();
+  const viewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+  const limit = Math.min(
+    renderer.capabilities.maxTextureSize,
+    gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
+    viewport[0],
+    viewport[1],
+  );
+  if (
+    ![width, height].every(
+      (value) => Number.isSafeInteger(value) && value > 0 && value <= limit,
+    )
+  )
+    throw new Error("Projected slice exceeds the renderer texture limit.");
+  const camera = worldCamera.clone();
+  camera.setViewOffset(WIDTH, HEIGHT, x, y, width, height);
+  return { x, y, width, height, camera };
+}
+
+/** Matching picker faces write depth only. Water owns no input surface. */
 function createWaterBake(renderer) {
   const result = scene();
   const mask = new THREE.MeshBasicMaterial({
@@ -138,25 +173,26 @@ function createWaterBake(renderer) {
     color: "#397986",
     side: THREE.DoubleSide,
   });
-  let geometryKey = null,
+  const planeGeometry = new THREE.PlaneGeometry(1, 1);
+  let maskFaces = null;
+  const masks = [],
     planes = [];
   let disposed = false;
-  function clearGeometry() {
-    for (const child of [...result.children]) {
-      if (!child.isMesh) continue;
-      child.geometry.dispose();
-      result.remove(child);
+  function clearMask() {
+    for (const mesh of masks) {
+      mesh.geometry.dispose();
+      result.remove(mesh);
     }
-    geometryKey = null;
-    planes = [];
+    masks.length = 0;
+    maskFaces = null;
   }
-  function draw(terrain, water) {
+  function draw(water, faces) {
     if (disposed) throw new Error("Water baker is disposed");
-    const nextKey = terrainGeometryKey(terrain);
-    if (nextKey !== geometryKey) {
-      clearGeometry();
-      geometryKey = nextKey;
-      for (const face of terrainSurfaces(terrain, 15)) {
+    if (!water.length) return { texture: Texture.EMPTY, x: 0, y: 0 };
+    if (faces !== maskFaces) {
+      clearMask();
+      maskFaces = faces;
+      for (const face of faces) {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute(
           "position",
@@ -169,30 +205,56 @@ function createWaterBake(renderer) {
         const mesh = new THREE.Mesh(geometry, mask);
         mesh.renderOrder = -1;
         result.add(mesh);
-      }
-      for (const surface of water) {
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), liquid);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.set(surface.x - 7, surface.height, surface.z - 7);
-        result.add(mesh);
-        planes.push(mesh);
+        masks.push(mesh);
       }
     }
-    water.forEach((surface, index) => {
-      planes[index].position.y = surface.height;
-      planes[index].visible = surface.depthM > 0;
+    while (planes.length < water.length) {
+      const mesh = new THREE.Mesh(planeGeometry, liquid);
+      mesh.rotation.x = -Math.PI / 2;
+      result.add(mesh);
+      planes.push(mesh);
+    }
+    planes.forEach((mesh, index) => {
+      const surface = water[index];
+      mesh.visible = !!surface;
+      if (surface)
+        mesh.position.set(surface.x - 7, surface.height, surface.z - 7);
     });
-    return bake(renderer, result, worldCamera, WIDTH, HEIGHT, false, false);
+    const vertices = water.flatMap((surface) =>
+      [-0.5, 0.5].flatMap((dx) =>
+        [-0.5, 0.5].map((dz) => ({
+          x: surface.x + dx,
+          y: surface.height,
+          z: surface.z + dz,
+        })),
+      ),
+    );
+    const viewport = sliceViewport(renderer, vertices);
+    return {
+      texture: bake(
+        renderer,
+        result,
+        viewport.camera,
+        viewport.width,
+        viewport.height,
+        false,
+        false,
+      ),
+      x: viewport.x,
+      y: viewport.y,
+    };
   }
   return {
     bake: draw,
     dispose() {
       if (disposed) return;
       disposed = true;
-      clearGeometry();
+      clearMask();
+      planeGeometry.dispose();
       mask.dispose();
       liquid.dispose();
       result.clear();
+      planes.length = 0;
     },
   };
 }
@@ -227,31 +289,10 @@ function attachDynamicBakers(art, renderer, disposeStatic) {
     bakeTerrainPatch(renderer, terrain, previous, changedCells, faces);
   art.bakeTerrainSlice = (faces) => {
     if (!faces.length) return { texture: Texture.EMPTY, x: 0, y: 0 };
-    const points = faces.flatMap((face) =>
-      face.vertices.map(({ x, y, z }) => project(x, z, y)),
+    const { x, y, width, height, camera } = sliceViewport(
+      renderer,
+      faces.flatMap((face) => face.vertices),
     );
-    const x = Math.floor(Math.min(...points.map((p) => p.x))) - 2;
-    const y = Math.floor(Math.min(...points.map((p) => p.y))) - 2;
-    const width = Math.ceil(Math.max(...points.map((p) => p.x))) - x + 3;
-    const height = Math.ceil(Math.max(...points.map((p) => p.y))) - y + 3;
-    const gl = renderer.getContext();
-    const viewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
-    const limit = Math.min(
-      renderer.capabilities.maxTextureSize,
-      gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
-      viewport[0],
-      viewport[1],
-    );
-    if (
-      ![width, height].every(
-        (value) => Number.isSafeInteger(value) && value > 0 && value <= limit,
-      )
-    )
-      throw new Error(
-        "Observed terrain slice exceeds the renderer texture limit.",
-      );
-    const camera = worldCamera.clone();
-    camera.setViewOffset(WIDTH, HEIGHT, x, y, width, height);
     return {
       texture: bake(
         renderer,
