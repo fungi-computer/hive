@@ -6,6 +6,7 @@ import {
 import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { survivalPack } from "../../engine/src/games/survival";
+import { piratesPack } from "../../engine/src/games/pirates";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 
@@ -15,6 +16,7 @@ type Environment = {
   HOST_SECRET: string;
   DEBUG_SECRET: string;
   IMPLEMENTATION_HASH: string;
+  PROOF_PACK: string;
 };
 function authorized(request: Request, secret: string) {
   return (
@@ -52,15 +54,22 @@ export class FreshRegion extends DurableObject<Environment> {
       if (!/^[a-f0-9]{64}$/.test(env.IMPLEMENTATION_HASH))
         throw new Error("missing immutable implementation hash");
       initSync({ module: wasmBytes });
+      const pack =
+        this.env.PROOF_PACK === "pirates" ? piratesPack : survivalPack;
+      const principalPrefix = pack.id;
       const program = createSessionRegionProgram({
-        pack: survivalPack,
+        pack,
         createKernel: () => wasmKernelPort(new WasmKernel()),
         implementationHash: env.IMPLEMENTATION_HASH,
-        ownerPrincipal: "survival-player",
-        hostPrincipal: "survival-host",
+        ownerPrincipal: `${principalPrefix}-player`,
+        hostPrincipal: `${principalPrefix}-host`,
         seed: 17,
       });
-      this.region = openRegion({ owner, region: `survival-proof-v1`, program });
+      this.region = openRegion({
+        owner,
+        region: `${pack.id}-proof-v1`,
+        program,
+      });
     });
   }
   async fetch(request: Request): Promise<Response> {
@@ -79,10 +88,11 @@ export class FreshRegion extends DurableObject<Environment> {
     }
     if (path !== "/command" || request.method !== "POST")
       return new Response("Not found", { status: 404 });
+    const packId = this.env.PROOF_PACK === "pirates" ? "pirates" : "survival";
     const principal = authorized(request, this.env.WRITER_SECRET)
-      ? "survival-player"
+      ? `${packId}-player`
       : authorized(request, this.env.HOST_SECRET)
-        ? "survival-host"
+        ? `${packId}-host`
         : null;
     if (!principal) return new Response("Forbidden", { status: 403 });
     const fault = request.headers.get("X-Harness-Fault");
@@ -131,7 +141,8 @@ export class FreshRegion extends DurableObject<Environment> {
 }
 export default {
   fetch(request: Request, env: Environment) {
-    return env.REGIONS.get(env.REGIONS.idFromName("survival-proof-v1")).fetch(
+    const packId = env.PROOF_PACK === "pirates" ? "pirates" : "survival";
+    return env.REGIONS.get(env.REGIONS.idFromName(`${packId}-proof-v1`)).fetch(
       request,
     );
   },
