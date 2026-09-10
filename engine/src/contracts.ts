@@ -142,12 +142,18 @@ export interface GamePack {
   readonly commands?: Readonly<
     Record<
       string,
-      (
-        context: Pick<ReadContext, "query">,
-        input: unknown,
-      ) => readonly ActionRequest[]
+      GameCommandDefinition
     >
   >;
+}
+export interface GameCommandResult {
+  readonly actions: readonly ActionRequest[];
+  readonly writes: readonly WriteIntent[];
+}
+export interface GameCommandDefinition {
+  readonly reads?: readonly ComponentDefinition<any>[];
+  readonly writes: readonly ComponentDefinition<any>[];
+  readonly run: (context: Pick<ReadContext, "query">, input: unknown) => GameCommandResult;
 }
 export interface GamePackTransport {
   readonly id: GameId;

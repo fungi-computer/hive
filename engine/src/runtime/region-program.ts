@@ -58,7 +58,7 @@ export function createSessionRegionProgram(options: {
         }),
       ),
     ),
-    commands: Object.freeze({ ...options.pack.commands }),
+    commands: Object.freeze(Object.fromEntries(Object.entries(options.pack.commands ?? {}).map(([name, command]) => [name, Object.freeze({ ...command, reads: Object.freeze([...(command.reads ?? [])]), writes: Object.freeze([...command.writes]) })]))),
     initialActions: options.pack.initialActions
       ? structuredClone(options.pack.initialActions)
       : undefined,

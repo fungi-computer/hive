@@ -1,4 +1,4 @@
-import { component, entity, query, system } from "../sdk/authoring";
+import { command, component, entity, query, system } from "../sdk/authoring";
 import {
   MaterialLot,
   Position,
@@ -91,7 +91,7 @@ export const survivalPack: GamePack = {
   components: [Position, MaterialLot, Survivor, Condition],
   systems: [survival],
   commands: {
-    takeFood(context) {
+    takeFood: command({ reads: [MaterialLot], writes: [], run(context) {
       const lot = context.query(query(MaterialLot)).find((row) => {
         const value = row.get(MaterialLot);
         return (
@@ -101,9 +101,9 @@ export const survivalPack: GamePack = {
         );
       });
       if (!lot) throw new Error("The locker is empty");
-      return [transfer(lot.id, lockerId, survivorId, 1)];
-    },
-    eatFood(context) {
+      return { actions: [transfer(lot.id, lockerId, survivorId, 1)], writes: [] };
+    }}),
+    eatFood: command({ reads: [MaterialLot], writes: [], run(context) {
       const lot = context.query(query(MaterialLot)).find((row) => {
         const value = row.get(MaterialLot);
         return (
@@ -113,8 +113,8 @@ export const survivalPack: GamePack = {
         );
       });
       if (!lot) throw new Error("Pick up some bread first");
-      return [consume(survivorId, lot.id, 1)];
-    },
+      return { actions: [consume(survivorId, lot.id, 1)], writes: [] };
+    }}),
   },
   definition: encodeDefinition(
     "survival",

@@ -3,6 +3,7 @@ import type {
   ActionRequest,
   ActionResult,
   ActionOutcome,
+  GameCommandResult,
   GamePack,
   KernelPort,
   QuerySpec,
@@ -39,7 +40,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 3;
+  readonly version: 4;
   readonly game: string;
   readonly gameVersion: number;
   readonly paused: boolean;
@@ -49,6 +50,7 @@ export interface SessionSnapshot {
   readonly random: number;
   readonly outcomes: readonly ActionOutcome[];
   readonly pendingActions: readonly ActionRequest[];
+  readonly pendingWrites: readonly WriteIntent[];
   readonly systems: readonly { id: string; version: number }[];
 }
 export class GameSession {
@@ -61,11 +63,17 @@ export class GameSession {
   private tick = 0;
   private outcomes: ActionOutcome[] = [];
   private pendingActions: ActionRequest[] = [];
+  private pendingWrites: WriteIntent[] = [];
+  private readonly reserved = new Set(["hive.position", "hive.body", "hive.container", "hive.lot", "hive.destination", "hive.obstacle", "hive.visual"]);
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
     this.seed = (options.seed ?? 1) >>> 0;
     this.random = new DeterministicRandom(this.seed);
+    for (const definition of Object.values(this.pack.commands ?? {})) {
+      const commandWrites = new Set(definition.writes.map((component) => component.id));
+      if (this.pack.systems.some((system) => system.writes.some((component) => commandWrites.has(component.id)))) throw new Error("command and system write ownership overlaps");
+    }
   }
   start(): void {
     this.port.load(this.pack.definition);
@@ -88,6 +96,7 @@ export class GameSession {
     this.tick = 0;
     this.outcomes = [];
     this.pendingActions = [];
+    this.pendingWrites = [];
     this.start();
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
@@ -102,13 +111,38 @@ export class GameSession {
     const handler = this.pack.commands?.[name];
     if (!handler || !Object.hasOwn(this.pack.commands ?? {}, name))
       throw new Error("unknown game command");
-    const actions = handler(
-      { query: (spec) => this.port.query(spec) },
-      structuredClone(input),
-    ).map(checkedAction);
-    if (this.pendingActions.length + actions.length > 128)
+    const reads = new Set((handler.reads ?? []).map((component) => component.id));
+    const result: GameCommandResult = handler.run({ query: (spec) => {
+      for (const component of spec.components) if (!reads.has(component.id)) throw new Error(`command ${name} cannot read ${component.id}`);
+      return this.queryOverlay(spec);
+    } }, structuredClone(input));
+    if (!result || !Array.isArray(result.actions) || !Array.isArray(result.writes)) throw new Error("invalid command result");
+    const actions = result.actions.map(checkedAction);
+    const writes = this.validateWrites(result.writes, handler.writes);
+    if (this.pendingActions.length + actions.length > 128 || this.pendingWrites.length + writes.length > 128)
       throw new Error("pending action limit reached");
     this.pendingActions.push(...actions);
+    this.mergePendingWrites(writes);
+  }
+  private validateWrites(writes: readonly WriteIntent[], allowed: readonly import("../contracts").ComponentDefinition<any>[]): WriteIntent[] {
+    const definitions = new Map(this.pack.components.map((component) => [component.id, component]));
+    const permitted = new Set(allowed.map((component) => component.id));
+    return writes.map((write) => {
+      if (!permitted.has(write.component) || this.reserved.has(write.component)) throw new Error(`undeclared or physical write ${write.component}`);
+      const definition = definitions.get(write.component);
+      if (!definition || !definition.validate(write.value)) throw new Error(`invalid component write ${write.component}`);
+      if (!this.port.query({ components: [definition] }).some((row) => row.id === write.entity)) throw new Error(`unknown write target ${write.entity}`);
+      return structuredClone(write);
+    });
+  }
+  private mergePendingWrites(writes: readonly WriteIntent[]): void {
+    for (const write of writes) { const index = this.pendingWrites.findIndex((existing) => existing.entity === write.entity && existing.component === write.component); if (index >= 0) this.pendingWrites[index] = write; else this.pendingWrites.push(write); }
+  }
+  private queryOverlay<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
+    return this.port.query(spec).map((row) => ({ id: row.id, get: <V extends object>(definition: import("../contracts").ComponentDefinition<V>) => {
+      const pending = this.pendingWrites.find((write) => write.entity === row.id && write.component === definition.id);
+      return (pending ? pending.value : row.get(definition)) as V;
+    } }));
   }
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta))
@@ -121,14 +155,14 @@ export class GameSession {
         delta,
         tick: this.tick,
       });
-      const writes: WriteIntent[] = [];
+      const writes: WriteIntent[] = this.pendingWrites.splice(0);
       const actions: ActionRequest[] = this.pendingActions.splice(0);
       let systemActionCount = 0;
       const context: WriteContext = {
         clock,
         random: this.random,
         outcomes: structuredClone(this.outcomes),
-        query: (spec) => this.port.query(spec),
+        query: (spec) => this.queryOverlay(spec),
         write: (definition, entity, value) => {
           if (
             [
@@ -161,7 +195,8 @@ export class GameSession {
           continue;
         definition.run(context);
       }
-      const results = this.port.advance(delta, writes, actions);
+      const checkedWrites = this.validateWrites(writes, this.pack.systems.flatMap((system) => system.writes));
+      const results = this.port.advance(delta, checkedWrites, actions);
       if (results.length !== actions.length)
         throw new Error("kernel result count mismatch");
       this.outcomes = actions.map((action, index) => ({
@@ -177,6 +212,7 @@ export class GameSession {
       this.tick = before.tick;
       this.random.restore(before.random);
       this.pendingActions = [...before.pendingActions];
+      this.pendingWrites = [...before.pendingWrites];
       this.outcomes = structuredClone([...before.outcomes]);
       throw error;
     }
@@ -184,7 +220,7 @@ export class GameSession {
   save(): SessionSnapshot {
     return {
       format: "hive-session",
-      version: 3,
+      version: 4,
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
       gameVersion: this.pack.version,
@@ -194,6 +230,7 @@ export class GameSession {
       tick: this.tick,
       random: this.random.state(),
       pendingActions: structuredClone(this.pendingActions),
+      pendingWrites: structuredClone(this.pendingWrites),
       systems: this.pack.systems.map((system) => ({
         id: system.id,
         version: system.version,
@@ -203,7 +240,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 3 ||
+      snapshot.version !== 4 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||
@@ -219,10 +256,13 @@ export class GameSession {
     if (
       !Array.isArray(snapshot.pendingActions) ||
       snapshot.pendingActions.length > 128 ||
+      !Array.isArray(snapshot.pendingWrites) ||
+      snapshot.pendingWrites.length > 128 ||
       !Array.isArray(snapshot.systems)
     )
       throw new Error("invalid session queues");
     const pending = snapshot.pendingActions.map(checkedAction);
+    const pendingWrites = this.validateWrites(snapshot.pendingWrites, this.pack.components.filter((component) => !this.reserved.has(component.id)));
     if (!Array.isArray(snapshot.outcomes) || snapshot.outcomes.length > 256)
       throw new Error("invalid action outcomes");
     const outcomes = snapshot.outcomes.map((outcome) => {
@@ -288,6 +328,7 @@ export class GameSession {
     this.tick = snapshot.tick;
     this.random.restore(snapshot.random);
     this.pendingActions = pending;
+    this.pendingWrites = pendingWrites;
     this.outcomes = outcomes;
     this.paused = snapshot.paused;
   }

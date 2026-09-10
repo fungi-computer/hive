@@ -5,6 +5,7 @@ import type {
   QuerySpec,
   SystemDefinition,
   WriteContext,
+  GameCommandDefinition,
 } from "../contracts";
 
 type Shape = Record<
@@ -96,6 +97,10 @@ export function system(options: SystemOptions): SystemDefinition {
       run(checked);
     },
   });
+}
+
+export function command(options: GameCommandDefinition): GameCommandDefinition {
+  return Object.freeze({ reads: Object.freeze([...(options.reads ?? [])]), writes: Object.freeze([...options.writes]), run: options.run });
 }
 
 export function entity(id: string): EntityId {
