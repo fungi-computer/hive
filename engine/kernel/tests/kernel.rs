@@ -17,6 +17,29 @@ fn builtins(id: &str, position: [f64; 3], extra: Value) -> Value {
     components.extend(extra.as_object().unwrap().clone());
     json!({"id":id,"components":components})
 }
+fn moving_deck_scene() -> String {
+    scene(
+        json!([
+            builtins(
+                "ship",
+                [10.0, 0.0, 20.0],
+                json!({
+                    "hive.body":{"speed":4.0},
+                    "hive.surface":{"min_x":-3.0,"max_x":3.0,"min_z":-2.0,"max_z":2.0,"height":1.0}
+                })
+            ),
+            builtins(
+                "crew",
+                [1.0, 1.0, 0.0],
+                json!({
+                    "hive.body":{"speed":1.0},
+                    "hive.support":{"entity":"ship"}
+                })
+            )
+        ]),
+        json!([]),
+    )
+}
 fn custom_morale() -> Value {
     json!([{"id":"army.morale","version":1,"fields":{"value":"number","formation":"nullable-entity"}}])
 }
@@ -194,7 +217,7 @@ fn movement_advances_over_time_and_routes_around_obstacle() {
             json!([]),
         ))
         .unwrap();
-    kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":{"x":2,"y":0,"z":0}}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":{"x":2,"y":0,"z":0,"frame":null}}]}"#).unwrap();
     let first = snapshot(&kernel)["scene"]["initial"]
         .as_array()
         .unwrap()
@@ -237,6 +260,87 @@ fn movement_advances_over_time_and_routes_around_obstacle() {
     .unwrap();
     assert_eq!(rows[0]["components"]["hive.position"]["x"], 2.0);
     assert_eq!(rows[0]["components"]["hive.position"]["z"], 0.0);
+}
+
+#[test]
+fn supported_world_pose_follows_parent_without_changing_local_pose() {
+    let mut kernel = Kernel::new();
+    kernel.load(&moving_deck_scene()).unwrap();
+    let before: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
+    assert_eq!(before[0]["world"]["x"], 11.0);
+    kernel
+        .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null}}]}"#)
+        .unwrap();
+    kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+    let after: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
+    assert_eq!(after[0]["local"]["x"], 1.0);
+    assert!(after[0]["world"]["x"].as_f64().unwrap() > 11.0);
+    kernel
+        .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null},"facing":1}]}"#)
+        .unwrap();
+    let rotated: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
+    assert_eq!(rotated[0]["world"]["z"], 21.0);
+}
+
+#[test]
+fn supported_move_requires_frame_and_stays_on_surface() {
+    let mut kernel = Kernel::new();
+    kernel.load(&moving_deck_scene()).unwrap();
+    let result: Value = serde_json::from_str(
+        &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":null}}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(result["results"][0]["accepted"], false);
+    let result: Value = serde_json::from_str(
+        &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":4,"y":1,"z":0,"frame":"ship"}}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(result["results"][0]["accepted"], false);
+}
+
+#[test]
+fn invalid_support_graph_is_rejected_atomically() {
+    let mut kernel = Kernel::new();
+    kernel.load(&moving_deck_scene()).unwrap();
+    let before = kernel.snapshot_json().unwrap();
+    let missing = scene(
+        json!([builtins(
+            "crew",
+            [0.0, 1.0, 0.0],
+            json!({"hive.support":{"entity":"missing"}})
+        )]),
+        json!([]),
+    );
+    assert!(kernel.load(&missing).is_err());
+    assert_eq!(kernel.snapshot_json().unwrap(), before);
+
+    let cycle = scene(
+        json!([
+            builtins(
+                "a",
+                [0.0, 0.0, 0.0],
+                json!({
+                    "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+                    "hive.support":{"entity":"b"}
+                })
+            ),
+            builtins(
+                "b",
+                [0.0, 0.0, 0.0],
+                json!({
+                    "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+                    "hive.support":{"entity":"a"}
+                })
+            )
+        ]),
+        json!([]),
+    );
+    assert!(kernel.load(&cycle).is_err());
+    assert_eq!(kernel.snapshot_json().unwrap(), before);
 }
 
 #[test]

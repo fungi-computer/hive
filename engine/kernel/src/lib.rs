@@ -79,6 +79,9 @@ impl WasmKernel {
     pub fn render_facts(&self) -> Result<String, JsValue> {
         self.0.render_json().map_err(js_error)
     }
+    pub fn world_pose(&self, json: &str) -> Result<String, JsValue> {
+        self.0.world_pose_json(json).map_err(js_error)
+    }
 
     /// Run the native bounded joint assignment owner through a JSON wire
     /// boundary. The JSON is deliberately bounded before deserialization so a
