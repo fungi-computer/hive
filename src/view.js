@@ -27,9 +27,14 @@ import {
   terrainChangedColumns,
   terrainColumn,
   terrainGeometryKey,
+  TERRAIN_VOXEL_METRIC,
 } from "./terrain.ts";
 import { terrainDesignationCells } from "./ui-actions.ts";
 import { commandProblem } from "./orders.ts";
+import {
+  clearingAirLayer,
+  clearingAirPresentation,
+} from "./air-presentation.ts";
 
 function label(text, size = 8) {
   const result = new Text({
@@ -276,6 +281,58 @@ export function createView(app, world, camera, art, initial, input) {
       entry.sprite.position.set(slice.x, slice.y);
       entry.pixels = pixels;
       if (previous !== Texture.EMPTY) previous.destroy(true);
+    }
+  }
+  const airMarks = new Map();
+  function drawAir(state, selection) {
+    const layer = clearingAirLayer(
+        clearingAirPresentation(state),
+        selection.level,
+      ),
+      cells = selection.airOverlay && layer ? layer.cells : [],
+      active = new Set(
+        cells
+          .filter(
+            (cell) =>
+              cell.smokeStrength > 0 || cell.heatStrength > Number.EPSILON,
+          )
+          .map((cell) => cell.id),
+      );
+    for (const [id, entry] of airMarks) {
+      if (active.has(id)) continue;
+      entry.mark.destroy();
+      airMarks.delete(id);
+    }
+    for (const cell of cells) {
+      if (!active.has(cell.id)) continue;
+      let entry = airMarks.get(cell.id);
+      if (!entry) {
+        const mark = new Graphics();
+        mark.eventMode = "none";
+        bodies.addChild(mark);
+        entry = { mark, visualKey: null };
+        airMarks.set(cell.id, entry);
+      }
+      const visualKey = `${cell.smokeStrength}:${cell.heatStrength}:${Math.sign(cell.temperatureDeltaK)}`;
+      if (entry.visualKey !== visualKey) {
+        const mark = entry.mark;
+        mark.clear();
+        if (cell.smokeStrength > 0)
+          mark.poly([-10, 0, 0, 5, 10, 0, 0, -5]).fill({
+            color: 0x726b72,
+            alpha: 0.08 + cell.smokeStrength * 0.3,
+          });
+        if (cell.heatStrength > Number.EPSILON)
+          mark.ellipse(0, -2, 7, 4).stroke({
+            color: cell.temperatureDeltaK >= 0 ? 0xf19a52 : 0x73b5cf,
+            width: 1,
+            alpha: 0.15 + cell.heatStrength * 0.65,
+          });
+        entry.visualKey = visualKey;
+      }
+      const point = projectCell(cell.local, TERRAIN_VOXEL_METRIC.verticalM / 2);
+      entry.mark.position.set(point.x, point.y);
+      entry.mark.zIndex = depthKey(cell.local, 0.12);
     }
   }
   drawTerrain(initial, { level: 0 });
@@ -986,6 +1043,8 @@ export function createView(app, world, camera, art, initial, input) {
         sprite.destroy();
       }
       wetSurfaces.clear();
+      for (const { mark } of airMarks.values()) mark.destroy();
+      airMarks.clear();
       ground.texture = Texture.EMPTY;
     },
     render(state, selection) {
@@ -1018,6 +1077,7 @@ export function createView(app, world, camera, art, initial, input) {
           : selection,
       );
       drawWater(state, selection);
+      drawAir(state, selection);
       dusk.visible = isNight(state);
       picking.renderDebug(!!selection.debugPicking);
     },
