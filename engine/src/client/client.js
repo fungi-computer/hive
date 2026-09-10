@@ -1,4 +1,5 @@
 import { project, groundPoint } from "./geometry.js";
+import { presentationCommand } from "../presentation.ts";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -177,11 +178,9 @@ export function createHiveClient({
                       key: control.id,
                       size: "sm",
                       onClick: () =>
-                        runtime?.send({
-                          type: "command",
-                          name: control.command,
-                          input: control.input,
-                        }),
+                        runtime?.send(
+                          presentationCommand(control, state.selectedIds),
+                        ),
                     },
                     control.label,
                   ),

@@ -5,6 +5,41 @@ export interface PresentationControl {
   readonly label: string;
   readonly command: string;
   readonly input?: unknown;
+  /** Add the current client selection as input.entities; admission remains game-owned. */
+  readonly selection?: "entities";
+}
+export function presentationCommand(
+  control: PresentationControl,
+  selected: readonly string[],
+) {
+  if (control.selection !== "entities")
+    return {
+      type: "command" as const,
+      name: control.command,
+      input: control.input,
+    };
+  if (
+    selected.length > 128 ||
+    selected.some((id) => typeof id !== "string" || !id || id.length > 128)
+  )
+    throw new Error("invalid command selection");
+  const input = control.input;
+  if (
+    input !== undefined &&
+    (input === null ||
+      typeof input !== "object" ||
+      Array.isArray(input) ||
+      "entities" in input)
+  )
+    throw new Error("selection control requires object input without entities");
+  return {
+    type: "command" as const,
+    name: control.command,
+    input: controlInput({
+      ...(input as object),
+      entities: [...new Set(selected)],
+    }),
+  };
 }
 export interface PresentationFact {
   readonly id: string;
@@ -57,10 +92,14 @@ export function projectPresentation(
     const command = boundedText(control.command, "control command", 128);
     if (!commandNames.has(command))
       throw new Error(`unknown presentation command ${command}`);
+    if (control.selection !== undefined && control.selection !== "entities")
+      throw new Error("invalid presentation selection binding");
+    if (control.selection) presentationCommand(control, []);
     return Object.freeze({
       id,
       label,
       command,
+      ...(control.selection ? { selection: control.selection } : {}),
       ...(control.input === undefined
         ? {}
         : { input: controlInput(control.input) }),

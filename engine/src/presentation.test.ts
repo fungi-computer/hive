@@ -1,6 +1,10 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { projectPresentation, type GamePresentation } from "./presentation";
+import {
+  presentationCommand,
+  projectPresentation,
+  type GamePresentation,
+} from "./presentation";
 import type { GamePack } from "./contracts";
 const pack = (presentation?: GamePresentation): GamePack =>
   ({
@@ -19,6 +23,32 @@ const pack = (presentation?: GamePresentation): GamePack =>
     ...(presentation ? { presentation } : {}),
   }) as GamePack;
 const context = { query: () => [] };
+test("selection controls capture current IDs without granting game authority", () => {
+  const control = {
+    id: "order",
+    label: "Order",
+    command: "greet",
+    selection: "entities" as const,
+    input: { quantity: 2 },
+  };
+  const selected = ["worker.1", "worker.1", "guest.1"];
+  const result = presentationCommand(control, selected);
+  selected.length = 0;
+  assert.deepEqual(result.input, {
+    quantity: 2,
+    entities: ["worker.1", "guest.1"],
+  });
+  assert.deepEqual(presentationCommand(control, []).input, {
+    quantity: 2,
+    entities: [],
+  });
+  assert.throws(() =>
+    presentationCommand({ ...control, input: { entities: ["forged"] } }, []),
+  );
+  assert.throws(() =>
+    presentationCommand(control, Array(129).fill("worker.1")),
+  );
+});
 test("unconfigured packs project empty output", () =>
   assert.deepEqual(projectPresentation(pack(), context), {
     facts: [],
