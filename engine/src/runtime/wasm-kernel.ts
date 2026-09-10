@@ -10,6 +10,7 @@ import type {
   QueryRow,
   QuerySpec,
   RenderFact,
+  WorldPose,
   WriteIntent,
 } from "../contracts";
 import { checkedAssignments } from "../sdk/assignment";
@@ -22,13 +23,16 @@ export interface WasmKernelBinding {
   snapshot(): string;
   restore(json: string): void;
   render_facts(): string;
+  world_pose(json: string): string;
   assign(json: string): string;
 }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
-    dispose() { binding.free(); },
+    dispose() {
+      binding.free();
+    },
     load(definition) {
       binding.load(new TextDecoder().decode(definition));
     },
@@ -59,6 +63,8 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     snapshot() {
       const json = binding.snapshot();
       const parsed = JSON.parse(json) as Omit<KernelSnapshot, "json">;
+      if (parsed.format !== "hive-kernel" || parsed.version !== 2)
+        throw new Error("unsupported kernel snapshot");
       return {
         format: parsed.format,
         version: parsed.version,
@@ -68,6 +74,8 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       };
     },
     restore(snapshot) {
+      if (snapshot.format !== "hive-kernel" || snapshot.version !== 2)
+        throw new Error("unsupported kernel snapshot");
       binding.restore(snapshot.json);
     },
     renderFacts(limit = 512) {
@@ -76,10 +84,24 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         limit,
       );
     },
-    assign(candidates: readonly AssignmentCandidate[], maxEdges = 128): readonly AssignmentPair[] {
+    worldPoses(entities) {
+      if (entities.length === 0 || entities.length > 128)
+        throw new Error(
+          "world pose query must contain between 1 and 128 entities",
+        );
+      return JSON.parse(
+        binding.world_pose(JSON.stringify(entities)),
+      ) as WorldPose[];
+    },
+    assign(
+      candidates: readonly AssignmentCandidate[],
+      maxEdges = 128,
+    ): readonly AssignmentPair[] {
       const checked = checkedAssignments(candidates, maxEdges);
       const result = JSON.parse(
-        binding.assign(JSON.stringify({ candidates: checked, max_edges: maxEdges })),
+        binding.assign(
+          JSON.stringify({ candidates: checked, max_edges: maxEdges }),
+        ),
       ) as { assignments: AssignmentPair[] };
       return result.assignments;
     },

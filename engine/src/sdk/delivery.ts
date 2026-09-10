@@ -1,6 +1,13 @@
 import { component, query, system } from "./authoring";
-import { MaterialLot, Position, move, transfer } from "./common";
-import type { EntityId, Vec3 } from "../contracts";
+import {
+  MaterialLot,
+  Position,
+  Support,
+  Surface,
+  move,
+  transfer,
+} from "./common";
+import type { EntityId, Vec3, WorldPose } from "../contracts";
 
 export type DeliveryPhase =
   "idle" | "to-source" | "carrying" | "to-destination" | "complete";
@@ -37,13 +44,36 @@ const distance = (a: Vec3, b: Vec3) =>
 export const deliverySystem = system({
   id: "hive.delivery",
   version: 1,
-  reads: [DeliveryTask, Position, MaterialLot, DeliveryControl],
+  reads: [
+    DeliveryTask,
+    Position,
+    Support,
+    Surface,
+    MaterialLot,
+    DeliveryControl,
+  ],
   writes: [DeliveryTask],
   run(ctx) {
     const tasks = ctx.query(query(DeliveryTask));
     const controls = ctx.query(query(DeliveryControl));
     const positions = ctx.query(query(Position));
     const lots = ctx.query(query(MaterialLot));
+    const positionIds = new Set(positions.map((row) => row.id));
+    const relevantIds = [
+      ...new Set([
+        ...controls.map((row) => row.id),
+        ...tasks.flatMap((row) => {
+          const task = row.get(DeliveryTask);
+          return [task.actor, task.source, task.destination];
+        }),
+      ]),
+    ].filter((id): id is EntityId => id !== null && positionIds.has(id));
+    const poseRows: WorldPose[] = [];
+    for (let offset = 0; offset < relevantIds.length; offset += 128)
+      poseRows.push(...ctx.worldPoses(relevantIds.slice(offset, offset + 128)));
+    const poses = new Map(poseRows.map((pose) => [pose.id, pose]));
+    const sameFrame = (a: EntityId, b: EntityId) =>
+      poses.get(a)?.support === poses.get(b)?.support;
     const occupiedActors = new Set(
       tasks
         .map((row) => row.get(DeliveryTask))
@@ -52,30 +82,47 @@ export const deliverySystem = system({
     );
     const idleTasks = tasks.filter((row) => {
       const task = row.get(DeliveryTask);
-      const lot = lots.find((candidate) => candidate.id === task.sourceLot)?.get(MaterialLot);
-      return task.actor === null && task.phase === "idle" && lot?.container === task.source;
+      const lot = lots
+        .find((candidate) => candidate.id === task.sourceLot)
+        ?.get(MaterialLot);
+      return (
+        task.actor === null &&
+        task.phase === "idle" &&
+        lot?.container === task.source
+      );
     });
     const candidates = controls.flatMap((controlRow) => {
       const control = controlRow.get(DeliveryControl);
       if (!control.enabled || occupiedActors.has(controlRow.id)) return [];
-      const actorPosition = positions.find((row) => row.id === controlRow.id)?.get(Position);
+      const actorPosition = poses.get(controlRow.id);
       if (!actorPosition) return [];
       return idleTasks.flatMap((taskRow) => {
         const task = taskRow.get(DeliveryTask);
-        const sourcePosition = positions.find((row) => row.id === task.source)?.get(Position);
-        if (!sourcePosition) return [];
-        return [{
-          worker: controlRow.id,
-          task: taskRow.id,
-          cost: distance(actorPosition, sourcePosition),
-        }];
+        const sourcePosition = poses.get(task.source);
+        const destinationPosition = poses.get(task.destination);
+        if (
+          !sourcePosition ||
+          !destinationPosition ||
+          !sameFrame(controlRow.id, task.source) ||
+          !sameFrame(controlRow.id, task.destination)
+        )
+          return [];
+        return [
+          {
+            worker: controlRow.id,
+            task: taskRow.id,
+            cost: distance(actorPosition.world, sourcePosition.world),
+          },
+        ];
       });
     });
     const assignments = candidates.length ? ctx.assign(candidates) : [];
     const assigned = new Set(assignments.map((assignment) => assignment.task));
     for (const assignment of assignments) {
       const taskRow = idleTasks.find((row) => row.id === assignment.task);
-      const control = controls.find((row) => row.id === assignment.worker)?.get(DeliveryControl);
+      const control = controls
+        .find((row) => row.id === assignment.worker)
+        ?.get(DeliveryControl);
       if (!taskRow || !control) continue;
       const task = taskRow.get(DeliveryTask);
       ctx.write(DeliveryTask, taskRow.id, {
@@ -95,7 +142,23 @@ export const deliverySystem = system({
       const actor = positions.find((row) => row.id === state.actor);
       const source = positions.find((row) => row.id === state.source);
       const destination = positions.find((row) => row.id === state.destination);
-      if (!actor || !source || !destination) continue;
+      const actorPose = poses.get(state.actor);
+      const sourcePose = poses.get(state.source);
+      const destinationPose = poses.get(state.destination);
+      if (
+        !actor ||
+        !source ||
+        !destination ||
+        !actorPose ||
+        !sourcePose ||
+        !destinationPose
+      )
+        continue;
+      if (
+        !sameFrame(state.actor, state.source) ||
+        !sameFrame(state.actor, state.destination)
+      )
+        continue;
       const lot = lots.find((row) => row.id === state.sourceLot);
       const lotState = lot?.get(MaterialLot);
       const actorLot = lots.find(
@@ -106,7 +169,12 @@ export const deliverySystem = system({
       const actorLotState = actorLot?.get(MaterialLot);
       if (!control?.enabled) {
         if (state.phase !== "idle" && state.phase !== "complete")
-          ctx.action(move(state.actor, actor.get(Position)));
+          ctx.action(
+            move(state.actor, {
+              ...actor.get(Position),
+              frame: actorPose.support,
+            }),
+          );
         continue;
       }
       if (state.phase === "idle") {
@@ -120,10 +188,15 @@ export const deliverySystem = system({
       if (state.phase === "to-source") {
         if (actorLotState) {
           ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
-          ctx.action(move(state.actor, destination.get(Position)));
+          ctx.action(
+            move(state.actor, {
+              ...destination.get(Position),
+              frame: destinationPose.support,
+            }),
+          );
           continue;
         }
-        if (distance(actor.get(Position), source.get(Position)) <= 1) {
+        if (distance(actorPose.world, sourcePose.world) <= 1) {
           if (lotState?.container === state.source)
             ctx.action(
               transfer(
@@ -133,13 +206,21 @@ export const deliverySystem = system({
                 state.quantity,
               ),
             );
-        } else ctx.action(move(state.actor, source.get(Position)));
-      } else if (
-        state.phase === "carrying" &&
-        actorLotState
-      ) {
+        } else
+          ctx.action(
+            move(state.actor, {
+              ...source.get(Position),
+              frame: sourcePose.support,
+            }),
+          );
+      } else if (state.phase === "carrying" && actorLotState) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "to-destination" });
-        ctx.action(move(state.actor, destination.get(Position)));
+        ctx.action(
+          move(state.actor, {
+            ...destination.get(Position),
+            frame: destinationPose.support,
+          }),
+        );
       } else if (
         state.phase === "to-destination" &&
         lotState?.container === state.destination
@@ -148,7 +229,7 @@ export const deliverySystem = system({
       } else if (
         state.phase === "to-destination" &&
         actorLotState &&
-        distance(actor.get(Position), destination.get(Position)) <= 1
+        distance(actorPose.world, destinationPose.world) <= 1
       ) {
         if (actorLotState && actorLot)
           ctx.action(
@@ -159,11 +240,13 @@ export const deliverySystem = system({
               state.quantity,
             ),
           );
-      } else if (
-        state.phase === "to-destination" &&
-        actorLotState
-      ) {
-        ctx.action(move(state.actor, destination.get(Position)));
+      } else if (state.phase === "to-destination" && actorLotState) {
+        ctx.action(
+          move(state.actor, {
+            ...destination.get(Position),
+            frame: destinationPose.support,
+          }),
+        );
       } else if (
         state.phase === "complete" &&
         lotState?.container === state.destination
