@@ -11,12 +11,20 @@ class TestPort implements KernelPort {
   private revision = 0;
   writes: WriteIntent[] = [];
   loaded = 0;
+  acceptedConsumes = 0;
+  acceptConsume = false;
   load(_definition: Uint8Array): void { this.loaded++; }
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] { return []; }
   advance(delta: number, writes: readonly WriteIntent[], actions: readonly ActionRequest[]): ActionResult[] {
     this.writes.push(...structuredClone(writes)); this.revision++;
     const state = JSON.parse(this.json) as { revision: number; time: number }; state.revision = this.revision; state.time += delta; this.json = JSON.stringify(state);
-    return actions.map(action => action.kind === "consume" ? { accepted: false, reason: "unavailable", revision: this.revision } : { accepted: true, revision: this.revision });
+    return actions.map(action => {
+      if (action.kind === "consume") {
+        if (this.acceptConsume) this.acceptedConsumes++;
+        return this.acceptConsume ? { accepted: true, revision: this.revision } : { accepted: false, reason: "unavailable", revision: this.revision };
+      }
+      return { accepted: true, revision: this.revision };
+    });
   }
   snapshot(): KernelSnapshot { return { format: "hive-kernel", version: 1, revision: this.revision, time: JSON.parse(this.json).time, json: this.json }; }
   restore(snapshot: KernelSnapshot): void { this.json = snapshot.json; this.revision = snapshot.revision; }
@@ -64,4 +72,35 @@ test("queued input is cloned when requested", () => {
   const { value } = session(); const request = { kind: "move", entity: "actor", destination: { x: 1, y: 2, z: 3 } } as Extract<ActionRequest, { kind: "move" }>;
   value.request(request); (request.destination as { x: number }).x = 99;
   assert.equal((value.save().pendingActions[0] as Extract<ActionRequest, { kind: "move" }>).destination.x, 1);
+});
+
+test("an accepted consume is observed on exactly the next step and survives restore", () => {
+  const observed: number[] = [];
+  const system: SystemDefinition = { id: "test.observe", version: 1, reads: [], writes: [], run: context => {
+    observed.push(context.outcomes.filter(outcome => outcome.action.kind === "consume" && outcome.result.accepted).length);
+  } };
+  const port = new TestPort(); port.acceptConsume = true;
+  const consume = { kind: "consume", entity: "actor", lot: "lot", quantity: 1 } as ActionRequest;
+  const first = session(port, system, 5, [consume]);
+  first.value.step(0.1); assert.deepEqual(observed, [0]); assert.equal(port.acceptedConsumes, 1);
+  const saved = first.value.save();
+  first.value.step(0.1); assert.deepEqual(observed, [0, 1]); assert.equal(port.acceptedConsumes, 1);
+
+  const restoredObserved: number[] = [];
+  const restoredSystem: SystemDefinition = { ...system, run: context => {
+    restoredObserved.push(context.outcomes.filter(outcome => outcome.action.kind === "consume" && outcome.result.accepted).length);
+  } };
+  const restored = session(new TestPort(), restoredSystem, 5); restored.value.restore(saved); restored.value.step(0.1);
+  assert.deepEqual(restoredObserved, [1]);
+  assert.equal(restored.value.save().outcomes.filter(outcome => outcome.action.kind === "consume").length, 0);
+  restored.value.step(0.1); assert.deepEqual(restoredObserved, [1, 0]);
+});
+
+test("a rejected consume produces no physical effect", () => {
+  const port = new TestPort(); port.acceptConsume = false;
+  const consume = { kind: "consume", entity: "actor", lot: "lot", quantity: 1 } as ActionRequest;
+  const { value } = session(port, undefined, 5, [consume]);
+  const results = value.step(0.1);
+  assert.equal(results[0].accepted, false); assert.equal(port.acceptedConsumes, 0);
+  assert.equal(value.save().outcomes[0].result.accepted, false);
 });
