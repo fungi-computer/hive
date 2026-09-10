@@ -10,7 +10,8 @@ import {
 import { groundInspectionGesture } from "./ui-actions.ts";
 import { fieldInspectionFromFace } from "./field-inspection.ts";
 import { createStartupReporter, renderStartup } from "./startup.js";
-import { Application, Container } from "pixi.js";
+import { createGameCost } from "./game-cost.js";
+import { Application, Container, UPDATE_PRIORITY } from "pixi.js";
 import { loadArt } from "./art.js";
 import { loadColony } from "./colony.js";
 import { createClearing, step } from "./clearing.ts";
@@ -67,6 +68,10 @@ const startup = createStartupReporter((stages) =>
 );
 
 async function startGame() {
+  const cost =
+    new URLSearchParams(location.search).get("measure") === "1"
+      ? createGameCost()
+      : null;
   const host = document.querySelector("#stage");
   const [art, colony, loaded] = await Promise.all([
     startup.run("art", () =>
@@ -185,8 +190,21 @@ async function startGame() {
   }
 
   function publish() {
-    hud.update(state, notice, speed, camera.zoom, keys.hints(), saveStatus);
-    hud.updateCamera(camera.snapshot(SIZE, placementLevels(state.terrain)));
+    if (!cost) {
+      hud.update(state, notice, speed, camera.zoom, keys.hints(), saveStatus);
+      hud.updateCamera(camera.snapshot(SIZE, placementLevels(state.terrain)));
+      return;
+    }
+    const at = cost?.mark() ?? null,
+      before = state.tick;
+    let failed = true;
+    try {
+      hud.update(state, notice, speed, camera.zoom, keys.hints(), saveStatus);
+      hud.updateCamera(camera.snapshot(SIZE, placementLevels(state.terrain)));
+      failed = false;
+    } finally {
+      cost?.span("hud", at, before, state.tick, failed);
+    }
   }
 
   function setSaveStatus(update) {
@@ -422,6 +440,7 @@ async function startGame() {
     return { submitted: true };
   }
   function reset() {
+    cost?.stop("reset");
     worldEpoch += 1;
     autosaveEnabled = false;
     queuedSnapshot = null;
@@ -850,6 +869,8 @@ async function startGame() {
     },
   });
   window.addEventListener("pagehide", (event) => {
+    cost?.stop(event.persisted ? "pagehide-persisted" : "dispose");
+    if (cost) app.ticker.remove(costSubmitted);
     if (!event.persisted) view.dispose();
   });
 
@@ -908,6 +929,7 @@ async function startGame() {
   document.addEventListener("visibilitychange", () => {
     clock.acc = 0;
     if (document.hidden) {
+      cost?.stop("hidden");
       state.paused = true;
       const results = flushPending();
       if (!results.some((result) => result.status === "applied"))
@@ -919,36 +941,76 @@ async function startGame() {
     clearCameraIntent();
     publish();
   });
+  const costSubmitted = () => cost?.submitted(state.tick);
+  if (cost) app.ticker.add(costSubmitted, undefined, UPDATE_PRIORITY.LOW - 1);
   app.ticker.maxFPS = 60;
   app.ticker.add((ticker) => {
-    if (pending.length) flushPending();
-    if (!state.paused) {
-      const count = push(clock, ticker.deltaMS);
-      for (let frame = 0; frame < count; frame++) {
-        for (let i = 0; i < speed; i++) {
-          step(state, colony, []);
+    cost?.beginFrame({
+      tick: state.tick,
+      paused: state.paused,
+      speed,
+      width: app.screen.width,
+      height: app.screen.height,
+    });
+    try {
+      if (pending.length) flushPending();
+      if (!state.paused) {
+        const count = push(clock, ticker.deltaMS);
+        for (let frame = 0; frame < count; frame++) {
+          for (let i = 0; i < speed; i++) {
+            if (!cost) {
+              step(state, colony, []);
+              continue;
+            }
+            const at = cost.mark(),
+              before = state.tick;
+            let failed = true;
+            try {
+              step(state, colony, []);
+              failed = false;
+            } finally {
+              cost?.span("step", at, before, state.tick, failed);
+            }
+          }
+        }
+        if (count) {
+          publish();
+          const now = performance.now();
+          if (now - lastSimulationSaveAt >= 1000) {
+            lastSimulationSaveAt = now;
+            scheduleSave("simulation");
+          }
         }
       }
-      if (count) {
+      if (lastNotice !== state.notice) {
+        notice = state.notice;
+        lastNotice = state.notice;
         publish();
-        const now = performance.now();
-        if (now - lastSimulationSaveAt >= 1000) {
-          lastSimulationSaveAt = now;
-          scheduleSave("simulation");
-        }
       }
+      if (!cost) {
+        view.render(state, selection());
+        return;
+      }
+      const at = cost.mark(),
+        before = state.tick;
+      let failed = true;
+      try {
+        view.render(state, selection());
+        failed = false;
+      } finally {
+        cost?.span("view", at, before, state.tick, failed);
+      }
+    } finally {
+      cost?.endMain(state.tick);
     }
-    if (lastNotice !== state.notice) {
-      notice = state.notice;
-      lastNotice = state.notice;
-      publish();
-    }
-    view.render(state, selection());
   });
   hud.dispatch({ kind: "panel", panel: "menu" });
   publish();
   window.__GOBLIN = {
     artReady: true,
+    get cost() {
+      return cost?.read() ?? null;
+    },
     get state() {
       return structuredClone(state);
     },
@@ -978,6 +1040,7 @@ async function startGame() {
     colony,
   };
   startup.complete("game");
+  cost?.startup(startup.snapshot());
   document.querySelector("#loading").remove();
 }
 
