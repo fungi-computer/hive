@@ -22,6 +22,19 @@ import {
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
+export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
+  crate: Object.freeze({ kind: "container", key: "shelf" }),
+  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin" }),
+  "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
+  "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin" }),
+  "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin" }),
+  "pirate.ship": Object.freeze({ kind: "vehicle", key: "ship" }),
+  "pirate.crew": Object.freeze({ kind: "figure", key: "goblin" }),
+  "pirate.chest": Object.freeze({ kind: "container", key: "shelf" }),
+  "pirate.hold": Object.freeze({ kind: "container", key: "shelf" }),
+  "pirate.obstacle": Object.freeze({ kind: "container", key: "shelf" }),
+});
+
 export function createHiveClient({
   root,
   mode,
@@ -30,7 +43,10 @@ export function createHiveClient({
   source,
   runtime,
   orderCommand,
+  visualBindings = DEFAULT_VISUAL_BINDINGS,
+  environment = "clearing",
 }) {
+  const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   const state = {
     paused: false,
     selectedIds: [],
@@ -282,9 +298,20 @@ export function createHiveClient({
         screen: { x: 0, y: 0 },
       }));
     if (!groundSprite) {
-      groundSprite = art?.ground
-        ? new Sprite(art.ground)
-        : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
+      if (environment === "water") {
+        groundSprite = new Graphics().rect(-320, -200, 640, 400).fill(0x173c55);
+        for (let index = 0; index < 7; index++) {
+          const y = -162 + index * 54;
+          groundSprite
+            .moveTo(-280 + (index % 2) * 24, y)
+            .lineTo(-100 + index * 31, y - 5)
+            .stroke({ color: 0x2a5870, width: 1, alpha: 0.65 });
+        }
+      } else {
+        groundSprite = art?.ground
+          ? new Sprite(art.ground)
+          : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
+      }
       groundSprite.anchor?.set?.(0.5);
       overlay.addChild(groundSprite, actorLayer, transientLayer);
     }
@@ -314,11 +341,25 @@ export function createHiveClient({
       });
       actorCache.delete(id);
     }
-    for (const subject of [...state.subjects].sort(
-      (a, b) => a.x + a.z - b.x - b.z,
-    )) {
+    const byId = new Map(state.subjects.map((subject) => [subject.id, subject]));
+    const supportDepth = (subject, seen = new Set()) => {
+      if (!subject.support || seen.has(subject.id)) return 0;
+      const parent = byId.get(subject.support);
+      if (!parent) return 0;
+      seen.add(subject.id);
+      return 1 + supportDepth(parent, seen);
+    };
+    for (const subject of [...state.subjects].sort((a, b) => {
+      const depth = supportDepth(a) - supportDepth(b);
+      return depth || a.x + a.z - b.x - b.z || a.id.localeCompare(b.id);
+    })) {
       subject.screen = screenPoint(subject);
-      const isContainer = subject.visual === "crate";
+      const binding = bindings[subject.visual] ??
+        (subject.visual?.startsWith("goblin.")
+          ? bindings["goblin.worker"]
+          : DEFAULT_VISUAL_BINDINGS.crate);
+      const isContainer = binding?.kind === "container";
+      const isVehicle = binding?.kind === "vehicle";
       let entry = actorCache.get(subject.id);
       if (!entry) {
         entry = {
@@ -347,22 +388,25 @@ export function createHiveClient({
           width: 2,
         });
       entry.marker.visible = state.selectedIds.includes(subject.id);
-      const figure = art?.figures?.goblin || art?.figures?.cat;
-      const frames = isContainer
+      const figure = art?.figures?.[binding?.key] || art?.figures?.goblin || art?.figures?.cat;
+      const frames = isContainer || isVehicle
         ? []
         : animationFrames(
             figure,
             animation?.direction ?? 0,
             animation?.walking ?? false,
           );
-      const texture = isContainer
-        ? art?.buildings?.shelf?.finished?.[0]
+      const physicalFacing = ((Math.round(subject.facing ?? 0) % 4) + 4) % 4;
+      const texture = isVehicle
+        ? art?.vehicles?.[binding?.key]?.[physicalFacing]
+        : isContainer
+        ? art?.buildings?.[binding?.key]?.finished?.[0] || art?.buildings?.shelf?.finished?.[0]
         : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
       if (texture) entry.pawn.texture = texture;
       entry.pawn.visible = Boolean(texture);
       entry.pawn.anchor.set(
         0.5,
-        isContainer ? art.propAnchor.y : art.pawnAnchor.y,
+        isVehicle ? art.vehicleAnchor.y : isContainer ? art.propAnchor.y : art.pawnAnchor.y,
       );
       entry.pawn.scale.set(camera.zoom);
       entry.label.text = subject.name;
@@ -419,12 +463,18 @@ export function createHiveClient({
       top: Math.min(drag.start.y, end.y),
       bottom: Math.max(drag.start.y, end.y),
     };
-    const hit = selectionFromSubjects(
+    let hit = selectionFromSubjects(
       state.subjects,
       box,
       drag.additive,
       state.selectedIds,
     );
+    if (!hit.length) {
+      const deck = state.subjects.find(
+        (subject) => subject.surface && surfacePoint(end.x, end.y, subject),
+      );
+      if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.id])] : [deck.id];
+    }
     state.selectedIds = hit;
     emit({ kind: "select", entities: state.selectedIds });
     renderHud();
