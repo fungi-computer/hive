@@ -290,18 +290,24 @@ export const piratesPack: GamePack = {
         command: "loadCargo",
         input: { entities: [crewOneId, crewTwoId] },
       },
-      {
-        id: "turn-east",
-        label: "Turn ship east",
+      ...["north", "east", "south", "west"].map((direction, facing) => ({
+        id: `turn-${direction}`,
+        label: `Face ${direction}`,
         command: "turnShip",
-        input: { facing: 1 },
-      },
+        input: { facing },
+      })),
     ],
     inspect: (context) => {
       const lots = context
         .query(query(MaterialLot))
         .map((row) => row.get(MaterialLot));
       return [
+        {
+          id: "hold-cargo",
+          label: "Supplies delivered to hold",
+          value: lots.filter((lot) => lot.container === holdId)
+            .reduce((sum, lot) => sum + lot.quantity, 0),
+        },
         {
           id: "bread-cargo",
           label: "Bread aboard",

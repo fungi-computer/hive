@@ -111,3 +111,23 @@ test("pirate cargo stays finite through delivery and save reload", () => {
     restoredPort.dispose();
   }
 });
+
+
+test("pirate facing controls rotate the supported crew through all four headings", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: piratesPack });
+    session.start();
+    for (const facing of [1, 2, 3, 0]) {
+      session.command("turnShip", { facing });
+      session.step(0.1);
+      const [ship, crew] = port.worldPoses([shipId, crewOneId]);
+      assert.equal(ship.world.facing, facing);
+      assert.equal(crew.local.x, -1);
+      assert.equal(crew.local.z, 0);
+      const angle = facing * Math.PI / 2;
+      assert.ok(Math.abs(crew.world.x + Math.cos(angle)) < 1e-6);
+      assert.ok(Math.abs(crew.world.z + Math.sin(angle)) < 1e-6);
+    }
+  } finally { port.dispose(); }
+});
