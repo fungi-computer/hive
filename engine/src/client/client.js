@@ -590,15 +590,16 @@ export function createHiveClient({
         if (
           awaitingEpochTransition &&
           frameEpoch !== undefined &&
-          event.epoch !== frameEpoch
+          event.epoch > frameEpoch
         )
           interpolation.reset(event.epoch);
         if (interpolation.push(event, performance.now())) {
-          if (frameEpoch !== undefined && frameEpoch !== event.epoch)
+          if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             animationClock.reset();
+            awaitingEpochTransition = false;
+          }
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
-          awaitingEpochTransition = false;
           draw();
           renderHud();
         }

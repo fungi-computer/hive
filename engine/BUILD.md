@@ -192,3 +192,18 @@ with the isolated fresh-colony-orders author.
 The two-worker colony now uses the Rust assignment door for distinct finite delivery tasks. Focused u4934 passed three authored laws covering distinct assignments, paused carrying restore/resume, and completed-order rejection. u4939 passed the one additional missing-quantity law: malformed delivery intent leaves the exact saved state unchanged. Its command exited 0 and scope is inactive/dead with an empty ControlGroup. Filtered runner file wrappers are not additional authored laws.
 
 Shared display interpolation is under source correction, not integrated or visually accepted. Review found duplicate ticker registration, an ineffective resume test, and dropped-frame/clock handling requiring correction. No new deployment or rendered animation claim follows from these source checks.
+
+### Original gait export and interpolation checkpoint
+
+Original goblin walk export u4944 exited 0 through the maintained exporter;
+1406 total bank textures, manifest SHA256
+92d169343e9118973368ea1a82b472c860a3fdbf0529ad149f06a34fbf659b30.
+Previous bank is preserved in `.botanical/fresh-walk-art/prior-bank`.
+Exporter scope inactive/dead/empty; port5187 clear. New art bytes await personal
+visual inspection; export success is not rendered acceptance or deployment.
+
+Interpolation source is joined with root corrections for pending epoch changes
+and nondecreasing display time. u4947 passed six laws and failed the added recovery
+fixture because its single initial snapshot did not exercise starvation. Corrected
+two-snapshot fixture alone passed u4948. Existing six laws were not replayed.
+No browser smoothness or online-host claim follows from these isolated checks.

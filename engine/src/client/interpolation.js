@@ -39,6 +39,7 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
   let starved = false;
   let frozen;
   let displayed = [];
+  let displayedTime = -Infinity;
 
   function reset(nextEpoch) {
     frames.length = 0;
@@ -51,6 +52,7 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     starved = false;
     frozen = undefined;
     displayed = [];
+    displayedTime = -Infinity;
   }
 
   function push(frame, receivedAt = performance.now()) {
@@ -117,7 +119,8 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     if (awaitingAnchor) return copyFacts(frozen ?? displayed ?? latest.facts);
 
     anchor ??= now - latest.time * 1000;
-    const target = (now - anchor - delayMs) / 1000;
+    const target = Math.min(latest.time, Math.max(displayedTime, (now - anchor - delayMs) / 1000));
+    displayedTime = target;
     const first = frames[0];
     if (target <= first.time) return publish(first.facts);
     if (target >= latest.time) {

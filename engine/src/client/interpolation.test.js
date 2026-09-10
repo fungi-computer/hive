@@ -94,3 +94,14 @@ test("reanchoring does not move the displayed pose backward", () => {
   buffer.push(frame(2, 10.5, 10.5), 21000);
   assert.equal(buffer.render(21001)[0].pose.position.x, 10.5);
 });
+
+
+test("default delayed clock cannot rewind after short recovery", () => {
+  const buffer = createInterpolationBuffer();
+  buffer.push(frame(0, 0, 0), 0);
+  buffer.push(frame(1, 1, 10), 1000);
+  buffer.render(2000);
+  buffer.push(frame(2, 1.033, 10.33), 2033);
+  assert.equal(buffer.render(2033)[0].pose.position.x, 10);
+  assert.ok(buffer.render(2100)[0].pose.position.x >= 10);
+});
