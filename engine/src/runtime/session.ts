@@ -570,7 +570,7 @@ export class GameSession {
         !outcome.result ||
         typeof outcome.result.accepted !== "boolean" ||
         outcome.result.revision !== snapshot.kernel.revision ||
-        (outcome.result.reason !== undefined &&
+        (outcome.result.reason != null &&
           typeof outcome.result.reason !== "string")
       )
         throw new Error("invalid action result");

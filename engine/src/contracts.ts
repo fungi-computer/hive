@@ -101,7 +101,8 @@ export type ActionRequest =
     };
 export interface ActionResult {
   readonly accepted: boolean;
-  readonly reason?: string;
+  readonly reason?: string | null;
+  readonly projectileId?: EntityId;
   readonly revision: number;
 }
 export interface Impact {

@@ -215,3 +215,12 @@ in flight. Its execution awaits the maintained release WASM build u5128. Cannon
 play is not deployed at this checkpoint; the existing public DO demos remain
 unchanged. Next acceptance is this joined consumer, followed by a bounded actual
 rendered shot and coherent same-host release.
+
+Actual release WASM build u5128 finished successfully (5m12s), with its scope
+closed. Actual consumer u5131 reached all shot/impact assertions but rejected
+restoring the in-flight save: native successful ActionResult serializes reason
+as null. The TypeScript contract and validator now admit that existing native
+representation and expose the optional returned projectile identity. Corrected
+u5133's actual-WASM consumer law passed, including identical post-impact state
+after restoring flight. Its strict type stage is still being collected; this is
+not browser, DO-restart, or hosted cannon acceptance.
