@@ -64,15 +64,15 @@ async function admitted(pack, token, kind, prefix) {
     const envelope = body(kind, fresh.wire.revision, `${prefix}-${index}`);
     const receipt = await command(pack, token, envelope);
     if (receipt.wire.status === "applied") return { envelope, receipt, staleAttempts: attempts };
-    assert.equal(receipt.wire.reason, "stale-revision", `${pack} unexpected ${kind} rejection`);
-    attempts.push({ id: envelope.id, status: "rejected", reason: receipt.wire.reason });
+    assert.equal(receipt.wire.result?.reason, "stale-revision", `${pack} unexpected ${kind} rejection`);
+    attempts.push({ id: envelope.id, status: "rejected", reason: receipt.wire.result?.reason });
   }
   throw new Error(`${pack} ${kind} admission remained stale after 3 attempts`);
 }
-async function pauseWithLostResponse(pack, token) {
+async function pauseWithReplay(pack, token) {
   const applied = await admitted(pack, token, "pause", "pause");
   const retry = await command(pack, token, applied.envelope);
-  assert.deepEqual(retry.wire, applied.receipt.wire, `${pack} replay receipt changed after response loss`);
+  assert.deepEqual(retry.wire, applied.receipt.wire, `${pack} same-command replay receipt changed`);
   return { commandId: applied.envelope.id, receipt: retry.wire, identical: true, staleAttempts: applied.staleAttempts };
 }
 
@@ -83,7 +83,7 @@ try {
   for (const pack of packs) {
     const token = tokens.get(pack);
     const initial = await observe(pack, token);
-    const paused = await pauseWithLostResponse(pack, token);
+    const paused = await pauseWithReplay(pack, token);
     const pausedObservation = await observe(pack, token);
     assert.equal(pausedObservation.wire.observation.paused, true, `${pack} did not pause`);
     await new Promise((resolve) => setTimeout(resolve, 350));
