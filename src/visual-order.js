@@ -50,3 +50,27 @@ export function waterBehindStructure(surface, depth, site) {
     structureDepth(site) <= depth
   );
 }
+
+/** Overlay original raster only inside opaque water pixels. Source-atop preserves
+ * the water coverage, so translucent cutaways contribute their alpha once. */
+export function compositeWaterOccluders(context, viewport, occluders) {
+  context.save();
+  context.globalCompositeOperation = "source-atop";
+  context.imageSmoothingEnabled = false;
+  for (const { texture, x, y, alpha } of occluders) {
+    const frame = texture.frame;
+    context.globalAlpha = alpha;
+    context.drawImage(
+      texture.source.resource,
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
+      x - viewport.x,
+      y - viewport.y,
+      frame.width,
+      frame.height,
+    );
+  }
+  context.restore();
+}
