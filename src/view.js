@@ -2,6 +2,11 @@ import {
   terrainSurfaces,
   observedTerrainSurfaces,
 } from "./terrain-surface-geometry.js";
+import {
+  visualDepth,
+  waterDepth,
+  waterBehindStructure,
+} from "./visual-order.js";
 import { waterSurfaces } from "./water-surfaces.ts";
 import { SIZE } from "./world.js";
 import { currentVisibility } from "./exploration.ts";
@@ -36,7 +41,7 @@ function label(text, size = 8) {
 }
 
 function depthKey(at, layer = 0) {
-  return at.x + at.z + (at.level ?? 0) * 0.35 + layer;
+  return visualDepth(at, layer);
 }
 
 function put(display, footing, layer = 0) {
@@ -167,15 +172,13 @@ export function createView(app, world, camera, art, initial, input) {
     terrainFaces = faces;
     camera.setTerrain(faces);
   }
-  const wetSurface = new Sprite(Texture.EMPTY);
-  wetSurface.eventMode = "none";
-  world.addChild(wetSurface);
+  const wetSurfaces = new Map();
   let waterCheckpoint = null,
     waterContext = null,
-    waterPixels = null,
     waterExploration = null,
     waterFaces = null,
-    waterMaskPixels = null;
+    waterMaskPixels = null,
+    projectedWater = [];
   function drawWater(state, selection) {
     const context = JSON.stringify([
       selection.level,
@@ -192,26 +195,65 @@ export function createView(app, world, camera, art, initial, input) {
         ]),
     ]);
     if (
-      waterCheckpoint === state.water &&
-      context === waterContext &&
-      waterExploration === state.exploration &&
-      waterFaces === terrainFaces
-    )
-      return;
-    if (waterFaces !== terrainFaces)
-      waterMaskPixels = terrainFaces.map((face) =>
-        face.vertices.map(({ x, y, z }) => projectCell({ x, z }, y)),
-      );
-    waterCheckpoint = state.water;
-    waterContext = context;
-    waterExploration = state.exploration;
-    waterFaces = terrainFaces;
-    const water = waterSurfaces(state, selection.level);
-    // Actual low-resolution projected pixels, not a simulation-time throttle.
-    const pixels = JSON.stringify([
-      waterMaskPixels,
-      water.map((surface) => [
-        surface.id,
+      waterCheckpoint !== state.water ||
+      context !== waterContext ||
+      waterExploration !== state.exploration ||
+      waterFaces !== terrainFaces
+    ) {
+      if (waterFaces !== terrainFaces)
+        waterMaskPixels = JSON.stringify(
+          terrainFaces.map((face) =>
+            face.vertices.map(({ x, y, z }) => projectCell({ x, z }, y)),
+          ),
+        );
+      projectedWater = waterSurfaces(state, selection.level);
+      waterCheckpoint = state.water;
+      waterContext = context;
+      waterExploration = state.exploration;
+      waterFaces = terrainFaces;
+    }
+    const active = new Set(projectedWater.map((surface) => surface.id));
+    for (const [id, entry] of wetSurfaces) {
+      if (active.has(id)) continue;
+      if (entry.sprite.texture !== Texture.EMPTY)
+        entry.sprite.texture.destroy(true);
+      entry.sprite.destroy();
+      wetSurfaces.delete(id);
+    }
+    const structures = bodies.children.filter(
+      (display) =>
+        display.waterOrderSite && display.visible && display.alpha > 0,
+    );
+    for (const surface of projectedWater) {
+      const depth = waterDepth(surface, state.sites);
+      const occluders = [];
+      const maskKeys = [];
+      for (const display of structures) {
+        if (!waterBehindStructure(surface, depth, display.waterOrderSite))
+          continue;
+        const record = picking.recordFor(display);
+        if (!record)
+          throw new Error(
+            "Water occluder has no registered original silhouette.",
+          );
+        const { silhouette, bounds } = record.hitArea;
+        const x = display.x + bounds.x,
+          y = display.y + bounds.y;
+        occluders.push({ silhouette, x, y, alpha: display.alpha });
+        maskKeys.push([record.revision, x, y, display.alpha]);
+      }
+      let entry = wetSurfaces.get(surface.id);
+      if (!entry) {
+        const sprite = new Sprite(Texture.EMPTY);
+        sprite.eventMode = "none";
+        bodies.addChild(sprite);
+        entry = { sprite, pixels: null };
+        wetSurfaces.set(surface.id, entry);
+      }
+      entry.sprite.zIndex = depth;
+      const pixels = JSON.stringify([
+        waterMaskPixels,
+        maskKeys,
         [-0.5, 0.5].flatMap((dx) =>
           [-0.5, 0.5].map((dz) =>
             projectCell(
@@ -220,17 +262,15 @@ export function createView(app, world, camera, art, initial, input) {
             ),
           ),
         ),
-      ]),
-    ]);
-    if (pixels === waterPixels) return;
-    const slice = water.length
-      ? art.bakeTerrainWater(water, terrainFaces)
-      : { texture: Texture.EMPTY, x: 0, y: 0 };
-    const previous = wetSurface.texture;
-    wetSurface.texture = slice.texture;
-    wetSurface.position.set(slice.x, slice.y);
-    waterPixels = pixels;
-    if (previous !== Texture.EMPTY) previous.destroy(true);
+      ]);
+      if (pixels === entry.pixels) continue;
+      const slice = art.bakeTerrainWater([surface], terrainFaces, occluders);
+      const previous = entry.sprite.texture;
+      entry.sprite.texture = slice.texture;
+      entry.sprite.position.set(slice.x, slice.y);
+      entry.pixels = pixels;
+      if (previous !== Texture.EMPTY) previous.destroy(true);
+    }
   }
   drawTerrain(initial, { level: 0 });
   const route = new Graphics();
@@ -935,14 +975,16 @@ export function createView(app, world, camera, art, initial, input) {
     dispose() {
       if (ground.texture !== art.ground && ground.texture !== Texture.EMPTY)
         ground.texture.destroy(true);
-      if (wetSurface.texture !== Texture.EMPTY)
-        wetSurface.texture.destroy(true);
-      ground.texture = wetSurface.texture = Texture.EMPTY;
+      for (const { sprite } of wetSurfaces.values()) {
+        if (sprite.texture !== Texture.EMPTY) sprite.texture.destroy(true);
+        sprite.destroy();
+      }
+      wetSurfaces.clear();
+      ground.texture = Texture.EMPTY;
     },
     render(state, selection) {
       visible = currentVisibility(state);
       drawTerrain(state, selection);
-      drawWater(state, selection);
       drawTerrainMarks(state, selection);
       drawTrees(state, selection);
       drawSources(state, selection);
@@ -969,6 +1011,7 @@ export function createView(app, world, camera, art, initial, input) {
           ? { ...selection, tool: null }
           : selection,
       );
+      drawWater(state, selection);
       dusk.visible = isNight(state);
       picking.renderDebug(!!selection.debugPicking);
     },
