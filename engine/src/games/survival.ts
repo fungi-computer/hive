@@ -8,6 +8,13 @@ import {
 } from "../sdk/common";
 import type { GamePack } from "../contracts";
 
+// The public common SDK currently omits the built-in body definition. The
+// authoring API still permits querying that stable built-in by its public ID.
+export const Body = component<{ speed: number }>("hive.body", {
+  version: 1,
+  fields: { speed: "number" },
+});
+
 export const Survivor = component<{ controlled: boolean }>(
   "survival.survivor",
   { version: 1, fields: { controlled: "boolean" } },
@@ -20,11 +27,25 @@ export const MealRule = component<{ recovery: number }>("survival.meal-rule", {
   version: 1,
   fields: { recovery: "number" },
 });
+export const Fatigue = component<{
+  value: number;
+  lastX: number;
+  lastY: number;
+  lastZ: number;
+}>("survival.fatigue", {
+  version: 1,
+  fields: {
+    value: "number",
+    lastX: "number",
+    lastY: "number",
+    lastZ: "number",
+  },
+});
 export const survival = system({
   id: "survival.hunger",
   version: 1,
-  reads: [Survivor, Condition, MaterialLot, MealRule],
-  writes: [Condition],
+  reads: [Survivor, Condition, MaterialLot, MealRule, Fatigue, Position, Body],
+  writes: [Condition, Fatigue],
   run(ctx) {
     for (const row of ctx.query(query(Survivor, Condition))) {
       const survivor = row.get(Survivor),
@@ -57,6 +78,30 @@ export const survival = system({
             ? Math.max(0, value.wellbeing - ctx.clock.delta)
             : value.wellbeing,
       });
+      const pose = ctx
+        .query(query(Position, Body, Fatigue))
+        .find((candidate) => candidate.id === row.id);
+      if (pose) {
+        const position = pose.get(Position);
+        const fatigue = pose.get(Fatigue);
+        const moved =
+          position.x !== fatigue.lastX ||
+          position.y !== fatigue.lastY ||
+          position.z !== fatigue.lastZ;
+        ctx.write(Fatigue, row.id, {
+          value: Math.max(
+            0,
+            Math.min(
+              100,
+              fatigue.value +
+                (moved ? ctx.clock.delta * 5 : -ctx.clock.delta * 2),
+            ),
+          ),
+          lastX: position.x,
+          lastY: position.y,
+          lastZ: position.z,
+        });
+      }
     }
   },
 });
@@ -74,6 +119,7 @@ const survivalInitial = [
       "survival.survivor": { controlled: true },
       "survival.condition": { hunger: 40, wellbeing: 100 },
       "survival.meal-rule": { recovery: 25 },
+      "survival.fatigue": { value: 0, lastX: 0, lastY: 0, lastZ: 0 },
     },
   },
   {
@@ -94,7 +140,15 @@ const survivalInitial = [
 export const survivalPack: GamePack = {
   id: "survival",
   version: 1,
-  components: [Position, MaterialLot, Survivor, Condition, MealRule],
+  components: [
+    Position,
+    Body,
+    MaterialLot,
+    Survivor,
+    Condition,
+    MealRule,
+    Fatigue,
+  ],
   systems: [survival],
   commands: {
     takeFood: command({
@@ -171,6 +225,7 @@ export const survivalPack: GamePack = {
     ],
     inspect: (context) => {
       const condition = context.query(query(Condition))[0]?.get(Condition);
+      const fatigue = context.query(query(Fatigue))[0]?.get(Fatigue);
       const lots = context
         .query(query(MaterialLot))
         .map((row) => row.get(MaterialLot));
@@ -200,6 +255,11 @@ export const survivalPack: GamePack = {
           label: "Meal recovery",
           value:
             context.query(query(MealRule))[0]?.get(MealRule).recovery ?? 25,
+        },
+        {
+          id: "fatigue",
+          label: "Fatigue",
+          value: fatigue?.value ?? 0,
         },
       ];
     },
