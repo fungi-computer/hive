@@ -1,5 +1,11 @@
 /** Reject unresolved arithmetic using operand-scale IEEE roundoff only. The
  * whole-state balance tolerance is not permission to lose a small transfer. */
+export class UnresolvedQuantityError extends TypeError {
+  constructor() {
+    super("quantity change lost at current arithmetic resolution");
+    this.name = "UnresolvedQuantityError";
+  }
+}
 export function changeQuantity(before, delta) {
   const after = before + delta;
   if (!(
@@ -20,8 +26,21 @@ export function changeQuantity(before, delta) {
     uncertainty < Math.abs(delta) &&
     Math.abs(error) <= uncertainty
   ))
-    throw new TypeError(
-      "quantity change lost at current arithmetic resolution",
-    );
+    throw new UnresolvedQuantityError();
   return after;
+}
+
+/** Sum physical quantities while retaining small terms beside large stocks. */
+export function compensatedSum(values) {
+  let total = 0,
+    correction = 0;
+  for (const value of values) {
+    const next = total + value;
+    correction +=
+      Math.abs(total) >= Math.abs(value)
+        ? total - next + value
+        : value - next + total;
+    total = next;
+  }
+  return total + correction;
 }
