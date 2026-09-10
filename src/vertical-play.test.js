@@ -464,35 +464,22 @@ test("roofed adjacent descent is observed from the body column with eye-based oc
     knownFootings(state)(b),
     "remembered knowledge is not current visibility",
   );
-});
-
-test("cold observation records retain known lower cells without granting current sight", () => {
-  const state = createClearing();
-  const from = placementFooting({ x: 5, z: 5, level: 0 });
-  for (const actor of Object.values(state.actors)) Object.assign(actor, from);
-  const target = { x: from.x + 1, y: from.y - 1, z: from.z };
-  if (terrainMaterial(state.terrain, [target.x, target.y, target.z]) !== 0)
-    state.terrain = excavateTerrain(state.terrain, [
-      target.x,
-      target.y,
-      target.z,
-    ]);
-  assert(currentlyVisible(state, target));
-  observeClearing(state);
-  state.sites.push(site("closed-floor", "floor", 6, 5, 0));
-  const restored = {
+  const cold = {
     ...state,
     exploration: explorationSchema.parse(
       JSON.parse(JSON.stringify(state.exploration)),
     ),
   };
-  assert(knownFootings(restored)(target));
-  assert(!currentlyVisible(restored, target));
-  const memory = JSON.stringify(restored.exploration);
-  currentlyVisible(restored, target);
+  assert(knownFootings(cold)(b));
+  assert(!currentlyVisible(cold, b));
+  assert(
+    !knownFootings({ ...cold, exploration: { version: 1, observed: [] } })(b),
+  );
+  const coldBytes = JSON.stringify(cold.exploration);
+  currentlyVisible(cold, b);
   assert.equal(
-    JSON.stringify(restored.exploration),
-    memory,
-    "queries never discover or update saved memory",
+    JSON.stringify(cold.exploration),
+    coldBytes,
+    "cold queries never change remembered observations",
   );
 });
