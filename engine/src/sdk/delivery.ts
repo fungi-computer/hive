@@ -8,22 +8,23 @@ const distance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.
 /** Shared resumable delivery: only the kernel's reach/custody checks settle transfer. */
 export const deliverySystem = system({ id: "hive.delivery", version: 1, reads: [DeliveryTask, Position], writes: [DeliveryTask], run(ctx) {
   for (const task of ctx.query(query<{ actor: EntityId; sourceLot: EntityId; source: EntityId; destination: EntityId; material: string; quantity: number; phase: string }>(DeliveryTask))) {
-    const positions = ctx.query(query<{ x: number; y: number; z: number; facing: number }>(Position));
-    const actor = positions.find(row => row.id === task.value.actor);
-    const source = positions.find(row => row.id === task.value.source);
-    const destination = positions.find(row => row.id === task.value.destination);
+    const state = task.get(DeliveryTask);
+    const positions = ctx.query(query(Position));
+    const actor = positions.find(row => row.id === state.actor);
+    const source = positions.find(row => row.id === state.source);
+    const destination = positions.find(row => row.id === state.destination);
     if (!actor || !source || !destination) continue;
-    if (task.value.phase === "to-source") {
-      if (distance(actor.value, source.value) <= 1) {
-        ctx.action(transfer(task.value.sourceLot, task.value.source, task.value.actor, task.value.material, task.value.quantity));
-        ctx.write(DeliveryTask, task.id, { ...task.value, phase: "carrying" });
-      } else ctx.action(move(task.value.actor, source.value));
-    } else if (task.value.phase === "carrying") {
-      ctx.write(DeliveryTask, task.id, { ...task.value, phase: "to-destination" });
-      ctx.action(move(task.value.actor, destination.value));
-    } else if (task.value.phase === "to-destination" && distance(actor.value, destination.value) <= 1) {
-      ctx.action(transfer(task.value.sourceLot, task.value.actor, task.value.destination, task.value.material, task.value.quantity));
-      ctx.write(DeliveryTask, task.id, { ...task.value, phase: "complete" });
+    if (state.phase === "to-source") {
+      if (distance(actor.get(Position), source.get(Position)) <= 1) {
+        ctx.action(transfer(state.sourceLot, state.source, state.actor, state.quantity));
+        ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
+      } else ctx.action(move(state.actor, source.get(Position)));
+    } else if (state.phase === "carrying") {
+      ctx.write(DeliveryTask, task.id, { ...state, phase: "to-destination" });
+      ctx.action(move(state.actor, destination.get(Position)));
+    } else if (state.phase === "to-destination" && distance(actor.get(Position), destination.get(Position)) <= 1) {
+      ctx.action(transfer(state.sourceLot, state.actor, state.destination, state.quantity));
+      ctx.write(DeliveryTask, task.id, { ...state, phase: "complete" });
     }
   }
 });

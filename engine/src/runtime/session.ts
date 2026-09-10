@@ -26,7 +26,7 @@ export class GameSession {
   pause(): void { this.paused = true; }
   resume(): void { this.paused = false; }
   get isPaused(): boolean { return this.paused; }
-  reset(): void { this.port.reset(); this.now = 0; this.tick = 0; this.pendingWrites = []; this.pendingActions = []; this.start(); }
+  reset(): void { this.now = 0; this.tick = 0; this.pendingWrites = []; this.pendingActions = []; this.start(); }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] { return this.port.query(spec); }
   request(action: ActionRequest): void { this.pendingActions.push(action); }
   step(delta: number): readonly ActionResult[] {
@@ -41,7 +41,7 @@ export class GameSession {
       clock, random: this.random,
       query: spec => this.port.query(spec),
       write: (definition, entity, value) => {
-        if (["hive.position", "hive.material-lot", "hive.carrying", "hive.destination"].includes(definition.id)) throw new Error(`Physical component ${definition.id} is kernel-owned`);
+        if (["hive.position", "hive.body", "hive.container", "hive.lot", "hive.carrying", "hive.destination", "hive.obstacle", "hive.visual"].includes(definition.id)) throw new Error(`Physical component ${definition.id} is kernel-owned`);
         writes.push({ component: definition.id, entity, value });
       },
       action: action => actions.push(action),
