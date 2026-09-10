@@ -31,8 +31,8 @@ function named(scene, name) {
   return found;
 }
 
-test("brew station is ground-only and uses one anchor for a 2x2 placement", () => {
-  assert.equal(requiredToolLevel("brew-station"), 0);
+test("brew station is available on every logical level and uses one anchor for a 2x2 placement", () => {
+  assert.equal(requiredToolLevel("brew-station"), null);
   for (const tool of ["bed", "stair", "brew-station"])
     assert.equal(singlePlacementTool(tool), true);
   assert.equal(singlePlacementTool("wall"), false);
@@ -170,6 +170,16 @@ test("station profiles expose only canonical phase and contents effects", () => 
   assert.equal(
     stationVisualProfile({
       finished: true,
+      slots,
+      process: { phase: "ferment" },
+      attending: false,
+      burning: true,
+    }),
+    "ferment-burning",
+  );
+  assert.equal(
+    stationVisualProfile({
+      finished: true,
       slots: { ...slots, keg: { keg: 1, ale: 4 }, tray: { spentGrain: 1 } },
       process: null,
       attending: false,
@@ -187,13 +197,17 @@ test("station profiles expose only canonical phase and contents effects", () => 
   });
 });
 
-test("only attended PREPARE bakes fire, steam, and stirring", () => {
+test("only attended PREPARE and paid FERMENT bake their approved effects", () => {
   const prepare = stationScene("finished", 0, { profile: "prepare" });
   const attended = stationScene("finished", 0, {
     profile: "prepare-attended",
     phase: 0.25,
   });
   const ferment = stationScene("finished", 0, { profile: "ferment" });
+  const burning = stationScene("finished", 0, {
+    profile: "ferment-burning",
+    phase: 0.25,
+  });
   const settled = stationScene("finished", 0, { profile: "settled" });
   assert.equal(named(prepare, "kettle-fire"), null);
   assert.equal(named(prepare, "kettle-steam"), null);
@@ -202,6 +216,17 @@ test("only attended PREPARE bakes fire, steam, and stirring", () => {
   assert.ok(named(attended, "brew-keg"));
   assert.equal(named(ferment, "kettle-fire"), null);
   assert.equal(named(ferment, "kettle-steam"), null);
+  assert.ok(named(burning, "kettle-fire"));
+  assert.ok(named(burning, "kettle-steam"));
+  assert.deepEqual(stationProfileOptions("ferment-burning"), {
+    liquid: "wort",
+    barm: true,
+    keg: true,
+    tray: false,
+    stirring: false,
+    fire: true,
+    steam: true,
+  });
   assert.ok(named(settled, "brew-keg"));
   assert.ok(named(settled, "spent-grain-contents"));
 });
