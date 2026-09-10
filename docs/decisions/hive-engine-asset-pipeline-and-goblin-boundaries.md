@@ -2,6 +2,11 @@
 
 ## Cross-game acceptance: Zomboid-style survival and pirates — September 10
 
+The companion [implementation guide](engine-implementation-guide.md) translates
+this study into current-file responsibilities, an ordered delivery sequence,
+pseudocode and failure laws. Water, gas and terrain correction comes first;
+cross-game care and future vehicle/combat examples test the same boundaries.
+
 Levi explicitly adds **Project Zomboid as a relevant design reference and test
 of engine reuse**, alongside a contrasting pirate game where players sail and
 fire cannons. These are architecture tests, not orders to start two games or

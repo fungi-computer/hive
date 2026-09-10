@@ -11,6 +11,14 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Implementation guide, Levi September 10:** the [durable pseudocode guide](engine-implementation-guide.md)
+now owns detailed handoffs for the next chunks: A playable water/gas/terrain hot
+path, B shared headless browser/DO host join, C extracted needs and finite
+care/wastewater composition. It names actual files, causal timing, atomic
+completion, picking and active-work algorithms. Source preparation can overlap
+only across released file boundaries. Future vehicle/combat sketches are not
+new work assignments. This is a design checkpoint, not runtime acceptance.
+
 **Cross-game reference, Levi September 10:** Project Zomboid is a design reference
 and engine-reuse test. An unrelated sailing/cannon game is a contrasting test of
 the same boundary. The [current source assessment](hive-engine-asset-pipeline-and-goblin-boundaries.md#cross-game-acceptance-zomboid-style-survival-and-pirates--september-10)
