@@ -9,16 +9,17 @@ function fixture(t, limits, program = createQuarryRegionProgram) {
   const db = new DatabaseSync(":memory:");
   t.after(() => db.close());
   let failReceipt = false;
-  const owner = sqliteTestOwner(db, statement => {
+  const owner = sqliteTestOwner(db, (statement) => {
     if (failReceipt && statement.startsWith("INSERT INTO hive_region_receipts"))
       throw new Error("injected-storage-failure");
   });
-  const open = (policy = limits) =>
+  const open = (policy = limits, clockPrincipal) =>
     openRegion({
       owner,
       region: "quarry-1",
       program: program(),
       limits: policy,
+      ...(clockPrincipal ? { clock: { principal: clockPrincipal } } : {}),
     });
   return {
     open,
@@ -220,4 +221,153 @@ test("cold reopen cannot silently change the persisted admission and replay budg
     /region-policy-conflict/,
   );
   assert.deepEqual(f.open().dispatch(principal, dig()), receipt);
+});
+
+test("registered host occurrences advance one durable frontier with exact replay and no gaps", (t) => {
+  const clockPrincipal = "quarry-clock";
+  const f = fixture(t, undefined, () => {
+    const program = createQuarryRegionProgram();
+    return {
+      ...program,
+      id: "quarry-clock-v1",
+      authorize: (who, command, state) =>
+        who === clockPrincipal
+          ? program.authorize(principal, command, state)
+          : program.authorize(who, command, state),
+    };
+  });
+  const region = f.open(undefined, clockPrincipal);
+  const occurrence = (sequence, id, expectedRevision = sequence, x = 0) => ({
+    sequence,
+    request: dig(id, expectedRevision, x),
+  });
+  const first = region.dispatchOccurrence(
+    clockPrincipal,
+    occurrence(0, "clock-0", 0),
+  );
+  assert.equal(first.status, "applied");
+  const afterFirst = region.readCommitted();
+  assert.equal(afterFirst.revision, 1);
+  assert.deepEqual(
+    region.dispatchOccurrence(clockPrincipal, occurrence(0, "clock-0", 0)),
+    first,
+  );
+  assert.deepEqual(region.readCommitted(), afterFirst);
+  assert.throws(
+    () =>
+      region.dispatchOccurrence(
+        clockPrincipal,
+        occurrence(0, "clock-conflict", 0, 1),
+      ),
+    /region-clock-conflict/,
+  );
+  assert.deepEqual(region.readCommitted(), afterFirst);
+  assert.throws(
+    () =>
+      region.dispatchOccurrence(clockPrincipal, occurrence(2, "clock-gap", 1)),
+    /region-clock-gap/,
+  );
+  const second = region.dispatchOccurrence(
+    clockPrincipal,
+    occurrence(1, "clock-1", 1, 1),
+  );
+  assert.equal(second.status, "applied");
+  assert.equal(region.readCommitted().revision, 2);
+  assert.throws(
+    () =>
+      region.dispatchOccurrence(clockPrincipal, occurrence(0, "clock-0", 0)),
+    /region-clock-retired/,
+  );
+  const reopened = f.open(undefined, clockPrincipal);
+  assert.deepEqual(
+    reopened.dispatchOccurrence(clockPrincipal, occurrence(1, "clock-1", 1, 1)),
+    second,
+  );
+  assert.throws(
+    () => f.open(undefined, "another-clock"),
+    /region-clock-settings-conflict/,
+  );
+  assert.throws(
+    () =>
+      reopened.dispatchOccurrence("quarry-builder", occurrence(2, "wrong", 2)),
+    /region-clock-forbidden/,
+  );
+  const player = reopened.dispatch(principal, dig("ordinary", 2, 2));
+  assert.equal(player.status, "applied");
+});
+
+test("reopen rejects a corrupted current clock frontier instead of guessing replay authority", (t) => {
+  const clockPrincipal = "quarry-clock";
+  const f = fixture(t, undefined, () => {
+    const program = createQuarryRegionProgram();
+    return {
+      ...program,
+      id: "quarry-clock-corrupt-v1",
+      authorize: (who, command, state) =>
+        who === clockPrincipal
+          ? program.authorize(principal, command, state)
+          : program.authorize(who, command, state),
+    };
+  });
+  const region = f.open(undefined, clockPrincipal);
+  region.dispatchOccurrence(clockPrincipal, {
+    sequence: 0,
+    request: dig("clock-0", 0),
+  });
+  f.db
+    .prepare(
+      "UPDATE hive_region_clock SET last_request_json=NULL WHERE singleton=1",
+    )
+    .run();
+  assert.throws(
+    () => f.open(undefined, clockPrincipal),
+    /region-clock-frontier/,
+  );
+});
+
+test("clock frontier storage overflow rolls back state, events, and occurrence identity", (t) => {
+  const clockPrincipal = "quarry-clock";
+  const f = fixture(t, { storageBytes: 4096 }, () => {
+    const program = createQuarryRegionProgram();
+    return {
+      ...program,
+      id: "quarry-clock-overflow-v1",
+      authorize: (who, command, state) =>
+        who === clockPrincipal
+          ? program.authorize(principal, command, state)
+          : program.authorize(who, command, state),
+      execute: (state, command) => ({
+        ...program.execute(state, command),
+        events: [{ kind: "oversized", blob: "x".repeat(3500) }],
+      }),
+    };
+  });
+  const region = f.open(undefined, clockPrincipal);
+  const before = region.readCommitted();
+  assert.throws(
+    () =>
+      region.dispatchOccurrence(clockPrincipal, {
+        sequence: 0,
+        request: dig("overflow", 0),
+      }),
+    /region-storage-budget/,
+  );
+  assert.deepEqual(region.readCommitted(), before);
+  assert.deepEqual(region.readEvents(0), []);
+  assert.throws(
+    () =>
+      region.dispatchOccurrence(clockPrincipal, {
+        sequence: 1,
+        request: dig("gap-after-overflow", 0),
+      }),
+    /region-clock-gap/,
+  );
+  assert.equal(
+    f.db
+      .prepare(
+        "SELECT next_sequence,last_request_json,last_receipt_json FROM hive_region_clock WHERE singleton=1",
+      )
+      .get().next_sequence,
+    0,
+  );
 });
