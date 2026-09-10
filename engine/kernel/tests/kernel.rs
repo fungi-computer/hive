@@ -25,7 +25,7 @@ fn moving_deck_scene() -> String {
                 [10.0, 0.0, 20.0],
                 json!({
                     "hive.body":{"speed":4.0},
-                    "hive.surface":{"min_x":-3.0,"max_x":3.0,"min_z":-2.0,"max_z":2.0,"height":1.0}
+                    "hive.surface":{"minX":-3.0,"maxX":3.0,"minZ":-2.0,"maxZ":2.0,"height":1.0}
                 })
             ),
             builtins(
@@ -66,8 +66,25 @@ fn cargo_scene() -> String {
             "hive.support":{"entity":"ship"}
         }),
     ));
+    initial.push(builtins(
+        "world-chest",
+        [11.0, 1.0, 20.0],
+        json!({"hive.container":{"capacity":2}}),
+    ));
+    initial.push(builtins(
+        "far-chest",
+        [3.0, 1.0, 0.0],
+        json!({
+            "hive.container":{"capacity":2},
+            "hive.support":{"entity":"ship"}
+        }),
+    ));
     initial.push(json!({
         "id":"cargo-lot",
+        "components":{"hive.lot":{"kind":"bread","quantity":1,"container":"crew"}}
+    }));
+    initial.push(json!({
+        "id":"cargo-lot-2",
         "components":{"hive.lot":{"kind":"bread","quantity":1,"container":"crew"}}
     }));
     serde_json::to_string(&root).unwrap()
@@ -386,6 +403,22 @@ fn resolved_contact_and_midvoyage_cargo_restore_are_deterministic() {
     )
     .unwrap();
     assert_eq!(transfer["results"][0]["accepted"], true);
+    let far: Value = serde_json::from_str(
+        &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot-2","from":"crew","to":"far-chest","quantity":1}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(far["results"][0]["accepted"], false);
+    let cross_frame: Value = serde_json::from_str(
+        &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot-2","from":"crew","to":"world-chest","quantity":1}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(cross_frame["results"][0]["accepted"], true);
+    let lots: Value = serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap();
+    assert_eq!(lots.as_array().unwrap().iter().map(|row| row["components"]["hive.lot"]["quantity"].as_u64().unwrap()).sum::<u64>(), 2);
     kernel = Kernel::new();
     kernel.load(&cargo_scene()).unwrap();
     kernel
@@ -424,7 +457,7 @@ fn invalid_support_graph_is_rejected_atomically() {
                 "a",
                 [0.0, 0.0, 0.0],
                 json!({
-                    "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+                    "hive.surface":{"minX":-1.0,"maxX":1.0,"minZ":-1.0,"maxZ":1.0,"height":0.0},
                     "hive.support":{"entity":"b"}
                 })
             ),
@@ -432,7 +465,7 @@ fn invalid_support_graph_is_rejected_atomically() {
                 "b",
                 [0.0, 0.0, 0.0],
                 json!({
-                    "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+                    "hive.surface":{"minX":-1.0,"maxX":1.0,"minZ":-1.0,"maxZ":1.0,"height":0.0},
                     "hive.support":{"entity":"a"}
                 })
             )
@@ -448,7 +481,7 @@ fn support_chain_allows_sixteen_links_and_rejects_seventeen() {
     let mut entities = vec![builtins(
         "root",
         [0.0, 0.0, 0.0],
-        json!({"hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0}}),
+        json!({"hive.surface":{"minX":-1.0,"maxX":1.0,"minZ":-1.0,"maxZ":1.0,"height":0.0}}),
     )];
     for index in 1..=16 {
         let id = format!("node-{index}");
@@ -457,7 +490,7 @@ fn support_chain_allows_sixteen_links_and_rejects_seventeen() {
             &id,
             [0.0, 0.0, 0.0],
             json!({
-                "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+                "hive.surface":{"minX":-1.0,"maxX":1.0,"minZ":-1.0,"maxZ":1.0,"height":0.0},
                 "hive.support":{"entity":parent}
             }),
         ));
@@ -468,7 +501,7 @@ fn support_chain_allows_sixteen_links_and_rejects_seventeen() {
         "node-17",
         [0.0, 0.0, 0.0],
         json!({
-            "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+            "hive.surface":{"minX":-1.0,"maxX":1.0,"minZ":-1.0,"maxZ":1.0,"height":0.0},
             "hive.support":{"entity":"node-16"}
         }),
     ));
