@@ -1,5 +1,5 @@
 import type { GameId } from "../contracts";
-import type { WorkerCommand, WorkerEvent } from "./worker";
+import type { WorkerCommand, WorkerEvent } from "./protocol";
 
 export interface RuntimeConnection {
   send(command: WorkerCommand): void;
