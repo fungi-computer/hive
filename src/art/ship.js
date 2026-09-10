@@ -31,9 +31,9 @@ function deck(parent) {
       parent,
       index % 2 ? "#c18d52" : "#b27d48",
       x,
-      1.06,
+      0.95,
       0,
-      0.92,
+      1,
       0.1,
       3.88,
     );
@@ -71,7 +71,8 @@ export function shipScene(direction = 0) {
   const result = scene();
   const model = group(result);
   model.name = "ship";
-  model.rotation.y = (direction * Math.PI) / 2;
+  // Native facing turns local +x toward local -z for direction 1.
+  model.rotation.y = -(direction * Math.PI) / 2;
   hull(model);
   deck(model);
   mastAndRigging(model);

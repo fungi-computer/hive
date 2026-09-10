@@ -112,6 +112,19 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       groundCanvas.height !== STATIC_ART_RENDER.ground.height
     )
       throw new Error("Static art ground dimensions changed");
+    const vehicleTextures = textures.filter(
+      ({ path }) => path[0] === "vehicles",
+    );
+    if (vehicleTextures.length !== 4)
+      throw new Error("Static art must contain four ship vehicle facings");
+    for (const { texture, path } of vehicleTextures) {
+      const canvas = textureCanvas(texture, JSON.stringify(path));
+      if (
+        canvas.width !== STATIC_ART_RENDER.vehicle.width ||
+        canvas.height !== STATIC_ART_RENDER.vehicle.height
+      )
+        throw new Error("Static art vehicle dimensions changed");
+    }
 
     const atlases = [page(0)],
       entries = [];
@@ -146,6 +159,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       anchors: {
         pawn: { ...art.pawnAnchor },
         prop: { ...art.propAnchor },
+        vehicle: { ...art.vehicleAnchor },
       },
       ground: {
         file: "ground.png",

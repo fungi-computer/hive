@@ -379,7 +379,11 @@ export async function bakeArt(onProgress = () => {}) {
       ),
       // Vehicles are wider than props; keep one deterministic larger frame
       // and anchor for all four facings rather than squeezing the hull.
-      vehicle = camera(192, 160, 1.08);
+      vehicle = camera(
+        STATIC_ART_RENDER.vehicle.width,
+        STATIC_ART_RENDER.vehicle.height,
+        STATIC_ART_RENDER.vehicle.cameraHeight,
+      );
     const vehicleAnchor = anchor(vehicle);
     detail = "Drawing the landscape";
     report();
@@ -591,7 +595,13 @@ export async function bakeArt(onProgress = () => {}) {
     detail = "Drawing vehicles";
     report();
     art.vehicles.ship = Array.from({ length: 4 }, (_, direction) =>
-      bakeStartup(renderer, shipScene(direction), vehicle, 192, 160),
+      bakeStartup(
+        renderer,
+        shipScene(direction),
+        vehicle,
+        STATIC_ART_RENDER.vehicle.width,
+        STATIC_ART_RENDER.vehicle.height,
+      ),
     );
     // This one retained renderer rebakes terrain only after a physical edit/load.
     // It never updates simulation state or time. View owns replacement textures.
