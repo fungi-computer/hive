@@ -31,12 +31,13 @@ large-world capacity or cross-player shared-world gameplay. See BUILD.md.
 The same survival pack and Rust/WASM now pass local native Durable Object
 consumption/restart/retry and transaction rollback at 07ef860 (u4878). Saved
 TypeScript hunger consequences survive the restart too. This closes the first
-actual server recovery witness; the public pages still run browser Workers.
-Hosted DO play, autonomous wake and population capacity remain unproved.
+actual server recovery witness. At that historical checkpoint the public pages
+still ran browser Workers; the public DO join above now supersedes that limit.
+Population capacity remains unproved.
 
 ### Remaining foundation acceptance work
 
-The original three packs and added raft are publicly playable at d3b914a.
+The original three packs and added raft are publicly playable on the DO release above.
 Two selected workers use native joint assignment; fatigue is a real TypeScript
 component/system without Rust changes. Current native format2 and supported
 movement have focused native/TS laws and a real local DO restart/replay witness
@@ -45,17 +46,16 @@ evidence. These replace earlier unfinished source checkpoints recorded in BUILD.
 
 Before declaring the full goal complete, audit the current public API and each
 example against the five objective requirements, including current-format
-recovery of authored state. The requested hosted DO/shared-client experience is
-not deployed: public pages still use browser Workers. Keep that host join and
-its per-visitor world/reset authority explicit rather than treating local native
-proof as online play. Deep terrain, ecological systems, battles and large-world
+recovery of authored state. The requested hosted DO/shared-client experience is now deployed with the
+explicit per-visitor world/New world authority documented above. Preserve the
+distinction between focused hosted evidence and full foundation acceptance. Deep terrain, ecological systems, battles and large-world
 capacity remain future scope; they are not established by these tiny fixtures.
 
 ### Current delivery target: public Durable Object demos
 
 Levi explicitly requests all public examples on DOs, not just local qualification.
 This authorizes the bounded public demo backend and its shared-client join.
-The next release defaults to server simulation; `?runtime=local` retains browser
+The current release defaults to server simulation; `?runtime=local` retains browser
 execution. The four packs use one host implementation and the same client/art.
 
 Each browser retains a random private demo capability per pack. The server derives
