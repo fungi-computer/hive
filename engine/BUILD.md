@@ -386,3 +386,14 @@ Owned scope closed inactive/dead/empty. u5036 same-preview upload passed:
 d1efdaa2-9e28-4166-ae2b-6beaa6af0e51. All 143 served hashes match after four initial
 propagation misses; initial evidence retained in release-8f4042d. Non-engine
 files remain byte-identical to d3b914a. Authority is still browser Worker/WASM.
+
+## Remote connection source join — 651c8b0
+
+Actual six remote-connection laws passed in u5029, including lost-response exact
+identity, queued revision advancement, receipt/poll race, bounded response body
+and disposal. Initial strict types failed missing lane dependencies/generated
+bindings plus actual unknown-value guards. Read-only links and source f77d344
+corrected those; strict engine types u5038 exit0, scope closed. Root joined the
+three reviewed source commits as 6077d1a/3f4cdbf/651c8b0. No new public network
+host follows. The next isolated native witness will use the real connection
+against the existing authenticated DO host; browser-local remains live.
