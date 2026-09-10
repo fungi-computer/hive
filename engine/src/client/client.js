@@ -49,10 +49,12 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
     overlay.removeChildren();
     const ground = art?.ground ? new Sprite(art.ground) : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
     ground.anchor?.set?.(0.5); ground.position.set(320 + camera.x, 200 + camera.y); ground.scale.set(camera.zoom); overlay.addChild(ground);
+    const subjectTexture = art?.figures?.goblin?.idle?.[0]?.[0] || art?.figures?.cat?.idle?.[0]?.[0];
     for (const subject of state.subjects) {
       subject.screen = screenPoint(subject);
-      const marker = new Graphics().ellipse(subject.screen.x, subject.screen.y, 18, 9).fill(state.selectedIds.includes(subject.id) ? 0xe8c779 : 0x5f8f7c);
+      const marker = new Graphics().ellipse(subject.screen.x, subject.screen.y, 18, 9).stroke({ color: state.selectedIds.includes(subject.id) ? 0xe8c779 : 0x5f8f7c, width: 2 });
       marker.eventMode = "none"; overlay.addChild(marker);
+      if (subjectTexture) { const pawn = new Sprite(subjectTexture); pawn.anchor.set(0.5, art.pawnAnchor?.y ?? 0.75); pawn.position.set(subject.screen.x, subject.screen.y); pawn.scale.set(.62); pawn.eventMode = "none"; overlay.addChild(pawn); }
       const label = new Text({ text: subject.name, style: { fontFamily: "Stipe, sans-serif", fontSize: 12, fill: 0xf7edcf } }); label.anchor.set(0.5, 1); label.position.set(subject.screen.x, subject.screen.y - 12); overlay.addChild(label);
     }
   }
