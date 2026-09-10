@@ -60,6 +60,8 @@ export function createHiveClient({
     } else if (runtime && action.kind === "reset") {
       animationClock.reset();
       interpolation.reset();
+      frameEpoch = undefined;
+      frameSequence = 0;
       runtime.send({ type: "reset" });
     } else if (action.kind === "continue") {
       try {
@@ -70,6 +72,8 @@ export function createHiveClient({
         state.message = "Continue requested…";
         animationClock.reset();
         interpolation.reset();
+        frameEpoch = undefined;
+        frameSequence = 0;
         runtime.send({ type: "restore", snapshot });
       } catch (error) {
         state.pendingRestore = false;
@@ -510,7 +514,6 @@ export function createHiveClient({
     art = pack.art;
     state.disposeArt = pack.dispose;
     app.ticker.add(draw);
-    app.ticker.add(draw);
     draw();
     renderHud();
     app.canvas.addEventListener("pointerdown", pointerDown);
@@ -589,15 +592,13 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "frame") {
-        if (frameEpoch !== event.epoch) {
+        if (interpolation.push(event, performance.now())) {
           animationClock.reset();
-          interpolation.reset(event.epoch);
+          frameEpoch = event.epoch;
+          frameSequence = event.sequence;
+          draw();
+          renderHud();
         }
-        frameEpoch = event.epoch;
-        frameSequence = event.sequence;
-        interpolation.push(event, performance.now());
-        draw();
-        renderHud();
       }
       if (event.type === "presentation") {
         state.presentationFacts = event.facts;

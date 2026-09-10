@@ -1,39 +1,86 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createInterpolationBuffer } from "./interpolation.js";
+
+const fact = (id, x) => ({
+  id,
+  pose: { position: { x, y: 0, z: 0 }, facing: 0 },
+});
 const frame = (sequence, time, x, id = "a", epoch = "one") => ({
   epoch,
   sequence,
   time,
-  facts: [{ id, pose: { position: { x, y: 0, z: 0 }, facing: 0 } }],
+  facts: [fact(id, x)],
 });
+
 test("smooths jitter between stable IDs without mutating receipts", () => {
   const buffer = createInterpolationBuffer({ delayMs: 0 });
   const first = frame(0, 0, 0);
   const second = frame(1, 1, 10);
   buffer.push(first, 0);
   buffer.push(second, 1000);
-  const shown = buffer.render(500);
-  assert.equal(shown[0].pose.position.x, 5);
+  assert.equal(buffer.render(500)[0].pose.position.x, 5);
   assert.equal(first.facts[0].pose.position.x, 0);
 });
-test("rejects stale sequences, resets epochs, and handles despawn/new IDs", () => {
+
+test("rejects stale time and epochs, bounds history, and resets explicitly", () => {
   const buffer = createInterpolationBuffer({ delayMs: 0 });
   buffer.push(frame(2, 2, 2), 2000);
-  assert.equal(buffer.push(frame(1, 1, 1), 1000), false);
-  assert.equal(buffer.push(frame(0, 0, 0, "b", "two"), 0), false);
+  assert.equal(buffer.push(frame(3, 1, 1), 3000), false);
+  assert.equal(buffer.push(frame(1, 3, 1), 3000), false);
+  assert.equal(buffer.push(frame(3, 3, 3, "a", "two"), 3000), false);
+  for (let sequence = 3; sequence < 43; sequence++)
+    assert.equal(
+      buffer.push(frame(sequence, sequence, sequence), sequence * 1000),
+      true,
+    );
+  assert.equal(buffer.size(), 32);
   buffer.reset("two");
   buffer.push(frame(0, 0, 0, "b", "two"), 0);
   assert.equal(buffer.size(), 1);
   assert.equal(buffer.render(0)[0].id, "b");
 });
-test("pause freezes and resume does not fast-forward across the gap", () => {
+
+test("pause freezes the displayed pose and explicit resume avoids a time jump", () => {
   const buffer = createInterpolationBuffer({ delayMs: 0 });
   buffer.push(frame(0, 0, 0), 0);
   buffer.push(frame(1, 1, 10), 1000);
   assert.equal(buffer.render(500)[0].pose.position.x, 5);
-  assert.equal(buffer.render(9000, { paused: true })[0].pose.position.x, 10);
-  assert.equal(buffer.render(9001)[0].pose.position.x, 10);
+  assert.equal(buffer.render(9000, { paused: true })[0].pose.position.x, 5);
+  assert.equal(buffer.render(9001, { paused: false })[0].pose.position.x, 5);
   buffer.push(frame(2, 2, 20), 2000);
-  assert.equal(buffer.render(9002)[0].pose.position.x, 20);
+  assert.equal(buffer.render(2000, { paused: false })[0].pose.position.x, 20);
+});
+
+test("packet loss still interpolates known receipts and exact time uses membership", () => {
+  const buffer = createInterpolationBuffer({ delayMs: 0 });
+  buffer.push({ epoch: "one", sequence: 0, time: 0, facts: [fact("a", 0)] }, 0);
+  buffer.push(
+    { epoch: "one", sequence: 2, time: 2, facts: [fact("a", 20)] },
+    2000,
+  );
+  const between = buffer.render(1000);
+  assert.equal(between.length, 1);
+  assert.equal(between[0].id, "a");
+  assert.equal(between[0].pose.position.x, 10);
+
+  buffer.push(
+    { epoch: "one", sequence: 3, time: 3, facts: [fact("b", 30)] },
+    3000,
+  );
+  const exact = buffer.render(3000);
+  assert.deepEqual(
+    exact.map(({ id }) => id),
+    ["b"],
+  );
+});
+
+test("starvation reanchors when a new receipt arrives", () => {
+  const buffer = createInterpolationBuffer({ delayMs: 0 });
+  buffer.push(frame(0, 0, 0), 0);
+  buffer.push(frame(1, 1, 10), 1000);
+  assert.equal(buffer.render(5000)[0].pose.position.x, 10);
+  buffer.push(frame(2, 2, 20), 6000);
+  buffer.push(frame(3, 3, 30), 7000);
+  assert.equal(buffer.render(6500)[0].pose.position.x, 25);
 });
