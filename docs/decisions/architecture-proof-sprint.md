@@ -53,39 +53,51 @@ caller laws, strict types and touched Fallow did not run. Original failure logs,
 static bank f4825c0, paid-save8f119c1 and Clearing-air3ca39c4 evidence remain.
 No automatic replay of that packet is authorized.
 
-Root's reviewed correction63b9d9a retains paired opening transfers until both
-endpoints are representable. Reciprocal concentration mixing has shared gross
-budgets; unresolved carrier cannot freeze real smoke/heat mixing. Pressure
-advection stages all constituents before publication. The arithmetic owner has
-one unchanged resolution predicate; ordinary transport deferral does not allocate
-error stacks. Paid source admission remains strict. Two new laws are authored,
-not passed; new field performance and actual game startup remain unmeasured.
+The corrected qualification at clean `18df871` ran once as u4707: 28 named
+laws, 27 passed and one failed. All five prior corrections passed, including
+paid brewing pause/cold continuation, alongside paired gas transport, underground
+Dig/picking, static-manifest callers and shared arithmetic. The remaining authored
+vertical-layout law changed sites without pairing the environmental state before
+navigation; `c5dbf6b` corrects that fixture through the existing shared preparation
+owner. Its support/access assertions remain. Types and touched Fallow were not
+reached. The terminal exited1 and its scope is inactive/dead/empty; the window was
+returned. Neither the old u4697 packet nor u4707 may replay automatically.
+
+The paid brewing law passed but took 91.39 seconds for staged setup, 120 one-tick
+environment advances and cold reconstruction. This is a serious cost concern,
+not a whole-game tick/frame benchmark or an attribution to one hot path. Source
+review found two removable costs: repeated foreign-data admission of exact
+immutable owner-produced atmosphere states, and full air display projections used
+only to read paid-source totals and receiver membership. The joined correction
+keeps cold/candidate validation and the actual solvers, while providing a narrow
+query over the existing private cell map. No speedup is claimed before measurement.
 
 Underground selection815ede7 is reviewed and integrated as2ed87de, with all six
-source hashes equal: the current visible-face picker owns both preview and
-submission, and changing layers retains Dig. Eight laws remain unrun. The authored
+source hashes equal; its eight affected laws passed u4707. The authored
 three-storey study517c62e is reviewed and integrated as14c5d7b, with all nine hashes
 equal. It uses the shared43-wood layout declaration, original prepared sprites,
-shared wall joints/roof placement and Caps. Late-load/init cleanup and fitted
-zoom were corrected. Ground plus two upper floors is the explicit fixture; it
-is not an earned construction trace, a rendered acceptance or a published study.
+shared wall joints/roof placement and Caps. Ground plus two upper floors is the
+explicit fixture. The study is not yet built, rendered or published and does not
+prove earned construction.
 
-Root owns integration, numerical decisions, art acceptance and execution. Hume
-now owns shallow-water-navigation from2ed87de: ordinary workers may wade up to
-0.25m, cats0.05m, through the shared profile/access owner. This addresses the real
-source finding that any fractional seep previously blocked route/work footing,
-while a whole-litre pail cannot guarantee a dry hole. Overhead/deep water must
-still block, and occupied-body/save preservation stays separate from new-route
-eligibility. This work is not integrated or proved. Deeper drainage and two earned
-underground chambers remain unproved; no unrestricted swimming or free drain is
-introduced. Stone ground/carry art remains a concrete presentation gap.
+Shallow wading621de12 is reviewed and integrated as2a24c20: ordinary workers allow
+0.25m and cats0.05m through the shared body/profile/access owner, including carried
+loads and swept body clearance. Deeper or overhead water still blocks new routes;
+existing paid traversal retains progress when it must wait. The source is not yet
+qualified. Its authored field stock/query fixtures do not prove paired material/air
+or earned seepage. Deeper drainage and two earned underground chambers remain
+unproved, and stone ground/carry art is still a concrete presentation gap.
 
-Ampere reviewed the shared exchange correction; Meitner reviewed underground
-selection and the study. Their preserved Sessions and isolated roots remain.
-The next qualification covers corrected failures, affected transport and new
-controls/shared fixture plus the unreached types/Fallow stages, not the already
-passed historical matrix. Actual combined game startup/input/render/performance
-and same-preview publication remain required before the playable goal is done.
+Root retains integration, numerical decisions, original art acceptance and actual
+execution. Hume's bounded engine admission source has independent Meitner review;
+Ampere reviews the narrow game query and current callers. All caches are private,
+weak and rebuildable, never a saved authority. Next qualification covers the
+corrected vertical fixture, new wading/admission laws, directly changed paid/paired
+callers and the unreached types/Fallow stages. Independent stage results must be
+retained even if a law fails, instead of leaving type errors undiscovered again.
+No unchanged historical matrix or numerical/editor replay is required. Actual
+combined startup/input/render/performance and same-preview publication still
+remain before the playable goal can be complete.
 
 **Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
 whole-clearing water and material balance through completion and current saves;

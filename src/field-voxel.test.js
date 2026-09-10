@@ -181,7 +181,8 @@ test("wading allowances use physical depth, retain payload policy and reject dee
   const state = createClearing();
   cut(state, [0, 14, 128]);
   const at = { x: 0, y: 14, z: 128 };
-  // Authored paired stock, not earned seepage: one square metre makes 50kg .05m.
+  // Authored field stock/query fixture, not earned seepage or paired material/air.
+  // One square metre makes 50kg .05m.
   transfer(state, 14, "deposit", 50);
   assert.equal(
     access(createNavigationSpaces(state)(), at, CAT_NAVIGATION),
