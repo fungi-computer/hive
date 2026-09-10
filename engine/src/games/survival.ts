@@ -1,5 +1,6 @@
 import { command, component, entity, query, system } from "../sdk/authoring";
 import {
+  Body,
   MaterialLot,
   Position,
   consume,
@@ -7,13 +8,6 @@ import {
   transfer,
 } from "../sdk/common";
 import type { GamePack } from "../contracts";
-
-// The public common SDK currently omits the built-in body definition. The
-// authoring API still permits querying that stable built-in by its public ID.
-export const Body = component<{ speed: number }>("hive.body", {
-  version: 1,
-  fields: { speed: "number" },
-});
 
 export const Survivor = component<{ controlled: boolean }>(
   "survival.survivor",

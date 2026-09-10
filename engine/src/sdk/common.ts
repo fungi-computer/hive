@@ -6,6 +6,12 @@ import type {
   Vec3,
 } from "../contracts";
 
+/** Native movement capability; game systems may query it but cannot write it. */
+export const Body = component<{ speed: number }>("hive.body", {
+  version: 1,
+  fields: { speed: "number" },
+});
+
 export const Position = component<{
   x: number;
   y: number;

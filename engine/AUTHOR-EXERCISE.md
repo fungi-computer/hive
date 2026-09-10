@@ -1,5 +1,10 @@
 # Survival fatigue author exercise
 
+Accepted follow-through: u4924 passed the actual movement/rest/fresh-instance
+restore law with the frozen WASM bytes. Root then moved the identical Body schema
+into the public common SDK and changed the game import, removing the duplication
+identified below. No physical behavior or native schema changed in that move.
+
 This exercise adds `survival.fatigue` entirely in the TypeScript game pack. It
 stores a bounded fatigue value and the previous observed pose. The `survival`
 system joins `Survivor`, `Condition`, `Position`, `Body`, and `Fatigue`; when
