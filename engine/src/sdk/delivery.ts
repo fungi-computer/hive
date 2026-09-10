@@ -12,7 +12,7 @@ export const DeliveryControl = component<{
   fields: { enabled: "boolean", quantity: "number" },
 });
 export const DeliveryTask = component<{
-  actor: EntityId;
+  actor: EntityId | null;
   sourceLot: EntityId;
   source: EntityId;
   destination: EntityId;
@@ -22,7 +22,7 @@ export const DeliveryTask = component<{
 }>("hive.delivery-task", {
   version: 1,
   fields: {
-    actor: "entity",
+    actor: "nullable-entity",
     sourceLot: "entity",
     source: "entity",
     destination: "entity",
@@ -40,31 +40,70 @@ export const deliverySystem = system({
   reads: [DeliveryTask, Position, MaterialLot, DeliveryControl],
   writes: [DeliveryTask],
   run(ctx) {
-    for (const task of ctx.query(
-      query<{
-        actor: EntityId;
-        sourceLot: EntityId;
-        source: EntityId;
-        destination: EntityId;
-        material: string;
-        quantity: number;
-        phase: string;
-      }>(DeliveryTask),
-    )) {
+    const tasks = ctx.query(query(DeliveryTask));
+    const controls = ctx.query(query(DeliveryControl));
+    const positions = ctx.query(query(Position));
+    const lots = ctx.query(query(MaterialLot));
+    const activeActors = new Set(
+      tasks
+        .map((row) => row.get(DeliveryTask))
+        .filter((task) => task.actor !== null && task.phase !== "complete")
+        .map((task) => task.actor as EntityId),
+    );
+    const idleTasks = tasks.filter((row) => {
+      const task = row.get(DeliveryTask);
+      const lot = lots.find((candidate) => candidate.id === task.sourceLot)?.get(MaterialLot);
+      return task.actor === null && task.phase === "idle" && lot?.container === task.source;
+    });
+    const candidates = controls.flatMap((controlRow) => {
+      const control = controlRow.get(DeliveryControl);
+      if (!control.enabled || activeActors.has(controlRow.id)) return [];
+      const actorPosition = positions.find((row) => row.id === controlRow.id)?.get(Position);
+      if (!actorPosition) return [];
+      return idleTasks.flatMap((taskRow) => {
+        const task = taskRow.get(DeliveryTask);
+        const sourcePosition = positions.find((row) => row.id === task.source)?.get(Position);
+        if (!sourcePosition) return [];
+        return [{
+          worker: controlRow.id,
+          task: taskRow.id,
+          cost: distance(actorPosition, sourcePosition),
+        }];
+      });
+    });
+    const assignments = candidates.length ? ctx.assign(candidates) : [];
+    const assigned = new Set(assignments.map((assignment) => assignment.task));
+    for (const assignment of assignments) {
+      const taskRow = idleTasks.find((row) => row.id === assignment.task);
+      const control = controls.find((row) => row.id === assignment.worker)?.get(DeliveryControl);
+      if (!taskRow || !control) continue;
+      const task = taskRow.get(DeliveryTask);
+      ctx.write(DeliveryTask, taskRow.id, {
+        ...task,
+        actor: assignment.worker,
+        quantity: control.quantity,
+        phase: "to-source",
+      });
+      activeActors.add(assignment.worker);
+    }
+    for (const task of tasks) {
       const state = task.get(DeliveryTask);
-      const controls = ctx.query(query(DeliveryControl));
+      if (state.actor === null || assigned.has(task.id)) continue;
       const control = controls
         .find((row) => row.id === state.actor)
         ?.get(DeliveryControl);
-      const positions = ctx.query(query(Position));
       const actor = positions.find((row) => row.id === state.actor);
       const source = positions.find((row) => row.id === state.source);
       const destination = positions.find((row) => row.id === state.destination);
       if (!actor || !source || !destination) continue;
-      const lot = ctx
-        .query(query(MaterialLot))
-        .find((row) => row.id === state.sourceLot);
+      const lot = lots.find((row) => row.id === state.sourceLot);
       const lotState = lot?.get(MaterialLot);
+      const actorLot = lots.find(
+        (row) =>
+          row.get(MaterialLot).container === state.actor &&
+          row.get(MaterialLot).kind === state.material,
+      );
+      const actorLotState = actorLot?.get(MaterialLot);
       if (!control?.enabled) {
         if (state.phase !== "idle" && state.phase !== "complete")
           ctx.action(move(state.actor, actor.get(Position)));
@@ -79,7 +118,7 @@ export const deliverySystem = system({
         continue;
       }
       if (state.phase === "to-source") {
-        if (lotState?.container === state.actor) {
+        if (actorLotState) {
           ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
           ctx.action(move(state.actor, destination.get(Position)));
           continue;
@@ -97,24 +136,28 @@ export const deliverySystem = system({
         } else ctx.action(move(state.actor, source.get(Position)));
       } else if (
         state.phase === "carrying" &&
-        lotState?.container === state.actor
+        actorLotState
       ) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "to-destination" });
         ctx.action(move(state.actor, destination.get(Position)));
       } else if (
         state.phase === "to-destination" &&
-        lotState?.container === state.destination
+        lots.some(
+          (row) =>
+            row.get(MaterialLot).container === state.destination &&
+            row.get(MaterialLot).kind === state.material,
+        )
       ) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "complete" });
       } else if (
         state.phase === "to-destination" &&
-        lotState?.container === state.actor &&
+        actorLotState &&
         distance(actor.get(Position), destination.get(Position)) <= 1
       ) {
-        if (lotState.container === state.actor)
+        if (actorLotState && actorLot)
           ctx.action(
             transfer(
-              state.sourceLot,
+              actorLot.id,
               state.actor,
               state.destination,
               state.quantity,
@@ -122,7 +165,7 @@ export const deliverySystem = system({
           );
       } else if (
         state.phase === "to-destination" &&
-        lotState?.container === state.actor
+        actorLotState
       ) {
         ctx.action(move(state.actor, destination.get(Position)));
       } else if (
