@@ -20,6 +20,14 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 
 ## Runtime boundaries
 
+- **Fun, inexpensive environmental rules are the target (Levi, September 10).**
+  Celld is the accepted eventual cheap DO host; do not reopen hosting economics
+  or make detailed tick pricing the next task. Keep finite water, soil, waste,
+  material and current-format durability laws, but choose coarse local water
+  and room/opening air. Rebuild connectivity for real topology changes, not each
+  fractional stock update; process active work at appropriate cadences. Detailed
+  CFD/reference parity is not a playable release requirement. Follow the latest
+  [environment decision](docs/decisions/environmental-fields-and-openings.md#playability-first-environment-decision--2026-09-10).
 - **Browser and Durable Objects are both supported host targets (Levi,
   September 10).** Keep one headless simulation and command/observation boundary.
   Local play can host it in a browser Worker; online worlds use DO authority.

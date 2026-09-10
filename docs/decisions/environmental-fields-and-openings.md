@@ -1,6 +1,212 @@
 # Environmental fields, openings, and horticulture
 
-## Current production fidelity and sequence — 2026-09-09
+## Playability-first environment decision — 2026-09-10
+
+Levi's latest direction is to make the actual game playable and stop spending
+time on unnecessary numerical fidelity. **Celld is the accepted eventual cheap
+Durable Object hosting target.** Detailed tick pricing and per-player compute
+allowances are deferred. Browser execution remains supported. This decision
+requires neither another Celld investigation nor a language/CFD rewrite.
+
+This section supersedes older demands below for fine-grid convergence,
+source-capture accuracy, full momentum/pressure references and reference-solver
+parity as conditions for shipping game smoke and water. Their evidence remains
+historical. Deep caves, multiple storeys, finite resources, ecological water
+effects and the sanitation/food loop remain product requirements. Three storeys
+and two underground chambers are an initial playable fixture, not engine limits.
+
+### What is actually wrong now
+
+Source baseline is `1db98ea`, whose game runtime remains published `3fa9947`.
+The user reports that build is too slow to playtest. Source review establishes
+repeated work, but does not establish its percentage of measured runtime:
+
+- Production water already uses finite voxel amounts and neighboring-face rules
+  in `src/engine/environment/water/`, plus bounded head propagation through
+  flooded passages. It is not the earlier Richards/Newton or shallow-water study.
+- Production gas already uses mixed volumes and opening exchange in
+  `src/engine/environment/atmosphere/`. `goblin-atmosphere.ts` groups horizontal
+  cells into bounded bands. It is not the earlier momentum/projection solver.
+- `goblin-environment/air-state.ts:53–108` reconstructs and serializes physical
+  sources and every void-water amount before checking its cache. A fractional
+  water change can rebuild the whole gas geometry, membership and compiled
+  owner. Its producer, binding and rebind paths compile repeatedly.
+- `clearing.ts:183–196` advances the environment every ordinary tick. The paid
+  admission/pairing/air path observes the same inputs repeatedly. Water supply
+  eligibility is also rebuilt twice around that advance; display expands bands
+  back into cell facts before visibility filtering.
+- Water still scans all faces and rebuilds/sorts a wet-path forest every step.
+  Air copies parcels and processes all openings. The current source has no
+  adequate inactive/changed-region hot path.
+
+The failure is partly integration and scheduling, not simply choosing a physics
+method with too many equations. Another solver hidden behind the same full-world
+reconstruction would retain that failure. Moving it to a server would free the
+render thread but would not remove the repeated work.
+
+### Selected representation and responsibilities
+
+| System | Keep authoritative | Compute cheaply |
+| --- | --- | --- |
+| Water | Finite water per occupied voxel/pore store; actual openings; vessel and spoil custody | Gravity, adjacent leveling and bounded head flow through full passages, operating on active neighborhoods |
+| Soil | Finite pore capacity, retained water, material-dependent permeability; later nutrient and contaminant amounts | Slower infiltration, drainage, seepage and uptake; no Richards/Newton solve |
+| Air | Finite smoke/tracers and heat in coarse connected volumes; meaningful openings and outdoor exchange | Room/height-band exchange, warm upward bias and finite vent rates; no velocity field or turbulence |
+| Fire | A burning material/process with remaining fuel, output obligations and real position | Periodic local ignition checks against nearby burnable objects, moisture and authored rates; sprites only depict it |
+| Ecology and waste | Resource/process stocks and explicit transformations | Slower condition-driven growth, decomposition, uptake and treatment |
+
+Keep the existing water and atmosphere mutation owners; improve their hot paths
+and migrate their real callers together. Do not introduce a second selectable
+production solver, universal field framework or new service per substance.
+Use compact indexed state for field work and stable identities at boundaries.
+Reuse the current unit contract; changing kilograms to another representation
+is not a prerequisite for removing repeated computation.
+
+Water must be able to flow down a shaft and rise on the far side of a flooded
+U-shaped passage. Gravity plus adjacent leveling alone loses that behavior.
+Retain the existing approximate head-flow rule, but cache wet connectivity and
+schedule only affected components. A blocked/quiet frontier wakes for edits,
+changed neighboring levels, source arrivals and due seepage; no tiny remainder
+is silently deleted to put it to sleep. Aggregate long quiet flows when the
+declared model supports them rather than replaying every missed step.
+
+For air, retain physical rooms/storeys and bounded subdivisions of large caves.
+An open doorway is an exchange opening, not permission to instantly mix the
+entire castle. Shafts connect successive height bands so smoke can travel upward.
+Keep today's bands initially; only coarsen them further where a player-visible
+vent/source/exposure decision survives. Detailed plume capture and eddies are
+deliberately outside the playable requirement. Smoke near an open flue can be
+given a bounded, authored extraction advantage through that actual opening.
+
+**Separate connectivity from changing quantities.** A small water-level change
+updates affected free air volumes and opening areas; it must not regenerate
+every room. Rebuild membership only for an actual connection change. Apply
+split/merge/displacement to affected components while preserving stocks. Filled
+passages close gas routes; dry roof pockets remain. A final pocket cannot delete
+its smoke or become ambient merely because water/placement would consume it.
+Use the existing approximate compression/displacement rule for that case;
+do not escalate it to thermodynamic CFD. Outdoor exchange requires real exterior
+access. An unknown neighboring region is neither a wall nor clean outdoor air.
+
+The current gas owner tracks carrier, smoke and heat, **not oxygen chemistry**.
+Keep the supported smoke/heat outcome first. When oxygen-limited burning becomes
+a real consumer, burn only the admitted fuel portion and emit its proportional
+outputs. Do not bolt oxygen refusal onto a fixed emission timer that already
+spent the fuel or allow a stopped process to emit its whole promised batch.
+
+### Ecology and sanitation survive the simplification
+
+The current water owner does **not** transport contamination or nutrients. These
+are required next content/mechanism work, not already-proved sewage behavior.
+Represent dissolved pollutant/nutrient quantities alongside water and move them
+with the exact accepted transfer, including pails, pours, soil and wet spoil.
+Concentration is derived from amount divided by water; it is not independently
+averaged or copied. Drying leaves residues/bound nutrients. Solid faeces and
+sludge stay materials until an explicit decomposition/leaching process releases
+something; a whole pile does not become dissolved liquid by visual contact.
+
+The intended loop is ordinary intake/needs → excretion → collection/transport →
+finite treatment/compost → usable water/nutrients → plants → food. Those are
+definitions over shared jobs, vessels, materials and processes. Treatment needs
+time/capacity and leaves outputs; it is not a universal clean-water flag. Plant
+definitions respond to moisture, fertility and contamination; saturated ground
+can waterlog unsuitable plants instead of always making crops better.
+
+Ground does not absorb forever: finite pore capacity and permeability determine
+infiltration, storage and reverse seepage. A dug hole can intercept that water.
+Finite lakes and aquifers can drain; rivers receive declared upstream/catchment
+inputs and can shrink if diversion exceeds replenishment. Oceans may use a
+declared sea-level reservoir at the outer boundary, with accounted transfers;
+do not tick an entire ocean or infer an infinite source from a water-coloured tile.
+Rainfall, evaporation, treatment and plant uptake have explicit source/sink or
+conversion records. This supports the beaver/wetland/food-forest direction without
+resolving microscopic soil flow, each molecule or a global weather solver.
+
+### Time, ownership and distributed execution
+
+Use one headless game simulation in a browser Worker for local play or a Celld
+DO for online play. The client submits commands and renders committed projections.
+Keep interacting actors, materials, terrain and fields within one region owner.
+Many regions may advance independently; no worldwide tick barrier and no RPC per
+water face. Cross-owner exchange is a bounded, durably identified transfer with
+in-flight custody, so retries cannot create water or clear pollution. This later
+join does not require moving local water and gas into separate DOs.
+
+Initial scheduling choice: active water at 5 Hz, air at 2 Hz, soil
+exchange around 1 Hz, slow ecology at authored longer intervals. These are
+tunable simulation rates, not measured throughput promises. Interpolate drawing
+independently; paid sources, material quantities and elapsed intervals still
+commit once. Move the accumulated due time into canonical host state so a cold
+restart cannot reset progress. A changed obstruction takes effect in command
+order; due work through the edit time cannot run later against the new geometry.
+Water-volume changes, vessel exchanges and paid-source start/stop also split
+relevant intervals. Settle the old interval before changing its conditions;
+the air cadence can therefore become faster in a flooding room. These rates
+are ordinary maximum waiting intervals, not permission to apply past time to
+new geometry or fuel. Keep soil exchange within the same water quantity owner;
+each soil/water face has exactly one cadence and cannot receive elapsed flow
+from both the water and soil passes. Immediate vessel/build admission uses
+current stocks, not a stale UI projection.
+
+Region state, command receipts and due work commit atomically. Compile caches,
+numeric working buffers, active indexes and render projections are rebuildable;
+they are not a second world. Prepare changes off the committed state, publish
+after commit and discard/rebuild on failure. Browser and DO differ in transport
+and persistence, not physical rules. Quiet regions sleep under the existing
+[elapsed-time policy](local-snapshots-and-durable-ai-jobs.md); player programs can
+make periodic decisions while ordinary jobs continue between invocations.
+
+### Bounded delivery sequence
+
+1. **One coupled environment correction:** retain one compiled owner across
+   unchanged geometry; separate physical connectivity from water amounts; remove
+   repeated full observations/serialization and repeated foreign-data admission
+   inside trusted steps. Validate external/save data once at its boundary and
+   retain local invariant checks. Publish narrow changed facts for navigation,
+   supply eligibility and display. Introduce the above due-time scheduling and
+   active wet/component work through the existing clock. Root reviews the real
+   source and callers; mechanical work uses the current low-cost worker policy.
+2. **Playable verification of that same change:** one representative earned
+   clearing with multiple storeys, a flooded lower chamber, a drainage cut,
+   burning fuel and a vent. Reuse valid material/geometry/recovery laws; add only
+   laws invalidated by the new ownership/scheduling. Measure actual environment,
+   actor/job and display costs separately in the combined consumer. Seek a few
+   milliseconds per active update with responsive input; do not claim a speedup,
+   capacity or successful scene from source inspection. Publish the coherent
+   result for Levi to play, not another mathematical lab.
+3. **Sanitation and ecology:** join finite pollutant/nutrient transport to shared
+   vessels and processes, then one latrine/treatment/garden chain. Retain the
+   already chosen headless client/server boundary throughout. The first online
+   clearing uses that same engine and DO command authority; neither sewage nor
+   multiplayer gets a copied simulation.
+
+Do not start another broad game-study round, a language port or pricing system
+before this sequence. A failed small-world cost result must lead to fixing the
+measured work, not larger timeouts, a new reference solver or a hosting excuse.
+
+### What the game references actually support
+
+Minecraft water spreads from source blocks and can create new source blocks;
+Mojang explicitly describes infinite water. It therefore does not preserve the
+finite lake/irrigation economy Hive needs. Borrow local discrete rules, not its
+infinite-source semantics. [Mojang's water explanation](https://www.minecraft.net/en-us/article/block-week-water).
+
+Klei developer Graham Jans describes broad, simple interacting systems, authored
+temperature/pressure/chemical behavior and an emphasis on resource cycles. He
+also explicitly says conservation is approximate. This supports choosing
+legible ecological consequences over laboratory fidelity; the interview does
+not document ONI's current solver/update implementation. [Developer interview](https://www.gamedeveloper.com/design/layering-challenges-in-klei-s-survival-sim-i-oxygen-not-included-i-).
+
+RimWorld's designers document tox-gas clouds, exposure, sight impairment and
+protective equipment. Those are attainable game rules, not evidence that a full
+3D atmosphere solver is required. This bounded check did not establish vanilla
+RimWorld's private algorithm or Maxis's exact Sims fire algorithm; do not invent
+them. Local spread/decay/ignition is our selected approximation, not an attributed
+implementation claim. [Ludeon's gas design](https://ludeon.com/blog/2022/10/biotech-preview-2-combat-mechanoids-pollution-and-super-mechanoid-bosses/).
+
+No runtime, benchmark, browser check or deployment accompanies this planning
+checkpoint. Existing slow-release evidence remains unchanged.
+
+## Historical production fidelity and sequence — 2026-09-09
 
 Levi corrected the excessive reference fidelity for this voxel-isometric game.
 This section supersedes earlier solver-escalation and language-priority wording.

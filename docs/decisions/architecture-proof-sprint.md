@@ -11,6 +11,18 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Latest playability decision, Levi September 10:** Celld is the accepted cheap
+DO target; defer detailed tick pricing and player compute allowances. The
+[environment correction](environmental-fields-and-openings.md#playability-first-environment-decision--2026-09-10)
+now owns the next implementation: remove repeated gas reconstruction/validation,
+advance affected water/rooms on slower independent cadences, retain finite
+water/soil/material consequences, and measure one real playable clearing.
+Current production already uses simplified water and mixed-volume air; do not
+mistake the older CFD references for its live solver or start another rewrite
+without fixing the actual caller cost. Sewage/pollutant transport is required
+following work, not current capability. Deep caves and multiple storeys remain.
+No new hosting investigation, solver research or pricing design blocks this work.
+
 **Latest planning amendment, Levi September 10:** support both browser and DO
 authority hosts, with rendering separated from simulation. Quiet regions should
 sleep and use cheap, bounded elapsed-time rules when relevant again; the world
