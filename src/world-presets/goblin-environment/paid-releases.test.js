@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { encode } from "../../engine/region/codec.ts";
 import { STEP_SECONDS } from "../../ticker.js";
 import { GOBLIN_BREW_ATMOSPHERE_RELEASE } from "../goblin-atmosphere.ts";
 import {
@@ -78,6 +79,37 @@ function register(state, owner, facts, id, cellId = "gas:hearth") {
   const result = registerPaidAtmosphereRelease(state, owner, facts, id, cellId);
   assert.equal(result.status, "applied");
   return result.state;
+}
+
+const longCellId = `gas:${"c".repeat(156)}`;
+function longTransformationId(index) {
+  const prefix = `brew:${index}:`;
+  return `${prefix}${"t".repeat(160 - prefix.length)}`;
+}
+function wireState(entries, count, elapsedTicks) {
+  return {
+    version: "goblin-paid-atmosphere-releases-v1",
+    obligations: entries.slice(0, count).map((entry) => ({
+      transformationId: entry.id,
+      cellId: longCellId,
+      elapsedTicks,
+    })),
+  };
+}
+function maximumWireCount(entries, elapsedTicks) {
+  let lower = 0,
+    upper = entries.length;
+  while (lower < upper) {
+    const count = Math.ceil((lower + upper) / 2);
+    try {
+      encode(wireState(entries, count, elapsedTicks), 1_048_576, 65_536);
+      lower = count;
+    } catch (error) {
+      assert.match(error.message, /region-byte-budget/);
+      upper = count - 1;
+    }
+  }
+  return lower;
 }
 
 test("cold admission binds every paid transformation once to an exact zero source ledger", () => {
@@ -426,5 +458,37 @@ test("full retained provenance returns an explicit history-capacity block", () =
   assert.deepEqual(result, {
     status: "blocked",
     reason: "history-capacity",
+  });
+});
+
+test("cold admission reserves the final cursor wire and registration reports byte capacity", () => {
+  const entries = Array.from({ length: 4_096 }, (_, index) =>
+      transformation(longTransformationId(index)),
+    ),
+    currentMaximum = maximumWireCount(entries, 0),
+    finalMaximum = maximumWireCount(entries, releaseTicks);
+  assert(currentMaximum > finalMaximum);
+  const currentOnly = wireState(entries, currentMaximum, 0);
+  assert.doesNotThrow(() => encode(currentOnly, 1_048_576, 65_536));
+  assert.throws(
+    () => parsePaidAtmosphereReleases(currentOnly, materials(), air()),
+    /region-byte-budget/,
+  );
+
+  const history = wireState(entries, finalMaximum, releaseTicks),
+    paid = entries.slice(0, finalMaximum + 1),
+    result = registerPaidAtmosphereRelease(
+      history,
+      materials(paid),
+      air(totals.smokeKg * finalMaximum, totals.heatJ * finalMaximum, [
+        longCellId,
+      ]),
+      paid[finalMaximum].id,
+      longCellId,
+    );
+  assert(finalMaximum < 4_096);
+  assert.deepEqual(result, {
+    status: "blocked",
+    reason: "history-byte-capacity",
   });
 });
