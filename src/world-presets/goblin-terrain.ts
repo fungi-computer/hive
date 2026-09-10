@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertWorldRecord } from "../engine/world/data-contract.mjs";
 import { createVoxelWorld, MATERIAL } from "./height-caves.mjs";
 import {
   GOBLIN_FRAME,
@@ -96,6 +97,11 @@ export function initialTerrain(): GeneratedTerrain {
 export function parseTerrain(value: unknown): GeneratedTerrain {
   if (value !== null && typeof value === "object" && admitted.has(value))
     return value as GeneratedTerrain;
+  assertWorldRecord(
+    value,
+    ["version", "identity", "world"],
+    "terrain envelope",
+  );
   const wire = envelope.parse(value);
   // The maintained voxel owner validates the actual checkpoint grammar/identity.
   const world = createVoxelWorld(GOBLIN_WORLD_IDENTITY, {
