@@ -355,6 +355,7 @@ export type UiAction =
         | "download-backup"
         | "download-raw-save"
         | "pan-mode"
+        | "air-overlay"
         | "help"
         | "rotate"
         | "pause"
@@ -442,6 +443,16 @@ export const DEBUG_PICKING_CONTROL = {
   readonly key: string;
   readonly title: string;
   readonly action: Extract<UiAction, { kind: "debug-picking" }>;
+};
+
+export const AIR_OVERLAY_CONTROL = {
+  label: "Air",
+  title: "Toggle visible heat and smoke",
+  action: { kind: "air-overlay" },
+} as const satisfies {
+  readonly label: string;
+  readonly title: string;
+  readonly action: Extract<UiAction, { kind: "air-overlay" }>;
 };
 
 export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
@@ -582,6 +593,7 @@ export function dispatchUiAction(
     case "download-backup":
     case "download-raw-save":
     case "pan-mode":
+    case "air-overlay":
     case "debug-picking":
     case "help":
     case "rotate":

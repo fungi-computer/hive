@@ -3,6 +3,7 @@ import test from "node:test";
 import { quantizedVisibleArea, subscribeCameraPresentation } from "./camera.js";
 import { levelNavigationOwned, minimapInputOwned } from "./keys.js";
 import {
+  AIR_OVERLAY_CONTROL,
   DEBUG_PICKING_CONTROL,
   cameraMoveKeepsTool,
   decideLevelTransition,
@@ -14,6 +15,20 @@ import {
   localGoodsAt,
   requiredToolLevel,
 } from "./ui-actions.ts";
+
+test("air overlay uses the checked UI action catalog and normal dispatcher", () => {
+  assert.deepEqual(AIR_OVERLAY_CONTROL, {
+    label: "Air",
+    title: "Toggle visible heat and smoke",
+    action: { kind: "air-overlay" },
+  });
+  const forwarded = [];
+  dispatchUiAction(AIR_OVERLAY_CONTROL.action, {
+    run: (action) => forwarded.push(action),
+    level: null,
+  });
+  assert.deepEqual(forwarded, [{ kind: "air-overlay" }]);
+});
 
 test("local goods projection returns only loose lots at the exact signed physical footing", () => {
   const woodHere = {
