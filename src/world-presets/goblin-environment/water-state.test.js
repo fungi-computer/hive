@@ -31,6 +31,13 @@ test("the game water component reconstructs from actual terrain and sites withou
   };
   const restored = parseWaterEnvironment(structuredClone(state), coldSource);
   assert.deepEqual(restored, state);
+  const forged = structuredClone(state);
+  forged.water.initialTotalKg += 1;
+  forged.water.boundaryKg -= 1;
+  assert.throws(
+    () => parseWaterEnvironment(forged, coldSource),
+    /original generated supply/,
+  );
   assert.deepEqual(
     waterEnvironmentFacts(restored, coldSource),
     waterEnvironmentFacts(state, source),

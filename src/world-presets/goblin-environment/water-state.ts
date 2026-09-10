@@ -8,6 +8,7 @@ import { GOBLIN_ENVIRONMENT_BOUNDS, GOBLIN_WATER_LIMITS } from "./content.ts";
 import {
   goblinWaterGeometry,
   initialGoblinWaterStocks,
+  originalGoblinWaterKg,
   waterCoverageCeiling,
 } from "./water-geometry.ts";
 
@@ -50,7 +51,9 @@ function structureKey(source: EnvironmentGeometry) {
         site.level,
         site.direction,
       ])
-      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      .sort((a, b) =>
+        String(a[0]) < String(b[0]) ? -1 : String(a[0]) > String(b[0]) ? 1 : 0,
+      ),
   );
 }
 function geometry(source: EnvironmentGeometry) {
@@ -145,7 +148,16 @@ export function parseWaterEnvironment(
     parsed.geometryRevision,
     parsed.ceilingY,
   );
-  return remember({ ...parsed, water: bound.owner.parse(parsed.water) }, bound);
+  const water = bound.owner.parse(parsed.water);
+  const initialKg = originalGoblinWaterKg(source.terrain);
+  if (
+    Math.abs(water.initialTotalKg - initialKg) >
+    1e-9 + 64 * Number.EPSILON * initialKg
+  )
+    throw new Error(
+      "water reference disagrees with the original generated supply",
+    );
+  return remember({ ...parsed, water }, bound);
 }
 
 function current(input: WaterEnvironment, source: EnvironmentGeometry) {

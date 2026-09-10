@@ -11,6 +11,7 @@ import {
   GOBLIN_WATER_RULES,
 } from "./content.ts";
 import type { goblinTerrainProjection } from "./terrain-projection.ts";
+import { compensatedSum } from "../../engine/environment/arithmetic.mjs";
 
 type Terrain = ReturnType<typeof goblinTerrainProjection>;
 type Physical = ReturnType<typeof compilePhysicalGeometry>;
@@ -134,6 +135,31 @@ export function goblinWaterGeometry(
   };
 }
 
+function originalSoilMass(at: Coordinate) {
+  const volume = GOBLIN_SPACING_M.reduce<number>(
+    (product, n) => product * n,
+    1,
+  );
+  const saturated = Math.max(
+    0,
+    Math.min(
+      1,
+      (GOBLIN_INITIAL_WATER_TABLE_M - at[1] * GOBLIN_SPACING_M[1]) /
+        GOBLIN_SPACING_M[1],
+    ),
+  );
+  const moisture =
+    GOBLIN_LOAM.retention +
+    saturated * (GOBLIN_LOAM.porosity - GOBLIN_LOAM.retention);
+  return 1000 * volume * moisture;
+}
+
+/** Content baseline comes from the unchanged original generator, even on reload
+ * after excavation. A saved reference number cannot create an extra source. */
+export function originalGoblinWaterKg(terrain: Terrain) {
+  return compensatedSum(terrain.originalSoil.map(originalSoilMass));
+}
+
 /** Only world creation supplies this stock. Newly excavated voids enter through
  * the existing water rebind; they never call this function or reset F0. */
 export function initialGoblinWaterStocks(
@@ -145,26 +171,11 @@ export function initialGoblinWaterStocks(
       "initial water stock is only defined for the original world",
     );
   const original = new Set(terrain.originalSoil.map(id));
-  const volume = GOBLIN_SPACING_M.reduce<number>(
-    (product, n) => product * n,
-    1,
-  );
   const stocks = definition.cells.map((cell) => {
     if (cell.kind === "void") return { id: id(cell.at), massKg: 0 };
     if (!original.delete(id(cell.at)))
       throw new Error("unexpected original porous cell");
-    const saturated = Math.max(
-      0,
-      Math.min(
-        1,
-        (GOBLIN_INITIAL_WATER_TABLE_M - cell.at[1] * GOBLIN_SPACING_M[1]) /
-          GOBLIN_SPACING_M[1],
-      ),
-    );
-    const moisture =
-      GOBLIN_LOAM.retention +
-      saturated * (GOBLIN_LOAM.porosity - GOBLIN_LOAM.retention);
-    return { id: id(cell.at), massKg: 1000 * volume * moisture };
+    return { id: id(cell.at), massKg: originalSoilMass(cell.at) };
   });
   if (original.size)
     throw new Error("original porous region lacks water custody");
