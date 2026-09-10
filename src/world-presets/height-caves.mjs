@@ -74,6 +74,7 @@ function signedNoise3D(fieldHash, x, y, z, salt) {
   return lerp(lerp(x00, x10, fy), lerp(x01, x11, fy), fz);
 }
 
+/** @param {{worldId?: unknown, spaceId?: unknown, seed?: unknown}} [input] */
 export function worldIdentity({ worldId, spaceId = "surface", seed } = {}) {
   if (
     typeof worldId !== "string" ||

@@ -78,6 +78,9 @@ export const GOBLIN_ATMOSPHERE_MODEL = Object.freeze({
 
 const paidFuel = HERBAL_ALE_V1.consumed.find((entry) => entry.role === "fuel");
 if (!paidFuel) throw new Error("herbal ale has no paid atmosphere fuel");
+const paidFuelRole = paidFuel.role;
+const paidFuelMaterial = paidFuel.material;
+const paidFuelQuantity = paidFuel.quantity;
 
 export const GOBLIN_BREW_ATMOSPHERE_RELEASE = Object.freeze({
   durationS: ROOM_FUEL.durationS,
@@ -87,9 +90,9 @@ export const GOBLIN_BREW_ATMOSPHERE_RELEASE = Object.freeze({
   totals: Object.freeze({ smokeKg: ROOM_FUEL.smokeKg, heatJ: ROOM_FUEL.heatJ }),
   paidInput: Object.freeze({
     recipe: HERBAL_ALE_V1.id,
-    role: paidFuel.role,
-    material: paidFuel.material,
-    quantity: paidFuel.quantity,
+    role: paidFuelRole,
+    material: paidFuelMaterial,
+    quantity: paidFuelQuantity,
   }),
 });
 
@@ -106,9 +109,9 @@ export function paidBrewAtmosphereRelease(
     return null;
   const matches = transformation.inputs.filter(
     (entry) =>
-      entry.role === paidFuel.role &&
-      entry.material === paidFuel.material &&
-      entry.quantity === paidFuel.quantity,
+      entry.role === paidFuelRole &&
+      entry.material === paidFuelMaterial &&
+      entry.quantity === paidFuelQuantity,
   );
   return matches.length === 1 ? GOBLIN_BREW_ATMOSPHERE_RELEASE : null;
 }
