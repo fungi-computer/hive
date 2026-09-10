@@ -5,6 +5,7 @@ import {
   copyState,
   parcelPressure,
   parcelTemperature,
+  validateCandidateState,
   validateState,
 } from "./state.ts";
 import type {
@@ -333,9 +334,9 @@ export function advanceAtmosphere(
   for (let step = 0; step < steps; step++) {
     applySources(g, candidate, sources, dt);
     applyExchange(candidate, openingExchange(g, candidate.parcels, dt));
-    validateState(g, candidate);
+    validateCandidateState(g, candidate);
   }
-  const next = copyState(validateState(g, candidate));
+  const next = copyState(validateCandidateState(g, candidate));
   const receipt: AtmosphereAdvanceReceipt = Object.freeze({
     seconds,
     steps,

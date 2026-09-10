@@ -10,7 +10,9 @@ Each volume lists its stable physical cell membership and current free gas
 volume. Openings are the only exchange paths; an intact surface has no entry and
 cannot mix. Keeping horizontally connected cells in height bands gives rooms,
 upper floors, caves and shafts separate cheap stocks while preserving explicit
-vertical and exterior paths.
+vertical and exterior paths. The Goblin producer also cuts broad floors into
+bounded eight-metre local bands, so one castle or cave does not become one
+instant well-mixed parcel.
 
 `advance` applies at most six seconds of source and opening exchange to a
 detached candidate. It conserves carrier, smoke and heat through paired stock,

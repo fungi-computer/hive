@@ -5,8 +5,8 @@ import type { AtmosphereDefinition } from "./types.ts";
 
 export const ATMOSPHERE_LIMITS = Object.freeze({
   volumes: 1024,
-  members: 8192,
-  openings: 8192,
+  members: 4096,
+  openings: 2048,
   sources: 32,
   encodedStateBytes: ATMOSPHERE_DATA_BYTES,
   intervalS: 6,
@@ -182,6 +182,7 @@ export function compileAtmosphere(input: unknown): CompiledAtmosphere {
   // A finite JavaScript number serializes in fewer than 32 ASCII bytes. The
   // longer string placeholders make this a conservative complete-wire bound.
   const widest = "0".repeat(32),
+    signedWidest = `-${widest}`,
     canonicalStateEnvelope = JSON.stringify({
       version: "connected-atmosphere-state-v1",
       identity,
@@ -189,16 +190,16 @@ export function compileAtmosphere(input: unknown): CompiledAtmosphere {
         volumeId: entry.id,
         carrierKg: widest,
         smokeKg: widest,
-        heatJ: -widest,
+        heatJ: signedWidest,
       })),
       initialCarrierKg: widest,
       initialSmokeKg: widest,
-      initialHeatJ: -widest,
+      initialHeatJ: signedWidest,
       smokeSourceKg: widest,
-      heatSourceJ: -widest,
-      carrierBoundaryKg: -widest,
-      smokeBoundaryKg: -widest,
-      heatBoundaryJ: -widest,
+      heatSourceJ: signedWidest,
+      carrierBoundaryKg: signedWidest,
+      smokeBoundaryKg: signedWidest,
+      heatBoundaryJ: signedWidest,
     });
   if (
     new TextEncoder().encode(canonicalStateEnvelope).byteLength >

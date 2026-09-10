@@ -80,3 +80,27 @@ test("geometry admission rejects accessors before reading them", () => {
   );
   assert.equal(reads, 0);
 });
+
+test("large open floors split into bounded local mixing bands", () => {
+  const cells = Array.from({ length: 10 }, (_, x) => ({
+      id: `floor:${x}`,
+      x: x + 0.5,
+      y: 0.5,
+      z: 0.5,
+      freeVolumeM3: 1,
+    })),
+    openFaces = cells.slice(1).map((cell, index) => ({
+      id: `x:${index + 1}`,
+      a: cells[index].id,
+      b: cell.id,
+      areaM2: 1,
+      distanceM: 1,
+    })),
+    field = goblinAtmosphereFromGeometry(
+      { identity: "wide-floor", revision: 0, cells, openFaces },
+      { regionId: "clearing" },
+    );
+  assert.equal(field.definition.volumes.length, 2);
+  assert.equal(field.definition.openings.length, 1);
+  assert.notEqual(field.volumeAt("floor:0"), field.volumeAt("floor:9"));
+});

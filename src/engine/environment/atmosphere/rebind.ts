@@ -1,6 +1,6 @@
 import { changeQuantity } from "../arithmetic.mjs";
 import { compileAtmosphere, type CompiledAtmosphere } from "./definition.ts";
-import { copyState, validateState } from "./state.ts";
+import { copyState, validateCandidateState, validateState } from "./state.ts";
 import type {
   AtmosphereParcel,
   AtmosphereRebindResult,
@@ -243,7 +243,7 @@ export function rebindAtmosphere(
   };
   let checked: AtmosphereState;
   try {
-    checked = validateState(next, candidate);
+    checked = validateCandidateState(next, candidate);
   } catch (error) {
     if (
       error instanceof Error &&
