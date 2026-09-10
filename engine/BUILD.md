@@ -32,7 +32,8 @@ must preserve the existing clearing's frozen files. Original art and authored
 example source are included byte-for-byte. No browser/server acceptance follows
 merely from compilation.
 
-The current TypeScript session format is version 3. It saves the previous physical
+The current TypeScript session format is version 4. It saves queued authored
+writes as well as the previous physical
 step's ordered action outcomes with the world and RNG state. Authored systems can
 react on the following step; rejected actions are explicitly distinguishable.
 Pause does not consume outcomes, and successful stepping replaces them, so save
@@ -175,3 +176,13 @@ the custom fields and continues to an identical snapshot. Two empty filtered
 files are not extra laws. Scope inactive/dead/empty. WASM remains exactly
 70c7e77f62793a8b4a0309d0e2502b1b9a4b43c53787ee21a06b2d8c6467dcc8;
 no Rust or generated output changed for the author exercise.
+
+Assignment export built in u4926 (34.66 seconds, incremental Rust release build).
+That command stopped at a test-port TypeScript ID mismatch; source correction
+928cb1b uses the actual AssignmentCandidate type. u4927 strict types plus three
+named assignment laws passed, including actual WASM joint matching where greedy
+selection loses a match and a full unchanged-world snapshot comparison. Two empty
+filtered files are not extra laws. Both scopes inactive/dead/empty. New local WASM
+SHA bcd660dd77e35947520fb9a18c2d395a70dcad6c9d3e77df2a03f81d3f780d25.
+No browser build/deployment occurred. Colony integration of this operation remains
+with the isolated fresh-colony-orders author.
