@@ -146,18 +146,20 @@ function authorizedFetch(secret, loseCommandName, attempts) {
     if (typeof init.body === "string") {
       try { commandName = JSON.parse(init.body).command?.name; } catch { commandName = undefined; }
     }
-    if (String(input).endsWith("/command") && typeof init.body === "string")
-      attempts?.push({ body: init.body });
+    const attemptRecord = String(input).endsWith("/command") && typeof init.body === "string"
+      ? { body: init.body }
+      : undefined;
+    if (attemptRecord) attempts?.push(attemptRecord);
     if (String(input).endsWith("/command"))
-      attempts?.at(-1) && (attempts.at(-1).receipt = await response.clone().json().catch(() => undefined));
+      attemptRecord && (attemptRecord.receipt = await response.clone().json().catch(() => undefined));
     if (loseCommandName && !lost && commandName === loseCommandName && String(input).endsWith("/command")) {
       lost = true;
       await response.arrayBuffer();
-      const attempt = attempts?.at(-1);
+      const attempt = attemptRecord;
       if (attempt) attempt.status = response.status;
       throw new Error("intentionally lost committed response");
     }
-    const attempt = attempts?.at(-1);
+    const attempt = attemptRecord;
     if (attempt) attempt.status = response.status;
     return response;
   };
@@ -250,7 +252,7 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   const takeCursorA = eventsA.length;
   clientA.send({ type: "command", name: "takeFood" });
   const takeAttempts = () => clientAAttempts.filter((attempt) => JSON.parse(attempt.body).command?.name === "takeFood");
-  await waitUntil(() => takeAttempts().length >= 2, "take retry");
+  await waitUntil(() => takeAttempts().filter((attempt) => attempt.status === 200 && attempt.receipt?.status === "applied").length >= 2, "take retry acknowledgement");
   await waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 3, "take observation", takeCursorA);
   assert.equal(takeAttempts().length, 2, "lost take response was retried");
   assert.equal(takeAttempts()[0].body, takeAttempts()[1].body, "take retry reused exact envelope");
