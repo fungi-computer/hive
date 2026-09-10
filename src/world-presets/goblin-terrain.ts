@@ -1,20 +1,24 @@
-import { createWetClearing } from "./seepage/wet-clearing.mjs";
-import { createVoxelWorld, MATERIAL } from "./height-caves.mjs";
 import { z } from "zod";
+import { createVoxelWorld, MATERIAL } from "./height-caves.mjs";
+import {
+  GOBLIN_FRAME,
+  GOBLIN_MAP_SIDE,
+  GOBLIN_SPACING_M,
+  GOBLIN_WORLD_IDENTITY,
+  GOBLIN_ENVIRONMENT_BOUNDS,
+} from "./goblin-environment/content.ts";
+import {
+  goblinTerrainProjection,
+  type GoblinWorldCheckpoint,
+} from "./goblin-environment/terrain-projection.ts";
 
-/** Registered Goblin content: one world, a finite wet patch, one coordinate frame. */
-export const GOBLIN_TERRAIN_ID = "goblin-generated-wet-v1";
-export const TERRAIN_FRAME = Object.freeze({
-  x: -7,
-  y: 15,
-  z: 119,
-  storeyVoxels: 4,
-});
-const recipe = createWetClearing({ connected: true });
-const adapter = recipe.adapter;
+/** Terrain owns only generated material slots. Water, yielded lots and removal
+ * obligations belong to the joined game transaction, never this checkpoint. */
+export const GOBLIN_TERRAIN_ID = "goblin-generated-terrain-v2";
+export const TERRAIN_FRAME = GOBLIN_FRAME;
 export const TERRAIN_VOXEL_METRIC = Object.freeze({
-  horizontalM: adapter.definition.baseSoilGeometry.spacingM[0],
-  verticalM: adapter.definition.baseSoilGeometry.spacingM[1],
+  horizontalM: GOBLIN_SPACING_M[0],
+  verticalM: GOBLIN_SPACING_M[1],
 });
 export const voxelSchema = z.tuple([
   z.number().int().safe(),
@@ -22,353 +26,237 @@ export const voxelSchema = z.tuple([
   z.number().int().safe(),
 ]);
 export type TerrainVoxel = z.infer<typeof voxelSchema>;
-export type GeneratedTerrain = {
-  readonly version: string;
-  readonly identity: string;
-  readonly world: ReturnType<ReturnType<typeof createVoxelWorld>["save"]>;
-  readonly soilState: {
-    readonly version: string;
-    readonly identity: string;
-    readonly massKg: readonly number[];
-    readonly initialTotalKg: number;
-    readonly boundaryKg: number;
-    readonly timeS: number;
-    readonly steps: number;
-  };
-  readonly exports: readonly ({
-    readonly id: string;
-    readonly at: readonly [number, number, number];
-    readonly quantity: 1;
-    readonly sourceVoxelM3: number;
-  } & (
-    | {
-        readonly kind: "porous";
-        readonly materialId: 1;
-        readonly nodeId: string;
-        readonly soilId: string;
-        readonly waterKg: number;
-      }
-    | {
-        readonly kind: "impermeable";
-        readonly materialId: 2;
-        readonly waterKg: 0;
-      }
-  ))[];
-};
-export function initialTerrain(): GeneratedTerrain {
-  return recipe.parseClosedState(recipe.input);
+export type GeneratedTerrain = Readonly<{
+  version: 1;
+  identity: typeof GOBLIN_TERRAIN_ID;
+  world: GoblinWorldCheckpoint;
+}>;
+export type ExcavatedVoxel = Readonly<{
+  at: readonly [number, number, number];
+  materialId: 1 | 2;
+}>;
+const envelope = z
+  .object({
+    version: z.literal(1),
+    identity: z.literal(GOBLIN_TERRAIN_ID),
+    world: z.unknown(),
+  })
+  .strict();
+const original = goblinTerrainProjection(
+  createVoxelWorld(GOBLIN_WORLD_IDENTITY).save(),
+);
+const admitted = new WeakMap<object, ReturnType<typeof createProjection>>();
+
+function inside(at: readonly number[]) {
+  return (
+    at[0] >= TERRAIN_FRAME.x &&
+    at[0] < TERRAIN_FRAME.x + GOBLIN_MAP_SIDE &&
+    at[2] >= TERRAIN_FRAME.z &&
+    at[2] < TERRAIN_FRAME.z + GOBLIN_MAP_SIDE &&
+    at[1] >= GOBLIN_ENVIRONMENT_BOUNDS.min[1] &&
+    at[1] < GOBLIN_ENVIRONMENT_BOUNDS.max[1]
+  );
 }
-export function parseTerrain(value: unknown): GeneratedTerrain {
-  const state: GeneratedTerrain = recipe.parseState(value);
-  // The engine consumer can deepen stone. Main-game yields still own only soil;
-  // do not admit an imported stone source as a soil item through the old count.
-  if (state.exports.some((source) => source.kind !== "porous"))
-    throw new Error("Main-game stone material yields are not yet supported.");
+function removedVoxels(
+  world: GoblinWorldCheckpoint,
+): readonly ExcavatedVoxel[] {
+  return Object.freeze(
+    world.changes.map(
+      (change: { x: number; y: number; z: number; material: number }) => {
+        const at = Object.freeze([change.x, change.y, change.z] as const);
+        if (!inside(at))
+          throw new Error("Terrain edit is outside the playable clearing.");
+        const materialId = original.material(at);
+        if (
+          change.material !== MATERIAL.air ||
+          (materialId !== MATERIAL.soil && materialId !== MATERIAL.stone)
+        )
+          throw new Error(
+            "Unsupported terrain edit: only original soil or stone removal is admitted.",
+          );
+        return Object.freeze({ at, materialId: materialId as 1 | 2 });
+      },
+    ),
+  );
+}
+function admitWorld(world: GoblinWorldCheckpoint): GeneratedTerrain {
+  const excavated = removedVoxels(world);
+  const environment = goblinTerrainProjection(world);
+  const state: GeneratedTerrain = Object.freeze({
+    version: 1,
+    identity: GOBLIN_TERRAIN_ID,
+    world: environment.checkpoint,
+  });
+  admitted.set(state, createProjection(environment, excavated));
   return state;
 }
-/** Consumers without a material counterpart retain closed-boundary admission. */
-export function parseClosedTerrain(value: unknown): GeneratedTerrain {
-  return recipe.parseClosedState(parseTerrain(value));
+export function initialTerrain(): GeneratedTerrain {
+  return admitWorld(original.checkpoint);
 }
-/** Trusted composition only: the game pairs this physical successor with materials
- * before publication. This operation alone grants no outside stock or actor reach. */
-export function exchangeTerrainWater(
-  state: GeneratedTerrain,
-  input: { nodeId: string; direction: "withdraw" | "deposit"; massKg: number },
-) {
-  const result = adapter.exchange(parseTerrain(state), input);
-  const next: GeneratedTerrain = result.state;
-  projections.set(next.world, projection(state));
-  return { state: next, receipt: result.receipt };
+export function parseTerrain(value: unknown): GeneratedTerrain {
+  if (value !== null && typeof value === "object" && admitted.has(value))
+    return value as GeneratedTerrain;
+  const wire = envelope.parse(value);
+  // The maintained voxel owner validates the actual checkpoint grammar/identity.
+  const world = createVoxelWorld(GOBLIN_WORLD_IDENTITY, {
+    checkpoint: wire.world,
+  });
+  return admitWorld(world.save());
 }
-export function terrainFacts(state: GeneratedTerrain) {
-  return adapter.read(parseTerrain(state));
+function projection(state: GeneratedTerrain) {
+  const checked = parseTerrain(state);
+  return admitted.get(checked)!;
 }
-export function advanceTerrain(
-  state: GeneratedTerrain,
-  seconds: number,
-): GeneratedTerrain {
-  const next: GeneratedTerrain = adapter.advance(
-    parseTerrain(state),
-    seconds,
-  ).state;
-  // Field advancement changes water only. Share the read projection through this
-  // known transition; unrelated restores never alias merely by revision.
-  projections.set(next.world, projection(state));
-  return next;
-}
-
-export function terrainColumn(voxel: TerrainVoxel) {
+export function terrainColumn(voxel: readonly [number, number, number]) {
   return {
     x: voxel[0] - TERRAIN_FRAME.x,
     z: voxel[2] - TERRAIN_FRAME.z,
     level: 0,
   };
 }
-function column(x: number, z: number) {
+function checkColumn(x: number, z: number) {
   if (
     !Number.isInteger(x) ||
     !Number.isInteger(z) ||
     x < 0 ||
     z < 0 ||
-    x >= MAP_SIDE ||
-    z >= MAP_SIDE
+    x >= GOBLIN_MAP_SIDE ||
+    z >= GOBLIN_MAP_SIDE
   )
     throw new Error("outside-clearing-terrain");
 }
-const boundsSchema = z.object({
-  minY: z.number().int(),
-  maxY: z.number().int(),
-});
-const MAP_SIDE = 15;
-const ownedSoilCells: readonly Readonly<TerrainVoxel>[] =
-  adapter.definition.baseSoilGeometry.cells.map((cell: { at: number[] }) =>
-    Object.freeze(voxelSchema.parse(cell.at)),
-  );
-/** One bounded, private read projection. Admission remains with the adapter;
- * a query cache never authorizes excavation, custody, capacity or navigation. */
-function createProjection(state: GeneratedTerrain) {
-  const world = createVoxelWorld(state.world.identity, {
-    checkpoint: state.world,
-  });
-  // The address owner rejects >= max: these registered bounds are half-open.
-  const bounds = Object.freeze(
-    boundsSchema.parse(world.describe().layout.bounds),
-  );
+function createProjection(
+  environment: ReturnType<typeof goblinTerrainProjection>,
+  excavated: readonly ExcavatedVoxel[],
+) {
   const cells = new Map<number, ReturnType<typeof readColumn>>();
   let changed:
     readonly Readonly<ReturnType<typeof terrainColumn>>[] | undefined;
-  let excavated:
-    readonly Readonly<ReturnType<typeof terrainColumn>>[] | undefined;
+  const excavatedColumns = new Map<
+    string,
+    Readonly<ReturnType<typeof terrainColumn>>
+  >();
+  for (const record of excavated) {
+    const at = Object.freeze(terrainColumn(record.at));
+    excavatedColumns.set(`${at.x},${at.z}`, at);
+  }
+  const columns = Object.freeze([...excavatedColumns.values()]);
   function cell(x: number, z: number) {
-    column(x, z);
-    const key = x * MAP_SIDE + z;
+    checkColumn(x, z);
+    const key = x * GOBLIN_MAP_SIDE + z;
     let fact = cells.get(key);
     if (!fact) {
-      fact = readColumn(world, bounds.minY, state.world.revision, x, z);
+      fact = readColumn(environment, x, z);
       cells.set(key, fact);
     }
     return fact;
   }
-  return {
-    world,
-    key: JSON.stringify(state.world),
-    geometry: geometryCapability(world, bounds, state.world.revision),
+  return Object.freeze({
+    environment,
+    excavated,
+    columns,
+    key: JSON.stringify(environment.checkpoint),
     cell,
     changed() {
       if (!changed) {
         const result = [];
-        for (let x = 0; x < MAP_SIDE; x++)
-          for (let z = 0; z < MAP_SIDE; z++)
+        for (let x = 0; x < GOBLIN_MAP_SIDE; x++)
+          for (let z = 0; z < GOBLIN_MAP_SIDE; z++)
             if (!cell(x, z).support)
               result.push(Object.freeze({ x, z, level: 0 }));
         changed = Object.freeze(result);
       }
       return changed;
     },
-    excavated() {
-      if (!excavated) {
-        const result = new Map<
-          string,
-          Readonly<ReturnType<typeof terrainColumn>>
-        >();
-        for (const at of ownedSoilCells) {
-          if (
-            world.readPoint({ x: at[0], y: at[1], z: at[2] }) !== MATERIAL.air
-          )
-            continue;
-          const column = Object.freeze(terrainColumn([...at]));
-          result.set(`${column.x},${column.z}`, column);
-        }
-        excavated = Object.freeze([...result.values()]);
-      }
-      return excavated;
-    },
-  };
-}
-const projections = new WeakMap<object, ReturnType<typeof createProjection>>();
-function projection(state: GeneratedTerrain) {
-  // Unknown/mutable inputs cross the maintained owner's full validation. Only
-  // its detached immutable checkpoint becomes a cache key, never the input.
-  const checked: GeneratedTerrain = parseTerrain(state);
-  let known = projections.get(checked.world);
-  if (!known) {
-    known = createProjection(checked);
-    projections.set(checked.world, known);
-  }
-  return known;
+  });
 }
 function readColumn(
-  world: ReturnType<typeof createVoxelWorld>,
-  minY: number,
-  revision: number,
+  environment: ReturnType<typeof goblinTerrainProjection>,
   x: number,
   z: number,
 ) {
   const wx = x + TERRAIN_FRAME.x,
     wz = z + TERRAIN_FRAME.z;
   let y = TERRAIN_FRAME.y;
-  while (y >= minY && world.readPoint({ x: wx, y, z: wz }) === MATERIAL.air)
+  while (
+    y >= environment.terrain.bounds.min[1] &&
+    environment.material([wx, y, wz]) === MATERIAL.air
+  )
     y--;
-  if (y < minY) throw new Error("no-modeled-standing-surface");
+  if (y < environment.terrain.bounds.min[1])
+    throw new Error("no-modeled-standing-surface");
   return Object.freeze({
     height: (y + 1 - TERRAIN_FRAME.y) * TERRAIN_VOXEL_METRIC.verticalM,
     support: y + 1 === TERRAIN_FRAME.y,
-    solid:
-      world.readPoint({ x: wx, y: TERRAIN_FRAME.y - 1, z: wz }) !==
-      MATERIAL.air,
+    solid: environment.material([wx, TERRAIN_FRAME.y - 1, wz]) !== MATERIAL.air,
     voxel: Object.freeze([wx, y, wz] as const),
-    revision,
+    revision: environment.checkpoint.revision,
   });
 }
+export function terrainEnvironment(state: GeneratedTerrain) {
+  return projection(state).environment;
+}
+export function terrainGeometry(state: GeneratedTerrain) {
+  return terrainEnvironment(state).terrain;
+}
 export function terrainMaterial(state: GeneratedTerrain, at: TerrainVoxel) {
-  return projection(state).world.readPoint({ x: at[0], y: at[1], z: at[2] });
+  return terrainEnvironment(state).material(voxelSchema.parse(at));
 }
 export function terrainCell(state: GeneratedTerrain, x: number, z: number) {
   return projection(state).cell(x, z);
 }
-type Prepared =
-  { ok: true; state: GeneratedTerrain } | { ok: false; problem: string };
-const preparations = new WeakMap<object, Map<string, Prepared>>();
-function prepareExcavation(
-  state: GeneratedTerrain,
-  raw: TerrainVoxel,
-): Prepared {
-  const voxel = voxelSchema.parse(raw),
-    key = voxel.join();
-  if (
-    !adapter.definition.baseSoilGeometry.cells.some(
-      (cell: { at: number[] }) => cell.at.join() === key,
-    )
-  )
-    return { ok: false, problem: "This soil cannot be dug here." };
-  const admitted: GeneratedTerrain = parseTerrain(state);
-  let cached = preparations.get(admitted);
-  if (!cached) {
-    cached = new Map();
-    preparations.set(admitted, cached);
-  }
-  const prior = cached.get(key);
-  if (prior) return prior;
-  let result: Prepared;
-  try {
-    result = {
-      ok: true,
-      state: adapter.excavate(admitted, { at: voxel }).state,
-    };
-  } catch (error) {
-    result = {
-      ok: false,
-      problem:
-        error instanceof Error ? error.message : "Terrain excavation rejected",
-    };
-  }
-  cached.set(key, result); // at most the32 owned source cells, rebuilt per immutable checkpoint
-  return result;
-}
-export function terrainDigProblem(
-  state: GeneratedTerrain,
-  voxel: TerrainVoxel,
-): string | null {
-  const prepared = prepareExcavation(state, voxel);
-  return prepared.ok ? null : prepared.problem;
-}
-export function excavateTerrain(state: GeneratedTerrain, voxel: TerrainVoxel) {
-  const prepared = prepareExcavation(state, voxel);
-  if (!prepared.ok) throw new Error(prepared.problem);
-  return prepared.state;
-}
 export function terrainRevision(state: GeneratedTerrain) {
-  return state.world.revision;
+  return terrainEnvironment(state).checkpoint.revision;
+}
+export function terrainGeometryKey(state: GeneratedTerrain) {
+  return projection(state).key;
 }
 export function terrainChangedColumns(state: GeneratedTerrain) {
   return projection(state).changed();
 }
-function geometryCapability(
-  world: ReturnType<typeof createVoxelWorld>,
-  bounds: { minY: number; maxY: number },
-  revision: number,
-) {
-  return Object.freeze({
-    identity: GOBLIN_TERRAIN_ID,
-    revision,
-    frame: TERRAIN_FRAME,
-    spacingM: Object.freeze([
-      TERRAIN_VOXEL_METRIC.horizontalM,
-      TERRAIN_VOXEL_METRIC.verticalM,
-      TERRAIN_VOXEL_METRIC.horizontalM,
-    ] as const),
-    bounds: Object.freeze({
-      min: Object.freeze([
-        TERRAIN_FRAME.x,
-        bounds.minY,
-        TERRAIN_FRAME.z,
-      ] as const),
-      max: Object.freeze([
-        TERRAIN_FRAME.x + MAP_SIDE,
-        bounds.maxY,
-        TERRAIN_FRAME.z + MAP_SIDE,
-      ] as const),
-    }),
-    solidAt(x: number, y: number, z: number) {
-      const material = world.readPoint({ x, y, z });
-      if (material === MATERIAL.air) return false;
-      if (material === MATERIAL.soil || material === MATERIAL.stone)
-        return true;
-      throw new Error("unknown terrain solidity");
-    },
-  });
-}
-
-export function terrainGeometry(state: GeneratedTerrain) {
-  return projection(state).geometry;
-}
-
-/** Display-only finite surfaces from the same volume owner; unmodeled soil is not dry. */
-const waterViews = new WeakMap<
-  object,
-  readonly {
-    x: number;
-    z: number;
-    height: number;
-    depthM: number;
-    massKg: number;
-  }[]
->();
-export function terrainWater(state: GeneratedTerrain) {
-  const checked: GeneratedTerrain = parseTerrain(state);
-  let water = waterViews.get(checked);
-  if (!water) {
-    water = Object.freeze(
-      terrainFacts(checked)
-        .soil.nodes.filter((node: { kind: string }) => node.kind === "pit")
-        .map(
-          (node: {
-            at: number[];
-            baseYM: number;
-            depthM: number;
-            massKg: number;
-          }) =>
-            Object.freeze({
-              x: node.at[0] - TERRAIN_FRAME.x,
-              z: node.at[2] - TERRAIN_FRAME.z,
-              height:
-                node.baseYM +
-                node.depthM -
-                TERRAIN_FRAME.y * TERRAIN_VOXEL_METRIC.verticalM,
-              depthM: node.depthM,
-              massKg: node.massKg,
-            }),
-        ),
-    );
-    waterViews.set(checked, water!);
-  }
-  return water!;
-}
-
 export function terrainExcavatedColumns(state: GeneratedTerrain) {
-  return projection(state).excavated();
+  return projection(state).columns;
 }
-export function terrainGeometryKey(state: GeneratedTerrain): string {
-  return projection(state).key;
+export function terrainExcavatedVoxels(state: GeneratedTerrain) {
+  return projection(state).excavated;
+}
+export function terrainDigProblem(
+  state: GeneratedTerrain,
+  raw: TerrainVoxel,
+): string | null {
+  const at = voxelSchema.parse(raw);
+  if (!inside(at)) return "Keep excavation inside the clearing.";
+  const material = terrainMaterial(state, at);
+  if (material === MATERIAL.air) return "This voxel is already empty.";
+  if (material !== MATERIAL.soil && material !== MATERIAL.stone)
+    throw new Error("Unsupported terrain material.");
+  return null;
+}
+/** Detached voxel-only preparation. The caller must compose the actual removed
+ * water/material/environment obligations before publishing this successor. */
+export function excavateTerrain(
+  state: GeneratedTerrain,
+  raw: TerrainVoxel,
+): GeneratedTerrain {
+  const checked = parseTerrain(state),
+    at = voxelSchema.parse(raw);
+  const problem = terrainDigProblem(checked, at);
+  if (problem) throw new Error(problem);
+  const world = createVoxelWorld(GOBLIN_WORLD_IDENTITY, {
+    checkpoint: checked.world,
+  });
+  const result = world.edit({
+    expectedRevision: checked.world.revision,
+    cells: [
+      {
+        x: at[0],
+        y: at[1],
+        z: at[2],
+        material: MATERIAL.air,
+        expectedMaterial: terrainMaterial(checked, at),
+      },
+    ],
+  });
+  if (!result.ok) throw new Error(`Terrain edit refused: ${result.reason}`);
+  return admitWorld(world.save());
 }
