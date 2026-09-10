@@ -3,7 +3,8 @@ import { MaterialLot, Position, move, transfer } from "./common";
 import type { EntityId, Vec3 } from "../contracts";
 
 export type DeliveryPhase =
-  "to-source" | "carrying" | "to-destination" | "complete";
+  "idle" | "to-source" | "carrying" | "to-destination" | "complete";
+export const DeliveryControl = component<{ enabled: boolean; quantity: number }>("hive.delivery-control", { version: 1, fields: { enabled: "boolean", quantity: "number" } });
 export const DeliveryTask = component<{
   actor: EntityId;
   sourceLot: EntityId;
@@ -30,7 +31,7 @@ const distance = (a: Vec3, b: Vec3) =>
 export const deliverySystem = system({
   id: "hive.delivery",
   version: 1,
-  reads: [DeliveryTask, Position, MaterialLot],
+  reads: [DeliveryTask, Position, MaterialLot, DeliveryControl],
   writes: [DeliveryTask],
   run(ctx) {
     for (const task of ctx.query(
@@ -44,7 +45,9 @@ export const deliverySystem = system({
         phase: string;
       }>(DeliveryTask),
     )) {
-      const state = task.get(DeliveryTask);
+    const state = task.get(DeliveryTask);
+    const controls = ctx.query(query(DeliveryControl));
+    const control = controls.find((row) => row.id === state.actor)?.get(DeliveryControl);
       const positions = ctx.query(query(Position));
       const actor = positions.find((row) => row.id === state.actor);
       const source = positions.find((row) => row.id === state.source);
@@ -54,7 +57,15 @@ export const deliverySystem = system({
         .query(query(MaterialLot))
         .find((row) => row.id === state.sourceLot);
       const lotState = lot?.get(MaterialLot);
-      if (state.phase === "to-source") {
+    if (!control?.enabled) {
+      if (state.phase !== "idle" && state.phase !== "complete") ctx.action(move(state.actor, actor.get(Position)));
+      continue;
+    }
+    if (state.phase === "idle") {
+      ctx.write(DeliveryTask, task.id, { ...state, quantity: control.quantity, phase: "to-source" });
+      continue;
+    }
+    if (state.phase === "to-source") {
         if (lotState?.container === state.actor) {
           ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
           ctx.action(move(state.actor, destination.get(Position)));

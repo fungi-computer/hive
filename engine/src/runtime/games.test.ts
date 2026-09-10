@@ -17,6 +17,12 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
+    session.command("deliver", { quantity: 1 });
+    for (let i = 0; i < 100; i++) {
+      session.step(0.1);
+      const lot = session.query(query(MaterialLot)).find((row) => row.get(MaterialLot).container === "colony.worker.1");
+      if (lot) { session.command("pauseDelivery", null); session.step(0.1); assert.equal(session.query(query(MaterialLot)).find((row) => row.id === lot.id)?.get(MaterialLot).container, "colony.worker.1"); session.command("resumeDelivery", null); break; }
+    }
     for (let i = 0; i < 100; i++) session.step(0.1);
     const lots = session
       .query(query(MaterialLot))
@@ -31,6 +37,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
         .reduce((sum, lot) => sum + lot.quantity, 0),
       1,
     );
+    assert.equal(colonyPack.presentation?.inspect({ query: (spec) => session.query(spec) }).find((fact) => fact.id === "delivery-phase")?.value, "complete");
   } finally {
     port.dispose();
   }
@@ -87,6 +94,20 @@ test("formation actors move independently through the same kernel", () => {
     );
   } finally {
     port.dispose();
+  }
+});
+
+test("each pack exposes bounded facts and controls from its committed query", () => {
+  for (const pack of [colonyPack, survivalPack, formationsPack]) {
+    const port = wasmKernelPort(new WasmKernel());
+    try {
+      const session = new GameSession({ port, pack });
+      session.start();
+      const projection = pack.presentation?.inspect({ query: (spec) => session.query(spec) }) ?? [];
+      assert.ok(projection.length > 0);
+      assert.ok(projection.every((fact) => typeof fact.id === "string" && fact.label.length > 0));
+      assert.ok((pack.presentation?.controls.length ?? 0) > 0);
+    } finally { port.dispose(); }
   }
 });
 
