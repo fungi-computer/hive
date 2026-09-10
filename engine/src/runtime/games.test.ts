@@ -234,7 +234,10 @@ test("authored intents survive pause restore and rollback with committed-only re
     const restored = new GameSession({ port: b, pack });
     restored.restore(saved);
     assert.deepEqual(restored.save(), saved);
-    const forged = structuredClone(saved);
+    const forged = {
+      ...structuredClone(saved),
+      pendingWrites: [...saved.pendingWrites],
+    };
     forged.pendingWrites[0] = {
       component: Seen.id,
       entity: id,

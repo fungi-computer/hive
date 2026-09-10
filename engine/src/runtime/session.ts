@@ -1,3 +1,4 @@
+import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
 import type {
   ActionRequest,
@@ -13,7 +14,6 @@ import type {
   WriteContext,
   WriteIntent,
   EntityId,
-  isReservedComponent,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {

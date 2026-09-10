@@ -9,10 +9,16 @@ const pack = (presentation?: GamePresentation): GamePack =>
     definition: new Uint8Array(),
     components: [],
     systems: [],
-    commands: { greet: () => [] },
+    commands: {
+      greet: {
+        reads: [],
+        writes: [],
+        run: () => ({ actions: [], writes: [] }),
+      },
+    },
     ...(presentation ? { presentation } : {}),
   }) as GamePack;
-const context = { query: () => [], outcomes: [] } as never;
+const context = { query: () => [] };
 test("unconfigured packs project empty output", () =>
   assert.deepEqual(projectPresentation(pack(), context), {
     facts: [],
