@@ -30,6 +30,12 @@ function applied(id: string, revision: number) {
 const wait = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
+async function waitFor(predicate: () => boolean, timeout = 1000) {
+  const deadline = Date.now() + timeout;
+  while (!predicate() && Date.now() < deadline) await wait(1);
+  assert.equal(predicate(), true, "condition did not settle before timeout");
+}
+
 test("remote retries a lost response with the identical command envelope", async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
   let commandAttempts = 0;
@@ -63,7 +69,7 @@ test("remote retries a lost response with the identical command envelope", async
   runtime.dispose();
 });
 
-test("remote ignores stale observations and never performs a client step", async () => {
+test("remote ignores stale observations and never performs a client step", async (t) => {
   let observeCount = 0;
   const commandIds: string[] = [];
   const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -91,13 +97,15 @@ test("remote ignores stale observations and never performs a client step", async
       return () => `stale-${++next}`;
     })(),
   });
+  t.after(() => runtime.dispose());
   runtime.subscribe((event) => events.push(event));
   runtime.send({ type: "start", game: "survival" });
   await wait(0);
   runtime.send({ type: "pause" });
   await wait(0);
   runtime.send({ type: "step", delta: 0.1 });
-  assert.equal(observeCount, 5);
+  await waitFor(() => commandIds.length === 4 && events.some((event) => event.type === "error"));
+  assert.equal(observeCount, 4);
   assert.equal(commandIds.length, 4);
   assert.equal(new Set(commandIds).size, 4);
   assert.equal(events.filter((event) => event.type === "frame").length, 1);
@@ -105,7 +113,7 @@ test("remote ignores stale observations and never performs a client step", async
   runtime.dispose();
 });
 
-test("a confirmed stale revision gets one new envelope and one applied effect", async () => {
+test("a confirmed stale revision gets one new envelope and one applied effect", async (t) => {
   let observedRevision = 0;
   let commandCount = 0;
   const commands: { id: string; expectedRevision: number }[] = [];
@@ -135,10 +143,11 @@ test("a confirmed stale revision gets one new envelope and one applied effect", 
       return () => `confirmed-${++next}`;
     })(),
   });
+  t.after(() => runtime.dispose());
   runtime.send({ type: "start", game: "survival" });
   await wait(0);
   runtime.send({ type: "pause" });
-  await wait(20);
+  await waitFor(() => commandCount === 2);
   assert.equal(commandCount, 2);
   assert.notEqual(commands[0].id, commands[1].id);
   assert.deepEqual(commands.map(({ expectedRevision }) => expectedRevision), [0, 1]);
