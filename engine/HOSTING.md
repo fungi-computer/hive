@@ -60,3 +60,20 @@ an unauthorized connection cannot read/reset it; a lost response replays its
 receipt; restart resumes bounded host time without duplicate material effects;
 shared controls render actual committed frames. The current u5008 proves native
 restart/replay for the raft, not this complete networked-client outcome.
+
+## Clock receipt boundary found in current source
+
+`src/engine/region/index.ts` defaults to 4096 retained receipts and refuses new
+commands once full; it has no pruning API. At 30 steps/second this is about
+136 seconds before other commands are counted. The local native witness is
+bounded and valid, but naively connecting the browser cadence to Region.dispatch
+is not a viable persistent host. Raising the cap only postpones exhaustion.
+
+Host advancement needs a durable monotonic frontier (the committed scheduled
+occurrence/tick range) in the same transaction as world state and re-armed wake.
+Retry of an already-covered range observes that frontier and cannot repeat it.
+Player command receipts remain separate and need an explicit bounded replay
+retention protocol before general long-running public play. Do not silently
+remove receipts and allow an old command ID to execute again. This is a required
+host design correction, not a reason to change the proven small-world simulation
+or claim the current proof host is production-ready.
