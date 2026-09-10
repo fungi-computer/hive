@@ -333,14 +333,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
                 return;
               }
               item.staleRetries++;
-              if (revision === undefined || revision < rejectedRevision)
-                awaitRevision = rejectedRevision;
-              await poll();
-              if (awaitRevision !== undefined) return;
               item.id = undefined;
               item.body = undefined;
               item.retries = 0;
-              continue;
+              if (revision === undefined || revision < rejectedRevision)
+                awaitRevision = rejectedRevision;
+              await poll();
+              return;
             }
             pending.shift();
             emit({ type: "error", message: "remote command rejected" });
