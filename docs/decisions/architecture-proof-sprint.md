@@ -11,15 +11,52 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Latest planning amendment, Levi September 10:** support both browser and DO
+authority hosts, with rendering separated from simulation. Quiet regions should
+sleep and use cheap, bounded elapsed-time rules when relevant again; the world
+does not owe every missed physics tick. No DO is required for each unvisited
+terrain chunk. The [Colyseus assessment](colyseus-and-sleeping-world-research.md)
+and [canonical sleeping-world policy](local-snapshots-and-durable-ai-jobs.md#browser-and-do-hosts-with-sleeping-regions--september-10)
+record the adoption decisions and actual missing host boundaries. This is a
+planning checkpoint, not authorization to replace the host without reviewing
+the shared command/observation design.
+Levi also explicitly selected Screeps as a major motivation: programmable
+participants and lasting shared-world consequences belong in the engine's
+[many-faces contract](vishnus-many-faces.md), with accessible human play and
+bounded Shiitake participation. It does not replace the sleeping-world policy.
+
+**Latest publication:** runtime `3fa9947a312345a178c23c0317dc7289edb04f11`
+is live on the existing
+[game preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/), deployment
+`fd306a2a-dae5-4d22-a84c-bfb271701b51`. The same artifact includes
+[the three-storey study](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/vertical-study.html).
+This replaces the old 210b release and its 32-cell excavation restriction.
+The game still simulates in the browser and saves to IndexedDB; the DO owner is
+not connected. Build-only u4738 and ordinary publication passed under Levi's
+explicit request to stop startup/browser tests and show the candidate. No fresh
+interaction, served-parity or performance qualification was claimed. Levi then
+reported performance too poor to playtest; the playable outcome remains open.
+The receipt is in `goblin-environment/.botanical/playable-feedback-release/`.
+
+The current bank has 1,374 images across five files, 4,987,671 bytes; u4721
+authored the added stone carry/pile art. Earlier bank and failed qualification
+records below remain historical evidence. Source review identifies costly
+repeated water-dependent gas geometry reconstruction and foreign-state admission
+as concrete suspects, not a measured attribution or a demonstrated speedup.
+Moving that work to a DO or adding a network codec does not make it cheaper.
+
 **Current playable goal, Levi September 10:** finish the combined tiny clearing:
 whole-map digging, inexpensive finite water and groundwater, paid smoke/heat in
 actual rooms, one-voxel traversal, at least three above-ground storeys and two
 underground chambers, accurate controls and prepared original art. The saved
-native goal remains active in Session `01a0791e-7ac8-7cc0-90dd-48f8d164e526`.
+native goal is retained unfinished in Session `01a0791e-7ac8-7cc0-90dd-48f8d164e526`
+(the last saved native status is paused; this document does not change that status).
 This current outcome supersedes the earlier candidate/helper queue below; that
 queue records how the existing release was reached.
 
-The hosted game is still runtime `210b85d`, with browser-owned stepping and
+### Earlier qualification history — superseded availability and queue
+
+At this earlier checkpoint the hosted game was runtime `210b85d`, with browser-owned stepping and
 IndexedDB saves. Its accidental 32-cell wet-fixture admission remains a shipped
 bug. The locally proved DO owner is not connected to that preview. Serving static
 files from Cloudflare does not change the simulation authority. The DO ownership,

@@ -12,6 +12,16 @@ observations, controller bindings, executable capabilities, committed events and
 durable action results belong to the reusable engine contract. Goblin supplies
 particular characters and rules using that contract.
 
+**Major reference, Levi September 10: Screeps.** Levi explicitly selected it as
+a major motivation after reviewing its persistent, distributed JavaScript world
+and programmable players. Learn from making automation part of ordinary play:
+human and agent controllers submit legal intentions to the same world owner;
+the game retains consequences beyond a connection. For Hive, approachable human
+controls and Shiitake delegation remain first-class alongside any later scripted
+play. A programmer-only interface, mandatory coding, global tick barrier and
+perpetual simulation are not implied. Apply the newer sleeping-region policy.
+[Source comparison and Hive decisions](colyseus-and-sleeping-world-research.md#javascript-distributed-worlds-already-exist).
+
 The practical integration should be an ordinary open engine API, with MCP where
 useful. Compare Botanical's actual Mycelium/Knapsack tool path before adding glue.
 The engine must expose useful operations and results; it does not need a new

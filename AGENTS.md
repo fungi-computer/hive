@@ -20,7 +20,19 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 
 ## Runtime boundaries
 
-- **Durable Objects are Hive's target engine runtime and a primary design
+- **Browser and Durable Objects are both supported host targets (Levi,
+  September 10).** Keep one headless simulation and command/observation boundary.
+  Local play can host it in a browser Worker; online worlds use DO authority.
+  The rendering client never becomes a second authority for an online world.
+  Multiplayer is a primary design constraint, not a later copy of the game.
+- **An alive-feeling world does not require perpetual simulation.** Unvisited
+  regions need no running DO. Quiet regions may checkpoint and sleep; resolve
+  supported elapsed-time processes analytically or through bounded coarse work
+  on demand. Do not replay every missed physics tick. Preserve finite stock,
+  elapsed-time ownership, player edits and durable external obligations. Camera
+  visibility alone cannot pause another player's interaction. Follow the
+  [sleeping-world policy](docs/decisions/local-snapshots-and-durable-ai-jobs.md#browser-and-do-hosts-with-sleeping-regions--september-10).
+- **Durable Objects are Hive's target multiplayer runtime and a primary design
   constraint.** Design extraction around disposable processes, durable command
   identity, atomic world/work/result commitment and restart recovery now. RAM
   may hold bounded working state and rebuildable caches; it cannot be the only
@@ -44,7 +56,7 @@ Build a small set of well-owned mechanisms that combine into many kinds of play.
 - Keep the existing deterministic simulation and actual libcolony optimizer as owners. Narrow candidate work before expensive paths; preserve joint assignment, personal-order policy and cargo continuation. Rendering and cosmetic animation never advance authoritative time or settle resources.
 - UI commands, buttons, hotkeys and help share the checked interaction catalog and current OpenTUI keymap. Jotai owns UI choices/display projections; XState owns gestures. Paused commands may change accepted intent while movement/work remains frozen.
 - Reuse the original Three → low-resolution bake → Pixi pipeline. World geometry, picking and ordering share coordinate contracts. Cached visuals and temporary pooled objects have disposal/reset rules and never replace persistent identity.
-- Generated terrain, map summaries, residency and simulation activation are distinct. Keep one versioned world generator and bounded query/work budgets; map LOD does not generate every fine tile underneath it. Offscreen does not mean offsimulation. The playable clearing remains deliberately small until Levi changes that direction.
+- Generated terrain, map summaries, residency and simulation activation are distinct. Keep one versioned world generator and bounded query/work budgets; map LOD does not generate every fine tile underneath it. Offscreen work follows the sleeping-world policy above, including other players and external obligations. The playable clearing remains deliberately small until Levi changes that direction.
 - Keep current saves versioned and validate relational laws as well as structural schemas. Reject unsupported old formats; do not add migration code under the current breaking-change policy. A cache is rebuilt from canonical state rather than saved as independent truth.
 
 ## Delivery and review
@@ -72,6 +84,7 @@ vision; it does not add a routine approval gate or override current user directi
 
 Read the current-status section of [the architecture-proof sprint](docs/decisions/architecture-proof-sprint.md) before assigning work. Historical paragraphs are evidence, not a competing active queue. Follow the applicable deeper contract:
 
+- [Colyseus, Screeps and sleeping regions](docs/decisions/colyseus-and-sleeping-world-research.md): Screeps is a major motivation by direct Levi direction; programmable players and persistent consequences fit Hive, while global perpetual ticking does not.
 - [Architecture implementation and module plan](docs/decisions/architecture-implementation-plan.md)
 - [Hive engine, asset pipeline and Goblin game boundaries](docs/decisions/hive-engine-asset-pipeline-and-goblin-boundaries.md)
 - [Current whole-game source audit and repair order](docs/decisions/current-systems-review-and-module-plan.md)

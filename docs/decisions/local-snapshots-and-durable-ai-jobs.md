@@ -1,5 +1,123 @@
 # Durable Object engine authority and local snapshots
 
+## Browser and DO hosts with sleeping regions — September 10
+
+Direct Levi clarification: Hive targets both browser and Durable Object hosts.
+Multiplayer remains a primary constraint. The world should feel alive when a
+player returns, while avoiding continuous computation for every region ever
+visited. This supersedes any reading of the older continuous-world language as
+a requirement to keep every region ticking. This is architecture/product
+direction; no new host, scheduler, package adoption or backend deployment follows
+from this document. [Colyseus research and adoption assessment](colyseus-and-sleeping-world-research.md)
+records the current source comparison and the first proposed evaluation.
+
+### One simulation, alternative hosts
+
+Keep simulation rules, deterministic random decisions, jobs, physical quantities,
+geometry and supported time advancement independent of the renderer and host.
+A browser Worker supplies local authority and storage for local play; a DO
+supplies online authority, transactional storage and durable wake. Both expose
+the same meaning of commands, committed results and permitted observations.
+Rendering, camera, input feedback and interpolation belong to the client.
+No online browser may independently settle items, physics or completed work.
+A local save is not authenticated multiplayer history; existing anonymous data
+remains recoverable without silently importing it into a competitive world.
+
+Spatial simulation regions are distinct from render chunks and stored pages.
+Keep tightly interacting terrain, actors, items and fields under one region
+owner. Do not split water, gas and work into separate network services. The
+first region covers the playable clearing and its supported vertical extent;
+do not choose a large-world region size from unmeasured admission limits.
+Separate region owners may advance concurrently, but inter-region transfers
+still need scoped identities, current boundary admission and one custody record.
+There is no global per-tick barrier or atomic transaction across all DOs.
+
+### Four levels of temporal detail
+
+| Situation | Work to perform |
+| --- | --- |
+| Unvisited, unchanged place | Regenerate pinned base terrain and resolve permitted dated world overlays when requested. Do not instantiate a DO merely because a map overview shows it. |
+| Active interaction | Run bounded detailed work where people or agents are acting, or where unresolved effects matter to another active region. Drawing frequency and simulation frequency remain separate. |
+| Quiet persisted place | Keep canonical stocks, changes, identities and a settled world-time frontier. Do not keep a tick loop alive. Use supported cheap elapsed-time rules when it is needed again. |
+| Due external obligation | Wake only for a meaningful deadline or external request: a caravan arrival, cross-region transfer, or an effect another owner must observe. Internal crop readiness can wait until read if nothing else depends on it. |
+
+Computational sleep is not game pause. An online world can accumulate elapsed
+game time while its DO is absent; a paused local game need not do so. The host
+owns time policy, not a browser timestamp. Multiplayer player departure, closing
+a menu, disconnected sockets and process eviction are different events. A remote
+player, agent, active export or other meaningful dependency may keep relevant
+work active even with no local camera. None requires waking all neighboring
+regions recursively.
+
+### Catch up supported behavior, not missed frames
+
+An elapsed-time operation starts from a committed frontier and ends at the next
+relevant condition change or host-selected target, whichever comes first. Store
+the attained frontier with resulting state. A retry cannot spend the same time,
+inputs or output capacity twice. Later player edits cannot be applied retroactively
+to time before their committed order. Large gaps are processed with bounded
+event/quantity work, not `advanceTicks(elapsedSeconds * 20)` in a constructor.
+
+* Plants, aging and food spoilage can evaluate accumulated growth or threshold
+  times under recorded conditions. Weather, water supply and season changes split
+  intervals; eight real hours never implies eight hours of ideal growing weather.
+* A paid fermentation batch may reach its next phase using its actual finite
+  inputs and recipe conditions. An attended phase cannot manufacture labor while
+  asleep. Repeated crafting needs a declared offline work budget, real resources,
+  worker capacity and output capacity; each worker's time is allocated once.
+* Quiet water uses accounted basin/soil stores and cheap flow rules where supported;
+  quiet gas uses connected room volumes and bounded ventilation/cooling. Changing
+  connectivity, unknown forcing or an actively contested boundary requires more
+  detail. Do not teleport water through solids, reset sealed smoke to ambient or
+  refill a drained lake. Condensed and detailed models partition the same stock.
+* Population, regrowth and background activity may use bounded aggregate rules.
+  Named actors, unique items, player construction, extinction and established
+  relationships persist. Cosmetic wandering can be created for presentation;
+  actual births, deaths, stock and material changes need game-owned outcomes.
+* Combat, spreading hazards and connected physical chains cannot all be replaced
+  by a universal elapsed-time formula. Keep a bounded active resolution, define
+  an explicit coarse rule, or mark the unsupported process suspended. Never claim
+  physical history the chosen model did not establish.
+
+Cheap approximation is explicitly permitted. Invariants still include unique
+custody, nonnegative/capacity-bounded stocks, finite inputs and consistent history.
+Detailed and coarse modes need not produce identical trajectories. They need
+declared tolerances and coherent endpoints. Fixed logical event boundaries and
+saved remainders should prevent repeated sleep/wake from becoming extra production
+or erasing danger. The engine composes supported process handlers over the same
+owners; it does not add a second offline inventory or arbitrary saved callbacks.
+
+Cross-region incoming actions must first settle the receiving region to the
+relevant causal frontier. A stale sleeping border cannot grant new water, accept
+goods into a full store, or authorize passage through a changed wall. Transfers
+pending delivery retain custody and durable retry; sleeping internal details do
+not justify a transfer that is forgotten until a player logs in.
+
+### Durable sleep and practical acceptance
+
+Persist canonical state, model/content version, time frontier, required schedules,
+resource commitments, region generation and pending transfer/replay facts before
+publishing them. Derived queries, render data and patch encoders are disposable.
+Do not depend on an unload/dispose callback to save. DOs can discard memory and
+restart without such a callback. [Cloudflare lifecycle](https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/).
+
+The host's durable wake owner must arrange the earliest externally necessary event.
+No blanket recurring alarm is required for every dormant field or plant. DO
+alarms can be delivered more than once, so advancing a time interval and settling
+its obligation must remain replay-safe. [Alarm semantics](https://developers.cloudflare.com/durable-objects/api/alarms/).
+The current Goblin proof host has no autonomous alarm join; this paragraph is a
+required host behavior, not a claim that it already exists.
+
+First proposed catch-up consumer: leave one paid passive brew and a planted crop,
+close the region, then reopen after an authored elapsed interval. It should show
+plausible progress with finite inputs and no missed-tick replay. A duplicate
+reopen must not produce another output. One receiving-region transfer checks that
+external obligations are not lost through sleep. This is a later bounded
+qualification, not a new test launch or a promise that offline policy is implemented.
+Whether unattended settlements can suffer severe losses, and which work players
+may automate while absent, remains game-policy tuning; it is not settled by
+choosing DOs or a networking library.
+
 ## Current decision — September 9
 
 **Direct user requirement:** Hive's engine will run in Cloudflare Durable

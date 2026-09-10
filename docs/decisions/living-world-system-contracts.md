@@ -1,5 +1,15 @@
 # Living-world system contracts
 
+## Temporal detail amendment — September 10
+
+Levi explicitly permits approximating unobserved activity to make the world feel
+alive without simulating every visited region forever. Quiet crops, aging,
+permitted processes and environmental stores should use cheap elapsed-time or
+coarse rules. Keep actual identities, finite resources and player consequences.
+The [sleeping-region policy](local-snapshots-and-durable-ai-jobs.md#browser-and-do-hosts-with-sleeping-regions--september-10)
+owns time, approximation and wake rules; browser and DO execution are both targets.
+The continuous-world language below does not require a continuous tick loop.
+
 ## Current needs, hospitality and social decision — 2026-09-09
 
 Levi explicitly requires shared hunger, thirst, tiredness and later social needs
@@ -276,8 +286,9 @@ away. Do not introduce an infinite sea tile or silently clamp the balance.
 Coarse and detailed representations must partition one stock. Materializing a
 local area allocates its water from the coarse owner; dematerialization reconciles
 its committed remainder. Neither representation may retain a second spendable
-copy. Catchment updates remain scheduled when unseen; camera residency is not
-simulation authority. Digging, changed openings, incoming water and weather can
+copy. Unseen catchments may settle lazily from recorded forcing or wake at a
+meaningful external deadline; they need no perpetual detailed tick. Camera
+residency is not simulation authority. Digging, changed openings, incoming water and weather can
 wake affected local work. Rates, equilibrium approximations and sampling error
 need named workload evidence before capacity or timing claims.
 
