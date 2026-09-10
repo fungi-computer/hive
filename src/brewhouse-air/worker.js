@@ -2,16 +2,17 @@ import { createAir } from "../engine/environment/air/index.js";
 import {
   createBrewhouseAirProgram,
   roomResult,
+  roomWaterFacts,
 } from "../world-presets/brewhouse-air/region.ts";
 import { generatedBrewhouseRoom } from "../world-presets/brewhouse-air/generated-room.ts";
-import {
-  terrainGeometryKey,
-  terrainWater,
-} from "../world-presets/goblin-terrain.ts";
+import { terrainGeometryKey } from "../world-presets/goblin-terrain.ts";
 import { terrainSurfaces } from "../terrain-surface-geometry.js";
 
+import { visibleWaterSurfaces } from "../water-surfaces.ts";
+import { exposedFooting, viewLayer } from "../game-space.ts";
+
 const CHECKPOINT_KIND = "hive-browser-generated-brewhouse-air-v1";
-const MAX_CHECKPOINT_BYTES = 512 * 1024;
+const MAX_CHECKPOINT_BYTES = 4 * 1024 * 1024;
 const textEncoder = new TextEncoder();
 const REQUEST_FIELDS = Object.freeze({
   inspect: ["id", "action"],
@@ -65,7 +66,7 @@ function encodeCheckpoint(program, state, revision) {
     state,
   });
   if (textEncoder.encode(wire).byteLength > MAX_CHECKPOINT_BYTES)
-    throw new Error("local room checkpoint exceeds 512 KiB");
+    throw new Error("local room checkpoint exceeds 4 MiB");
   return wire;
 }
 
@@ -94,6 +95,24 @@ function decodeCheckpoint(program, wire) {
   };
 }
 
+function projectedWater(state) {
+  const cells = roomWaterFacts(state).cells;
+  const levels = new Set(
+    cells
+      .filter((cell) => cell.kind === "void" && cell.massKg > 0)
+      .map((cell) =>
+        viewLayer({ x: cell.at[0], y: cell.at[1], z: cell.at[2] }),
+      ),
+  );
+  // The study shows exposed terrain, not the main game's remembered cave map.
+  return [...levels].flatMap((level) =>
+    visibleWaterSurfaces(cells, level, {
+      visible: (at) => exposedFooting(state.terrain, at),
+      exposed: () => false,
+    }),
+  );
+}
+
 export function projectBrewhouseScene(program, state, revision) {
   const room = generatedBrewhouseRoom(state.terrain, state.opening);
   const definition = room.definition;
@@ -120,7 +139,7 @@ export function projectBrewhouseScene(program, state, revision) {
         kind: face.kind,
         vertices: face.vertices.map((point) => ({ ...point })),
       })),
-      water: terrainWater(state.terrain).map((water) => ({ ...water })),
+      water: projectedWater(state),
     },
     cells: facts.cells.map((cell) => ({
       cellId: cell.cellId,
