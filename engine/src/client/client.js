@@ -30,14 +30,17 @@ export function createHiveClient({
   subtitle,
   source,
   runtime,
+  persistence,
   orderCommand,
   controlHelp,
   selectionShortcuts = [],
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
 }) {
+  if (!persistence) throw new Error("Hive client requires a persistence capability");
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   const state = {
+    ready: false,
     paused: false,
     selectedIds: [],
     hoverId: null,
@@ -52,11 +55,15 @@ export function createHiveClient({
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
   };
-  const saveKey = `hive-fresh-browser/${mode}`;
   const gesture = createActor(pointerGestureMachine).start();
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
   const emit = (action) => {
+    if (["action", "pause", "save", "continue", "reset"].includes(action.kind) && !state.ready) {
+      state.message = "World is still connecting…";
+      notify();
+      return;
+    }
     if (runtime && action.kind === "action")
       runtime.send({ type: "action", action: action.action });
     else if (runtime && action.kind === "pause")
@@ -64,19 +71,20 @@ export function createHiveClient({
     else if (runtime && action.kind === "save") {
       state.pendingSave = true;
       state.message = "Save requested…";
-      runtime.send({ type: "save" });
+      persistence.save?.();
     } else if (runtime && action.kind === "reset") {
-      awaitingEpochTransition = true;
-      runtime.send({ type: "reset" });
+      state.selectedIds = [];
+      state.hoverId = null;
+      prepareNewWorld();
+      persistence.newWorld((remote) => {
+        state.message = remote ? "Starting a new server world…" : "Resetting the browser world…";
+        if (remote) runtime.send({ type: "start", game: mode });
+      });
     } else if (action.kind === "continue") {
       try {
-        const saved = localStorage.getItem(saveKey);
-        if (!saved) throw new Error("No saved world yet");
-        const snapshot = JSON.parse(saved);
         state.pendingRestore = true;
         state.message = "Continue requested…";
-        awaitingEpochTransition = true;
-        runtime.send({ type: "restore", snapshot });
+        persistence.continue?.();
       } catch (error) {
         state.pendingRestore = false;
         state.message = error.message;
@@ -105,6 +113,22 @@ export function createHiveClient({
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
+
+  function prepareNewWorld() {
+    state.ready = false;
+    state.pendingSave = false;
+    state.pendingRestore = false;
+    state.subjects = [];
+    frameEpoch = undefined;
+    frameSequence = 0;
+    awaitingEpochTransition = false;
+    interpolation.reset();
+    animationClock.reset();
+    for (const entry of actorCache.values())
+      entry.container.destroy({ children: true, texture: false, textureSource: false });
+    actorCache.clear();
+    draw();
+  }
 
   function selectEntities(ids) {
     state.selectedIds = ids;
@@ -155,9 +179,9 @@ export function createHiveClient({
             React.createElement(
               Button,
               { onClick: () => act("reset"), size: "sm", variant: "secondary" },
-              "Reset world",
+              persistence.newWorldLabel,
             ),
-            React.createElement(
+            persistence.saveLabel ? React.createElement(
               Button,
               {
                 onClick: () => act("save"),
@@ -165,9 +189,9 @@ export function createHiveClient({
                 size: "sm",
                 variant: "outline",
               },
-              "Save",
-            ),
-            React.createElement(
+              persistence.saveLabel,
+            ) : null,
+            persistence.continueLabel ? React.createElement(
               Button,
               {
                 onClick: () => act("continue"),
@@ -175,7 +199,12 @@ export function createHiveClient({
                 size: "sm",
                 variant: "outline",
               },
-              "Continue",
+              persistence.continueLabel,
+            ) : null,
+            React.createElement(
+              "span",
+              { className: "hive-status" },
+              state.ready ? persistence.statusLabel : "Connecting…",
             ),
           ),
           React.createElement(
@@ -496,6 +525,11 @@ export function createHiveClient({
   }
   function contextMenu(event) {
     event.preventDefault();
+    if (!state.ready) {
+      state.message = "World is still connecting…";
+      renderHud();
+      return;
+    }
     const at = point(event);
     const selected = state.subjects.filter((subject) => state.selectedIds.includes(subject.id));
     const frames = new Set(selected.map((subject) => subject.support ?? null));
@@ -533,6 +567,7 @@ export function createHiveClient({
   }
   function keydown(event) {
     if (isTypingTarget(event.target)) return;
+    if (!state.ready) return;
     const key = event.key.toLowerCase();
     if (mode === "survival") {
       const id = state.selectedIds[0];
@@ -699,15 +734,16 @@ export function createHiveClient({
       if (event.type === "saved") {
         state.pendingSave = false;
         try {
-          localStorage.setItem(saveKey, JSON.stringify(event.snapshot));
-          state.message = "Saved in this browser";
+          persistence.onSaved?.(event.snapshot);
+          state.message = persistence.online ? "Saved on server" : "Saved in this browser";
         } catch (error) {
           state.message = `Could not save: ${error.message}`;
         }
         renderHud();
       }
       if (event.type === "ready") {
-        state.message = "World ready";
+        state.ready = true;
+        state.message = persistence.statusLabel;
         renderHud();
       }
       if (event.type === "restored" && state.pendingRestore) {
