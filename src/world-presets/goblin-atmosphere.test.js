@@ -104,3 +104,62 @@ test("large open floors split into bounded local mixing bands", () => {
   assert.equal(field.definition.openings.length, 1);
   assert.notEqual(field.volumeAt("floor:0"), field.volumeAt("floor:9"));
 });
+
+test("a snapshot larger than 17x17x3 reaches the public owner and finite save", () => {
+  const size = [18, 4, 18],
+    id = (x, y, z) => `cell:${x},${y},${z}`,
+    cells = [];
+  for (let z = 0; z < size[2]; z++)
+    for (let y = 0; y < size[1]; y++)
+      for (let x = 0; x < size[0]; x++)
+        cells.push({
+          id: id(x, y, z),
+          x: x + 0.5,
+          y: y + 0.5,
+          z: z + 0.5,
+          freeVolumeM3: 1,
+        });
+  const openFaces = [];
+  for (let z = 0; z < size[2]; z++)
+    for (let y = 0; y < size[1]; y++)
+      for (let x = 0; x < size[0]; x++)
+        for (const [axis, delta] of [
+          ["x", [1, 0, 0]],
+          ["y", [0, 1, 0]],
+          ["z", [0, 0, 1]],
+        ]) {
+          const [nx, ny, nz] = [x + delta[0], y + delta[1], z + delta[2]];
+          if (nx >= size[0] || ny >= size[1] || nz >= size[2]) continue;
+          openFaces.push({
+            id: `${axis}:${nx},${ny},${nz}`,
+            a: id(x, y, z),
+            b: id(nx, ny, nz),
+            areaM2: 1,
+            distanceM: 1,
+          });
+        }
+  assert(cells.length > 17 * 17 * 3);
+  assert(openFaces.length > 2_048);
+  const field = goblinAtmosphereFromGeometry(
+      { identity: "18x18x4-open-field", revision: 0, cells, openFaces },
+      { regionId: "clearing" },
+    ),
+    owner = createAtmosphere(field.definition),
+    density =
+      GOBLIN_ATMOSPHERE_AMBIENT.pressurePa /
+      (GOBLIN_ATMOSPHERE_MODEL.specificGasConstantJKgK *
+        GOBLIN_ATMOSPHERE_AMBIENT.temperatureK),
+    state = owner.initial(
+      owner.definition.volumes.map((volume) => ({
+        volumeId: volume.id,
+        carrierKg:
+          density *
+          volume.members.reduce((sum, member) => sum + member.volumeM3, 0),
+        smokeKg: 0,
+        heatJ: 0,
+      })),
+    ),
+    wire = owner.encode(state);
+  assert.equal(owner.decode(wire).identity, owner.identity);
+  assert(new TextEncoder().encode(wire).byteLength <= 32 * 1024 * 1024);
+});

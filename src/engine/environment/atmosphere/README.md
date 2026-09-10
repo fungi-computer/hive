@@ -14,6 +14,12 @@ vertical and exterior paths. The Goblin producer also cuts broad floors into
 bounded eight-metre local bands, so one castle or cave does not become one
 instant well-mixed parcel.
 
+Raw snapshot admission covers at most 40,000 free cells and 120,000 declared
+faces. Compilation has separate limits of 2,048 local parcels and 56,000
+cross-parcel openings; internal faces disappear into bounded band membership.
+The 32 MiB wire and two-million-node ceilings cover the named 17x17x128
+Clearing envelope. These are admission bounds, not measured tick capacity.
+
 `advance` applies at most six seconds of source and opening exchange to a
 detached candidate. It conserves carrier, smoke and heat through paired stock,
 source and signed boundary ledgers. The model is a game-scale well-mixed volume

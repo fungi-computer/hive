@@ -1,18 +1,10 @@
 import { z } from "zod";
 import { changeQuantity } from "../arithmetic.mjs";
-import { ATMOSPHERE_DATA_BYTES, copyAtmosphereData } from "./data.ts";
+import { copyAtmosphereData } from "./data.ts";
+import { ATMOSPHERE_LIMITS } from "./limits.ts";
 import type { AtmosphereDefinition } from "./types.ts";
 
-export const ATMOSPHERE_LIMITS = Object.freeze({
-  volumes: 1024,
-  members: 4096,
-  openings: 2048,
-  sources: 32,
-  encodedStateBytes: ATMOSPHERE_DATA_BYTES,
-  intervalS: 6,
-  minIntervalS: 1e-6,
-  steps: 128,
-});
+export { ATMOSPHERE_LIMITS } from "./limits.ts";
 
 const id = z.string().min(1).max(160);
 const finite = z.number().finite();

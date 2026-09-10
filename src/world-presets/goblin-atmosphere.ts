@@ -7,6 +7,7 @@ import {
   type AtmosphereVolumeDefinition,
 } from "../engine/environment/atmosphere/index.ts";
 import { copyAtmosphereData } from "../engine/environment/atmosphere/data.ts";
+import { ATMOSPHERE_LIMITS } from "../engine/environment/atmosphere/limits.ts";
 import { ROOM_FUEL } from "./brewhouse-air/fuel-definition.ts";
 
 export type GasCell = {
@@ -35,13 +36,6 @@ export type GasGeometrySnapshot = {
   readonly openFaces: readonly GasFace[];
 };
 
-export const GOBLIN_ATMOSPHERE_LIMITS = Object.freeze({
-  cells: 4096,
-  faces: 2048,
-  bandCells: 256,
-  bandSpanM: 8,
-});
-
 const gasCellSchema = z.strictObject({
   id: z.string().min(1).max(160),
   x: z.number().finite(),
@@ -59,8 +53,8 @@ const gasFaceSchema = z.strictObject({
 const gasGeometrySchema = z.strictObject({
   identity: z.string().min(1).max(16_384),
   revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  cells: z.array(gasCellSchema).min(1).max(GOBLIN_ATMOSPHERE_LIMITS.cells),
-  openFaces: z.array(gasFaceSchema).max(GOBLIN_ATMOSPHERE_LIMITS.faces),
+  cells: z.array(gasCellSchema).min(1).max(ATMOSPHERE_LIMITS.rawCells),
+  openFaces: z.array(gasFaceSchema).max(ATMOSPHERE_LIMITS.rawFaces),
 });
 
 export const GOBLIN_ATMOSPHERE_AMBIENT = Object.freeze({
@@ -147,7 +141,7 @@ function finitePositive(value: number, label: string) {
 
 function sameMixingBand(left: GasCell, right: GasCell) {
   const band = (value: number) =>
-    Math.floor(value / GOBLIN_ATMOSPHERE_LIMITS.bandSpanM);
+    Math.floor(value / ATMOSPHERE_LIMITS.bandSpanM);
   return (
     left.y === right.y &&
     band(left.x) === band(right.x) &&
@@ -207,7 +201,7 @@ export function goblinAtmosphereFromGeometry(
   const volumes: AtmosphereVolumeDefinition[] = [],
     owner = new Map<string, string>();
   for (const group of grouped.values()) {
-    if (group.length > GOBLIN_ATMOSPHERE_LIMITS.bandCells)
+    if (group.length > ATMOSPHERE_LIMITS.bandCells)
       throw new Error("gas mixing band exceeds its cell budget");
     group.sort((a, b) => compare(a.id, b.id));
     const id = `band:${group[0].id}`;
