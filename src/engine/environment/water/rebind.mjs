@@ -49,7 +49,10 @@ function remap(old, state, next) {
     else if (amount > 0) displaced.push({ index, amount });
   }
   for (const node of next.nodes) {
-    if (node.kind === "soil" && !old.index.has(node.id))
+    if (
+      node.kind === "soil" &&
+      old.nodes[old.index.get(node.id)]?.kind !== "soil"
+    )
       throw new Error(
         "new porous coverage requires its finite source counterpart",
       );
@@ -59,7 +62,8 @@ function remap(old, state, next) {
 
 /** Construction can push liquid into immediate surviving void neighbors through
  * actual OLD open faces. It cannot teleport into a remote empty cavity or use a
- * cell that the same edit fills. Insufficient local space leaves the edit waiting.
+ * cell that the same edit fills. An unsettled local plan leaves the edit waiting;
+ * this deterministic neighbor policy does not prove no other allocation exists.
  * This is work-driven displacement, not passive pressure or a momentum model. */
 function displace(old, next, staged) {
   const flows = [];
@@ -127,7 +131,10 @@ export function rebindWater(old, state, next) {
   const staged = remap(old, state, next),
     flows = displace(old, next, staged);
   if (flows === null)
-    return freeze({ status: "blocked", reason: "liquid-needs-neighbor-space" });
+    return freeze({
+      status: "blocked",
+      reason: "liquid-displacement-unsettled",
+    });
   const exportedKg = compensatedSum(
     staged.removedPoreWater.map((entry) => entry.massKg),
   );

@@ -21,7 +21,10 @@ semantic cell difference. Removed soil exports its exact current pore water
 and a same-ID replacement void starts dry. Unchanged cells retain stock.
 Construction may push liquid one actual old face into a surviving neighbor;
 that is a declared work-displacement rule, not an arbitrary remote receiver.
-Insufficient space returns a blocked result with no published candidate.
+An unsettled local displacement returns a blocked result with no published
+candidate. Neighbors are tried deterministically; for non-column multi-cell edits
+this policy can wait even if a different allocation of shared space would fit.
+It does not report mathematical impossibility or delete liquid to finish a wall.
 New positive soil coverage requires its finite source counterpart; it cannot
 be regenerated during a topology change. Whole-clearing soil is initialized
 once, while deeper stone cuts add dry voids. Gas/material admission remains the

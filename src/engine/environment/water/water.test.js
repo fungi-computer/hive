@@ -453,7 +453,7 @@ test("solid completion displaces through surviving neighbors or waits without pa
   const before = owner.encode(full);
   assert.deepEqual(owner.rebind(full, nextDefinition), {
     status: "blocked",
-    reason: "liquid-needs-neighbor-space",
+    reason: "liquid-displacement-unsettled",
   });
   assert.equal(owner.encode(full), before);
 });
@@ -485,6 +485,15 @@ test("stone opening adds no water and face closure preserves both existing stock
         ...definition,
         revision: 1,
         cells: [emptyCell(a), { at: b, kind: "soil", soilId: soil.id }],
+      }),
+    /finite source counterpart/,
+  );
+  assert.throws(
+    () =>
+      owner.rebind(state, {
+        ...definition,
+        revision: 1,
+        cells: [{ at: a, kind: "soil", soilId: soil.id }],
       }),
     /finite source counterpart/,
   );
