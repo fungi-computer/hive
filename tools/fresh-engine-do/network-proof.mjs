@@ -59,21 +59,6 @@ const configPath = resolve(output, "wrangler.json");
 await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
 let clientA;
 let clientB;
-try {
-const bundled = await build({
-  entryPoints: [resolve(directory, "../../engine/src/runtime/remote-client.ts")],
-  bundle: true,
-  write: false,
-  format: "esm",
-  platform: "neutral",
-  target: "es2024",
-  tsconfig: resolve(directory, "../../tsconfig.json"),
-  metafile: true,
-});
-const clientPath = resolve(output, "remote-client.mjs");
-await writeFile(clientPath, bundled.outputFiles[0].text);
-const { connectRemoteRuntime } = await import(`${pathToFileURL(clientPath).href}?network-proof`);
-
 const port = 8789;
 const endpoint = `http://127.0.0.1:${port}`;
 let child;
@@ -128,6 +113,21 @@ async function stop() {
   }
   throw new Error("owned listener did not close");
 }
+try {
+const bundled = await build({
+  entryPoints: [resolve(directory, "../../engine/src/runtime/remote-client.ts")],
+  bundle: true,
+  write: false,
+  format: "esm",
+  platform: "neutral",
+  target: "es2024",
+  tsconfig: resolve(directory, "../../tsconfig.json"),
+  metafile: true,
+});
+const clientPath = resolve(output, "remote-client.mjs");
+await writeFile(clientPath, bundled.outputFiles[0].text);
+const { connectRemoteRuntime } = await import(`${pathToFileURL(clientPath).href}?network-proof`);
+
 function authorizedFetch(secret, loseCommandName, attempts) {
   let lost = false;
   return async (input, init = {}) => {
@@ -145,10 +145,12 @@ function authorizedFetch(secret, loseCommandName, attempts) {
     if (loseCommandName && !lost && commandName === loseCommandName && String(input).endsWith("/command")) {
       lost = true;
       await response.arrayBuffer();
-      attempts?.at(-1)?.status = response.status;
+      const attempt = attempts?.at(-1);
+      if (attempt) attempt.status = response.status;
       throw new Error("intentionally lost committed response");
     }
-    attempts?.at(-1)?.status = response.status;
+    const attempt = attempts?.at(-1);
+    if (attempt) attempt.status = response.status;
     return response;
   };
 }
