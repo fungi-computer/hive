@@ -7,6 +7,7 @@ import type {
   AssignmentCandidate,
   ActionRequest,
   ActionResult,
+  AdvanceResult,
   ComponentDefinition,
   GamePack,
   KernelPort,
@@ -17,6 +18,7 @@ import type {
   KernelSnapshot,
   SystemDefinition,
   WorldPose,
+  Impact,
 } from "../contracts";
 
 const morale: ComponentDefinition<{ value: number }> = {
@@ -42,19 +44,22 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private json = JSON.stringify({
     format: "hive-kernel",
-    version: 2,
+    version: 3,
     revision: 0,
     time: 0,
     scene: {
       game: "colony",
       initial: [],
       routes: [],
+      impactQueue: [],
       components: [
         { id: "test.morale", version: 1, fields: { value: "number" } },
       ],
     },
   });
   private revision = 0;
+  impacts: Impact[] = [];
+  failAdvance = false;
   writes: WriteIntent[] = [];
   loaded = 0;
   acceptedConsumes = 0;
@@ -69,14 +74,18 @@ class TestPort implements KernelPort {
     delta: number,
     writes: readonly WriteIntent[],
     actions: readonly ActionRequest[],
-  ): ActionResult[] {
+  ): AdvanceResult {
     this.writes.push(...structuredClone(writes));
     this.revision++;
-    const state = JSON.parse(this.json) as { revision: number; time: number };
+    if (this.failAdvance) throw new Error("native advance failed");
+    const state = JSON.parse(this.json) as { revision: number; time: number; impactQueue: Impact[] };
     state.revision = this.revision;
     state.time += delta;
+    const impacts = this.impacts;
+    this.impacts = [];
+    state.impactQueue = [];
     this.json = JSON.stringify(state);
-    return actions.map((action) => {
+    const results = actions.map((action) => {
       if (action.kind === "consume") {
         if (this.acceptConsume) this.acceptedConsumes++;
         return this.acceptConsume
@@ -85,19 +94,24 @@ class TestPort implements KernelPort {
       }
       return { accepted: true, revision: this.revision };
     });
+    return { revision: this.revision, results, impacts };
   }
   snapshot(): KernelSnapshot {
+    const state = JSON.parse(this.json) as { time: number; impactQueue: Impact[] };
+    state.impactQueue = this.impacts;
+    this.json = JSON.stringify(state);
     return {
       format: "hive-kernel",
-      version: 2,
+      version: 3,
       revision: this.revision,
-      time: JSON.parse(this.json).time,
+      time: state.time,
       json: this.json,
     };
   }
   restore(snapshot: KernelSnapshot): void {
     this.json = snapshot.json;
     this.revision = snapshot.revision;
+    this.impacts = (JSON.parse(this.json) as { impactQueue?: Impact[] }).impactQueue ?? [];
   }
   renderFacts(_limit?: number): readonly RenderFact[] {
     return [];
@@ -118,13 +132,14 @@ function pack(
   port: KernelPort,
   system: GamePack["systems"][number] | undefined,
   initialActions?: readonly ActionRequest[],
+  systems?: readonly SystemDefinition[],
 ): GamePack {
   return {
     id: "colony",
     version: 1,
     definition,
     components: [morale],
-    systems: system ? [system] : [],
+    systems: systems ?? (system ? [system] : []),
     initialActions,
   };
 }
@@ -159,6 +174,188 @@ test("a rejected action returns its result while the simulation step advances", 
   assert.equal(value.save().tick, 1);
   assert.equal(port.snapshot().revision, 1);
 });
+
+const impact: Impact = {
+  id: "impact.1",
+  sequence: 1,
+  projectileId: "projectile.1",
+  sourceId: "source.1",
+  targetId: "target.1",
+  time: 0.1,
+  point: { x: 1, y: 0, z: 0 },
+  normal: { x: -1, y: 0, z: 0 },
+  velocity: { x: 4, y: 0, z: 0 },
+};
+
+test("physical impacts arrive on the following eligible step exactly once", () => {
+  const observed: string[][] = [];
+  const system: SystemDefinition = {
+    id: "test.impact",
+    version: 1,
+    consumesImpacts: true,
+    reads: [],
+    writes: [],
+    run: (context) => observed.push(context.impacts.map((event) => event.id)),
+  };
+  const port = new TestPort();
+  port.impacts = [impact];
+  const value = session(port, system).value;
+  value.step(0.1);
+  assert.deepEqual(observed, [[]]);
+  value.step(0.1);
+  assert.deepEqual(observed, [[], ["impact.1"]]);
+  value.step(0.1);
+  assert.deepEqual(observed, [[], ["impact.1"], []]);
+  assert.deepEqual(value.save().pendingImpacts, []);
+});
+
+test("pending impacts survive save and a failed consumer step", () => {
+  let fail = false;
+  const observed: string[][] = [];
+  const system: SystemDefinition = {
+    id: "test.impact-retry",
+    version: 1,
+    consumesImpacts: true,
+    reads: [],
+    writes: [],
+    run: (context) => {
+      observed.push(context.impacts.map((event) => event.id));
+      if (fail) throw new Error("consumer failed");
+    },
+  };
+  const port = new TestPort();
+  port.impacts = [impact];
+  const first = session(port, system);
+  first.value.step(0.1);
+  const saved = first.value.save();
+  fail = true;
+  assert.throws(() => first.value.step(0.1), /consumer failed/);
+  assert.deepEqual(first.value.save().pendingImpacts, saved.pendingImpacts);
+  fail = false;
+  first.value.step(0.1);
+  assert.deepEqual(observed, [[], ["impact.1"], ["impact.1"]]);
+
+  const restoredObserved: string[][] = [];
+  const restoredSystem: SystemDefinition = {
+    ...system,
+    run: (context) => restoredObserved.push(context.impacts.map((event) => event.id)),
+  };
+  const restored = session(new TestPort(), restoredSystem);
+  restored.value.restore(saved);
+  restored.value.step(0.1);
+  assert.deepEqual(restoredObserved, [["impact.1"]]);
+});
+
+test("native advance failure preserves the queued physical impact for retry", () => {
+  const observed: number[] = [];
+  const system: SystemDefinition = {
+    id: "test.native-impact-retry",
+    version: 1,
+    consumesImpacts: true,
+    reads: [],
+    writes: [],
+    run: (context) => observed.push(...context.impacts.map((event) => event.sequence)),
+  };
+  const port = new TestPort();
+  port.impacts = [impact];
+  port.failAdvance = true;
+  const { value } = session(port, system);
+  assert.throws(() => value.step(0.1), /native advance failed/);
+  port.failAdvance = false;
+  value.step(0.1);
+  value.step(0.1);
+  assert.deepEqual(observed, [[], [], [1]]);
+});
+
+test("a pack without impact consumers discards committed impacts", () => {
+  const port = new TestPort();
+  port.impacts = [impact];
+  const { value } = session(port);
+  value.step(0.1);
+  assert.deepEqual(value.save().pendingImpacts, []);
+  assert.deepEqual(value.save().impactFrontiers, []);
+});
+
+test("a replayed sequence is rejected after its event was compacted", () => {
+  const system: SystemDefinition = {
+    id: "test.impact-replay",
+    version: 1,
+    consumesImpacts: true,
+    reads: [],
+    writes: [],
+    run: () => undefined,
+  };
+  const port = new TestPort();
+  const { value } = session(port, system);
+  port.impacts = [impact];
+  value.step(0.1);
+  value.step(0.1);
+  assert.equal(value.save().impactHighWater, 1);
+  port.impacts = [impact];
+  assert.throws(() => value.step(0.1), /duplicate physical impact sequence/);
+  assert.equal(value.save().impactHighWater, 1);
+});
+
+test("a live consumer compacts a sustained impact stream", () => {
+  const seen: number[] = [];
+  const system: SystemDefinition = {
+    id: "test.impact-stream",
+    version: 1,
+    consumesImpacts: true,
+    reads: [],
+    writes: [],
+    run: (context) => seen.push(...context.impacts.map((event) => event.sequence)),
+  };
+  const port = new TestPort();
+  const { value } = session(port, system);
+  for (let sequence = 1; sequence <= 1100; sequence++) {
+    port.impacts = [{ ...impact, id: `impact.${sequence}`, sequence, time: sequence }];
+    value.step(0.1);
+  }
+  value.step(0.1);
+  assert.equal(seen.length, 1100);
+  assert.equal(value.save().pendingImpacts.length, 0);
+  assert.equal(value.save().impactHighWater, 1100);
+});
+
+test("different impact cadences retain one event until both consumers acknowledge", () => {
+  const first: number[] = [];
+  const second: number[] = [];
+  const systems: SystemDefinition[] = [
+    {
+      id: "test.fast-impact",
+      version: 1,
+      consumesImpacts: true,
+      reads: [],
+      writes: [],
+      run: (context) => first.push(...context.impacts.map((event) => event.sequence)),
+    },
+    {
+      id: "test.slow-impact",
+      version: 1,
+      consumesImpacts: true,
+      every: 2,
+      reads: [],
+      writes: [],
+      run: (context) => second.push(...context.impacts.map((event) => event.sequence)),
+    },
+  ];
+  const port = new TestPort();
+  const value = new GameSession({
+    port,
+    pack: pack(port, undefined, undefined, systems),
+  });
+  value.start();
+  port.impacts = [impact];
+  value.step(0.1);
+  assert.deepEqual(first, [1]);
+  assert.deepEqual(second, []);
+  value.step(0.1);
+  assert.deepEqual(first, [1]);
+  assert.deepEqual(second, [1]);
+  assert.equal(value.save().pendingImpacts.length, 0);
+});
+
 
 test("invalid restores do not mutate queued actions, game time, or the port", () => {
   const queued = {
@@ -276,7 +473,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", null));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 4);
+  assert.equal(value.save().version, 5);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {

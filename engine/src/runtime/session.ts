@@ -3,6 +3,7 @@ import { checkedAction } from "./actions";
 import { Position, Support, Surface } from "../sdk/common";
 import type {
   ActionRequest,
+  AdvanceResult,
   ActionResult,
   ActionOutcome,
   GameCommandResult,
@@ -16,6 +17,7 @@ import type {
   WriteIntent,
   EntityId,
   WorldPose,
+  Impact,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -44,7 +46,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 4;
+  readonly version: 5;
   readonly game: string;
   readonly gameVersion: number;
   readonly paused: boolean;
@@ -55,7 +57,36 @@ export interface SessionSnapshot {
   readonly outcomes: readonly ActionOutcome[];
   readonly pendingActions: readonly ActionRequest[];
   readonly pendingWrites: readonly WriteIntent[];
-  readonly systems: readonly { id: string; version: number }[];
+  readonly pendingImpacts: readonly Impact[];
+  readonly impactHighWater: number;
+  readonly impactFrontiers: readonly { system: string; sequence: number | null }[];
+  readonly systems: readonly { id: string; version: number; consumesImpacts: boolean }[];
+}
+const MAX_PENDING_IMPACTS = 1024;
+function finiteVec3(value: unknown): value is { x: number; y: number; z: number } {
+  return Boolean(value) && typeof value === "object" &&
+    Number.isFinite((value as { x?: unknown }).x) &&
+    Number.isFinite((value as { y?: unknown }).y) &&
+    Number.isFinite((value as { z?: unknown }).z);
+}
+function checkedImpact(value: unknown): Impact {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("invalid physical impact");
+  const impact = value as Record<string, unknown>;
+  const allowed = new Set(["id", "sequence", "projectileId", "sourceId", "targetId", "time", "point", "normal", "velocity"]);
+  if (Object.keys(impact).some((key) => !allowed.has(key)))
+    throw new Error("invalid physical impact fields");
+  for (const field of ["id", "sourceId", "targetId"])
+    if (typeof impact[field] !== "string" || impact[field].length === 0 || impact[field].length > 160)
+      throw new Error("invalid physical impact identity");
+  if (impact.projectileId !== undefined &&
+      (typeof impact.projectileId !== "string" || impact.projectileId.length === 0 || impact.projectileId.length > 160))
+    throw new Error("invalid physical projectile identity");
+  if (typeof impact.sequence !== "number" || !Number.isSafeInteger(impact.sequence) || impact.sequence < 1 ||
+      typeof impact.time !== "number" || !Number.isFinite(impact.time) || impact.time < 0 ||
+      !finiteVec3(impact.point) || !finiteVec3(impact.normal) || !finiteVec3(impact.velocity))
+    throw new Error("invalid physical impact geometry");
+  return structuredClone(value) as Impact;
 }
 export class GameSession {
   readonly pack: GamePack;
@@ -68,11 +99,20 @@ export class GameSession {
   private outcomes: ActionOutcome[] = [];
   private pendingActions: ActionRequest[] = [];
   private pendingWrites: WriteIntent[] = [];
+  private pendingImpacts: Impact[] = [];
+  private impactHighWater = 0;
+  private impactFrontiers = new Map<string, number | null>();
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
     this.seed = (options.seed ?? 1) >>> 0;
     this.random = new DeterministicRandom(this.seed);
+    const consumers = new Set<string>();
+    for (const system of this.pack.systems) {
+      if (consumers.has(system.id)) throw new Error("duplicate system identity");
+      consumers.add(system.id);
+      if (system.consumesImpacts) this.impactFrontiers.set(system.id, null);
+    }
     for (const definition of Object.values(this.pack.commands ?? {})) {
       const commandWrites = new Set(
         definition.writes.map((component) => component.id),
@@ -110,6 +150,9 @@ export class GameSession {
     this.outcomes = [];
     this.pendingActions = [];
     this.pendingWrites = [];
+    this.pendingImpacts = [];
+    this.impactHighWater = 0;
+    for (const id of this.impactFrontiers.keys()) this.impactFrontiers.set(id, null);
     this.start();
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
@@ -269,12 +312,37 @@ export class GameSession {
       },
     }));
   }
+  private impactsFor(
+    systemId: string,
+    frontiers: ReadonlyMap<string, number | null>,
+  ): readonly Impact[] {
+    const frontier = frontiers.get(systemId);
+    if (frontier === undefined) throw new Error("missing impact consumer frontier");
+    if (frontier === null) return structuredClone(this.pendingImpacts);
+    return structuredClone(
+      this.pendingImpacts.filter((impact) => impact.sequence > frontier),
+    );
+  }
+  private compactImpacts(): void {
+    if (this.impactFrontiers.size === 0) {
+      this.pendingImpacts = [];
+      return;
+    }
+    if (this.pendingImpacts.length === 0) return;
+    const frontiers = [...this.impactFrontiers.values()];
+    if (frontiers.some((frontier) => frontier === null)) return;
+    const removeThrough = Math.min(...frontiers) as number;
+    this.pendingImpacts = this.pendingImpacts.filter(
+      (impact) => impact.sequence > removeThrough,
+    );
+  }
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta))
       throw new Error("delta must be finite and between zero and one second");
     if (this.paused) return [];
     const before = this.save();
     try {
+      this.compactImpacts();
       const clock: SimulationClock = Object.freeze({
         now: this.now,
         delta,
@@ -284,12 +352,14 @@ export class GameSession {
       this.pendingWrites = [];
       const writes: WriteIntent[] = [...queuedWrites];
       const actions: ActionRequest[] = this.pendingActions.splice(0);
+      const nextFrontiers = new Map(this.impactFrontiers);
       let systemActionCount = 0;
       let activeReads: readonly import("../contracts").ComponentDefinition<any>[] =
         [];
       const context: WriteContext = {
         clock,
         random: this.random,
+        impacts: [],
         assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
         outcomes: structuredClone(this.outcomes),
@@ -311,7 +381,18 @@ export class GameSession {
           continue;
         const beforeWrites = writes.length;
         activeReads = definition.reads;
-        definition.run(context);
+        const impacts = definition.consumesImpacts
+          ? this.impactsFor(definition.id, nextFrontiers)
+          : [];
+        definition.run({
+          ...context,
+          impacts,
+        });
+        if (definition.consumesImpacts && this.pendingImpacts.length > 0)
+          nextFrontiers.set(
+            definition.id,
+            this.pendingImpacts[this.pendingImpacts.length - 1].sequence,
+          );
         writes.push(
           ...this.validateWrites(
             writes.splice(beforeWrites),
@@ -319,16 +400,33 @@ export class GameSession {
           ),
         );
       }
-      const results = this.port.advance(delta, writes, actions);
-      if (results.length !== actions.length)
+      const advanced: AdvanceResult = this.port.advance(delta, writes, actions);
+      if (advanced.results.length !== actions.length)
         throw new Error("kernel result count mismatch");
+      const incoming = advanced.impacts.map(checkedImpact);
+      const seen = new Set(this.pendingImpacts.map((impact) => impact.sequence));
+      let previousSequence = this.pendingImpacts.at(-1)?.sequence ?? this.impactHighWater;
+      for (const impact of incoming) {
+        if (seen.has(impact.sequence) || impact.sequence <= this.impactHighWater)
+          throw new Error("duplicate physical impact sequence");
+        if (impact.sequence <= previousSequence) throw new Error("physical impacts out of order");
+        seen.add(impact.sequence);
+        previousSequence = impact.sequence;
+      }
+      this.pendingImpacts = [...this.pendingImpacts, ...incoming];
+      if (incoming.length > 0)
+        this.impactHighWater = incoming[incoming.length - 1].sequence;
+      this.impactFrontiers = nextFrontiers;
+      this.compactImpacts();
+      if (this.pendingImpacts.length > MAX_PENDING_IMPACTS)
+        throw new Error("physical impact backlog limit reached");
       this.outcomes = actions.map((action, index) => ({
         action,
-        result: results[index],
+        result: advanced.results[index],
       }));
       this.now += delta;
       this.tick++;
-      return results;
+      return advanced.results;
     } catch (error) {
       this.port.restore(before.kernel);
       this.now = before.now;
@@ -336,6 +434,11 @@ export class GameSession {
       this.random.restore(before.random);
       this.pendingActions = [...before.pendingActions];
       this.pendingWrites = [...before.pendingWrites];
+      this.pendingImpacts = structuredClone(before.pendingImpacts);
+      this.impactHighWater = before.impactHighWater;
+      this.impactFrontiers = new Map(
+        before.impactFrontiers.map((frontier) => [frontier.system, frontier.sequence]),
+      );
       this.outcomes = structuredClone([...before.outcomes]);
       throw error;
     }
@@ -354,16 +457,20 @@ export class GameSession {
       random: this.random.state(),
       pendingActions: structuredClone(this.pendingActions),
       pendingWrites: structuredClone(this.pendingWrites),
+      pendingImpacts: structuredClone(this.pendingImpacts),
+      impactHighWater: this.impactHighWater,
+      impactFrontiers: [...this.impactFrontiers.entries()].map(([system, sequence]) => ({ system, sequence })),
       systems: this.pack.systems.map((system) => ({
         id: system.id,
         version: system.version,
+        consumesImpacts: system.consumesImpacts === true,
       })),
     };
   }
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 4 ||
+      snapshot.version !== 5 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||
@@ -373,7 +480,9 @@ export class GameSession {
       snapshot.tick < 0 ||
       !Number.isInteger(snapshot.random) ||
       snapshot.random < 0 ||
-      snapshot.random > 0xffffffff
+      snapshot.random > 0xffffffff ||
+      !Number.isSafeInteger(snapshot.impactHighWater) ||
+      snapshot.impactHighWater < 0
     )
       throw new Error("invalid session snapshot");
     if (
@@ -381,6 +490,9 @@ export class GameSession {
       snapshot.pendingActions.length > 128 ||
       !Array.isArray(snapshot.pendingWrites) ||
       snapshot.pendingWrites.length > 128 ||
+      !Array.isArray(snapshot.pendingImpacts) ||
+      snapshot.pendingImpacts.length > MAX_PENDING_IMPACTS ||
+      !Array.isArray(snapshot.impactFrontiers) ||
       !Array.isArray(snapshot.systems)
     )
       throw new Error("invalid session queues");
@@ -415,6 +527,39 @@ export class GameSession {
       incomingTargets,
       incomingMembership,
     );
+    const pendingImpacts = snapshot.pendingImpacts.map(checkedImpact);
+    const impactIds = new Set<string>();
+    const impactSequences = new Set<number>();
+    let previousSequence = 0;
+    for (const impact of pendingImpacts) {
+      if (impactIds.has(impact.id)) throw new Error("duplicate pending impact");
+      if (impactSequences.has(impact.sequence) || impact.sequence <= previousSequence ||
+          impact.sequence > snapshot.impactHighWater)
+        throw new Error("invalid pending impact sequence");
+      impactIds.add(impact.id);
+      impactSequences.add(impact.sequence);
+      previousSequence = impact.sequence;
+    }
+    const expectedConsumers = new Set(
+      this.pack.systems.filter((system) => system.consumesImpacts).map((system) => system.id),
+    );
+    if (snapshot.impactFrontiers.length !== expectedConsumers.size)
+      throw new Error("invalid impact frontiers");
+    const frontiers = new Map<string, number | null>();
+    for (const frontier of snapshot.impactFrontiers) {
+      if (typeof frontier.system !== "string" || !expectedConsumers.has(frontier.system) ||
+          frontiers.has(frontier.system) ||
+          (frontier.sequence !== null &&
+            (typeof frontier.sequence !== "number" || !Number.isSafeInteger(frontier.sequence) ||
+              frontier.sequence < 0 || frontier.sequence > snapshot.impactHighWater)))
+        throw new Error("invalid impact frontier");
+      frontiers.set(frontier.system, frontier.sequence);
+    }
+    const minimum = Math.min(
+      ...[...frontiers.values()].map((sequence) => sequence ?? 0),
+    );
+    if (pendingImpacts.some((impact) => impact.sequence <= minimum))
+      throw new Error("uncompacted impact frontier");
     if (!Array.isArray(snapshot.outcomes) || snapshot.outcomes.length > 256)
       throw new Error("invalid action outcomes");
     const outcomes = snapshot.outcomes.map((outcome) => {
@@ -456,10 +601,10 @@ export class GameSession {
     if (schema(canonical.scene.components) !== schema(definition.components))
       throw new Error("snapshot component versions do not match");
     const expected = this.pack.systems
-      .map((system) => `${system.id}@${system.version}`)
+      .map((system) => `${system.id}@${system.version}:${system.consumesImpacts === true}`)
       .join(",");
     const actual = snapshot.systems
-      .map((system) => `${system.id}@${system.version}`)
+      .map((system) => `${system.id}@${system.version}:${system.consumesImpacts === true}`)
       .join(",");
     if (expected !== actual)
       throw new Error("snapshot game system versions do not match");
@@ -469,6 +614,9 @@ export class GameSession {
     this.random.restore(snapshot.random);
     this.pendingActions = pending;
     this.pendingWrites = pendingWrites;
+    this.pendingImpacts = pendingImpacts;
+    this.impactHighWater = snapshot.impactHighWater;
+    this.impactFrontiers = frontiers;
     this.outcomes = outcomes;
     this.paused = snapshot.paused;
   }

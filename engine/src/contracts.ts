@@ -99,6 +99,22 @@ export interface ActionResult {
   readonly reason?: string;
   readonly revision: number;
 }
+export interface Impact {
+  readonly id: string;
+  readonly sequence: number;
+  readonly projectileId?: EntityId;
+  readonly sourceId: EntityId;
+  readonly targetId: EntityId;
+  readonly time: number;
+  readonly point: Vec3;
+  readonly normal: Vec3;
+  readonly velocity: Vec3;
+}
+export interface AdvanceResult {
+  readonly revision: number;
+  readonly results: readonly ActionResult[];
+  readonly impacts: readonly Impact[];
+}
 
 export interface ActionOutcome {
   readonly action: ActionRequest;
@@ -123,6 +139,7 @@ export interface ReadContext {
   readonly clock: SimulationClock;
   readonly outcomes: readonly ActionOutcome[];
   readonly random: RandomSource;
+  readonly impacts: readonly Impact[];
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   assign(
@@ -144,6 +161,7 @@ export interface SystemDefinition {
   readonly reads: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
   readonly every?: number;
+  readonly consumesImpacts?: boolean;
   readonly run: (context: WriteContext) => void;
 }
 
@@ -159,7 +177,7 @@ export interface RenderFact {
 }
 export interface KernelSnapshot {
   readonly format: "hive-kernel";
-  readonly version: 2;
+  readonly version: 3;
   readonly revision: number;
   readonly time: number;
   readonly json: string;
@@ -174,7 +192,7 @@ export interface KernelPort {
     delta: number,
     writes: readonly WriteIntent[],
     actions: readonly ActionRequest[],
-  ) => ActionResult[];
+  ) => AdvanceResult;
   readonly snapshot: () => KernelSnapshot;
   readonly restore: (snapshot: KernelSnapshot) => void;
   readonly renderFacts: (limit?: number) => readonly RenderFact[];

@@ -58,6 +58,7 @@ export interface SystemOptions {
   reads?: readonly ComponentDefinition<any>[];
   writes?: readonly ComponentDefinition<any>[];
   every?: number;
+  consumesImpacts?: boolean;
   run: (context: WriteContext) => void;
 }
 export function system(options: SystemOptions): SystemDefinition {
