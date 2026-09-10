@@ -66,19 +66,36 @@ function VerticalStudy() {
   const [layer, setLayer] = useState("cutaway");
   const [zoom, setZoom] = useState(1);
   const layerRef = useRef(layer);
-  const zoomRef = useRef(zoom);
+  const fittedZoomRef = useRef(1);
   const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState("Loading the checked original art bank…");
+  const [status, setStatus] = useState(
+    "Loading the checked original art bank…",
+  );
   useEffect(() => {
     let cancelled = false;
     let pack;
     let app;
-    let released = false;
+    let initializing = false;
     const release = () => {
-      if (released) return;
-      released = true;
-      app?.destroy(true, { children: true, texture: false, textureSource: false });
-      pack?.dispose();
+      // An in-flight init still owns its stage. Its continuation releases the
+      // renderer and pack after the promise settles, even after unmount.
+      if (initializing) return;
+      const ownedApp = app,
+        ownedPack = pack;
+      app = null;
+      pack = null;
+      if (appRef.current === ownedApp) appRef.current = null;
+      try {
+        if (ownedApp?.renderer)
+          ownedApp.destroy(true, {
+            children: true,
+            texture: false,
+            textureSource: false,
+          });
+        else ownedApp?.stage.destroy({ children: true });
+      } finally {
+        ownedPack?.dispose();
+      }
     };
     async function start() {
       try {
@@ -92,14 +109,20 @@ function VerticalStudy() {
           return;
         }
         app = new Application();
-        await app.init({
-          width: WIDTH,
-          height: HEIGHT,
-          backgroundAlpha: 0,
-          antialias: false,
-          resolution: 1,
-          preference: "webgl",
-        });
+        initializing = true;
+        try {
+          await app.init({
+            width: WIDTH,
+            height: HEIGHT,
+            backgroundAlpha: 0,
+            antialias: false,
+            resolution: 1,
+            preference: "webgl",
+            autoStart: false,
+          });
+        } finally {
+          initializing = false;
+        }
         if (cancelled) {
           release();
           return;
@@ -128,31 +151,31 @@ function VerticalStudy() {
           (HEIGHT - 32) / bounds.height,
           1.2,
         );
-        zoomRef.current = fit;
+        fittedZoomRef.current = fit;
         app.stage.scale.set(fit);
         app.stage.position.set(WIDTH / 2, HEIGHT / 2);
         app.render();
         setZoom(fit);
         setReady(true);
-        setStatus(`${VERTICAL_LAYOUT_LABEL} · ${VERTICAL_LAYOUT.length} authored pieces`);
+        setStatus(
+          `${VERTICAL_LAYOUT_LABEL} · ${VERTICAL_LAYOUT.length} authored pieces`,
+        );
       } catch (error) {
         release();
-        if (!cancelled) setStatus(`Original art could not load: ${error.message}`);
+        if (!cancelled)
+          setStatus(`Original art could not load: ${error.message}`);
       }
     }
     start();
     return () => {
       cancelled = true;
       release();
-      appRef.current = null;
-      setReady(false);
-      stageRef.current?.replaceChildren();
     };
   }, []);
 
   useEffect(() => {
     layerRef.current = layer;
-    zoomRef.current = zoom;
+
     const app = appRef.current;
     if (!app) return;
     for (const child of app.stage.children) {
@@ -191,24 +214,45 @@ function VerticalStudy() {
                 {label}
               </Button>
             ))}
-            <Button size="sm" variant="outline" disabled={!ready} onClick={() => setZoom((value) => Math.max(0.7, value - 0.2))}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!ready}
+              onClick={() =>
+                setZoom((value) =>
+                  Math.max(fittedZoomRef.current * 0.5, value - 0.2),
+                )
+              }
+            >
               Zoom −
             </Button>
-            <Button size="sm" variant="outline" disabled={!ready} onClick={() => setZoom((value) => Math.min(1.8, value + 0.2))}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!ready}
+              onClick={() =>
+                setZoom((value) =>
+                  Math.min(fittedZoomRef.current * 2, value + 0.2),
+                )
+              }
+            >
               Zoom +
             </Button>
           </div>
           <div className="stage" ref={stageRef} data-layer={layer} />
           <p className="layer-status" role="status">
-            {LAYERS.find(([id]) => id === layer)?.[1]} · {VERTICAL_LAYOUT.filter((site) => showSite(site, layer)).length} of {VERTICAL_LAYOUT.length} authored pieces visible · zoom {zoom.toFixed(1)}×
+            {LAYERS.find(([id]) => id === layer)?.[1]} ·{" "}
+            {VERTICAL_LAYOUT.filter((site) => showSite(site, layer)).length} of{" "}
+            {VERTICAL_LAYOUT.length} authored pieces visible · zoom{" "}
+            {zoom.toFixed(1)}×
           </p>
         </CardContent>
       </Card>
       <p className="note">{VERTICAL_LAYOUT_LABEL}</p>
       <p className="note">
-        The study shares the law’s authored coordinates and prepared original
-        sprites. It does not run construction, award timber, mutate a player
-        save, or claim a playable game build.
+        Inspect the original building pieces and switch between floors. This is
+        a prepared layout; construction and workers run in the playable
+        clearing.
       </p>
     </>
   );

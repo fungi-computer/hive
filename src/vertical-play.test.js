@@ -37,7 +37,10 @@ import {
   serializeClearing,
   snapshotFor,
 } from "./clearing-state.ts";
-import { VERTICAL_LAYOUT, VERTICAL_LAYOUT_WOOD } from "./fixtures/vertical-layout.ts";
+import {
+  VERTICAL_LAYOUT,
+  VERTICAL_LAYOUT_WOOD,
+} from "./fixtures/vertical-layout.ts";
 
 const site = (id, type, x, z, level) => ({
   id,
@@ -314,7 +317,9 @@ test("tied sight crossings check the alternate corner cell and horizontal face",
 
 test("a finite room-and-platform plan has real work access at every authored completion", () => {
   const state = createClearing(),
-    plan = VERTICAL_LAYOUT.map((next) => site(next.id, next.type, next.x, next.z, next.level));
+    plan = VERTICAL_LAYOUT.map((next) =>
+      site(next.id, next.type, next.x, next.z, next.level),
+    );
   // This is a query/admission sequence over authored completed facts. It does
   // not grant timber, run construction ticks, or claim an earned main save.
   assert.equal(
