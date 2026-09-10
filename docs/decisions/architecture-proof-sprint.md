@@ -11,6 +11,44 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Current playable goal, Levi September 10:** finish the combined tiny clearing:
+whole-map digging, inexpensive finite water and groundwater, paid smoke/heat in
+actual rooms, one-voxel traversal, at least three above-ground storeys and two
+underground chambers, accurate controls and prepared original art. The saved
+native goal remains active in Session `01a0791e-7ac8-7cc0-90dd-48f8d164e526`.
+This current outcome supersedes the earlier candidate/helper queue below; that
+queue records how the existing release was reached.
+
+The hosted game is still runtime `210b85d`, with browser-owned stepping and
+IndexedDB saves. Its accidental 32-cell wet-fixture admission remains a shipped
+bug. The locally proved DO owner is not connected to that preview. Serving static
+files from Cloudflare does not change the simulation authority. The DO ownership,
+rollback/restart and durable wake requirements below remain engine constraints.
+
+Current source integration uses generated terrain across the whole clearing,
+separate finite water stocks and air derived from actual terrain, structure faces
+and water volume. Terrain no longer owns a water clock or excavation material
+ledger. The game must join terrain edits, exact soil/stone yields and removed pore
+water, held-vessel transfers, gas admission and current saves through existing
+completion and tick owners before publication. Independent modules on disk do not
+finish that join. The shared vertical source has the corrected picked-face law
+and strict types passing at `9759238`; touched Fallow still reports introduced
+cycles, complexity and small duplication. Its earlier failures remain evidence.
+
+Original-art startup work is also unfinished: one export at `fa8025ee` returned
+image payloads but failed manifest packaging in u4684. No final image bank was
+published. The source-only `b3ae668` correction accepts existing camelCase art
+paths and protects `bakeTerrainSlice`; its authored regressions and another export
+have not run. Preserve the exact old packet and failure. Any successor uses a new
+reviewed packet and fresh shared execution window, not the withdrawn release.
+
+Root owns the coupled game/environment/material/save integration, art acceptance
+and execution. Ampere owns only the isolated actual air state/binding component;
+Hume's terrain and static-manifest corrections are pinned, and Meitner performs
+independent source reads. No fresh simulation-capacity or startup-speed claim is
+qualified yet. The next public evidence must be the actual combined game rather
+than another numerical-room demonstration.
+
 **Latest delivery direction, Levi September 9:** land coherent accepted work in
 our playable demo now. This release wave supersedes the earlier preference for
 less frequent deployment. Root owns serial integration, source/art acceptance
