@@ -460,7 +460,7 @@ export function openRegion<State, Command>(options: {
           event.wire,
         );
     }
-    if (mode.kind === "clock") {
+    if (nextClock) {
       owner.sql.exec(
         "UPDATE hive_region_clock SET next_sequence=?,last_request_json=?,last_receipt_json=?,frontier_bytes=? WHERE singleton=1",
         nextClock.nextSequence,
