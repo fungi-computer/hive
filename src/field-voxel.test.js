@@ -18,9 +18,16 @@ import {
 } from "./field-water-source.ts";
 import {
   createNavigationSpaces,
+  HUMAN_NAVIGATION,
+  CAT_NAVIGATION,
+  carryingProfile,
   physicalOccupancyProblem,
   navigationStateProblem,
 } from "./navigation-space.ts";
+const access = (space, at, profile = HUMAN_NAVIGATION) =>
+  space.access(at, { footing: at, profile });
+import { excavationPositions } from "./excavation.ts";
+import { standing } from "./engine/navigation/index.ts";
 const environment = (state) => ({
   terrain: terrainEnvironment(state.terrain),
   sites: state.sites,
@@ -107,16 +114,16 @@ test("a physical separating floor blocks drawing without invalidating cell ident
   assert.deepEqual(fieldWaterAccess(state, ref(14), "withdraw"), []);
 });
 
-test("wet route eligibility preserves occupied bodies and rejects collar before knowledge", () => {
+test("shallow wading preserves occupied bodies and rejects collar before knowledge", () => {
   const state = createClearing();
   cut(state, [0, 14, 128]);
   transfer(state, 14, "deposit", 0.25);
   const spaces = createNavigationSpaces(state),
     at = { x: 0, y: 14, z: 128 };
-  assert.equal(spaces().access(at), "blocked");
-  assert.equal(spaces(null, "occupied-body").access(at), "allowed");
+  assert.equal(access(spaces(), at), "allowed");
+  assert.equal(access(spaces(null, "occupied-body"), at), "allowed");
   assert.equal(
-    spaces().access({ x: TERRAIN_FRAME.x - 1, y: 15, z: 128 }),
+    access(spaces(), { x: TERRAIN_FRAME.x - 1, y: 15, z: 128 }),
     "blocked",
   );
 });
@@ -131,8 +138,8 @@ test("shallow surface water can be drawn from an adjacent dry same-height footin
   assert.equal(source.availableUnits, 2);
   assert(source.accessCells.some((at) => at.y === 15));
   const space = createNavigationSpaces(state)();
-  assert.equal(space.access({ x: 0, y: 15, z: 128 }), "blocked");
-  assert(source.accessCells.every((at) => space.access(at) === "allowed"));
+  assert.equal(access(space, { x: 0, y: 15, z: 128 }), "allowed");
+  assert(source.accessCells.every((at) => access(space, at) === "allowed"));
 });
 
 test("prospective edits and restore share support protection for every fixed-ground kind", () => {
@@ -168,4 +175,70 @@ test("prospective edits and restore share support protection for every fixed-gro
       kind,
     );
   }
+});
+
+test("wading allowances use physical depth, retain payload policy and reject deeper work footings", () => {
+  const state = createClearing();
+  cut(state, [0, 14, 128]);
+  const at = { x: 0, y: 14, z: 128 };
+  // Authored paired stock, not earned seepage: one square metre makes 50kg .05m.
+  transfer(state, 14, "deposit", 50);
+  assert.equal(
+    access(createNavigationSpaces(state)(), at, CAT_NAVIGATION),
+    "allowed",
+  );
+  transfer(state, 14, "deposit", 0.001);
+  assert.equal(
+    access(createNavigationSpaces(state)(), at, CAT_NAVIGATION),
+    "blocked",
+  );
+  assert.equal(
+    access(createNavigationSpaces(state)(), at, HUMAN_NAVIGATION),
+    "allowed",
+  );
+  transfer(state, 14, "withdraw", 0.001);
+  transfer(state, 14, "deposit", 200);
+  const carrying = carryingProfile(HUMAN_NAVIGATION, true);
+  assert.equal(carrying.maxWadingDepthM, 0.25);
+  assert.equal(
+    access(createNavigationSpaces(state)(), at, carrying),
+    "allowed",
+  );
+  assert(
+    excavationPositions(state, [1, 14, 128], carrying).some(
+      (p) => p.x === at.x && p.y === at.y && p.z === at.z,
+    ),
+  );
+  transfer(state, 14, "deposit", 0.001);
+  const spaces = createNavigationSpaces(state);
+  assert.equal(access(spaces(), at, carrying), "blocked");
+  assert(
+    !excavationPositions(state, [1, 14, 128], carrying).some(
+      (p) => p.x === at.x && p.y === at.y && p.z === at.z,
+    ),
+  );
+  assert.equal(access(spaces(null, "occupied-body"), at, carrying), "allowed");
+  assert.equal(access(spaces(null, "ground-support"), at, carrying), "allowed");
+});
+
+test("upper water cannot reset the allowance at every body voxel", () => {
+  const state = createClearing();
+  cut(state, [0, 14, 128]);
+  transfer(state, 15, "deposit", 1);
+  const space = createNavigationSpaces(state)();
+  assert.equal(
+    standing(space, { x: 0, y: 14, z: 128 }, HUMAN_NAVIGATION),
+    "blocked",
+  );
+  assert.equal(
+    space.access(
+      { x: 0, y: 15, z: 128 },
+      {
+        footing: { x: 0, y: 14, z: 128 },
+        profile: HUMAN_NAVIGATION,
+      },
+    ),
+    "blocked",
+    "one millimetre .54m above the feet is not shallow wading",
+  );
 });

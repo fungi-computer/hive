@@ -23,12 +23,14 @@ import type {
 
 export const HUMAN_NAVIGATION: Profile = Object.freeze({
   clearanceVoxels: 4,
+  maxWadingDepthM: 0.25,
   flatTicks: 6,
   upTicks: 12,
   downTicks: 9,
 });
 export const CAT_NAVIGATION: Profile = Object.freeze({
   clearanceVoxels: 1,
+  maxWadingDepthM: 0.05,
   flatTicks: 6,
   upTicks: 12,
   downTicks: 9,
@@ -113,7 +115,7 @@ export function createNavigationSpaces(state: Clearing) {
   const links = Object.freeze(stairs(state));
   return (
     contact: { kind: "bed"; site: string } | null = null,
-    purpose: "dry-route" | "occupied-body" | "ground-support" = "dry-route",
+    purpose: "route" | "occupied-body" | "ground-support" = "route",
   ): Space => {
     const obstacles = [
       ...fixed,
@@ -125,7 +127,10 @@ export function createNavigationSpaces(state: Clearing) {
       point: geometry.point,
       face: geometry.face,
       links,
-      access(at: Footing): "allowed" | "blocked" | "needs-data" {
+      access(
+        at: Footing,
+        body: Readonly<{ footing: Footing; profile: Profile }>,
+      ): "allowed" | "blocked" | "needs-data" {
         if (!inside(at)) return "blocked";
         const coordinate = [at.x, at.y, at.z];
         if (
@@ -167,11 +172,12 @@ export function createNavigationSpaces(state: Clearing) {
         // Only route eligibility changes with water. Occupied-body validation
         // preserves a real body's saved position when its cell becomes wet.
         const cell = wet.get(`${at.x},${at.y},${at.z}`);
-        if (purpose === "dry-route" && cell) {
+        if (purpose === "route" && cell) {
           const depthM =
             cell.liquidVolumeM3 / (terrain.spacingM[0] * terrain.spacingM[2]);
-          if ((at.y - cell.at[1]) * terrain.spacingM[1] < depthM)
-            return "blocked";
+          const aboveFootM =
+            (cell.at[1] - body.footing.y) * terrain.spacingM[1] + depthM;
+          if (aboveFootM > body.profile.maxWadingDepthM) return "blocked";
         }
         return "allowed";
       },
@@ -205,7 +211,7 @@ function bodiesProblem(
   for (const body of [...Object.values(state.actors), state.cat]) {
     const space = spaces(bodyContact(body), "occupied-body");
     const safe = body.traversal
-      ? edgeStillClear(space, body.traversal.edge)
+      ? edgeStillClear(space, body.traversal.edge, bodyProfile(state, body))
       : standing(space, body, bodyProfile(state, body)) === "supported";
     if (!safe)
       return "Waiting for bodies and carried goods to clear the changed space.";

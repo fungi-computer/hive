@@ -12,8 +12,14 @@ import {
 } from "./index.ts";
 import { traversalSchema } from "./schema.ts";
 
-const human = { clearanceVoxels: 4, flatTicks: 6, upTicks: 12, downTicks: 9 };
-const cat = { ...human, clearanceVoxels: 1 };
+const human = {
+  maxWadingDepthM: 0.25,
+  clearanceVoxels: 4,
+  flatTicks: 6,
+  upTicks: 12,
+  downTicks: 9,
+};
+const cat = { ...human, clearanceVoxels: 1, maxWadingDepthM: 0.05 };
 const p = (x, y = 0, z = 0) => ({ x, y, z });
 function space(primitives = [], links = []) {
   const bounds = { min: [-3, -2, -3], max: [7, 14, 7] };
@@ -102,7 +108,7 @@ test("removing a stair invalidates its admitted link even with both endpoint flo
   const admitted = admitEdge(space([floor], [link]), p(0), p(2, 4), human);
   assert.equal(admitted.kind, "edge");
   assert.equal(admitted.edge.link, "stair-a");
-  assert.equal(edgeStillClear(space([floor]), admitted.edge), false);
+  assert.equal(edgeStillClear(space([floor]), admitted.edge, human), false);
 });
 
 test("malformed later intent and unsupported duration reject before body mutation", () => {
@@ -180,4 +186,60 @@ test("parallel links choose the cheapest clear edge with stable identity, includ
   assert.equal(admitted.kind, "edge");
   assert.equal(admitted.edge.link, "short-link");
   assert.equal(admitted.edge.duration, 3);
+});
+
+test("access sees each swept body base and paid water refusal retains exact progress", () => {
+  let deep = false;
+  const calls = [];
+  const geometry = {
+    ...space(),
+    access(at, body) {
+      calls.push({
+        at: { ...at },
+        footing: { ...body.footing },
+        profile: body.profile,
+      });
+      return deep && at.x === 1 ? "blocked" : "allowed";
+    },
+  };
+  const body = { ...p(0), traversal: null };
+  assert.equal(beginRoute(body, geometry, [p(1)], human).kind, "edge");
+  assert(calls.some(({ at, footing }) => at.y === 3 && footing.y === 0));
+  assert(
+    calls.every(
+      ({ at, footing, profile }) =>
+        at.x === footing.x &&
+        at.z === footing.z &&
+        footing.y === 0 &&
+        profile === human,
+    ),
+  );
+  assert.equal(advanceRoute(body, geometry, human), "moving");
+  const paid = structuredClone(body);
+  deep = true;
+  assert.equal(advanceRoute(body, geometry, human), "waiting");
+  assert.deepEqual(body, paid);
+  deep = false;
+  for (let i = 1; i < 6; i++) advanceRoute(body, geometry, human);
+  assert.deepEqual(body, { ...p(1), traversal: null });
+});
+
+test("lifted step clearance retains each swept column's actual footing", () => {
+  const calls = [];
+  const geometry = {
+    ...space([step(1)]),
+    access(at, body) {
+      calls.push({ at: { ...at }, footing: { ...body.footing } });
+      return "allowed";
+    },
+  };
+  const result = admitEdge(geometry, p(0), p(1, 1), human);
+  assert.equal(result.kind, "edge");
+  assert.equal(result.edge.duration, 12);
+  assert(
+    calls.some(
+      ({ at, footing }) => at.x === 0 && at.y === 4 && footing.y === 0,
+    ),
+  );
+  assert(calls.every(({ at, footing }) => footing.y === (at.x === 0 ? 0 : 1)));
 });
