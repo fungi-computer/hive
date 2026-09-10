@@ -127,3 +127,21 @@ test("current restore rejects retired fields, foreign edits and non-removal mate
     /only original soil or stone removal/,
   );
 });
+
+test("raw terrain admission rejects accessors before reading the envelope", () => {
+  const state = initialTerrain();
+  let reads = 0;
+  const raw = {
+    version: state.version,
+    identity: state.identity,
+    get world() {
+      reads++;
+      return state.world;
+    },
+  };
+  assert.throws(
+    () => parseTerrain(raw),
+    /terrain envelope: exact fields required/,
+  );
+  assert.equal(reads, 0);
+});
