@@ -17,22 +17,40 @@ less frequent deployment. Root owns serial integration, source/art acceptance
 and the existing preview. Reuse completed laws and qualify only the changed
 consumer; no historical browser matrix or stopped expensive editor runs.
 
-The first candidate is the accepted current main Clearing through `cf66f922`,
-including finite digging/water, common partial-pail supply, real field-water
-inspection and shared physical completion. Freeze it independently of unfinished
-room/stencil/yield work, build once, exercise the actual paused Dig → earned
-hollow → current water inspection interaction, and publish those exact bytes to
-the existing preview. The new one-voxel clambering policy is planned, not yet
-implemented: cost-aware routes and shared traversal progress must land before
-removing deep-work reach guards. Follow with reachable deeper excavation/material
-yields, then actual paid brewing smoke/heat/ventilation in the same playable world.
-These are release slices within the unchanged engine goal, not engine completion.
+**Live September 10:** the main Clearing now includes finite digging/water,
+common partial-pail supply, real field-water inspection and shared physical
+completion. Runtime/build `210b85d` was published from `81386a8` (only policy/docs
+history differs), deployment `9e8d5601-9249-4e61-ae6a-c35c469a530d`, on the
+[existing playable preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/).
+All 100 hosted files match the accepted dist; no rebuild followed the input proof.
+The prior `4a6931c` deployment and its actual published dist remain the rollback.
 
-The user restored native helpers after their usage stop. Hume resumes preserved
-`terrain-yields` checkpoint `aaad125`; Sol owns the bounded room-source Fallow
-correction; Meitner independently reads actual stencil/yield/room source. Root
-keeps release execution and the coupled physical/numerical decisions. Their first
-replies confirmed actual roots/files; no Session or worktree was replaced.
+Actual `u4622` passed six desktop assertions: public Sedge parking, paused Dig,
+pawn completion/one soil lot, exact hollow inspection, close/box behavior and
+armed-Dig/right-click cancellation/reinspection. The earned hollow displayed
+0.019460972208 litres and zero whole 1 L measures. Root viewed the desktop frame.
+Overall exit remains **1**: the last assertion incorrectly expected an inspector
+to survive resize, while the existing camera-move owner deliberately dismisses
+it. Narrow reopening/containment is unverified. This run observed readiness at
+57.516 seconds; the earlier `u4617` startup miss remains, so stable startup
+performance is not accepted. No hosted input, full-pail draw or large-flow claim
+is inferred from this focused browser witness. Its receipt and exact HTTP hashes
+are retained in `gameplay-water-release/.botanical/gameplay-water-input-v3/`.
+
+The next coherent environmental source is `environment-next` at `33b397f`:
+reviewed room/Fallow corrections, per-face boundary stencils and finite terrain
+yields await one combined affected qualification. It is separate from the live
+release. Hume owns the current physical-footing/navigation caller and schema-22
+join; cost-aware one-voxel traversal must land before removing deep-work reach
+guards. Sol owns the independent static-art loading source correction: ordinary
+visits should load the original baked pixels instead of authoring all 1,291
+textures again. Meitner independently reviews these source boundaries. Root
+retains original-art/numerical acceptance and serial integration/publication.
+Existing Sessions and isolated writer roots are preserved.
+
+Follow with reachable deeper excavation/material yields, then actual paid
+brewing smoke/heat/ventilation in the same playable world. These are releases
+within the unchanged engine goal, not engine completion.
 
 **Editor cost and handoff policies remain:** expensive native-editor browser
 traces stay stopped. Compact8518cc5 is already hosted over accepted5171299;
