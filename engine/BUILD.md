@@ -284,3 +284,12 @@ finite cargo reaches a distinct hold and saves/restores exactly. The runner also
 reports five empty filtered file wrappers; these are not five additional laws.
 Strict engine TypeScript passed. No browser/native-DO qualification of this new
 pack is claimed. Shared client vessel rendering is in its isolated writer lane.
+
+## Pirate client first-shape review
+
+3017994 is not integrated: review found support sorting overridden by Pixi
+zIndex, raw screen coordinates passed into deck projection, additive selection
+masking empty-click hits, and a mismatched obstacle visual ID. The same client
+writer is correcting these before the bounded input check. The prepared driver
+uses the actual elevated deck projection and remains unrun. No new browser or
+deployment result is claimed.
