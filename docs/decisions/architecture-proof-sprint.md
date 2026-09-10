@@ -35,20 +35,28 @@ finish that join. The shared vertical source has the corrected picked-face law
 and strict types passing at `9759238`; touched Fallow still reports introduced
 cycles, complexity and small duplication. Its earlier failures remain evidence.
 
-Original-art startup work is also unfinished: one export at `fa8025ee` returned
-image payloads but failed manifest packaging in u4684. No final image bank was
-published. The source-only `b3ae668` correction accepts existing camelCase art
-paths and protects `bakeTerrainSlice`; its authored regressions and another export
-have not run. Preserve the exact old packet and failure. Any successor uses a new
-reviewed packet and fresh shared execution window, not the withdrawn release.
+Original-art bank authoring is complete. The single successor export at clean
+`0501ce4` passed as u4692, producing 1,307 images in three 2048-square atlases plus
+ground and manifest (five files, 4,762,436 bytes). All 402 source inputs stayed
+unchanged; owned processes, scope and port 5187 closed. Root inspected the four
+PNG files and matched all 34 manifest provenance inputs against the current
+consumer, then committed the exact bank in `f4825c0`. Manifest SHA-256 is
+`a1702f37c5267e151c37cc779b41683468538832ede4da9952144e72c9429845`.
+This proves authored assets and their integration, not game startup, original
+pixel parity, frame performance or deployment. The earlier fa8025/u4684 camelCase
+manifest failure and its evidence remain preserved; do not replay its packet.
 
 Root owns coupled game/environment/material/save integration, art acceptance and
-execution. At source pin `0501ce4`, Hume's water-view correction is integrated;
-he next prepares only the stopped successor art-export packet in
-`static-art-authoring-v2`. Ampere owns the actual Clearing air presentation in
-`clearing-air-view`. Meitner independently reads Root's paid-material/clock/save
-join. Their isolated worktrees preserve the same native Sessions. No fresh
-simulation-capacity, raster or startup-speed claim is qualified yet.
+execution. Hume's water-view correction and completed art packet are integrated;
+his current source trace found that underground Dig still forces Ground and
+rectangles still select exposed columns. Stone output also lacks ground/carry
+presentation. These are concrete remaining gameplay work, not new solver needs.
+Ampere owns the actual Clearing air presentation in `clearing-air-view`, including
+Root's Air action-dispatch correction. Meitner independently accepted Root's
+`8f119c1` save-lifetime correction from source: owed integer burn ticks cannot
+outlive the owning fermentation. Its new law remains unrun. The same native
+Sessions and isolated worktrees remain; no fresh capacity, raster or startup-speed
+claim is qualified yet.
 
 **Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
 whole-clearing water and material balance through completion and current saves;
@@ -79,12 +87,12 @@ raster composition. The slice camera fits high/deep geometry without changing it
 screen projection. Root read the source corrections; no new pixels were rendered.
 Per-cell bake cost is unmeasured, tinted unfinished plans retain ordinary ordering,
 and the preexisting roof/actor whole-sprite overlap remains explicit. Paid flame
-profiles read saved release facts, but the new original art bank is still absent.
-Hume's successor packet is preparation only and needs its own fresh execution
-window. The spent fa8025/u4684 invocation must never be repeated from an old relay.
+profiles read saved release facts, and the completed original bank contains their
+frames. Its spent authoring packet must not run again; the next rendered evidence
+belongs to the actual playable consumer.
 
 Next concrete qualification must cover this combined source, then the real game
-consumer once its prepared bank exists. Reuse prior evidence for unchanged work;
+consumer loading its prepared bank. Reuse prior evidence for unchanged work;
 no old numerical/browser matrix, editor proof or capacity claim follows from these
 commits. The hosted game and the original u4684 failure/cleanup remain unchanged.
 
