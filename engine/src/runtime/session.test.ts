@@ -61,6 +61,7 @@ class TestPort implements KernelPort {
   impacts: Impact[] = [];
   failAdvance = false;
   writes: WriteIntent[] = [];
+  committedWrites: WriteIntent[] = [];
   loaded = 0;
   acceptedConsumes = 0;
   acceptConsume = false;
@@ -68,16 +69,22 @@ class TestPort implements KernelPort {
     this.loaded++;
   }
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] {
-    return [];
+    return _spec.components.some((component) => component.id === morale.id)
+      ? [{
+          id: "actor",
+          get: <V extends object>(_definition: ComponentDefinition<V>) => ({ value: 0 } as V),
+        }]
+      : [];
   }
   advance(
     delta: number,
     writes: readonly WriteIntent[],
     actions: readonly ActionRequest[],
   ): AdvanceResult {
-    this.writes.push(...structuredClone(writes));
     this.revision++;
     if (this.failAdvance) throw new Error("native advance failed");
+    this.writes.push(...structuredClone(writes));
+    this.committedWrites.push(...structuredClone(writes));
     const state = JSON.parse(this.json) as { revision: number; time: number; impactQueue: Impact[] };
     state.revision = this.revision;
     state.time += delta;
@@ -247,14 +254,14 @@ test("pending impacts survive save and a failed consumer step", () => {
 });
 
 test("native advance failure preserves the queued physical impact for retry", () => {
-  const observed: number[] = [];
+  const observed: number[][] = [];
   const system: SystemDefinition = {
     id: "test.native-impact-retry",
     version: 1,
     consumesImpacts: true,
     reads: [],
     writes: [],
-    run: (context) => observed.push(...context.impacts.map((event) => event.sequence)),
+    run: (context) => observed.push(context.impacts.map((event) => event.sequence)),
   };
   const port = new TestPort();
   port.impacts = [impact];
@@ -265,6 +272,36 @@ test("native advance failure preserves the queued physical impact for retry", ()
   value.step(0.1);
   value.step(0.1);
   assert.deepEqual(observed, [[], [], [1]]);
+});
+
+test("consumer failure rolls back authored writes and retries the impact once", () => {
+  let fail = true;
+  const system: SystemDefinition = {
+    id: "test.impact-write",
+    version: 1,
+    consumesImpacts: true,
+    reads: [],
+    writes: [morale],
+    run: (context) => {
+      if (context.impacts.length > 0) {
+        context.write(morale, "actor", { value: 9 });
+        if (fail) throw new Error("authored consumer failed");
+      }
+    },
+  };
+  const port = new TestPort();
+  port.impacts = [impact];
+  const { value } = session(port, system);
+  value.step(0.1);
+  fail = true;
+  assert.throws(() => value.step(0.1), /authored consumer failed/);
+  assert.equal(port.committedWrites.length, 0);
+  fail = false;
+  value.step(0.1);
+  assert.deepEqual(port.committedWrites, [
+    { component: morale.id, entity: "actor", value: { value: 9 } },
+  ]);
+  assert.deepEqual(value.save().pendingImpacts, []);
 });
 
 test("a pack without impact consumers discards committed impacts", () => {
@@ -318,6 +355,31 @@ test("a live consumer compacts a sustained impact stream", () => {
   assert.equal(value.save().impactHighWater, 1100);
 });
 
+test("an unconsumed impact backlog rejects the whole step at its bound", () => {
+  const system: SystemDefinition = {
+    id: "test.impact-overflow",
+    version: 1,
+    consumesImpacts: true,
+    every: 100_000,
+    reads: [],
+    writes: [],
+    run: () => undefined,
+  };
+  const port = new TestPort();
+  const { value } = session(port, system);
+  for (let sequence = 1; sequence <= 1024; sequence++) {
+    port.impacts = [{ ...impact, id: `impact.${sequence}`, sequence, time: sequence }];
+    value.step(0.1);
+  }
+  const before = value.save();
+  port.impacts = [{ ...impact, id: "impact.1025", sequence: 1025, time: 1025 }];
+  assert.throws(() => value.step(0.1), /physical impact backlog limit reached/);
+  const after = value.save();
+  assert.deepEqual(after.pendingImpacts, before.pendingImpacts);
+  assert.equal(after.impactHighWater, before.impactHighWater);
+  assert.equal(after.tick, before.tick);
+});
+
 test("different impact cadences retain one event until both consumers acknowledge", () => {
   const first: number[] = [];
   const second: number[] = [];
@@ -347,6 +409,9 @@ test("different impact cadences retain one event until both consumers acknowledg
   });
   value.start();
   port.impacts = [impact];
+  value.step(0.1);
+  assert.deepEqual(first, []);
+  assert.deepEqual(second, []);
   value.step(0.1);
   assert.deepEqual(first, [1]);
   assert.deepEqual(second, []);
