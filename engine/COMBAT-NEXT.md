@@ -117,3 +117,19 @@ Admission of launch owns finite ammo and projectile creation in one native
 candidate; an impact acknowledges no second launch and consumes no second ammo.
 The next implementation review must show those facts in the actual callers before
 adding other event kinds or a generic subscription API.
+
+### Native mutation boundary found during implementation review
+
+`Kernel::advance_json` currently validates authored writes, then mutates ECS,
+revision and actions before advancing movement. It is not itself a detached
+whole-world candidate. The existing GameSession rollback and Region's disposable
+WASM candidates must not be misreported as a native guarantee.
+
+The projectile join introduces a new fallible geometric query after possible
+launch/admission. Its implementation must stage fallible work before mutation or
+restore the exact prior native state on failure. In particular, a failed sweep
+cannot leave spent ammo, allocated shot identity, moved bodies or an incremented
+revision. Prove this through the public native entrypoint, not only by wrapping
+it in a GameSession test. Avoid adding unconditional duplicate whole-world work
+to scenes without projectiles; measure the actual first-shot consumer before
+claiming the approach scales to a large formation.
