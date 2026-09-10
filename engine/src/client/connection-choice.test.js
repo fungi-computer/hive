@@ -102,3 +102,25 @@ test("public endpoints reject insecure non-local hosts and credentials", () => {
   assert.throws(() => createConnectionChoice({ ...base, publicHost: "http://world.example" }), /HTTPS/);
   assert.throws(() => createConnectionChoice({ ...base, publicHost: "https://user:pass@world.example" }), /credentials/);
 });
+
+test("failed new-world construction retains the current remote connection", () => {
+  const calls = [];
+  let fail = false;
+  const choice = createConnectionChoice({
+    mode: "formations",
+    publicHost: "https://demo.example.test",
+    storage: storage(),
+    cryptoSource: cryptoSource(),
+    connectLocal: () => ({}),
+    connectRemote: (options) => {
+      if (fail) throw new Error("constructor failed");
+      return runtimeFactory(calls)(options);
+    },
+  });
+  fail = true;
+  assert.throws(() => choice.persistence.newWorld(), /constructor failed/);
+  assert.equal(calls.length, 1);
+  choice.runtime.send({ type: "start", game: "formations" });
+  assert.deepEqual(calls[0].runtime.sent, [{ type: "start", game: "formations" }]);
+  choice.runtime.dispose();
+});

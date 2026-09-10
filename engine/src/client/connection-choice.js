@@ -51,18 +51,22 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
   let token = readToken(storage, mode, cryptoSource);
 
   function replace(nextToken) {
-    current?.dispose();
-    unsubscribe();
-    token = nextToken;
-    current = connectRemote({
+    const next = connectRemote({
       endpoint,
       game: mode,
-      fetch: authorizedFetch(fetchImpl, token),
+      fetch: authorizedFetch(fetchImpl, nextToken),
       pollMs: 250,
     });
-    unsubscribe = current.subscribe((event) => {
+    const nextUnsubscribe = next.subscribe((event) => {
       for (const listener of listeners) listener(event);
     });
+    const previous = current;
+    const previousUnsubscribe = unsubscribe;
+    current = next;
+    unsubscribe = nextUnsubscribe;
+    token = nextToken;
+    previousUnsubscribe();
+    previous?.dispose();
   }
   replace(token);
   const runtime = {
@@ -94,8 +98,14 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       newWorld(onReplaced) {
         if (disposed) throw new Error("connection choice disposed");
         const next = randomToken(cryptoSource);
-        storage.setItem(tokenKey(mode), next);
-        replace(next);
+        const previous = token;
+        try {
+          storage.setItem(tokenKey(mode), next);
+          replace(next);
+        } catch (error) {
+          try { storage.setItem(tokenKey(mode), previous); } catch {}
+          throw error;
+        }
         onReplaced?.(true);
       },
     },
