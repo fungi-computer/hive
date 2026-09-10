@@ -1248,6 +1248,7 @@ function Build({ model: m, send }) {
 
 function FieldWaterTarget({ target, context, send }) {
   const text = fieldInspectionText(target);
+  const display = worldView(target);
   return (
     <Card
       variant="outline"
@@ -1269,7 +1270,7 @@ function FieldWaterTarget({ target, context, send }) {
         </Button>
       </div>
       <p className="muted">
-        Ground · {target.x}, {target.z}
+        Hollow · {display.x}, {display.z}
       </p>
       <p data-field-water="litres">{text.stock}</p>
       <p data-field-water="measures">{text.measures}</p>

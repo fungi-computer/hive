@@ -1,5 +1,6 @@
 import type { Cell, Clearing } from "./model.ts";
-import { terrainFacts, TERRAIN_FRAME } from "./terrain.ts";
+import { placementFooting, type Placement } from "./game-space.ts";
+import { terrainFacts } from "./terrain.ts";
 import {
   FIELD_WATER,
   fieldWaterReferenceSchema,
@@ -10,6 +11,7 @@ import {
 export type FieldInspection = Readonly<
   FieldWaterReference &
     Cell & {
+      heightCells: number;
       litres: number;
       wholeMeasures: number;
       litresPerMeasure: number;
@@ -24,34 +26,68 @@ export function fieldInspectionFacts(
   const sources = fieldWaterSources(state);
   return terrainFacts(state.terrain)
     .soil.nodes.filter((node: { kind: string }) => node.kind === "pit")
-    .map((node: { nodeId: string; at: readonly number[]; massKg: number }) => {
-      const reference = fieldWaterReferenceSchema.parse({
-        binding: FIELD_WATER.id,
-        nodeId: node.nodeId,
-      });
-      return Object.freeze({
-        ...reference,
-        x: node.at[0] - TERRAIN_FRAME.x,
-        z: node.at[2] - TERRAIN_FRAME.z,
-        level: 0 as const,
-        litres:
-          (node.massKg / FIELD_WATER.kgPerUnit) * FIELD_WATER.litresPerUnit,
-        wholeMeasures: Math.floor(node.massKg / FIELD_WATER.kgPerUnit),
-        litresPerMeasure: FIELD_WATER.litresPerUnit,
-        hasDrawingRim: sources.some((source) => source.nodeId === node.nodeId),
-      });
-    });
+    .map(
+      (node: {
+        nodeId: string;
+        at: readonly number[];
+        heightCells: number;
+        massKg: number;
+      }) => {
+        const reference = fieldWaterReferenceSchema.parse({
+          binding: FIELD_WATER.id,
+          nodeId: node.nodeId,
+        });
+        return Object.freeze({
+          ...reference,
+          x: node.at[0],
+          y: node.at[1],
+          z: node.at[2],
+          heightCells: node.heightCells,
+          litres:
+            (node.massKg / FIELD_WATER.kgPerUnit) * FIELD_WATER.litresPerUnit,
+          wholeMeasures: Math.floor(node.massKg / FIELD_WATER.kgPerUnit),
+          litresPerMeasure: FIELD_WATER.litresPerUnit,
+          hasDrawingRim: sources.some(
+            (source) => source.nodeId === node.nodeId,
+          ),
+        });
+      },
+    );
 }
 
 export function fieldInspectionAt(
   state: Pick<Clearing, "terrain">,
   cell: Cell,
 ): FieldWaterReference | null {
-  if (cell.level !== 0) return null;
+  if (![cell.x, cell.y, cell.z].every(Number.isSafeInteger)) return null;
   const fact = fieldInspectionFacts(state).find(
-    (fact) => fact.x === cell.x && fact.z === cell.z,
+    (fact) =>
+      fact.x === cell.x &&
+      fact.z === cell.z &&
+      cell.y >= fact.y &&
+      cell.y < fact.y + fact.heightCells,
   );
   return fact ? { binding: fact.binding, nodeId: fact.nodeId } : null;
+}
+
+/** The existing picker owns the face. Its owner voxel is solid; inspection
+ * names the adjacent hollow voxel, not the solid targeted by excavation. */
+export function fieldInspectionFromFace(
+  state: Pick<Clearing, "terrain">,
+  face: {
+    kind: string;
+    cell: Placement;
+    ownerVoxel: readonly [number, number, number];
+  } | null,
+): FieldWaterReference | null {
+  if (!face || (face.kind !== "pit-floor" && face.kind !== "cut-wall"))
+    return null;
+  const horizontal = placementFooting(face.cell);
+  return fieldInspectionAt(state, {
+    x: horizontal.x,
+    y: face.ownerVoxel[1] + (face.kind === "pit-floor" ? 1 : 0),
+    z: horizontal.z,
+  });
 }
 
 export function resolveFieldInspection(

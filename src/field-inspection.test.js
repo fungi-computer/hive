@@ -1,11 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createActor } from "xstate";
+import { terrainSurfaces } from "./terrain-surface-geometry.js";
 import { createClearing } from "./clearing.ts";
 import { excavateTerrain, advanceTerrain, parseTerrain } from "./terrain.ts";
 import {
   fieldInspectionFacts,
   fieldInspectionAt,
+  fieldInspectionFromFace,
   resolveFieldInspection,
   fieldInspectionText,
 } from "./field-inspection.ts";
@@ -18,7 +20,8 @@ import {
 import { createHeldFieldFixture } from "../tools/engine-do/goblin-field-fixture.ts";
 import { returnFieldWater } from "./field-water.ts";
 import { selectContainerPortions } from "./materials.ts";
-const cell = { x: 7, z: 9, level: 0 };
+const cell = { x: 0, y: 14, z: 128 };
+const displayCell = { x: 7, z: 9, level: 0 };
 const reference = {
   binding: FIELD_WATER.id,
   nodeId: "reservoir:column-p0-p128",
@@ -40,9 +43,9 @@ test("dry and fractional excavated stock stays inspectable without collectable s
   assert.equal(wet.wholeMeasures, 0);
   assert.equal(fieldWaterSources(state).length, 0);
   assert.deepEqual(fieldInspectionAt(state, cell), reference);
-  assert.equal(fieldInspectionAt(state, { ...cell, level: 1 }), null);
+  assert.equal(fieldInspectionAt(state, { ...cell, y: 15 }), null);
   assert.equal(
-    fieldInspectionAt(state, { ...cell, x: 8 }),
+    fieldInspectionAt(state, { ...cell, x: 1 }),
     null,
     "no nearest-water retarget",
   );
@@ -99,7 +102,7 @@ test("paid field stock shows whole measures independently of actor permission", 
 
 test("existing XState click ownership separates field inspection from tool and box gestures", () => {
   const actor = createActor(toolMachine).start();
-  const point = { cell, screen: { x: 20, y: 30 } };
+  const point = { cell: displayCell, screen: { x: 20, y: 30 } };
   actor.send({ type: "BEGIN", point });
   actor.send({ type: "END", point });
   assert(groundInspectionGesture(actor.getSnapshot().context));
@@ -124,4 +127,32 @@ test("existing XState click ownership separates field inspection from tool and b
     level: null,
   });
   assert.deepEqual(forwarded, [action]);
+});
+
+test("picked floor and wall identify the adjacent physical hollow, not the solid or map plane", () => {
+  const state = createClearing();
+  state.terrain = excavateTerrain(state.terrain, [0, 14, 128]);
+  const faces = terrainSurfaces(state.terrain, 15).filter(
+    (face) => face.cell.x === displayCell.x && face.cell.z === displayCell.z,
+  );
+  const floor = faces.find((face) => face.kind === "pit-floor");
+  const wall = faces.find((face) => face.kind === "cut-wall");
+  assert(floor && wall);
+  assert.deepEqual(fieldInspectionFromFace(state, floor), reference);
+  assert.deepEqual(fieldInspectionFromFace(state, wall), reference);
+  assert.equal(
+    fieldInspectionAt(state, {
+      x: floor.ownerVoxel[0],
+      y: floor.ownerVoxel[1],
+      z: floor.ownerVoxel[2],
+    }),
+    null,
+  );
+  assert.equal(fieldInspectionFromFace(state, null), null);
+  const fact = fieldInspectionFacts(state)[0];
+  assert.deepEqual({ x: fact.x, y: fact.y, z: fact.z }, cell);
+  assert.equal(
+    fieldInspectionAt(state, { ...cell, y: cell.y + fact.heightCells }),
+    null,
+  );
 });

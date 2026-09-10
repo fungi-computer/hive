@@ -8,7 +8,7 @@ import {
   viewLayer,
 } from "./game-space.ts";
 import { groundInspectionGesture } from "./ui-actions.ts";
-import { fieldInspectionAt } from "./field-inspection.ts";
+import { fieldInspectionFromFace } from "./field-inspection.ts";
 import { createStartupReporter, renderStartup } from "./startup.js";
 import { Application, Container } from "pixi.js";
 import { bakeArt } from "./art.js";
@@ -763,7 +763,11 @@ async function startGame() {
         return;
       }
       if (groundInspectionGesture(fixed.machine.context)) {
-        const reference = fieldInspectionAt(state, end);
+        const face = camera.terrainFace(screen);
+        const reference =
+          face?.cell.level === fixed.level
+            ? fieldInspectionFromFace(state, face)
+            : null;
         if (reference) {
           hud.dispatch({
             kind: "inspect-field-water",
