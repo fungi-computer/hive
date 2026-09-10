@@ -34,15 +34,52 @@ type FieldCell = Readonly<{
   capacityKg: number;
   liquidVolumeM3: number;
 }>;
+type FieldCache = {
+  water: Clearing["water"];
+  terrain: Clearing["terrain"];
+  sites: Clearing["sites"];
+  siteStamp: string;
+  cells: readonly FieldCell[];
+  navigation?: ReturnType<typeof createNavigationSpaces>;
+  sources?: FieldWaterSource[];
+  supplyKey?: string;
+};
+const fieldCaches = new WeakMap<object, FieldCache>();
+function siteStamp(sites: Clearing["sites"]): string {
+  return JSON.stringify(
+    sites.map(({ id, type, x, z, level, direction, finishedAt }) => [
+      id,
+      type,
+      x,
+      z,
+      level,
+      direction,
+      finishedAt,
+    ]),
+  );
+}
 export type FieldWaterSource = FieldWaterReference & {
   accessCells: readonly Cell[];
   availableUnits: number;
 };
 export function fieldWaterCells(state: FieldWaterState): readonly FieldCell[] {
-  return waterEnvironmentFacts(state.water, {
+  const stamp = siteStamp(state.sites), cached = fieldCaches.get(state as object);
+  if (
+    cached && cached.water === state.water && cached.terrain === state.terrain &&
+    cached.sites === state.sites && cached.siteStamp === stamp
+  ) return cached.cells;
+  const cells = waterEnvironmentFacts(state.water, {
     terrain: terrainEnvironment(state.terrain),
     sites: state.sites,
   }).cells.filter((cell) => cell.kind === "void");
+  fieldCaches.set(state as object, {
+    water: state.water,
+    terrain: state.terrain,
+    sites: state.sites,
+    siteStamp: stamp,
+    cells,
+  });
+  return cells;
 }
 /** Draining changes availability, not the stable physical cell reference. */
 export function fieldWaterProblem(
@@ -94,9 +131,17 @@ function accessCells(
 /** Candidate footings are checked for real support, body access, knowledge and fixed
  * occupancy. The actual worker's route and current draw recheck remain separate. */
 export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
-  const space = createNavigationSpaces(state)();
+  const stamp = siteStamp(state.sites), cached = fieldCaches.get(state);
+  const navigation = createNavigationSpaces(state);
+  if (
+    cached && cached.water === state.water && cached.terrain === state.terrain &&
+    cached.sites === state.sites && cached.siteStamp === stamp &&
+    cached.navigation === navigation &&
+    cached.sources
+  ) return cached.sources;
+  const space = navigation();
   const known = knownFootings(state);
-  return fieldWaterCells(state)
+  const sources = fieldWaterCells(state)
     .filter((cell) => cell.massKg >= FIELD_WATER.kgPerUnit)
     .map((cell) => ({
       binding: FIELD_WATER.id,
@@ -106,15 +151,31 @@ export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
     }))
     .filter((source) => source.accessCells.length > 0)
     .sort((a, b) => a.nodeId.localeCompare(b.nodeId));
+  const entry = fieldCaches.get(state);
+  if (entry) {
+    entry.sources = sources;
+    entry.navigation = navigation;
+    entry.supplyKey = JSON.stringify(
+      sources.map((source) => [
+        source.nodeId,
+        source.availableUnits,
+        source.accessCells.map((cell) => [cell.x, cell.y, cell.z]),
+      ]),
+    );
+  }
+  return sources;
 }
 export function fieldWaterSupplyKey(state: Clearing): string {
-  return JSON.stringify(
-    fieldWaterSources(state).map((source) => [
-      source.nodeId,
-      source.availableUnits,
-      source.accessCells.map((cell) => [cell.x, cell.y, cell.z]),
-    ]),
-  );
+  const stamp = siteStamp(state.sites), cached = fieldCaches.get(state);
+  const navigation = createNavigationSpaces(state);
+  if (
+    cached && cached.water === state.water && cached.terrain === state.terrain &&
+    cached.sites === state.sites && cached.siteStamp === stamp &&
+    cached.navigation === navigation &&
+    cached.supplyKey !== undefined
+  ) return cached.supplyKey;
+  fieldWaterSources(state);
+  return fieldCaches.get(state)?.supplyKey ?? "[]";
 }
 export function fieldWaterAccess(
   state: Clearing,

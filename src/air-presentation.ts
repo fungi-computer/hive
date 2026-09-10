@@ -140,7 +140,7 @@ function summarizeLayers(cells: readonly ClearingAirCell[]) {
 export function clearingAirPresentation(
   state: Clearing,
 ): ClearingAirPresentation {
-  const known = cache.get(state.air);
+  const known = cache.get(state.air), sight = currentSightKey(state);
   if (
     known &&
     known.tick === state.tick &&
@@ -148,10 +148,10 @@ export function clearingAirPresentation(
     known.sites === state.sites &&
     known.water === state.water &&
     known.terrain === state.terrain &&
-    known.exploration === state.exploration
+    known.exploration === state.exploration &&
+    known.sight === sight
   )
     return known.result;
-  const sight = currentSightKey(state);
   if (
     known &&
     known.water === state.water &&
@@ -173,7 +173,9 @@ export function clearingAirPresentation(
       terrain: terrainEnvironment(state.terrain),
       sites: state.sites,
     }),
-    cells = facts.cells.map(presentCell).filter((cell) => visible(cell.at)),
+    cells = facts.cells
+      .filter((fact) => visible(cellFooting(fact.id)))
+      .map(presentCell),
     layers = summarizeLayers(cells);
   const result = Object.freeze({
     geometryRevision: facts.geometryRevision,
