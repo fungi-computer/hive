@@ -1,5 +1,6 @@
 import type { GamePack, KernelPort } from "../contracts";
-import { WorkerRuntime, type WorkerCommand, type WorkerEvent } from "./worker";
+import { WorkerRuntime } from "./worker";
+import type { WorkerCommand, WorkerEvent } from "./protocol";
 import { wasmKernelPort, type WasmKernelBinding } from "./wasm-kernel";
 import { piratesPack } from "../games/pirates";
 import { colonyPack } from "../games/colony";
