@@ -10,13 +10,21 @@ import { setTimeout as delay } from "node:timers/promises";
 assert(
   process.argv[2] === "--output" &&
     (process.argv.length === 4 ||
-      (process.argv.length === 6 && process.argv[4] === "--pack")),
-  "Usage: node proof.mjs --output <directory> [--pack survival|pirates|colony|formations]",
+    (process.argv.length === 6 && process.argv[4] === "--pack") ||
+    (process.argv.length === 8 &&
+      process.argv[4] === "--pack" &&
+      process.argv[6] === "--fixture")),
+  "Usage: node proof.mjs --output <directory> [--pack survival|pirates|colony|formations] [--fixture cannon]",
 );
 const packId = process.argv[5] ?? "survival";
+const fixtureId = process.argv[7] ?? "default";
 assert(
   ["survival", "pirates", "colony", "formations"].includes(packId),
   "unsupported proof pack",
+);
+assert(
+  fixtureId === "default" || (packId === "formations" && fixtureId === "cannon"),
+  "unsupported proof fixture",
 );
 const directory = fileURLToPath(new URL(".", import.meta.url));
 const output = resolve(process.argv[3]);
@@ -45,6 +53,7 @@ const files = [
   "../../engine/src/games/pirates.ts",
   "../../engine/src/games/colony.ts",
   "../../engine/src/games/formations.ts",
+  "../../engine/src/sdk/combat.ts",
   "../../engine/generated/hive_kernel.js",
   "../../engine/generated/hive_kernel.d.ts",
   "../../engine/generated/hive_kernel_bg.wasm",
@@ -65,6 +74,7 @@ config.vars = {
   ...secrets,
   IMPLEMENTATION_HASH: hash.digest("hex"),
   PROOF_PACK: packId,
+  PROOF_FIXTURE: fixtureId,
 };
 const configPath = resolve(output, "wrangler.json");
 await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
@@ -291,6 +301,10 @@ function formationMorale(snapshot, id) {
   return kernelScene(snapshot).initial.find((entry) => entry.id === id)
     ?.components["formations.morale"]?.value;
 }
+function formationHealth(snapshot, id) {
+  return kernelScene(snapshot).initial.find((entry) => entry.id === id)
+    ?.components["formations.health"]?.value;
+}
 function formationSettings(snapshot) {
   return kernelScene(snapshot).initial.find(
     (entry) => entry.id === "formations.group.1",
@@ -298,6 +312,93 @@ function formationSettings(snapshot) {
 }
 function formationRoutes(snapshot) {
   return JSON.parse(snapshot.snapshot.state.session.kernel.json).routes;
+}
+async function runCannonProof(initial) {
+  let revision = 0;
+  const dispatch = async (id, value, role = "WRITER_SECRET", fault) => {
+    const result = await command(request(id, revision, value), role, fault);
+    if (result.status === 200) revision++;
+    return result;
+  };
+  const fire = { kind: "command", name: "fire", input: {} };
+  const fired = await dispatch("cannon-fire", fire);
+  assert.equal(fired.status, 200);
+  const queued = await snapshot();
+  assert.equal(queued.snapshot.revision, 1);
+  assert.equal(queued.snapshot.state.session.pendingActions.length, 1);
+  assert.equal(
+    kernelScene(queued).initial.find((entry) => entry.id === "formations.ammunition")
+      .components["hive.lot"].quantity,
+    6,
+  );
+
+  await stop();
+  await start();
+  assert.deepEqual(await snapshot(), queued);
+  assert.deepEqual(await command(request("cannon-fire", 0, fire)), fired);
+  revision = 1;
+
+  const flightStep = request("cannon-flight-step", revision, {
+    kind: "step",
+    delta: 0.1,
+  });
+  assert.equal(
+    (await command(flightStep, "HOST_SECRET", "after-commit")).status,
+    503,
+  );
+  const inFlight = await snapshot();
+  assert.equal(inFlight.snapshot.revision, 2);
+  assert.equal(
+    kernelScene(inFlight).initial.find((entry) => entry.id === "formations.ammunition")
+      .components["hive.lot"].quantity,
+    5,
+  );
+  assert.ok(
+    kernelScene(inFlight).initial.some((entry) => entry.id.startsWith("shot.")),
+    "native projectile must survive the lost receipt",
+  );
+
+  await stop();
+  await start();
+  assert.deepEqual(await snapshot(), inFlight);
+  assert.equal((await command(flightStep, "HOST_SECRET")).status, 200);
+  const flightReplay = await command(flightStep, "HOST_SECRET");
+  assert.deepEqual(await command(flightStep, "HOST_SECRET"), flightReplay);
+  assert.deepEqual(await snapshot(), inFlight);
+  revision = 2;
+
+  const impactStep = request("cannon-impact-step", revision, {
+    kind: "step",
+    delta: 0.3,
+  });
+  assert.equal((await command(impactStep, "HOST_SECRET")).status, 200);
+  const impactCommitted = await snapshot();
+  assert.ok(
+    !kernelScene(impactCommitted).initial.some((entry) => entry.id.startsWith("shot.")),
+    "projectile must settle before authored consequence",
+  );
+  assert.equal(formationHealth(impactCommitted, "formations.unit.1"), 100);
+  revision = 3;
+
+  const consequenceStep = request("cannon-consequence-step", revision, {
+    kind: "step",
+    delta: 0.1,
+  });
+  const beforeRollback = await snapshot();
+  assert.equal(
+    (await command(consequenceStep, "HOST_SECRET", "before-commit")).status,
+    503,
+  );
+  assert.deepEqual(await snapshot(), beforeRollback);
+  const consequence = await command(consequenceStep, "HOST_SECRET");
+  assert.equal(consequence.status, 200);
+  const damaged = await snapshot();
+  assert.equal(formationHealth(damaged, "formations.unit.1"), 80);
+  assert.equal(formationMorale(damaged, "formations.unit.1"), 50);
+  assert.deepEqual(await command(consequenceStep, "HOST_SECRET"), consequence);
+  assert.deepEqual((await snapshot()).snapshot, damaged.snapshot);
+  const observation = await checkObservation(damaged);
+  return { initial, queued, inFlight, impactCommitted, beforeRollback, damaged, observation };
 }
 async function runPirateProof(initial) {
   let revision = 0;
@@ -658,6 +759,16 @@ try {
     );
     await writeFile(
       resolve(output, "colony-proof-receipt.json"),
+      JSON.stringify({ status: "succeeded", starts }, null, 2),
+    );
+  } else if (packId === "formations" && fixtureId === "cannon") {
+    const evidence = await runCannonProof(initial);
+    await writeFile(
+      resolve(output, "formations-cannon-proof.json"),
+      JSON.stringify(evidence, null, 2),
+    );
+    await writeFile(
+      resolve(output, "formations-cannon-proof-receipt.json"),
       JSON.stringify({ status: "succeeded", starts }, null, 2),
     );
   } else if (packId === "formations") {
