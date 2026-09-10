@@ -16,6 +16,9 @@ function originalAssetsAndAuthorSource() {
       for (const file of ["manifest.json", manifest.ground.file, ...manifest.pages.map(page => page.file)]) {
         this.emitFile({ type: "asset", fileName: `${artDirectory}/${file}`, source: readFileSync(resolve(repository, "public", artDirectory, file)) });
       }
+      for (const file of ["MapleMono-OFL.txt", "Nunito-OFL.txt", "README.md"]) {
+        this.emitFile({ type: "asset", fileName: `licenses/fonts/${file}`, source: readFileSync(resolve(repository, "tools/asset-mcp/portable-fonts/stipe/fonts", file)) });
+      }
       for (const file of readdirSync(resolve(engine, "src/games"))) {
         if (!file.endsWith(".ts") || file.endsWith(".test.ts")) continue;
         this.emitFile({ type: "asset", fileName: `source/${file}`, source: readFileSync(resolve(engine, "src/games", file)) });
