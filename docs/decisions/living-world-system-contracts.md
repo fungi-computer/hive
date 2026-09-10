@@ -65,13 +65,13 @@ about every current workshop release.
 
 ### Five facts with five owners
 
-| Fact | Owner and rule | First consumers |
-| --- | --- | --- |
-| Hunger, thirst, rest | Needs owner: applicable definitions, current amount, rate/threshold state and advancement tick | Residents, player characters, guests; later prisoners/animals where applicable |
-| Physical means of care | Materials and contact: actual food/water quantities, container access, bed/seat reservation and use | Eat, drink, sleep, assisted delivery, service |
-| Mood | Derived current needs/conditions plus applicable memories; never another food quantity | Readable discomfort, satisfaction and later behavior weights |
-| Social history | Bounded memories with cause/participants/witnesses; directed opinions derived from them and durable bonds | Chat, shared meals, disagreements, trust and invitations |
-| Status and permissions | Membership, visitor terms, allowed areas, control grants and later custody remain separate | Resident/guest/prisoner access, self-service, work policy, AI/human controls |
+| Fact                   | Owner and rule                                                                                            | First consumers                                                                |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Hunger, thirst, rest   | Needs owner: applicable definitions, current amount, rate/threshold state and advancement tick            | Residents, player characters, guests; later prisoners/animals where applicable |
+| Physical means of care | Materials and contact: actual food/water quantities, container access, bed/seat reservation and use       | Eat, drink, sleep, assisted delivery, service                                  |
+| Mood                   | Derived current needs/conditions plus applicable memories; never another food quantity                    | Readable discomfort, satisfaction and later behavior weights                   |
+| Social history         | Bounded memories with cause/participants/witnesses; directed opinions derived from them and durable bonds | Chat, shared meals, disagreements, trust and invitations                       |
+| Status and permissions | Membership, visitor terms, allowed areas, control grants and later custody remain separate                | Resident/guest/prisoner access, self-service, work policy, AI/human controls   |
 
 A guest joining the colony preserves the same person, needs and memories. An AI
 controller changes decision authority, not metabolism. An incarcerated person
@@ -208,7 +208,6 @@ nearby social candidates under useful work before extrapolating to 100 people.
 Relations caches are derived: rebuild after load and invalidate relevant committed
 changes, rather than making cached opinions a second persistent truth.
 
-
 ## Retained cross-system contracts
 
 Status: Game CTO future architecture, 2026-09-07. This incorporates Levi's water/horticulture/waste, groups/zones, social relationships, royalty/beliefs and animal-ecosystem direction. It preserves the tiny-map fun gate and upstairs → brewing. None of these later systems enters the current runtime by virtue of this document. Read with the simulation/content and world-generation contracts.
@@ -225,7 +224,89 @@ The common chain is physical geometry → local conditions → living processes/
 
 Example: a beaver builds a dam from real material, changing channel conductance. Water backs up under the water model, infiltrates where soil permits, and alters growing conditions. Vegetation changes food/cover. Animals move or reproduce under their own rules. People can remove the dam or adapt their garden. There is no permanent `beaverNearby = fertilityBonus` substituting for that chain.
 
-## Water, heat and atmosphere: first numerical experiments
+## Finite water in a large world — current direction, 2026-09-10
+
+Levi reaffirmed a continuous Minecraft-style world processed by many region DOs,
+including deep caves and multiple upper floors. He explicitly asked whether soil
+absorbs forever and whether rivers run out. The tiny clearing qualifies local
+mechanisms; it does not replace that world or prove its distributed capacity.
+The following is the selected design direction, not an implemented watershed,
+weather or cross-DO release.
+
+Water moves between finite stores. A soil cell has a pore capacity, retained
+moisture and permitted exchange rates. Saturated soil can transmit water when a
+connected destination has room, but cannot delete an unlimited incoming supply.
+Blocked drainage leaves surface water pooling or backing up. Crop-available
+moisture, waterlogging, fertility and contamination are distinct facts; saturation
+is not an unconditional crop bonus.
+
+Rivers receive upstream flow, precipitation runoff and groundwater discharge.
+They may flow continuously when replenishment balances discharge. Drought,
+pumping or diversion can reduce flow or dry a reach. Lakes have stored volume,
+basin geometry and outlets: inflow raises the level, a reached outlet spills,
+withdrawal or evaporation lowers it. Groundwater storage can recharge, discharge
+to streams and springs, or enter a newly connected excavation. These relationships
+are consistent with the [USGS water-budget account](https://www.usgs.gov/publication/cir1308)
+and [streamflow explanation](https://www.usgs.gov/water-science-school/science/streamflow-and-water-cycle).
+They inform gameplay rules, not calibrated hydrology coefficients.
+
+The common balance is `next stored = stored + received - sent`, with transfers
+bounded by available stock and destination capacity. Infiltration changes custody
+from surface to soil; it is not consumption. Evaporation or plant transpiration
+must have a named atmosphere/weather destination, or an explicitly recorded
+external boundary while that broader model is absent. Rainfall is a bounded,
+dated input from that broader owner, never an unrecorded refill. A fully closed
+planetary moisture cycle is not a prerequisite for the first playable rain input,
+and must not be claimed by an external-input ledger alone.
+
+World generation establishes the initial terrain, drainage connectivity, basin
+identities, sea level and water stores. Subsequent changes belong to persisted
+state. Loading or regenerating a chunk cannot refill a drained lake. Initial sea
+level is not a rule that fills every excavated cell beneath it; there must be a
+real connected water source and an accounted transfer.
+
+Use cheap catchment and reservoir balances for large quiet areas, with detailed
+voxel exchanges where shape affects play: active shores, channels, dams, gardens,
+wells and caves. Oceans use large regional reservoir records; ordinary buckets
+have negligible level effect without requiring a per-voxel ocean update. Their
+shore exchanges still have a finite owner and quantity. Numerical representation
+must preserve small withdrawals against large stores, rather than round them
+away. Do not introduce an infinite sea tile or silently clamp the balance.
+
+Coarse and detailed representations must partition one stock. Materializing a
+local area allocates its water from the coarse owner; dematerialization reconciles
+its committed remainder. Neither representation may retain a second spendable
+copy. Catchment updates remain scheduled when unseen; camera residency is not
+simulation authority. Digging, changed openings, incoming water and weather can
+wake affected local work. Rates, equilibrium approximations and sampling error
+need named workload evidence before capacity or timing claims.
+
+A river can cross many simulation regions. Their shared boundary needs one
+transfer identity, durable ownership while in flight, idempotent receipt and
+recovery without an incoming player request. Missing or unresident neighbors are
+not closed walls or ambient drains. Do not equate render bricks with DOs or require
+every DO in the world to finish the same tick before any can advance. Stable
+region membership, boundary versions, per-region work/storage budgets and bounded
+history belong to the [world ownership contract](world-generation-and-streaming-contracts.md)
+and [durable host contract](local-snapshots-and-durable-ai-jobs.md).
+
+Actual source at `341b772` enforces finite water capacity, retention, exchange and
+saved balances, and groups connected air cells into mixing bands with explicit
+openings. It does not implement replenishing rivers, regional aquifer accounts,
+rainfall, evaporation, or neighboring DO exchange. Goblin's finite environmental
+collar currently closes its lateral/bottom water and gas boundaries. Local Region
+transactions/restart evidence does not qualify world stitching; the Goblin DO
+caller has not joined the separate quarry alarm/wake proof. The current public
+game still owns simulation in the browser.
+
+Finish the combined playable clearing first, including its measured workload.
+The first distributed hydrology acceptance then requires neighboring regions in
+that voxel world, actual boundary flow and a restart/retry with conserved water
+and no duplicated effect. Later catchment/rain inputs must use those owners.
+A beaver dam or irrigation channel should change storage, infiltration and
+downstream flow through these mechanisms, not apply a permanent fertility flag.
+
+## Water, heat and atmosphere: retained first numerical experiments
 
 Use conserved quantities and explicit connections before a detailed chemistry model. Candidate first water prototype: a small finite-volume surface-cell graph with terrain elevation, cell area, water volume and opening/channel conductance. Water-surface height derives from volume and geometry. Flux proposals read the same old state; apply balanced deltas only after shared source/destination limits are resolved. This is an experiment to validate, not a selected Navier–Stokes, groundwater or pressurized-pipe solver.
 
