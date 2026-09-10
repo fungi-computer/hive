@@ -224,3 +224,24 @@ representation and expose the optional returned projectile identity. Corrected
 u5133's actual-WASM consumer law passed, including identical post-impact state
 after restoring flight. Its strict type stage is still being collected; this is
 not browser, DO-restart, or hosted cannon acceptance.
+
+## First hosted cannon release
+
+Actual-WASM consumer plus strict types finished green in u5133; its scope is
+closed. Client build u5135 passed. Existing public DO host deployed in u5137,
+version `27592e86-4037-438c-8942-059443a60f2f`, implementation hash
+`643e7cd418ebc2e2803e2011c1908f33bdd322c69bbeb1eeaf762c2378bd3279`.
+Browser u5139 used the exact client build with the real hosted DO. Public Fire
+spent one round, produced health80/morale50, and returned no page errors. Root
+viewed cannon.png. This screenshot shows the resulting scene, not a captured
+mid-flight frame. Local save-in-flight passed; no new hosted crash injection.
+
+Frontend deployed as `56ce0e7d-555c-4e73-a8a8-4f640a9acb58` at the existing
+preview /engine/formations.html. First immediate readback u5142 retained11
+mismatches; cache-busting followup u5144 hit403 with a different request header.
+The ordinary matching-header read of only those11 in u5145 passed: all143 files
+now match, with112 non-engine files unchanged. No rebuild or second upload.
+Current save formats are a clean break; use New world for an old demo save.
+Artifacts and prior dist remain in .botanical/cannon-release. Source9f38cd9 is
+verified on the existing private recovery ref. Cannon is an accepted increment,
+not completion of the full engine goal or large-battle performance proof.
