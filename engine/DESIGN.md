@@ -342,6 +342,17 @@ Durable Objects are a primary design constraint from the beginning. Browser
 support is also required. A first static demonstration may run inside a browser
 Worker and must say so. Local execution is not a claim of hosted multiplayer.
 
+Hosting portability (Levi, September 10): DOs are the first server target, not
+a dependency of game rules or the Rust simulation. Preserve the ability to host
+the same simulation on a native multicore server with a TypeScript execution
+host. That host is not implemented or qualified by the current WASM/DO proof.
+Budget each Cloudflare region for single-threaded execution; independent regions
+can run concurrently, but distribution does not accelerate one tightly coupled
+battle automatically. Browser WASM threads and native Bevy parallel scheduling
+are optional future host work, not assumed performance in the current demos.
+Large RTS capacity still requires measured movement, collisions, rule execution
+and networking workloads; neither Bevy adoption nor Rust compilation proves it.
+
 Each active region has one authority for tightly interacting bodies, items,
 terrain and fields. Do not distribute water, gas and jobs into separate network
 services. Rendering clients submit permitted actions and receive committed
