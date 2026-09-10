@@ -4,8 +4,8 @@ main { max-width: 1060px; margin: auto; padding: 28px 24px 48px; }
 h1 { font-size: clamp(1.75rem, 5vw, 3rem); line-height: 1.1; }
 .intro { max-width: 760px; line-height: 1.6; }
 .controls { display: flex; gap: 6px; flex-wrap: wrap; }
-.stage { background: radial-gradient(ellipse at 50% 52%, #48584e, #252f30 72%); border-radius: 12px; overflow: hidden; margin-top: 16px; }
-#vertical-canvas { display: block; width: 760px; max-width: 100%; height: auto; margin: auto; image-rendering: pixelated; }
-#vertical-status { font-size: .8rem; opacity: .75; margin: 0; padding: 0 12px 12px; }
+.stage { background: radial-gradient(ellipse at 50% 52%, #48584e, #252f30 72%); border-radius: 12px; overflow: hidden; margin-top: 16px; min-height: 400px; }
+.stage canvas { display: block; width: 640px; max-width: 100%; height: auto; margin: auto; image-rendering: pixelated; }
+.layer-status { font-size: .8rem; opacity: .75; margin: 10px 0 0; }
 .note { font-size: .82rem; opacity: .78; max-width: 800px; line-height: 1.6; }
-@media (max-width: 640px) { main { padding: 20px 12px 40px; } .card-body { padding: 12px; } .controls .btn { font-size: .73rem; } }
+@media (max-width: 640px) { main { padding: 20px 12px 40px; } .controls .btn { font-size: .73rem; } }
