@@ -345,3 +345,11 @@ worker-entry, whose top-level code accesses self and boots WASM. Removed that
 export: Worker installation remains internal to browser entry; public WorkerRuntime
 and GameSession remain available. Added piratesPack beside the other pack exports.
 This is a source correction pending the next affected type/import check.
+
+## Headless public SDK — u5010
+
+Actual bundled Node import of sdk/index passes without global Worker/self or
+starting a browser runtime. All four authored pack exports and core authoring
+functions are present. Strict TypeScript passes; one selected public-import law
+plus six filtered file wrappers, not seven domain laws. Scope inactive/dead/empty.
+The public release is unchanged; this fixes the author-facing module boundary.
