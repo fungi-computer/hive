@@ -24,10 +24,16 @@ Affected laws: initial65/67 plus corrected2/2; strict app types/diff pass.
 Fallow remains advisory failure with new responsibility hotspots and duplication;
 source-only cleanup `d19fdd1` is integrated but unqualified and not deployed.
 The published runtime and original art remain frozen. Isolated source/evidence
-roots are preserved. Next is one short measurement of the published browser
-using existing cost instrumentation, then actual enclosed-room/water/work/render
-qualification. A brew station alone is not a built room. No historical suite,
-editor matrix or altered field cadence follows.
+roots are preserved. Levi personally playtested it: faster and digging works,
+but lag still prevents useful play. He explicitly cancelled our browser witness;
+its prepared source remains preserved, unrun. King now owns the personal audit
+of unnecessary work, missing indexes and ECS/library choices. The
+[JS and Rust/WASM comparison](ecs-runtime-and-wasm-choice.md) records the actual
+candidate source, DO constraints, external benchmark limits and grand-strategy
+direction. Rust/TypeScript is a proposed ownership split for discussion, not a
+started rewrite. No library benchmark substitutes for playable world evidence.
+A brew station alone is not a built room. No historical suite or editor matrix
+follows.
 
 **Implementation guide, Levi September 10:** the [durable pseudocode guide](engine-implementation-guide.md)
 now owns detailed handoffs for the next chunks: A playable water/gas/terrain hot
