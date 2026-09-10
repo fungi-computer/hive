@@ -38,4 +38,4 @@ export const deliverySystem = system({ id: "hive.delivery", version: 1, reads: [
       // Ownership was observed on the previous tick. Host commitment owns durability.
     }
   }
-});
+} });
