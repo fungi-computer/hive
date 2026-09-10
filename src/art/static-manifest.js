@@ -40,6 +40,7 @@ const RESERVED_ROOTS = new Set([
   "ground",
   "pawnAnchor",
   "propAnchor",
+  "vehicleAnchor",
   "bakeTerrain",
   "bakeTerrainWater",
   "bakeTerrainSlice",
