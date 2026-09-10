@@ -169,6 +169,7 @@ export function compileWater(raw) {
       "faces",
       "fallMPerS",
       "spreadMPerS",
+      "pressureWetFraction",
     ],
     "water definition",
   );
@@ -190,6 +191,10 @@ export function compileWater(raw) {
   check(
     rate(input.fallMPerS) && rate(input.spreadMPerS),
     "declared game flow rates",
+  );
+  check(
+    positive(input.pressureWetFraction) && input.pressureWetFraction < 1,
+    "declared near-full pressure connectivity fraction",
   );
   const soils = soilDefinitions(input.soils),
     nodes = compileCells(input.cells, soils, input.spacingM);

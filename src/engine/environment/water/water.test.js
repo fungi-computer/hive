@@ -22,6 +22,7 @@ function fixture(cells, faces, amounts, extra = {}) {
     faces: faces.map(([a, b]) => ({ a, b, openFraction: 1 })),
     fallMPerS: 1,
     spreadMPerS: 0.5,
+    pressureWetFraction: 0.999,
     ...extra,
   };
   const owner = createWater(definition);
@@ -324,6 +325,23 @@ test("a roofed U passage transmits one finite quantity over every full intermedi
       (flow) => flow.from === id(bottomMiddle) && flow.to === id(bottomRight),
     ),
   );
+  const joined = owner.advance(state, 0.2);
+  assert.ok(
+    joined.state.massKg[g.index.get(id(right))] >
+      state.massKg[g.index.get(id(right))],
+  );
+  close(owner.read(joined.state).totalKg, owner.read(state).totalKg);
+  const almost = [...state.massKg];
+  almost[g.index.get(id(bottomMiddle))] -= 4 * Number.EPSILON * 540;
+  const connected = pressureStep(g, almost, 0.1, 262144);
+  assert.ok(
+    connected.massKg[g.index.get(id(right))] > almost[g.index.get(id(right))],
+  );
+  assert.equal(
+    connected.massKg[g.index.get(id(bottomMiddle))],
+    almost[g.index.get(id(bottomMiddle))],
+  );
+  assert.ok(connected.massKg[g.index.get(id(bottomMiddle))] < 540);
 });
 
 test("pressure branches share a neck budget and exhausted search leaves stock owned", () => {
@@ -355,6 +373,121 @@ test("pressure branches share a neck budget and exhausted search leaves stock ow
   assert.deepEqual(limited.massKg, state.massKg);
   assert.equal(limited.flows.length, 0);
   assert.ok(limited.work.pressureDeferred > 0);
+});
+
+test("a full source cannot drain below the roofed path crest it is supporting", () => {
+  const source = [0, 1, 0],
+    above = [0, 2, 0],
+    roofed = [1, 1, 0],
+    outlet = [2, 1, 0];
+  const { state, definition } = fixture(
+    [source, above, roofed, outlet].map(emptyCell),
+    [
+      [source, above],
+      [source, roofed],
+      [roofed, outlet],
+    ],
+    [540, 0, 540, 0],
+    { spacingM: [1, 0.54, 1] },
+  );
+  const result = pressureStep(
+    compileWater(definition),
+    state.massKg,
+    0.1,
+    262144,
+  );
+  assert.deepEqual(result.massKg, state.massKg);
+  assert.equal(result.flows.length, 0);
+});
+
+test("removing wet soil exports its moisture once and leaves the same-ID void dry", () => {
+  const at = [0, 0, 0];
+  const { owner, state, definition } = fixture(
+    [{ at, kind: "soil", soilId: soil.id }],
+    [],
+    [0.237],
+  );
+  const result = owner.rebind(state, {
+    ...definition,
+    revision: 1,
+    cells: [emptyCell(at)],
+  });
+  assert.equal(result.status, "applied");
+  assert.equal(result.receipt.removedPoreWater.length, 1);
+  assert.equal(result.receipt.removedPoreWater[0].massKg, 0.237);
+  assert.equal(result.state.massKg[0], 0);
+  assert.equal(result.state.initialTotalKg, state.initialTotalKg);
+  assert.equal(result.state.boundaryKg, -0.237);
+  const next = createWater(result.definition);
+  assert.deepEqual(next.decode(next.encode(result.state)), result.state);
+  assert.equal(state.massKg[0], 0.237);
+});
+
+test("solid completion displaces through surviving neighbors or waits without partial publication", () => {
+  const a = [0, 0, 0],
+    b = [1, 0, 0];
+  const { owner, state, definition } = fixture(
+    [a, b].map(emptyCell),
+    [[a, b]],
+    [0.4, 0.2],
+  );
+  const nextDefinition = {
+    ...definition,
+    revision: 1,
+    cells: [emptyCell(b)],
+    faces: [],
+  };
+  const result = owner.rebind(state, nextDefinition);
+  assert.equal(result.status, "applied");
+  close(result.state.massKg[0], 0.6);
+  assert.equal(result.state.boundaryKg, 0);
+  assert.equal(result.receipt.flows.length, 1);
+  assert.equal(result.receipt.flows[0].faceId, "x:1,0,0");
+  assert.equal(result.receipt.flows[0].massKg, 0.4);
+  const full = owner.initial({
+    stocks: [
+      { id: id(a), massKg: 0.8 },
+      { id: id(b), massKg: 0.8 },
+    ],
+  });
+  const before = owner.encode(full);
+  assert.deepEqual(owner.rebind(full, nextDefinition), {
+    status: "blocked",
+    reason: "liquid-needs-neighbor-space",
+  });
+  assert.equal(owner.encode(full), before);
+});
+
+test("stone opening adds no water and face closure preserves both existing stocks", () => {
+  const a = [0, 0, 0],
+    b = [1, 0, 0];
+  const { owner, state, definition } = fixture([emptyCell(a)], [], [0.3]);
+  const expanded = owner.rebind(state, {
+    ...definition,
+    revision: 1,
+    cells: [emptyCell(a), emptyCell(b)],
+    faces: [{ a, b, openFraction: 1 }],
+  });
+  assert.equal(expanded.status, "applied");
+  assert.equal(expanded.state.boundaryKg, 0);
+  assert.equal(expanded.receipt.removedPoreWater.length, 0);
+  assert.equal(expanded.state.massKg[1], 0);
+  const next = createWater(expanded.definition);
+  const split = next.rebind(expanded.state, {
+    ...expanded.definition,
+    revision: 2,
+    faces: [],
+  });
+  assert.deepEqual(split.state.massKg, expanded.state.massKg);
+  assert.throws(
+    () =>
+      owner.rebind(state, {
+        ...definition,
+        revision: 1,
+        cells: [emptyCell(a), { at: b, kind: "soil", soilId: soil.id }],
+      }),
+    /finite source counterpart/,
+  );
 });
 
 test("definitions reject hidden data and nonphysical edges before simulation", () => {

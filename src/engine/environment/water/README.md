@@ -16,6 +16,17 @@ one retained-moisture deficit. Almost-dry remnants stay owned. State retains its
 signed external boundary. Terrain removal/material transfers will share that
 boundary through the existing compound completion owner.
 
+`rebind(state, nextDefinition)` now derives the stock change from the actual
+semantic cell difference. Removed soil exports its exact current pore water
+and a same-ID replacement void starts dry. Unchanged cells retain stock.
+Construction may push liquid one actual old face into a surviving neighbor;
+that is a declared work-displacement rule, not an arbitrary remote receiver.
+Insufficient space returns a blocked result with no published candidate.
+New positive soil coverage requires its finite source counterpart; it cannot
+be regenerated during a topology change. Whole-clearing soil is initialized
+once, while deeper stone cuts add dry voids. Gas/material admission remains the
+physical-completion owner's required serial join.
+
 ## Remaining before the actual-game join
 
 - Source contains bounded communicating-vessel flow through full roofed passages;
@@ -26,7 +37,11 @@ boundary through the existing compound completion owner.
   is invented inside a completely full, sealed component. Work-budget exhaustion
   reports deferred paths, retaining their stock for future host advances; it is
   not a closed-face classification or a completed equilibration claim.
-- Topology edits/rebind with actual removed-soil moisture and displaced liquid.
+  The declared `pressureWetFraction` (Goblin proposal0.999) classifies a nearly
+  full cell as conducting without snapping its mass or discarding its remaining
+  gas volume. Donors retain enough height to support every accepted path crest.
+- Qualify topology edits/rebind with actual removed-soil moisture, displaced
+  liquid and the current paired material/physical-completion consumers.
 - The new atmosphere owner's gas-volume/opening admission for flooded cells,
   including retained roof pockets. A zero-liquid-capacity gas check cannot be
   bypassed merely because this isolated water owner admits an empty void.
@@ -34,7 +49,7 @@ boundary through the existing compound completion owner.
   consumers and actual geometry/picking. No permanent open-pit/one-surface rule.
 - Focused laws, actual active whole-game performance, rendering and deployment.
 
-Thirteen focused laws are authored; none has run at this checkpoint. The 578-cell
+Seventeen focused laws are authored; none has run at this checkpoint. The 578-cell
 case uses the actual 1×0.54×1 m voxel metric and specifies a synthetic
 two-soil-layer clearing plus halo workload; it is
 not generated-game or performance evidence. The implementation limits and work

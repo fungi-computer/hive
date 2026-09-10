@@ -3,6 +3,9 @@ import { WATER_DENSITY } from "./geometry.mjs";
 
 const full = (g, mass, i) =>
   g.nodes[i].kind === "void" && mass[i] === g.nodes[i].capacityKg;
+const wetConduit = (g, mass, i) =>
+  g.nodes[i].kind === "void" &&
+  mass[i] / g.nodes[i].capacityKg >= g.definition.pressureWetFraction;
 const head = (g, mass, i) =>
   g.nodes[i].baseM +
   (mass[i] / g.nodes[i].capacityKg) * g.definition.spacingM[1];
@@ -35,7 +38,7 @@ function wetForest(g, mass) {
     if (parents[source]) continue;
     const root = { source, previous: null, at: source, face: null, depth: 0 };
     const queue = [root];
-    if (full(g, mass, source)) parents[source] = root;
+    if (wetConduit(g, mass, source)) parents[source] = root;
     for (let cursor = 0; cursor < queue.length; cursor++) {
       const previous = queue[cursor];
       for (const edge of g.neighbors[previous.at]) {
@@ -43,9 +46,8 @@ function wetForest(g, mass) {
         const to = edge.to,
           node = g.nodes[to];
         if (to === source || node.kind !== "void") continue;
-        if (full(g, mass, to)) {
-          if (parents[to] || node.baseM + g.definition.spacingM[1] > height)
-            continue;
+        if (wetConduit(g, mass, to)) {
+          if (parents[to] || head(g, mass, to) > height) continue;
           const path = {
             source,
             previous,
@@ -102,6 +104,7 @@ export function pressureStep(g, mass, dtS, pathBudget) {
         (face.axis === 1 ? g.definition.fallMPerS : g.definition.spreadMPerS),
     ),
     incident = mass.map(() => 0),
+    retainedCrest = mass.map(() => -Infinity),
     flows = [];
   for (const path of forest.paths) {
     incident[path.source]++;
@@ -122,6 +125,14 @@ export function pressureStep(g, mass, dtS, pathBudget) {
     const edges = [];
     for (let cursor = path; cursor.previous; cursor = cursor.previous)
       edges.push(cursor);
+    let crest = retainedCrest[from];
+    for (let cursor = path.previous; cursor.previous; cursor = cursor.previous)
+      crest = Math.max(crest, head(g, mass, cursor.at));
+    const crestStock = Math.max(
+      0,
+      ((crest - g.nodes[from].baseM) / g.definition.spacingM[1]) *
+        g.nodes[from].capacityKg,
+    );
     const slope =
       g.definition.spacingM[1] *
       (1 / g.nodes[from].capacityKg + 1 / g.nodes[to].capacityKg);
@@ -130,6 +141,7 @@ export function pressureStep(g, mass, dtS, pathBudget) {
       space[to],
       next[from],
       g.nodes[to].capacityKg - next[to],
+      next[from] - crestStock,
       (head(g, mass, from) - head(g, mass, to)) /
         slope /
         Math.max(2, incident[from], incident[to]),
@@ -149,6 +161,7 @@ export function pressureStep(g, mass, dtS, pathBudget) {
     next[from] = debit;
     next[to] = credit;
     available[from] -= quantity;
+    retainedCrest[from] = crest;
     space[to] -= quantity;
     for (const edge of edges.reverse()) {
       throughput[edge.face] -= quantity;

@@ -11,6 +11,7 @@ import {
 import { initial, stateAdmission, waterFacts } from "./state.mjs";
 import { transferStep } from "./transport.mjs";
 import { pressureStep } from "./pressure.mjs";
+import { rebindWater } from "./rebind.mjs";
 
 /** Finite game-scale water. The host supplies the interval and owns its clock,
  * physical completion and durable receipt; this module owns only water stocks.
@@ -25,6 +26,17 @@ export function createWater(definition) {
     initial: (input) => admission.remember(initial(g, input)),
     parse: admission.parse,
     read: (input) => waterFacts(g, admission.parse(input)),
+    rebind(input, nextDefinition) {
+      const state = admission.parse(input),
+        next = compileWater(nextDefinition);
+      const result = rebindWater(g, state, next);
+      if (result.status === "blocked") return result;
+      return Object.freeze({
+        ...result,
+        definition: next.definition,
+        state: stateAdmission(next).remember(result.state),
+      });
+    },
     advance(input, seconds) {
       const state = admission.parse(input);
       check(
