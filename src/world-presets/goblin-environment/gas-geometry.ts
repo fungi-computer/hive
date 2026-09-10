@@ -10,7 +10,10 @@ import {
   GOBLIN_WATER_RULES,
 } from "./content.ts";
 import type { goblinTerrainProjection } from "./terrain-projection.ts";
-import type { goblinWaterGeometry } from "./water-geometry.ts";
+import {
+  type goblinWaterGeometry,
+  waterCoverageCeiling,
+} from "./water-geometry.ts";
 
 type Terrain = ReturnType<typeof goblinTerrainProjection>;
 type Physical = ReturnType<typeof compilePhysicalGeometry>;
@@ -39,16 +42,10 @@ export const GOBLIN_GAS_BOUNDARY = Object.freeze({
   top: "actual-open-sky-face-only",
 } as const);
 
-function neighbor(at: Coordinate, axis: number) {
+function positiveAxis(at: Coordinate, axis: number) {
   const next: [number, number, number] = [...at];
   next[axis]++;
   return next;
-}
-
-function faceAt(at: Coordinate, axis: number) {
-  const boundary: [number, number, number] = [...at];
-  boundary[axis]++;
-  return boundary;
 }
 
 function checkCoverage(
@@ -60,9 +57,15 @@ function checkCoverage(
   const bounds = GOBLIN_ENVIRONMENT_BOUNDS;
   if (!physical.derivedFrom(terrain.terrain))
     throw new Error("gas query belongs to a different terrain checkpoint");
+  const minimumCeilingY = waterCoverageCeiling(
+    terrain,
+    physical,
+    bounds.min[1],
+    bounds.min[1],
+  );
   if (
     !Number.isSafeInteger(ceilingY) ||
-    ceilingY <= bounds.min[1] ||
+    ceilingY < minimumCeilingY ||
     ceilingY > bounds.max[1] ||
     physical.bounds.min.some((value, axis) => value > bounds.min[axis]) ||
     physical.bounds.max.some(
@@ -200,10 +203,10 @@ export function goblinGasGeometry(
     openFaces: GasGeometrySnapshot["openFaces"][number][] = [];
   for (const cell of gas.values()) {
     for (let axis = 0; axis < 3; axis++) {
-      const nextAt = neighbor(cell.at, axis),
+      const nextAt = positiveAxis(cell.at, axis),
         next = gas.get(cellId(nextAt));
       if (!next) continue;
-      const at = faceAt(cell.at, axis),
+      const at = nextAt,
         face = physical.face(AXES[axis], at);
       if (face === "unresolved") throw new Error("unresolved actual gas face");
       if (face === "closed") continue;
@@ -225,7 +228,7 @@ export function goblinGasGeometry(
     // open upper physical face declares an ambient connection.
     if (cell.at[1] !== ceilingY - 1) continue;
     if (physical.exterior(cell.at, "y", 1, ceilingY) !== "outdoor") continue;
-    const at = faceAt(cell.at, 1);
+    const at = positiveAxis(cell.at, 1);
     openFaces.push({
       id: `${faceId("y", at)}:ambient`,
       a: cellId(cell.at),

@@ -16,6 +16,7 @@ import { goblinTerrainProjection } from "./terrain-projection.ts";
 import {
   goblinWaterGeometry,
   initialGoblinWaterStocks,
+  waterCoverageCeiling,
 } from "./water-geometry.ts";
 
 const id = (at) => `cell:${at.join()}`;
@@ -29,7 +30,12 @@ function original(primitives = []) {
       GOBLIN_ENVIRONMENT_BOUNDS,
       primitives,
     ),
-    ceilingY = terrain.surfaceCeilingY,
+    ceilingY = waterCoverageCeiling(
+      terrain,
+      physical,
+      GOBLIN_ENVIRONMENT_BOUNDS.min[1],
+      GOBLIN_ENVIRONMENT_BOUNDS.min[1],
+    ),
     waterDefinition = goblinWaterGeometry(terrain, physical, 0, ceilingY),
     water = createWater(waterDefinition, GOBLIN_WATER_LIMITS),
     waterState = water.initial(
@@ -134,6 +140,55 @@ test("actual generated deep voids stay finite while only the open coverage top r
     regionId: "goblin-clearing",
   });
   assert(compiled.volumeAt(id(deep.at)));
+});
+
+test("coverage cannot declare ambient below a higher registered roof", () => {
+  const terrain = goblinTerrainProjection(
+      createVoxelWorld(GOBLIN_WORLD_IDENTITY).save(),
+    ),
+    roofY = terrain.surfaceCeilingY + 2,
+    fixture = original([
+      {
+        kind: "face",
+        axis: "y",
+        at: roofY,
+        min: [
+          GOBLIN_ENVIRONMENT_BOUNDS.min[0],
+          GOBLIN_ENVIRONMENT_BOUNDS.min[2],
+        ],
+        max: [
+          GOBLIN_ENVIRONMENT_BOUNDS.max[0],
+          GOBLIN_ENVIRONMENT_BOUNDS.max[2],
+        ],
+      },
+    ]),
+    shortCeilingY = roofY - 1,
+    shortDefinition = {
+      ...fixture.waterDefinition,
+      cells: fixture.waterDefinition.cells.filter(
+        (cell) => cell.at[1] < shortCeilingY,
+      ),
+      faces: fixture.waterDefinition.faces.filter(
+        (face) => face.a[1] < shortCeilingY && face.b[1] < shortCeilingY,
+      ),
+    },
+    shortFacts = {
+      cells: fixture.water
+        .read(fixture.waterState)
+        .cells.filter((cell) => cell.at[1] < shortCeilingY),
+    };
+  assert.throws(
+    () =>
+      goblinGasGeometry(
+        fixture.terrain,
+        fixture.physical,
+        shortDefinition,
+        shortFacts,
+        0,
+        shortCeilingY,
+      ),
+    /actual monotone environmental coverage/,
+  );
 });
 
 test("an actual registered floor face separates lower and upper gas", () => {
