@@ -207,7 +207,7 @@ export const piratesPack: GamePack = {
         );
         const allShip =
           selected.length === 1 &&
-          shipRows.some((row) => row.id === selected[0]);
+          shipRows.some((row) => row.id === selected[0] && row.get(PirateShip).controlled);
         if (allCrew) {
           const crew = controlledCrew(context, selected);
           if (parsed.destination.frame !== shipFrame)
@@ -249,7 +249,7 @@ export const piratesPack: GamePack = {
           (facing as number) > 3
         )
           throw new Error("ship facing must be 0..3");
-        if (!context.query(query(PirateShip)).some((row) => row.id === shipId))
+        if (!context.query(query(PirateShip)).some((row) => row.id === shipId && row.get(PirateShip).controlled))
           throw new Error("ship capability is unavailable");
         const position = context
           .query(query(Position))

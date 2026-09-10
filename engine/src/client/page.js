@@ -8,6 +8,7 @@ const mode = document.body.dataset.mode || "hub";
 const configs = {
   pirates: {
     title: "Timber raft",
+    environment: "water",
     subtitle: "Sail the raft, walk its deck, and carry finite supplies into the hold. Save and continue your voyage.",
     orderCommand: "move",
     source: "./source/pirates.ts",
