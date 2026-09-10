@@ -19,21 +19,9 @@ import {
   createBindingLookup,
   formatCommandBindings,
 } from "@opentui/keymap/extras";
+import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
-
-export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
-  crate: Object.freeze({ kind: "container", key: "shelf" }),
-  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin" }),
-  "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
-  "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin" }),
-  "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin" }),
-  "pirate.ship": Object.freeze({ kind: "vehicle", key: "ship" }),
-  "pirate.crew": Object.freeze({ kind: "figure", key: "goblin" }),
-  "pirate.chest": Object.freeze({ kind: "container", key: "shelf" }),
-  "pirate.hold": Object.freeze({ kind: "container", key: "shelf" }),
-  "pirate.obstacle": Object.freeze({ kind: "container", key: "shelf" }),
-});
 
 export function createHiveClient({
   root,
@@ -349,15 +337,17 @@ export function createHiveClient({
       seen.add(subject.id);
       return 1 + supportDepth(parent, seen);
     };
-    for (const subject of [...state.subjects].sort((a, b) => {
+    const orderedSubjects = [...state.subjects].sort((a, b) => {
       const depth = supportDepth(a) - supportDepth(b);
       return depth || a.x + a.z - b.x - b.z || a.id.localeCompare(b.id);
-    })) {
+    });
+    for (const [renderRank, subject] of orderedSubjects.entries()) {
       subject.screen = screenPoint(subject);
-      const binding = bindings[subject.visual] ??
-        (subject.visual?.startsWith("goblin.")
-          ? bindings["goblin.worker"]
-          : DEFAULT_VISUAL_BINDINGS.crate);
+      const binding = bindings[subject.visual];
+      if (!binding)
+        throw new Error(`no visual binding for ${subject.visual ?? "missing visual"}`);
+      if (!new Set(["figure", "container", "vehicle"]).has(binding.kind))
+        throw new Error(`invalid visual binding for ${subject.visual}`);
       const isContainer = binding?.kind === "container";
       const isVehicle = binding?.kind === "vehicle";
       let entry = actorCache.get(subject.id);
@@ -388,7 +378,7 @@ export function createHiveClient({
           width: 2,
         });
       entry.marker.visible = state.selectedIds.includes(subject.id);
-      const figure = art?.figures?.[binding?.key] || art?.figures?.goblin || art?.figures?.cat;
+      const figure = art?.figures?.[binding.key];
       const frames = isContainer || isVehicle
         ? []
         : animationFrames(
@@ -398,10 +388,12 @@ export function createHiveClient({
           );
       const physicalFacing = ((Math.round(subject.facing ?? 0) % 4) + 4) % 4;
       const texture = isVehicle
-        ? art?.vehicles?.[binding?.key]?.[physicalFacing]
+        ? art?.vehicles?.[binding.key]?.[physicalFacing]
         : isContainer
-        ? art?.buildings?.[binding?.key]?.finished?.[0] || art?.buildings?.shelf?.finished?.[0]
+        ? art?.buildings?.[binding.key]?.finished?.[0]
         : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
+      if (art && !texture)
+        throw new Error(`visual asset unavailable for ${subject.visual}`);
       if (texture) entry.pawn.texture = texture;
       entry.pawn.visible = Boolean(texture);
       entry.pawn.anchor.set(
@@ -414,8 +406,7 @@ export function createHiveClient({
       entry.label.position.set(0, -12);
       entry.label.visible = state.selectedIds.includes(subject.id);
       entry.container.position.set(subject.screen.x, subject.screen.y);
-      entry.container.zIndex = subject.x + subject.z;
-      actorLayer.setChildIndex(entry.container, actorLayer.children.length - 1);
+      entry.container.zIndex = renderRank;
     }
     const drag = gesture.getSnapshot().context;
     if (
@@ -463,15 +454,21 @@ export function createHiveClient({
       top: Math.min(drag.start.y, end.y),
       bottom: Math.max(drag.start.y, end.y),
     };
+    const click = box.left === box.right && box.top === box.bottom;
+    const directHit = selectionFromSubjects(state.subjects, box, false, []);
     let hit = selectionFromSubjects(
       state.subjects,
       box,
       drag.additive,
       state.selectedIds,
     );
-    if (!hit.length) {
+    if (click && !directHit.length) {
+      const local = {
+        x: (end.x - camera.x) / camera.zoom,
+        y: (end.y - camera.y) / camera.zoom,
+      };
       const deck = state.subjects.find(
-        (subject) => subject.surface && surfacePoint(end.x, end.y, subject),
+        (subject) => subject.surface && surfacePoint(local.x, local.y, subject),
       );
       if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.id])] : [deck.id];
     }
