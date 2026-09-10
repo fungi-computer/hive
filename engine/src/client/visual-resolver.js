@@ -4,7 +4,7 @@ const INHERITED = new Set(Object.getOwnPropertyNames(Object.prototype));
 function checkedPath(path) {
   if (!Array.isArray(path) || path.length === 0)
     throw new Error("static visual path must be nonempty");
-  for (const segment of path)
+  for (const segment of path) {
     if (
       !(typeof segment === "string" && segment.length > 0) &&
       !(Number.isSafeInteger(segment) && segment >= 0)
@@ -12,6 +12,7 @@ function checkedPath(path) {
       throw new Error("static visual path contains an invalid segment");
     if (typeof segment === "string" && INHERITED.has(segment))
       throw new Error("static visual path contains an inherited segment");
+  }
   return path;
 }
 
