@@ -105,6 +105,58 @@ pub fn route(
     Ok(result)
 }
 
+pub fn validate_saved_path(
+    start: Point,
+    path: &[Point],
+    end: Point,
+    blocked: &BTreeSet<Cell>,
+    bounds: Option<Bounds>,
+) -> Result<()> {
+    let within = |point: &Point| {
+        bounds.is_none_or(|bounds| {
+            point.x >= bounds.min_x
+                && point.x <= bounds.max_x
+                && point.z >= bounds.min_z
+                && point.z <= bounds.max_z
+        })
+    };
+    let mut previous = start;
+    for (index, point) in path.iter().enumerate() {
+        if [point.x, point.y, point.z]
+            .iter()
+            .any(|value| !value.is_finite() || value.abs() > 1_000_000.0)
+            || point.frame.as_deref() != end.frame.as_deref()
+            || !within(point)
+            || blocked.contains(&cell(point.clone()))
+            || (point.y - previous.y).abs() > 1e-9
+        {
+            return Err("invalid saved route point".into());
+        }
+        let dx = (point.x - previous.x).abs();
+        let dz = (point.z - previous.z).abs();
+        let same_cell = cell(point.clone()) == cell(previous.clone());
+        let final_point = index + 1 == path.len();
+        let legal = if final_point && same_cell {
+            dx <= 1.0 + 1e-9 && dz <= 1.0 + 1e-9
+        } else {
+            (dx <= 1e-9 && dz <= 1.0 + 1e-9)
+                || (dz <= 1e-9 && dx <= 1.0 + 1e-9)
+        };
+        if !legal {
+            return Err("saved route cuts across a cell or obstacle".into());
+        }
+        previous = point.clone();
+    }
+    if path.is_empty() {
+        if distance(start, end) > 1e-9 {
+            return Err("empty saved route is not at destination".into());
+        }
+    } else if distance(previous.clone(), end.clone()) > 1e-9 {
+        return Err("saved route does not reach destination".into());
+    }
+    Ok(())
+}
+
 pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: f64) {
     while let Some(target) = path.front().cloned() {
         let current = DVec3::new(position.x, position.y, position.z);

@@ -71,10 +71,10 @@ impl Registry {
             (
                 "hive.surface",
                 vec![
-                    ("min_x", FieldType::Number),
-                    ("max_x", FieldType::Number),
-                    ("min_z", FieldType::Number),
-                    ("max_z", FieldType::Number),
+                    ("minX", FieldType::Number),
+                    ("maxX", FieldType::Number),
+                    ("minZ", FieldType::Number),
+                    ("maxZ", FieldType::Number),
                     ("height", FieldType::Number),
                 ],
             ),

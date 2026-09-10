@@ -32,7 +32,7 @@ pub struct Lot {
     pub quantity: u32,
     pub container: String,
 }
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Destination {
     pub x: f64,
@@ -47,7 +47,7 @@ pub struct Support {
     pub entity: String,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Surface {
     pub min_x: f64,
     pub max_x: f64,
@@ -111,6 +111,13 @@ pub struct Snapshot {
     pub time: f64,
     pub next_lot: u64,
     pub scene: Scene,
+    pub routes: Vec<RouteSnapshot>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RouteSnapshot {
+    pub entity: String,
+    pub path: Vec<Point>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -119,13 +126,20 @@ pub struct Write {
     pub component: String,
     pub value: Record,
 }
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    #[serde(deserialize_with = "required_nullable_frame")]
     pub frame: Option<String>,
+}
+fn required_nullable_frame<'de, D>(deserializer: D) -> std::result::Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Option::<String>::deserialize(deserializer)
 }
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]

@@ -52,6 +52,9 @@ impl Kernel {
         Ok(())
     }
     fn from_scene(scene: Scene) -> Result<Self> {
+        Self::from_scene_mode(scene, true)
+    }
+    fn from_scene_mode(scene: Scene, build_routes: bool) -> Result<Self> {
         if scene.format != "hive-game"
             || scene.version != 1
             || !valid_id(&scene.game)
@@ -80,7 +83,7 @@ impl Kernel {
                     .insert(&mut world.ecs, entity, &name, &value)?;
             }
         }
-        world.rebuild_physical_indexes()?;
+        world.rebuild_physical_indexes(build_routes)?;
         world.state_weight = 1024
             + serde_json::to_vec(&world.registry.schemas.values().collect::<Vec<_>>())
                 .map_err(|e| e.to_string())?
@@ -196,7 +199,58 @@ impl Kernel {
             self.frame_bounds(frame.as_deref())?,
         )
     }
-    fn rebuild_physical_indexes(&mut self) -> Result<()> {
+    fn restore_routes(&mut self, saved: Vec<RouteSnapshot>) -> Result<()> {
+        if saved.len() > self.ids.len() {
+            return Err("too many saved routes".into());
+        }
+        let mut restored = BTreeMap::new();
+        for route in saved {
+            if route.path.len() > 4096 {
+                return Err("saved route exceeds bound".into());
+            }
+            let entity = self.entity(&route.entity)?;
+            if restored.insert(entity, VecDeque::from(route.path.clone())).is_some() {
+                return Err("duplicate saved route".into());
+            }
+            let destination = self
+                .ecs
+                .get::<Destination>(entity)
+                .ok_or("saved route has no destination")?;
+            let frame = self.support_id(entity);
+            if destination.frame.as_deref() != frame.as_deref() {
+                return Err("saved route frame mismatch".into());
+            }
+            let bounds = self.frame_bounds(frame.as_deref())?;
+            let blocked = self
+                .blocked_by_frame
+                .get(&frame)
+                .expect("rebuilt obstacle frame index");
+            let start = *self.ecs.get::<Position>(entity).ok_or("saved route has no position")?;
+            navigation::validate_saved_path(
+                navigation::point(start),
+                &route.path,
+                Point {
+                    x: destination.x,
+                    y: destination.y,
+                    z: destination.z,
+                    frame: destination.frame.clone(),
+                },
+                blocked,
+                bounds,
+            )?;
+        }
+        let expected = self
+            .ids
+            .values()
+            .filter(|entity| self.ecs.get::<Destination>(**entity).is_some())
+            .count();
+        if expected != restored.len() {
+            return Err("saved route set does not match destinations".into());
+        }
+        self.routes = restored;
+        Ok(())
+    }
+    fn rebuild_physical_indexes(&mut self, build_routes: bool) -> Result<()> {
         self.blocked_by_frame.clear();
         self.routes.clear();
         for (id, entity) in &self.ids {
@@ -297,19 +351,21 @@ impl Kernel {
                 if self.ecs.get::<Body>(*entity).is_none() {
                     return Err("destination needs body".into());
                 }
-                self.routes.insert(
-                    *entity,
-                    self.route_for(
+                if build_routes {
+                    self.routes.insert(
                         *entity,
-                        p,
-                        &Point {
-                            x: target.x,
-                            y: target.y,
-                            z: target.z,
-                            frame: target.frame.clone(),
-                        },
-                    )?,
-                );
+                        self.route_for(
+                            *entity,
+                            p,
+                            &Point {
+                                x: target.x,
+                                y: target.y,
+                                z: target.z,
+                                frame: target.frame.clone(),
+                            },
+                        )?,
+                    );
+                }
             }
         }
         Ok(())
@@ -391,9 +447,22 @@ impl Kernel {
                     .collect(),
             })
             .collect();
+        let mut routes = self
+            .routes
+            .iter()
+            .map(|(entity, path)| RouteSnapshot {
+                entity: self.ecs.get::<ExternalId>(*entity).unwrap().0.clone(),
+                path: path.iter().cloned().collect(),
+            })
+            .collect();
+        routes.sort_by(|a: &RouteSnapshot, b: &RouteSnapshot| a.entity.cmp(&b.entity));
+        let route_bytes = serde_json::to_vec(&routes).map_err(|e| e.to_string())?.len();
+        if self.state_weight.saturating_add(route_bytes) > STATE_BYTES {
+            return Err("route state exceeds canonical capacity".into());
+        }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 1,
+            version: 2,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -404,6 +473,7 @@ impl Kernel {
                 components: self.registry.schemas.values().cloned().collect(),
                 initial,
             },
+            routes,
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -413,7 +483,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 1
+            || state.version != 2
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -421,7 +491,14 @@ impl Kernel {
         {
             return Err("invalid current snapshot".into());
         }
-        let mut candidate = Self::from_scene(state.scene)?;
+        let mut candidate = Self::from_scene_mode(state.scene, false)?;
+        let route_bytes = serde_json::to_vec(&state.routes)
+            .map_err(|e| e.to_string())?
+            .len();
+        if candidate.state_weight.saturating_add(route_bytes) > STATE_BYTES {
+            return Err("route state exceeds canonical capacity".into());
+        }
+        candidate.restore_routes(state.routes)?;
         candidate.revision = state.revision;
         candidate.time = state.time;
         candidate.next_lot = state.next_lot;
@@ -690,10 +767,11 @@ impl Kernel {
     fn advance_movement(&mut self, delta: f64) {
         self.routes.retain(|entity, path| {
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
-            let target = *self
+            let target = self
                 .ecs
                 .get::<Destination>(*entity)
-                .expect("route destination");
+                .expect("route destination")
+                .clone();
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");
             navigation::advance(&mut p, path, speed * delta);
             p.facing = target.facing;
