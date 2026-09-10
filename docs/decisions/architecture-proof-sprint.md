@@ -46,22 +46,46 @@ This proves authored assets and their integration, not game startup, original
 pixel parity, frame performance or deployment. The earlier fa8025/u4684 camelCase
 manifest failure and its evidence remain preserved; do not replay its packet.
 
-Root owns coupled game/environment/material/save integration, art acceptance and
-execution. Hume's water-view correction and completed art packet are integrated;
-his current source trace found that underground Dig still forces Ground and
-rectangles still select exposed columns. Stone output also lacks ground/carry
-presentation. These are concrete remaining gameplay work, not new solver needs.
-Ampere's Clearing air presentation is integrated through `3ca39c4`: current-sight
-smoke/heat marks, Celsius feedback and the checked Air toggle. Its cache follows
-detached actor/site publication, including paused commands. The authored laws and
-rendering remain unqualified. Hume now owns the exact observed-slice Dig caller
-in `underground-controls`; Chestnut owns the requested explorable vertical layout
-study and shared fixture declaration in `vertical-study`, away from game controls.
-Meitner independently accepted Root's
-`8f119c1` save-lifetime correction from source: owed integer burn ticks cannot
-outlive the owning fermentation. Its new law remains unrun. The same native
-Sessions and isolated worktrees remain; no fresh capacity, raster or startup-speed
-claim is qualified yet.
+The combined ce7b4e6 qualification ran once as u4697 and closed exit1: 56/61
+laws passed; four failed at the shared atmosphere exchange arithmetic boundary,
+and one negative-input test expected old Zod wording. The subsequent filtered
+caller laws, strict types and touched Fallow did not run. Original failure logs,
+static bank f4825c0, paid-save8f119c1 and Clearing-air3ca39c4 evidence remain.
+No automatic replay of that packet is authorized.
+
+Root's reviewed correction63b9d9a retains paired opening transfers until both
+endpoints are representable. Reciprocal concentration mixing has shared gross
+budgets; unresolved carrier cannot freeze real smoke/heat mixing. Pressure
+advection stages all constituents before publication. The arithmetic owner has
+one unchanged resolution predicate; ordinary transport deferral does not allocate
+error stacks. Paid source admission remains strict. Two new laws are authored,
+not passed; new field performance and actual game startup remain unmeasured.
+
+Underground selection815ede7 is reviewed and integrated as2ed87de, with all six
+source hashes equal: the current visible-face picker owns both preview and
+submission, and changing layers retains Dig. Eight laws remain unrun. The authored
+three-storey study517c62e is reviewed and integrated as14c5d7b, with all nine hashes
+equal. It uses the shared43-wood layout declaration, original prepared sprites,
+shared wall joints/roof placement and Caps. Late-load/init cleanup and fitted
+zoom were corrected. Ground plus two upper floors is the explicit fixture; it
+is not an earned construction trace, a rendered acceptance or a published study.
+
+Root owns integration, numerical decisions, art acceptance and execution. Hume
+now owns shallow-water-navigation from2ed87de: ordinary workers may wade up to
+0.25m, cats0.05m, through the shared profile/access owner. This addresses the real
+source finding that any fractional seep previously blocked route/work footing,
+while a whole-litre pail cannot guarantee a dry hole. Overhead/deep water must
+still block, and occupied-body/save preservation stays separate from new-route
+eligibility. This work is not integrated or proved. Deeper drainage and two earned
+underground chambers remain unproved; no unrestricted swimming or free drain is
+introduced. Stone ground/carry art remains a concrete presentation gap.
+
+Ampere reviewed the shared exchange correction; Meitner reviewed underground
+selection and the study. Their preserved Sessions and isolated roots remain.
+The next qualification covers corrected failures, affected transport and new
+controls/shared fixture plus the unreached types/Fallow stages, not the already
+passed historical matrix. Actual combined game startup/input/render/performance
+and same-preview publication remain required before the playable goal is done.
 
 **Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
 whole-clearing water and material balance through completion and current saves;
@@ -229,14 +253,14 @@ not implementation of every planned game feature or scientific fluid dynamics.
 The acceptance packet must close all six exits below; individual rows can ship
 first while the overall engine goal remains unfinished.
 
-| Exit | Concrete acceptance |
-| --- | --- |
-| Reusable entry and real consumers | A headless public engine entry runs without Goblin scenario/content, React, Pixi, Three, Caps, DOM or model-provider imports. Goblin construction and shelves plus the independent five-unit ore depot use the extracted material owner. No copied demo kernel or second inventory remains. Import/source review identifies where each game definition is supplied. |
-| Capabilities, work and persistence | Resolve body/navigation/carry/container/source/work/needs capabilities through narrow owners. Current wood/herb/soil/water/food consumers share applicable supply/transfer/execution rules; final domain effects stay typed. Kettle filling, planting water, drinking and eating no longer orchestrate separate phase machines. Another supported vessel, consumable and recipe are definition changes. Snapshot phase/custody validation uses domain facts; both reproduced save defects are closed. Cancellation, contested stock, moving/lost targets, partial pickup and load preserve quantity/ownership and settle effects once. |
-| Edited world and generation | One versioned, stepped generator supplies height/sea level, biome fields and bounded cave/feature queries. Coarse maps and fine samples share that owner. Generated base + sparse edits + resident field state stay distinct. Adjacent-chunk and vertical-brick edit/evict/reload proofs preserve seams and state without generating the whole world. Geometry feeds separate movement/support/contact/picking queries; topology invalidation is owned. The tiny clearing supports deep excavation and a multi-storey witch tower using general signed voxel coordinates, repeated traversal links and consistent floor/roof surface placement. Publish and measure its vertical envelope; Ground/Upper and one removed voxel cannot pass this exit. |
-| Water, soil, air and heat in real play | Player excavation changes finite flow/soil exchange, including underground spaces and vertically separated occupied volumes; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure across stacked rooms. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. One surface height per column may serve a compatible surface-water subcase but cannot own the whole excavatable world. Reference playback and visual bubbles do not pass this exit. |
-| Engine controller door | An authored public Mycelium module registers input/output schemas and handlers over the scoped engine API, then the existing execute tool and sandbox invoke it. Use Knapsack only where the actual host needs connection discovery; neither a generic MCP adapter nor a custom client catalog is required. Keep platform imports in the integration consumer, outside the headless physical owner. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A deterministic host proof can establish those laws through a real execute-tool invocation. The later live Camel/Shiitake match is separate evidence of model play. |
-| Integration, budgets and distribution | Goblin consumes the same accepted modules and remains playable through a short dig/build/supply/care trace. A consumer installs/runs the documented engine entry from a clean checkout with pinned definitions and snapshots. Record actual candidate/path/optimizer/field/render/save costs and peak/resident memory separately on named hardware. Freeze workload sizes, fixed-step budgets, field tolerances and browser response targets before final performance acceptance; exceeding them remains a blocker, not an invitation to relabel the load. Source/caller review, focused laws, visible interaction and hosted artifact parity each state their own evidence. |
+| Exit                                   | Concrete acceptance                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reusable entry and real consumers      | A headless public engine entry runs without Goblin scenario/content, React, Pixi, Three, Caps, DOM or model-provider imports. Goblin construction and shelves plus the independent five-unit ore depot use the extracted material owner. No copied demo kernel or second inventory remains. Import/source review identifies where each game definition is supplied.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Capabilities, work and persistence     | Resolve body/navigation/carry/container/source/work/needs capabilities through narrow owners. Current wood/herb/soil/water/food consumers share applicable supply/transfer/execution rules; final domain effects stay typed. Kettle filling, planting water, drinking and eating no longer orchestrate separate phase machines. Another supported vessel, consumable and recipe are definition changes. Snapshot phase/custody validation uses domain facts; both reproduced save defects are closed. Cancellation, contested stock, moving/lost targets, partial pickup and load preserve quantity/ownership and settle effects once.                                                                                                                                                                                                                  |
+| Edited world and generation            | One versioned, stepped generator supplies height/sea level, biome fields and bounded cave/feature queries. Coarse maps and fine samples share that owner. Generated base + sparse edits + resident field state stay distinct. Adjacent-chunk and vertical-brick edit/evict/reload proofs preserve seams and state without generating the whole world. Geometry feeds separate movement/support/contact/picking queries; topology invalidation is owned. The tiny clearing supports deep excavation and a multi-storey witch tower using general signed voxel coordinates, repeated traversal links and consistent floor/roof surface placement. Publish and measure its vertical envelope; Ground/Upper and one removed voxel cannot pass this exit.                                                                                                    |
+| Water, soil, air and heat in real play | Player excavation changes finite flow/soil exchange, including underground spaces and vertically separated occupied volumes; pail withdrawal/deposit balances field and item units. Filling terrain displaces/accountably handles water. An indoor source consumes real fuel, emits accounted heat/smoke, and opening/closing ventilation changes exposure across stacked rooms. Field state and continuation survive reload under the same clock. Declare sources/sinks/outdoor reservoirs, approximation/tolerances and unsupported pressure/geometry. One surface height per column may serve a compatible surface-water subcase but cannot own the whole excavatable world. Reference playback and visual bubbles do not pass this exit.                                                                                                            |
+| Engine controller door                 | An authored public Mycelium module registers input/output schemas and handlers over the scoped engine API, then the existing execute tool and sandbox invoke it. Use Knapsack only where the actual host needs connection discovery; neither a generic MCP adapter nor a custom client catalog is required. Keep platform imports in the integration consumer, outside the headless physical owner. The independent consumer and Goblin enforce allowed actor/actions/knowledge. Wrong scope/stale inputs reject without mutation; retry after a lost acknowledgment does not duplicate goods/effects, and saved command results remain distinguishable from unfinished world work. A deterministic host proof can establish those laws through a real execute-tool invocation. The later live Camel/Shiitake match is separate evidence of model play. |
+| Integration, budgets and distribution  | Goblin consumes the same accepted modules and remains playable through a short dig/build/supply/care trace. A consumer installs/runs the documented engine entry from a clean checkout with pinned definitions and snapshots. Record actual candidate/path/optimizer/field/render/save costs and peak/resident memory separately on named hardware. Freeze workload sizes, fixed-step budgets, field tolerances and browser response targets before final performance acceptance; exceeding them remains a blocker, not an invitation to relabel the load. Source/caller review, focused laws, visible interaction and hosted artifact parity each state their own evidence.                                                                                                                                                                            |
 
 **Durability qualification across these exits:** the extracted owners must also
 run inside the real DO storage/runtime boundary with committed command identity,
@@ -556,7 +580,6 @@ and its limits. Sol owns that bounded producer/Region/view implementation in
 original `air-view` is preserved and clean. Original air presentation remains
 accepted as source only. Neither active writer owns Root's environment worktree,
 the frozen startup evidence, shared Caps or a browser/build/deployment window.
-
 
 **Latest measured correction, September 9:** the first full main-game workload
 is retained at `goblin-wet` pin `4afe1c4`. `u4325` completed the frozen 20/80/60
@@ -1032,13 +1055,13 @@ The important gaps are visible in source:
 
 ## What can be carried out of the labs
 
-| Work | Established | Remaining game work |
-| --- | --- | --- |
-| World generation | Deterministic stepped geography, cave-feature and sparse-edit experiments, eviction/reload, bounded point queries; live browser World Lab | Terrain ownership in Clearing, edit-aware navigation/picking, compatible saves and a useful starting layout |
-| Soil and excavation | One generated wet soil voxel removed with accounted wet spoil; real side/floor seepage; exact checkpoint continuation | Worker commands, physical spoil, connected hollows, backfill, field-to-pail units, browser terrain/render/save integration |
-| Water motion | Separate shallow-water and native 2D wave reference behavior; recorded public playback | The bounded voxel-scale production model, spill/diversion and conservation across actual game edits |
-| Air and heat | Recorded transport/plume experiments and narrower momentum/energy checks | Real openings, accounted fuel emissions, exposure, saved gameplay consequences and a bounded production update |
-| Ecology and art | Mugwort water establishment in production; original animals, fire, foliage, brewhouse and mess studies | Environmental growth responses, physical guests/waste/animals; an art study is not its simulation |
+| Work                | Established                                                                                                                               | Remaining game work                                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| World generation    | Deterministic stepped geography, cave-feature and sparse-edit experiments, eviction/reload, bounded point queries; live browser World Lab | Terrain ownership in Clearing, edit-aware navigation/picking, compatible saves and a useful starting layout                |
+| Soil and excavation | One generated wet soil voxel removed with accounted wet spoil; real side/floor seepage; exact checkpoint continuation                     | Worker commands, physical spoil, connected hollows, backfill, field-to-pail units, browser terrain/render/save integration |
+| Water motion        | Separate shallow-water and native 2D wave reference behavior; recorded public playback                                                    | The bounded voxel-scale production model, spill/diversion and conservation across actual game edits                        |
+| Air and heat        | Recorded transport/plume experiments and narrower momentum/energy checks                                                                  | Real openings, accounted fuel emissions, exposure, saved gameplay consequences and a bounded production update             |
+| Ecology and art     | Mugwort water establishment in production; original animals, fire, foliage, brewhouse and mess studies                                    | Environmental growth responses, physical guests/waste/animals; an art study is not its simulation                          |
 
 The wet-pit experiment gained about 12.6 litres in 600 simulated seconds. It does
 not demonstrate a rapidly flooding mine, connected ditches, backfill or player
@@ -1165,9 +1188,10 @@ while the soil reference uses kg/litres. Define the physical size of a portion a
 preserve sub-portion field remainders. One atomic draw/pour operation moves water
 between field and vessel; no rounding it away and no second source inventory.
 Extend conservation from the old finite-spring assumption to field + pore water
-+ vessel + wet spoil + declared consumption and boundary exchanges. Existing
-pail/Haul/plant/kettle consumers keep their owners. Environment-fed establishment
-uses the same plant transition; it must not also debit a carried-water operation.
+
+- vessel + wet spoil + declared consumption and boundary exchanges. Existing
+  pail/Haul/plant/kettle consumers keep their owners. Environment-fed establishment
+  uses the same plant transition; it must not also debit a carried-water operation.
 
 Start updates every two/four existing 20 Hz game ticks (10/5 Hz), with bounded
 stability work and slower soil updates. These are targets to measure, not achieved
@@ -1304,7 +1328,6 @@ working shapes; each useful interim ships independently on the same preview.
 ## Historical sprint decisions retained below
 
 The following 2026-09-08 and older sequences are superseded by the current plan above.
-
 
 ## Current sprint: a small home worth returning to
 
