@@ -14,12 +14,17 @@ export function project(x, y, z) {
   };
 }
 const origin = project(0, 0, 0);
+const axisX = project(1, 0, 0);
+const axisZ = project(0, 0, 1);
+const basisX = { x: axisX.x - origin.x, y: axisX.y - origin.y };
+const basisZ = { x: axisZ.x - origin.x, y: axisZ.y - origin.y };
+const determinant = basisX.x * basisZ.y - basisZ.x * basisX.y;
 export function groundPoint(x, y) {
   const dx = x - origin.x,
     dy = y - origin.y;
   return {
-    x: Math.round(dx / 32 + dy / 16),
+    x: Math.round((dx * basisZ.y - basisZ.x * dy) / determinant),
     y: 0,
-    z: Math.round(dy / 16 - dx / 32),
+    z: Math.round((basisX.x * dy - dx * basisX.y) / determinant),
   };
 }

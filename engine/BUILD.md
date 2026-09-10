@@ -213,3 +213,15 @@ King personally viewed the 32-frame goblin contact sheet at
 from the unchanged original figure builder. Silhouette/leg motion and fixed bake
 placement are accepted as asset evidence. This does not yet prove client motion
 under actual input. Generated bank bytes are committed together after this review.
+
+### Actual client input frontier
+
+u4950 built the joined client successfully (19.58s). u4951 ran real survival
+selection/Go/Pause/Save and captured walk-a.png/walk-b.png under fresh-browser,
+but failed the destination assertion: clicking projected (4,0) produced saved
+(5,1). King inspected walk-a.png; this is a real inverse-projection mismatch,
+not a successful movement witness. Both scopes closed inactive/dead/empty and
+5197 is clear. Root removed hardcoded 32/16 inverse-picking dimensions and now
+inverts the actual shared projection basis. u4954 passed all 225 signed clearing
+cell round trips in one authored law. Changed-client input confirmation remains
+pending; prior built bytes do not contain this correction.
