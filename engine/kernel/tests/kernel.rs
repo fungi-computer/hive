@@ -35,6 +35,14 @@ fn moving_deck_scene() -> String {
                     "hive.body":{"speed":1.0},
                     "hive.support":{"entity":"ship"}
                 })
+            ),
+            builtins(
+                "deck-rock",
+                [0.0, 1.0, 0.0],
+                json!({
+                    "hive.obstacle":{"occupied":true},
+                    "hive.support":{"entity":"ship"}
+                })
             )
         ]),
         json!([]),
@@ -42,6 +50,27 @@ fn moving_deck_scene() -> String {
 }
 fn custom_morale() -> Value {
     json!([{"id":"army.morale","version":1,"fields":{"value":"number","formation":"nullable-entity"}}])
+}
+fn cargo_scene() -> String {
+    let mut root: Value = serde_json::from_str(&moving_deck_scene()).unwrap();
+    let initial = root["initial"].as_array_mut().unwrap();
+    initial
+        .iter_mut()
+        .find(|row| row["id"] == "crew")
+        .unwrap()["components"]["hive.container"] = json!({"capacity":2});
+    initial.push(builtins(
+        "chest",
+        [2.0, 1.0, 0.0],
+        json!({
+            "hive.container":{"capacity":2},
+            "hive.support":{"entity":"ship"}
+        }),
+    ));
+    initial.push(json!({
+        "id":"cargo-lot",
+        "components":{"hive.lot":{"kind":"bread","quantity":1,"container":"crew"}}
+    }));
+    serde_json::to_string(&root).unwrap()
 }
 fn snapshot(kernel: &Kernel) -> Value {
     serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap()
@@ -288,11 +317,27 @@ fn supported_move_requires_frame_and_stays_on_surface() {
     kernel.load(&moving_deck_scene()).unwrap();
     let result: Value = serde_json::from_str(
         &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":"ship"}}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(result["results"][0]["accepted"], true);
+    let result: Value = serde_json::from_str(
+        &kernel
             .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":null}}]}"#)
             .unwrap(),
     )
     .unwrap();
     assert_eq!(result["results"][0]["accepted"], false);
+    kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+    let moved: Value = serde_json::from_str(&kernel.query_json(r#"["hive.position"]"#).unwrap()).unwrap();
+    let crew = moved
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["id"] == "crew")
+        .unwrap();
+    assert!(crew["components"]["hive.position"]["x"].as_f64().unwrap() > 1.0);
     let result: Value = serde_json::from_str(
         &kernel
             .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":4,"y":1,"z":0,"frame":"ship"}}]}"#)
@@ -300,6 +345,61 @@ fn supported_move_requires_frame_and_stays_on_surface() {
     )
     .unwrap();
     assert_eq!(result["results"][0]["accepted"], false);
+}
+
+#[test]
+fn supported_crew_routes_around_deck_obstacle_while_ship_moves() {
+    let mut kernel = Kernel::new();
+    kernel.load(&moving_deck_scene()).unwrap();
+    let accepted: Value = serde_json::from_str(
+        &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":-1,"y":1,"z":0,"frame":"ship"}},{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null}}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(accepted["results"][0]["accepted"], true);
+    assert_eq!(accepted["results"][1]["accepted"], true);
+    for _ in 0..8 {
+        kernel.advance_json(r#"{"delta":0.25,"writes":[],"actions":[]}"#).unwrap();
+    }
+    let local: Value = serde_json::from_str(&kernel.query_json(r#"["hive.position"]"#).unwrap()).unwrap();
+    let crew = local
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["id"] == "crew")
+        .unwrap();
+    assert!(!(crew["components"]["hive.position"]["x"] == 0.0
+        && crew["components"]["hive.position"]["z"] == 0.0));
+    let world: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
+    assert!(world[0]["world"]["x"].as_f64().unwrap() > 10.0);
+}
+
+#[test]
+fn resolved_contact_and_midvoyage_cargo_restore_are_deterministic() {
+    let mut kernel = Kernel::new();
+    kernel.load(&cargo_scene()).unwrap();
+    let transfer: Value = serde_json::from_str(
+        &kernel
+            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot","from":"crew","to":"chest","quantity":1}]}"#)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(transfer["results"][0]["accepted"], true);
+    kernel = Kernel::new();
+    kernel.load(&cargo_scene()).unwrap();
+    kernel
+        .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":-1,"y":1,"z":0,"frame":"ship"}},{"kind":"move","entity":"ship","destination":{"x":13,"y":0,"z":20,"frame":null}}]}"#)
+        .unwrap();
+    kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+    let saved = kernel.snapshot_json().unwrap();
+    let mut restored = Kernel::new();
+    restored.restore_json(&saved).unwrap();
+    for _ in 0..5 {
+        kernel.advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#).unwrap();
+        restored.advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#).unwrap();
+    }
+    assert_eq!(kernel.snapshot_json().unwrap(), restored.snapshot_json().unwrap());
 }
 
 #[test]
@@ -341,6 +441,38 @@ fn invalid_support_graph_is_rejected_atomically() {
     );
     assert!(kernel.load(&cycle).is_err());
     assert_eq!(kernel.snapshot_json().unwrap(), before);
+}
+
+#[test]
+fn support_chain_allows_sixteen_links_and_rejects_seventeen() {
+    let mut entities = vec![builtins(
+        "root",
+        [0.0, 0.0, 0.0],
+        json!({"hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0}}),
+    )];
+    for index in 1..=16 {
+        let id = format!("node-{index}");
+        let parent = if index == 1 { "root".to_string() } else { format!("node-{}", index - 1) };
+        entities.push(builtins(
+            &id,
+            [0.0, 0.0, 0.0],
+            json!({
+                "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+                "hive.support":{"entity":parent}
+            }),
+        ));
+    }
+    let mut kernel = Kernel::new();
+    kernel.load(&scene(Value::Array(entities.clone()), json!([]))).unwrap();
+    entities.push(builtins(
+        "node-17",
+        [0.0, 0.0, 0.0],
+        json!({
+            "hive.surface":{"min_x":-1.0,"max_x":1.0,"min_z":-1.0,"max_z":1.0,"height":0.0},
+            "hive.support":{"entity":"node-16"}
+        }),
+    ));
+    assert!(kernel.load(&scene(Value::Array(entities), json!([]))).is_err());
 }
 
 #[test]
