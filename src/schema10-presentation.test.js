@@ -170,16 +170,6 @@ test("station profiles expose only canonical phase and contents effects", () => 
   assert.equal(
     stationVisualProfile({
       finished: true,
-      slots,
-      process: { phase: "ferment" },
-      attending: false,
-      burning: true,
-    }),
-    "ferment-burning",
-  );
-  assert.equal(
-    stationVisualProfile({
-      finished: true,
       slots: { ...slots, keg: { keg: 1, ale: 4 }, tray: { spentGrain: 1 } },
       process: null,
       attending: false,
@@ -197,7 +187,7 @@ test("station profiles expose only canonical phase and contents effects", () => 
   });
 });
 
-test("only attended PREPARE and paid FERMENT bake their approved effects", () => {
+test("paid FERMENT burns while PREPARE remains fireless", () => {
   const prepare = stationScene("finished", 0, { profile: "prepare" });
   const attended = stationScene("finished", 0, {
     profile: "prepare-attended",
@@ -211,13 +201,39 @@ test("only attended PREPARE and paid FERMENT bake their approved effects", () =>
   const settled = stationScene("finished", 0, { profile: "settled" });
   assert.equal(named(prepare, "kettle-fire"), null);
   assert.equal(named(prepare, "kettle-steam"), null);
-  assert.ok(named(attended, "kettle-fire"));
-  assert.ok(named(attended, "kettle-steam"));
+  assert.equal(named(attended, "kettle-fire"), null);
+  assert.equal(named(attended, "kettle-steam"), null);
+  assert.ok(named(attended, "kettle-paddle"));
+  assert.deepEqual(stationProfileOptions("prepare-attended"), {
+    liquid: "water",
+    barm: true,
+    keg: true,
+    tray: false,
+    stirring: true,
+    fire: false,
+    steam: false,
+  });
   assert.ok(named(attended, "brew-keg"));
   assert.equal(named(ferment, "kettle-fire"), null);
   assert.equal(named(ferment, "kettle-steam"), null);
   assert.ok(named(burning, "kettle-fire"));
   assert.ok(named(burning, "kettle-steam"));
+  assert.equal(
+    stationVisualProfile({
+      finished: true,
+      slots: {
+        kettle: { water: 2, malt: 2, mugwort: 1 },
+        hearth: { wood: 1 },
+        barm: { barm: 1 },
+        keg: { keg: 1, ale: 0 },
+        tray: { spentGrain: 0 },
+      },
+      process: { phase: "ferment" },
+      attending: false,
+      burning: true,
+    }),
+    "ferment-burning",
+  );
   assert.deepEqual(stationProfileOptions("ferment-burning"), {
     liquid: "wort",
     barm: true,
