@@ -159,3 +159,15 @@ impacts only; GameSession owns durable pending delivery and consumer frontiers.
 Active-shot capacity rejects new launches, never deletes existing flight.
 Range/lifetime clip the sweep interval before testing contact. Ordinary steps
 without shots or fallible combat operations retain their existing fast path.
+
+### Original cannon bake accepted
+
+Maintained exporter u5104 exited zero at integrated source `8ad85ee`, with
+1415 textures (four cannon facings and one cannonball added). The owned scope
+is inactive/dead/empty and port 5187 is free. Root personally viewed exact atlas
+crops in `.botanical/fresh-cannon-export/contact.png`: timber carriage, iron
+barrel and muzzle are readable in all four directions, with no visible clipping.
+Manifest SHA256: `3d62bfd593c5cf532eaf5469b15294e9f73eb92d8c098162f14a18ecffb783f7`.
+Only atlas-2 and manifest changed in the tracked bank; prior bank is preserved
+in the ignored export packet. This accepts native sprites, not in-game
+placement, projectile alignment during movement, or hosted cannon play.
