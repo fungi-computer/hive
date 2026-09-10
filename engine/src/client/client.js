@@ -342,6 +342,7 @@ export function createHiveClient({
       return depth || a.x + a.z - b.x - b.z || a.id.localeCompare(b.id);
     });
     for (const [renderRank, subject] of orderedSubjects.entries()) {
+      subject.renderRank = renderRank;
       subject.screen = screenPoint(subject);
       const binding = bindings[subject.visual];
       if (!binding)
