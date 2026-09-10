@@ -16,7 +16,10 @@ import { scene } from "./art/geometry.js";
 import { soilPile } from "./art/soil.js";
 import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
-import { STATION_VISUAL_PROFILES } from "./brew-station-profiles.js";
+import {
+  STATION_VISUAL_PROFILES,
+  stationProfileOptions,
+} from "./brew-station-profiles.js";
 import { BUILDINGS } from "./construction.js";
 import { registerVisibleTexture } from "./visual-hit-geometry.js";
 import { loadStaticArtPack } from "./art/static-pack.js";
@@ -471,7 +474,9 @@ export async function bakeArt(onProgress = () => {}) {
           STATION_VISUAL_PROFILES.map((profile) => [
             profile,
             [0, 1].map((direction) => {
-              const frames = profile === "prepare-attended" ? 8 : 1;
+              const options = stationProfileOptions(profile);
+              const frames =
+                options.stirring || options.fire || options.steam ? 8 : 1;
               return Array.from({ length: frames }, (_, frame) =>
                 bakeStartup(
                   renderer,
