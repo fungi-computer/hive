@@ -251,23 +251,26 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   assert.equal(clientAAttempts[1].receipt?.revision, 3);
   const afterTake = await observe(secrets.WRITER_SECRET);
   assert.equal(afterTake.revision, 3, "lost command response commits exactly once");
+  const takeStepCursorA = eventsA.length;
+  const takeStepCursorB = eventsB.length;
   const stepTake = await hostStep("host-step-take", afterTake.revision);
   assert.equal(stepTake.status, "applied");
-  await delay(150);
+  await Promise.all([
+    waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 4, "first client sees host step", takeStepCursorA),
+    waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 4, "second client sees host step", takeStepCursorB),
+  ]);
   const taken = await debugSnapshot();
   assert.equal(breadIn(taken, "survival.survivor.1"), 1, "replayed take command does not duplicate custody");
   assert.equal(breadIn(taken, "survival.locker"), 7);
   const eatCursorB = eventsB.length;
   clientB.send({ type: "command", name: "eatFood" });
-  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 4, "second client sees host step", eatCursorB);
-  const eatReceiptCursorB = eventsB.length;
-  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 5, "eat observation", eatReceiptCursorB);
+  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 5, "eat observation", eatCursorB);
   const beforeEatStep = await observe(secrets.WRITER_SECRET);
   assert.equal(beforeEatStep.revision, 5);
-  const stepEat = await hostStep("host-step-eat", beforeEatStep.revision);
-  assert.equal(stepEat.status, "applied");
   const finalCursorA = eventsA.length;
   const finalCursorB = eventsB.length;
+  const stepEat = await hostStep("host-step-eat", beforeEatStep.revision);
+  assert.equal(stepEat.status, "applied");
   await Promise.all([
     waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 6, "first client final frame", finalCursorA),
     waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 6, "second client final frame", finalCursorB),
