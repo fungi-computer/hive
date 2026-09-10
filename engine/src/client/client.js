@@ -35,6 +35,8 @@ export function createHiveClient({
     subjects: [],
     pendingSave: false,
     pendingRestore: false,
+    presentationFacts: [],
+    presentationControls: [],
     message: runtime
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
@@ -157,6 +159,35 @@ export function createHiveClient({
               ? "Select survivor · WASD / arrows move · E take bread · F eat"
               : "Click selects · Shift adds · drag selects a group · right click orders",
           ),
+          state.presentationFacts.length || state.presentationControls.length
+            ? React.createElement(
+                "div",
+                { className: "hive-presentation" },
+                state.presentationFacts.map((fact) =>
+                  React.createElement(
+                    "div",
+                    { key: fact.id },
+                    `${fact.label}: ${fact.value}`,
+                  ),
+                ),
+                state.presentationControls.map((control) =>
+                  React.createElement(
+                    Button,
+                    {
+                      key: control.id,
+                      size: "sm",
+                      onClick: () =>
+                        runtime?.send({
+                          type: "command",
+                          name: control.command,
+                          input: control.input,
+                        }),
+                    },
+                    control.label,
+                  ),
+                ),
+              )
+            : null,
           React.createElement(
             "a",
             { className: "hive-source", href: source },
@@ -501,6 +532,11 @@ export function createHiveClient({
             screen: { x: 0, y: 0 },
           }));
         draw();
+        renderHud();
+      }
+      if (event.type === "presentation") {
+        state.presentationFacts = event.facts;
+        state.presentationControls = event.controls;
         renderHud();
       }
       if (event.type === "saved") {
