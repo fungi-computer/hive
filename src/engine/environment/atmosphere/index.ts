@@ -1,12 +1,7 @@
 import { advanceAtmosphere } from "./advance.ts";
 import { ATMOSPHERE_LIMITS, compileAtmosphere } from "./definition.ts";
 import { rebindAtmosphere } from "./rebind.ts";
-import {
-  atmosphereFacts,
-  copyState,
-  initialState,
-  validateState,
-} from "./state.ts";
+import { atmosphereFacts, initialState, validateState } from "./state.ts";
 
 export type {
   AtmosphereAdvanceReceipt,
@@ -60,7 +55,7 @@ export function createAtmosphere(input: unknown) {
           ATMOSPHERE_LIMITS.encodedStateBytes
       )
         throw new TypeError("bounded encoded atmosphere state required");
-      return copyState(validateState(compiled, JSON.parse(raw)));
+      return validateState(compiled, JSON.parse(raw));
     },
   });
 }

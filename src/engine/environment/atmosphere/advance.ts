@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { changeQuantity } from "../arithmetic.mjs";
 import { ATMOSPHERE_LIMITS, type CompiledAtmosphere } from "./definition.ts";
-import { copyState, validateCandidateState, validateState } from "./state.ts";
+import {
+  publishCandidateState,
+  validateCandidateState,
+  validateState,
+} from "./state.ts";
 import type {
   AtmosphereAdvanceReceipt,
   AtmosphereSource,
@@ -100,7 +104,7 @@ export function advanceAtmosphere(
     exchangeAtmosphere(g, candidate, dt);
     validateCandidateState(g, candidate);
   }
-  const next = copyState(validateCandidateState(g, candidate));
+  const next = publishCandidateState(g, candidate);
   const receipt: AtmosphereAdvanceReceipt = Object.freeze({
     seconds,
     steps,
