@@ -21,7 +21,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
     for (let i = 0; i < 100; i++) {
       session.step(0.1);
       const lot = session.query(query(MaterialLot)).find((row) => row.get(MaterialLot).container === "colony.worker.1");
-      if (lot) { session.command("pauseDelivery", null); session.step(0.1); assert.equal(session.query(query(MaterialLot)).find((row) => row.id === lot.id)?.get(MaterialLot).container, "colony.worker.1"); session.command("resumeDelivery", null); break; }
+      if (lot) { session.command("pauseDelivery", null); session.step(0.1); const pausedPosition = session.query(query(Position)).find((row) => row.id === "colony.worker.1")?.get(Position); for (let pauseTick = 0; pauseTick < 3; pauseTick++) session.step(0.1); assert.deepEqual(session.query(query(Position)).find((row) => row.id === "colony.worker.1")?.get(Position), pausedPosition); assert.equal(session.query(query(MaterialLot)).find((row) => row.id === lot.id)?.get(MaterialLot).container, "colony.worker.1"); session.command("resumeDelivery", null); break; }
     }
     for (let i = 0; i < 100; i++) session.step(0.1);
     const lots = session
