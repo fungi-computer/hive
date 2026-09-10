@@ -32,18 +32,27 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
   const frames = [];
   let epoch;
   let latestSequence = -1;
+  let latestTime = -1;
   let anchor;
   let paused = false;
   let awaitingAnchor = false;
+  let starved = false;
   let frozen;
+  let displayed = [];
+
   function reset(nextEpoch) {
     frames.length = 0;
     epoch = nextEpoch;
     latestSequence = -1;
+    latestTime = -1;
     anchor = undefined;
+    paused = false;
     awaitingAnchor = false;
+    starved = false;
     frozen = undefined;
+    displayed = [];
   }
+
   function push(frame, receivedAt = performance.now()) {
     if (
       !Number.isInteger(frame.sequence) ||
@@ -54,47 +63,71 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     )
       return false;
     if (epoch !== undefined && frame.epoch !== epoch) return false;
+    if (frame.time < latestTime || frame.sequence <= latestSequence)
+      return false;
     if (epoch === undefined) epoch = frame.epoch;
-    if (frame.sequence <= latestSequence) return false;
-    const discontinuity =
-      latestSequence >= 0 && frame.sequence !== latestSequence + 1;
     latestSequence = frame.sequence;
-    if (anchor === undefined && Number.isFinite(receivedAt)) {
-      anchor = receivedAt - frame.time * 1000;
-      awaitingAnchor = false;
-    }
+    latestTime = frame.time;
     frames.push({
       epoch: frame.epoch,
       sequence: frame.sequence,
       time: frame.time,
-      discontinuity,
       facts: copyFacts(frame.facts),
     });
     if (frames.length > MAX_FRAMES) frames.shift();
+
+    if (
+      !paused &&
+      Number.isFinite(receivedAt) &&
+      (anchor === undefined || starved || awaitingAnchor)
+    ) {
+      anchor = receivedAt - frame.time * 1000;
+      awaitingAnchor = false;
+      starved = false;
+      frozen = undefined;
+    } else if (paused) {
+      awaitingAnchor = true;
+    }
     return true;
   }
+
+  function publish(facts) {
+    displayed = copyFacts(facts);
+    return copyFacts(displayed);
+  }
+
   function render(
     now = performance.now(),
     { paused: nextPaused = paused } = {},
   ) {
     if (!frames.length) return [];
+    const latest = frames.at(-1);
     if (nextPaused) {
-      paused = true;
-      frozen ??= copyFacts(frames.at(-1).facts);
-      return copyFacts(frozen);
+      if (!paused) {
+        paused = true;
+        frozen = copyFacts(displayed.length ? displayed : latest.facts);
+      }
+      return copyFacts(frozen ?? latest.facts);
     }
     if (paused) {
       paused = false;
       anchor = undefined;
       awaitingAnchor = true;
-      frozen = undefined;
     }
-    const latest = frames.at(-1);
-    if (awaitingAnchor) return copyFacts(latest.facts);
+    if (awaitingAnchor) return copyFacts(frozen ?? displayed ?? latest.facts);
+
     anchor ??= now - latest.time * 1000;
     const target = (now - anchor - delayMs) / 1000;
-    let before = frames[0],
-      after = latest;
+    const first = frames[0];
+    if (target <= first.time) return publish(first.facts);
+    if (target >= latest.time) {
+      starved = true;
+      anchor = now - latest.time * 1000 - delayMs;
+      return publish(latest.facts);
+    }
+
+    let before = first;
+    let after = latest;
     for (let index = 1; index < frames.length; index++) {
       if (frames[index].time >= target) {
         after = frames[index];
@@ -103,22 +136,22 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
       }
       before = frames[index];
     }
-    if (
-      after.discontinuity ||
-      after.time <= before.time ||
-      target >= latest.time
-    )
-      return copyFacts(before.facts);
+    if (after.time === target || after.time <= before.time)
+      return publish(after.facts);
+
     const amount = Math.max(
       0,
       Math.min(1, (target - before.time) / (after.time - before.time)),
     );
     const next = new Map(after.facts.map((fact) => [fact.id, fact]));
-    return before.facts.map((fact) =>
-      next.has(fact.id)
-        ? interpolate(fact, next.get(fact.id), amount)
-        : copyFact(fact),
+    return publish(
+      before.facts.map((fact) =>
+        next.has(fact.id)
+          ? interpolate(fact, next.get(fact.id), amount)
+          : copyFact(fact),
+      ),
     );
   }
+
   return { push, render, reset, size: () => frames.length };
 }
