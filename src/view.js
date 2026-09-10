@@ -13,7 +13,7 @@ import { currentVisibility } from "./exploration.ts";
 import { Texture, Sprite, Container, Graphics, Text } from "pixi.js";
 import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
 import { visualPosition } from "./movement.ts";
-import { insidePlacement, worldView, viewLayer } from "./game-space.ts";
+import { worldView, viewLayer } from "./game-space.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
@@ -486,7 +486,7 @@ export function createView(app, world, camera, art, initial, input) {
   app.stage.on("globalpointermove", (e) => {
     if (!fromCanvas(e)) return;
     const cell = camera.cell(e.global, input.level());
-    if (insidePlacement(cell)) input.move(cell, e.global);
+    input.move(cell, e.global);
   });
   app.stage.on("pointerdown", (e) => {
     if (fromCanvas(e) && e.button === 0)
