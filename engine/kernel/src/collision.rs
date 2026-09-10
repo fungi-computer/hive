@@ -142,7 +142,7 @@ fn shape_cast(
             options,
         ),
     };
-    result.map_err(|_| SweepError::NumericalFailure(collider.id.clone()))
+    result.map_err(|_| SweepError::UnsupportedShape(collider.id.clone()))
 }
 
 /// Sweep one moving sphere against at most 256 moving ball/cuboid colliders.
@@ -211,7 +211,16 @@ pub fn sweep_projectile(
         ) {
             return Err(SweepError::NumericalFailure(collider.id.clone()));
         }
-        if !hit.time_of_impact.is_finite() || hit.time_of_impact < 0.0 || hit.time_of_impact > delta {
+        if !hit.time_of_impact.is_finite()
+            || !hit.witness1.x.is_finite()
+            || !hit.witness1.y.is_finite()
+            || !hit.witness1.z.is_finite()
+            || !hit.normal1.x.is_finite()
+            || !hit.normal1.y.is_finite()
+            || !hit.normal1.z.is_finite()
+            || hit.time_of_impact < 0.0
+            || hit.time_of_impact > delta
+        {
             return Err(SweepError::NumericalFailure(collider.id.clone()));
         }
         let projectile_position = projectile_pose.translation
@@ -302,6 +311,22 @@ mod tests {
             .expect("valid sweep")
             .expect("moving target hit");
         assert!(hit.time < 0.7);
+    }
+
+    #[test]
+    fn moving_ball_is_swept_against_ball() {
+        let target = Collider {
+            id: "round-target".into(),
+            shape: ColliderShape::Ball { radius: 0.25 },
+            origin: [1.0, 0.0, 0.0],
+            linear_velocity: [0.0, 0.0, 0.0],
+            yaw: 0.0,
+        };
+        let hit = sweep_projectile(&projectile(), &[target], 1.0)
+            .expect("ball-vs-ball query is supported")
+            .expect("ball-vs-ball crossing hit");
+        assert_eq!(hit.target_id, "round-target");
+        assert!(hit.time.is_finite());
     }
 
     #[test]
