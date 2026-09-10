@@ -26,6 +26,7 @@ export const shipId = entity("pirates.ship");
 export const crewOneId = entity("pirates.crew.1");
 export const crewTwoId = entity("pirates.crew.2");
 export const chestId = entity("pirates.chest");
+export const holdId = entity("pirates.hold");
 const breadId = entity("pirates.bread");
 const woodId = entity("pirates.wood");
 const breadTaskId = entity("pirates.delivery.bread");
@@ -78,6 +79,15 @@ const piratesInitial = [
     },
   },
   {
+    id: holdId,
+    components: {
+      "hive.position": { x: 1, y: 1, z: 1, facing: 0 },
+      "hive.container": { capacity: 8 },
+      "hive.support": { entity: shipFrame },
+      "hive.visual": { sprite: "pirate.hold", label: "Deck hold" },
+    },
+  },
+  {
     id: breadId,
     components: {
       "hive.lot": { quantity: 4, kind: "bread", container: chestId },
@@ -96,7 +106,7 @@ const piratesInitial = [
         actor: null,
         sourceLot: breadId,
         source: chestId,
-        destination: crewOneId,
+        destination: holdId,
         material: "bread",
         quantity: 1,
         phase: "idle",
@@ -110,7 +120,7 @@ const piratesInitial = [
         actor: null,
         sourceLot: woodId,
         source: chestId,
-        destination: crewTwoId,
+        destination: holdId,
         material: "wood",
         quantity: 1,
         phase: "idle",
@@ -137,9 +147,9 @@ const moveInput = z
     entities: z.array(z.string()).min(1).max(2),
     destination: z
       .object({
-        x: z.number().finite(),
-        y: z.number().finite(),
-        z: z.number().finite(),
+        x: z.number().finite().min(-1_000_000).max(1_000_000),
+        y: z.number().finite().min(-1_000_000).max(1_000_000),
+        z: z.number().finite().min(-1_000_000).max(1_000_000),
         frame: z.string().nullable(),
       })
       .strict(),
@@ -158,7 +168,7 @@ function selectedEntities(input: unknown): EntityId[] {
 }
 function selectedCrew(context: Pick<ReadContext, "query">, input: unknown) {
   const parsed = moveInput.parse(input);
-  const selected = selectedEntities(input);
+  const selected = selectedEntities({ entities: parsed.entities });
   if (selected.some((id) => !(crewIds as readonly EntityId[]).includes(id)))
     throw new Error("only crew can use this command");
   const crewRows = context.query(query(PirateCrew));
@@ -185,32 +195,35 @@ export const piratesPack: GamePack = {
   components: pirateComponents,
   systems: [deliverySystem],
   commands: {
-    moveCrew: command({
-      reads: [PirateCrew, Support],
-      writes: [],
-      run(context, input) {
-        const { selected, destination } = selectedCrew(context, input);
-        if (destination.frame !== shipFrame)
-          throw new Error("crew destinations must name the ship frame");
-        return {
-          actions: selected.map((id) => move(id, destination, 0)),
-          writes: [],
-        };
-      },
-    }),
-    moveShip: command({
-      reads: [PirateShip],
+    move: command({
+      reads: [PirateCrew, PirateShip, Support],
       writes: [],
       run(context, input) {
         const parsed = moveInput.parse(input);
-        if (parsed.entities.length !== 1 || parsed.entities[0] !== shipId)
-          throw new Error("select only the ship");
-        if (parsed.destination.frame !== null)
-          throw new Error("ship destinations must be in the world frame");
+        const selected = selectedEntities({ entities: parsed.entities });
+        const crewRows = context.query(query(PirateCrew));
+        const shipRows = context.query(query(PirateShip));
+        const allCrew = selected.every((id) =>
+          crewRows.some((row) => row.id === id),
+        );
+        const allShip =
+          selected.length === 1 &&
+          shipRows.some((row) => row.id === selected[0]);
+        if (allCrew) {
+          const crew = selectedCrew(context, input);
+          if (crew.destination.frame !== shipFrame)
+            throw new Error("crew destinations must name the ship frame");
+          return {
+            actions: crew.selected.map((id) => move(id, crew.destination, 0)),
+            writes: [],
+          };
+        }
+        if (!allShip || parsed.destination.frame !== null)
+          throw new Error("select one capability with a matching frame");
         return {
           actions: [
             move(
-              shipId,
+              selected[0],
               {
                 ...parsed.destination,
                 frame: parsed.destination.frame as EntityId | null,
@@ -233,6 +246,8 @@ export const piratesPack: GamePack = {
           (facing as number) > 3
         )
           throw new Error("ship facing must be 0..3");
+        if (!context.query(query(PirateShip)).some((row) => row.id === shipId))
+          throw new Error("ship capability is unavailable");
         const position = context
           .query(query(Position))
           .find((row) => row.id === shipId)
