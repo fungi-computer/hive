@@ -38,3 +38,26 @@ test("mutable site and actor arrays invalidate dependent projections", () => {
   assert.notStrictEqual(createNavigationSpaces(state), afterSiteNavigation);
   assert.notStrictEqual(fieldWaterSources(state), afterSiteWater);
 });
+
+test("field source access follows a real fixed rim obstacle", () => {
+  const state = createClearing();
+  const source = fieldWaterSources(state)[0];
+  assert(source, "clearing fixture must expose a finite water rim");
+  const blockers = source.accessCells.map((rim, index) => ({
+    ...state.trees[0],
+    id: `query-rim-blocker-${index}`,
+    x: rim.x,
+    y: rim.y,
+    z: rim.z,
+    felledAt: null,
+  }));
+  state.trees.push(...blockers);
+  assert.equal(
+    fieldWaterSources(state).some((candidate) => candidate.nodeId === source.nodeId),
+    false,
+  );
+  for (const blocker of blockers) blocker.felledAt = 1;
+  assert(
+    fieldWaterSources(state).some((candidate) => candidate.nodeId === source.nodeId),
+  );
+});
