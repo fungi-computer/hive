@@ -11,6 +11,13 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Cross-game reference, Levi September 10:** Project Zomboid is a design reference
+and engine-reuse test. An unrelated sailing/cannon game is a contrasting test of
+the same boundary. The [current source assessment](hive-engine-asset-pipeline-and-goblin-boundaries.md#cross-game-acceptance-zomboid-style-survival-and-pirates--september-10)
+separates reusable mechanisms, remaining Goblin composition and missing vehicle/
+combat systems. These are acceptance examples, not new game projects or a reason
+to postpone the playable environment correction below.
+
 **Latest playability decision, Levi September 10:** Celld is the accepted cheap
 DO target; defer detailed tick pricing and player compute allowances. The
 [environment correction](environmental-fields-and-openings.md#playability-first-environment-decision--2026-09-10)
