@@ -97,3 +97,19 @@ test("changing the selected slice clears the active stroke without issuing work 
   assert.equal(actor.getSnapshot().context.start, null);
   actor.stop();
 });
+
+test("Dig move and release retain the same screen endpoint outside a guessed placement plane", () => {
+  const actor = createActor(toolMachine).start();
+  actor.send({ type: "TOOL", tool: "dig" });
+  actor.send({ type: "BEGIN", point: point(7, 9, -1) });
+  const outside = {
+    cell: { x: -2, z: 16, level: -1 },
+    screen: { x: 12, y: 380 },
+  };
+  actor.send({ type: "MOVE", point: outside });
+  const preview = structuredClone(actor.getSnapshot().context.end);
+  actor.send({ type: "END", point: outside });
+  assert.deepEqual(actor.getSnapshot().context.end, preview);
+  assert.deepEqual(preview.screen, outside.screen);
+  actor.stop();
+});

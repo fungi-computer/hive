@@ -700,6 +700,9 @@ async function startGame() {
     },
     move(at, screen) {
       const current = hud.view();
+      // Dig owns a screen-space face stroke, including endpoints outside the
+      // guessed placement plane. Other tools keep their placement-bound hover.
+      if (current.tool !== "dig" && !insidePlacement(at)) return;
       if (current.phase !== "dragging" && !current.tool) return;
       hud.dispatch({ kind: "move", point: point(at, screen) });
       if (current.phase !== "dragging") return;
