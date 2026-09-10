@@ -446,7 +446,7 @@ export class GameSession {
   save(): SessionSnapshot {
     return {
       format: "hive-session",
-      version: 4,
+      version: 5,
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
       gameVersion: this.pack.version,
