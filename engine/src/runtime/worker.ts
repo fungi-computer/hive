@@ -6,6 +6,8 @@ import type {
 } from "../contracts";
 import { GameSession } from "./session";
 import type { SessionSnapshot } from "./session";
+import { projectPresentation } from "../presentation";
+import type { GamePresentation } from "../presentation";
 
 export type WorkerCommand =
   | {
@@ -24,6 +26,20 @@ export type WorkerEvent =
   | { readonly type: "restored" }
   | { readonly type: "state"; readonly paused: boolean }
   | { readonly type: "frame"; readonly facts: readonly RenderFact[] }
+  | {
+      readonly type: "presentation";
+      readonly facts: readonly {
+        id: string;
+        label: string;
+        value: string | number | boolean;
+      }[];
+      readonly controls: readonly {
+        id: string;
+        label: string;
+        command: string;
+        input?: unknown;
+      }[];
+    }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[] }
   | { readonly type: "error"; readonly message: string };
@@ -36,6 +52,17 @@ export class WorkerRuntime {
     private readonly packs: Readonly<Record<string, GamePack>>,
     private readonly emit: (event: WorkerEvent) => void,
   ) {}
+  private emitPresentation(): void {
+    if (!this.session) return;
+    const pack = this.session.pack as GamePack & {
+      readonly presentation?: GamePresentation;
+    };
+    const projected = projectPresentation(pack, {
+      query: (spec) => this.session!.query(spec),
+      outcomes: this.session.save().outcomes,
+    });
+    this.emit({ type: "presentation", ...projected });
+  }
   command(command: WorkerCommand): void {
     try {
       if (command.type === "start") {
@@ -51,6 +78,7 @@ export class WorkerRuntime {
         this.emit({ type: "ready", game: pack.id });
         this.emit({ type: "state", paused: this.session.isPaused });
         this.emit({ type: "frame", facts: this.kernel.renderFacts() });
+        this.emitPresentation();
         return;
       }
       const session = this.session;
@@ -60,6 +88,7 @@ export class WorkerRuntime {
       else if (command.type === "reset") {
         session.reset();
         this.emit({ type: "frame", facts: session.renderFacts() });
+        this.emitPresentation();
       } else if (command.type === "action") session.request(command.action);
       else if (command.type === "command")
         session.command(command.name, command.input);
@@ -69,10 +98,12 @@ export class WorkerRuntime {
         session.restore(command.snapshot);
         this.emit({ type: "restored" });
         this.emit({ type: "frame", facts: session.renderFacts() });
+        this.emitPresentation();
       } else if (command.type === "step") {
         const results = session.step(command.delta);
         this.emit({ type: "results", results });
         this.emit({ type: "frame", facts: session.renderFacts() });
+        this.emitPresentation();
       }
       if (["pause", "resume", "reset", "restore"].includes(command.type))
         this.emit({ type: "state", paused: session.isPaused });
