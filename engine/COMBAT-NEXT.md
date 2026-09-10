@@ -92,3 +92,28 @@ that exact released manifest in `.botanical/cannon-readiness/`; it is Apache-2.0
 and its feature set matches the retained primary manifest. Dependency installation
 and native/WASM qualification have not run. Match numeric precision to the
 existing f64 kernel before choosing parry3d versus its f64 package variant.
+
+## Impact delivery contract for the shared session
+
+Keep physical impacts separate from immediate action outcomes. The native step
+returns bounded ordered impacts with stable identities alongside its action
+results. A successful native step is their producer; rendering cannot produce
+or acknowledge them. The session persists pending impacts with its existing
+whole-session snapshot inside the Region commit.
+
+A system that consumes impacts must declare that capability in its definition.
+Successful scheduled execution acknowledges the impacts supplied to that system;
+`every` cadence must not silently discard events between its runs. Track a
+frontier per declared consumer, compact only after all interested consumers have
+advanced, and reject bounded backlog overflow atomically. This is a typed
+physical-event mechanism for current consumers, not a general event bus. A
+failed authored rule rolls back its acknowledgement and writes together through
+the existing GameSession candidate boundary. Save/restore validates consumers
+against the current pack, event identities, ordering and frontier references.
+
+The first formation consumer owns health and morale consequences. It requests
+physical knockback through a native operation rather than writing Position.
+Admission of launch owns finite ammo and projectile creation in one native
+candidate; an impact acknowledges no second launch and consumes no second ammo.
+The next implementation review must show those facts in the actual callers before
+adding other event kinds or a generic subscription API.
