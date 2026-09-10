@@ -235,3 +235,18 @@ failure before fixed viewport sizing; v1/v2 red images remain archived. These
 static captures prove placement, not subjective animation smoothness or network
 latency behavior. A following presentation-only correction rounds numeric HUD
 facts to one decimal without modifying simulation values; it is not in that build.
+
+### Playable client interim deployed — 7cea479
+
+Levi requested the next logical demo deployment. u4971 exited0 publishing exact
+141-file bundle to the existing /engine/ preview, deployment
+51594c50-d4aa-48df-84d6-e624e2cec9aa. All112 non-engine files matched the prior
+release before upload. First HTTP readback briefly mismatched colony.html;
+subsequent canonical and deployment HTML both showed the new hashes, then all141
+canonical HTTP file hashes matched the frozen inventory. Evidence:
+`.botanical/fresh-browser/release-7cea479/{files,hosted}.json`.
+Deployment scope inactive/dead/empty. Includes shared interpolation, original
+walking goblins, actual-projection picking, stable viewport, concise needs facts,
+selected two-worker colony delivery and TS fatigue exercise. Native assignment
+remains Rust. It is still browser Worker/WASM authority; pirate/native support
+WIP and hosted DO multiplayer are not part of this release.
