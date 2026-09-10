@@ -101,7 +101,7 @@ pub fn route(
         z: from.2 as f64,
         frame: end.frame.clone(),
     };
-    if distance(start.clone(), start_center.clone()) > 1e-9 {
+    if from != goal && distance(start.clone(), start_center.clone()) > 1e-9 {
         result.push_front(start_center);
     }
     // The end can be between cell centers; it remains an actual world pose.
