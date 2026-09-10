@@ -62,6 +62,7 @@ import {
   levelNavigationAction,
   levelNavigationEnabled,
   TERRAIN_TOOL_CATALOG,
+  AIR_OVERLAY_CONTROL,
   cameraMoveKeepsTool,
   localGoodsAt,
   requiredToolLevel,
@@ -109,14 +110,15 @@ function materialLabel(material) {
 function airLayerText(layer) {
   if (!layer) return "No air currently visible";
   const temperature =
-      Math.abs(layer.maxTemperatureC - layer.minTemperatureC) < 0.05
-        ? `${layer.maxTemperatureC.toFixed(1)} °C`
-        : `${layer.minTemperatureC.toFixed(1)}–${layer.maxTemperatureC.toFixed(1)} °C`,
-    smoke =
-      layer.maxSmokeMgM3 > 0 && layer.maxSmokeMgM3 < 0.01
-        ? "<0.01"
-        : layer.maxSmokeMgM3.toFixed(2);
-  return `${temperature} · smoke ${smoke} mg/m³`;
+    Math.abs(layer.maxTemperatureC - layer.minTemperatureC) < 0.05
+      ? `${layer.maxTemperatureC.toFixed(1)} °C`
+      : `${layer.minTemperatureC.toFixed(1)}–${layer.maxTemperatureC.toFixed(1)} °C`;
+  return `${temperature} · ${layer.maxSmokeMgM3 > 0 ? "Smoke present" : "No smoke detected"}`;
+}
+
+function airLayerDetail(layer) {
+  if (!layer) return "No currently visible physical air cells on this layer.";
+  return `${layer.cells.length} currently visible physical air cells. Maximum modeled smoke: ${layer.maxSmokeMgM3} mg/m³. Air follows finished walls, roofs, openings, and water volume.`;
 }
 
 function actorFact(state, actor) {
@@ -2093,13 +2095,14 @@ function Hud({ machineSnapshot, send, portraits }) {
           variant={m.airOverlay ? "secondary" : "outline"}
           size="sm"
           aria-pressed={m.airOverlay}
-          onClick={() => send({ kind: "air-overlay" })}
+          title={AIR_OVERLAY_CONTROL.title}
+          onClick={() => send(AIR_OVERLAY_CONTROL.action)}
         >
-          Air
+          {AIR_OVERLAY_CONTROL.label}
         </Button>
         <span
           data-air-facts="visible-layer"
-          title={`${clearingAirLayer(facts.air, m.level)?.cells.length ?? 0} currently visible physical air cells. Air follows finished walls, roofs, openings, and water volume.`}
+          title={airLayerDetail(clearingAirLayer(facts.air, m.level))}
         >
           {airLayerText(clearingAirLayer(facts.air, m.level))}
         </span>

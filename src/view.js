@@ -284,12 +284,20 @@ export function createView(app, world, camera, art, initial, input) {
     }
   }
   const airMarks = new Map();
+  function clearAirMarks() {
+    for (const { mark } of airMarks.values()) mark.destroy();
+    airMarks.clear();
+  }
   function drawAir(state, selection) {
+    if (!selection.airOverlay) {
+      clearAirMarks();
+      return;
+    }
     const layer = clearingAirLayer(
         clearingAirPresentation(state),
         selection.level,
       ),
-      cells = selection.airOverlay && layer ? layer.cells : [],
+      cells = layer ? layer.cells : [],
       active = new Set(
         cells
           .filter(
@@ -1043,8 +1051,7 @@ export function createView(app, world, camera, art, initial, input) {
         sprite.destroy();
       }
       wetSurfaces.clear();
-      for (const { mark } of airMarks.values()) mark.destroy();
-      airMarks.clear();
+      clearAirMarks();
       ground.texture = Texture.EMPTY;
     },
     render(state, selection) {

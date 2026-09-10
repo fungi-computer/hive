@@ -39,6 +39,7 @@ export type ClearingAirPresentation = Readonly<{
 }>;
 
 type CacheEntry = Readonly<{
+  tick: number;
   water: Clearing["water"];
   terrain: Clearing["terrain"];
   exploration: Clearing["exploration"];
@@ -137,8 +138,16 @@ function summarizeLayers(cells: readonly ClearingAirCell[]) {
 export function clearingAirPresentation(
   state: Clearing,
 ): ClearingAirPresentation {
-  const sight = currentSightKey(state),
-    known = cache.get(state.air);
+  const known = cache.get(state.air);
+  if (
+    known &&
+    known.tick === state.tick &&
+    known.water === state.water &&
+    known.terrain === state.terrain &&
+    known.exploration === state.exploration
+  )
+    return known.result;
+  const sight = currentSightKey(state);
   if (
     known &&
     known.water === state.water &&
@@ -161,6 +170,7 @@ export function clearingAirPresentation(
     visibleCellCount: cells.length,
   });
   cache.set(state.air, {
+    tick: state.tick,
     water: state.water,
     terrain: state.terrain,
     exploration: state.exploration,
