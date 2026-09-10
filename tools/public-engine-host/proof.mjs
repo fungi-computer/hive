@@ -50,7 +50,13 @@ async function start() {
   child.stdout.on("data", (data) => { runtimeLog += data; }); child.stderr.on("data", (data) => { runtimeLog += data; });
   let exited; childExit = new Promise((resolveExit) => child.once("exit", (code, signal) => { exited = { code, signal }; resolveExit(exited); }));
   const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) { if (exited) throw new Error(`public host exited: ${redact(runtimeLog.slice(-4096))}`); const response = await fetch(`${endpoint}/health`, { signal: AbortSignal.timeout(2000) }).catch(() => null); if (response?.ok) return; await delay(100); }
+  while (Date.now() < deadline) {
+    if (exited) throw new Error(`public host exited: ${redact(runtimeLog.slice(-4096))}`);
+    const response = await fetch(`${endpoint}/health`, { signal: AbortSignal.timeout(2000) }).catch(() => null);
+    const body = response ? await response.text().catch(() => "") : "";
+    if (response?.status === 404 && body.includes('"error":"not-found"')) return;
+    await delay(100);
+  }
   throw new Error(`public host readiness timeout: ${redact(runtimeLog.slice(-4096))}`);
 }
 async function stop() {
@@ -59,10 +65,31 @@ async function stop() {
   for (let attempt = 0; attempt < 50; attempt++) { try { await freePort(); return; } catch (error) { if (error.code !== "EADDRINUSE") throw error; await delay(100); } }
   throw new Error("public host listener did not close");
 }
-function authorizedFetch(token) { return (input, init = {}) => { const headers = new Headers(init.headers); headers.set("Authorization", `Bearer ${token}`); return fetch(input, { ...init, headers, signal: init.signal }); }; }
+function authorizedFetch(token, loseCommandName, attempts = []) {
+  let lost = false;
+  return async (input, init = {}) => {
+    const bodyText = typeof init.body === "string" ? init.body : undefined;
+    let command;
+    try { command = bodyText ? JSON.parse(bodyText) : undefined; } catch { command = undefined; }
+    const commandName = command?.command?.kind === "command" ? command.command.name : command?.command?.kind;
+    const record = commandName === loseCommandName ? { body: bodyText } : undefined;
+    if (record) attempts.push(record);
+    const headers = new Headers(init.headers); headers.set("Authorization", `Bearer ${token}`);
+    const response = await fetch(input, { ...init, headers, signal: init.signal });
+    if (record) {
+      record.status = response.status;
+      const text = await response.clone().text();
+      try { record.receipt = JSON.parse(text); } catch { record.bodyText = text.slice(0, 512); }
+      if (!lost) { lost = true; throw new Error("intentional lost public command response"); }
+    }
+    return response;
+  };
+}
 async function observe(token) { const response = await fetch(`${endpoint}/v1/survival/observe`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000) }); const body = await response.text(); lastObservation = { status: response.status, body: redact(body.slice(0, 4096)) }; assert.equal(response.status, 200, body.slice(0, 512)); return JSON.parse(body); }
-async function hostRow() { const entries = await readdir(resolve(output, "sqlite"), { recursive: true }); for (const entry of entries.filter((value) => value.endsWith(".sqlite"))) { const db = new DatabaseSync(resolve(output, "sqlite", entry), { readOnly: true }); try { if (db.prepare("SELECT name FROM sqlite_master WHERE name='hive_public_host'").all().length) return db.prepare("SELECT next_sequence,paused FROM hive_public_host WHERE singleton=1").get(); } finally { db.close(); } } throw new Error("public host row unavailable"); }
+function tokenHash(token) { return createHash("sha256").update(token).digest("hex"); }
+async function hostRow(token) { const target = tokenHash(token); const entries = await readdir(resolve(output, "sqlite"), { recursive: true }); for (const entry of entries.filter((value) => value.endsWith(".sqlite"))) { const db = new DatabaseSync(resolve(output, "sqlite", entry), { readOnly: true }); try { if (db.prepare("SELECT name FROM sqlite_master WHERE name='hive_public_host'").all().length) { const row = db.prepare("SELECT next_sequence,paused FROM hive_public_host WHERE singleton=1 AND token_hash=?").get(target); if (row) return row; } } finally { db.close(); } } throw new Error("public host row unavailable for token"); }
 function waitFor(events, predicate, label, cursor = 0) { return (async () => { const deadline = Date.now() + 10000; while (Date.now() < deadline) { const found = events.slice(cursor).find(predicate); if (found) return found; await delay(25); } throw new Error(`timed out waiting for ${label}`); })(); }
+async function waitUntil(predicate, label) { const deadline = Date.now() + 10000; while (Date.now() < deadline) { if (await predicate()) return; await delay(25); } throw new Error(`timed out waiting for ${label}`); }
 async function waitRevision(token, previous) { const deadline = Date.now() + 10000; while (Date.now() < deadline) { const current = await observe(token); if (current.revision > previous) return current; await delay(50); } throw new Error("autonomous revision did not advance"); }
 function summarize(events) { return events.map((event) => event.type === "frame" ? { type: event.type, sequence: event.sequence, time: event.time, facts: event.facts.length } : event.type === "presentation" ? { type: event.type, facts: event.facts.length, controls: event.controls.length } : event.type === "error" ? { type: event.type, message: event.message } : event); }
 try {
@@ -73,19 +100,29 @@ try {
   assert.equal((await fetch(`${endpoint}/v1/survival/observe`)).status, 403);
   assert.equal((await fetch(`${endpoint}/v1/survival/observe`, { headers: { Authorization: `Bearer ${tokens.wrong}` } })).status, 200);
   const publicEndpoint = `${endpoint}/v1/survival`;
-  clientA = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.first), pollMs: 100 });
+  const pauseAttemptsA = [];
+  clientA = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.first, "pause", pauseAttemptsA), pollMs: 100 });
   clientB = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.second), pollMs: 100 });
   clientA.subscribe((event) => eventsA.push(event)); clientB.subscribe((event) => eventsB.push(event));
   clientA.send({ type: "start", game: "survival" }); clientB.send({ type: "start", game: "survival" });
   await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "first ready"), waitFor(eventsB, (event) => event.type === "ready", "second ready")]);
-  const first = await observe(tokens.first); const second = await observe(tokens.second); assert.equal(first.revision, 0); assert.equal(second.revision, 0);
+  const first = await observe(tokens.first); const second = await observe(tokens.second);
   const pauseCursor = eventsA.length; clientA.send({ type: "pause" }); await waitFor(eventsA, (event) => event.type === "state" && event.paused, "pause", pauseCursor);
-  const paused = await observe(tokens.first); await delay(700); assert.equal((await observe(tokens.first)).revision, paused.revision); assert.equal((await observe(tokens.second)).revision, second.revision);
+  await waitUntil(() => pauseAttemptsA.filter((attempt) => attempt.status === 200 && attempt.receipt?.status === "applied").length >= 2, "pause retry receipt");
+  const pauseBodies = pauseAttemptsA.filter((attempt) => attempt.status === 200 && attempt.receipt?.status === "applied");
+  assert.equal(pauseBodies[0].body, pauseBodies[1].body, "lost public command retried with identical body");
+  assert.equal(pauseBodies[0].receipt.revision, pauseBodies[1].receipt.revision, "lost public command applied once");
+  const paused = await observe(tokens.first); await delay(700); assert.equal((await observe(tokens.first)).revision, paused.revision);
+  const runningB = await observe(tokens.second); assert.ok(runningB.revision > second.revision, "active second world advanced while first was paused");
+  const pauseBCursor = eventsB.length; clientB.send({ type: "pause" }); await waitFor(eventsB, (event) => event.type === "state" && event.paused, "second pause", pauseBCursor);
+  const pausedB = await observe(tokens.second); await delay(700); assert.equal((await observe(tokens.second)).revision, pausedB.revision);
   const resumeCursor = eventsA.length; clientA.send({ type: "resume" }); await waitFor(eventsA, (event) => event.type === "state" && !event.paused, "resume", resumeCursor);
-  const resumed = await waitRevision(tokens.first, paused.revision); const beforeRestart = await hostRow(); await stop(); const persisted = await hostRow(); assert.ok(persisted.next_sequence >= beforeRestart.next_sequence);
-  await start(); let after; const deadline = Date.now() + 10000; while (Date.now() < deadline) { after = await hostRow(); if (after.next_sequence > persisted.next_sequence) break; await delay(100); }
+  const resumed = await waitRevision(tokens.first, paused.revision); const beforeRestart = await hostRow(tokens.first);
+  clientA.dispose(); clientA = undefined; clientB.dispose(); clientB = undefined;
+  await stop(); const persisted = await hostRow(tokens.first); assert.ok(persisted.next_sequence >= beforeRestart.next_sequence);
+  await start(); let after; const deadline = Date.now() + 10000; while (Date.now() < deadline) { after = await hostRow(tokens.first); if (after.next_sequence > persisted.next_sequence) break; await delay(100); }
   assert.ok(after.next_sequence > persisted.next_sequence, "alarm advanced after restart before game request");
-  assert.ok((await observe(tokens.first)).revision >= resumed.revision); assert.equal((await observe(tokens.second)).revision, second.revision);
+  assert.ok((await observe(tokens.first)).revision >= resumed.revision); assert.equal((await observe(tokens.second)).revision, pausedB.revision);
 } finally {
   clientA?.dispose(); clientB?.dispose(); await stop(); await rm(configPath, { force: true });
   await writeFile(resolve(output, "public-proof-diagnostics.json"), JSON.stringify({ runtimeLog: redact(runtimeLog.slice(-16384)), clientA: summarize(eventsA), clientB: summarize(eventsB), lastObservation }, null, 2));
