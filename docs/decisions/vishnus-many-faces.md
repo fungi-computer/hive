@@ -22,6 +22,18 @@ play. A programmer-only interface, mandatory coding, global tick barrier and
 perpetual simulation are not implied. Apply the newer sleeping-region policy.
 [Source comparison and Hive decisions](colyseus-and-sleeping-world-research.md#javascript-distributed-worlds-already-exist).
 
+**Programmed unattended play, Levi September 10:** players may write code or
+have an LLM author it, then enable that saved policy to control their people
+while absent. A new model call is not required for every policy execution.
+Evaluate scoped code through the existing Mycelium/host sandbox; admit its
+ordinary orders through Hive. Script decisions, actor work and environmental
+detail have separate budgets/cadences. Offline humans with enabled colonies
+are not inactive accounts, and no world-wide tick barrier is required.
+The [deeper Screeps and programmed-colony study](screeps-programmable-colonies-study.md)
+records the actual scheduler/CPU findings, Cloudflare product distinctions,
+recovery contracts and unresolved fairness policy. Source storage, grants,
+memory and durable cadence are proposed joins, not already shipped features.
+
 The practical integration should be an ordinary open engine API, with MCP where
 useful. Compare Botanical's actual Mycelium/Knapsack tool path before adding glue.
 The engine must expose useful operations and results; it does not need a new

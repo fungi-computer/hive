@@ -25,6 +25,14 @@ participants and lasting shared-world consequences belong in the engine's
 [many-faces contract](vishnus-many-faces.md), with accessible human play and
 bounded Shiitake participation. It does not replace the sleeping-world policy.
 
+**Programmed-colony amendment:** Levi wants people to keep doing useful work
+under saved player code while their human is away. The [deeper Screeps study](screeps-programmable-colonies-study.md)
+separates script CPU, ordinary jobs, region simulation and model calls; it traces
+actual tick barriers, activity selection, buckets and current Mycelium/Code Mode
+source. No global barrier, perpetual container or new sandbox implementation is
+required. Current command/observation and online-owner completion remain ahead
+of the proposed bounded saved-program consumer; this is not another live feature.
+
 **Latest publication:** runtime `3fa9947a312345a178c23c0317dc7289edb04f11`
 is live on the existing
 [game preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/), deployment

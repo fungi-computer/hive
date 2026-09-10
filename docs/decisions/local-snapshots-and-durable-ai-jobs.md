@@ -11,6 +11,14 @@ direction; no new host, scheduler, package adoption or backend deployment follow
 from this document. [Colyseus research and adoption assessment](colyseus-and-sleeping-world-research.md)
 records the current source comparison and the first proposed evaluation.
 
+The subsequent [Screeps/programmed-colony study](screeps-programmable-colonies-study.md)
+adds Levi's explicit unattended-code direction. Enabled programs can keep their
+people meaningfully active while humans are offline. Decision executions,
+ordinary work and environmental detail remain separate; sleeping can mean
+waiting between meaningful events rather than suspending all colony activity.
+Code runs through the existing Mycelium sandbox capability, without an LLM call
+per physical tick. No new host implementation is claimed.
+
 ### One simulation, alternative hosts
 
 Keep simulation rules, deterministic random decisions, jobs, physical quantities,
