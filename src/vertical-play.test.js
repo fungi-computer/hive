@@ -1,4 +1,5 @@
 import test from "node:test";
+import { structuralSupport } from "./structure-support.js";
 import { roomInterior } from "./room-space.ts";
 import assert from "node:assert/strict";
 import { createClearing } from "./clearing.ts";
@@ -362,4 +363,22 @@ test("a finite room-and-platform plan has real work access at every authored com
       ).kind,
       "route",
     );
+});
+
+test("finished support queries reuse current facts while genuine proposals stay isolated", () => {
+  const state = createClearing();
+  const frame = site("anchor", "door", 5, 5, 0),
+    floor = site("deck", "floor", 6, 5, 1);
+  state.sites.push(frame, floor);
+  const current = structuralSupport(state);
+  assert(current.span(floor));
+  assert.equal(structuralSupport(state, { ...floor }), current);
+  assert(floorSupported(state, floor));
+  const changed = { ...floor, x: 12 };
+  const proposed = structuralSupport(state, changed);
+  assert.notEqual(proposed, current);
+  assert(!proposed.span(changed));
+  assert.equal(structuralSupport(state), current);
+  assert.equal(structuralSupport(state, { ...floor }), current);
+  assert(current.span(floor));
 });
