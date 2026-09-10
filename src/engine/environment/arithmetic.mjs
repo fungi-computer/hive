@@ -6,7 +6,10 @@ export class UnresolvedQuantityError extends TypeError {
     this.name = "UnresolvedQuantityError";
   }
 }
-export function changeQuantity(before, delta) {
+/** Resolve a candidate without throwing for ordinary sub-resolution deferral.
+ * Invalid/non-finite operands still fail; no caller may publish the other side
+ * of a transfer when this returns null. */
+export function resolveQuantityChange(before, delta) {
   const after = before + delta;
   if (!(
     Number.isFinite(before) &&
@@ -26,7 +29,13 @@ export function changeQuantity(before, delta) {
     uncertainty < Math.abs(delta) &&
     Math.abs(error) <= uncertainty
   ))
-    throw new UnresolvedQuantityError();
+    return null;
+  return after;
+}
+
+export function changeQuantity(before, delta) {
+  const after = resolveQuantityChange(before, delta);
+  if (after === null) throw new UnresolvedQuantityError();
   return after;
 }
 

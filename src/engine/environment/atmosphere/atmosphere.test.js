@@ -204,6 +204,59 @@ test("many valid openings share a bounded exchange budget", () => {
   assert.ok(result.receipt.carrierBoundaryKg >= 0);
 });
 
+test("near-equilibrium carrier cannot freeze smoke and heat mixing or leak its opposite endpoint", () => {
+  const owner = createAtmosphere(
+    definition({
+      volumes: [volume("room", [member("cell:0,0,0")])],
+      openings: [opening("ambient", "room", null)],
+      override: { pressureVelocityMPSPa: 0, buoyancyVelocityMPSK: 0 },
+    }),
+  );
+  const before = owner.initial([
+    {
+      volumeId: "room",
+      carrierKg: 4 / 3 + Number.EPSILON,
+      smokeKg: 0.001,
+      heatJ: 20,
+    },
+  ]);
+  const { state, receipt } = owner.advance(before, 0.25);
+  assert.equal(state.parcels[0].carrierKg, before.parcels[0].carrierKg);
+  assert.equal(receipt.carrierBoundaryKg, 0);
+  assert(state.parcels[0].smokeKg < before.parcels[0].smokeKg);
+  assert(state.parcels[0].heatJ < before.parcels[0].heatJ);
+  assert(receipt.smokeBoundaryKg > 0);
+  assert(receipt.heatBoundaryJ > 0);
+  assert(
+    Math.abs(state.parcels[0].smokeKg + receipt.smokeBoundaryKg - 0.001) <
+      1e-18,
+  );
+  assert(Math.abs(state.parcels[0].heatJ + receipt.heatBoundaryJ - 20) < 1e-13);
+  assert.deepEqual(owner.decode(owner.encode(state)), state);
+});
+
+test("unrepresentable pressure constituent defers the complete paired parcel without partial writes", () => {
+  const owner = createAtmosphere(
+    definition({
+      volumes: [
+        volume("a", [member("cell:0,0,0")]),
+        volume("b", [member("cell:1,0,0")]),
+      ],
+      openings: [opening("between", "a", "b")],
+      override: { mixingVelocityMPS: 0, buoyancyVelocityMPSK: 0 },
+    }),
+  );
+  const before = owner.initial([
+    { volumeId: "a", carrierKg: 1.4, smokeKg: 0.001, heatJ: 1e-16 },
+    { volumeId: "b", carrierKg: 4 / 3, smokeKg: 0, heatJ: 20 },
+  ]);
+  const result = owner.advance(before, 0.25);
+  assert.deepEqual(result.state, before);
+  assert.equal(result.receipt.carrierBoundaryKg, 0);
+  assert.equal(result.receipt.smokeBoundaryKg, 0);
+  assert.equal(result.receipt.heatBoundaryJ, 0);
+});
+
 test("definition order is not a saved identity or result dependency", () => {
   const volumes = [
       volume("a", [member("cell:0,0,0")]),

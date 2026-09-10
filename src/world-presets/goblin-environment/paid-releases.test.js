@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { z } from "zod";
 import { encode } from "../../engine/region/codec.ts";
 import { STEP_SECONDS } from "../../ticker.js";
 import { GOBLIN_BREW_ATMOSPHERE_RELEASE } from "../goblin-atmosphere.ts";
@@ -352,7 +353,14 @@ test("tick admission rejects invalid batches and reaches exact completion in ord
   const empty = initialPaidAtmosphereReleases(materials(), air());
   assert.throws(
     () => planPaidAtmosphereTicks(empty, materials(), air(), -1),
-    /greater than or equal|nonnegative/i,
+    (error) => {
+      assert(error instanceof z.ZodError);
+      assert.equal(error.issues.length, 1);
+      assert.equal(error.issues[0].code, "too_small");
+      assert.equal(error.issues[0].minimum, 0);
+      assert.equal(error.issues[0].inclusive, true);
+      return true;
+    },
   );
   const owner = materials([transformation("brew:1")]),
     state = register(empty, owner, air(), "brew:1"),

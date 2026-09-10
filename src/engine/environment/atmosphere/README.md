@@ -26,6 +26,16 @@ source and signed boundary ledgers. The model is a game-scale well-mixed volume
 approximation. It does not resolve velocity, flames, chemistry, oxygen,
 radiation, acoustics or CFD pressure.
 
+Opening exchange retains its two endpoints until settlement. Reciprocal mixing
+uses concentration differences over one shared volume, budgeted in both
+directions. Each carrier/smoke/heat pair either changes both endpoints or stays
+with its current owners if that change is below their arithmetic resolution.
+A near-equilibrium carrier gradient therefore cannot freeze meaningful smoke
+or heat mixing. Pressure advection moves all three constituents together, or
+defers the entire parcel transfer. Boundary ledgers are the other endpoint of
+an ambient transfer. Sources remain strict admission: paid smoke or heat cannot
+be silently discarded. No rounding residual is converted into new stock.
+
 Definitions, initial parcels, saves and advance options cross the shared bounded
 plain-data codec before their strict schemas. Vacuum and finite underpressure are
 valid transient states, allowing newly opened void to fill gradually. The upper
