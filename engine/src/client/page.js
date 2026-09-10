@@ -12,6 +12,7 @@ const configs = {
     environment: "water",
     visualBindings: PIRATE_VISUAL_BINDINGS,
     subtitle: "Sail the raft, walk its deck, and carry finite supplies into the hold. Save and continue your voyage.",
+    controlHelp: "Sail: click an empty deck corner, then right-click water. Walk: click a crew member, then right-click the deck.",
     orderCommand: "move",
     source: "./source/pirates.ts",
   },

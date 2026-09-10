@@ -31,6 +31,7 @@ export function createHiveClient({
   source,
   runtime,
   orderCommand,
+  controlHelp,
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
 }) {
@@ -176,9 +177,9 @@ export function createHiveClient({
           React.createElement(
             "div",
             { className: "hive-actions" },
-            mode === "survival"
+            controlHelp ?? (mode === "survival"
               ? "Select survivor · WASD / arrows move · E take bread · F eat"
-              : "Click selects · Shift adds · drag selects a group · right click orders",
+              : "Click selects · Shift adds · drag selects a group · right click orders"),
           ),
           state.presentationFacts.length || state.presentationControls.length
             ? React.createElement(
