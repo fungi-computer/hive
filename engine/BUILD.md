@@ -132,3 +132,10 @@ Filtered runner additionally counts an empty session file; one authored law ran.
 u4905 type failures were fixed at actual joined imports/fixtures, not bypassed.
 This source adds session format 4 and rejects prior versions; it is not deployed.
 Game-specific controls and fact providers are the next consumer work.
+
+Presentation u4908 passed three named filtered laws: empty unconfigured packs,
+bounded/cloned facts and controls, and rejection of non-JSON/oversized input.
+Two other test files had no matching laws and are not counted as authored tests.
+The expanded runner now explicitly names bundle entry outputs so adding a test
+from another directory cannot cause stale bundled game/session files to execute.
+Actual game fact/control providers remain in the isolated game-rules source lane.

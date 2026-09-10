@@ -44,6 +44,7 @@ class TestPort implements KernelPort {
     time: 0,
     scene: {
       game: "colony",
+      initial: [],
       components: [
         { id: "test.morale", version: 1, fields: { value: "number" } },
       ],
