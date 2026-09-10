@@ -6,18 +6,18 @@ King Bolete · September 10, 2026 · implementation guiding packet
 
 The four browser/WASM pages are live at
 https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/ .
-Current published source is `d3b914a`, deployment
-`c12d0753-fe29-47ff-8bb7-a8725021bbd1`; all 143 served files match the frozen
+Current published source is `8f4042d`, deployment
+`d1efdaa2-9e28-4166-ae2b-6beaa6af0e51`; all 143 served files match the frozen
 release. The 112 existing clearing/study files remain preserved. This interim
 adds original walking sprites, shared interpolation, corrected ground picking,
 stable viewport sizing and two-worker Rust assignment. The public simulation
 still runs in browser Workers, not hosted Durable Objects.
 
-Local moving-support and native save-format-2 work follows this release. Its
-focused native and TS laws are recorded in BUILD.md; the older DO restart
-witness does not qualify the changed native format. The fourth pirate consumer
-is being joined with shared cargo, controls and original timber-raft art.
-The raft is now deployed alongside the original three examples. No large-world or multiplayer capacity is claimed.
+The raft shares moving supports, cargo, controls and the original art pipeline.
+The latest release adds an explicit Select raft control and normal click-motion
+tolerance after Levi found deck selection difficult. Local current-format DO
+proofs now cover pirate, colony and formations authored state; see BUILD.md for
+exact receipts and historical survival coverage. No large-world capacity is claimed.
 
 ### Local DO milestone after the browser release
 
@@ -44,12 +44,25 @@ its per-visitor world/reset authority explicit rather than treating local native
 proof as online play. Deep terrain, ecological systems, battles and large-world
 capacity remain future scope; they are not established by these tiny fixtures.
 
-### Current delivery cadence amendment
+### Current delivery target: public Durable Object demos
 
-Levi now requests deployment at the next logical demo. Publish the coherent
-pirate/moving-support checkpoint once its actual interactions are accepted;
-retain the live three-game interim meanwhile. Avoid deployments of individual
-internal changes. This supersedes the earlier bedtime deployment pause.
+Levi explicitly requests all public examples on DOs, not just local qualification.
+This authorizes the bounded public demo backend and its shared-client join.
+The next release defaults to server simulation; `?runtime=local` retains browser
+execution. The four packs use one host implementation and the same client/art.
+
+Each browser retains a random private demo capability per pack. The server derives
+its world identity from that capability and pack; no token goes in URLs or logs.
+This is anonymous demo access, not Fungi account integration or cross-device account
+save. Continue reopens the same world; New world creates a new capability. Preserve
+existing local saves untouched. No shared administrative secret reaches the browser.
+
+King owns deployment and acceptance. The host owns durable time/wake and physical
+commitment; clients only submit intent and render observations. A short native
+request-free restart witness and real shared-client operation precede public host
+publication. Public host must omit debug/fault routes. No silent browser fallback
+may conceal an unavailable server. The accepted static8f4042d remains available
+until the joined online candidate works.
 
 ## Read this first
 
