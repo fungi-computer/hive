@@ -139,3 +139,11 @@ Two other test files had no matching laws and are not counted as authored tests.
 The expanded runner now explicitly names bundle entry outputs so adding a test
 from another directory cannot cause stale bundled game/session files to execute.
 Actual game fact/control providers remain in the isolated game-rules source lane.
+
+Session u4910 passed eight affected authored laws; the two filtered empty files
+are not additional laws. Scope readback is inactive/dead with empty ControlGroup.
+Game consumer candidate 18bd404 remains unaccepted: source review found a missing
+query import, duplicate survival definition key, facing disconnected from normal
+march commands, and a retreat control that cannot affect the initial units.
+The same isolated writer owns corrections and meaningful physical consumer laws.
+No build, publication or additional browser run follows this source checkpoint.
