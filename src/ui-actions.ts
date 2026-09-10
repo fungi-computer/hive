@@ -355,7 +355,6 @@ export type UiAction =
         | "download-backup"
         | "download-raw-save"
         | "pan-mode"
-        | "air-overlay"
         | "help"
         | "rotate"
         | "pause"
@@ -371,6 +370,7 @@ export type UiAction =
   | { kind: "commit-designation" }
   | { kind: "commit-result"; accepted: number }
   | { kind: "cutaway"; value: boolean }
+  | { kind: "air-overlay" }
   | { kind: "debug-picking" }
   | { kind: "level"; level: LogicalLevel }
   | { kind: "command"; command: UiCommand | Command }

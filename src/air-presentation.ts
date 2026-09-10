@@ -40,6 +40,8 @@ export type ClearingAirPresentation = Readonly<{
 
 type CacheEntry = Readonly<{
   tick: number;
+  actors: Clearing["actors"];
+  sites: Clearing["sites"];
   water: Clearing["water"];
   terrain: Clearing["terrain"];
   exploration: Clearing["exploration"];
@@ -142,6 +144,8 @@ export function clearingAirPresentation(
   if (
     known &&
     known.tick === state.tick &&
+    known.actors === state.actors &&
+    known.sites === state.sites &&
     known.water === state.water &&
     known.terrain === state.terrain &&
     known.exploration === state.exploration
@@ -154,8 +158,15 @@ export function clearingAirPresentation(
     known.terrain === state.terrain &&
     known.exploration === state.exploration &&
     known.sight === sight
-  )
+  ) {
+    cache.set(state.air, {
+      ...known,
+      tick: state.tick,
+      actors: state.actors,
+      sites: state.sites,
+    });
     return known.result;
+  }
 
   const visible = currentVisibility(state),
     facts = airEnvironmentFacts(state.air, state.water, {
@@ -171,6 +182,8 @@ export function clearingAirPresentation(
   });
   cache.set(state.air, {
     tick: state.tick,
+    actors: state.actors,
+    sites: state.sites,
     water: state.water,
     terrain: state.terrain,
     exploration: state.exploration,
