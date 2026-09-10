@@ -1,6 +1,6 @@
 import { excavationYield } from "./terrain-yields.ts";
 import { prepareTerrainRemoval } from "./terrain-removals.ts";
-import { prepareWaterEnvironmentGeometry } from "./world-presets/goblin-environment/water-state.ts";
+import { prepareEnvironmentGeometry } from "./world-presets/goblin-environment/environment-state.ts";
 import { physicalOccupancyProblem } from "./navigation-space.ts";
 import { placementFooting } from "./game-space.ts";
 import type { Actor, Clearing, Job, Site } from "./model.ts";
@@ -219,6 +219,7 @@ type PreparedEdit = GeometryEdit & {
   work: ReadyWork;
   materials: Clearing["materials"];
   water: Clearing["water"];
+  air: Clearing["air"];
   terrainRemovals: Clearing["terrainRemovals"];
 };
 
@@ -343,36 +344,21 @@ function prepareRemoval(
   };
 }
 
-/** One material branch, one exhaustive physical operation, then joined validation. */
-function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
-  const materials = structuredClone(state.materials);
+/** The water receipt identifies the pore stock accompanying excavated material.
+ * Building and teardown have no authority to export terrain moisture. */
+function prepareYields(
+  state: Clearing,
+  materials: Clearing["materials"],
+  work: ReadyWork,
+  edit: GeometryEdit,
+  environmental: Extract<
+    ReturnType<typeof prepareEnvironmentGeometry>,
+    { status: "applied" }
+  >,
+):
+  | { status: "prepared"; terrainRemovals: Clearing["terrainRemovals"] }
+  | Refusal {
   const { target, actor } = work;
-  let edit: GeometryEdit | Refusal;
-  switch (target.kind) {
-    case "dig":
-      edit = prepareExcavation(state, target);
-      break;
-    case "build":
-      edit = prepareConstruction(state, materials, target);
-      break;
-    case "deconstruct":
-      edit = prepareRemoval(state, materials, target);
-      break;
-  }
-  if (edit.status !== "prepared") return edit;
-  const environmental = prepareWaterEnvironmentGeometry(
-    state.water,
-    {
-      terrain: terrainEnvironment(state.terrain),
-      sites: state.sites,
-    },
-    {
-      terrain: terrainEnvironment(edit.terrain),
-      sites: edit.sites,
-    },
-  );
-  if (environmental.status === "blocked")
-    return waiting("Waiting for space to displace the water.");
   let terrainRemovals = state.terrainRemovals;
   if (target.kind === "dig") {
     terrainRemovals = prepareTerrainRemoval(
@@ -380,7 +366,7 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
       state.terrain,
       edit.terrain,
       target.job.voxel,
-      environmental.receipt.removedPoreWater,
+      environmental.waterReceipt.removedPoreWater,
     );
     const yield_ = excavationYield(
       state.terrainRemovals,
@@ -394,9 +380,41 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
       cell(actor),
     );
     if (!result.ok) return materialRefusal(result.reason);
-  } else if (environmental.receipt.removedPoreWater.length) {
+  } else if (environmental.waterReceipt.removedPoreWater.length) {
     throw new Error("construction cannot discard porous terrain water");
   }
+  return { status: "prepared", terrainRemovals };
+}
+
+/** One material branch, one exhaustive physical operation, then joined validation. */
+function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
+  const materials = structuredClone(state.materials);
+  const { target } = work;
+  let edit: GeometryEdit | Refusal;
+  switch (target.kind) {
+    case "dig":
+      edit = prepareExcavation(state, target);
+      break;
+    case "build":
+      edit = prepareConstruction(state, materials, target);
+      break;
+    case "deconstruct":
+      edit = prepareRemoval(state, materials, target);
+      break;
+  }
+  if (edit.status !== "prepared") return edit;
+  const environmental = prepareEnvironmentGeometry(
+    state,
+    { terrain: terrainEnvironment(state.terrain), sites: state.sites },
+    { terrain: terrainEnvironment(edit.terrain), sites: edit.sites },
+  );
+  if (environmental.status === "blocked")
+    return waiting(
+      `Waiting for space to displace the ${environmental.medium}.`,
+    );
+  const yields = prepareYields(state, materials, work, edit, environmental);
+  if (yields.status !== "prepared") return yields;
+  const { terrainRemovals } = yields;
   const retired = edit.retired;
   if (
     Object.values(state.actors).some(
@@ -414,7 +432,7 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
     ...state,
     materials,
     terrain: edit.terrain,
-    water: environmental.state,
+    ...environmental.state,
     terrainRemovals,
     sites: edit.sites,
   };
@@ -427,7 +445,7 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
     ...edit,
     work,
     materials,
-    water: environmental.state,
+    ...environmental.state,
     terrainRemovals,
   };
 }
@@ -439,6 +457,7 @@ function publishEdit(state: Clearing, prepared: PreparedEdit): void {
     materials,
     terrain,
     water,
+    air,
     terrainRemovals,
     sites,
     finishedSite,
@@ -448,6 +467,7 @@ function publishEdit(state: Clearing, prepared: PreparedEdit): void {
   Object.assign(state.materials, materials);
   state.terrain = terrain;
   state.water = water;
+  state.air = air;
   state.terrainRemovals = terrainRemovals;
   if (finishedSite) Object.assign(finishedSite.original, finishedSite.finished);
   else state.sites = sites;

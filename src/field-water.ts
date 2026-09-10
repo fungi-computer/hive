@@ -8,10 +8,11 @@ import type { MaterialPortion } from "./engine/materials/index.ts";
 import { compensatedSum } from "./engine/environment/arithmetic.mjs";
 import { terrainEnvironment } from "./terrain.ts";
 import { removedWaterKg } from "./terrain-removals.ts";
+import { waterEnvironmentFacts } from "./world-presets/goblin-environment/water-state.ts";
 import {
-  waterEnvironmentFacts,
-  exchangeWaterEnvironment,
-} from "./world-presets/goblin-environment/water-state.ts";
+  prepareEnvironmentWaterTransfer,
+  type EnvironmentState,
+} from "./world-presets/goblin-environment/environment-state.ts";
 import {
   importVesselContents,
   exportVesselContents,
@@ -157,9 +158,10 @@ function preflight(
 function commitPair(
   state: Clearing,
   materials: MaterialsState,
-  water: Clearing["water"],
+  environment: EnvironmentState,
   operation: WaterDeliveryOperation,
 ): void {
+  const { water, air } = environment;
   const problem = waterConservationProblem({
     materials,
     terrain: state.terrain,
@@ -170,7 +172,7 @@ function commitPair(
   });
   if (problem) throw new Error(problem);
   const referenceProblem = waterSupplyProblem(
-    { ...state, materials, water },
+    { ...state, materials, water, air },
     operation.pail,
     operation.quantity,
     operation.supply,
@@ -182,6 +184,7 @@ function commitPair(
   // Preserve that handle while replacing its privately prepared contents.
   Object.assign(state.materials, materials);
   state.water = water;
+  state.air = air;
   state.workDirty = true;
 }
 
@@ -199,8 +202,8 @@ export function drawFieldWater(
   });
   if (!supplied.ok) return supplied;
   try {
-    const next = exchangeWaterEnvironment(
-      state.water,
+    const next = prepareEnvironmentWaterTransfer(
+      state,
       {
         terrain: terrainEnvironment(state.terrain),
         sites: state.sites,
@@ -211,6 +214,11 @@ export function drawFieldWater(
         massKg: input.quantity * FIELD_WATER.kgPerUnit,
       },
     );
+    if (next.status === "blocked")
+      return {
+        ok: false,
+        reason: `field-transfer-${next.medium}-${next.reason}`,
+      };
     commitPair(state, materials, next.state, admitted.value);
   } catch (error) {
     return {
@@ -242,8 +250,8 @@ export function returnFieldWater(
   });
   if (!released.ok) return released;
   try {
-    const next = exchangeWaterEnvironment(
-      state.water,
+    const next = prepareEnvironmentWaterTransfer(
+      state,
       {
         terrain: terrainEnvironment(state.terrain),
         sites: state.sites,
@@ -254,6 +262,11 @@ export function returnFieldWater(
         massKg: input.quantity * FIELD_WATER.kgPerUnit,
       },
     );
+    if (next.status === "blocked")
+      return {
+        ok: false,
+        reason: `field-transfer-${next.medium}-${next.reason}`,
+      };
     commitPair(state, materials, next.state, admitted.value);
   } catch (error) {
     return {

@@ -20,15 +20,16 @@ import { advanceCancellations } from "./job-cancellation.ts";
 import { mugwortStage } from "./herbs.ts";
 import { initialTerrain, terrainEnvironment } from "./terrain.ts";
 import { initialTerrainRemovals } from "./terrain-removals.ts";
-import {
-  initialWaterEnvironment,
-  advanceWaterEnvironment,
-} from "./world-presets/goblin-environment/water-state.ts";
+import { initialWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
+import { initialAirEnvironment } from "./world-presets/goblin-environment/air-state.ts";
+import { advanceEnvironment } from "./world-presets/goblin-environment/environment-state.ts";
 import { STEP_SECONDS } from "./ticker.js";
 import { advanceNeeds, queueAutomaticCare } from "./needs.ts";
 
 export function createClearing(seed = 42): Clearing {
   const terrain = initialTerrain();
+  const environmentSource = { terrain: terrainEnvironment(terrain), sites: [] };
+  const water = initialWaterEnvironment(environmentSource);
   const state: Clearing = {
     seed,
     tick: 0,
@@ -67,10 +68,8 @@ export function createClearing(seed = 42): Clearing {
     careOutcomes: [],
     processes: [],
     terrain,
-    water: initialWaterEnvironment({
-      terrain: terrainEnvironment(terrain),
-      sites: [],
-    }),
+    water,
+    air: initialAirEnvironment(water, environmentSource),
     terrainRemovals: initialTerrainRemovals(terrain),
     exploration: initialExploration(),
     rocks: ROCKS.map((at) => groundFooting(terrain, at)),
@@ -173,14 +172,16 @@ function advanceCandidate(
   }
   advanceCancellations(state);
   const waterSupplyBefore = fieldWaterSupplyKey(state);
-  state.water = advanceWaterEnvironment(
-    state.water,
+  const environmental = advanceEnvironment(
+    state,
     {
       terrain: terrainEnvironment(state.terrain),
       sites: state.sites,
     },
     STEP_SECONDS,
-  ).state;
+  );
+  state.water = environmental.state.water;
+  state.air = environmental.state.air;
   if (fieldWaterSupplyKey(state) !== waterSupplyBefore) state.workDirty = true;
   advanceBrewing(state);
   advanceHerbGrowth(state);
@@ -199,11 +200,12 @@ function commitTicks(
   ticks: number,
   commands: Command[],
 ): CommandResult[] {
-  const { terrain, water, terrainRemovals, exploration, ...body } = state;
+  const { terrain, water, air, terrainRemovals, exploration, ...body } = state;
   const candidate: Clearing = {
     ...structuredClone(body),
     terrain,
     water,
+    air,
     terrainRemovals,
     exploration,
   };

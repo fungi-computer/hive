@@ -326,6 +326,43 @@ test("last-volume displacement needs an old physical route", () => {
   });
 });
 
+test("sealed vacuum may disappear but even tiny trapped gas retains custody", () => {
+  const owner = createAtmosphere(
+    definition({
+      volumes: [
+        volume("cut", [member("cell:0,0,0")]),
+        volume("receiver", [member("cell:1,0,0")]),
+      ],
+    }),
+  );
+  const next = definition({
+    revision: 1,
+    volumes: [volume("receiver", [member("cell:1,0,0")])],
+  });
+  const state = (carrierKg) =>
+    owner.initial([
+      { volumeId: "cut", carrierKg, smokeKg: 0, heatJ: 0 },
+      { volumeId: "receiver", carrierKg: 1, smokeKg: 0, heatJ: 0 },
+    ]);
+  const vacuum = state(0),
+    result = owner.rebind(vacuum, next);
+  assert.equal(result.status, "applied");
+  assert.equal(result.state.parcels.length, 1);
+  assert.equal(result.state.parcels[0].carrierKg, 1);
+  assert.equal(result.state.carrierBoundaryKg, 0);
+  assert.deepEqual(result.receipt.routedParcels, []);
+  assert.equal(vacuum.parcels.length, 2);
+  const trace = state(1e-12);
+  assert.deepEqual(owner.rebind(trace, next), {
+    status: "blocked",
+    reason: "trapped-volume-removed",
+  });
+  assert.equal(
+    trace.parcels.find((parcel) => parcel.volumeId === "cut").carrierKg,
+    1e-12,
+  );
+});
+
 test("new space starts empty and fills gradually through elapsed face exchange", () => {
   const owner = createAtmosphere(
       definition({ volumes: [volume("a", [member("cell:0,0,0")])] }),

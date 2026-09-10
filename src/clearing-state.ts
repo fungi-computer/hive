@@ -1,8 +1,10 @@
 import { terrainYieldProblem } from "./terrain-yields.ts";
 import { parseTerrainRemovals } from "./terrain-removals.ts";
 import { parseWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
+import { parseAirEnvironment } from "./world-presets/goblin-environment/air-state.ts";
 import { explorationSchema, explorationProblem } from "./exploration.ts";
 import { navigationStateProblem } from "./navigation-space.ts";
+import { excavationTarget } from "./excavation.ts";
 import { placementFooting } from "./game-space.ts";
 import { footingSchema } from "./engine/world/footing.ts";
 import { traversalSchema } from "./engine/navigation/schema.ts";
@@ -28,8 +30,6 @@ import type {
 } from "./model.ts";
 import {
   parseTerrain,
-  terrainColumn,
-  terrainCell,
   terrainDigProblem,
   voxelSchema,
   terrainEnvironment,
@@ -405,6 +405,7 @@ const currentStateSchema = z
   .object({
     terrain: z.unknown().transform(parseTerrain),
     water: z.unknown(),
+    air: z.unknown(),
     terrainRemovals: z.unknown(),
     exploration: explorationSchema,
     careOutcomes: z.array(
@@ -613,20 +614,19 @@ const currentStateSchema = z
   .strict();
 type SavedClearing = Omit<Clearing, "commands">;
 type SavedWaterOperation = WaterDeliveryOperation;
-const savedSchema = currentStateSchema.transform(
-  (value): SavedClearing =>
-    ({
-      ...value,
-      water: parseWaterEnvironment(value.water, {
-        terrain: terrainEnvironment(value.terrain),
-        sites: value.sites,
-      }),
-      terrainRemovals: parseTerrainRemovals(
-        value.terrainRemovals,
-        value.terrain,
-      ),
-    }) as SavedClearing,
-);
+const savedSchema = currentStateSchema.transform((value): SavedClearing => {
+  const source = {
+    terrain: terrainEnvironment(value.terrain),
+    sites: value.sites,
+  };
+  const water = parseWaterEnvironment(value.water, source);
+  return {
+    ...value,
+    water,
+    air: parseAirEnvironment(value.air, water, source),
+    terrainRemovals: parseTerrainRemovals(value.terrainRemovals, value.terrain),
+  } as SavedClearing;
+});
 const envelopeSchema = z
   .object({
     kind: z.literal(SAVE_KIND),
@@ -2068,7 +2068,7 @@ function validateDigTargets(state: SavedClearing): void {
     targets.add(key);
     const problem = terrainDigProblem(state.terrain, job.voxel);
     if (problem) fail(`terrain job ${job.id}: ${problem}`);
-    const at = placementFooting(terrainColumn(job.voxel));
+    const at = excavationTarget(job.voxel);
     if (!inside(at)) fail(`terrain job ${job.id} is outside the clearing`);
   }
 }

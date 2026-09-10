@@ -219,6 +219,11 @@ export function rebindAtmosphere(
       }
       continue;
     }
+    // A completely empty cavity carries no stock requiring a displacement
+    // route. Do not apply an epsilon: even a tiny positive parcel still has an
+    // owner and must reach another real volume or an explicit boundary.
+    if (parcel.carrierKg === 0 && parcel.smokeKg === 0 && parcel.heatJ === 0)
+      continue;
     const route = forcedRoute(topology, volume.id, receivers);
     if (route === undefined)
       return Object.freeze({

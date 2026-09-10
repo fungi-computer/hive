@@ -21,6 +21,7 @@ import { excavationYield } from "./terrain-yields.ts";
 import {
   GOBLIN_FRAME,
   GOBLIN_MAP_SIDE,
+  GOBLIN_ENVIRONMENT_BOUNDS,
 } from "./world-presets/goblin-environment/content.ts";
 
 function original() {
@@ -34,13 +35,15 @@ function original() {
   };
 }
 function soilTarget(fixture) {
-  return fixture.source.terrain.originalSoil.find(
+  const target = fixture.source.terrain.originalSoil.find(
     ([x, , z]) =>
       x >= GOBLIN_FRAME.x &&
       x < GOBLIN_FRAME.x + GOBLIN_MAP_SIDE &&
       z >= GOBLIN_FRAME.z &&
       z < GOBLIN_FRAME.z + GOBLIN_MAP_SIDE,
   );
+  assert(target, "fixture has soil inside the playable clearing");
+  return target;
 }
 function cut(before, target) {
   const terrain = excavateTerrain(before.terrain, target);
@@ -71,7 +74,6 @@ test("actual soil removal carries its pore water exactly once through cold resto
   const before = original(),
     target = soilTarget(before),
     after = cut(before, target);
-  assert(target);
   const removed = after.receipt.removedPoreWater[0];
   assert.equal(after.removals.length, 1);
   assert.equal(after.removals[0].waterKg, removed.massKg);
@@ -103,10 +105,17 @@ test("actual soil removal carries its pore water exactly once through cold resto
 });
 
 test("actual stone removal adds a bulk source without inventing pore water or replacing soil history", () => {
-  const first = cut(original(), soilTarget(original()));
-  const target = [...first.removals[0].at];
-  do target[1]--;
-  while (first.source.terrain.material(target) !== 2);
+  const before = original(),
+    first = cut(before, soilTarget(before));
+  const [x, topY, z] = first.removals[0].at;
+  let target;
+  for (let y = topY - 1; y >= GOBLIN_ENVIRONMENT_BOUNDS.min[1]; y--) {
+    if (first.source.terrain.material([x, y, z]) === 2) {
+      target = [x, y, z];
+      break;
+    }
+  }
+  assert(target, "fixture has stone beneath its removed soil");
   const second = cut(first, target);
   assert.equal(second.receipt.removedPoreWater.length, 0);
   assert.equal(
