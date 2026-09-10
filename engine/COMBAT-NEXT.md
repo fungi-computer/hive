@@ -194,3 +194,24 @@ definition, never a Rust branch on `formation.cannonball`.
 The native and Session writers have separate worktrees. Root owns final
 Launch/Displace SDK callers and formation content after these native shapes
 settle; the already-exported cannon assets are independent of those callers.
+
+## Current integrated checkpoint
+
+At `865a507`, native finite launch/swept impact/grounded displacement, saved
+Session impact delivery, and the actual formation consumer are integrated.
+Focused native corrections passed in u5112 and u5124; Session laws passed across
+u5114/u5118/u5120 corrections, with strict types passing u5122 and consumer types
+u5126. Earlier failed results remain evidence, not replaced green runs.
+
+The formation scene has a fixed downrange cannon with six rounds. Soldiers have
+TypeScript health and morale; an impact requests native knockback. Formation
+facing controls turn soldiers, not the cannon. Zero health does not yet implement
+death. Rotating cuboid collision during a relevant sweep is rejected atomically;
+this is not a general rigid-body simulation or a large-battle capacity claim.
+
+The new actual-WASM consumer law checks one spent round, visible flight, one
+health/morale consequence, displacement, and identical continuation after saving
+in flight. Its execution awaits the maintained release WASM build u5128. Cannon
+play is not deployed at this checkpoint; the existing public DO demos remain
+unchanged. Next acceptance is this joined consumer, followed by a bounded actual
+rendered shot and coherent same-host release.
