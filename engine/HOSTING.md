@@ -151,3 +151,18 @@ setAlarm inside that outer transaction. This is documented API fit; the actual
 nested native rollback/wake witness is still required. Alarm retries are finite,
 and reconstruction must preserve an existing pending alarm rather than overwrite
 its deadline: https://developers.cloudflare.com/durable-objects/api/alarms/ .
+
+### Public host packaging checkpoint
+
+`tools/public-engine-host/prepare.mjs <output> <frontend-origin>` creates an
+ignored deployment configuration and a SHA256 inventory over engine source,
+Region source, the host and generated WASM. It does not install dependencies or
+publish. The immutable hash becomes the Region program identity; unsupported
+old-world versions require New world under the clean-break policy.
+
+September 10: u5065 (`wrangler deploy --dry-run`) exited 0 and its owned scope
+closed. The actual host packages at 1726.74 KiB / 410.23 KiB gzip with the
+PublicEngineRegion SQLite binding. This proves packaging, not hosted operation.
+The reviewed host reads committed state from SQLite and disposes detached WASM
+candidates; no authoritative RAM state survives an outer transaction failure.
+Native public-host restart evidence remains pending.
