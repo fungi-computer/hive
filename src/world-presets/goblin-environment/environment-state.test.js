@@ -81,10 +81,12 @@ test("one physical field transfer publishes matching water and gas geometry thro
 test("late rejected air input cannot publish a previously computed water step", () => {
   const { source, state } = original();
   const before = structuredClone(state);
-  assert.throws(() =>
-    advanceEnvironment(state, source, 0.1, [
-      { cellId: "missing-physical-cell", smokeKgS: 0.001, heatJS: 1 },
-    ]),
+  assert.throws(
+    () =>
+      advanceEnvironment(state, source, 0.1, [
+        { cellId: "missing-physical-cell", smokeKgS: 0.001, heatJS: 1 },
+      ]),
+    /gas geometry has no volume at missing-physical-cell/,
   );
   assert.deepEqual(state, before);
 });
