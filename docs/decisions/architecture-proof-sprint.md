@@ -18,8 +18,11 @@ direct-survival and formation examples, sharing client controls and original
 art. The [fresh-engine guiding packet](../../engine/DESIGN.md) now owns the new
 implementation sequence and acceptance criteria. It retains DO/browser authority,
 durability, many-faces AI participation, deep worlds and game-scale physics.
-The initial isolated root is `hive-worktrees/fresh-engine`; no new Rust runtime
-or page is implemented/deployed yet. Existing game/source/art remain preserved.
+The isolated integration root is `hive-worktrees/fresh-engine`. The initial three
+browser/Worker examples are deployed at `/engine/` (source `3478538`); the
+current local Rust, authoring, DO recovery and shared-client work is tracked in
+`engine/BUILD.md`. That initial publication is not the latest local source and
+is not a hosted DO game. Existing game/source/art remain preserved.
 Older JavaScript repair queues below are historical context, not parallel fresh
 assignments. Native porting is a build/API test, not a claimed lag cure.
 

@@ -15,11 +15,21 @@ No boarding/reparent operation is included in the first slice.
 Use explicit local versus world query names. A native world-pose query and render
 facts resolve transforms from the same geometry function; they never write a
 second saved pose. Validate support existence, capability and acyclic references
-at load/restore before replacing the current world. Bound chain depth. Document
-the rotation unit before implementation: current facing is an unconstrained
-number, while the formation UI uses four direction indices. Do not silently
-interpret those indices as radians. All current callers change together if the
-coordinate contract changes.
+at load/restore before replacing the current world. Bound chain depth to 16 support links. Facing uses continuous quarter-turn units:
+0 points along local -z, 1 along +x, 2 along +z, 3 along -x, and 4 is a full turn.
+Native transform arithmetic converts facing to radians only at the geometry
+boundary. This preserves the existing formation direction values and permits
+smooth ship rotation. Rotation composes x'=cos(a)*x-sin(a)*z and
+z'=sin(a)*x+cos(a)*z; height adds normally. Sprite selection rounds only its
+visual direction, never the physical angle.
+
+The native support component is optional `{entity: ID}`; absence means world.
+A finite surface declares `{minX,maxX,minZ,maxZ,height}` in its own local frame.
+Movement requests and saved destinations carry an explicit nullable frame ID.
+Existing root-frame callers supply null; no implicit legacy compatibility path.
+The native world-pose read, contact check and renderer use one resolver; canonical
+Position queries remain local. Root owns the TypeScript caller join after the
+native source shape is reviewed.
 
 ```text
 worldPose(entity):
