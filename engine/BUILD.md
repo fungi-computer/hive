@@ -90,3 +90,10 @@ config removed. A separate Python bind without reuse hit TCP TIME_WAIT, not a li
 listener. Initial u4876 stopped before readiness on unsupported compatibility date;
 09-04 matches the installed runtime. No hosted DO, automatic alarm, large-world
 capacity or multiplayer browser claim follows from this bounded native proof.
+
+Custom authoring witness: u4880 exit 0 at 990ed50 ran the single new named
+TypeScript-component law against unchanged WASM db1d8f26. An orchard ripeness
+number/boolean component advances through an authored system, restores into a
+second native instance and continues, while the first instance remains unchanged.
+The filtered runner also reports an empty session-test file as passing; this is
+one authored law, not two. Scope inactive/dead/empty. No Rust rebuild was used.
