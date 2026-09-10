@@ -14,10 +14,9 @@ export interface PresentationFact {
 export interface GamePresentation {
   readonly controls: readonly PresentationControl[];
   readonly inspect: (
-    context: Pick<ReadContext, "query" | "outcomes">,
+    context: Pick<ReadContext, "query">,
   ) => readonly PresentationFact[];
 }
-type PresentationPack = GamePack & { readonly presentation?: GamePresentation };
 const jsonBytes = (value: unknown) =>
   new TextEncoder().encode(JSON.stringify(value)).byteLength;
 const boundedText = (value: unknown, name: string, max: number) => {
@@ -29,12 +28,12 @@ const boundedText = (value: unknown, name: string, max: number) => {
 /** Pure, bounded projection used by the client. No presentation value is physical state. */
 export function projectPresentation(
   pack: GamePack,
-  context: Pick<ReadContext, "query" | "outcomes">,
+  context: Pick<ReadContext, "query">,
 ): {
   readonly facts: readonly PresentationFact[];
   readonly controls: readonly PresentationControl[];
 } {
-  const presentation = (pack as PresentationPack).presentation;
+  const presentation = pack.presentation;
   if (!presentation) return { facts: [], controls: [] };
   if (presentation.controls.length > 16)
     throw new Error("presentation control limit exceeded");

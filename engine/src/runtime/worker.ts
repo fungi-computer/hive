@@ -7,7 +7,6 @@ import type {
 import { GameSession } from "./session";
 import type { SessionSnapshot } from "./session";
 import { projectPresentation } from "../presentation";
-import type { GamePresentation } from "../presentation";
 
 export type WorkerCommand =
   | {
@@ -54,12 +53,9 @@ export class WorkerRuntime {
   ) {}
   private emitPresentation(): void {
     if (!this.session) return;
-    const pack = this.session.pack as GamePack & {
-      readonly presentation?: GamePresentation;
-    };
+    const pack = this.session.pack;
     const projected = projectPresentation(pack, {
       query: (spec) => this.session!.query(spec),
-      outcomes: this.session.save().outcomes,
     });
     this.emit({ type: "presentation", ...projected });
   }
