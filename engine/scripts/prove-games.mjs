@@ -1,0 +1,25 @@
+import { build } from "esbuild";
+import { mkdir } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+await mkdir(".botanical/fresh-game-laws", { recursive: true });
+await build({
+  entryPoints: [
+    "engine/src/runtime/session.test.ts",
+    "engine/src/runtime/games.test.ts",
+  ],
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  outdir: ".botanical/fresh-game-laws",
+  outExtension: { ".js": ".mjs" },
+});
+const result = spawnSync(
+  process.execPath,
+  [
+    "--test",
+    ".botanical/fresh-game-laws/session.test.mjs",
+    ".botanical/fresh-game-laws/games.test.mjs",
+  ],
+  { stdio: "inherit" },
+);
+process.exitCode = result.status ?? 1;

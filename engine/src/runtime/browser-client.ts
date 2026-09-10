@@ -8,8 +8,6 @@ export interface RuntimeConnection {
 }
 export interface BrowserConnectionOptions {
   readonly worker?: Worker;
-  readonly workerUrl?: URL;
-  readonly cadenceMs?: number;
 }
 
 /** Client-side transport. It owns no simulation state and never fabricates frames. */
@@ -18,10 +16,9 @@ export function connectBrowserRuntime(
 ): RuntimeConnection {
   const worker =
     options.worker ??
-    new Worker(
-      options.workerUrl ?? new URL("./worker-entry.ts", import.meta.url),
-      { type: "module" },
-    );
+    new Worker(new URL("./worker-entry.ts", import.meta.url), {
+      type: "module",
+    });
   const listeners = new Set<(event: WorkerEvent) => void>();
   let disposed = false;
   let stepping = false;
