@@ -75,11 +75,17 @@ export function createHiveClient({
     } else if (runtime && action.kind === "reset") {
       state.selectedIds = [];
       state.hoverId = null;
-      prepareNewWorld();
-      persistence.newWorld((remote) => {
-        state.message = remote ? "Starting a new server world…" : "Resetting the browser world…";
-        if (remote) runtime.send({ type: "start", game: mode });
-      });
+      const wasReady = state.ready;
+      prepareNewWorld(persistence.online);
+      try {
+        persistence.newWorld((remote) => {
+          state.message = remote ? "Starting a new server world…" : "Resetting the browser world…";
+          if (remote) runtime.send({ type: "start", game: mode });
+        });
+      } catch (error) {
+        state.ready = wasReady;
+        state.message = `Could not start a new world: ${error.message}`;
+      }
     } else if (action.kind === "continue") {
       try {
         state.pendingRestore = true;
@@ -114,11 +120,15 @@ export function createHiveClient({
   let resizeObserver = null;
   let unsubscribeRuntime = null;
 
-  function prepareNewWorld() {
-    state.ready = false;
+  function prepareNewWorld(remote) {
+    if (remote) state.ready = false;
     state.pendingSave = false;
     state.pendingRestore = false;
     state.subjects = [];
+    state.presentationFacts = [];
+    state.presentationControls = [];
+    state.dragging = null;
+    gesture.send({ type: "CANCEL" });
     frameEpoch = undefined;
     frameSequence = 0;
     awaitingEpochTransition = false;
@@ -241,8 +251,9 @@ export function createHiveClient({
                     {
                       key: control.id,
                       size: "sm",
+                      disabled: !state.ready,
                       onClick: () =>
-                        runtime?.send(
+                        state.ready && runtime?.send(
                           presentationCommand(control, state.selectedIds),
                         ),
                     },
