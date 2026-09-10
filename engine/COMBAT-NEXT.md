@@ -245,3 +245,16 @@ Current save formats are a clean break; use New world for an old demo save.
 Artifacts and prior dist remain in .botanical/cannon-release. Source9f38cd9 is
 verified on the existing private recovery ref. Cannon is an accepted increment,
 not completion of the full engine goal or large-battle performance proof.
+
+### Actual current-format DO cannon recovery
+
+Maintained local DO fixture at2dfa9e2 finished u5149 exit0 with exactly two
+owned runtime starts. It saved native3/session5 while a real shot was in flight,
+restarted the runtime, and replayed the lost step without changing the saved
+world or spending another round. The pending impact produced health80/morale50
+and native displacement once. A before-commit failure left the entire candidate
+unchanged; successful retry and repeated receipt kept the same final state and
+five rounds. The exact receipt and snapshots are in
+.botanical/cannon-recovery/native-v1. This is local SQLite DO process-restart
+and transaction evidence, separate from the already-published hosted firing
+interaction; no hosted crash injection or capacity claim.
