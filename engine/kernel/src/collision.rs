@@ -275,7 +275,7 @@ mod tests {
             .expect("valid sweep")
             .expect("crossing hit");
         assert_eq!(hit.target_id, "wall");
-        assert!((hit.time - 0.465).abs() < 1e-9);
+        assert!((hit.time - 0.465).abs() < 1e-9, "actual hit: {hit:?}");
         assert!(hit.point[0].is_finite());
     }
 
