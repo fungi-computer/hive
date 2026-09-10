@@ -447,3 +447,30 @@ Remote stale-intent qualification u5067 passed six laws and failed one erroneous
 poll-count assertion (4 actual, 5 expected). The test retained its timer after
 failure; the exact owned scope was terminated normally and collected exit143.
 The corrected test owns disposal and expects the actual bounded four polls.
+
+
+## Public online release — September 10
+
+- u5072: corrected two stale-intent laws and strict engine types passed; closed.
+- u5074: actual DO deployment passed, version
+  `daf0575c-a5f4-4841-b024-21d5985d05a8`, host
+  `hive-public-engine-demo.levi-fe0.workers.dev`; scope closed.
+- u5076: one frontend build with VITE_HIVE_PUBLIC_HOST pointing at that actual
+  host passed (28.75s); original art reused, no bake. Scope closed.
+- u5078: exact stopped build served in the browser at its canonical origin,
+  actual remote DO calls, raft selection/sailing x=0→3 and same-world reopen at
+  revision22 passed, errors[]. King viewed online-raft.png. Scope closed.
+- u5081: hosted smoke failed on test-only wrong rejection field; preserved.
+  u5083 corrected `receipt.result.reason`, all four packs passed CORS,
+  missing-token rejection, pause stability, resume/time and same-command replay.
+  Both scopes closed; no host runtime changed for the correction.
+- u5085: same-preview frontend upload passed, deployment
+  `03e69896-07d3-40c3-b4af-16acfad95297`; all143 HTTP SHA256 values match,112
+  non-engine files unchanged. Scope closed.
+
+Evidence: `.botanical/public-online-release/` (browser-result.json,
+online-raft.png, files.json, hosted.json, rollback-8f4042d-dist.tgz),
+`.botanical/public-host-release/hosted-v2/hosted-smoke.json`.
+No hosted backend population/performance claim or injected public-host outer
+rollback proof follows. Actual native Region rollback and request-free public
+host restart remain separately recorded above.

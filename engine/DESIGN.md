@@ -4,20 +4,27 @@ King Bolete · September 10, 2026 · implementation guiding packet
 
 ## Current playable interim — September 10
 
-The four browser/WASM pages are live at
+The four demos are live at
 https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/ .
-Current published source is `8f4042d`, deployment
-`d1efdaa2-9e28-4166-ae2b-6beaa6af0e51`; all 143 served files match the frozen
-release. The 112 existing clearing/study files remain preserved. This interim
-adds original walking sprites, shared interpolation, corrected ground picking,
-stable viewport sizing and two-worker Rust assignment. The public simulation
-still runs in browser Workers, not hosted Durable Objects.
+Their default runtime is now the public Durable Object host:
+https://hive-public-engine-demo.levi-fe0.workers.dev . The browser owns controls,
+rendering and interpolation; server-owned worlds persist by a browser-held random
+capability. Explicit `?runtime=local` remains supported. This is anonymous demo
+access, not Fungi account integration or a multiplayer lobby.
 
-The raft shares moving supports, cargo, controls and the original art pipeline.
-The latest release adds an explicit Select raft control and normal click-motion
-tolerance after Levi found deck selection difficult. Local current-format DO
-proofs now cover pirate, colony and formations authored state; see BUILD.md for
-exact receipts and historical survival coverage. No large-world capacity is claimed.
+Frontend deployment `03e69896-07d3-40c3-b4af-16acfad95297` contains the reviewed
+`bee1457` build; later source commits through `3f42d80` change proof tooling only.
+Server version `daf0575c-a5f4-4841-b024-21d5985d05a8` pins implementation
+`62721ffd73e79b70ac7b276fd39af9b5b3b1ac6a0037f87a211dc94b2b6844d3`.
+All 143 hosted files match the stopped build; 112 old clearing/study files are
+unchanged. The browser-local release `8f4042d` remains an archived rollback.
+
+Actual hosted HTTP checks cover all four packs, pause/resume, server time and
+same-command replay. A real browser rendered this exact build at the canonical
+origin against the hosted DO, selected and sailed the raft x=0→3, then reopened
+its same paused world at revision 22; errors were empty. King personally viewed
+the capture. This focused desktop evidence does not claim a narrow-screen matrix,
+large-world capacity or cross-player shared-world gameplay. See BUILD.md.
 
 ### Local DO milestone after the browser release
 
