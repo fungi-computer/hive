@@ -41,3 +41,18 @@ this whole session atomically; these in-process fields alone are not durability.
 Pending player input is bounded at 128 actions; authored systems have another 128
 per step, within the native 256-action batch. Malformed input is rejected before
 queueing; physically unavailable actions return normal rejections.
+
+## First actual consumer checkpoint — September 10
+
+Native pin e5aba62 in fresh-native-proof: u4850 exited 0 after five assignment
+laws, seven public kernel laws, and release WASM generation. Kernel source matches
+the integrated root. WASM SHA256 db1d8f26c1f02a375c67448eed6c079f0f571b662d86b7e487c6d058fc1bf37e.
+Initial u4848 compile failure (ambiguous Result) is preserved in tool output.
+Strict TS u4855 passed. Actual TS/WASM consumers plus session laws u4858 passed
+10/10 after u4857 exposed the shared movement helper's extra destination field.
+Client build u4859 includes the real worker and WASM (earlier u4856 build did not).
+Local browser u4861 passed all three pages' rendered-ready and acknowledged pause
+checks; root viewed all three captures in .botanical/fresh-browser. Scope dead,
+empty control group and port5197 clear. No page errors. This is not movement-input,
+save-button, narrow-view, hosted, or DO proof. Pantry/locker visual mapping and
+label overlap remain visible corrections. Nothing from this checkpoint is hosted.
