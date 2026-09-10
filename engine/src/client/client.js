@@ -1,4 +1,4 @@
-import { project, groundPoint } from "./geometry.js";
+import { project, groundPoint, surfacePoint } from "./geometry.js";
 import { presentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
@@ -275,6 +275,10 @@ export function createHiveClient({
         z: fact.pose.position.z,
         facing: fact.pose.facing,
         visual: fact.visual,
+        local: fact.local,
+        support: fact.support,
+        surface: fact.surface,
+        pose: fact.pose,
         screen: { x: 0, y: 0 },
       }));
     if (!groundSprite) {
@@ -429,10 +433,25 @@ export function createHiveClient({
   function contextMenu(event) {
     event.preventDefault();
     const at = point(event);
-    const world = groundPoint(
-      (at.x - camera.x) / camera.zoom,
-      (at.y - camera.y) / camera.zoom,
-    );
+    const selected = state.subjects.filter((subject) => state.selectedIds.includes(subject.id));
+    const frames = new Set(selected.map((subject) => subject.support ?? null));
+    if (frames.size > 1) {
+      state.message = "Select people on the same surface to move together";
+      renderHud();
+      return;
+    }
+    const frame = selected[0]?.support ?? null;
+    const x = (at.x - camera.x) / camera.zoom;
+    const y = (at.y - camera.y) / camera.zoom;
+    const support = frame === null ? null : state.subjects.find((subject) => subject.id === frame);
+    const world = frame === null
+      ? { ...groundPoint(x, y), frame: null }
+      : support ? surfacePoint(x, y, support) : null;
+    if (!world) {
+      state.message = "Choose a point on the selected deck";
+      renderHud();
+      return;
+    }
     if (orderCommand) {
       if (state.selectedIds.length)
         runtime.send({
@@ -467,17 +486,19 @@ export function createHiveClient({
         ].includes(key) &&
         actor
       ) {
+        const local = actor.local?.position ?? actor;
         const destination = {
+          frame: actor.support ?? null,
           x:
-            actor.x +
+            local.x +
             (key === "a" || key === "arrowleft"
               ? -1
               : key === "d" || key === "arrowright"
                 ? 1
                 : 0),
-          y: actor.y,
+          y: local.y,
           z:
-            actor.z +
+            local.z +
             (key === "w" || key === "arrowup"
               ? -1
               : key === "s" || key === "arrowdown"
