@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -32,6 +32,9 @@ const inventory = [
   "../../engine/src/sdk/common.ts",
   "../../engine/src/sdk/delivery.ts",
   "../../engine/src/games/survival.ts",
+  "../../engine/src/games/pirates.ts",
+  "../../engine/src/games/colony.ts",
+  "../../engine/src/games/formations.ts",
   "../../engine/generated/hive_kernel.js",
   "../../engine/generated/hive_kernel.d.ts",
   "../../engine/generated/hive_kernel_bg.wasm",
@@ -54,6 +57,9 @@ config.main = resolve(directory, "worker.ts");
 config.vars = { ...secrets, IMPLEMENTATION_HASH: hash.digest("hex"), PROOF_PACK: "survival" };
 const configPath = resolve(output, "wrangler.json");
 await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
+let clientA;
+let clientB;
+try {
 const bundled = await build({
   entryPoints: [resolve(directory, "../../engine/src/runtime/remote-client.ts")],
   bundle: true,
@@ -122,7 +128,7 @@ async function stop() {
   }
   throw new Error("owned listener did not close");
 }
-function authorizedFetch(secret, loseCommandName) {
+function authorizedFetch(secret, loseCommandName, attempts) {
   let lost = false;
   return async (input, init = {}) => {
     const headers = new Headers(init.headers);
@@ -132,11 +138,17 @@ function authorizedFetch(secret, loseCommandName) {
     if (typeof init.body === "string") {
       try { commandName = JSON.parse(init.body).command?.name; } catch { commandName = undefined; }
     }
+    if (String(input).endsWith("/command") && typeof init.body === "string")
+      attempts?.push({ body: init.body });
+    if (String(input).endsWith("/command"))
+      attempts?.at(-1) && (attempts.at(-1).receipt = await response.clone().json().catch(() => undefined));
     if (loseCommandName && !lost && commandName === loseCommandName && String(input).endsWith("/command")) {
       lost = true;
       await response.arrayBuffer();
+      attempts?.at(-1)?.status = response.status;
       throw new Error("intentionally lost committed response");
     }
+    attempts?.at(-1)?.status = response.status;
     return response;
   };
 }
@@ -175,12 +187,22 @@ async function hostStep(id, expectedRevision) {
   assert.equal(response.status, 200);
   return response.json();
 }
-function waitFor(events, predicate, label) {
+function waitFor(events, predicate, label, cursor = 0) {
   return (async () => {
     const deadline = Date.now() + 10_000;
     while (Date.now() < deadline) {
-      const found = events.find(predicate);
+      const found = events.slice(cursor).find(predicate);
       if (found) return found;
+      await delay(25);
+    }
+    throw new Error(`timed out waiting for ${label}`);
+  })();
+}
+function waitUntil(predicate, label) {
+  return (async () => {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      if (predicate()) return;
       await delay(25);
     }
     throw new Error(`timed out waiting for ${label}`);
@@ -192,27 +214,41 @@ const denied = await fetch(`${endpoint}/observe`);
 assert.equal(denied.status, 403, "observe requires the writer authorization");
 const eventsA = [];
 const eventsB = [];
-const clientA = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFetch(secrets.WRITER_SECRET, "takeFood"), pollMs: 100 });
-const clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFetch(secrets.WRITER_SECRET), pollMs: 100 });
-clientA.subscribe((event) => eventsA.push(event));
-clientB.subscribe((event) => eventsB.push(event));
-try {
+const clientAAttempts = [];
+clientA = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFetch(secrets.WRITER_SECRET, "takeFood", clientAAttempts), pollMs: 100 });
+clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFetch(secrets.WRITER_SECRET), pollMs: 100 });
+  clientA.subscribe((event) => eventsA.push(event));
+  clientB.subscribe((event) => eventsB.push(event));
   clientA.send({ type: "start", game: "survival" });
   clientB.send({ type: "start", game: "survival" });
-  await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "client A ready"), waitFor(eventsB, (event) => event.type === "ready", "client B ready")]);
+  await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "client A ready", 0), waitFor(eventsB, (event) => event.type === "ready", "client B ready", 0)]);
   const initial = await observe(secrets.WRITER_SECRET);
   assert.equal(initial.revision, 0);
   assert.deepEqual((await observe(secrets.WRITER_SECRET)).observation, initial.observation);
 
+  const pauseCursorA = eventsA.length;
+  const pauseCursorB = eventsB.length;
   clientA.send({ type: "pause" });
-  await waitFor(eventsA, (event) => event.type === "state" && event.paused, "pause state");
-  await waitFor(eventsB, (event) => event.type === "state" && event.paused, "second client sees pause");
+  await waitFor(eventsA, (event) => event.type === "state" && event.paused, "pause state", pauseCursorA);
+  await waitFor(eventsB, (event) => event.type === "state" && event.paused, "second client sees pause", pauseCursorB);
+  const resumeCursorA = eventsA.length;
+  const resumeCursorB = eventsB.length;
   clientB.send({ type: "resume" });
-  await waitFor(eventsB, (event) => event.type === "state" && !event.paused, "resume state");
-  await waitFor(eventsA, (event) => event.type === "state" && !event.paused, "first client sees resume");
+  await waitFor(eventsB, (event) => event.type === "state" && !event.paused, "resume state", resumeCursorB);
+  await waitFor(eventsA, (event) => event.type === "state" && !event.paused, "first client sees resume", resumeCursorA);
 
+  const takeCursorA = eventsA.length;
   clientA.send({ type: "command", name: "takeFood" });
-  await delay(150);
+  await waitUntil(() => clientAAttempts.length >= 2, "take retry");
+  await waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 3, "take observation", takeCursorA);
+  assert.equal(clientAAttempts.length, 2, "lost take response was retried");
+  assert.equal(clientAAttempts[0].body, clientAAttempts[1].body, "take retry reused exact envelope");
+  assert.equal(clientAAttempts[0].status, 200);
+  assert.equal(clientAAttempts[1].status, 200);
+  assert.equal(clientAAttempts[0].receipt?.status, "applied");
+  assert.equal(clientAAttempts[1].receipt?.status, "applied");
+  assert.equal(clientAAttempts[0].receipt?.revision, 3);
+  assert.equal(clientAAttempts[1].receipt?.revision, 3);
   const afterTake = await observe(secrets.WRITER_SECRET);
   assert.equal(afterTake.revision, 3, "lost command response commits exactly once");
   const stepTake = await hostStep("host-step-take", afterTake.revision);
@@ -221,22 +257,38 @@ try {
   const taken = await debugSnapshot();
   assert.equal(breadIn(taken, "survival.survivor.1"), 1, "replayed take command does not duplicate custody");
   assert.equal(breadIn(taken, "survival.locker"), 7);
+  const eatCursorB = eventsB.length;
   clientB.send({ type: "command", name: "eatFood" });
-  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 4, "second client sees host step");
+  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 4, "second client sees host step", eatCursorB);
+  const eatReceiptCursorB = eventsB.length;
+  await waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 5, "eat observation", eatReceiptCursorB);
   const beforeEatStep = await observe(secrets.WRITER_SECRET);
-  assert.equal(beforeEatStep.revision, 4);
+  assert.equal(beforeEatStep.revision, 5);
   const stepEat = await hostStep("host-step-eat", beforeEatStep.revision);
   assert.equal(stepEat.status, "applied");
-  await delay(150);
+  const finalCursorA = eventsA.length;
+  const finalCursorB = eventsB.length;
+  await Promise.all([
+    waitFor(eventsA, (event) => event.type === "frame" && event.sequence >= 6, "first client final frame", finalCursorA),
+    waitFor(eventsB, (event) => event.type === "frame" && event.sequence >= 6, "second client final frame", finalCursorB),
+  ]);
   const final = await observe(secrets.WRITER_SECRET);
-  assert.equal(final.revision, 5);
+  assert.equal(final.revision, 6);
   const eaten = await debugSnapshot();
   assert.equal(breadIn(eaten, "survival.survivor.1"), 0);
   assert.equal(breadIn(eaten, "survival.locker"), 7);
   assert.deepEqual((await observe(secrets.WRITER_SECRET)).observation, final.observation);
+  const latestA = [...eventsA].reverse().find((event) => event.type === "frame");
+  const latestB = [...eventsB].reverse().find((event) => event.type === "frame");
+  assert.equal(latestA?.sequence, final.observation.sequence);
+  assert.equal(latestB?.sequence, final.observation.sequence);
+  assert.deepEqual(latestA?.facts, latestB?.facts, "both clients render the same committed frame");
+  assert.deepEqual(eventsA.filter((event) => event.type === "error"), []);
+  assert.deepEqual(eventsB.filter((event) => event.type === "error"), []);
 } finally {
-  clientA.dispose();
-  clientB.dispose();
+  clientA?.dispose();
+  clientB?.dispose();
   await stop();
+  await rm(configPath, { force: true });
 }
 console.log(JSON.stringify({ status: "passed", checks: ["unauthorized-observe", "two-remote-observers", "pause-resume", "host-only-step", "lost-response-replay", "action-conservation"], implementationHash: config.vars.IMPLEMENTATION_HASH, starts }));
