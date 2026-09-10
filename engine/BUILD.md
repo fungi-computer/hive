@@ -97,3 +97,11 @@ number/boolean component advances through an authored system, restores into a
 second native instance and continues, while the first instance remains unchanged.
 The filtered runner also reports an empty session-test file as passing; this is
 one authored law, not two. Scope inactive/dead/empty. No Rust rebuild was used.
+
+Joined client 173b69d: u4882 strict TS + build passed. Browser u4883 exited 1:
+survival food and exact save restoration passed; formation pointer box selection,
+three distinct march positions and exact restore passed. Colony exact restore
+failed because native JSON time 0.39600000000000013 became 0.3960000000000002.
+No tolerance was introduced; native JSON round-trip correction is in progress.
+Root viewed survival-joined.png. Scope inactive/dead/empty and 5197 clear. This
+candidate is not deployed; prior browser 3478538 remains live.
