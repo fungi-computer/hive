@@ -107,6 +107,16 @@ The formation example is not a battle simulator; the survivor is not a zombie
 game yet. Make the actions above good before adding combat, infection spreading,
 sieges, fleets, technology trees or a large content catalogue.
 
+**Levi's combat amendment, September 10:** after the formation movement checkpoint,
+the first RTS combat demonstration should fire a cannonball into a formation.
+Use an authoritative swept projectile/body-or-terrain collision and committed
+impact, with damage, knockback and morale policies authored in TypeScript. Evaluate
+Rapier/Parry against this actual consumer; do not fake a screen-space hit or
+settle damage from an animation callback. Horse charges are a later reuse target
+for contact/impulse behavior, not an immediate cavalry system assignment. The
+cannon milestone is part of the requested demo progression; large battles remain
+outside this first foundation's capacity claims.
+
 Colony and survival must use the **same** container/quantity/consumption owner.
 Colony and formations must use the **same** selection and group-order controls.
 All three use the **same** body/spatial facts, renderer and original sprite bank.
@@ -197,6 +207,20 @@ Use an ordinary maintained Rust → WASM toolchain. Start with the matcher and
 bulk input/output, then qualify dynamic game components and typed game systems.
 No candidate version is accepted until the actual compiler, crate and caller
 work. Pin the dependency graph and preserve the build recipe.
+
+**Rust ecosystem follow-through, September 10:** use maintained building blocks
+beyond ECS where an actual consumer fits. `pathfinding` supplies route search;
+its Hungarian implementation is also a candidate for replacing custom matching,
+subject to legal-edge/cardinality/tie laws. `glam` supplies native vector math.
+Serde owns structured encoding; Postcard is a later compact-format candidate,
+not a prerequisite. Parry (shape queries) and Rapier (rigid-body dynamics) remain
+named options for actual later collision/vehicle work. They are not a reason to
+replace the retained client or introduce detailed fluid physics. References:
+[ecosystem index](https://arewegameyet.rs/),
+[pathfinding](https://docs.rs/pathfinding/latest/pathfinding/),
+[glam](https://docs.rs/glam/latest/glam/), [Serde](https://serde.rs/),
+[Postcard](https://docs.rs/postcard/latest/postcard/),
+[Parry](https://parry.rs/), [Rapier](https://rapier.rs/).
 
 Bevy owns entity/component storage and supported query bookkeeping. Hive owns
 public IDs, schemas, physical laws, game/host boundaries and durable meaning.
