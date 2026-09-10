@@ -81,6 +81,9 @@ if (!paidFuel) throw new Error("herbal ale has no paid atmosphere fuel");
 
 export const GOBLIN_BREW_ATMOSPHERE_RELEASE = Object.freeze({
   durationS: ROOM_FUEL.durationS,
+  /** The declared hearth voxel at the station footing, inside its 2x2 body.
+   * Placement uses this physical cell on every storey; no nearest-air fallback. */
+  sourceOffsetVoxels: Object.freeze([0, 0, 0] as const),
   totals: Object.freeze({ smokeKg: ROOM_FUEL.smokeKg, heatJ: ROOM_FUEL.heatJ }),
   paidInput: Object.freeze({
     recipe: HERBAL_ALE_V1.id,

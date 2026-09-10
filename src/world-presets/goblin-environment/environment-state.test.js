@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createMaterialsState } from "../../materials.ts";
 import { initialTerrain, terrainEnvironment } from "../../terrain.ts";
 import { GOBLIN_FRAME } from "./content.ts";
 import {
@@ -12,6 +13,7 @@ import {
   airEnvironmentFacts,
   parseAirEnvironment,
 } from "./air-state.ts";
+import { initialPaidAtmosphereReleases } from "./paid-releases.ts";
 import {
   prepareEnvironmentWaterTransfer,
   advanceEnvironment,
@@ -20,9 +22,17 @@ import {
 function original() {
   const source = { terrain: terrainEnvironment(initialTerrain()), sites: [] };
   const water = initialWaterEnvironment(source);
+  const air = initialAirEnvironment(water, source);
   return {
     source,
-    state: { water, air: initialAirEnvironment(water, source) },
+    state: {
+      water,
+      air,
+      atmosphereReleases: initialPaidAtmosphereReleases(
+        createMaterialsState(),
+        airEnvironmentFacts(air, water, source),
+      ),
+    },
   };
 }
 

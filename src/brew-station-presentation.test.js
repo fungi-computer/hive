@@ -27,6 +27,7 @@ function state({
   exhausted = false,
   served = 0,
   tap = null,
+  releaseTicks = null,
 } = {}) {
   const lots = [
     {
@@ -82,6 +83,21 @@ function state({
       });
   }
   return {
+    // Projection fixture only. Payment/source-ledger admission is proved at
+    // the material/environment owner, not by this static HUD input.
+    atmosphereReleases: {
+      version: "goblin-paid-atmosphere-releases-v1",
+      obligations:
+        releaseTicks === null
+          ? []
+          : [
+              {
+                transformationId: "batch-1",
+                cellId: "cell:0,16,126",
+                elapsedTicks: releaseTicks,
+              },
+            ],
+    },
     materials: {
       lots,
       transformations:
@@ -139,6 +155,7 @@ function state({
             id: "brew:job-brew",
             job: "job-brew",
             station: site.id,
+            binding: "batch-1",
             phase: process,
             progress: 7,
           },
@@ -213,6 +230,28 @@ test("fermentation is calm and settlement requires real keg and tray contents", 
   assert.equal(settled.slots.tray.spentGrain, 1);
   assert.equal(settled.visualProfile, "settled");
   assert.equal(settled.tapReady, true);
+});
+
+test("flame presentation follows the finite paid receipt and extinguishes at completion", () => {
+  const active = brewStationPresentation(
+    state({ process: "ferment", releaseTicks: 119 }),
+    site,
+  );
+  assert.equal(active.burning, true);
+  assert.equal(active.visualProfile, "ferment-burning");
+  const spent = brewStationPresentation(
+    state({ process: "ferment", releaseTicks: 120 }),
+    site,
+  );
+  assert.equal(spent.burning, false);
+  assert.equal(spent.visualProfile, "ferment");
+  assert.equal(
+    brewStationPresentation(
+      state({ process: "prepare", attending: true }),
+      site,
+    ).burning,
+    false,
+  );
 });
 
 test("an exhausted keg keeps the real spent-grain tray visible and blocks a new brew", () => {

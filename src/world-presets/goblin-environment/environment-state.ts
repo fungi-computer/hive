@@ -7,16 +7,24 @@ import {
 } from "./water-state.ts";
 import {
   advanceAirEnvironment,
+  airEnvironmentFacts,
   prepareAirEnvironmentGeometry,
   type AirEnvironment,
   type CellAtmosphereSource,
 } from "./air-state.ts";
+import {
+  admitPaidAtmosphereReceivers,
+  planPaidAtmosphereTicks,
+  type PaidAtmosphereReleases,
+} from "./paid-releases.ts";
+import type { MaterialsState } from "../../model.ts";
 
 /** The game's two physical stocks share admission, not an independent clock.
  * Every result is detached; the existing game/Region publication owns commit. */
 export type EnvironmentState = Readonly<{
   water: WaterEnvironment;
   air: AirEnvironment;
+  atmosphereReleases: PaidAtmosphereReleases;
 }>;
 
 function pairWater(
@@ -38,9 +46,23 @@ function pairWater(
       medium: "air" as const,
       reason: air.reason,
     };
+  const receiver = admitPaidAtmosphereReceivers(
+    before.atmosphereReleases,
+    airEnvironmentFacts(air.state, water, afterSource),
+  );
+  if (receiver.status === "blocked")
+    return {
+      status: "blocked" as const,
+      medium: "air" as const,
+      reason: receiver.reason,
+    };
   return {
     status: "applied" as const,
-    state: Object.freeze({ water, air: air.state }),
+    state: Object.freeze({
+      water,
+      air: air.state,
+      atmosphereReleases: before.atmosphereReleases,
+    }),
     airReceipt: air.receipt,
   };
 }
@@ -101,10 +123,43 @@ export function advanceEnvironment(
     sources,
   );
   return {
-    state: Object.freeze({ water: admitted.water, air: air.state }),
+    state: Object.freeze({
+      water: admitted.water,
+      air: air.state,
+      atmosphereReleases: input.atmosphereReleases,
+    }),
     waterReceipt: paired.status === "applied" ? water.receipt : null,
     waterWaiting: paired.status === "blocked" ? paired.reason : null,
     airGeometryReceipt: paired.status === "applied" ? paired.airReceipt : null,
     airReceipt: air.receipt,
   };
+}
+
+/** The game grants elapsed ticks; fuel receipts grant finite source quantities.
+ * Publish neither release progress nor any field half if a segment fails. */
+export function advancePaidEnvironment(
+  input: EnvironmentState,
+  materials: MaterialsState,
+  source: EnvironmentGeometry,
+  ticks: number,
+): EnvironmentState {
+  const plan = planPaidAtmosphereTicks(
+    input.atmosphereReleases,
+    materials,
+    airEnvironmentFacts(input.air, input.water, source),
+    ticks,
+  );
+  // Committed states and prospective geometry both require active receivers.
+  // This is corruption, not permission to drop a paid source for one tick.
+  if (plan.status === "blocked")
+    throw new Error(`Paid atmosphere interval rejected: ${plan.reason}`);
+  let candidate = input;
+  for (const segment of plan.segments)
+    candidate = advanceEnvironment(
+      candidate,
+      source,
+      segment.seconds,
+      segment.sources,
+    ).state;
+  return Object.freeze({ ...candidate, atmosphereReleases: plan.state });
 }

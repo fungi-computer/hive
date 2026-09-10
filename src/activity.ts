@@ -475,6 +475,12 @@ function brew(s: Clearing, p: Actor, t: Activity): void {
     interruptWork(s, p);
     return;
   }
+  if (advanced.value === "waiting") {
+    job.reason = advanced.reason;
+    p.work = process.progress;
+    return;
+  }
+  job.reason = "Working at the brew station";
   p.work = process.progress;
   if (advanced.value === "fermenting") {
     s.notice = "Herbal ale is fermenting.";

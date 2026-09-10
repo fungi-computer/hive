@@ -21,15 +21,20 @@ import { mugwortStage } from "./herbs.ts";
 import { initialTerrain, terrainEnvironment } from "./terrain.ts";
 import { initialTerrainRemovals } from "./terrain-removals.ts";
 import { initialWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
-import { initialAirEnvironment } from "./world-presets/goblin-environment/air-state.ts";
-import { advanceEnvironment } from "./world-presets/goblin-environment/environment-state.ts";
-import { STEP_SECONDS } from "./ticker.js";
+import {
+  initialAirEnvironment,
+  airEnvironmentFacts,
+} from "./world-presets/goblin-environment/air-state.ts";
+import { initialPaidAtmosphereReleases } from "./world-presets/goblin-environment/paid-releases.ts";
+import { advancePaidEnvironment } from "./world-presets/goblin-environment/environment-state.ts";
 import { advanceNeeds, queueAutomaticCare } from "./needs.ts";
 
 export function createClearing(seed = 42): Clearing {
   const terrain = initialTerrain();
   const environmentSource = { terrain: terrainEnvironment(terrain), sites: [] };
   const water = initialWaterEnvironment(environmentSource);
+  const air = initialAirEnvironment(water, environmentSource);
+  const materials = createMaterialsState();
   const state: Clearing = {
     seed,
     tick: 0,
@@ -61,7 +66,7 @@ export function createClearing(seed = 42): Clearing {
       felledAt: null,
     })),
     herbs: [],
-    materials: createMaterialsState(),
+    materials,
     sources: [],
     pendingSources: [],
     operations: [],
@@ -69,7 +74,11 @@ export function createClearing(seed = 42): Clearing {
     processes: [],
     terrain,
     water,
-    air: initialAirEnvironment(water, environmentSource),
+    air,
+    atmosphereReleases: initialPaidAtmosphereReleases(
+      materials,
+      airEnvironmentFacts(air, water, environmentSource),
+    ),
     terrainRemovals: initialTerrainRemovals(terrain),
     exploration: initialExploration(),
     rocks: ROCKS.map((at) => groundFooting(terrain, at)),
@@ -172,16 +181,18 @@ function advanceCandidate(
   }
   advanceCancellations(state);
   const waterSupplyBefore = fieldWaterSupplyKey(state);
-  const environmental = advanceEnvironment(
+  const environmental = advancePaidEnvironment(
     state,
+    state.materials,
     {
       terrain: terrainEnvironment(state.terrain),
       sites: state.sites,
     },
-    STEP_SECONDS,
+    1,
   );
-  state.water = environmental.state.water;
-  state.air = environmental.state.air;
+  state.water = environmental.water;
+  state.air = environmental.air;
+  state.atmosphereReleases = environmental.atmosphereReleases;
   if (fieldWaterSupplyKey(state) !== waterSupplyBefore) state.workDirty = true;
   advanceBrewing(state);
   advanceHerbGrowth(state);
@@ -200,12 +211,21 @@ function commitTicks(
   ticks: number,
   commands: Command[],
 ): CommandResult[] {
-  const { terrain, water, air, terrainRemovals, exploration, ...body } = state;
+  const {
+    terrain,
+    water,
+    air,
+    atmosphereReleases,
+    terrainRemovals,
+    exploration,
+    ...body
+  } = state;
   const candidate: Clearing = {
     ...structuredClone(body),
     terrain,
     water,
     air,
+    atmosphereReleases,
     terrainRemovals,
     exploration,
   };

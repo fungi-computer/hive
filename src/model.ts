@@ -373,6 +373,7 @@ export type Clearing = {
   terrain: TerrainState;
   water: import("./world-presets/goblin-environment/water-state.ts").WaterEnvironment;
   air: import("./world-presets/goblin-environment/air-state.ts").AirEnvironment;
+  atmosphereReleases: import("./world-presets/goblin-environment/paid-releases.ts").PaidAtmosphereReleases;
   terrainRemovals: readonly import("./terrain-removals.ts").TerrainRemoval[];
   exploration: import("./exploration.ts").Exploration;
   rocks: Cell[];

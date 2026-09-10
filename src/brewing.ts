@@ -29,6 +29,11 @@ import {
   type RecipeOutputActionKey,
 } from "./recipes.ts";
 import { siteMaterialEndpoint } from "./construction.js";
+import { placementFooting } from "./game-space.ts";
+import { terrainEnvironment } from "./terrain.ts";
+import { GOBLIN_BREW_ATMOSPHERE_RELEASE } from "./world-presets/goblin-atmosphere.ts";
+import { airEnvironmentFacts } from "./world-presets/goblin-environment/air-state.ts";
+import { registerPaidAtmosphereRelease } from "./world-presets/goblin-environment/paid-releases.ts";
 
 export type BrewSupplyRequirement = {
   role: string;
@@ -659,26 +664,69 @@ function brewSettlementPlan(
       };
 }
 
-/** The attended boundary: only this owner advances PREPARE or crosses to FERMENT. */
-export function attendBrew(
+type BrewAttendance =
+  | MaterialResult<"working" | "fermenting" | "settled">
+  | { readonly ok: true; readonly value: "waiting"; readonly reason: string };
+
+/** One payment and its owed physical release commit together. Work at this
+ * boundary can wait without consuming inputs or losing its actor/job claim. */
+function prepareFueledBatch(
   state: Clearing,
-  id: OperationId,
-): MaterialResult<"working" | "fermenting" | "settled"> {
+  process: BrewProcess,
+): BrewAttendance {
+  const station = state.sites.find((site) => site.id === process.station);
+  if (
+    !station ||
+    station.type !== "brew-station" ||
+    station.finishedAt === null
+  )
+    return { ok: false, reason: "destination-mismatch" };
+  const materials = structuredClone(state.materials);
+  const consumed = completeRecipePrepare(materials, process.binding);
+  if (!consumed.ok) return consumed;
+  const at = placementFooting(station);
+  const offset = GOBLIN_BREW_ATMOSPHERE_RELEASE.sourceOffsetVoxels;
+  const cellId = `cell:${at.x + offset[0]},${at.y + offset[1]},${at.z + offset[2]}`;
+  const release = registerPaidAtmosphereRelease(
+    state.atmosphereReleases,
+    materials,
+    airEnvironmentFacts(state.air, state.water, {
+      terrain: terrainEnvironment(state.terrain),
+      sites: state.sites,
+    }),
+    process.binding,
+    cellId,
+  );
+  if (release.status === "blocked")
+    return {
+      ok: true,
+      value: "waiting",
+      reason:
+        release.reason === "source-cell-unavailable"
+          ? "Waiting for air space at the hearth."
+          : "Waiting for capacity to start another fire.",
+    };
+  Object.assign(state.materials, materials);
+  state.atmosphereReleases = release.state;
+  process.phase = "ferment";
+  process.progress = 0;
+  process.enteredAt = state.tick;
+  state.workDirty = true;
+  return { ok: true, value: "fermenting" };
+}
+
+/** The attended boundary: only this owner advances PREPARE or crosses to FERMENT. */
+export function attendBrew(state: Clearing, id: OperationId): BrewAttendance {
   const process = state.processes.find((candidate) => candidate.id === id);
   if (!process || (process.phase !== "prepare" && process.phase !== "keg"))
     return { ok: false, reason: "wrong-phase" };
   const definition = processDefinition(state, process);
   if (process.phase === "prepare") {
-    if (process.progress < definition.timings.prepare) process.progress++;
-    if (process.progress < definition.timings.prepare)
+    if (process.progress + 1 < definition.timings.prepare) {
+      process.progress++;
       return { ok: true, value: "working" };
-    const consumed = completeRecipePrepare(state.materials, process.binding);
-    if (!consumed.ok) return consumed;
-    process.phase = "ferment";
-    process.progress = 0;
-    process.enteredAt = state.tick;
-    state.workDirty = true;
-    return { ok: true, value: "fermenting" };
+    }
+    return prepareFueledBatch(state, process);
   }
   if (process.progress + 1 < definition.timings.keg) {
     process.progress++;

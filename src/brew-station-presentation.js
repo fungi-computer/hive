@@ -6,6 +6,7 @@ import {
 } from "./materials.ts";
 import { recipeDefinition } from "./recipes.ts";
 import { stationVisualProfile } from "./brew-station-profiles.js";
+import { paidAtmosphereRelease } from "./world-presets/goblin-environment/paid-releases.ts";
 
 function stationContainer(site, slot) {
   const endpoint = siteMaterialEndpoint(site, slot);
@@ -130,6 +131,11 @@ export function brewStationPresentation(state, site) {
       (actor) => actor.task?.kind === "brew" && actor.task.job === process.job,
     )
   );
+  const release =
+    process?.phase === "ferment"
+      ? paidAtmosphereRelease(state.atmosphereReleases, process.binding)
+      : null;
+  const burning = !!release && release.remainingS > 0;
   const fact = {
     id: site.id,
     x: site.x,
@@ -140,6 +146,7 @@ export function brewStationPresentation(state, site) {
     water: slots.kettle.water,
     process: processFact,
     attending,
+    burning,
     fillJob: jobFact(state, "fill-kettle", site),
     brewJob,
     tapJob: jobFact(state, "tap", site),

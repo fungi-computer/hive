@@ -1,7 +1,11 @@
 import { terrainYieldProblem } from "./terrain-yields.ts";
 import { parseTerrainRemovals } from "./terrain-removals.ts";
 import { parseWaterEnvironment } from "./world-presets/goblin-environment/water-state.ts";
-import { parseAirEnvironment } from "./world-presets/goblin-environment/air-state.ts";
+import {
+  parseAirEnvironment,
+  airEnvironmentFacts,
+} from "./world-presets/goblin-environment/air-state.ts";
+import { parsePaidAtmosphereReleases } from "./world-presets/goblin-environment/paid-releases.ts";
 import { explorationSchema, explorationProblem } from "./exploration.ts";
 import { navigationStateProblem } from "./navigation-space.ts";
 import { excavationTarget } from "./excavation.ts";
@@ -406,6 +410,7 @@ const currentStateSchema = z
     terrain: z.unknown().transform(parseTerrain),
     water: z.unknown(),
     air: z.unknown(),
+    atmosphereReleases: z.unknown(),
     terrainRemovals: z.unknown(),
     exploration: explorationSchema,
     careOutcomes: z.array(
@@ -620,10 +625,16 @@ const savedSchema = currentStateSchema.transform((value): SavedClearing => {
     sites: value.sites,
   };
   const water = parseWaterEnvironment(value.water, source);
+  const air = parseAirEnvironment(value.air, water, source);
   return {
     ...value,
     water,
-    air: parseAirEnvironment(value.air, water, source),
+    air,
+    atmosphereReleases: parsePaidAtmosphereReleases(
+      value.atmosphereReleases,
+      value.materials,
+      airEnvironmentFacts(air, water, source),
+    ),
     terrainRemovals: parseTerrainRemovals(value.terrainRemovals, value.terrain),
   } as SavedClearing;
 });
