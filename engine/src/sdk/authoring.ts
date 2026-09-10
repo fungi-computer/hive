@@ -4,14 +4,14 @@ type Shape = Record<string, "number" | "boolean" | "string" | "entity" | "nullab
 const valid = (type: Shape[string], value: unknown): boolean => (type === "nullable-entity" && (value === null || typeof value === "string")) ||
   (type === "number" && typeof value === "number" && Number.isFinite(value)) ||
   (type === "boolean" && typeof value === "boolean") || (type === "string" && typeof value === "string") ||
-  (type === "entity" && typeof value === "string") || (type === "entity[]" && Array.isArray(value) && value.every(v => typeof v === "string"));
+  (type === "entity" && typeof value === "string");
 
 export function component<T extends object>(id: ComponentId, options: { version: number; fields: Shape }): ComponentDefinition<T> {
   if (!id.includes(".") || options.version < 1) throw new Error(`Invalid component ${id}`);
   const fields = Object.freeze({ ...options.fields });
   return Object.freeze({ id, version: options.version, fields: fields as ComponentDefinition<T>["fields"], validate(value: unknown): value is T {
     if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-    return Object.entries(fields).every(([name, type]) => valid(type, (value as Record<string, unknown>)[name]));
+    return Object.keys(value).length === Object.keys(fields).length && Object.entries(fields).every(([name, type]) => valid(type, (value as Record<string, unknown>)[name]));
   } });
 }
 

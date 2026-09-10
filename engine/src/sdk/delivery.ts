@@ -20,6 +20,7 @@ export const deliverySystem = system({ id: "hive.delivery", version: 1, reads: [
       if (lotState?.container === state.actor) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
         ctx.action(move(state.actor, destination.get(Position)));
+        continue;
       }
       if (distance(actor.get(Position), source.get(Position)) <= 1) {
         if (lotState?.container === state.source) ctx.action(transfer(state.sourceLot, state.source, state.actor, state.quantity));
@@ -32,7 +33,7 @@ export const deliverySystem = system({ id: "hive.delivery", version: 1, reads: [
     } else if (state.phase === "to-destination" && lotState?.container === state.actor && distance(actor.get(Position), destination.get(Position)) <= 1) {
       if (lotState.container === state.actor) ctx.action(transfer(state.sourceLot, state.actor, state.destination, state.quantity));
     } else if (state.phase === "complete" && lotState?.container === state.destination) {
-      // receipt was observed on the previous tick; completion is now durable.
+      // Ownership was observed on the previous tick. Host commitment owns durability.
     }
   }
 });
