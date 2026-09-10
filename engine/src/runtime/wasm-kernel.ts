@@ -12,6 +12,7 @@ import type {
 } from "../contracts";
 
 export interface WasmKernelBinding {
+  free(): void;
   load(json: string): void;
   query(json: string): string;
   advance(json: string): string;
@@ -23,6 +24,7 @@ type QueryWire = { id: EntityId; components: Record<string, unknown> };
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
+    dispose() { binding.free(); },
     load(definition) {
       binding.load(new TextDecoder().decode(definition));
     },

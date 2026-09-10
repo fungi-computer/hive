@@ -118,6 +118,7 @@ export interface KernelSnapshot {
   readonly json: string;
 }
 export interface KernelPort {
+  readonly dispose: () => void;
   readonly load: (definition: Uint8Array) => void;
   readonly query: <T extends object>(
     spec: QuerySpec<T>,

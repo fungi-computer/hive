@@ -35,6 +35,7 @@ const definition = new TextEncoder().encode(
 );
 
 class TestPort implements KernelPort {
+  dispose(): void {}
   private json = JSON.stringify({
     format: "hive-kernel",
     version: 1,
