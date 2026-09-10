@@ -99,3 +99,38 @@ receipt/event/storage limits still have one enforcement path. Qualify unchanged
 frontier on fault, same-occurrence replay, retired-occurrence rejection and two
 consecutive ranges with no skipped or duplicated physical steps. No live clock
 implementation or storage-format change has landed from this plan.
+
+### Host wake join: source review checkpoint
+
+The current `tools/fresh-engine-do/worker.ts` has `fetch` only. Its native
+restart proofs do not establish request-free advancement. The new ordered
+occurrence owner is also not an alarm implementation by itself.
+
+Botanical's current `packages/shiitake/src/cloudflare.ts` supplies the relevant
+host pattern: storage transaction encloses mutation and alarm arming, followed
+by reconciliation; failed reconciliation retains a wake. Hive must qualify that
+composition with its synchronous Region transaction on actual native storage,
+not assume SQLite rollback also restores a mutated WASM instance. The current
+session program already creates and disposes a detached WASM candidate.
+
+The next host slice must retain a due occurrence (sequence, exact request and
+scheduled deadline) durably before execution. Its successful Region settlement,
+replacement due occurrence and alarm re-arm must form one native commit. A
+restarted alarm reads that record; it never creates a new command ID to repair an
+unknown result. Player input racing the captured expected revision may reject
+that occurrence. The host records that rejection, reads current state and prepares
+the next occurrence; it must not silently rewrite the rejected occurrence's bytes.
+
+Start with one active world and a bounded fixed-step range. Pause cancels future
+advancement through the same owner; resume installs due work and its wake before
+acknowledgement. No real-time catch-up claim follows until its bounded policy is
+implemented. A source reader must trace nesting/rollback of the async native
+storage transaction around the synchronous Region transaction before launching
+the witness. If unsupported, recut the host transaction boundary explicitly;
+do not add a post-commit alarm and call the crash gap solved.
+
+The first native witness must stop the owned runtime after durable admission,
+restart without sending a game request, and observe the alarm's committed result.
+Repeat around lost acknowledgement and assert one physical advancement, retained
+next wake and finite goods. The existing generated-principal proof host remains
+the test consumer. Public customer authorization and publication remain separate.
