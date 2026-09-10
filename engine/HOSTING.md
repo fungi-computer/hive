@@ -47,13 +47,20 @@ tick barrier, infinite catch-up, or million-player capacity claim follows.
 
 ## First online consumer and authority
 
-One DO class can host all four authored examples, each with its own world and
-pack identity. Browser-local mode remains available. Before public deployment,
-settle the ordinary host's visitor-to-world authorization using the existing
-Fungi App/customer boundary; do not borrow Team credentials or expose global
-account IDs. Local host qualification can use generated harness principals
-without claiming this public join exists. No new public backend deployment is
-part of the static four-game release.
+Levi explicitly authorized public DO demos on September 10. All four public
+examples will use the same DO host and Rust/WASM simulation, with a separate
+private world per example and browser-held random bearer capability. The browser
+owns controls and rendering; the server owns time, state and command receipts.
+Browser-local execution remains an explicit option. This anonymous demo capability
+is not a Fungi account or the future App/customer join; no Team credentials or
+global account IDs are borrowed. Reopening with the same capability resumes the
+same world. New world generates a new capability rather than resetting another
+world. The host stops advancing abandoned worlds after its bounded activity lease.
+
+The public host and remote client are implemented locally. Native public-host
+restart qualification and hosted publication remain outstanding; the live
+8f4042d release still runs in browser Workers. The earlier static-only deployment
+boundary is superseded by Levi's explicit public DO instruction.
 
 Acceptance: two connections observing one authorized world see the same commit;
 an unauthorized connection cannot read/reset it; a lost response replays its
