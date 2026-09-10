@@ -38,24 +38,45 @@ export function createSessionRegionProgram(options: {
   hostPrincipal: string;
   seed: number;
 }): RegionProgram<SessionRegionState, RegionCommand> {
-  if (!/^[a-f0-9]{64}$/.test(options.implementationHash))
+  const {
+    implementationHash,
+    ownerPrincipal,
+    hostPrincipal,
+    seed,
+    createKernel,
+  } = options;
+  const pack: GamePack = Object.freeze({
+    ...options.pack,
+    definition: options.pack.definition.slice(),
+    components: Object.freeze([...options.pack.components]),
+    systems: Object.freeze(
+      options.pack.systems.map((system) =>
+        Object.freeze({
+          ...system,
+          reads: Object.freeze([...system.reads]),
+          writes: Object.freeze([...system.writes]),
+        }),
+      ),
+    ),
+    commands: Object.freeze({ ...options.pack.commands }),
+    initialActions: options.pack.initialActions
+      ? structuredClone(options.pack.initialActions)
+      : undefined,
+  });
+  if (!/^[a-f0-9]{64}$/.test(implementationHash))
     throw new Error("expected immutable implementation SHA256");
-  if (
-    !options.ownerPrincipal ||
-    !options.hostPrincipal ||
-    options.ownerPrincipal === options.hostPrincipal
-  )
+  if (!ownerPrincipal || !hostPrincipal || ownerPrincipal === hostPrincipal)
     throw new Error("player and clock authority must be distinct");
   function withSession<T>(
     snapshot: SessionSnapshot | undefined,
     use: (session: GameSession) => T,
   ): T {
-    const port = options.createKernel();
+    const port = createKernel();
     try {
       const session = new GameSession({
         port,
-        pack: options.pack,
-        seed: options.seed,
+        pack: pack,
+        seed: seed,
       });
       if (snapshot) session.restore(snapshot);
       else session.start();
@@ -65,13 +86,14 @@ export function createSessionRegionProgram(options: {
     }
   }
   return {
-    id: `session-v1:${options.pack.id}:${options.implementationHash}`,
+    id: `session-v1:${pack.id}:${implementationHash}`,
     initial: () => ({
       session: withSession(undefined, (session) => session.save()),
     }),
     parseState(value) {
       const state = z.object({ session: z.unknown() }).strict().parse(value);
-      if (!state.session || typeof state.session !== "object") throw new Error("missing session state");
+      if (!state.session || typeof state.session !== "object")
+        throw new Error("missing session state");
       return {
         session: withSession(state.session as SessionSnapshot, (session) =>
           session.save(),
@@ -86,10 +108,7 @@ export function createSessionRegionProgram(options: {
     },
     authorize(principal, command) {
       return (
-        principal ===
-        (command.kind === "step"
-          ? options.hostPrincipal
-          : options.ownerPrincipal)
+        principal === (command.kind === "step" ? hostPrincipal : ownerPrincipal)
       );
     },
     execute(candidate, command) {

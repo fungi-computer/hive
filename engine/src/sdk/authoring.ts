@@ -60,14 +60,16 @@ export interface SystemOptions {
   run: (context: WriteContext) => void;
 }
 export function system(options: SystemOptions): SystemDefinition {
-  const writes = options.writes ?? [];
+  const writes = Object.freeze([...(options.writes ?? [])]);
+  const reads = Object.freeze([...(options.reads ?? [])]);
+  const run = options.run;
   return Object.freeze({
     ...options,
-    reads: options.reads ?? [],
+    reads,
     writes,
     run(context: WriteContext) {
       const permitted = new Set(writes.map((c) => c.id));
-      const readable = new Set((options.reads ?? []).map((c) => c.id));
+      const readable = new Set(reads.map((c) => c.id));
       const checked: WriteContext = {
         ...context,
         query(spec) {
@@ -91,7 +93,7 @@ export function system(options: SystemOptions): SystemDefinition {
           context.action(request);
         },
       };
-      options.run(checked);
+      run(checked);
     },
   });
 }
