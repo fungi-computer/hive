@@ -14,6 +14,6 @@ export function authoringContractProof(): void {
     if (!rejected) throw new Error("undeclared component write was accepted");
   }});
   const writes: unknown[] = [];
-  guarded.run({ clock: { now: 0, delta: 1, tick: 0 }, random: { next: () => 0.5 }, query: () => [], write: (...args) => writes.push(args), action: () => {} });
+  guarded.run({ clock: { now: 0, delta: 1, tick: 0 }, random: { next: () => 0.5, state: () => 1, restore: () => {} }, query: () => [], write: (...args) => writes.push(args), action: () => {} });
   if (writes.length !== 1) throw new Error("declared write was not recorded");
 }
