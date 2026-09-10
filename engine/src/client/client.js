@@ -55,9 +55,10 @@ export function createHiveClient({
       try {
         const saved = localStorage.getItem(saveKey);
         if (!saved) throw new Error("No saved world yet");
+        const snapshot = JSON.parse(saved);
         state.pendingRestore = true;
         state.message = "Continue requested…";
-        runtime.send({ type: "restore", snapshot: JSON.parse(saved) });
+        runtime.send({ type: "restore", snapshot });
       } catch (error) {
         state.message = error.message;
       }
@@ -123,7 +124,7 @@ export function createHiveClient({
               Button,
               {
                 onClick: () => act("continue"),
-                disabled: state.pendingSave || state.pendingRestore,
+                disabled: state.pendingSave,
                 size: "sm",
                 variant: "outline",
               },
@@ -324,6 +325,11 @@ export function createHiveClient({
       (at.x - camera.x) / camera.zoom,
       (at.y - camera.y) / camera.zoom,
     );
+    if (orderCommand) {
+      if (state.selectedIds.length)
+        runtime.send({ type: "command", name: orderCommand, input: { entities: state.selectedIds, destination: world } });
+      return;
+    }
     for (const id of state.selectedIds)
       emit({
         kind: "action",
@@ -372,8 +378,7 @@ export function createHiveClient({
         });
       } else if (key === "e" || key === "f") {
         event.preventDefault();
-        const actorId = state.selectedIds[0], lotId = state.selectedIds[1], sourceId = state.selectedIds[2];
-        if (actorId && lotId && (key === "f" || sourceId)) emit({ kind: "action", action: key === "e" ? { kind: "transfer", lot: lotId, from: sourceId, to: actorId, quantity: 1 } : { kind: "consume", entity: actorId, lot: lotId, quantity: 1 } });
+        runtime.send({ type: "command", name: key === "e" ? "takeFood" : "eatFood" });
       }
     }
   }
@@ -496,7 +501,7 @@ export function createHiveClient({
         state.message = "World ready";
         renderHud();
       }
-      if (event.type === "state" && state.pendingRestore) {
+      if (event.type === "restored" && state.pendingRestore) {
         state.pendingRestore = false;
         state.message = "Continued from the acknowledged save";
         renderHud();
