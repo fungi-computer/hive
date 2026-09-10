@@ -4,6 +4,7 @@ import {
   type RegionSqliteOwner,
 } from "../../src/engine/region/index.ts";
 import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
+import type { SessionRegionState } from "../../engine/src/runtime/region-program";
 import { GameSession } from "../../engine/src/runtime/session";
 import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
@@ -20,6 +21,7 @@ import {
   readCommand,
   tokenFromRequest,
   withCors,
+  type PublicCommandInput,
   type PublicPack,
 } from "./protocol";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
@@ -72,7 +74,7 @@ function jsonResponse(
 ): Response {
   return withCors(Response.json(value, { status }), origin);
 }
-function commandKind(input: Record<string, unknown>): string | undefined {
+function commandKind(input: { command: unknown }): string | undefined {
   const command = input.command;
   return command &&
     typeof command === "object" &&
@@ -105,24 +107,35 @@ function validateHostRow(row: HostRow): void {
     return;
   }
   if (
-    !Number.isSafeInteger(row.due_sequence) ||
-    row.due_sequence < 0 ||
-    row.due_sequence !== row.next_sequence ||
-    !Number.isSafeInteger(row.due_deadline_ms) ||
-    row.due_deadline_ms < 0 ||
-    typeof row.due_request_json !== "string" ||
-    new TextEncoder().encode(row.due_request_json).byteLength > 8192
+    row.due_sequence === null ||
+    row.due_deadline_ms === null ||
+    typeof row.due_request_json !== "string"
+  )
+    throw new Error("public-host-format");
+  const dueSequence = row.due_sequence;
+  const dueDeadline = row.due_deadline_ms;
+  const dueRequest = row.due_request_json;
+  if (
+    !Number.isSafeInteger(dueSequence) ||
+    dueSequence < 0 ||
+    dueSequence !== row.next_sequence ||
+    !Number.isSafeInteger(dueDeadline) ||
+    dueDeadline < 0 ||
+    new TextEncoder().encode(dueRequest).byteLength > 8192
   )
     throw new Error("public-host-format");
   try {
-    const request = JSON.parse(row.due_request_json) as Record<string, unknown>;
+    const request = JSON.parse(dueRequest) as Record<string, unknown>;
     const command = request.command;
+    const id = request.id;
+    const expectedRevision = request.expectedRevision;
     if (
-      typeof request.id !== "string" ||
-      request.id.length < 1 ||
-      request.id.length > 160 ||
-      !Number.isSafeInteger(request.expectedRevision) ||
-      request.expectedRevision < 0 ||
+      typeof id !== "string" ||
+      id.length < 1 ||
+      id.length > 160 ||
+      typeof expectedRevision !== "number" ||
+      !Number.isSafeInteger(expectedRevision) ||
+      expectedRevision < 0 ||
       !command ||
       typeof command !== "object" ||
       Array.isArray(command) ||
@@ -139,7 +152,7 @@ function validateHostRow(row: HostRow): void {
 }
 
 export class PublicEngineRegion extends DurableObject<Environment> {
-  private region!: ReturnType<typeof openRegion>;
+  private region!: ReturnType<typeof openRegion<SessionRegionState, unknown>>;
   private pack!: PublicPack;
   private tokenHash!: string;
   private readonly owner: RegionSqliteOwner;
@@ -147,23 +160,23 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private readonly ready: Promise<void>;
 
   constructor(
-    private readonly ctx: DurableObjectState,
+    private readonly state: DurableObjectState,
     private readonly env: Environment,
   ) {
-    super(ctx, env);
+    super(state, env);
     this.owner = {
       sql: {
         exec: <Row extends Record<string, SqlStorageValue | Uint8Array>>(
           statement: string,
           ...bindings: (SqlStorageValue | Uint8Array)[]
         ) => {
-          const cursor = ctx.storage.sql.exec(statement, ...bindings);
+          const cursor = state.storage.sql.exec(statement, ...bindings);
           return { toArray: () => cursor.toArray() as Row[] };
         },
       },
-      transactionSync: (operation) => ctx.storage.transactionSync(operation),
+      transactionSync: (operation) => state.storage.transactionSync(operation),
     };
-    this.ready = ctx.blockConcurrencyWhile(async () => {
+    this.ready = state.blockConcurrencyWhile(async () => {
       if (!/^[a-f0-9]{64}$/.test(env.IMPLEMENTATION_HASH))
         throw new Error("missing immutable implementation hash");
       initSync({ module: wasmBytes });
@@ -184,7 +197,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         throw new Error("public-capability-conflict");
       return;
     }
-    await this.ctx.blockConcurrencyWhile(async () => {
+    await this.state.blockConcurrencyWhile(async () => {
       if (this.initialized) return;
       await this.initializeCore(pack, tokenHash);
     });
@@ -292,7 +305,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async inTransaction<T>(operation: () => T | Promise<T>): Promise<T> {
-    return this.ctx.storage.transaction(() => operation());
+    return this.state.storage.transaction(async () => await operation());
   }
 
   private nextDue(row: HostRow, revision: number, now: number) {
@@ -328,8 +341,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private async arm(row: HostRow): Promise<void> {
     const at = this.alarmAt(row);
-    if (at === null) await this.ctx.storage.deleteAlarm();
-    else await this.ctx.storage.setAlarm(at);
+    if (at === null) await this.state.storage.deleteAlarm();
+    else await this.state.storage.setAlarm(at);
   }
 
   private async observe(now: number): Promise<Response> {
@@ -372,7 +385,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     }
   }
 
-  private async command(input: Record<string, unknown>, now: number) {
+  private async command(input: PublicCommandInput, now: number) {
     if (commandKind(input) === "step") throw new Error("public-step-forbidden");
     const result = await this.inTransaction(async () => {
       const receipt = this.region.dispatch(`${this.pack}-player`, input);
@@ -423,7 +436,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         row.lease_until_ms === null ||
         row.lease_until_ms <= now ||
         row.due_sequence === null ||
-        row.due_request_json === null
+        row.due_request_json === null ||
+        row.due_deadline_ms === null
       ) {
         this.owner.sql.exec(
           "UPDATE hive_public_host SET due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL WHERE singleton=1",
@@ -437,7 +451,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         await this.arm(cleared);
         return cleared;
       }
-      if (row.due_deadline_ms > now) {
+      const dueDeadline = row.due_deadline_ms;
+      if (dueDeadline === null) throw new Error("public-host-format");
+      if (dueDeadline > now) {
         await this.arm(row);
         return row;
       }
