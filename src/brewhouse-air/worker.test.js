@@ -1,4 +1,7 @@
 import test from "node:test";
+import { terrainEnvironment } from "../terrain.ts";
+import { BREWHOUSE_ROOM } from "../world-presets/brewhouse-air/room.ts";
+import { exchangeWaterEnvironment } from "../world-presets/goblin-environment/water-state.ts";
 import assert from "node:assert/strict";
 import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel-definition.ts";
 import { createBrewhouseAirProgram } from "../world-presets/brewhouse-air/region.ts";
@@ -128,4 +131,38 @@ test("equal terrain revisions from different excavation histories have distinct 
   assert.equal(first.terrain.revision, second.terrain.revision);
   assert.notEqual(first.terrain.key, second.terrain.key);
   assert.notDeepEqual(first.terrain.faces, second.terrain.faces);
+});
+
+test("study scene uses shared partial voxel interfaces and actual physical height", () => {
+  const program = createBrewhouseAirProgram(),
+    state = program.initial();
+  assert.equal(
+    program.execute(state, { kind: "excavate", at: [0, 14, 129] }).status,
+    "applied",
+  );
+  const source = {
+    terrain: terrainEnvironment(state.terrain),
+    sites: BREWHOUSE_ROOM.sites,
+  };
+  // Authored projection-only stocks, not a valid paid study checkpoint.
+  for (const [id, massKg] of [
+    ["cell:0,14,129", 2],
+    ["cell:0,15,129", 1],
+  ])
+    state.water = exchangeWaterEnvironment(state.water, source, {
+      id,
+      direction: "deposit",
+      massKg,
+    }).state;
+  const water = projectBrewhouseScene(program, state, 1).terrain.water;
+  const lower = water.find((cell) => cell.id === "cell:0,14,129"),
+    upper = water.find((cell) => cell.id === "cell:0,15,129");
+  assert(
+    lower && upper,
+    "a partial lower pool is not submerged by a separate upper pool",
+  );
+  assert.equal(lower.x, 7);
+  assert.equal(lower.z, 10);
+  assert(Math.abs(lower.height - (-0.54 + 0.002)) < 1e-12);
+  assert(Math.abs(upper.height - 0.001) < 1e-12);
 });

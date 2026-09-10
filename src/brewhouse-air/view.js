@@ -326,7 +326,6 @@ export async function createBrewhouseAirView(host) {
     clearWater();
     const display = createRoomDisplayFrame(scene);
     for (const water of scene.terrain.water) {
-      if (water.depthM <= 0) continue;
       const pool = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial);
       pool.rotation.x = -Math.PI / 2;
       pool.position.fromArray(display.column(water));

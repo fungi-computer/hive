@@ -8,17 +8,16 @@ import type { Json, RegionProgram } from "../../engine/region/index.ts";
 import type { MaterialsState } from "../../engine/materials/index.ts";
 import type { Material } from "../../model.ts";
 import {
-  advanceTerrain,
   excavateTerrain,
   initialTerrain,
-  parseClosedTerrain,
+  parseTerrain,
+  terrainEnvironment,
   terrainDigProblem,
-  terrainFacts,
   type GeneratedTerrain,
   voxelSchema,
 } from "../goblin-terrain.ts";
 import { generatedBrewhouseRoom } from "./generated-room.ts";
-import { ROOM_MIN_FIELD_INTERVAL_S } from "./room.ts";
+import { BREWHOUSE_ROOM, ROOM_MIN_FIELD_INTERVAL_S } from "./room.ts";
 import {
   roomMaterials,
   roomHearth,
@@ -28,8 +27,24 @@ import {
 } from "./fuel.ts";
 import { ROOM_FUEL } from "./fuel-definition.ts";
 
+import {
+  initialWaterEnvironment,
+  parseWaterEnvironment,
+  prepareWaterEnvironmentGeometry,
+  advanceWaterEnvironment,
+  waterEnvironmentFacts,
+  type WaterEnvironment,
+} from "../goblin-environment/water-state.ts";
+import {
+  initialTerrainRemovals,
+  parseTerrainRemovals,
+  prepareTerrainRemoval,
+  removedWaterKg,
+  type TerrainRemoval,
+} from "../../terrain-removals.ts";
+
 const stateSchema = z.strictObject({
-  version: z.literal("goblin-generated-warm-room-v1"),
+  version: z.literal("goblin-generated-dry-room-v2"),
   opening: z.strictObject({
     open: z.boolean(),
     revision: z.number().int().nonnegative(),
@@ -37,6 +52,8 @@ const stateSchema = z.strictObject({
   burn: z.strictObject({ startS: z.number().nonnegative() }).nullable(),
   materials: z.unknown(),
   terrain: z.unknown(),
+  water: z.unknown(),
+  removals: z.unknown(),
   air: z.unknown(),
 });
 const commandSchema = z.discriminatedUnion("kind", [
@@ -51,11 +68,13 @@ const commandSchema = z.discriminatedUnion("kind", [
 type AirState = ReturnType<ReturnType<typeof createAir>["initial"]>;
 type State = Omit<
   z.infer<typeof stateSchema>,
-  "materials" | "terrain" | "air"
+  "materials" | "terrain" | "air" | "water" | "removals"
 > & {
   materials: MaterialsState<Material>;
   terrain: GeneratedTerrain;
   air: AirState;
+  water: WaterEnvironment;
+  removals: readonly TerrainRemoval[];
 };
 type Command = z.infer<typeof commandSchema>;
 const roomFor = (state: Pick<State, "terrain" | "opening">) =>
@@ -66,9 +85,57 @@ const dose = createFiniteRelease({
   durationS: ROOM_FUEL.durationS,
   totals: { smokeKg: ROOM_FUEL.smokeKg, heatJ: ROOM_FUEL.heatJ },
 });
+const waterSource = (terrain: GeneratedTerrain) => ({
+  terrain: terrainEnvironment(terrain),
+  sites: BREWHOUSE_ROOM.sites,
+});
+export function roomWaterFacts(state: Pick<State, "terrain" | "water">) {
+  return waterEnvironmentFacts(state.water, waterSource(state.terrain));
+}
+/** This retained study has fixed gas volume; wet receivers require the main
+ * paired atmosphere consumer, not a silent displacement here. */
+function dryRoomProblem(state: Pick<State, "terrain" | "water" | "opening">) {
+  const definition = roomFor(state).definition,
+    solid = new Set(definition.solidCells);
+  return roomWaterFacts(state).cells.some(
+    (cell) =>
+      cell.kind === "void" &&
+      cell.massKg > 0 &&
+      !solid.has(cell.id) &&
+      cell.at.every(
+        (n, axis) =>
+          n >= definition.origin[axis] &&
+          n < definition.origin[axis] + definition.size[axis],
+      ),
+  );
+}
+function initialRoomWater(terrain: GeneratedTerrain) {
+  const before = { terrain: terrainEnvironment(terrain), sites: [] };
+  const initial = initialWaterEnvironment(before);
+  const result = prepareWaterEnvironmentGeometry(
+    initial,
+    before,
+    waterSource(terrain),
+  );
+  if (result.status === "blocked")
+    throw new Error(`room water initialization: ${result.reason}`);
+  if (result.receipt.removedPoreWater.length || result.receipt.boundaryKg !== 0)
+    throw new Error("authored room cannot export initial pore water");
+  return result.state;
+}
 function validateSourceJoin(state: State) {
-  if (state.air.timeS !== terrainFacts(state.terrain).timeS)
-    throw new Error("room field clocks disagree");
+  const water = roomWaterFacts(state),
+    exported = removedWaterKg(state.removals);
+  const tolerance = 1e-9 + 64 * Number.EPSILON * water.initialTotalKg;
+  if (Math.abs(water.boundaryKg + exported) > tolerance)
+    throw new Error("room water has an unpaired external exchange");
+  if (
+    Math.abs(water.totalKg - water.initialTotalKg - water.boundaryKg) >
+    tolerance
+  )
+    throw new Error("room water budget disagrees");
+  if (dryRoomProblem(state))
+    throw new Error("fixed-room-air-volume-must-stay-dry");
   if (state.burn !== null && state.burn.startS > state.air.timeS)
     throw new Error("room fuel starts after the physical clock");
   const { remainingS, released } = dose.read(
@@ -90,13 +157,15 @@ function validateSourceJoin(state: State) {
 }
 function parseState(value: unknown): State {
   const parsed = stateSchema.parse(value),
-    terrain = parseClosedTerrain(parsed.terrain),
+    terrain = parseTerrain(parsed.terrain),
     registered = generatedBrewhouseRoom(terrain, parsed.opening),
     owner = createAir(registered.definition);
   const state: State = {
     ...parsed,
     terrain,
-    materials: roomMaterials.restore({ schema: 1, state: parsed.materials }, [
+    water: parseWaterEnvironment(parsed.water, waterSource(terrain)),
+    removals: parseTerrainRemovals(parsed.removals, terrain),
+    materials: roomMaterials.restore({ schema: 2, state: parsed.materials }, [
       roomHearth,
     ]),
     air: owner.decode(JSON.stringify(parsed.air)),
@@ -163,7 +232,12 @@ function excavateRoom(
   if (problem) return problem;
   const terrain = excavateTerrain(candidate.terrain, at.at);
   try {
-    generatedBrewhouseRoom(terrain, candidate.opening);
+    const registered = generatedBrewhouseRoom(terrain, candidate.opening);
+    if (
+      JSON.stringify(registered.definition) !==
+      JSON.stringify(roomFor(candidate).definition)
+    )
+      return "fixed-room-air-geometry-required";
   } catch (error) {
     if (
       error instanceof Error &&
@@ -172,7 +246,25 @@ function excavateRoom(
       return "brewhouse-support-required";
     throw error;
   }
+  const water = prepareWaterEnvironmentGeometry(
+    candidate.water,
+    waterSource(candidate.terrain),
+    waterSource(terrain),
+  );
+  if (water.status === "blocked") return water.reason;
+  const removals = prepareTerrainRemoval(
+    candidate.removals,
+    candidate.terrain,
+    terrain,
+    at.at,
+    water.receipt.removedPoreWater,
+  );
+  const next = { ...candidate, terrain, water: water.state, removals };
+  if (dryRoomProblem(next)) return "fixed-room-air-volume-must-stay-dry";
+  validateSourceJoin(next);
   candidate.terrain = terrain;
+  candidate.water = water.state;
+  candidate.removals = removals;
   return null;
 }
 
@@ -187,22 +279,24 @@ function applied(candidate: State, kind: Command["kind"]) {
 
 /** Fixed-volume room consumer: topology comes from generated terrain plus actual
  * building definitions, heat/tracer supply from one finite transformation, and
- * commitment/replay from the existing region transaction. Air and soil receive
+ * commitment/replay from the existing region transaction. Air and water receive
  * the same host interval; no timer, fuel counter or mutable committed RAM exists.
  */
 export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
   return {
-    id: "goblin-generated-warm-room-v1",
+    id: "goblin-generated-dry-room-v2",
     initial() {
       const opening = { open: false, revision: 0 },
         terrain = initialTerrain(),
         registered = generatedBrewhouseRoom(terrain, opening);
       return parseState({
-        version: "goblin-generated-warm-room-v1",
+        version: "goblin-generated-dry-room-v2",
         opening,
         burn: null,
         materials: initialRoomMaterials(),
         terrain,
+        water: initialRoomWater(terrain),
+        removals: initialTerrainRemovals(terrain),
         air: createAir(registered.definition).initial(registered.initialAir),
       });
     },
@@ -213,6 +307,11 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
         ? principal === "room-host"
         : principal === "room-player",
     execute(candidate, command) {
+      if (dryRoomProblem(candidate))
+        return {
+          status: "rejected",
+          result: { reason: "fixed-room-air-volume-must-stay-dry" },
+        };
       switch (command.kind) {
         case "ignite":
           if (candidate.burn !== null)
@@ -246,7 +345,9 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
               status: "rejected",
               result: { reason: "fuel-boundary-below-field-interval" },
             };
-          advanceRoom(candidate, plan.segments);
+          const problem = advanceRoom(candidate, plan.segments);
+          if (problem)
+            return { status: "rejected", result: { reason: problem } };
           break;
         }
       }
@@ -262,7 +363,7 @@ function advanceRoom(
   const registered = roomFor(candidate),
     owner = createAir(registered.definition);
   let next = candidate.air,
-    terrain = candidate.terrain;
+    water = candidate.water;
   for (const segment of segments) {
     next = owner.advance(next, segment.seconds, {
       sources: segment.rates
@@ -275,18 +376,23 @@ function advanceRoom(
           ]
         : [],
     }).state;
-    terrain = advanceTerrain(terrain, segment.seconds);
+    water = advanceWaterEnvironment(
+      water,
+      waterSource(candidate.terrain),
+      segment.seconds,
+    ).state;
+    if (dryRoomProblem({ ...candidate, water }))
+      return "fixed-room-air-volume-must-stay-dry";
   }
-  if (next.timeS !== terrainFacts(terrain).timeS)
-    throw new Error("room field clocks disagree after advance");
+  validateSourceJoin({ ...candidate, air: next, water });
   candidate.air = next;
-  candidate.terrain = terrain;
+  candidate.water = water;
+  return null;
 }
 
 export function roomResult(state: State): Record<string, Json> {
   const registered = roomFor(state),
-    facts = createAir(registered.definition).read(state.air),
-    terrain = terrainFacts(state.terrain);
+    facts = createAir(registered.definition).read(state.air);
   const upstairs = facts.cells.find(
     (cell) => cell.cellId === registered.upstairsBreathingCell,
   )!;
@@ -302,12 +408,9 @@ export function roomResult(state: State): Record<string, Json> {
     remainingDoseFraction:
       1 - dose.read(state.burn?.startS ?? null, state.air.timeS).fraction,
     terrainRevision: state.terrain.world.revision,
-    excavatedVoxels: state.terrain.exports.length,
-    exportedWaterKg: state.terrain.exports.reduce(
-      (sum, source) => sum + source.waterKg,
-      0,
-    ),
-    fieldTimeS: terrain.timeS,
+    excavatedVoxels: state.removals.length,
+    exportedWaterKg: removedWaterKg(state.removals),
+    waterKg: roomWaterFacts(state).totalKg,
     upstairs: {
       smokeKgM3: upstairs.smokeKgM3,
       temperatureK: upstairs.temperatureK,

@@ -6,14 +6,18 @@ import { createAir } from "../../engine/environment/air/index.js";
 import { sqliteTestOwner } from "../../engine/region/sqlite-test-owner.mjs";
 import { createBrewhouseAirProgram, roomResult } from "./region.ts";
 import { ROOM_FUEL } from "./fuel-definition.ts";
-import { ROOM_MIN_FIELD_INTERVAL_S } from "./room.ts";
+import { BREWHOUSE_ROOM, ROOM_MIN_FIELD_INTERVAL_S } from "./room.ts";
 import { generatedBrewhouseRoom } from "./generated-room.ts";
 import {
-  advanceTerrain,
   excavateTerrain,
   initialTerrain,
-  terrainFacts,
+  terrainEnvironment,
 } from "../goblin-terrain.ts";
+import {
+  advanceWaterEnvironment,
+  exchangeWaterEnvironment,
+  waterEnvironmentFacts,
+} from "../goblin-environment/water-state.ts";
 import { createVoxelWorld, MATERIAL } from "../height-caves.mjs";
 
 function fixture(t) {
@@ -34,7 +38,7 @@ function fixture(t) {
         owner,
         region: "brewhouse",
         program: createBrewhouseAirProgram(),
-        limits,
+        limits: { stateBytes: 4 * 1024 * 1024, ...limits },
       }),
   };
 }
@@ -83,7 +87,7 @@ test("finite-source boundary refuses subminimum remainder and coast before eithe
   );
   const complete = region.readCommitted();
   assert.equal(complete.state.air.timeS, ROOM_FUEL.durationS);
-  assert.equal(terrainFacts(complete.state.terrain).timeS, ROOM_FUEL.durationS);
+  assert.equal(complete.state.terrain.world.revision, 0);
 });
 
 test("restore refuses a physically advanced state stranded below the shared field interval", () => {
@@ -104,7 +108,11 @@ test("restore refuses a physically advanced state stranded below the shared fiel
       },
     ],
   }).state;
-  state.terrain = advanceTerrain(state.terrain, intervalS);
+  state.water = advanceWaterEnvironment(
+    state.water,
+    { terrain: terrainEnvironment(state.terrain), sites: BREWHOUSE_ROOM.sites },
+    intervalS,
+  ).state;
   assert.throws(
     () => program.parseState(state),
     /fuel remainder is below the shared field interval/,
@@ -142,7 +150,7 @@ test("actual station wood becomes one paid air dose; partial source survives exa
     command("warm", 1, { kind: "advance", seconds: 2 }),
   );
   const partial = region.readCommitted();
-  assert.equal(terrainFacts(partial.state.terrain).timeS, 2);
+  assert.equal(partial.state.terrain.world.revision, 0);
   assert.ok(Math.abs(partial.state.air.heatSourceJ - 600) < 1e-5);
   assert.ok(
     Math.abs(partial.state.air.smokeSourceKg - ROOM_FUEL.smokeKg / 3) < 1e-10,
@@ -157,7 +165,7 @@ test("actual station wood becomes one paid air dose; partial source survives exa
   );
   const finished = reopened.readCommitted();
   assert.equal(finished.state.air.timeS, 8);
-  assert.equal(terrainFacts(finished.state.terrain).timeS, 8);
+  assert.equal(finished.state.terrain.world.revision, 0);
   assert.ok(Math.abs(finished.state.air.heatSourceJ - ROOM_FUEL.heatJ) < 1e-5);
   assert.ok(
     Math.abs(finished.state.air.smokeSourceKg - ROOM_FUEL.smokeKg) < 1e-10,
@@ -247,9 +255,9 @@ test("vent edit keeps physical stocks and reports dissipation; grants and unpaid
   const retimed = structuredClone(after.state);
   retimed.burn.startS = 0.1;
   assert.throws(() => program.parseState(retimed), /sources disagree/);
-  const mismatchedClock = structuredClone(after.state);
-  mismatchedClock.terrain.soilState.timeS += 0.1;
-  assert.throws(() => program.parseState(mismatchedClock));
+  const retiredClock = structuredClone(after.state);
+  retiredClock.terrain.soilState = { timeS: 0.1 };
+  assert.throws(() => program.parseState(retiredClock));
 });
 
 test("vent events are bounded committed physical summaries with exact replay", (t) => {
@@ -268,17 +276,12 @@ test("vent events are bounded committed physical summaries with exact replay", (
   assert.equal(payload.kind, "vent");
   assert.equal(payload.open, committed.state.opening.open);
   assert.equal(payload.oldGeometryRevision, 0);
-  assert.equal(
-    payload.newGeometryRevision,
-    committed.state.opening.revision,
-  );
+  assert.equal(payload.newGeometryRevision, committed.state.opening.revision);
   assert.equal(payload.timeS, committed.state.air.timeS);
   assert.equal(
     payload.openedFaceCount,
-    generatedBrewhouseRoom(
-      committed.state.terrain,
-      committed.state.opening,
-    ).shutterFaces.length,
+    generatedBrewhouseRoom(committed.state.terrain, committed.state.opening)
+      .shutterFaces.length,
   );
   assert.equal(payload.closedFaceCount, 0);
   assert.equal(
@@ -362,10 +365,26 @@ test("real exterior excavation co-saves wet spoil while the generated room rejec
   assert.equal(receipt.status, "applied");
   const cut = region.readCommitted();
   assert.equal(cut.revision, 1);
-  assert.equal(cut.state.terrain.exports.length, 1);
+  assert.equal(cut.state.removals.length, 1);
   assert.deepEqual(cut.state.air, initial.state.air);
   assert.equal(roomResult(cut.state).excavatedVoxels, 1);
   assert.ok(roomResult(cut.state).exportedWaterKg > 0);
+  const beforeWater = waterEnvironmentFacts(initial.state.water, {
+    terrain: terrainEnvironment(initial.state.terrain),
+    sites: BREWHOUSE_ROOM.sites,
+  });
+  const afterWater = waterEnvironmentFacts(cut.state.water, {
+    terrain: terrainEnvironment(cut.state.terrain),
+    sites: BREWHOUSE_ROOM.sites,
+  });
+  const exported = roomResult(cut.state).exportedWaterKg;
+  const tolerance = 1e-9 + 64 * Number.EPSILON * beforeWater.initialTotalKg;
+  assert(
+    Math.abs(afterWater.totalKg + exported - beforeWater.totalKg) <= tolerance,
+  );
+  assert(Math.abs(afterWater.boundaryKg + exported) <= tolerance);
+  assert.equal("fieldTimeS" in roomResult(cut.state), false);
+
   assert.deepEqual(region.dispatch("room-player", outside), receipt);
   assert.deepEqual(region.readCommitted(), cut);
 
@@ -416,7 +435,6 @@ test("real exterior excavation co-saves wet spoil while the generated room rejec
 });
 
 test("generated room admission rejects an outside water exchange without a material counterpart", async () => {
-  const { exchangeTerrainWater } = await import("../goblin-terrain.ts");
   const p = createBrewhouseAirProgram(),
     s = p.initial();
   assert.equal(
@@ -426,12 +444,53 @@ test("generated room admission rejects an outside water exchange without a mater
   assert.doesNotThrow(() => p.parseState(s));
   const unpaired = {
     ...s,
-    terrain: exchangeTerrainWater(s.terrain, {
-      nodeId: "reservoir:column-p0-p129",
-      direction: "deposit",
-      massKg: 2,
-    }).state,
+    water: exchangeWaterEnvironment(
+      s.water,
+      { terrain: terrainEnvironment(s.terrain), sites: BREWHOUSE_ROOM.sites },
+      {
+        id: "cell:0,14,129",
+        direction: "deposit",
+        massKg: 2,
+      },
+    ).state,
   };
-  assert.throws(() => p.parseState(unpaired), /no external water exchange/);
+  assert.throws(() => p.parseState(unpaired), /unpaired external exchange/);
   assert.doesNotThrow(() => p.parseState(s));
+});
+
+test("fixed-volume study rejects real liquid in a gas receiver without publishing any paid state", () => {
+  const program = createBrewhouseAirProgram(),
+    state = program.initial();
+  assert.equal(program.execute(state, { kind: "ignite" }).status, "applied");
+  const source = {
+    terrain: terrainEnvironment(state.terrain),
+    sites: BREWHOUSE_ROOM.sites,
+  };
+  const facts = waterEnvironmentFacts(state.water, source),
+    room = generatedBrewhouseRoom(state.terrain, state.opening);
+  const receiver = facts.cells.findIndex(
+    (cell) => cell.id === room.downstairsBreathingCell,
+  );
+  const donor = facts.cells.findIndex(
+    (cell) => cell.kind === "soil" && cell.massKg >= 1,
+  );
+  assert(receiver >= 0 && donor >= 0);
+  // Authored closed-stock invalid study input; not a public material transfer.
+  const wet = structuredClone(state);
+  wet.water.water.massKg[donor] -= 1;
+  wet.water.water.massKg[receiver] += 1;
+  const before = structuredClone(wet);
+  assert.throws(
+    () => program.parseState(wet),
+    /fixed-room-air-volume-must-stay-dry/,
+  );
+  assert.deepEqual(program.execute(wet, { kind: "ignite" }), {
+    status: "rejected",
+    result: { reason: "fixed-room-air-volume-must-stay-dry" },
+  });
+  assert.deepEqual(program.execute(wet, { kind: "advance", seconds: 1 }), {
+    status: "rejected",
+    result: { reason: "fixed-room-air-volume-must-stay-dry" },
+  });
+  assert.deepEqual(wet, before);
 });
