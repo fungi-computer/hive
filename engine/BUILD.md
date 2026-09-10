@@ -65,3 +65,13 @@ Root viewed survival-input.png. Ordinary same-preview upload u4869 exit0,
 deployment4d780b7b-64a3-4e0f-a456-dd5f914e002b; u4870 readback141/141. Initial
 u4868 lacked an exported token; corrected SAME subprocess sourcing/export worked.
 No credential rotation. All owned scopes dead/empty, browser port5197 clear.
+
+## Current DO source qualification
+
+The browser release remains frozen at 3478538. Current root d921c47 passed strict
+TypeScript in u4874 (exit 0, owned scope inactive/dead and empty). This includes
+the reusable session Region program, immutable program capture and removal of
+unused component definitions. It does not establish DO execution or recovery.
+The local DO witness is undergoing source review before its first invocation;
+it must prove physical consumption, same-command replay after process restart,
+conflicting reuse rejection, and rollback of a physical step. No DO is deployed.
