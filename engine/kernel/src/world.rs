@@ -772,6 +772,22 @@ impl Kernel {
                 if !facing.is_finite() || facing.abs() > 1_000_000.0 {
                     return Err("invalid facing".into());
                 }
+                if let Some(existing) = self.ecs.get::<Destination>(e).cloned()
+                    && existing.x == destination.x
+                    && existing.y == destination.y
+                    && existing.z == destination.z
+                    && existing.frame == destination.frame
+                    && self.routes.contains_key(&e)
+                {
+                    self.ecs.entity_mut(e).insert(Destination {
+                        x: existing.x,
+                        y: existing.y,
+                        z: existing.z,
+                        facing,
+                        frame: existing.frame,
+                    });
+                    return Ok(None);
+                }
                 let path = self.route_for(e, p, &destination)?;
                 let target = Destination {
                     x: destination.x,
@@ -1481,5 +1497,28 @@ mod combat_tests {
             .replace("\"launcher\":\"cannon\"", "\"launcher\":\"ammo\"");
         let mut restored = Kernel::new();
         assert!(restored.restore_json(&snapshot).is_err());
+    }
+
+    #[test]
+    fn repeated_same_move_save_restore_reaches_fractional_destination() {
+        let scene = serde_json::to_string(&json!({
+            "format":"hive-game", "version":1, "game":"route-recovery",
+            "components":[], "initial":[{"id":"mover","components":{
+                "hive.position":{"x":0.4,"y":0.0,"z":0.4,"facing":0.0},
+                "hive.body":{"speed":2.0}
+            }}]
+        })).expect("route fixture");
+        let mut kernel = Kernel::new();
+        kernel.load(&scene).expect("load route fixture");
+        let move_action = r#"{"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"mover","destination":{"x":3.2,"y":0.0,"z":0.4,"frame":null}}]}"#;
+        for _ in 0..20 {
+            kernel.advance_json(move_action).expect("repeated move");
+            let saved = kernel.snapshot_json().expect("save route");
+            kernel.restore_json(&saved).expect("restore route");
+        }
+        let facts: serde_json::Value = serde_json::from_str(&kernel.render_json().expect("render route"))
+            .expect("route render JSON");
+        let mover = facts.as_array().unwrap().iter().find(|fact| fact["id"] == "mover").unwrap();
+        assert!((mover["local"]["position"]["x"].as_f64().unwrap() - 3.2).abs() < 1e-9);
     }
 }
