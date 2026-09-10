@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { GameSession } from "./session";
 import { command } from "../sdk/authoring";
 import type {
+  AssignmentCandidate,
   ActionRequest,
   ActionResult,
   ComponentDefinition,
@@ -98,6 +99,7 @@ class TestPort implements KernelPort {
   renderFacts(_limit?: number): readonly RenderFact[] {
     return [];
   }
+  assign(candidates: readonly AssignmentCandidate[]): readonly AssignmentCandidate[] { return candidates.slice(0, 128); }
 }
 
 function pack(

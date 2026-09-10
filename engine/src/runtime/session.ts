@@ -1,5 +1,6 @@
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
+import { assign as runAssignment } from "../sdk/assignment";
 import type {
   ActionRequest,
   ActionResult,
@@ -109,6 +110,9 @@ export class GameSession {
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     return this.port.query(spec);
+  }
+  assign(candidates: readonly import("../contracts").AssignmentCandidate[], maxEdges = 128) {
+    return runAssignment(this.port, candidates, maxEdges);
   }
   request(action: ActionRequest): void {
     if (this.pendingActions.length >= 128)
@@ -262,6 +266,7 @@ export class GameSession {
       const context: WriteContext = {
         clock,
         random: this.random,
+        assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         outcomes: structuredClone(this.outcomes),
         query: (spec) => this.queryOverlay(spec, queuedWrites),
         write: (definition, entity, value) => {

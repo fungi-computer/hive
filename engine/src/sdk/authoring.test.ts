@@ -35,6 +35,7 @@ export function authoringContractProof(): void {
     random: { next: () => 0.5 },
     outcomes: [],
     query: () => [],
+    assign: () => [],
     write: (...args) => writes.push(args),
     action: () => {},
   });
