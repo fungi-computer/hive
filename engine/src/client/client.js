@@ -48,8 +48,11 @@ export function createHiveClient({
       runtime.send({ type: "action", action: action.action });
     else if (runtime && action.kind === "pause")
       runtime.send({ type: state.paused ? "resume" : "pause" });
-    else if (runtime && action.kind === "save") { state.pendingSave = true; state.message = "Save requested…"; runtime.send({ type: "save" }); }
-    else if (runtime && action.kind === "reset")
+    else if (runtime && action.kind === "save") {
+      state.pendingSave = true;
+      state.message = "Save requested…";
+      runtime.send({ type: "save" });
+    } else if (runtime && action.kind === "reset")
       runtime.send({ type: "reset" });
     else if (action.kind === "continue") {
       try {
@@ -60,6 +63,7 @@ export function createHiveClient({
         state.message = "Continue requested…";
         runtime.send({ type: "restore", snapshot });
       } catch (error) {
+        state.pendingRestore = false;
         state.message = error.message;
       }
     }
@@ -117,14 +121,19 @@ export function createHiveClient({
             ),
             React.createElement(
               Button,
-              { onClick: () => act("save"), disabled: state.pendingSave || state.pendingRestore, size: "sm", variant: "outline" },
+              {
+                onClick: () => act("save"),
+                disabled: state.pendingSave || state.pendingRestore,
+                size: "sm",
+                variant: "outline",
+              },
               "Save",
             ),
             React.createElement(
               Button,
               {
                 onClick: () => act("continue"),
-                disabled: state.pendingSave,
+                disabled: state.pendingSave || state.pendingRestore,
                 size: "sm",
                 variant: "outline",
               },
@@ -327,7 +336,11 @@ export function createHiveClient({
     );
     if (orderCommand) {
       if (state.selectedIds.length)
-        runtime.send({ type: "command", name: orderCommand, input: { entities: state.selectedIds, destination: world } });
+        runtime.send({
+          type: "command",
+          name: orderCommand,
+          input: { entities: state.selectedIds, destination: world },
+        });
       return;
     }
     for (const id of state.selectedIds)
@@ -378,7 +391,10 @@ export function createHiveClient({
         });
       } else if (key === "e" || key === "f") {
         event.preventDefault();
-        runtime.send({ type: "command", name: key === "e" ? "takeFood" : "eatFood" });
+        runtime.send({
+          type: "command",
+          name: key === "e" ? "takeFood" : "eatFood",
+        });
       }
     }
   }
