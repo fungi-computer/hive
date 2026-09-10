@@ -474,3 +474,26 @@ online-raft.png, files.json, hosted.json, rollback-8f4042d-dist.tgz),
 No hosted backend population/performance claim or injected public-host outer
 rollback proof follows. Actual native Region rollback and request-free public
 host restart remain separately recorded above.
+
+## Route recovery and public food loops — September 10
+
+Source44863b9 client build passed u5170. Actual WASM f9f44bf90a1b55bdce490336f75a78421d246f98925850af1455dbc094571e4c
+passed the colony restore-every-step regression and strict types in u5167;
+three native route laws passed u5163. Existing public host is now version
+8283beea-8ce6-4482-a700-fbc86650abaa, implementation04c3c1a0f8363e871e369083a837d7ef31e6f421b961b9e788dab2c4641017a4.
+
+Public browser u5174 proved colony selection, one finite delivery, interrupted
+cargo retention and resumed completion. Survival did not move because the script
+left keyboard focus on Resume, where the maintained input guard ignores keys.
+The survival-only corrected focus check u5178 passed movement, pickup, meal-rule10,
+consumption, hunger improvement and same-world paused reload at revision52.
+Both page-error lists are empty. King personally viewed colony.png and
+survival3/survival.png in .botanical/foundation-public-actions. Earlier failures
+remain retained; no colony replay accompanied the focus correction.
+
+Frontend u5181 deployed exact same prepared dist as
+1575e169-f8cc-4de0-9f82-8656f0cbe7b6. All143 HTTP file hashes match;112 non-engine
+files are unchanged. Proof scopes closed. Prior cannon dist/config are preserved
+in .botanical/route-release. The public DO clients exercised above use the same
+unchanged UI behavior; the new browser-mode WASM now includes the native fix too.
+No large-world, fleet, shared-player lobby or hosted fault-injection claim.

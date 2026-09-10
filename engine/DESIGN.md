@@ -12,10 +12,10 @@ rendering and interpolation; server-owned worlds persist by a browser-held rando
 capability. Explicit `?runtime=local` remains supported. This is anonymous demo
 access, not Fungi account integration or a multiplayer lobby.
 
-Frontend deployment `56ce0e7d-555c-4e73-a8a8-4f640a9acb58` contains the
-reviewed cannon build at `9f38cd9`. Server version
-`27592e86-4037-438c-8942-059443a60f2f` pins implementation
-`643e7cd418ebc2e2803e2011c1908f33bdd322c69bbeb1eeaf762c2378bd3279`.
+Frontend deployment `1575e169-f8cc-4de0-9f82-8656f0cbe7b6` contains the
+reviewed route-recovery build at `44863b9`. Server version
+`8283beea-8ce6-4482-a700-fbc86650abaa` pins implementation
+`04c3c1a0f8363e871e369083a837d7ef31e6f421b961b9e788dab2c4641017a4`.
 All143 hosted files match;112 old clearing/study files remain unchanged.
 Prior public dist is preserved in the cannon release packet.
 
@@ -639,3 +639,9 @@ filtered empty test wrappers. Scope closed. Source995215a retains routes for
 unchanged destinations and uses start-cell waypoints only when crossing cells.
 Actual-WASM colony consumer regression647e02c is queued directly behind the
 maintained WASM rebuild u5167; neither is assumed passed or deployed yet.
+
+Current route blocker closure: native u5163, actual-WASM colony+types u5167,
+public interrupted delivery u5174 and survival-only food/reopen u5178 pass.
+Publication u5181 matches all143 files. See BUILD.md for exact artifacts and
+preserved failure limits. Full foundation acceptance audit remains a separate
+requirement-by-requirement review, not implied by one successful release.
