@@ -15,15 +15,23 @@ export const STATION_VISUAL_PROFILES = Object.freeze([
   "prepare",
   "prepare-attended",
   "ferment",
+  "ferment-burning",
   "keg",
   "settled",
 ]);
 
-export function stationVisualProfile({ finished, slots, process, attending }) {
+export function stationVisualProfile({
+  finished,
+  slots,
+  process,
+  attending,
+  burning,
+}) {
   if (!finished) return "empty";
   if (process?.phase === "prepare")
     return attending ? "prepare-attended" : "prepare";
-  if (process?.phase === "ferment") return "ferment";
+  if (process?.phase === "ferment")
+    return burning ? "ferment-burning" : "ferment";
   if (process?.phase === "keg") return "keg";
   if (slots.tray.spentGrain > 0) return "settled";
   const water = slots.kettle.water > 0 ? 1 : 0;
@@ -42,8 +50,8 @@ export function stationProfileOptions(profile) {
       keg: true,
       tray: false,
       stirring: true,
-      fire: true,
-      steam: true,
+      fire: false,
+      steam: false,
     };
   if (profile === "prepare")
     return {
@@ -55,15 +63,15 @@ export function stationProfileOptions(profile) {
       fire: false,
       steam: false,
     };
-  if (profile === "ferment" || profile === "keg")
+  if (["ferment", "ferment-burning", "keg"].includes(profile))
     return {
       liquid: "wort",
       barm: true,
       keg: true,
       tray: false,
       stirring: false,
-      fire: false,
-      steam: false,
+      fire: profile === "ferment-burning",
+      steam: profile === "ferment-burning",
     };
   if (profile === "settled")
     return {
