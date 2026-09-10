@@ -134,3 +134,13 @@ restart without sending a game request, and observe the alarm's committed result
 Repeat around lost acknowledgement and assert one physical advancement, retained
 next wake and finite goods. The existing generated-principal proof host remains
 the test consumer. Public customer authorization and publication remain separate.
+
+Current official host reference checked September10:
+https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/
+confirms direct SQLite operations participate in an enclosing asynchronous storage
+transaction, while transactionSync callbacks must remain synchronous. The intended
+host joins Region's synchronous dispatch, durable next occurrence and awaited
+setAlarm inside that outer transaction. This is documented API fit; the actual
+nested native rollback/wake witness is still required. Alarm retries are finite,
+and reconstruction must preserve an existing pending alarm rather than overwrite
+its deadline: https://developers.cloudflare.com/durable-objects/api/alarms/ .
