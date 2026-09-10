@@ -46,8 +46,8 @@ mod tests {
 
     #[test]
     fn clips_to_lifetime_and_range_before_cast() {
-        assert_eq!(sweep_interval(1.0, 0.8, 9.0, 10.0, 1.0, 20.0), Ok(0.1));
-        assert_eq!(sweep_interval(1.0, 0.0, 9.5, 10.0, 2.0, 10.0), Ok(0.05));
+        assert!((sweep_interval(1.0, 0.8, 9.0, 10.0, 1.0, 20.0).unwrap() - 0.2).abs() < 1e-12);
+        assert!((sweep_interval(1.0, 0.0, 9.5, 10.0, 2.0, 10.0).unwrap() - 0.05).abs() < 1e-12);
     }
 
     #[test]

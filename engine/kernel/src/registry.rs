@@ -101,6 +101,8 @@ impl Registry {
                     ("projectileRadius", FieldType::Number),
                     ("maxRange", FieldType::Number),
                     ("maxLifetime", FieldType::Number),
+                    ("projectileSprite", FieldType::String),
+                    ("projectileLabel", FieldType::String),
                 ],
             ),
             (
@@ -285,6 +287,8 @@ impl Registry {
                     || !launcher.projectile_radius.is_finite()
                     || !launcher.max_range.is_finite()
                     || !launcher.max_lifetime.is_finite()
+                    || !valid_id(&launcher.projectile_sprite)
+                    || launcher.projectile_label.len() > 4096
                     || launcher.max_speed <= 0.0
                     || launcher.projectile_radius <= 0.0
                     || launcher.max_range <= 0.0

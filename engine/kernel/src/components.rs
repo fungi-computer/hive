@@ -87,6 +87,8 @@ pub struct Launcher {
     pub projectile_radius: f64,
     pub max_range: f64,
     pub max_lifetime: f64,
+    pub projectile_sprite: String,
+    pub projectile_label: String,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
