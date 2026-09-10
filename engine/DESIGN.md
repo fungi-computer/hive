@@ -595,3 +595,20 @@ reported separately. This is a small engine foundation, not full engine completi
 The references explain prior work. This packet owns the fresh implementation
 sequence; conflicting older staffing, compatibility and shallow-world clauses
 are historical. Record later scope changes here with their actual user authority.
+
+## Foundation acceptance audit after the cannon release
+
+The implementation and evidence have different remaining gaps:
+
+| Requirement | Current evidence | Remaining acceptance |
+| --- | --- | --- |
+| Shared playable pages | Four public DO pages; real raft and cannon browser actions; byte-equal hosted release | Bounded colony delivery/interruption and survival take/eat public-input checks, reusing the same client |
+| Contrasting TypeScript rules | Actual colony delivery, survival hunger/fatigue, formation morale/damage and pirate support consumers | No missing implementation identified by current source audit |
+| Custom state without Rust edits | Independent fatigue consumer and save/restore law; TypeScript health/morale over native impacts | Public combat SDK exports corrected at018d263; headless import u5147 passes |
+| Shared controls, quantities and saves | Native/Session laws plus per-pack recovery receipts and public raft reopen | New native3/session5 cannon state needs actual crash/retry qualification |
+| Durable recovery without duplicate effects | Earlier per-pack SQLite DO restart/lost-response/rollback evidence | Extend maintained fixture only for the new in-flight projectile and pending authored impact |
+
+These are narrow closures of the declared foundation, not permission to reopen a
+full browser matrix. The current public cannon is a useful accepted interim.
+Moving-ship cannon reuse, deeper ecology, world transfers and large battles stay
+subsequent engine work; do not claim them from this foundation's checks.
