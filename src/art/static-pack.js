@@ -151,6 +151,7 @@ export async function loadStaticArtPack({
       ground,
       pawnAnchor: { ...manifest.anchors.pawn },
       propAnchor: { ...manifest.anchors.prop },
+      vehicleAnchor: { ...manifest.anchors.vehicle },
     };
     for (const entry of manifest.entries) {
       const source = pageTextures.get(entry.page).source;

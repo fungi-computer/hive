@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   STATIC_ART_RENDER,
+  STATIC_ART_SCHEMA,
   completeStaticArtManifest,
   parseStaticArtManifest,
 } from "./static-manifest.js";
@@ -18,9 +19,13 @@ function emptySilhouette(width, height) {
 
 function manifest() {
   return {
-    schema: "goblin-static-art-v1",
+    schema: STATIC_ART_SCHEMA,
     textureCount: 3,
-    anchors: { pawn: { x: 0.5, y: 0.75 }, prop: { x: 0.5, y: 0.8 } },
+    anchors: {
+      pawn: { x: 0.5, y: 0.75 },
+      prop: { x: 0.5, y: 0.8 },
+      vehicle: { x: 0.5, y: 0.82 },
+    },
     ground: {
       file: "ground.png",
       sha256: HASH,
@@ -76,7 +81,14 @@ test("static art manifest admits detached finite frames and CPU silhouettes", ()
   assert.deepEqual(parsed.entries[1].path, ["wood", "1"]);
   assert.deepEqual(parsed.entries[0].silhouette.spans, [0, 1]);
   assert.deepEqual(parsed.anchors.pawn, { x: 0.5, y: 0.75 });
+  assert.deepEqual(parsed.anchors.vehicle, { x: 0.5, y: 0.82 });
   assert(Object.isFrozen(parsed));
+});
+
+test("static art manifest rejects the superseded bank format", () => {
+  const input = manifest();
+  input.schema = "goblin-static-art-v1";
+  assert.throws(() => parseStaticArtManifest(input), /unsupported/);
 });
 
 test("manifest completion binds output and source byte identities", () => {

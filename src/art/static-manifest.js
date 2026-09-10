@@ -1,5 +1,5 @@
-export const STATIC_ART_SCHEMA = "goblin-static-art-v1";
-export const STATIC_ART_BASE = "./generated-art/goblin-static-art-v1/";
+export const STATIC_ART_SCHEMA = "goblin-static-art-v2";
+export const STATIC_ART_BASE = "./generated-art/goblin-static-art-v2/";
 
 export const STATIC_ART_LIMITS = Object.freeze({
   manifestBytes: 8 * 1024 * 1024,
@@ -27,6 +27,7 @@ export const STATIC_ART_RENDER = Object.freeze({
   ground: Object.freeze({ width: 640, height: 400, cameraHeight: 1.03 }),
   portrait: Object.freeze({ width: 80, height: 80, cameraHeight: 1.03 }),
   prop: Object.freeze({ width: 112, height: 112, cameraHeight: 1.1 }),
+  vehicle: Object.freeze({ width: 192, height: 160, cameraHeight: 1.08 }),
 });
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -400,7 +401,7 @@ export function parseStaticArtManifest(input) {
     "manifest",
   );
   if (input.schema !== STATIC_ART_SCHEMA) problem("schema", "unsupported");
-  keys(input.anchors, ["pawn", "prop"], "anchors");
+  keys(input.anchors, ["pawn", "prop", "vehicle"], "anchors");
   const checkedPages = array(input.pages, "pages", {
     min: 1,
     max: STATIC_ART_LIMITS.pages,
@@ -443,6 +444,7 @@ export function parseStaticArtManifest(input) {
     anchors: Object.freeze({
       pawn: anchor(input.anchors.pawn, "anchors.pawn"),
       prop: anchor(input.anchors.prop, "anchors.prop"),
+      vehicle: anchor(input.anchors.vehicle, "anchors.vehicle"),
     }),
     ground: image(input.ground, "ground", {
       exactFile: "ground.png",
