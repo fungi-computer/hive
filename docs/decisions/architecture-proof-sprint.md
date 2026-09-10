@@ -49,6 +49,28 @@ independent source reads. No fresh simulation-capacity or startup-speed claim is
 qualified yet. The next public evidence must be the actual combined game rather
 than another numerical-room demonstration.
 
+**Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
+whole-clearing water and material balance through completion and current saves;
+Dig callers now share physical voxel targets and bounded work reach. `42e333f`
+and `b35c0ea` integrate the reviewed air component. `592c08d` plus `748549d`
+pair air and water in construction, excavation, field transfers and the existing
+game clock. Cold admission rebuilds both from the same terrain/sites. A blocked
+gas displacement refuses a material/geometry edit atomically. During ordinary
+ticks it can defer the proposed water step while gas advances on the old geometry;
+this conservatively holds unrelated water flows too, with no deferred-time catch-up
+or promise that a sealed pocket will relax. Exact vacuum removal is permitted;
+any positive trapped gas still requires a real route. All of these newest laws
+are authored but unrun; formatting/syntax/source review is not qualification.
+
+Hume is completing fixed-occupant support and actual surface-water inspection in
+`field-voxel-consumer`. Ampere next owns only paid emission obligations in
+`paid-atmosphere`, using the existing transformation receipt and finite-release
+owner. Root owns their actual brewing/clock/save/receiver join and final source
+integration. The current clock supplies no paid smoke yet. The old water-render
+caller and prepared-art bank also remain to join before the playable candidate.
+Meitner independently reviews these source boundaries. No new run or deployment
+is implied by these checkpoints; the one u4684 static export remains closed.
+
 **Latest delivery direction, Levi September 9:** land coherent accepted work in
 our playable demo now. This release wave supersedes the earlier preference for
 less frequent deployment. Root owns serial integration, source/art acceptance
