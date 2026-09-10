@@ -31,6 +31,8 @@ const files = [
   "../../engine/src/contracts.ts",
   "../../engine/src/runtime/actions.ts",
   "../../engine/src/runtime/region-program.ts",
+  "../../engine/src/runtime/observation.ts",
+  "../../engine/src/presentation.ts",
   "../../engine/src/runtime/session.ts",
   "../../engine/src/runtime/wasm-kernel.ts",
   "../../engine/src/sdk/authoring.ts",
@@ -183,6 +185,29 @@ async function snapshot() {
   });
   assert.equal(response.status, 200);
   return response.json();
+}
+async function checkObservation(committed) {
+  const denied = await fetch(`${endpoint}/observe`, {
+    signal: AbortSignal.timeout(10000),
+  });
+  assert.equal(denied.status, 403);
+  const read = async () => {
+    const response = await fetch(`${endpoint}/observe`, {
+      headers: { Authorization: `Bearer ${secrets.WRITER_SECRET}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  const [first, second] = await Promise.all([read(), read()]);
+  assert.deepEqual(first, second);
+  assert.equal(first.revision, committed.snapshot.revision);
+  assert.equal(first.observation.sequence, committed.snapshot.revision);
+  assert.ok(first.observation.facts.length > 0);
+  assert.ok(first.observation.facts.length <= 512);
+  assert.deepEqual(Object.keys(first).sort(), ["observation", "revision"]);
+  assert.deepEqual(await snapshot(), committed, "observations cannot mutate world");
+  return first;
 }
 const request = (id, expectedRevision, command) => ({
   id,
@@ -363,6 +388,7 @@ async function runPirateProof(initial) {
   await stop();
   await start();
   const restarted = await snapshot();
+  const observation = await checkObservation(restarted);
   assert.equal(
     restarted.snapshot.state.session.kernel.json,
     committed.snapshot.state.session.kernel.json,
@@ -397,6 +423,7 @@ async function runPirateProof(initial) {
     committed,
     replayed,
     resumedSnapshot,
+    observation,
   };
 }
 try {
