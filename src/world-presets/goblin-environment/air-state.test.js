@@ -33,6 +33,40 @@ function original() {
   return { world, source, water, air };
 }
 
+function excavated(fixture) {
+  const target = waterEnvironmentFacts(
+    fixture.water,
+    fixture.source,
+  ).cells.find(
+    (cell) =>
+      cell.kind === "soil" &&
+      cell.at[0] === GOBLIN_FRAME.x + 7 &&
+      cell.at[2] === GOBLIN_FRAME.z + 9,
+  );
+  assert(target);
+  const [x, y, z] = target.at;
+  assert.equal(
+    fixture.world.edit({
+      expectedRevision: 0,
+      cells: [
+        { x, y, z, expectedMaterial: MATERIAL.soil, material: MATERIAL.air },
+      ],
+    }).ok,
+    true,
+  );
+  const source = {
+      terrain: goblinTerrainProjection(fixture.world.save()),
+      sites: [],
+    },
+    water = prepareWaterEnvironmentGeometry(
+      fixture.water,
+      fixture.source,
+      source,
+    );
+  assert.equal(water.status, "applied");
+  return { target, source, water: water.state };
+}
+
 test("cold air admission rebuilds exact geometry and binds the original ambient reference", () => {
   const fixture = original(),
     initialFacts = airEnvironmentFacts(
@@ -212,39 +246,13 @@ test("void water changes rebind gas volume monotonically without ambient refill"
 
 test("a newly excavated actual void starts with no invented carrier", () => {
   const fixture = original(),
-    target = waterEnvironmentFacts(fixture.water, fixture.source).cells.find(
-      (cell) =>
-        cell.kind === "soil" &&
-        cell.at[0] === GOBLIN_FRAME.x + 7 &&
-        cell.at[2] === GOBLIN_FRAME.z + 9,
-    );
-  assert(target);
-  const [x, y, z] = target.at;
-  assert.equal(
-    fixture.world.edit({
-      expectedRevision: 0,
-      cells: [
-        { x, y, z, expectedMaterial: MATERIAL.soil, material: MATERIAL.air },
-      ],
-    }).ok,
-    true,
-  );
-  const after = {
-      terrain: goblinTerrainProjection(fixture.world.save()),
-      sites: [],
-    },
-    waterResult = prepareWaterEnvironmentGeometry(
-      fixture.water,
-      fixture.source,
-      after,
-    );
-  assert.equal(waterResult.status, "applied");
+    changed = excavated(fixture);
   const airResult = prepareAirEnvironmentGeometry(
     fixture.air,
     fixture.water,
     fixture.source,
-    waterResult.state,
-    after,
+    changed.water,
+    changed.source,
   );
   assert.equal(airResult.status, "applied");
   assert.equal(
@@ -253,8 +261,29 @@ test("a newly excavated actual void starts with no invented carrier", () => {
   );
   assert.equal(airResult.receipt.carrierBoundaryKg, 0);
   assert(
-    airEnvironmentFacts(airResult.state, waterResult.state, after).cells.some(
-      (cell) => cell.id === target.id,
-    ),
+    airEnvironmentFacts(
+      airResult.state,
+      changed.water,
+      changed.source,
+    ).cells.some((cell) => cell.id === changed.target.id),
+  );
+});
+
+test("cold admission rejects an air generation behind current water", () => {
+  const fixture = original(),
+    changed = excavated(fixture),
+    prepared = prepareAirEnvironmentGeometry(
+      fixture.air,
+      fixture.water,
+      fixture.source,
+      changed.water,
+      changed.source,
+    );
+  assert.equal(prepared.status, "applied");
+  const stale = structuredClone(prepared.state);
+  stale.geometryRevision = changed.water.geometryRevision - 1;
+  assert.throws(
+    () => parseAirEnvironment(stale, changed.water, changed.source),
+    /predates the current water generation/,
   );
 });

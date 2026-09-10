@@ -171,8 +171,10 @@ function parseWithObservation(
   input: unknown,
   observation: Observation,
 ): AirEnvironment {
-  const parsed = envelope.parse(detached(input, WIRE_BYTES, DATA_NODES)),
-    binding = compileBinding(observation, parsed.geometryRevision),
+  const parsed = envelope.parse(detached(input, WIRE_BYTES, DATA_NODES));
+  if (parsed.geometryRevision < observation.geometry.geometryRevision)
+    throw new Error("air geometry predates the current water generation");
+  const binding = compileBinding(observation, parsed.geometryRevision),
     air = binding.owner.decode(JSON.stringify(parsed.air));
   validateInitialReference(air);
   return remember({ ...parsed, air }, binding);
