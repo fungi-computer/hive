@@ -57,21 +57,13 @@ let child;
 let childExit;
 let starts = 0;
 function safeLog(log) {
-  return log
-    .replace(
-      /^.*(?:WRITER_SECRET|HOST_SECRET|DEBUG_SECRET).*$/gm,
-      "[harness binding redacted]",
-    )
-    .replace(/^.*IMPLEMENTATION_HASH.*$/gm, "[implementation binding redacted]")
-    .replace(/\b[a-f0-9]{64}\b/g, "[hash redacted]")
-    .replace(
-      secrets
-        ? Object.values(secrets).reduce(
-            (text, secret) => text.replaceAll(secret, "[harness-secret]"),
-            log,
-          )
-        : log,
-    );
+  let text = log.replace(
+    /^.*(?:WRITER_SECRET|HOST_SECRET|DEBUG_SECRET).*$/gm,
+    "[harness binding redacted]",
+  );
+  for (const secret of Object.values(secrets))
+    text = text.replaceAll(secret, "[harness-secret]");
+  return text;
 }
 async function freePort() {
   const server = createServer();
@@ -132,7 +124,9 @@ async function start() {
       throw new Error(
         `runtime exited before readiness: ${safeLog(log.slice(-4096))}`,
       );
-    const response = await fetch(`${endpoint}/health`).catch(() => null);
+    const response = await fetch(`${endpoint}/health`, {
+      signal: AbortSignal.timeout(2000),
+    }).catch(() => null);
     if (response?.ok) return;
     await delay(100);
   }
@@ -287,6 +281,7 @@ try {
     hunger(afterOutcome),
     Math.max(0, Math.min(100, hungerBeforeOutcome + 0.5 - 25)),
   );
+  assert.equal(totalBread(afterOutcome), 7);
   const rollbackBefore = await snapshot();
   assert.equal(
     (
