@@ -13,13 +13,13 @@ test("extra render frames retain walking until a new stationary sample", () => {
 test("movement samples select walk and measured direction, stationary samples return idle", () => {
   const clock = createAnimationClock({ frameMs: 100 });
   assert.deepEqual(clock.sample([actor("a", 0, 0)], { now: 0 }), [
-    { id: "a", walking: false, direction: 0, frame: 0 },
+    { id: "a", walking: false, direction: 2, frame: 0 },
   ]);
   assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 250 }), [
     { id: "a", walking: true, direction: 1, frame: 2 },
   ]);
   assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 350 }), [
-    { id: "a", walking: false, direction: 0, frame: 0 },
+    { id: "a", walking: false, direction: 2, frame: 0 },
   ]);
 });
 test("pause freezes history and reset clears teleport-looking motion", () => {
@@ -43,4 +43,19 @@ test("walk falls back to the actual idle bank when no walk frames exist", () => 
     animationFrames({ idle: [idle], walk: [["walk-frame"]] }, 0, true),
     ["walk-frame"],
   );
+});
+
+
+test("original atlas directions match movement and physics quarter-turn headings", () => {
+  const vectors = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  for (let heading = 0; heading < 4; heading++) {
+    const clock = createAnimationClock();
+    const expected = (2 - heading + 4) % 4;
+    const resting = clock.sample([actor("a", 0, 0, heading)], { now: 0 });
+    assert.equal(resting[0].direction, expected);
+    const [x, z] = vectors[heading];
+    const walking = clock.sample([actor("a", x, z, heading)], { now: 100 });
+    assert.equal(walking[0].direction, expected);
+    assert.equal(walking[0].walking, true);
+  }
 });

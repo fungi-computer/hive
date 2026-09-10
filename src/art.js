@@ -426,7 +426,7 @@ export async function bakeArt(onProgress = () => {}) {
       ["rowan", workPoses],
       ["witch-runner", workPoses],
       ["cat", ["idle", "walk", "sleep"]],
-      ["goblin", ["idle"]],
+      ["goblin", ["idle", "walk"]],
     ]) {
       const target = (art.figures[kind] = {});
       for (const pose of poses) {

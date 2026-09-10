@@ -3,8 +3,9 @@ const FRAME_MS = 125;
 
 function directionFromVector(dx, dz, facing = 0) {
   if (Math.abs(dx) <= EPSILON && Math.abs(dz) <= EPSILON)
-    return Number.isFinite(facing) ? ((Math.round(facing) % 4) + 4) % 4 : 0;
-  return ((Math.round(Math.atan2(dx, -dz) / (Math.PI / 2)) % 4) + 4) % 4;
+    // Original figures face +z at atlas direction zero; physics heading zero is -z.
+    return Number.isFinite(facing) ? (((2 - Math.round(facing)) % 4) + 4) % 4 : 2;
+  return ((Math.round(Math.atan2(dx, dz) / (Math.PI / 2)) % 4) + 4) % 4;
 }
 
 export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
