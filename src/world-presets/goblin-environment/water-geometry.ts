@@ -25,15 +25,23 @@ const axes = ["x", "y", "z"] as const;
  * cell, including full free surfaces used by the water pressure operation. */
 export function waterCoverageCeiling(
   terrain: Terrain,
+  physical: Physical,
   previousCeilingY: number,
   highestSourceVoxelY: number,
 ) {
+  if (!physical.derivedFrom(terrain.terrain))
+    throw new Error(
+      "environment query belongs to a different terrain checkpoint",
+    );
   if (![previousCeilingY, highestSourceVoxelY].every(Number.isSafeInteger))
     throw new TypeError("integer environmental coverage inputs required");
   const ceiling = Math.max(
     terrain.surfaceCeilingY,
     previousCeilingY,
     highestSourceVoxelY + 2,
+    physical.highestSurfaceY === null
+      ? terrain.surfaceCeilingY
+      : physical.highestSurfaceY + 2,
   );
   if (ceiling > GOBLIN_ENVIRONMENT_BOUNDS.max[1])
     throw new Error(
@@ -91,6 +99,10 @@ export function goblinWaterGeometry(
   revision: number,
   ceilingY: number,
 ) {
+  if (!physical.derivedFrom(terrain.terrain))
+    throw new Error(
+      "environment query belongs to a different terrain checkpoint",
+    );
   if (
     !Number.isSafeInteger(revision) ||
     revision < 0 ||

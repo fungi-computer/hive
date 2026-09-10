@@ -141,7 +141,12 @@ test("actual upper physical floor faces separate water cells without truncating 
       },
     ],
   );
-  const ceiling = waterCoverageCeiling(terrain, terrain.surfaceCeilingY, upper);
+  const ceiling = waterCoverageCeiling(
+    terrain,
+    physical,
+    terrain.surfaceCeilingY,
+    GOBLIN_FRAME.y,
+  );
   const definition = goblinWaterGeometry(terrain, physical, 1, ceiling);
   assert.ok(
     definition.cells.some((cell) => cellId(cell.at) === cellId([x, upper, z])),
@@ -158,10 +163,18 @@ test("actual upper physical floor faces separate water cells without truncating 
         cellId(face.b) === cellId([x, upper, z]),
     ),
   );
-  assert.equal(waterCoverageCeiling(terrain, ceiling, GOBLIN_FRAME.y), ceiling);
+  assert.equal(
+    waterCoverageCeiling(terrain, physical, ceiling, GOBLIN_FRAME.y),
+    ceiling,
+  );
   assert.ok(
     definition.cells.some(
       (cell) => cell.kind === "void" && cell.at[1] < GOBLIN_FRAME.y - 8,
     ),
+  );
+  const other = goblinTerrainProjection(terrain.checkpoint);
+  assert.throws(
+    () => goblinWaterGeometry(other, physical, 1, ceiling),
+    /different terrain checkpoint/,
   );
 });

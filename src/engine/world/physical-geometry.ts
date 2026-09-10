@@ -134,16 +134,25 @@ function compilePrimitives(
     axes.map((axis) => [axis, new Map()]),
   );
   let visits = 0;
+  let highestSurfaceY: number | null = null;
   const budget = () => {
     if (++visits > 65536)
       throw new Error("physical primitive compilation budget exceeded");
   };
   for (const p of primitives) {
     registeredPrimitive(p, terrainBounds);
+    const top =
+      p.kind === "solid"
+        ? p.max[1]
+        : p.axis === "y"
+          ? p.at
+          : p.max[p.axis === "x" ? 0 : 1];
+    highestSurfaceY =
+      highestSurfaceY === null ? top : Math.max(highestSurfaceY, top);
     if (p.kind === "solid") indexSolid(columns, p, domain, budget);
     else indexFace(closed, p, domain, budget);
   }
-  return { columns, closed };
+  return { columns, closed, highestSurfaceY };
 }
 
 /** Compile a finite read projection. Terrain remains its registered query capability; caller-owned
@@ -157,7 +166,11 @@ export function compilePhysicalGeometry(
     terrainBounds = bounds.parse(terrain.bounds);
   if (!contains(terrainBounds, domain))
     throw new Error("region exceeds registered terrain geometry");
-  const { columns, closed } = compilePrimitives(input, domain, terrainBounds);
+  const { columns, closed, highestSurfaceY } = compilePrimitives(
+    input,
+    domain,
+    terrainBounds,
+  );
   const terrainSolidAt = terrain.solidAt.bind(terrain);
   const solidAt = (at: Coordinate) =>
     terrainSolidAt(...at) ||
@@ -211,11 +224,7 @@ export function compilePhysicalGeometry(
     }
     return "clear";
   }
-  function adjacent(
-    at: Coordinate,
-    normal: number,
-    direction: -1 | 1,
-  ) {
+  function adjacent(at: Coordinate, normal: number, direction: -1 | 1) {
     const boundary: [number, number, number] = [...at],
       neighbor: [number, number, number] = [...at];
     if (direction === 1) boundary[normal]++;
@@ -246,10 +255,7 @@ export function compilePhysicalGeometry(
     if (origin === "unresolved") return "needs-neighbor";
     if (origin === "solid") return "closed";
     const { boundary, neighbor } = adjacent(at, normal, direction);
-    if (
-      face(axis, boundary) === "closed" ||
-      point(neighbor) === "solid"
-    )
+    if (face(axis, boundary) === "closed" || point(neighbor) === "solid")
       return "closed";
     // The registered upper face itself can be the explicitly declared plane.
     if (exitsAtAmbientPlane(axis, direction, neighbor, ambientPlaneY))
@@ -333,6 +339,9 @@ export function compilePhysicalGeometry(
   }
   return Object.freeze({
     bounds: frozenBounds(domain),
+    /** Exact terrain capability used to compile this read projection. */
+    derivedFrom: (source: SolidGeometry) => source === terrain,
+    highestSurfaceY,
     point,
     face,
     verticalClearance,
