@@ -96,19 +96,40 @@ export function createFiniteRelease<K extends string>(
     after: ReleaseFacts<K>,
     seconds: number,
   ) {
-    return map((total, channel) => {
-      const delta = after.released[channel] - before.released[channel];
+    const released = releasedDelta(before, after);
+    return map((_total, channel) => {
+      const delta = released[channel];
       const rate = delta / seconds;
-      if (
-        !Number.isFinite(rate) ||
-        (total !== 0 && after.fraction > before.fraction && delta === 0) ||
-        (delta !== 0 && rate === 0)
-      )
+      if (!Number.isFinite(rate) || (delta !== 0 && rate === 0))
         throw new TypeError(
           "finite release interval quantity is not representable",
         );
       return rate;
     });
+  }
+
+  function releasedDelta(before: ReleaseFacts<K>, after: ReleaseFacts<K>) {
+    return map((total, channel) => {
+      const delta = after.released[channel] - before.released[channel];
+      if (
+        !Number.isFinite(delta) ||
+        (total !== 0 && after.fraction > before.fraction && delta === 0)
+      )
+        throw new TypeError(
+          "finite release interval quantity is not representable",
+        );
+      return delta;
+    });
+  }
+
+  /** Quantity owned by two canonical host-clock endpoints. This avoids an
+   * endpoint-plus-duration round trip when the caller already owns both. */
+  function releasedBetween(startS: number | null, fromS: number, toS: number) {
+    timeSchema.parse(fromS);
+    timeSchema.parse(toS);
+    if (toS < fromS)
+      throw new TypeError("finite release endpoints are out of order");
+    return releasedDelta(read(startS, fromS), read(startS, toS));
   }
 
   /** Split only at the finite source's end. No short piece or owed remainder is
@@ -162,6 +183,7 @@ export function createFiniteRelease<K extends string>(
   return Object.freeze({
     definition: Object.freeze({ durationS, totals }),
     read,
+    releasedBetween,
     plan,
   });
 }

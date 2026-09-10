@@ -96,6 +96,23 @@ test("represented source-end equality does not manufacture a short coast segment
   assert.equal(release.read(0.3, 0.3 + 0.6).released.charge, 3);
 });
 
+test("canonical endpoint differences preserve a finite total without decimal duration addition", () => {
+  const release = createFiniteRelease({
+      durationS: 6,
+      totals: { heatJ: 1800, smokeKg: 0.0002 },
+    }),
+    fromS = 107 * 0.05,
+    before = release.read(0, fromS).released,
+    tail = release.releasedBetween(0, fromS, 120 * 0.05);
+  close(before.heatJ + tail.heatJ, 1800);
+  close(before.smokeKg + tail.smokeKg, 0.0002);
+
+  const penultimate = release.releasedBetween(0, fromS, 119 * 0.05),
+    final = release.releasedBetween(0, 119 * 0.05, 120 * 0.05);
+  close(penultimate.heatJ + final.heatJ, tail.heatJ);
+  close(penultimate.smokeKg + final.smokeKg, tail.smokeKg);
+});
+
 test("large host clocks and interval partitions cannot enlarge a finite release", () => {
   const start = 1e10;
   const release = createFiniteRelease({
@@ -148,6 +165,12 @@ test("invalid definitions and clocks fail before a release plan exists", () => {
   );
   const release = createFiniteRelease({ durationS: 6, totals: { heat: 18 } });
   assert.throws(() => release.read(2, 1), /after the host clock/);
+  assert.throws(
+    () => release.releasedBetween(0, 2, 1),
+    /endpoints are out of order/,
+  );
+  assert.throws(() => release.releasedBetween(2, 1, 3), /after the host clock/);
+  assert.deepEqual(release.releasedBetween(null, 1, 3), { heat: 0 });
   assert.throws(
     () => release.plan(1e30, 1e30, 1, 1e-6),
     /arithmetic resolution/,
