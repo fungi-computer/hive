@@ -1,0 +1,63 @@
+body {
+  margin: 0;
+  min-width: 0;
+}
+main {
+  max-width: 1060px;
+  margin: auto;
+  padding: 28px 24px 48px;
+}
+.eyebrow {
+  font-size: 0.73rem;
+  letter-spacing: 0.16em;
+  margin: 28px 0 8px;
+  opacity: 0.65;
+}
+h1 {
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  line-height: 1.1;
+}
+.intro {
+  max-width: 760px;
+  line-height: 1.6;
+}
+.controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.stage {
+  background: var(--color-base-200);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box, 0.75rem);
+  overflow: hidden;
+  margin-top: 16px;
+  min-height: 400px;
+}
+.stage canvas {
+  display: block;
+  width: 640px;
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+  image-rendering: pixelated;
+}
+.layer-status {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin: 10px 0 0;
+}
+.note {
+  font-size: 0.82rem;
+  opacity: 0.78;
+  max-width: 800px;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  main {
+    padding: 20px 12px 40px;
+  }
+  .controls .btn {
+    font-size: 0.73rem;
+  }
+}

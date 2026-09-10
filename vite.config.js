@@ -21,6 +21,7 @@ export default defineConfig({
         gasHeatLab: "gas-heat-lab.html",
         soilWaterLab: "soil-water-lab.html",
         sloshLab: "slosh-lab.html",
+        verticalStudy: "vertical-study.html",
       },
     },
   },

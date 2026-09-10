@@ -37,6 +37,10 @@ import {
   serializeClearing,
   snapshotFor,
 } from "./clearing-state.ts";
+import {
+  VERTICAL_LAYOUT,
+  VERTICAL_LAYOUT_WOOD,
+} from "./fixtures/vertical-layout.ts";
 
 const site = (id, type, x, z, level) => ({
   id,
@@ -313,29 +317,16 @@ test("tied sight crossings check the alternate corner cell and horizontal face",
 
 test("a finite room-and-platform plan has real work access at every authored completion", () => {
   const state = createClearing(),
-    plan = [];
-  const add = (type, x, z, level) =>
-    plan.push(site(`plan:${plan.length}`, type, x, z, level));
+    plan = VERTICAL_LAYOUT.map((next) =>
+      site(next.id, next.type, next.x, next.z, next.level),
+    );
   // This is a query/admission sequence over authored completed facts. It does
   // not grant timber, run construction ticks, or claim an earned main save.
-  add("brew-station", 5, 5, 0);
-  for (let x = 4; x <= 7; x++)
-    for (let z = 4; z <= 7; z++)
-      if (x === 4 || x === 7 || z === 4 || z === 7)
-        add(x === 5 && z === 7 ? "door" : "wall", x, z, 0);
-  add("stair", 8, 3, 0);
-  for (let x = 5; x <= 6; x++)
-    for (let z = 5; z <= 6; z++) add("floor", x, z, 1);
-  add("wall", 7, 4, 1);
-  add("stair", 8, 5, 1);
-  for (const x of [7, 6]) for (let z = 5; z <= 7; z++) add("floor", x, z, 2);
-  add("wall", 7, 4, 2);
-  for (const x of [7, 6]) for (let z = 5; z <= 7; z++) add("roof", x, z, 3);
   assert.equal(
     plan.reduce((sum, next) => sum + BUILDINGS[next.type].wood, 0),
-    43,
+    VERTICAL_LAYOUT_WOOD,
   );
-  assert(43 <= 8 * 6 + 10 - 1);
+  assert(VERTICAL_LAYOUT_WOOD <= 8 * 6 + 10 - 1);
   for (const next of plan) {
     assert.equal(placementProblem(state, next), "", next.id);
     const candidate = { ...state, sites: [...state.sites, next] };

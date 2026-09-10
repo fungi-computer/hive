@@ -5,7 +5,6 @@ import { SIZE, placementOccupant } from "./world.js";
 import {
   placementKey,
   insidePlacement,
-  placementNeighbors,
   placementFooting,
   worldView,
 } from "./game-space.ts";
@@ -22,6 +21,7 @@ import {
 import { containerContents, containerQuantity } from "./materials.ts";
 import { singlePlacementTool } from "./ui-actions.ts";
 import { brewStationPresentation } from "./brew-station-presentation.js";
+import { wallMask } from "./wall-appearance.js";
 
 function shelfProfile(contents) {
   const wood = contents
@@ -77,20 +77,6 @@ function tile(graphics, cell, color, alpha) {
     .poly(points)
     .fill({ color, alpha })
     .stroke({ width: 1, color, alpha: Math.min(1, alpha + 0.25) });
-}
-function wallMask(site, sites) {
-  let mask = 0;
-  placementNeighbors(site).forEach((cell, index) => {
-    if (
-      sites.some(
-        (s) =>
-          (s.type === "wall" || s.type === "door") &&
-          placementKey(s) === placementKey(cell),
-      )
-    )
-      mask |= 1 << index;
-  });
-  return mask || (site.direction ? 10 : 5);
 }
 export function createConstructionView(world, art, bodies, input, picking) {
   const grid = new Graphics(),
