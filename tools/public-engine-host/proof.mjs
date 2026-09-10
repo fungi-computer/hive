@@ -72,7 +72,7 @@ function authorizedFetch(token, loseCommandName, attempts = []) {
     let command;
     try { command = bodyText ? JSON.parse(bodyText) : undefined; } catch { command = undefined; }
     const commandName = command?.command?.kind === "command" ? command.command.name : command?.command?.kind;
-    const record = commandName === loseCommandName ? { body: bodyText } : undefined;
+    const record = loseCommandName !== undefined && commandName === loseCommandName ? { body: bodyText } : undefined;
     if (record) attempts.push(record);
     const headers = new Headers(init.headers); headers.set("Authorization", `Bearer ${token}`);
     const response = await fetch(input, { ...init, headers, signal: init.signal });
@@ -80,7 +80,7 @@ function authorizedFetch(token, loseCommandName, attempts = []) {
       record.status = response.status;
       const text = await response.clone().text();
       try { record.receipt = JSON.parse(text); } catch { record.bodyText = text.slice(0, 512); }
-      if (!lost) { lost = true; throw new Error("intentional lost public command response"); }
+      if (!lost && response.ok && record.receipt?.status === "applied") { lost = true; throw new Error("intentional lost public command response"); }
     }
     return response;
   };
