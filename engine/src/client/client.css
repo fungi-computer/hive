@@ -1,0 +1,26 @@
+:root { font-family: Stipe, system-ui, sans-serif; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 70% 5%, color-mix(in srgb, var(--color-primary) 22%, var(--color-base-300)), var(--color-base-200) 58%); }
+.hive-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 30vw); min-height: 100vh; gap: 16px; padding: 16px; }
+.hive-canvas { min-height: 520px; border: 1px solid var(--color-base-300); border-radius: 10px; overflow: hidden; background: var(--color-base-200); box-shadow: 0 10px 35px color-mix(in srgb, var(--color-base-content) 25%, transparent); }
+.hive-canvas canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.hive-hud { padding: 16px; border-radius: 10px; line-height: 1.35; }
+.hive-hud h1 { margin: 2px 0 8px; font-size: clamp(1.4rem, 3vw, 2.1rem); }
+.hive-hud p { margin: 8px 0; }
+.hive-kicker { color: var(--color-primary); font-size: .76rem; letter-spacing: .12em; }
+.hive-status { color: var(--color-base-content); min-height: 2.7em; }
+.hive-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.hive-selection, .hive-actions { display: grid; gap: 5px; padding: 10px 0; border-top: 1px solid var(--color-base-300); }
+.hive-selection span, .hive-actions { color: var(--color-base-content); font-size: .9rem; }
+.hive-source { display: inline-block; margin: 16px 0; }
+nav { display: flex; flex-wrap: wrap; gap: 8px 12px; border-top: 1px solid var(--color-base-300); padding-top: 12px; }
+nav a { color: var(--color-primary); }
+.hive-hub { max-width: 780px; margin: 0 auto; padding: clamp(28px, 8vw, 96px) 20px; }
+.hive-hub h1 { max-width: 620px; font-size: clamp(2.2rem, 8vw, 5.2rem); line-height: .98; margin: 10px 0 18px; }
+.hive-hub p { max-width: 650px; color: var(--color-base-content); font-size: 1.05rem; }
+.hive-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 32px 0; }
+.hive-links a { display: grid; gap: 8px; padding: 16px; min-height: 110px; color: var(--color-primary-content); background: var(--color-primary); border-radius: 8px; text-decoration: none; }
+.hive-links span { color: color-mix(in srgb, var(--color-primary-content) 75%, var(--color-primary)); font-size: .9rem; }
+.hive-hub > a { color: var(--color-primary); }
+@media (max-width: 720px) { .hive-shell { grid-template-columns: 1fr; padding: 8px; } .hive-canvas { min-height: 390px; } }
+@media (max-width: 560px) { .hive-links { grid-template-columns: 1fr; } .hive-links a { min-height: unset; } }
