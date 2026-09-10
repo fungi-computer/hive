@@ -2,10 +2,10 @@ import type { ActionRequest, ActionResult, GamePack, KernelPort, QuerySpec, Quer
 
 class DeterministicRandom implements RandomSource {
   private state: number;
-  constructor(seed: number) { this.state = seed >>> 0 || 1; }
+  constructor(seed: number) { this.state = seed >>> 0; }
   next(): number { this.state = Math.imul(1664525, this.state) + 1013904223 | 0; return (this.state >>> 0) / 0x1_0000_0000; }
-  getState(): number { return this.state; }
-  setState(value: number): void { this.state = value >>> 0 || 1; }
+  state(): number { return this.state; }
+  restore(value: number): void { if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new Error("invalid random state"); this.state = value >>> 0; }
 }
 
 export interface SessionOptions { readonly seed?: number; readonly port: KernelPort; readonly pack: GamePack }
@@ -33,34 +33,40 @@ export class GameSession {
     if (delta < 0 || !Number.isFinite(delta)) throw new Error("delta must be finite and non-negative");
     if (this.paused) return [];
     const before = this.save();
-    const clock: SimulationClock = Object.freeze({ now: this.now, delta, tick: this.tick });
-    const writes: WriteIntent[] = [];
-    const actions: ActionRequest[] = this.pendingActions.splice(0);
-    const context: WriteContext = {
+    try {
+      const clock: SimulationClock = Object.freeze({ now: this.now, delta, tick: this.tick });
+      const writes: WriteIntent[] = [];
+      const actions: ActionRequest[] = this.pendingActions.splice(0);
+      const context: WriteContext = {
       clock, random: this.random,
       query: spec => this.port.query(spec),
       write: (definition, entity, value) => {
-        if (["hive.position", "hive.food", "hive.carrying", "hive.destination"].includes(definition.id)) throw new Error(`Physical component ${definition.id} is kernel-owned`);
+        if (["hive.position", "hive.material-lot", "hive.carrying", "hive.destination"].includes(definition.id)) throw new Error(`Physical component ${definition.id} is kernel-owned`);
         writes.push({ component: definition.id, entity, value });
       },
       action: action => actions.push(action),
-    };
-    for (const definition of this.pack.systems) {
-      if (definition.every !== undefined && this.tick % definition.every !== 0) continue;
-      definition.run(context);
-    }
-    try {
+      };
+      for (const definition of this.pack.systems) {
+        if (definition.every !== undefined && this.tick % definition.every !== 0) continue;
+        definition.run(context);
+      }
       const results = this.port.advance(delta, writes, actions);
       if (results.some(result => !result.accepted)) throw new Error(results.find(result => !result.accepted)?.reason ?? "kernel rejected action");
       this.now += delta; this.tick++;
       return results;
     } catch (error) {
-      this.port.restore(before.kernel); this.now = before.now; this.tick = before.tick; this.random.setState(before.random);
+      this.port.restore(before.kernel); this.now = before.now; this.tick = before.tick; this.random.restore(before.random);
       this.pendingActions = [...before.pendingActions]; this.pendingWrites = [...before.pendingWrites];
       throw error;
     }
   }
-  save(): SessionSnapshot { return { format: "hive-session", version: 1, kernel: this.port.snapshot(), now: this.now, tick: this.tick, random: (this.random as DeterministicRandom).getState(), pendingActions: [...this.pendingActions], pendingWrites: [...this.pendingWrites], systems: this.pack.systems.map(system => ({ id: system.id, version: system.version })) }; }
-  restore(snapshot: SessionSnapshot): void { if (snapshot.format !== "hive-session" || snapshot.version !== 1) throw new Error("unsupported session snapshot"); this.port.restore(snapshot.kernel); this.now = snapshot.now; this.tick = snapshot.tick; (this.random as DeterministicRandom).setState(snapshot.random); this.pendingActions = [...snapshot.pendingActions]; this.pendingWrites = [...snapshot.pendingWrites]; }
+  save(): SessionSnapshot { return { format: "hive-session", version: 1, kernel: this.port.snapshot(), now: this.now, tick: this.tick, random: this.random.state(), pendingActions: [...this.pendingActions], pendingWrites: [...this.pendingWrites], systems: this.pack.systems.map(system => ({ id: system.id, version: system.version })) }; }
+  restore(snapshot: SessionSnapshot): void {
+    if (snapshot.format !== "hive-session" || snapshot.version !== 1 || !Number.isFinite(snapshot.now) || !Number.isSafeInteger(snapshot.tick) || snapshot.tick < 0 || !Number.isInteger(snapshot.random) || snapshot.random < 0 || snapshot.random > 0xffffffff) throw new Error("invalid session snapshot");
+    const expected = this.pack.systems.map(system => `${system.id}@${system.version}`).join(",");
+    const actual = snapshot.systems.map(system => `${system.id}@${system.version}`).join(",");
+    if (expected !== actual) throw new Error("snapshot game system versions do not match");
+    this.port.restore(snapshot.kernel); this.now = snapshot.now; this.tick = snapshot.tick; this.random.restore(snapshot.random); this.pendingActions = [...snapshot.pendingActions]; this.pendingWrites = [...snapshot.pendingWrites];
+  }
   renderFacts(limit = 512) { return this.port.renderFacts(limit); }
 }

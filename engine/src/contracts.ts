@@ -30,14 +30,14 @@ export interface QueryRow<T extends object> { readonly id: EntityId; readonly va
 export type WriteIntent = { readonly component: ComponentId; readonly entity: EntityId; readonly value: unknown };
 export type ActionRequest =
   | { readonly kind: "move"; readonly entity: EntityId; readonly destination: Vec3; readonly facing?: number }
-  | { readonly kind: "transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly quantity: number }
-  | { readonly kind: "consume"; readonly entity: EntityId; readonly lot: EntityId; readonly quantity: number }
+  | { readonly kind: "transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly material: string; readonly quantity: number }
+  | { readonly kind: "consume"; readonly entity: EntityId; readonly lot: EntityId; readonly material: string; readonly quantity: number }
   | { readonly kind: "select"; readonly entities: readonly EntityId[] }
   | { readonly kind: "group-order"; readonly group: EntityId; readonly destination: Vec3; readonly facing: number };
 export interface ActionResult { readonly accepted: boolean; readonly reason?: string; readonly revision: number }
 
 export interface SimulationClock { readonly now: number; readonly delta: number; readonly tick: number }
-export interface RandomSource { next(): number }
+export interface RandomSource { next(): number; state(): number; restore(state: number): void }
 export interface ReadContext {
   readonly clock: SimulationClock;
   readonly random: RandomSource;

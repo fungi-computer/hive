@@ -9,10 +9,10 @@ export const survival = system({ id: "survival.hunger", version: 1, reads: [Surv
     const value = row.value as { hunger: number; wellbeing: number };
     const hunger = Math.min(100, value.hunger + ctx.clock.delta * 0.5);
     ctx.write(Condition, row.id, { hunger, wellbeing: hunger > 80 ? Math.max(0, value.wellbeing - ctx.clock.delta) : value.wellbeing });
-    const lot = ctx.query(query(FoodLot))[0];
-    if (row.value.controlled && lot && hunger > 60) ctx.action(consume(row.id, lot.id, 1));
+    const lot = ctx.query(query<{ quantity: number; material: string; container: import("../contracts").EntityId }>(FoodLot))[0];
+    if (row.value.controlled && lot && hunger > 60) ctx.action(consume(row.id, lot.id, lot.value.material, 1));
   }
 });
 const survivorId = entity("survival.survivor.1"), lockerId = entity("survival.locker"), foodId = entity("survival.food.1");
-const survivalInitial = [{ id: survivorId, components: { "hive.position": { x: 0, y: 0, z: 0, facing: 0 }, "survival.survivor": { controlled: true }, "survival.condition": { hunger: 40, wellbeing: 100 } } }, { id: lockerId, components: { "hive.position": { x: 2, y: 0, z: 0, facing: 0 } } }, { id: foodId, components: { "hive.food": { quantity: 8, kind: "bread", container: lockerId } } }];
+const survivalInitial = [{ id: survivorId, components: { "hive.position": { x: 0, y: 0, z: 0, facing: 0 }, "survival.survivor": { controlled: true }, "survival.condition": { hunger: 40, wellbeing: 100 } } }, { id: lockerId, components: { "hive.position": { x: 2, y: 0, z: 0, facing: 0 } } }, { id: foodId, components: { "hive.material-lot": { quantity: 8, material: "bread", container: lockerId } } }];
 export const survivalPack: GamePack = { id: "survival", version: 1, components: [Position, FoodLot, Carrying, Selected, Survivor, Condition], systems: [survival], definition: encodeDefinition("survival", [Position, FoodLot, Carrying, Selected, Survivor, Condition], survivalInitial) };
