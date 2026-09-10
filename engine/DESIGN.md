@@ -80,6 +80,15 @@ has to be ported. Current gameplay wants much simpler environmental behavior.
 
 ## 3. The three public examples
 
+**Latest presentation preference (Levi, September 10):** aim for one playable
+page switching among three independent DO-hosted example worlds. Reuse one DO
+class and simulation implementation; do not build three servers. Start with tabs
+and one active rendered view, preserving per-example links. A simultaneous
+three-panel view is optional and must not delay useful play. Retain browser-Worker
+hosting as a supported local mode. Shared demo access/reset ownership must be
+explicit before public server exposure; one visitor must not accidentally reset
+another visitor's world. DO-hosted play is only claimed after the actual join.
+
 One landing page, three game pages, one shared engine/client build. Start under
 the existing authorized game preview at `/engine/`, with ordinary links to
 `colony`, `survival` and `formations`. Preserve the old clearing and study links.
