@@ -75,7 +75,8 @@ function fieldQueryCache(state: Clearing) {
   const stamp = siteStamp(state.sites),
     cached = fieldCaches.get(state),
     navigation = createNavigationSpaces(state);
-  return fieldCacheMatches(state, cached, stamp) && cached.navigation === navigation
+  return fieldCacheMatches(state, cached, stamp) &&
+    cached.navigation === navigation
     ? { cached, navigation }
     : { cached: undefined, navigation };
 }
