@@ -23,8 +23,85 @@ export function createVisibleSilhouette(rgba, width, height) {
 
 export function registerVisibleTexture(texture, rgba, width, height) {
   const silhouette = createVisibleSilhouette(rgba, width, height);
+  return registerVisibleSilhouette(texture, silhouette);
+}
+
+function checkedSilhouetteInput(input) {
+  const width = input?.width,
+    height = input?.height,
+    sourceRows = input?.rows,
+    sourceSpans = input?.spans;
+  if (
+    !Number.isSafeInteger(width) ||
+    width <= 0 ||
+    width > 65535 ||
+    !Number.isSafeInteger(height) ||
+    height <= 0 ||
+    height > 65535 ||
+    !sourceRows ||
+    !sourceSpans ||
+    sourceRows.length !== height + 1 ||
+    sourceSpans.length % 2 ||
+    sourceSpans.length > 2 * width * height
+  )
+    throw new Error("Invalid visible texture silhouette");
+  for (const value of sourceRows)
+    if (
+      !Number.isSafeInteger(value) ||
+      value < 0 ||
+      value > sourceSpans.length / 2
+    )
+      throw new Error("Invalid visible texture silhouette");
+  for (const value of sourceSpans)
+    if (!Number.isSafeInteger(value) || value < 0 || value >= width)
+      throw new Error("Invalid visible texture silhouette");
+  return { width, height, sourceRows, sourceSpans };
+}
+
+function validateSilhouetteRelations({
+  width,
+  height,
+  sourceRows,
+  sourceSpans,
+}) {
+  if (sourceRows[0] !== 0 || sourceRows[height] * 2 !== sourceSpans.length)
+    throw new Error("Invalid visible texture silhouette");
+  for (let y = 0; y < height; y++) {
+    if (sourceRows[y] > sourceRows[y + 1])
+      throw new Error("Invalid visible texture silhouette");
+    let priorEnd = -2;
+    for (let pair = sourceRows[y]; pair < sourceRows[y + 1]; pair++) {
+      const start = sourceSpans[pair * 2],
+        end = sourceSpans[pair * 2 + 1];
+      if (start <= priorEnd + 1 || end < start || end >= width)
+        throw new Error("Invalid visible texture silhouette");
+      priorEnd = end;
+    }
+  }
+}
+
+/** Register checked, detached CPU picking data loaded beside a static texture. */
+export function registerVisibleSilhouette(texture, input) {
+  const checked = checkedSilhouetteInput(input);
+  validateSilhouetteRelations(checked);
+  const { width, height, sourceRows, sourceSpans } = checked;
+  const rows = Uint32Array.from(sourceRows),
+    spans = Uint16Array.from(sourceSpans);
+  const silhouette = { width, height, rows, spans };
   textureSilhouettes.set(texture, silhouette);
   return silhouette;
+}
+
+/** Detached serialization input for the maintained static-art exporter. */
+export function snapshotVisibleSilhouette(texture) {
+  const silhouette = textureSilhouettes.get(texture);
+  if (!silhouette) throw new Error("Missing baked texture silhouette");
+  return {
+    width: silhouette.width,
+    height: silhouette.height,
+    rows: [...silhouette.rows],
+    spans: [...silhouette.spans],
+  };
 }
 
 export function createVisibleHitArea(silhouette, anchorPoint) {

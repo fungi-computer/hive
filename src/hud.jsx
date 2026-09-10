@@ -2224,7 +2224,17 @@ function portrait(texture, crop) {
   canvas.height = 56;
   const context = canvas.getContext("2d");
   context.imageSmoothingEnabled = false;
-  context.drawImage(texture.source.resource, ...crop, 0, 0, 48, 56);
+  context.drawImage(
+    texture.source.resource,
+    texture.frame.x + crop[0],
+    texture.frame.y + crop[1],
+    crop[2],
+    crop[3],
+    0,
+    0,
+    48,
+    56,
+  );
   return canvas.toDataURL();
 }
 

@@ -11,7 +11,7 @@ import { groundInspectionGesture } from "./ui-actions.ts";
 import { fieldInspectionFromFace } from "./field-inspection.ts";
 import { createStartupReporter, renderStartup } from "./startup.js";
 import { Application, Container } from "pixi.js";
-import { bakeArt } from "./art.js";
+import { loadArt } from "./art.js";
 import { loadColony } from "./colony.js";
 import { createClearing, step } from "./clearing.ts";
 import { admitCommands, commandProblem } from "./orders.ts";
@@ -70,7 +70,7 @@ async function startGame() {
   const host = document.querySelector("#stage");
   const [art, colony, loaded] = await Promise.all([
     startup.run("art", () =>
-      bakeArt((progress) => startup.progress("art", progress)),
+      loadArt((progress) => startup.progress("art", progress)),
     ),
     startup.run("optimizer", loadColony),
     startup.run("storage", loadWorld),
