@@ -1,7 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap");
-:root { font-family: Stipe, "Atkinson Hyperlegible", system-ui, sans-serif; color: #f7edcf; background: #202d2b; color-scheme: dark; }
+:root { font-family: Stipe, system-ui, sans-serif; color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: radial-gradient(circle at 70% 5%, #38524a, #202d2b 58%); }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 70% 5%, color-mix(in srgb, var(--color-primary) 22%, var(--color-base-300)), var(--color-base-200) 58%); }
 .hive-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 30vw); min-height: 100vh; gap: 16px; padding: 16px; }
 .hive-canvas { min-height: 520px; border: 1px solid #647d6b; border-radius: 10px; overflow: hidden; background: #192722; box-shadow: 0 10px 35px #10181566; }
 .hive-canvas canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
