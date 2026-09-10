@@ -37,7 +37,8 @@ export const explorationSchema = z
     }
   });
 export type Exploration = z.infer<typeof explorationSchema>;
-/** Game perception capability, not a world-depth limit. */
+/** Range is measured from the occupied foot-to-eye column. Occlusion rays
+ * still originate at the eye; this is perception, not a world-depth limit. */
 export const HUMAN_SIGHT = Object.freeze({
   radiusVoxels: 4,
   eyeOffsetVoxels: 3,
@@ -59,8 +60,9 @@ function lineVisible(query: Query, from: Footing, target: Footing): boolean {
   const delta = end.map((v, i) => v - at[i]);
   const step = delta.map(Math.sign),
     distance = delta.map(Math.abs),
-    crossed = [0, 0, 0];
-  for (let count = 0; count <= HUMAN_SIGHT.radiusVoxels * 3; count++) {
+    crossed = [0, 0, 0],
+    maxCrossings = distance.reduce((sum, value) => sum + value, 0);
+  for (let count = 0; count <= maxCrossings; count++) {
     if (at.every((v, i) => v === end[i]))
       return query.point(at) !== "unresolved";
     const moving = [0, 1, 2].filter((axis) => distance[axis] > 0);
@@ -164,10 +166,13 @@ function visibility(state: Clearing): View {
       z: body.z,
     };
     for (let x = -radius; x <= radius; x++)
-      for (let y = -radius; y <= radius; y++)
+      for (let y = -radius; y <= HUMAN_SIGHT.eyeOffsetVoxels + radius; y++)
         for (let z = -radius; z <= radius; z++) {
-          if (x * x + y * y + z * z > radius * radius) continue;
-          const at = { x: eye.x + x, y: eye.y + y, z: eye.z + z };
+          const outsideBodyY =
+            y < 0 ? -y : Math.max(0, y - HUMAN_SIGHT.eyeOffsetVoxels);
+          if (x * x + outsideBodyY * outsideBodyY + z * z > radius * radius)
+            continue;
+          const at = { x: body.x + x, y: body.y + y, z: body.z + z };
           if (lineVisible(query, eye, at))
             visible.set(key(at), observation(query, terrain, at));
         }
