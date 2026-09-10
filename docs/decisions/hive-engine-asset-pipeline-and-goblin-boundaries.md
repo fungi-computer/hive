@@ -1,5 +1,155 @@
 # Hive engine, asset authoring and Goblin Bed & Breakfast
 
+## Cross-game acceptance: Zomboid-style survival and pirates — September 10
+
+Levi explicitly adds **Project Zomboid as a relevant design reference and test
+of engine reuse**, alongside a contrasting pirate game where players sail and
+fire cannons. These are architecture tests, not orders to start two games or
+replace the current playable Goblin/environment outcome. Assume the same broad
+isometric/voxel presentation for this comparison. Full fidelity/content parity
+with another commercial game is not implied by engine suitability.
+
+The Indie Stone's [official game description](https://projectzomboid.com/blog/the-game/)
+provides the reference for scavenging, crafting, defenses, character conditions,
+multiplayer and moddability. Its [crafting design account](https://projectzomboid.com/blog/news/2023/10/cellar-door-doid/)
+explicitly seeks survival systems supporting different experiences, including
+communities persisting beyond the initial loot economy. Those are useful product
+tests for Hive; they do not establish an adopted implementation or PZ parity.
+
+This assessment reads actual source at `8973183`, including engine entrypoints,
+their Goblin callers, and independent ore/quarry consumers. Older tables below
+retain their historical source baseline. The [active sprint](architecture-proof-sprint.md)
+owns availability: the current published game is still browser-authoritative
+and reported too slow. Existing native Region/controller evidence is not a
+joined hosted multiplayer game. Asset/MCP milestones are separate from engine
+or vehicle/combat readiness.
+
+### Actual split today
+
+Hive has reusable mechanisms, but not yet a reusable complete survival-game
+composition. The root package is private and exports a Vite application, not an
+independently installed engine SDK. Source-level reuse is real:
+
+| Mechanism | Current reusable source | Remaining boundary |
+| --- | --- | --- |
+| Finite goods | `src/engine/materials/index.ts`: configurable IDs, lots, containers, claims, portions and recipe settlements | Equipment, item condition and spoilage are not supplied; Goblin binds its own catalogue in `materials.ts` |
+| Work | `src/engine/work/index.ts`: saved progress, acquisition and interruption through the material owner | Supported workflows are vessel/portion work, not every job; `jobs.ts`, `activity.ts`, `orders.ts` still coordinate Goblin unions |
+| Navigation | `src/engine/navigation/index.ts`: signed footings, clearance profiles, explicit links, paid edge progress | One-cell supported walking; Goblin binds structures, exploration and wet access; no vehicle/hull motion |
+| World and fields | `src/engine/world/`, finite `water/` and mixed-volume `atmosphere/` owners | World presets, construction/room production and the costly environment join remain game composition |
+| Needs | Current nourishment/hydration/rest behavior in `src/needs.ts` | It imports `Clearing`, Goblin materials and care jobs; no independent physiology owner yet |
+| Durable commands and AI | `src/engine/region/index.ts` and `controllers/mycelium.mts`: consumer schemas, scoped commands, atomic receipts and observations | Game permissions, whole-game state composition and browser/server join remain consumer/host work |
+| Presentation and authoring | Shared original builders, export and bake pipeline; current Pixi game presentation | Asset production is reusable; a universal entity renderer, action-game animation set and moving-deck rendering are not already supplied |
+
+Game-specific IDs and unions in Goblin are legitimate. The defect is requiring a
+second game to import those types to obtain a supposedly shared mechanism.
+Likewise, `RegionProgram` accepting arbitrary state and a transition is useful
+durability, but does not by itself provide survival, navigation or combat.
+
+The independent ore depot and excavation Region already demonstrate parts of
+the split. They do not prove complete actors with needs, direct control,
+perception, equipment and autonomous behavior outside Goblin.
+
+### Project-Zomboid-style survival
+
+**Closest fit, but substantial game implementation today.** Storage, carrying,
+finite supplies, room geometry, terrain edits, water, smoke and transactional
+commands have relevant shared owners. A useful small survival scenario should
+reuse those rather than copy the clearing. After extraction, adding another food,
+container, workstation, material or recipe using supported effects should mostly
+be data and art.
+
+Still missing are reusable needs/effects integration, health/injuries, equipment
+and item condition, combat, sound/perception-driven enemy behavior, vehicles,
+large-population scheduling and the actual online client/server join. Infection
+rules, zombie senses, loot tables, professions and apocalypse events belong to a
+survival game pack or optional reusable systems it composes. They are not all
+free configuration before their underlying behaviors exist.
+
+Direct player movement also differs from colony orders. A player-controlled
+survivor should use body/action admission without being forced through household
+job assignment. AI and human control can share permitted actions while choosing
+them differently. The libcolony optimizer remains an optional assignment
+capability for consumers that need it, not a prerequisite for moving any body.
+
+First later extraction witness: one survivor walks to a cupboard, obtains food,
+performs timed consumption and restores a need, with interruption and restart
+preserving custody. Use the same extracted operations as Goblin, own content
+definitions and no imports of Goblin `model.ts`, `jobs.ts`, `activity.ts` or
+`needs.ts`. This is a future boundary check when that extraction lands, not a
+new numerical lab or a full zombie-game assignment.
+
+### Sailing and cannon combat
+
+**A wider extension, with two materially different scopes.** A boat controlled
+as one body needs vehicle motion and hull collision. A crew walking aboard a
+moving boat additionally needs a moving physical reference frame. Sprite
+parenting does not implement either authority.
+
+The current footing grammar is signed integer world coordinates; static
+construction compiles axis-aligned physical primitives. Keep that efficient
+walking model, but do not force every future vehicle or projectile through it.
+Reusable future mechanisms would be:
+
+- **Vehicle motion:** authoritative position/heading, broad hull collision,
+  speed/steering and supplied surface/current/wind facts. Buoyancy can be an
+  authored sea-height/draft approximation; high-seas play does not demand an
+  ocean-wide fluid solve.
+- **Moving spaces:** a ship transform with local deck, crew, cargo and mounted
+  positions. Crew use local navigation; boarding changes attachment through one
+  admitted operation. Start with translation/yaw; cosmetic wave pitching need
+  not move authoritative interiors. Attached objects retain IDs as the ship
+  moves. Global position is derived, not separately mutated on every passenger.
+- **Projectiles and impact:** one committed launch consumes real ammunition and
+  creates the shot. Swept collision avoids missing a target between updates;
+  impacts settle once through a damage owner. Launch position/heading and any
+  inherited ship velocity come from the launch-time frame. Picking raycasts are
+  not a combat system.
+- **Later regional transfer:** ship, occupants, cargo, claims and relevant effects
+  retain one custody record during handoff. A Region transaction is local; it
+  does not provide an atomic transfer across two owners by itself. Keep the first
+  naval encounter within one owner before qualifying cross-owner encounters.
+
+Pirate content supplies hull and sail properties, reload duration, ammunition,
+damage rules, crew roles, loot, weather balance and art. A cannon composes item
+storage, reload work, a mounted transform and projectile launch. It does not get
+its own inventory, clock or network authority. Walking decks, hull breaches and
+finite interior flooding are separate later capabilities, not prerequisites for
+the first controllable ship and target.
+
+The smallest meaningful future consumer is sailing around a small island and
+firing finite cannon shots at a target, then recovering the same state. That
+would prove more than a boat sprite in the editor. No implementation or naval
+performance is claimed by this document.
+
+### The intended reusable product
+
+Compose durable world/identity, materials, actions, bodies, needs, environment,
+perception and optional vehicles/combat through owned operations. Games supply
+their content, selected systems, rules, scenario, controller policies and UI.
+The asset pipeline supplies visuals and authored metadata; it never grants
+collision, fuel, health or action authority merely by loading a model.
+
+New content using supported behavior should require definitions. Genuinely new
+behavior may add an explicit reusable system and its typed operations. Neither
+arbitrary mutation callbacks nor a universal entity with every optional flag
+qualifies as composition. Future vehicle, health or perception additions must
+work without Goblin names and leave existing consumers on the same owners.
+
+**Difficulty judgment:** today, another survival game is a development project
+using several useful Hive libraries; pirates require those plus missing movement
+and combat capabilities. At the intended boundary, a small survival game should
+mostly assemble content and rules over shared systems. A small naval game should
+do the same after vehicle/projectile systems exist. Full Project Zomboid scope,
+large seamless multiplayer oceans or a different rendering style remain major
+products. No percent-complete or calendar promise follows from this comparison.
+
+These examples sharpen current acceptance: a reusable mechanism must stop
+importing Goblin policy, an independent consumer must use its real public entry,
+and the existing game must remain playable. They do not move the current
+environment performance correction behind speculative combat or ships.
+
+## Original boundary decision — September 9
+
 Game CTO decision, 2026-09-09. Accepted product direction from Levi: derive the
 reusable engine from the actual sandbox, separate the original asset pipeline,
 and make Goblin Bed & Breakfast a game using both. Asset authoring should become
