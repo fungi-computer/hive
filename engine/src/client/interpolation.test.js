@@ -48,8 +48,8 @@ test("pause freezes the displayed pose and explicit resume avoids a time jump", 
   assert.equal(buffer.render(500)[0].pose.position.x, 5);
   assert.equal(buffer.render(9000, { paused: true })[0].pose.position.x, 5);
   assert.equal(buffer.render(9001, { paused: false })[0].pose.position.x, 5);
-  buffer.push(frame(2, 2, 20), 2000);
-  assert.equal(buffer.render(2000, { paused: false })[0].pose.position.x, 20);
+  buffer.push(frame(2, 2, 20), 10000);
+  assert.equal(buffer.render(10001, { paused: false })[0].pose.position.x, 20);
 });
 
 test("packet loss still interpolates known receipts and exact time uses membership", () => {
@@ -83,4 +83,14 @@ test("starvation reanchors when a new receipt arrives", () => {
   buffer.push(frame(2, 2, 20), 6000);
   buffer.push(frame(3, 3, 30), 7000);
   assert.equal(buffer.render(6500)[0].pose.position.x, 25);
+});
+
+test("reanchoring does not move the displayed pose backward", () => {
+  const buffer = createInterpolationBuffer({ delayMs: 0 });
+  buffer.push(frame(0, 0, 0), 0);
+  buffer.push(frame(1, 10, 10), 10000);
+  assert.equal(buffer.render(9500)[0].pose.position.x, 9.5);
+  assert.equal(buffer.render(20000)[0].pose.position.x, 10);
+  buffer.push(frame(2, 10.5, 10.5), 21000);
+  assert.equal(buffer.render(21001)[0].pose.position.x, 10.5);
 });
