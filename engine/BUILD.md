@@ -293,3 +293,14 @@ masking empty-click hits, and a mismatched obstacle visual ID. The same client
 writer is correcting these before the bounded input check. The prepared driver
 uses the actual elevated deck projection and remains unrun. No new browser or
 deployment result is claimed.
+
+## Four-page build and raft input — u4990/u4994
+
+Build 441dae6 completed exit0; three client laws passed. Bounded browser input
+u4991 first failed selecting the deck at a point intercepted by nearby subjects;
+no simulation failure was inferred. Revised far-corner input u4994 selects the
+raft, right-clicks a destination, advances it to x=3,z=0, pauses and saves through
+public controls. errors=[]; King viewed pirate-initial.png showing original raft,
+crew and cargo furniture on water. Command exit0, scope inactive/dead/empty.
+This witness does not yet prove browser deckhand walking, cargo or Continue;
+headless cargo/save laws are separate. No new deployment claimed.
