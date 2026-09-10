@@ -1511,7 +1511,7 @@ mod combat_tests {
         let mut kernel = Kernel::new();
         kernel.load(&scene).expect("load route fixture");
         let move_action = r#"{"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"mover","destination":{"x":3.2,"y":0.0,"z":0.4,"frame":null}}]}"#;
-        for _ in 0..20 {
+        for _ in 0..30 {
             kernel.advance_json(move_action).expect("repeated move");
             let saved = kernel.snapshot_json().expect("save route");
             kernel.restore_json(&saved).expect("restore route");
