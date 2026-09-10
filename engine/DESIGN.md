@@ -404,6 +404,27 @@ decks must not be prohibited by an accidental coordinate type.
 
 ## 8. Host durability, multiplayer and future scale
 
+### Display interpolation is part of the shared client
+
+Levi reported stepped movement and explicitly requires online-aware interpolation.
+The simulation remains authoritative. Display frames now carry simulation time,
+sequence and a reset/restore epoch; rendering must not assume one packet per frame.
+Use a bounded snapshot buffer, one monotonic display timeline, stable-ID matching
+and linear pose interpolation. Clamp when updates run out; do not invent continued
+physical movement. Pause freezes display time, resume reanchors it, and a new epoch
+clears prior history. Picking uses the positions actually displayed. Ship and crew
+will share that timeline rather than smoothing independently in different frames.
+
+Source comparison: [Geckos interpolation implementation](https://github.com/geckosio/snapshot-interpolation/blob/master/src/snapshot-interpolation.ts)
+provides buffering and interpolation, but its inspected implementation clones
+JSON state and searches the older array for each entity per interpolation. Its
+automatic timing uses wall-clock offsets. These are concrete reasons to retain
+a narrow indexed display buffer for our paused simulation clock, not adopt the
+whole package merely for scalar interpolation. No replacement networking stack
+is authorized by that choice. Test uneven delivery, stale updates, pause/resume,
+despawn and reset. Prediction/reconciliation for direct controls remains a later
+explicit server-authority join; interpolation alone does not hide input latency.
+
 Durable Objects are a primary design constraint from the beginning. Browser
 support is also required. A first static demonstration may run inside a browser
 Worker and must say so. Local execution is not a claim of hosted multiplayer.
