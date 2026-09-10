@@ -12,19 +12,27 @@ rendering and interpolation; server-owned worlds persist by a browser-held rando
 capability. Explicit `?runtime=local` remains supported. This is anonymous demo
 access, not Fungi account integration or a multiplayer lobby.
 
-Frontend deployment `03e69896-07d3-40c3-b4af-16acfad95297` contains the reviewed
-`bee1457` build; later source commits through `3f42d80` change proof tooling only.
-Server version `daf0575c-a5f4-4841-b024-21d5985d05a8` pins implementation
-`62721ffd73e79b70ac7b276fd39af9b5b3b1ac6a0037f87a211dc94b2b6844d3`.
-All 143 hosted files match the stopped build; 112 old clearing/study files are
-unchanged. The browser-local release `8f4042d` remains an archived rollback.
+Frontend deployment `56ce0e7d-555c-4e73-a8a8-4f640a9acb58` contains the
+reviewed cannon build at `9f38cd9`. Server version
+`27592e86-4037-438c-8942-059443a60f2f` pins implementation
+`643e7cd418ebc2e2803e2011c1908f33bdd322c69bbeb1eeaf762c2378bd3279`.
+All143 hosted files match;112 old clearing/study files remain unchanged.
+Prior public dist is preserved in the cannon release packet.
 
-Actual hosted HTTP checks cover all four packs, pause/resume, server time and
-same-command replay. A real browser rendered this exact build at the canonical
-origin against the hosted DO, selected and sailed the raft x=0→3, then reopened
-its same paused world at revision 22; errors were empty. King personally viewed
-the capture. This focused desktop evidence does not claim a narrow-screen matrix,
-large-world capacity or cross-player shared-world gameplay. See BUILD.md.
+Formation now has a fixed six-round cannon. Actual WASM checks cover flight,
+one impact, finite ammunition, TypeScript health/morale, native knockback and
+identical continuation after saving mid-flight. Browser u5139 used the exact
+build against the hosted DO and proved the public firing command changed ammo,
+health and morale; King viewed the resulting scene. Actual mid-flight rendered
+capture and a new cannon-specific DO crash witness are not yet established.
+See COMBAT-NEXT.md for precise limits and earlier failure evidence.
+
+Previous hosted HTTP checks covered all four packs, pause/resume, server time
+and same-command replay; the prior browser sailed and reopened the raft. Those
+receipts remain bounded historical evidence, not a replay of every pack on this
+new native3/session5 format. Old demo saves require New world; no migration.
+Narrow-screen matrices, large-world capacity and cross-player shared-world
+play are not claimed by the current release.
 
 ### Local DO milestone after the browser release
 
@@ -39,7 +47,7 @@ Population capacity remains unproved.
 
 The original three packs and added raft are publicly playable on the DO release above.
 Two selected workers use native joint assignment; fatigue is a real TypeScript
-component/system without Rust changes. Current native format2 and supported
+component/system without Rust changes. The prior native format2 and supported
 movement have focused native/TS laws and a real local DO restart/replay witness
 (u5008). The pirate browser has actual sail, deckhand move, cargo and Save/Continue
 evidence. These replace earlier unfinished source checkpoints recorded in BUILD.
