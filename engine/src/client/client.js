@@ -20,6 +20,7 @@ import {
   formatCommandBindings,
 } from "@opentui/keymap/extras";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
+import { resolveStaticVisual } from "./visual-resolver.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -400,10 +401,9 @@ export function createHiveClient({
       const binding = bindings[subject.visual];
       if (!binding)
         throw new Error(`no visual binding for ${subject.visual ?? "missing visual"}`);
-      if (!new Set(["figure", "container", "vehicle"]).has(binding.kind))
+      if (!new Set(["figure", "static"]).has(binding.kind))
         throw new Error(`invalid visual binding for ${subject.visual}`);
-      const isContainer = binding?.kind === "container";
-      const isVehicle = binding?.kind === "vehicle";
+      const isStatic = binding?.kind === "static";
       let entry = actorCache.get(subject.id);
       if (!entry) {
         entry = {
@@ -433,7 +433,7 @@ export function createHiveClient({
         });
       entry.marker.visible = state.selectedIds.includes(subject.id);
       const figure = art?.figures?.[binding.key];
-      const frames = isContainer || isVehicle
+      const frames = isStatic
         ? []
         : animationFrames(
             figure,
@@ -441,10 +441,11 @@ export function createHiveClient({
             animation?.walking ?? false,
           );
       const physicalFacing = ((Math.round(subject.facing ?? 0) % 4) + 4) % 4;
-      const texture = isVehicle
-        ? art?.vehicles?.[binding.key]?.[physicalFacing]
-        : isContainer
-        ? art?.buildings?.[binding.key]?.finished?.[0]
+      const staticVisual = isStatic
+        ? resolveStaticVisual(art, binding, physicalFacing)
+        : undefined;
+      const texture = isStatic
+        ? staticVisual?.texture
         : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
       if (art && !texture)
         throw new Error(`visual asset unavailable for ${subject.visual}`);
@@ -452,7 +453,7 @@ export function createHiveClient({
       entry.pawn.visible = Boolean(texture);
       entry.pawn.anchor.set(
         0.5,
-        isVehicle ? art.vehicleAnchor.y : isContainer ? art.propAnchor.y : art.pawnAnchor.y,
+        isStatic ? staticVisual?.anchor?.y : art?.pawnAnchor?.y,
       );
       entry.pawn.scale.set(camera.zoom);
       entry.label.text = subject.name;

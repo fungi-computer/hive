@@ -20,6 +20,7 @@ import { stonePile } from "./art/stone.js";
 import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
 import { shipScene } from "./art/ship.js";
+import { cannonScene, cannonballScene } from "./art/cannon.js";
 import {
   STATION_VISUAL_PROFILES,
   stationProfileOptions,
@@ -408,6 +409,8 @@ export async function bakeArt(onProgress = () => {}) {
       ration: {},
       wallJoints: {},
       mixedShelf: {},
+      props: { cannon: [] },
+      projectiles: {},
       pawnAnchor: anchor(portrait),
       propAnchor: anchor(prop),
       vehicleAnchor,
@@ -602,6 +605,18 @@ export async function bakeArt(onProgress = () => {}) {
         STATIC_ART_RENDER.vehicle.width,
         STATIC_ART_RENDER.vehicle.height,
       ),
+    );
+    detail = "Drawing cannon props";
+    report();
+    art.props.cannon = Array.from({ length: 4 }, (_, direction) =>
+      bakeStartup(renderer, cannonScene(direction), prop, 112, 112),
+    );
+    art.projectiles.cannonball = bakeStartup(
+      renderer,
+      cannonballScene(),
+      prop,
+      112,
+      112,
     );
     // This one retained renderer rebakes terrain only after a physical edit/load.
     // It never updates simulation state or time. View owns replacement textures.

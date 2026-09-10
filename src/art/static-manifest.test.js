@@ -224,6 +224,17 @@ test("manifest completion preserves actual camelCase art paths", () => {
   assert.deepEqual(parseStaticArtManifest(complete), complete);
 });
 
+test("manifest preserves new cannon prop and projectile families", () => {
+  const input = manifest();
+  input.entries[0].path = ["props", "cannon", 0];
+  input.entries[1].path = ["projectiles", "cannonball"];
+  const parsed = parseStaticArtManifest(input);
+  assert.deepEqual(parsed.entries.map((entry) => entry.path), [
+    ["props", "cannon", 0],
+    ["projectiles", "cannonball"],
+  ]);
+});
+
 test("camelCase path admission retains inherited, reserved and size rejection", () => {
   for (const path of [
     ["figures", "toString"],
