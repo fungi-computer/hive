@@ -153,16 +153,18 @@ export function openRegion<State, Command>(options: {
       clock.principal !== clockPrincipal ||
       !Number.isSafeInteger(clock.next_sequence) ||
       clock.next_sequence < 0 ||
-      !Number.isSafeInteger(clock.frontier_bytes) ||
-      clock.frontier_bytes !== clockWireBytes(clock)
+      !Number.isSafeInteger(clock.frontier_bytes)
     )
       throw new Error("region-clock-settings-conflict");
     if (clock.next_sequence === 0) {
       if (clock.last_request_json !== null || clock.last_receipt_json !== null)
         throw new Error("region-clock-frontier");
+      if (clock.frontier_bytes !== 0) throw new Error("region-clock-frontier");
       return;
     }
     if (!clock.last_request_json || !clock.last_receipt_json)
+      throw new Error("region-clock-frontier");
+    if (clock.frontier_bytes !== clockWireBytes(clock))
       throw new Error("region-clock-frontier");
     let parsed: ReturnType<typeof parseRequest>;
     let receipt: RegionReceipt;
