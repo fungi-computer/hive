@@ -73,49 +73,15 @@ export type CompiledAtmosphere = {
   readonly volumeIndex: ReadonlyMap<string, number>;
   readonly cellOwner: ReadonlyMap<string, string>;
   readonly openings: AtmosphereDefinition["openings"];
+  readonly openingIndex: ReadonlyMap<string, number>;
   readonly ambientDensityKgM3: number;
 };
+
+const compiledDefinitions = new WeakMap<object, CompiledAtmosphere>();
 
 function unique(values: readonly string[], label: string) {
   if (new Set(values).size !== values.length)
     throw new Error(`atmosphere ${label} must be unique`);
-}
-
-function sameTopology(
-  left: AtmosphereDefinition,
-  right: AtmosphereDefinition,
-) {
-  if (
-    left.volumes.length !== right.volumes.length ||
-    left.openings.length !== right.openings.length
-  )
-    return false;
-  const leftVolumes = new Map(left.volumes.map((volume) => [volume.id, volume]));
-  for (const volume of right.volumes) {
-    const before = leftVolumes.get(volume.id);
-    if (
-      !before ||
-      before.members.length !== volume.members.length ||
-      before.members.some(
-        (member, index) => member.cellId !== volume.members[index].cellId,
-      )
-    )
-      return false;
-  }
-  const leftOpenings = new Map(left.openings.map((opening) => [opening.id, opening]));
-  return right.openings.every((opening) => {
-    const before = leftOpenings.get(opening.id);
-    return (
-      before !== undefined &&
-      before.from === opening.from &&
-      before.fromCellId === opening.fromCellId &&
-      before.to === opening.to &&
-      before.toCellId === opening.toCellId &&
-      before.distanceM === opening.distanceM &&
-      before.elevationM === opening.elevationM &&
-      before.permeability === opening.permeability
-    );
-  });
 }
 
 function aggregateVolume(
@@ -141,6 +107,10 @@ function aggregateVolume(
 }
 
 export function compileAtmosphere(input: unknown): CompiledAtmosphere {
+  if (input !== null && typeof input === "object") {
+    const known = compiledDefinitions.get(input);
+    if (known) return known;
+  }
   const parsed = schema.parse(copyAtmosphereData(input));
   unique(
     parsed.volumes.map((entry) => entry.id),
@@ -201,6 +171,38 @@ export function compileAtmosphere(input: unknown): CompiledAtmosphere {
         .map((entry) => Object.freeze({ ...entry })),
     ),
   }) satisfies AtmosphereDefinition;
+  const identity = definitionIdentity(definition);
+  const ambientDensityKgM3 =
+    definition.ambient.pressurePa /
+    (definition.model.specificGasConstantJKgK *
+      definition.ambient.temperatureK);
+  if (!Number.isFinite(ambientDensityKgM3) || ambientDensityKgM3 <= 0)
+    throw new Error("atmosphere ambient density is not representable");
+  const canonicalVolumes = Object.freeze(
+    definition.volumes.map(aggregateVolume),
+  );
+  const compiled = Object.freeze({
+    definition,
+    identity,
+    volumes: canonicalVolumes,
+    volumeById: new Map(canonicalVolumes.map((entry) => [entry.id, entry])),
+    volumeIndex,
+    cellOwner: new Map(
+      definition.volumes.flatMap((entry) =>
+        entry.members.map((member) => [member.cellId, entry.id] as const),
+      ),
+    ),
+    openings: definition.openings,
+    openingIndex: new Map(
+      definition.openings.map((entry, index) => [entry.id, index]),
+    ),
+    ambientDensityKgM3,
+  });
+  compiledDefinitions.set(definition, compiled);
+  return compiled;
+}
+
+function definitionIdentity(definition: AtmosphereDefinition): string {
   const identity = JSON.stringify({
     state: "connected-atmosphere-state-v1",
     transport: "bounded-room-exchange-v1",
@@ -218,7 +220,7 @@ export function compileAtmosphere(input: unknown): CompiledAtmosphere {
     canonicalStateEnvelope = JSON.stringify({
       version: "connected-atmosphere-state-v1",
       identity,
-      parcels: volumes.map((entry) => ({
+      parcels: definition.volumes.map((entry) => ({
         volumeId: entry.id,
         carrierKg: widest,
         smokeKg: widest,
@@ -238,144 +240,104 @@ export function compileAtmosphere(input: unknown): CompiledAtmosphere {
     ATMOSPHERE_LIMITS.encodedStateBytes
   )
     throw new Error("atmosphere canonical state exceeds its byte budget");
-  const ambientDensityKgM3 =
-    definition.ambient.pressurePa /
-    (definition.model.specificGasConstantJKgK *
-      definition.ambient.temperatureK);
-  if (!Number.isFinite(ambientDensityKgM3) || ambientDensityKgM3 <= 0)
-    throw new Error("atmosphere ambient density is not representable");
-  return Object.freeze({
-    definition,
-    identity,
-    volumes: Object.freeze(
-      definition.volumes.map((entry) => aggregateVolume(entry)),
-    ),
-    volumeById,
-    volumeIndex,
-    cellOwner: new Map(
-      definition.volumes.flatMap((entry) =>
-        entry.members.map((member) => [member.cellId, entry.id] as const),
-      ),
-    ),
-    openings: definition.openings,
-    ambientDensityKgM3,
-  });
+  return identity;
 }
 
-/** Apply bounded stock-dependent geometry metrics to one admitted owner. The
- * topology and indexes are retained only after the complete definition has
- * been checked against the prior owner. */
+const metricSchema = z.strictObject({
+  geometryIdentity: z.string().min(1).max(16_384),
+  revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  memberVolumes: z
+    .array(
+      z.strictObject({
+        volumeId: id,
+        cellId: id,
+        volumeM3: positive.max(1_000_000),
+      }),
+    )
+    .max(ATMOSPHERE_LIMITS.members),
+  openingAreas: z
+    .array(
+      z.strictObject({
+        openingId: id,
+        areaM2: positive.max(1_000_000),
+      }),
+    )
+    .max(ATMOSPHERE_LIMITS.openings),
+});
+
+/** Metrics cannot change membership, endpoints or policy. Those changes must
+ * enter through full definition admission and conservative rebind. */
 export function updateAtmosphereGeometry(
   previous: CompiledAtmosphere,
   input: unknown,
 ): CompiledAtmosphere {
-  const update = z
-    .strictObject({
-      geometryIdentity: z.string().min(1).max(16_384),
-      revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-      memberVolumes: z
-        .array(
-          z.strictObject({
-            volumeId: id,
-            cellId: id,
-            volumeM3: positive.max(1_000_000),
-          }),
-        )
-        .max(ATMOSPHERE_LIMITS.members),
-      openingAreas: z
-        .array(
-          z.strictObject({ openingId: id, areaM2: positive.max(1_000_000) }),
-        )
-        .max(ATMOSPHERE_LIMITS.openings),
-    })
-    .parse(copyAtmosphereData(input)) satisfies AtmosphereGeometryMetricUpdate;
+  const update = metricSchema.parse(
+    copyAtmosphereData(input),
+  ) satisfies AtmosphereGeometryMetricUpdate;
   if (update.revision <= previous.definition.revision)
     throw new Error("atmosphere geometry update requires newer revision");
-  const memberUpdates = new Map(
-    update.memberVolumes.map((entry) => [
-      `${entry.volumeId}\u0000${entry.cellId}`,
-      entry.volumeM3,
-    ]),
-  );
-  if (memberUpdates.size !== update.memberVolumes.length)
-    throw new Error("duplicate atmosphere member metric");
-  const openingUpdates = new Map(
-    update.openingAreas.map((entry) => [entry.openingId, entry.areaM2]),
-  );
-  if (openingUpdates.size !== update.openingAreas.length)
-    throw new Error("duplicate atmosphere opening metric");
-  const volumes = previous.definition.volumes.map((volume) => ({
-      ...volume,
-      members: volume.members.map((member) => {
-        const value = memberUpdates.get(`${volume.id}\u0000${member.cellId}`);
-        if (value === undefined) return member;
-        return value === member.volumeM3
-          ? member
-          : Object.freeze({ ...member, volumeM3: value });
-      }),
-    })),
-    openings = previous.definition.openings.map((opening) => {
-      const area = openingUpdates.get(opening.id);
-      return area === undefined || area === opening.areaM2
-        ? opening
-        : Object.freeze({ ...opening, areaM2: area });
-    });
+  const grouped = new Map<string, Map<string, number>>();
   for (const entry of update.memberVolumes) {
-    if (!previous.cellOwner.has(entry.cellId))
-      throw new Error(`unknown atmosphere member ${entry.cellId}`);
-    const volume = previous.definition.volumes.find(
-      (candidate) => candidate.id === entry.volumeId,
-    );
-    if (!volume || !volume.members.some((member) => member.cellId === entry.cellId))
-      throw new Error(`atmosphere member belongs to another volume`);
+    if (previous.cellOwner.get(entry.cellId) !== entry.volumeId)
+      throw new Error(
+        "unknown atmosphere member or member belongs to another volume",
+      );
+    let members = grouped.get(entry.volumeId);
+    if (!members) grouped.set(entry.volumeId, (members = new Map()));
+    if (members.has(entry.cellId))
+      throw new Error("duplicate atmosphere member metric");
+    members.set(entry.cellId, entry.volumeM3);
   }
-  for (const entry of update.openingAreas)
-    if (!previous.openings.some((opening) => opening.id === entry.openingId))
+  const volumes = [...previous.definition.volumes];
+  const aggregates = [...previous.volumes];
+  const volumeById = new Map(previous.volumeById);
+  for (const [volumeId, changes] of grouped) {
+    const index = previous.volumeIndex.get(volumeId)!;
+    const before = volumes[index];
+    const members = before.members.map((member) => {
+      const volumeM3 = changes.get(member.cellId);
+      return volumeM3 === undefined || volumeM3 === member.volumeM3
+        ? member
+        : Object.freeze({ ...member, volumeM3 });
+    });
+    if (members.every((member, index) => member === before.members[index]))
+      continue;
+    const volume = Object.freeze({
+      ...before,
+      members: Object.freeze(members),
+    });
+    volumes[index] = volume;
+    aggregates[index] = aggregateVolume(volume);
+    volumeById.set(volumeId, aggregates[index]);
+  }
+  const openings = [...previous.openings];
+  const seen = new Set<string>();
+  for (const entry of update.openingAreas) {
+    const index = previous.openingIndex.get(entry.openingId);
+    if (index === undefined)
       throw new Error(`unknown atmosphere opening ${entry.openingId}`);
-  const nextDefinition = Object.freeze({
+    if (seen.has(entry.openingId))
+      throw new Error("duplicate atmosphere opening metric");
+    seen.add(entry.openingId);
+    const before = openings[index];
+    if (before.areaM2 !== entry.areaM2)
+      openings[index] = Object.freeze({ ...before, areaM2: entry.areaM2 });
+  }
+  const definition = Object.freeze({
     ...previous.definition,
     geometryIdentity: update.geometryIdentity,
     revision: update.revision,
     volumes: Object.freeze(volumes),
     openings: Object.freeze(openings),
   });
-  const next = compileAtmosphere(nextDefinition);
-  if (!sameTopology(previous.definition, next.definition))
-    throw new Error("atmosphere geometry metrics changed topology");
-  const retainedVolumes = next.volumes.map((volume) => {
-    const before = previous.volumeById.get(volume.id)!;
-    return volume.members.every((member, index) => {
-      const old = before.members[index];
-      return old === member;
-    })
-      ? before
-      : volume;
+  const compiled = Object.freeze({
+    ...previous,
+    definition,
+    identity: definitionIdentity(definition),
+    volumes: Object.freeze(aggregates),
+    volumeById,
+    openings: definition.openings,
   });
-  const retainedDefinition = Object.freeze({
-    ...next.definition,
-    volumes: Object.freeze(
-      retainedVolumes.map(({ volumeM3: _volume, elevationM: _elevation, ...volume }) =>
-        Object.freeze(volume),
-      ),
-    ),
-    openings: Object.freeze(
-      next.definition.openings.map((opening) =>
-        previous.definition.openings.find((before) => before.id === opening.id &&
-          before.areaM2 === opening.areaM2 &&
-          before.from === opening.from && before.to === opening.to &&
-          before.fromCellId === opening.fromCellId &&
-          before.toCellId === opening.toCellId &&
-          before.distanceM === opening.distanceM &&
-          before.elevationM === opening.elevationM &&
-          before.permeability === opening.permeability) ?? opening,
-      ),
-    ),
-  });
-  return Object.freeze({
-    ...next,
-    definition: retainedDefinition,
-    volumes: Object.freeze(retainedVolumes),
-    volumeIndex: previous.volumeIndex,
-    cellOwner: previous.cellOwner,
-  });
+  compiledDefinitions.set(definition, compiled);
+  return compiled;
 }
