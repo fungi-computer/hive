@@ -55,6 +55,7 @@ function distribution(rows, key = "wallMs") {
 // every following measurement; no clone or synthetic replacement is involved.
 const startup = timed(() => createClearing(42));
 const state = startup.value;
+console.log(JSON.stringify({ stage: "startup", wallMs: startup.wallMs }));
 const initialMasses = state.water.water.massKg;
 const warmup = [];
 for (let index = 0; index < WARMUP; index++)
@@ -62,6 +63,7 @@ for (let index = 0; index < WARMUP; index++)
 const flowingRows = [];
 for (let index = 0; index < TICKS; index++)
   flowingRows.push(timed(() => step(state, optimizer)));
+console.log(JSON.stringify({ stage: "flowing", ...distribution(flowingRows) }));
 
 state.paused = true;
 const result = admitCommand(state, {
@@ -79,6 +81,7 @@ state.paused = false;
 const digRows = [];
 for (let index = 0; index < TICKS; index++)
   digRows.push(timed(() => step(state, optimizer)));
+console.log(JSON.stringify({ stage: "dig", ...distribution(digRows) }));
 const gameplay = {
   tick: state.tick,
   geometryRevision: state.water.geometryRevision,
