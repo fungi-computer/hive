@@ -147,6 +147,10 @@ test("actual upper physical floor faces separate water cells without truncating 
     terrain.surfaceCeilingY,
     GOBLIN_FRAME.y,
   );
+  assert.throws(
+    () => goblinWaterGeometry(terrain, physical, 1, upper + 1),
+    /bounded field revision and coverage/,
+  );
   const definition = goblinWaterGeometry(terrain, physical, 1, ceiling);
   assert.ok(
     definition.cells.some((cell) => cellId(cell.at) === cellId([x, upper, z])),

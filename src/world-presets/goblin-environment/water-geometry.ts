@@ -20,6 +20,15 @@ type WaterCell =
 const id = (at: Coordinate) => `cell:${at.join()}`;
 const axes = ["x", "y", "z"] as const;
 
+function minimumCoverageCeiling(terrain: Terrain, physical: Physical) {
+  return Math.max(
+    terrain.surfaceCeilingY,
+    physical.highestSurfaceY === null
+      ? terrain.surfaceCeilingY
+      : physical.highestSurfaceY + 2,
+  );
+}
+
 /** A monotone environmental coverage ceiling is retained by the composed host.
  * An actual empty neighbor must exist above the highest possible liquid/source
  * cell, including full free surfaces used by the water pressure operation. */
@@ -36,12 +45,9 @@ export function waterCoverageCeiling(
   if (![previousCeilingY, highestSourceVoxelY].every(Number.isSafeInteger))
     throw new TypeError("integer environmental coverage inputs required");
   const ceiling = Math.max(
-    terrain.surfaceCeilingY,
+    minimumCoverageCeiling(terrain, physical),
     previousCeilingY,
     highestSourceVoxelY + 2,
-    physical.highestSurfaceY === null
-      ? terrain.surfaceCeilingY
-      : physical.highestSurfaceY + 2,
   );
   if (ceiling > GOBLIN_ENVIRONMENT_BOUNDS.max[1])
     throw new Error(
@@ -107,7 +113,7 @@ export function goblinWaterGeometry(
     !Number.isSafeInteger(revision) ||
     revision < 0 ||
     !Number.isSafeInteger(ceilingY) ||
-    ceilingY < terrain.surfaceCeilingY ||
+    ceilingY < minimumCoverageCeiling(terrain, physical) ||
     ceilingY > GOBLIN_ENVIRONMENT_BOUNDS.max[1]
   )
     throw new TypeError("current bounded field revision and coverage required");
