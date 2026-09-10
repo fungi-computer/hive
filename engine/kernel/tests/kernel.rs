@@ -48,7 +48,9 @@ fn fractional_snapshot_restore_preserves_float_bits() {
     let before_scene = &before_value["scene"]["initial"][0]["components"]["hive.position"];
     let before_time = before_value["time"].as_f64().unwrap();
     kernel.restore_json(&before).unwrap();
-    let after: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+    let after_wire = kernel.snapshot_json().unwrap();
+    assert_eq!(after_wire, before, "snapshot bytes changed during restore");
+    let after: Value = serde_json::from_str(&after_wire).unwrap();
     let after_scene = &after["scene"]["initial"][0]["components"]["hive.position"];
     assert_eq!(after["time"].as_f64().unwrap().to_bits(), before_time.to_bits());
     for field in ["x", "y", "z", "facing"] {
