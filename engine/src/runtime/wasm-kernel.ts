@@ -2,7 +2,7 @@ import type {
   AssignmentCandidate,
   AssignmentPair,
   ActionRequest,
-  ActionResult,
+  AdvanceResult,
   ComponentDefinition,
   EntityId,
   KernelPort,
@@ -54,16 +54,19 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       delta: number,
       writes: readonly WriteIntent[],
       actions: readonly ActionRequest[],
-    ): ActionResult[] {
+    ): AdvanceResult {
       const result = JSON.parse(
         binding.advance(JSON.stringify({ delta, writes, actions })),
-      ) as { results: ActionResult[] };
-      return result.results;
+      ) as AdvanceResult;
+      if (!Number.isSafeInteger(result.revision) || result.revision < 0 ||
+          !Array.isArray(result.results) || !Array.isArray(result.impacts))
+        throw new Error("invalid kernel advance result");
+      return result;
     },
     snapshot() {
       const json = binding.snapshot();
       const parsed = JSON.parse(json) as Omit<KernelSnapshot, "json">;
-      if (parsed.format !== "hive-kernel" || parsed.version !== 2)
+      if (parsed.format !== "hive-kernel" || parsed.version !== 3)
         throw new Error("unsupported kernel snapshot");
       return {
         format: parsed.format,
@@ -74,7 +77,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       };
     },
     restore(snapshot) {
-      if (snapshot.format !== "hive-kernel" || snapshot.version !== 2)
+      if (snapshot.format !== "hive-kernel" || snapshot.version !== 3)
         throw new Error("unsupported kernel snapshot");
       binding.restore(snapshot.json);
     },
