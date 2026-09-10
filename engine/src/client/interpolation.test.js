@@ -21,6 +21,8 @@ test("rejects stale sequences, resets epochs, and handles despawn/new IDs", () =
   const buffer = createInterpolationBuffer({ delayMs: 0 });
   buffer.push(frame(2, 2, 2));
   assert.equal(buffer.push(frame(1, 1, 1)), false);
+  assert.equal(buffer.push(frame(0, 0, 0, "b", "two")), false);
+  buffer.reset("two");
   buffer.push(frame(0, 0, 0, "b", "two"));
   assert.equal(buffer.size(), 1);
   assert.equal(buffer.render(0)[0].id, "b");

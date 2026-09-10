@@ -51,7 +51,7 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
       frame.facts.length > MAX_FACTS
     )
       return false;
-    if (epoch !== undefined && frame.epoch !== epoch) reset(frame.epoch);
+    if (epoch !== undefined && frame.epoch !== epoch) return false;
     if (epoch === undefined) epoch = frame.epoch;
     if (frame.sequence <= latestSequence) return false;
     const discontinuity =
