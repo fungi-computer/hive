@@ -13,7 +13,7 @@ pub struct Kernel {
     known: BTreeSet<String>,
     queries: BTreeMap<Vec<String>, QueryState<Entity>>,
     contents: BTreeMap<String, BTreeSet<Entity>>,
-    blocked: BTreeSet<navigation::Cell>,
+    blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     routes: BTreeMap<Entity, VecDeque<Point>>,
     game: String,
     revision: u64,
@@ -34,7 +34,7 @@ impl Kernel {
             known: BTreeSet::new(),
             queries: BTreeMap::new(),
             contents: BTreeMap::new(),
-            blocked: BTreeSet::new(),
+            blocked_by_frame: BTreeMap::new(),
             routes: BTreeMap::new(),
             game: String::new(),
             revision: 0,
@@ -113,7 +113,7 @@ impl Kernel {
     fn support_chain(&self, id: &str) -> Result<()> {
         let mut current = id.to_string();
         let mut seen = BTreeSet::new();
-        for _ in 0..16 {
+        for depth in 0..=16 {
             let entity = self.entity(&current)?;
             if !seen.insert(current.clone()) {
                 return Err("cyclic support reference".into());
@@ -121,6 +121,9 @@ impl Kernel {
             let Some(support) = self.ecs.get::<Support>(entity) else {
                 return Ok(());
             };
+            if depth == 16 {
+                return Err("support chain exceeds depth 16".into());
+            }
             if seen.contains(&support.entity) {
                 return Err("cyclic support reference".into());
             }
@@ -164,20 +167,6 @@ impl Kernel {
             })
             .transpose()
     }
-    fn blocked_for_frame(&self, frame: Option<&str>) -> BTreeSet<navigation::Cell> {
-        self.ids
-            .iter()
-            .filter_map(|(_, entity)| {
-                let obstacle = self.ecs.get::<Obstacle>(*entity)?;
-                if !obstacle.occupied || self.support_id(*entity).as_deref() != frame {
-                    return None;
-                }
-                self.ecs
-                    .get::<Position>(*entity)
-                    .map(|position| navigation::cell(navigation::point(*position)))
-            })
-            .collect()
-    }
     fn route_for(
         &self,
         entity: Entity,
@@ -196,15 +185,20 @@ impl Kernel {
                 return Err("position is not on support surface".into());
             }
         }
+        let blocked = self
+            .blocked_by_frame
+            .get(&frame)
+            .cloned()
+            .unwrap_or_default();
         navigation::route(
             navigation::point(start),
             destination.clone(),
-            &self.blocked_for_frame(frame.as_deref()),
+            &blocked,
             self.frame_bounds(frame.as_deref())?,
         )
     }
     fn rebuild_physical_indexes(&mut self) -> Result<()> {
-        self.blocked.clear();
+        self.blocked_by_frame.clear();
         self.routes.clear();
         for (id, entity) in &self.ids {
             let position = self.ecs.get::<Position>(*entity);
@@ -261,9 +255,11 @@ impl Kernel {
                     return Err("static obstacle cannot also be a movable body".into());
                 }
                 let p = position.ok_or("obstacle needs position")?;
-                if self.support_id(*entity).is_none() {
-                    self.blocked.insert(navigation::cell(navigation::point(*p)));
-                }
+                let frame = self.support_id(*entity);
+                self.blocked_by_frame
+                    .entry(frame)
+                    .or_default()
+                    .insert(navigation::cell(navigation::point(*p)));
             }
             if let Some(lot) = self.ecs.get::<Lot>(*entity) {
                 let owner = self.entity(&lot.container)?;
@@ -428,19 +424,23 @@ impl Kernel {
         Ok(())
     }
     pub fn render_json(&self) -> Result<String> {
-        let facts=self.ids.iter().filter_map(|(id,e)| {
-            let local=self.ecs.get::<Position>(*e)?;
-            let p=self.world_pose_entity(*e, 0).ok()?;
+        let mut facts = Vec::new();
+        for (id, e) in &self.ids {
+            let Some(local) = self.ecs.get::<Position>(*e) else {
+                continue;
+            };
+            let p = self.world_pose_entity(*e, 0)?;
             let visual=self.ecs.get::<Visual>(*e);
-            Some(json!({
+            facts.push(json!({
                 "id":id,
                 "pose":{"position":{"x":p.x,"y":p.y,"z":p.z},"facing":p.facing},
                 "local":{"position":{"x":local.x,"y":local.y,"z":local.z},"facing":local.facing},
                 "support":self.support_id(*e),
+                "surface":self.ecs.get::<Surface>(*e),
                 "visual":visual.map(|v|&v.sprite),
                 "label":visual.map(|v|&v.label)
-            }))
-        }).collect::<Vec<_>>();
+            }));
+        }
         serde_json::to_string(&facts).map_err(|e| e.to_string())
     }
     pub fn world_pose_json(&self, input: &str) -> Result<String> {
@@ -461,6 +461,7 @@ impl Kernel {
                 "local": local,
                 "world": world,
                 "support": self.support_id(entity),
+                "surface": self.ecs.get::<Surface>(entity),
             }));
         }
         serde_json::to_string(&rows).map_err(|e| e.to_string())

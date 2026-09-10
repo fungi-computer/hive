@@ -44,18 +44,18 @@ pub fn route(
         return Err("no vertical transition configured in this scene".into());
     }
     if let Some(bounds) = bounds {
-        let in_bounds = |point: Point| {
+        let in_bounds = |point: &Point| {
             point.x >= bounds.min_x
                 && point.x <= bounds.max_x
                 && point.z >= bounds.min_z
                 && point.z <= bounds.max_z
         };
-        if !in_bounds(start) || !in_bounds(end) {
+        if !in_bounds(&start) || !in_bounds(&end) {
             return Err("point is outside support surface".into());
         }
     }
-    let from = cell(start);
-    let goal = cell(end);
+    let from = cell(start.clone());
+    let goal = cell(end.clone());
     if blocked.contains(&goal) {
         return Err("destination is occupied".into());
     }
@@ -96,14 +96,17 @@ pub fn route(
         })
         .collect::<VecDeque<_>>();
     // The end can be between cell centers; it remains an actual world pose.
-    if result.back().is_none_or(|p| distance(*p, end) > 1e-9) {
+    if result
+        .back()
+        .is_none_or(|p| distance(p.clone(), end.clone()) > 1e-9)
+    {
         result.push_back(end);
     }
     Ok(result)
 }
 
 pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: f64) {
-    while let Some(target) = path.front().copied() {
+    while let Some(target) = path.front().cloned() {
         let current = DVec3::new(position.x, position.y, position.z);
         let toward = DVec3::new(target.x, target.y, target.z) - current;
         let length = toward.length();
