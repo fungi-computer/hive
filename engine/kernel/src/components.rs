@@ -232,7 +232,6 @@ pub struct Batch {
 #[derive(Serialize)]
 pub struct ActionResult {
     pub accepted: bool,
-    #[serde(rename = "projectileId", skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
     pub revision: u64,
     #[serde(rename = "projectileId", skip_serializing_if = "Option::is_none")]
