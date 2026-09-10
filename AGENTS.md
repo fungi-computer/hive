@@ -1,5 +1,17 @@
 # Hive agent instructions
 
+## Current fresh-engine direction
+
+Levi authorized a fresh Rust/WASM engine with TypeScript game authoring on
+September 10. Follow [the guiding packet](engine/DESIGN.md) for the new engine,
+three playable examples, shared controls/client/art, and Luna implementation
+boundaries. King owns architecture and acceptance. The existing game and evidence
+remain preserved. The planned native optimizer replacement supersedes the older
+requirement to retain libcolony indefinitely; current consumers keep their actual
+owner until the new implementation is accepted. Do not start older repair queues
+as competing fresh-engine work. Current-format durability and quantity/custody
+laws remain mandatory.
+
 ## Composability is a core product requirement
 
 Build a small set of well-owned mechanisms that combine into many kinds of play. New content should normally be definitions, assets and configuration over existing behavior. Read the implementation and its immediate callers before designing an extension.

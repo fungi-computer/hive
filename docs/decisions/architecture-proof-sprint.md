@@ -11,6 +11,23 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Fresh engine authorized, September 10:** Levi approved the Rust/WASM core,
+TypeScript game-authoring direction and a fresh implementation. He requested
+Luna implementers under King's review and one deployed site with colony,
+direct-survival and formation examples, sharing client controls and original
+art. The [fresh-engine guiding packet](../../engine/DESIGN.md) now owns the new
+implementation sequence and acceptance criteria. It retains DO/browser authority,
+durability, many-faces AI participation, deep worlds and game-scale physics.
+The initial isolated root is `hive-worktrees/fresh-engine`; no new Rust runtime
+or page is implemented/deployed yet. Existing game/source/art remain preserved.
+Older JavaScript repair queues below are historical context, not parallel fresh
+assignments. Native porting is a build/API test, not a claimed lag cure.
+
+### Preserved earlier release evidence and superseded planning
+
+Runtime receipts below remain valid evidence. Assignments below are inactive;
+the fresh-engine packet above owns new implementation.
+
 **Performance interim LIVE, September 10:** runtime `0478170`, source/docs
 `c3fe4c0`, deployment `71274300-b536-45df-b8e2-c938f4aab6f5` on the
 [existing game preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/).
@@ -26,7 +43,7 @@ source-only cleanup `d19fdd1` is integrated but unqualified and not deployed.
 The published runtime and original art remain frozen. Isolated source/evidence
 roots are preserved. Levi personally playtested it: faster and digging works,
 but lag still prevents useful play. He explicitly cancelled our browser witness;
-its prepared source remains preserved, unrun. King now owns the personal audit
+its prepared source remains preserved, unrun. King then conducted the personal audit
 of unnecessary work, missing indexes and ECS/library choices. The
 [JS and Rust/WASM comparison](ecs-runtime-and-wasm-choice.md) records the actual
 candidate source, DO constraints, external benchmark limits and grand-strategy
