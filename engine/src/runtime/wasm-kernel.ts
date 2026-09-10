@@ -78,7 +78,9 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     },
     assign(candidates: readonly AssignmentCandidate[], maxEdges = 128): readonly AssignmentPair[] {
       const checked = checkedAssignments(candidates, maxEdges);
-      const result = JSON.parse(binding.assign(JSON.stringify({ candidates: checked, max_edges: maxEdges }))) as { assignments: AssignmentPair[] };
+      const result = JSON.parse(
+        binding.assign(JSON.stringify({ candidates: checked, max_edges: maxEdges })),
+      ) as { assignments: AssignmentPair[] };
       return result.assignments;
     },
   };

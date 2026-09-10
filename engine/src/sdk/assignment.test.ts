@@ -11,3 +11,15 @@ test("assignment caller validates bounded candidates before the kernel", () => {
   assert.throws(() => checkedAssignments([{ worker: "worker:1" as never, task: "task:1" as never, cost: Number.NaN }]), /invalid assignment/);
   assert.throws(() => checkedAssignments(Array.from({ length: 129 }, (_, index) => ({ worker: `w${index}` as never, task: `t${index}` as never, cost: 1 }))), /invalid assignment/);
 });
+
+test("assignment admission rejects null and unknown fields before serialization", () => {
+  assert.throws(() => checkedAssignments([null]), /invalid assignment/);
+  assert.throws(
+    () => checkedAssignments([{ worker: "worker:1", task: "task:1", cost: 1, extra: true }]),
+    /invalid assignment/,
+  );
+  const source = { worker: "worker:1", task: "task:1", cost: 1 };
+  const detached = checkedAssignments([source]);
+  source.cost = 99;
+  assert.equal(detached[0]?.cost, 1);
+});
