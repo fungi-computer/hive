@@ -325,15 +325,21 @@ try {
   assert.deepEqual(await command(ruleRequest), ruleReceipt);
   assert.deepEqual(await snapshot(), queuedRule);
   assert.equal(
-    (await command(request("apply-rule", 9, { kind: "step", delta: 1 }), "HOST_SECRET")).status,
+    (
+      await command(
+        request("apply-rule", 9, { kind: "step", delta: 1 }),
+        "HOST_SECRET",
+      )
+    ).status,
     200,
   );
   const appliedRule = await snapshot();
   assert.equal(appliedRule.snapshot.revision, 10);
   assert.equal(appliedRule.snapshot.state.session.pendingWrites.length, 0);
   assert.equal(
-    kernelScene(appliedRule).initial.find((row) => row.id === "survival.survivor.1")
-      .components["survival.meal-rule"].recovery,
+    kernelScene(appliedRule).initial.find(
+      (row) => row.id === "survival.survivor.1",
+    ).components["survival.meal-rule"].recovery,
     10,
   );
   assert.equal(totalBread(appliedRule), 7);

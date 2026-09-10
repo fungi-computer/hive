@@ -86,17 +86,109 @@ export const colonyPack: GamePack = {
   ],
   systems: [deliverySystem],
   commands: {
-    deliver: command({ writes: [DeliveryControl], run: (_context, input) => {
-      const quantity = (input as { quantity?: unknown } | null)?.quantity;
-      if (quantity !== 1 && quantity !== 2) throw new Error("delivery quantity must be one or two");
-      return { actions: [], writes: [{ component: DeliveryControl.id, entity: workerId, value: { enabled: true, quantity } }] };
-    }}),
-    pauseDelivery: command({ reads: [DeliveryControl], writes: [DeliveryControl], run: (context) => { const current = context.query(query(DeliveryControl)).find((row) => row.id === workerId)?.get(DeliveryControl); return { actions: [], writes: [{ component: DeliveryControl.id, entity: workerId, value: { enabled: false, quantity: current?.quantity ?? 1 } }] }; } }),
-    resumeDelivery: command({ reads: [DeliveryControl], writes: [DeliveryControl], run: (context) => { const current = context.query(query(DeliveryControl)).find((row) => row.id === workerId)?.get(DeliveryControl); return { actions: [], writes: [{ component: DeliveryControl.id, entity: workerId, value: { enabled: true, quantity: current?.quantity ?? 1 } }] }; } }),
+    deliver: command({
+      writes: [DeliveryControl],
+      run: (_context, input) => {
+        const quantity = (input as { quantity?: unknown } | null)?.quantity;
+        if (quantity !== 1 && quantity !== 2)
+          throw new Error("delivery quantity must be one or two");
+        return {
+          actions: [],
+          writes: [
+            {
+              component: DeliveryControl.id,
+              entity: workerId,
+              value: { enabled: true, quantity },
+            },
+          ],
+        };
+      },
+    }),
+    pauseDelivery: command({
+      reads: [DeliveryControl],
+      writes: [DeliveryControl],
+      run: (context) => {
+        const current = context
+          .query(query(DeliveryControl))
+          .find((row) => row.id === workerId)
+          ?.get(DeliveryControl);
+        return {
+          actions: [],
+          writes: [
+            {
+              component: DeliveryControl.id,
+              entity: workerId,
+              value: { enabled: false, quantity: current?.quantity ?? 1 },
+            },
+          ],
+        };
+      },
+    }),
+    resumeDelivery: command({
+      reads: [DeliveryControl],
+      writes: [DeliveryControl],
+      run: (context) => {
+        const current = context
+          .query(query(DeliveryControl))
+          .find((row) => row.id === workerId)
+          ?.get(DeliveryControl);
+        return {
+          actions: [],
+          writes: [
+            {
+              component: DeliveryControl.id,
+              entity: workerId,
+              value: { enabled: true, quantity: current?.quantity ?? 1 },
+            },
+          ],
+        };
+      },
+    }),
   },
   presentation: {
-    controls: [{ id: "deliver", label: "Deliver 1", command: "deliver", input: { quantity: 1 } }, { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 } }, { id: "pause", label: "Pause delivery", command: "pauseDelivery" }, { id: "resume", label: "Resume delivery", command: "resumeDelivery" }],
-    inspect: (context) => { const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot)); const task = context.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask); const total = (container: typeof pantryId) => lots.filter((lot) => lot.container === container).reduce((sum, lot) => sum + lot.quantity, 0); return [{ id: "pantry-quantity", label: "Pantry", value: total(pantryId) }, { id: "worker-carried", label: "Worker carries", value: total(workerId) }, { id: "guest-quantity", label: "Guest meal", value: total(guestId) }, { id: "delivery-phase", label: "Delivery", value: task?.phase ?? "missing" }]; },
+    controls: [
+      {
+        id: "deliver",
+        label: "Deliver 1",
+        command: "deliver",
+        input: { quantity: 1 },
+      },
+      {
+        id: "deliver-two",
+        label: "Deliver 2",
+        command: "deliver",
+        input: { quantity: 2 },
+      },
+      { id: "pause", label: "Pause delivery", command: "pauseDelivery" },
+      { id: "resume", label: "Resume delivery", command: "resumeDelivery" },
+    ],
+    inspect: (context) => {
+      const lots = context
+        .query(query(MaterialLot))
+        .map((row) => row.get(MaterialLot));
+      const task = context
+        .query(query(DeliveryTask))
+        .find((row) => row.id === taskId)
+        ?.get(DeliveryTask);
+      const total = (container: typeof pantryId) =>
+        lots
+          .filter((lot) => lot.container === container)
+          .reduce((sum, lot) => sum + lot.quantity, 0);
+      return [
+        { id: "pantry-quantity", label: "Pantry", value: total(pantryId) },
+        {
+          id: "worker-carried",
+          label: "Worker carries",
+          value: total(workerId),
+        },
+        { id: "guest-quantity", label: "Guest meal", value: total(guestId) },
+        {
+          id: "delivery-phase",
+          label: "Delivery",
+          value: task?.phase ?? "missing",
+        },
+      ];
+    },
   },
   definition: encodeDefinition(
     "colony",

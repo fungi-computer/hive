@@ -6,7 +6,7 @@ import { wasmKernelPort } from "./wasm-kernel";
 import { GameSession } from "./session";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition } from "../games/survival";
-import { formationsPack } from "../games/formations";
+import { formationsPack, FormationMember } from "../games/formations";
 import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
 
@@ -18,11 +18,44 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     session.command("deliver", { quantity: 1 });
+    let interrupted = false;
     for (let i = 0; i < 100; i++) {
       session.step(0.1);
-      const lot = session.query(query(MaterialLot)).find((row) => row.get(MaterialLot).container === "colony.worker.1");
-      if (lot) { session.command("pauseDelivery", null); session.step(0.1); const pausedPosition = session.query(query(Position)).find((row) => row.id === "colony.worker.1")?.get(Position); for (let pauseTick = 0; pauseTick < 3; pauseTick++) session.step(0.1); assert.deepEqual(session.query(query(Position)).find((row) => row.id === "colony.worker.1")?.get(Position), pausedPosition); assert.equal(session.query(query(MaterialLot)).find((row) => row.id === lot.id)?.get(MaterialLot).container, "colony.worker.1"); session.command("resumeDelivery", null); break; }
+      const lot = session
+        .query(query(MaterialLot))
+        .find((row) => row.get(MaterialLot).container === "colony.worker.1");
+      if (lot) interrupted = true;
+      if (lot) {
+        session.command("pauseDelivery", null);
+        session.step(0.1);
+        const pausedPosition = session
+          .query(query(Position))
+          .find((row) => row.id === "colony.worker.1")
+          ?.get(Position);
+        for (let pauseTick = 0; pauseTick < 3; pauseTick++) session.step(0.1);
+        assert.deepEqual(
+          session
+            .query(query(Position))
+            .find((row) => row.id === "colony.worker.1")
+            ?.get(Position),
+          pausedPosition,
+        );
+        assert.equal(
+          session
+            .query(query(MaterialLot))
+            .find((row) => row.id === lot.id)
+            ?.get(MaterialLot).container,
+          "colony.worker.1",
+        );
+        session.command("resumeDelivery", null);
+        break;
+      }
     }
+    assert.equal(
+      interrupted,
+      true,
+      "delivery must reach carried custody before pause",
+    );
     for (let i = 0; i < 100; i++) session.step(0.1);
     const lots = session
       .query(query(MaterialLot))
@@ -37,7 +70,12 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
         .reduce((sum, lot) => sum + lot.quantity, 0),
       1,
     );
-    assert.equal(colonyPack.presentation?.inspect({ query: (spec) => session.query(spec) }).find((fact) => fact.id === "delivery-phase")?.value, "complete");
+    assert.equal(
+      colonyPack.presentation
+        ?.inspect({ query: (spec) => session.query(spec) })
+        .find((fact) => fact.id === "delivery-phase")?.value,
+      "complete",
+    );
   } finally {
     port.dispose();
   }
@@ -83,14 +121,77 @@ test("formation actors move independently through the same kernel", () => {
       entities: ["formations.unit.3", "formations.unit.1", "formations.unit.2"],
       destination: { x: 2, y: 0, z: 2 },
     });
-    for (let i = 0; i < 20; i++) session.step(0.1);
+    // The authored crate requires a detour; allow four seconds at 1.5 cells/s.
+    for (let i = 0; i < 40; i++) session.step(0.1);
     assert.deepEqual(
-      session.query(query(Position)).map((row) => row.get(Position).z),
+      session
+        .query(query(Position, FormationMember))
+        .map((row) => row.get(Position).z),
       [2, 2, 2],
     );
     assert.deepEqual(
-      session.query(query(Position)).map((row) => row.get(Position).x),
+      session
+        .query(query(Position, FormationMember))
+        .map((row) => row.get(Position).x),
       [1, 2, 3],
+    );
+  } finally {
+    port.dispose();
+  }
+});
+
+test("formation settings change actual march and retreat destinations", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: formationsPack });
+    session.start();
+    session.command("setFacing", { facing: 1 });
+    session.command("march", {
+      entities: ["formations.unit.1", "formations.unit.2", "formations.unit.3"],
+      destination: { x: 4, y: 0, z: 3 },
+    });
+    for (let i = 0; i < 60; i++) session.step(0.1);
+    const positions = () =>
+      session
+        .query(query(Position, FormationMember))
+        .map((row) => row.get(Position));
+    assert.deepEqual(
+      positions().map(({ x, z }) => [x, z]),
+      [
+        [4, 2],
+        [4, 3],
+        [4, 4],
+      ],
+    );
+    session.command("setRetreatThreshold", { retreatBelow: 90 });
+    for (let i = 0; i < 120; i++) session.step(0.1);
+    assert.ok(positions().every(({ x, z }) => x === -4 && z === -4));
+  } finally {
+    port.dispose();
+  }
+});
+
+test("authored meal recovery changes the physical consumption outcome", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: survivalPack });
+    session.start();
+    session.command("setMealRule", { recovery: 10 });
+    session.request({
+      kind: "move",
+      entity: entity("survival.survivor.1"),
+      destination: { x: 2, y: 0, z: 0 },
+    });
+    for (let i = 0; i < 15; i++) session.step(0.1);
+    session.command("takeFood", null);
+    assert.equal(session.step(0.1)[0].accepted, true);
+    session.command("eatFood", null);
+    assert.equal(session.step(0.1)[0].accepted, true);
+    const before = session.query(query(Condition))[0].get(Condition).hunger;
+    session.step(0.1);
+    assert.equal(
+      session.query(query(Condition))[0].get(Condition).hunger,
+      before + 0.05 - 10,
     );
   } finally {
     port.dispose();
@@ -103,11 +204,19 @@ test("each pack exposes bounded facts and controls from its committed query", ()
     try {
       const session = new GameSession({ port, pack });
       session.start();
-      const projection = pack.presentation?.inspect({ query: (spec) => session.query(spec) }) ?? [];
+      const projection =
+        pack.presentation?.inspect({ query: (spec) => session.query(spec) }) ??
+        [];
       assert.ok(projection.length > 0);
-      assert.ok(projection.every((fact) => typeof fact.id === "string" && fact.label.length > 0));
+      assert.ok(
+        projection.every(
+          (fact) => typeof fact.id === "string" && fact.label.length > 0,
+        ),
+      );
       assert.ok((pack.presentation?.controls.length ?? 0) > 0);
-    } finally { port.dispose(); }
+    } finally {
+      port.dispose();
+    }
   }
 });
 

@@ -16,7 +16,10 @@ export const Condition = component<{ hunger: number; wellbeing: number }>(
   "survival.condition",
   { version: 1, fields: { hunger: "number", wellbeing: "number" } },
 );
-export const MealRule = component<{ recovery: number }>("survival.meal-rule", { version: 1, fields: { recovery: "number" } });
+export const MealRule = component<{ recovery: number }>("survival.meal-rule", {
+  version: 1,
+  fields: { recovery: "number" },
+});
 export const survival = system({
   id: "survival.hunger",
   version: 1,
@@ -129,7 +132,20 @@ export const survivalPack: GamePack = {
         return { actions: [consume(survivorId, lot.id, 1)], writes: [] };
       },
     }),
-    setMealRule: command({ writes: [MealRule], run: (_context, input) => { const recovery = (input as { recovery?: unknown } | null)?.recovery; if (recovery !== 10 && recovery !== 25) throw new Error("meal recovery must be ten or twenty-five"); return { actions: [], writes: [{ component: MealRule.id, entity: survivorId, value: { recovery } }] }; } }),
+    setMealRule: command({
+      writes: [MealRule],
+      run: (_context, input) => {
+        const recovery = (input as { recovery?: unknown } | null)?.recovery;
+        if (recovery !== 10 && recovery !== 25)
+          throw new Error("meal recovery must be ten or twenty-five");
+        return {
+          actions: [],
+          writes: [
+            { component: MealRule.id, entity: survivorId, value: { recovery } },
+          ],
+        };
+      },
+    }),
   },
   definition: encodeDefinition(
     "survival",
@@ -137,7 +153,55 @@ export const survivalPack: GamePack = {
     survivalInitial,
   ),
   presentation: {
-    controls: [{ id: "take", label: "Take bread", command: "takeFood" }, { id: "eat", label: "Eat bread", command: "eatFood" }, { id: "recovery-10", label: "Meal recovery 10", command: "setMealRule", input: { recovery: 10 } }, { id: "recovery-25", label: "Meal recovery 25", command: "setMealRule", input: { recovery: 25 } }],
-    inspect: (context) => { const condition = context.query(query(Condition))[0]?.get(Condition); const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot)); return [{ id: "hunger", label: "Hunger", value: condition?.hunger ?? 0 }, { id: "wellbeing", label: "Wellbeing", value: condition?.wellbeing ?? 0 }, { id: "carried", label: "Carried bread", value: lots.filter((lot) => lot.container === survivorId).reduce((sum, lot) => sum + lot.quantity, 0) }, { id: "locker", label: "Locker bread", value: lots.filter((lot) => lot.container === lockerId).reduce((sum, lot) => sum + lot.quantity, 0) }, { id: "meal-recovery", label: "Meal recovery", value: context.query(query(MealRule))[0]?.get(MealRule).recovery ?? 25 }]; },
+    controls: [
+      { id: "take", label: "Take bread", command: "takeFood" },
+      { id: "eat", label: "Eat bread", command: "eatFood" },
+      {
+        id: "recovery-10",
+        label: "Meal recovery 10",
+        command: "setMealRule",
+        input: { recovery: 10 },
+      },
+      {
+        id: "recovery-25",
+        label: "Meal recovery 25",
+        command: "setMealRule",
+        input: { recovery: 25 },
+      },
+    ],
+    inspect: (context) => {
+      const condition = context.query(query(Condition))[0]?.get(Condition);
+      const lots = context
+        .query(query(MaterialLot))
+        .map((row) => row.get(MaterialLot));
+      return [
+        { id: "hunger", label: "Hunger", value: condition?.hunger ?? 0 },
+        {
+          id: "wellbeing",
+          label: "Wellbeing",
+          value: condition?.wellbeing ?? 0,
+        },
+        {
+          id: "carried",
+          label: "Carried bread",
+          value: lots
+            .filter((lot) => lot.container === survivorId)
+            .reduce((sum, lot) => sum + lot.quantity, 0),
+        },
+        {
+          id: "locker",
+          label: "Locker bread",
+          value: lots
+            .filter((lot) => lot.container === lockerId)
+            .reduce((sum, lot) => sum + lot.quantity, 0),
+        },
+        {
+          id: "meal-recovery",
+          label: "Meal recovery",
+          value:
+            context.query(query(MealRule))[0]?.get(MealRule).recovery ?? 25,
+        },
+      ];
+    },
   },
 };
