@@ -1,7 +1,5 @@
 import { levelLabel, type Placement } from "./game-space.ts";
 import type { FieldWaterReference } from "./field-water-source.ts";
-import { terrainCell } from "./terrain.ts";
-import type { TerrainState } from "./model.ts";
 import type { BuildingKind, Cell, Command } from "./model.ts";
 import { setup } from "xstate";
 
@@ -82,27 +80,24 @@ export type TerrainDesignation = {
   readonly kind: TerrainToolKind;
   readonly voxel: import("./world-presets/goblin-terrain.ts").TerrainVoxel;
 };
-/** Capture exact exposed voxel identities at selection; admission never retargets. */
+/** The current visible-face picker owns selection. Commands retain its exact
+ * signed solid owner, never a replacement column top or selected-plane guess. */
 export function terrainDesignationCells(
   kind: TerrainToolKind,
-  start: Pick<GesturePoint["cell"], "x" | "z"> | null,
-  end: Pick<GesturePoint["cell"], "x" | "z">,
-  terrain: TerrainState,
+  faces: readonly { readonly ownerVoxel: readonly [number, number, number] }[],
 ): TerrainDesignation[] {
-  const from = start ?? end,
-    cells: TerrainDesignation[] = [];
-  for (
-    let z = Math.max(0, Math.min(from.z, end.z));
-    z <= Math.min(14, Math.max(from.z, end.z));
-    z++
-  )
-    for (
-      let x = Math.max(0, Math.min(from.x, end.x));
-      x <= Math.min(14, Math.max(from.x, end.x));
-      x++
-    )
-      cells.push({ kind, voxel: [...terrainCell(terrain, x, z).voxel] });
-  return cells;
+  const unique = new Map<string, TerrainDesignation>();
+  for (const face of faces)
+    unique.set(face.ownerVoxel.join(), {
+      kind,
+      voxel: [...face.ownerVoxel],
+    });
+  return [...unique.values()].sort(
+    (a, b) =>
+      a.voxel[0] - b.voxel[0] ||
+      a.voxel[1] - b.voxel[1] ||
+      a.voxel[2] - b.voxel[2],
+  );
 }
 
 type ToolGestureContext = {
@@ -459,8 +454,8 @@ export function requiredToolLevel(tool: ToolKind): LogicalLevel | null {
   switch (tool) {
     case "chop":
     case "herb":
-    case "dig":
       return 0;
+    case "dig":
     case "floor":
     case "stair":
     case "brew-station":

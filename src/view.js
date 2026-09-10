@@ -25,7 +25,6 @@ import {
   terrainCell,
   terrainRevision as terrainVersion,
   terrainChangedColumns,
-  terrainColumn,
   terrainGeometryKey,
   TERRAIN_VOXEL_METRIC,
 } from "./terrain.ts";
@@ -988,7 +987,6 @@ export function createView(app, world, camera, art, initial, input) {
 
   function drawTerrainMarks(state, selection) {
     terrainMarks.clear();
-    if (selection.level !== 0) return;
     function tile(cell, color, alpha) {
       const height = terrainCell(state.terrain, cell.x, cell.z).height;
       const points = [
@@ -1008,25 +1006,48 @@ export function createView(app, world, camera, art, initial, input) {
         .fill({ color, alpha })
         .stroke({ width: 1, color, alpha: 0.8 });
     }
-    for (const job of state.jobs)
-      if (job.kind === "dig") tile(terrainColumn(job.voxel), 0xdcb56c, 0.18);
-    if (selection.fieldWater)
-      tile(worldView(selection.fieldWater), 0xe6c477, 0.12);
-    if (!["dig"].includes(selection.tool) || !selection.at) return;
-    const cells = terrainDesignationCells(
-      selection.tool,
-      selection.drag,
-      selection.at,
-      state.terrain,
-    );
-    for (const cell of cells) {
-      const problem = commandProblem(state, {
-        ...cell,
-        party: "home",
-        actors: null,
+    function markFace(face, color, alpha) {
+      const points = face.vertices.flatMap(({ x, y, z }) => {
+        const p = projectCell({ x, z }, y);
+        return [p.x, p.y];
       });
-      tile(terrainColumn(cell.voxel), problem ? 0xe48b78 : 0xbad597, 0.3);
+      terrainMarks
+        .poly(points)
+        .fill({ color, alpha })
+        .stroke({ width: 1, color, alpha: 0.8 });
     }
+    const pending = new Set(
+      state.jobs
+        .filter((job) => job.kind === "dig")
+        .map((job) => job.voxel.join()),
+    );
+    for (const face of terrainFaces)
+      if (
+        face.cell.level === selection.level &&
+        pending.has(face.ownerVoxel.join())
+      )
+        markFace(face, 0xdcb56c, 0.18);
+    if (selection.fieldWater && selection.level === 0)
+      tile(worldView(selection.fieldWater), 0xe6c477, 0.12);
+    if (selection.tool !== "dig" || !selection.terrainStroke?.end) return;
+    const faces = camera.terrainSelection(
+      selection.terrainStroke.start,
+      selection.terrainStroke.end,
+      selection.level,
+    );
+    const commands = terrainDesignationCells("dig", faces);
+    const problems = new Map(
+      commands.map((command) => [
+        command.voxel.join(),
+        commandProblem(state, { ...command, party: "home", actors: null }),
+      ]),
+    );
+    for (const face of faces)
+      markFace(
+        face,
+        problems.get(face.ownerVoxel.join()) ? 0xe48b78 : 0xbad597,
+        0.3,
+      );
   }
 
   function drawSelectionBox(selection) {
