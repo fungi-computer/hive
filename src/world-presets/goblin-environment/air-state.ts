@@ -1,15 +1,20 @@
 import { z } from "zod";
 import {
   ATMOSPHERE_LIMITS,
-  createAtmosphere,
   type AtmosphereState,
 } from "../../engine/environment/atmosphere/index.ts";
 import { compensatedSum } from "../../engine/environment/arithmetic.mjs";
 import { decode, encode } from "../../engine/region/codec.ts";
 import { GOBLIN_WORLD_IDENTITY, GOBLIN_WATER_LIMITS } from "./content.ts";
-import { goblinGasGeometry } from "./gas-geometry.ts";
+import {
+  goblinGasGeometry,
+  updateGoblinGasGeometry,
+} from "./gas-geometry.ts";
 import { createVoxelWorld } from "../height-caves.mjs";
-import { goblinAtmosphereFromGeometry } from "../goblin-atmosphere.ts";
+import {
+  goblinAtmosphereFromGeometry,
+  updateGoblinAtmosphereGeometry,
+} from "../goblin-atmosphere.ts";
 import { goblinTerrainProjection } from "./terrain-projection.ts";
 import {
   initialWaterEnvironment,
@@ -47,19 +52,6 @@ const sourceSchema = z.strictObject({
   heatJS: z.number().finite(),
 });
 
-/** Conservative rebuild key over the actual immutable source records. Keeping
- * complete finished sites may rebuild for nonphysical metadata, but cannot miss
- * a future field that the shared structure owner starts using. */
-function physicalSourceKey(source: EnvironmentGeometry) {
-  return JSON.stringify({
-    terrain: source.terrain.checkpoint,
-    finishedSites: source.sites
-      .filter((site) => site.finishedAt !== null)
-      .map((site) => ({ ...site }))
-      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
-  });
-}
-
 function detached(input: unknown, bytes: number, nodes: number) {
   return decode(encode(input, bytes, nodes), bytes, nodes);
 }
@@ -68,47 +60,125 @@ function sameData(left: unknown, right: unknown, bytes: number, nodes: number) {
   return encode(left, bytes, nodes) === encode(right, bytes, nodes);
 }
 
-function observe(water: WaterEnvironment, source: EnvironmentGeometry) {
-  const geometry = waterEnvironmentGeometry(water, source);
+type WaterGeometry = ReturnType<typeof waterEnvironmentGeometry>;
+type GasSnapshot = ReturnType<typeof goblinGasGeometry>;
+type Observation = {
+  readonly terrain: EnvironmentGeometry["terrain"];
+  readonly waterState: WaterEnvironment;
+  readonly waterPhysical: WaterGeometry["physical"];
+  readonly waterDefinition: WaterGeometry["definition"];
+  readonly ceilingY: number;
+  readonly geometryRevision: number;
+  readonly geometry: GasSnapshot;
+};
+
+function observe(
+  water: WaterEnvironment,
+  source: EnvironmentGeometry,
+  previous?: Observation,
+  knownGeometry?: ReturnType<typeof waterEnvironmentGeometry>,
+) {
+  const geometry = knownGeometry ?? waterEnvironmentGeometry(water, source);
+  if (
+    previous &&
+    previous.waterState === water &&
+    previous.waterPhysical === geometry.physical &&
+    previous.waterDefinition === geometry.definition &&
+    previous.ceilingY === geometry.ceilingY
+  )
+    return previous;
+  const geometryRevision =
+    previous &&
+    (previous.waterPhysical !== geometry.physical ||
+      previous.waterDefinition !== geometry.definition)
+      ? Math.max(previous.geometryRevision, geometry.geometryRevision)
+      : previous?.geometryRevision ?? geometry.geometryRevision;
+  let gas: GasSnapshot;
+  if (
+    previous &&
+    previous.waterPhysical === geometry.physical &&
+    previous.waterDefinition === geometry.definition &&
+    previous.ceilingY === geometry.ceilingY
+  ) {
+    const updated = updateGoblinGasGeometry(
+      previous.geometry,
+      geometry.physical,
+      geometry.definition,
+      geometry.facts,
+      geometryRevision,
+      geometry.ceilingY,
+    );
+    gas =
+      updated.status === "reused"
+        ? updated.snapshot
+        : goblinGasGeometry(
+            source.terrain,
+            geometry.physical,
+            geometry.definition,
+            geometry.facts,
+            geometryRevision,
+            geometry.ceilingY,
+          );
+  } else {
+    gas = goblinGasGeometry(
+      source.terrain,
+      geometry.physical,
+      geometry.definition,
+      geometry.facts,
+      geometryRevision,
+      geometry.ceilingY,
+    );
+  }
   return {
     terrain: source.terrain,
-    physicalSource: physicalSourceKey(source),
-    geometry,
-    voidWater: JSON.stringify(
-      geometry.facts.cells
-        .filter((cell) => cell.kind === "void")
-        .map((cell) => [cell.id, cell.liquidVolumeM3]),
-    ),
+    waterState: water,
+    waterPhysical: geometry.physical,
+    waterDefinition: geometry.definition,
+    ceilingY: geometry.ceilingY,
+    geometryRevision,
+    geometry: gas,
   };
 }
-type Observation = ReturnType<typeof observe>;
 
 function sameGasInput(left: Observation, right: Observation) {
   return (
-    left.physicalSource === right.physicalSource &&
-    left.geometry.geometryRevision === right.geometry.geometryRevision &&
-    left.geometry.ceilingY === right.geometry.ceilingY &&
-    left.voidWater === right.voidWater
+    left.waterPhysical === right.waterPhysical &&
+    left.waterDefinition === right.waterDefinition &&
+    left.ceilingY === right.ceilingY &&
+    left.geometry === right.geometry
   );
 }
 
-function compileBinding(observation: Observation, revision: number) {
-  const water = observation.geometry,
-    snapshot = goblinGasGeometry(
-      observation.terrain,
-      water.physical,
-      water.definition,
-      water.facts,
-      revision,
-      water.ceilingY,
-    ),
-    registered = goblinAtmosphereFromGeometry(snapshot, {
-      regionId: GOBLIN_WORLD_IDENTITY.worldId,
-    }),
-    owner = createAtmosphere(registered.definition);
-  return { observation, snapshot, registered, owner };
+type AtmosphereOwner = ReturnType<typeof goblinAtmosphereFromGeometry>;
+type Binding = {
+  readonly observation: Observation;
+  readonly snapshot: GasSnapshot;
+  readonly registered: AtmosphereOwner;
+  readonly owner: AtmosphereOwner;
+};
+
+function compileBinding(
+  observation: Observation,
+  revision: number,
+  previous?: Binding,
+) {
+  const snapshot =
+    observation.geometry.revision === revision
+      ? observation.geometry
+      : Object.freeze({ ...observation.geometry, revision });
+  const registered =
+    previous &&
+    observation.waterPhysical === previous.observation.waterPhysical &&
+    observation.waterDefinition === previous.observation.waterDefinition
+      ? updateGoblinAtmosphereGeometry(snapshot, previous.registered) ??
+        goblinAtmosphereFromGeometry(snapshot, {
+          regionId: GOBLIN_WORLD_IDENTITY.worldId,
+        })
+      : goblinAtmosphereFromGeometry(snapshot, {
+          regionId: GOBLIN_WORLD_IDENTITY.worldId,
+        });
+  return { observation, snapshot, registered, owner: registered };
 }
-type Binding = ReturnType<typeof compileBinding>;
 
 const admitted = new WeakMap<AirEnvironment, Binding>();
 const observations = new WeakMap<
@@ -172,7 +242,7 @@ function parseWithObservation(
   observation: Observation,
 ): AirEnvironment {
   const parsed = envelope.parse(detached(input, WIRE_BYTES, DATA_NODES));
-  if (parsed.geometryRevision < observation.geometry.geometryRevision)
+  if (parsed.geometryRevision < observation.geometryRevision)
     throw new Error("air geometry predates the current water generation");
   const binding = compileBinding(observation, parsed.geometryRevision),
     air = binding.owner.decode(JSON.stringify(parsed.air));
@@ -185,8 +255,17 @@ function current(
   water: WaterEnvironment,
   source: EnvironmentGeometry,
 ) {
-  const observation = observe(water, source),
-    known = admitted.get(input);
+  const known = admitted.get(input);
+  const geometry = waterEnvironmentGeometry(water, source);
+  if (
+    known &&
+    known.observation.waterState === water &&
+    known.observation.waterPhysical === geometry.physical &&
+    known.observation.waterDefinition === geometry.definition &&
+    known.observation.ceilingY === geometry.ceilingY
+  )
+    return { state: input, binding: known };
+  const observation = observe(water, source, known?.observation, geometry);
   if (known && sameGasInput(known.observation, observation))
     return { state: input, binding: known };
   const state = parseWithObservation(input, observation);
@@ -231,8 +310,13 @@ export function parseAirEnvironment(
   water: WaterEnvironment,
   source: EnvironmentGeometry,
 ) {
-  const observation = observe(water, source),
-    known = admitted.get(input as AirEnvironment);
+  const known = admitted.get(input as AirEnvironment),
+    observation = observe(
+      water,
+      source,
+      known?.observation,
+      waterEnvironmentGeometry(water, source),
+    );
   return known && sameGasInput(known.observation, observation)
     ? (input as AirEnvironment)
     : parseWithObservation(input, observation);
@@ -319,7 +403,7 @@ export function prepareAirEnvironmentGeometry(
   after: EnvironmentGeometry,
 ) {
   const { state, binding } = current(input, beforeWater, before),
-    observation = observe(afterWater, after);
+    observation = observe(afterWater, after, binding.observation);
   if (sameGasInput(binding.observation, observation))
     return Object.freeze({
       status: "applied" as const,
@@ -330,14 +414,17 @@ export function prepareAirEnvironmentGeometry(
     throw new Error("air geometry revision exhausted");
   const geometryRevision = Math.max(
       state.geometryRevision + 1,
-      observation.geometry.geometryRevision,
+      observation.geometryRevision,
     ),
-    next = compileBinding(observation, geometryRevision),
+    next = compileBinding(observation, geometryRevision, binding),
     result = binding.owner.rebind(state.air, next.owner.definition);
   if (result.status === "blocked") return result;
   return Object.freeze({
     status: "applied" as const,
-    state: remember({ ...state, geometryRevision, air: result.state }, next),
+    state: remember(
+      { ...state, geometryRevision, air: next.owner.admit(result.state) },
+      next,
+    ),
     receipt: result.receipt,
   });
 }

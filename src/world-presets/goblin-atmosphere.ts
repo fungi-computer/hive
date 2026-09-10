@@ -36,6 +36,12 @@ export type GasGeometrySnapshot = {
   readonly openFaces: readonly GasFace[];
 };
 
+type GasTopologyFace = Readonly<{
+  readonly id: string;
+  readonly a: string;
+  readonly b: string | null;
+}>;
+
 const gasCellSchema = z.strictObject({
   id: z.string().min(1).max(160),
   x: z.number().finite(),
@@ -155,6 +161,22 @@ function sameMixingBand(left: GasCell, right: GasCell) {
   );
 }
 
+function topologyCells(snapshot: GasGeometrySnapshot) {
+  return Object.freeze(
+    snapshot.cells
+      .map(({ id, x, y, z }) => Object.freeze({ id, x, y, z }))
+      .sort((left, right) => compare(left.id, right.id)),
+  );
+}
+
+function topologyFaces(snapshot: GasGeometrySnapshot) {
+  return Object.freeze(
+    snapshot.openFaces
+      .map(({ id, a, b }) => Object.freeze({ id, a, b }))
+      .sort((left, right) => compare(left.id, right.id)),
+  );
+}
+
 /** Compile an exact physical free-volume/open-face snapshot. Horizontal open
  * cells share a cheap well-mixed band unless a registered site face separates
  * them. Vertical shafts, doors and ambient boundaries remain explicit edges. */
@@ -252,8 +274,7 @@ export function goblinAtmosphereFromGeometry(
   } satisfies AtmosphereDefinition;
   const atmosphere = createAtmosphere(definition);
   return Object.freeze({
-    definition: atmosphere.definition,
-    identity: atmosphere.identity,
+    ...atmosphere,
     hasCell(cellId: string) {
       return owner.has(cellId);
     },
@@ -262,6 +283,69 @@ export function goblinAtmosphereFromGeometry(
       if (!volumeId) throw new Error(`gas geometry has no volume at ${cellId}`);
       return volumeId;
     },
+    topologyCells: topologyCells(snapshot),
+    topologyFaces: topologyFaces(snapshot),
+  });
+}
+
+/** Recompile only the stock-dependent capacities and opening areas while
+ * retaining the already-owned cell grouping and endpoint topology. This is
+ * internal trusted data from the gas producer; a topology mismatch returns
+ * null so the caller can use the full checked compiler. */
+export function updateGoblinAtmosphereGeometry(
+  input: GasGeometrySnapshot,
+  previous: ReturnType<typeof goblinAtmosphereFromGeometry>,
+) {
+  const cells = new Map(input.cells.map((cell) => [cell.id, cell]));
+  const faces = new Map(input.openFaces.map((face) => [face.id, face]));
+  if (
+    cells.size !== input.cells.length ||
+    cells.size !== previous.topologyCells.length ||
+    previous.topologyCells.some((topology) => {
+      const cell = cells.get(topology.id);
+      return (
+        !cell ||
+        cell.x !== topology.x ||
+        cell.y !== topology.y ||
+        cell.z !== topology.z
+      );
+    }) ||
+    faces.size !== input.openFaces.length ||
+    faces.size !== previous.topologyFaces.length ||
+    previous.topologyFaces.some((face) => {
+      const current = faces.get(face.id);
+      return !current || current.a !== face.a || current.b !== face.b;
+    })
+  )
+    return null;
+  const memberVolumes = previous.definition.volumes.flatMap((volume) =>
+      volume.members.flatMap((member) => {
+        const cell = cells.get(member.cellId);
+        if (!cell) throw new Error(`gas topology lost ${member.cellId}`);
+        return cell.freeVolumeM3 === member.volumeM3
+          ? []
+          : [{ volumeId: volume.id, cellId: member.cellId, volumeM3: cell.freeVolumeM3 }];
+      }),
+    ),
+    openingAreas = previous.definition.openings.flatMap((opening) => {
+      const face = faces.get(opening.id);
+      if (!face) throw new Error(`gas topology lost ${opening.id}`);
+      return face.areaM2 === opening.areaM2
+        ? []
+        : [{ openingId: opening.id, areaM2: face.areaM2 }];
+    }),
+    atmosphere = previous.updateGeometry({
+      geometryIdentity: input.identity,
+      revision: input.revision,
+      memberVolumes,
+      openingAreas,
+    });
+  return Object.freeze({
+    ...atmosphere,
+    hasCell: previous.hasCell,
+    volumeAt: previous.volumeAt,
+    topologyCells: previous.topologyCells,
+    topologyFaces: previous.topologyFaces,
   });
 }
 import { z } from "zod";
