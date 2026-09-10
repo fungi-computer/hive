@@ -15,7 +15,16 @@ export function connectBrowserRuntime(options: BrowserConnectionOptions = {}): R
   let disposed = false;
   let stepping = false;
   let cadence: ReturnType<typeof setInterval> | undefined;
-  const onMessage = (event: MessageEvent<WorkerEvent>) => { if (!disposed) { if (event.data.type === "results" || event.data.type === "error") stepping = false; for (const listener of listeners) listener(event.data); } };
+  const onMessage = (event: MessageEvent<WorkerEvent>) => {
+    if (disposed) return;
+    if (event.data.type === "results" || event.data.type === "error") stepping = false;
+    if (event.data.type === "state") {
+      if (cadence !== undefined) clearInterval(cadence);
+      cadence = undefined;
+      if (!event.data.paused) startCadence(1 / 30);
+    }
+    for (const listener of listeners) listener(event.data);
+  };
   worker.addEventListener("message", onMessage);
   const send = (command: WorkerCommand) => { if (disposed) throw new Error("runtime connection disposed"); worker.postMessage(command); };
   const startCadence = (delta: number) => {
@@ -25,7 +34,7 @@ export function connectBrowserRuntime(options: BrowserConnectionOptions = {}): R
   };
   const subscribe = (listener: (event: WorkerEvent) => void) => { listeners.add(listener); return () => listeners.delete(listener); };
   const dispose = () => { if (disposed) return; disposed = true; if (cadence !== undefined) clearInterval(cadence); worker.removeEventListener("message", onMessage); worker.terminate(); listeners.clear(); };
-  return { send(command) { send(command); if (command.type === "start") startCadence(1 / 30); else if (command.type === "pause") { if (cadence !== undefined) clearInterval(cadence); cadence = undefined; } else if (command.type === "resume") startCadence(1 / 30); }, subscribe, dispose };
+  return { send, subscribe, dispose };
 }
 
 export type GameSelection = Extract<GameId, string>;

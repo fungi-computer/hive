@@ -71,7 +71,7 @@ export class GameSession {
     const pending = snapshot.pendingActions.map(checkedAction);
     const canonical = JSON.parse(snapshot.kernel.json);
     const definition = JSON.parse(new TextDecoder().decode(this.pack.definition));
-    if (canonical.scene?.game !== this.pack.id || canonical.time !== snapshot.now || canonical.revision !== snapshot.kernel.revision) throw new Error("snapshot world does not match session");
+    if (canonical.scene?.game !== this.pack.id || canonical.time !== snapshot.now || canonical.revision !== snapshot.kernel.revision || canonical.revision !== snapshot.tick) throw new Error("snapshot world does not match session");
     const schema = (items: { id: string; version: number; fields: object }[]) => items.filter(item => !["hive.position", "hive.body", "hive.container", "hive.lot", "hive.destination", "hive.obstacle", "hive.visual"].includes(item.id)).map(item => JSON.stringify([item.id, item.version, Object.entries(item.fields).sort()])).sort().join("\n");
     if (schema(canonical.scene.components) !== schema(definition.components)) throw new Error("snapshot component versions do not match");
     const expected = this.pack.systems.map(system => `${system.id}@${system.version}`).join(",");

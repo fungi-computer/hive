@@ -50,7 +50,7 @@ test("fractional seeded random state is deterministic across save and reload", (
   const draws: number[] = [];
   const system: SystemDefinition = { id: "test.random", version: 1, reads: [], writes: [], run: context => { draws.push(context.random.next()); } };
   const first = session(new TestPort(), system, 123); first.value.step(0.1); const saved = first.value.save(); first.value.step(0.1); const expected = draws[1];
-  const restoredDraws: number[] = []; const secondSystem = { ...system, run: context => { restoredDraws.push(context.random.next()); } }; const second = session(new TestPort(), secondSystem, 123); second.value.restore(saved); second.value.step(0.1);
+  const restoredDraws: number[] = []; const secondSystem: SystemDefinition = { ...system, run: context => { restoredDraws.push(context.random.next()); } }; const second = session(new TestPort(), secondSystem, 123); second.value.restore(saved); second.value.step(0.1);
   assert.equal(restoredDraws[0], expected);
   assert.equal(Number.isInteger(saved.random), true); assert.notEqual(saved.random, 123);
 });
@@ -61,7 +61,7 @@ test("reset restores the original random seed", () => {
 });
 
 test("queued input is cloned when requested", () => {
-  const { value } = session(); const request = { kind: "move", entity: "actor", destination: { x: 1, y: 2, z: 3 } } as ActionRequest;
+  const { value } = session(); const request = { kind: "move", entity: "actor", destination: { x: 1, y: 2, z: 3 } } as Extract<ActionRequest, { kind: "move" }>;
   value.request(request); (request.destination as { x: number }).x = 99;
   assert.equal((value.save().pendingActions[0] as Extract<ActionRequest, { kind: "move" }>).destination.x, 1);
 });
