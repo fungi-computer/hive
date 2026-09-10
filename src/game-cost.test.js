@@ -80,7 +80,7 @@ test("buffers stop at bounded frames and disclose span overflow", () => {
 test("reset/hidden/disposal are terminal and startup records are detached", () => {
   for (const reason of ["reset", "hidden", "dispose"]) {
     let now = 0;
-    const recorder = createGameCost(() => now);
+    const recorder = createGameCost(() => now++);
     const stages = [
       { id: "game", status: "complete", startedAt: 1, completedAt: 2 },
     ];
@@ -90,6 +90,7 @@ test("reset/hidden/disposal are terminal and startup records are detached", () =
     now = 2;
     recorder.endMain(7);
     recorder.submitted(7);
+    const submittedAt = now - 1;
     recorder.stop(reason);
     const result = recorder.read();
     now = 100;
@@ -98,6 +99,8 @@ test("reset/hidden/disposal are terminal and startup records are detached", () =
     assert.deepEqual(recorder.read(), result);
     assert.equal(result.startup[0].completedAt, 2);
     assert.equal(result.final.lastTick, 7);
+    assert.equal(result.final.terminalGapMs, result.final.atMs - submittedAt);
+    assert.equal(result.final.terminalGapMs, 1);
   }
 });
 
