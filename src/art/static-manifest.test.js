@@ -190,3 +190,43 @@ test("loaded silhouette registration detaches checked CPU picking data", () => {
     /Invalid visible texture silhouette/,
   );
 });
+
+test("manifest completion preserves actual camelCase art paths", () => {
+  const input = manifest();
+  const paths = [
+    ["mixedShelf", "wood-herb", 0],
+    ["wallJoints", "finished", 0],
+  ];
+  input.entries.forEach((entry, index) => {
+    entry.path = paths[index];
+  });
+  const complete = completeStaticArtManifest(
+    input,
+    { "ground.png": HASH, "atlas-0.png": HASH },
+    input.provenance.sources,
+  );
+  assert.deepEqual(
+    complete.entries.map((entry) => entry.path),
+    paths,
+  );
+  assert.deepEqual(parseStaticArtManifest(complete), complete);
+});
+
+test("camelCase path admission retains inherited, reserved and size rejection", () => {
+  for (const path of [
+    ["figures", "toString"],
+    ["figures", "hasOwnProperty"],
+    ["figures", "constructor"],
+    ["figures", "__proto__"],
+    ["pawnAnchor", "x"],
+    ["bakeTerrainSlice", "frame"],
+    ["mixedShelf", "a".repeat(65)],
+  ]) {
+    const input = manifest();
+    input.entries[0].path = path;
+    assert.throws(
+      () => parseStaticArtManifest(input),
+      /inherited-key|reserved-root|string-format/,
+    );
+  }
+});
