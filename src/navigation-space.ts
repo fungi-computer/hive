@@ -79,7 +79,7 @@ function stairs(state: Clearing): readonly Link[] {
 
 /** Build a bounded live capability from canonical geometry/content. This is a
  * query projection, not saved state and not permission to mutate terrain. */
-export function createNavigationSpaces(state: Clearing) {
+function buildNavigationSpaces(state: Clearing) {
   const checkpoint = state.terrain;
   const terrain = terrainGeometry(checkpoint);
   const known = knownFootings(state);
@@ -106,12 +106,13 @@ export function createNavigationSpaces(state: Clearing) {
     terrain: terrainEnvironment(checkpoint),
     sites: state.sites,
   });
-  const wet = new Map<
-    string,
-    { at: readonly number[]; liquidVolumeM3: number }
-  >();
-  for (const cell of water.cells)
-    if (cell.kind === "void" && cell.massKg > 0) wet.set(cell.at.join(), cell);
+  let wet = wetMaps.get(water);
+  if (!wet) {
+    wet = new Map();
+    for (const cell of water.cells)
+      if (cell.kind === "void" && cell.massKg > 0) wet.set(cell.at.join(), cell);
+    wetMaps.set(water, wet);
+  }
   const links = Object.freeze(stairs(state));
   return (
     contact: { kind: "bed"; site: string } | null = null,
@@ -183,6 +184,75 @@ export function createNavigationSpaces(state: Clearing) {
       },
     });
   };
+}
+
+type NavigationCache = {
+  terrain: ReturnType<typeof terrainGeometry>;
+  water: Clearing["water"];
+  sites: Clearing["sites"];
+  siteStamp: string;
+  trees: Clearing["trees"];
+  treeStamp: string;
+  rocks: Clearing["rocks"];
+  fixedStamp: string;
+  watcher: Clearing["watcher"];
+  sources: Clearing["sources"];
+  exploration: Clearing["exploration"];
+  space: ReturnType<typeof buildNavigationSpaces>;
+};
+const navigationCaches = new WeakMap<Clearing, NavigationCache>();
+const wetMaps = new WeakMap<object, Map<string, { at: readonly number[]; liquidVolumeM3: number }>>();
+function navigationStamp(state: Clearing): { sites: string; trees: string; fixed: string } {
+  return {
+    sites: JSON.stringify(
+      state.sites.map(({ id, type, x, z, level, direction, finishedAt }) => [
+        id,
+        type,
+        x,
+        z,
+        level,
+        direction,
+        finishedAt,
+      ]),
+    ),
+    trees: JSON.stringify(
+      state.trees.map(({ id, x, y, z, felledAt }) => [id, x, y, z, felledAt]),
+    ),
+    fixed: JSON.stringify([
+      state.rocks.map(({ x, y, z }) => [x, y, z]),
+      [state.watcher.x, state.watcher.y, state.watcher.z],
+      state.sources.map(({ id, x, y, z, kind }) => [id, x, y, z, kind]),
+    ]),
+  };
+}
+export function createNavigationSpaces(state: Clearing) {
+  const terrain = terrainGeometry(state.terrain),
+    stamp = navigationStamp(state),
+    cached = navigationCaches.get(state);
+  if (
+    cached && cached.terrain === terrain && cached.water === state.water &&
+    cached.sites === state.sites && cached.siteStamp === stamp.sites &&
+    cached.trees === state.trees && cached.treeStamp === stamp.trees &&
+    cached.fixedStamp === stamp.fixed &&
+    cached.rocks === state.rocks && cached.watcher === state.watcher &&
+    cached.sources === state.sources && cached.exploration === state.exploration
+  ) return cached.space;
+  const space = buildNavigationSpaces(state);
+  navigationCaches.set(state, {
+    terrain,
+    water: state.water,
+    sites: state.sites,
+    siteStamp: stamp.sites,
+    trees: state.trees,
+    treeStamp: stamp.trees,
+    fixedStamp: stamp.fixed,
+    rocks: state.rocks,
+    watcher: state.watcher,
+    sources: state.sources,
+    exploration: state.exploration,
+    space,
+  });
+  return space;
 }
 
 export function bodyProfile(state: Clearing, body: Body): Profile {
