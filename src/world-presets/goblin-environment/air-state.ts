@@ -126,6 +126,18 @@ function observe(
       geometry.ceilingY,
     );
   }
+  // Cold water admission rebuilds disposable geometry objects. Compare their
+  // checked gas projection once here; object identity alone is not a physical edit.
+  if (
+    previous &&
+    (previous.waterPhysical !== geometry.physical ||
+      previous.waterDefinition !== geometry.definition) &&
+    gas !== previous.geometry &&
+    gas.identity === previous.geometry.identity &&
+    JSON.stringify([gas.cells, gas.openFaces]) ===
+      JSON.stringify([previous.geometry.cells, previous.geometry.openFaces])
+  )
+    gas = previous.geometry;
   return {
     terrain: source.terrain,
     waterState: water,
@@ -138,12 +150,7 @@ function observe(
 }
 
 function sameGasInput(left: Observation, right: Observation) {
-  return (
-    left.waterPhysical === right.waterPhysical &&
-    left.waterDefinition === right.waterDefinition &&
-    left.ceilingY === right.ceilingY &&
-    left.geometry === right.geometry
-  );
+  return left.geometry === right.geometry;
 }
 
 type AtmosphereOwner = ReturnType<typeof goblinAtmosphereFromGeometry>;

@@ -456,7 +456,11 @@ test("new space starts empty and fills gradually through elapsed face exchange",
       (amount, index) => index === 0 || amount > admitted[index - 1],
     ),
   );
-  assert.equal(connectedOwner.read(after).balance.carrierKg, 0);
+  // Binary floating-point transfer may leave an ulp-scale ledger residual.
+  assert(
+    Math.abs(connectedOwner.read(after).balance.carrierKg) <=
+      Number.EPSILON * state.initialCarrierKg,
+  );
 
   const isolated = definition({
     revision: 1,
