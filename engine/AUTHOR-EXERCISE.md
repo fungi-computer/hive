@@ -13,8 +13,10 @@ The public API was sufficient for this rule: a namespaced component, a bounded
 query join, a transactional authored write, and a presentation inspection are
 all ordinary authoring operations. The common SDK does not currently export a
 `Body` definition, so this pack declares the public `hive.body` shape locally
-to query its membership. A shared SDK export would remove that small repetition
-without changing the simulation owner.
+to query its membership. That creates a duplicate schema registration at the
+authoring boundary; a shared SDK export should remove the repetition without
+changing the simulation owner. This source exercise has not yet been proven
+against the native/WASM kernel.
 
 The focused physical proof to add at the kernel/consumer boundary is:
 

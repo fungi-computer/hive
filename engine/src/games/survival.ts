@@ -44,8 +44,8 @@ export const Fatigue = component<{
 export const survival = system({
   id: "survival.hunger",
   version: 1,
-  reads: [Survivor, Condition, MaterialLot, MealRule, Fatigue, Position, Body],
-  writes: [Condition, Fatigue],
+  reads: [Survivor, Condition, MaterialLot, MealRule],
+  writes: [Condition],
   run(ctx) {
     for (const row of ctx.query(query(Survivor, Condition))) {
       const survivor = row.get(Survivor),
@@ -78,30 +78,35 @@ export const survival = system({
             ? Math.max(0, value.wellbeing - ctx.clock.delta)
             : value.wellbeing,
       });
-      const pose = ctx
-        .query(query(Position, Body, Fatigue))
-        .find((candidate) => candidate.id === row.id);
-      if (pose) {
-        const position = pose.get(Position);
-        const fatigue = pose.get(Fatigue);
-        const moved =
-          position.x !== fatigue.lastX ||
-          position.y !== fatigue.lastY ||
-          position.z !== fatigue.lastZ;
-        ctx.write(Fatigue, row.id, {
-          value: Math.max(
-            0,
-            Math.min(
-              100,
-              fatigue.value +
-                (moved ? ctx.clock.delta * 5 : -ctx.clock.delta * 2),
-            ),
+    }
+  },
+});
+export const fatigue = system({
+  id: "survival.fatigue",
+  version: 1,
+  reads: [Position, Body, Fatigue],
+  writes: [Fatigue],
+  run(ctx) {
+    for (const row of ctx.query(query(Position, Body, Fatigue))) {
+      const position = row.get(Position);
+      const previous = row.get(Fatigue);
+      const moved =
+        position.x !== previous.lastX ||
+        position.y !== previous.lastY ||
+        position.z !== previous.lastZ;
+      ctx.write(Fatigue, row.id, {
+        value: Math.max(
+          0,
+          Math.min(
+            100,
+            previous.value +
+              (moved ? ctx.clock.delta * 5 : -ctx.clock.delta * 2),
           ),
-          lastX: position.x,
-          lastY: position.y,
-          lastZ: position.z,
-        });
-      }
+        ),
+        lastX: position.x,
+        lastY: position.y,
+        lastZ: position.z,
+      });
     }
   },
 });
@@ -137,19 +142,20 @@ const survivalInitial = [
     },
   },
 ];
+const survivalComponents = [
+  Position,
+  Body,
+  MaterialLot,
+  Survivor,
+  Condition,
+  MealRule,
+  Fatigue,
+] as const;
 export const survivalPack: GamePack = {
   id: "survival",
   version: 1,
-  components: [
-    Position,
-    Body,
-    MaterialLot,
-    Survivor,
-    Condition,
-    MealRule,
-    Fatigue,
-  ],
-  systems: [survival],
+  components: survivalComponents,
+  systems: [survival, fatigue],
   commands: {
     takeFood: command({
       reads: [MaterialLot],
@@ -201,11 +207,7 @@ export const survivalPack: GamePack = {
       },
     }),
   },
-  definition: encodeDefinition(
-    "survival",
-    [Position, MaterialLot, Survivor, Condition, MealRule],
-    survivalInitial,
-  ),
+  definition: encodeDefinition("survival", survivalComponents, survivalInitial),
   presentation: {
     controls: [
       { id: "take", label: "Take bread", command: "takeFood" },
