@@ -1,5 +1,6 @@
 //! The only unsafe boundary: known layout/drop and IDs belonging to one World.
 use crate::components::*;
+use crate::components::Result;
 use bevy_ecs::{
     component::{ComponentCloneBehavior, ComponentDescriptor, ComponentId, StorageType},
     prelude::*,
