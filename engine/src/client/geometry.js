@@ -9,8 +9,8 @@ const view = camera(WIDTH, HEIGHT, 1.03);
 export function project(x, y, z) {
   const point = new Vector3(x, y, z).project(view);
   return {
-    x: Math.round(((point.x + 1) * WIDTH) / 2),
-    y: Math.round(((1 - point.y) * HEIGHT) / 2),
+    x: ((point.x + 1) * WIDTH) / 2,
+    y: ((1 - point.y) * HEIGHT) / 2,
   };
 }
 const origin = project(0, 0, 0);

@@ -1,6 +1,7 @@
 import { project, groundPoint } from "./geometry.js";
 import { presentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
+import { createInterpolationBuffer } from "./interpolation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -58,6 +59,7 @@ export function createHiveClient({
       runtime.send({ type: "save" });
     } else if (runtime && action.kind === "reset") {
       animationClock.reset();
+      interpolation.reset();
       runtime.send({ type: "reset" });
     } else if (action.kind === "continue") {
       try {
@@ -67,6 +69,7 @@ export function createHiveClient({
         state.pendingRestore = true;
         state.message = "Continue requested…";
         animationClock.reset();
+        interpolation.reset();
         runtime.send({ type: "restore", snapshot });
       } catch (error) {
         state.pendingRestore = false;
@@ -88,6 +91,7 @@ export function createHiveClient({
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
+  const interpolation = createInterpolationBuffer();
   let frameSequence = 0;
   let frameEpoch;
   let groundSprite = null;
@@ -259,6 +263,19 @@ export function createHiveClient({
   }
   function draw() {
     if (!app.stage) return;
+    state.subjects = interpolation
+      .render(performance.now(), { paused: state.paused })
+      .filter((fact) => fact.pose?.position)
+      .map((fact) => ({
+        id: fact.id,
+        name: fact.label || fact.id,
+        x: fact.pose.position.x,
+        y: fact.pose.position.y,
+        z: fact.pose.position.z,
+        facing: fact.pose.facing,
+        visual: fact.visual,
+        screen: { x: 0, y: 0 },
+      }));
     if (!groundSprite) {
       groundSprite = art?.ground
         ? new Sprite(art.ground)
@@ -493,6 +510,7 @@ export function createHiveClient({
     art = pack.art;
     state.disposeArt = pack.dispose;
     app.ticker.add(draw);
+    app.ticker.add(draw);
     draw();
     renderHud();
     app.canvas.addEventListener("pointerdown", pointerDown);
@@ -571,21 +589,13 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "frame") {
-        if (frameEpoch !== event.epoch) animationClock.reset();
+        if (frameEpoch !== event.epoch) {
+          animationClock.reset();
+          interpolation.reset(event.epoch);
+        }
         frameEpoch = event.epoch;
         frameSequence = event.sequence;
-        state.subjects = event.facts
-          .filter((fact) => fact.pose?.position)
-          .map((fact) => ({
-            id: fact.id,
-            name: fact.label || fact.id,
-            x: fact.pose.position.x,
-            y: fact.pose.position.y,
-            z: fact.pose.position.z,
-            facing: fact.pose.facing,
-            visual: fact.visual,
-            screen: { x: 0, y: 0 },
-          }));
+        interpolation.push(event);
         draw();
         renderHud();
       }
