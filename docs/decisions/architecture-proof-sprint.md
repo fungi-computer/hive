@@ -116,14 +116,26 @@ law is an authored geometry and cold observation-memory fixture, not earned
 digging, whole-save, water-safety or two-chamber proof. The retained 30-cut descent
 candidate still needs actual work, material, water and movement qualification.
 
-The earlier clean `341b772` fifteen-law packet remains stopped until its actual
-shared-host release; this source join neither launches it nor changes its pin.
+The earlier clean `341b772` fifteen-law packet was withdrawn unstarted. One
+reviewed `efd5ca9` replacement combines those laws with the new roofed-step law,
+two affected eye-occlusion laws and four recorder laws: twenty-two total, followed
+by independently recorded strict types, diff and touched Fallow. It remains
+stopped pending its actual shared-host release; no old run has been replayed.
 Original loose/carried stone source `43e4805` is isolated in excavation-art.
 Its new stone textures are absent from the current static bank, so it must not
 join the playable caller until a changed-source export and personal visual review.
 No game or editor deployment has changed. The broader finite watershed and
 multi-DO limits are now explicit in the existing living-world contract; local
 Region durability and numerical laws do not prove distributed world capacity.
+
+The earned underground witness at `1028406` is source-reviewed and integrated
+separately. It starts a fresh clearing, earns timber/cache repair, requests 58
+actual cuts and four paid roofs through public commands, and checks two covered
+2×2 destinations plus return travel and cold saves. It writes earned checkpoints
+and bounded failure facts. Its 6,000-tick cap is a stop bound, not a timing promise;
+no enclosed-room, earned-success, safe-water or runtime claim exists before it
+runs. It is excluded from the twenty-two-law packet and may not silently become
+another long session. Root selects execution after the actual cost result.
 
 **Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
 whole-clearing water and material balance through completion and current saves;
