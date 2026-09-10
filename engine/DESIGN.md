@@ -24,7 +24,8 @@ one impact, finite ammunition, TypeScript health/morale, native knockback and
 identical continuation after saving mid-flight. Browser u5139 used the exact
 build against the hosted DO and proved the public firing command changed ammo,
 health and morale; King viewed the resulting scene. Actual mid-flight rendered
-capture and a new cannon-specific DO crash witness are not yet established.
+capture is not yet established. Local DO cannon restart/retry/rollback u5149
+now passes on native3/session5, with exactly two owned runtime starts.
 See COMBAT-NEXT.md for precise limits and earlier failure evidence.
 
 Previous hosted HTTP checks covered all four packs, pause/resume, server time
@@ -605,8 +606,8 @@ The implementation and evidence have different remaining gaps:
 | Shared playable pages | Four public DO pages; real raft and cannon browser actions; byte-equal hosted release | Bounded colony delivery/interruption and survival take/eat public-input checks, reusing the same client |
 | Contrasting TypeScript rules | Actual colony delivery, survival hunger/fatigue, formation morale/damage and pirate support consumers | No missing implementation identified by current source audit |
 | Custom state without Rust edits | Independent fatigue consumer and save/restore law; TypeScript health/morale over native impacts | Public combat SDK exports corrected at018d263; headless import u5147 passes |
-| Shared controls, quantities and saves | Native/Session laws plus per-pack recovery receipts and public raft reopen | New native3/session5 cannon state needs actual crash/retry qualification |
-| Durable recovery without duplicate effects | Earlier per-pack SQLite DO restart/lost-response/rollback evidence | Extend maintained fixture only for the new in-flight projectile and pending authored impact |
+| Shared controls, quantities and saves | Native/Session laws plus per-pack recovery receipts and public raft reopen | Current native3/session5 cannon crash/retry passed u5149; public food/delivery checks remain |
+| Durable recovery without duplicate effects | Earlier per-pack SQLite DO restart/lost-response/rollback evidence | New in-flight projectile/pending consequence witness u5149 passed; no hosted crash injection claimed |
 
 These are narrow closures of the declared foundation, not permission to reopen a
 full browser matrix. The current public cannon is a useful accepted interim.
