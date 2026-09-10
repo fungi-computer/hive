@@ -29,34 +29,20 @@ Hosted DO play, autonomous wake and population capacity remain unproved.
 
 ### Remaining foundation acceptance work
 
-The five-item goal is not complete. Local c98ad02 supplies player-issued delivery,
-pause/resume and custody facts, survival condition and editable meal recovery,
-formation facing, an obstacle and a reachable retreat rule. Six affected WASM
-laws passed across u4917/u4918. Changed browser presentation and publication
-remain open. The numeric restore correction and local schema-4 DO restart/replay
-are proved (u4900/u4920), not hosted server play.
+The original three packs and added raft are publicly playable at d3b914a.
+Two selected workers use native joint assignment; fatigue is a real TypeScript
+component/system without Rust changes. Current native format2 and supported
+movement have focused native/TS laws and a real local DO restart/replay witness
+(u5008). The pirate browser has actual sail, deckhand move, cargo and Save/Continue
+evidence. These replace earlier unfinished source checkpoints recorded in BUILD.
 
-Keep §3 as the acceptance target, including colony selection/work allocation.
-The current command still targets one fixed worker and its completed task cannot
-accept another delivery. The unused Hospitality rule was removed; the independent
-author exercise is now assigned against the frozen public examples/API. Shared
-queries/commands must own these changes, without UI-owned quantities or another
-simulation. Deep-world physics and new host frameworks do not replace these gaps.
-
-The bounded colony finish uses two selectable workers and two finite delivery
-requests. Expose the existing Rust joint assignment as a pure, bounded query to
-TS systems; assignment chooses pairs but does not itself reserve or transfer
-materials. The authored task owner records each accepted pairing once, retains
-carried custody through interruption, and excludes active assignments from new
-matching. The shared client passes selected IDs through an explicit control input
-contract, with game admission checking eligibility. Reject incompatible changes
-and completed-task commands clearly; reset may restart this tiny scenario. Do not
-build an unbounded recurring scheduler to finish the foundation.
-
-The independent fatigue author exercise found two concrete API hazards before
-acceptance: no shared Body definition, and separate pack/encoded component lists
-that can drift. Its native proof must follow correction of those real callers;
-an author-created source commit alone does not establish a working custom rule.
+Before declaring the full goal complete, audit the current public API and each
+example against the five objective requirements, including current-format
+recovery of authored state. The requested hosted DO/shared-client experience is
+not deployed: public pages still use browser Workers. Keep that host join and
+its per-visitor world/reset authority explicit rather than treating local native
+proof as online play. Deep terrain, ecological systems, battles and large-world
+capacity remain future scope; they are not established by these tiny fixtures.
 
 ### Current delivery cadence amendment
 

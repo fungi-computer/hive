@@ -323,3 +323,15 @@ publication exit0 deployment c12d0753-fe29-47ff-8bb7-a8725021bbd1. All143 served
 files match frozen dist after seven initial propagation mismatches cleared on
 readback. 112 non-engine files preserved. Public /engine/pirates.html is playable.
 This remains browser Worker/WASM; new pirate native-DO fixture is source-only.
+
+## Current pirate native DO recovery — u5008
+
+At109cebc, maintained tools/fresh-engine-do/proof.mjs --pack pirates completed
+exit0 using two owned local runtime starts. Receipt pirates-v1 records success;
+scope inactive/dead/empty and driver verifies port8789 free on cleanup.
+Actual native format2 route survives abrupt process restart: revision16 x=1.5
+with remaining route is unchanged by replay; fresh revision17 advances to x=0.
+Before-commit fault rolls back, after-commit lost response replays exactly, and
+finite cargo remains seven units with goods delivered to the hold. Original
+crew local pose remains unchanged by resumed ship movement. This is actual local
+SQLite DO evidence, not a hosted multiplayer or capacity claim.
