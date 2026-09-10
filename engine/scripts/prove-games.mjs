@@ -6,6 +6,7 @@ await build({
   entryPoints: [
     "engine/src/runtime/session.test.ts",
     "engine/src/runtime/games.test.ts",
+    "engine/src/presentation.test.ts",
   ],
   bundle: true,
   platform: "node",
@@ -20,6 +21,7 @@ const result = spawnSync(
     ...process.argv.slice(2),
     ".botanical/fresh-game-laws/session.test.mjs",
     ".botanical/fresh-game-laws/games.test.mjs",
+    ".botanical/fresh-game-laws/presentation.test.mjs",
   ],
   { stdio: "inherit" },
 );

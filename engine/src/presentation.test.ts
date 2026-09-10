@@ -66,3 +66,24 @@ test("rejects unknown commands, duplicate IDs, and nonfinite values", () => {
     ),
   );
 });
+
+test("presentation rejects inputs whose JSON meaning would change", () => {
+  for (const input of [
+    { value: NaN },
+    { value: undefined },
+    { value: () => 1 },
+    { value: "x".repeat(4097) },
+  ]) {
+    assert.throws(() =>
+      projectPresentation(
+        pack({
+          controls: [
+            { id: "control", label: "Control", command: "greet", input },
+          ],
+          inspect: () => [],
+        }),
+        context,
+      ),
+    );
+  }
+});

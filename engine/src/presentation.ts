@@ -17,8 +17,18 @@ export interface GamePresentation {
     context: Pick<ReadContext, "query">,
   ) => readonly PresentationFact[];
 }
-const jsonBytes = (value: unknown) =>
-  new TextEncoder().encode(JSON.stringify(value)).byteLength;
+function controlInput(value: unknown): unknown {
+  const wire = JSON.stringify(value, (_key, item) => {
+    if (typeof item === "number" && !Number.isFinite(item))
+      throw new Error("nonfinite presentation input");
+    if (["undefined", "function", "symbol", "bigint"].includes(typeof item))
+      throw new Error("presentation input must be JSON");
+    return item;
+  });
+  if (new TextEncoder().encode(wire).byteLength > 4096)
+    throw new Error("presentation input too large");
+  return JSON.parse(wire);
+}
 const boundedText = (value: unknown, name: string, max: number) => {
   if (typeof value !== "string" || value.length === 0 || value.length > max)
     throw new Error(`invalid presentation ${name}`);
@@ -47,15 +57,13 @@ export function projectPresentation(
     const command = boundedText(control.command, "control command", 128);
     if (!commandNames.has(command))
       throw new Error(`unknown presentation command ${command}`);
-    if (control.input !== undefined && jsonBytes(control.input) > 4096)
-      throw new Error("presentation input too large");
     return Object.freeze({
       id,
       label,
       command,
       ...(control.input === undefined
         ? {}
-        : { input: structuredClone(control.input) }),
+        : { input: controlInput(control.input) }),
     });
   });
   const inspected = presentation.inspect(context);
