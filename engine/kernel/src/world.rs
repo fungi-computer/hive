@@ -1024,6 +1024,9 @@ impl Kernel {
             let mut remaining = path.clone();
             let speed = self.ecs.get::<Body>(entity).map_or(0.0, |body| body.speed);
             navigation::advance(&mut predicted, &mut remaining, speed * delta);
+            if let Some(destination) = self.ecs.get::<Destination>(entity) {
+                predicted.facing = destination.facing;
+            }
         }
         if let Some(support) = self.ecs.get::<Support>(entity) {
             let parent = self.entity(&support.entity)?;
@@ -1048,7 +1051,7 @@ impl Kernel {
         Ok([(end.x - start.x) / delta, (end.y - start.y) / delta, (end.z - start.z) / delta])
     }
     fn advance_projectiles(&mut self, delta: f64) -> Result<Vec<ImpactEvent>> {
-        if self.projectile_count == 0 {
+        if self.projectile_count == 0 || delta == 0.0 {
             return Ok(Vec::new());
         }
         let mut impacts = Vec::new();
@@ -1398,6 +1401,69 @@ mod combat_tests {
         let mut restored = Kernel::new();
         restored.restore_json(&snapshot).expect("restore");
         assert_eq!(restored.snapshot_json().expect("restored snapshot"), snapshot);
+    }
+
+    fn rotating_cuboid_scene(target_x: f64) -> String {
+        let mut scene: serde_json::Value = serde_json::from_str(&combat_scene()).expect("fixture JSON");
+        let target = scene["initial"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|row| row["id"] == "ball")
+            .expect("target fixture");
+        target["components"]["hive.position"]["x"] = json!(target_x);
+        target["components"]["hive.collider"]["shape"] = json!("cuboid");
+        target["components"]["hive.collider"]["radius"] = json!(0.0);
+        target["components"]["hive.collider"]["halfX"] = json!(0.5);
+        target["components"]["hive.collider"]["halfY"] = json!(0.5);
+        target["components"]["hive.collider"]["halfZ"] = json!(0.5);
+        target["components"]["hive.body"] = json!({"speed":1.0});
+        target["components"]["hive.destination"] = json!({
+            "x":target_x,"y":0.0,"z":1.0,"facing":1.0,"frame":null
+        });
+        serde_json::to_string(&scene).expect("fixture serialization")
+    }
+
+    #[test]
+    fn relevant_rotating_cuboid_rejects_and_restores_whole_step() {
+        let mut kernel = Kernel::new();
+        kernel.load(&rotating_cuboid_scene(3.0)).expect("load rotating fixture");
+        let before = kernel.snapshot_json().expect("before snapshot");
+        let result = kernel.advance_json(
+            r#"{"delta":0.5,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}]}"#,
+        );
+        assert!(result.is_err());
+        assert_eq!(kernel.snapshot_json().expect("rollback snapshot"), before);
+    }
+
+    #[test]
+    fn distant_rotating_cuboid_does_not_block_shot() {
+        let mut kernel = Kernel::new();
+        kernel.load(&rotating_cuboid_scene(100.0)).expect("load distant fixture");
+        let response = kernel
+            .advance_json(
+                r#"{"delta":0.5,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("distant rotation is irrelevant");
+        let value: serde_json::Value = serde_json::from_str(&response).expect("response JSON");
+        assert!(value["results"][0]["accepted"].as_bool().unwrap());
+        assert_eq!(value["impacts"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn zero_delta_preserves_active_projectile() {
+        let mut kernel = Kernel::new();
+        kernel.load(&combat_scene()).expect("load combat fixture");
+        kernel
+            .advance_json(
+                r#"{"delta":0.0,"writes":[],"actions":[{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}]}"#,
+            )
+            .expect("zero delta launch");
+        assert!(kernel.render_json().expect("render").contains("shot.1"));
+        kernel
+            .advance_json(r#"{"delta":0.0,"writes":[],"actions":[]}"#)
+            .expect("zero delta idle");
+        assert!(kernel.render_json().expect("render").contains("shot.1"));
     }
 
     #[test]
