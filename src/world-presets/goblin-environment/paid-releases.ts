@@ -306,7 +306,11 @@ export function paidAtmosphereReleaseFacts(
     obligations: Object.freeze(
       state.obligations.map((obligation) => {
         const facts = release.read(0, secondsForTicks(obligation.elapsedTicks));
-        return Object.freeze({ ...obligation, ...facts });
+        return Object.freeze({
+          ...obligation,
+          ...facts,
+          remainingTicks: RELEASE_TICKS - obligation.elapsedTicks,
+        });
       }),
     ),
     released: Object.freeze(releasedTotals(state.obligations)),
@@ -327,6 +331,7 @@ export function paidAtmosphereRelease(
   return Object.freeze({
     ...obligation,
     ...release.read(0, secondsForTicks(obligation.elapsedTicks)),
+    remainingTicks: RELEASE_TICKS - obligation.elapsedTicks,
   });
 }
 

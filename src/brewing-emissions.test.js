@@ -7,6 +7,7 @@ import {
   attendBrew,
   brewStationReadiness,
   brewAtmosphereProblem,
+  advanceBrewing,
 } from "./brewing.ts";
 import { HERBAL_ALE_V1 } from "./recipes.ts";
 import { placementFooting } from "./game-space.ts";
@@ -172,6 +173,33 @@ test("saved active source cannot move to another existing gas cell", () => {
     brewAtmosphereProblem({ ...state, atmosphereReleases: moved }),
     /detached from its hearth/,
   );
+});
+
+test("saved fermentation must keep its receiver for every remaining paid release tick", () => {
+  const { state } = readyBatch();
+  assert.equal(attendBrew(state, "paid-batch").value, "fermenting");
+  const process = state.processes[0];
+  for (const progress of [121, 239, 240]) {
+    process.progress = progress;
+    // Material receipts and gas totals alone do not express process lifetime.
+    parsePaidAtmosphereReleases(
+      state.atmosphereReleases,
+      state.materials,
+      facts(state),
+    );
+    assert.match(brewAtmosphereProblem(state), /outlives its fermentation/);
+  }
+  // Exactly enough remaining process time is admissible and remains valid
+  // after the actual environment-before-fermentation successor order.
+  process.progress = 120;
+  assert.equal(brewAtmosphereProblem(state), null);
+  state.tick++;
+  elapsedTicks(state, 1);
+  advanceBrewing(state);
+  assert.equal(process.phase, "ferment");
+  assert.equal(process.progress, 121);
+  assert.equal(state.atmosphereReleases.obligations[0].elapsedTicks, 1);
+  assert.equal(brewAtmosphereProblem(state), null);
 });
 
 test("a flooded source waits before payment and cannot replace an already owed receiver", () => {

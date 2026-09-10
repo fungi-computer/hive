@@ -705,6 +705,14 @@ export function brewAtmosphereProblem(state: Clearing): string | null {
       release.cellId !== brewSourceCell(station)
     )
       return `Paid atmosphere release ${release.transformationId} is detached from its hearth`;
+    // The same fixed tick advances the release before fermentation. A valid
+    // saved process must retain its receiver until all paid emissions finish.
+    // Compare integer ticks rather than rounded seconds at the last tick.
+    if (
+      release.remainingTicks >
+      processDefinition(state, process).timings.ferment - process.progress
+    )
+      return `Paid atmosphere release ${release.transformationId} outlives its fermentation`;
   }
   return null;
 }
