@@ -71,6 +71,14 @@ function fieldCacheMatches(
     cached.siteStamp === stamp
   );
 }
+function fieldQueryCache(state: Clearing) {
+  const stamp = siteStamp(state.sites),
+    cached = fieldCaches.get(state),
+    navigation = createNavigationSpaces(state);
+  return fieldCacheMatches(state, cached, stamp) && cached.navigation === navigation
+    ? { cached, navigation }
+    : { cached: undefined, navigation };
+}
 export type FieldWaterSource = FieldWaterReference & {
   accessCells: readonly Cell[];
   availableUnits: number;
@@ -145,15 +153,8 @@ function accessCells(
 export function fieldWaterSources(
   state: Clearing,
 ): readonly FieldWaterSource[] {
-  const stamp = siteStamp(state.sites),
-    cached = fieldCaches.get(state);
-  const navigation = createNavigationSpaces(state);
-  if (
-    fieldCacheMatches(state, cached, stamp) &&
-    cached.navigation === navigation &&
-    cached.sources
-  )
-    return cached.sources;
+  const { cached, navigation } = fieldQueryCache(state);
+  if (cached?.sources) return cached.sources;
   const space = navigation();
   const known = knownFootings(state);
   const sources = fieldWaterCells(state)
@@ -184,15 +185,8 @@ export function fieldWaterSources(
   return stableSources;
 }
 export function fieldWaterSupplyKey(state: Clearing): string {
-  const stamp = siteStamp(state.sites),
-    cached = fieldCaches.get(state);
-  const navigation = createNavigationSpaces(state);
-  if (
-    fieldCacheMatches(state, cached, stamp) &&
-    cached.navigation === navigation &&
-    cached.supplyKey !== undefined
-  )
-    return cached.supplyKey;
+  const { cached } = fieldQueryCache(state);
+  if (cached?.supplyKey !== undefined) return cached.supplyKey;
   fieldWaterSources(state);
   return fieldCaches.get(state)?.supplyKey ?? "[]";
 }
