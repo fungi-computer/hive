@@ -166,6 +166,10 @@ async function startGame() {
       tool: current.tool,
       phase: current.phase,
       drag: start,
+      terrainStroke: {
+        start: context.start?.screen ?? null,
+        end: context.end?.screen ?? null,
+      },
       at: end || { x: 7, z: 7, level: current.level },
       level: current.level,
       designationTargetIds: current.designationTargetIds,
@@ -751,13 +755,12 @@ async function startGame() {
       if (fixed.tool === "dig") {
         const cells = terrainDesignationCells(
           fixed.tool,
-          start,
-          end,
-          state.terrain,
+          camera.terrainSelection(
+            fixed.machine.context.start?.screen ?? null,
+            fixed.machine.context.end?.screen ?? screen,
+            fixed.level,
+          ),
         );
-        const face = camera.terrainFace(screen);
-        if (cells.length === 1 && face?.ownerVoxel)
-          cells[0] = { kind: "dig", voxel: face.ownerVoxel };
         hud.dispatch({ kind: "submit-terrain-designation", cells });
         hud.dispatch({ kind: "placement-result", point: point(end, screen) });
         return;

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { initialTerrain } from "./terrain.ts";
 import { createActor } from "xstate";
 import {
   decideLevelTransition,
+  dispatchLevelAction,
   requiredToolLevel,
   terrainDesignationCells,
   toolMachine,
@@ -29,22 +29,14 @@ test("Dig remains armed through hover, one release, and stroke cancellation", ()
   const released = actor.getSnapshot();
   assert.equal(released.value, "fixed");
   assert.deepEqual(
-    terrainDesignationCells(
-      "dig",
-      released.context.start?.cell ?? null,
-      released.context.end.cell,
-      initialTerrain(),
-    ),
+    terrainDesignationCells("dig", [
+      { ownerVoxel: [0, 10, 128] },
+      { ownerVoxel: [0, 10, 128] },
+      { ownerVoxel: [-1, -2, 128] },
+    ]),
     [
-      { kind: "dig", voxel: [-5, 14, 122] },
-      { kind: "dig", voxel: [-4, 14, 122] },
-      { kind: "dig", voxel: [-3, 14, 122] },
-      { kind: "dig", voxel: [-5, 14, 123] },
-      { kind: "dig", voxel: [-4, 14, 123] },
-      { kind: "dig", voxel: [-3, 14, 123] },
-      { kind: "dig", voxel: [-5, 14, 124] },
-      { kind: "dig", voxel: [-4, 14, 124] },
-      { kind: "dig", voxel: [-3, 14, 124] },
+      { kind: "dig", voxel: [-1, -2, 128] },
+      { kind: "dig", voxel: [0, 10, 128] },
     ],
   );
 
@@ -59,19 +51,49 @@ test("Dig remains armed through hover, one release, and stroke cancellation", ()
   assert.equal(actor.getSnapshot().context.start, null);
 });
 
-test("terrain tools disarm on Escape and when Ground switches to Upper", () => {
+test("Dig disarms on Escape but retains the selected underground or upper layer", () => {
   const actor = createActor(toolMachine).start();
   actor.send({ type: "TOOL", tool: "dig" });
   actor.send({ type: "ESCAPE" });
   assert.equal(actor.getSnapshot().value, "idle");
   assert.equal(actor.getSnapshot().context.tool, null);
 
-  assert.equal(requiredToolLevel("dig"), 0);
-  assert.deepEqual(decideLevelTransition(0, 1, "dig"), {
-    changed: true,
-    level: 1,
-    disarm: true,
-    notice:
-      "Upper selected; the armed tool was disarmed because it is unavailable on this level.",
-  });
+  assert.equal(requiredToolLevel("dig"), null);
+  for (const level of [-2, -1, 1, 3])
+    assert.deepEqual(decideLevelTransition(0, level, "dig"), {
+      changed: true,
+      level,
+      disarm: false,
+      notice: null,
+    });
+});
+
+test("changing the selected slice clears the active stroke without issuing work or disarming Dig", () => {
+  const actor = createActor(toolMachine).start();
+  actor.send({ type: "TOOL", tool: "dig" });
+  actor.send({ type: "BEGIN", point: point(4, 5, -1) });
+  let level = -1,
+    cleared = 0;
+  dispatchLevelAction(
+    { kind: "level", level: -2 },
+    {
+      range: () => ({ min: -19, max: 11 }),
+      currentLevel: () => level,
+      armedTool: () => actor.getSnapshot().context.tool,
+      resetGesture: () => actor.send({ type: "CANCEL_STROKE" }),
+      disarmTool: () => assert.fail("Dig must retain its selected layer"),
+      setLevel: (value) => {
+        level = value;
+      },
+      clearInspection: () => {
+        cleared++;
+      },
+      notice: () => assert.fail("no forced-level notice"),
+    },
+  );
+  assert.equal(level, -2);
+  assert.equal(cleared, 1);
+  assert.equal(actor.getSnapshot().context.tool, "dig");
+  assert.equal(actor.getSnapshot().context.start, null);
+  actor.stop();
 });

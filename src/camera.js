@@ -61,6 +61,59 @@ export function quantizedVisibleArea(corners, size) {
   );
 }
 
+/** Visible face footprints in a screen-space stroke. Selection reads only the
+ * registered slice faces and confirms each candidate with the existing nearest
+ * face picker; neither rectangle nor layer invents hidden terrain. */
+export function terrainFacesInRectangle(picker, faces, start, end, level) {
+  if (!end) return [];
+  const first = start ?? end;
+  if (first.x === end.x && first.y === end.y) {
+    const face = picker.pick(end);
+    return face?.cell.level === level ? [face] : [];
+  }
+  const left = Math.min(first.x, end.x) - 0.5,
+    right = Math.max(first.x, end.x) + 0.5;
+  const top = Math.min(first.y, end.y) - 0.5,
+    bottom = Math.max(first.y, end.y) + 0.5;
+  const cross = (axis, value) => (from, to) => {
+    const t = (value - from[axis]) / (to[axis] - from[axis]);
+    return { x: from.x + (to.x - from.x) * t, z: from.z + (to.z - from.z) * t };
+  };
+  const selected = new Set();
+  for (const face of faces) {
+    if (face.cell.level !== level) continue;
+    let polygon = face.vertices.map(({ x, y, z }) => {
+      const pixel = project(x, z, y);
+      return { x: pixel.x, z: pixel.y };
+    });
+    for (const [axis, value, lower] of [
+      ["x", left, true],
+      ["x", right, false],
+      ["z", top, true],
+      ["z", bottom, false],
+    ])
+      polygon = clipPolygonEdge(
+        polygon,
+        (p) => (lower ? p[axis] >= value : p[axis] <= value),
+        cross(axis, value),
+      );
+    if (polygon.length < 3) continue;
+    const sample = polygon.reduce(
+      (sum, p) => ({
+        x: sum.x + p.x / polygon.length,
+        y: sum.y + p.z / polygon.length,
+      }),
+      { x: 0, y: 0 },
+    );
+    if (picker.pick(sample) === face) selected.add(face);
+  }
+  for (const point of [first, end]) {
+    const face = picker.pick(point);
+    if (face?.cell.level === level) selected.add(face);
+  }
+  return [...selected];
+}
+
 /** Keeps one presentation subscriber alive across BFCache suspension without
  * adding a clock or a second camera owner. */
 export function subscribeCameraPresentation(camera, update, target = window) {
@@ -95,6 +148,7 @@ export function subscribeCameraPresentation(camera, update, target = window) {
 // Presentation coordinates only. Baked pixels and simulation cells stay fixed.
 export function createCamera(app, host, world) {
   const terrainPicker = createTerrainPicker(SIZE);
+  let terrainFaces = [];
   let zoom = host.clientWidth >= 900 ? 2 : 1;
   const center = { x: WIDTH / 2, y: HEIGHT / 2 };
   const listeners = new Set();
@@ -142,7 +196,17 @@ export function createCamera(app, host, world) {
     terrainFace(point) {
       return terrainPicker.pick(local(point));
     },
+    terrainSelection(start, end, level) {
+      return terrainFacesInRectangle(
+        terrainPicker,
+        terrainFaces,
+        start ? local(start) : null,
+        end ? local(end) : null,
+        level,
+      );
+    },
     setTerrain(faces) {
+      terrainFaces = faces;
       terrainPicker.update(faces);
     },
     pan(dx, dy) {
