@@ -374,3 +374,15 @@ threshold90 and march survive restart; the authored retreat rule takes effect,
 active route persists, replay does not change it, and next step moves closer to
 home. Both authorized observation parity checks pass. No survival/pirate rerun,
 browser build, public backend or capacity claim is included.
+
+## Raft selection correction — 8f4042d
+
+User could sail only after hunting for a clickable deck spot. Shared pointer
+selection now tolerates 5px press/release movement, and authored selection
+shortcuts provide a Caps Select raft button. u5032 passed the ordinary build and
+one actual button/select/right-click/sail/save witness; King viewed
+.botanical/fresh-browser/pirate-select-raft.png. No wider browser matrix replayed.
+Owned scope closed inactive/dead/empty. u5036 same-preview upload passed:
+d1efdaa2-9e28-4166-ae2b-6beaa6af0e51. All 143 served hashes match after four initial
+propagation misses; initial evidence retained in release-8f4042d. Non-engine
+files remain byte-identical to d3b914a. Authority is still browser Worker/WASM.
