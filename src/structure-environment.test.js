@@ -107,7 +107,10 @@ test("structure environment: actual stair footprint and landing stay open withou
       actors: null,
     });
     assert.equal(floor.status, "rejected");
-    assert.match(floor.reason, /upper floor needs lower support/i);
+    assert.match(
+      floor.reason,
+      /^The floor needs a connected span within six tiles of support\.$/,
+    );
     assert.deepEqual(state.sites, [stair]);
     const geometry = structureEnvironment(state, region());
     for (const at of footprint(stair)) {
