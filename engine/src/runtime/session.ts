@@ -177,7 +177,7 @@ export class GameSession {
       this.tick = before.tick;
       this.random.restore(before.random);
       this.pendingActions = [...before.pendingActions];
-      this.outcomes = structuredClone(before.outcomes);
+      this.outcomes = structuredClone([...before.outcomes]);
       throw error;
     }
   }

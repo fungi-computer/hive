@@ -32,7 +32,8 @@ export function authoringContractProof(): void {
   const writes: unknown[] = [];
   guarded.run({
     clock: { now: 0, delta: 1, tick: 0 },
-    random: { next: () => 0.5, state: () => 1, restore: () => {} },
+    random: { next: () => 0.5 },
+    outcomes: [],
     query: () => [],
     write: (...args) => writes.push(args),
     action: () => {},
