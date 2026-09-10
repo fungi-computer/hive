@@ -20,6 +20,8 @@ import { stationScene } from "./art/brew-station.js";
 import { STATION_VISUAL_PROFILES } from "./brew-station-profiles.js";
 import { BUILDINGS } from "./construction.js";
 import { registerVisibleTexture } from "./visual-hit-geometry.js";
+import { loadStaticArtPack } from "./art/static-pack.js";
+import { STATIC_ART_RENDER } from "./art/static-manifest.js";
 
 function outline(ctx, w, h) {
   const src = ctx.getImageData(0, 0, w, h),
@@ -195,205 +197,31 @@ function createWaterBake(renderer) {
   };
 }
 
-export async function bakeArt(onProgress = () => {}) {
-  let completedTextures = 0;
-  let detail = "Preparing the drawing tools";
-  const report = (waitingFor = null) =>
-    onProgress({ detail, completedTextures, waitingFor });
-  report();
-  function bakeStartup(...args) {
-    const texture = bake(...args);
-    completedTextures++;
-    return texture;
-  }
+function createArtRenderer() {
+  const settings = STATIC_ART_RENDER.renderer;
   const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: false,
-    preserveDrawingBuffer: true,
+    alpha: settings.alpha,
+    antialias: settings.antialias,
+    preserveDrawingBuffer: settings.preserveDrawingBuffer,
   });
-  renderer.setPixelRatio(1);
-  renderer.setClearColor(0, 0);
+  renderer.setPixelRatio(settings.pixelRatio);
+  renderer.setClearColor(settings.clearColor, settings.clearAlpha);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  const portrait = camera(80, 80),
-    prop = camera(112, 112, 1.1);
-  detail = "Drawing the landscape";
-  report();
-  const art = {
-    ground: bakeStartup(
-      renderer,
-      clearing(),
-      worldCamera,
-      WIDTH,
-      HEIGHT,
-      false,
-    ),
-    figures: {},
-    tree: {},
-    herbs: { mugwort: {} },
-    buildings: {},
-    sources: { spring: {}, cache: {} },
-    pail: {},
-    wood: {},
-    soil: {},
-    ration: {},
-    wallJoints: {},
-    mixedShelf: {},
-    pawnAnchor: anchor(portrait),
-    propAnchor: anchor(prop),
+  return renderer;
+}
+
+function textureDisposer(textures) {
+  let disposed = false;
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    for (const texture of textures) texture.destroy(true);
   };
-  const workPoses = [
-    "idle",
-    "walk",
-    "chop",
-    "build",
-    "dig",
-    "carry-soil",
-    "carry-ration",
-    "eat",
-    "carry",
-    "carry-herb",
-    "carry-pail-empty",
-    "carry-pail-half",
-    "carry-pail-full",
-    "pickup-herb",
-    "pickup",
-    "deliver",
-    "sleep",
-  ];
-  for (const [kind, poses] of [
-    ["rowan", workPoses],
-    ["witch-runner", workPoses],
-    ["cat", ["idle", "walk", "sleep"]],
-    ["goblin", ["idle"]],
-  ]) {
-    const target = (art.figures[kind] = {});
-    for (const pose of poses) {
-      detail = `Drawing ${kind}: ${pose}`;
-      report();
-      target[pose] = [];
-      for (let direction = 0; direction < 4; direction++) {
-        const count =
-          pose === "sleep" || (pose === "idle" && kind === "goblin") ? 1 : 8;
-        target[pose].push(
-          Array.from({ length: count }, (_, frame) =>
-            bakeStartup(
-              renderer,
-              figure(kind, frame / count, (direction * Math.PI) / 2, pose),
-              portrait,
-              80,
-              80,
-            ),
-          ),
-        );
-      }
-      report("animation-frame");
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      report();
-    }
-  }
-  detail = "Drawing trees and plants";
-  report();
-  for (const stage of ["standing", "notched", "stump"])
-    art.tree[stage] = bakeStartup(renderer, tree(stage), prop, 112, 112);
-  for (const stage of MUGWORT_STAGES)
-    art.herbs.mugwort[stage] = bakeStartup(
-      renderer,
-      mugwort(stage),
-      prop,
-      112,
-      112,
-    );
-  for (const type of Object.keys(BUILDINGS)) {
-    detail = `Drawing ${type}`;
-    report();
-    art.buildings[type] = {};
-    const stages =
-      type === "shelf"
-        ? ["stakes", "frame", "finished", "filled"]
-        : ["stakes", "frame", "finished"];
-    for (const stage of stages)
-      art.buildings[type][stage] = [0, 1].map((direction) =>
-        bakeStartup(renderer, building(type, stage, direction), prop, 112, 112),
-      );
-    if (type === "brew-station")
-      art.buildings[type].profiles = Object.fromEntries(
-        STATION_VISUAL_PROFILES.map((profile) => [
-          profile,
-          [0, 1].map((direction) => {
-            const frames = profile === "prepare-attended" ? 8 : 1;
-            return Array.from({ length: frames }, (_, frame) =>
-              bakeStartup(
-                renderer,
-                stationScene("finished", direction, {
-                  profile,
-                  phase: frame / frames,
-                }),
-                prop,
-                112,
-                112,
-              ),
-            );
-          }),
-        ]),
-      );
-  }
-  detail = "Drawing supplies and furnishings";
-  report();
-  for (const fill of ["dry", "low", "full"])
-    art.sources.spring[fill] = bakeStartup(
-      renderer,
-      basinScene(fill),
-      prop,
-      112,
-      112,
-    );
-  for (const [state, sealed] of [
-    ["sealed", true],
-    ["repaired", false],
-  ])
-    art.sources.cache[state] = bakeStartup(
-      renderer,
-      propScene((parent) => brewerCache(parent, sealed)),
-      prop,
-      112,
-      112,
-    );
-  for (const [state, units] of [
-    ["empty", 0],
-    ["filled", 2],
-  ])
-    art.pail[state] = bakeStartup(
-      renderer,
-      propScene((parent) => pail(parent, units)),
-      prop,
-      112,
-      112,
-    );
-  for (const profile of PROFILES)
-    art.mixedShelf[profile.key] = [0, 1].map((direction) =>
-      bakeStartup(renderer, mixedShelf(profile.key, direction), prop, 112, 112),
-    );
-  for (const stage of ["stakes", "frame", "finished"])
-    art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
-      bakeStartup(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
-    );
-  for (let amount = 1; amount <= 6; amount++)
-    art.wood[amount] = bakeStartup(renderer, woodPile(amount), prop, 112, 112);
-  for (let amount = 1; amount <= 3; amount++)
-    art.soil[amount] = bakeStartup(renderer, soilPile(amount), prop, 112, 112);
-  for (let amount = 1; amount <= 3; amount++)
-    art.ration[amount] = bakeStartup(
-      renderer,
-      rationPile(amount),
-      prop,
-      112,
-      112,
-    );
-  // This one retained renderer rebakes terrain only after a physical edit/load.
-  // It never updates simulation state or time. View owns replacement textures.
-  detail = "Preparing water rendering";
-  report();
+}
+
+function attachDynamicBakers(art, renderer, disposeStatic) {
   const waterBake = createWaterBake(renderer);
+  let disposed = false;
   art.bakeTerrainWater = waterBake.bake;
   art.bakeTerrain = (terrain, previous, changedCells, faces) =>
     bakeTerrainPatch(renderer, terrain, previous, changedCells, faces);
@@ -438,8 +266,265 @@ export async function bakeArt(onProgress = () => {}) {
     };
   };
   art.dispose = () => {
+    if (disposed) return;
+    disposed = true;
     waterBake.dispose();
     renderer.dispose();
+    disposeStatic();
   };
   return art;
+}
+
+/** Load the maintained static bank; ordinary startup never falls back to authoring. */
+export async function loadArt(onProgress = () => {}, options = {}) {
+  const loaded = await loadStaticArtPack({ ...options, onProgress });
+  let renderer;
+  try {
+    renderer = createArtRenderer();
+    return attachDynamicBakers(loaded.art, renderer, loaded.dispose);
+  } catch (error) {
+    renderer?.dispose();
+    loaded.dispose();
+    throw error;
+  }
+}
+
+export async function bakeArt(onProgress = () => {}) {
+  let completedTextures = 0;
+  const bakedTextures = new Set();
+  let detail = "Preparing the drawing tools";
+  const report = (waitingFor = null) =>
+    onProgress({ detail, completedTextures, waitingFor });
+  report();
+  function bakeStartup(...args) {
+    try {
+      const texture = bake(...args);
+      bakedTextures.add(texture);
+      completedTextures++;
+      return texture;
+    } catch (error) {
+      args[1]?.traverse((object) => object.geometry?.dispose());
+      throw error;
+    }
+  }
+  const renderer = createArtRenderer();
+  const disposeStatic = textureDisposer(bakedTextures);
+  try {
+    const portrait = camera(
+        STATIC_ART_RENDER.portrait.width,
+        STATIC_ART_RENDER.portrait.height,
+        STATIC_ART_RENDER.portrait.cameraHeight,
+      ),
+      prop = camera(
+        STATIC_ART_RENDER.prop.width,
+        STATIC_ART_RENDER.prop.height,
+        STATIC_ART_RENDER.prop.cameraHeight,
+      );
+    detail = "Drawing the landscape";
+    report();
+    const art = {
+      ground: bakeStartup(
+        renderer,
+        clearing(),
+        worldCamera,
+        WIDTH,
+        HEIGHT,
+        false,
+      ),
+      figures: {},
+      tree: {},
+      herbs: { mugwort: {} },
+      buildings: {},
+      sources: { spring: {}, cache: {} },
+      pail: {},
+      wood: {},
+      soil: {},
+      ration: {},
+      wallJoints: {},
+      mixedShelf: {},
+      pawnAnchor: anchor(portrait),
+      propAnchor: anchor(prop),
+    };
+    const workPoses = [
+      "idle",
+      "walk",
+      "chop",
+      "build",
+      "dig",
+      "carry-soil",
+      "carry-ration",
+      "eat",
+      "carry",
+      "carry-herb",
+      "carry-pail-empty",
+      "carry-pail-half",
+      "carry-pail-full",
+      "pickup-herb",
+      "pickup",
+      "deliver",
+      "sleep",
+    ];
+    for (const [kind, poses] of [
+      ["rowan", workPoses],
+      ["witch-runner", workPoses],
+      ["cat", ["idle", "walk", "sleep"]],
+      ["goblin", ["idle"]],
+    ]) {
+      const target = (art.figures[kind] = {});
+      for (const pose of poses) {
+        detail = `Drawing ${kind}: ${pose}`;
+        report();
+        target[pose] = [];
+        for (let direction = 0; direction < 4; direction++) {
+          const count =
+            pose === "sleep" || (pose === "idle" && kind === "goblin") ? 1 : 8;
+          target[pose].push(
+            Array.from({ length: count }, (_, frame) =>
+              bakeStartup(
+                renderer,
+                figure(kind, frame / count, (direction * Math.PI) / 2, pose),
+                portrait,
+                80,
+                80,
+              ),
+            ),
+          );
+        }
+        report("animation-frame");
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        report();
+      }
+    }
+    detail = "Drawing trees and plants";
+    report();
+    for (const stage of ["standing", "notched", "stump"])
+      art.tree[stage] = bakeStartup(renderer, tree(stage), prop, 112, 112);
+    for (const stage of MUGWORT_STAGES)
+      art.herbs.mugwort[stage] = bakeStartup(
+        renderer,
+        mugwort(stage),
+        prop,
+        112,
+        112,
+      );
+    for (const type of Object.keys(BUILDINGS)) {
+      detail = `Drawing ${type}`;
+      report();
+      art.buildings[type] = {};
+      const stages =
+        type === "shelf"
+          ? ["stakes", "frame", "finished", "filled"]
+          : ["stakes", "frame", "finished"];
+      for (const stage of stages)
+        art.buildings[type][stage] = [0, 1].map((direction) =>
+          bakeStartup(
+            renderer,
+            building(type, stage, direction),
+            prop,
+            112,
+            112,
+          ),
+        );
+      if (type === "brew-station")
+        art.buildings[type].profiles = Object.fromEntries(
+          STATION_VISUAL_PROFILES.map((profile) => [
+            profile,
+            [0, 1].map((direction) => {
+              const frames = profile === "prepare-attended" ? 8 : 1;
+              return Array.from({ length: frames }, (_, frame) =>
+                bakeStartup(
+                  renderer,
+                  stationScene("finished", direction, {
+                    profile,
+                    phase: frame / frames,
+                  }),
+                  prop,
+                  112,
+                  112,
+                ),
+              );
+            }),
+          ]),
+        );
+    }
+    detail = "Drawing supplies and furnishings";
+    report();
+    for (const fill of ["dry", "low", "full"])
+      art.sources.spring[fill] = bakeStartup(
+        renderer,
+        basinScene(fill),
+        prop,
+        112,
+        112,
+      );
+    for (const [state, sealed] of [
+      ["sealed", true],
+      ["repaired", false],
+    ])
+      art.sources.cache[state] = bakeStartup(
+        renderer,
+        propScene((parent) => brewerCache(parent, sealed)),
+        prop,
+        112,
+        112,
+      );
+    for (const [state, units] of [
+      ["empty", 0],
+      ["filled", 2],
+    ])
+      art.pail[state] = bakeStartup(
+        renderer,
+        propScene((parent) => pail(parent, units)),
+        prop,
+        112,
+        112,
+      );
+    for (const profile of PROFILES)
+      art.mixedShelf[profile.key] = [0, 1].map((direction) =>
+        bakeStartup(
+          renderer,
+          mixedShelf(profile.key, direction),
+          prop,
+          112,
+          112,
+        ),
+      );
+    for (const stage of ["stakes", "frame", "finished"])
+      art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
+        bakeStartup(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
+      );
+    for (let amount = 1; amount <= 6; amount++)
+      art.wood[amount] = bakeStartup(
+        renderer,
+        woodPile(amount),
+        prop,
+        112,
+        112,
+      );
+    for (let amount = 1; amount <= 3; amount++)
+      art.soil[amount] = bakeStartup(
+        renderer,
+        soilPile(amount),
+        prop,
+        112,
+        112,
+      );
+    for (let amount = 1; amount <= 3; amount++)
+      art.ration[amount] = bakeStartup(
+        renderer,
+        rationPile(amount),
+        prop,
+        112,
+        112,
+      );
+    // This one retained renderer rebakes terrain only after a physical edit/load.
+    // It never updates simulation state or time. View owns replacement textures.
+    detail = "Preparing water rendering";
+    report();
+    return attachDynamicBakers(art, renderer, disposeStatic);
+  } catch (error) {
+    disposeStatic();
+    renderer.dispose();
+    throw error;
+  }
 }
