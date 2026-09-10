@@ -65,12 +65,14 @@ test("remote retries a lost response with the identical command envelope", async
 
 test("remote ignores stale observations and never performs a client step", async () => {
   let observeCount = 0;
+  const commandIds: string[] = [];
   const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
     if (input.toString().endsWith("/observe")) {
       observeCount++;
       return observation(4);
     }
     const body = JSON.parse(String(init?.body)) as { id: string };
+    commandIds.push(body.id);
     return Response.json({
       commandId: body.id,
       status: "rejected",
@@ -84,6 +86,10 @@ test("remote ignores stale observations and never performs a client step", async
     game: "survival",
     fetch: fetcher,
     pollMs: 60_000,
+    createCommandId: (() => {
+      let next = 0;
+      return () => `stale-${++next}`;
+    })(),
   });
   runtime.subscribe((event) => events.push(event));
   runtime.send({ type: "start", game: "survival" });
@@ -91,9 +97,51 @@ test("remote ignores stale observations and never performs a client step", async
   runtime.send({ type: "pause" });
   await wait(0);
   runtime.send({ type: "step", delta: 0.1 });
-  assert.equal(observeCount, 2);
+  assert.equal(observeCount, 5);
+  assert.equal(commandIds.length, 4);
+  assert.equal(new Set(commandIds).size, 4);
   assert.equal(events.filter((event) => event.type === "frame").length, 1);
   assert.ok(events.some((event) => event.type === "error"));
+  runtime.dispose();
+});
+
+test("a confirmed stale revision gets one new envelope and one applied effect", async () => {
+  let observedRevision = 0;
+  let commandCount = 0;
+  const commands: { id: string; expectedRevision: number }[] = [];
+  const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (input.toString().endsWith("/observe")) return observation(observedRevision);
+    const body = JSON.parse(String(init?.body)) as { id: string; expectedRevision: number };
+    commands.push(body);
+    commandCount++;
+    if (commandCount === 1) {
+      observedRevision = 1;
+      return Response.json({
+        commandId: body.id,
+        status: "rejected",
+        revision: 1,
+        result: { reason: "stale-revision" },
+      });
+    }
+    return applied(body.id, 2);
+  };
+  const runtime = connectRemoteRuntime({
+    endpoint: "https://hive.test/world",
+    game: "survival",
+    fetch: fetcher,
+    pollMs: 60_000,
+    createCommandId: (() => {
+      let next = 0;
+      return () => `confirmed-${++next}`;
+    })(),
+  });
+  runtime.send({ type: "start", game: "survival" });
+  await wait(0);
+  runtime.send({ type: "pause" });
+  await wait(20);
+  assert.equal(commandCount, 2);
+  assert.notEqual(commands[0].id, commands[1].id);
+  assert.deepEqual(commands.map(({ expectedRevision }) => expectedRevision), [0, 1]);
   runtime.dispose();
 });
 

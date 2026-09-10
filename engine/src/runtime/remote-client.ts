@@ -33,12 +33,14 @@ type ObservationWire = {
 type PendingIntent = {
   readonly command: unknown;
   retries: number;
+  staleRetries: number;
   id?: string;
   body?: string;
 };
 
 const MAX_PENDING = 16;
 const MAX_RETRIES = 3;
+const MAX_STALE_RESUBMISSIONS = 3;
 const DEFAULT_POLL_MS = 1000;
 const REQUEST_TIMEOUT_MS = 5000;
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
@@ -320,6 +322,26 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           const receipt = responseData.value as Record<string, unknown>;
           if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
+            const rejectedRevision = receipt.revision;
+            const staleResult = receipt.result;
+            const stale = safeNonnegativeInteger(rejectedRevision) && isRecord(staleResult) &&
+              staleResult.reason === "stale-revision";
+            if (stale) {
+              if (item.staleRetries >= MAX_STALE_RESUBMISSIONS) {
+                pending.shift();
+                emit({ type: "error", message: `remote stale revision retry limit exceeded for ${item.id}` });
+                return;
+              }
+              item.staleRetries++;
+              if (revision === undefined || revision < rejectedRevision)
+                awaitRevision = rejectedRevision;
+              await poll();
+              if (awaitRevision !== undefined) return;
+              item.id = undefined;
+              item.body = undefined;
+              item.retries = 0;
+              continue;
+            }
             pending.shift();
             emit({ type: "error", message: "remote command rejected" });
             await poll();
@@ -371,7 +393,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     const commandValue = command.type === "action" ? { kind: "action", action: command.action } :
       command.type === "command" ? { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) } :
       { kind: command.type };
-    pending.push({ command: structuredClone(commandValue), retries: 0 });
+    pending.push({ command: structuredClone(commandValue), retries: 0, staleRetries: 0 });
     schedulePump();
   };
   const subscribe = (listener: (event: WorkerEvent) => void) => {
