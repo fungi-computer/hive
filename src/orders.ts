@@ -32,6 +32,7 @@ import { containerContents } from "./materials.ts";
 import { inside, placementOccupant, sourceAccessCells } from "./world.js";
 import { movement } from "./movement.ts";
 import { excavationTargetProblem, excavationPositions } from "./excavation.ts";
+import { terrainCell } from "./terrain.ts";
 export type CommandResult =
   { status: "applied" } | { status: "rejected"; reason: string };
 export function commandProblem(s: Clearing, c: Command): string {

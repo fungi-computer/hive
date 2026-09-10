@@ -84,11 +84,25 @@ function binding(
   };
 }
 type Binding = ReturnType<typeof binding>;
+export type WaterEnvironmentCell = Readonly<{
+  readonly id: string;
+  readonly at: readonly [number, number, number];
+  readonly kind: "soil" | "void";
+  readonly massKg: number;
+  readonly capacityKg: number;
+  readonly mobileKg: number;
+  readonly liquidVolumeM3: number;
+  readonly moisture: number;
+}>;
+export type WaterEnvironmentFacts = Readonly<{
+  readonly totalKg: number;
+  readonly residualKg: number;
+  readonly initialTotalKg: number;
+  readonly boundaryKg: number;
+  readonly cells: readonly WaterEnvironmentCell[];
+}>;
 const admitted = new WeakMap<WaterEnvironment, Binding>();
-const observations = new WeakMap<
-  WaterEnvironment,
-  ReturnType<Binding["owner"]["read"]>
->();
+const observations = new WeakMap<WaterEnvironment, WaterEnvironmentFacts>();
 function remember(value: WaterEnvironment, bound: Binding): WaterEnvironment {
   const state = freeze(value) as WaterEnvironment;
   admitted.set(state, bound);
@@ -167,11 +181,12 @@ function current(input: WaterEnvironment, source: EnvironmentGeometry) {
 export function waterEnvironmentFacts(
   input: WaterEnvironment,
   source: EnvironmentGeometry,
-) {
+): WaterEnvironmentFacts {
   const { state, bound } = current(input, source);
   let facts = observations.get(state);
   if (!facts) {
-    facts = bound.owner.read(state.water);
+    const readFacts: WaterEnvironmentFacts = bound.owner.read(state.water);
+    facts = readFacts;
     observations.set(state, facts);
   }
   return facts;
