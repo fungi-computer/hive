@@ -72,8 +72,15 @@ export class GameSession {
     this.seed = (options.seed ?? 1) >>> 0;
     this.random = new DeterministicRandom(this.seed);
     for (const definition of Object.values(this.pack.commands ?? {})) {
-      const commandWrites = new Set(definition.writes.map((component) => component.id));
-      if (this.pack.systems.some((system) => system.writes.some((component) => commandWrites.has(component.id)))) throw new Error("command and system write ownership overlaps");
+      const commandWrites = new Set(
+        definition.writes.map((component) => component.id),
+      );
+      if (
+        this.pack.systems.some((system) =>
+          system.writes.some((component) => commandWrites.has(component.id)),
+        )
+      )
+        throw new Error("command and system write ownership overlaps");
     }
   }
   start(): void {
@@ -112,39 +119,129 @@ export class GameSession {
     const handler = this.pack.commands?.[name];
     if (!handler || !Object.hasOwn(this.pack.commands ?? {}, name))
       throw new Error("unknown game command");
-    const reads = new Set((handler.reads ?? []).map((component) => component.id));
-    const result: GameCommandResult = handler.run({ query: (spec) => {
-      for (const component of spec.components) if (!reads.has(component.id)) throw new Error(`command ${name} cannot read ${component.id}`);
-      return this.queryOverlay(spec, this.pendingWrites);
-    } }, structuredClone(input));
-    if (!result || !Array.isArray(result.actions) || !Array.isArray(result.writes)) throw new Error("invalid command result");
+    const reads = new Set(
+      (handler.reads ?? []).map((component) => component.id),
+    );
+    const result: GameCommandResult = handler.run(
+      {
+        query: (spec) => {
+          for (const component of spec.components)
+            if (!reads.has(component.id))
+              throw new Error(`command ${name} cannot read ${component.id}`);
+          return this.queryOverlay(spec, this.pendingWrites);
+        },
+      },
+      structuredClone(input),
+    );
+    if (
+      !result ||
+      !Array.isArray(result.actions) ||
+      !Array.isArray(result.writes)
+    )
+      throw new Error("invalid command result");
     const actions = result.actions.map(checkedAction);
     const writes = this.validateWrites(result.writes, handler.writes);
     const merged = [...this.pendingWrites];
-    for (const write of writes) { const index = merged.findIndex((existing) => existing.entity === write.entity && existing.component === write.component); if (index >= 0) merged[index] = write; else merged.push(write); }
-    if (this.pendingActions.length + actions.length > 128 || merged.length > 128)
+    for (const write of writes) {
+      const index = merged.findIndex(
+        (existing) =>
+          existing.entity === write.entity &&
+          existing.component === write.component,
+      );
+      if (index >= 0) merged[index] = write;
+      else merged.push(write);
+    }
+    if (
+      this.pendingActions.length + actions.length > 128 ||
+      merged.length > 128
+    )
       throw new Error("pending action limit reached");
     this.pendingActions.push(...actions);
     this.pendingWrites = merged;
   }
-  private validateWrites(writes: readonly WriteIntent[], allowed: readonly import("../contracts").ComponentDefinition<any>[], knownTargets?: ReadonlySet<EntityId>, knownMembership?: ReadonlySet<string>): WriteIntent[] {
-    const definitions = new Map(this.pack.components.map((component) => [component.id, component]));
+  private validateWrites(
+    writes: readonly WriteIntent[],
+    allowed: readonly import("../contracts").ComponentDefinition<any>[],
+    knownTargets?: ReadonlySet<EntityId>,
+    knownMembership?: ReadonlySet<string>,
+  ): WriteIntent[] {
+    const definitions = new Map(
+      this.pack.components.map((component) => [component.id, component]),
+    );
     const permitted = new Set(allowed.map((component) => component.id));
     return writes.map((write) => {
-      if (!permitted.has(write.component) || isReservedComponent(write.component)) throw new Error(`undeclared or physical write ${write.component}`);
+      if (
+        !permitted.has(write.component) ||
+        isReservedComponent(write.component)
+      )
+        throw new Error(`undeclared or physical write ${write.component}`);
       const definition = definitions.get(write.component);
-      if (!definition || !definition.validate(write.value)) throw new Error(`invalid component write ${write.component}`);
-      if (typeof write.value === "object" && write.value !== null && Object.values(write.value as Record<string, unknown>).some((value) => typeof value === "string" && new TextEncoder().encode(value).length > 4096)) throw new Error("authored string exceeds 4096 bytes");
-      if (knownMembership ? !knownMembership.has(`${write.entity}|${write.component}`) : knownTargets ? !knownTargets.has(write.entity) : !this.port.query({ components: [definition] }).some((row) => row.id === write.entity)) throw new Error(`unknown write target ${write.entity}`);
+      if (!definition || !definition.validate(write.value))
+        throw new Error(`invalid component write ${write.component}`);
+      if (
+        typeof write.value === "object" &&
+        write.value !== null &&
+        Object.values(write.value as Record<string, unknown>).some(
+          (value) =>
+            typeof value === "string" &&
+            new TextEncoder().encode(value).length > 4096,
+        )
+      )
+        throw new Error("authored string exceeds 4096 bytes");
+      if (
+        knownMembership
+          ? !knownMembership.has(`${write.entity}|${write.component}`)
+          : knownTargets
+            ? !knownTargets.has(write.entity)
+            : !this.port
+                .query({ components: [definition] })
+                .some((row) => row.id === write.entity)
+      )
+        throw new Error(`unknown write target ${write.entity}`);
+      for (const [field, kind] of Object.entries(definition.fields)) {
+        const value = (write.value as Record<string, unknown>)[field];
+        if (
+          (kind === "entity" || kind === "nullable-entity") &&
+          value !== null
+        ) {
+          const targets =
+            knownTargets ??
+            new Set<EntityId>(
+              JSON.parse(this.port.snapshot().json).scene.initial.map(
+                (row: { id: EntityId }) => row.id,
+              ),
+            );
+          if (typeof value !== "string" || !targets.has(value as EntityId))
+            throw new Error(`unknown entity reference ${field}`);
+        }
+      }
       return structuredClone(write);
     });
   }
-  private queryOverlay<T extends object>(spec: QuerySpec<T>, pending: readonly WriteIntent[]): readonly QueryRow<T>[] {
-    return this.port.query(spec).map((row) => ({ id: row.id, get: <V extends object>(definition: import("../contracts").ComponentDefinition<V>) => {
-      if (!spec.components.some((component) => component.id === definition.id)) throw new Error(`query row ${row.id} did not request ${definition.id}`);
-      const intent = pending.find((write) => write.entity === row.id && write.component === definition.id);
-      return structuredClone((intent ? intent.value : row.get(definition))) as V;
-    } }));
+  private queryOverlay<T extends object>(
+    spec: QuerySpec<T>,
+    pending: readonly WriteIntent[],
+  ): readonly QueryRow<T>[] {
+    return this.port.query(spec).map((row) => ({
+      id: row.id,
+      get: <V extends object>(
+        definition: import("../contracts").ComponentDefinition<V>,
+      ) => {
+        if (
+          !spec.components.some((component) => component.id === definition.id)
+        )
+          throw new Error(
+            `query row ${row.id} did not request ${definition.id}`,
+          );
+        const intent = pending.find(
+          (write) =>
+            write.entity === row.id && write.component === definition.id,
+        );
+        return structuredClone(
+          intent ? intent.value : row.get(definition),
+        ) as V;
+      },
+    }));
   }
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta))
@@ -168,21 +265,6 @@ export class GameSession {
         outcomes: structuredClone(this.outcomes),
         query: (spec) => this.queryOverlay(spec, queuedWrites),
         write: (definition, entity, value) => {
-          if (
-            [
-              "hive.position",
-              "hive.body",
-              "hive.container",
-              "hive.lot",
-              "hive.carrying",
-              "hive.destination",
-              "hive.obstacle",
-              "hive.visual",
-            ].includes(definition.id)
-          )
-            throw new Error(
-              `Physical component ${definition.id} is kernel-owned`,
-            );
           writes.push({ component: definition.id, entity, value });
         },
         action: (action) => {
@@ -199,7 +281,12 @@ export class GameSession {
           continue;
         const beforeWrites = writes.length;
         definition.run(context);
-        writes.push(...this.validateWrites(writes.splice(beforeWrites), definition.writes));
+        writes.push(
+          ...this.validateWrites(
+            writes.splice(beforeWrites),
+            definition.writes,
+          ),
+        );
       }
       const results = this.port.advance(delta, writes, actions);
       if (results.length !== actions.length)
@@ -268,15 +355,35 @@ export class GameSession {
       throw new Error("invalid session queues");
     const pending = snapshot.pendingActions.map(checkedAction);
     let canonical: any;
-    try { canonical = JSON.parse(snapshot.kernel.json); } catch { throw new Error("invalid session snapshot"); }
+    try {
+      canonical = JSON.parse(snapshot.kernel.json);
+    } catch {
+      throw new Error("invalid session snapshot");
+    }
     const initialEntities = canonical.scene?.initial;
-    if (!Array.isArray(initialEntities)) throw new Error("invalid session entities");
-    const incomingTargets = new Set<EntityId>(initialEntities.map((entity: { id: EntityId }) => entity.id));
+    if (!Array.isArray(initialEntities))
+      throw new Error("invalid session entities");
+    const incomingTargets = new Set<EntityId>(
+      initialEntities.map((entity: { id: EntityId }) => entity.id),
+    );
     const incomingMembership = new Set<string>();
-    for (const entity of initialEntities) for (const component of Object.keys(entity.components ?? {})) incomingMembership.add(`${entity.id}|${component}`);
+    for (const entity of initialEntities)
+      for (const component of Object.keys(entity.components ?? {}))
+        incomingMembership.add(`${entity.id}|${component}`);
     const pendingKeys = new Set<string>();
-    for (const write of snapshot.pendingWrites) { const key = `${write.entity}|${write.component}`; if (pendingKeys.has(key)) throw new Error("duplicate pending write"); pendingKeys.add(key); }
-    const pendingWrites = this.validateWrites(snapshot.pendingWrites, this.pack.components.filter((component) => !isReservedComponent(component.id)), incomingTargets, incomingMembership);
+    for (const write of snapshot.pendingWrites) {
+      const key = `${write.entity}|${write.component}`;
+      if (pendingKeys.has(key)) throw new Error("duplicate pending write");
+      pendingKeys.add(key);
+    }
+    const pendingWrites = this.validateWrites(
+      snapshot.pendingWrites,
+      Object.values(this.pack.commands ?? {}).flatMap(
+        (command) => command.writes,
+      ),
+      incomingTargets,
+      incomingMembership,
+    );
     if (!Array.isArray(snapshot.outcomes) || snapshot.outcomes.length > 256)
       throw new Error("invalid action outcomes");
     const outcomes = snapshot.outcomes.map((outcome) => {
@@ -305,9 +412,7 @@ export class GameSession {
       throw new Error("snapshot world does not match session");
     const schema = (items: { id: string; version: number; fields: object }[]) =>
       items
-        .filter(
-          (item) => !isReservedComponent(item.id),
-        )
+        .filter((item) => !isReservedComponent(item.id))
         .map((item) =>
           JSON.stringify([
             item.id,

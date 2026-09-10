@@ -2,8 +2,17 @@
 export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
 export type GameId = string;
-export const RESERVED_COMPONENTS = ["hive.position", "hive.body", "hive.container", "hive.lot", "hive.destination", "hive.obstacle", "hive.visual"] as const;
-export const isReservedComponent = (id: string): boolean => (RESERVED_COMPONENTS as readonly string[]).includes(id);
+export const RESERVED_COMPONENTS = [
+  "hive.position",
+  "hive.body",
+  "hive.container",
+  "hive.lot",
+  "hive.destination",
+  "hive.obstacle",
+  "hive.visual",
+] as const;
+export const isReservedComponent = (id: string): boolean =>
+  (RESERVED_COMPONENTS as readonly string[]).includes(id);
 
 export interface Vec3 {
   readonly x: number;
@@ -142,12 +151,7 @@ export interface GamePack {
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: import("./presentation").GamePresentation;
   readonly initialActions?: readonly ActionRequest[];
-  readonly commands?: Readonly<
-    Record<
-      string,
-      GameCommandDefinition
-    >
-  >;
+  readonly commands?: Readonly<Record<string, GameCommandDefinition>>;
 }
 export interface GameCommandResult {
   readonly actions: readonly ActionRequest[];
@@ -156,7 +160,10 @@ export interface GameCommandResult {
 export interface GameCommandDefinition {
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
-  readonly run: (context: Pick<ReadContext, "query">, input: unknown) => GameCommandResult;
+  readonly run: (
+    context: Pick<ReadContext, "query">,
+    input: unknown,
+  ) => GameCommandResult;
 }
 export interface GamePackTransport {
   readonly id: GameId;

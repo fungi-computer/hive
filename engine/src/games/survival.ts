@@ -91,30 +91,41 @@ export const survivalPack: GamePack = {
   components: [Position, MaterialLot, Survivor, Condition],
   systems: [survival],
   commands: {
-    takeFood: command({ reads: [MaterialLot], writes: [], run(context) {
-      const lot = context.query(query(MaterialLot)).find((row) => {
-        const value = row.get(MaterialLot);
-        return (
-          value.container === lockerId &&
-          value.kind === "bread" &&
-          value.quantity > 0
-        );
-      });
-      if (!lot) throw new Error("The locker is empty");
-      return { actions: [transfer(lot.id, lockerId, survivorId, 1)], writes: [] };
-    }}),
-    eatFood: command({ reads: [MaterialLot], writes: [], run(context) {
-      const lot = context.query(query(MaterialLot)).find((row) => {
-        const value = row.get(MaterialLot);
-        return (
-          value.container === survivorId &&
-          value.kind === "bread" &&
-          value.quantity > 0
-        );
-      });
-      if (!lot) throw new Error("Pick up some bread first");
-      return { actions: [consume(survivorId, lot.id, 1)], writes: [] };
-    }}),
+    takeFood: command({
+      reads: [MaterialLot],
+      writes: [],
+      run(context) {
+        const lot = context.query(query(MaterialLot)).find((row) => {
+          const value = row.get(MaterialLot);
+          return (
+            value.container === lockerId &&
+            value.kind === "bread" &&
+            value.quantity > 0
+          );
+        });
+        if (!lot) throw new Error("The locker is empty");
+        return {
+          actions: [transfer(lot.id, lockerId, survivorId, 1)],
+          writes: [],
+        };
+      },
+    }),
+    eatFood: command({
+      reads: [MaterialLot],
+      writes: [],
+      run(context) {
+        const lot = context.query(query(MaterialLot)).find((row) => {
+          const value = row.get(MaterialLot);
+          return (
+            value.container === survivorId &&
+            value.kind === "bread" &&
+            value.quantity > 0
+          );
+        });
+        if (!lot) throw new Error("Pick up some bread first");
+        return { actions: [consume(survivorId, lot.id, 1)], writes: [] };
+      },
+    }),
   },
   definition: encodeDefinition(
     "survival",

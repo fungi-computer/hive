@@ -234,9 +234,28 @@ test("queued input is cloned when requested", () => {
 
 test("command writes are rejected atomically when undeclared or untargeted", () => {
   const port = new TestPort();
-  const value = new GameSession({ port, pack: { ...pack(port, undefined), commands: {
-    bad: command({ writes: [morale], run: () => ({ actions: [], writes: [{ entity: "missing" as never, component: morale.id, value: { value: 4 } }] }) }),
-  } }, seed: 3 });
+  const value = new GameSession({
+    port,
+    pack: {
+      ...pack(port, undefined),
+      commands: {
+        bad: command({
+          writes: [morale],
+          run: () => ({
+            actions: [],
+            writes: [
+              {
+                entity: "missing" as never,
+                component: morale.id,
+                value: { value: 4 },
+              },
+            ],
+          }),
+        }),
+      },
+    },
+    seed: 3,
+  });
   value.start();
   const before = value.save();
   assert.throws(() => value.command("bad", null));

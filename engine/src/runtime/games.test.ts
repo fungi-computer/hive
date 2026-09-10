@@ -8,7 +8,7 @@ import { colonyPack } from "../games/colony";
 import { survivalPack, Condition } from "../games/survival";
 import { formationsPack } from "../games/formations";
 import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
-import { component, entity, query, system } from "../sdk/authoring";
+import { command, component, entity, query, system } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -147,5 +147,113 @@ test("new TypeScript component and rule persist without rebuilding the kernel", 
   } finally {
     first.dispose();
     second.dispose();
+  }
+});
+
+test("authored intents survive pause restore and rollback with committed-only reads", () => {
+  const Setting = component<{ value: number; link: string | null }>(
+    "intent.setting",
+    { version: 1, fields: { value: "number", link: "nullable-entity" } },
+  );
+  const Seen = component<{ value: number }>("intent.seen", {
+    version: 1,
+    fields: { value: "number" },
+  });
+  const id = entity("intent.actor");
+  let fail = false;
+  const pack = {
+    id: "intents",
+    version: 1,
+    components: [Setting, Seen],
+    definition: encodeDefinition(
+      "intents",
+      [Setting, Seen],
+      [
+        {
+          id,
+          components: {
+            "intent.setting": { value: 1, link: null },
+            "intent.seen": { value: 0 },
+          },
+        },
+      ],
+    ),
+    commands: {
+      set: command({
+        reads: [],
+        writes: [Setting],
+        run: (_ctx, input) => ({
+          actions: [],
+          writes: [{ component: Setting.id, entity: id, value: input }],
+        }),
+      }),
+      mutate: command({
+        reads: [Setting],
+        writes: [],
+        run: (ctx) => {
+          ctx.query(query(Setting))[0].get(Setting).value = 99;
+          throw new Error("stop");
+        },
+      }),
+    },
+    systems: [
+      system({
+        id: "intent.observe",
+        version: 1,
+        reads: [Setting],
+        writes: [Seen],
+        run(ctx) {
+          if (fail) throw new Error("injected");
+          ctx.write(Seen, id, {
+            value: ctx.query(query(Setting))[0].get(Setting).value,
+          });
+        },
+      }),
+    ],
+  };
+  const a = wasmKernelPort(new WasmKernel()),
+    b = wasmKernelPort(new WasmKernel());
+  try {
+    const first = new GameSession({ port: a, pack });
+    first.start();
+    first.pause();
+    first.command("set", { value: 2, link: id });
+    first.command("set", { value: 3, link: id });
+    assert.equal(first.save().pendingWrites.length, 1);
+    assert.equal(first.query(query(Setting))[0].get(Setting).value, 1);
+    const saved = first.save();
+    assert.throws(() => first.command("mutate", null), /stop/);
+    assert.deepEqual(first.save(), saved);
+    assert.throws(
+      () => first.command("set", { value: 4, link: "missing" }),
+      /reference/,
+    );
+    assert.deepEqual(first.save(), saved);
+    first.step(0.1);
+    assert.deepEqual(first.save(), saved);
+    const restored = new GameSession({ port: b, pack });
+    restored.restore(saved);
+    assert.deepEqual(restored.save(), saved);
+    const forged = structuredClone(saved);
+    forged.pendingWrites[0] = {
+      component: Seen.id,
+      entity: id,
+      value: { value: 9 },
+    };
+    assert.throws(() => restored.restore(forged), /undeclared/);
+    assert.deepEqual(restored.save(), saved);
+    restored.resume();
+    const beforeFailure = restored.save();
+    fail = true;
+    assert.throws(() => restored.step(0.1), /injected/);
+    assert.deepEqual(restored.save(), beforeFailure);
+    fail = false;
+    restored.step(0.1);
+    assert.equal(restored.query(query(Seen))[0].get(Seen).value, 3);
+    assert.equal(restored.query(query(Setting))[0].get(Setting).value, 3);
+    assert.equal(restored.save().pendingWrites.length, 0);
+  } finally {
+    a.dispose();
+    b.dispose();
   }
 });

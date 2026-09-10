@@ -100,7 +100,11 @@ export function system(options: SystemOptions): SystemDefinition {
 }
 
 export function command(options: GameCommandDefinition): GameCommandDefinition {
-  return Object.freeze({ reads: Object.freeze([...(options.reads ?? [])]), writes: Object.freeze([...options.writes]), run: options.run });
+  return Object.freeze({
+    reads: Object.freeze([...(options.reads ?? [])]),
+    writes: Object.freeze([...options.writes]),
+    run: options.run,
+  });
 }
 
 export function entity(id: string): EntityId {
