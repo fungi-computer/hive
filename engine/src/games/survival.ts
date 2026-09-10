@@ -26,7 +26,7 @@ export const survival = system({
     for (const row of ctx.query(query(Survivor, Condition))) {
       const survivor = row.get(Survivor),
         value = row.get(Condition),
-        recovery = ctx.query(query(MealRule))[0]?.get(MealRule).recovery ?? 10;
+        recovery = ctx.query(query(MealRule))[0]?.get(MealRule).recovery ?? 25;
       const eaten = ctx.outcomes.reduce((total, outcome) => {
         if (
           !outcome.result.accepted ||
@@ -70,8 +70,7 @@ const survivalInitial = [
       "hive.visual": { sprite: "goblin.survivor", label: "Survivor" },
       "survival.survivor": { controlled: true },
       "survival.condition": { hunger: 40, wellbeing: 100 },
-      "survival.meal-rule": { recovery: 10 },
-      "survival.meal-rule": { recovery: 10 },
+      "survival.meal-rule": { recovery: 25 },
     },
   },
   {
@@ -139,6 +138,6 @@ export const survivalPack: GamePack = {
   ),
   presentation: {
     controls: [{ id: "take", label: "Take bread", command: "takeFood" }, { id: "eat", label: "Eat bread", command: "eatFood" }, { id: "recovery-10", label: "Meal recovery 10", command: "setMealRule", input: { recovery: 10 } }, { id: "recovery-25", label: "Meal recovery 25", command: "setMealRule", input: { recovery: 25 } }],
-    inspect: (context) => { const condition = context.query(query(Condition))[0]?.get(Condition); const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot)); return [{ id: "hunger", label: "Hunger", value: condition?.hunger ?? 0 }, { id: "wellbeing", label: "Wellbeing", value: condition?.wellbeing ?? 0 }, { id: "carried", label: "Carried bread", value: lots.filter((lot) => lot.container === survivorId).reduce((sum, lot) => sum + lot.quantity, 0) }, { id: "locker", label: "Locker bread", value: lots.filter((lot) => lot.container === lockerId).reduce((sum, lot) => sum + lot.quantity, 0) }, { id: "meal-recovery", label: "Meal recovery", value: context.query(query(MealRule))[0]?.get(MealRule).recovery ?? 10 }]; },
+    inspect: (context) => { const condition = context.query(query(Condition))[0]?.get(Condition); const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot)); return [{ id: "hunger", label: "Hunger", value: condition?.hunger ?? 0 }, { id: "wellbeing", label: "Wellbeing", value: condition?.wellbeing ?? 0 }, { id: "carried", label: "Carried bread", value: lots.filter((lot) => lot.container === survivorId).reduce((sum, lot) => sum + lot.quantity, 0) }, { id: "locker", label: "Locker bread", value: lots.filter((lot) => lot.container === lockerId).reduce((sum, lot) => sum + lot.quantity, 0) }, { id: "meal-recovery", label: "Meal recovery", value: context.query(query(MealRule))[0]?.get(MealRule).recovery ?? 25 }]; },
   },
 };

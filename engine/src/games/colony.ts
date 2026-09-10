@@ -1,4 +1,4 @@
-import { command, component, entity } from "../sdk/authoring";
+import { command, component, entity, query } from "../sdk/authoring";
 import {
   Destination,
   MaterialLot,
