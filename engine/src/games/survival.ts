@@ -10,7 +10,7 @@ export const survival = system({ id: "survival.hunger", version: 1, reads: [Surv
     const hunger = Math.min(100, value.hunger + ctx.clock.delta * 0.5);
     ctx.write(Condition, row.id, { hunger, wellbeing: hunger > 80 ? Math.max(0, value.wellbeing - ctx.clock.delta) : value.wellbeing });
   }
-});
+} });
 const survivorId = entity("survival.survivor.1"), lockerId = entity("survival.locker"), foodId = entity("survival.food.1");
 const survivalInitial = [{ id: survivorId, components: { "hive.position": { x: 0, y: 0, z: 0, facing: 0 }, "hive.body": { speed: 2 }, "hive.container": { capacity: 2 }, "hive.visual": { sprite: "goblin.survivor", label: "Survivor" }, "survival.survivor": { controlled: true }, "survival.condition": { hunger: 40, wellbeing: 100 } } }, { id: lockerId, components: { "hive.position": { x: 2, y: 0, z: 0, facing: 0 }, "hive.container": { capacity: 12 }, "hive.visual": { sprite: "crate", label: "Locker" } } }, { id: foodId, components: { "hive.lot": { quantity: 8, kind: "bread", container: lockerId } } }];
 export const survivalPack: GamePack = { id: "survival", version: 1, components: [Position, FoodLot, Carrying, Selected, Survivor, Condition], systems: [survival], definition: encodeDefinition("survival", [Position, FoodLot, Carrying, Selected, Survivor, Condition], survivalInitial) };
