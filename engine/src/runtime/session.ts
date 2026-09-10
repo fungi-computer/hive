@@ -1,5 +1,5 @@
 import { checkedAction } from "./actions";
-import type { ActionRequest, ActionResult, GamePack, KernelPort, QuerySpec, QueryRow, RandomSource, SimulationClock, WriteContext, WriteIntent } from "../contracts";
+import type { ActionRequest, ActionResult, ActionOutcome, GamePack, KernelPort, QuerySpec, QueryRow, RandomSource, SimulationClock, WriteContext, WriteIntent } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
   private value: number;
@@ -10,7 +10,7 @@ class DeterministicRandom implements RandomSource {
 }
 
 export interface SessionOptions { readonly seed?: number; readonly port: KernelPort; readonly pack: GamePack }
-export interface SessionSnapshot { readonly format: "hive-session"; readonly version: 2; readonly game: string; readonly gameVersion: number; readonly paused: boolean; readonly kernel: ReturnType<KernelPort["snapshot"]>; readonly now: number; readonly tick: number; readonly random: number; readonly pendingActions: readonly ActionRequest[]; readonly systems: readonly { id: string; version: number }[] }
+export interface SessionSnapshot { readonly format: "hive-session"; readonly version: 3; readonly game: string; readonly gameVersion: number; readonly paused: boolean; readonly kernel: ReturnType<KernelPort["snapshot"]>; readonly now: number; readonly tick: number; readonly random: number; readonly outcomes: readonly ActionOutcome[]; readonly pendingActions: readonly ActionRequest[]; readonly systems: readonly { id: string; version: number }[] }
 export class GameSession {
   readonly pack: GamePack;
   private readonly port: KernelPort;
@@ -19,6 +19,7 @@ export class GameSession {
   private paused = false;
   private now = 0;
   private tick = 0;
+  private outcomes: ActionOutcome[] = [];
   private pendingActions: ActionRequest[] = [];
   constructor(options: SessionOptions) {
     this.pack = options.pack; this.port = options.port; this.seed = (options.seed ?? 1) >>> 0; this.random = new DeterministicRandom(this.seed);
@@ -27,7 +28,7 @@ export class GameSession {
   pause(): void { this.paused = true; }
   resume(): void { this.paused = false; }
   get isPaused(): boolean { return this.paused; }
-  reset(): void { this.random.restore(this.seed); this.paused = false; this.now = 0; this.tick = 0; this.pendingActions = []; this.start(); }
+  reset(): void { this.random.restore(this.seed); this.paused = false; this.now = 0; this.tick = 0; this.outcomes = []; this.pendingActions = []; this.start(); }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] { return this.port.query(spec); }
   request(action: ActionRequest): void { if (this.pendingActions.length >= 128) throw new Error("pending action limit reached"); this.pendingActions.push(checkedAction(action)); }
   step(delta: number): readonly ActionResult[] {
@@ -40,7 +41,7 @@ export class GameSession {
       const actions: ActionRequest[] = this.pendingActions.splice(0);
       let systemActionCount = 0;
       const context: WriteContext = {
-      clock, random: this.random,
+      clock, random: this.random, outcomes: structuredClone(this.outcomes),
       query: spec => this.port.query(spec),
       write: (definition, entity, value) => {
         if (["hive.position", "hive.body", "hive.container", "hive.lot", "hive.carrying", "hive.destination", "hive.obstacle", "hive.visual"].includes(definition.id)) throw new Error(`Physical component ${definition.id} is kernel-owned`);
@@ -56,19 +57,26 @@ export class GameSession {
         definition.run(context);
       }
       const results = this.port.advance(delta, writes, actions);
+      if (results.length !== actions.length) throw new Error("kernel result count mismatch");
+      this.outcomes = actions.map((action, index) => ({ action, result: results[index] }));
       this.now += delta; this.tick++;
       return results;
     } catch (error) {
       this.port.restore(before.kernel); this.now = before.now; this.tick = before.tick; this.random.restore(before.random);
-      this.pendingActions = [...before.pendingActions];
+      this.pendingActions = [...before.pendingActions]; this.outcomes = structuredClone(before.outcomes);
       throw error;
     }
   }
-  save(): SessionSnapshot { return { format: "hive-session", version: 2, game: this.pack.id, gameVersion: this.pack.version, paused: this.paused, kernel: this.port.snapshot(), now: this.now, tick: this.tick, random: this.random.state(), pendingActions: structuredClone(this.pendingActions), systems: this.pack.systems.map(system => ({ id: system.id, version: system.version })) }; }
+  save(): SessionSnapshot { return { format: "hive-session", version: 3, outcomes: structuredClone(this.outcomes), game: this.pack.id, gameVersion: this.pack.version, paused: this.paused, kernel: this.port.snapshot(), now: this.now, tick: this.tick, random: this.random.state(), pendingActions: structuredClone(this.pendingActions), systems: this.pack.systems.map(system => ({ id: system.id, version: system.version })) }; }
   restore(snapshot: SessionSnapshot): void {
-    if (snapshot.format !== "hive-session" || snapshot.version !== 2 || snapshot.game !== this.pack.id || snapshot.gameVersion !== this.pack.version || typeof snapshot.paused !== "boolean" || snapshot.now < 0 || !Number.isFinite(snapshot.now) || !Number.isSafeInteger(snapshot.tick) || snapshot.tick < 0 || !Number.isInteger(snapshot.random) || snapshot.random < 0 || snapshot.random > 0xffffffff) throw new Error("invalid session snapshot");
+    if (snapshot.format !== "hive-session" || snapshot.version !== 3 || snapshot.game !== this.pack.id || snapshot.gameVersion !== this.pack.version || typeof snapshot.paused !== "boolean" || snapshot.now < 0 || !Number.isFinite(snapshot.now) || !Number.isSafeInteger(snapshot.tick) || snapshot.tick < 0 || !Number.isInteger(snapshot.random) || snapshot.random < 0 || snapshot.random > 0xffffffff) throw new Error("invalid session snapshot");
     if (!Array.isArray(snapshot.pendingActions) || snapshot.pendingActions.length > 128 || !Array.isArray(snapshot.systems)) throw new Error("invalid session queues");
     const pending = snapshot.pendingActions.map(checkedAction);
+    if (!Array.isArray(snapshot.outcomes) || snapshot.outcomes.length > 256) throw new Error("invalid action outcomes");
+    const outcomes = snapshot.outcomes.map(outcome => {
+      if (!outcome.result || typeof outcome.result.accepted !== "boolean" || outcome.result.revision !== snapshot.kernel.revision || (outcome.result.reason !== undefined && typeof outcome.result.reason !== "string")) throw new Error("invalid action result");
+      return { action: checkedAction(outcome.action), result: structuredClone(outcome.result) };
+    });
     const canonical = JSON.parse(snapshot.kernel.json);
     const definition = JSON.parse(new TextDecoder().decode(this.pack.definition));
     if (canonical.scene?.game !== this.pack.id || canonical.time !== snapshot.now || canonical.revision !== snapshot.kernel.revision || canonical.revision !== snapshot.tick) throw new Error("snapshot world does not match session");
@@ -77,7 +85,7 @@ export class GameSession {
     const expected = this.pack.systems.map(system => `${system.id}@${system.version}`).join(",");
     const actual = snapshot.systems.map(system => `${system.id}@${system.version}`).join(",");
     if (expected !== actual) throw new Error("snapshot game system versions do not match");
-    this.port.restore(snapshot.kernel); this.now = snapshot.now; this.tick = snapshot.tick; this.random.restore(snapshot.random); this.pendingActions = pending; this.paused = snapshot.paused;
+    this.port.restore(snapshot.kernel); this.now = snapshot.now; this.tick = snapshot.tick; this.random.restore(snapshot.random); this.pendingActions = pending; this.outcomes = outcomes; this.paused = snapshot.paused;
   }
   renderFacts(limit = 512) { return this.port.renderFacts(limit); }
 }

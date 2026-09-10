@@ -7,7 +7,13 @@ export const Condition = component<{ hunger: number; wellbeing: number }>("survi
 export const survival = system({ id: "survival.hunger", version: 1, reads: [Survivor, Condition, Carrying, FoodLot], writes: [Condition], run(ctx) {
   for (const row of ctx.query(query(Survivor, Condition))) {
     const survivor = row.get(Survivor), value = row.get(Condition);
-    const hunger = Math.min(100, value.hunger + ctx.clock.delta * 0.5);
+    const eaten = ctx.outcomes.reduce((total, outcome) => {
+      if (!outcome.result.accepted || outcome.action.kind !== "consume" || outcome.action.entity !== row.id) return total;
+      const action = outcome.action;
+      const lot = ctx.query(query(FoodLot)).find(lot => lot.id === action.lot);
+      return total + (lot?.get(FoodLot).kind === "bread" ? outcome.action.quantity : 0);
+    }, 0);
+    const hunger = Math.max(0, Math.min(100, value.hunger + ctx.clock.delta * 0.5 - eaten * 25));
     ctx.write(Condition, row.id, { hunger, wellbeing: hunger > 80 ? Math.max(0, value.wellbeing - ctx.clock.delta) : value.wellbeing });
   }
 } });

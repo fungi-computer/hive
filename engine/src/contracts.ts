@@ -32,10 +32,13 @@ export type ActionRequest =
   | { readonly kind: "consume"; readonly entity: EntityId; readonly lot: EntityId; readonly quantity: number };
 export interface ActionResult { readonly accepted: boolean; readonly reason?: string; readonly revision: number }
 
+export interface ActionOutcome { readonly action: ActionRequest; readonly result: ActionResult }
+
 export interface SimulationClock { readonly now: number; readonly delta: number; readonly tick: number }
 export interface RandomSource { next(): number }
 export interface ReadContext {
   readonly clock: SimulationClock;
+  readonly outcomes: readonly ActionOutcome[];
   readonly random: RandomSource;
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
 }
