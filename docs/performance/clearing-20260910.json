@@ -1,0 +1,156 @@
+{
+  "baseline": {
+    "schema": 2,
+    "label": "baseline-b2dcc49",
+    "revision": "9321d4d85e09c87cacd06ccf259f5cef571b7ac4",
+    "optimizerBuildId": "b766aed9dbf46b7a85b3740a96a69daf78a5dd582df76eb040dcc450e75ac378:33d78e3451179d1e17d283837066a819d94ec0bba239dda4c6ce19edb7fcc0e9",
+    "workload": {
+      "seed": 42,
+      "startupCalls": 1,
+      "warmupTicks": 10,
+      "measuredFlowingTicks": 40,
+      "measuredDigTicks": 40,
+      "fixture": "createClearing(42), 10 warmup ticks, 40 flowing ticks, paused admitCommand dig [0,14,128] for home/rowan, 40 dig ticks",
+      "headline": "step -> commitTicks -> advanceCandidate, including paid environment, work, observation and libcolony assignWork",
+      "probes": "10 single advancePaidEnvironment calls, 10 untimed assignWork calls, 10 timed water/air projection calls"
+    },
+    "startup": {
+      "wallMs": 3117.531946,
+      "cpuMs": 1180.53
+    },
+    "gameplay": {
+      "tick": 90,
+      "geometryRevision": 0,
+      "waterCells": 1373,
+      "gasVolumes": 33,
+      "changedWaterStocks": 289,
+      "remainingJobs": ["dig"],
+      "rowan": {
+        "mode": "dig",
+        "work": 39
+      }
+    },
+    "warmup": {
+      "count": 10,
+      "totalMs": 6875.426863999997,
+      "p50Ms": 650.2089599999999,
+      "p95Ms": 985.0008909999997,
+      "maxMs": 985.0008909999997,
+      "cpuMs": 1924.8269999999998
+    },
+    "flowingTicks": {
+      "count": 40,
+      "totalMs": 20896.023223,
+      "p50Ms": 485.82154399999854,
+      "p95Ms": 751.7613810000003,
+      "maxMs": 815.611836,
+      "cpuMs": 6471.749
+    },
+    "digTicks": {
+      "count": 40,
+      "totalMs": 18746.394722000005,
+      "p50Ms": 480.45081900000514,
+      "p95Ms": 572.744273999997,
+      "maxMs": 696.081720000002,
+      "cpuMs": 6390.4479999999985
+    },
+    "fields": {
+      "count": 10,
+      "totalMs": 4584.8101499999975,
+      "p50Ms": 449.9816659999997,
+      "p95Ms": 579.9042860000045,
+      "maxMs": 579.9042860000045,
+      "cpuMs": 1493.7359999999999
+    },
+    "optimizer": {
+      "calls": 10,
+      "timed": false
+    },
+    "presentation": {
+      "count": 10,
+      "totalMs": 20.490387000005285,
+      "p50Ms": 0.7372620000023744,
+      "p95Ms": 6.5149489999967045,
+      "maxMs": 6.5149489999967045,
+      "cpuMs": 10.41
+    },
+    "limitations": "Local source witness only; startup is createClearing after optimizer load; probes are attribution aids, not additive totals or performance guarantees; no renderer/browser/DO claim."
+  },
+  "candidate": {
+    "schema": 2,
+    "label": "candidate-0478170",
+    "revision": "04781704318e7f9c15f078bc1416ac72db795263",
+    "optimizerBuildId": "b766aed9dbf46b7a85b3740a96a69daf78a5dd582df76eb040dcc450e75ac378:33d78e3451179d1e17d283837066a819d94ec0bba239dda4c6ce19edb7fcc0e9",
+    "workload": {
+      "seed": 42,
+      "startupCalls": 1,
+      "warmupTicks": 10,
+      "measuredFlowingTicks": 40,
+      "measuredDigTicks": 40,
+      "fixture": "createClearing(42), 10 warmup ticks, 40 flowing ticks, paused admitCommand dig [0,14,128] for home/rowan, 40 dig ticks",
+      "headline": "step -> commitTicks -> advanceCandidate, including paid environment, work, observation and libcolony assignWork",
+      "probes": "10 single advancePaidEnvironment calls, 10 untimed assignWork calls, 10 timed water/air projection calls"
+    },
+    "startup": {
+      "wallMs": 3059.0839430000005,
+      "cpuMs": 1136.661
+    },
+    "gameplay": {
+      "tick": 90,
+      "geometryRevision": 0,
+      "waterCells": 1373,
+      "gasVolumes": 33,
+      "changedWaterStocks": 289,
+      "remainingJobs": ["dig"],
+      "rowan": {
+        "mode": "dig",
+        "work": 39
+      }
+    },
+    "warmup": {
+      "count": 10,
+      "totalMs": 643.995609999999,
+      "p50Ms": 54.19402900000023,
+      "p95Ms": 124.48934099999951,
+      "maxMs": 124.48934099999951,
+      "cpuMs": 306.814
+    },
+    "flowingTicks": {
+      "count": 40,
+      "totalMs": 2520.353763999996,
+      "p50Ms": 57.68145600000025,
+      "p95Ms": 103.7602109999998,
+      "maxMs": 120.24944999999934,
+      "cpuMs": 996.0270000000003
+    },
+    "digTicks": {
+      "count": 40,
+      "totalMs": 2383.227352,
+      "p50Ms": 57.87526799999978,
+      "p95Ms": 89.61089999999967,
+      "maxMs": 173.05613600000015,
+      "cpuMs": 961.3430000000002
+    },
+    "fields": {
+      "count": 10,
+      "totalMs": 569.971244999997,
+      "p50Ms": 53.42377699999997,
+      "p95Ms": 86.70515999999952,
+      "maxMs": 86.70515999999952,
+      "cpuMs": 187.39600000000002
+    },
+    "optimizer": {
+      "calls": 10,
+      "timed": false
+    },
+    "presentation": {
+      "count": 10,
+      "totalMs": 17.63156799999706,
+      "p50Ms": 0.43334300000060466,
+      "p95Ms": 7.955492999999478,
+      "maxMs": 7.955492999999478,
+      "cpuMs": 7.178
+    },
+    "limitations": "Local source witness only; startup is createClearing after optimizer load; probes are attribution aids, not additive totals or performance guarantees; no renderer/browser/DO claim."
+  }
+}
