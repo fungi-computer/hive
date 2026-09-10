@@ -242,6 +242,12 @@ test("carried pail art reads vessel water from the canonical lot container", () 
     carriedActorPose({ lots: [] }, { material: "mugwort" }, "transfer"),
     "carry-herb",
   );
+  for (const material of ["soil", "stone"]) {
+    const pose = carriedActorPose({ lots: [] }, { material }, "transfer");
+    assert.equal(pose, `carry-${material}`);
+    assert.equal(carriedActorFrame(5, pose, "transfer", [0, 1, 2]), 0);
+    assert.equal(carriedActorFrame(4, pose, "walk", [0, 1, 2]), 2);
+  }
 });
 
 test("unestablished mugwort has no visual growth until canonical establishment", () => {
