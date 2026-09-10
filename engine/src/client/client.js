@@ -58,7 +58,6 @@ export function createHiveClient({
       runtime.send({ type: "save" });
     } else if (runtime && action.kind === "reset") {
       animationClock.reset();
-      animationNow = 0;
       runtime.send({ type: "reset" });
     } else if (action.kind === "continue") {
       try {
@@ -68,7 +67,6 @@ export function createHiveClient({
         state.pendingRestore = true;
         state.message = "Continue requested…";
         animationClock.reset();
-        animationNow = 0;
         runtime.send({ type: "restore", snapshot });
       } catch (error) {
         state.pendingRestore = false;
@@ -86,10 +84,11 @@ export function createHiveClient({
   const app = new Application();
   const overlay = new Container();
   const actorLayer = new Container();
+  const transientLayer = new Container();
+  actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
   let groundSprite = null;
-  let animationNow = 0;
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
@@ -263,17 +262,21 @@ export function createHiveClient({
         ? new Sprite(art.ground)
         : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, actorLayer);
+      overlay.addChild(groundSprite, actorLayer, transientLayer);
     }
+    for (const child of transientLayer.removeChildren())
+      child.destroy?.({ children: true, texture: false, textureSource: false });
     groundSprite.position.set(
       320 * camera.zoom + camera.x,
       200 * camera.zoom + camera.y,
     );
     groundSprite.scale.set(camera.zoom);
-    animationNow += 16;
     const animationById = new Map(
       animationClock
-        .sample(state.subjects, { now: animationNow, paused: state.paused })
+        .sample(state.subjects, {
+          now: performance.now(),
+          paused: state.paused,
+        })
         .map((sample) => [sample.id, sample]),
     );
     const liveIds = new Set(state.subjects.map((subject) => subject.id));
@@ -342,6 +345,8 @@ export function createHiveClient({
       entry.label.position.set(0, -12);
       entry.label.visible = state.selectedIds.includes(subject.id);
       entry.container.position.set(subject.screen.x, subject.screen.y);
+      entry.container.zIndex = subject.x + subject.z;
+      actorLayer.setChildIndex(entry.container, actorLayer.children.length - 1);
     }
     const drag = gesture.getSnapshot().context;
     if (
@@ -349,7 +354,7 @@ export function createHiveClient({
       drag.start &&
       drag.current
     )
-      overlay.addChild(
+      transientLayer.addChild(
         new Graphics()
           .rect(
             Math.min(drag.start.x, drag.current.x),

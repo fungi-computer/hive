@@ -20,6 +20,7 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
         phase = 0;
         lastNow = undefined;
       }
+      if (paused) lastNow = undefined;
       if (!paused && Number.isFinite(now)) {
         phase += lastNow === undefined ? 0 : Math.max(0, now - lastNow);
         lastNow = now;
