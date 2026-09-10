@@ -7,7 +7,7 @@ export type WorkerCommand =
   | { readonly type: "pause" | "resume" | "reset" }
   | { readonly type: "step"; readonly delta: number }
   | { readonly type: "action"; readonly action: ActionRequest }
-  | { readonly type: "save" } | { readonly type: "restore"; readonly snapshot: KernelSnapshot };
+  | { readonly type: "save" } | { readonly type: "restore"; readonly snapshot: SessionSnapshot };
 export type WorkerEvent =
   | { readonly type: "ready"; readonly game: string }
   | { readonly type: "frame"; readonly facts: readonly RenderFact[] }

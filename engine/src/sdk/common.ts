@@ -13,4 +13,5 @@ export const consume = (entity: EntityId, lot: EntityId, quantity: number): Acti
 export const groupOrder = (group: EntityId, destination: Vec3, facing: number): ActionRequest => ({ kind: "group-order", group, destination, facing });
 
 export interface SceneEntity { readonly id: EntityId; readonly components: Readonly<Record<string, unknown>> }
-export const encodeDefinition = (game: string, components: readonly ComponentDefinition<any>[], initial: readonly SceneEntity[] = []) => new TextEncoder().encode(JSON.stringify({ format: "hive-game", version: 1, game, components: components.map(c => ({ id: c.id, version: c.version, fields: c.fields })), initial }));
+const RESERVED = new Set(["hive.position", "hive.body", "hive.container", "hive.lot", "hive.destination", "hive.obstacle", "hive.visual"]);
+export const encodeDefinition = (game: string, components: readonly ComponentDefinition<any>[], initial: readonly SceneEntity[] = []) => new TextEncoder().encode(JSON.stringify({ format: "hive-game", version: 1, game, components: components.filter(c => !RESERVED.has(c.id)).map(c => ({ id: c.id, version: c.version, fields: c.fields })), initial }));
