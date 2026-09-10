@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["./*.ts", "../engine-do/goblin-env.d.ts"]
+  "include": ["./*.ts", "./env.d.ts"]
 }

@@ -14,6 +14,7 @@ const commandInput = z
     command: z.unknown(),
   })
   .strict();
+export type PublicCommandInput = z.infer<typeof commandInput>;
 
 export function packFromPath(pathname: string): PublicPack | null {
   const match = /^\/v1\/([^/]+)\/(observe|command)$/.exec(pathname);
