@@ -19,6 +19,7 @@ import { soilPile } from "./art/soil.js";
 import { stonePile } from "./art/stone.js";
 import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
+import { shipScene } from "./art/ship.js";
 import {
   STATION_VISUAL_PROFILES,
   stationProfileOptions,
@@ -375,7 +376,11 @@ export async function bakeArt(onProgress = () => {}) {
         STATIC_ART_RENDER.prop.width,
         STATIC_ART_RENDER.prop.height,
         STATIC_ART_RENDER.prop.cameraHeight,
-      );
+      ),
+      // Vehicles are wider than props; keep one deterministic larger frame
+      // and anchor for all four facings rather than squeezing the hull.
+      vehicle = camera(192, 160, 1.08);
+    const vehicleAnchor = anchor(vehicle);
     detail = "Drawing the landscape";
     report();
     const art = {
@@ -401,6 +406,8 @@ export async function bakeArt(onProgress = () => {}) {
       mixedShelf: {},
       pawnAnchor: anchor(portrait),
       propAnchor: anchor(prop),
+      vehicleAnchor,
+      vehicles: { ship: [] },
     };
     const workPoses = [
       "idle",
@@ -581,6 +588,11 @@ export async function bakeArt(onProgress = () => {}) {
         112,
         112,
       );
+    detail = "Drawing vehicles";
+    report();
+    art.vehicles.ship = Array.from({ length: 4 }, (_, direction) =>
+      bakeStartup(renderer, shipScene(direction), vehicle, 192, 160),
+    );
     // This one retained renderer rebakes terrain only after a physical edit/load.
     // It never updates simulation state or time. View owns replacement textures.
     detail = "Preparing water rendering";
