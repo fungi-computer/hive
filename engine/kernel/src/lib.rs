@@ -1,6 +1,7 @@
 //! One headless world owner for browser Workers and Durable Objects.
 pub mod assign;
 pub mod collision;
+mod combat;
 mod components;
 mod navigation;
 mod registry;

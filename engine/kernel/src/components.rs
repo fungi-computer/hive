@@ -61,6 +61,47 @@ pub struct Obstacle {
     pub occupied: bool,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Collider {
+    pub shape: ColliderShape,
+    pub radius: f64,
+    pub half_x: f64,
+    pub half_y: f64,
+    pub half_z: f64,
+    pub yaw: f64,
+}
+#[derive(Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ColliderShape {
+    Ball,
+    Cuboid,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Launcher {
+    pub ammo_kind: String,
+    pub muzzle_x: f64,
+    pub muzzle_y: f64,
+    pub muzzle_z: f64,
+    pub max_speed: f64,
+    pub projectile_radius: f64,
+    pub max_range: f64,
+    pub max_lifetime: f64,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Projectile {
+    pub launcher: String,
+    pub velocity_x: f64,
+    pub velocity_y: f64,
+    pub velocity_z: f64,
+    pub radius: f64,
+    pub age: f64,
+    pub distance: f64,
+    pub max_range: f64,
+    pub max_lifetime: f64,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Visual {
     pub sprite: String,
@@ -110,6 +151,8 @@ pub struct Snapshot {
     pub revision: u64,
     pub time: f64,
     pub next_lot: u64,
+    pub next_projectile: u64,
+    pub next_impact: u64,
     pub scene: Scene,
     pub routes: Vec<RouteSnapshot>,
 }
@@ -125,6 +168,13 @@ pub struct Write {
     pub entity: String,
     pub component: String,
     pub value: Record,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Vector3 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -160,6 +210,15 @@ pub enum Action {
         lot: String,
         quantity: u32,
     },
+    Launch {
+        launcher: String,
+        ammunition: String,
+        velocity: Vector3,
+    },
+    Displace {
+        entity: String,
+        delta: Vector3,
+    },
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -171,9 +230,11 @@ pub struct Batch {
 #[derive(Serialize)]
 pub struct ActionResult {
     pub accepted: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "projectileId", skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
     pub revision: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub projectile_id: Option<String>,
 }
 pub fn valid_id(s: &str) -> bool {
     !s.is_empty()
