@@ -41,7 +41,7 @@ type FieldCache = {
   siteStamp: string;
   cells: readonly FieldCell[];
   navigation?: ReturnType<typeof createNavigationSpaces>;
-  sources?: FieldWaterSource[];
+  sources?: readonly FieldWaterSource[];
   supplyKey?: string;
 };
 const fieldCaches = new WeakMap<object, FieldCache>();
@@ -58,28 +58,34 @@ function siteStamp(sites: Clearing["sites"]): string {
     ]),
   );
 }
+function fieldCacheMatches(
+  state: FieldWaterState,
+  cached: FieldCache | undefined,
+  stamp: string,
+): cached is FieldCache {
+  return !!cached && cached.water === state.water && cached.terrain === state.terrain &&
+    cached.sites === state.sites && cached.siteStamp === stamp;
+}
 export type FieldWaterSource = FieldWaterReference & {
   accessCells: readonly Cell[];
   availableUnits: number;
 };
 export function fieldWaterCells(state: FieldWaterState): readonly FieldCell[] {
   const stamp = siteStamp(state.sites), cached = fieldCaches.get(state as object);
-  if (
-    cached && cached.water === state.water && cached.terrain === state.terrain &&
-    cached.sites === state.sites && cached.siteStamp === stamp
-  ) return cached.cells;
+  if (fieldCacheMatches(state, cached, stamp)) return cached.cells;
   const cells = waterEnvironmentFacts(state.water, {
     terrain: terrainEnvironment(state.terrain),
     sites: state.sites,
   }).cells.filter((cell) => cell.kind === "void");
+  const stableCells = Object.freeze(cells);
   fieldCaches.set(state as object, {
     water: state.water,
     terrain: state.terrain,
     sites: state.sites,
     siteStamp: stamp,
-    cells,
+    cells: stableCells,
   });
-  return cells;
+  return stableCells;
 }
 /** Draining changes availability, not the stable physical cell reference. */
 export function fieldWaterProblem(
@@ -133,27 +139,24 @@ function accessCells(
 export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
   const stamp = siteStamp(state.sites), cached = fieldCaches.get(state);
   const navigation = createNavigationSpaces(state);
-  if (
-    cached && cached.water === state.water && cached.terrain === state.terrain &&
-    cached.sites === state.sites && cached.siteStamp === stamp &&
-    cached.navigation === navigation &&
-    cached.sources
-  ) return cached.sources;
+  if (fieldCacheMatches(state, cached, stamp) && cached.navigation === navigation && cached.sources)
+    return cached.sources;
   const space = navigation();
   const known = knownFootings(state);
   const sources = fieldWaterCells(state)
     .filter((cell) => cell.massKg >= FIELD_WATER.kgPerUnit)
-    .map((cell) => ({
+    .map((cell) => Object.freeze({
       binding: FIELD_WATER.id,
       nodeId: cell.id,
       availableUnits: Math.floor(cell.massKg / FIELD_WATER.kgPerUnit),
-      accessCells: accessCells(state, cell, space, known),
+      accessCells: Object.freeze(accessCells(state, cell, space, known)),
     }))
     .filter((source) => source.accessCells.length > 0)
     .sort((a, b) => a.nodeId.localeCompare(b.nodeId));
+  const stableSources = Object.freeze(sources);
   const entry = fieldCaches.get(state);
   if (entry) {
-    entry.sources = sources;
+    entry.sources = stableSources;
     entry.navigation = navigation;
     entry.supplyKey = JSON.stringify(
       sources.map((source) => [
@@ -163,17 +166,13 @@ export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
       ]),
     );
   }
-  return sources;
+  return stableSources;
 }
 export function fieldWaterSupplyKey(state: Clearing): string {
   const stamp = siteStamp(state.sites), cached = fieldCaches.get(state);
   const navigation = createNavigationSpaces(state);
-  if (
-    cached && cached.water === state.water && cached.terrain === state.terrain &&
-    cached.sites === state.sites && cached.siteStamp === stamp &&
-    cached.navigation === navigation &&
-    cached.supplyKey !== undefined
-  ) return cached.supplyKey;
+  if (fieldCacheMatches(state, cached, stamp) && cached.navigation === navigation && cached.supplyKey !== undefined)
+    return cached.supplyKey;
   fieldWaterSources(state);
   return fieldCaches.get(state)?.supplyKey ?? "[]";
 }
