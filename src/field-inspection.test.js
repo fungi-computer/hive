@@ -181,3 +181,32 @@ test("picked floor and wall identify the adjacent physical hollow, not the solid
     reference,
   );
 });
+
+test("ordinary ground inspection requires water in its exact overlying voxel", () => {
+  const state = createClearing();
+  const face = terrainSurfaces(state.terrain, 15).find(
+    (face) =>
+      face.kind === "ground" &&
+      face.cell.x === displayCell.x &&
+      face.cell.z === displayCell.z,
+  );
+  assert(face);
+  assert.equal(fieldInspectionFromFace(state, face), null);
+  const puddle = { binding: FIELD_WATER.id, nodeId: "cell:0,15,128" };
+  state.water = exchangeWaterEnvironment(state.water, environment(state), {
+    id: puddle.nodeId,
+    direction: "deposit",
+    massKg: 0.25,
+  }).state;
+  assert.deepEqual(fieldInspectionFromFace(state, face), puddle);
+  const fact = resolveFieldInspection(fieldInspectionFacts(state), puddle);
+  assert.equal(fact.litres, 0.25);
+  assert.equal(fact.wholeMeasures, 0);
+  assert.equal(fact.heightCells, 1);
+  state.water = exchangeWaterEnvironment(state.water, environment(state), {
+    id: puddle.nodeId,
+    direction: "withdraw",
+    massKg: 0.25,
+  }).state;
+  assert.equal(fieldInspectionFromFace(state, face), null);
+});

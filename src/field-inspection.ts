@@ -62,14 +62,22 @@ export function fieldInspectionFromFace(
     ownerVoxel: readonly [number, number, number];
   } | null,
 ): FieldWaterReference | null {
-  if (!face || (face.kind !== "pit-floor" && face.kind !== "cut-wall"))
+  if (!face || !["ground", "pit-floor", "cut-wall"].includes(face.kind))
     return null;
   const horizontal = placementFooting(face.cell);
-  return fieldInspectionAt(state, {
+  const reference = fieldInspectionAt(state, {
     x: horizontal.x,
-    y: face.ownerVoxel[1] + (face.kind === "pit-floor" ? 1 : 0),
+    y: face.ownerVoxel[1] + (face.kind === "cut-wall" ? 0 : 1),
     z: horizontal.z,
   });
+  // Empty intact ground retains its ordinary click; drained hollows remain inspectable.
+  if (face.kind === "ground" && reference)
+    return fieldWaterCells(state).some(
+      (cell) => cell.id === reference.nodeId && cell.massKg > 0,
+    )
+      ? reference
+      : null;
+  return reference;
 }
 
 export function resolveFieldInspection(
