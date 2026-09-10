@@ -3,11 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 await mkdir(".botanical/fresh-game-laws", { recursive: true });
 await build({
-  entryPoints: [
-    "engine/src/runtime/session.test.ts",
-    "engine/src/runtime/games.test.ts",
-    "engine/src/presentation.test.ts",
-  ],
+  entryPoints: {
+    "session.test": "engine/src/runtime/session.test.ts",
+    "games.test": "engine/src/runtime/games.test.ts",
+    "presentation.test": "engine/src/presentation.test.ts",
+  },
   bundle: true,
   platform: "node",
   format: "esm",
