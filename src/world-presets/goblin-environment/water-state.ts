@@ -251,7 +251,10 @@ export function advanceWaterEnvironment(
   const { state, bound } = current(input, source);
   const result = bound.owner.advance(state.water, seconds);
   return {
-    state: remember({ ...state, water: result.state }, bound),
+    state:
+      result.state === state.water
+        ? state
+        : remember({ ...state, water: result.state }, bound),
     receipt: result.receipt,
     work: result.work,
   };

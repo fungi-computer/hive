@@ -39,6 +39,27 @@ const close = (a, b) => assert.ok(Math.abs(a - b) <= 1e-10, `${a} != ${b}`);
 const stocks = (owner, state) =>
   new Map(owner.read(state).cells.map((cell) => [cell.id, cell.massKg]));
 
+test("a settled field retains its owned state and a finite deposit wakes transport", () => {
+  const a = [0, 0, 0],
+    b = [1, 0, 0];
+  const { owner, state } = fixture([a, b].map(emptyCell), [[a, b]], [0, 0]);
+  const resting = owner.advance(state, 0.2);
+  assert.equal(resting.state, state);
+  assert.equal(resting.receipt.seconds, 0.2);
+  assert.deepEqual(resting.receipt.flows, []);
+  const filled = owner.exchange(state, {
+    id: id(a),
+    direction: "deposit",
+    massKg: 0.2,
+  });
+  const moving = owner.advance(filled.state, 0.2);
+  assert.notEqual(moving.state, filled.state);
+  assert(moving.receipt.flows.length > 0);
+  close(owner.read(moving.state).totalKg, 0.2);
+  assert.equal(moving.state.boundaryKg, 0.2);
+  assert.equal(state.massKg[0], 0);
+});
+
 test("shared donors and receiver conserve finite stock independently of definition order", () => {
   const left = [-1, 0, 0],
     middle = [0, 0, 0],
