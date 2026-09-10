@@ -12,6 +12,7 @@ import type {
   SimulationClock,
   WriteContext,
   WriteIntent,
+  EntityId,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -114,7 +115,7 @@ export class GameSession {
     const reads = new Set((handler.reads ?? []).map((component) => component.id));
     const result: GameCommandResult = handler.run({ query: (spec) => {
       for (const component of spec.components) if (!reads.has(component.id)) throw new Error(`command ${name} cannot read ${component.id}`);
-      return this.queryOverlay(spec);
+      return this.queryOverlay(spec, this.pendingWrites);
     } }, structuredClone(input));
     if (!result || !Array.isArray(result.actions) || !Array.isArray(result.writes)) throw new Error("invalid command result");
     const actions = result.actions.map(checkedAction);
@@ -124,24 +125,25 @@ export class GameSession {
     this.pendingActions.push(...actions);
     this.mergePendingWrites(writes);
   }
-  private validateWrites(writes: readonly WriteIntent[], allowed: readonly import("../contracts").ComponentDefinition<any>[]): WriteIntent[] {
+  private validateWrites(writes: readonly WriteIntent[], allowed: readonly import("../contracts").ComponentDefinition<any>[], knownTargets?: ReadonlySet<EntityId>): WriteIntent[] {
     const definitions = new Map(this.pack.components.map((component) => [component.id, component]));
     const permitted = new Set(allowed.map((component) => component.id));
     return writes.map((write) => {
       if (!permitted.has(write.component) || this.reserved.has(write.component)) throw new Error(`undeclared or physical write ${write.component}`);
       const definition = definitions.get(write.component);
       if (!definition || !definition.validate(write.value)) throw new Error(`invalid component write ${write.component}`);
-      if (!this.port.query({ components: [definition] }).some((row) => row.id === write.entity)) throw new Error(`unknown write target ${write.entity}`);
+      if (knownTargets ? !knownTargets.has(write.entity) : !this.port.query({ components: [definition] }).some((row) => row.id === write.entity)) throw new Error(`unknown write target ${write.entity}`);
       return structuredClone(write);
     });
   }
   private mergePendingWrites(writes: readonly WriteIntent[]): void {
     for (const write of writes) { const index = this.pendingWrites.findIndex((existing) => existing.entity === write.entity && existing.component === write.component); if (index >= 0) this.pendingWrites[index] = write; else this.pendingWrites.push(write); }
   }
-  private queryOverlay<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
+  private queryOverlay<T extends object>(spec: QuerySpec<T>, pending: readonly WriteIntent[]): readonly QueryRow<T>[] {
     return this.port.query(spec).map((row) => ({ id: row.id, get: <V extends object>(definition: import("../contracts").ComponentDefinition<V>) => {
-      const pending = this.pendingWrites.find((write) => write.entity === row.id && write.component === definition.id);
-      return (pending ? pending.value : row.get(definition)) as V;
+      if (!spec.components.some((component) => component.id === definition.id)) throw new Error(`query row ${row.id} did not request ${definition.id}`);
+      const intent = pending.find((write) => write.entity === row.id && write.component === definition.id);
+      return structuredClone((intent ? intent.value : row.get(definition))) as V;
     } }));
   }
   step(delta: number): readonly ActionResult[] {
@@ -155,14 +157,16 @@ export class GameSession {
         delta,
         tick: this.tick,
       });
-      const writes: WriteIntent[] = this.pendingWrites.splice(0);
+      const queuedWrites = structuredClone(this.pendingWrites);
+      this.pendingWrites = [];
+      const writes: WriteIntent[] = [...queuedWrites];
       const actions: ActionRequest[] = this.pendingActions.splice(0);
       let systemActionCount = 0;
       const context: WriteContext = {
         clock,
         random: this.random,
         outcomes: structuredClone(this.outcomes),
-        query: (spec) => this.queryOverlay(spec),
+        query: (spec) => this.queryOverlay(spec, writes),
         write: (definition, entity, value) => {
           if (
             [
@@ -193,10 +197,11 @@ export class GameSession {
           this.tick % definition.every !== 0
         )
           continue;
+        const beforeWrites = writes.length;
         definition.run(context);
+        writes.push(...this.validateWrites(writes.splice(beforeWrites), definition.writes));
       }
-      const checkedWrites = this.validateWrites(writes, this.pack.systems.flatMap((system) => system.writes));
-      const results = this.port.advance(delta, checkedWrites, actions);
+      const results = this.port.advance(delta, writes, actions);
       if (results.length !== actions.length)
         throw new Error("kernel result count mismatch");
       this.outcomes = actions.map((action, index) => ({
@@ -262,7 +267,9 @@ export class GameSession {
     )
       throw new Error("invalid session queues");
     const pending = snapshot.pendingActions.map(checkedAction);
-    const pendingWrites = this.validateWrites(snapshot.pendingWrites, this.pack.components.filter((component) => !this.reserved.has(component.id)));
+    let incomingTargets: Set<EntityId> | undefined;
+    try { incomingTargets = new Set((JSON.parse(snapshot.kernel.json).entities ?? JSON.parse(snapshot.kernel.json).scene?.entities ?? []).map((entity: { id: EntityId }) => entity.id)); } catch { throw new Error("invalid session snapshot"); }
+    const pendingWrites = this.validateWrites(snapshot.pendingWrites, this.pack.components.filter((component) => !this.reserved.has(component.id)), incomingTargets);
     if (!Array.isArray(snapshot.outcomes) || snapshot.outcomes.length > 256)
       throw new Error("invalid action outcomes");
     const outcomes = snapshot.outcomes.map((outcome) => {
