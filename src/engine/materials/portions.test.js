@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createMaterialOwner } from "./index.ts";
 const access = { sourceReachable: true, destinationReachableWithPayload: true };
-const cell = { x: 0, z: 0, level: 0 };
+const cell = { x: 0, y: 0, z: 0 };
 const source = {
   id: "source",
   capacity: 8,

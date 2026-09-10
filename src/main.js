@@ -1,3 +1,11 @@
+import { visualPosition } from "./movement.ts";
+import {
+  insidePlacement,
+  placementFooting,
+  worldView,
+  viewLayer,
+  exposedFooting,
+} from "./game-space.ts";
 import { groundInspectionGesture } from "./ui-actions.ts";
 import { fieldInspectionAt } from "./field-inspection.ts";
 import { createStartupReporter, renderStartup } from "./startup.js";
@@ -11,7 +19,7 @@ import { createView } from "./view.js";
 import { createCamera, subscribeCameraPresentation } from "./camera.js";
 import { createKeys } from "./keys.js";
 import { dragCells } from "./construction-view.js";
-import { inside, placementOccupant, SIZE } from "./world.js";
+import { placementOccupant, SIZE } from "./world.js";
 import { createHud } from "./hud.jsx";
 import { singlePlacementTool, terrainDesignationCells } from "./ui-actions.ts";
 import {
@@ -41,11 +49,11 @@ export function rectangleTargetIds(state, start, end) {
       (tree) =>
         tree.felledAt === null &&
         !ordered.has(tree.id) &&
-        tree.level === start.level &&
-        tree.x >= left &&
-        tree.x <= right &&
-        tree.z >= top &&
-        tree.z <= bottom,
+        viewLayer(tree) === start.level &&
+        worldView(tree).x >= left &&
+        worldView(tree).x <= right &&
+        worldView(tree).z >= top &&
+        worldView(tree).z <= bottom,
     )
     .map((tree) => tree.id);
 }
@@ -304,7 +312,7 @@ async function startGame() {
     const ids = selectedIds();
     const id = ids[0] || state.parties.home.members[0];
     const person = state.actors[id];
-    if (person) camera.focus(person, screenY);
+    if (person) camera.focus(worldView(visualPosition(person)), screenY);
   }
   function queue(command, meta = {}) {
     pending.push(command);
@@ -453,6 +461,30 @@ async function startGame() {
         notice = action.text;
         publish();
         break;
+      case "go-at-point": {
+        const face =
+          action.point.cell.level === 0
+            ? camera.terrainFace(action.point.screen)
+            : null;
+        const target =
+          action.point.cell.level === 1
+            ? placementFooting(action.point.cell)
+            : face && (face.kind === "ground" || face.kind === "pit-floor")
+              ? {
+                  x: face.ownerVoxel[0],
+                  y: face.ownerVoxel[1] + 1,
+                  z: face.ownerVoxel[2],
+                }
+              : null;
+        if (!target) {
+          notice = "Choose an exposed standing surface.";
+          publish();
+          break;
+        }
+        request({ kind: "go", actor: action.actor, target });
+        if (state.paused) flushPending();
+        break;
+      }
       case "command":
         request(action.command);
         if (state.paused) flushPending();
@@ -698,7 +730,10 @@ async function startGame() {
       }
       if (fixed.tool === "herb") {
         const cell = end;
-        if (!inside(cell) || placementOccupant(state, cell)) {
+        if (
+          !insidePlacement(cell) ||
+          placementOccupant(state, placementFooting(cell))
+        ) {
           notice = "Choose clear ground for mugwort.";
           publish();
           hud.dispatch({
@@ -744,9 +779,12 @@ async function startGame() {
         const bottom = Math.max(box.start.screen.y, box.end.screen.y);
         const ids = state.parties.home.members.filter((id) => {
           const person = state.actors[id];
-          const projected = camera.project(person.x, person.z, 2, person.level);
+          const position = visualPosition(person);
+          const at = worldView(position);
+          const projected = camera.project(at.x, at.z, 2, at.level);
           return (
-            person.level === fixed.level &&
+            viewLayer(position) === fixed.level &&
+            exposedFooting(state.terrain, person) &&
             projected.x >= left &&
             projected.x <= right &&
             projected.y >= top &&

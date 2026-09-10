@@ -1,3 +1,7 @@
+import { navigationStateProblem } from "./navigation-space.ts";
+import { placementFooting, insidePlacement } from "./game-space.ts";
+import { footingSchema } from "./engine/world/footing.ts";
+import { traversalSchema } from "./engine/navigation/schema.ts";
 import { materialContainerFacts } from "./material-container-facts.ts";
 import {
   deconstructionTargetProblem,
@@ -65,7 +69,7 @@ import { MUGWORT_ESTABLISHMENT_WATER } from "./herbs.ts";
 import { careConsumptionDefinition, careIntentsConflict } from "./needs.ts";
 
 const SAVE_KIND = "hive-local-world" as const;
-const SAVE_SCHEMA = 20 as const;
+const SAVE_SCHEMA = 22 as const;
 const finite = z.number().finite();
 const integer = finite.int();
 const nonNegative = integer.min(0);
@@ -78,7 +82,8 @@ const id = z.string().min(1);
 const recipeId = id.transform(
   (value) => value as import("./model.ts").RecipeId,
 );
-const cell = z.object({ x: integer, z: integer, level: integer }).strict();
+const cell = footingSchema;
+const placement = z.object({ x: integer, z: integer, level: integer }).strict();
 const scope = z
   .object({ party: id, actors: z.array(id).min(1).nullable() })
   .strict();
@@ -143,10 +148,11 @@ const actor = cell
       "tap",
       "clear-spent-grain",
     ]),
-    path: z.array(cell),
-    leg: nonNegative,
+    traversal: traversalSchema.nullable(),
+    navigationProfile: z.enum(["upright", "small"]),
     work: nonNegative,
     drafted: z.boolean(),
+    workDisposition: z.enum(["continue", "interrupt-at-footing"]),
     routine: z.boolean(),
     allowedWork,
     task: activity.nullable(),
@@ -156,10 +162,17 @@ const actor = cell
       .nullable(),
   })
   .strict();
-const jobBase = { id, scope, reason: z.string(), routine: z.boolean() };
+const jobBase = {
+  id,
+  lifecycle: z.enum(["active", "canceling"]),
+  scope,
+  reason: z.string(),
+  routine: z.boolean(),
+};
 const careJob = z
   .object({
     id,
+    lifecycle: z.enum(["active", "canceling"]),
     kind: z.literal("care"),
     target: id,
     need: z.enum(["nourishment", "hydration", "rest"]),
@@ -293,7 +306,7 @@ const transfer = z
     ]),
   })
   .strict();
-const site = cell
+const site = placement
   .extend({
     id,
     type: z.enum([
@@ -412,8 +425,8 @@ const currentStateSchema = z
       .extend({
         dir: integer,
         mode: z.enum(["idle", "walk", "sleep"]),
-        path: z.array(cell),
-        leg: nonNegative,
+        traversal: traversalSchema.nullable(),
+        navigationProfile: z.enum(["upright", "small"]),
         work: nonNegative,
         nextMove: nonNegative,
       })
@@ -1832,8 +1845,7 @@ function validateTransfers(context: RelationContext): void {
 
 function validateActorJobRelations({ state, jobs }: RelationContext): void {
   for (const actor of Object.values(state.actors)) {
-    if (!inside(actor) || actor.path.some((cell) => !inside(cell)))
-      fail(`actor ${actor.id} has an invalid path`);
+    if (!inside(actor)) fail(`actor ${actor.id} has an invalid path`);
     if (actor.task) {
       const taskJob = jobs.get(actor.task.job);
       if (!taskJob) fail(`actor ${actor.id} has missing task job`);
@@ -1843,6 +1855,13 @@ function validateActorJobRelations({ state, jobs }: RelationContext): void {
         actor.assignment.task !== actor.task.job
       )
         fail(`actor ${actor.id} task and assignment disagree`);
+      if (
+        taskJob.lifecycle === "canceling" &&
+        actor.workDisposition !== "interrupt-at-footing"
+      )
+        fail(
+          `canceling job ${taskJob.id} has an actor without pending cleanup`,
+        );
       const care = taskJob.kind === "care";
       const party = care ? null : state.parties[taskJob.scope.party];
       if (
@@ -1858,6 +1877,12 @@ function validateActorJobRelations({ state, jobs }: RelationContext): void {
       fail(`actor ${actor.id} has assignment without task`);
     }
   }
+  for (const job of state.jobs)
+    if (
+      job.lifecycle === "canceling" &&
+      !Object.values(state.actors).some((actor) => actor.task?.job === job.id)
+    )
+      fail(`canceling job ${job.id} has no pending actor`);
 }
 
 function validateEmbeddings({ state, sites }: RelationContext): void {
@@ -1880,7 +1905,7 @@ function validateEmbeddings({ state, sites }: RelationContext): void {
 
 function validateSiteTopology({ state }: RelationContext): void {
   for (const site of state.sites) {
-    if (!footprint(site).every(inside))
+    if (!footprint(site).every(insidePlacement))
       fail(`site ${site.id} is outside the clearing`);
     if (
       site.finishedAt !== null &&
@@ -1983,19 +2008,8 @@ function validateTerrain({ state }: RelationContext): void {
   const facts = terrainFacts(state.terrain);
   if (Math.abs(facts.timeS - state.tick * STEP_SECONDS) > 1e-8)
     fail("terrain and game clocks disagree");
-  for (const at of terrainExcavatedColumns(state.terrain)) {
-    const problem = terrainEditProblem(liveState(state), at);
-    if (problem) fail(`occupied excavation: ${problem}`);
-  }
-  for (const actor of [
-    ...Object.values(state.actors),
-    { ...state.cat, id: "cat" },
-  ])
-    if (
-      actor.level === 0 &&
-      !terrainCell(state.terrain, actor.x, actor.z).support
-    )
-      fail(`actor ${actor.id} lacks standing terrain`);
+  const navigationProblem = navigationStateProblem(liveState(state));
+  if (navigationProblem) fail(navigationProblem);
   validateDigTargets(state);
 }
 
@@ -2050,7 +2064,7 @@ function validateDigTargets(state: SavedClearing): void {
     targets.add(key);
     const problem = terrainDigProblem(state.terrain, job.voxel);
     if (problem) fail(`terrain job ${job.id}: ${problem}`);
-    const at = terrainColumn(job.voxel);
+    const at = placementFooting(terrainColumn(job.voxel));
     if (!inside(at)) fail(`terrain job ${job.id} is outside the clearing`);
   }
 }

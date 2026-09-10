@@ -1,10 +1,12 @@
 import {
-  cellKey,
-  inside,
-  sameCell,
-  neighbors,
+  createNavigationSpaces,
+  HUMAN_NAVIGATION,
+  bodyProfile,
+  bodyContact,
+} from "./navigation-space.ts";
+import { route as physicalRoute, standing } from "./engine/navigation/index.ts";
+import {
   SIZE,
-  blockedCells,
   groundLotsAt,
   placementOccupant,
   stairCells,
@@ -12,7 +14,15 @@ import {
   stairLanding,
   upperSurface,
 } from "./world.js";
-import { pathTicks, route } from "./movement.js";
+import {
+  placementFooting,
+  worldView,
+  placementKey,
+  insidePlacement,
+  samePlacement,
+  placementNeighbors,
+} from "./game-space.ts";
+import { sameCell } from "./world.js";
 import { terrainCell } from "./terrain.ts";
 
 // Actual buildable objects; the same costs and work drive ghosts, jobs and HUD.
@@ -279,40 +289,43 @@ export function brewStationAccessCells(site) {
           { x: site.x + 2, z: site.z, level: site.level },
           { x: site.x + 2, z: site.z + 1, level: site.level },
         ];
-  return cells.filter(
-    (cell, index) =>
-      inside(cell) &&
-      cells.findIndex((other) => sameCell(other, cell)) === index,
-  );
+  return cells
+    .filter(
+      (cell, index) =>
+        insidePlacement(cell) &&
+        cells.findIndex((other) => samePlacement(other, cell)) === index,
+    )
+    .map(placementFooting);
 }
 function finishedSiteAt(state, cell, type = null) {
   return state.sites.some(
     (site) =>
       site.finishedAt !== null &&
       (!type || site.type === type) &&
-      footprint(site).some((occupied) => sameCell(occupied, cell)),
+      footprint(site).some((occupied) => samePlacement(occupied, cell)),
   );
 }
 export function floorSupported(state, cell) {
   const lower = { x: cell.x, z: cell.z, level: 0 };
-  if (cell.level !== 1 || !inside(lower)) return false;
+  if (cell.level !== 1 || !insidePlacement(lower)) return false;
   if (
     state.sites.some(
       (site) =>
         site.type === "stair" &&
-        stairHeadroom(site).some((headroom) => sameCell(headroom, cell)),
+        stairHeadroom(site).some((headroom) => samePlacement(headroom, cell)),
     )
   )
     return false;
   if (
     state.sites.some(
       (site) =>
-        sameCell(site, lower) && (site.type === "roof" || site.type === "door"),
+        samePlacement(site, lower) &&
+        (site.type === "roof" || site.type === "door"),
     )
   )
     return false;
   return (
-    indoors(state, 0).has(cellKey(lower)) ||
+    indoors(state, 0).has(placementKey(lower)) ||
     finishedSiteAt(state, lower, "wall")
   );
 }
@@ -342,9 +355,11 @@ export function workPositions(state, site, operation = "build") {
     operation !== "deconstruct"
   ) {
     const lower = { x: site.x, z: site.z, level: 0 };
-    return [lower, ...neighbors(lower)].filter(inside);
+    return [lower, ...placementNeighbors(lower)]
+      .filter(insidePlacement)
+      .map(placementFooting);
   }
-  const positions = neighbors(site).filter(inside);
+  const positions = placementNeighbors(site).filter(insidePlacement);
   // A dragged closed outline must not strand its last corner behind its two
   // finished neighbors. Construction can reach that corner from the interior
   // diagonal, and delivery must revalidate that same work position. Movement
@@ -365,7 +380,7 @@ export function workPositions(state, site, operation = "build") {
         z: site.z + z,
         level: site.level,
       };
-      if (inside(diagonal)) positions.push(diagonal);
+      if (insidePlacement(diagonal)) positions.push(diagonal);
     }
   if (
     site.type === "floor" &&
@@ -373,31 +388,24 @@ export function workPositions(state, site, operation = "build") {
     operation === "deconstruct"
   ) {
     const lower = { x: site.x, z: site.z, level: 0 };
-    positions.push(lower, ...neighbors(lower));
+    positions.push(lower, ...placementNeighbors(lower));
   }
-  return positions.filter(inside);
+  return positions.filter(insidePlacement).map(placementFooting);
 }
 export function workPosition(state, person, site, operation = "build") {
   return workPositions(state, site, operation).some((cell) =>
     sameCell(person, cell),
   );
 }
-export function workApproach(state, from, site, blocked, operation = "build") {
-  return (
-    workPositions(state, site, operation)
-      .map((position) => route(from, position, blocked, state))
-      .filter((path) => path !== null)
-      .sort(
-        (left, right) => pathTicks(from, left) - pathTicks(from, right),
-      )[0] ?? null
-  );
+export function workApproach(state, from, site, routes, operation = "build") {
+  return routes.closest(from, workPositions(state, site, operation));
 }
 function coverAt(state, cell) {
   if (cell.level === 0)
     return state.sites.some(
       (site) =>
         site.finishedAt !== null &&
-        ((site.type === "roof" && sameCell(site, cell)) ||
+        ((site.type === "roof" && samePlacement(site, cell)) ||
           (site.type === "floor" &&
             site.level === 1 &&
             site.x === cell.x &&
@@ -405,7 +413,9 @@ function coverAt(state, cell) {
     );
   return state.sites.some(
     (site) =>
-      site.finishedAt !== null && site.type === "roof" && sameCell(site, cell),
+      site.finishedAt !== null &&
+      site.type === "roof" &&
+      samePlacement(site, cell),
   );
 }
 /** @param {import("./model.ts").Actor|null} [person] */
@@ -488,38 +498,80 @@ export function removalProblem(state, site, person = null) {
         (candidate) =>
           candidate.id !== site.id &&
           candidate.level === 1 &&
-          footprint(candidate).some((cell) => sameCell(cell, surface)),
+          footprint(candidate).some((cell) => samePlacement(cell, surface)),
       ) ||
       Object.values(state.actors).some(
         (actor) =>
-          (actor.level === 1 && sameCell(actor, surface)) ||
-          actor.path.some((cell) => sameCell(cell, surface)),
+          sameCell(actor, placementFooting(surface)) ||
+          actor.traversal?.edge.sweep.some((cell) =>
+            sameCell(cell, placementFooting(surface)),
+          ),
       ) ||
-      groundLotsAt(state, surface).some((lot) => lot.location.level === 1)
+      groundLotsAt(state, placementFooting(surface)).some(
+        (lot) => worldView(lot.location).level === 1,
+      )
     )
       return "Waiting for the upper surface to clear";
-    if (person && person.level === 1 && !upperSurface(prospectiveState, person))
+    if (
+      person &&
+      worldView(person).level === 1 &&
+      !upperSurface(prospectiveState, worldView(person))
+    )
       return "Waiting for a supported salvage position";
   }
-  if (
-    site.type === "stair" &&
-    (state.sites.some(
-      (candidate) => candidate.id !== site.id && candidate.level === 1,
-    ) ||
-      Object.values(state.actors).some(
-        (actor) =>
-          actor.level === 1 || actor.path.some((cell) => cell.level === 1),
-      ) ||
-      state.materials.lots.some(
-        (lot) => lot.location.kind === "ground" && lot.location.level === 1,
-      ))
-  )
-    return "Waiting for upstairs structures and materials to clear";
+  if (site.type === "stair" && losesStairAccess(state, prospectiveState, site))
+    return "Waiting for connected upstairs access to remain";
   return null;
 }
+/** A spare stair only replaces access when it belongs to the same traversable
+ * component. Compare actual dependent access against the removed stair's ground
+ * endpoint; unrelated pre-existing inaccessible surfaces confer no dependency. */
+function losesStairAccess(state, prospective, removed) {
+  if (
+    [...Object.values(state.actors), state.cat].some(
+      (body) => body.traversal?.edge.link === removed.id,
+    )
+  )
+    return true;
+  const before = createNavigationSpaces(state),
+    after = createNavigationSpaces(prospective);
+  const ground = placementFooting(removed);
+  const losesRoute = (at, profile, contact = null) =>
+    at.y > ground.y &&
+    physicalRoute(before(contact), at, ground, profile).kind === "route" &&
+    physicalRoute(after(contact), at, ground, profile).kind !== "route";
+  for (const body of [...Object.values(state.actors), state.cat])
+    if (losesRoute(body, bodyProfile(state, body), bodyContact(body)))
+      return true;
+  const dependencies = [
+    ...state.materials.lots.flatMap((lot) =>
+      lot.location.kind === "ground" ? [lot.location] : [],
+    ),
+    ...prospective.sites.flatMap((site) =>
+      site.level > removed.level
+        ? workPositions(prospective, site, "deconstruct")
+        : [],
+    ),
+    ...prospective.sites
+      .filter((site) => site.type === "floor" && site.finishedAt !== null)
+      .map(placementFooting),
+  ];
+  const seen = new Set();
+  for (const at of dependencies) {
+    if (at.y <= ground.y) continue;
+    const key = `${at.x},${at.y},${at.z}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (losesRoute(at, HUMAN_NAVIGATION)) return true;
+  }
+  return false;
+}
+
 function sitesConflict(left, right) {
   if (
-    !footprint(left).some((a) => footprint(right).some((b) => sameCell(a, b)))
+    !footprint(left).some((a) =>
+      footprint(right).some((b) => samePlacement(a, b)),
+    )
   )
     return false;
   if (left.type === "stair" || right.type === "stair") return true;
@@ -557,11 +609,9 @@ export function placementProblem(state, at) {
       return "The upper floor needs lower support without a roof or door.";
   } else if (at.type === "stair") {
     if (at.level !== 0) return "The stair ramp belongs on the ground.";
-    if (state.sites.some((site) => site.type === "stair"))
-      return "There is already a stair ramp here.";
     if (
       footprint(at).some((cell) => {
-        const occupant = placementOccupant(state, cell);
+        const occupant = placementOccupant(state, placementFooting(cell));
         return (
           occupant === "tree" ||
           occupant === "rock" ||
@@ -578,14 +628,18 @@ export function placementProblem(state, at) {
       footprint(at).some((cell) =>
         Object.values(state.actors).some(
           (person) =>
-            sameCell(person, cell) ||
-            person.path.some((next) => sameCell(next, cell)),
+            sameCell(person, placementFooting(cell)) ||
+            person.traversal?.edge.sweep.some((next) =>
+              sameCell(next, placementFooting(cell)),
+            ),
         ),
       ) ||
       footprint(at).some(
         (cell) =>
-          sameCell(state.cat, cell) ||
-          state.cat.path.some((next) => sameCell(next, cell)),
+          sameCell(state.cat, placementFooting(cell)) ||
+          state.cat.traversal?.edge.sweep.some((next) =>
+            sameCell(next, placementFooting(cell)),
+          ),
       )
     )
       return "Let the stair ramp clear before placing it.";
@@ -598,8 +652,8 @@ export function placementProblem(state, at) {
               (site.type === "roof" &&
                 stairHeadroom(at)
                   .slice(0, 2)
-                  .some((ramp) => sameCell(ramp, headroom)))) &&
-            footprint(site).some((cell) => sameCell(cell, headroom)),
+                  .some((ramp) => samePlacement(ramp, headroom)))) &&
+            footprint(site).some((cell) => samePlacement(cell, headroom)),
         ),
       )
     )
@@ -610,7 +664,7 @@ export function placementProblem(state, at) {
         state.sites.some(
           (site) =>
             site.type === "stair" &&
-            sameCell(stairLanding(site), cell) &&
+            samePlacement(stairLanding(site), cell) &&
             at.type !== "door" &&
             at.type !== "roof",
         ),
@@ -627,21 +681,21 @@ export function placementProblem(state, at) {
           stairHeadroom(site)
             .slice(0, 2)
             .some((headroom) =>
-              footprint(at).some((cell) => sameCell(cell, headroom)),
+              footprint(at).some((cell) => samePlacement(cell, headroom)),
             ),
       )
     )
       return "The stair ramp needs clear headroom upstairs.";
   }
   const overlaps = (s) =>
-    footprint(s).some((a) => footprint(at).some((b) => sameCell(a, b)));
+    footprint(s).some((a) => footprint(at).some((b) => samePlacement(a, b)));
   if (crossLevelSurfaceConflict(state, at))
     return "Upper floor and lower cover cannot share a cell.";
   if (state.sites.some((s) => overlaps(s) && sitesConflict(s, at)))
     return "There is already a building or blueprint here.";
   if (
     footprint(at).some((cell) => {
-      const occupant = placementOccupant(state, cell);
+      const occupant = placementOccupant(state, placementFooting(cell));
       return (
         occupant === "source" ||
         occupant === "herb" ||
@@ -660,15 +714,22 @@ export function placementProblem(state, at) {
     at.type === "wall" &&
     (Object.values(state.actors).some(
       (person) =>
-        sameCell(person, at) || person.path.some((p) => sameCell(p, at)),
+        sameCell(person, placementFooting(at)) ||
+        person.traversal?.edge.sweep.some((p) =>
+          sameCell(p, placementFooting(at)),
+        ),
     ) ||
-      sameCell(state.cat, at) ||
-      state.cat.path.some((p) => sameCell(p, at)))
+      sameCell(state.cat, placementFooting(at)) ||
+      state.cat.traversal?.edge.sweep.some((p) =>
+        sameCell(p, placementFooting(at)),
+      ))
   )
     return "Let the path clear before placing a wall here.";
   if (
     at.type === "wall" &&
-    groundLotsAt(state, at).some((lot) => lot.material === "wood")
+    groundLotsAt(state, placementFooting(at)).some(
+      (lot) => lot.material === "wood",
+    )
   )
     return "Wood is lying here. Use it before building over it.";
   return "";
@@ -693,15 +754,16 @@ export function indoors(state, level = 0) {
     for (const x of [0, SIZE - 1]) queue.push({ x, z });
   for (let i = 0; i < queue.length; i++) {
     const cell = queue[i],
-      key = cellKey(cell);
-    if (!inside(cell) || boundary.has(key) || outside.has(key)) continue;
+      key = placementKey(cell);
+    if (!insidePlacement(cell) || boundary.has(key) || outside.has(key))
+      continue;
     outside.add(key);
-    queue.push(...neighbors(cell));
+    queue.push(...placementNeighbors(cell));
   }
   const result = new Set();
   for (let x = 0; x < SIZE; x++)
     for (let z = 0; z < SIZE; z++) {
-      const key = cellKey({ x, z });
+      const key = placementKey({ x, z });
       if (!outside.has(key) && !boundary.has(key)) result.add(key);
     }
   return result;
@@ -711,7 +773,7 @@ function upstairsIndoors(state) {
   for (let x = 0; x < SIZE; x++)
     for (let z = 0; z < SIZE; z++) {
       const cell = { x, z, level: 1 };
-      if (upperSupported(state, cell)) supported.add(cellKey(cell));
+      if (upperSupported(state, cell)) supported.add(placementKey(cell));
     }
   const boundary = new Set(
     state.sites
@@ -729,21 +791,22 @@ function upstairsIndoors(state) {
     const [x, z] = key.split(",").map(Number);
     const cell = { x, z, level: 1 };
     if (
-      neighbors(cell).some(
+      placementNeighbors(cell).some(
         (next) =>
-          !inside(next) ||
-          (!supported.has(cellKey(next)) && !boundary.has(cellKey(next))),
+          !insidePlacement(next) ||
+          (!supported.has(placementKey(next)) &&
+            !boundary.has(placementKey(next))),
       )
     )
       queue.push(cell);
   }
   for (let i = 0; i < queue.length; i++) {
     const cell = queue[i];
-    const key = cellKey(cell);
+    const key = placementKey(cell);
     if (outside.has(key) || boundary.has(key)) continue;
     outside.add(key);
-    for (const next of neighbors(cell))
-      if (supported.has(cellKey(next))) queue.push(next);
+    for (const next of placementNeighbors(cell))
+      if (supported.has(placementKey(next))) queue.push(next);
   }
   return new Set(
     [...supported].filter((key) => !outside.has(key) && !boundary.has(key)),
@@ -755,10 +818,10 @@ export function roofSupported(
   interior = indoors(state, site.level),
 ) {
   return (
-    interior.has(cellKey(site)) ||
+    interior.has(placementKey(site)) ||
     state.sites.some(
       (s) =>
-        sameCell(s, site) &&
+        samePlacement(s, site) &&
         s.finishedAt !== null &&
         (s.type === "wall" || s.type === "door"),
     )
@@ -768,28 +831,38 @@ export function shelteredBeds(state) {
   const beds = state.sites.filter(
     (site) => site.type === "bed" && site.finishedAt !== null,
   );
+  const spaces = createNavigationSpaces(state);
   return beds.filter((s) => {
     const interior = indoors(state, s.level);
-    const blocked = blockedCells(state);
+    const space = spaces({ kind: "bed", site: s.id });
     const entrances = state.sites.filter(
       (door) =>
         door.level === s.level &&
         door.type === "door" &&
         door.finishedAt !== null &&
-        neighbors(door).some(
+        placementNeighbors(door).some(
           (cell) =>
-            inside(cell) &&
-            !interior.has(cellKey(cell)) &&
+            insidePlacement(cell) &&
+            !interior.has(placementKey(cell)) &&
             (s.level === 1 && !upperSupported(state, cell)
               ? true
-              : !blocked.has(cellKey(cell))),
+              : standing(space, placementFooting(cell), HUMAN_NAVIGATION) ===
+                "supported"),
         ),
     );
     return (
-      entrances.some((door) => route(door, s, blocked, state) !== null) &&
+      entrances.some(
+        (door) =>
+          physicalRoute(
+            space,
+            placementFooting(door),
+            placementFooting(s),
+            HUMAN_NAVIGATION,
+          ).kind === "route",
+      ) &&
       footprint(s).every(
         (cell) =>
-          interior.has(cellKey(cell)) &&
+          interior.has(placementKey(cell)) &&
           (s.level === 0 || upperSupported(state, cell)) &&
           coverAt(state, cell),
       )

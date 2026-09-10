@@ -15,9 +15,10 @@ import type {
 } from "./model.ts";
 import { inScope } from "./actors.ts";
 import { optimizeEligible } from "./matching.ts";
-import { blockedCells, sameCell, sourceAccessCells } from "./world.js";
+import { sameCell, sourceAccessCells, neighbors } from "./world.js";
 import { terrainEditProblem, terrainRimCells } from "./world.js";
-import { approach, pathTicks, route, beginWalk } from "./movement.js";
+import { movement, type RoutePlan, type BodyRoutes } from "./movement.ts";
+import { placementFooting } from "./game-space.ts";
 import {
   BUILDINGS,
   constructionBuffer,
@@ -57,7 +58,8 @@ import {
   type BrewSupplyRequirement,
 } from "./brewing.ts";
 import { recipeOutputActionForWire } from "./recipes.ts";
-import { CHOP_TICKS, interruptWork } from "./activity.ts";
+import { CHOP_TICKS } from "./activity.ts";
+import { interruptWork } from "./activity-lifecycle.ts";
 import { terrainColumn, terrainDigProblem } from "./terrain.ts";
 import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
 import {
@@ -71,7 +73,7 @@ import {
 } from "./needs.ts";
 type Candidate = {
   activity: Activity;
-  path: Cell[];
+  path: RoutePlan;
   travel: number;
   transfer?: {
     sourceLot: string;
@@ -107,7 +109,7 @@ const make = (
   job: Job,
   kind: Activity["kind"],
   target: string,
-  path: Cell[],
+  path: RoutePlan,
   duration: number,
   travel: number,
 ): Candidate => ({
@@ -131,7 +133,7 @@ function constructionTransferOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "build" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const t = state.materials.transfers.find(
@@ -166,7 +168,7 @@ function constructionTransferOption(
   let selected:
     | {
         sourceLot: string;
-        path: Cell[];
+        path: RoutePlan;
         travel: number;
         request: TransferRequest;
         destinationReachableWithPayload: boolean;
@@ -189,14 +191,16 @@ function constructionTransferOption(
         ? resolveOpenFiniteSourceContainer(state, lot.location.container)
         : null;
     const a = sourceSite
-        ? workApproach(state, person, sourceSite, blocked)
+        ? workApproach(state, person, sourceSite, paths)
         : finiteSource
-          ? nearestPath(state, person, finiteSource.accessCells, blocked)
-          : route(person, lot.location, blocked, state),
-      from = a?.at(-1) ?? person,
-      b = a && workApproach(state, from, site, blocked);
+          ? paths.closest(person, finiteSource.accessCells)
+          : lot.location.kind === "ground"
+            ? paths.route(person, lot.location)
+            : null,
+      from = a?.edges.at(-1)?.to ?? person,
+      b = a && workApproach(state, from, site, paths);
     if (!a || !b) continue;
-    const travel = pathTicks(person, a) + pathTicks(from, b);
+    const travel = a.ticks + b.ticks;
     if (selected === undefined || travel < selected.travel)
       selected = {
         sourceLot: lot.id,
@@ -245,7 +249,7 @@ function storageTransferOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "store" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const sourceLot = job.source;
@@ -276,20 +280,13 @@ function storageTransferOption(
     quantityPolicy: lot.lot.material === "mugwort" ? "whole-lot" : "portion",
     quantity: quantity as PositiveInt,
   };
-  const path = route(person, lot.lot.location, blocked, state),
-    d = workApproach(state, lot.lot.location, site, blocked);
+  const path = paths.route(person, lot.lot.location),
+    d = workApproach(state, lot.lot.location, site, paths);
   if (!path || !d) return no("No route to this material");
   return {
     reason: `Ready to store ${lot.lot.material}`,
     candidate: {
-      ...make(
-        job,
-        "transfer",
-        sourceLot,
-        path,
-        8,
-        pathTicks(person, path) + pathTicks(lot.lot.location, d),
-      ),
+      ...make(job, "transfer", sourceLot, path, 8, path.ticks + d.ticks),
       transfer: {
         sourceLot,
         destination,
@@ -301,26 +298,11 @@ function storageTransferOption(
     },
   };
 }
-function nearestPath(
-  state: Clearing,
-  from: Cell,
-  cells: readonly Cell[],
-  blocked: Set<string>,
-) {
-  return (
-    cells
-      .map((cell) => route(from, cell, blocked, state))
-      .filter((path): path is Cell[] => path !== null)
-      .sort(
-        (left, right) => pathTicks(from, left) - pathTicks(from, right),
-      )[0] ?? null
-  );
-}
 function repairCacheOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "repair-cache" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const cache = state.sources.find((source) => source.id === job.target);
@@ -329,18 +311,11 @@ function repairCacheOption(
   const destination = cacheRepairBuffer(cache)!;
   const delivered = containerQuantity(state.materials, destination.id, "wood");
   if (delivered === 2) {
-    const path = nearestPath(state, person, sourceAccessCells(cache), blocked);
+    const path = paths.closest(person, sourceAccessCells(cache));
     return path
       ? {
           reason: "Ready to repair the cache",
-          candidate: make(
-            job,
-            "repair-cache",
-            cache.id,
-            path,
-            8,
-            pathTicks(person, path),
-          ),
+          candidate: make(job, "repair-cache", cache.id, path, 8, path.ticks),
         }
       : no("No route to the cache");
   }
@@ -349,7 +324,7 @@ function repairCacheOption(
     | {
         lot: AvailableLotFact["lot"];
         quantity: number;
-        path: Cell[];
+        path: RoutePlan;
         travel: number;
       }
     | undefined;
@@ -365,20 +340,17 @@ function repairCacheOption(
           )?.site
         : null;
     const path = sourceSite
-      ? workApproach(state, person, sourceSite, blocked)
+      ? workApproach(state, person, sourceSite, paths)
       : lot.location.kind === "ground"
-        ? route(person, lot.location, blocked, state)
+        ? paths.route(person, lot.location)
         : null;
     if (!path) continue;
-    const toRepair = nearestPath(
-      state,
-      path.at(-1) ?? person,
+    const toRepair = paths.closest(
+      path.edges.at(-1)?.to ?? person,
       sourceAccessCells(cache),
-      blocked,
     );
     if (!toRepair) continue;
-    const travel =
-      pathTicks(person, path) + pathTicks(path.at(-1) ?? person, toRepair);
+    const travel = path.ticks + toRepair.ticks;
     if (!selected || travel < selected.travel)
       selected = { lot, quantity: fact.quantity, path, travel };
   }
@@ -422,7 +394,7 @@ function repairCacheOption(
 function waterDeliveryRoute(
   state: Clearing,
   person: Actor,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   pailFacts: readonly { lot: import("./model.ts").ItemLot }[],
   destination: NonNullable<ReturnType<typeof resolveWaterDelivery>>,
   existing?: import("./model.ts").WaterDeliveryOperation,
@@ -442,38 +414,28 @@ function waterDeliveryRoute(
             : [];
       const path =
         lot.location.kind === "hand" && lot.location.actor === person.id
-          ? []
-          : nearestPath(state, person, access, blocked);
+          ? { edges: [], ticks: 0 }
+          : paths.closest(person, access);
       return path ? [{ lot, path }] : [];
     })
-    .sort(
-      (left, right) =>
-        pathTicks(person, left.path) - pathTicks(person, right.path),
-    );
+    .sort((left, right) => left.path.ticks - right.path.ticks);
   const routes = candidates
     .flatMap((selected) => {
-      const pailAt = selected.path.at(-1) ?? person;
+      const pailAt = selected.path.edges.at(-1)?.to ?? person;
       const supplies =
         existing?.execution.phase === "deliver"
           ? [{ supply: existing!.supply, source: null }]
           : waterSupplyOptions(state, selected.lot.id, destination.quantity);
       return supplies.flatMap((supply) => {
         const sourcePath = supply.source
-          ? nearestPath(state, pailAt, supply.source.accessCells, blocked)
-          : [];
+          ? paths.closest(pailAt, supply.source.accessCells)
+          : { edges: [], ticks: 0 };
         if (!sourcePath) return [];
-        const sourceAt = sourcePath.at(-1) ?? pailAt;
-        const deliveryPath = nearestPath(
-          state,
-          sourceAt,
-          destination.access,
-          blocked,
-        );
+        const sourceAt = sourcePath.edges.at(-1)?.to ?? pailAt;
+        const deliveryPath = paths.closest(sourceAt, destination.access);
         if (!deliveryPath) return [];
         const travel =
-          pathTicks(person, selected.path) +
-          pathTicks(pailAt, sourcePath) +
-          pathTicks(sourceAt, deliveryPath);
+          selected.path.ticks + sourcePath.ticks + deliveryPath.ticks;
         return [{ selected, supply: supply.supply, travel }];
       });
     })
@@ -490,7 +452,7 @@ function waterDeliveryOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "fill-kettle" | "water-mugwort" | "care" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const existing = state.operations.find(
@@ -539,7 +501,7 @@ function waterDeliveryOption(
   const route = waterDeliveryRoute(
     state,
     person,
-    blocked,
+    paths,
     pailFacts,
     destination,
     existing,
@@ -578,7 +540,7 @@ function brewSupplyOption(
   person: Actor,
   job: Extract<Job, { kind: "brew" }>,
   station: Clearing["sites"][number],
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
   input: BrewSupplyRequirement,
 ): Options {
@@ -598,7 +560,7 @@ function brewSupplyOption(
   let selected:
     | {
         lot: AvailableLotFact["lot"];
-        path: Cell[];
+        path: RoutePlan;
         travel: number;
         quantity: number;
       }
@@ -624,17 +586,21 @@ function brewSupplyOption(
         ? resolveOpenFiniteSourceContainer(state, lot.location.container)
         : null;
     const from = sourceSite
-      ? workApproach(state, person, sourceSite, blocked)
+      ? workApproach(state, person, sourceSite, paths)
       : finiteSource
-        ? nearestPath(state, person, finiteSource.accessCells, blocked)
+        ? paths.closest(person, finiteSource.accessCells)
         : lot.location.kind === "ground"
-          ? route(person, lot.location, blocked, state)
+          ? paths.route(person, lot.location)
           : null;
     if (!from) continue;
-    const to = workApproach(state, from.at(-1) ?? person, station, blocked);
+    const to = workApproach(
+      state,
+      from.edges.at(-1)?.to ?? person,
+      station,
+      paths,
+    );
     if (!to) continue;
-    const travel =
-      pathTicks(person, from) + pathTicks(from.at(-1) ?? person, to);
+    const travel = from.ticks + to.ticks;
     if (!selected || travel < selected.travel)
       selected = { lot, path: from, travel, quantity };
   }
@@ -670,7 +636,7 @@ function brewOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "brew" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const station = state.sites.find(
@@ -685,7 +651,7 @@ function brewOption(
     return process.phase === "ferment"
       ? no("Fermenting")
       : (() => {
-          const path = workApproach(state, person, station, blocked);
+          const path = workApproach(state, person, station, paths);
           return path
             ? {
                 reason:
@@ -700,7 +666,7 @@ function brewOption(
                   process.phase === "keg"
                     ? brewKegRemaining(state, process)
                     : brewPrepareRemaining(state, process),
-                  pathTicks(person, path),
+                  path.ticks,
                 ),
               }
             : no("No route to the brew station");
@@ -713,11 +679,11 @@ function brewOption(
       person,
       job,
       station,
-      blocked,
+      paths,
       sourceFacts,
       readiness.requirement,
     );
-  const path = workApproach(state, person, station, blocked);
+  const path = workApproach(state, person, station, paths);
   if (!path) return no("No route to the brew station");
   return {
     reason: "Ready to prepare herbal ale",
@@ -728,7 +694,7 @@ function brewOption(
         brewProcessId(job.id),
         path,
         readiness.prepareTicks,
-        pathTicks(person, path),
+        path.ticks,
       ),
       recipe: {
         id: brewProcessId(job.id),
@@ -743,7 +709,7 @@ function recipeOutputOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "tap" | "clear-spent-grain" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
 ): Options {
   const station = state.sites.find(
     (site) =>
@@ -763,7 +729,7 @@ function recipeOutputOption(
       : "Waiting for spent grain to clear",
   );
   if (readiness.kind === "waiting") return no(readiness.reason);
-  const path = workApproach(state, person, station, blocked);
+  const path = workApproach(state, person, station, paths);
   const duration = recipeOutputRemaining(
     state,
     station,
@@ -788,7 +754,7 @@ function recipeOutputOption(
           job.transformation,
           path,
           duration,
-          pathTicks(person, path),
+          path.ticks,
         ),
       };
 }
@@ -797,14 +763,14 @@ type TerrainRim = { rim: Cell[] };
 function terrainRimCandidate(
   state: Clearing,
   job: Extract<Job, { kind: "dig" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
 ): TerrainRim | Options {
-  const target = terrainColumn(job.voxel);
+  const target = placementFooting(terrainColumn(job.voxel));
   if (terrainEditProblem(state, target)) return no("Ground is occupied");
   const problem = terrainDigProblem(state.terrain, job.voxel);
   if (problem) return no(problem);
-  const rim = terrainRimCells(state, target).filter(
-    (cell) => !blocked.has(`${cell.x},${cell.z},${cell.level}`),
+  const rim = terrainRimCells(state, target).filter((cell) =>
+    paths.standing(cell),
   );
   return rim.length ? { rim } : no("No safe cardinal rim");
 }
@@ -814,9 +780,9 @@ function rimWorkOption(
   person: Actor,
   job: Extract<Job, { kind: "dig" }>,
   rim: readonly Cell[],
-  blocked: Set<string>,
+  paths: BodyRoutes,
 ): Options {
-  const path = nearestPath(state, person, rim, blocked);
+  const path = paths.closest(person, rim);
   return path
     ? {
         reason: "Ready to dig",
@@ -826,7 +792,7 @@ function rimWorkOption(
           job.id,
           path,
           TERRAIN_WORK_TICKS,
-          pathTicks(person, path),
+          path.ticks,
         ),
       }
     : no("No route to the safe rim");
@@ -836,18 +802,18 @@ function terrainOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "dig" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
 ): Options {
-  const terrain = terrainRimCandidate(state, job, blocked);
+  const terrain = terrainRimCandidate(state, job, paths);
   return "reason" in terrain
     ? terrain
-    : rimWorkOption(state, person, job, terrain.rim, blocked);
+    : rimWorkOption(state, person, job, terrain.rim, paths);
 }
 function consumeOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "care" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   if (job.need !== "nourishment") return no("Care does not use a ration");
@@ -870,25 +836,20 @@ function consumeOption(
               : null;
           const path =
             lot.location.kind === "hand" && lot.location.actor === person.id
-              ? []
+              ? { edges: [], ticks: 0 }
               : lot.location.kind === "ground"
-                ? route(person, lot.location, blocked, state)
+                ? paths.route(person, lot.location)
                 : withdrawal?.kind === "site"
-                  ? workApproach(state, person, withdrawal.site, blocked)
+                  ? workApproach(state, person, withdrawal.site, paths)
                   : withdrawal?.kind === "finite-source"
-                    ? nearestPath(
-                        state,
-                        person,
-                        withdrawal.accessCells,
-                        blocked,
-                      )
+                    ? paths.closest(person, withdrawal.accessCells)
                     : null;
           return path ? [{ definition, definitionOrder, lot, path }] : [];
         }),
     )
     .sort(
       (left, right) =>
-        pathTicks(person, left.path) - pathTicks(person, right.path) ||
+        left.path.ticks - right.path.ticks ||
         left.definitionOrder - right.definitionOrder ||
         left.lot.id.localeCompare(right.lot.id),
     )[0];
@@ -902,7 +863,7 @@ function consumeOption(
             "pending-operation",
             selected.path,
             selected.definition.attendTicks,
-            pathTicks(person, selected.path),
+            selected.path.ticks,
           ),
           consume: {
             sourceLot: selected.lot.id,
@@ -918,7 +879,7 @@ function sleepOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "care" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
 ): Options {
   const occupied = new Set(
     Object.values(state.actors).flatMap((actor) =>
@@ -930,15 +891,15 @@ function sleepOption(
       (candidate: Clearing["sites"][number]) => !occupied.has(candidate.id),
     )
     .flatMap((bed: Clearing["sites"][number]) => {
-      const path = route(person, bed, blocked, state);
+      const path = paths.route(person, placementFooting(bed), { bed: bed.id });
       return path ? [{ bed, path }] : [];
     })
     .sort(
       (
-        left: { bed: Clearing["sites"][number]; path: Cell[] },
-        right: { bed: Clearing["sites"][number]; path: Cell[] },
+        left: { bed: Clearing["sites"][number]; path: RoutePlan },
+        right: { bed: Clearing["sites"][number]; path: RoutePlan },
       ) =>
-        pathTicks(person, left.path) - pathTicks(person, right.path) ||
+        left.path.ticks - right.path.ticks ||
         left.bed.id.localeCompare(right.bed.id),
     )[0];
   return selected
@@ -950,7 +911,7 @@ function sleepOption(
           selected.bed.id,
           selected.path,
           80,
-          pathTicks(person, selected.path),
+          selected.path.ticks,
         ),
       }
     : no("Needs a free bed");
@@ -959,7 +920,7 @@ function careOption(
   state: Clearing,
   person: Actor,
   job: Extract<Job, { kind: "care" }>,
-  blocked: Set<string>,
+  paths: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   const values = person.needs;
@@ -970,14 +931,14 @@ function careOption(
           state,
           person,
           { ...job, need: "hydration" },
-          blocked,
+          paths,
           sourceFacts,
         )
       : consumeOption(
           state,
           person,
           { ...job, need: "nourishment" },
-          blocked,
+          paths,
           sourceFacts,
         );
   }
@@ -996,12 +957,12 @@ function careOption(
             state,
             person,
             { ...job, need },
-            blocked,
+            paths,
             sourceFacts,
           )
         : need === "nourishment"
-          ? consumeOption(state, person, { ...job, need }, blocked, sourceFacts)
-          : sleepOption(state, person, { ...job, need }, blocked);
+          ? consumeOption(state, person, { ...job, need }, paths, sourceFacts)
+          : sleepOption(state, person, { ...job, need }, paths);
     if (candidate.candidate) {
       job.need = need;
       return candidate;
@@ -1014,7 +975,7 @@ function option(
   state: Clearing,
   p: Actor,
   j: Job,
-  b: Set<string>,
+  b: BodyRoutes,
   sourceFacts: readonly AvailableLotFact[],
 ): Options {
   if (j.kind === "repair-cache")
@@ -1043,7 +1004,7 @@ function option(
               site.id,
               path,
               BUILDINGS[site.type].ticks - site.work,
-              pathTicks(p, path),
+              path.ticks,
             ),
           }
         : no("No route to this site");
@@ -1054,7 +1015,7 @@ function option(
     return storageTransferOption(state, p, j, b, sourceFacts);
   if (j.kind === "chop") {
     const x = state.trees.find((x) => x.id === j.target)!;
-    const path = approach(p, x, b, state);
+    const path = b.closest(p, neighbors(x));
     return path
       ? {
           reason: "Ready to chop",
@@ -1064,14 +1025,14 @@ function option(
             x.id,
             path,
             CHOP_TICKS - x.work,
-            pathTicks(p, path),
+            path.ticks,
           ),
         }
       : no("No route to this tree");
   }
   if (j.kind === "sow" || j.kind === "harvest") {
     const x = state.herbs.find((x) => x.id === j.target);
-    const path = x && approach(p, x, b, state);
+    const path = x && b.closest(p, neighbors(x));
     return x && path
       ? {
           reason: "Ready",
@@ -1081,7 +1042,7 @@ function option(
             x.id,
             path,
             (j.kind === "sow" ? SOW_TICKS : HARVEST_TICKS) - x.work,
-            pathTicks(p, path),
+            path.ticks,
           ),
         }
       : no("Waiting for mugwort");
@@ -1101,7 +1062,7 @@ function option(
             x.id,
             path,
             BUILDINGS[x.type].deconstructTicks,
-            pathTicks(p, path),
+            path.ticks,
           ),
         }
       : no("Waiting to deconstruct");
@@ -1135,11 +1096,13 @@ function automatic(a: Activity): WorkType | null {
 export function assignWork(state: Clearing, colony: Colony): void {
   if (!state.workDirty) return;
   state.workDirty = false;
-  const blocked = blockedCells(state),
+  const navigation = movement(state),
     members = new Set(Object.values(state.parties).flatMap((p) => p.members)),
     idle = Object.values(state.actors).filter(
       (p) =>
         p.mode === "idle" &&
+        p.workDisposition === "continue" &&
+        !p.traversal &&
         !p.drafted &&
         (members.has(p.id) ||
           state.jobs.some((job) => job.kind === "care" && job.target === p.id)),
@@ -1148,6 +1111,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
     choices = new Map<string, Candidate>(),
     sourceFacts = availableMaterialFacts(state.materials);
   const offer = (p: Actor, j: Job, personal = false): boolean => {
+    if (j.lifecycle === "canceling") return false;
     if (
       state.materials.transfers.some(
         (t) => t.owner.kind === "job" && t.owner.job === j.id,
@@ -1155,7 +1119,8 @@ export function assignWork(state: Clearing, colony: Colony): void {
       Object.values(state.actors).some((a) => a.task?.job === j.id)
     )
       return false;
-    const o = option(state, p, j, blocked, sourceFacts);
+    const paths = navigation.forBody(p);
+    const o = option(state, p, j, paths, sourceFacts);
     j.reason = o.reason;
     if (
       !o.candidate ||
@@ -1178,6 +1143,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
   };
   const sharedWorkers: Actor[] = [];
   for (const p of idle) {
+    const paths = navigation.forBody(p);
     const carry = transferForActor(state.materials, p.id);
     if (carry?.phase.kind === "carrying") {
       if (carry.intent.kind !== "deliver") continue;
@@ -1188,9 +1154,9 @@ export function assignWork(state: Clearing, colony: Colony): void {
       )?.site;
       const repair = resolveCacheRepairBuffer(state, carry.intent.destination);
       const path = site
-        ? workApproach(state, p, site, blocked)
+        ? workApproach(state, p, site, paths)
         : repair
-          ? nearestPath(state, p, sourceAccessCells(repair.source), blocked)
+          ? paths.closest(p, sourceAccessCells(repair.source))
           : null;
       if (path) {
         const c = make(
@@ -1201,7 +1167,7 @@ export function assignWork(state: Clearing, colony: Colony): void {
           carry.id,
           path,
           8,
-          pathTicks(p, path),
+          path.ticks,
         );
         choices.set(`${p.id}/${c.activity.job}`, c);
         offered.push({
@@ -1410,7 +1376,10 @@ export function assignWork(state: Clearing, colony: Colony): void {
     }
     p.assignment = { ...m };
     p.task = c.activity;
-    beginWalk(p, [...c.path]);
+    if (!navigation.start(p, c.path)) {
+      interruptWork(state, p);
+      continue;
+    }
     committedActors.add(p.id);
     committedJobs.add(m.task);
   }

@@ -56,7 +56,7 @@ export function createMaterialQueries<M extends string>(
   const portableContainerInterior = (lot: ItemLot) =>
     resolvePortableInterior(definitions, lot);
   function groundLocation(at: Cell): ItemLot["location"] {
-    return { kind: "ground", x: at.x, z: at.z, level: at.level };
+    return { kind: "ground", x: at.x, z: at.z, y: at.y };
   }
 
   function sourceContainer(id: string): ContainerId {
@@ -151,7 +151,7 @@ export function createMaterialQueries<M extends string>(
           cell: {
             x: lot.location.x,
             z: lot.location.z,
-            level: lot.location.level,
+            y: lot.location.y,
           },
         }
       : lot.location.kind === "container"
@@ -164,7 +164,7 @@ export function createMaterialQueries<M extends string>(
       ? lot.location.kind === "ground" &&
           lot.location.x === origin.cell.x &&
           lot.location.z === origin.cell.z &&
-          lot.location.level === origin.cell.level
+          lot.location.y === origin.cell.y
       : lot.location.kind === "container" &&
           lot.location.container === origin.container;
   }

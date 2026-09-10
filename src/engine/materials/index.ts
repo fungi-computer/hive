@@ -7,7 +7,11 @@ import { createMaterialRecovery } from "./recovery.ts";
 import { createHeldUses } from "./held-use.ts";
 import { createRecipeSettlements } from "./settlement.ts";
 import { createMaterialOwner as configureOwner } from "./owner.ts";
-import { materialStateSchema, materialSnapshotSchema } from "./schema.ts";
+import {
+  materialStateSchema,
+  materialSnapshotSchema,
+  MATERIAL_SNAPSHOT_SCHEMA,
+} from "./schema.ts";
 import type {
   ContainerSpec,
   MaterialDefinitions,
@@ -91,7 +95,10 @@ export function createMaterialOwner<M extends string>(
     ) {
       const parsed = schema.parse(state);
       validateMaterialRelations(parsed, containers, configured);
-      return { schema: 1 as const, state: structuredClone(parsed) };
+      return {
+        schema: MATERIAL_SNAPSHOT_SCHEMA,
+        state: structuredClone(parsed),
+      };
     },
     restore(
       value: unknown,

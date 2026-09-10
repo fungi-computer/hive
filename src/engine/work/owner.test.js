@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createMaterialOwner } from "../materials/index.ts";
 import { createFiniteWorkOwner } from "./index.ts";
-const cell = { x: 0, z: 0, level: 0 };
+const cell = { x: 0, y: 0, z: 0 };
 const access = { sourceReachable: true, destinationReachableWithPayload: true };
 test("independent finite ore work admission/release is atomic across metadata and physical custody", () => {
   const materials = createMaterialOwner({ ore: { carry: "portion" } });

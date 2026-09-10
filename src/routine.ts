@@ -1,7 +1,7 @@
 import type { Clearing } from "./model.ts";
 import { transferForActor } from "./materials.ts";
 import { members } from "./actors.ts";
-import { finishActivity } from "./activity-lifecycle.ts";
+import { cancelJob } from "./job-cancellation.ts";
 import { shelteredBeds } from "./construction.js";
 
 // Eight minutes at 1× leaves time to lay out and build a first home.
@@ -19,11 +19,7 @@ export function updateRoutine(state: Clearing): void {
       state.jobs.filter((job) => job.routine).map((job) => job.id),
     );
     if (!nightIds.size) return;
-    for (const person of Object.values(state.actors)) {
-      if (!person.task || !nightIds.has(person.task.job)) continue;
-      finishActivity(state, person);
-    }
-    state.jobs = state.jobs.filter((job) => !nightIds.has(job.id));
+    for (const id of nightIds) cancelJob(state, id);
     state.workDirty = true;
     state.notice = "Morning. Time to pick up the next order.";
     return;
@@ -45,6 +41,7 @@ export function updateRoutine(state: Clearing): void {
         continue;
       if (!shelteredBeds(state).length) continue;
       state.jobs.unshift({
+        lifecycle: "active",
         id: `job-${state.nextId++}`,
         kind: "care",
         target: person.id,

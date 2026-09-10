@@ -6,7 +6,7 @@ export type TransferId = string;
 export type ContainerId = string;
 export type OperationId = string;
 export type RecipeId = string;
-export type Cell = { x: number; z: number; level: number };
+export type Cell = import("../world/footing.ts").Footing;
 declare const positiveIntBrand: unique symbol;
 export type PositiveInt = number & { readonly [positiveIntBrand]: true };
 export type ItemLotLocation =

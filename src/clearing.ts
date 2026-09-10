@@ -3,44 +3,53 @@ import { createMaterialsState } from "./materials.ts";
 // Commands authorize work. Fixed steps own outcomes; the view reads state.
 import type { Clearing, Colony, Command } from "./model.ts";
 import { createFeed, nextEvent } from "./feed.js";
-import {
-  TREE_CELLS,
-  ROCKS,
-  WATCHER,
-  blockedCells,
-  neighbors,
-} from "./world.js";
+import { TREE_CELLS, ROCKS, WATCHER, neighbors } from "./world.js";
 import { introduceFiniteSources } from "./finite-sources.ts";
 import { shelteredBeds } from "./construction.js";
 import { actor, body } from "./actors.ts";
+import { groundFooting } from "./game-space.ts";
 import { assignWork } from "./jobs.ts";
 import { advanceWork } from "./activity.ts";
 import { advanceBrewing } from "./brewing.ts";
 import { updateRoutine } from "./routine.ts";
 import { admitCommands, type CommandResult } from "./orders.ts";
-import { route, beginWalk, walk } from "./movement.js";
+import { movement, stopWalking } from "./movement.ts";
+import { interruptWork } from "./activity-lifecycle.ts";
+import { advanceCancellations } from "./job-cancellation.ts";
 import { mugwortStage } from "./herbs.ts";
 import { initialTerrain, advanceTerrain } from "./terrain.ts";
 import { STEP_SECONDS } from "./ticker.js";
 import { advanceNeeds, queueAutomaticCare } from "./needs.ts";
 
 export function createClearing(seed = 42): Clearing {
+  const terrain = initialTerrain();
   const state: Clearing = {
     seed,
     tick: 0,
     paused: false,
     nextId: 1,
     actors: {
-      rowan: actor("rowan", "Rowan", "rowan", 7, 10),
-      sedge: actor("sedge", "Sedge", "witch-runner", 10, 12),
+      rowan: actor(
+        "rowan",
+        "Rowan",
+        "rowan",
+        groundFooting(terrain, { x: 7, z: 10 }),
+      ),
+      sedge: actor(
+        "sedge",
+        "Sedge",
+        "witch-runner",
+        groundFooting(terrain, { x: 10, z: 12 }),
+      ),
     },
     parties: { home: { id: "home", members: ["rowan"] } },
-    cat: { ...body(8, 10), nextMove: 100 },
+    cat: {
+      ...body(groundFooting(terrain, { x: 8, z: 10 }), "small"),
+      nextMove: 100,
+    },
     trees: TREE_CELLS.map(([x, z], i) => ({
       id: `oak-${i + 1}`,
-      x,
-      z,
-      level: 0,
+      ...groundFooting(terrain, { x, z }),
       work: 0,
       felledAt: null,
     })),
@@ -51,9 +60,9 @@ export function createClearing(seed = 42): Clearing {
     operations: [],
     careOutcomes: [],
     processes: [],
-    terrain: initialTerrain(),
-    rocks: structuredClone(ROCKS),
-    watcher: { ...WATCHER },
+    terrain,
+    rocks: ROCKS.map((at) => groundFooting(terrain, at)),
+    watcher: groundFooting(terrain, WATCHER),
     sites: [],
     jobs: [],
     workDirty: true,
@@ -70,28 +79,33 @@ export function createClearing(seed = 42): Clearing {
 }
 function advanceCat(state: Clearing): void {
   const cat = state.cat,
-    rowan = state.actors.rowan,
-    blocked = blockedCells(state);
+    rowan = state.actors.rowan;
   if (cat.mode === "walk") {
-    if (walk(cat, blocked, state) !== "moving") cat.mode = "idle";
+    const result = movement(state).advance(cat);
+    if (result === "arrived" || result === "blocked" || result === "idle")
+      cat.mode = "idle";
     return;
   }
   if (state.tick < cat.nextMove) return;
   cat.nextMove = state.tick + 100;
   if (
     rowan.mode === "sleep" &&
+    cat.y === rowan.y &&
     Math.abs(cat.x - rowan.x) + Math.abs(cat.z - rowan.z) <= 1
   ) {
     cat.mode = "sleep";
     return;
   }
   cat.mode = "idle";
+  const navigation = movement(state);
   const choices = neighbors(rowan),
     offset = Math.floor(state.tick / 100) % choices.length;
   for (let i = 0; i < choices.length; i++) {
-    const path = route(cat, choices[(i + offset) % choices.length], blocked);
+    const path = navigation
+      .forBody(cat)
+      .route(cat, choices[(i + offset) % choices.length]);
     if (path !== null) {
-      beginWalk(cat, path);
+      navigation.start(cat, path);
       return;
     }
   }
@@ -101,16 +115,14 @@ function advanceDrafted(
   person: Clearing["actors"][string],
 ): void {
   if (!person.drafted || person.mode !== "walk") return;
-  const result = walk(person, blockedCells(state), state);
+  const result = movement(state).advance(person);
   if (result === "blocked") {
     person.mode = "idle";
-    person.path = [];
-    person.leg = 0;
+    stopWalking(person);
     state.notice = `${person.name} is holding position; the route became blocked.`;
-  } else if (result === "arrived") {
+  } else if (result === "arrived" || result === "idle") {
     person.mode = "idle";
-    person.path = [];
-    person.leg = 0;
+    stopWalking(person);
     person.work = 0;
     state.notice = `${person.name} reached the clear ground and is holding position.`;
   }
@@ -137,9 +149,16 @@ function advanceCandidate(
   updateRoutine(state);
   queueAutomaticCare(state);
   for (const person of Object.values(state.actors)) {
+    if (person.workDisposition === "interrupt-at-footing") {
+      stopWalking(person);
+      if (person.traversal) movement(state).advance(person);
+      if (!person.traversal) interruptWork(state, person);
+      continue;
+    }
     advanceWork(state, person);
     advanceDrafted(state, person);
   }
+  advanceCancellations(state);
   const waterSupplyBefore = fieldWaterSupplyKey(state);
   state.terrain = advanceTerrain(state.terrain, STEP_SECONDS);
   if (fieldWaterSupplyKey(state) !== waterSupplyBefore) state.workDirty = true;

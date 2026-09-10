@@ -1,7 +1,12 @@
 import { Texture, Sprite, Container, Graphics, Text } from "pixi.js";
 import { projectCell, WIDTH, HEIGHT } from "./art/scale.js";
-import { visualPosition } from "./movement.js";
-import { WATCHER, inside } from "./world.js";
+import { visualPosition } from "./movement.ts";
+import {
+  insidePlacement,
+  worldView,
+  viewLayer,
+  exposedFooting,
+} from "./game-space.ts";
 import { CHOP_TICKS } from "./activity.ts";
 import { HARVEST_TICKS, HERB_READY_TICKS, SOW_TICKS } from "./herbs.ts";
 import { isNight } from "./routine.ts";
@@ -33,7 +38,8 @@ function depthKey(at, layer = 0) {
   return at.x + at.z + (at.level ?? 0) * 0.35 + layer;
 }
 
-function put(display, at, layer = 0) {
+function put(display, footing, layer = 0) {
+  const at = worldView(footing);
   const point = projectCell(at);
   display.position.set(point.x, point.y);
   display.zIndex = depthKey(at, layer);
@@ -186,7 +192,7 @@ export function createView(app, world, camera, art, initial, input) {
     const target = {
       kind: "tree",
       id: tree.id,
-      level: tree.level,
+      level: viewLayer(tree),
       action: "tree",
     };
     put(view.container, tree, 0.95);
@@ -225,7 +231,7 @@ export function createView(app, world, camera, art, initial, input) {
     const target = {
       kind: "actor",
       id: person.id,
-      level: person.level,
+      level: viewLayer(person),
       action: "select",
     };
     view.container.on("pointerdown", (event) => {
@@ -285,7 +291,7 @@ export function createView(app, world, camera, art, initial, input) {
 
   const cat = body(art.figures.cat.idle[0][0], art.pawnAnchor, 5);
   const goblin = body(art.figures.goblin.idle[0][0], art.pawnAnchor, 7);
-  put(goblin.container, WATCHER, 0.8);
+  put(goblin.container, initial.watcher, 0.8);
   bodies.addChild(cat.container, goblin.container);
 
   const piles = new Map();
@@ -312,7 +318,7 @@ export function createView(app, world, camera, art, initial, input) {
   app.stage.on("globalpointermove", (e) => {
     if (!fromCanvas(e)) return;
     const cell = camera.cell(e.global, input.level());
-    if (inside(cell)) input.move(cell, e.global);
+    if (insidePlacement(cell)) input.move(cell, e.global);
   });
   app.stage.on("pointerdown", (e) => {
     if (fromCanvas(e) && e.button === 0)
@@ -345,7 +351,7 @@ export function createView(app, world, camera, art, initial, input) {
         const target = {
           kind: "source",
           id: source.id,
-          level: source.level,
+          level: viewLayer(source),
           action: "inspect-source",
         };
         view.container.cursor = "pointer";
@@ -383,7 +389,7 @@ export function createView(app, world, camera, art, initial, input) {
         source.kind === "spring"
           ? art.sources.spring[stateName]
           : art.sources.cache[stateName];
-      const active = source.level === selection.level;
+      const active = viewLayer(source) === selection.level;
       view.container.visible = active;
       view.container.eventMode = active && interactive ? "static" : "none";
       put(view.container, source, 0.24);
@@ -392,11 +398,16 @@ export function createView(app, world, camera, art, initial, input) {
         texture,
         anchor: art.propAnchor,
         orientation: `${source.kind}:${stateName}`,
-        target: { ...view.target, level: source.level },
+        target: { ...view.target, level: viewLayer(source) },
       });
       if (selection.source === source.id)
         marks
-          .ellipse(projectCell(source).x, projectCell(source).y, 14, 7)
+          .ellipse(
+            projectCell(worldView(source)).x,
+            projectCell(worldView(source)).y,
+            14,
+            7,
+          )
           .stroke({ width: 2, color: 0xe6c477 });
     }
   }
@@ -418,7 +429,7 @@ export function createView(app, world, camera, art, initial, input) {
         const target = {
           kind: "lot",
           id: lot.id,
-          level: lot.location.level,
+          level: viewLayer(lot.location),
           action: "inspect-lot",
         };
         view.container.cursor = "pointer";
@@ -442,7 +453,7 @@ export function createView(app, world, camera, art, initial, input) {
         "water",
       );
       const texture = water >= 2 ? art.pail.filled : art.pail.empty;
-      const active = lot.location.level === selection.level;
+      const active = viewLayer(lot.location) === selection.level;
       view.container.visible = active;
       view.container.eventMode = active && interactive ? "static" : "none";
       put(view.container, lot.location, 0.21);
@@ -451,13 +462,13 @@ export function createView(app, world, camera, art, initial, input) {
         texture,
         anchor: art.propAnchor,
         orientation: `pail:${water >= 2 ? "filled" : "empty"}`,
-        target: { ...view.target, level: lot.location.level },
+        target: { ...view.target, level: viewLayer(lot.location) },
       });
       if (selection.lot === lot.id)
         marks
           .ellipse(
-            projectCell(lot.location).x,
-            projectCell(lot.location).y,
+            projectCell(worldView(lot.location)).x,
+            projectCell(worldView(lot.location)).y,
             12,
             6,
           )
@@ -494,7 +505,7 @@ export function createView(app, world, camera, art, initial, input) {
         view.target = {
           kind: "lot",
           id: lot.id,
-          level: lot.location.level,
+          level: viewLayer(lot.location),
           action: "inspect-lot",
         };
         view.container.cursor = "pointer";
@@ -512,9 +523,9 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = piles.get(lot.id);
-      view.container.visible = lot.location.level === selection.level;
+      view.container.visible = viewLayer(lot.location) === selection.level;
       view.container.eventMode =
-        lot.location.level === selection.level && !selection.tool
+        viewLayer(lot.location) === selection.level && !selection.tool
           ? "static"
           : "none";
       put(view.container, lot.location, 0.22);
@@ -524,13 +535,13 @@ export function createView(app, world, camera, art, initial, input) {
         texture: view.sprite.texture,
         anchor: art.propAnchor,
         orientation: `${lot.material}:${lot.quantity}`,
-        target: { ...view.target, level: lot.location.level },
+        target: { ...view.target, level: viewLayer(lot.location) },
       });
       if (selection.lot === lot.id)
         marks
           .ellipse(
-            projectCell(lot.location).x,
-            projectCell(lot.location).y,
+            projectCell(worldView(lot.location)).x,
+            projectCell(worldView(lot.location)).y,
             12,
             6,
           )
@@ -559,10 +570,10 @@ export function createView(app, world, camera, art, initial, input) {
         texture: view.sprite.texture,
         anchor: art.propAnchor,
         orientation: treeStage,
-        target: { ...view.target, level: tree.level },
+        target: { ...view.target, level: viewLayer(tree) },
       });
       view.container.rotation = active ? Math.sin(state.tick * 0.6) * 0.013 : 0;
-      const at = projectCell(tree);
+      const at = projectCell(worldView(tree));
       view.container.visible = true;
       view.container.alpha = selection.level === 0 ? 1 : 0.18;
       view.container.eventMode =
@@ -607,7 +618,7 @@ export function createView(app, world, camera, art, initial, input) {
     const target = {
       kind: "herb",
       id: herb.id,
-      level: herb.level,
+      level: viewLayer(herb),
       action: "inspect-herb",
     };
     view.container.on("pointerdown", (event) => {
@@ -650,24 +661,24 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = herbs.get(herb.id);
-      const projected = projectCell(herb);
+      const projected = projectCell(worldView(herb));
       put(view.container, herb, 0.18);
-      view.container.visible = herb.level === selection.level;
+      view.container.visible = viewLayer(herb) === selection.level;
       view.container.eventMode =
         interactive &&
-        herb.level === selection.level &&
+        viewLayer(herb) === selection.level &&
         herb.stage !== "ordered"
           ? "static"
           : "none";
       view.container.visible =
-        herb.level === selection.level && herb.stage !== "ordered";
+        viewLayer(herb) === selection.level && herb.stage !== "ordered";
       if (herb.stage !== "ordered")
         view.sprite.texture = art.herbs.mugwort[herb.stage];
       picking.bind(view.container, {
         texture: view.sprite.texture,
         anchor: art.propAnchor,
         orientation: herb.stage,
-        target: { ...view.target, level: herb.level },
+        target: { ...view.target, level: viewLayer(herb) },
       });
       if (herb.stage === "ordered") {
         marks
@@ -695,7 +706,7 @@ export function createView(app, world, camera, art, initial, input) {
         const target = {
           kind: "lot",
           id: lot.id,
-          level: lot.location.level,
+          level: viewLayer(lot.location),
           action: "inspect-lot",
         };
         view.container.eventMode = "static";
@@ -717,7 +728,7 @@ export function createView(app, world, camera, art, initial, input) {
         bodies.addChild(view.container);
       }
       const view = bundles.get(lot.id);
-      const active = lot.location.level === selection.level;
+      const active = viewLayer(lot.location) === selection.level;
       view.container.visible = active;
       view.container.eventMode =
         active && !selection.tool && !selection.panMode && !selection.box
@@ -728,13 +739,13 @@ export function createView(app, world, camera, art, initial, input) {
         texture: view.sprite.texture,
         anchor: art.propAnchor,
         orientation: "bundle",
-        target: { ...view.target, level: lot.location.level },
+        target: { ...view.target, level: viewLayer(lot.location) },
       });
       if (selection.lot === lot.id)
         marks
           .ellipse(
-            projectCell(lot.location).x,
-            projectCell(lot.location).y,
+            projectCell(worldView(lot.location)).x,
+            projectCell(worldView(lot.location)).y,
             12,
             6,
           )
@@ -747,8 +758,9 @@ export function createView(app, world, camera, art, initial, input) {
     for (const person of Object.values(state.actors)) {
       const view = actors.get(person.id);
       const pos = visualPosition(person);
-      put(view.container, pos, pos.level >= 1 ? 0.45 : 0.1);
-      const activeLevel = Math.round(pos.level) === selection.level;
+      put(view.container, pos, viewLayer(pos) === 1 ? 0.45 : 0.1);
+      const activeLevel = viewLayer(pos) === selection.level;
+      view.container.visible = exposedFooting(state.terrain, person);
       view.container.alpha = activeLevel ? 1 : 0.18;
       view.container.eventMode = activeLevel ? "static" : "none";
       const hand = carriedLot(state.materials, person.id);
@@ -761,13 +773,14 @@ export function createView(app, world, camera, art, initial, input) {
         texture: view.sprite.texture,
         anchor: art.pawnAnchor,
         orientation: `${pose}:${person.dir}:${frame}`,
-        target: { ...view.target, level: person.level },
+        target: { ...view.target, level: viewLayer(pos) },
       });
       const selected = selection.selectedActors.includes(person.id);
       const visitor = !state.parties.home.members.includes(person.id);
       view.ring.visible = selected;
       view.plate.visible = activeLevel && (selected || visitor);
-      const labelAt = camera.project(pos.x, pos.z, 2.6, pos.level);
+      const local = worldView(pos);
+      const labelAt = camera.project(local.x, local.z, 2.6, local.level);
       view.plate.position.set(Math.round(labelAt.x), Math.round(labelAt.y));
       view.progress.clear();
       if (person.mode === "chop") {
@@ -777,11 +790,14 @@ export function createView(app, world, camera, art, initial, input) {
           .rect(-10, -42, (20 * person.work) / CHOP_TICKS, 1)
           .fill(0xefcb7b);
       }
-      if (selected && person.path.length) {
-        const start = projectCell(pos);
+      if (selected && person.traversal) {
+        const start = projectCell(worldView(pos));
         route.moveTo(start.x, start.y);
-        for (const cell of person.path) {
-          const point = projectCell(cell);
+        for (const cell of [
+          person.traversal.edge.to,
+          ...person.traversal.remaining,
+        ]) {
+          const point = projectCell(worldView(cell));
           route.lineTo(point.x, point.y);
         }
         route.stroke({ width: 1, color: 0xe4c278, alpha: 0.65 });
@@ -862,7 +878,10 @@ export function createView(app, world, camera, art, initial, input) {
       const catFrames = art.figures.cat[state.cat.mode][state.cat.dir];
       cat.sprite.texture =
         catFrames[animationFrame(state.tick, state.cat.mode, catFrames)];
-      goblin.container.visible = !!state.demand;
+      put(goblin.container, state.watcher, 0.8);
+      goblin.container.visible =
+        !!state.demand && exposedFooting(state.terrain, state.watcher);
+      cat.container.visible = exposedFooting(state.terrain, state.cat);
       goblin.container.alpha = selection.level === 0 ? 1 : 0.18;
       construction.render(
         state,

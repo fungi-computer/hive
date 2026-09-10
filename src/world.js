@@ -1,10 +1,8 @@
-// One finite clearing. Logical storeys are explicit; rendering may interpolate
-// between them, but simulation positions remain integer cells.
-import {
-  terrainCell,
-  terrainColumn,
-  terrainChangedColumns,
-} from "./terrain.ts";
+import { placementFooting, worldView, samePlacement } from "./game-space.ts";
+import { TERRAIN_FRAME } from "./terrain.ts";
+// Physical occupants use one signed world-voxel frame. Site helpers below
+// explicitly retain authored placement coordinates.
+import { terrainCell, terrainColumn } from "./terrain.ts";
 export const SIZE = 15;
 export const WATCHER = { x: 13, z: 2, level: 0 };
 export const ROCKS = [
@@ -23,38 +21,36 @@ export const TREE_CELLS = [
   [6, 12],
   [12, 6],
 ];
-export const cellKey = (p) => `${p.x},${p.z},${p.level ?? 0}`;
+export const cellKey = (p) => `${p.x},${p.y},${p.z}`;
 export const sameCell = (a, b) => cellKey(a) === cellKey(b);
+/** Horizontal clearing membership only; live support/vertical bounds belong to
+ * the registered physical query used for admission and restore. */
 export function inside(p) {
   return (
-    Number.isInteger(p.x) &&
-    Number.isInteger(p.z) &&
-    Number.isInteger(p.level ?? 0) &&
-    p.x >= 0 &&
-    p.z >= 0 &&
-    p.x < SIZE &&
-    p.z < SIZE &&
-    (p.level ?? 0) >= 0 &&
-    (p.level ?? 0) <= 1
+    [p.x, p.y, p.z].every(Number.isSafeInteger) &&
+    p.x >= TERRAIN_FRAME.x &&
+    p.x < TERRAIN_FRAME.x + SIZE &&
+    p.z >= TERRAIN_FRAME.z &&
+    p.z < TERRAIN_FRAME.z + SIZE
   );
 }
 export function stairCells(site) {
   return [0, 1, 2].map((distance) => ({
     x: site.x + (site.direction === 1 ? distance : 0),
     z: site.z + (site.direction === 1 ? 0 : distance),
-    level: 0,
+    level: site.level,
   }));
 }
 export function stairLanding(site) {
   const cells = stairCells(site);
   const top = cells[2];
-  return { x: top.x, z: top.z, level: 1 };
+  return { x: top.x, z: top.z, level: site.level + 1 };
 }
 export function stairHeadroom(site) {
   return stairCells(site).map((cell) => ({
     x: cell.x,
     z: cell.z,
-    level: 1,
+    level: site.level + 1,
   }));
 }
 function siteCells(site) {
@@ -99,7 +95,7 @@ export function placementOccupant(state, at, excludeId = null) {
   if (state.rocks.some((rock) => sameCell(rock, at))) return "rock";
   if (
     state.sites.some((site) =>
-      siteCells(site).some((cell) => sameCell(cell, at)),
+      siteCells(site).some((cell) => sameCell(placementFooting(cell), at)),
     )
   )
     return "site";
@@ -118,12 +114,16 @@ export function placementOccupant(state, at, excludeId = null) {
 }
 /** Occupancy is checked separately from terrain geometry so completion can revalidate it. */
 export function terrainEditProblem(state, at) {
-  if (!inside(at) || at.level !== 0)
+  if (!inside(at) || at.y !== TERRAIN_FRAME.y)
     return "That is outside the current standing level.";
   const body = [...Object.values(state.actors), state.cat];
   if (body.some((pawn) => sameCell(pawn, at)))
     return "Someone is standing there.";
-  if (body.some((pawn) => pawn.path?.some((cell) => sameCell(cell, at))))
+  if (
+    body.some((pawn) =>
+      pawn.traversal?.edge.sweep.some((cell) => sameCell(cell, at)),
+    )
+  )
     return "Someone is crossing that ground.";
   if (sourceAt(state, at)) return "A source occupies that ground.";
   if (state.trees.some((tree) => sameCell(tree, at)))
@@ -133,7 +133,7 @@ export function terrainEditProblem(state, at) {
   if (sameCell(state.watcher, at)) return "The watcher occupies that ground.";
   if (
     state.sites.some((site) =>
-      siteCells(site).some((cell) => sameCell(cell, at)),
+      siteCells(site).some((cell) => sameCell(placementFooting(cell), at)),
     )
   )
     return "A structure occupies or depends on that ground.";
@@ -147,14 +147,14 @@ export function terrainRimCells(state, at) {
   const terrainTargets = new Set(
     state.jobs
       .filter((job) => job.kind === "dig")
-      .map((job) => cellKey(terrainColumn(job.voxel))),
+      .map((job) => cellKey(placementFooting(terrainColumn(job.voxel)))),
   );
   return neighbors(at).filter(
     (cell) =>
       inside(cell) &&
-      cell.level === 0 &&
+      cell.y === TERRAIN_FRAME.y &&
       !terrainTargets.has(cellKey(cell)) &&
-      terrainCell(state.terrain, cell.x, cell.z).support,
+      terrainCell(state.terrain, worldView(cell).x, worldView(cell).z).support,
   );
 }
 export function neighbors(p) {
@@ -163,52 +163,14 @@ export function neighbors(p) {
     [0, 1],
     [-1, 0],
     [0, -1],
-  ].map(([x, z]) => ({ x: p.x + x, z: p.z + z, level: p.level ?? 0 }));
+  ].map(([x, z]) => ({ x: p.x + x, y: p.y, z: p.z + z }));
 }
 export function upperSurface(state, at) {
   if (at.level !== 1) return false;
   return state.sites.some(
     (site) =>
       site.finishedAt !== null &&
-      ((site.type === "floor" && sameCell(site, at)) ||
-        (site.type === "stair" && sameCell(stairLanding(site), at))),
+      ((site.type === "floor" && samePlacement(site, at)) ||
+        (site.type === "stair" && samePlacement(stairLanding(site), at))),
   );
-}
-export function topologyNeighbors(state, p) {
-  const next = neighbors(p);
-  const stair = state.sites.find(
-    (site) => site.type === "stair" && site.finishedAt !== null,
-  );
-  if (!stair) return next;
-  const lower = stairCells(stair)[0];
-  const upper = stairLanding(stair);
-  if (sameCell(p, lower)) next.push(upper);
-  else if (sameCell(p, upper)) next.push(lower);
-  return next;
-}
-export function blockedCells(state) {
-  const blocked = new Set(
-    [
-      ...state.rocks,
-      state.watcher,
-      ...state.trees.filter((t) => t.felledAt === null),
-      ...(state.sources ?? []),
-      // Walls reserve their cell; the station's fixed 2×2 body is likewise
-      // physical while every supply/work action uses its outside datum.
-      ...state.sites
-        .filter((s) => s.type === "wall" || s.type === "brew-station")
-        .flatMap(siteCells),
-    ].map(cellKey),
-  );
-  for (const cell of terrainChangedColumns(state.terrain))
-    blocked.add(cellKey(cell));
-  for (const stair of state.sites)
-    if (stair.type === "stair")
-      for (const cell of stairCells(stair).slice(1)) blocked.add(cellKey(cell));
-  for (let x = 0; x < SIZE; x++)
-    for (let z = 0; z < SIZE; z++) {
-      const cell = { x, z, level: 1 };
-      if (!upperSurface(state, cell)) blocked.add(cellKey(cell));
-    }
-  return blocked;
 }

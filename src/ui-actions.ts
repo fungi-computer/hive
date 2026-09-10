@@ -1,3 +1,4 @@
+import type { Placement } from "./game-space.ts";
 import type { FieldWaterReference } from "./field-water-source.ts";
 import { terrainCell } from "./terrain.ts";
 import type { TerrainState } from "./model.ts";
@@ -30,11 +31,11 @@ export type LocalGoodsLot = {
     readonly kind: string;
     readonly x?: number;
     readonly z?: number;
-    readonly level?: number;
+    readonly y?: number;
   };
 };
 
-/** Returns projected loose lots at one exact logical cell, including level. */
+/** Returns projected loose lots at one exact physical footing. */
 export function localGoodsAt<T extends LocalGoodsLot>(
   lots: readonly T[],
   at: Cell,
@@ -44,7 +45,7 @@ export function localGoodsAt<T extends LocalGoodsLot>(
       lot.location.kind === "ground" &&
       lot.location.x === at.x &&
       lot.location.z === at.z &&
-      lot.location.level === at.level,
+      lot.location.y === at.y,
   );
 }
 
@@ -376,10 +377,11 @@ export type UiAction =
   | { kind: "notice"; text: string }
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number }
-  | { kind: "recenter"; cell: Cell };
+  | { kind: "recenter"; cell: Placement };
 
 export type UiEffect =
   | { kind: "notice"; text: string }
+  | { kind: "go-at-point"; actor: string; point: GesturePoint }
   | { kind: "command"; command: UiCommand | Command }
   | { kind: "recruit"; actor: string }
   | { kind: "submit-designation"; targetIds: string[] }
@@ -397,7 +399,7 @@ export type UiEffect =
     }
   | { kind: "zoom"; delta: number }
   | { kind: "pan"; x: number; y: number }
-  | { kind: "recenter"; cell: Cell };
+  | { kind: "recenter"; cell: Placement };
 
 export type LevelNavigationControl = {
   readonly name: string;

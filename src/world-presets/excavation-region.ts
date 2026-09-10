@@ -76,7 +76,7 @@ export function createQuarryRegionProgram(): RegionProgram<State, Command> {
     };
   }
   return {
-    id: "quarry-region-v1",
+    id: "quarry-footing-material2-v1",
     initial() {
       return {
         world: worldFrom().save(),
@@ -121,7 +121,7 @@ export function createQuarryRegionProgram(): RegionProgram<State, Command> {
       const produced = materials.createGroundLot(stock, "chalk", 1, {
         x: at.x,
         z: at.z,
-        level: 0,
+        y: 0,
       });
       if (!produced.ok)
         return { status: "rejected", result: { reason: produced.reason } };

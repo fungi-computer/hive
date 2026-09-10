@@ -1,4 +1,8 @@
-import { finishActivity, finishJob } from "./activity-lifecycle.ts";
+import {
+  finishActivity,
+  finishJob,
+  interruptWork,
+} from "./activity-lifecycle.ts";
 import {
   settlePhysicalEdit,
   TERRAIN_WORK_TICKS,
@@ -14,16 +18,15 @@ import type {
   Job,
   Site,
   Transfer,
-  WaterDeliveryOperation,
 } from "./model.ts";
 import {
-  blockedCells,
   sameCell,
   sourceAccessCells,
   terrainEditProblem,
   terrainRimCells,
 } from "./world.js";
-import { beginWalk, route, walk, face } from "./movement.js";
+import { movement, face } from "./movement.ts";
+import { placementFooting } from "./game-space.ts";
 import {
   BUILDINGS,
   brewStationAccessCells,
@@ -40,7 +43,6 @@ import {
   createGroundLot,
   deliverTransfer,
   drawPailWater,
-  interruptTransfer,
   pickupTransfer,
   transferForActor,
 } from "./materials.ts";
@@ -73,33 +75,7 @@ import {
 import { terrainColumn, terrainDigProblem } from "./terrain.ts";
 export const CHOP_TICKS = 80;
 function groundCell(at: Cell): Cell {
-  return { x: at.x, z: at.z, level: at.level };
-}
-export function interruptWork(state: Clearing, p: Actor): void {
-  const operation =
-    p.task?.kind === "water-delivery"
-      ? state.operations.find(
-          (entry): entry is WaterDeliveryOperation =>
-            entry.kind === "water-delivery" && entry.id === p.task?.target,
-        )
-      : undefined;
-  const drop = { cell: { x: p.x, z: p.z, level: p.level }, legal: true };
-  const r = operation
-    ? finiteWorkOwner.interrupt(state.operations, state.materials, {
-        kind: "park",
-        actor: p.id,
-        operation: operation.id,
-        drop,
-      })
-    : p.task?.kind === "consume"
-      ? finiteWorkOwner.interrupt(state.operations, state.materials, {
-          kind: "release",
-          operation: p.task.target,
-          drop,
-        })
-      : interruptTransfer(state.materials, p.id, drop);
-  if (!r.ok) throw new Error(r.reason);
-  finishActivity(state, p);
+  return { x: at.x, y: at.y, z: at.z };
 }
 function transferEndpoint(s: Clearing, id: string) {
   const site = resolveMaterialDestination(s.sites, id);
@@ -128,7 +104,7 @@ function terrainWork(
     interruptWork(s, p);
     return;
   }
-  const at = terrainColumn(job.voxel);
+  const at = placementFooting(terrainColumn(job.voxel));
   if (terrainDigProblem(s.terrain, job.voxel)) {
     interruptWork(s, p);
     return;
@@ -256,32 +232,13 @@ function herb(s: Clearing, p: Actor, t: Activity) {
     finishJob(s, p, t.job);
   }
 }
-function nearestPath(s: Clearing, from: Cell, cells: readonly Cell[]) {
-  return (
-    cells
-      .map((cell) => route(from, cell, blockedCells(s), s))
-      .filter((path): path is Cell[] => path !== null)
-      .sort((left, right) => left.length - right.length)[0] ?? null
-  );
-}
 function atAny(p: Actor, cells: readonly Cell[]): boolean {
   return cells.some((cell) => sameCell(p, cell));
 }
 function accessWork(s: Clearing, p: Actor, cells: readonly Cell[]): boolean {
-  if (p.mode === "walk") {
-    const walked = walk(p, blockedCells(s), s);
-    if (walked === "blocked") interruptWork(s, p);
-    if (walked !== "arrived") return false;
-    p.mode = p.task?.kind ?? "idle";
-  }
-  if (atAny(p, cells)) return true;
-  const path = nearestPath(s, p, cells);
-  if (!path) {
-    interruptWork(s, p);
-    return false;
-  }
-  beginWalk(p, path);
-  return false;
+  const outcome = approachWork(s, p, cells);
+  if (outcome === "invalid") interruptWork(s, p);
+  return outcome === "ready";
 }
 function repairCache(s: Clearing, p: Actor, t: Activity): void {
   const cache = s.sources.find(
@@ -327,16 +284,16 @@ function approachWork(
   p: Actor,
   cells: readonly Cell[],
 ): AccessOutcome {
+  const navigation = movement(s);
   if (p.mode === "walk") {
-    const outcome = walk(p, blockedCells(s), s);
+    const outcome = navigation.advance(p);
     if (outcome === "blocked") return "invalid";
-    if (outcome !== "arrived") return "pending";
+    if (outcome === "moving" || outcome === "waiting") return "pending";
     p.mode = p.task?.kind ?? "idle";
   }
   if (atAny(p, cells)) return "ready";
-  const path = nearestPath(s, p, cells);
-  if (!path) return "invalid";
-  beginWalk(p, path);
+  const path = navigation.forBody(p).closest(p, cells);
+  if (!path || !navigation.start(p, path)) return "invalid";
   return "pending";
 }
 function finiteWork(s: Clearing, p: Actor, t: Activity): void {
@@ -611,12 +568,14 @@ export function advanceWork(s: Clearing, p: Actor): void {
     interruptWork(s, p);
     return;
   }
+  const targetAt =
+    "type" in target ? placementFooting(target as Site) : (target as Cell);
   if (p.mode === "walk") {
-    const r = walk(p, blockedCells(s), s);
+    const r = movement(s).advance(p);
     if (r === "blocked") interruptWork(s, p);
-    if (r !== "arrived") return;
+    if (r !== "arrived" && r !== "idle") return;
     p.mode = t.kind;
-    face(p, target);
+    face(p, targetAt);
     return;
   }
   const currentTransfer =
@@ -655,9 +614,9 @@ export function advanceWork(s: Clearing, p: Actor): void {
                 t.kind === "deconstruct" ? "deconstruct" : "build",
               )
             : t.kind === "sleep"
-              ? sameCell(p, target)
-              : Math.abs(p.x - target.x) + Math.abs(p.z - target.z) === 1 &&
-                p.level === target.level;
+              ? sameCell(p, targetAt)
+              : Math.abs(p.x - targetAt.x) + Math.abs(p.z - targetAt.z) === 1 &&
+                p.y === targetAt.y;
   if (!okay) {
     interruptWork(s, p);
     return;

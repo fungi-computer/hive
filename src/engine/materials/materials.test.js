@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createMaterialOwner } from "./index.ts";
 const access = { sourceReachable: true, destinationReachableWithPayload: true };
-const cell = { x: 0, z: 0, level: 0 };
+const cell = { x: 0, y: 0, z: 0 };
 const bin = { id: "bin", capacity: 2, accepts: ["ingot"], bulk: { ingot: 1 } };
 const station = {
   id: "station",
@@ -457,4 +457,24 @@ test("ordinary claim retirement follows released custody and retries harmlessly"
   assert.equal(state.lots[0].quantity, 1);
   assert.equal(state.lots[0].location.kind, "ground");
   assert.deepEqual(owner.restore(owner.snapshot(state, []), []), state);
+});
+
+test("material envelope2 preserves signed footings and rejects the retired ground format", () => {
+  const owner = createMaterialOwner(definitions),
+    state = owner.createState();
+  const at = { x: -3, y: -2, z: 119 };
+  assert(owner.createGroundLot(state, "ore", 2, at, "signed-ore").ok);
+  const snapshot = owner.snapshot(state, []);
+  assert.equal(snapshot.schema, 2);
+  assert.deepEqual(owner.restore(snapshot, []), state);
+  assert.throws(() => owner.restore({ ...snapshot, schema: 1 }, []));
+  const malformed = structuredClone(snapshot);
+  malformed.state.lots[0].location = {
+    kind: "ground",
+    x: -3,
+    z: 119,
+    level: 0,
+  };
+  assert.throws(() => owner.restore(malformed, []));
+  assert.deepEqual(state.lots[0].location, { kind: "ground", ...at });
 });

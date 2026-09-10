@@ -54,7 +54,7 @@ export function sameWaterDeliveryTarget(
 
 export type ResolvedWaterDelivery = {
   target: WaterDeliveryTarget;
-  access: readonly { x: number; z: number; level: number }[];
+  access: readonly import("./engine/world/footing.ts").Footing[];
   destination: ContainerSpec | null;
   quantity: PositiveInt;
 };
@@ -95,7 +95,7 @@ export function resolveWaterDelivery(
     return actor && quantity
       ? {
           target,
-          access: [{ x: actor.x, z: actor.z, level: actor.level }],
+          access: [{ x: actor.x, y: actor.y, z: actor.z }],
           destination: null,
           quantity,
         }

@@ -1,3 +1,5 @@
+import { placementFooting } from "./game-space.ts";
+import { sameCell } from "./world.js";
 import type {
   ActorId,
   CareNeed,
@@ -127,6 +129,7 @@ export function queueAutomaticCare(state: Clearing): void {
     )
       continue;
     state.jobs.unshift({
+      lifecycle: "active",
       id: `job-${state.nextId++}`,
       kind: "care",
       target: actor.id,
@@ -276,9 +279,7 @@ export function advanceRestContact(
     !bed ||
     bed.type !== "bed" ||
     bed.finishedAt === null ||
-    actor.x !== bed.x ||
-    actor.z !== bed.z ||
-    actor.level !== bed.level
+    !sameCell(actor, placementFooting(bed))
   )
     return false;
   const needs = actor.needs;

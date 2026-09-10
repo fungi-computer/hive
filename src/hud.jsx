@@ -1,3 +1,4 @@
+import { viewLayer, worldView } from "./game-space.ts";
 import {
   fieldInspectionFacts,
   resolveFieldInspection,
@@ -122,7 +123,8 @@ function actorFact(state, actor) {
     activeJobId: actor.task?.job ?? transfer?.owner.job ?? null,
     x: actor.x,
     z: actor.z,
-    level: actor.level,
+    y: actor.y,
+    level: viewLayer(actor),
   };
 }
 
@@ -155,9 +157,7 @@ function sameBundle(a, b) {
   const right = b.location;
   if (!left || !right || left.kind !== right.kind) return false;
   if (left.kind === "ground")
-    return (
-      left.x === right.x && left.z === right.z && left.level === right.level
-    );
+    return left.x === right.x && left.z === right.z && left.y === right.y;
   if (left.kind === "carried") return left.actor === right.actor;
   return left.site === right.site;
 }
@@ -215,7 +215,8 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     id: tree.id,
     x: tree.x,
     z: tree.z,
-    level: tree.level,
+    y: tree.y,
+    level: viewLayer(tree),
     felled: tree.felledAt !== null,
     work: tree.work,
   }));
@@ -289,7 +290,8 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
       kind: source.kind,
       x: source.x,
       z: source.z,
-      level: source.level,
+      y: source.y,
+      level: viewLayer(source),
       material: provider.accepts[0],
       quantity: containerQuantity(
         state.materials,
@@ -318,7 +320,8 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     id: herb.id,
     x: herb.x,
     z: herb.z,
-    level: herb.level,
+    y: herb.y,
+    level: viewLayer(herb),
     stage: herb.stage,
     work: herb.work,
     plantedAt: herb.plantedAt,
@@ -1284,7 +1287,7 @@ function Target({ model: m, send }) {
           </div>
           <p className="muted">
             {m.target.location.kind === "ground"
-              ? `Loose on ground · ${m.target.location.x}, ${m.target.location.z} · ${levelName(m.target.location.level)}`
+              ? `Loose on ground · ${m.target.location.x}, ${m.target.location.z} · ${levelName(viewLayer(m.target.location))}`
               : "Held for its current operation"}
           </p>
           <small className="action-reason">
@@ -1298,7 +1301,7 @@ function Target({ model: m, send }) {
     );
     const locationText =
       m.target.location.kind === "ground"
-        ? `Loose on ground · ${m.target.location.x}, ${m.target.location.z} · ${levelName(m.target.location.level)}`
+        ? `Loose on ground · ${m.target.location.x}, ${m.target.location.z} · ${levelName(viewLayer(m.target.location))}`
         : m.target.location.kind === "carried"
           ? `Held by ${m.target.location.actor}`
           : `Stored on shelf ${m.target.location.site}`;
@@ -1928,8 +1931,16 @@ function Hud({ machineSnapshot, send, portraits }) {
     minimap: {
       facts: {
         size: facts.size,
-        actors: Object.values(facts.actors),
-        trees: facts.trees,
+        actors: Object.values(facts.actors).map((actor) => ({
+          ...actor,
+          ...worldView(actor),
+          level: viewLayer(actor),
+        })),
+        trees: facts.trees.map((tree) => ({
+          ...tree,
+          ...worldView(tree),
+          level: viewLayer(tree),
+        })),
         structures: facts.structures,
         selectedActorIds: selection.selectedIds,
       },
@@ -2623,12 +2634,9 @@ export function createHud(host, art, effect) {
           return;
         }
         effect({
-          kind: "command",
-          command: {
-            kind: "go",
-            actor: actor.id,
-            target: { ...action.point.cell },
-          },
+          kind: "go-at-point",
+          actor: actor.id,
+          point: action.point,
         });
         return;
       }

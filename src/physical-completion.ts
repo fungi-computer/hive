@@ -1,3 +1,5 @@
+import { physicalOccupancyProblem } from "./navigation-space.ts";
+import { placementFooting } from "./game-space.ts";
 import type { Actor, Clearing, Job, Site } from "./model.ts";
 import { finishActivity, finishJob } from "./activity-lifecycle.ts";
 import {
@@ -59,8 +61,8 @@ function materialRefusal(reason: MaterialFailure): Refusal {
   // material owner does not currently distinguish those cases in its result.
   throw new Error(`physical material invariant: ${reason}`);
 }
-function cell(at: Actor | Site) {
-  return { x: at.x, z: at.z, level: at.level };
+function cell(at: Actor) {
+  return { x: at.x, y: at.y, z: at.z };
 }
 
 type PhysicalJob = Extract<Job, { kind: "dig" | "build" | "deconstruct" }>;
@@ -152,7 +154,7 @@ function accessProblem(
   if (target.kind === "dig") {
     const problem = terrainDigProblem(state.terrain, target.job.voxel);
     if (problem) return invalid(problem);
-    const at = terrainColumn(target.job.voxel);
+    const at = placementFooting(terrainColumn(target.job.voxel));
     const blocked = terrainEditProblem(state, at);
     if (blocked) return waiting(blocked);
     if (!terrainRimCells(state, at).some((rim) => sameCell(actor, rim)))
@@ -283,7 +285,7 @@ function prepareShelfRelease(
 ): Set<string> | Refusal {
   const destination = shelfContainer(site.id);
   const released = releaseContainer(materials, destination, {
-    contentsDrop: { cell: cell(site), legal: true },
+    contentsDrop: { cell: placementFooting(site), legal: true },
     carriedDrops: Object.fromEntries(
       Object.values(state.actors).map((actor) => [
         actor.id,
@@ -317,7 +319,7 @@ function prepareRemoval(
     materials,
     constructionBuffer(site),
     BUILDINGS[site.type].salvageWood,
-    { cell: cell(site), legal: true },
+    { cell: placementFooting(site), legal: true },
   );
   if (!result.ok) return materialRefusal(result.reason);
   return {
@@ -347,12 +349,28 @@ function prepareEdit(state: Clearing, work: ReadyWork): PreparedEdit | Refusal {
       break;
   }
   if (edit.status !== "prepared") return edit;
-  validateCandidate({
+  const retired = edit.retired;
+  if (
+    Object.values(state.actors).some(
+      (actor) =>
+        actor.task &&
+        retired.has(actor.task.job) &&
+        actor.traversal &&
+        actor.traversal.elapsed > 0,
+    )
+  )
+    return waiting(
+      "Waiting for carried goods to reach safe ground before removing their destination.",
+    );
+  const candidate = {
     ...state,
     materials,
     terrain: edit.terrain,
     sites: edit.sites,
-  });
+  };
+  const bodyProblem = physicalOccupancyProblem(candidate);
+  if (bodyProblem) return waiting(bodyProblem);
+  validateCandidate(candidate);
   return { ...edit, work, materials };
 }
 
