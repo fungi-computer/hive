@@ -11,24 +11,23 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
-**Clearing performance implementation active, Levi September 10:** Luna source
-handoffs for air producer and navigation/supply queries are integrated with King's
-water and incremental atmosphere metric changes at `ad12b23`. These are a clean
-source candidate, not measured or deployed acceptance. Independent Luna review
-found no remaining engine/query source blocker after King's readonly-source and
-opening-distance corrections. Root owns the joined candidate and all execution.
-Isolated source/evidence roots remain preserved: `clearing-air-perf`,
-`clearing-query-perf`, `clearing-perf-measure`, `clearing-water-perf` and
-`atmosphere-metric-perf`. No field cadence, equations or saved time changes.
+**Performance interim LIVE, September 10:** runtime `0478170`, source/docs
+`c3fe4c0`, deployment `71274300-b536-45df-b8e2-c938f4aab6f5` on the
+[existing game preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/).
+Ordinary build passed; all112 hosted file hashes match the frozen dist.
+[Matched Clearing measurements](../performance/clearing-20260910.md) show median
+ordinary ticks486ms →58ms and average process CPU162ms →25ms. Startup remains
+about3.1s after optimizer load. This is local headless evidence, not browser/DO
+capacity. No fresh rendered smoke-room or browser smoothness claim.
 
-Baseline `9321d4d` is stopped pending the actual shared-host slot; its driver
-measures startup and live Clearing ticks with the real optimizer, separately from
-field/query probes. Joined qualification is prepared in
-`.botanical/clearing-perf-qualification/` (nine affected law files, strict types,
-diff, touched Fallow). Neither command has run. A final combined smoking-room,
-water, actor and renderer measurement is still required: a station by itself
-is not a room, and old brewing scripts must be checked against current callers.
-Use one frozen baseline and joined candidate comparison, not historical matrices.
+Affected laws: initial65/67 plus corrected2/2; strict app types/diff pass.
+Fallow remains advisory failure with new responsibility hotspots and duplication;
+source-only cleanup `d19fdd1` is integrated but unqualified and not deployed.
+The published runtime and original art remain frozen. Isolated source/evidence
+roots are preserved. Next is one short measurement of the published browser
+using existing cost instrumentation, then actual enclosed-room/water/work/render
+qualification. A brew station alone is not a built room. No historical suite,
+editor matrix or altered field cadence follows.
 
 **Implementation guide, Levi September 10:** the [durable pseudocode guide](engine-implementation-guide.md)
 now owns detailed handoffs for the next chunks: A playable water/gas/terrain hot
