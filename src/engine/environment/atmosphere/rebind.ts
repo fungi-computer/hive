@@ -1,6 +1,6 @@
 import { changeQuantity } from "../arithmetic.mjs";
 import { compileAtmosphere, type CompiledAtmosphere } from "./definition.ts";
-import { copyState, validateCandidateState, validateState } from "./state.ts";
+import { publishCandidateState, validateState } from "./state.ts";
 import type {
   AtmosphereParcel,
   AtmosphereRebindResult,
@@ -248,7 +248,7 @@ export function rebindAtmosphere(
   };
   let checked: AtmosphereState;
   try {
-    checked = validateCandidateState(next, candidate);
+    checked = publishCandidateState(next, candidate);
   } catch (error) {
     if (
       error instanceof Error &&
@@ -262,7 +262,7 @@ export function rebindAtmosphere(
   return Object.freeze({
     status: "applied",
     definition: next.definition,
-    state: copyState(checked),
+    state: checked,
     receipt: Object.freeze({
       oldIdentity: old.identity,
       newIdentity: next.identity,

@@ -472,3 +472,108 @@ test("new space starts empty and fills gradually through elapsed face exchange",
     0,
   );
 });
+
+test("admission is exact-object and compiled-owner local, with detached cold inputs", async () => {
+  const { compileAtmosphere } = await import("./definition.ts");
+  const { initialState, validateState } = await import("./state.ts");
+  const config = definition({
+    volumes: [volume("room", [member("cell:0,0,0")])],
+  });
+  const first = compileAtmosphere(config),
+    second = compileAtmosphere(config);
+  const state = initialState(first, [
+    { volumeId: "room", carrierKg: 4 / 3, smokeKg: 0, heatJ: 0 },
+  ]);
+  assert.equal(
+    validateState(first, state),
+    state,
+    "same admitted immutable object is reused",
+  );
+  const foreign = validateState(second, state);
+  assert.notEqual(
+    foreign,
+    state,
+    "matching definition text does not share admission",
+  );
+  assert.deepEqual(foreign, state);
+  assert.equal(validateState(second, foreign), foreign);
+  const copied = structuredClone(state);
+  const cold = validateState(first, copied);
+  assert.notEqual(cold, copied);
+  assert(
+    Object.isFrozen(cold) &&
+      Object.isFrozen(cold.parcels) &&
+      Object.isFrozen(cold.parcels[0]),
+  );
+  copied.smokeSourceKg = 1;
+  assert.throws(() => validateState(first, copied), /balance/);
+  assert.equal(validateState(first, cold), cold);
+  assert.throws(() => {
+    cold.parcels[0].heatJ = 1;
+  }, TypeError);
+  let invoked = false;
+  const forged = { ...state };
+  Object.defineProperty(forged, "identity", {
+    enumerable: true,
+    get() {
+      invoked = true;
+      return state.identity;
+    },
+  });
+  assert.throws(() => validateState(first, forged));
+  assert.equal(invoked, false);
+});
+
+test("warm and cold operations agree while new candidates retain envelope and ledger checks", async () => {
+  const { compileAtmosphere } = await import("./definition.ts");
+  const { initialState, publishCandidateState, validateState } =
+    await import("./state.ts");
+  const config = definition({
+    volumes: [volume("room", [member("cell:0,0,0")])],
+  });
+  const owner = createAtmosphere(config),
+    state = initial(owner);
+  const options = {
+    sources: [{ volumeId: "room", smokeKgS: 0.001, heatJS: 1 }],
+  };
+  const warm = owner.advance(state, 0.25, options),
+    cold = owner.advance(structuredClone(state), 0.25, options);
+  assert.deepEqual(warm, cold);
+  assert.deepEqual(
+    owner.read(warm.state),
+    owner.read(owner.decode(owner.encode(warm.state))),
+  );
+  const g = compileAtmosphere(config);
+  const admitted = initialState(g, [
+    { volumeId: "room", carrierKg: 4 / 3, smokeKg: 0, heatJ: 0 },
+  ]);
+  const invalid = structuredClone(admitted);
+  invalid.parcels[0].smokeKg = 1;
+  invalid.smokeSourceKg = 1;
+  assert.throws(() => publishCandidateState(g, invalid), /envelope/);
+  invalid.parcels[0].smokeKg = 0;
+  assert.throws(() => publishCandidateState(g, invalid), /balance/);
+  assert.equal(validateState(g, admitted), admitted);
+});
+
+test("rebound state belongs to its next definition, never the previous owner", () => {
+  const config = definition({
+    volumes: [volume("room", [member("cell:0,0,0")])],
+  });
+  const owner = createAtmosphere(config),
+    state = initial(owner);
+  const next = { ...config, revision: 1, geometryIdentity: "law-geometry:1" };
+  const rebound = owner.rebind(state, next);
+  assert.equal(rebound.status, "applied");
+  assert.throws(() => owner.read(rebound.state), /identity/);
+  const successor = createAtmosphere(next);
+  assert.deepEqual(
+    successor.read(rebound.state),
+    successor.read(successor.decode(successor.encode(rebound.state))),
+  );
+  assert.deepEqual(owner.read(state).balance, {
+    carrierKg: 0,
+    smokeKg: 0,
+    heatJ: 0,
+  });
+});

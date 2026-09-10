@@ -148,11 +148,34 @@ function validateAdmittedState(
   return state;
 }
 
+/** Admission belongs to the actual compiled owner, including its checked model
+ * and limits. Only detached deeply frozen results enter this weak cache. */
+const admitted = new WeakMap<CompiledAtmosphere, WeakSet<AtmosphereState>>();
+function admission(g: CompiledAtmosphere) {
+  let states = admitted.get(g);
+  if (!states) {
+    states = new WeakSet<AtmosphereState>();
+    admitted.set(g, states);
+  }
+  return states;
+}
+
 export function validateState(
   g: CompiledAtmosphere,
   input: unknown,
 ): AtmosphereState {
-  return validateAdmittedState(g, stateSchema.parse(copyAtmosphereData(input)));
+  const states = admission(g);
+  if (
+    typeof input === "object" &&
+    input !== null &&
+    states.has(input as AtmosphereState)
+  )
+    return input as AtmosphereState;
+  const state = validateAdmittedState(
+    g,
+    stateSchema.parse(copyAtmosphereData(input)),
+  );
+  return remember(g, state);
 }
 
 /** Internal candidates derive solely from an admitted detached state. Recheck
@@ -191,13 +214,30 @@ export function validateCandidateState(
   return validateAdmittedState(g, state);
 }
 
-export function copyState(state: AtmosphereState): AtmosphereState {
+function copyState(state: AtmosphereState): AtmosphereState {
   return Object.freeze({
     ...state,
     parcels: Object.freeze(
       state.parcels.map((entry) => Object.freeze({ ...entry })),
     ),
   });
+}
+
+function remember(
+  g: CompiledAtmosphere,
+  state: AtmosphereState,
+): AtmosphereState {
+  const frozen = copyState(state);
+  admission(g).add(frozen);
+  return frozen;
+}
+
+/** Computed candidates never inherit admission merely by sharing identity. */
+export function publishCandidateState(
+  g: CompiledAtmosphere,
+  state: AtmosphereState,
+) {
+  return remember(g, validateCandidateState(g, state));
 }
 
 export function initialState(g: CompiledAtmosphere, input: unknown) {
@@ -230,8 +270,7 @@ export function initialState(g: CompiledAtmosphere, input: unknown) {
     smokeBoundaryKg: 0,
     heatBoundaryJ: 0,
   };
-  validateCandidateState(g, state);
-  return copyState(state);
+  return publishCandidateState(g, state);
 }
 
 export function atmosphereFacts(g: CompiledAtmosphere, input: unknown) {
