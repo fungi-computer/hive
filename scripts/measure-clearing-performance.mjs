@@ -14,12 +14,18 @@ import { assignWork } from "../src/jobs.ts";
 const WARMUP = 10;
 const TICKS = 40;
 const PROBES = 10;
-const output = process.argv.find((arg) => arg.startsWith("--output="))?.slice(9) ??
+const output =
+  process.argv.find((arg) => arg.startsWith("--output="))?.slice(9) ??
   ".botanical/clearing-performance/current.json";
-const label = process.argv.find((arg) => arg.startsWith("--label="))?.slice(8) ?? "current";
+const label =
+  process.argv.find((arg) => arg.startsWith("--label="))?.slice(8) ?? "current";
 
 const optimizer = await loadOptimizer(
-  await WebAssembly.compile(await readFile(new URL("../src/engine/colony/colony.wasm", import.meta.url))),
+  await WebAssembly.compile(
+    await readFile(
+      new URL("../src/engine/colony/colony.wasm", import.meta.url),
+    ),
+  ),
 );
 
 function timed(fn) {
@@ -33,7 +39,8 @@ function timed(fn) {
 
 function distribution(rows, key = "wallMs") {
   const values = rows.map((row) => row[key]).toSorted((a, b) => a - b);
-  const percentile = (fraction) => values[Math.max(0, Math.ceil(values.length * fraction) - 1)];
+  const percentile = (fraction) =>
+    values[Math.max(0, Math.ceil(values.length * fraction) - 1)];
   return {
     count: values.length,
     totalMs: values.reduce((sum, value) => sum + value, 0),
@@ -48,10 +55,13 @@ function distribution(rows, key = "wallMs") {
 // every following measurement; no clone or synthetic replacement is involved.
 const startup = timed(() => createClearing(42));
 const state = startup.value;
+const initialMasses = state.water.water.massKg;
 const warmup = [];
-for (let index = 0; index < WARMUP; index++) warmup.push(timed(() => step(state, optimizer)));
+for (let index = 0; index < WARMUP; index++)
+  warmup.push(timed(() => step(state, optimizer)));
 const flowingRows = [];
-for (let index = 0; index < TICKS; index++) flowingRows.push(timed(() => step(state, optimizer)));
+for (let index = 0; index < TICKS; index++)
+  flowingRows.push(timed(() => step(state, optimizer)));
 
 state.paused = true;
 const result = admitCommand(state, {
@@ -61,14 +71,33 @@ const result = admitCommand(state, {
   actors: ["rowan"],
 });
 assert.equal(result.status, "applied", result.reason ?? "dig admission failed");
-assert.equal(state.jobs[0]?.kind, "dig");
+assert(
+  state.jobs.some((job) => job.kind === "dig"),
+  "accepted dig job missing",
+);
 state.paused = false;
 const digRows = [];
-for (let index = 0; index < TICKS; index++) digRows.push(timed(() => step(state, optimizer)));
+for (let index = 0; index < TICKS; index++)
+  digRows.push(timed(() => step(state, optimizer)));
+const gameplay = {
+  tick: state.tick,
+  geometryRevision: state.water.geometryRevision,
+  waterCells: state.water.water.massKg.length,
+  gasVolumes: state.air.air.parcels.length,
+  changedWaterStocks: state.water.water.massKg.reduce(
+    (count, amount, index) => count + Number(amount !== initialMasses[index]),
+    0,
+  ),
+  remainingJobs: state.jobs.map(({ kind }) => kind),
+  rowan: { mode: state.actors.rowan.mode, work: state.actors.rowan.work },
+};
 
 // Attribution aids use the same live state and are deliberately separate
 // measurements; they are not additive and do not claim a capacity limit.
-const source = { terrain: terrainEnvironment(state.terrain), sites: state.sites };
+const source = {
+  terrain: terrainEnvironment(state.terrain),
+  sites: state.sites,
+};
 const fieldRows = [];
 let optimizerCalls = 0;
 const projectionRows = [];
@@ -79,7 +108,12 @@ for (let index = 0; index < PROBES; index++) {
       air: state.air,
       atmosphereReleases: state.atmosphereReleases,
     };
-    environment = advancePaidEnvironment(environment, state.materials, source, 1);
+    environment = advancePaidEnvironment(
+      environment,
+      state.materials,
+      source,
+      1,
+    );
     state.water = environment.water;
     state.air = environment.air;
     state.atmosphereReleases = environment.atmosphereReleases;
@@ -98,8 +132,13 @@ for (let index = 0; index < PROBES; index++) {
 }
 
 const revision = (() => {
-  try { return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(); }
-  catch { return "unknown"; }
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    return "unknown";
+  }
 })();
 const report = {
   schema: 2,
@@ -112,22 +151,31 @@ const report = {
     warmupTicks: WARMUP,
     measuredFlowingTicks: TICKS,
     measuredDigTicks: TICKS,
-    fixture: "createClearing(42), 10 warmup ticks, 40 flowing ticks, paused admitCommand dig [0,14,128] for home/rowan, 40 dig ticks",
-    headline: "step -> commitTicks -> advanceCandidate, including paid environment, work, observation and libcolony assignWork",
+    fixture:
+      "createClearing(42), 10 warmup ticks, 40 flowing ticks, paused admitCommand dig [0,14,128] for home/rowan, 40 dig ticks",
+    headline:
+      "step -> commitTicks -> advanceCandidate, including paid environment, work, observation and libcolony assignWork",
     probes: `${PROBES} single advancePaidEnvironment calls, ${PROBES} untimed assignWork calls, ${PROBES} timed water/air projection calls`,
   },
   startup: { wallMs: startup.wallMs, cpuMs: startup.cpuMs },
+  gameplay,
   warmup: distribution(warmup),
   flowingTicks: distribution(flowingRows),
   digTicks: distribution(digRows),
   fields: distribution(fieldRows),
   optimizer: { calls: optimizerCalls, timed: false },
   presentation: distribution(projectionRows),
-  limitations: "Local source witness only; startup is createClearing after optimizer load; probes are attribution aids, not additive totals or performance guarantees; no renderer/browser/DO claim.",
+  limitations:
+    "Local source witness only; startup is createClearing after optimizer load; probes are attribution aids, not additive totals or performance guarantees; no renderer/browser/DO claim.",
 };
-await mkdir(output.substring(0, output.lastIndexOf("/")) || ".", { recursive: true });
+await mkdir(output.substring(0, output.lastIndexOf("/")) || ".", {
+  recursive: true,
+});
 await writeFile(output, `${JSON.stringify(report, null, 2)}\n`);
-await writeFile(output.replace(/\.json$/, ".md"), `# Clearing performance (${label})\n\n` +
-  `Revision: ${revision}\n\n${report.workload.fixture}. ` +
-  "Startup, field, optimizer, and presentation probes are separate diagnostics; no capacity guarantee is claimed.\n");
+await writeFile(
+  output.replace(/\.json$/, ".md"),
+  `# Clearing performance (${label})\n\n` +
+    `Revision: ${revision}\n\n${report.workload.fixture}. ` +
+    "Startup, field, optimizer, and presentation probes are separate diagnostics; no capacity guarantee is claimed.\n",
+);
 console.log(JSON.stringify(report, null, 2));
