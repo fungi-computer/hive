@@ -82,6 +82,8 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
+export interface AssignmentCandidate { readonly worker: EntityId; readonly task: EntityId; readonly cost: number }
+export interface AssignmentPair extends AssignmentCandidate {}
 
 export interface SimulationClock {
   readonly now: number;
@@ -96,6 +98,7 @@ export interface ReadContext {
   readonly outcomes: readonly ActionOutcome[];
   readonly random: RandomSource;
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
+  assign(candidates: readonly AssignmentCandidate[], maxEdges?: number): readonly AssignmentPair[];
 }
 export interface WriteContext extends ReadContext {
   write<T extends object>(
@@ -142,6 +145,7 @@ export interface KernelPort {
   readonly snapshot: () => KernelSnapshot;
   readonly restore: (snapshot: KernelSnapshot) => void;
   readonly renderFacts: (limit?: number) => readonly RenderFact[];
+  readonly assign: (candidates: readonly AssignmentCandidate[], maxEdges?: number) => readonly AssignmentPair[];
 }
 export interface GamePack {
   readonly id: GameId;

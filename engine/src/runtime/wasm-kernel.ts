@@ -1,4 +1,6 @@
 import type {
+  AssignmentCandidate,
+  AssignmentPair,
   ActionRequest,
   ActionResult,
   ComponentDefinition,
@@ -10,6 +12,7 @@ import type {
   RenderFact,
   WriteIntent,
 } from "../contracts";
+import { checkedAssignments } from "../sdk/assignment";
 
 export interface WasmKernelBinding {
   free(): void;
@@ -19,6 +22,7 @@ export interface WasmKernelBinding {
   snapshot(): string;
   restore(json: string): void;
   render_facts(): string;
+  assign(json: string): string;
 }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
@@ -71,6 +75,11 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         0,
         limit,
       );
+    },
+    assign(candidates: readonly AssignmentCandidate[], maxEdges = 128): readonly AssignmentPair[] {
+      const checked = checkedAssignments(candidates, maxEdges);
+      const result = JSON.parse(binding.assign(JSON.stringify({ candidates: checked, max_edges: maxEdges }))) as { assignments: AssignmentPair[] };
+      return result.assignments;
     },
   };
 }
