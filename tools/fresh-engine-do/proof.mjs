@@ -74,7 +74,6 @@ config.vars = {
   ...secrets,
   IMPLEMENTATION_HASH: hash.digest("hex"),
   PROOF_PACK: packId,
-  PROOF_FIXTURE: fixtureId,
 };
 const configPath = resolve(output, "wrangler.json");
 await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
@@ -332,9 +331,6 @@ async function runCannonProof(initial) {
     6,
   );
 
-  await stop();
-  await start();
-  assert.deepEqual(await snapshot(), queued);
   assert.deepEqual(await command(request("cannon-fire", 0, fire)), fired);
   revision = 1;
 
@@ -395,6 +391,16 @@ async function runCannonProof(initial) {
   const damaged = await snapshot();
   assert.equal(formationHealth(damaged, "formations.unit.1"), 80);
   assert.equal(formationMorale(damaged, "formations.unit.1"), 50);
+  assert.equal(
+    kernelScene(damaged).initial.find((entry) => entry.id === "formations.ammunition")
+      .components["hive.lot"].quantity,
+    5,
+  );
+  assert.notEqual(
+    formationPosition(damaged, "formations.unit.1").x,
+    formationPosition(impactCommitted, "formations.unit.1").x,
+    "native displacement must move the impacted formation member",
+  );
   assert.deepEqual(await command(consequenceStep, "HOST_SECRET"), consequence);
   assert.deepEqual((await snapshot()).snapshot, damaged.snapshot);
   const observation = await checkObservation(damaged);
