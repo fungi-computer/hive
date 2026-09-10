@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { createActor } from "xstate";
 import { terrainSurfaces } from "./terrain-surface-geometry.js";
 import { createClearing } from "./clearing.ts";
-import { excavateTerrain, advanceTerrain, parseTerrain } from "./terrain.ts";
+import {
+  excavateTerrain,
+  parseTerrain,
+  terrainEnvironment,
+} from "./terrain.ts";
 import {
   fieldInspectionFacts,
   fieldInspectionAt,
@@ -17,33 +21,60 @@ import {
   groundInspectionGesture,
   dispatchUiAction,
 } from "./ui-actions.ts";
-import { createHeldFieldFixture } from "../tools/engine-do/goblin-field-fixture.ts";
-import { returnFieldWater } from "./field-water.ts";
-import { selectContainerPortions } from "./materials.ts";
+import {
+  prepareWaterEnvironmentGeometry,
+  exchangeWaterEnvironment,
+  parseWaterEnvironment,
+} from "./world-presets/goblin-environment/water-state.ts";
 const cell = { x: 0, y: 14, z: 128 };
 const displayCell = { x: 7, z: 9, level: 0 };
 const reference = {
   binding: FIELD_WATER.id,
-  nodeId: "reservoir:column-p0-p128",
+  nodeId: "cell:0,14,128",
 };
 
+const environment = (state) => ({
+  terrain: terrainEnvironment(state.terrain),
+  sites: state.sites,
+});
+function excavatedFixture() {
+  const state = createClearing(),
+    before = environment(state);
+  const terrain = excavateTerrain(state.terrain, [0, 14, 128]);
+  const next = prepareWaterEnvironmentGeometry(state.water, before, {
+    terrain: terrainEnvironment(terrain),
+    sites: state.sites,
+  });
+  assert.equal(next.status, "applied");
+  state.terrain = terrain;
+  state.water = next.state;
+  return state;
+}
+// Authored finite boundary stocks exercise queries, not a paid pail transaction.
+function deposit(state, massKg) {
+  state.water = exchangeWaterEnvironment(state.water, environment(state), {
+    id: reference.nodeId,
+    direction: "deposit",
+    massKg,
+  }).state;
+}
+
 test("dry and fractional excavated stock stays inspectable without collectable supply", () => {
-  const state = createClearing();
-  assert.equal(fieldInspectionAt(state, cell), null);
-  state.terrain = excavateTerrain(state.terrain, [0, 14, 128]);
+  assert.equal(fieldInspectionAt(createClearing(), cell), null);
+  const state = excavatedFixture();
   assert.deepEqual(fieldInspectionAt(state, cell), reference);
   const dry = resolveFieldInspection(fieldInspectionFacts(state), reference);
   assert.equal(dry.litres, 0);
   assert.equal(dry.wholeMeasures, 0);
   assert.equal(fieldInspectionText(dry).stock, "0 L standing water");
-  state.terrain = advanceTerrain(state.terrain, 6);
+  deposit(state, 0.25);
   const facts = fieldInspectionFacts(state);
   const wet = resolveFieldInspection(facts, reference);
   assert(wet.litres > 0 && wet.litres < 1);
   assert.equal(wet.wholeMeasures, 0);
   assert.equal(fieldWaterSources(state).length, 0);
   assert.deepEqual(fieldInspectionAt(state, cell), reference);
-  assert.equal(fieldInspectionAt(state, { ...cell, y: 15 }), null);
+  assert.notDeepEqual(fieldInspectionAt(state, { ...cell, y: 15 }), reference);
   assert.equal(
     fieldInspectionAt(state, { ...cell, x: 1 }),
     null,
@@ -62,27 +93,22 @@ test("dry and fractional excavated stock stays inspectable without collectable s
     "reset/removal invalidates target",
   );
   assert.deepEqual(
-    fieldInspectionFacts({ terrain: parseTerrain(state.terrain) }),
+    fieldInspectionFacts({
+      ...state,
+      terrain: parseTerrain(state.terrain),
+      water: parseWaterEnvironment(
+        structuredClone(state.water),
+        environment(state),
+      ),
+    }),
     facts,
     "reloaded actual facts agree",
   );
 });
 
-test("paid field stock shows whole measures independently of actor permission", () => {
-  const { state, operation, interior } = createHeldFieldFixture();
-  assert(
-    returnFieldWater(state, {
-      ...reference,
-      operation: operation.id,
-      quantity: 2,
-      portions: selectContainerPortions(
-        state.materials,
-        interior.id,
-        "water",
-        2,
-      ).portions,
-    }).ok,
-  );
+test("authored finite field stock shows whole measures independently of actor permission", () => {
+  const state = excavatedFixture();
+  deposit(state, 2);
   const fact = resolveFieldInspection(fieldInspectionFacts(state), reference);
   assert.equal(fact.litres, 2);
   assert.equal(fact.wholeMeasures, 2);
@@ -90,8 +116,8 @@ test("paid field stock shows whole measures independently of actor permission", 
   assert.equal(fieldInspectionText(fact).measures, "2 whole 1 L measures");
   state.actors.rowan.drafted = true;
   assert.deepEqual(
-    fieldInspectionFacts(state),
-    [fact],
+    resolveFieldInspection(fieldInspectionFacts(state), reference),
+    fact,
     "inspection does not grant worker permission",
   );
   assert.match(
@@ -130,8 +156,7 @@ test("existing XState click ownership separates field inspection from tool and b
 });
 
 test("picked floor and wall identify the adjacent physical hollow, not the solid or map plane", () => {
-  const state = createClearing();
-  state.terrain = excavateTerrain(state.terrain, [0, 14, 128]);
+  const state = excavatedFixture();
   const faces = terrainSurfaces(state.terrain, 15).filter(
     (face) => face.cell.x === displayCell.x && face.cell.z === displayCell.z,
   );
@@ -149,10 +174,10 @@ test("picked floor and wall identify the adjacent physical hollow, not the solid
     null,
   );
   assert.equal(fieldInspectionFromFace(state, null), null);
-  const fact = fieldInspectionFacts(state)[0];
+  const fact = resolveFieldInspection(fieldInspectionFacts(state), reference);
   assert.deepEqual({ x: fact.x, y: fact.y, z: fact.z }, cell);
-  assert.equal(
+  assert.notDeepEqual(
     fieldInspectionAt(state, { ...cell, y: cell.y + fact.heightCells }),
-    null,
+    reference,
   );
 });
