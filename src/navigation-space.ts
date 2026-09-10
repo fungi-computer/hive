@@ -1,5 +1,5 @@
 import { knownFootings } from "./exploration.ts";
-import { stairLanding } from "./world.js";
+import { inside, stairLanding } from "./world.js";
 import {
   standing,
   edgeStillClear,
@@ -8,8 +8,9 @@ import {
 import { createStructureGeometry } from "./structure-environment.ts";
 import {
   terrainGeometry,
-  terrainFacts,
+  terrainEnvironment,
 } from "./world-presets/goblin-terrain.ts";
+import { waterEnvironmentFacts } from "./world-presets/goblin-environment/water-state.ts";
 import { BUILDINGS, footprint } from "./construction.js";
 import { placementFooting } from "./game-space.ts";
 import type { Actor, Body, Clearing } from "./model.ts";
@@ -99,9 +100,16 @@ export function createNavigationSpaces(state: Clearing) {
         placementFooting({ ...cell, level: site.level }),
       ),
     }));
-  const pits = terrainFacts(state.terrain).soil.nodes.filter(
-    (node: { kind: string }) => node.kind === "pit",
-  );
+  const water = waterEnvironmentFacts(state.water, {
+    terrain: terrainEnvironment(checkpoint),
+    sites: state.sites,
+  });
+  const wet = new Map<
+    string,
+    { at: readonly number[]; liquidVolumeM3: number }
+  >();
+  for (const cell of water.cells)
+    if (cell.kind === "void" && cell.massKg > 0) wet.set(cell.at.join(), cell);
   const links = Object.freeze(stairs(state));
   return (
     contact: { kind: "bed"; site: string } | null = null,
@@ -118,6 +126,7 @@ export function createNavigationSpaces(state: Clearing) {
       face: geometry.face,
       links,
       access(at: Footing): "allowed" | "blocked" | "needs-data" {
+        if (!inside(at)) return "blocked";
         const coordinate = [at.x, at.y, at.z];
         if (
           coordinate.some(
@@ -155,28 +164,15 @@ export function createNavigationSpaces(state: Clearing) {
           )
         )
           return "blocked";
-        // Dry-foot-only first model: exact field stock and vertical water extent,
-        // not a whole-unit collection estimate or a display-rounded surface.
-        // soil/volume.readFacts owns depthM = mass / (density * area); it is
-        // current water depth, distinct from heightCells/capacityKg.
-        const footM = at.y * terrain.spacingM[1];
-        if (
-          purpose === "dry-route" &&
-          pits.some(
-            (node: {
-              at: number[];
-              baseYM: number;
-              depthM: number;
-              massKg: number;
-            }) =>
-              node.at[0] === at.x &&
-              node.at[2] === at.z &&
-              node.massKg > 0 &&
-              footM >= node.baseYM &&
-              footM < node.baseYM + node.depthM,
-          )
-        )
-          return "blocked";
+        // Only route eligibility changes with water. Occupied-body validation
+        // preserves a real body's saved position when its cell becomes wet.
+        const cell = wet.get(`${at.x},${at.y},${at.z}`);
+        if (purpose === "dry-route" && cell) {
+          const depthM =
+            cell.liquidVolumeM3 / (terrain.spacingM[0] * terrain.spacingM[2]);
+          if ((at.y - cell.at[1]) * terrain.spacingM[1] < depthM)
+            return "blocked";
+        }
         return "allowed";
       },
     });

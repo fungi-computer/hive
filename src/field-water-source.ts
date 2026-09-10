@@ -1,12 +1,14 @@
-import { placementFooting } from "./game-space.ts";
 import { z } from "zod";
 import type { Cell, Clearing } from "./model.ts";
+import { terrainEnvironment, TERRAIN_VOXEL_METRIC } from "./terrain.ts";
+import { waterEnvironmentFacts } from "./world-presets/goblin-environment/water-state.ts";
 import {
-  terrainFacts,
-  terrainCell,
-  TERRAIN_FRAME,
-  TERRAIN_VOXEL_METRIC,
-} from "./terrain.ts";
+  createNavigationSpaces,
+  HUMAN_NAVIGATION,
+} from "./navigation-space.ts";
+import { standing } from "./engine/navigation/index.ts";
+import { inside } from "./world.js";
+import { knownFootings } from "./exploration.ts";
 
 /** Goblin content units, not a rule imposed on every engine material. */
 export const FIELD_WATER = Object.freeze({
@@ -23,78 +25,89 @@ export const fieldWaterReferenceSchema = z
   })
   .strict();
 export type FieldWaterReference = z.infer<typeof fieldWaterReferenceSchema>;
-type FieldColumn = {
-  kind: "pit";
-  nodeId: string;
+export type FieldWaterState = Pick<Clearing, "terrain" | "water" | "sites">;
+type FieldCell = Readonly<{
+  kind: string;
+  id: string;
   at: readonly [number, number, number];
-  baseYM: number;
-  rimYM: number;
-  depthM: number;
   massKg: number;
-};
+  capacityKg: number;
+  liquidVolumeM3: number;
+}>;
 export type FieldWaterSource = FieldWaterReference & {
   accessCells: readonly Cell[];
   availableUnits: number;
 };
-function columns(state: Pick<Clearing, "terrain">): readonly FieldColumn[] {
-  return terrainFacts(state.terrain).soil.nodes.filter(
-    (node: { kind: string }) => node.kind === "pit",
-  );
+export function fieldWaterCells(state: FieldWaterState): readonly FieldCell[] {
+  return waterEnvironmentFacts(state.water, {
+    terrain: terrainEnvironment(state.terrain),
+    sites: state.sites,
+  }).cells.filter((cell) => cell.kind === "void");
 }
-
-/** A drained or temporarily inaccessible column remains a valid work reference. */
+/** Draining changes availability, not the stable physical cell reference. */
 export function fieldWaterProblem(
-  state: Pick<Clearing, "terrain">,
+  state: FieldWaterState,
   reference: FieldWaterReference,
 ): string | null {
   if (!fieldWaterReferenceSchema.safeParse(reference).success)
     return "unknown field water binding";
-  return columns(state).some((column) => column.nodeId === reference.nodeId)
+  return fieldWaterCells(state).some((cell) => cell.id === reference.nodeId)
     ? null
-    : "missing field water column";
+    : "missing field water cell";
 }
-function rimCells(
-  state: Pick<Clearing, "terrain">,
-  column: FieldColumn,
+function accessCells(
+  state: Clearing,
+  cell: FieldCell,
+  space: ReturnType<ReturnType<typeof createNavigationSpaces>>,
+  known: ReturnType<typeof knownFootings>,
 ): Cell[] {
-  const x = column.at[0] - TERRAIN_FRAME.x,
-    z = column.at[2] - TERRAIN_FRAME.z;
-  return [
-    [0, -1],
-    [-1, 0],
-    [1, 0],
-    [0, 1],
-  ].flatMap(([dx, dz]) => {
-    const cell = { x: x + dx, z: z + dz, level: 0 };
-    // The registered wet footprint is interior to this bounded clearing.
-    // Terrain owns standing support; the route owner checks all other occupancy.
-    return terrainCell(state.terrain, cell.x, cell.z).support ? [placementFooting(cell)] : [];
-  });
+  const at = { x: cell.at[0], y: cell.at[1], z: cell.at[2] };
+  if (!inside(at) || !known(at)) return [];
+  const spacing = terrainEnvironment(state.terrain).terrain.spacingM;
+  const depth = cell.liquidVolumeM3 / (spacing[0] * spacing[2]);
+  const result: Cell[] = [];
+  for (const y of [at.y, at.y + 1]) {
+    const reach = (y - at.y) * spacing[1] - depth;
+    if (reach < 0 || reach > FIELD_WATER.maxDrawReachM) continue;
+    // A covered cell cannot be reached from the level above its physical face.
+    if (y > at.y && space.face("y", [at.x, y, at.z]) !== "open") continue;
+    if (space.point([at.x, y, at.z]) !== "empty") continue;
+    for (const [dx, dz] of [
+      [0, -1],
+      [-1, 0],
+      [1, 0],
+      [0, 1],
+    ]) {
+      const rim = { x: at.x + dx, y, z: at.z + dz };
+      if (standing(space, rim, HUMAN_NAVIGATION) !== "supported") continue;
+      const face: [number, number, number] = [
+        at.x + Math.max(0, dx),
+        y,
+        at.z + Math.max(0, dz),
+      ];
+      if (space.face(dx ? "x" : "z", face) === "open")
+        result.push(Object.freeze(rim));
+    }
+  }
+  return result;
 }
-function canDraw(column: FieldColumn) {
-  const surface = column.baseYM + column.depthM;
-  const reach = TERRAIN_FRAME.y * TERRAIN_VOXEL_METRIC.verticalM - surface;
-  return reach >= 0 && reach <= FIELD_WATER.maxDrawReachM;
-}
-/** This is physical stock/access, not a permission or pathfinding result. */
-export function fieldWaterSources(
-  state: Pick<Clearing, "terrain">,
-): FieldWaterSource[] {
-  return columns(state)
-    .filter(canDraw)
-    .map((column) => ({
+/** Candidate footings are checked for real support, dryness, knowledge and fixed
+ * occupancy. The actual worker's route and current draw recheck remain separate. */
+export function fieldWaterSources(state: Clearing): FieldWaterSource[] {
+  const space = createNavigationSpaces(state)();
+  const known = knownFootings(state);
+  return fieldWaterCells(state)
+    .filter((cell) => cell.massKg >= FIELD_WATER.kgPerUnit)
+    .map((cell) => ({
       binding: FIELD_WATER.id,
-      nodeId: column.nodeId,
-      accessCells: rimCells(state, column),
-      availableUnits: Math.floor(column.massKg / FIELD_WATER.kgPerUnit),
+      nodeId: cell.id,
+      availableUnits: Math.floor(cell.massKg / FIELD_WATER.kgPerUnit),
+      accessCells: accessCells(state, cell, space, known),
     }))
-    .filter(
-      (source) => source.availableUnits > 0 && source.accessCells.length > 0,
-    )
+    .filter((source) => source.accessCells.length > 0)
     .sort((a, b) => a.nodeId.localeCompare(b.nodeId));
 }
-/** Wake work on actual whole-portion/reach changes, not on every field tick. */
-export function fieldWaterSupplyKey(state: Pick<Clearing, "terrain">): string {
+export function fieldWaterSupplyKey(state: Clearing): string {
   return JSON.stringify(
     fieldWaterSources(state).map((source) => [
       source.nodeId,
@@ -103,18 +116,20 @@ export function fieldWaterSupplyKey(state: Pick<Clearing, "terrain">): string {
     ]),
   );
 }
-
-/** The same physical reach rule is used for estimates and actual work. */
 export function fieldWaterAccess(
-  state: Pick<Clearing, "terrain">,
+  state: Clearing,
   reference: FieldWaterReference,
   direction: "withdraw" | "deposit",
 ): Cell[] {
-  if (fieldWaterProblem(state, reference)) return [];
-  const column = columns(state).find(
-    (column) => column.nodeId === reference.nodeId,
-  )!;
-  return direction === "withdraw" && !canDraw(column)
-    ? []
-    : rimCells(state, column);
+  if (!fieldWaterReferenceSchema.safeParse(reference).success) return [];
+  const cell = fieldWaterCells(state).find(
+    (cell) => cell.id === reference.nodeId,
+  );
+  if (!cell || (direction === "withdraw" && cell.massKg <= 0)) return [];
+  return accessCells(
+    state,
+    cell,
+    createNavigationSpaces(state)(),
+    knownFootings(state),
+  );
 }
