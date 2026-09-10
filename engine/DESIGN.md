@@ -25,6 +25,19 @@ TypeScript hunger consequences survive the restart too. This closes the first
 actual server recovery witness; the public pages still run browser Workers.
 Hosted DO play, autonomous wake and population capacity remain unproved.
 
+### Remaining foundation acceptance work
+
+The five-item goal is not complete. Keep the existing §3 player actions as the
+acceptance target: colony needs player-issued/interruptible delivery and visible
+finite-food custody; survival needs its condition visible; formations needs facing,
+an obstacle and a reachable morale rule. Each page needs one bounded editable rule.
+Use game-owned projections and authored commands over the shared session/client;
+do not create UI-owned quantities or a second simulation. The current automatic
+colony delivery and unused Hospitality rule are interim source, not acceptance.
+The numeric restore correction, changed consumer checks and coherent publication
+remain the immediate release work. Deep-world physics and new host frameworks do
+not replace these concrete player-facing gaps.
+
 ## Read this first
 
 Build an engine that people can use to write different games in TypeScript,
