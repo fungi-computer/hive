@@ -94,15 +94,23 @@ function sameWaterObservation(
   previous: Observation | undefined,
   water: WaterEnvironment,
   geometry: WaterGeometry,
-) {
-  return !!previous && previous.waterState === water &&
+): previous is Observation {
+  return (
+    !!previous &&
+    previous.waterState === water &&
     previous.waterPhysical === geometry.physical &&
     previous.waterDefinition === geometry.definition &&
-    previous.ceilingY === geometry.ceilingY;
+    previous.ceilingY === geometry.ceilingY
+  );
 }
 
-function nextGeometryRevision(previous: Observation | undefined, geometry: WaterGeometry) {
-  return previous && (previous.waterPhysical !== geometry.physical || previous.waterDefinition !== geometry.definition)
+function nextGeometryRevision(
+  previous: Observation | undefined,
+  geometry: WaterGeometry,
+) {
+  return previous &&
+    (previous.waterPhysical !== geometry.physical ||
+      previous.waterDefinition !== geometry.definition)
     ? Math.max(previous.geometryRevision, geometry.geometryRevision)
     : (previous?.geometryRevision ?? geometry.geometryRevision);
 }
@@ -113,17 +121,38 @@ function nextGasObservation(
   geometry: WaterGeometry,
   revision: number,
 ) {
-  const sameWaterGeometry = !!previous && previous.waterPhysical === geometry.physical &&
-    previous.waterDefinition === geometry.definition && previous.ceilingY === geometry.ceilingY;
+  const sameWaterGeometry =
+    !!previous &&
+    previous.waterPhysical === geometry.physical &&
+    previous.waterDefinition === geometry.definition &&
+    previous.ceilingY === geometry.ceilingY;
   if (sameWaterGeometry) {
-    const updated = updateGoblinGasGeometry(previous.geometry, geometry.physical, geometry.definition, geometry.facts, revision, geometry.ceilingY);
+    const updated = updateGoblinGasGeometry(
+      previous.geometry,
+      geometry.physical,
+      geometry.definition,
+      geometry.facts,
+      revision,
+      geometry.ceilingY,
+    );
     if (updated.status === "reused") return updated.snapshot;
   }
-  const gas = goblinGasGeometry(source.terrain, geometry.physical, geometry.definition, geometry.facts, revision, geometry.ceilingY);
+  const gas = goblinGasGeometry(
+    source.terrain,
+    geometry.physical,
+    geometry.definition,
+    geometry.facts,
+    revision,
+    geometry.ceilingY,
+  );
   if (
-    previous && !sameWaterGeometry && gas.identity === previous.geometry.identity &&
-    JSON.stringify([gas.cells, gas.openFaces]) === JSON.stringify([previous.geometry.cells, previous.geometry.openFaces])
-  ) return previous.geometry;
+    previous &&
+    !sameWaterGeometry &&
+    gas.identity === previous.geometry.identity &&
+    JSON.stringify([gas.cells, gas.openFaces]) ===
+      JSON.stringify([previous.geometry.cells, previous.geometry.openFaces])
+  )
+    return previous.geometry;
   return gas;
 }
 
