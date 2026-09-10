@@ -61,3 +61,34 @@ behavior. Qualification must compile the selected feature set for our actual
 wasm32 target and exercise swept hits through the same kernel used by the demos.
 
 This is a selected direction, not an installed dependency or completed cannon.
+
+## Source-owned implementation order
+
+The current source read confirms the first coupled seam is
+`kernel/src/components.rs`, `world.rs`, and `lib.rs`, followed by the real
+`contracts.ts`, `runtime/wasm-kernel.ts`, and `runtime/session.ts` callers. Native
+`advance` currently returns only revision/results; no projectile or impact state
+exists. `Body.speed` and `Obstacle.occupied` must not be reinterpreted as colliders.
+
+1. Root pins and qualifies the maintained collision dependency in an isolated
+   kernel lane. Native source owns explicit collider/launcher/projectile state,
+   finite-ammunition launch, bounded sweep and stable impact identity. Current
+   snapshots must include in-flight state. Failed admission changes neither ammo
+   nor projectile count. No TypeScript copy of collision calculations.
+2. The shared session gets a separate typed impact result and retained pending
+   consequences. Its current positional action-result list remains one result
+   per submitted action. A delayed collision is never an extra launch result.
+   Root must settle successful-consumer acknowledgement/cadence against actual
+   system scheduling before implementation; missing a slow consumer's event or
+   executing one twice is not acceptable. Do not invent a general message bus.
+3. The formation pack adds health/damage/morale as TypeScript rules and a native
+   physical knockback request. Native movement remains the position owner.
+   Existing selection, commands, art export, interpolation and DO host are reused.
+4. Qualify the focused launch/impact/restart laws, then publish one actual cannon
+   shot in the formation scene. No full old-demo matrix or separate physics lab.
+
+The actual crates.io API reports stable parry3d 0.30.2. Root downloaded and read
+that exact released manifest in `.botanical/cannon-readiness/`; it is Apache-2.0
+and its feature set matches the retained primary manifest. Dependency installation
+and native/WASM qualification have not run. Match numeric precision to the
+existing f64 kernel before choosing parry3d versus its f64 package variant.
