@@ -363,3 +363,14 @@ world snapshot is unchanged by observation. Runtime restart/replay and resumed
 route remain passing with the changed host. Two starts, exit0, scope inactive/dead
 and empty. Observation output excludes proof receipts and secrets. This is a
 local host read consumer, not yet a network-connected playable client.
+
+## Colony and formations native recovery — u5017/u5019
+
+At2a20889, both selected fixtures pass against actual local SQLite DOs, two
+owned starts each, exit0 and scopes inactive/dead/empty. Colony queued delivery
+survives restart; lost-step replay leaves the snapshot unchanged; four units
+arrive at guest, total six conserved, both jobs complete. Formations queued
+threshold90 and march survive restart; the authored retreat rule takes effect,
+active route persists, replay does not change it, and next step moves closer to
+home. Both authorized observation parity checks pass. No survival/pirate rerun,
+browser build, public backend or capacity claim is included.
