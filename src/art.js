@@ -1,3 +1,4 @@
+import { compositeWaterOccluders } from "./visual-order.js";
 import { sliceCamera } from "./art/slice-camera.js";
 import { terrainCell } from "./terrain.ts";
 // Original Three geometry -> fixed low-resolution canvas textures -> Pixi.
@@ -247,31 +248,12 @@ function createWaterBake(renderer) {
       false,
     );
     if (occluders.length) {
-      // Reuse original registered alpha spans; no new image readback or art geometry.
-      const canvas = texture.source.resource;
-      const context = canvas.getContext("2d");
-      context.globalCompositeOperation = "destination-out";
-      for (const { silhouette, x, y, alpha } of occluders) {
-        context.globalAlpha = alpha;
-        for (let row = 0; row < silhouette.height; row++) {
-          for (
-            let i = silhouette.rows[row] * 2;
-            i < silhouette.rows[row + 1] * 2;
-            i += 2
-          ) {
-            const start = silhouette.spans[i],
-              end = silhouette.spans[i + 1];
-            context.fillRect(
-              x - viewport.x + start,
-              y - viewport.y + row,
-              end - start + 1,
-              1,
-            );
-          }
-        }
-      }
-      context.globalAlpha = 1;
-      context.globalCompositeOperation = "source-over";
+      // Original atlas frame, not a recolored silhouette or duplicate sprite.
+      compositeWaterOccluders(
+        texture.source.resource.getContext("2d"),
+        viewport,
+        occluders,
+      );
       texture.source.update();
     }
     return { texture, x: viewport.x, y: viewport.y };

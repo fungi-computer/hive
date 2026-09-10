@@ -220,10 +220,18 @@ export function createView(app, world, camera, art, initial, input) {
       entry.sprite.destroy();
       wetSurfaces.delete(id);
     }
-    const structures = bodies.children.filter(
-      (display) =>
-        display.waterOrderSite && display.visible && display.alpha > 0,
-    );
+    const structures = bodies.children
+      .filter(
+        (display) =>
+          display.waterOrderSite &&
+          display.waterOrderSite.finishedAt !== null &&
+          display.visible &&
+          display.alpha > 0 &&
+          display.tint === 0xffffff,
+      )
+      .sort((a, b) => a.zIndex - b.zIndex);
+    // Tinted unfinished plans retain ordinary sprite order; only finished,
+    // white-tinted source variants are composited over water.
     for (const surface of projectedWater) {
       const depth = waterDepth(surface, state.sites);
       const occluders = [];
@@ -233,13 +241,11 @@ export function createView(app, world, camera, art, initial, input) {
           continue;
         const record = picking.recordFor(display);
         if (!record)
-          throw new Error(
-            "Water occluder has no registered original silhouette.",
-          );
-        const { silhouette, bounds } = record.hitArea;
+          throw new Error("Water occluder has no registered original texture.");
+        const { bounds } = record.hitArea;
         const x = display.x + bounds.x,
           y = display.y + bounds.y;
-        occluders.push({ silhouette, x, y, alpha: display.alpha });
+        occluders.push({ texture: record.texture, x, y, alpha: display.alpha });
         maskKeys.push([record.revision, x, y, display.alpha]);
       }
       let entry = wetSurfaces.get(surface.id);
