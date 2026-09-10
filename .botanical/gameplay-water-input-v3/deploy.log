@@ -1,0 +1,95 @@
+Accepted source and 100-file dist verified; no rebuild.
+
+> hive@0.0.0 preview
+> wrangler preview --name goblin-mvp
+
+
+ ⛅️ wrangler 4.127.1
+────────────────────
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1m🚧 `wrangler preview` is a private beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+
+
+🌀 Building list of assets...
+✨ Read 111 files from the assets directory /home/levi/src/hive-worktrees/gameplay-water-release/dist
+🌀 Starting asset upload...
+🌀 Found 70 new or modified static assets to upload. Proceeding with upload...
++ /assets/getTextureBatchBindGroup-8w2nljJt.js
++ /assets/CanvasPool-BvEWXBeV.js
++ /soil-water-lab.html
++ /assets/wetClearing-DaALT0yS.css
++ /assets/mixed-shelf-CqE87DWe.js
++ /assets/mixedShelfStudy-Osq9AgGG.js
++ /index.html
++ /brewhouse-study.html
++ /world-lab.html
++ /animal-study.html
++ /devil-study.html
++ /assets/foliageWindStudy-Dhi_7L1N.js
++ /assets/wetClearing-B9n59-nn.js
++ /assets/devilStudy-BvbobipN.js
++ /assets/study-C_Wcd5_b.js
++ /assets/construction-DP4k8iKK.js
++ /assets/webworkerAll-Bom-X_Bm.js
++ /assets/CanvasRenderer-DQzcTB7O.js
++ /assets/soilWaterLab-BoMYswv_.js
++ /assets/item-containers-BwWY6s-K.js
++ /assets/RenderTargetSystem-BHr9OJqk.js
++ /assets/worker-BWpmczFL.js
++ /assets/scale-CVknjrPz.js
++ /assets/prop-camera-CfUnWKDc.js
++ /assets/getPo2TextureFromSource-CWwYnY82.js
++ /assets/Filter-C-Pa_EYL.js
++ /gas-heat-lab.html
++ /assets/StudyChrome-Bnf2BOJD.js
++ /clearing-minimap-study.html
++ /mixed-shelf-study.html
++ /foliage-wind-study.html
++ /assets/study-chrome-D3Kdr3oC.js
++ /assets/clearingMinimapStudy-DWfBRkMs.js
++ /assets/canvasUtils-IL1rWTzE.js
++ /assets/fireStudy-CHsk3iF8.js
++ /study.html
++ /assets/game-BW6V9fxt.css
++ /assets/Application-CJxelJHe.js
++ /assets/animalStudy-BLceuzZ3.js
++ /assets/figures-CySTThQH.js
++ /assets/brewhouseAir-D2u7gTii.js
++ /assets/Geometry-DqInVbIc.js
++ /assets/worldLab-flxnw7Xp.js
++ /assets/browserAll-D0Jao8Tx.js
++ /assets/WebGLRenderer-DE68fsIn.js
++ /assets/clearing-Cokzazr8.js
++ /assets/worker-CaHdAFEw.js
++ /assets/bake-BmCnP1VS.js
++ /slosh-lab.html
++ /assets/card-CcmTcH3F.js
++ /wet-clearing.html
++ /brewhouse-air.html
++ /assets/brewhouseAir-P6oI5-LR.css
++ /goblin-den-study.html
++ /goblin-mess-study.html
++ /fire-study.html
++ /assets/height-DL-lpRpX.js
++ /assets/clearing-BqawyQTi.js
++ /assets/worker-DGieueNY.js
++ /assets/sloshLab-C5ttaU8j.js
++ /assets/BufferResource-DsN-ttyA.js
++ /assets/gasHeatLab-C5hQNamt.js
++ /assets/brewhouseStudy-DHvhYdrD.js
++ /assets/home-C9MBKWOj.js
++ /assets/BatchableSprite-DRJRS1Tv.js
++ /assets/WebGPURenderer-YwkhDJa8.js
++ /assets/art-BX8WAMRp.js
++ /assets/Graphics-BXGV64AB.js
++ /assets/geometry-CyAiEndD.js
++ /assets/game-CmiscYfk.js
+Uploaded 23 of 70 assets
+Uploaded 46 of 70 assets
+Uploaded 70 of 70 assets
+✨ Success! Uploaded 70 files (30 already uploaded) (2.68 sec)
+
+Preview: goblin-mvp (updated)
+Preview URL: https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev
+
+Deployment ID: 9e8d5601-9249-4e61-ae6a-c35c469a530d
+Deployment URL: https://9e8d5601-fungi-goblin-bnb.levi-fe0.workers.dev

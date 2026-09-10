@@ -1,0 +1,810 @@
+{
+  "base": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "runtimePin": "210b85d722e4d074eeff34d3653d109882c02655",
+  "deployment": "9e8d5601-9249-4e61-ae6a-c35c469a530d",
+  "observedAt": "2026-09-10T00:04:58.092Z",
+  "count": 100,
+  "passed": true,
+  "rows": [
+    {
+      "path": "animal-study.html",
+      "expected": "546ff5ed6ac9ff88b5694e946aa4b867fb74d8d834c165d9851c06fabca39f4a",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/animal-study",
+      "sha256": "546ff5ed6ac9ff88b5694e946aa4b867fb74d8d834c165d9851c06fabca39f4a"
+    },
+    {
+      "path": "assets/animalStudy-BLceuzZ3.js",
+      "expected": "07c6cc372e88b3a3e9e2377cfae6625c5e1c9c52d9c8818e0350a6222387fee6",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/animalStudy-BLceuzZ3.js",
+      "sha256": "07c6cc372e88b3a3e9e2377cfae6625c5e1c9c52d9c8818e0350a6222387fee6"
+    },
+    {
+      "path": "assets/Application-CJxelJHe.js",
+      "expected": "53e8f9da9eb39c6b2288ef51b754dfb736822f34c292bf4f3461e85ab8472859",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/Application-CJxelJHe.js",
+      "sha256": "53e8f9da9eb39c6b2288ef51b754dfb736822f34c292bf4f3461e85ab8472859"
+    },
+    {
+      "path": "assets/art-BX8WAMRp.js",
+      "expected": "0281898652a03a74adddb3b37a152f8bddc018a7c1244dfbd160ed3518c3035a",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/art-BX8WAMRp.js",
+      "sha256": "0281898652a03a74adddb3b37a152f8bddc018a7c1244dfbd160ed3518c3035a"
+    },
+    {
+      "path": "assets/bake-BmCnP1VS.js",
+      "expected": "fa337557c81e8b6100341869f7f927fa1fa9b26772895c55f780b5324edae5d3",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/bake-BmCnP1VS.js",
+      "sha256": "fa337557c81e8b6100341869f7f927fa1fa9b26772895c55f780b5324edae5d3"
+    },
+    {
+      "path": "assets/BatchableSprite-DRJRS1Tv.js",
+      "expected": "9d856d163546ba951ed30a1a307d64236d8da4ca8dd532ac0339f1a134eb9a8a",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/BatchableSprite-DRJRS1Tv.js",
+      "sha256": "9d856d163546ba951ed30a1a307d64236d8da4ca8dd532ac0339f1a134eb9a8a"
+    },
+    {
+      "path": "assets/brewhouseAir-D2u7gTii.js",
+      "expected": "196b3f42bdf262acc49224fc5c329779d55020e19f921e03f6ddde17fe3beb5f",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/brewhouseAir-D2u7gTii.js",
+      "sha256": "196b3f42bdf262acc49224fc5c329779d55020e19f921e03f6ddde17fe3beb5f"
+    },
+    {
+      "path": "assets/brewhouseAir-P6oI5-LR.css",
+      "expected": "a2dc240d009b092dbf885e4953d256967282f00f367bf1f52fe39d483828a5c8",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/brewhouseAir-P6oI5-LR.css",
+      "sha256": "a2dc240d009b092dbf885e4953d256967282f00f367bf1f52fe39d483828a5c8"
+    },
+    {
+      "path": "assets/brewhouseStudy-BHMhHxMA.css",
+      "expected": "9711223df32a5a77587c091009478666fdeec1f726e39574c692acfbfcb99e27",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/brewhouseStudy-BHMhHxMA.css",
+      "sha256": "9711223df32a5a77587c091009478666fdeec1f726e39574c692acfbfcb99e27"
+    },
+    {
+      "path": "assets/brewhouseStudy-DHvhYdrD.js",
+      "expected": "ed3af26c74f9081cfa3661ccddfbaedf7cde9917abbf022b6561cd700985d0a5",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/brewhouseStudy-DHvhYdrD.js",
+      "sha256": "ed3af26c74f9081cfa3661ccddfbaedf7cde9917abbf022b6561cd700985d0a5"
+    },
+    {
+      "path": "assets/browserAll-D0Jao8Tx.js",
+      "expected": "440641a237d6ffbad829636df4282f4a5c593d117166673be6d883048d5c8852",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/browserAll-D0Jao8Tx.js",
+      "sha256": "440641a237d6ffbad829636df4282f4a5c593d117166673be6d883048d5c8852"
+    },
+    {
+      "path": "assets/BufferResource-DsN-ttyA.js",
+      "expected": "159deff813fb264fbae19b08c2392be4c25c2974050f49676b2393fce68777d2",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/BufferResource-DsN-ttyA.js",
+      "sha256": "159deff813fb264fbae19b08c2392be4c25c2974050f49676b2393fce68777d2"
+    },
+    {
+      "path": "assets/CanvasPool-BvEWXBeV.js",
+      "expected": "1b284a6848955ac0cb307ffeb2570c1871e3aa17bcc6c0ffa29f30234c888c45",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/CanvasPool-BvEWXBeV.js",
+      "sha256": "1b284a6848955ac0cb307ffeb2570c1871e3aa17bcc6c0ffa29f30234c888c45"
+    },
+    {
+      "path": "assets/CanvasRenderer-DQzcTB7O.js",
+      "expected": "d3bc330b9242f409a628ae99e0d5f5ea6f8cc2219ed5399b82810269715c0c37",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/CanvasRenderer-DQzcTB7O.js",
+      "sha256": "d3bc330b9242f409a628ae99e0d5f5ea6f8cc2219ed5399b82810269715c0c37"
+    },
+    {
+      "path": "assets/canvasUtils-IL1rWTzE.js",
+      "expected": "6aeba7bec5ba54ccd674145d355f7e3f4f36160ac0949c7e9bd84f8baf4f796e",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/canvasUtils-IL1rWTzE.js",
+      "sha256": "6aeba7bec5ba54ccd674145d355f7e3f4f36160ac0949c7e9bd84f8baf4f796e"
+    },
+    {
+      "path": "assets/card-CcmTcH3F.js",
+      "expected": "905b703650f1533fb15d86abeea4514faeff84260b1b41e5ad1e605cc8fd8335",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/card-CcmTcH3F.js",
+      "sha256": "905b703650f1533fb15d86abeea4514faeff84260b1b41e5ad1e605cc8fd8335"
+    },
+    {
+      "path": "assets/clearing-BqawyQTi.js",
+      "expected": "0976d092d4ca79af45a96e2e74b06b493333d6d4633996584a70aff2dd30f750",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/clearing-BqawyQTi.js",
+      "sha256": "0976d092d4ca79af45a96e2e74b06b493333d6d4633996584a70aff2dd30f750"
+    },
+    {
+      "path": "assets/clearing-CIHJZZDS.css",
+      "expected": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/clearing-CIHJZZDS.css",
+      "sha256": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba"
+    },
+    {
+      "path": "assets/clearing-Cokzazr8.js",
+      "expected": "31258b4c3bafbfe1988ccb411f91fe52aa80722758b1f2b5364455120ba6320d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/clearing-Cokzazr8.js",
+      "sha256": "31258b4c3bafbfe1988ccb411f91fe52aa80722758b1f2b5364455120ba6320d"
+    },
+    {
+      "path": "assets/clearingMinimapStudy-D6agBLw9.css",
+      "expected": "7c8549008b09f4e9309122b6014f6cce5cd194db01376f22bcd6704c1ca76824",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/clearingMinimapStudy-D6agBLw9.css",
+      "sha256": "7c8549008b09f4e9309122b6014f6cce5cd194db01376f22bcd6704c1ca76824"
+    },
+    {
+      "path": "assets/clearingMinimapStudy-DWfBRkMs.js",
+      "expected": "6ab98f16fb0afb3f195fb3bc651354edbda82b7bc23f575876bef332253e2b4c",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/clearingMinimapStudy-DWfBRkMs.js",
+      "sha256": "6ab98f16fb0afb3f195fb3bc651354edbda82b7bc23f575876bef332253e2b4c"
+    },
+    {
+      "path": "assets/construction-DP4k8iKK.js",
+      "expected": "192a3fb7f2f12276595282b25c4390edf70a50f3f88b7416702a1b2bae8f7fee",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/construction-DP4k8iKK.js",
+      "sha256": "192a3fb7f2f12276595282b25c4390edf70a50f3f88b7416702a1b2bae8f7fee"
+    },
+    {
+      "path": "assets/devilStudy-BvbobipN.js",
+      "expected": "14b642bbbfd34fed2d6288dbea528cf1b67077fd030c7089b1e90a76d8c48b88",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/devilStudy-BvbobipN.js",
+      "sha256": "14b642bbbfd34fed2d6288dbea528cf1b67077fd030c7089b1e90a76d8c48b88"
+    },
+    {
+      "path": "assets/figures-CySTThQH.js",
+      "expected": "b67e17f3bcedea69f9f39d0a142049f8e947e318df87b14e4c715618e05b3238",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/figures-CySTThQH.js",
+      "sha256": "b67e17f3bcedea69f9f39d0a142049f8e947e318df87b14e4c715618e05b3238"
+    },
+    {
+      "path": "assets/Filter-C-Pa_EYL.js",
+      "expected": "2d8ccb99fe87d44cc77ae699ebd8d3f23cb5472adafb95e4a0d6d589daaf3507",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/Filter-C-Pa_EYL.js",
+      "sha256": "2d8ccb99fe87d44cc77ae699ebd8d3f23cb5472adafb95e4a0d6d589daaf3507"
+    },
+    {
+      "path": "assets/fireStudy-CHsk3iF8.js",
+      "expected": "898881a9f0a7af87635b88cca0964229826098d6949bc81cf0db4d5fbc007c1f",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/fireStudy-CHsk3iF8.js",
+      "sha256": "898881a9f0a7af87635b88cca0964229826098d6949bc81cf0db4d5fbc007c1f"
+    },
+    {
+      "path": "assets/foliageWindStudy-3ROiHblo.css",
+      "expected": "8dd888d7492deee73fcf6b1e1d59945e85552413c35ae03d1e142d88b483f2bd",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/foliageWindStudy-3ROiHblo.css",
+      "sha256": "8dd888d7492deee73fcf6b1e1d59945e85552413c35ae03d1e142d88b483f2bd"
+    },
+    {
+      "path": "assets/foliageWindStudy-Dhi_7L1N.js",
+      "expected": "0f5de52350426d254f2a9d663987d1bcb4a0805dd89ac4011823800ff4a17f11",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/foliageWindStudy-Dhi_7L1N.js",
+      "sha256": "0f5de52350426d254f2a9d663987d1bcb4a0805dd89ac4011823800ff4a17f11"
+    },
+    {
+      "path": "assets/game-BW6V9fxt.css",
+      "expected": "d5694c018ae6cfe6198362e47ac233f6b6108174401845bc18392b8b5a46c256",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/game-BW6V9fxt.css",
+      "sha256": "d5694c018ae6cfe6198362e47ac233f6b6108174401845bc18392b8b5a46c256"
+    },
+    {
+      "path": "assets/game-CmiscYfk.js",
+      "expected": "8534d2028390e914094888ab3cd58b00123a5fb437939ee075e36162ce32a862",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/game-CmiscYfk.js",
+      "sha256": "8534d2028390e914094888ab3cd58b00123a5fb437939ee075e36162ce32a862"
+    },
+    {
+      "path": "assets/gasHeatLab-C5hQNamt.js",
+      "expected": "62643e5d65c5418fec8c1033f001a527f38f588e8751f3925449ccc5affdf78d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/gasHeatLab-C5hQNamt.js",
+      "sha256": "62643e5d65c5418fec8c1033f001a527f38f588e8751f3925449ccc5affdf78d"
+    },
+    {
+      "path": "assets/gasHeatLab-CZ4oDWLB.css",
+      "expected": "d60fbc87dbfe61f3d554170bb12e59fbe9fc8de9be639ff82d1f78e9e28b5b39",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/gasHeatLab-CZ4oDWLB.css",
+      "sha256": "d60fbc87dbfe61f3d554170bb12e59fbe9fc8de9be639ff82d1f78e9e28b5b39"
+    },
+    {
+      "path": "assets/geometry-CyAiEndD.js",
+      "expected": "f8bb9dadd016a9e13f0064a517fe0448d7f9c6bf4dfee592c9e682bf11312e95",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/geometry-CyAiEndD.js",
+      "sha256": "f8bb9dadd016a9e13f0064a517fe0448d7f9c6bf4dfee592c9e682bf11312e95"
+    },
+    {
+      "path": "assets/Geometry-DqInVbIc.js",
+      "expected": "1f3edd7240f968aebad61d6cb7eedde152c86263dfc5629eabd074e4340d3321",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/Geometry-DqInVbIc.js",
+      "sha256": "1f3edd7240f968aebad61d6cb7eedde152c86263dfc5629eabd074e4340d3321"
+    },
+    {
+      "path": "assets/getPo2TextureFromSource-CWwYnY82.js",
+      "expected": "4a67b5fb17919ddd16577f6fd46a8180e469d6fbc7d6c80e628f78f864d6370d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/getPo2TextureFromSource-CWwYnY82.js",
+      "sha256": "4a67b5fb17919ddd16577f6fd46a8180e469d6fbc7d6c80e628f78f864d6370d"
+    },
+    {
+      "path": "assets/getTextureBatchBindGroup-8w2nljJt.js",
+      "expected": "7eb9e15af1e4a78766278f985c2b489792269b0313bf7487293e10953c2bad71",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/getTextureBatchBindGroup-8w2nljJt.js",
+      "sha256": "7eb9e15af1e4a78766278f985c2b489792269b0313bf7487293e10953c2bad71"
+    },
+    {
+      "path": "assets/Graphics-BXGV64AB.js",
+      "expected": "bb1dc438550f3c43256ae4b7389036adc1594563b2bd9258e6dc16a226d687a9",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/Graphics-BXGV64AB.js",
+      "sha256": "bb1dc438550f3c43256ae4b7389036adc1594563b2bd9258e6dc16a226d687a9"
+    },
+    {
+      "path": "assets/height-DL-lpRpX.js",
+      "expected": "fdf0e5fb7e8ef31653e03d5af2846925f6679e00de97af6fd1df5a154cfddbd0",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/height-DL-lpRpX.js",
+      "sha256": "fdf0e5fb7e8ef31653e03d5af2846925f6679e00de97af6fd1df5a154cfddbd0"
+    },
+    {
+      "path": "assets/home-C9MBKWOj.js",
+      "expected": "dc431e390428976d734bfe8b58d87a0951ac52277d33b4b7fae7a98ec6ad52f4",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/home-C9MBKWOj.js",
+      "sha256": "dc431e390428976d734bfe8b58d87a0951ac52277d33b4b7fae7a98ec6ad52f4"
+    },
+    {
+      "path": "assets/item-containers-BwWY6s-K.js",
+      "expected": "79bd64172f60f564051795a768152d6ac612a4d281356ebfddeebee507fc02ae",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/item-containers-BwWY6s-K.js",
+      "sha256": "79bd64172f60f564051795a768152d6ac612a4d281356ebfddeebee507fc02ae"
+    },
+    {
+      "path": "assets/mixed-shelf-CqE87DWe.js",
+      "expected": "6c10c80944c344499d7295282f5ac82d2e867e45afd4af91187b1a6825d41bd1",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/mixed-shelf-CqE87DWe.js",
+      "sha256": "6c10c80944c344499d7295282f5ac82d2e867e45afd4af91187b1a6825d41bd1"
+    },
+    {
+      "path": "assets/mixedShelfStudy-BjWcZplS.css",
+      "expected": "aa82d82ff10a4e21afaa5990fc3e32e7e84bfe00be9ce536fd19c240a562caa0",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/mixedShelfStudy-BjWcZplS.css",
+      "sha256": "aa82d82ff10a4e21afaa5990fc3e32e7e84bfe00be9ce536fd19c240a562caa0"
+    },
+    {
+      "path": "assets/mixedShelfStudy-Osq9AgGG.js",
+      "expected": "6ac8376c28d05f16c2858881fd4624827d3e5db507051eb3c623926c8b132a09",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/mixedShelfStudy-Osq9AgGG.js",
+      "sha256": "6ac8376c28d05f16c2858881fd4624827d3e5db507051eb3c623926c8b132a09"
+    },
+    {
+      "path": "assets/prop-camera-CfUnWKDc.js",
+      "expected": "417a3ccdbd613edfb687fc394ad3de300634fdd3f240d7db832c5827c3238390",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/prop-camera-CfUnWKDc.js",
+      "sha256": "417a3ccdbd613edfb687fc394ad3de300634fdd3f240d7db832c5827c3238390"
+    },
+    {
+      "path": "assets/RenderTargetSystem-BHr9OJqk.js",
+      "expected": "088e77d6d7aeccd7eadddb786301fbdf6f33ae2cb9c506590880c2d5cab7b32d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/RenderTargetSystem-BHr9OJqk.js",
+      "sha256": "088e77d6d7aeccd7eadddb786301fbdf6f33ae2cb9c506590880c2d5cab7b32d"
+    },
+    {
+      "path": "assets/scale-CVknjrPz.js",
+      "expected": "48337fe7a432be1c0f36bd353918950f9396b7f11e7cf76a8549c5a57f239f0d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/scale-CVknjrPz.js",
+      "sha256": "48337fe7a432be1c0f36bd353918950f9396b7f11e7cf76a8549c5a57f239f0d"
+    },
+    {
+      "path": "assets/sloshLab-C5ttaU8j.js",
+      "expected": "4c3be509398de5757d95008426ca09917a2395b5653079270bb7e9a0eab890b9",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/sloshLab-C5ttaU8j.js",
+      "sha256": "4c3be509398de5757d95008426ca09917a2395b5653079270bb7e9a0eab890b9"
+    },
+    {
+      "path": "assets/sloshLab-Dd6aRcm5.css",
+      "expected": "6b75d78be54617653665d967e1ad3a1ae1d8eb709386e8125204c642b3874b45",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/sloshLab-Dd6aRcm5.css",
+      "sha256": "6b75d78be54617653665d967e1ad3a1ae1d8eb709386e8125204c642b3874b45"
+    },
+    {
+      "path": "assets/soilWaterLab-BA0E0aDG.css",
+      "expected": "4c32ca5caf8374e96c71f5a563756c62ed64dcc055b5ec099d744d60cde2ec92",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/soilWaterLab-BA0E0aDG.css",
+      "sha256": "4c32ca5caf8374e96c71f5a563756c62ed64dcc055b5ec099d744d60cde2ec92"
+    },
+    {
+      "path": "assets/soilWaterLab-BoMYswv_.js",
+      "expected": "fdfeb84d8e68e8f6d79a89df06d2401baf90c830e4ed3595dd14035f2f07f268",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/soilWaterLab-BoMYswv_.js",
+      "sha256": "fdfeb84d8e68e8f6d79a89df06d2401baf90c830e4ed3595dd14035f2f07f268"
+    },
+    {
+      "path": "assets/study-B3RiCGs3.css",
+      "expected": "331b4fa29c0a6126c033a83fe3149bc80cdd49509ac899b11c78c151c22bfdbe",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/study-B3RiCGs3.css",
+      "sha256": "331b4fa29c0a6126c033a83fe3149bc80cdd49509ac899b11c78c151c22bfdbe"
+    },
+    {
+      "path": "assets/study-C_Wcd5_b.js",
+      "expected": "f44f60b8cee6fff77f8d3f02da9f7c58277cb4963676aae18cc7d0979ec6bacf",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/study-C_Wcd5_b.js",
+      "sha256": "f44f60b8cee6fff77f8d3f02da9f7c58277cb4963676aae18cc7d0979ec6bacf"
+    },
+    {
+      "path": "assets/study-chrome-D3Kdr3oC.js",
+      "expected": "c6dc6aa06b1d2b699e6408446b1f3205d41cb703f2125d541ca5b725e3773130",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/study-chrome-D3Kdr3oC.js",
+      "sha256": "c6dc6aa06b1d2b699e6408446b1f3205d41cb703f2125d541ca5b725e3773130"
+    },
+    {
+      "path": "assets/study-chrome-uH_0aS5N.css",
+      "expected": "cb3db1a7a872e98b34adce00f0762c793b0de73458d45e39b1ea35e431102ccb",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/study-chrome-uH_0aS5N.css",
+      "sha256": "cb3db1a7a872e98b34adce00f0762c793b0de73458d45e39b1ea35e431102ccb"
+    },
+    {
+      "path": "assets/StudyChrome-Bnf2BOJD.js",
+      "expected": "06cc72ddcb0afe839cd49d3758cf4710d76f777841f12b91109348d600a35b35",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/StudyChrome-Bnf2BOJD.js",
+      "sha256": "06cc72ddcb0afe839cd49d3758cf4710d76f777841f12b91109348d600a35b35"
+    },
+    {
+      "path": "assets/styles-BUeC02zC.js",
+      "expected": "a0fc64f2743128f6b9ce5cf47af8fc2b3d9bf1f7d563182cf965d12cc77560f7",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/styles-BUeC02zC.js",
+      "sha256": "a0fc64f2743128f6b9ce5cf47af8fc2b3d9bf1f7d563182cf965d12cc77560f7"
+    },
+    {
+      "path": "assets/styles-vpkPkzl0.css",
+      "expected": "a9f4a4c8011e825b8c5725f2d4a1382603fba8220a76d9b1057166cb61b1ab3d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/styles-vpkPkzl0.css",
+      "sha256": "a9f4a4c8011e825b8c5725f2d4a1382603fba8220a76d9b1057166cb61b1ab3d"
+    },
+    {
+      "path": "assets/tabs-CUtPcNnq.js",
+      "expected": "0661e1922232229fc536bc0dfa2760160dcaa63addb5563515e9af8e89ed495b",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/tabs-CUtPcNnq.js",
+      "sha256": "0661e1922232229fc536bc0dfa2760160dcaa63addb5563515e9af8e89ed495b"
+    },
+    {
+      "path": "assets/WebGLRenderer-DE68fsIn.js",
+      "expected": "ec7479cac47ef86da785f0c0f5282ae1a9ac61cb2483c01cdd5827ea5a8df089",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/WebGLRenderer-DE68fsIn.js",
+      "sha256": "ec7479cac47ef86da785f0c0f5282ae1a9ac61cb2483c01cdd5827ea5a8df089"
+    },
+    {
+      "path": "assets/WebGPURenderer-YwkhDJa8.js",
+      "expected": "7476c15fb3976d0f8f3f50140305379998ccf221074a9527066a954cc73232db",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/WebGPURenderer-YwkhDJa8.js",
+      "sha256": "7476c15fb3976d0f8f3f50140305379998ccf221074a9527066a954cc73232db"
+    },
+    {
+      "path": "assets/webworkerAll-Bom-X_Bm.js",
+      "expected": "8bcc9bcd73de86d587d06f924f36aec726412c839b1e74a0c24bb5f2bbc82d1d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/webworkerAll-Bom-X_Bm.js",
+      "sha256": "8bcc9bcd73de86d587d06f924f36aec726412c839b1e74a0c24bb5f2bbc82d1d"
+    },
+    {
+      "path": "assets/wetClearing-B9n59-nn.js",
+      "expected": "f6a50c17f59cbd677f9eaa466b7a652f43100a6507b237510a1a54a090cf7cf9",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/wetClearing-B9n59-nn.js",
+      "sha256": "f6a50c17f59cbd677f9eaa466b7a652f43100a6507b237510a1a54a090cf7cf9"
+    },
+    {
+      "path": "assets/wetClearing-DaALT0yS.css",
+      "expected": "dcb2e0d8161be7b344bf992919a3d8f03e5efe63baa57d9bcf886117b1659a57",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/wetClearing-DaALT0yS.css",
+      "sha256": "dcb2e0d8161be7b344bf992919a3d8f03e5efe63baa57d9bcf886117b1659a57"
+    },
+    {
+      "path": "assets/worker-BWpmczFL.js",
+      "expected": "db62309ad232d1503f9cbd4f510852aeb0e6523974f627e116e5ff1eb1be232f",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/worker-BWpmczFL.js",
+      "sha256": "db62309ad232d1503f9cbd4f510852aeb0e6523974f627e116e5ff1eb1be232f"
+    },
+    {
+      "path": "assets/worker-CaHdAFEw.js",
+      "expected": "e0590da5a5a1f623d3ff12c18229c27b351cb6043dab7891b98eac096338752b",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/worker-CaHdAFEw.js",
+      "sha256": "e0590da5a5a1f623d3ff12c18229c27b351cb6043dab7891b98eac096338752b"
+    },
+    {
+      "path": "assets/worker-DGieueNY.js",
+      "expected": "9c4dc2d35a9084b3a92a4b14a1cbb37a262cd88a21688aaa1256fdd39d2fe59b",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/worker-DGieueNY.js",
+      "sha256": "9c4dc2d35a9084b3a92a4b14a1cbb37a262cd88a21688aaa1256fdd39d2fe59b"
+    },
+    {
+      "path": "assets/worldLab-DH7Iy_DJ.css",
+      "expected": "2333512798d98afc8f718911e4ffb2c18b97fc8b02b90649368000d24e2f82af",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/worldLab-DH7Iy_DJ.css",
+      "sha256": "2333512798d98afc8f718911e4ffb2c18b97fc8b02b90649368000d24e2f82af"
+    },
+    {
+      "path": "assets/worldLab-flxnw7Xp.js",
+      "expected": "37a7e1696aa5b8e3b156c07ab5359d9a24e8013592ec880ad54bb944676ac021",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/assets/worldLab-flxnw7Xp.js",
+      "sha256": "37a7e1696aa5b8e3b156c07ab5359d9a24e8013592ec880ad54bb944676ac021"
+    },
+    {
+      "path": "brewhouse-air.html",
+      "expected": "67f63150f05c2e6ac9503d243a67aeba492cff2f3b5299eebfd85974b2962e11",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/brewhouse-air",
+      "sha256": "67f63150f05c2e6ac9503d243a67aeba492cff2f3b5299eebfd85974b2962e11"
+    },
+    {
+      "path": "brewhouse-study.html",
+      "expected": "197725fc2611587f35bbfada4b5a5dd7cd9b7363b093c4405ecc1316ebf9b076",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/brewhouse-study",
+      "sha256": "197725fc2611587f35bbfada4b5a5dd7cd9b7363b093c4405ecc1316ebf9b076"
+    },
+    {
+      "path": "clearing-minimap-study.html",
+      "expected": "37733eadfc017b3085bf822c89ee4e895514cfd4a1e358ad8ba65382a797d0af",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/clearing-minimap-study",
+      "sha256": "37733eadfc017b3085bf822c89ee4e895514cfd4a1e358ad8ba65382a797d0af"
+    },
+    {
+      "path": "devil-study.html",
+      "expected": "0ab3f9f00254f0d8eea5481d93303bf16546549f4e610662a9bcbcfad0606f1f",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/devil-study",
+      "sha256": "0ab3f9f00254f0d8eea5481d93303bf16546549f4e610662a9bcbcfad0606f1f"
+    },
+    {
+      "path": "fire-study.html",
+      "expected": "718a5c22d3f1acf66a2fc5da4d2d543c7cc00c97c3b593adf03af7c480b43f6d",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/fire-study",
+      "sha256": "718a5c22d3f1acf66a2fc5da4d2d543c7cc00c97c3b593adf03af7c480b43f6d"
+    },
+    {
+      "path": "foliage-wind-study.html",
+      "expected": "fcb8bf836e8eff3966e071411885663bb823eed71cbcbe6f51920ead9d661acb",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/foliage-wind-study",
+      "sha256": "fcb8bf836e8eff3966e071411885663bb823eed71cbcbe6f51920ead9d661acb"
+    },
+    {
+      "path": "gas-heat-lab.html",
+      "expected": "16c3f98178ca64a7da49a71eb4e30c6cd83d630da19744587a10956b8a39f050",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/gas-heat-lab",
+      "sha256": "16c3f98178ca64a7da49a71eb4e30c6cd83d630da19744587a10956b8a39f050"
+    },
+    {
+      "path": "goblin-den-study.html",
+      "expected": "a11a83a2b7ffd22a1cf38e0de45babaebf8c312350e2f4f849670ac645a2a4b4",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/goblin-den-study",
+      "sha256": "a11a83a2b7ffd22a1cf38e0de45babaebf8c312350e2f4f849670ac645a2a4b4"
+    },
+    {
+      "path": "goblin-mess-study.html",
+      "expected": "0660429e9fc2ce6ec6d287eef369fc19838d6ab58220c76ec577f2ae0003ff1a",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/goblin-mess-study",
+      "sha256": "0660429e9fc2ce6ec6d287eef369fc19838d6ab58220c76ec577f2ae0003ff1a"
+    },
+    {
+      "path": "index.html",
+      "expected": "08f437b912c90d916f14e8f31eb4f8d8b0d92e4f7757576da22c04640551e83b",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+      "sha256": "08f437b912c90d916f14e8f31eb4f8d8b0d92e4f7757576da22c04640551e83b"
+    },
+    {
+      "path": "mixed-shelf-study.html",
+      "expected": "ff5c055cf622d39ba7ab7ee1e5d60f73c51cd344e626d800fb0b378f1a53ddc5",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/mixed-shelf-study",
+      "sha256": "ff5c055cf622d39ba7ab7ee1e5d60f73c51cd344e626d800fb0b378f1a53ddc5"
+    },
+    {
+      "path": "slosh-lab.html",
+      "expected": "f035638e8acc3da29c890258722efad9b08bfe7ea7dbe68eea2690ba0c99c434",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/slosh-lab",
+      "sha256": "f035638e8acc3da29c890258722efad9b08bfe7ea7dbe68eea2690ba0c99c434"
+    },
+    {
+      "path": "soil-water-lab.html",
+      "expected": "b5415b8538bc8314cd1f95119d5da00a9879b1b2ff64b2da4f6bbe170effe98c",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/soil-water-lab",
+      "sha256": "b5415b8538bc8314cd1f95119d5da00a9879b1b2ff64b2da4f6bbe170effe98c"
+    },
+    {
+      "path": "studies/goblin-den/concept.png",
+      "expected": "652e6e7dfd3f5d38854a84790ebe50603625fe9bae8954cb715aff224c6d30a6",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/studies/goblin-den/concept.png",
+      "sha256": "652e6e7dfd3f5d38854a84790ebe50603625fe9bae8954cb715aff224c6d30a6"
+    },
+    {
+      "path": "studies/goblin-mess/gallery-detail2x.png",
+      "expected": "0e9b44a278bc1bb780d2fc26612bff54273755165266ed84f1e181c3957ca4bb",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/studies/goblin-mess/gallery-detail2x.png",
+      "sha256": "0e9b44a278bc1bb780d2fc26612bff54273755165266ed84f1e181c3957ca4bb"
+    },
+    {
+      "path": "studies/goblin-mess/gallery-native.png",
+      "expected": "b235593f920f7a35387c72257a2894f9d62818baba4c47851d26d17cc9854f67",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/studies/goblin-mess/gallery-native.png",
+      "sha256": "b235593f920f7a35387c72257a2894f9d62818baba4c47851d26d17cc9854f67"
+    },
+    {
+      "path": "studies/goblin-mess/room-game2x.png",
+      "expected": "a5f58953d891cc9e26361d1ba354a45a804aff010534c16890b6606091d99cc9",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/studies/goblin-mess/room-game2x.png",
+      "sha256": "a5f58953d891cc9e26361d1ba354a45a804aff010534c16890b6606091d99cc9"
+    },
+    {
+      "path": "study-evidence/gas-heat/manifest.json",
+      "expected": "df4a451d9ce9e3f6cd57fc2e8378fbf92f8b91b0c0f52e1b319593b2bb3285ca",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/gas-heat/manifest.json",
+      "sha256": "df4a451d9ce9e3f6cd57fc2e8378fbf92f8b91b0c0f52e1b319593b2bb3285ca"
+    },
+    {
+      "path": "study-evidence/gas-heat/ports.json",
+      "expected": "eb0af363f13b4524a5797dbe3b368a8b17ec43766928b710c067c01c547ae174",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/gas-heat/ports.json",
+      "sha256": "eb0af363f13b4524a5797dbe3b368a8b17ec43766928b710c067c01c547ae174"
+    },
+    {
+      "path": "study-evidence/gas-heat/sealed.json",
+      "expected": "6c57ce852695bcdfc9f5263ee1b350fe988a29d8459ff20f13fe091bee1d892e",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/gas-heat/sealed.json",
+      "sha256": "6c57ce852695bcdfc9f5263ee1b350fe988a29d8459ff20f13fe091bee1d892e"
+    },
+    {
+      "path": "study-evidence/slosh/surface-v1.json",
+      "expected": "2408d3c9e63bfcc430e9fbc8ecf29a8336c22ffec9c14655b5ebeb8d9f35f4b6",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/slosh/surface-v1.json",
+      "sha256": "2408d3c9e63bfcc430e9fbc8ecf29a8336c22ffec9c14655b5ebeb8d9f35f4b6"
+    },
+    {
+      "path": "study-evidence/soil-water/dt3-cells.json",
+      "expected": "b1586592cccdcfe9d320364f340586de449fdbe8eaa7786cd4a7ff3dc918b27b",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/soil-water/dt3-cells.json",
+      "sha256": "b1586592cccdcfe9d320364f340586de449fdbe8eaa7786cd4a7ff3dc918b27b"
+    },
+    {
+      "path": "study-evidence/soil-water/excavation/excavated.json",
+      "expected": "5a52233d897a0fbbdfaf958410ae60d6c275d5c1a1f6e6cb2593d46bfc208286",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/soil-water/excavation/excavated.json",
+      "sha256": "5a52233d897a0fbbdfaf958410ae60d6c275d5c1a1f6e6cb2593d46bfc208286"
+    },
+    {
+      "path": "study-evidence/soil-water/excavation/moving-frames.json",
+      "expected": "a47c56fda85aa496cc405be595ad2b21e8a9b84229d7db4f4993be5c34e8f400",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/soil-water/excavation/moving-frames.json",
+      "sha256": "a47c56fda85aa496cc405be595ad2b21e8a9b84229d7db4f4993be5c34e8f400"
+    },
+    {
+      "path": "study-evidence/soil-water/excavation/proof.json",
+      "expected": "f1e8956cb4841f30ec3edf36cb9d78837bba0ca25e2f326ded64836aa397f945",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study-evidence/soil-water/excavation/proof.json",
+      "sha256": "f1e8956cb4841f30ec3edf36cb9d78837bba0ca25e2f326ded64836aa397f945"
+    },
+    {
+      "path": "study.html",
+      "expected": "8b0de4399483d8ddd591806ce1b88fb34c3d539014a848315364cfc87c6c2468",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study",
+      "sha256": "8b0de4399483d8ddd591806ce1b88fb34c3d539014a848315364cfc87c6c2468"
+    },
+    {
+      "path": "vendor/libcolony/colony.js",
+      "expected": "60ab2e98baa488a39848e2a576bafcce48f33aa49fe995de907613c9915fafa0",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/vendor/libcolony/colony.js",
+      "sha256": "60ab2e98baa488a39848e2a576bafcce48f33aa49fe995de907613c9915fafa0"
+    },
+    {
+      "path": "vendor/libcolony/colony.wasm",
+      "expected": "33d78e3451179d1e17d283837066a819d94ec0bba239dda4c6ce19edb7fcc0e9",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/vendor/libcolony/colony.wasm",
+      "sha256": "33d78e3451179d1e17d283837066a819d94ec0bba239dda4c6ce19edb7fcc0e9"
+    },
+    {
+      "path": "vendor/libcolony/LICENSE",
+      "expected": "14f0c63001b1459bf523d737c0ab224e62b2a9c7b2eddf5372a38ea2a9de620e",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/vendor/libcolony/LICENSE",
+      "sha256": "14f0c63001b1459bf523d737c0ab224e62b2a9c7b2eddf5372a38ea2a9de620e"
+    },
+    {
+      "path": "vendor/libcolony/PROVENANCE.md",
+      "expected": "abf0f395a604b760bde09a381072ac8d9f823c29128771c834dbe2e0756859d3",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/vendor/libcolony/PROVENANCE.md",
+      "sha256": "abf0f395a604b760bde09a381072ac8d9f823c29128771c834dbe2e0756859d3"
+    },
+    {
+      "path": "wet-clearing.html",
+      "expected": "0e20a7679ecc1bc2e71f6bef13e7cdc133dab013505c60634733f52062a9d078",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/wet-clearing",
+      "sha256": "0e20a7679ecc1bc2e71f6bef13e7cdc133dab013505c60634733f52062a9d078"
+    },
+    {
+      "path": "world-lab.html",
+      "expected": "720ffbb1cf915aff55d07f1a0790fae08ced47bfd097c6c423386b14c2a955a4",
+      "match": true,
+      "status": 200,
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/world-lab",
+      "sha256": "720ffbb1cf915aff55d07f1a0790fae08ced47bfd097c6c423386b14c2a955a4"
+    }
+  ]
+}

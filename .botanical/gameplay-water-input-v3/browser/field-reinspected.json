@@ -1,0 +1,607 @@
+{
+  "state": {
+    "seed": 42,
+    "tick": 84,
+    "paused": true,
+    "nextId": 3,
+    "actors": {
+      "rowan": {
+        "x": 7,
+        "z": 10,
+        "level": 0,
+        "dir": 2,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "drafted": false,
+        "needs": {
+          "advancedAt": 84,
+          "nourishment": 99.54500000000041,
+          "hydration": 99.24166666666696,
+          "rest": 78.99199999999996
+        },
+        "routine": false,
+        "allowedWork": {
+          "chop": true,
+          "haul": true,
+          "build": true,
+          "garden": true,
+          "craft": true
+        },
+        "task": null,
+        "assignment": null
+      },
+      "sedge": {
+        "x": 11,
+        "z": 13,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "drafted": true,
+        "needs": {
+          "advancedAt": 84,
+          "nourishment": 99.54500000000041,
+          "hydration": 99.24166666666696,
+          "rest": 78.99199999999996
+        },
+        "routine": false,
+        "allowedWork": {
+          "chop": true,
+          "haul": true,
+          "build": true,
+          "garden": true,
+          "craft": true
+        },
+        "task": null,
+        "assignment": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan",
+          "sedge"
+        ]
+      }
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "herbs": [],
+    "materials": {
+      "lots": [
+        {
+          "id": "source-lot:feature:spring",
+          "material": "water",
+          "quantity": 8,
+          "location": {
+            "kind": "container",
+            "container": "source:feature:spring"
+          }
+        },
+        {
+          "id": "needs-water-lot:feature:spring",
+          "material": "water",
+          "quantity": 8,
+          "location": {
+            "kind": "container",
+            "container": "source:feature:spring"
+          }
+        },
+        {
+          "id": "source-lot:feature:reclaimed-timber-cache",
+          "material": "wood",
+          "quantity": 10,
+          "location": {
+            "kind": "container",
+            "container": "source:feature:reclaimed-timber-cache"
+          }
+        },
+        {
+          "id": "source-pail-lot:feature:reclaimed-timber-cache",
+          "material": "pail",
+          "quantity": 1,
+          "location": {
+            "kind": "container",
+            "container": "source-pail:feature:reclaimed-timber-cache"
+          }
+        },
+        {
+          "id": "source-malt-lot:feature:reclaimed-timber-cache",
+          "material": "malt",
+          "quantity": 4,
+          "location": {
+            "kind": "container",
+            "container": "source-supplies:feature:reclaimed-timber-cache"
+          }
+        },
+        {
+          "id": "source-barm-lot:feature:reclaimed-timber-cache",
+          "material": "barm",
+          "quantity": 1,
+          "location": {
+            "kind": "container",
+            "container": "source-supplies:feature:reclaimed-timber-cache"
+          }
+        },
+        {
+          "id": "source-keg-lot:feature:reclaimed-timber-cache",
+          "material": "keg",
+          "quantity": 1,
+          "location": {
+            "kind": "container",
+            "container": "source-supplies:feature:reclaimed-timber-cache"
+          }
+        },
+        {
+          "id": "source-ration-lot:feature:reclaimed-timber-cache",
+          "material": "ration",
+          "quantity": 6,
+          "location": {
+            "kind": "container",
+            "container": "source-supplies:feature:reclaimed-timber-cache"
+          }
+        },
+        {
+          "id": "lot-1",
+          "material": "soil",
+          "quantity": 1,
+          "location": {
+            "kind": "ground",
+            "x": 7,
+            "z": 10,
+            "level": 0
+          }
+        }
+      ],
+      "transfers": [],
+      "bindings": [],
+      "transformations": [],
+      "consumptions": [],
+      "sinks": [],
+      "embedded": [],
+      "nextLotId": 2,
+      "consumedWood": 0
+    },
+    "sources": [
+      {
+        "id": "feature:spring",
+        "kind": "spring",
+        "access": "open",
+        "x": 13,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "id": "feature:reclaimed-timber-cache",
+        "kind": "reclaimed-timber-cache",
+        "access": "sealed",
+        "repaired": false,
+        "x": 1,
+        "z": 13,
+        "level": 0
+      }
+    ],
+    "pendingSources": [],
+    "operations": [],
+    "careOutcomes": [],
+    "processes": [],
+    "terrain": {
+      "exports": [
+        {
+          "at": [
+            0,
+            14,
+            128
+          ],
+          "id": "excavation:cell:0,14,128",
+          "kind": "porous",
+          "materialId": 1,
+          "nodeId": "cell:0,14,128",
+          "quantity": 1,
+          "soilId": "synthetic-rigid-loam-si-v1",
+          "sourceVoxelM3": 0.54,
+          "waterKg": 237.03565722779186
+        }
+      ],
+      "identity": "{\"version\":\"height-caves-connected-excavation-v7\",\"baseSoilGeometry\":{\"cells\":[{\"at\":[-1,13,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,13,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,13,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,13,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,14,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,14,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,14,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[-1,14,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,13,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,13,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,13,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,13,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,14,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,14,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,14,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[0,14,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,13,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,13,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,13,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,13,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,14,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,14,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,14,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[1,14,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,13,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,13,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,13,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,13,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,14,127],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,14,128],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,14,129],\"soilId\":\"synthetic-rigid-loam-si-v1\"},{\"at\":[2,14,130],\"soilId\":\"synthetic-rigid-loam-si-v1\"}],\"closedFaces\":[],\"definitions\":[{\"alphaPerM\":2,\"densityKgM3\":1000,\"ell\":0.5,\"id\":\"synthetic-rigid-loam-si-v1\",\"ksMPerS\":0.0001,\"maxHeadM\":8,\"minHeadM\":-4,\"n\":2,\"porosity\":0.45,\"thetaR\":0.05}],\"exterior\":\"closed\",\"ports\":[],\"regionId\":\"generated-pit-region\",\"reservoirs\":[],\"revision\":0,\"spacingM\":[1,0.54,1],\"surfaceEdges\":[],\"version\":\"rigid-soil-voxel-columns-v3\"},\"surfaceCoefficient\":0.5,\"worldIdentity\":{\"base\":{\"bounds\":{\"maxX\":2048,\"maxY\":64,\"maxZ\":2048,\"minX\":-2048,\"minY\":-64,\"minZ\":-2048},\"brickSide\":16,\"cave\":{\"detail\":{\"horizontalMetres\":11,\"salt\":\"cave-detail\",\"verticalMetres\":7,\"weight\":0.22},\"id\":\"global-trilinear-two-octave-cave-v1\",\"macro\":{\"horizontalMetres\":32,\"salt\":\"cave-macro\",\"verticalMetres\":18,\"weight\":0.78},\"protectedSolidLayers\":3,\"sampleNamespace\":\"height-sea-cave-density-v2\",\"voidThreshold\":0.42},\"codecSchema\":2,\"features\":{\"cacheCapRegions\":16,\"candidateJitterCells\":20,\"chamberRadiiMetres\":[3.8,2.4,3.4],\"dryMarginLevels\":3,\"id\":\"pit-gallery-capsules-v1\",\"points\":[[0,2,0],[0,-5,0],[8,-10,6],[20,-18,10]],\"radiusMetres\":1.35,\"regionMetres\":128,\"sampling\":\"physical-voxel-centres\"},\"heightIdentity\":\"world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907\",\"heightSeed\":\"hive-world-lab-seed-20260907\",\"heightSource\":\"530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf\",\"residentBrickCap\":8,\"units\":{\"horizontalMetres\":1,\"verticalMetres\":0.54,\"voxelsPerStorey\":4},\"voxelRecipe\":\"height-sea-connected-caves-v3\"},\"spaceId\":\"surface\",\"worldId\":\"one-generated-soil-excavation\"}}",
+      "soilState": {
+        "boundaryKg": -237.03565722779186,
+        "identity": "{\"version\":\"rigid-richards-boundary-volume-be-v2\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-columns-v3\\\",\\\"regionId\\\":\\\"generated-pit-region\\\",\\\"revision\\\":1,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[-1,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,13,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,14,130],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[{\\\"id\\\":\\\"column-p0-p128\\\",\\\"kind\\\":\\\"vented-pit\\\",\\\"at\\\":[0,14,128],\\\"heightCells\\\":1,\\\"bottom\\\":\\\"porous\\\"}],\\\"ports\\\":[{\\\"cell\\\":[-1,14,128],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"column-p0-p128\\\"},{\\\"cell\\\":[1,14,128],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"column-p0-p128\\\"},{\\\"cell\\\":[0,13,128],\\\"side\\\":\\\"y+\\\",\\\"reservoirId\\\":\\\"column-p0-p128\\\"},{\\\"cell\\\":[0,14,127],\\\"side\\\":\\\"z+\\\",\\\"reservoirId\\\":\\\"column-p0-p128\\\"},{\\\"cell\\\":[0,14,129],\\\"side\\\":\\\"z-\\\",\\\"reservoirId\\\":\\\"column-p0-p128\\\"}],\\\"closedFaces\\\":[],\\\"surfaceEdges\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\",\"timeIntegration\":\"request-local-compensated-interval-v1\",\"surfaceExchange\":\"broad-crested-normalized-cms-067-v1\",\"pitBoundary\":\"voxel-column-integrated-side-bottom-policy-v3\",\"dryPitReference\":\"exposed-saturated-side-atmosphere-v1\"}",
+        "initialTotalKg": 7680.570515644669,
+        "massKg": [
+          243,
+          243,
+          243,
+          243,
+          237.0346134964581,
+          237.031983946956,
+          237.0348132017239,
+          237.03536904896626,
+          243,
+          243,
+          243,
+          243,
+          237.031983946956,
+          237.03233029036576,
+          237.03519959359568,
+          243,
+          243,
+          243,
+          243,
+          237.0348132017239,
+          237.03233029036576,
+          237.03497085832663,
+          237.03543178232596,
+          243,
+          243,
+          243,
+          243,
+          237.03536904896626,
+          237.03519959359568,
+          237.03543178232596,
+          237.03555736201804,
+          0.01946097220801548
+        ],
+        "steps": 84,
+        "timeS": 4.199999999999993,
+        "version": "rigid-richards-boundary-volume-be-v2"
+      },
+      "version": "height-caves-connected-excavation-v7",
+      "world": {
+        "changes": [
+          {
+            "material": 0,
+            "revision": 1,
+            "x": 0,
+            "y": 14,
+            "z": 128
+          }
+        ],
+        "generatorId": "height-sea-connected-caves-v3",
+        "identity": {
+          "base": {
+            "bounds": {
+              "maxX": 2048,
+              "maxY": 64,
+              "maxZ": 2048,
+              "minX": -2048,
+              "minY": -64,
+              "minZ": -2048
+            },
+            "brickSide": 16,
+            "cave": {
+              "detail": {
+                "horizontalMetres": 11,
+                "salt": "cave-detail",
+                "verticalMetres": 7,
+                "weight": 0.22
+              },
+              "id": "global-trilinear-two-octave-cave-v1",
+              "macro": {
+                "horizontalMetres": 32,
+                "salt": "cave-macro",
+                "verticalMetres": 18,
+                "weight": 0.78
+              },
+              "protectedSolidLayers": 3,
+              "sampleNamespace": "height-sea-cave-density-v2",
+              "voidThreshold": 0.42
+            },
+            "codecSchema": 2,
+            "features": {
+              "cacheCapRegions": 16,
+              "candidateJitterCells": 20,
+              "chamberRadiiMetres": [
+                3.8,
+                2.4,
+                3.4
+              ],
+              "dryMarginLevels": 3,
+              "id": "pit-gallery-capsules-v1",
+              "points": [
+                [
+                  0,
+                  2,
+                  0
+                ],
+                [
+                  0,
+                  -5,
+                  0
+                ],
+                [
+                  8,
+                  -10,
+                  6
+                ],
+                [
+                  20,
+                  -18,
+                  10
+                ]
+              ],
+              "radiusMetres": 1.35,
+              "regionMetres": 128,
+              "sampling": "physical-voxel-centres"
+            },
+            "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+            "heightSeed": "hive-world-lab-seed-20260907",
+            "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+            "residentBrickCap": 8,
+            "units": {
+              "horizontalMetres": 1,
+              "verticalMetres": 0.54,
+              "voxelsPerStorey": 4
+            },
+            "voxelRecipe": "height-sea-connected-caves-v3"
+          },
+          "spaceId": "surface",
+          "worldId": "one-generated-soil-excavation"
+        },
+        "layout": {
+          "bounds": {
+            "maxX": 2048,
+            "maxY": 64,
+            "maxZ": 2048,
+            "minX": -2048,
+            "minY": -64,
+            "minZ": -2048
+          },
+          "brickSide": 16,
+          "materialIds": [
+            0,
+            1,
+            2
+          ]
+        },
+        "revision": 1,
+        "schema": 1
+      }
+    },
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "sites": [],
+    "jobs": [
+      {
+        "id": "job-2",
+        "kind": "dig",
+        "voxel": [
+          1,
+          14,
+          128
+        ],
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ordered",
+        "routine": false
+      }
+    ],
+    "workDirty": true,
+    "felled": 0,
+    "finishedJobs": 1,
+    "harvestedHerbs": 0,
+    "commands": [
+      {
+        "party": "home",
+        "kind": "recruit",
+        "actor": "sedge",
+        "tick": 0
+      },
+      {
+        "party": "home",
+        "kind": "draft",
+        "actor": "sedge",
+        "tick": 0
+      },
+      {
+        "party": "home",
+        "kind": "go",
+        "actor": "sedge",
+        "target": {
+          "x": 11,
+          "z": 13,
+          "level": 0
+        },
+        "tick": 0
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "dig",
+        "voxel": [
+          0,
+          14,
+          128
+        ],
+        "tick": 28
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "dig",
+        "voxel": [
+          1,
+          14,
+          128
+        ],
+        "tick": 84
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Soil is piled beside the hole."
+  },
+  "selection": {
+    "selectedIds": [],
+    "fieldWater": {
+      "kind": "field-water",
+      "binding": "goblin-water-1kg-per-unit-v1",
+      "nodeId": "reservoir:column-p0-p128",
+      "x": 7,
+      "z": 9,
+      "level": 0,
+      "litres": 0.01946097220801548,
+      "wholeMeasures": 0,
+      "litresPerMeasure": 1,
+      "hasDrawingRim": false
+    },
+    "inspectedTarget": {
+      "kind": "field-water",
+      "reference": {
+        "binding": "goblin-water-1kg-per-unit-v1",
+        "nodeId": "reservoir:column-p0-p128"
+      },
+      "point": {
+        "x": 576,
+        "y": 532
+      }
+    },
+    "tree": null,
+    "herb": null,
+    "lot": null,
+    "source": null,
+    "site": null,
+    "context": {
+      "x": 576,
+      "y": 532
+    },
+    "designationTargetIds": [],
+    "cutaway": true,
+    "debugPicking": false,
+    "panMode": false,
+    "direction": 0,
+    "level": 0,
+    "tool": null,
+    "phase": "idle",
+    "gesture": null,
+    "hoverCell": null
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "base": "http://127.0.0.1:5198/",
+  "fixture": "public Sedge parking, earned [0,14,128] dig, exposed hollow inspection and paused interaction guards",
+  "runtimePin": "210b85d722e4d074eeff34d3653d109882c02655",
+  "errors": [],
+  "consoleErrors": [],
+  "failedRequests": [],
+  "moduleResponses": [],
+  "diagnosticsLimit": {
+    "entriesPerKind": 20,
+    "textChars": 2048,
+    "readTimeoutMs": 2000,
+    "startupTextChars": 4096
+  },
+  "checks": [
+    "public Recruit/Draft/Go parks Sedge clear of the hollow without changing art or direct state",
+    "visible paused input admits exact generated voxel without physical advancement",
+    "actual pawn completion yields one soil unit and finite wet export with joined clock",
+    "earned hollow click selects exact node and displays real stock/whole measures without advancing time",
+    "close removes the card; moved box gesture does not become field inspection",
+    "armed Dig keeps its actual paused order path; rightclick disarms; exact hollow can be inspected again without another physical cut"
+  ],
+  "browserClosed": true,
+  "startup": {
+    "targetMs": 60000,
+    "functionalGuardMs": 90000,
+    "observedReadyMs": 57516.30000001192,
+    "targetMet": true
+  },
+  "waterObservation": {
+    "litres": 0.01946097220801548,
+    "wholeMeasures": 0,
+    "observedStock": "fractional",
+    "floorHeight": -0.54,
+    "hollow": {
+      "x": 576,
+      "y": 532
+    },
+    "reference": {
+      "binding": "goblin-water-1kg-per-unit-v1",
+      "nodeId": "reservoir:column-p0-p128"
+    }
+  },
+  "failureSelection": {
+    "selection": {
+      "selectedIds": [],
+      "fieldWater": null,
+      "inspectedTarget": null,
+      "tree": null,
+      "herb": null,
+      "lot": null,
+      "source": null,
+      "site": null,
+      "context": null,
+      "designationTargetIds": [],
+      "cutaway": true,
+      "debugPicking": false,
+      "panMode": false,
+      "direction": 0,
+      "level": 0,
+      "tool": null,
+      "phase": "idle",
+      "gesture": null,
+      "hoverCell": null
+    },
+    "tick": 84
+  },
+  "primaryError": {
+    "name": "TimeoutError",
+    "message": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: 'Field water details', exact: true }) to be visible\u001b[22m\n"
+  }
+}

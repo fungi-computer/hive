@@ -1,0 +1,24 @@
+{
+  "base": "http://127.0.0.1:5198/",
+  "fixture": "initial startup, earned [0,14,128] dig, exact hollow inspection and paused interaction guards",
+  "runtimePin": "210b85d722e4d074eeff34d3653d109882c02655",
+  "errors": [],
+  "consoleErrors": [],
+  "failedRequests": [],
+  "moduleResponses": [],
+  "diagnosticsLimit": {
+    "entriesPerKind": 20,
+    "textChars": 2048,
+    "readTimeoutMs": 2000,
+    "startupTextChars": 4096
+  },
+  "checks": [
+    "visible paused input admits exact generated voxel without physical advancement",
+    "actual pawn completion yields one soil unit and finite wet export with joined clock"
+  ],
+  "browserClosed": true,
+  "primaryError": {
+    "name": "TimeoutError",
+    "message": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: 'Field water details', exact: true }) to be visible\u001b[22m\n"
+  }
+}
