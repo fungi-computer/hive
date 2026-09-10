@@ -42,12 +42,13 @@ paths and protects `bakeTerrainSlice`; its authored regressions and another expo
 have not run. Preserve the exact old packet and failure. Any successor uses a new
 reviewed packet and fresh shared execution window, not the withdrawn release.
 
-Root owns the coupled game/environment/material/save integration, art acceptance
-and execution. Ampere owns only the isolated actual air state/binding component;
-Hume's terrain and static-manifest corrections are pinned, and Meitner performs
-independent source reads. No fresh simulation-capacity or startup-speed claim is
-qualified yet. The next public evidence must be the actual combined game rather
-than another numerical-room demonstration.
+Root owns coupled game/environment/material/save integration, art acceptance and
+execution. At source pin `0501ce4`, Hume's water-view correction is integrated;
+he next prepares only the stopped successor art-export packet in
+`static-art-authoring-v2`. Ampere owns the actual Clearing air presentation in
+`clearing-air-view`. Meitner independently reads Root's paid-material/clock/save
+join. Their isolated worktrees preserve the same native Sessions. No fresh
+simulation-capacity, raster or startup-speed claim is qualified yet.
 
 **Latest source checkpoint:** `7799b27` joins exact soil/stone removal records,
 whole-clearing water and material balance through completion and current saves;
@@ -62,14 +63,30 @@ or promise that a sealed pocket will relax. Exact vacuum removal is permitted;
 any positive trapped gas still requires a real route. All of these newest laws
 are authored but unrun; formatting/syntax/source review is not qualification.
 
-Hume is completing fixed-occupant support and actual surface-water inspection in
-`field-voxel-consumer`. Ampere next owns only paid emission obligations in
-`paid-atmosphere`, using the existing transformation receipt and finite-release
-owner. Root owns their actual brewing/clock/save/receiver join and final source
-integration. The current clock supplies no paid smoke yet. The old water-render
-caller and prepared-art bank also remain to join before the playable candidate.
-Meitner independently reviews these source boundaries. No new run or deployment
-is implied by these checkpoints; the one u4684 static export remains closed.
+**Current joined source, still unqualified:** `efa141f` connects actual brewing
+payment, explicit waiting, the existing game clock and schema-24 air/release saves.
+The material candidate and finite emission obligation publish together; a flooded
+hearth waits without consuming ingredients or losing the job. Geometry and vessel
+changes retain still-owed source cells. `67c94d9`/`0501ce4` bring the shared finite
+release endpoint query, integer progress and admission that reserves final cursor
+wire size. These are source laws and authored tests, not passed game/DO evidence.
+The completed-receiver module law does not prove whole-game settled station
+teardown, whose existing material references still require a separate caller join.
+
+`e261600` through `fa0b749` replace the retired one-column water view with visible
+physical surfaces, actual terrain masks, body ordering and original structure
+raster composition. The slice camera fits high/deep geometry without changing its
+screen projection. Root read the source corrections; no new pixels were rendered.
+Per-cell bake cost is unmeasured, tinted unfinished plans retain ordinary ordering,
+and the preexisting roof/actor whole-sprite overlap remains explicit. Paid flame
+profiles read saved release facts, but the new original art bank is still absent.
+Hume's successor packet is preparation only and needs its own fresh execution
+window. The spent fa8025/u4684 invocation must never be repeated from an old relay.
+
+Next concrete qualification must cover this combined source, then the real game
+consumer once its prepared bank exists. Reuse prior evidence for unchanged work;
+no old numerical/browser matrix, editor proof or capacity claim follows from these
+commits. The hosted game and the original u4684 failure/cleanup remain unchanged.
 
 **Latest delivery direction, Levi September 9:** land coherent accepted work in
 our playable demo now. This release wave supersedes the earlier preference for
