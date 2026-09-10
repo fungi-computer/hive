@@ -30,7 +30,7 @@ Reserved physical components are registered by the kernel, never game-writable:
 | `hive.position` | x, y, z, facing (finite numbers) |
 | `hive.body` | speed (positive number) |
 | `hive.container` | capacity (nonnegative integer units) |
-| `hive.lot` | kind (string), quantity (positive integer), container (entity) |
+| `hive.lot` | kind (string), quantity (nonnegative integer), container (entity) |
 | `hive.destination` | x, y, z, facing (finite numbers; produced by move) |
 | `hive.obstacle` | occupied (boolean; blocks its voxel) |
 | `hive.visual` | sprite, label (strings, initialized by content) |
@@ -47,6 +47,8 @@ Movement sets intent and advances by speed/time over a bounded grid path; it
 does not teleport. Transfers require current ownership, capacity and contact;
 whole transfers retain lot ID, partial transfers conserve units and create an
 explicit remainder identity. Consumption requires the actor's own custody.
+An exhausted lot keeps its identity at zero units so saved task references stay
+valid; it cannot supply further units.
 Game-side selection stays client state. Group orders and delivery plans are
 shared SDK/game rules composed from these operations, not kernel branches on
 colony/survival/formations names. First examples use level ground; coordinates

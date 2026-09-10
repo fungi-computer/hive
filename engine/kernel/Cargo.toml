@@ -9,10 +9,12 @@ description = "Headless Bevy-backed simulation kernel for Hive"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-bevy_ecs = "0.19.1"
+bevy_ecs = { version = "=0.19.1", default-features = false, features = ["std"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 wasm-bindgen = "=0.2.128"
+pathfinding = "=4.16.0"
+glam = "=0.33.7"
 
 [profile.release]
 lto = true
