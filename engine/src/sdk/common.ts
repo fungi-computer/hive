@@ -10,7 +10,6 @@ export const Selected = component<{ active: boolean }>("hive.selected", { versio
 export const move = (entity: EntityId, destination: Vec3, facing = 0): ActionRequest => ({ kind: "move", entity, destination, facing });
 export const transfer = (lot: EntityId, from: EntityId, to: EntityId, quantity: number): ActionRequest => ({ kind: "transfer", lot, from, to, quantity });
 export const consume = (entity: EntityId, lot: EntityId, quantity: number): ActionRequest => ({ kind: "consume", entity, lot, quantity });
-export const groupOrder = (group: EntityId, destination: Vec3, facing: number): ActionRequest => ({ kind: "group-order", group, destination, facing });
 
 export interface SceneEntity { readonly id: EntityId; readonly components: Readonly<Record<string, unknown>> }
 const RESERVED = new Set(["hive.position", "hive.body", "hive.container", "hive.lot", "hive.destination", "hive.obstacle", "hive.visual"]);
