@@ -1,6 +1,11 @@
 /** Content-owned visual choices. The renderer only consumes this checked shape. */
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
-  crate: Object.freeze({ kind: "container", key: "shelf" }),
+  crate: Object.freeze({
+    kind: "static",
+    path: ["buildings", "shelf", "finished", 0],
+    facing: false,
+    anchor: "propAnchor",
+  }),
   "goblin.worker": Object.freeze({ kind: "figure", key: "goblin" }),
   "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
   "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin" }),
@@ -8,9 +13,45 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
 });
 
 export const PIRATE_VISUAL_BINDINGS = Object.freeze({
-  "pirate.ship": Object.freeze({ kind: "vehicle", key: "ship" }),
+  "pirate.ship": Object.freeze({
+    kind: "static",
+    path: ["vehicles", "ship"],
+    facing: true,
+    anchor: "vehicleAnchor",
+  }),
   "pirate.crew": Object.freeze({ kind: "figure", key: "goblin" }),
-  "pirate.chest": Object.freeze({ kind: "container", key: "shelf" }),
-  "pirate.hold": Object.freeze({ kind: "container", key: "shelf" }),
-  "pirate.deck-obstacle": Object.freeze({ kind: "container", key: "shelf" }),
+  "pirate.chest": Object.freeze({
+    kind: "static",
+    path: ["buildings", "shelf", "finished", 0],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "pirate.hold": Object.freeze({
+    kind: "static",
+    path: ["buildings", "shelf", "finished", 0],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "pirate.deck-obstacle": Object.freeze({
+    kind: "static",
+    path: ["buildings", "shelf", "finished", 0],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+});
+
+/** Formation consumers may opt into these authored static visuals later. */
+export const CANNON_VISUAL_BINDINGS = Object.freeze({
+  "formation.cannon": Object.freeze({
+    kind: "static",
+    path: ["props", "cannon"],
+    facing: true,
+    anchor: "propAnchor",
+  }),
+  "formation.cannonball": Object.freeze({
+    kind: "static",
+    path: ["projectiles", "cannonball"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
 });
