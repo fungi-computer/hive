@@ -17,7 +17,9 @@ runtime component definitions and relationship queries are decisive.
 The larger proposed split is TypeScript for host authority, public capabilities,
 game definitions and presentation; Rust for coherent simulation mechanisms that
 own and repeatedly process their data. Keep the original Three/bake/Pixi asset
-pipeline and the current libcolony optimizer. Do not adopt a JavaScript ECS now
+pipeline. The current libcolony optimizer remains authoritative until an accepted
+replacement; Levi's subsequent native-first proposal is assessed below. Do not
+adopt a JavaScript ECS now
 merely as a temporary step before an already-intended Rust migration.
 
 This updates the older Excalibur recommendation from “borrow mechanisms” to a
@@ -157,8 +159,9 @@ The proposed ownership boundary is:
 
 This is a proposed eventual split, not permission to maintain duplicate JS and
 Rust physical records. A migrated mechanism has one authoritative implementation
-and current callers switch together. Keep libcolony as the actual optimizer;
-moving everything does not mean rewriting an already-useful dependency.
+and current callers switch together. libcolony currently owns joint assignment;
+the native-first proposal below can replace that implementation while preserving
+the existing matching and game-policy responsibilities.
 
 New content using supported behavior remains data. An entirely new fast
 simulation primitive may require compiled Rust code. JS or Shiitake controllers
@@ -209,7 +212,7 @@ Proposed split:
 
 - Rust owns selected reusable high-volume operations and their compact state.
   Dense terrain/water fields use chunk arrays; an ECS is not a requirement for
-  every voxel. Existing libcolony remains its own compiled optimizer.
+  every voxel. The assignment optimizer remains an explicit owned operation.
 - TypeScript game systems read bounded projections or batches and submit typed
   operations at declared execution points. Authored game state joins the same
   candidate revision and durable commit as the engine state. Opaque game data is
@@ -245,6 +248,178 @@ the cancelled browser witness or create a separate public math lab. Assess the
 benefit to the whole tick before expanding to materials, navigation and work.
 This proposal does not authorize starting those runs or keeping a permanent
 parallel implementation.
+
+## Native-first proposal: libcolony size and API sketches
+
+Levi proposes starting a Rust migration with the existing C code, including
+libcolony, and asks for pseudocode. Personally checked source at `4eedaac`:
+
+| Current source | Physical lines | Responsibility |
+| --- | ---: | --- |
+| `vendor/libcolony/colony.h` | 392 | C++ cost function, optional assignment limiter and Hungarian matching algorithm; includes extensive documentation. |
+| `vendor/libcolony/colony_js.cc` | 31 | Embind exports. |
+| `vendor/libcolony/colony_js_post.js` | 63 | JS objects/string IDs to native assignments and back. |
+| `src/colony.js` + `src/engine/colony/loader.ts` | 46 | Browser and headless optimizer loading/identity. |
+| `src/matching.ts` | 34 | Explicit forbidden pairs and maximum-cardinality/minimum-cost intent. |
+| `scripts/build-colony.sh` | 15 | Pinned optimized Emscripten build. |
+
+Thus the shipped native source is **423 lines of C++**, with **158 lines** of
+immediate JS/TS/build integration. This excludes generated glue, binaries and
+tests. libcolony is preserved MIT upstream source by Marek Rogalski, not an
+original Hive C simulation. Provenance is in
+`public/vendor/libcolony/PROVENANCE.md`; our retained build changes its memory
+configuration. Current browser build uses `-O3`, 16 MiB initial memory, a 1 MiB
+stack and disabled memory growth. No Rust memory reduction is yet measured.
+
+The other C/C++ files found are in ignored environmental research, including
+Basilisk and SPlisHSPlasH checkouts, generated build sources, frozen copies and
+small authored callers. For concrete examples, the basin caller is 105 lines,
+the SPH reference caller 155, the sealed-heat caller 187 and a coarse-solve
+algebra helper 176. These four samples total 623 lines; they are **not an
+inventory total** for the research archives. They do not form a shipped native
+water/gas subsystem. In particular,
+`.botanical/research/environment-round3-20260908/gas-heat/basilisk-sealed-heat-v1/ADOPTION-DECISION.md`
+explicitly rejects porting that expensive thermal solver caller into gameplay.
+Current playable environment mechanisms are JS/TS. Preserve those experiments
+as evidence; their existence is not a requirement to migrate them.
+
+**Judgment:** assignment is a useful small first Rust integration because it has
+a real game consumer, a narrow input/output and existing laws. It is not the
+best standalone evidence of a large performance gain: the current algorithm
+already runs as optimized WASM. Root has not attributed the remaining lag to
+Hungarian matching. In `src/jobs.ts`, work is already dirty-gated; permissions,
+candidate generation, pathfinding and settlement surround the native call.
+Replacing a cubic matching algorithm with the same algorithm in Rust does not
+change its asymptotic growth. Avoid multiplying the work by matching an entire
+large world at once; any future partition must preserve contested resources and
+the selected joint-assignment objective within its actual scope.
+
+One concrete improvement to evaluate in the port is the language boundary:
+`jobs.ts` calls native `compute_cost` for each offered edge, the JS wrapper builds
+string-to-integer dictionaries, pushes individual Embind objects, reads results
+individually, and `matching.ts` materializes forbidden matrix entries in JS.
+Use one bounded numeric batch and explicit legal-edge semantics instead. That
+reduces crossing/packing work in principle; it is not a measured speedup.
+
+### Sketch A: small Rust module, same game ownership
+
+All identifiers below are proposed pseudocode, not exported APIs. Public IDs
+remain opaque/stable; indices are private batch-local handles. Validate bounded
+counts, finite nonnegative times/costs, `0 <= retryRisk < 1`, positive priority,
+indices and duplicate edges before the solver allocates. Stable input ordering
+and a documented equal-cost rule are required; Rust iteration order is not a
+game policy.
+
+```rust
+struct WorkOffer {
+    actor_index: u32,
+    task_index: u32,
+    travel_ticks: f64,
+    work_ticks: f64,
+    retry_risk: f64,
+    priority: f64,
+}
+
+fn match_work(batch: &OfferBatch, scratch: &mut MatchScratch)
+    -> Result<MatchBatch, InputError>
+{
+    validate_batch(batch)?;
+    scratch.prepare_costs(batch, |offer| {
+        (offer.travel_ticks + offer.work_ticks)
+            / (1.0 - offer.retry_risk) / offer.priority
+    });
+    // Missing edges are forbidden. Maximize legal matches first,
+    // then minimize total cost; resolve equal optima deterministically.
+    solve_joint_matching(scratch)
+}
+```
+
+```ts
+// Runs at the existing eligible-work reconsideration point.
+// Changed membership alone does not prove permission or reachability.
+function reconsiderWork(candidate, kernel) {
+  const offers = prepareEligibleOffers(candidate);
+  // Preserve personal orders, care precedence and cargo continuation.
+  const batch = packOffersInStableOrder(offers);
+  const selected = kernel.matchWork(batch.columns); // One bulk call.
+  const proposals = batch.resolve(selected);
+
+  // Matching chooses pairs; existing owners admit claims and activity.
+  // Two different jobs may still compete for the same physical lot.
+  return settleThroughWorkAndMaterialOwners(candidate, proposals);
+}
+```
+
+A private scratch workspace can be reused. It contains no durable jobs or stock;
+dropping it on eviction loses no acknowledged work. The solver cannot directly
+move a body, reserve an item or finish a job. That stays in the one candidate
+settlement path. The early port does not require adopting an ECS or rewriting
+the 1,387-line `jobs.ts` wholesale. Once accepted, replace current callers and
+remove obsolete native/glue/build paths; do not introduce a fallback optimizer.
+
+### Sketch B: later composition, with TypeScript game behavior
+
+```ts
+// Proposed authoring shape. These are game functions, not Rust subclasses.
+const goblin = defineGame({
+  data: [goblinMaterials, recipes, species, needs],
+  systems: [hospitalityRules, cropRules, ordinaryStoryteller],
+});
+
+function hospitalityRules(context) {
+  const requests = context.changes.read("hospitality.serviceRequests");
+  return requests.map(request => ({
+    type: "work.request",
+    process: "serve-drink",
+    beneficiary: request.actor,
+  }));
+}
+```
+
+The engine composition validates operation/schema dependencies and explicit
+system order. The game owns the versioned service-request data and rule. The
+shared work/process/material owners validate and execute requests using actual
+capacity, resources, eligibility and finite quantities. TS-authored state and
+engine physical changes commit in the same region revision. Low-frequency TS
+rules do not imply per-cell callbacks inside water transport.
+
+The later Rust core may compose a maintained ECS for actors/items with separate
+chunk arrays for water/terrain and a room/connectivity graph for air. The initial
+assignment port proves neither that ECS choice nor this larger state boundary.
+
+### Sketch C: existing durable host keeps the commit
+
+```ts
+// Conceptual sequence inside the existing Region command owner.
+// Host authentication, input binding, revision checks and replay lookup
+// occur before new execution. This is not a second scheduler or database.
+owner.transactionSync(() => {
+  const candidate = decodeDetachedCommittedState();
+  const outcome = program.execute(candidate, checkedCommand);
+  // program may call Rust matching synchronously on this candidate.
+  if (outcome.status === "applied") {
+    persistStateReceiptAndEvents(candidate, outcome);
+  } else {
+    persistRejectionReceipt(outcome); // Discard the candidate.
+  }
+});
+// Only committed results become client/controller observations.
+```
+
+This abbreviates rejection/replay/error handling already owned by
+`src/engine/region/index.ts`. No external I/O occurs in game callbacks. The
+stateless matcher has no RAM state to roll back. A later persistent Rust world
+requires detached preparation or explicit invalidation/reload on failed commit;
+the existing SQLite transaction does not rewind a mutated WASM heap. Both a
+browser simulation worker and a DO can use the same compiled algorithm. Their
+authority/storage hosts remain different, and an online browser never settles
+server-owned physical effects independently.
+
+The proposed first outcome is the matcher plus bulk TS caller, existing matching/
+personal-order/cargo laws, matched total-call cost and memory, and browser/DO
+loading through existing host contracts. It is a bounded migration proposal,
+not a started build, new browser test, or promise to fix water/gas lag. Numerical
+and renderer performance work remains separately necessary.
 
 ## DO constraints survive the language choice
 
