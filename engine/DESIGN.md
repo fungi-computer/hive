@@ -142,6 +142,31 @@ has to be ported. Current gameplay wants much simpler environmental behavior.
 
 ## 3. The three public examples
 
+### Fourth consumer amendment — pirate ship, September 10
+
+Levi explicitly adds a fourth playable pirate game to test engine generality.
+Keep the original three outcomes intact and stage this after their current
+coupled work; this is additional required work, not a replacement or a claim
+that the original foundation already includes sailing.
+
+The first pirate slice steers a floating ship and lets selected crew walk on its
+deck while it moves. Finite cargo uses the same material/container owner. Share
+the client, controls and original asset pipeline, and link the fourth page from
+the same site. A simple sea surface is sufficient; no ocean-fluid solver is
+required for this interaction. Cannons follow working ship/deck movement.
+
+The real engine boundary is a body supported by a moving reference frame.
+Canonical deck-local pose plus a stable support reference must produce world
+pose for rendering, picking and spatial operations through one geometry owner.
+Never save two independent positions or animate passengers along cosmetically.
+Deck navigation remains constrained to its support geometry, even as the ship
+translates or turns. Define boarding/leaving admission explicitly before adding
+either action; first-slice crew may start aboard. Reject missing/cyclic support
+references and preserve identity, cargo custody and local pose on current-format
+save/reload and the existing host transaction. No ship-specific branch belongs
+in shared movement, rendering or persistence. Actual native/TS callers must be
+reviewed before choosing the representation or changing the kernel.
+
 **Latest presentation preference (Levi, September 10):** aim for one playable
 page switching among three independent DO-hosted example worlds. Reuse one DO
 class and simulation implementation; do not build three servers. Start with tabs
