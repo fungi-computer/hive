@@ -1,4 +1,11 @@
 const INPUTS = new Set(["input", "textarea", "select", "button", "a", "[contenteditable='true']"]);
+import { createMachine } from "xstate";
+
+export const pointerGestureMachine = createMachine({
+  id: "hive-pointer-gesture",
+  initial: "idle",
+  states: { idle: { on: { BEGIN: "dragging" } }, dragging: { on: { END: "idle", CANCEL: "idle" } } },
+});
 
 export function isTypingTarget(target) {
   return !!target?.closest?.([...INPUTS].join(","));
@@ -12,4 +19,3 @@ export function selectionFromSubjects(subjects, box, additive = false, previous 
   }
   return [...selected];
 }
-

@@ -1,6 +1,7 @@
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import { loadStaticArtPack } from "../../../src/art/static-pack.js";
 import { isTypingTarget, selectionFromSubjects } from "./controls.js";
+import { createKeys } from "../../../src/keys.js";
 
 function findTexture(value, wanted, seen = new Set()) {
   if (!value || typeof value !== "object" || seen.has(value)) return null;
@@ -14,16 +15,11 @@ function findTexture(value, wanted, seen = new Set()) {
   return null;
 }
 
-function makeSubjects(mode) {
-  const names = mode === "survival" ? ["Rook"] : mode === "formations" ? ["North", "Moss", "Pip", "Vale"] : ["Moss", "Pip", "Vale", "Rook"];
-  return names.map((name, index) => ({ id: `${mode}-${index + 1}`, name, x: 250 + index * 72, y: 210 + (index % 2) * 38, screen: { x: 0, y: 0 } }));
-}
-
 export function createHiveClient({ root, mode, title, subtitle, source, runtime = null }) {
-  const state = { paused: false, selectedIds: [], hoverId: null, dragging: null, disposed: false, subjects: makeSubjects(mode), message: runtime ? "Connecting to the world…" : "Runtime pending — this page is a client shell." };
+  const state = { paused: false, selectedIds: [], hoverId: null, dragging: null, disposed: false, subjects: [], message: runtime ? "Connecting to the world…" : "Runtime pending — waiting for the browser Worker." };
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
-  const emit = (action) => { runtime?.send?.(action); state.message = `Admitted action: ${action.kind}`; notify(); };
+  const emit = (action) => { runtime?.send?.(action); notify(); };
   const canvasHost = document.createElement("div"); canvasHost.className = "hive-canvas";
   const hud = document.createElement("aside"); hud.className = "hive-hud";
   root.replaceChildren(canvasHost, hud);
@@ -61,12 +57,15 @@ export function createHiveClient({ root, mode, title, subtitle, source, runtime 
   function point(event) { const rect = app.canvas.getBoundingClientRect(); return { x: event.clientX - rect.left, y: event.clientY - rect.top }; }
   function pointerDown(event) { if (isTypingTarget(event.target) || event.button !== 0) return; state.dragging = { start: point(event), current: point(event), additive: event.shiftKey }; app.canvas.setPointerCapture?.(event.pointerId); }
   function pointerMove(event) { if (!state.dragging) return; state.dragging.current = point(event); }
-  function pointerUp(event) { if (!state.dragging) return; const drag = state.dragging; state.dragging = null; const end = point(event); const box = { left: Math.min(drag.start.x, end.x), right: Math.max(drag.start.x, end.x), top: Math.min(drag.start.y, end.y), bottom: Math.max(drag.start.y, end.y) }; const hit = selectionFromSubjects(state.subjects, box, drag.additive); if (Math.abs(end.x - drag.start.x) < 6 && Math.abs(end.y - drag.start.y) < 6) state.selectedIds = drag.additive ? [...new Set([...state.selectedIds, ...hit])] : hit; else state.selectedIds = drag.additive ? [...new Set([...state.selectedIds, ...hit])] : hit; emit({ kind: "select", ids: state.selectedIds }); renderHud(); draw(); }
+  function pointerUp(event) { if (!state.dragging) return; const drag = state.dragging; state.dragging = null; const end = point(event); const box = { left: Math.min(drag.start.x, end.x), right: Math.max(drag.start.x, end.x), top: Math.min(drag.start.y, end.y), bottom: Math.max(drag.start.y, end.y) }; const hit = selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds); state.selectedIds = hit; emit({ kind: "select", entities: state.selectedIds }); renderHud(); draw(); }
+  function contextMenu(event) { event.preventDefault(); const at = point(event); emit({ kind: mode === "formations" ? "group-order" : "move", entities: state.selectedIds, destination: { x: at.x, y: 0, z: at.y }, facing: 0 }); }
   function keydown(event) { if (isTypingTarget(event.target)) return; const key = event.key.toLowerCase(); if (key === " " || key === "spacebar") { event.preventDefault(); state.paused = !state.paused; emit({ kind: "pause" }); renderHud(); } else if (mode === "survival" && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) emit({ kind: "move", direction: key }); else if (key === "escape") { state.dragging = null; state.selectedIds = []; renderHud(); draw(); } }
   async function start() {
     await app.init({ resizeTo: canvasHost, backgroundAlpha: 0, antialias: false, resolution: 1 }); canvasHost.appendChild(app.canvas); app.stage.addChild(overlay); art = await loadStaticArtPack(); draw(); renderHud();
-    app.canvas.addEventListener("pointerdown", pointerDown); app.canvas.addEventListener("pointermove", pointerMove); app.canvas.addEventListener("pointerup", pointerUp); app.canvas.addEventListener("pointercancel", () => { state.dragging = null; }); window.addEventListener("keydown", keydown); resizeObserver = new ResizeObserver(draw); resizeObserver.observe(canvasHost);
+    app.canvas.addEventListener("pointerdown", pointerDown); app.canvas.addEventListener("pointermove", pointerMove); app.canvas.addEventListener("pointerup", pointerUp); app.canvas.addEventListener("contextmenu", contextMenu); app.canvas.addEventListener("pointercancel", () => { state.dragging = null; }); window.addEventListener("keydown", keydown); resizeObserver = new ResizeObserver(draw); resizeObserver.observe(canvasHost);
+    createKeys(root, () => state, emit, renderHud);
+    runtime?.subscribe?.((event) => { if (event.type === "frame") { state.subjects = event.facts.filter((fact) => fact.pose?.position).map((fact) => ({ id: fact.id, name: fact.label || fact.id, x: fact.pose.position.x * 36 + 280, y: fact.pose.position.z * 24 + 180, visual: fact.visual, screen: { x: 0, y: 0 } })); draw(); renderHud(); } if (event.type === "error") { state.message = event.message; renderHud(); } });
   }
   start().catch((error) => { state.message = `Art unavailable: ${error.message}`; renderHud(); });
-  return { state, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }, dispose() { if (state.disposed) return; state.disposed = true; resizeObserver?.disconnect(); window.removeEventListener("keydown", keydown); app.canvas?.removeEventListener("pointerdown", pointerDown); app.canvas?.removeEventListener("pointermove", pointerMove); app.canvas?.removeEventListener("pointerup", pointerUp); art?.dispose?.(); app.destroy(true, { children: true, texture: false, textureSource: false }); }, send: emit };
+  return { state, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }, dispose() { if (state.disposed) return; state.disposed = true; resizeObserver?.disconnect(); window.removeEventListener("keydown", keydown); app.canvas?.removeEventListener("pointerdown", pointerDown); app.canvas?.removeEventListener("pointermove", pointerMove); app.canvas?.removeEventListener("pointerup", pointerUp); app.canvas?.removeEventListener("contextmenu", contextMenu); art?.dispose?.(); overlay.removeChildren().forEach((child) => child.destroy?.({ children: true })); app.destroy(true, { children: true, texture: false, textureSource: false }); }, send: emit };
 }
