@@ -7,8 +7,8 @@ import { GameSession } from "./session";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition } from "../games/survival";
 import { formationsPack } from "../games/formations";
-import { MaterialLot, Position } from "../sdk/common";
-import { entity, query } from "../sdk/authoring";
+import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
+import { component, entity, query, system } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -87,5 +87,65 @@ test("formation actors move independently through the same kernel", () => {
     );
   } finally {
     port.dispose();
+  }
+});
+
+test("new TypeScript component and rule persist without rebuilding the kernel", () => {
+  const Ripeness = component<{ amount: number; ripe: boolean }>(
+    "orchard.ripeness",
+    {
+      version: 1,
+      fields: { amount: "number", ripe: "boolean" },
+    },
+  );
+  const fruit = entity("orchard.fruit");
+  const ripen = system({
+    id: "orchard.ripen",
+    version: 1,
+    reads: [Ripeness],
+    writes: [Ripeness],
+    run(ctx) {
+      for (const row of ctx.query(query(Ripeness))) {
+        const amount = row.get(Ripeness).amount + ctx.clock.delta;
+        ctx.write(Ripeness, row.id, { amount, ripe: amount >= 1 });
+      }
+    },
+  });
+  const pack = {
+    id: "orchard",
+    version: 1,
+    components: [Ripeness],
+    systems: [ripen],
+    definition: encodeDefinition(
+      "orchard",
+      [Ripeness],
+      [
+        {
+          id: fruit,
+          components: { "orchard.ripeness": { amount: 0, ripe: false } },
+        },
+      ],
+    ),
+  };
+  const first = wasmKernelPort(new WasmKernel());
+  const second = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port: first, pack });
+    session.start();
+    session.step(0.5);
+    const restored = new GameSession({ port: second, pack });
+    restored.restore(session.save());
+    restored.step(0.5);
+    assert.deepEqual(restored.query(query(Ripeness))[0].get(Ripeness), {
+      amount: 1,
+      ripe: true,
+    });
+    assert.deepEqual(session.query(query(Ripeness))[0].get(Ripeness), {
+      amount: 0.5,
+      ripe: false,
+    });
+  } finally {
+    first.dispose();
+    second.dispose();
   }
 });
