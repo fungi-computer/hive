@@ -4,10 +4,30 @@ import { createClearing } from "./clearing.ts";
 import { createNavigationSpaces } from "./navigation-space.ts";
 import { fieldWaterSources } from "./field-water-source.ts";
 import { clearingAirPresentation } from "./air-presentation.ts";
-import { createHeldFieldFixture } from "../tools/engine-do/goblin-field-fixture.ts";
-import { selectContainerPortions } from "./materials.ts";
-import { returnFieldWater } from "./field-water.ts";
 import { FIELD_WATER } from "./field-water-source.ts";
+import { excavateTerrain, terrainEnvironment } from "./terrain.ts";
+import {
+  prepareEnvironmentGeometry,
+  prepareEnvironmentWaterTransfer,
+} from "./world-presets/goblin-environment/environment-state.ts";
+
+function cut(state, at) {
+  const terrain = excavateTerrain(state.terrain, at);
+  const result = prepareEnvironmentGeometry(
+    {
+      water: state.water,
+      air: state.air,
+      atmosphereReleases: state.atmosphereReleases,
+    },
+    { terrain: terrainEnvironment(state.terrain), sites: state.sites },
+    { terrain: terrainEnvironment(terrain), sites: state.sites },
+  );
+  assert.equal(result.status, "applied");
+  state.terrain = terrain;
+  state.water = result.state.water;
+  state.air = result.state.air;
+  state.atmosphereReleases = result.state.atmosphereReleases;
+}
 
 test("clearing query projections reuse unchanged owner inputs", () => {
   const state = createClearing();
@@ -45,7 +65,25 @@ test("mutable site and actor arrays invalidate dependent projections", () => {
 
 test("field source access follows a real fixed rim obstacle", () => {
   const state = createClearing();
-  const source = fieldWaterSources(state)[0];
+  cut(state, [0, 14, 128]);
+  cut(state, [0, 13, 128]);
+  cut(state, [1, 14, 128]);
+  const paired = prepareEnvironmentWaterTransfer(
+    {
+      water: state.water,
+      air: state.air,
+      atmosphereReleases: state.atmosphereReleases,
+    },
+    { terrain: terrainEnvironment(state.terrain), sites: state.sites },
+    { id: "cell:0,15,128", direction: "deposit", massKg: 2.25 },
+  );
+  assert.equal(paired.status, "applied");
+  state.water = paired.state.water;
+  state.air = paired.state.air;
+  state.atmosphereReleases = paired.state.atmosphereReleases;
+  const source = fieldWaterSources(state).find(
+    (candidate) => candidate.nodeId === "cell:0,15,128",
+  );
   assert(source, "clearing fixture must expose a finite water rim");
   const blockers = source.accessCells.map((rim, index) => ({
     ...state.trees[0],
@@ -67,25 +105,39 @@ test("field source access follows a real fixed rim obstacle", () => {
 });
 
 test("field source facts invalidate on an admitted water stock change", () => {
-  const fixture = createHeldFieldFixture();
+  const state = createClearing();
+  cut(state, [0, 14, 128]);
+  cut(state, [0, 13, 128]);
+  cut(state, [1, 14, 128]);
+  const source = { terrain: terrainEnvironment(state.terrain), sites: state.sites };
   const reference = {
     binding: FIELD_WATER.id,
-    nodeId: "reservoir:column-p0-p128",
+    nodeId: "cell:0,15,128",
   };
-  const before = fieldWaterSources(fixture.state);
-  const returned = returnFieldWater(fixture.state, {
-    ...reference,
-    operation: fixture.operation.id,
-    quantity: 2,
-    portions: selectContainerPortions(
-      fixture.state.materials,
-      fixture.interior.id,
-      "water",
-      2,
-    ).portions,
+  const base = { water: state.water, air: state.air, atmosphereReleases: state.atmosphereReleases };
+  const deposited = prepareEnvironmentWaterTransfer(base, source, {
+    id: reference.nodeId,
+    direction: "deposit",
+    massKg: 2.25,
   });
-  assert.equal(returned.ok, true);
-  const after = fieldWaterSources(fixture.state);
+  assert.equal(deposited.status, "applied");
+  state.water = deposited.state.water;
+  state.air = deposited.state.air;
+  state.atmosphereReleases = deposited.state.atmosphereReleases;
+  const before = fieldWaterSources(state);
+  const withdrawn = prepareEnvironmentWaterTransfer(
+    { water: state.water, air: state.air, atmosphereReleases: state.atmosphereReleases },
+    source,
+    { id: reference.nodeId, direction: "withdraw", massKg: 2.25 },
+  );
+  assert.equal(withdrawn.status, "applied");
+  state.water = withdrawn.state.water;
+  state.air = withdrawn.state.air;
+  state.atmosphereReleases = withdrawn.state.atmosphereReleases;
+  const after = fieldWaterSources(state);
   assert.notStrictEqual(after, before);
-  assert(after.some((source) => source.nodeId === reference.nodeId));
+  assert.equal(
+    after.some((source) => source.nodeId === reference.nodeId),
+    false,
+  );
 });
