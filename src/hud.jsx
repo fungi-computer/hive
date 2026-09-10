@@ -70,6 +70,10 @@ import {
   submitTerrainDesignation,
   toolMachine,
 } from "./ui-actions.ts";
+import {
+  clearingAirLayer,
+  clearingAirPresentation,
+} from "./air-presentation.ts";
 
 const ACTIVITIES = {
   idle: "Waiting for work",
@@ -100,6 +104,19 @@ function materialLabel(material) {
     .split("-")
     .map((word) => word[0].toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function airLayerText(layer) {
+  if (!layer) return "No air currently visible";
+  const temperature =
+      Math.abs(layer.maxTemperatureC - layer.minTemperatureC) < 0.05
+        ? `${layer.maxTemperatureC.toFixed(1)} °C`
+        : `${layer.minTemperatureC.toFixed(1)}–${layer.maxTemperatureC.toFixed(1)} °C`,
+    smoke =
+      layer.maxSmokeMgM3 > 0 && layer.maxSmokeMgM3 < 0.01
+        ? "<0.01"
+        : layer.maxSmokeMgM3.toFixed(2);
+  return `${temperature} · smoke ${smoke} mg/m³`;
 }
 
 function actorFact(state, actor) {
@@ -488,6 +505,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     lots,
     sources,
     fieldWater: fieldInspectionFacts(state),
+    air: clearingAirPresentation(state),
     day: 1 + Math.floor((state.tick + DAY_TICKS / 3) / DAY_TICKS),
     time: `${String(Math.floor(time)).padStart(2, "0")}:${String(Math.floor((time % 1) * 60)).padStart(2, "0")}`,
     feed,
@@ -570,6 +588,7 @@ const selectionAtom = atom({
 });
 const preferencesAtom = atom({
   cutaway: true,
+  airOverlay: true,
   debugPicking: false,
   panMode: false,
   help: true,
@@ -1946,6 +1965,7 @@ function Hud({ machineSnapshot, send, portraits }) {
     tool,
     phase,
     cutaway: preferences.cutaway,
+    airOverlay: preferences.airOverlay,
     debugPicking: preferences.debugPicking,
     panMode: preferences.panMode,
     level: preferences.level,
@@ -2069,6 +2089,20 @@ function Hud({ machineSnapshot, send, portraits }) {
         >
           Pan view
         </Button>
+        <Button
+          variant={m.airOverlay ? "secondary" : "outline"}
+          size="sm"
+          aria-pressed={m.airOverlay}
+          onClick={() => send({ kind: "air-overlay" })}
+        >
+          Air
+        </Button>
+        <span
+          data-air-facts="visible-layer"
+          title={`${clearingAirLayer(facts.air, m.level)?.cells.length ?? 0} currently visible physical air cells. Air follows finished walls, roofs, openings, and water volume.`}
+        >
+          {airLayerText(clearingAirLayer(facts.air, m.level))}
+        </span>
       </div>
       {m.panel === "character" && (
         <Character model={m} send={send} portraits={portraits} />
@@ -2585,6 +2619,7 @@ export function createHud(host, art, effect) {
         }));
         setPreferences(() => ({
           cutaway: true,
+          airOverlay: true,
           debugPicking: false,
           panMode: false,
           help: true,
@@ -2606,6 +2641,12 @@ export function createHud(host, art, effect) {
         return;
       case "cutaway":
         setPreferences((value) => ({ ...value, cutaway: action.value }));
+        return;
+      case "air-overlay":
+        setPreferences((value) => ({
+          ...value,
+          airOverlay: !value.airOverlay,
+        }));
         return;
       case "debug-picking":
         setPreferences((value) => ({
@@ -2747,6 +2788,7 @@ export function createHud(host, art, effect) {
         : null,
       designationTargetIds: [...value.designationTargetIds],
       cutaway: preferences.cutaway,
+      airOverlay: preferences.airOverlay,
       debugPicking: preferences.debugPicking,
       panMode: preferences.panMode,
       direction: preferences.direction,
