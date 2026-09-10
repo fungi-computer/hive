@@ -21,7 +21,7 @@ test("selected workers receive distinct finite delivery tasks", () => {
   try {
     session.start();
     session.command("deliver", {
-      quantity: 1,
+      quantity: 2,
       entities: [entity("colony.worker.1"), entity("colony.worker.2")],
     });
     session.step(0.1);
@@ -32,6 +32,15 @@ test("selected workers receive distinct finite delivery tasks", () => {
     assert.throws(
       () => session.command("deliver", { quantity: 1, entities: [] }),
       /select at least one worker/,
+    );
+    for (let tick = 0; tick < 160; tick++) session.step(0.1);
+    const lots = session.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
+    assert.equal(lots.reduce((sum, lot) => sum + lot.quantity, 0), 6);
+    assert.equal(
+      lots
+        .filter((lot) => lot.container === "colony.guest.1")
+        .reduce((sum, lot) => sum + lot.quantity, 0),
+      4,
     );
     assert.throws(
       () => session.command("deliver", { quantity: 1, entities: ["colony.guest.1"] }),

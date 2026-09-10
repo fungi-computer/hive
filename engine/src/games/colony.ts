@@ -40,7 +40,7 @@ const colonyInitial = [
     components: {
       "hive.position": { x: 3, y: 0, z: 1, facing: 0 },
       "hive.body": { speed: 1 },
-      "hive.container": { capacity: 2 },
+      "hive.container": { capacity: 4 },
       "hive.visual": { sprite: "goblin.guest", label: "Guest" },
       "colony.guest": { hungry: true },
     },
@@ -109,30 +109,54 @@ function activeTaskFor(context: CommandContext, actor: EntityId) {
     .find((task) => task.actor === actor);
 }
 
-function deliveryWrites(context: CommandContext, input: unknown, enabled: boolean) {
+function deliveryWrites(
+  context: CommandContext,
+  input: unknown,
+  enabled: boolean,
+  preserveCurrentQuantity = false,
+) {
   const parsed = inputOf(input);
   const selected = selectedWorkers(context, input);
-  const quantity = parsed.quantity === undefined ? 1 : parsed.quantity;
-  if (enabled && quantity !== 1 && quantity !== 2)
+  const quantity = parsed.quantity;
+  if (enabled && quantity !== undefined && quantity !== 1 && quantity !== 2)
     throw new Error("delivery quantity must be one or two");
   return selected.map((worker) => {
     const active = activeTaskFor(context, worker);
     if (active?.phase === "complete") throw new Error("completed delivery cannot be restarted");
     const current = context.query(query(DeliveryControl)).find((row) => row.id === worker)?.get(DeliveryControl);
-    if (enabled && active && current && current.quantity !== quantity)
+    if (
+      enabled &&
+      active &&
+      current &&
+      quantity !== undefined &&
+      current.quantity !== quantity
+    )
       throw new Error("cannot change quantity during active delivery");
+    const nextQuantity = preserveCurrentQuantity
+      ? current?.quantity ?? 1
+      : quantity ?? 1;
     return {
       component: DeliveryControl.id,
       entity: worker,
-      value: { enabled, quantity: enabled ? quantity : current?.quantity ?? 1 },
+      value: { enabled, quantity: enabled ? nextQuantity : current?.quantity ?? 1 },
     };
   });
 }
 
+const colonyComponents = [
+  Position,
+  MaterialLot,
+  Destination,
+  Worker,
+  Guest,
+  DeliveryTask,
+  DeliveryControl,
+] as const;
+
 export const colonyPack: GamePack = {
   id: "colony",
   version: 2,
-  components: [Position, MaterialLot, Destination, Worker, Guest, DeliveryTask, DeliveryControl],
+  components: colonyComponents,
   systems: [deliverySystem],
   commands: {
     deliver: command({
@@ -148,7 +172,7 @@ export const colonyPack: GamePack = {
     resumeDelivery: command({
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
-      run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
+      run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
   },
   presentation: {
@@ -170,5 +194,5 @@ export const colonyPack: GamePack = {
       ];
     },
   },
-  definition: encodeDefinition("colony", [Position, MaterialLot, Destination, Worker, Guest, DeliveryTask, DeliveryControl], colonyInitial),
+  definition: encodeDefinition("colony", colonyComponents, colonyInitial),
 };
