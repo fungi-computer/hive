@@ -59,6 +59,10 @@ const configPath = resolve(output, "wrangler.json");
 await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
 let clientA;
 let clientB;
+const eventsA = [];
+const eventsB = [];
+let runtimeLog = "";
+let lastObservationDiagnostic;
 const port = 8789;
 const endpoint = `http://127.0.0.1:${port}`;
 let child;
@@ -83,27 +87,31 @@ async function start() {
     "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local",
     "--show-interactive-dev-session=false", "--persist-to", resolve(output, "sqlite"),
   ], { cwd: directory, env: { ...process.env, CI: "true", WRANGLER_SEND_METRICS: "false" }, detached: true, stdio: ["ignore", "pipe", "pipe"] });
-  let log = "";
-  child.stdout.on("data", (data) => { log += data; });
-  child.stderr.on("data", (data) => { log += data; });
+  runtimeLog = "";
+  child.stdout.on("data", (data) => { runtimeLog += data; });
+  child.stderr.on("data", (data) => { runtimeLog += data; });
   let exited;
   childExit = new Promise((resolveExit) => child.once("exit", (code, signal) => { exited = { code, signal }; resolveExit(exited); }));
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    if (exited) throw new Error(`runtime exited before readiness: ${redact(log.slice(-4096))}`);
+    if (exited) throw new Error(`runtime exited before readiness: ${redact(runtimeLog.slice(-4096))}`);
     const response = await fetch(`${endpoint}/health`, { signal: AbortSignal.timeout(2000) }).catch(() => null);
     if (response?.ok) return;
     await delay(100);
   }
-  throw new Error(`runtime readiness timeout: ${redact(log.slice(-4096))}`);
+  throw new Error(`runtime readiness timeout: ${redact(runtimeLog.slice(-4096))}`);
 }
 async function stop() {
   if (!child) return;
   const owned = child;
   child = undefined;
   if (owned.exitCode === null && owned.signalCode === null) {
-    process.kill(-owned.pid, "SIGKILL");
-    await childExit;
+    process.kill(-owned.pid, "SIGTERM");
+    await Promise.race([childExit, delay(5000)]);
+    if (owned.exitCode === null && owned.signalCode === null) {
+      process.kill(-owned.pid, "SIGKILL");
+      await childExit;
+    }
   }
   for (let attempt = 0; attempt < 50; attempt++) {
     try { await freePort(); return; } catch (error) {
@@ -159,8 +167,10 @@ async function observe(secret) {
     headers: { Authorization: `Bearer ${secret}` },
     signal: AbortSignal.timeout(10_000),
   });
-  assert.equal(response.status, 200);
-  return response.json();
+  const text = await response.text();
+  lastObservationDiagnostic = { status: response.status, body: redact(text.slice(0, 4096)) };
+  assert.equal(response.status, 200, text.slice(0, 512));
+  return JSON.parse(text);
 }
 async function debugSnapshot() {
   const response = await fetch(`${endpoint}/debug`, {
@@ -214,8 +224,6 @@ function waitUntil(predicate, label) {
 await start();
 const denied = await fetch(`${endpoint}/observe`);
 assert.equal(denied.status, 403, "observe requires the writer authorization");
-const eventsA = [];
-const eventsB = [];
 const clientAAttempts = [];
 clientA = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFetch(secrets.WRITER_SECRET, "takeFood", clientAAttempts), pollMs: 100 });
 clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFetch(secrets.WRITER_SECRET), pollMs: 100 });
@@ -295,5 +303,18 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   clientB?.dispose();
   await stop();
   await rm(configPath, { force: true });
+  const summarizeEvents = (events) => events.map((event) => {
+    if (event.type === "error") return { type: event.type, message: event.message };
+    if (event.type === "frame") return { type: event.type, time: event.time, epoch: event.epoch, sequence: event.sequence, facts: event.facts.length };
+    if (event.type === "presentation") return { type: event.type, facts: event.facts.length, controls: event.controls.length };
+    if (event.type === "results") return { type: event.type, results: event.results.length };
+    return event;
+  });
+  await writeFile(resolve(output, "network-proof-diagnostics.json"), JSON.stringify({
+    runtimeLog: redact(runtimeLog.slice(-16_384)),
+    clientA: summarizeEvents(eventsA),
+    clientB: summarizeEvents(eventsB),
+    lastObservation: lastObservationDiagnostic,
+  }, null, 2));
 }
 console.log(JSON.stringify({ status: "passed", checks: ["unauthorized-observe", "two-remote-observers", "pause-resume", "host-only-step", "lost-response-replay", "action-conservation"], implementationHash: config.vars.IMPLEMENTATION_HASH, starts }));

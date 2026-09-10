@@ -1,6 +1,6 @@
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
-import type { ActionResult, RenderFact, SupportSurface, Vec3, WorldPosition } from "../contracts";
+import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import type { PresentationControl } from "../presentation";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -68,9 +68,6 @@ function safeNonnegativeInteger(value: unknown): value is number {
 function vec3(value: unknown): value is Vec3 {
   return isRecord(value) && finite(value.x) && finite(value.y) && finite(value.z);
 }
-function worldPosition(value: unknown): value is WorldPosition {
-  return isRecord(value) && finite(value.x) && finite(value.y) && finite(value.z) && finite(value.facing);
-}
 function pose(value: unknown): boolean {
   return isRecord(value) && vec3(value.position) && finite(value.facing);
 }
@@ -85,11 +82,11 @@ function renderFact(value: unknown): value is RenderFact {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)
     return false;
   if (value.pose !== undefined && !pose(value.pose)) return false;
-  if (value.local !== undefined && !worldPosition(value.local)) return false;
+  if (value.local !== undefined && !pose(value.local)) return false;
   if (value.support !== undefined && value.support !== null && typeof value.support !== "string") return false;
   if (value.surface !== undefined && value.surface !== null && !surface(value.surface)) return false;
   for (const key of ["visual", "label"] as const)
-    if (value[key] !== undefined && (typeof value[key] !== "string" || value[key].length > 512)) return false;
+    if (value[key] !== undefined && value[key] !== null && (typeof value[key] !== "string" || value[key].length > 512)) return false;
   return value.selected === undefined || typeof value.selected === "boolean";
 }
 function presentationFact(value: unknown): value is ObservationWire["observation"]["presentationFacts"][number] {
