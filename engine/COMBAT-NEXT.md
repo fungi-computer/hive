@@ -38,3 +38,26 @@ save/restart between launch and impact preserves flight; replayed impact causes
 one game consequence; browser shows that physical trajectory. Ballistic accuracy,
 ricochet and fleets are later decisions. Rapier/Parry adoption requires actual
 API/runtime inspection and this consumer, not a speculative dependency addition.
+
+## Maintained collision-library direction — September 10
+
+Root checked current primary sources. Parry's `cast_shapes` computes the first
+contact between two linearly moving shapes over a bounded interval. That fits a
+finite cannonball sweep without introducing a second world or a rigid-body time
+owner. Rapier's collision/query pipelines remain the fuller option if later
+contacts require persistent physical bodies. For this first consumer, qualify
+Parry directly inside the existing Rust step.
+
+Sources:
+- https://docs.rs/parry3d/latest/parry3d/query/fn.cast_shapes.html
+- https://rapier.rs/docs/user_guides/rust/simulation_structures/
+- https://raw.githubusercontent.com/dimforge/parry/master/crates/parry3d/Cargo.toml
+
+The latest crate landing page reports 0.30.2, while the cached query result reports
+0.29.0. Resolve and pin the actual released crate and inspect its API before code;
+do not copy a version from search snippets. The current manifest exposes optional
+parallelism and enhanced determinism. Neither proves our WASM target or replay
+behavior. Qualification must compile the selected feature set for our actual
+wasm32 target and exercise swept hits through the same kernel used by the demos.
+
+This is a selected direction, not an installed dependency or completed cannon.
