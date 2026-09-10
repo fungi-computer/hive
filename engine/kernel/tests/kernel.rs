@@ -25,6 +25,38 @@ fn snapshot(kernel: &Kernel) -> Value {
 }
 
 #[test]
+fn fractional_snapshot_restore_preserves_float_bits() {
+    let mut kernel = Kernel::new();
+    kernel
+        .load(&scene(
+            json!([builtins(
+                "fractional",
+                [0.12345678901234567, 0.39600000000000013, -0.9876543210987654],
+                json!({}),
+            )]),
+            json!([]),
+        ))
+        .unwrap();
+    kernel
+        .advance_json(r#"{"delta":0.198,"writes":[],"actions":[]}"#)
+        .unwrap();
+    kernel
+        .advance_json(r#"{"delta":0.198,"writes":[],"actions":[]}"#)
+        .unwrap();
+    let before = kernel.snapshot_json().unwrap();
+    let before_value: Value = serde_json::from_str(&before).unwrap();
+    let before_scene = &before_value["scene"]["initial"][0]["components"]["hive.position"];
+    let before_time = before_value["time"].as_f64().unwrap();
+    kernel.restore_json(&before).unwrap();
+    let after: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+    let after_scene = &after["scene"]["initial"][0]["components"]["hive.position"];
+    assert_eq!(after["time"].as_f64().unwrap().to_bits(), before_time.to_bits());
+    for field in ["x", "y", "z", "facing"] {
+        assert_eq!(after_scene[field].as_f64().unwrap().to_bits(), before_scene[field].as_f64().unwrap().to_bits(), "position field {field}");
+    }
+}
+
+#[test]
 fn dynamic_component_join_write_and_restore() {
     let mut kernel = Kernel::new();
     kernel
