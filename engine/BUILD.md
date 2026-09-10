@@ -413,3 +413,20 @@ u5027. u5040 strict types found nullable nextClock access; direct branch narrowi
 1268930 passed strict types u5043. All owned scopes closed inactive/dead/empty.
 The combined source is integrated as705eb39/175233e/ae14d8e. This proves the SQLite
 occurrence owner, not an autonomous alarm or hosted-clock acceptance.
+
+## Real remote clients against a local DO — a072d19
+
+u5059 network-v6 passed against one native host: two actual connectRemoteRuntime
+consumers observed the same committed frame, shared pause/resume, moved the
+survivor into reach, took and consumed finite bread. A deliberately lost take
+response retried the exact envelope and returned the same committed revision.
+Unauthenticated observation was denied. Scope inactive/dead/empty and8789 free.
+Evidence is in fresh-network-proof/.botanical/network-v6, including bounded
+sanitized diagnostics and source inventory. Earlier script, readiness, retry
+bookkeeping and out-of-reach failures remain in v2-v5; no false pass was inferred.
+
+The readiness failure exposed a real type mismatch: Rust RenderFact.local is a
+Pose with nested position, not the flat WorldPose query value. contracts.ts and
+remote validation now match the native output, including null visual/label.
+The kernel and its render payload did not change. This is local network/physical
+acceptance, not the pending public autonomous host or deployment.
