@@ -1,6 +1,5 @@
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
-import { assign as runAssignment } from "../sdk/assignment";
 import type {
   ActionRequest,
   ActionResult,
@@ -112,7 +111,7 @@ export class GameSession {
     return this.port.query(spec);
   }
   assign(candidates: readonly import("../contracts").AssignmentCandidate[], maxEdges = 128) {
-    return runAssignment(this.port, candidates, maxEdges);
+    return this.port.assign(candidates, maxEdges);
   }
   request(action: ActionRequest): void {
     if (this.pendingActions.length >= 128)
