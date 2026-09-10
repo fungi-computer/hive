@@ -1,12 +1,11 @@
-import { component, query, system } from "../sdk/authoring";
+import { command, component, entity } from "../sdk/authoring";
 import {
   Destination,
   MaterialLot,
   Position,
   encodeDefinition,
 } from "../sdk/common";
-import { DeliveryTask, deliverySystem } from "../sdk/delivery";
-import { entity } from "../sdk/authoring";
+import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
 import type { GamePack } from "../contracts";
 
 export const Worker = component<{ guest: boolean }>("colony.worker", {
@@ -16,24 +15,6 @@ export const Worker = component<{ guest: boolean }>("colony.worker", {
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
-});
-export const Hospitality = component<{ preferredKind: string }>(
-  "colony.hospitality",
-  { version: 1, fields: { preferredKind: "string" } },
-);
-export const colony = system({
-  id: "colony.hospitality",
-  version: 1,
-  reads: [Worker, Guest, Hospitality],
-  writes: [Hospitality],
-  run(ctx) {
-    for (const row of ctx.query(query(Worker, Hospitality)))
-      if (
-        row.get(Worker).guest &&
-        row.get(Hospitality).preferredKind.length === 0
-      )
-        ctx.write(Hospitality, row.id, { preferredKind: "bread" });
-  },
 });
 const workerId = entity("colony.worker.1"),
   guestId = entity("colony.guest.1"),
@@ -49,6 +30,7 @@ const colonyInitial = [
       "hive.container": { capacity: 2 },
       "hive.visual": { sprite: "goblin.worker", label: "Worker" },
       "colony.worker": { guest: true },
+      "hive.delivery-control": { enabled: false, quantity: 1 },
     },
   },
   {
@@ -85,7 +67,7 @@ const colonyInitial = [
         destination: guestId,
         material: "bread",
         quantity: 1,
-        phase: "to-source",
+        phase: "idle",
       },
     },
   },
@@ -99,10 +81,23 @@ export const colonyPack: GamePack = {
     Destination,
     Worker,
     Guest,
-    Hospitality,
     DeliveryTask,
+    DeliveryControl,
   ],
-  systems: [colony, deliverySystem],
+  systems: [deliverySystem],
+  commands: {
+    deliver: command({ writes: [DeliveryControl], run: (_context, input) => {
+      const quantity = (input as { quantity?: unknown } | null)?.quantity;
+      if (quantity !== 1 && quantity !== 2) throw new Error("delivery quantity must be one or two");
+      return { actions: [], writes: [{ component: DeliveryControl.id, entity: workerId, value: { enabled: true, quantity } }] };
+    }}),
+    pauseDelivery: command({ reads: [DeliveryControl], writes: [DeliveryControl], run: (context) => { const current = context.query(query(DeliveryControl)).find((row) => row.id === workerId)?.get(DeliveryControl); return { actions: [], writes: [{ component: DeliveryControl.id, entity: workerId, value: { enabled: false, quantity: current?.quantity ?? 1 } }] }; } }),
+    resumeDelivery: command({ reads: [DeliveryControl], writes: [DeliveryControl], run: (context) => { const current = context.query(query(DeliveryControl)).find((row) => row.id === workerId)?.get(DeliveryControl); return { actions: [], writes: [{ component: DeliveryControl.id, entity: workerId, value: { enabled: true, quantity: current?.quantity ?? 1 } }] }; } }),
+  },
+  presentation: {
+    controls: [{ id: "deliver", label: "Deliver 1", command: "deliver", input: { quantity: 1 } }, { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 } }, { id: "pause", label: "Pause delivery", command: "pauseDelivery" }, { id: "resume", label: "Resume delivery", command: "resumeDelivery" }],
+    inspect: (context) => { const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot)); const task = context.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask); const total = (container: typeof pantryId) => lots.filter((lot) => lot.container === container).reduce((sum, lot) => sum + lot.quantity, 0); return [{ id: "pantry-quantity", label: "Pantry", value: total(pantryId) }, { id: "worker-carried", label: "Worker carries", value: total(workerId) }, { id: "guest-quantity", label: "Guest meal", value: total(guestId) }, { id: "delivery-phase", label: "Delivery", value: task?.phase ?? "missing" }]; },
+  },
   definition: encodeDefinition(
     "colony",
     [
@@ -111,8 +106,8 @@ export const colonyPack: GamePack = {
       Destination,
       Worker,
       Guest,
-      Hospitality,
       DeliveryTask,
+      DeliveryControl,
     ],
     colonyInitial,
   ),
