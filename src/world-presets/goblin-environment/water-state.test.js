@@ -8,6 +8,7 @@ import {
   parseWaterEnvironment,
   prepareWaterEnvironmentGeometry,
   waterEnvironmentFacts,
+  waterEnvironmentGeometry,
   exchangeWaterEnvironment,
 } from "./water-state.ts";
 
@@ -19,6 +20,8 @@ function clearing() {
 
 test("the game water component reconstructs from actual terrain and sites without a saved query or clock", () => {
   const { world, source, state } = clearing();
+  const geometry = waterEnvironmentGeometry(state, source);
+  assert.equal(waterEnvironmentGeometry(state, source), geometry);
   assert.deepEqual(Object.keys(state).sort(), [
     "ceilingY",
     "geometryRevision",
@@ -63,6 +66,10 @@ test("the game water component reconstructs from actual terrain and sites withou
   const next = prepareWaterEnvironmentGeometry(state, source, built);
   assert.equal(next.status, "applied");
   assert.equal(next.state.geometryRevision, 1);
+  assert.notEqual(
+    waterEnvironmentGeometry(next.state, built).physical,
+    geometry.physical,
+  );
   assert.deepEqual(next.receipt.removedPoreWater, []);
   assert.equal(
     waterEnvironmentFacts(next.state, built).initialTotalKg,
@@ -109,6 +116,12 @@ test("the real excavation candidate exposes pore custody while a vessel boundary
     massKg: 1,
   });
   assert.equal(filled.receipt.boundaryKg, 1);
+  const dryGeometry = waterEnvironmentGeometry(prepared.state, after);
+  const wetGeometry = waterEnvironmentGeometry(filled.state, after);
+  assert.equal(wetGeometry.physical, dryGeometry.physical);
+  assert.equal(wetGeometry.definition, dryGeometry.definition);
+  assert.notEqual(wetGeometry.facts, dryGeometry.facts);
+  assert.equal(waterEnvironmentGeometry(filled.state, after), wetGeometry);
   const emptied = exchangeWaterEnvironment(filled.state, after, {
     id: target.id,
     direction: "withdraw",

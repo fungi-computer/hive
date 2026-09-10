@@ -74,7 +74,10 @@ export function initial(g, raw) {
 }
 /** Only states returned by this owner use its identity cache. Unknown inputs
  * still cross the common plain-data boundary and complete quantity check. */
+const admissions = new WeakMap();
 export function stateAdmission(g) {
+  const known = admissions.get(g);
+  if (known) return known;
   const trusted = new WeakSet();
   function remember(state) {
     validate(g, state);
@@ -82,12 +85,14 @@ export function stateAdmission(g) {
     trusted.add(state);
     return state;
   }
-  return {
+  const admission = {
     remember,
     parse(raw) {
       return trusted.has(raw) ? raw : remember(copyData(raw, g.limits));
     },
   };
+  admissions.set(g, admission);
+  return admission;
 }
 /** @returns {WaterFacts} */
 export function waterFacts(g, state) {
