@@ -183,86 +183,15 @@ export function updateGoblinGasGeometry(
   if (!Number.isSafeInteger(revision) || revision < waterDefinition.revision)
     return { status: "rebuild" as const };
   void ceilingY;
-  const voxelM3 = GOBLIN_SPACING_M.reduce<number>(
-      (product, value) => product * value,
-      1,
-    ),
-    byId = new Map(waterFacts.cells.map((cell) => [cell.id, cell]));
-  if (
-    byId.size !== waterFacts.cells.length ||
-    byId.size !== waterDefinition.cells.length
-  )
+  const voxelM3 = GOBLIN_SPACING_M.reduce((product, value) => product * value, 1);
+  const byId = new Map(waterFacts.cells.map((cell) => [cell.id, cell]));
+  if (byId.size !== waterFacts.cells.length || byId.size !== waterDefinition.cells.length)
     return { status: "rebuild" as const };
-
-  const cells = new Map<string, GasCellLike>();
-  for (const cell of waterDefinition.cells) {
-    const id = cellId(cell.at),
-      fact = byId.get(id);
-    if (!fact || fact.kind !== cell.kind || cell.kind !== "void") continue;
-    const freeVolume = freeVolumeM3(fact, voxelM3);
-    if (!Number.isFinite(freeVolume) || freeVolume < 0)
-      return { status: "rebuild" as const };
-    if (freeVolume > 0) cells.set(id, { at: cell.at, freeVolume });
-  }
-  if (
-    cells.size !== previous.cells.length ||
-    previous.cells.some((cell) => !cells.has(cell.id))
-  )
-    return { status: "rebuild" as const };
-
-  const updatedCells = previous.cells.map((cell) => {
-      const next = cells.get(cell.id)!;
-      if (next.freeVolume <= 0) return null;
-      return Object.freeze({ ...cell, freeVolumeM3: next.freeVolume });
-    }),
-    previousFaces = new Map(previous.openFaces.map((face) => [face.id, face])),
-    updatedFaces: GasGeometrySnapshot["openFaces"][number][] = [],
-    emitted = new Set<string>();
-  if (updatedCells.some((cell) => cell === null))
-    return { status: "rebuild" as const };
-
-  const gasIds = new Set(cells.keys());
-  for (const cell of waterDefinition.cells) {
-    const id = cellId(cell.at);
-    if (!gasIds.has(id)) continue;
-    const fact = byId.get(id)!;
-    for (let axis = 0; axis < 3; axis++) {
-      const nextAt = positiveAxis(cell.at, axis),
-        nextId = cellId(nextAt);
-      if (!gasIds.has(nextId)) continue;
-      const faceIdValue = faceId(AXES[axis], nextAt),
-        old = previousFaces.get(faceIdValue);
-      const nextFact = byId.get(nextId)!;
-      const physicalFace = physical.face(AXES[axis], nextAt);
-      if (physicalFace === "unresolved") return { status: "rebuild" as const };
-      if (physicalFace === "closed") continue;
-      const areaM2 = internalAreaM2(
-        axis,
-        fact.liquidVolumeM3,
-        nextFact.liquidVolumeM3,
-      );
-      if (!(areaM2 > 0)) {
-        if (old) return { status: "rebuild" as const };
-        continue;
-      }
-      if (!old || old.a !== id || old.b !== nextId)
-        return { status: "rebuild" as const };
-      emitted.add(faceIdValue);
-      updatedFaces.push(Object.freeze({ ...old, areaM2 }));
-    }
-  }
-  for (const face of previous.openFaces) {
-    if (!face.b) {
-      emitted.add(face.id);
-      updatedFaces.push(face);
-    }
-  }
-  if (
-    emitted.size !== previous.openFaces.length ||
-    updatedFaces.length !== previous.openFaces.length ||
-    previous.openFaces.some((face) => !emitted.has(face.id))
-  )
-    return { status: "rebuild" as const };
+  const cells = updatedGasCells(waterDefinition, byId, voxelM3);
+  if (!cells) return { status: "rebuild" as const };
+  const updated = updatedGasFaces(previous, waterDefinition, byId, cells, physical);
+  if (!updated) return { status: "rebuild" as const };
+  const { updatedCells, previousFaces, updatedFaces } = updated;
   const changed =
     updatedCells.some(
       (cell, index) =>
@@ -283,6 +212,68 @@ export function updateGoblinGasGeometry(
       openFaces: Object.freeze(updatedFaces),
     }),
   };
+}
+
+function updatedGasCells(
+  definition: WaterDefinition,
+  byId: ReadonlyMap<string, GoblinGasWaterFacts["cells"][number]>,
+  voxelM3: number,
+) {
+  const cells = new Map<string, GasCellLike>();
+  for (const cell of definition.cells) {
+    const id = cellId(cell.at), fact = byId.get(id);
+    if (!fact || fact.kind !== cell.kind || cell.kind !== "void") continue;
+    const freeVolume = freeVolumeM3(fact, voxelM3);
+    if (!Number.isFinite(freeVolume) || freeVolume < 0) return null;
+    if (freeVolume > 0) cells.set(id, { at: cell.at, freeVolume });
+  }
+  return cells;
+}
+
+function updatedGasFaces(
+  previous: GasGeometrySnapshot,
+  definition: WaterDefinition,
+  byId: ReadonlyMap<string, GoblinGasWaterFacts["cells"][number]>,
+  cells: ReadonlyMap<string, GasCellLike>,
+  physical: Physical,
+) {
+  if (cells.size !== previous.cells.length || previous.cells.some((cell) => !cells.has(cell.id)))
+    return null;
+  const updatedCells = previous.cells.map((cell) => {
+    const next = cells.get(cell.id)!;
+    return Object.freeze({ ...cell, freeVolumeM3: next.freeVolume });
+  });
+  const previousFaces = new Map(previous.openFaces.map((face) => [face.id, face]));
+  const updatedFaces: GasGeometrySnapshot["openFaces"][number][] = [];
+  const emitted = new Set<string>();
+  const gasIds = new Set(cells.keys());
+  for (const cell of definition.cells) {
+    const id = cellId(cell.at);
+    if (!gasIds.has(id)) continue;
+    const fact = byId.get(id)!;
+    for (let axis = 0; axis < 3; axis++) {
+      const nextAt = positiveAxis(cell.at, axis), nextId = cellId(nextAt);
+      if (!gasIds.has(nextId)) continue;
+      const faceIdValue = faceId(AXES[axis], nextAt), old = previousFaces.get(faceIdValue);
+      const physicalFace = physical.face(AXES[axis], nextAt);
+      if (physicalFace === "unresolved") return null;
+      if (physicalFace === "closed") continue;
+      const areaM2 = internalAreaM2(axis, fact.liquidVolumeM3, byId.get(nextId)!.liquidVolumeM3);
+      if (!(areaM2 > 0)) {
+        if (old) return null;
+        continue;
+      }
+      if (!old || old.a !== id || old.b !== nextId) return null;
+      emitted.add(faceIdValue);
+      updatedFaces.push(Object.freeze({ ...old, areaM2 }));
+    }
+  }
+  for (const face of previous.openFaces) if (!face.b) {
+    emitted.add(face.id);
+    updatedFaces.push(face);
+  }
+  if (emitted.size !== previous.openFaces.length || updatedFaces.length !== previous.openFaces.length || previous.openFaces.some((face) => !emitted.has(face.id))) return null;
+  return { updatedCells, previousFaces, updatedFaces };
 }
 
 type GasCellLike = { readonly at: Coordinate; readonly freeVolume: number };

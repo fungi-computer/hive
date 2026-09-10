@@ -76,68 +76,9 @@ function observe(
   knownGeometry?: ReturnType<typeof waterEnvironmentGeometry>,
 ) {
   const geometry = knownGeometry ?? waterEnvironmentGeometry(water, source);
-  if (
-    previous &&
-    previous.waterState === water &&
-    previous.waterPhysical === geometry.physical &&
-    previous.waterDefinition === geometry.definition &&
-    previous.ceilingY === geometry.ceilingY
-  )
-    return previous;
-  const geometryRevision =
-    previous &&
-    (previous.waterPhysical !== geometry.physical ||
-      previous.waterDefinition !== geometry.definition)
-      ? Math.max(previous.geometryRevision, geometry.geometryRevision)
-      : (previous?.geometryRevision ?? geometry.geometryRevision);
-  let gas: GasSnapshot;
-  if (
-    previous &&
-    previous.waterPhysical === geometry.physical &&
-    previous.waterDefinition === geometry.definition &&
-    previous.ceilingY === geometry.ceilingY
-  ) {
-    const updated = updateGoblinGasGeometry(
-      previous.geometry,
-      geometry.physical,
-      geometry.definition,
-      geometry.facts,
-      geometryRevision,
-      geometry.ceilingY,
-    );
-    gas =
-      updated.status === "reused"
-        ? updated.snapshot
-        : goblinGasGeometry(
-            source.terrain,
-            geometry.physical,
-            geometry.definition,
-            geometry.facts,
-            geometryRevision,
-            geometry.ceilingY,
-          );
-  } else {
-    gas = goblinGasGeometry(
-      source.terrain,
-      geometry.physical,
-      geometry.definition,
-      geometry.facts,
-      geometryRevision,
-      geometry.ceilingY,
-    );
-  }
-  // Cold water admission rebuilds disposable geometry objects. Compare their
-  // checked gas projection once here; object identity alone is not a physical edit.
-  if (
-    previous &&
-    (previous.waterPhysical !== geometry.physical ||
-      previous.waterDefinition !== geometry.definition) &&
-    gas !== previous.geometry &&
-    gas.identity === previous.geometry.identity &&
-    JSON.stringify([gas.cells, gas.openFaces]) ===
-      JSON.stringify([previous.geometry.cells, previous.geometry.openFaces])
-  )
-    gas = previous.geometry;
+  if (sameWaterObservation(previous, water, geometry)) return previous;
+  const geometryRevision = nextGeometryRevision(previous, geometry);
+  const gas = nextGasObservation(previous, source, geometry, geometryRevision);
   return {
     terrain: source.terrain,
     waterState: water,
@@ -147,6 +88,43 @@ function observe(
     geometryRevision,
     geometry: gas,
   };
+}
+
+function sameWaterObservation(
+  previous: Observation | undefined,
+  water: WaterEnvironment,
+  geometry: WaterGeometry,
+) {
+  return !!previous && previous.waterState === water &&
+    previous.waterPhysical === geometry.physical &&
+    previous.waterDefinition === geometry.definition &&
+    previous.ceilingY === geometry.ceilingY;
+}
+
+function nextGeometryRevision(previous: Observation | undefined, geometry: WaterGeometry) {
+  return previous && (previous.waterPhysical !== geometry.physical || previous.waterDefinition !== geometry.definition)
+    ? Math.max(previous.geometryRevision, geometry.geometryRevision)
+    : (previous?.geometryRevision ?? geometry.geometryRevision);
+}
+
+function nextGasObservation(
+  previous: Observation | undefined,
+  source: EnvironmentGeometry,
+  geometry: WaterGeometry,
+  revision: number,
+) {
+  const sameWaterGeometry = !!previous && previous.waterPhysical === geometry.physical &&
+    previous.waterDefinition === geometry.definition && previous.ceilingY === geometry.ceilingY;
+  if (sameWaterGeometry) {
+    const updated = updateGoblinGasGeometry(previous.geometry, geometry.physical, geometry.definition, geometry.facts, revision, geometry.ceilingY);
+    if (updated.status === "reused") return updated.snapshot;
+  }
+  const gas = goblinGasGeometry(source.terrain, geometry.physical, geometry.definition, geometry.facts, revision, geometry.ceilingY);
+  if (
+    previous && !sameWaterGeometry && gas.identity === previous.geometry.identity &&
+    JSON.stringify([gas.cells, gas.openFaces]) === JSON.stringify([previous.geometry.cells, previous.geometry.openFaces])
+  ) return previous.geometry;
+  return gas;
 }
 
 function sameGasInput(left: Observation, right: Observation) {
