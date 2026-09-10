@@ -1,12 +1,6 @@
 import { z } from "zod";
 import { component, entity, query, system } from "../sdk/authoring";
-import {
-  Destination,
-  Position,
-  Selected,
-  encodeDefinition,
-  move,
-} from "../sdk/common";
+import { Destination, Position, encodeDefinition, move } from "../sdk/common";
 import type { EntityId, GamePack } from "../contracts";
 
 export const FormationMember = component<{ group: EntityId; slot: number }>(
@@ -47,7 +41,7 @@ const formationInitial = [
 export const formationsPack: GamePack = {
   id: "formations",
   version: 1,
-  components: [Position, Destination, Selected, FormationMember, Morale],
+  components: [Position, Destination, FormationMember, Morale],
   systems: [formations],
   commands: {
     march(context, raw) {
@@ -87,7 +81,7 @@ export const formationsPack: GamePack = {
   },
   definition: encodeDefinition(
     "formations",
-    [Position, Destination, Selected, FormationMember, Morale],
+    [Position, Destination, FormationMember, Morale],
     formationInitial,
   ),
 };

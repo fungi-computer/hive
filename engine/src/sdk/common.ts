@@ -15,17 +15,13 @@ export const Position = component<{
   version: 1,
   fields: { x: "number", y: "number", z: "number", facing: "number" },
 });
-export const FoodLot = component<{
+export const MaterialLot = component<{
   quantity: number;
   kind: string;
   container: EntityId;
 }>("hive.lot", {
   version: 1,
   fields: { quantity: "number", kind: "string", container: "entity" },
-});
-export const Carrying = component<{ lot: EntityId | null }>("hive.carrying", {
-  version: 1,
-  fields: { lot: "nullable-entity" },
 });
 export const Destination = component<{
   x: number;
@@ -36,16 +32,16 @@ export const Destination = component<{
   version: 1,
   fields: { x: "number", y: "number", z: "number", facing: "number" },
 });
-export const Selected = component<{ active: boolean }>("hive.selected", {
-  version: 1,
-  fields: { active: "boolean" },
-});
-
 export const move = (
   entity: EntityId,
   destination: Vec3,
   facing = 0,
-): ActionRequest => ({ kind: "move", entity, destination: { x: destination.x, y: destination.y, z: destination.z }, facing });
+): ActionRequest => ({
+  kind: "move",
+  entity,
+  destination: { x: destination.x, y: destination.y, z: destination.z },
+  facing,
+});
 export const transfer = (
   lot: EntityId,
   from: EntityId,

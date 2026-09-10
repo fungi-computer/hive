@@ -1,10 +1,8 @@
 import { component, query, system } from "../sdk/authoring";
 import {
-  Carrying,
   Destination,
-  FoodLot,
+  MaterialLot,
   Position,
-  Selected,
   encodeDefinition,
 } from "../sdk/common";
 import { DeliveryTask, deliverySystem } from "../sdk/delivery";
@@ -97,10 +95,8 @@ export const colonyPack: GamePack = {
   version: 1,
   components: [
     Position,
-    FoodLot,
-    Carrying,
+    MaterialLot,
     Destination,
-    Selected,
     Worker,
     Guest,
     Hospitality,
@@ -111,10 +107,8 @@ export const colonyPack: GamePack = {
     "colony",
     [
       Position,
-      FoodLot,
-      Carrying,
+      MaterialLot,
       Destination,
-      Selected,
       Worker,
       Guest,
       Hospitality,

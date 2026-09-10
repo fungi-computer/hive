@@ -1,5 +1,5 @@
 import { component, query, system } from "./authoring";
-import { FoodLot, Position, move, transfer } from "./common";
+import { MaterialLot, Position, move, transfer } from "./common";
 import type { EntityId, Vec3 } from "../contracts";
 
 export type DeliveryPhase =
@@ -30,7 +30,7 @@ const distance = (a: Vec3, b: Vec3) =>
 export const deliverySystem = system({
   id: "hive.delivery",
   version: 1,
-  reads: [DeliveryTask, Position, FoodLot],
+  reads: [DeliveryTask, Position, MaterialLot],
   writes: [DeliveryTask],
   run(ctx) {
     for (const task of ctx.query(
@@ -51,9 +51,9 @@ export const deliverySystem = system({
       const destination = positions.find((row) => row.id === state.destination);
       if (!actor || !source || !destination) continue;
       const lot = ctx
-        .query(query(FoodLot))
+        .query(query(MaterialLot))
         .find((row) => row.id === state.sourceLot);
-      const lotState = lot?.get(FoodLot);
+      const lotState = lot?.get(MaterialLot);
       if (state.phase === "to-source") {
         if (lotState?.container === state.actor) {
           ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });

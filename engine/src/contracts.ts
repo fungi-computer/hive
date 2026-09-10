@@ -1,7 +1,7 @@
 /** Public boundary between authored TypeScript and the authoritative kernel. */
 export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
-export type GameId = "colony" | "survival" | "formations";
+export type GameId = string;
 
 export interface Vec3 {
   readonly x: number;

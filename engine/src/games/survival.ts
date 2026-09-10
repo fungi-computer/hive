@@ -1,9 +1,7 @@
 import { component, entity, query, system } from "../sdk/authoring";
 import {
-  Carrying,
-  FoodLot,
+  MaterialLot,
   Position,
-  Selected,
   consume,
   encodeDefinition,
   transfer,
@@ -21,7 +19,7 @@ export const Condition = component<{ hunger: number; wellbeing: number }>(
 export const survival = system({
   id: "survival.hunger",
   version: 1,
-  reads: [Survivor, Condition, Carrying, FoodLot],
+  reads: [Survivor, Condition, MaterialLot],
   writes: [Condition],
   run(ctx) {
     for (const row of ctx.query(query(Survivor, Condition))) {
@@ -36,11 +34,11 @@ export const survival = system({
           return total;
         const action = outcome.action;
         const lot = ctx
-          .query(query(FoodLot))
+          .query(query(MaterialLot))
           .find((lot) => lot.id === action.lot);
         return (
           total +
-          (lot?.get(FoodLot).kind === "bread" ? outcome.action.quantity : 0)
+          (lot?.get(MaterialLot).kind === "bread" ? outcome.action.quantity : 0)
         );
       }, 0);
       const hunger = Math.max(
@@ -90,12 +88,12 @@ const survivalInitial = [
 export const survivalPack: GamePack = {
   id: "survival",
   version: 1,
-  components: [Position, FoodLot, Carrying, Selected, Survivor, Condition],
+  components: [Position, MaterialLot, Survivor, Condition],
   systems: [survival],
   commands: {
     takeFood(context) {
-      const lot = context.query(query(FoodLot)).find((row) => {
-        const value = row.get(FoodLot);
+      const lot = context.query(query(MaterialLot)).find((row) => {
+        const value = row.get(MaterialLot);
         return (
           value.container === lockerId &&
           value.kind === "bread" &&
@@ -106,8 +104,8 @@ export const survivalPack: GamePack = {
       return [transfer(lot.id, lockerId, survivorId, 1)];
     },
     eatFood(context) {
-      const lot = context.query(query(FoodLot)).find((row) => {
-        const value = row.get(FoodLot);
+      const lot = context.query(query(MaterialLot)).find((row) => {
+        const value = row.get(MaterialLot);
         return (
           value.container === survivorId &&
           value.kind === "bread" &&
@@ -120,7 +118,7 @@ export const survivalPack: GamePack = {
   },
   definition: encodeDefinition(
     "survival",
-    [Position, FoodLot, Carrying, Selected, Survivor, Condition],
+    [Position, MaterialLot, Survivor, Condition],
     survivalInitial,
   ),
 };

@@ -39,7 +39,8 @@ export class WorkerRuntime {
     try {
       if (command.type === "start") {
         const pack = this.packs[command.game];
-        if (!pack) throw new Error(`unknown game ${command.game}`);
+        if (!pack || !Object.hasOwn(this.packs, command.game))
+          throw new Error(`unknown game ${command.game}`);
         this.session = new GameSession({
           port: this.kernel,
           pack,

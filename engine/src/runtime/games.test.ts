@@ -7,7 +7,7 @@ import { GameSession } from "./session";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition } from "../games/survival";
 import { formationsPack } from "../games/formations";
-import { FoodLot, Position } from "../sdk/common";
+import { MaterialLot, Position } from "../sdk/common";
 import { entity, query } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -18,7 +18,9 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     for (let i = 0; i < 100; i++) session.step(0.1);
-    const lots = session.query(query(FoodLot)).map((row) => row.get(FoodLot));
+    const lots = session
+      .query(query(MaterialLot))
+      .map((row) => row.get(MaterialLot));
     assert.equal(
       lots.reduce((sum, lot) => sum + lot.quantity, 0),
       6,
@@ -55,8 +57,8 @@ test("survival can take and eat successive split lots, including after restore",
     }
     assert.equal(
       session
-        .query(query(FoodLot))
-        .reduce((sum, row) => sum + row.get(FoodLot).quantity, 0),
+        .query(query(MaterialLot))
+        .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0),
       6,
     );
     assert.ok(session.query(query(Condition))[0].get(Condition).hunger < 1);
