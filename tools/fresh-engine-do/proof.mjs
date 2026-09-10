@@ -13,7 +13,7 @@ assert(
 );
 const directory = fileURLToPath(new URL(".", import.meta.url));
 const output = resolve(process.argv[3]);
-await mkdir(output, { recursive: true });
+await mkdir(output);
 const secrets = Object.fromEntries(
   ["WRITER_SECRET", "HOST_SECRET", "DEBUG_SECRET"].map((key) => [
     key,
@@ -53,14 +53,24 @@ await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
 const port = 8789;
 const endpoint = `http://127.0.0.1:${port}`;
 let child;
+let childExit;
 let starts = 0;
 function safeLog(log) {
-  return secrets
-    ? Object.values(secrets).reduce(
-        (text, secret) => text.replaceAll(secret, "[harness-secret]"),
-        log,
-      )
-    : log;
+  return log
+    .replace(
+      /^.*(?:WRITER_SECRET|HOST_SECRET|DEBUG_SECRET).*$/gm,
+      "[harness binding redacted]",
+    )
+    .replace(/^.*IMPLEMENTATION_HASH.*$/gm, "[implementation binding redacted]")
+    .replace(/\b[a-f0-9]{64}\b/g, "[hash redacted]")
+    .replace(
+      secrets
+        ? Object.values(secrets).reduce(
+            (text, secret) => text.replaceAll(secret, "[harness-secret]"),
+            log,
+          )
+        : log,
+    );
 }
 async function freePort() {
   const server = createServer();
@@ -108,13 +118,16 @@ async function start() {
   child.stderr.on("data", (data) => {
     log += data;
   });
-  let exited = false;
-  child.once("exit", () => {
-    exited = true;
-  });
+  let exitInfo;
+  childExit = new Promise((resolveExit) =>
+    child.once("exit", (code, signal) => {
+      exitInfo = { code, signal };
+      resolveExit(exitInfo);
+    }),
+  );
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
-    if (exited)
+    if (exitInfo)
       throw new Error(
         `runtime exited before readiness: ${safeLog(log.slice(-4096))}`,
       );
@@ -128,17 +141,21 @@ async function stop() {
   if (!child) return;
   const owned = child;
   child = undefined;
-  if (owned.exitCode === null) {
+  if (owned.exitCode === null && owned.signalCode === null) {
     process.kill(-owned.pid, "SIGKILL");
-    await new Promise((resolveExit) => owned.once("exit", resolveExit));
+    await childExit;
   }
   for (let attempt = 0; attempt < 50; attempt++) {
     const response = await fetch(`${endpoint}/health`, {
       signal: AbortSignal.timeout(300),
     }).catch(() => null);
-    if (!response) return;
+    if (!response) {
+      await freePort();
+      return;
+    }
     await delay(100);
   }
+  await freePort();
   throw new Error("owned listener did not close");
 }
 async function command(input, role = "WRITER_SECRET", fault) {
@@ -152,12 +169,14 @@ async function command(input, role = "WRITER_SECRET", fault) {
         : {}),
     },
     body: JSON.stringify(input),
+    signal: AbortSignal.timeout(10000),
   });
   return { status: response.status, body: await response.json() };
 }
 async function snapshot() {
   const response = await fetch(`${endpoint}/debug`, {
     headers: { Authorization: `Bearer ${secrets.DEBUG_SECRET}` },
+    signal: AbortSignal.timeout(10000),
   });
   assert.equal(response.status, 200);
   return response.json();
@@ -263,7 +282,10 @@ try {
   assert.equal(observed.status, 200);
   const afterOutcome = await snapshot();
   assert.equal(afterOutcome.snapshot.revision, 7);
-  assert(hunger(afterOutcome) < hungerBeforeOutcome);
+  assert.equal(
+    hunger(afterOutcome),
+    Math.max(0, Math.min(100, hungerBeforeOutcome + 0.5 - 25)),
+  );
   const rollbackBefore = await snapshot();
   assert.equal(
     (
@@ -312,7 +334,31 @@ try {
       2,
     ),
   );
+  await writeFile(
+    resolve(output, "survival-proof-receipt.json"),
+    JSON.stringify({ status: "succeeded", starts }, null, 2),
+  );
+} catch (error) {
+  await writeFile(
+    resolve(output, "survival-proof-receipt.json"),
+    JSON.stringify(
+      {
+        status: "failed",
+        error: safeLog(
+          error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error),
+        ),
+      },
+      null,
+      2,
+    ),
+  );
+  throw error;
 } finally {
-  await stop();
-  await rm(configPath, { force: true });
+  try {
+    await stop();
+  } finally {
+    await rm(configPath, { force: true });
+  }
 }

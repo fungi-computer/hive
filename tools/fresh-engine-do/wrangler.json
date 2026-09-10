@@ -1,7 +1,7 @@
 {
   "name": "hive-fresh-engine-do-proof",
   "main": "./worker.ts",
-  "compatibility_date": "2026-09-10",
+  "compatibility_date": "2026-09-04",
   "durable_objects": {
     "bindings": [{ "name": "REGIONS", "class_name": "FreshRegion" }]
   },
