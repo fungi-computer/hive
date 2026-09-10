@@ -41,6 +41,21 @@ author exercise is now assigned against the frozen public examples/API. Shared
 queries/commands must own these changes, without UI-owned quantities or another
 simulation. Deep-world physics and new host frameworks do not replace these gaps.
 
+The bounded colony finish uses two selectable workers and two finite delivery
+requests. Expose the existing Rust joint assignment as a pure, bounded query to
+TS systems; assignment chooses pairs but does not itself reserve or transfer
+materials. The authored task owner records each accepted pairing once, retains
+carried custody through interruption, and excludes active assignments from new
+matching. The shared client passes selected IDs through an explicit control input
+contract, with game admission checking eligibility. Reject incompatible changes
+and completed-task commands clearly; reset may restart this tiny scenario. Do not
+build an unbounded recurring scheduler to finish the foundation.
+
+The independent fatigue author exercise found two concrete API hazards before
+acceptance: no shared Body definition, and separate pack/encoded component lists
+that can drift. Its native proof must follow correction of those real callers;
+an author-created source commit alone does not establish a working custom rule.
+
 ### Current delivery cadence amendment
 
 Levi is going to bed and explicitly asks for implementation over frequent demo
