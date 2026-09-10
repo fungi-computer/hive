@@ -1,6 +1,6 @@
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
-import type { RenderFact, SupportSurface, Vec3, WorldPosition } from "../contracts";
+import type { ActionResult, RenderFact, SupportSurface, Vec3, WorldPosition } from "../contracts";
 import type { PresentationControl } from "../presentation";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -10,6 +10,7 @@ export interface RemoteRuntimeOptions {
   /** Authentication is supplied by the caller; this function adds no secret. */
   readonly fetch: AuthorizedFetch;
   readonly pollMs?: number;
+  readonly requestTimeoutMs?: number;
   readonly createCommandId?: () => string;
 }
 
@@ -51,6 +52,13 @@ function endpointUrl(endpoint: string | URL, path: string): string {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
+function parseJsonOrUndefined(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -89,24 +97,73 @@ function presentationControl(value: unknown): value is PresentationControl {
     value.command.length > 0 && value.command.length <= 128 &&
     (value.selection === undefined || value.selection === "entities");
 }
-async function responseJson(response: Response, maxBytes: number): Promise<unknown> {
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > maxBytes) throw new Error("remote response too large");
-  return JSON.parse(text);
-}
-async function requestWithTimeout(fetcher: AuthorizedFetch, input: RequestInfo | URL, init: RequestInit, parent: AbortSignal): Promise<Response> {
+async function requestJson(
+  fetcher: AuthorizedFetch,
+  input: RequestInfo | URL,
+  init: RequestInit,
+  parent: AbortSignal,
+  maxBytes: number,
+  timeoutMs: number,
+): Promise<{ response: Response; value: unknown }> {
   const controller = new AbortController();
-  let timedOut = false;
-  const onAbort = () => controller.abort();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let rejectParent: ((error: unknown) => void) | undefined;
+  const parentAbort = new Promise<never>((_, reject) => {
+    rejectParent = reject;
+  });
+  const onAbort = () => {
+    controller.abort();
+    rejectParent?.(new DOMException("aborted", "AbortError"));
+  };
   parent.addEventListener("abort", onAbort, { once: true });
-  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, REQUEST_TIMEOUT_MS);
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      controller.abort();
+      reject(new Error("remote request timed out"));
+    }, timeoutMs);
+  });
   try {
-    return await fetcher(input, { ...init, signal: controller.signal });
-  } catch (error) {
-    if (timedOut) throw new Error("remote request timed out");
-    throw error;
+    const response = await Promise.race([
+      fetcher(input, { ...init, signal: controller.signal }),
+      deadline,
+      parentAbort,
+    ]);
+    if (!response.body) {
+      const text = await Promise.race([response.text(), deadline, parentAbort]);
+      if (new TextEncoder().encode(text).byteLength > maxBytes)
+        throw new Error("remote response too large");
+      return { response, value: parseJsonOrUndefined(text) };
+    }
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let bytes = 0;
+    try {
+      while (true) {
+        const part = await Promise.race([reader.read(), deadline, parentAbort]);
+        if (part.done) break;
+        bytes += part.value.byteLength;
+        if (bytes > maxBytes) {
+          void reader.cancel("remote response too large").catch(() => undefined);
+          throw new Error("remote response too large");
+        }
+        chunks.push(part.value);
+      }
+    } catch (error) {
+      void reader.cancel().catch(() => undefined);
+      throw error;
+    }
+    const bytesValue = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytesValue.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return {
+      response,
+      value: parseJsonOrUndefined(new TextDecoder().decode(bytesValue)),
+    };
   } finally {
-    clearTimeout(timeout);
+    if (timeout !== undefined) clearTimeout(timeout);
     parent.removeEventListener("abort", onAbort);
   }
 }
@@ -141,11 +198,19 @@ function safeId(create?: () => string): string {
   if (typeof value !== "string" || value.length === 0 || value.length > 160) throw new Error("remote command id must be bounded");
   return value;
 }
+function actionResult(value: unknown): value is ActionResult {
+  return isRecord(value) && typeof value.accepted === "boolean" &&
+    Number.isSafeInteger(value.revision) && value.revision >= 0 &&
+    (value.reason === undefined || (typeof value.reason === "string" && value.reason.length <= 256));
+}
 
 export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConnection {
   if (options.pollMs !== undefined && (!Number.isFinite(options.pollMs) || options.pollMs < 100 || options.pollMs > 60_000))
     throw new Error("remote poll interval must be between 100ms and 60s");
+  if (options.requestTimeoutMs !== undefined && (!Number.isFinite(options.requestTimeoutMs) || options.requestTimeoutMs < 10 || options.requestTimeoutMs > 60_000))
+    throw new Error("remote request timeout must be between 10ms and 60s");
   const pollMs = Math.round(options.pollMs ?? DEFAULT_POLL_MS);
+  const requestTimeoutMs = Math.round(options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS);
   const listeners = new Set<(event: WorkerEvent) => void>();
   const pending: PendingIntent[] = [];
   const abort = new AbortController();
@@ -188,9 +253,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (pollPromise) return pollPromise;
     pollPromise = (async () => {
       try {
-        const response = await requestWithTimeout(options.fetch, endpointUrl(options.endpoint, "/observe"), { method: "GET" }, abort.signal);
-        if (!response.ok) throw new Error(`remote observation failed (${response.status})`);
-        const candidate = parseObservation(await responseJson(response, MAX_OBSERVATION_BYTES));
+        const result = await requestJson(options.fetch, endpointUrl(options.endpoint, "/observe"), { method: "GET" }, abort.signal, MAX_OBSERVATION_BYTES, requestTimeoutMs);
+        if (!result.response.ok) throw new Error(`remote observation failed (${result.response.status})`);
+        const candidate = parseObservation(result.value);
         if (!readyEmitted) { readyEmitted = true; emit({ type: "ready", game: options.game }); }
         return acceptObservation(candidate);
       } catch (error) {
@@ -208,21 +273,17 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   };
   const retryDelay = (attempt: number) =>
     new Promise<void>((resolve) => {
-      const timer = setTimeout(() => {
+      let timer: ReturnType<typeof setTimeout>;
+      const onAbort = () => finish();
+      const finish = () => {
         retryTimers.delete(timer);
+        clearTimeout(timer);
+        abort.signal.removeEventListener("abort", onAbort);
         resolve();
-      }, Math.min(1000, 100 * 2 ** attempt));
+      };
+      timer = setTimeout(finish, Math.min(1000, 100 * 2 ** attempt));
       retryTimers.add(timer);
-      abort.signal.addEventListener(
-        "abort",
-        () => {
-          if (retryTimers.delete(timer)) {
-            clearTimeout(timer);
-            resolve();
-          }
-        },
-        { once: true },
-      );
+      abort.signal.addEventListener("abort", onAbort, { once: true });
     });
   const pump = async () => {
     if (disposed || blocked || pumpRunning || pending.length === 0) return;
@@ -236,9 +297,10 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       }
       while (!disposed && !blocked) {
         try {
-          const response = await requestWithTimeout(options.fetch, endpointUrl(options.endpoint, "/command"), {
+          const responseData = await requestJson(options.fetch, endpointUrl(options.endpoint, "/command"), {
             method: "POST", headers: { "Content-Type": "application/json" }, body: item.body,
-          }, abort.signal);
+          }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
+          const response = responseData.response;
           if (response.status >= 500 || response.status === 408) {
             if (item.retries++ < MAX_RETRIES) { await retryDelay(item.retries); continue; }
             blocked = true;
@@ -252,7 +314,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
             return;
           }
           if (!response.ok) throw new Error(`remote command failed (${response.status})`);
-          const receipt = await responseJson(response, MAX_RECEIPT_BYTES) as Record<string, unknown>;
+          const receipt = responseData.value as Record<string, unknown>;
           if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
             pending.shift();
@@ -262,10 +324,15 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           }
           if (receipt.status !== "applied" || !Number.isSafeInteger(receipt.revision) || receipt.revision < 0)
             throw new Error("invalid remote command receipt");
-          awaitRevision = receipt.revision;
+          if (receipt.revision > (revision ?? -1)) awaitRevision = receipt.revision;
+          const payload = receipt.result;
+          if (isRecord(payload) && payload.results !== undefined) {
+            if (!Array.isArray(payload.results) || payload.results.length > 256 || payload.results.some((item) => !actionResult(item)))
+              throw new Error("invalid remote action results");
+          }
           pending.shift();
-          const result = receipt.result;
-          if (isRecord(result) && Array.isArray(result.results)) emit({ type: "results", results: result.results });
+          if (isRecord(payload) && Array.isArray(payload.results))
+            emit({ type: "results", results: payload.results });
           await poll();
           return;
         } catch (error) {

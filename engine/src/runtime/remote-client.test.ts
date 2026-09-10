@@ -130,6 +130,71 @@ test("queued intents receive the refreshed revision only when they become head",
   runtime.dispose();
 });
 
+test("a receipt already covered by polling does not block the next intent", async () => {
+  let observeRevision = 0;
+  let commandCount = 0;
+  const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (input.toString().endsWith("/observe"))
+      return observation(observeRevision);
+    const body = JSON.parse(String(init?.body)) as { id: string };
+    commandCount++;
+    observeRevision = commandCount;
+    if (commandCount === 1) await wait(150);
+    return applied(body.id, observeRevision);
+  };
+  const runtime = connectRemoteRuntime({
+    endpoint: "https://hive.test/world",
+    game: "survival",
+    fetch: fetcher,
+    pollMs: 100,
+    createCommandId: (() => {
+      let next = 0;
+      return () => `concurrent-${++next}`;
+    })(),
+  });
+  runtime.send({ type: "start", game: "survival" });
+  await wait(0);
+  runtime.send({ type: "pause" });
+  runtime.send({ type: "resume" });
+  await wait(350);
+  assert.equal(commandCount, 2);
+  runtime.dispose();
+});
+
+test("remote observation body limits and deadlines cover headers-to-body", async () => {
+  const stalled = new ReadableStream<Uint8Array>({ start() {} });
+  const timeoutEvents: WorkerEvent[] = [];
+  const timeoutRuntime = connectRemoteRuntime({
+    endpoint: "https://hive.test/world",
+    game: "survival",
+    requestTimeoutMs: 10,
+    fetch: async () => new Response(stalled),
+  });
+  timeoutRuntime.subscribe((event) => timeoutEvents.push(event));
+  timeoutRuntime.send({ type: "start", game: "survival" });
+  await wait(30);
+  assert.ok(timeoutEvents.some((event) => event.type === "error"));
+  timeoutRuntime.dispose();
+
+  const oversized = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(1024 * 1024 + 1));
+      controller.close();
+    },
+  });
+  const oversizedEvents: WorkerEvent[] = [];
+  const oversizedRuntime = connectRemoteRuntime({
+    endpoint: "https://hive.test/world",
+    game: "survival",
+    fetch: async () => new Response(oversized),
+  });
+  oversizedRuntime.subscribe((event) => oversizedEvents.push(event));
+  oversizedRuntime.send({ type: "start", game: "survival" });
+  await wait(0);
+  assert.ok(oversizedEvents.some((event) => event.type === "error"));
+  oversizedRuntime.dispose();
+});
+
 test("disposing remote runtime aborts its in-flight observation", async () => {
   let aborted = false;
   const fetcher = async (_input: RequestInfo | URL, init?: RequestInit) =>
