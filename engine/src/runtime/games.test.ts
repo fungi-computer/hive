@@ -12,6 +12,26 @@ import { command, component, entity, query, system } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
+test("native assignment chooses joint pairs without mutating the world", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    const before = session.save();
+    const candidates = [
+      { worker: entity("worker.1"), task: entity("task.1"), cost: 1 },
+      { worker: entity("worker.1"), task: entity("task.2"), cost: 2 },
+      { worker: entity("worker.2"), task: entity("task.1"), cost: 2 },
+    ];
+    assert.deepEqual(session.assign(candidates), [
+      { worker: "worker.1", task: "task.2", cost: 2 },
+      { worker: "worker.2", task: "task.1", cost: 2 },
+    ]);
+    assert.deepEqual(session.assign([...candidates].reverse()), session.assign(candidates));
+    assert.deepEqual(session.save(), before);
+  } finally { port.dispose(); }
+});
+
 test("independently authored fatigue follows movement and survives restore", () => {
   const port = wasmKernelPort(new WasmKernel());
   const restoredPort = wasmKernelPort(new WasmKernel());

@@ -7,6 +7,7 @@ await build({
     "session.test": "engine/src/runtime/session.test.ts",
     "games.test": "engine/src/runtime/games.test.ts",
     "presentation.test": "engine/src/presentation.test.ts",
+    "assignment.test": "engine/src/sdk/assignment.test.ts",
   },
   bundle: true,
   platform: "node",
@@ -22,6 +23,7 @@ const result = spawnSync(
     ".botanical/fresh-game-laws/session.test.mjs",
     ".botanical/fresh-game-laws/games.test.mjs",
     ".botanical/fresh-game-laws/presentation.test.mjs",
+    ".botanical/fresh-game-laws/assignment.test.mjs",
   ],
   { stdio: "inherit" },
 );
