@@ -16,7 +16,11 @@ import {
   fieldWaterAccess,
   FIELD_WATER,
 } from "./field-water-source.ts";
-import { createNavigationSpaces } from "./navigation-space.ts";
+import {
+  createNavigationSpaces,
+  physicalOccupancyProblem,
+  navigationStateProblem,
+} from "./navigation-space.ts";
 const environment = (state) => ({
   terrain: terrainEnvironment(state.terrain),
   sites: state.sites,
@@ -115,4 +119,40 @@ test("wet route eligibility preserves occupied bodies and rejects collar before 
     spaces().access({ x: TERRAIN_FRAME.x - 1, y: 15, z: 128 }),
     "blocked",
   );
+});
+
+test("shallow surface water can be drawn from an adjacent dry same-height footing", () => {
+  const state = createClearing();
+  transfer(state, 15, "deposit", 2.25);
+  const source = fieldWaterSources(state).find(
+    (value) => value.nodeId === ref(15).nodeId,
+  );
+  assert(source);
+  assert.equal(source.availableUnits, 2);
+  assert(source.accessCells.some((at) => at.y === 15));
+  const space = createNavigationSpaces(state)();
+  assert.equal(space.access({ x: 0, y: 15, z: 128 }), "blocked");
+  assert(source.accessCells.every((at) => space.access(at) === "allowed"));
+});
+
+test("prospective edits and restore share support protection for every fixed-ground kind", () => {
+  for (const kind of ["trees", "herbs", "rocks", "watcher", "sources"]) {
+    const state = createClearing();
+    // Authored relocation isolates this existing kind's support law, not earned play.
+    const occupant = kind === "watcher" ? state.watcher : state[kind][0];
+    Object.assign(occupant, { x: 0, y: 15, z: 128 });
+    assert.equal(physicalOccupancyProblem(state), null, kind);
+    assert.equal(navigationStateProblem(state), null, kind);
+    cut(state, [0, 14, 128]);
+    assert.equal(
+      physicalOccupancyProblem(state),
+      "ground occupant lacks physical support",
+      kind,
+    );
+    assert.equal(
+      navigationStateProblem(state),
+      "ground occupant lacks physical support",
+      kind,
+    );
+  }
 });

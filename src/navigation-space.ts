@@ -229,8 +229,29 @@ function groundLotsProblem(
   return null;
 }
 
+/** Fixed content uses the same physical support rule during edits and restore. */
+function fixedGroundProblem(
+  state: Clearing,
+  spaces: ReturnType<typeof createNavigationSpaces>,
+): string | null {
+  const ground = spaces(null, "ground-support"),
+    profile = GROUND_POINT_PROFILE;
+  const occupants = [
+    ...state.rocks,
+    state.watcher,
+    ...state.trees,
+    ...state.herbs,
+    ...state.sources,
+  ];
+  for (const at of occupants)
+    if (standing(ground, at, profile) !== "supported")
+      return "ground occupant lacks physical support";
+  return null;
+}
+
 export function physicalOccupancyProblem(state: Clearing): string | null {
-  return bodiesProblem(state, createNavigationSpaces(state));
+  const spaces = createNavigationSpaces(state);
+  return fixedGroundProblem(state, spaces) ?? bodiesProblem(state, spaces);
 }
 
 export function navigationStateProblem(state: Clearing): string | null {
@@ -254,17 +275,5 @@ export function navigationStateProblem(state: Clearing): string | null {
   }
   if (state.cat.navigationProfile !== "small")
     return "current cat has an unsupported body profile";
-  const ground = spaces(null, "ground-support"),
-    profile = GROUND_POINT_PROFILE;
-  const occupants = [
-    ...state.rocks,
-    state.watcher,
-    ...state.trees,
-    ...state.herbs,
-    ...state.sources,
-  ];
-  for (const at of occupants)
-    if (standing(ground, at, profile) !== "supported")
-      return "ground occupant lacks physical support";
-  return bodiesProblem(state, spaces);
+  return fixedGroundProblem(state, spaces) ?? bodiesProblem(state, spaces);
 }

@@ -67,8 +67,8 @@ function accessCells(
   const depth = cell.liquidVolumeM3 / (spacing[0] * spacing[2]);
   const result: Cell[] = [];
   for (const y of [at.y, at.y + 1]) {
-    const reach = (y - at.y) * spacing[1] - depth;
-    if (reach < 0 || reach > FIELD_WATER.maxDrawReachM) continue;
+    const reach = Math.abs((y - at.y) * spacing[1] - depth);
+    if (reach > FIELD_WATER.maxDrawReachM) continue;
     // A covered cell cannot be reached from the level above its physical face.
     if (y > at.y && space.face("y", [at.x, y, at.z]) !== "open") continue;
     if (space.point([at.x, y, at.z]) !== "empty") continue;
