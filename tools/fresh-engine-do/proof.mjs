@@ -291,6 +291,11 @@ function formationMorale(snapshot, id) {
   return kernelScene(snapshot).initial.find((entry) => entry.id === id)
     ?.components["formations.morale"]?.value;
 }
+function formationSettings(snapshot) {
+  return kernelScene(snapshot).initial.find(
+    (entry) => entry.id === "formations.group.1",
+  )?.components["formations.settings"];
+}
 function formationRoutes(snapshot) {
   return JSON.parse(snapshot.snapshot.state.session.kernel.json).routes;
 }
@@ -518,13 +523,14 @@ async function runColonyProof(initial) {
   // The replay response is checked against a second replay; no second
   // physical tick or lot mutation is permitted by the region receipt.
   assert.deepEqual(await command(lostStep, "HOST_SECRET"), replay);
+  assert.deepEqual(await snapshot(), committed);
   revision = 2;
-  for (let tick = 0; tick < 180; tick++) {
+  for (let tick = 0; tick < 18; tick++) {
     const result = await dispatch(
       `colony-step-${tick}`,
       {
         kind: "step",
-        delta: 0.1,
+        delta: 1,
       },
       "HOST_SECRET",
     );
@@ -599,6 +605,7 @@ async function runFormationProof(initial) {
   const committed = await snapshot();
   assert.equal(committed.snapshot.revision, 3);
   assert.equal(formationMorale(committed, "formations.unit.1"), 80);
+  assert.equal(formationSettings(committed).retreatBelow, 90);
   assert.ok(
     formationRoutes(committed).length > 0,
     "formation route must be committed",
@@ -618,9 +625,13 @@ async function runFormationProof(initial) {
   );
   assert.equal(resumed.status, 200);
   const advanced = await snapshot();
-  assert.notDeepEqual(
-    formationPosition(advanced, "formations.unit.1"),
-    formationPosition(committed, "formations.unit.1"),
+  const beforePosition = formationPosition(committed, "formations.unit.1");
+  const afterPosition = formationPosition(advanced, "formations.unit.1");
+  const distanceToHome = (position) =>
+    Math.hypot(position.x + 4, position.z + 4);
+  assert.ok(
+    distanceToHome(afterPosition) < distanceToHome(beforePosition),
+    "threshold-90 retreat must continue toward home",
   );
   const observation = await checkObservation(advanced);
   return { initial, queued, committed, advanced, observation };
