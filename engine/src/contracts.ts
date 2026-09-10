@@ -12,6 +12,9 @@ export const RESERVED_COMPONENTS = [
   "hive.surface",
   "hive.obstacle",
   "hive.visual",
+  "hive.collider",
+  "hive.launcher",
+  "hive.projectile",
 ] as const;
 export const isReservedComponent = (id: string): boolean =>
   (RESERVED_COMPONENTS as readonly string[]).includes(id);
@@ -75,6 +78,8 @@ export type WriteIntent = {
   readonly value: unknown;
 };
 export type ActionRequest =
+  | { readonly kind: "launch"; readonly launcher: EntityId; readonly ammunition: EntityId; readonly velocity: Vec3 }
+  | { readonly kind: "displace"; readonly entity: EntityId; readonly delta: Vec3 }
   | {
       readonly kind: "move";
       readonly entity: EntityId;

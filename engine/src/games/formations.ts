@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { command, component, entity, query, system } from "../sdk/authoring";
-import { Destination, Position, encodeDefinition, move } from "../sdk/common";
+import { Destination, Position, MaterialLot, encodeDefinition, move } from "../sdk/common";
+import { Collider, Launcher, launch, displace } from "../sdk/combat";
 import type { EntityId, GamePack } from "../contracts";
 
 export const FormationMember = component<{ group: EntityId; slot: number }>(
@@ -10,6 +11,37 @@ export const FormationMember = component<{ group: EntityId; slot: number }>(
 export const Morale = component<{ value: number }>("formations.morale", {
   version: 1,
   fields: { value: "number" },
+});
+export const Health = component<{ value: number }>("formations.health", {
+  version: 1, fields: { value: "number" },
+});
+const cannonId = entity("formations.cannon");
+const ammunitionId = entity("formations.ammunition");
+export const cannonDamage = system({
+  id: "formations.cannon-damage", version: 1, consumesImpacts: true,
+  reads: [Health, Morale], writes: [Health, Morale],
+  run(ctx) {
+    const victims = new Map(ctx.query(query(Health, Morale)).map(row => [row.id, {
+      health: row.get(Health).value, morale: row.get(Morale).value,
+    }]));
+    const changed = new Set<EntityId>();
+    for (const impact of ctx.impacts) {
+      const victim = victims.get(impact.targetId);
+      if (!victim) continue;
+      victim.health = Math.max(0, victim.health - 20);
+      victim.morale = Math.max(0, victim.morale - 30);
+      changed.add(impact.targetId);
+      const speed = Math.hypot(impact.velocity.x, impact.velocity.z);
+      if (speed > 0) ctx.action(displace(impact.targetId, {
+        x: impact.velocity.x / speed * 0.75, y: 0, z: impact.velocity.z / speed * 0.75,
+      }));
+    }
+    for (const id of changed) {
+      const victim = victims.get(id)!;
+      ctx.write(Health, id, { value: victim.health });
+      ctx.write(Morale, id, { value: victim.morale });
+    }
+  },
 });
 export const FormationSettings = component<{
   facing: number;
@@ -37,6 +69,17 @@ export const formations = system({
 });
 const groupId = entity("formations.group.1");
 const formationInitial = [
+  { id: cannonId, components: {
+    "hive.position": { x: -3, y: 0, z: 0, facing: 0 },
+    "hive.container": { capacity: 6 },
+    "hive.visual": { sprite: "formation.cannon", label: "Timber cannon" },
+    "hive.launcher": { ammoKind: "iron-round", muzzleX: 0.9, muzzleY: 0.45, muzzleZ: 0,
+      maxSpeed: 12, projectileRadius: 0.22, maxRange: 20, maxLifetime: 4,
+      projectileSprite: "formation.cannonball", projectileLabel: "Iron round" },
+  } },
+  { id: ammunitionId, components: {
+    "hive.lot": { kind: "iron-round", quantity: 6, container: cannonId },
+  } },
   {
     id: groupId,
     components: {
@@ -54,6 +97,8 @@ const formationInitial = [
       "hive.visual": { sprite: "goblin.soldier", label: `Unit ${slot}` },
       "formations.member": { group: groupId, slot },
       "formations.morale": { value: 80 },
+      "formations.health": { value: 100 },
+      "hive.collider": { shape: "ball", radius: 0.5, halfX: 0, halfY: 0, halfZ: 0, yaw: 0 },
     },
   })),
 ];
@@ -65,10 +110,17 @@ export const formationsPack: GamePack = {
     Destination,
     FormationMember,
     Morale,
-    FormationSettings,
+    FormationSettings, Health, Collider, Launcher, MaterialLot,
   ],
-  systems: [formations],
+  systems: [cannonDamage, formations],
   commands: {
+    fire: command({ reads: [Launcher, MaterialLot], writes: [], run(context, raw) {
+      z.object({}).strict().parse(raw);
+      const cannon = context.query(query(Launcher)).find(row => row.id === cannonId);
+      const stock = context.query(query(MaterialLot)).find(row => row.id === ammunitionId)?.get(MaterialLot);
+      if (!cannon || !stock || stock.quantity < 1) throw new Error("No cannon rounds remain");
+      return { actions: [launch(cannonId, ammunitionId, { x: 8, y: 0, z: 0 })], writes: [] };
+    } }),
     march: command({
       reads: [FormationMember, FormationSettings],
       writes: [],
@@ -190,11 +242,12 @@ export const formationsPack: GamePack = {
   },
   definition: encodeDefinition(
     "formations",
-    [Position, Destination, FormationMember, Morale, FormationSettings],
+    [Position, Destination, FormationMember, Morale, FormationSettings, Health, Collider, Launcher, MaterialLot],
     formationInitial,
   ),
   presentation: {
     controls: [
+      { id: "fire-cannon", label: "Fire cannon", command: "fire", input: {} },
       {
         id: "facing-0",
         label: "Face north",
@@ -240,6 +293,8 @@ export const formationsPack: GamePack = {
         .query(query(Morale))
         .map((row) => row.get(Morale).value);
       return [
+        { id: "cannon-rounds", label: "Cannon rounds", value: context.query(query(MaterialLot)).find(row => row.id === ammunitionId)?.get(MaterialLot).quantity ?? 0 },
+        { id: "lowest-health", label: "Lowest health", value: Math.min(...context.query(query(Health)).map(row => row.get(Health).value)) },
         {
           id: "formation-facing",
           label: "Facing",

@@ -20,6 +20,16 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "launch":
+    case "displace": {
+      const launch = action.kind === "launch";
+      keys = launch ? ["kind", "launcher", "ammunition", "velocity"] : ["kind", "entity", "delta"];
+      const vector = action[launch ? "velocity" : "delta"] as Record<string, unknown> | null;
+      valid = (launch ? id(action.launcher) && id(action.ammunition) : id(action.entity)) &&
+        !!vector && typeof vector === "object" && !Array.isArray(vector) &&
+        Object.keys(vector).length === 3 && coordinate(vector.x) && coordinate(vector.y) && coordinate(vector.z);
+      break;
+    }
     case "move": {
       keys = ["kind", "entity", "destination", "facing"];
       const at = action.destination as Record<string, unknown> | null;

@@ -1,4 +1,5 @@
 import { component } from "./authoring";
+import { isReservedComponent } from "../contracts";
 import type {
   ActionRequest,
   ComponentDefinition,
@@ -96,17 +97,6 @@ export interface SceneEntity {
   readonly id: EntityId;
   readonly components: Readonly<Record<string, unknown>>;
 }
-const RESERVED = new Set([
-  "hive.position",
-  "hive.body",
-  "hive.container",
-  "hive.lot",
-  "hive.destination",
-  "hive.support",
-  "hive.surface",
-  "hive.obstacle",
-  "hive.visual",
-]);
 export const encodeDefinition = (
   game: string,
   components: readonly ComponentDefinition<any>[],
@@ -118,7 +108,7 @@ export const encodeDefinition = (
       version: 1,
       game,
       components: components
-        .filter((c) => !RESERVED.has(c.id))
+        .filter((c) => !isReservedComponent(c.id))
         .map((c) => ({ id: c.id, version: c.version, fields: c.fields })),
       initial,
     }),
