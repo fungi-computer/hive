@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel.ts";
+import { ROOM_FUEL } from "../world-presets/brewhouse-air/fuel-definition.ts";
 import { createBrewhouseAirProgram } from "../world-presets/brewhouse-air/region.ts";
 import {
   createLocalBrewhouseSession,

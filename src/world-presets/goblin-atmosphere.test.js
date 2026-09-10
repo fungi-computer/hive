@@ -63,3 +63,20 @@ test("fresh stock is an explicit caller operation and source positions resolve b
   assert.equal("initial" in field, false);
   assert.equal(owner.read(state).balance.carrierKg, 0);
 });
+
+test("geometry admission rejects accessors before reading them", () => {
+  let reads = 0;
+  const malformed = { ...geometry };
+  Object.defineProperty(malformed, "cells", {
+    enumerable: true,
+    get() {
+      reads++;
+      return geometry.cells;
+    },
+  });
+  assert.throws(
+    () => goblinAtmosphereFromGeometry(malformed, { regionId: "clearing" }),
+    /record|data/i,
+  );
+  assert.equal(reads, 0);
+});

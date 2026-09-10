@@ -20,13 +20,13 @@ import {
 import { generatedBrewhouseRoom } from "./generated-room.ts";
 import { ROOM_MIN_FIELD_INTERVAL_S } from "./room.ts";
 import {
-  ROOM_FUEL,
   roomMaterials,
   roomHearth,
   initialRoomMaterials,
   prepareRoomFuel,
   validateRoomFuel,
 } from "./fuel.ts";
+import { ROOM_FUEL } from "./fuel-definition.ts";
 
 const stateSchema = z.strictObject({
   version: z.literal("goblin-generated-warm-room-v1"),

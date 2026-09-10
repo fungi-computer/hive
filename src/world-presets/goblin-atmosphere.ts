@@ -6,7 +6,8 @@ import {
   type AtmosphereOpeningDefinition,
   type AtmosphereVolumeDefinition,
 } from "../engine/environment/atmosphere/index.ts";
-import { ROOM_FUEL } from "./brewhouse-air/fuel.ts";
+import { copyAtmosphereData } from "../engine/environment/atmosphere/data.ts";
+import { ROOM_FUEL } from "./brewhouse-air/fuel-definition.ts";
 
 export type GasCell = {
   readonly id: string;
@@ -147,7 +148,9 @@ export function goblinAtmosphereFromGeometry(
     readonly separatingFaceIds?: ReadonlySet<string>;
   },
 ) {
-  const snapshot = gasGeometrySchema.parse(input) satisfies GasGeometrySnapshot,
+  const snapshot = gasGeometrySchema.parse(
+      copyAtmosphereData(input),
+    ) satisfies GasGeometrySnapshot,
     cells = new Map<string, GasCell>(),
     components = new Components();
   for (const cell of snapshot.cells) {
