@@ -225,3 +225,13 @@ not a successful movement witness. Both scopes closed inactive/dead/empty and
 inverts the actual shared projection basis. u4954 passed all 225 signed clearing
 cell round trips in one authored law. Changed-client input confirmation remains
 pending; prior built bytes do not contain this correction.
+
+u4958 rebuilt ed9eed5 and passed the same bounded real survival selection,
+right-click Go, Pause and Save interaction: canonical position exactly
+{x:4,y:0,z:0}, page errors[]. King personally viewed the new walk-b.png;
+the stable viewport contains the world and selected survivor correctly.
+Scope inactive/dead/empty, port5197 clear. Earlier u4955 retained the destination
+failure before fixed viewport sizing; v1/v2 red images remain archived. These
+static captures prove placement, not subjective animation smoothness or network
+latency behavior. A following presentation-only correction rounds numeric HUD
+facts to one decimal without modifying simulation values; it is not in that build.

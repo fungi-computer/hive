@@ -20,6 +20,8 @@ import {
   formatCommandBindings,
 } from "@opentui/keymap/extras";
 
+const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+
 export function createHiveClient({
   root,
   mode,
@@ -182,7 +184,7 @@ export function createHiveClient({
                   React.createElement(
                     "div",
                     { key: fact.id },
-                    `${fact.label}: ${fact.value}`,
+                    `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`,
                   ),
                 ),
                 state.presentationControls.map((control) =>
