@@ -1,0 +1,40 @@
+# First cannon consumer: boundary before implementation
+
+King Bolete · September 10 · source readiness, not implemented combat.
+
+The native Action union currently has Move/Transfer/Consume. ActionResult has
+accepted/reason/revision only. GameSession.step expects one result per submitted
+action and gives those outcomes to authored systems on the following step.
+A projectile striking later cannot be represented honestly as another result
+for its earlier launch action. Keep admission results and later physical events
+separate; do not manufacture a second launch or settle damage in Pixi.
+
+The native owner should hold projectile position/velocity and collision shape;
+TypeScript supplies launch definitions and damage/morale policy. Existing Body
+contains speed only and is not a collision shape. Add an explicit collision
+capability for actual participants rather than assuming every Position collides.
+The first physical sweep must use world coordinates, including moving supports.
+A sprite's dimensions must not determine physics.
+
+Proposed step shape (requires review against a maintained collision library):
+
+    admit launch intent using finite ammunition and current ownership
+    integrate one bounded projectile interval
+    sweep its volume against eligible collider shapes
+    select earliest contact, using stable ID to break equal-time ties
+    settle projectile state and append an impact event once
+    commit world, event identity and command receipt together
+    next authored rule consumes the impact and applies game damage/morale
+
+A launch must not consume ammo and then lose its projectile to failed creation.
+Detached candidate rollback covers both. Impact-event identity, consumption
+frontier and pending authored consequences must survive current save/restart.
+Do not append impact events to the positional action-results array. No unbounded
+event history in every frame; renderer sees bounded committed projection.
+
+Acceptance for the first shot: crossing a body between samples still hits;
+nearest obstruction wins; miss stays a miss; launch retry spends one unit;
+save/restart between launch and impact preserves flight; replayed impact causes
+one game consequence; browser shows that physical trajectory. Ballistic accuracy,
+ricochet and fleets are later decisions. Rapier/Parry adoption requires actual
+API/runtime inspection and this consumer, not a speculative dependency addition.
