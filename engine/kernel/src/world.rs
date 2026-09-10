@@ -27,8 +27,8 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
         (cell.2 as f64 - 0.5, cell.2 as f64 + 0.5),
     ];
     let coordinates = [(start.x, end.x), (start.z, end.z)];
-    let mut minimum = 0.0;
-    let mut maximum = 1.0;
+    let mut minimum: f64 = 0.0;
+    let mut maximum: f64 = 1.0;
     for (axis, (from, to)) in coordinates.into_iter().enumerate() {
         let delta = to - from;
         if delta.abs() <= f64::EPSILON {

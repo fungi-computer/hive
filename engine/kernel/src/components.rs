@@ -235,7 +235,7 @@ pub struct ActionResult {
     #[serde(rename = "projectileId", skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
     pub revision: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "projectileId", skip_serializing_if = "Option::is_none")]
     pub projectile_id: Option<String>,
 }
 pub fn valid_id(s: &str) -> bool {
