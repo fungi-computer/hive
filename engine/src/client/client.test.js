@@ -53,8 +53,10 @@ test("typing guard recognizes editable controls", () => {
 test("content visual bindings keep pirate art out of the renderer defaults", () => {
   assert.equal(DEFAULT_VISUAL_BINDINGS["pirate.ship"], undefined);
   assert.deepEqual(PIRATE_VISUAL_BINDINGS["pirate.deck-obstacle"], {
-    kind: "container",
-    key: "shelf",
+    kind: "static",
+    path: ["buildings", "shelf", "finished", 0],
+    facing: false,
+    anchor: "propAnchor",
   });
-  assert.equal(PIRATE_VISUAL_BINDINGS["pirate.ship"].key, "ship");
+  assert.deepEqual(PIRATE_VISUAL_BINDINGS["pirate.ship"].path, ["vehicles", "ship"]);
 });

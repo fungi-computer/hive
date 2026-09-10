@@ -1,5 +1,5 @@
 import "./client.css";
-import { PIRATE_VISUAL_BINDINGS } from "./visual-bindings.js";
+import { PIRATE_VISUAL_BINDINGS, CANNON_VISUAL_BINDINGS } from "./visual-bindings.js";
 import "@fungi.computer/caps/styles.css";
 import "@fungi.computer/stipe/fonts.css";
 import { createHiveClient } from "./client.js";
@@ -32,6 +32,7 @@ const configs = {
     source: "./source/survival.ts",
   },
   formations: {
+    visualBindings: CANNON_VISUAL_BINDINGS,
     title: "Formations",
     orderCommand: "march",
     subtitle:
