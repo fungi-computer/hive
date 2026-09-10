@@ -6,9 +6,22 @@ import { connectBrowserRuntime } from "../runtime/browser-client.js";
 
 const mode = document.body.dataset.mode || "hub";
 const configs = {
-  colony: { title: "Colony", subtitle: "Select workers and send a shared delivery order.", source: "./source/colony.ts" },
-  survival: { title: "Survival", subtitle: "One survivor, one body, and direct actions through the same client.", source: "./source/survival.ts" },
-  formations: { title: "Formations", subtitle: "Select a group, set a destination, and practice a morale rule.", source: "./source/formations.ts" },
+  colony: {
+    title: "Colony",
+    subtitle: "Select workers and send a shared delivery order.",
+    source: "./source/colony.ts",
+  },
+  survival: {
+    title: "Survival",
+    subtitle:
+      "One survivor, one body, and direct actions through the same client.",
+    source: "./source/survival.ts",
+  },
+  formations: {
+    title: "Formations",
+    subtitle: "Select a group, set a destination, and practice a morale rule.",
+    source: "./source/formations.ts",
+  },
 };
 const root = document.querySelector("#hive-app");
 const queryMode = new URLSearchParams(location.search).get("game");
