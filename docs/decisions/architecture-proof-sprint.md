@@ -83,9 +83,8 @@ prove earned construction.
 Shallow wading621de12 is reviewed and integrated as2a24c20: ordinary workers allow
 0.25m and cats0.05m through the shared body/profile/access owner, including carried
 loads and swept body clearance. Deeper or overhead water still blocks new routes;
-existing paid traversal retains progress when it must wait. The source is not yet
-qualified. Its authored field stock/query fixtures do not prove paired material/air
-or earned seepage. Deeper drainage and two earned underground chambers remain
+existing paid traversal retains progress when it must wait. Its four affected traversal laws passed in u4717. Those authored field
+stock/query fixtures do not prove paired material/air or earned seepage. Deeper drainage and two earned underground chambers remain
 unproved, and stone ground/carry art is still a concrete presentation gap.
 
 Root retains integration, numerical decisions, original art acceptance and actual
@@ -102,7 +101,7 @@ remain before the playable goal can be complete.
 The next reviewed source join at `18ac52d` adds two distinct fixes. The opt-in
 client recorder captures bounded actual step/HUD/view elapsed spans and Pixi
 submission gaps through the existing ticker; it has no separate clock or saved
-authority. Its four laws are authored, not run, and no performance number follows
+authority. Its four recorder laws passed u4717; no performance number follows
 from instrumentation. The paid-room measurement needs an already-loaded valid
 checkpoint and public unpause; ordinary Reset stops capture. Root and Ampere
 reviewed ticker order, retention and the corrected single terminal timestamp.
@@ -119,8 +118,26 @@ candidate still needs actual work, material, water and movement qualification.
 The earlier clean `341b772` fifteen-law packet was withdrawn unstarted. One
 reviewed `efd5ca9` replacement combines those laws with the new roofed-step law,
 two affected eye-occlusion laws and four recorder laws: twenty-two total, followed
-by independently recorded strict types, diff and touched Fallow. It remains
-stopped pending its actual shared-host release; no old run has been replayed.
+by independently recorded strict types, diff and touched Fallow. It ran once as
+u4717 (exec48384, invocation1525b6f3eb53427f9bd4e57b9c7e096a): all22 laws
+passed in220.55s, strict app types exited2, diff passed and touched Fallow exited1.
+The collected terminal exited1 and fresh scope readback is inactive/dead/empty;
+the actual shared slot was returned. No old run was replayed. The paid-brewing
+law took62.14s and the authored-layout law113.65s; these are fixture durations,
+not whole-game tick/frame or capacity measurements. Do not replay those passed
+laws solely to repair imports or type declarations. Evidence and CLOSURE.json
+remain in playable-joined-qualification/.botanical/playable-joined/qualification-v1.
+
+The first correction is integrated as242ad5c/ba734a5, byte-equal to reviewed
+a69ae71/a0cc974: missing current terrain import, stable paid-fuel primitives,
+explicit generator input and water fact types at their shared engine producer.
+No compatibility exports, solver changes or duplicate game fact schema remain.
+Strict qualification still awaits the coupled retained room caller correction;
+the old room imported a retired terrain-owned water clock/removal ledger. That
+consumer must use current shared water/removal owners and explicitly remain a
+dry fixed-volume study. Main Clearing already owns paired water/atmosphere.
+Its study correction and actual audit disposition do not establish acceptance.
+The22-law pass, failed types/audit and unchanged live game remain separate facts.
 Original loose/carried stone source `43e4805` is isolated in excavation-art.
 Its new stone textures are absent from the current static bank, so it must not
 join the playable caller until a changed-source export and personal visual review.
