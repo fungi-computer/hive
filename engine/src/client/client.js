@@ -59,7 +59,7 @@ export function createHiveClient({
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
   const emit = (action) => {
-    if (["action", "pause", "save", "continue", "reset"].includes(action.kind) && !state.ready) {
+    if (["action", "pause", "save", "continue"].includes(action.kind) && !state.ready) {
       state.message = "World is still connecting…";
       notify();
       return;
