@@ -1,0 +1,62 @@
+# Shared client to durable worlds
+
+King Bolete · September 10 · next source boundary after the four-game release.
+
+The live d3b914a client uses `runtime/browser-client.ts`: its interval sends
+`step` to a local Worker. That is valid local authority. It must not become the
+online clock. `runtime/region-program.ts` already separates player commands from
+host-only step and rebuilds a detached candidate for each committed operation.
+`tools/fresh-engine-do` proves this with actual native SQLite restart/replay.
+It is a protected test host, not a public game service.
+
+## Reuse and changes
+
+Keep `RuntimeConnection`'s send/subscribe/dispose shape and the shared client.
+Rename transport-neutral command/event types out of `worker.ts` when adding the
+second consumer; do not duplicate them. Local mode keeps Worker ownership.
+Online mode forwards admitted intent, observes committed frames and never runs a
+second GameSession. Client interpolation stays cosmetic.
+
+The server chooses the immutable game pack and owns world identity, revision,
+clock and reset/restore permission. Never forward browser `step`, arbitrary pack
+bytes, proof secrets or the harness fault endpoint. A browser save is an export,
+not permission to overwrite someone else's world. The online Continue operation
+reopens the authorized world; local Continue continues to restore local saves.
+Expose that semantic difference honestly in the shared UI.
+
+Initial server implementation should use the existing Region commit owner and
+GameSession, not WorkerRuntime plus a second independent mutable world. Produce
+render and presentation facts from the committed session through one bounded
+projection owner. A failed commit cannot publish candidate frames. Keep a
+rebuildable projection cache by committed revision; invalidate on commit failure.
+
+Store command identity and its exact payload before acknowledging admission.
+A connection retry reuses that identity, never creates a new physical command.
+Revision conflict refreshes observations; it does not silently reissue a command
+with a different expected revision. Server-produced frame sequence and epoch
+must survive reconnect interpretation without making old packets look fresh.
+
+## Clock and sleep
+
+Only the host admits step. While active, schedule bounded fixed steps and cap
+catch-up; do not turn every render frame into a SQLite transaction. Select the
+actual batching interval from a measured moving fixture. The durable wake and
+next due work must share the owner transaction; an in-memory timer alone cannot
+acknowledge future work. Sleeping and explicit pause remain distinct. No global
+tick barrier, infinite catch-up, or million-player capacity claim follows.
+
+## First online consumer and authority
+
+One DO class can host all four authored examples, each with its own world and
+pack identity. Browser-local mode remains available. Before public deployment,
+settle the ordinary host's visitor-to-world authorization using the existing
+Fungi App/customer boundary; do not borrow Team credentials or expose global
+account IDs. Local host qualification can use generated harness principals
+without claiming this public join exists. No new public backend deployment is
+part of the static four-game release.
+
+Acceptance: two connections observing one authorized world see the same commit;
+an unauthorized connection cannot read/reset it; a lost response replays its
+receipt; restart resumes bounded host time without duplicate material effects;
+shared controls render actual committed frames. The current u5008 proves native
+restart/replay for the raft, not this complete networked-client outcome.
