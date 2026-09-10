@@ -6,6 +6,8 @@ import { check, freeze, copyData } from "./geometry.mjs";
 import { compensatedSum as sum } from "../arithmetic.mjs";
 
 const VERSION = "finite-voxel-water-v1";
+/** @typedef {Readonly<{id: string, at: readonly [number, number, number], kind: "soil" | "void", massKg: number, capacityKg: number, mobileKg: number, liquidVolumeM3: number, moisture: number}>} WaterCell */
+/** @typedef {Readonly<{totalKg: number, residualKg: number, initialTotalKg: number, boundaryKg: number, cells: readonly WaterCell[]}>} WaterFacts */
 function validate(g, state) {
   record(
     state,
@@ -87,6 +89,7 @@ export function stateAdmission(g) {
     },
   };
 }
+/** @returns {WaterFacts} */
 export function waterFacts(g, state) {
   const balance = validate(g, state);
   return freeze({

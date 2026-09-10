@@ -3,6 +3,7 @@ import { encode, decode } from "../../engine/region/codec.ts";
 import { createWater } from "../../engine/environment/water/index.js";
 import { freeze } from "../../engine/environment/water/geometry.mjs";
 import { createStructureGeometry } from "../../structure-environment.ts";
+import type { waterFacts as readWaterFacts } from "../../engine/environment/water/state.mjs";
 import type { goblinTerrainProjection } from "./terrain-projection.ts";
 import { GOBLIN_ENVIRONMENT_BOUNDS, GOBLIN_WATER_LIMITS } from "./content.ts";
 import {
@@ -84,25 +85,9 @@ function binding(
   };
 }
 type Binding = ReturnType<typeof binding>;
-export type WaterEnvironmentCell = Readonly<{
-  readonly id: string;
-  readonly at: readonly [number, number, number];
-  readonly kind: "soil" | "void";
-  readonly massKg: number;
-  readonly capacityKg: number;
-  readonly mobileKg: number;
-  readonly liquidVolumeM3: number;
-  readonly moisture: number;
-}>;
-export type WaterEnvironmentFacts = Readonly<{
-  readonly totalKg: number;
-  readonly residualKg: number;
-  readonly initialTotalKg: number;
-  readonly boundaryKg: number;
-  readonly cells: readonly WaterEnvironmentCell[];
-}>;
+type WaterFacts = ReturnType<typeof readWaterFacts>;
 const admitted = new WeakMap<WaterEnvironment, Binding>();
-const observations = new WeakMap<WaterEnvironment, WaterEnvironmentFacts>();
+const observations = new WeakMap<WaterEnvironment, WaterFacts>();
 function remember(value: WaterEnvironment, bound: Binding): WaterEnvironment {
   const state = freeze(value) as WaterEnvironment;
   admitted.set(state, bound);
@@ -181,11 +166,11 @@ function current(input: WaterEnvironment, source: EnvironmentGeometry) {
 export function waterEnvironmentFacts(
   input: WaterEnvironment,
   source: EnvironmentGeometry,
-): WaterEnvironmentFacts {
+): WaterFacts {
   const { state, bound } = current(input, source);
   let facts = observations.get(state);
   if (!facts) {
-    const readFacts: WaterEnvironmentFacts = bound.owner.read(state.water);
+    const readFacts: WaterFacts = bound.owner.read(state.water);
     facts = readFacts;
     observations.set(state, facts);
   }
