@@ -70,7 +70,7 @@ test("pirate crew route stays on the ship frame and rejects mixed-frame movement
           entities: [chestId],
           destination: { x: 1, y: 1, z: 1, frame: shipId },
         }),
-      /only crew/,
+      /matching frame/,
     );
     assert.throws(
       () =>

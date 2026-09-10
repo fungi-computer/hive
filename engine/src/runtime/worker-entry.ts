@@ -1,6 +1,7 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { WorkerRuntime, type WorkerCommand, type WorkerEvent } from "./worker";
 import { wasmKernelPort, type WasmKernelBinding } from "./wasm-kernel";
+import { piratesPack } from "../games/pirates";
 import { colonyPack } from "../games/colony";
 import { survivalPack } from "../games/survival";
 import { formationsPack } from "../games/formations";
@@ -32,6 +33,7 @@ export async function bootGeneratedWorker(
 ): Promise<WorkerRuntime> {
   const kernel = wasmKernelPort(binding);
   return installWorkerRuntime(scope, kernel, {
+    pirates: piratesPack,
     colony: colonyPack,
     survival: survivalPack,
     formations: formationsPack,

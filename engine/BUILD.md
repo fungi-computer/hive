@@ -275,3 +275,12 @@ King personally viewed the four facings in the nearest-neighbor contact sheet
 small sail; no full sailing-ship claim. This accepts original sprite appearance,
 not crew depth ordering or game interaction. Existing v1 bank remains preserved
 for the previously published consumer. Pirate client composition is still open.
+
+## Pirate authored consumer — u4986
+
+Three new actual WASM laws pass: vessel carries crew without changing local
+coordinates; crew routes remain on their support and reject invalid selections;
+finite cargo reaches a distinct hold and saves/restores exactly. The runner also
+reports five empty filtered file wrappers; these are not five additional laws.
+Strict engine TypeScript passed. No browser/native-DO qualification of this new
+pack is claimed. Shared client vessel rendering is in its isolated writer lane.

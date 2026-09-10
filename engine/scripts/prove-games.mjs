@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 await mkdir(".botanical/fresh-game-laws", { recursive: true });
 await build({
   entryPoints: {
+    "pirates.test": "engine/src/games/pirates.test.ts",
     "session.test": "engine/src/runtime/session.test.ts",
     "games.test": "engine/src/runtime/games.test.ts",
     "presentation.test": "engine/src/presentation.test.ts",
@@ -21,6 +22,7 @@ const result = spawnSync(
   [
     "--test",
     ...process.argv.slice(2),
+    ".botanical/fresh-game-laws/pirates.test.mjs",
     ".botanical/fresh-game-laws/session.test.mjs",
     ".botanical/fresh-game-laws/games.test.mjs",
     ".botanical/fresh-game-laws/presentation.test.mjs",

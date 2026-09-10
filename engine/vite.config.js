@@ -43,7 +43,7 @@ export default defineConfig({
     outDir: resolve(repository, "dist/engine"),
     emptyOutDir: true,
     rollupOptions: {
-      input: Object.fromEntries(["index", "colony", "survival", "formations"].map(name => [name, resolve(engine, `${name}.html`)])),
+      input: Object.fromEntries(["index", "colony", "survival", "formations", "pirates"].map(name => [name, resolve(engine, `${name}.html`)])),
     },
   },
 });
