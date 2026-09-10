@@ -59,3 +59,17 @@ test("original atlas directions match movement and physics quarter-turn headings
     assert.equal(walking[0].walking, true);
   }
 });
+
+
+test("passive ship motion leaves crew idle while local walking animates", () => {
+  const clock = createAnimationClock();
+  const crew = (x, localX, facing = 0) => ({
+    ...actor("crew", x, 0, facing), support: "ship",
+    local: {position: {x: localX,y: 1,z: 0},facing: 0},
+  });
+  clock.sample([crew(10,0)], {now: 0,sequence: 1});
+  assert.equal(clock.sample([crew(20,0,1)], {now: 100,sequence: 2})[0].walking,false);
+  const walked = clock.sample([crew(20,1,1)], {now: 200,sequence: 3})[0];
+  assert.equal(walked.walking,true);
+  assert.equal(walked.direction,0);
+});

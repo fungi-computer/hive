@@ -44,8 +44,13 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
         }
         const previous = history.get(subject.id);
         const repeated = sequence !== undefined && previous?.sequence === sequence;
-        const dx = previous ? subject.x - previous.x : 0;
-        const dz = previous ? subject.z - previous.z : 0;
+        const local = subject.local?.position ?? subject;
+        const sameSupport = previous?.support === subject.support;
+        const localDx = previous && sameSupport ? local.x - previous.x : 0;
+        const localDz = previous && sameSupport ? local.z - previous.z : 0;
+        const rotation = subject.local ? (subject.facing - subject.local.facing) * Math.PI / 2 : 0;
+        const dx = Math.cos(rotation) * localDx - Math.sin(rotation) * localDz;
+        const dz = Math.sin(rotation) * localDx + Math.cos(rotation) * localDz;
         const moved = Boolean(
           previous && (Math.abs(dx) > EPSILON || Math.abs(dz) > EPSILON),
         );
@@ -59,7 +64,7 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
             : Math.floor(phase / (frameMs * 4)),
         };
         sampled.push(state);
-        history.set(subject.id, { x: subject.x, y: subject.y, z: subject.z, sequence });
+        history.set(subject.id, { x: local.x, y: local.y, z: local.z, support: subject.support, sequence });
         states.set(subject.id, state);
       }
       return sampled;

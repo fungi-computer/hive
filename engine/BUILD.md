@@ -250,3 +250,17 @@ walking goblins, actual-projection picking, stable viewport, concise needs facts
 selected two-worker colony delivery and TS fatigue exercise. Native assignment
 remains Rust. It is still browser Worker/WASM authority; pirate/native support
 WIP and hosted DO multiplayer are not part of this release.
+
+### Moving-support native/WASM caller checkpoint
+
+Native140e12c u4975 passed14 kernel integration laws, including moving-deck
+obstacle routing, resolved contact and exact mid-voyage cargo/route restore.
+Earlier u4967 compile errors are retained, corrected rather than called passing.
+Joined root u4978 built WASM SHA256
+a082c65c1200a28faf046f033062953daf94d69c73483b849296ffcfc63af09b;
+strict TS initially found an authoring-test context gap and Surface export name
+collision. Root corrected these, then u4980 strict types passed, six animation
+laws passed (including passive ship motion stays idle), and six authored
+world-pose/colony laws passed on actual new WASM. Filtered file wrappers are not
+additional laws. Snapshot format2 now preserves remaining route progress.
+No new DO restart or hosted pirate claim. Public source7cea479 remains unchanged.

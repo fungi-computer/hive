@@ -31,7 +31,7 @@ export interface Pose {
 export interface WorldPosition extends Vec3 {
   readonly facing: number;
 }
-export interface Surface {
+export interface SupportSurface {
   readonly minX: number;
   readonly maxX: number;
   readonly minZ: number;
@@ -43,7 +43,7 @@ export interface WorldPose {
   readonly local: WorldPosition;
   readonly world: WorldPosition;
   readonly support: EntityId | null;
-  readonly surface: Surface | null;
+  readonly surface: SupportSurface | null;
 }
 
 export interface ComponentDefinition<T extends object> {
@@ -152,7 +152,7 @@ export interface RenderFact {
   readonly pose?: Pose;
   readonly local?: WorldPosition;
   readonly support?: EntityId | null;
-  readonly surface?: Surface | null;
+  readonly surface?: SupportSurface | null;
   readonly visual?: string;
   readonly label?: string;
   readonly selected?: boolean;

@@ -36,6 +36,7 @@ export function authoringContractProof(): void {
     outcomes: [],
     query: () => [],
     assign: () => [],
+    worldPoses: () => [],
     write: (...args) => writes.push(args),
     action: () => {},
   });
