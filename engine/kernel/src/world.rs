@@ -1619,11 +1619,11 @@ mod lot_water_tests {
 
     #[test]
     fn invalid_water_reference_and_mass_are_rejected_on_load_and_restore() {
-        let orphan = scene(None, 10).replace(
-            "\"hive.lot\":{\"kind\":\"water-lot\",\"quantity\":4,\"container\":\"source\"}",
-            "\"hive.lot-water\":{\"waterKg\":1.0}",
-        );
-        assert!(Kernel::new().load(&orphan).is_err());
+        let mut orphan: Value = serde_json::from_str(&scene(None, 10)).unwrap();
+        let components = orphan["initial"][2]["components"].as_object_mut().unwrap();
+        assert!(components.remove("hive.lot").is_some());
+        components.insert("hive.lot-water".into(), json!({"waterKg":1.0}));
+        assert!(Kernel::new().load(&orphan.to_string()).is_err());
         assert!(Kernel::new().load(&scene(Some(json!({"waterKg":-1.0})), 10)).is_err());
         assert!(Kernel::new().load(&scene(Some(json!({"waterKg":8.0})), 10).replace("\"quantity\":4", "\"quantity\":0")).is_err());
         let mut kernel = Kernel::new();
