@@ -1,5 +1,6 @@
 //! Deterministic, bounded world source. It produces immutable facts only.
 
+use serde_json;
 use std::f64::consts::PI;
 
 pub const GENERATOR_VERSION: &str = "world-lab-terrain-height-sea-v5-native-1";
@@ -212,7 +213,9 @@ impl<'a> WorldSpec<'a> {
         {
             return Err("material slots must be distinct");
         }
-        let full = format!("{}:{}:{}", GENERATOR_VERSION, self.identity, self.seed);
+        let recipe = serde_json::to_string(&(GENERATOR_VERSION, self.identity, self.seed))
+            .map_err(|_| "world identity encoding failed")?;
+        let full = recipe.clone();
         let height_prefix = hash_string(&format!("{}|", full), 2_166_136_261);
         let cave_prefix = hash_string(
             &format!(
@@ -232,20 +235,21 @@ impl<'a> WorldSpec<'a> {
             coast_phase: noise2(height_prefix, 0.0, 0.0, "coast-phase") * PI * 2.0,
             ridge_phase: noise2(height_prefix, 0.0, 0.0, "ridge-phase") * PI * 2.0,
             canyon_phase: noise2(height_prefix, 0.0, 0.0, "canyon-phase") * PI * 2.0,
-            binding: format!(
-                "{}|bounds:{},{},{},{},{},{}|metric:{:.17}|slots:{},{},{}",
-                full,
-                self.bounds.min_x,
-                self.bounds.max_x,
-                self.bounds.min_y,
-                self.bounds.max_y,
-                self.bounds.min_z,
-                self.bounds.max_z,
-                self.vertical_metres,
-                self.slots.air,
-                self.slots.soil,
-                self.slots.stone
-            ),
+            binding: serde_json::to_string(&(
+                recipe,
+                (
+                    self.bounds.min_x,
+                    self.bounds.max_x,
+                    self.bounds.min_y,
+                    self.bounds.max_y,
+                    self.bounds.min_z,
+                    self.bounds.max_z,
+                ),
+                self.sea_level,
+                self.vertical_metres.to_bits(),
+                (self.slots.air, self.slots.soil, self.slots.stone),
+            ))
+            .map_err(|_| "world binding encoding failed")?,
         })
     }
 }

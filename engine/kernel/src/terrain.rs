@@ -4,7 +4,8 @@
 //! sparse replacements durable and a bounded rebuildable page cache.
 
 use crate::generation::{BRICK_SIDE, Cell, CompiledWorld, GENERATOR_VERSION};
-use serde::{Deserialize, Serialize};
+use serde::de::{SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
@@ -63,7 +64,7 @@ struct TerrainSave {
     generator_version: String,
     binding: String,
     revision: u64,
-    edits: Vec<EditRecord>,
+    edits: BoundedEdits,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -72,6 +73,36 @@ struct EditRecord {
     y: i32,
     z: i64,
     slot: u16,
+}
+
+#[derive(Serialize)]
+struct BoundedEdits(Vec<EditRecord>);
+impl<'de> Deserialize<'de> for BoundedEdits {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct EditsVisitor;
+        impl<'de> Visitor<'de> for EditsVisitor {
+            type Value = BoundedEdits;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("at most 65536 terrain edits")
+            }
+            fn visit_seq<A: SeqAccess<'de>>(
+                self,
+                mut sequence: A,
+            ) -> Result<Self::Value, A::Error> {
+                let mut edits = Vec::with_capacity(sequence.size_hint().unwrap_or(0).min(65_536));
+                while let Some(edit) = sequence.next_element()? {
+                    if edits.len() >= 65_536 {
+                        return Err(serde::de::Error::custom(
+                            "terrain edit count exceeds absolute bound",
+                        ));
+                    }
+                    edits.push(edit);
+                }
+                Ok(BoundedEdits(edits))
+            }
+        }
+        deserializer.deserialize_seq(EditsVisitor)
+    }
 }
 
 pub struct TerrainOwner {
@@ -126,7 +157,7 @@ impl TerrainOwner {
             || max_pages > 32
             || max_edits == 0
             || max_edits > 65_536
-            || max_bytes < 256
+            || max_bytes == 0
             || max_bytes > 1_048_576
         {
             return Err("terrain bounds out of range");
@@ -159,6 +190,16 @@ impl TerrainOwner {
         let binding_json_len = serde_json::to_string(&binding_text)
             .map_err(|_| "terrain binding encoding failed")?
             .len();
+        let empty_size = b"{\"version\":1,\"generator_version\":\"".len()
+            + GENERATOR_VERSION.len()
+            + b"\",\"binding\":".len()
+            + binding_json_len
+            + b",\"revision\":".len()
+            + 1
+            + b",\"edits\":[]}".len();
+        if max_bytes < empty_size {
+            return Err("terrain byte budget cannot represent empty state");
+        }
         Ok(Self {
             generator,
             binding: Arc::from(binding_text),
@@ -258,7 +299,7 @@ impl TerrainOwner {
         let end_x = page.x.checked_add(16).ok_or("page coordinate overflow")?;
         let end_y = page.y.checked_add(16).ok_or("page coordinate overflow")?;
         let end_z = page.z.checked_add(16).ok_or("page coordinate overflow")?;
-        let mut values = (*self.page_values(page)?).clone();
+        let mut values = Box::new((*self.page_values(page)?).clone());
         for (cell, slot) in self.edits.iter() {
             if cell.x >= page.x
                 && cell.x < end_x
@@ -308,7 +349,7 @@ impl TerrainOwner {
             removed: current,
             cell_volume_m3: self.generator_cell_metric(),
             binding: self.binding.clone(),
-            owner_token: self.owner_token,
+            owner_token: self.owner_token.clone(),
         }))
     }
     pub fn prepare_excavation(
@@ -420,7 +461,7 @@ impl TerrainOwner {
             generator_version: GENERATOR_VERSION.to_owned(),
             binding: self.binding.to_string(),
             revision: self.revision,
-            edits,
+            edits: BoundedEdits(edits),
         };
         let bytes = serde_json::to_vec(&save).map_err(|_| "terrain save encoding failed")?;
         if bytes.len() > self.max_bytes {
@@ -432,13 +473,6 @@ impl TerrainOwner {
         if bytes.len() > self.max_bytes {
             return Err("terrain save exceeds byte budget");
         }
-        let encoded_edit_markers = bytes
-            .windows(4)
-            .filter(|window| *window == b"\"x\":")
-            .count();
-        if encoded_edit_markers > self.max_edits {
-            return Err("terrain edit count exceeds budget");
-        }
         let save: TerrainSave =
             serde_json::from_slice(bytes).map_err(|_| "invalid terrain save")?;
         if save.version != TERRAIN_STATE_VERSION
@@ -447,13 +481,13 @@ impl TerrainOwner {
         {
             return Err("unsupported terrain save binding");
         }
-        if save.edits.len() > self.max_edits {
+        if save.edits.0.len() > self.max_edits {
             return Err("terrain edit count exceeds budget");
         }
         let mut found = BTreeSet::new();
         let mut checked = BTreeMap::new();
         let mut checked_bytes = 0usize;
-        for edit in save.edits {
+        for edit in save.edits.0 {
             let cell = Cell {
                 x: edit.x,
                 y: edit.y,
@@ -465,7 +499,9 @@ impl TerrainOwner {
             if !self.generator.contains_cell(cell) {
                 return Err("terrain edit outside bounds");
             }
-            checked_bytes = checked_bytes.saturating_add(Self::edit_entry_bytes(cell, edit.slot));
+            checked_bytes = checked_bytes
+                .checked_add(Self::edit_entry_bytes(cell, edit.slot))
+                .ok_or("terrain edit bytes overflow")?;
             checked.insert(cell, edit.slot);
         }
         if self.encoded_size(save.revision, checked_bytes, checked.len()) > self.max_bytes {
@@ -658,5 +694,36 @@ mod tests {
             let _ = terrain.query(Cell { x, y: -1, z: 0 });
         }
         assert!(terrain.cache_len() <= 4);
+    }
+    #[test]
+    fn encoded_size_matches_export_for_empty_and_negative_edits() {
+        let mut terrain = owner();
+        assert_eq!(
+            terrain.export().unwrap().len(),
+            terrain.encoded_size(0, 0, 0)
+        );
+        let first = Cell {
+            x: -1,
+            y: -2,
+            z: -3,
+        };
+        terrain.edits.insert(first, 1);
+        terrain.edit_bytes = TerrainOwner::edit_entry_bytes(first, 1);
+        assert_eq!(
+            terrain.export().unwrap().len(),
+            terrain.encoded_size(0, terrain.edit_bytes, 1)
+        );
+        let second = Cell {
+            x: -16,
+            y: -17,
+            z: -18,
+        };
+        terrain.edits.insert(second, 2);
+        terrain.edit_bytes += TerrainOwner::edit_entry_bytes(second, 2);
+        terrain.revision = 9;
+        assert_eq!(
+            terrain.export().unwrap().len(),
+            terrain.encoded_size(9, terrain.edit_bytes, 2)
+        );
     }
 }
