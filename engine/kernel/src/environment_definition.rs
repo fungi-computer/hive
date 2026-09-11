@@ -461,4 +461,22 @@ pub(crate) mod tests {
         assert!(kernel.environment_facts_json().is_err());
     }
 
+    #[test]
+    fn initial_surface_placement_rejects_stale_excavation_work() {
+        use serde_json::json;
+        let mut definition: serde_json::Value = serde_json::from_str(&fixture("placement-work")).unwrap();
+        definition["initialPlacements"] = json!([{ "entity":"actor", "column":[0, 0] }]);
+        let mut kernel = crate::Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"placement", "components":[],
+            "initial":[{"id":"actor","components":{
+                "hive.position":{"x":0,"y":0,"z":0,"facing":0},
+                "hive.body":{"speed":1}, "hive.container":{"capacity":2},
+                "hive.excavation-work":{"x":0,"y":0,"z":0,"expected":1,"replacement":0,"seconds":1}
+            }}]
+        }).to_string()).unwrap();
+        assert!(kernel.load_environment(&definition.to_string()).is_err());
+        assert!(kernel.environment_facts_json().is_err());
+    }
+
 }

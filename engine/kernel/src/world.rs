@@ -751,30 +751,31 @@ impl Kernel {
         let entities: Vec<_> = placements.iter().map(|placement| {
             let entity = self.entity(&placement.entity)?;
             if self.ecs.get::<Support>(entity).is_some() || self.ecs.get::<Destination>(entity).is_some()
-                || self.ecs.get::<Surface>(entity).is_some() || self.routes.contains_key(&entity) || self.direct.contains_key(&entity)
+                || self.ecs.get::<Surface>(entity).is_some() || self.ecs.get::<ExcavationWork>(entity).is_some()
+                || self.routes.contains_key(&entity) || self.direct.contains_key(&entity)
             {
-                return Err("initial placement entity has support, surface, or active route".into());
+                return Err("initial placement entity has support, surface, excavation, or active route".into());
             }
             let position = *self.ecs.get::<Position>(entity).ok_or("initial placement entity has no position")?;
             Ok((placement.entity.clone(), position, self.ecs.get::<Traversal>(entity).copied(), placement.column))
         }).collect::<Result<Vec<_>>>()?;
-        let environment = self.environment.as_mut().ok_or("initial placement needs environment")?;
         let columns: Vec<_> = entities.iter().map(|(_, _, _, column)| (column[0], column[1])).collect();
-        let mut surfaces = Vec::with_capacity(columns.len());
-        for batch in columns.chunks(64) { surfaces.extend(environment.world.surface_cells(batch)?); }
-        if surfaces.len() != entities.len() { return Err("initial placement surface count mismatch".into()); }
-        let spacing = environment.world.cell_spacing_m();
-        let mut query = |cell| match environment.world.material(cell) {
-            Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false }),
-            Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
-            Err(error) => Err(error),
+        let resolved = {
+            let environment = self.environment.as_mut().ok_or("initial placement needs environment")?;
+            let mut surfaces = Vec::with_capacity(columns.len());
+            for batch in columns.chunks(64) { surfaces.extend(environment.world.surface_cells(batch)?); }
+            if surfaces.len() != entities.len() { return Err("initial placement surface count mismatch".into()); }
+            let spacing = environment.world.cell_spacing_m();
+            let mut query = |cell| match environment.world.material(cell) {
+                Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false }),
+                Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
+                Err(error) => Err(error),
+            };
+            let requests = entities.into_iter().zip(surfaces).map(|((entity, position, traversal, _), surface)| {
+                Ok(initial_placement::Request { entity, position, traversal, surface: surface.ok_or("initial placement column has no solid surface")? })
+            }).collect::<Result<Vec<_>>>()?;
+            initial_placement::resolve(requests, spacing, &mut query)?
         };
-        let requests = entities.into_iter().zip(surfaces).map(|((entity, position, traversal, _), surface)| {
-            Ok(initial_placement::Request { entity, position, traversal, surface: surface.ok_or("initial placement column has no solid surface")? })
-        }).collect::<Result<Vec<_>>>()?;
-        let resolved = initial_placement::resolve(requests, spacing, &mut query)?;
-        drop(query);
-        drop(environment);
         for (entity, position) in resolved { self.ecs.entity_mut(self.entity(&entity)?).insert(position); }
         self.rebuild_physical_indexes(true)?;
         Ok(())
