@@ -247,3 +247,17 @@ Acceptance compares a named busy native field against the same retained workload
 and separately measures session/serialization cost. Rust alone is no speedup
 claim. The useful outcome is responsive digging/building with water and smoke
 in the colony, using the same browser/DO physical owner.
+
+### Integration cost found during the first source read
+
+`GameSession.step()` currently calls `save()` before every step; that calls
+`KernelPort.snapshot()` and serializes the whole native world through JSON.
+`Kernel.advance_json()` additionally snapshots for active direct/projectile
+work. Adding large environmental arrays to those existing snapshots unchanged
+would create repeated full-field serialization even if transport itself is fast.
+Before accepting the colony environmental join, separate the in-process rollback
+checkpoint from the durable serialization operation. A bounded native candidate
+or checkpoint must preserve failed-step rollback without making JSON the tick
+working representation. Durable Region/save exports still include all canonical
+water and gas state. This is a measured-workload target, not a landed optimization
+or permission to omit environmental state from saves.
