@@ -1,4 +1,4 @@
-use crate::{collision, combat, components::*, navigation, registry::Registry};
+use crate::{collision, combat, components::*, material_output::{MaterialOutputSpec, PreparedMaterialOutput}, navigation, registry::Registry};
 use bevy_ecs::{
     prelude::{Entity, World},
     query::{QueryBuilder, QueryState},
@@ -957,6 +957,47 @@ impl Kernel {
             .get(id)
             .copied()
             .ok_or_else(|| format!("unknown entity {id}"))
+    }
+    pub fn prepare_material_output(&self, spec: MaterialOutputSpec) -> Result<PreparedMaterialOutput> {
+        self.ensure_ready()?;
+        if self.ids.len() >= 16384 { return Err("region entity capacity".into()); }
+        let container = self.entity(&spec.container)?;
+        let capacity = self.ecs.get::<Container>(container).ok_or("not a container")?.capacity;
+        let quantity = self.quantity(&spec.container);
+        let lot = Lot { kind: spec.kind.clone(), quantity: spec.quantity, container: spec.container.clone() };
+        let water = spec.water_kg.map(|mass| LotWater { water_kg: mass });
+        let added_weight = spec.container.len()
+            + 128
+            + self.registry.weight("hive.lot", &record(&lot))
+            + water.as_ref().map(|value| self.registry.weight("hive.lot-water", &record(value))).unwrap_or(0);
+        crate::material_output::prepare(
+            spec,
+            self.revision,
+            self.next_lot,
+            |id| self.known.contains(id),
+            capacity,
+            quantity,
+            self.state_weight,
+            added_weight,
+        )
+    }
+    pub fn publish_material_output(&mut self, prepared: PreparedMaterialOutput) -> Result<String> {
+        self.ensure_ready()?;
+        if prepared.revision != self.revision || prepared.next_lot == 0 || prepared.state_weight < self.state_weight
+            || self.known.contains(&prepared.lot_id) || prepared.lot.container != prepared.container {
+            return Err("material output token is stale".into());
+        }
+        let entity = if let Some(water) = prepared.water {
+            self.ecs.spawn((ExternalId(prepared.lot_id.clone()), prepared.lot, water)).id()
+        } else {
+            self.ecs.spawn((ExternalId(prepared.lot_id.clone()), prepared.lot)).id()
+        };
+        self.next_lot = prepared.next_lot;
+        self.state_weight = prepared.state_weight;
+        self.ids.insert(prepared.lot_id.clone(), entity);
+        self.known.insert(prepared.lot_id.clone());
+        self.contents.entry(prepared.container).or_default().insert(entity);
+        Ok(prepared.lot_id)
     }
     fn quantity(&self, id: &str) -> u64 {
         self.contents

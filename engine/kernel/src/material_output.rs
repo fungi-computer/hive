@@ -1,0 +1,134 @@
+//! Prepared finite material output. Preparation is pure; Kernel publication is
+//! the only operation that inserts the admitted lot into ECS and its indexes.
+
+use crate::components::{valid_id, Lot, LotWater, MAX_CARRIED_WATER_KG};
+
+pub(crate) const STATE_BYTES: usize = 8 * 1024 * 1024;
+
+pub struct MaterialOutputSpec {
+    pub container: String,
+    pub kind: String,
+    pub quantity: u32,
+    pub water_kg: Option<f64>,
+}
+
+pub struct PreparedMaterialOutput {
+    pub(crate) revision: u64,
+    pub(crate) container: String,
+    pub(crate) lot_id: String,
+    pub(crate) lot: Lot,
+    pub(crate) water: Option<LotWater>,
+    pub(crate) next_lot: u64,
+    pub(crate) state_weight: usize,
+}
+
+pub(crate) fn prepare(
+    spec: MaterialOutputSpec,
+    revision: u64,
+    next_lot: u64,
+    known: impl Fn(&str) -> bool,
+    container_capacity: u32,
+    container_quantity: u64,
+    state_weight: usize,
+    added_weight: usize,
+) -> Result<PreparedMaterialOutput, String> {
+    if !valid_id(&spec.container) || !valid_id(&spec.kind) {
+        return Err("invalid material output identity".into());
+    }
+    if spec.quantity == 0 {
+        return Err("material output quantity must be positive".into());
+    }
+    if container_quantity.saturating_add(u64::from(spec.quantity)) > u64::from(container_capacity) {
+        return Err("material output exceeds container capacity".into());
+    }
+    let water = spec.water_kg.map(|mass| {
+        if !mass.is_finite() || mass < 0.0 || mass > MAX_CARRIED_WATER_KG {
+            return Err("invalid material output water mass".into());
+        }
+        Ok(LotWater { water_kg: mass })
+    }).transpose()?;
+    if next_lot == 0 {
+        return Err("lot identity exhausted".into());
+    }
+    let mut sequence = next_lot;
+    let lot_id = loop {
+        let candidate = format!("lot.{sequence}");
+        sequence = sequence.checked_add(1).ok_or("lot identity exhausted")?;
+        if !known(&candidate) { break candidate; }
+    };
+    let next_state_weight = state_weight.checked_add(added_weight).ok_or("region canonical state capacity")?;
+    if next_state_weight > STATE_BYTES {
+        return Err("region canonical state capacity".into());
+    }
+    let lot = Lot { kind: spec.kind, quantity: spec.quantity, container: spec.container.clone() };
+    Ok(PreparedMaterialOutput {
+        revision,
+        container: spec.container,
+        lot_id,
+        lot,
+        water,
+        next_lot: sequence,
+        state_weight: next_state_weight,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world::Kernel;
+    use serde_json::json;
+
+    fn spec(water_kg: Option<f64>) -> MaterialOutputSpec {
+        MaterialOutputSpec { container: "bin".into(), kind: "stone".into(), quantity: 3, water_kg }
+    }
+
+    #[test]
+    fn prepares_finite_dry_and_wet_output_without_mutation() {
+        let dry = prepare(spec(None), 4, 1, |id| id == "lot.1", 10, 2, 100, 40).unwrap();
+        assert_eq!(dry.lot_id, "lot.2");
+        assert_eq!(dry.lot.quantity, 3);
+        assert!(dry.water.is_none());
+        let wet = prepare(spec(Some(2.5)), 4, 1, |_| false, 10, 2, 100, 48).unwrap();
+        assert_eq!(wet.water.unwrap().water_kg, 2.5);
+    }
+
+    #[test]
+    fn preparation_rejects_capacity_invalid_content_and_water() {
+        assert!(prepare(spec(None), 0, 1, |_| false, 4, 2, 100, 40).is_err());
+        let mut invalid = spec(None);
+        invalid.kind = "bad kind".into();
+        assert!(prepare(invalid, 0, 1, |_| false, 10, 0, 100, 40).is_err());
+        assert!(prepare(spec(Some(f64::NAN)), 0, 1, |_| false, 10, 0, 100, 40).is_err());
+    }
+
+    #[test]
+    fn preparation_rejects_state_budget_before_publication() {
+        assert!(prepare(spec(None), 0, 1, |_| false, 10, 0, STATE_BYTES, 1).is_err());
+    }
+
+    fn kernel() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"output-test", "components":[],
+            "initial":[{"id":"bin","components":{
+                "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
+                "hive.container":{"capacity":10}
+            }}]
+        }).to_string()).unwrap();
+        kernel
+    }
+
+    #[test]
+    fn kernel_publication_consumes_prepared_token_and_preserves_preparation_snapshot() {
+        let mut kernel = kernel();
+        let before = kernel.snapshot_json().unwrap();
+        let dry = kernel.prepare_material_output(spec(None)).unwrap();
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
+        let first = kernel.publish_material_output(dry).unwrap();
+        let wet = kernel.prepare_material_output(MaterialOutputSpec { container: "bin".into(), kind: "water".into(), quantity: 2, water_kg: Some(1.5) }).unwrap();
+        let second = kernel.publish_material_output(wet).unwrap();
+        assert_ne!(first, second);
+        let lots: serde_json::Value = serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap();
+        assert_eq!(lots.as_array().unwrap().len(), 2);
+    }
+}
