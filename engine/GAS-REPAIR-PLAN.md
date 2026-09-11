@@ -382,3 +382,14 @@ representation itself, using these exact physical/restore comparisons. No broad
 browser rerun or another timing-only repetition is warranted by this result.
 
 See [the exact comparison](../docs/performance/gas-geometry-order-20260911.json).
+
+### Source disposition after measurement
+
+The activity cache and ordered-opening/lazy-evacuation experiments are preserved
+in private Git history through 806cdb0 with their receipts. They are removed from
+the current runtime candidate: the measured benefit does not justify retaining
+additional cache state while the main hitch remains. Runtime source returns to
+the accepted published 9d08a8e baseline; the added exterior opening regression
+and these findings remain. Existing generated WASM is a build artifact from the
+experiment and must be rebuilt from current source before any next release.
+This is deliberate removal of unproven complexity, not a completed repair.

@@ -294,7 +294,6 @@ fn aggregated_faces_match_physical_face_exchange_with_sources_and_ambient() {
     assert_eq!(compiled.exchange_openings.len(), 2);
     let mut reference = compiled.clone();
     reference.exchange_openings = reference.openings.clone();
-    reference.exchange_incident = definition::index_exchange_openings(&reference.exchange_openings, reference.volume_m3.len());
     let mut actual = compiled.initial();
     let mut expected = actual.clone();
     for _ in 0..30 {

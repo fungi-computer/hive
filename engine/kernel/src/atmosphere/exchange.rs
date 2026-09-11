@@ -79,14 +79,8 @@ impl CompiledAtmosphere {
     }
 
     fn exchange_step(&self, state: &mut AtmosphereState, dt: f64) -> Result<usize, String> {
-        let cache = self.exchange_activity(state, dt);
-        state.exchange_cache = Some(cache.clone());
-        if cache.active.is_empty() {
-            return Ok(0);
-        }
         let snapshot = state.parcels.clone();
-        // Quiet mixing still consumes the shared volume budget of an active edge.
-        let flows = self.bounded_flows(&cache.flows, &cache.active);
+        let flows = self.bounded_flows(self.opening_flows(&snapshot, dt));
         let mut unresolved = 0;
         for flow in flows {
             unresolved += self.mix_pair(state, &snapshot, &flow)?;
@@ -95,66 +89,67 @@ impl CompiledAtmosphere {
         Ok(unresolved)
     }
 
-    pub(super) fn opening_flow(
-        &self,
-        opening: &OpeningIndex,
-        parcels: &[AtmosphereParcel],
-        dt: f64,
-    ) -> Flow {
-        let left_temperature = self.temperature(opening.from, &parcels[opening.from]);
-        let right_temperature = opening
-            .to
-            .map(|index| self.temperature(index, &parcels[index]))
-            .unwrap_or(self.definition.ambient.temperature_k);
-        let lower = if self.elevation_m[opening.from]
-            <= opening
-                .to
-                .map(|index| self.elevation_m[index])
-                .unwrap_or(opening.elevation_m)
-        {
-            left_temperature
-        } else {
-            right_temperature
-        };
-        let upper = if self.elevation_m[opening.from]
-            <= opening
-                .to
-                .map(|index| self.elevation_m[index])
-                .unwrap_or(opening.elevation_m)
-        {
-            right_temperature
-        } else {
-            left_temperature
-        };
-        let height = (opening
-            .to
-            .map(|index| self.elevation_m[index])
-            .unwrap_or(opening.elevation_m)
-            - self.elevation_m[opening.from])
-            .abs();
-        let buoyancy =
-            self.definition.model.buoyancy_velocity_mps_k * (lower - upper).max(0.0) * height
-                / opening.distance_m;
-        let interval = opening.area_m2 * opening.permeability * dt;
-        let left_pressure = self.pressure(opening.from, &parcels[opening.from]);
-        let right_pressure = opening
-            .to
-            .map(|index| self.pressure(index, &parcels[index]))
-            .unwrap_or(self.definition.ambient.pressure_pa);
-        Flow {
-            left: opening.from,
-            right: opening.to,
-            mixed_m3: interval * (self.definition.model.mixing_velocity_mps + buoyancy),
-            pressure_m3: interval
-                * self.definition.model.pressure_velocity_mps_pa
-                * (left_pressure - right_pressure),
-        }
+    fn opening_flows(&self, parcels: &[AtmosphereParcel], dt: f64) -> Vec<Flow> {
+        self.exchange_openings
+            .iter()
+            .map(|opening| {
+                let left_temperature = self.temperature(opening.from, &parcels[opening.from]);
+                let right_temperature = opening
+                    .to
+                    .map(|index| self.temperature(index, &parcels[index]))
+                    .unwrap_or(self.definition.ambient.temperature_k);
+                let lower = if self.elevation_m[opening.from]
+                    <= opening
+                        .to
+                        .map(|index| self.elevation_m[index])
+                        .unwrap_or(opening.elevation_m)
+                {
+                    left_temperature
+                } else {
+                    right_temperature
+                };
+                let upper = if self.elevation_m[opening.from]
+                    <= opening
+                        .to
+                        .map(|index| self.elevation_m[index])
+                        .unwrap_or(opening.elevation_m)
+                {
+                    right_temperature
+                } else {
+                    left_temperature
+                };
+                let height = (opening
+                    .to
+                    .map(|index| self.elevation_m[index])
+                    .unwrap_or(opening.elevation_m)
+                    - self.elevation_m[opening.from])
+                    .abs();
+                let buoyancy = self.definition.model.buoyancy_velocity_mps_k
+                    * (lower - upper).max(0.0)
+                    * height
+                    / opening.distance_m;
+                let interval = opening.area_m2 * opening.permeability * dt;
+                let left_pressure = self.pressure(opening.from, &parcels[opening.from]);
+                let right_pressure = opening
+                    .to
+                    .map(|index| self.pressure(index, &parcels[index]))
+                    .unwrap_or(self.definition.ambient.pressure_pa);
+                Flow {
+                    left: opening.from,
+                    right: opening.to,
+                    mixed_m3: interval * (self.definition.model.mixing_velocity_mps + buoyancy),
+                    pressure_m3: interval
+                        * self.definition.model.pressure_velocity_mps_pa
+                        * (left_pressure - right_pressure),
+                }
+            })
+            .collect()
     }
 
-    pub(super) fn bounded_flows(&self, flows: &[Flow], active: &[usize]) -> Vec<Flow> {
+    fn bounded_flows(&self, flows: Vec<Flow>) -> Vec<Flow> {
         let mut outgoing = vec![0.0; self.volume_m3.len()];
         let mut incoming = vec![0.0; self.volume_m3.len()];
-        for flow in flows {
+        for flow in &flows {
             outgoing[flow.left] += flow.mixed_m3 + flow.pressure_m3.max(0.0);
             incoming[flow.left] += flow.mixed_m3 + (-flow.pressure_m3).max(0.0);
             if let Some(right) = flow.right {
@@ -186,10 +181,9 @@ impl CompiledAtmosphere {
                 }
             })
             .collect::<Vec<_>>();
-        active
-            .iter()
-            .map(|&index| {
-                let flow = flows[index];
+        flows
+            .into_iter()
+            .map(|flow| {
                 let right_out = flow.right.map(|i| out[i]).unwrap_or(1.0);
                 let right_in = flow.right.map(|i| into[i]).unwrap_or(1.0);
                 Flow {
@@ -210,7 +204,7 @@ impl CompiledAtmosphere {
             .collect()
     }
 
-    pub(super) fn concentration(
+    fn concentration(
         &self,
         parcels: &[AtmosphereParcel],
         index: Option<usize>,
@@ -306,7 +300,7 @@ impl CompiledAtmosphere {
         }
         Ok(true)
     }
-    pub(super) fn mix_pair(
+    fn mix_pair(
         &self,
         state: &mut AtmosphereState,
         snapshot: &[AtmosphereParcel],
@@ -323,7 +317,7 @@ impl CompiledAtmosphere {
         }
         Ok(unresolved)
     }
-    pub(super) fn advect_pair(
+    fn advect_pair(
         &self,
         state: &mut AtmosphereState,
         snapshot: &[AtmosphereParcel],
@@ -346,4 +340,6 @@ impl CompiledAtmosphere {
         }
         Ok(unresolved)
     }
+
+
 }

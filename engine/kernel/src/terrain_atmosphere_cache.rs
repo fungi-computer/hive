@@ -120,8 +120,6 @@ pub(super) fn contains(bounds: AirGeometryBounds, cell: Cell) -> bool {
 pub(crate) struct AirGeometryCache {
     tiles: BTreeMap<MixingTile, Arc<Tile>>,
     openings: BTreeMap<Face, Arc<AtmosphereOpeningDefinition>>,
-    // Same Arc records, in the full projector's deterministic definition order.
-    ordered_openings: Vec<Arc<AtmosphereOpeningDefinition>>,
 }
 
 impl AirGeometryCache {
@@ -171,7 +169,6 @@ impl AirGeometryCache {
         let mut cache = Self {
             tiles,
             openings: BTreeMap::new(),
-            ordered_openings: Vec::new(),
         };
         for face in &snapshot.faces {
             let sealed = match face.kind {
@@ -182,8 +179,6 @@ impl AirGeometryCache {
                 cache.openings.insert(face.face, Arc::new(opening));
             }
         }
-        cache.ordered_openings = cache.openings.values().cloned().collect();
-        cache.ordered_openings.sort_by(|a, b| opening_order(a, b));
         Ok(cache)
     }
 
@@ -195,11 +190,7 @@ impl AirGeometryCache {
         config: &TerrainAtmosphereConfig,
         spacing: [f64; 3],
     ) -> Result<Self, String> {
-        let mut next = Self {
-            tiles: self.tiles.clone(),
-            openings: self.openings.clone(),
-            ordered_openings: Vec::new(),
-        };
+        let mut next = self.clone();
         let mut changed = BTreeSet::new();
         let mut faces = BTreeSet::new();
         for patch in patches {
@@ -214,8 +205,6 @@ impl AirGeometryCache {
             faces.extend(tile.faces.keys().copied());
             next.tiles.insert(key, Arc::new(tile));
         }
-        let mut removed = BTreeSet::new();
-        let mut added = Vec::new();
         for face in faces {
             let b = face.neighbor()?;
             // An unchanged neighbor can still retain an old boundary-face flag.
@@ -227,18 +216,13 @@ impl AirGeometryCache {
                 .filter_map(|key| next.tiles.get(key))
                 .find_map(|tile| tile.faces.get(&face))
                 .copied();
-            if let Some(old) = next.openings.remove(&face) {
-                removed.insert(old.id.clone());
-            }
+            next.openings.remove(&face);
             if let Some(sealed) = sealed {
                 if let Some(opening) = next.opening(face, sealed, config, spacing)? {
-                    let opening = Arc::new(opening);
-                    added.push(opening.clone());
-                    next.openings.insert(face, opening);
+                    next.openings.insert(face, Arc::new(opening));
                 }
             }
         }
-        next.ordered_openings = merge_openings(&self.ordered_openings, &removed, added);
         Ok(next)
     }
 
@@ -303,11 +287,16 @@ impl AirGeometryCache {
             .into_iter()
             .map(|(_, volume)| volume.clone())
             .collect();
-        let openings: Vec<_> = self
-            .ordered_openings
-            .iter()
+        let mut openings: Vec<_> = self
+            .openings
+            .values()
             .map(|opening| (**opening).clone())
             .collect();
+        openings.sort_by(|a, b| {
+            a.to.is_none()
+                .cmp(&b.to.is_none())
+                .then_with(|| a.id.cmp(&b.id))
+        });
         let internal = openings
             .iter()
             .filter(|opening| opening.to.is_some())
@@ -331,41 +320,6 @@ impl AirGeometryCache {
             openings,
         }
     }
-}
-
-fn opening_order(
-    a: &AtmosphereOpeningDefinition,
-    b: &AtmosphereOpeningDefinition,
-) -> std::cmp::Ordering {
-    a.to.is_none()
-        .cmp(&b.to.is_none())
-        .then_with(|| a.id.cmp(&b.id))
-}
-
-/// Preserve accepted order and replace only changed faces. No global re-sort of
-/// large opening records; the candidate owns its vector and shares immutable data.
-fn merge_openings(
-    existing: &[Arc<AtmosphereOpeningDefinition>],
-    removed: &BTreeSet<String>,
-    mut added: Vec<Arc<AtmosphereOpeningDefinition>>,
-) -> Vec<Arc<AtmosphereOpeningDefinition>> {
-    added.sort_by(|a, b| opening_order(a, b));
-    let mut kept = existing
-        .iter()
-        .filter(|opening| !removed.contains(&opening.id))
-        .peekable();
-    let mut additions = added.into_iter().peekable();
-    let mut result = Vec::with_capacity(existing.len() + additions.len());
-    while let (Some(old), Some(new)) = (kept.peek(), additions.peek()) {
-        if opening_order(old, new).is_le() {
-            result.push(kept.next().unwrap().clone());
-        } else {
-            result.push(additions.next().unwrap());
-        }
-    }
-    result.extend(kept.cloned());
-    result.extend(additions);
-    result
 }
 
 fn piece<'a>(

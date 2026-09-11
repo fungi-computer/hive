@@ -32,7 +32,6 @@ impl CompiledAtmosphere {
             .collect::<Vec<_>>();
         let initial_carrier_kg = parcels.iter().map(|parcel| parcel.carrier_kg).sum();
         AtmosphereState {
-            exchange_cache: None,
             owner: self.owner.clone(),
             version: "connected-atmosphere-state-v1".into(),
             identity: self.identity.clone(),
@@ -144,23 +143,5 @@ impl CompiledAtmosphere {
         state.owner = self.owner.clone();
         self.validate_state(&state)?;
         Ok(state)
-    }
-}
-
-// Derived execution caches do not change a physical state or its wire format.
-impl PartialEq for AtmosphereState {
-    fn eq(&self, other: &Self) -> bool {
-        self.owner == other.owner
-            && self.version == other.version
-            && self.identity == other.identity
-            && self.parcels == other.parcels
-            && self.initial_carrier_kg == other.initial_carrier_kg
-            && self.initial_smoke_kg == other.initial_smoke_kg
-            && self.initial_heat_j == other.initial_heat_j
-            && self.smoke_source_kg == other.smoke_source_kg
-            && self.heat_source_j == other.heat_source_j
-            && self.carrier_boundary_kg == other.carrier_boundary_kg
-            && self.smoke_boundary_kg == other.smoke_boundary_kg
-            && self.heat_boundary_j == other.heat_boundary_j
     }
 }
