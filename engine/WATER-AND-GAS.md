@@ -18,6 +18,34 @@ Implementers use that companion for the exact owner lifecycle and failure rules;
 this document retains the model, scope and frozen workload. Runtime work remains
 held under the discussion-before-code direction.
 
+## Current implementation reference correction — September 11
+
+The native water/terrain/construction owners now exist; the source inventory at
+`6ed6b45` below is historical. Rust atmosphere remains missing. The port reference
+is the **final connected-volume** owner in `src/engine/environment/atmosphere/`,
+with `goblin-environment/air-state.ts`, `gas-geometry.ts` and `paid-releases.ts` as
+real caller references. The older `brewhouse-air`/`environment/air` numerical
+study supplies historical conservation examples only. Do not port its velocity,
+divergence or pressure-solver machinery into the current engine.
+
+Personally re-read `atmosphere/exchange.ts`, `advance.ts`, `types.ts` and the
+public owner: bounded openings exchange carrier mass, smoke tracer and sensible
+heat between well-mixed parcels, with explicit ambient export/import accounting.
+All incident outgoing flows share the donor budget before exchange; independent
+per-edge clamping must not spend a parcel twice. The fixed kernel clock owns time;
+the field computes a detached candidate. Room membership and height bands derive
+from canonical terrain/structure faces. Doors, vents and liquid displacement
+change that geometry; no decorative smoke emitter can substitute for this join.
+
+Fuel and recipes use the existing lot/container mutation owner. Native stage
+mechanisms must be generic: TypeScript definitions name stages and configure
+attended/unattended duration, consumed inputs, retained vessels and typed output
+transformations. Do not create a Rust `BrewProcess` enum hardcoded to prepare,
+ferment and keg. Shared work claims and contact rules select eligible workers;
+unattended stages use the fixed clock without holding a worker. Finite fuel
+transformation and resulting emissions commit together. A blocked output retains
+progress and custody rather than consuming again on retry.
+
 ## The decision
 
 Use **finite voxel water and connected-volume gas**, implemented in the existing
