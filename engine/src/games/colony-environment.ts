@@ -92,6 +92,7 @@ const colonyInitialPlacements = [
   { entity: "colony.worker.2", column: [0, 2] },
   { entity: "colony.guest.1", column: [3, 1] },
   { entity: "colony.pantry", column: [-2, 0] },
+  { entity: "colony.lumber", column: [-3, 1] },
 ] as const;
 
 export const colonyEnvironmentDefinition =
