@@ -124,11 +124,6 @@ function quantity(observation, container, kind = undefined) {
     .filter((item) => kind === undefined || item.kind === kind)
     .reduce((sum, item) => sum + item.quantity, 0);
 }
-function presentationFact(observation, id) {
-  const row = observation.observation.presentationFacts?.find((candidate) => candidate.id === id);
-  assert(row, `published presentation fact missing: ${id}`);
-  return row;
-}
 function digMarks(observation) {
   return (observation.observation.terrainMarks ?? [])
     .filter((mark) => mark.id.startsWith("colony.dig."))
