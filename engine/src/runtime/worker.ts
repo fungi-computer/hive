@@ -80,6 +80,7 @@ export class WorkerRuntime {
       type: "presentation",
       facts: observation.presentationFacts,
       controls: observation.presentationControls,
+      terrainMarks: observation.terrainMarks,
     });
   }
   command(command: WorkerCommand): void {

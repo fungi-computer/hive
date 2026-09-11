@@ -74,6 +74,7 @@ export function createHiveClient({
     pendingRestore: false,
     presentationFacts: [],
     presentationControls: [],
+    terrainMarks: [],
     view: createWorldView(worldView),
     aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
     message: runtime
@@ -174,6 +175,7 @@ export function createHiveClient({
   const actorLayer = new Container();
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
+  const terrainMarksGraphic = new Graphics();
   const aimGraphic = new Graphics();
   const aimArcGraphic = new Graphics();
   transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic);
@@ -218,6 +220,7 @@ export function createHiveClient({
     latestFacts = [];
     state.presentationFacts = [];
     state.presentationControls = [];
+    state.terrainMarks = [];
     terrainFrame = undefined;
     terrainProjection.update(undefined, state.view, undefined);
     terrainLayer.update(undefined, undefined);
@@ -580,7 +583,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, terrainLayer.container, groundEffects, actorLayer, transientLayer);
+      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -591,6 +594,17 @@ export function createHiveClient({
     groundSprite.scale.set(camera.zoom);
     groundSprite.visible = !terrainFrame;
     terrainLayer.position(camera);
+    terrainMarksGraphic.clear();
+    const displayedTerrain = displayedTerrainFrame();
+    const markSurfaces = new Map((displayedTerrain?.surfaces ?? []).map((surface) => [surface.cell.join(","), surface]));
+    for (const mark of state.terrainMarks) {
+      const surface = markSurfaces.get(mark.cell.join(","));
+      if (!surface) continue;
+      const [x, y, z] = surface.cell;
+      const projected = project(x, (y + 0.5) * (displayedTerrain?.verticalMetres ?? 1), z);
+      const color = mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : 0xe8c779;
+      terrainMarksGraphic.rect(projected.x * camera.zoom + camera.x - 5, projected.y * camera.zoom + camera.y - 5, 10, 10).fill({ color, alpha: 0.8 });
+    }
     const animationById = new Map(
       animationClock
         .sample(state.subjects, {
@@ -1134,6 +1148,7 @@ export function createHiveClient({
     terrainTarget.send({ type: "CANCEL" });
           gesture.send({ type: "CANCEL" });
           state.selectedIds = [];
+          state.terrainMarks = [];
           exitAim();
           interpolation.reset(event.epoch);
           pendingCues = [];
@@ -1188,6 +1203,7 @@ export function createHiveClient({
       if (event.type === "presentation") {
         state.presentationFacts = event.facts;
         state.presentationControls = event.controls;
+        state.terrainMarks = event.terrainMarks;
         renderHud();
       }
       if (event.type === "results" && event.results.some((result) =>

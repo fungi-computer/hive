@@ -3,7 +3,7 @@ import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
-import type { PresentationControl } from "../presentation";
+import type { PresentationControl, TerrainMark } from "../presentation";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { WebSocket as PartySocket } from "partysocket";
 
@@ -43,6 +43,7 @@ type ObservationWire = {
       readonly value: string | number | boolean;
     }[];
     readonly presentationControls: readonly PresentationControl[];
+    readonly terrainMarks: readonly TerrainMark[];
   };
 };
 type PendingIntent = {
@@ -154,6 +155,11 @@ function presentationControl(value: unknown): value is PresentationControl {
     value.command.length > 0 && value.command.length <= 128 &&
     (value.selection === undefined || value.selection === "entities");
 }
+function terrainMark(value: unknown): value is TerrainMark {
+  return isRecord(value) && typeof value.id === "string" && value.id.length > 0 && value.id.length <= 128 &&
+    Array.isArray(value.cell) && value.cell.length === 3 && value.cell.every(Number.isSafeInteger) &&
+    (value.status === "queued" || value.status === "working" || value.status === "blocked");
+}
 async function requestJson(
   fetcher: AuthorizedFetch,
   input: RequestInfo | URL,
@@ -231,11 +237,13 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
   const facts = observation.facts;
   const presentationFacts = observation.presentationFacts;
   const presentationControls = observation.presentationControls;
+  const terrainMarks = observation.terrainMarks;
   if (typeof observation.paused !== "boolean" || !finite(observation.time) || observation.time < 0 ||
     !safeNonnegativeInteger(observation.epoch) || !safeNonnegativeInteger(observation.sequence) ||
     !Array.isArray(facts) || facts.length > 512 || facts.some((item) => !renderFact(item)) ||
     !Array.isArray(presentationFacts) || presentationFacts.length > 32 || presentationFacts.some((item) => !presentationFact(item)) ||
-    !Array.isArray(presentationControls) || presentationControls.length > 16 || presentationControls.some((item) => !presentationControl(item)))
+    !Array.isArray(presentationControls) || presentationControls.length > 16 || presentationControls.some((item) => !presentationControl(item)) ||
+    !Array.isArray(terrainMarks) || terrainMarks.length > 256 || terrainMarks.some((item) => !terrainMark(item)))
     throw new Error("invalid remote observation");
   return {
     revision: value.revision,
@@ -250,6 +258,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
       cues: checkedCueList(observation.cues, observation.time),
       presentationFacts: presentationFacts as ObservationWire["observation"]["presentationFacts"],
       presentationControls: presentationControls as PresentationControl[],
+      terrainMarks: terrainMarks as TerrainMark[],
     },
   };
 }
