@@ -74,6 +74,7 @@ export function createHiveClient({
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
   const emit = (action) => {
+    if (state.disposed) return;
     if (["action", "pause", "save", "continue"].includes(action.kind) && !state.ready) {
       state.message = "World is still connecting…";
       notify();
@@ -86,10 +87,16 @@ export function createHiveClient({
     else if (runtime && action.kind === "save") {
       state.pendingSave = true;
       state.message = "Save requested…";
-      persistence.save?.();
+      try {
+        persistence.save?.();
+      } catch (error) {
+        state.pendingSave = false;
+        state.message = `Could not save: ${error instanceof Error ? error.message : String(error)}`;
+      }
     } else if (runtime && action.kind === "reset") {
       try {
         persistence.newWorld((remote) => {
+          if (state.disposed) return;
           state.selectedIds = [];
           state.hoverId = null;
           prepareNewWorld(remote);
@@ -924,6 +931,7 @@ export function createHiveClient({
     });
     keymap.on("state", renderHud);
     unsubscribeRuntime = runtime?.subscribe?.((event) => {
+      if (state.disposed) return;
       if (event.type === "state" && typeof event.paused === "boolean") {
         if (state.paused !== event.paused) directControl?.reset();
         state.paused = event.paused;
@@ -973,7 +981,10 @@ export function createHiveClient({
         result && typeof result === "object" && result.accepted === false))
         intendedDestinations.clear();
       if (event.type === "saved") {
-        void Promise.resolve().then(() => persistence.onSaved?.(event.snapshot)).then(() => {
+        void Promise.resolve().then(() => {
+          if (state.disposed) return;
+          return persistence.onSaved?.(event.snapshot);
+        }).then(() => {
           if (state.disposed) return;
           state.pendingSave = false;
           state.message = persistence.online ? "Saved on server" : "Saved in this browser";
@@ -1007,6 +1018,7 @@ export function createHiveClient({
     runtime?.send?.({ type: "start", game: mode });
   }
   start().catch((error) => {
+    if (state.disposed) return;
     state.message = `Art unavailable: ${error.message}`;
     renderHud();
   });

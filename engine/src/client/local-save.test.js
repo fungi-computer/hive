@@ -73,7 +73,7 @@ test("local save owner waits for transaction commit after put resolves", async (
   const owner = createLocalSaveOwner({ mode: "pirates", indexedDBSource: {}, openDBImpl: async () => db });
   let finished = false;
   const writing = owner.write({ value: 1 }).then(() => { finished = true; });
-  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(finished, false);
   commit();
   await writing;
@@ -141,4 +141,18 @@ test("connection choice awaits injected durable save and restore", async () => {
   await choice.persistence.continue();
   assert.deepEqual([...sent[0].snapshot.kernel.records[0].bytes], [9]);
   choice.runtime.dispose();
+});
+
+test("disposed local persistence rejects save, reset, and late snapshot writes", async () => {
+  const choice = createConnectionChoice({
+    mode: "colony",
+    runtime: "local",
+    saveOwner: { read: async () => undefined, write: async () => {}, close: async () => {} },
+    connectLocal: () => ({ send() {}, subscribe: () => () => {}, dispose() {} }),
+    connectRemote: () => { throw new Error("remote factory should not run"); },
+  });
+  choice.runtime.dispose();
+  assert.throws(() => choice.persistence.save(), /connection choice disposed/);
+  assert.throws(() => choice.persistence.newWorld(), /connection choice disposed/);
+  await assert.rejects(choice.persistence.onSaved({}), /connection choice disposed/);
 });

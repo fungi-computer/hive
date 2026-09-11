@@ -137,6 +137,7 @@ function localConnection({ mode, connectLocal, saveOwner }) {
       continueLabel: "Continue",
       newWorldLabel: "Reset world",
       save() {
+        if (disposed) throw new Error("connection choice disposed");
         runtime.send({ type: "save" });
       },
       async continue() {
@@ -146,8 +147,12 @@ function localConnection({ mode, connectLocal, saveOwner }) {
         if (saved === undefined) throw new Error("No saved world yet");
         runtime.send({ type: "restore", snapshot: saved });
       },
-      onSaved(snapshot) { return owner.write(snapshot); },
+      onSaved(snapshot) {
+        if (disposed) return Promise.reject(new Error("connection choice disposed"));
+        return owner.write(snapshot);
+      },
       newWorld(onReplaced) {
+        if (disposed) throw new Error("connection choice disposed");
         onReplaced?.(false);
         runtime.send({ type: "reset" });
       },
