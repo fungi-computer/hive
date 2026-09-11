@@ -111,8 +111,7 @@ test("resident discards rolled-back multi-command work and accepts historical re
     createKernel: () => {
       const port = wasmKernelPort(new WasmKernel());
       const release = port.dispose;
-      port.dispose = () => { disposed++; release(); };
-      return port;
+      return { ...port, dispose: () => { disposed++; release(); } };
     },
     implementationHash: "c".repeat(64), ownerPrincipal: "player", hostPrincipal: "clock", seed: 17,
   });
