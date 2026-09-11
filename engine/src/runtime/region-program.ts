@@ -68,14 +68,53 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       const session = new GameSession({ port, pack: options.pack, seed: options.seed });
       session.restore(snapshot);
       return { session, port };
-    } catch (error) { port.dispose(); throw error; }
+    } catch (error) {
+      try { port.dispose(); } catch { /* preserve the failed construction or restore */ }
+      throw error;
+    }
   };
   const disposeEntry = (entry: { session: GameSession; port: KernelPort } | undefined) => {
     if (!entry) return;
     entry.port.dispose();
   };
-  const discardAttempt = () => { disposeEntry(attempt); attempt = undefined; };
-  const invalidate = () => { discardAttempt(); disposeEntry(accepted); accepted = undefined; };
+  const discardAttempt = () => {
+    const doomed = attempt;
+    attempt = undefined;
+    disposeEntry(doomed);
+  };
+  const detachEntries = () => {
+    // Detach every entry before calling user/native cleanup. A trapped native
+    // destructor must not leave a poisoned resident available for reuse.
+    const doomed = [attempt, accepted];
+    attempt = undefined;
+    accepted = undefined;
+    return doomed;
+  };
+  const cleanupEntries = (entries: ReturnType<typeof detachEntries>) => {
+    let cleanupFailed = false;
+    let cleanupErrorSet = false;
+    let cleanupError: unknown;
+    for (const entry of entries) {
+      try { disposeEntry(entry); }
+      catch (error) {
+        cleanupFailed = true;
+        if (!cleanupErrorSet) {
+          cleanupErrorSet = true;
+          cleanupError = error;
+        }
+      }
+    }
+    return { cleanupFailed, cleanupError };
+  };
+  const invalidate = () => {
+    const { cleanupFailed, cleanupError } = cleanupEntries(detachEntries());
+    if (cleanupFailed) throw cleanupError;
+  };
+  const invalidateAfterFailure = () => {
+    // The application error is already in flight, including when it is the
+    // JavaScript value undefined. Cleanup failures must never replace it.
+    cleanupEntries(detachEntries());
+  };
   return {
     begin(revision, state, records) {
       if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("invalid resident revision");
@@ -85,7 +124,9 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         accepted = undefined;
         return;
       }
-      disposeEntry(accepted); accepted = undefined;
+      const prior = accepted;
+      accepted = undefined;
+      disposeEntry(prior);
       const hydrated = hydrateSession(state.session, records);
       const made = make(hydrated);
       attempt = { provisionalRevision: revision, ...made, capture: hydrated };
@@ -106,14 +147,15 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
           records: changedSessionRecords(before.kernel, after.kernel),
         };
       } catch (error) {
-        invalidate();
+        invalidateAfterFailure();
         throw error;
       }
     },
     accept(revision) {
       if (!attempt || !Number.isSafeInteger(revision) || revision < 0 || revision !== attempt.provisionalRevision) {
-        invalidate();
-        throw new Error("resident-revision-mismatch");
+        const error = new Error("resident-revision-mismatch");
+        invalidateAfterFailure();
+        throw error;
       }
       accepted = { revision, session: attempt.session, port: attempt.port, capture: attempt.capture };
       attempt = undefined;
@@ -127,7 +169,9 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
     observe(revision, state, records, use) {
       if (attempt) throw new Error("resident-attempt-active");
       if (accepted?.revision !== revision) {
-        disposeEntry(accepted); accepted = undefined;
+        const prior = accepted;
+        accepted = undefined;
+        disposeEntry(prior);
         const hydrated = hydrateSession(state.session, records);
         const made = make(hydrated);
         accepted = { revision, ...made, capture: hydrated };
@@ -135,7 +179,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       try {
         return use(accepted.session);
       } catch (error) {
-        invalidate();
+        invalidateAfterFailure();
         throw error;
       }
     },
@@ -165,6 +209,7 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
     use: (session: GameSession) => T,
   ): T {
     const port = createKernel();
+    let primaryFailure = false;
     try {
       const session = new GameSession({
         port,
@@ -174,8 +219,12 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
       if (snapshot) session.restore(snapshot);
       else session.start();
       return use(session);
+    } catch (error) {
+      primaryFailure = true;
+      throw error;
     } finally {
-      port.dispose();
+      try { port.dispose(); }
+      catch (error) { if (!primaryFailure) throw error; }
     }
   }
   return {
