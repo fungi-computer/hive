@@ -417,6 +417,10 @@ impl Kernel {
                         blocked.contains(&(x, y, z))
                     })
                 };
+                if !history.is_empty() && (!crate::terrain_traversal::path_supported(&history, config, &mut query)?
+                    || history.iter().copied().any(&obstacle)) {
+                    return Err("retained terrain contact is no longer traversable".into());
+                }
                 let mut path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
                 let mut points = crate::terrain_route::waypoints(&path, config)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
@@ -1682,7 +1686,7 @@ impl Kernel {
         }
         let local = *self.ecs.get::<Position>(entity).ok_or("no position")?;
         let mut predicted = local;
-        if let Some(path) = self.routes.get(&entity) {
+        if let Some(path) = self.routes.get(&entity).filter(|_| !self.terrain_routes.get(&entity).is_some_and(|state| state.suspended || state.waiting)) {
             let mut remaining = path.clone();
             let speed = self.ecs.get::<Body>(entity).map_or(0.0, |body| body.speed);
             navigation::advance(&mut predicted, &mut remaining, speed * delta);
@@ -1939,9 +1943,11 @@ impl Kernel {
             let correspondence = offset.filter(|offset| *offset > 0).is_some_and(|offset| {
                 remaining == expected_points[offset..]
                     && self.terrain_routes[&entity].origin == expected_points[offset - 1]
-                    && self.ecs.get::<Destination>(entity).is_some_and(|target| {
+                    && (if self.terrain_routes[&entity].suspended {
+                        self.ecs.get::<Destination>(entity).is_none()
+                    } else { self.ecs.get::<Destination>(entity).is_some_and(|target| {
                         expected_points.last().is_some_and(|last| last.x == target.x && last.y == target.y && last.z == target.z && last.frame == target.frame)
-                    })
+                    }) })
             });
             if !correspondence {
                 invalid.push(entity);
@@ -1952,20 +1958,7 @@ impl Kernel {
                 Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
                 Err(error) => Err(error),
             };
-            let mut valid = true;
-            for cell in &path {
-                if !matches!(crate::terrain_traversal::node(*cell, config, &mut query)?, Some(_)) { valid = false; break; }
-            }
-            if valid {
-                for pair in path.windows(2) {
-                    let from = crate::terrain_traversal::node(pair[0], config, &mut query)?;
-                    let Some(from) = from else { valid = false; break };
-                    let dx = i32::try_from(i128::from(pair[1].x) - i128::from(pair[0].x)).unwrap_or(2);
-                    let dz = i32::try_from(i128::from(pair[1].z) - i128::from(pair[0].z)).unwrap_or(2);
-                    let dy = i32::try_from(i64::from(pair[1].y) - i64::from(pair[0].y)).unwrap_or(2);
-                    if !matches!(crate::terrain_traversal::step(from, dx, dy, dz, config, &mut query)?, Some(_)) { valid = false; break; }
-                }
-            }
+            let valid = crate::terrain_traversal::path_supported(&path, config, &mut query)?;
             if !valid { invalid.push(entity); }
             else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
         }
