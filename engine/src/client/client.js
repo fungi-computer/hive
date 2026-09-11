@@ -781,7 +781,7 @@ export function createHiveClient({
     const bank = cue.kind === "wake" ? art.effects?.ripple : art.effects?.dust;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
     if (!frames.length) return;
-    effectOwner.play({ texture: frames[0], frames, lifetime: cue.kind === "wake" ? 700 : 260, sprites: 1 }, cue);
+    effectOwner.play({ texture: frames[0], frames, scale: cue.kind === "wake" ? 1.5 : 1, lifetime: cue.kind === "wake" ? 700 : 260, sprites: 1 }, cue);
   }
   async function start() {
     if (directControlId || aiming) {
@@ -812,11 +812,14 @@ export function createHiveClient({
         if (!texture) return null;
         const sprite = new Sprite(texture);
         sprite.__frames = definition.frames;
+        const scale = definition.scale ?? 1;
+        if (!Number.isFinite(scale) || scale <= 0 || scale > 8) throw new Error("invalid effect scale");
+        sprite.__scale = scale;
         const at = cue.at ?? { x: 0, y: 0, z: 0 };
         const projected = project(at.x, at.y, at.z);
         sprite.anchor.set(art.propAnchor?.x ?? 0.5, art.propAnchor?.y ?? 1);
         sprite.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
-        sprite.scale.set(camera.zoom);
+        sprite.scale.set(camera.zoom * scale);
         transientLayer.addChild(sprite);
         return sprite;
       },
@@ -827,7 +830,7 @@ export function createHiveClient({
         if (at) {
           const projected = project(at.x, at.y, at.z);
           sprite.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
-          sprite.scale.set(camera.zoom);
+          sprite.scale.set(camera.zoom * (sprite.__scale ?? 1));
         }
         if (sprite && sprite.texture && sprite.__frames?.length) sprite.texture = sprite.__frames[Math.min(sprite.__frames.length - 1, Math.floor(elapsed / 45))];
       },
