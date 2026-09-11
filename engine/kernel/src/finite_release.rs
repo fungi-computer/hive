@@ -79,7 +79,7 @@ impl FiniteRelease {
                 return Err("finite release total must be finite".into());
             }
             let rate = total / definition.duration_s;
-            if !rate.is_finite() || (total != 0.0 && rate == 0.0) {
+            if !rate.is_finite() || (*total != 0.0 && rate == 0.0) {
                 return Err("finite release rate is not representable".into());
             }
         }
