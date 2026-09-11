@@ -171,9 +171,8 @@ First playable upgrade:
   list, area-damage substitute, or new projectile spawned behind each victim.
 - Register the practice ground through real surface/collider geometry. Do not
   invent a global ground-y=0 rule that would break towers, decks and future terrain.
-  Ground impact ends the first shot with dust and a small mark. Bouncing/rolling is
-  a subsequent optional response if it improves play, not required to get this
-  initial low arc and three-person knockdown working.
+  Ground impact selects the rolling/embedded/resting response in the later direct
+  amendment below; a temporary impact puff is not the whole landed-ball result.
 - Each physical contact supplies the committed cue for its own knockback/tumble.
   An actor that moves out of the path escapes; a nearer blocking wall protects
   actors behind it. Ammo is paid once for the entire flight. No fake death policy.
@@ -201,6 +200,57 @@ restarting between victims preserves the remaining flight and never spends ammo
 or damages an earlier victim twice. Show that same shot in the existing RTS page,
 with actual arc, ground contact and three reactions. This physical upgrade comes
 before decorating the cannon as if it already has those behaviors.
+
+### Rolling versus embedded cannonballs — direct Levi amendment
+
+Levi also wants the impact to determine whether a cannonball rolls or sticks in
+the ground, with original visible embedded-ball art. Add this as the next bounded
+physical projectile response, shared with the ballistic/multi-hit upgrade.
+
+Use contact-normal speed, tangential speed and radius/mass-derived or explicitly
+authored impact strength against surface properties. A small game-scale profile
+can expose penetration resistance, rolling resistance and restitution. TypeScript
+content binds those values; the Rust response owner does not switch on names such
+as "mud" or "cannon". Firm-ground shallow impacts can skip/roll, soft-ground steep
+impacts can embed, and an exhausted ball simply rests. Hard-ground steep impacts
+can rebound with energy loss. Exact thresholds and units belong to one reviewed
+profile; this is an intended game approximation, not a soil-mechanics claim.
+
+Ground properties come from the actual contacted surface definition/query. The
+first practice field can declare firm and soft patches. Existing wet-soil facts
+may later alter those properties through their real producer; do not secretly
+launch a fluid/soil solver or pretend the fresh demo already exposes wetness.
+
+Proposed physical states:
+
+```text
+flying -> contact -> continue / rolling / embedded / resting
+rolling -> next surface + deceleration -> rolling / falling / resting
+embedded or resting -> quiet saved object
+```
+
+Rolling follows the ground contact and loses speed under bounded resistance; it
+does not continue the old airborne straight line. A ledge returns it to flight.
+If rolling contact with bodies is supported, reuse the impact/contact suppression
+rule rather than applying damage every update. A stopped ball leaves the active
+projectile workload. Preserve its original identity and canonical position as a
+settled object; save/reopen restores it without rerunning its last impact. A game
+may later permit retrieval, but settling does not mint another ammunition lot.
+
+Render embedded depth/orientation from the settled physical result. Use the
+original iron-ball builder with an authored partly buried variant, dirt lip,
+small scuff and contact shadow at the game's pixel scale. Material tint/ground
+bindings supply the surrounding dirt appearance. Dust is a temporary effect; the
+half-exposed ball remains. Keep visual embed depth separate from terrain excavation:
+a small mark does not create a free crater, remove voxel material or change paths.
+Preserve appropriate picking if the settled object is inspectable.
+
+Acceptance examples: the same shot skips/rolls farther on firm ground and embeds
+in the soft patch; near-threshold outcomes are deterministic; rolling decelerates
+to rest; a ledge resumes flight; stopped objects do no per-tick projectile work;
+restart preserves the same buried ball and no duplicate item, damage or effect.
+Review original lodged-ball art at native and actual game scale, all used views.
+This is now planned functionality, not an already-deployed ground response.
 
 ### Cannon ragdoll effect — direct Levi amendment
 
