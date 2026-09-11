@@ -13,6 +13,7 @@ import type {
   RenderFact,
   TerrainSurface,
   StructureSurface,
+  TerrainChangeSet,
   RouteCostResult,
   WorldPose,
   WriteIntent,
@@ -36,6 +37,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
   structure_surfaces(json: string): string;
+  terrain_changes(json: string): string;
   query(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -249,6 +251,32 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         });
       })) throw new Error("invalid structure surface query result");
       return result as readonly (readonly StructureSurface[])[];
+    },
+    terrainChanges(sinceRevision): TerrainChangeSet {
+      if (!Number.isSafeInteger(sinceRevision) || sinceRevision < 0)
+        throw new Error("terrain change revision must be a nonnegative safe integer");
+      const result: unknown = JSON.parse(binding.terrain_changes(JSON.stringify(sinceRevision)));
+      if (!result || typeof result !== "object" || Array.isArray(result))
+        throw new Error("invalid terrain change result");
+      const value = result as { readonly kind?: unknown; readonly revision?: unknown; readonly reason?: unknown; readonly columns?: unknown };
+      if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 0)
+        throw new Error("invalid terrain change result");
+      if (value.kind === "full-reset" && (value.reason === "history" || value.reason === "restored" || value.reason === "stale"))
+        return { kind: "full-reset", revision: value.revision as number, reason: value.reason };
+      if (value.kind !== "changed-columns" || !Array.isArray(value.columns) || value.columns.length > 4096)
+        throw new Error("invalid terrain change result");
+      const seen = new Set<string>();
+      const columns = value.columns.map((column): readonly [number, number] => {
+        if (!Array.isArray(column) || column.length !== 2 || !column.every(coordinate =>
+          Number.isInteger(coordinate) && coordinate >= -2147483648 && coordinate <= 2147483647))
+          throw new Error("invalid terrain changed column");
+        const parsed = [column[0] as number, column[1] as number] as const;
+        const key = `${parsed[0]},${parsed[1]}`;
+        if (seen.has(key)) throw new Error("duplicate terrain changed column");
+        seen.add(key);
+        return parsed;
+      });
+      return { kind: "changed-columns", revision: value.revision as number, columns };
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);

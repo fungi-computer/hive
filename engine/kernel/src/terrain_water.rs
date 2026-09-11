@@ -9,6 +9,76 @@ use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+const CHANGE_HISTORY_LIMIT: usize = 64;
+const CHANGED_COLUMN_LIMIT: usize = 4096;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TerrainResetReason {
+    History,
+    Restored,
+    Stale,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum TerrainChangeSet {
+    FullReset { revision: u64, reason: TerrainResetReason },
+    ChangedColumns { revision: u64, columns: Vec<[i64; 2]> },
+}
+
+/// A disposable index of successful physical edits. It is deliberately not
+/// part of environment records: a restored owner cannot claim knowledge of
+/// changes that were only present in the old process.
+#[derive(Clone, Debug)]
+struct TerrainChangeIndex {
+    changes: BTreeMap<u64, BTreeSet<(i64, i64)>>,
+    history_floor: u64,
+    restored_at: Option<u64>,
+}
+
+impl TerrainChangeIndex {
+    fn fresh() -> Self {
+        Self { changes: BTreeMap::new(), history_floor: 0, restored_at: None }
+    }
+
+    fn restored(revision: u64) -> Self {
+        Self { changes: BTreeMap::new(), history_floor: revision, restored_at: Some(revision) }
+    }
+
+    fn record(&mut self, revision: u64, columns: BTreeSet<(i64, i64)>) {
+        if columns.len() > CHANGED_COLUMN_LIMIT {
+            self.changes.clear();
+            self.history_floor = self.history_floor.max(revision);
+            return;
+        }
+        self.changes.insert(revision, columns);
+        while self.changes.len() > CHANGE_HISTORY_LIMIT {
+            let Some((revision, _)) = self.changes.pop_first() else { break; };
+            self.history_floor = self.history_floor.max(revision);
+        }
+    }
+
+    fn since(&self, since: u64, current: u64) -> TerrainChangeSet {
+        if since > current {
+            return TerrainChangeSet::FullReset { revision: current, reason: TerrainResetReason::Stale };
+        }
+        if since < self.history_floor {
+            let reason = self.restored_at.filter(|revision| since < *revision)
+                .map_or(TerrainResetReason::History, |_| TerrainResetReason::Restored);
+            return TerrainChangeSet::FullReset { revision: current, reason };
+        }
+        let mut columns = BTreeSet::new();
+        for changed in self.changes.range((std::ops::Bound::Excluded(since), std::ops::Bound::Included(current))).map(|(_, columns)| columns) {
+            columns.extend(changed.iter().copied());
+        }
+        TerrainChangeSet::ChangedColumns {
+            revision: current,
+            columns: columns.into_iter().map(|(x, z)| [x, z]).collect(),
+        }
+    }
+}
+
 mod air_geometry;
 pub use air_geometry::{AirGeometryBounds, AirGeometryCell, AirGeometryFace, AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot, AirWaterCoverage};
 pub(crate) use air_geometry::{AirGeometryEdit, AirGeometryChanges};
@@ -181,6 +251,7 @@ pub struct TerrainWater {
     scratch: WaterWorkspace,
     owner: Arc<()>,
     epoch: u64,
+    change_index: TerrainChangeIndex,
 }
 impl TerrainWater {
     pub fn fresh(geometry: TerrainWaterGeometry, mut terrain: TerrainOwner,
@@ -192,7 +263,7 @@ impl TerrainWater {
         let state = graph.initial(stocks)?;
         let scratch = graph.workspace();
         let identity = geometry.identity()?;
-        Ok(Self { terrain, structures, structure_projection, physical_revision: 0, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
+        Ok(Self { terrain, structures, structure_projection, physical_revision: 0, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0, change_index: TerrainChangeIndex::fresh() })
     }
     pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
         let header = postcard::to_allocvec(&(2u16, self.identity.as_slice(),
@@ -233,7 +304,7 @@ impl TerrainWater {
         let graph = geometry.compile(&mut terrain, water_revision, None, &structure_projection)?;
         let state = graph.decode_state(&records.water)?;
         let scratch = graph.workspace();
-        Ok(Self { terrain, structures, structure_projection, physical_revision, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
+        Ok(Self { terrain, structures, structure_projection, physical_revision, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0, change_index: TerrainChangeIndex::restored(physical_revision) })
     }
 
     pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
@@ -335,6 +406,9 @@ impl TerrainWater {
         (self.terrain.prepared_cell(&prepared.terrain), self.terrain.prepared_replacement(&prepared.terrain))
     }
     pub fn terrain_revision(&self) -> u64 { self.physical_revision }
+    pub fn terrain_changes(&self, since: u64) -> TerrainChangeSet {
+        self.change_index.since(since, self.physical_revision)
+    }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
         let prepared = self.prepare_water_advance(seconds)?;
@@ -430,12 +504,19 @@ impl TerrainWater {
         }
         let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
         let revision = self.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
+        let changed_columns = self.structure_projection.changed_air_cells(&prepared.projection)?.into_iter()
+            .filter(|cell| {
+                let bounds = self.terrain.bounds();
+                cell.x >= bounds.min_x && cell.x < bounds.max_x && cell.z >= bounds.min_z && cell.z < bounds.max_z
+            })
+            .map(|cell| (cell.x, cell.z)).collect();
         self.structures = prepared.structures;
         self.structure_projection = prepared.projection;
         self.graph = prepared.graph;
         self.state = prepared.state;
         self.scratch = prepared.scratch;
         self.physical_revision = revision;
+        self.change_index.record(revision, changed_columns);
         self.epoch = epoch;
         Ok(())
     }
@@ -448,6 +529,8 @@ impl TerrainWater {
         }
         let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
         let revision = self.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
+        let changed_column = (self.terrain.prepared_cell(&prepared.terrain).x,
+            self.terrain.prepared_cell(&prepared.terrain).z);
         let applied = self.terrain.apply(prepared.terrain)?;
         self.physical_revision = revision;
         if let Some((graph, state, scratch)) = prepared.water {
@@ -455,6 +538,7 @@ impl TerrainWater {
             self.state = state;
             self.scratch = scratch;
         }
+        self.change_index.record(revision, [changed_column].into_iter().collect());
         self.epoch = epoch;
         Ok(applied)
     }
@@ -492,6 +576,35 @@ mod tests {
     use super::*;
     use crate::generation::{Bounds, MaterialSlots, WorldSpec};
     use crate::terrain::MaterialProperty;
+
+    #[test]
+    fn terrain_change_index_is_bounded_and_marks_restore_and_stale() {
+        let mut index = TerrainChangeIndex::fresh();
+        index.record(1, BTreeSet::from([(2, 3)]));
+        assert_eq!(index.since(0, 1), TerrainChangeSet::ChangedColumns {
+            revision: 1, columns: vec![[2, 3]],
+        });
+        assert_eq!(index.since(1, 1), TerrainChangeSet::ChangedColumns {
+            revision: 1, columns: Vec::new(),
+        });
+        assert_eq!(index.since(2, 1), TerrainChangeSet::FullReset {
+            revision: 1, reason: TerrainResetReason::Stale,
+        });
+
+        let restored = TerrainChangeIndex::restored(4);
+        assert_eq!(restored.since(3, 4), TerrainChangeSet::FullReset {
+            revision: 4, reason: TerrainResetReason::Restored,
+        });
+
+        for revision in 2..=(CHANGE_HISTORY_LIMIT as u64 + 1) {
+            index.record(revision, BTreeSet::from([(revision as i64, 0)]));
+        }
+        assert_eq!(index.since(0, CHANGE_HISTORY_LIMIT as u64 + 1), TerrainChangeSet::FullReset {
+            revision: CHANGE_HISTORY_LIMIT as u64 + 1, reason: TerrainResetReason::History,
+        });
+        assert!(matches!(index.since(CHANGE_HISTORY_LIMIT as u64, CHANGE_HISTORY_LIMIT as u64 + 1),
+            TerrainChangeSet::ChangedColumns { .. }));
+    }
 
     #[test]
     fn structure_floor_seals_water_and_restores_without_reseeding() {
@@ -538,6 +651,10 @@ mod tests {
         let token = world.prepare_structures(floor()).unwrap().unwrap();
         let proposed_air = world.prepared_structure_air_geometry(&token, air_bounds).unwrap();
         world.apply_structures(token).unwrap();
+        let TerrainChangeSet::ChangedColumns { revision, columns } = world.terrain_changes(0) else { panic!("fresh structure change must be indexed"); };
+        assert_eq!(revision, 1);
+        assert!(columns.contains(&[low.x, low.z]));
+        assert!(columns.contains(&[anchor.x, anchor.z]));
         assert_eq!(world.air_geometry(air_bounds).unwrap(), proposed_air);
         let expected = world.material(anchor).unwrap();
         assert!(matches!(world.prepare_excavation(anchor, expected, 0).unwrap(), ExcavationResult::StructuresBlocked(_)));
@@ -552,6 +669,7 @@ mod tests {
         let mut restored = TerrainWater::restore_records(geometry, terrain(), &records).unwrap();
         assert_eq!(restored.facts().unwrap(), facts);
         assert_eq!(restored.terrain_revision(), world.terrain_revision());
+        assert!(matches!(restored.terrain_changes(0), TerrainChangeSet::FullReset { reason: TerrainResetReason::Restored, .. }));
         assert!(restored.traversal_material(low).unwrap().sealed_top);
         let token = restored.prepare_structures(Vec::new()).unwrap().unwrap();
         restored.apply_structures(token).unwrap();
