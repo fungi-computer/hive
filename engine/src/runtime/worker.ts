@@ -9,6 +9,7 @@ export class WorkerRuntime {
   private session?: GameSession;
   private port?: KernelPort;
   private accepted?: import("./session").SessionSnapshot;
+  private failure?: { readonly cause: string; readonly recovery: string };
   private seed = 1;
   constructor(
     private readonly createKernel: () => KernelPort,
@@ -40,17 +41,37 @@ export class WorkerRuntime {
   private recover(): void {
     this.terrainRevision = undefined;
     if (!this.accepted) {
-      this.port?.dispose(); this.port = undefined; this.session = undefined; return;
+      this.port?.dispose(); this.port = undefined; this.session = undefined;
+      throw new Error("no accepted snapshot available");
     }
     const pack = this.packs[this.accepted.game];
     if (!pack) throw new Error("accepted game is unavailable");
     this.replaceSession(pack, this.seed, this.accepted);
+  }
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+  private reportFailure(error: unknown): void {
+    const cause = this.errorMessage(error);
+    try {
+      this.recover();
+      this.failure = undefined;
+      this.emit({ type: "error", message: cause });
+    } catch (recoveryError) {
+      const recovery = this.errorMessage(recoveryError);
+      this.port?.dispose();
+      this.port = undefined;
+      this.session = undefined;
+      this.failure = { cause, recovery };
+      this.emit({ type: "error", message: `${cause}; recovery failed: ${recovery}` });
+    }
   }
   dispose(): void {
     this.port?.dispose();
     this.port = undefined;
     this.session = undefined;
     this.accepted = undefined;
+    this.failure = undefined;
   }
   private frameEpoch = 0;
   private frameSequence = 0;
@@ -90,6 +111,35 @@ export class WorkerRuntime {
     });
   }
   command(command: WorkerCommand): void {
+    if (this.failure) {
+      if (command.type === "step") return;
+      if (command.type !== "start" && command.type !== "reset") {
+        this.emit({
+          type: "error",
+          message: `${this.failure.cause}; recovery failed: ${this.failure.recovery}`,
+        });
+        return;
+      }
+    }
+    if (command.type === "start") this.failure = undefined;
+    if (command.type === "reset" && this.failure) {
+      const previous = this.failure;
+      this.failure = undefined;
+      try {
+        const game = previous && this.accepted && this.packs[this.accepted.game];
+        if (!game) throw new Error("accepted game is unavailable");
+        const started = this.replaceSession(game, this.seed);
+        this.captureAccepted();
+        this.emitObservation(true);
+        this.emit({ type: "state", paused: started.isPaused });
+        return;
+      } catch (error) {
+        const reset = this.errorMessage(error);
+        this.failure = { cause: previous.cause, recovery: `reset failed: ${reset}` };
+        this.emit({ type: "error", message: `${previous.cause}; reset failed: ${reset}` });
+        return;
+      }
+    }
     try {
       if (command.type === "start") {
         const pack = this.packs[command.game];
@@ -140,11 +190,7 @@ export class WorkerRuntime {
         this.emitObservation();
       }
     } catch (error) {
-      try { this.recover(); } catch { this.port?.dispose(); this.port = undefined; this.session = undefined; }
-      this.emit({
-        type: "error",
-        message: error instanceof Error ? error.message : String(error),
-      });
+      this.reportFailure(error);
     }
   }
 }
