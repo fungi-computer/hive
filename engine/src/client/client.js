@@ -2,6 +2,7 @@ import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
+import { createAudioOwner } from "./audio.js";
 import { presentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
@@ -143,6 +144,7 @@ export function createHiveClient({
   let effectOwner;
   let previewCache;
   const subjectReactions = new Map();
+  const audio = createAudioOwner();
   let latestFacts = [];
 
   function prepareNewWorld(remote) {
@@ -156,11 +158,10 @@ export function createHiveClient({
     intendedDestinations.clear();
     directControl?.reset();
     gesture.send({ type: "CANCEL" });
-    if (isAiming()) aimGesture.send({ type: "ESCAPE" });
+    exitAim();
     frameEpoch = undefined;
     frameSequence = 0;
     awaitingEpochTransition = false;
-    state.aim = { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null };
     cueCursor.reset();
     effectOwner?.clear();
     previewCache?.clear();
@@ -186,9 +187,7 @@ export function createHiveClient({
   }
   function toggleAim() {
     if (isAiming()) {
-      aimGesture.send({ type: "ESCAPE" });
-      state.aim = { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null };
-      previewCache?.clear();
+      exitAim();
     } else {
       const launcher = selectedLauncher();
       if (!launcher) return;
@@ -198,6 +197,11 @@ export function createHiveClient({
     }
     renderHud();
     draw();
+  }
+  function exitAim() {
+    if (isAiming()) aimGesture.send({ type: "ESCAPE" });
+    state.aim = { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null };
+    previewCache?.clear();
   }
   function updateAimPreview(force = false) {
     if (!isAiming() || !state.aim.target || !previewCache) return;
@@ -220,9 +224,10 @@ export function createHiveClient({
     updateAimPreview(true);
     const velocity = state.aim.velocity;
     if (!velocity) throw new Error("aim preview velocity unavailable");
+    audio.unlock();
     runtime?.send({ type: "command", name: aiming.command, input: { velocity } });
     aimGesture.send({ type: "FIRE" });
-    toggleAim();
+    exitAim();
   }
   function renderHud() {
     const act = (kind) => {
@@ -272,6 +277,7 @@ export function createHiveClient({
               { onClick: () => act("pause"), size: "sm" },
               state.paused ? "Resume" : "Pause",
             ),
+            React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { audio.setMuted(!audio.muted); renderHud(); } }, audio.muted ? "Sound off" : "Sound on"),
             React.createElement(
               Button,
               { onClick: () => act("reset"), size: "sm", variant: "secondary" },
@@ -754,6 +760,7 @@ export function createHiveClient({
       const smokeFrames = Array.isArray(smoke) ? smoke : [smoke];
       effectOwner.play({ texture: smokeFrames[0], frames: smokeFrames, lifetime: 900, sprites: 1 }, cue);
     }
+    audio.play(cue.kind);
   }
   async function start() {
     if (directControlId || aiming) {
@@ -884,6 +891,7 @@ export function createHiveClient({
       if (event.type === "state" && typeof event.paused === "boolean") {
         if (state.paused !== event.paused) directControl?.reset();
         state.paused = event.paused;
+        if (state.paused) exitAim();
         if (state.paused) intendedDestinations.clear();
         renderHud();
       }
@@ -981,6 +989,8 @@ export function createHiveClient({
       window.removeEventListener("blur", releaseDirect);
       document.removeEventListener("visibilitychange", releaseDirect);
       directControl?.reset();
+      exitAim();
+      audio.dispose();
       cueCursor.dispose();
       effectOwner?.clear();
       app.canvas?.removeEventListener("pointerdown", pointerDown);
