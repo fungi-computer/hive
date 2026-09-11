@@ -25,6 +25,15 @@ This is not deployed construction. Original four-facing stair art is being baked
 upper-level picking still needs native structure faces. Three usable levels,
 room smoke, scoped knowledge and the two-player/two-DO journey remain unfinished.
 
+**Three-level native consumer checkpoint:** `9241328` proves ordinary Colony
+workers supply and complete two stairs with an upper floor between them, reaching
+support levels 13, 17 and 21. Current save/restore occurs after each build and
+48 total wood remains conserved. Native structure surfaces, host/wire projection
+and original four-facing stair bank are joined; `551e0c6` adds presentation-only
+upper-art cutaway. The upper-placement UI is in review, not yet input-tested or
+published. This headless construction sequence does not complete the goal's
+usable three-storey house, smoke/ventilation, exploration or region journey.
+
 
 The four-page demo is now deployed from a13fc44. Colony uses the Rust generator
 for64×64 exterior columns and native finite water near the camp. Real mouse
