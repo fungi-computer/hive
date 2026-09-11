@@ -82,7 +82,7 @@ test("Colony native excavation rejects a target occupied by the worker", () => {
 test("Colony deposits spoil and exposes finite groundwater through a stepped excavation", () => {
   const { port, session } = makeSession();
   const worker = entity("colony.worker.1");
-  const tick = () => { for (const result of session.step(0.25)) assert.equal(result.accepted, true, result.reason); };
+  const tick = () => { for (const result of session.step(0.25)) assert.equal(result.accepted, true, result.reason ?? undefined); };
   const walk = (x: number, z: number) => {
     const surface = port.terrainSurfaces([[x, z]])[0];
     assert.ok(surface);
