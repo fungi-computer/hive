@@ -588,6 +588,19 @@ impl Kernel {
         self.environment = Some(KernelEnvironment { definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules });
         Ok(())
     }
+    /// Trusted host query. Player visibility must be applied before publishing
+    /// these facts; this endpoint is not itself an exploration permission.
+    pub fn terrain_materials_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 32 * 1024 { return Err("terrain query exceeds input budget".into()); }
+        let coordinates: Vec<[i32; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if coordinates.len() > 256 { return Err("terrain query exceeds cell budget".into()); }
+        let cells: Vec<_> = coordinates.into_iter().map(|[x, y, z]| crate::generation::Cell {
+            x: i64::from(x), y, z: i64::from(z),
+        }).collect();
+        let environment = self.environment.as_mut().ok_or("world has no environment")?;
+        serde_json::to_string(&environment.world.materials(&cells)?).map_err(|error| error.to_string())
+    }
     pub fn environment_facts_json(&self) -> Result<String> {
         self.ensure_ready()?;
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
