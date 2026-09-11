@@ -178,6 +178,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private readonly ready: Promise<void>;
   private residentQueue: Promise<void> = Promise.resolve();
   private readonly publicationQueue: ReturnType<typeof createPublicationQueue>;
+  private observationCache: {
+    readonly revision: number;
+    readonly payload: PublicObservationPayload;
+  } | undefined;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -395,12 +399,12 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     else await this.state.storage.setAlarm(at);
   }
 
-  private async observe(now: number): Promise<Response> {
-    return this.serial(() => this.observeExclusive(now));
+  private async renewLease(now: number): Promise<void> {
+    return this.serial(() => this.renewLeaseExclusive(now));
   }
 
-  private async observeExclusive(now: number): Promise<Response> {
-    const row = await this.inTransaction(async () => {
+  private async renewLeaseExclusive(now: number): Promise<void> {
+    await this.inTransaction(async () => {
       const current = this.hostRow();
       if (!current) throw new Error("public-host-state");
       validateHostRow(current);
@@ -414,20 +418,22 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         this.nextDue(renewed, now) ??
         renewed;
       await this.arm(next);
-      return next;
     });
-    return this.observationResponse();
   }
 
-  private observationPayload() {
+  private observationPayload(): PublicObservationPayload {
     const committed = this.region.readCommitted();
-    return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), (session) => {
+    const cached = this.observationCache;
+    if (cached?.revision === committed.revision) return cached.payload;
+    const payload = this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), (session) => {
       const observation = buildObservation(session, {
         epoch: 0,
         sequence: committed.revision,
       });
       return { revision: committed.revision, observation };
     });
+    this.observationCache = { revision: committed.revision, payload };
+    return payload;
   }
 
   private residentRecords(revision: number) {
@@ -449,11 +455,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     } };
   }
 
-  private observationResponse(): Response {
-    return Response.json(this.observationPayload());
+  private async observationResponse(): Promise<Response> {
+    return Response.json(await this.queuedObservationPayload());
   }
 
-  private queuedObservationPayload() {
+  private queuedObservationPayload(): Promise<PublicObservationPayload> {
     return this.serial(() => this.observationPayload());
   }
 
@@ -689,7 +695,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       try {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
-          await this.observe(Date.now());
+          await this.renewLease(Date.now());
           const payload = await this.queuedObservationPayload();
           this.sendObservation(socket, payload, attachment, true);
           return;
@@ -704,7 +710,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       if (!attachment?.pack) throw new Error("public-socket-state");
       await this.initialize(attachment.pack, tokenHash);
       socket.serializeAttachment({ pack: attachment.pack, tokenHash, authenticated: true, authDeadline: null } satisfies SocketAttachment);
-      await this.observe(Date.now());
+      await this.renewLease(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
       const authenticated = socket.deserializeAttachment() as SocketAttachment;
       const payload = await this.queuedObservationPayload();
@@ -769,8 +775,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       if (
         new URL(request.url).pathname.endsWith("/observe") &&
         request.method === "GET"
-      )
-        return withCors(await this.observe(now), origin);
+      ) {
+        await this.renewLease(now);
+        return withCors(await this.observationResponse(), origin);
+      }
       if (
         new URL(request.url).pathname.endsWith("/command") &&
         request.method === "POST"
