@@ -51,8 +51,18 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
     true
 }
 
+pub struct KernelRecords {
+    pub entities: String,
+    pub environment: Option<(String, crate::terrain_water::TerrainWaterRecords)>,
+}
+struct KernelEnvironment {
+    definition: String,
+    world: crate::terrain_water::TerrainWater,
+}
+
 pub struct Kernel {
     ecs: World,
+    environment: Option<KernelEnvironment>,
     registry: Registry,
     ids: BTreeMap<String, Entity>,
     known: BTreeSet<String>,
@@ -80,6 +90,7 @@ impl Kernel {
         let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
         Self {
             ecs,
+            environment: None,
             registry,
             ids: BTreeMap::new(),
             known: BTreeSet::new(),
@@ -530,7 +541,41 @@ impl Kernel {
             .collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
+    pub fn load_environment(&mut self, definition: &str) -> Result<()> {
+        if self.revision != 0 || self.environment.is_some() {
+            return Err("environment initialization requires a new world".into());
+        }
+        let world = crate::environment_definition::build_from_json(definition)?;
+        self.environment = Some(KernelEnvironment { definition: definition.to_owned(), world });
+        Ok(())
+    }
+    pub fn environment_facts_json(&self) -> Result<String> {
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        serde_json::to_string(&environment.world.facts()?).map_err(|error| error.to_string())
+    }
+    pub fn save_records(&self) -> Result<KernelRecords> {
+        let environment = self.environment.as_ref().map(|environment| {
+            Ok::<_, String>((environment.definition.clone(), environment.world.save_records()?))
+        }).transpose()?;
+        Ok(KernelRecords { entities: self.snapshot_entities_json()?, environment })
+    }
+    pub fn restore_records(&mut self, records: &KernelRecords) -> Result<()> {
+        let mut candidate = Self::new();
+        candidate.restore_json(&records.entities)?;
+        if let Some((definition, records)) = &records.environment {
+            let prepared = crate::environment_definition::prepare_definition(definition)?;
+            let world = crate::terrain_water::TerrainWater::restore_records(
+                prepared.geometry, prepared.terrain, records)?;
+            candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world });
+        }
+        *self = candidate;
+        Ok(())
+    }
     pub fn snapshot_json(&self) -> Result<String> {
+        if self.environment.is_some() { return Err("environment worlds require save_records".into()); }
+        self.snapshot_entities_json()
+    }
+    fn snapshot_entities_json(&self) -> Result<String> {
         let initial = self
             .ids
             .iter()
@@ -592,6 +637,7 @@ impl Kernel {
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
     pub fn restore_json(&mut self, input: &str) -> Result<()> {
+        if self.environment.is_some() { return Err("environment worlds require restore_records".into()); }
         if input.len() > 8 * 1024 * 1024 {
             return Err("snapshot too large".into());
         }
@@ -784,10 +830,10 @@ impl Kernel {
                     | Action::BeginDirect { .. } | Action::DirectInput { .. })
             });
         if needs_staging {
-            let before = self.snapshot_json()?;
+            let before = self.save_records()?;
             let result = self.advance_batch(batch);
             if result.is_err() {
-                self.restore_json(&before)?;
+                self.restore_records(&before)?;
             }
             return result;
         }
@@ -859,6 +905,9 @@ impl Kernel {
         self.advance_direct(batch.delta)?;
         if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         self.advance_movement(batch.delta);
+        if let Some(environment) = &mut self.environment {
+            environment.world.advance(batch.delta)?;
+        }
         self.time += batch.delta;
         serde_json::to_string(&json!({"revision":self.revision,"results":results,"impacts":impacts}))
             .map_err(|e| e.to_string())
