@@ -162,6 +162,7 @@ fn prepare_definition_mode(
     let vertical = definition.world.vertical_metres;
     let limits = WaterLimits::default();
     for at in &water.cells {
+        if !admit_initial_stocks { break; }
         let cell = Cell {
             x: i64::from(at[0]),
             y: at[1],
@@ -254,7 +255,7 @@ mod tests {
     use super::*;
     fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"closed"}}}}],"water":{{"id":"w","cells":[[0,0,0],[0,12,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#,
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#,
             seed
         )
     }
@@ -284,8 +285,8 @@ mod tests {
         let built = build_from_json(&input).unwrap();
         assert!(built.facts().unwrap().total_kg.is_finite());
         let other = prepare_definition_mode(&fixture("seed-b"), true).unwrap();
-        let first_total: f64 = admitted.stocks.iter().map(|stock| stock.mass_kg).sum();
-        let other_total: f64 = other.stocks.iter().map(|stock| stock.mass_kg).sum();
-        assert_ne!(first_total, other_total);
+        assert!(admitted.stocks.iter().any(|stock| stock.mass_kg > 0.0));
+        assert!(admitted.stocks.iter().any(|stock| stock.mass_kg == 0.0));
+        assert_ne!(admitted.terrain.export().unwrap(), other.terrain.export().unwrap());
     }
 }
