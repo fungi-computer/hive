@@ -11,6 +11,21 @@ one-shot every retained system or let presentation polish substitute for play.
 
 ## Current playable checkpoint — September 11
 
+**Latest live correction:** runtime `6080e4e` supersedes the a13fc44 manual-dig
+checkpoint below. Rectangle designation now leads to automatic approach, cutting,
+spoil unloading and continuation. The actual two-cell consumer produced six spoil;
+paused queued-work save/replay/resume was separately checked in a local DO. These
+are bounded evidence, not the completed multi-storey/knowledge/travel sprint.
+
+**Current local construction join:** `22b4a0d` adds the actual Colony supply/build
+consumer over the native construction owner. Workers supply and finish a floor,
+48 wood remains conserved (two held in the completed structure), and current save/
+restore preserves it. The headless actual-WASM consumer and strict types pass.
+This is not deployed construction. Original four-facing stair art is being baked;
+upper-level picking still needs native structure faces. Three usable levels,
+room smoke, scoped knowledge and the two-player/two-DO journey remain unfinished.
+
+
 The four-page demo is now deployed from a13fc44. Colony uses the Rust generator
 for64×64 exterior columns and native finite water near the camp. Real mouse
 input completed soil/stone excavation, spoil deposits and an exterior cutaway
