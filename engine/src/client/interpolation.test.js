@@ -109,15 +109,29 @@ test("online cadence buffers delayed and jittered publications", () => {
   const buffer = createInterpolationBuffer({ cadence: "online" });
   assert.equal(buffer.cadence, "online");
   assert.equal(buffer.delayMs, 200);
-  buffer.push(frame(0, 0, 0), 0);
-  buffer.push(frame(1, 0.25, 25), 310);
-  buffer.push(frame(2, 0.5, 50), 590);
-  // At 500ms the two-sample delay leaves us between the first two
-  // publications; no extrapolation is needed despite receipt jitter.
-  assert.equal(buffer.render(500)[0].pose.position.x, 30);
-  assert.equal(buffer.render(700)[0].pose.position.x, 50);
-  buffer.push(frame(3, 0.75, 75), 900);
-  assert.equal(buffer.render(850)[0].pose.position.x, 65);
+  const arrivals = [0, 120, 215, 330, 420, 560, 640, 780, 1300];
+  let next = 0;
+  const renderAt = (now) => {
+    while (next < arrivals.length && arrivals[next] <= now) {
+      const time = next / 10;
+      buffer.push(frame(next, time, next * 10), arrivals[next]);
+      next += 1;
+    }
+    return buffer.render(now)[0]?.pose.position.x;
+  };
+  // The renderer sees only arrivals that have actually happened. Uneven
+  // delivery still produces a steady delayed timeline after warm-up.
+  assert.equal(renderAt(0), 0);
+  assert.equal(renderAt(500), 30);
+  assert.equal(renderAt(600), 40);
+  assert.equal(renderAt(700), 50);
+  assert.equal(renderAt(800), 60);
+
+  // A publication gap holds the last committed pose, then resumes from the
+  // new sample without rewinding the already displayed server time.
+  assert.equal(renderAt(1200), 70);
+  assert.equal(renderAt(1300), 100);
+  assert.ok(renderAt(1400) >= 100);
 });
 
 test("supported children interpolate in parent-local space", () => {

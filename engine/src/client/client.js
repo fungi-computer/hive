@@ -618,8 +618,8 @@ export function createHiveClient({
           y: local.y,
           z: local.z + dz,
         };
-        // Key repeat continues from the last requested local cell while the
-        // server catches up; this is an input convenience, not prediction.
+        // A pending cell is held until an authoritative frame catches up;
+        // this is an input convenience, not prediction.
         intendedDestinations.set(id, { destination, dx, dz });
         emit({
           kind: "action",
