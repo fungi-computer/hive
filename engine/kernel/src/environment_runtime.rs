@@ -15,9 +15,25 @@ pub(super) enum WaterStep {
 }
 pub(super) struct EnvironmentStep {
     pub water: WaterStep,
-    pub air: Option<AtmosphereReceipt>,
+    pub air: Option<AirStep>,
 }
 
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct AirStep {
+    pub receipt: AtmosphereReceipt,
+    pub waiting: Vec<EmissionWait>,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct EmissionWait {
+    source: String,
+    reason: EmissionWaitReason,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+enum EmissionWaitReason { NoAirReceiver, PhysicalEnvelope, UnrepresentableInterval }
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -99,18 +115,19 @@ impl KernelEnvironment {
         if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }
         Ok(true)
     }
-    fn advance_emissions(&mut self, seconds: f64, revision: u64) -> Result<Option<AtmosphereReceipt>, String> {
+    fn advance_emissions(&mut self, seconds: f64, revision: u64) -> Result<Option<AirStep>, String> {
         let Some(air) = self.atmosphere.as_mut() else { return Ok(None); };
         let mut grouped: BTreeMap<String, (f64, f64)> = BTreeMap::new();
         let mut progress = Vec::new();
+        let mut waiting = Vec::new();
         for (id, source) in &self.paid_emissions {
             // An action admitted this tick does not earn an entire prior tick.
             if source.admitted_revision >= revision { continue; }
             let cell_id = format!("cell:{},{},{}", source.cell.x, source.cell.y, source.cell.z);
-            let Some(volume) = air.compiled().volume_for_cell(&cell_id) else { continue; };
+            let Some(volume) = air.compiled().volume_for_cell(&cell_id) else { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::NoAirReceiver }); continue; };
             let definition = self.emissions.get(&source.catalog).ok_or("paid emission catalog missing")?;
             let end = (source.elapsed_s + seconds).min(definition.definition().duration_s);
-            if !end.is_finite() || end <= source.elapsed_s { continue; }
+            if !end.is_finite() || end <= source.elapsed_s { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::UnrepresentableInterval }); continue; }
             let released = definition.release().released_between(Some(0.0), source.elapsed_s, end)?;
             let target = grouped.entry(volume.to_owned()).or_default();
             target.0 += released["smokeKg"] / seconds;
@@ -125,7 +142,9 @@ impl KernelEnvironment {
             // published neither gas nor progress. Vent existing air and retain
             // the paid obligation for a later admissible step.
             Err(reason) if reason == "atmosphere parcel exceeds physical envelope" => {
-                return air.advance(seconds, &[]).map(Some);
+                waiting.extend(progress.iter().map(|(id, _, _)| EmissionWait { source: id.clone(), reason: EmissionWaitReason::PhysicalEnvelope }));
+                let receipt = air.advance(seconds, &[])?;
+                return Ok(Some(AirStep { receipt, waiting }));
             }
             Err(reason) => return Err(reason),
         };
@@ -133,7 +152,7 @@ impl KernelEnvironment {
             if elapsed == duration { self.paid_emissions.remove(&id); }
             else { self.paid_emissions.get_mut(&id).unwrap().elapsed_s = elapsed; }
         }
-        Ok(Some(receipt))
+        Ok(Some(AirStep { receipt, waiting }))
     }
     pub(super) fn advance(&mut self, seconds: f64, revision: u64) -> Result<EnvironmentStep, String> {
         if seconds == 0.0 { return Ok(EnvironmentStep { water: WaterStep::Paused, air: None }); }
