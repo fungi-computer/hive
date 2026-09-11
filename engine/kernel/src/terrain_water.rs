@@ -305,6 +305,10 @@ mod tests {
         assert_eq!(credited_water_kg, 200.0);
         assert_eq!(prepared.removed(), expected);
         assert_eq!(prepared.volume_m3(), 1.0);
+        // Failed admission changes no canonical state, so it need not invalidate
+        // an otherwise current completion candidate.
+        assert!(water.advance(-1.0).is_err());
+        assert_eq!(water.facts().unwrap(), before);
         water.apply_excavation(prepared).unwrap();
         assert_eq!(water.material(at).unwrap(), 0);
         let facts = water.facts().unwrap();
