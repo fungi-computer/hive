@@ -1,3 +1,20 @@
+## Actual deep cut reaches groundwater — September 11
+
+Root diagnostic u5640 established that the first surface cut at[1,13,0] is dry:
+generated water stock lives at y10/11, with no invented upward supply. Then
+u5642 invocation3202e3203d5e4d27bc5c9fecd59096cb, exec46563 exited0 using
+actual GameSession dig commands, native walk and existing finite transfer actions.
+The worker excavated [1,13,0], [1,12,0], a step at[2,13,0], and[1,11,0], depositing
+spoil in the pantry between jobs. After ten further simulated seconds the exposed
+y11 cell held28.915274603392465kg water (0.028915274603392466m³). Field totals:
+initial877.5kg, current869.4000000000001kg, recorded boundary -8.100000000000005kg,
+residual9.59e-14kg. Physical spoil-water destination is not independently asserted
+by this diagnostic; do not call this a complete combined water ledger proof.
+Both scopes closed inactive/dead/empty. Logs and exact probe sources live in
+`.botanical/colony-water/`. This is actual Rust/WASM game action evidence, not
+browser interaction or native DO/restart acceptance. Manual deposit UI and visible
+deep cut remain the next consumer join; shallow screenshot is correctly dry.
+
 ## Actual terrain Colony consumer and browser — September 11
 
 At source `d74cbed`, the format7 WASM SHA256 is
