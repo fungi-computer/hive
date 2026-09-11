@@ -2,7 +2,7 @@ import type { PresentationCue } from "./presentation-cues";
 import type { ActionRequest, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
 import type { PresentationControl, TerrainMark } from "../presentation";
-import type { TerrainWireObservation } from "./terrain-wire";
+import type { TerrainWireFrame, TerrainWireObservation } from "./terrain-wire";
 
 export type WorkerCommand =
   | { readonly type: "command"; readonly name: string; readonly input?: unknown }
@@ -13,7 +13,7 @@ export type WorkerCommand =
   | { readonly type: "save" }
   | { readonly type: "restore"; readonly snapshot: SessionSnapshot };
 
-export type WorkerEvent =
+type WorkerEventBase =
   | { readonly type: "ready"; readonly game: string }
   | { readonly type: "restored" }
   | { readonly type: "state"; readonly paused: boolean }
@@ -23,7 +23,7 @@ export type WorkerEvent =
       readonly epoch: number;
       readonly sequence: number;
       readonly facts: readonly RenderFact[];
-      readonly terrain?: TerrainWireObservation;
+      readonly terrain?: TerrainWireFrame;
       readonly cues: readonly PresentationCue[];
     }
   | {
@@ -39,3 +39,14 @@ export type WorkerEvent =
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[] }
   | { readonly type: "error"; readonly message: string };
+
+export type WorkerEvent = WorkerEventBase;
+export type WorkerTransportEvent = Exclude<WorkerEventBase, { readonly type: "frame" }> | {
+  readonly type: "frame";
+  readonly time: number;
+  readonly epoch: number;
+  readonly sequence: number;
+  readonly facts: readonly RenderFact[];
+  readonly terrain?: TerrainWireObservation;
+  readonly cues: readonly PresentationCue[];
+};
