@@ -55,7 +55,7 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       endpoint,
       game: mode,
       fetch: authorizedFetch(fetchImpl, nextToken),
-      pollMs: 250,
+      token: nextToken,
     });
     const nextUnsubscribe = next.subscribe((event) => {
       for (const listener of listeners) listener(event);

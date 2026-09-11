@@ -23,6 +23,8 @@ import {
   withCors,
   type PublicCommandInput,
   type PublicPack,
+  readSocketMessage,
+  socketHandleFromPath,
 } from "./protocol";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 
@@ -43,6 +45,7 @@ type HostRow = {
   due_request_json: string | null;
   due_deadline_ms: number | null;
 };
+type SocketAttachment = { readonly pack: PublicPack; readonly tokenHash: string; readonly authenticated: boolean; readonly authDeadline: number | null; readonly retired?: boolean };
 
 function packFor(pack: PublicPack) {
   switch (pack) {
@@ -157,6 +160,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private tokenHash!: string;
   private readonly owner: RegionSqliteOwner;
   private initialized = false;
+  private startupFailure: string | undefined;
   private readonly ready: Promise<void>;
 
   constructor(
@@ -177,21 +181,23 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       transactionSync: (operation) => state.storage.transactionSync(operation),
     };
     this.ready = state.blockConcurrencyWhile(async () => {
-      if (!/^[a-f0-9]{64}$/.test(hostEnv.IMPLEMENTATION_HASH))
-        throw new Error("missing immutable implementation hash");
-      initSync({ module: wasmBytes });
-      if (this.hasHostTable()) {
-        const persisted = this.hostRow();
-        if (persisted)
-          await this.initializeCore(
-            persisted.pack as PublicPack,
-            persisted.token_hash,
-          );
+      try {
+        if (!/^[a-f0-9]{64}$/.test(hostEnv.IMPLEMENTATION_HASH)) throw new Error("missing immutable implementation hash");
+        initSync({ module: wasmBytes });
+        if (this.hasHostTable()) {
+          const persisted = this.hostRow();
+          if (persisted) await this.initializeCore(persisted.pack as PublicPack, persisted.token_hash);
+        }
+      } catch (error) {
+        this.startupFailure = error instanceof Error && error.message === "public-capability-conflict" ? "unsupported-world" : "world-unavailable";
       }
     });
   }
 
   private async initialize(pack: PublicPack, tokenHash: string): Promise<void> {
+    const expectedId = this.hostEnv.REGIONS.idFromName(`${pack}:${tokenHash}`);
+    if (expectedId.toString() !== this.state.id.toString())
+      throw new Error("public-capability-conflict");
     if (this.initialized) {
       if (this.pack !== pack || this.tokenHash !== tokenHash)
         throw new Error("public-capability-conflict");
@@ -334,9 +340,21 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private alarmAt(row: HostRow): number | null {
-    if (row.lease_until_ms === null || row.due_deadline_ms === null)
-      return null;
-    return Math.min(row.lease_until_ms, row.due_deadline_ms);
+    const deadlines = this.state.getWebSockets().map((socket) => {
+      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+      return attachment?.retired ? null : attachment?.authDeadline;
+    }).filter((value): value is number => value !== null && value !== undefined);
+    const values = [...deadlines, row.lease_until_ms, row.due_deadline_ms].filter((value): value is number => value !== null);
+    return values.length === 0 ? null : Math.min(...values);
+  }
+
+  private expireUnauthenticated(now: number): void {
+    for (const socket of this.state.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+      if (!attachment || attachment.authenticated || attachment.retired || attachment.authDeadline === null || attachment.authDeadline === undefined || attachment.authDeadline > now) continue;
+      socket.serializeAttachment({ ...attachment, retired: true });
+      try { socket.close(1008, "authentication timeout"); } catch {}
+    }
   }
 
   private async arm(row: HostRow): Promise<void> {
@@ -362,10 +380,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       await this.arm(next);
       return next;
     });
-    return this.observationResponse(row);
+    return this.observationResponse();
   }
 
-  private observationResponse(_row: HostRow): Response {
+  private observationPayload() {
     const committed = this.region.readCommitted();
     const port = wasmKernelPort(new WasmKernel());
     try {
@@ -379,9 +397,22 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         epoch: 0,
         sequence: committed.revision,
       });
-      return Response.json({ revision: committed.revision, observation });
+      return { revision: committed.revision, observation };
     } finally {
       port.dispose();
+    }
+  }
+
+  private observationResponse(): Response {
+    return Response.json(this.observationPayload());
+  }
+
+  private publishObservation(): void {
+    const payload = JSON.stringify({ type: "observation", ...this.observationPayload() });
+    for (const socket of this.state.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
+      try { socket.send(payload); } catch { /* lifecycle removes failed sockets */ }
     }
   }
 
@@ -493,13 +524,54 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   async alarm(): Promise<void> {
     await this.ready;
+    this.expireUnauthenticated(Date.now());
     await this.initializeStored();
+    if (this.startupFailure) return;
     if (!this.initialized) return;
     await this.runDue(Date.now());
+    if (this.initialized) this.publishObservation();
   }
 
-  async fetch(request: Request): Promise<Response> {
+  async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
     await this.ready;
+    if (typeof message !== "string" || new TextEncoder().encode(message).byteLength > 8_192) {
+      try { socket.close(1009, "message too large"); } catch {}
+      return;
+    }
+    const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+    if (attachment?.authenticated) {
+      try {
+        const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
+        if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
+          await this.observe(Date.now());
+          socket.send(JSON.stringify({ type: "observation", ...this.observationPayload() }));
+          return;
+        }
+      } catch { /* malformed heartbeat is rejected below */ }
+      try { socket.send(JSON.stringify({ type: "error", error: "public-socket-message-unsupported" })); } catch {}
+      return;
+    }
+    try {
+      const auth = readSocketMessage(message);
+      const tokenHash = await sha256Hex(auth.token);
+      if (!attachment?.pack) throw new Error("public-socket-state");
+      await this.initialize(attachment.pack, tokenHash);
+      socket.serializeAttachment({ pack: attachment.pack, tokenHash, authenticated: true, authDeadline: null } satisfies SocketAttachment);
+      await this.observe(Date.now());
+      socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
+      socket.send(JSON.stringify({ type: "observation", ...this.observationPayload() }));
+    } catch (error) {
+      try { socket.send(JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "public-socket-auth-failed" })); } catch {}
+      socket.close(1008, "authentication failed");
+    }
+  }
+
+  webSocketClose(socket: WebSocket): void {
+    try { socket.close(); } catch {}
+  }
+  webSocketError(socket: WebSocket): void { this.webSocketClose(socket); }
+
+  async fetch(request: Request): Promise<Response> {
     const origin = this.hostEnv.PUBLIC_ORIGIN;
     if (request.method === "OPTIONS")
       return new Response(null, {
@@ -518,10 +590,32 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const pack = packFromPath(new URL(request.url).pathname);
     if (!pack) return jsonResponse({ error: "not-found" }, 404, origin);
     try {
+      await this.ready;
+      if (this.startupFailure) throw new Error(this.startupFailure);
+      if (new URL(request.url).pathname.includes("/socket/") && request.method === "GET") {
+        if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
+          return jsonResponse({ error: "websocket-upgrade-required" }, 426, origin);
+        const pair = new WebSocketPair();
+        const server = pair[1];
+        const unauthenticated = this.state.getWebSockets().filter((candidate) => {
+          const attachment = candidate.deserializeAttachment() as SocketAttachment | null;
+          return !attachment?.authenticated;
+        });
+        if (unauthenticated.length >= 32) return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
+        server.serializeAttachment({ pack, tokenHash: "", authenticated: false, authDeadline: Date.now() + 5_000 } satisfies SocketAttachment);
+        this.state.acceptWebSocket(server);
+        const deadline = Date.now() + 5_000;
+        const row = this.hostRow();
+        if (row) await this.arm(row);
+        else await this.state.storage.setAlarm(deadline);
+        return new Response(null, { status: 101, webSocket: pair[0] });
+      }
       const token = tokenFromRequest(request);
       const tokenHash = await sha256Hex(token);
       await this.initialize(pack, tokenHash);
       const now = Date.now();
+      if (new URL(request.url).pathname.endsWith("/connect") && request.method === "GET")
+        return withCors(Response.json({ handle: this.state.id.toString() }), origin);
       if (
         new URL(request.url).pathname.endsWith("/observe") &&
         request.method === "GET"
@@ -533,6 +627,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       ) {
         const input = await readCommand(request);
         const result = await this.command(input, now);
+        this.publishObservation();
         return withCors(Response.json(result.receipt), origin);
       }
       return jsonResponse({ error: "not-found" }, 404, origin);
@@ -546,6 +641,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
             ? 409
             : message === "public-body-too-large"
               ? 413
+              : message === "unsupported-world" || message === "world-unavailable"
+                ? 503
               : 400;
       return jsonResponse(
         {
@@ -556,6 +653,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
                 ? "conflict"
                 : status === 413
                   ? "body-too-large"
+                  : status === 503
+                    ? message
                   : "bad-request",
         },
         status,
@@ -581,10 +680,19 @@ export default {
       });
     if (!pack) return jsonResponse({ error: "not-found" }, 404, origin);
     try {
+      const handle = socketHandleFromPath(url.pathname);
+      if (handle && request.method === "GET") {
+        const id = env.REGIONS.idFromString(handle);
+        return await env.REGIONS.get(id).fetch(request);
+      }
       const token = tokenFromRequest(request);
       const hash = await sha256Hex(token);
+      if (url.pathname.endsWith("/connect") && request.method === "GET") {
+        const id = env.REGIONS.idFromName(`${pack}:${hash}`);
+        return await env.REGIONS.get(id).fetch(request);
+      }
       const id = env.REGIONS.idFromName(`${pack}:${hash}`);
-      return env.REGIONS.get(id).fetch(request);
+      return await env.REGIONS.get(id).fetch(request);
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       return jsonResponse(
