@@ -10,20 +10,32 @@ connected-volume air, material-paid finite emissions, and their saved records.
 The former discussion-only hold and statements below that native air is missing
 are historical and superseded by this status.
 
-At `5550d3a`, native fuel admission/clock/reload and bounded indexed air
-observation have five passing native laws; the earlier authored emission catalog
-has four passing laws. The shared TypeScript observation/action API is joined.
-Colony source now defines a generated village air domain, a finite wood hearth,
-ordinary repeated site supplies, a manual Light hearth command, retained station
-art binding and native temperature/smoke inspection. The actual WASM rebuild and
-whole Colony consumer qualification remain open. The TypeScript observation
-check previously stopped on the missing generated module, not an assertion.
+At `b04324a`, the actual WASM Colony consumer passes ordinary wood delivery,
+native contact and fuel admission, smoke growth, save/restore and identical next
+step. Shared bounded air queries and smoke/fire presentation are joined; strict
+app types and sixteen presentation/remote tests pass. A built-client local input
+check (`u5977`, exit 0) selected a worker and lit the supplied hearth through the
+real buttons. Native fuel fell from two to zero and observed smoke increased;
+page errors were empty. King personally viewed supplied and burning captures.
 
-This is source/native-unit evidence, not a new deployment, performance capacity,
-DO crash qualification, visible room-smoke effect or completed brewing workflow.
-The existing live construction/wet-excavation release is unchanged. Keep the
-retained brewing source map and staged-process restoration requirements; the
-hearth is one shared consumer, not a substitute for that complete workflow.
+Visual acceptance is **not complete**: the outdoor fire/smoke is too subtle at
+initial zoom, and this check does not demonstrate an enclosed room or opening a
+vent. Door/vent geometry operations are still missing. The earlier `u5973`
+before-page failure is retained; the successor used mounted browser temporary
+storage on this nearly full host and completed with its scope empty/dead.
+
+This is actual local gameplay evidence, not a new deployment, a population
+capacity claim, or DO crash qualification of the new air records. The existing
+live construction/wet-excavation release is unchanged.
+
+The retained [brewing restoration map](RETAINED-BREWING-RESTORATION.md) remains
+the behavior reference. Its native recipe binding and staged-process API are
+**planned**, not implemented. Current Rust material output helpers serve
+excavation; they are not yet a general recipe output/promise owner. Preserve
+ordinary supplies, exact material bindings, attended work, unattended progress,
+blocked-output waiting and atomic fuel/environment settlement. Stage names and
+recipes remain authored data; do not hardcode brewing phases in Rust. The hearth
+is a shared consumer, not a replacement for the full make-ale order.
 
 The [implementation decisions](ENVIRONMENT-IMPLEMENTATION.md) own the runtime,
 groundwater and coupling contracts. Earlier paragraphs below retain design
