@@ -116,7 +116,7 @@ class TestPort implements KernelPort {
       version: 1,
       revision: this.revision,
       time: state.time,
-      records: [{ key: "kernel/entities/0000", bytes }],
+      records: [{ key: "kernel/header", bytes: new Uint8Array([1]) }, { key: "kernel/entities/0000", bytes }],
     };
   }
   restore(snapshot: KernelSnapshot): void {
@@ -568,7 +568,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", null));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 6);
+  assert.equal(value.save().version, 7);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {

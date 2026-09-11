@@ -57,7 +57,7 @@ test("actual Colony water records commit with session and recover after failed S
       const session = new GameSession({ port, pack, seed: 17 });
       session.restore(hydrateSession(current.state.session, { read: key => bytes.get(key) }));
       assert.equal(session.simulationTime, 0.2);
-      assert.ok((port.environmentFacts() as { total_kg: number }).total_kg > 0);
+      assert.ok((port.environmentFacts() as { totalKg: number }).totalKg > 0);
     } finally { port.dispose(); }
   } finally { db.close(); }
 });
