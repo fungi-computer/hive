@@ -57,8 +57,50 @@ pub struct AirGeometrySnapshot {
 }
 
 pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
-    validate_bounds(bounds, world.bounds())?;
-    let spacing = world.cell_spacing_m();
+    query_view(AirQueryView {
+        terrain: &mut world.terrain,
+        structures: &world.structure_projection,
+        graph: &world.graph,
+        state: &world.state,
+        physical_revision: world.physical_revision,
+        epoch: world.epoch,
+    }, bounds)
+}
+
+// Borrow the proposed physical owners. Inspection does not publish geometry,
+// spend materials, clone the world, or introduce another material grid.
+struct AirQueryView<'a> {
+    terrain: &'a mut crate::terrain::TerrainOwner,
+    structures: &'a crate::structure_geometry::GeometryProjection,
+    graph: &'a crate::water::CompiledWater,
+    state: &'a crate::water::WaterState,
+    physical_revision: u64,
+    epoch: u64,
+}
+
+pub(super) fn query_structure(
+    world: &mut TerrainWater,
+    prepared: &super::PreparedStructureChange,
+    bounds: AirGeometryBounds,
+) -> Result<AirGeometrySnapshot, String> {
+    if !std::sync::Arc::ptr_eq(&world.owner, &prepared.owner) || world.epoch != prepared.epoch {
+        return Err("prepared structure change is stale or foreign".into());
+    }
+    let physical_revision = world.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
+    let epoch = world.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+    query_view(AirQueryView {
+        terrain: &mut world.terrain,
+        structures: &prepared.projection,
+        graph: &prepared.graph,
+        state: &prepared.state,
+        physical_revision,
+        epoch,
+    }, bounds)
+}
+
+fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+    validate_bounds(bounds, view.terrain.bounds())?;
+    let spacing = view.terrain.cell_spacing_m();
     if spacing.iter().any(|value| !value.is_finite() || *value <= 0.0) {
         return Err("air geometry spacing is invalid".into());
     }
@@ -69,7 +111,7 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
 
     // Read the admitted water state once. Missing coordinates remain explicitly
     // unmodeled; this query never creates water stocks for dry geometry.
-    let facts = world.graph.facts(&world.state)?;
+    let facts = view.graph.facts(view.state)?;
     let water = facts.cells.into_iter().map(|fact| {
         if !fact.liquid_volume_m3.is_finite() || fact.liquid_volume_m3 < 0.0 || fact.liquid_volume_m3 > voxel_volume_m3 {
             return Err("water fact exceeds air voxel volume".into());
@@ -83,8 +125,8 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
         for y in bounds.min.y..bounds.max.y {
             for z in bounds.min.z..bounds.max.z {
                 let at = Cell { x, y, z };
-                let material = world.terrain.query(at)?;
-                if !world.terrain.is_open_material(material) || world.structure_projection.is_bulk_solid(at) {
+                let material = view.terrain.query(at)?;
+                if !view.terrain.is_open_material(material) || view.structures.is_bulk_solid(at) {
                     continue;
                 }
                 let coverage = match (i32::try_from(x), i32::try_from(y), i32::try_from(z)) {
@@ -121,7 +163,7 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
             };
             let face = Face { cell: face_cell, axis };
             if faces.contains_key(&face) { continue; }
-            let sealed = world.structure_projection.is_face_sealed(face);
+            let sealed = view.structures.is_face_sealed(face);
             let kind = if index.contains_key(&neighbor) {
                 AirGeometryFaceKind::Internal { a, b, sealed }
             } else {
@@ -137,8 +179,8 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
     }
 
     Ok(AirGeometrySnapshot {
-        physical_revision: world.physical_revision,
-        epoch: world.epoch,
+        physical_revision: view.physical_revision,
+        epoch: view.epoch,
         bounds,
         cells,
         faces: faces.into_iter().map(|(face, kind)| AirGeometryFace { face, kind }).collect(),

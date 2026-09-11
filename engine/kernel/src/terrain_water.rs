@@ -303,6 +303,9 @@ impl TerrainWater {
     pub fn air_geometry(&mut self, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query(self, bounds)
     }
+    pub(crate) fn prepared_structure_air_geometry(&mut self, prepared: &PreparedStructureChange, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+        air_geometry::query_structure(self, prepared, bounds)
+    }
     pub fn terrain_revision(&self) -> u64 { self.physical_revision }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
@@ -478,12 +481,21 @@ mod tests {
         assert!(matches!(world.prepare_structures(vec![StaticInstance::Floor {
             id: "unsupported".into(), support: low,
         }]).unwrap(), Err(StructureChangeBlock::Unsupported(_))));
+        let air_bounds = AirGeometryBounds { min: low, max: Cell { x: 1, y: 32, z: 1 } };
+        let original_air = world.air_geometry(air_bounds).unwrap();
         let token = world.prepare_structures(floor()).unwrap().unwrap();
+        let proposed_air = world.prepared_structure_air_geometry(&token, air_bounds).unwrap();
+        assert_eq!(world.air_geometry(air_bounds).unwrap(), original_air);
+        assert!(proposed_air.faces.iter().any(|face| face.face == Face::upward(low)
+            && matches!(face.kind, AirGeometryFaceKind::Internal { sealed: true, .. })));
         assert_eq!(world.facts().unwrap(), before);
         world.advance(0.0).unwrap();
+        assert!(world.prepared_structure_air_geometry(&token, air_bounds).is_err());
         assert!(world.apply_structures(token).is_err());
         let token = world.prepare_structures(floor()).unwrap().unwrap();
+        let proposed_air = world.prepared_structure_air_geometry(&token, air_bounds).unwrap();
         world.apply_structures(token).unwrap();
+        assert_eq!(world.air_geometry(air_bounds).unwrap(), proposed_air);
         let expected = world.material(anchor).unwrap();
         assert!(matches!(world.prepare_excavation(anchor, expected, 0).unwrap(), ExcavationResult::StructuresBlocked(_)));
         assert_eq!(world.material(anchor).unwrap(), expected);
