@@ -185,8 +185,10 @@ impl Kernel {
                 }
             }
         }
-        weight += serde_json::to_vec(&self.direct.values().collect::<Vec<_>>()).map_or(0, |bytes| bytes.len());
         self.state_weight = weight;
+    }
+    fn direct_weight(state: &DirectState) -> usize {
+        serde_json::to_vec(state).map_or(usize::MAX, |bytes| bytes.len())
     }
     fn surface(&self, id: &str) -> Result<Surface> {
         let entity = self.entity(id)?;
@@ -603,13 +605,15 @@ impl Kernel {
                 || saved.stream.len() > 64 || saved.queue.len() > navigation::MAX_DIRECT_INPUTS
                 || saved.last_processed > saved.last_queued || !saved.remainder.is_finite()
                 || saved.last_queued > 9_007_199_254_740_991
+                || saved.queue.len() as u64 > saved.last_queued.saturating_sub(saved.last_processed)
+                || saved.last_queued != saved.last_processed.saturating_add(saved.queue.len() as u64)
                 || saved.remainder < 0.0 || saved.remainder >= navigation::DIRECT_STEP_SECONDS
                 || (saved.queue.is_empty() && saved.remainder != 0.0)
                 || (saved.queue.is_empty() && saved.last_processed != saved.last_queued)
                 || saved.queue.iter().enumerate().any(|(i, input)| input.sequence != saved.last_processed.checked_add(i as u64 + 1).unwrap_or(0)
                     || !input.x.is_finite() || !input.z.is_finite() || input.x.abs() > 1.0 || input.z.abs() > 1.0)
             { return Err("invalid direct stream snapshot".into()); }
-            if direct.insert(entity, saved).is_some() { return Err("duplicate direct stream".into()); }
+            if candidate.ecs.get::<Destination>(entity).is_some() || candidate.routes.contains_key(&entity) || direct.insert(entity, saved).is_some() { return Err("invalid direct stream ownership".into()); }
         }
         candidate.direct = direct;
         candidate.revision = state.revision;
@@ -691,7 +695,7 @@ impl Kernel {
             return Err("batch too large".into());
         }
         let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
-        let needs_staging = self.projectile_count > 0
+        let needs_staging = self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. })
@@ -844,7 +848,9 @@ impl Kernel {
                 if self.state_weight + extra > STATE_BYTES {
                     return Err("region canonical state capacity".into());
                 }
-                self.direct.remove(&e);
+                if let Some(direct) = self.direct.remove(&e) {
+                    self.state_weight = self.state_weight.saturating_sub(Self::direct_weight(&direct));
+                }
                 self.ecs.entity_mut(e).insert(target);
                 self.state_weight += extra;
                 self.routes.insert(e, path);
@@ -860,8 +866,13 @@ impl Kernel {
                 if let Some(existing) = self.direct.get(&e) {
                     if existing.stream == stream { return Ok(None); }
                 }
+                let replacement = DirectState { entity: entity.clone(), stream, last_queued: 0, last_processed: 0, queue: Vec::new(), remainder: 0.0 };
+                let old_weight = self.direct.get(&e).map(Self::direct_weight).unwrap_or(0);
+                let new_weight = Self::direct_weight(&replacement);
+                if self.state_weight.saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
                 self.clear_destination(e);
-                self.direct.insert(e, DirectState { entity, stream, last_queued: 0, last_processed: 0, queue: Vec::new(), remainder: 0.0 });
+                self.state_weight = self.state_weight.saturating_sub(old_weight).saturating_add(new_weight);
+                self.direct.insert(e, replacement);
                 Ok(None)
             }
             Action::DirectInput { entity, stream, inputs } => {
@@ -874,9 +885,17 @@ impl Kernel {
                     if input.sequence != expected || !input.x.is_finite() || !input.z.is_finite() || input.x.abs() > 1.0 || input.z.abs() > 1.0 {
                         return Err("direct input sequence or axis is invalid".into());
                     }
+                    if input.sequence > 9_007_199_254_740_991 { return Err("direct input sequence exhausted".into()); }
                 }
+                let old_weight = Self::direct_weight(state);
+                let mut proposed = state.clone();
+                proposed.last_queued = inputs.last().unwrap().sequence;
+                proposed.queue.extend(inputs.iter().cloned());
+                let new_weight = Self::direct_weight(&proposed);
+                if self.state_weight.saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
                 state.last_queued = inputs.last().unwrap().sequence;
                 state.queue.extend(inputs);
+                self.state_weight = self.state_weight.saturating_sub(old_weight).saturating_add(new_weight);
                 Ok(None)
             }
             Action::Transfer {
@@ -1385,8 +1404,9 @@ impl Kernel {
         let entities: Vec<Entity> = self.direct.keys().copied().collect();
         for entity in entities {
             let Some(mut state) = self.direct.remove(&entity) else { continue };
+            let old_weight = Self::direct_weight(&state);
             let credit = state.remainder + delta;
-            let mut steps = (credit / navigation::DIRECT_STEP_SECONDS).floor() as usize;
+            let mut steps = ((credit + 1e-9) / navigation::DIRECT_STEP_SECONDS).floor() as usize;
             steps = steps.min(state.queue.len());
             let remainder = if state.queue.is_empty() || steps == state.queue.len() { 0.0 }
                 else { credit - steps as f64 * navigation::DIRECT_STEP_SECONDS };
@@ -1402,6 +1422,7 @@ impl Kernel {
             state.queue.drain(..steps);
             state.remainder = remainder;
             self.ecs.entity_mut(entity).insert(next);
+            self.state_weight = self.state_weight.saturating_sub(old_weight).saturating_add(Self::direct_weight(&state));
             self.direct.insert(entity, state);
         }
         Ok(())
@@ -1667,8 +1688,29 @@ mod direct_tests {
         let mut kernel = Kernel::new();
         kernel.load(&scene()).unwrap();
         kernel.advance_json(&batch(0.0, json!([{"kind":"begin-direct","entity":"survivor","stream":"keyboard"}]))).unwrap();
-        let before = kernel.snapshot_json().unwrap();
-        assert!(kernel.advance_json(&batch(0.0, json!([{"kind":"direct-input","entity":"survivor","stream":"keyboard","inputs":[{"sequence":2,"x":1.0,"z":0.0}]}]))).is_err());
-        assert_eq!(kernel.snapshot_json().unwrap(), before);
+        let before_render = kernel.render_json().unwrap();
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch(0.0, json!([{"kind":"direct-input","entity":"survivor","stream":"keyboard","inputs":[{"sequence":2,"x":1.0,"z":0.0}]}]))).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(kernel.render_json().unwrap(), before_render);
+    }
+
+    #[test]
+    fn direct_flood_is_fixed_clock_and_forged_frontier_is_rejected() {
+        let mut kernel = Kernel::new();
+        kernel.load(&scene()).unwrap();
+        kernel.advance_json(&batch(0.0, json!([{"kind":"begin-direct","entity":"survivor","stream":"keyboard"}]))).unwrap();
+        let inputs: Vec<_> = (1..=50).map(|sequence| json!({"sequence":sequence,"x":1.0,"z":0.0})).collect();
+        kernel.advance_json(&batch(0.0, json!([{"kind":"direct-input","entity":"survivor","stream":"keyboard","inputs":inputs}]))).unwrap();
+        let before = kernel.render_json().unwrap();
+        kernel.advance_json(&batch(0.2, json!([]))).unwrap();
+        let ten_steps = kernel.render_json().unwrap();
+        assert_ne!(before, ten_steps);
+        kernel.advance_json(&batch(0.8, json!([]))).unwrap();
+        let finished = kernel.render_json().unwrap();
+        kernel.advance_json(&batch(1.0, json!([]))).unwrap();
+        assert_eq!(kernel.render_json().unwrap(), finished);
+        let snapshot = kernel.snapshot_json().unwrap().replace("\"last_queued\":50", "\"last_queued\":51");
+        let mut restored = Kernel::new();
+        assert!(restored.restore_json(&snapshot).is_err());
     }
 }
