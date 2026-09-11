@@ -2,7 +2,7 @@ import { component, entity, query } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import {
-  Body, Container, ExcavationWork, MaterialLot, Position, Traversal,
+  Body, Container, Destination, ExcavationWork, MaterialLot, Position, Traversal,
   excavate, move, cancelWork,
 } from "../sdk/common";
 import type { EntityId, TerrainSurface, Vec3, WriteContext } from "../contracts";
@@ -222,7 +222,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, Destination, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [ColonyDigOrder, DeliveryTask],
   providers: [deliveryProvider, digProvider],
 });

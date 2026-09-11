@@ -214,28 +214,26 @@ const colonyComponents = [
   ColonyDigOrder,
 ] as const;
 
-function areaPoint(value: unknown): [number, number] {
-  if (Array.isArray(value) && value.length === 2 && value.every((v) => typeof v === "number" && Number.isSafeInteger(v) && Math.abs(v) <= 1_000_000)) return [value[0] as number, value[1] as number];
-  const point = value as { readonly x?: unknown; readonly z?: unknown } | null;
-  if (point && typeof point === "object" && typeof point.x === "number" && typeof point.z === "number" && Number.isSafeInteger(point.x) && Number.isSafeInteger(point.z) && Math.abs(point.x) <= 1_000_000 && Math.abs(point.z) <= 1_000_000) return [point.x, point.z];
+function areaPoint(value: unknown): [number, number, number] {
+  if (Array.isArray(value) && value.length === 3 && value.every((v) => typeof v === "number" && Number.isSafeInteger(v) && Math.abs(v) <= 1_000_000)) return [value[0] as number, value[1] as number, value[2] as number];
   throw new Error("dig area point is invalid");
 }
 function digArea(context: CommandContext, input: unknown) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("dig command requires an area");
-  const area = (input as { area?: { start?: unknown; end?: unknown; fixedY?: unknown } }).area;
+  const area = (input as { area?: { start?: unknown; end?: unknown } }).area;
   if (!area) throw new Error("dig command requires an area");
-  const [startX, startZ] = areaPoint(area.start), [endX, endZ] = areaPoint(area.end);
-  if (!Number.isSafeInteger(area.fixedY) || Math.abs(area.fixedY as number) > 1_000_000) throw new Error("dig area fixedY is invalid");
+  const [startX, y, startZ] = areaPoint(area.start), [endX, endY, endZ] = areaPoint(area.end);
+  if (y !== endY) throw new Error("dig area must stay on one level");
   const minX = Math.min(startX, endX), maxX = Math.max(startX, endX), minZ = Math.min(startZ, endZ), maxZ = Math.max(startZ, endZ);
   const count = (maxX - minX + 1) * (maxZ - minZ + 1);
   if (!Number.isSafeInteger(count) || count < 1 || count > 256) throw new Error("dig area exceeds 256 cells");
   const existing = new Set(context.query(query(ColonyDigOrder)).map((row) => row.id));
   const creates = [];
   for (let x = minX; x <= maxX; x++) for (let z = minZ; z <= maxZ; z++) {
-    const id = `colony.dig.${x}.${area.fixedY}.${z}` as EntityId;
-    if (existing.has(id)) throw new Error(`dig order already exists for ${id}`);
+    const id = `colony.dig.${x}.${y}.${z}` as EntityId;
+    if (existing.has(id)) continue;
     creates.push({ id, components: { [ColonyDigOrder.id]: {
-      cellX: x, cellY: area.fixedY as number, cellZ: z, expected: -1,
+      cellX: x, cellY: y, cellZ: z, expected: -1,
       actor: null, phase: "queued", reason: "", approachX: 0, approachY: 0, approachZ: 0,
     }}});
   }
@@ -271,18 +269,18 @@ export const colonyPack: GamePack = {
     }),
     cancelDig: command({
       reads: [ColonyDigOrder, ExcavationWork],
-      writes: [],
+      writes: [ColonyDigOrder],
       run: (context, input) => {
         const record = input && typeof input === "object" && !Array.isArray(input)
-          ? input as { entities?: unknown; area?: { start?: unknown; end?: unknown; fixedY?: unknown } }
+          ? input as { entities?: unknown; area?: { start?: unknown; end?: unknown } }
           : {};
         const selected = Array.isArray(record.entities) ? new Set(record.entities) : null;
         let area: { minX: number; maxX: number; minZ: number; maxZ: number; y: number } | null = null;
         if (record.area) {
-          const [startX, startZ] = areaPoint(record.area.start);
-          const [endX, endZ] = areaPoint(record.area.end);
-          if (!Number.isSafeInteger(record.area.fixedY) || Math.abs(record.area.fixedY as number) > 1_000_000) throw new Error("cancel dig area fixedY is invalid");
-          area = { minX: Math.min(startX, endX), maxX: Math.max(startX, endX), minZ: Math.min(startZ, endZ), maxZ: Math.max(startZ, endZ), y: record.area.fixedY as number };
+          const [startX, y, startZ] = areaPoint(record.area.start);
+          const [endX, endY, endZ] = areaPoint(record.area.end);
+          if (y !== endY) throw new Error("cancel dig area must stay on one level");
+          area = { minX: Math.min(startX, endX), maxX: Math.max(startX, endX), minZ: Math.min(startZ, endZ), maxZ: Math.max(startZ, endZ), y };
         }
         if (selected === null && area === null) throw new Error("cancel dig requires workers or an area");
         const orders = context.query(query(ColonyDigOrder));
@@ -310,7 +308,7 @@ export const colonyPack: GamePack = {
       { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
       { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
       { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
-      { id: "dig", label: "Dig area", command: "dig", selection: "entities", target: "terrain-area" },
+      { id: "dig", label: "Dig area", command: "dig", target: "terrain-area" },
       { id: "cancel-dig", label: "Cancel digging", command: "cancelDig", selection: "entities" },
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities" },
     ],
