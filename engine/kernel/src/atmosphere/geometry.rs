@@ -65,12 +65,7 @@ pub fn project(
     let mut air = BTreeMap::<Cell, AirMetric>::new();
     for cell in &cells {
         let liquid = match &cell.water {
-            AirWaterCoverage::Admitted { liquid_volume_m3 } => {
-                if !liquid_volume_m3.is_finite() || *liquid_volume_m3 < 0.0 || *liquid_volume_m3 > cell.voxel_volume_m3 {
-                    return Err("atmosphere geometry water volume is invalid".into());
-                }
-                *liquid_volume_m3
-            }
+            AirWaterCoverage::Admitted { liquid_volume_m3 } => *liquid_volume_m3,
             AirWaterCoverage::Unmodeled => 0.0,
         };
         let free = cell.voxel_volume_m3 - liquid;
@@ -213,9 +208,14 @@ fn face_area(axis: FaceAxis, a: Cell, b: Cell, air: &BTreeMap<Cell, AirMetric>, 
 }
 
 fn find(parent: &mut [usize], value: usize) -> usize {
-    if parent[value] == value { return value; }
-    let root = find(parent, parent[value]);
-    parent[value] = root;
+    let mut root = value;
+    while parent[root] != root { root = parent[root]; }
+    let mut current = value;
+    while parent[current] != current {
+        let next = parent[current];
+        parent[current] = root;
+        current = next;
+    }
     root
 }
 
@@ -276,5 +276,26 @@ mod tests {
         let input = snapshot(&[(Cell { x: 0, y: 0, z: 0 }, AirWaterCoverage::Admitted { liquid_volume_m3: 1.0 }), (Cell { x: 1, y: 0, z: 0 }, AirWaterCoverage::Unmodeled)], &[]);
         assert_eq!(project(&input).unwrap().volumes.len(), 1);
         assert!(project(&input, [1.0, 1.0, 1.0], UnmodeledWaterPolicy::Reject).is_err());
+    }
+
+    #[test]
+    fn duplicate_cells_are_rejected_before_projection() {
+        let mut input = snapshot(&[(Cell { x: 0, y: 0, z: 0 }, AirWaterCoverage::Unmodeled)], &[]);
+        input.cells.push(input.cells[0].clone());
+        assert!(project(&input).is_err());
+    }
+
+    #[test]
+    fn face_order_does_not_change_projection() {
+        let a = Cell { x: 0, y: 0, z: 0 };
+        let b = Cell { x: 1, y: 0, z: 0 };
+        let c = Cell { x: 0, y: 0, z: 1 };
+        let first = snapshot(
+            &[(a, AirWaterCoverage::Unmodeled), (b, AirWaterCoverage::Unmodeled), (c, AirWaterCoverage::Unmodeled)],
+            &[(Face { cell: a, axis: FaceAxis::X }, false), (Face { cell: a, axis: FaceAxis::Z }, false)],
+        );
+        let mut second = first.clone();
+        second.faces.reverse();
+        assert_eq!(project(&first).unwrap(), project(&second).unwrap());
     }
 }
