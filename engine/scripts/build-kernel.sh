@@ -22,5 +22,5 @@ fi
 }
 cd "$engine_root"
 cargo build --manifest-path kernel/Cargo.toml --target wasm32-unknown-unknown --release --locked
-"$bindgen" kernel/target/wasm32-unknown-unknown/release/hive_kernel.wasm \
+"$bindgen" "${CARGO_TARGET_DIR:-$engine_root/kernel/target}/wasm32-unknown-unknown/release/hive_kernel.wasm" \
   --target web --out-dir generated --out-name hive_kernel
