@@ -104,6 +104,7 @@ struct TerrainRouteState {
     path: Vec<crate::generation::Cell>,
     revision: Option<u64>,
     waiting: bool,
+    suspended: bool,
     origin: Point,
     target: Option<Point>,
 }
@@ -434,6 +435,7 @@ impl Kernel {
                     path,
                     revision: Some(terrain_revision),
                     waiting: false,
+                    suspended: false,
                     origin,
                     target: points.first().cloned(),
                 };
@@ -469,12 +471,16 @@ impl Kernel {
             if restored.insert(entity, VecDeque::from(route.path.clone())).is_some() {
                 return Err("duplicate saved route".into());
             }
-            let destination = self
-                .ecs
-                .get::<Destination>(entity)
-                .ok_or("saved route has no destination")?;
+            let destination = self.ecs.get::<Destination>(entity);
+            if route.terrain_suspended {
+                if destination.is_some() || route.terrain_path.is_none() {
+                    return Err("suspended terrain contact has active destination or no witness".into());
+                }
+            } else if destination.is_none() {
+                return Err("saved route has no destination".into());
+            }
             let frame = self.support_id(entity);
-            if destination.frame.as_deref() != frame.as_deref() {
+            if destination.is_some_and(|destination| destination.frame.as_deref() != frame.as_deref()) {
                 return Err("saved route frame mismatch".into());
             }
             let bounds = self.frame_bounds(frame.as_deref())?;
@@ -484,6 +490,7 @@ impl Kernel {
                 .expect("rebuilt obstacle frame index");
             let start = *self.ecs.get::<Position>(entity).ok_or("saved route has no position")?;
             if route.terrain_path.is_none() {
+                let destination = destination.ok_or("flat route requires destination")?;
                 navigation::validate_saved_path(
                     navigation::point(start),
                     &route.path,
@@ -513,6 +520,7 @@ impl Kernel {
                     path,
                     revision: None,
                     waiting: route.terrain_waiting,
+                    suspended: route.terrain_suspended,
                     origin: route.terrain_origin.unwrap_or_else(|| navigation::point(start)),
                     target: route.terrain_target.or_else(|| route.path.first().cloned()),
                 });
@@ -525,7 +533,7 @@ impl Kernel {
             .values()
             .filter(|entity| self.ecs.get::<Destination>(**entity).is_some())
             .count();
-        if expected != restored.len() {
+        if expected + self.terrain_routes.values().filter(|state| state.suspended).count() != restored.len() {
             return Err("saved route set does not match destinations".into());
         }
         self.routes = restored;
@@ -887,6 +895,7 @@ impl Kernel {
                 path: path.iter().cloned().collect(),
                 terrain_path: self.terrain_routes.get(entity).map(|state| state.path.clone()),
                 terrain_waiting: self.terrain_routes.get(entity).is_some_and(|state| state.waiting),
+                terrain_suspended: self.terrain_routes.get(entity).is_some_and(|state| state.suspended),
                 terrain_origin: self.terrain_routes.get(entity).map(|state| state.origin.clone()),
                 terrain_target: self.terrain_routes.get(entity).and_then(|state| state.target.clone()),
             })
@@ -904,7 +913,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 6,
+            version: 7,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -933,7 +942,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 6
+            || state.version != 7
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -1449,8 +1458,22 @@ impl Kernel {
             self.state_weight = self.state_weight.saturating_sub(self.registry.weight("hive.destination", &record(&destination)));
             self.ecs.entity_mut(entity).remove::<Destination>();
         }
-        self.routes.remove(&entity);
-        self.terrain_routes.remove(&entity);
+        // An actor stopped between support centers still needs its geometric
+        // contact witness. This retains no movement intent and advances no time.
+        let retain_contact = self.terrain_routes.get(&entity).is_some_and(|state| {
+            let Some(position) = self.ecs.get::<Position>(entity) else { return false; };
+            let Some(environment) = self.environment.as_ref() else { return false; };
+            let spacing = environment.world.cell_spacing_m();
+            !state.path.iter().any(|cell| position.x == cell.x as f64 * spacing[0]
+                && position.y == (f64::from(cell.y) + 0.5) * spacing[1]
+                && position.z == cell.z as f64 * spacing[2])
+        });
+        if retain_contact {
+            self.terrain_routes.get_mut(&entity).unwrap().suspended = true;
+        } else {
+            self.routes.remove(&entity);
+            self.terrain_routes.remove(&entity);
+        }
     }
     fn projectile_ids(&self) -> Vec<String> {
         self.ids
@@ -1852,10 +1875,15 @@ impl Kernel {
             || state.target.as_ref() != route.front() {
             return Err("terrain route geometry witness mismatch".into());
         }
-        let destination = self.ecs.get::<Destination>(entity).ok_or("missing terrain destination")?;
-        let last = points.last().ok_or("empty terrain witness")?;
-        if last.x != destination.x || last.y != destination.y || last.z != destination.z || last.frame != destination.frame {
-            return Err("terrain route destination mismatch".into());
+        let destination = self.ecs.get::<Destination>(entity);
+        if state.suspended {
+            if destination.is_some() { return Err("suspended contact has a destination".into()); }
+        } else {
+            let destination = destination.ok_or("missing terrain destination")?;
+            let last = points.last().ok_or("empty terrain witness")?;
+            if last.x != destination.x || last.y != destination.y || last.z != destination.z || last.frame != destination.frame {
+                return Err("terrain route destination mismatch".into());
+            }
         }
         let pose = self.ecs.get::<Position>(entity).ok_or("missing terrain pose")?;
         let target = &points[offset];
@@ -1950,6 +1978,7 @@ impl Kernel {
     fn advance_movement(&mut self, delta: f64) -> Result<()> {
         self.invalidate_terrain_routes()?;
         self.routes.retain(|entity, path| {
+            if self.terrain_routes.get(entity).is_some_and(|state| state.suspended) { return true; }
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
             let target = self
                 .ecs

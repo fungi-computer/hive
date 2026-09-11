@@ -155,3 +155,34 @@ fn terrain_kernel_mid_climb_redirect_preserves_pose_and_recovers() {
     let pose = kernel.ecs.get::<Position>(kernel.entity("walker").unwrap()).unwrap();
     assert_eq!((pose.x,pose.y,pose.z),(original.x,original.y,original.z));
 }
+
+#[test]
+fn terrain_stop_retains_contact_and_resumes_after_restore() {
+    for elapsed in [0.1, 0.8] {
+        let (mut kernel, target) = climbing_world();
+        kernel.advance_json(&json!({"delta":elapsed,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+        let actor = kernel.entity("walker").unwrap();
+        let stopped = *kernel.ecs.get::<Position>(actor).unwrap();
+        let stop = json!({"kind":"move","entity":"walker","destination":navigation::point(stopped)});
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[stop]}).to_string()).unwrap()).unwrap();
+        assert_eq!(response["results"][0]["accepted"], true);
+        assert!(kernel.ecs.get::<Destination>(actor).is_none());
+        assert!(kernel.terrain_routes.get(&actor).unwrap().suspended);
+        let saved = kernel.save_records().unwrap();
+        let mut forged = kernel.save_records().unwrap();
+        let mut data: serde_json::Value = serde_json::from_str(&forged.entities).unwrap();
+        data["routes"][0]["terrain_suspended"] = json!(false);
+        forged.entities = data.to_string();
+        assert!(Kernel::new().restore_records(&forged).is_err(), "missing destination cannot masquerade as active motion");
+        let mut recovered = Kernel::new();
+        recovered.restore_records(&saved).unwrap();
+        recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let actor = recovered.entity("walker").unwrap();
+        assert_eq!(navigation::point(*recovered.ecs.get::<Position>(actor).unwrap()), navigation::point(stopped));
+        let response: serde_json::Value = serde_json::from_str(&recovered.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(response["results"][0]["accepted"], true);
+        for _ in 0..20 { recovered.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap(); }
+        let reached = recovered.ecs.get::<Position>(actor).unwrap();
+        assert!((reached.x-target.x).abs()<1e-9 && (reached.y-target.y).abs()<1e-9);
+    }
+}
