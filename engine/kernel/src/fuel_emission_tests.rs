@@ -220,3 +220,21 @@ fn release_save_restore_has_same_next_step_and_completes_once() {
         .unwrap();
     assert_eq!(lot_quantity(&mut kernel), 0);
 }
+
+#[test]
+fn air_observation_reports_committed_fire_without_advancing_it() {
+    let mut kernel = make_kernel(Some(2), false);
+    assert_eq!(action(&mut kernel, 0.0)["results"][0]["accepted"], true);
+    let cell = kernel.environment.as_ref().unwrap().paid_emissions["station"].cell;
+    let query = json!([[cell.x,cell.y,cell.z],[999,0,999]]).to_string();
+    let before: Value = serde_json::from_str(&kernel.atmosphere_samples_json(&query).unwrap()).unwrap();
+    assert_eq!(before["samples"][0]["smokeKgM3"], 0.0);
+    assert!(before["samples"][1].is_null());
+    kernel.advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#).unwrap();
+    let saved = stable_fingerprint(&mut kernel);
+    let after: Value = serde_json::from_str(&kernel.atmosphere_samples_json(&query).unwrap()).unwrap();
+    assert!(after["samples"][0]["smokeKgM3"].as_f64().unwrap() > 0.0);
+    assert!(after["samples"][0]["temperatureC"].as_f64().unwrap() >= 20.0);
+    assert_eq!(stable_fingerprint(&mut kernel), saved);
+    assert!(kernel.atmosphere_samples_json(&json!(vec![[0,0,0];65]).to_string()).is_err());
+}
