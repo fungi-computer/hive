@@ -1110,6 +1110,7 @@ impl Kernel {
                     return Err("direct control requires body and position".into());
                 }
                 if self.ecs.get::<Support>(e).is_some() { return Err("direct control does not support boarded actors".into()); }
+                if self.ecs.get::<ExcavationWork>(e).is_some() { return Err("cancel work before taking direct control".into()); }
                 if let Some(existing) = self.direct.get(&e) {
                     if existing.stream == stream { return Ok(None); }
                 }

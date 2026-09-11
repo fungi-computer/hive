@@ -39,9 +39,11 @@ impl Kernel {
             if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<Container>(actor).is_none() {
                 return Err("saved excavation lacks worker capabilities".into());
             }
-            let environment = self.environment.as_ref().ok_or("saved excavation lacks environment")?;
+            let environment = self.environment.as_mut().ok_or("saved excavation lacks environment")?;
             let rule = environment.excavation_rules.get(&work.expected).ok_or("saved excavation lacks material rule")?;
-            if work.seconds > rule.work_seconds || !environment.world.is_open_material(work.replacement) {
+            if work.seconds > rule.work_seconds || !environment.world.is_open_material(work.replacement)
+                || work.expected == work.replacement || environment.world.material(cell(work))? != work.expected
+                || self.direct.contains_key(&actor) || self.ecs.get::<Support>(actor).is_some() {
                 return Err("invalid saved excavation progress or replacement".into());
             }
         }
@@ -56,6 +58,8 @@ impl Kernel {
         pending.sort_by(|a, b| a.0.cmp(&b.0));
         for (id, mut work) in pending {
             let actor = self.entity(&id)?;
+            // Routing retains saved work but earns no effort while travelling.
+            if self.direct.contains_key(&actor) || self.ecs.get::<Destination>(actor).is_some() { continue; }
             let pose = self.world_pose_entity(actor, 0)?;
             let environment = self.environment.as_mut().ok_or("saved work needs environment")?;
             if environment.world.material(cell(work))? != work.expected {
@@ -78,9 +82,14 @@ impl Kernel {
                 ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) => continue,
             };
             // Capacity/geometry admission failure leaves earned work available for retry.
-            if self.complete_excavation(prepared, id).is_ok() {
-                self.ecs.entity_mut(actor).remove::<ExcavationWork>();
-                self.refresh_state_weight();
+            match self.complete_excavation(prepared, id) {
+                Ok(_) => {
+                    self.ecs.entity_mut(actor).remove::<ExcavationWork>();
+                    self.refresh_state_weight();
+                }
+                Err(reason) if reason == "material output exceeds container capacity"
+                    || reason == "region entity capacity" || reason == "region canonical state capacity" => {}
+                Err(reason) => return Err(reason),
             }
         }
         Ok(())
@@ -123,4 +132,17 @@ mod tests {
         recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         assert_eq!(recovered.quantity("worker"),3);
     }
+    #[test]
+    fn work_blocks_direct_control_and_cancel_preserves_material() {
+        let (mut kernel, work) = fixture();
+        kernel.request_excavation("worker", work).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"begin-direct","entity":"worker","stream":"keys"}]}"#).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).unwrap().seconds, 0.0);
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"cancel-work","entity":"worker"}]}"#).unwrap();
+        assert_eq!(kernel.quantity("worker"), 0);
+        assert_eq!(kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap(), work.expected);
+        assert!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).is_none());
+    }
+
 }
