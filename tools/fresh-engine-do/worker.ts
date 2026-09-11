@@ -3,7 +3,7 @@ import {
   openRegion,
   type RegionSqliteOwner,
 } from "../../src/engine/region/index.ts";
-import { createSessionRegionRuntime, type SessionResident } from "../../engine/src/runtime/region-program";
+import { createSessionRegionRuntime, type SessionResident, type SessionRegionState } from "../../engine/src/runtime/region-program";
 import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -43,7 +43,7 @@ function packFor(id: string) {
 }
 
 export class FreshRegion extends DurableObject<Environment> {
-  private region!: ReturnType<typeof openRegion>;
+  private region!: ReturnType<typeof openRegion<SessionRegionState, unknown>>;
   private resident!: SessionResident;
   private readonly ready: Promise<void>;
   private residentQueue: Promise<void> = Promise.resolve();
