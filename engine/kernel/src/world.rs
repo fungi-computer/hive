@@ -557,7 +557,7 @@ impl Kernel {
         if ids.is_empty() || ids.len() > 128 {
             return Err("invalid entity membership query size".into());
         }
-        if ids.iter().any(|id| !components::valid_id(id)) {
+        if ids.iter().any(|id| !valid_id(id)) {
             return Err("invalid entity membership ID".into());
         }
         let membership = ids.iter().map(|id| self.ids.contains_key(id)).collect::<Vec<_>>();
