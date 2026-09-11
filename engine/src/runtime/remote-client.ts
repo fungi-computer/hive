@@ -133,14 +133,7 @@ function renderFact(value: unknown): value is RenderFact {
     if (!isRecord(inventory) || !Array.isArray(inventory.items) || inventory.items.length > 8 ||
         (inventory.overflow !== undefined && typeof inventory.overflow !== "boolean") ||
         inventory.items.some((item) => !isRecord(item) || typeof item.kind !== "string" ||
-          item.kind.length === 0 || item.kind.length > 128 || !finite(item.quantity) || item.quantity < 0))
-      return false;
-  }
-  if (value.activity !== undefined) {
-    const activity = value.activity;
-    if (!isRecord(activity) || activity.kind !== "delivery" || typeof activity.phase !== "string" ||
-        activity.phase.length === 0 || activity.phase.length > 128 || typeof activity.material !== "string" ||
-        activity.material.length === 0 || activity.material.length > 128 || !finite(activity.quantity) || activity.quantity < 0)
+          item.kind.length === 0 || item.kind.length > 128 || !safeNonnegativeInteger(item.quantity) || item.quantity < 1))
       return false;
   }
   return value.selected === undefined || typeof value.selected === "boolean";
