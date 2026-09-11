@@ -151,9 +151,8 @@ fn unchanged_water_epoch_reuses_compiled_geometry() {
 #[test]
 fn changed_wall_rebinds_and_restores_exact_state() {
     let mut water = world();
-    let config = config(ExteriorPolicy::Closed);
-    let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
-    let support = (28..39)
+    let mut config = config(ExteriorPolicy::Closed);
+    let support = (-31..39)
         .map(|y| Cell { x: 0, y, z: 0 })
         .find(|cell| {
             water.material(*cell).unwrap() != 0
@@ -166,6 +165,16 @@ fn changed_wall_rebinds_and_restores_exact_state() {
                     == 0
         })
         .expect("generated support and open cell");
+    config.min.y = support.y + 1;
+    let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
+    let before_volumes = air.compiled().definition().volumes.clone();
+    let source_volume = air.compiled().definition().volumes[0].id.clone();
+    air.advance(0.2, &[super::atmosphere::AtmosphereSource {
+        volume_id: source_volume, smoke_kg_s: 0.001, heat_j_s: 10.0,
+    }]).unwrap();
+    let before_totals = air.state().parcels().iter().fold([0.0; 3], |mut total, parcel| {
+        total[0] += parcel.carrier_kg(); total[1] += parcel.smoke_kg(); total[2] += parcel.heat_j(); total
+    });
     let wall = StaticInstance::Wall {
         id: "air-wall".into(),
         base: Cell {
@@ -181,14 +190,13 @@ fn changed_wall_rebinds_and_restores_exact_state() {
     let prepared_air = air.prepare_rebind(&candidate).unwrap().unwrap();
     water.apply_structures(prepared_structure).unwrap();
     air.apply_rebind(prepared_air).unwrap();
-    let (candidate_definition, _) =
-        super::terrain_atmosphere::definition_from_snapshot(&config, &candidate, water.cell_spacing_m())
-            .unwrap();
-    assert_ne!(
-        candidate_definition.volumes,
-        air.compiled().definition().volumes,
-        "the authored wall must change the air partition"
-    );
+    assert_ne!(before_volumes, air.compiled().definition().volumes);
+    let after_totals = air.state().parcels().iter().fold([0.0; 3], |mut total, parcel| {
+        total[0] += parcel.carrier_kg(); total[1] += parcel.smoke_kg(); total[2] += parcel.heat_j(); total
+    });
+    for (before, after) in before_totals.into_iter().zip(after_totals) {
+        assert!((before - after).abs() <= before.abs().max(1.0) * 1e-12);
+    }
     assert!(air.geometry_revision() > 0);
     let source_volume = air.compiled().definition().volumes[0].id.clone();
     air.advance(
@@ -241,33 +249,8 @@ fn rebind_candidate_becomes_stale_after_atmosphere_advance() {
     let mut water = world();
     let config = config(ExteriorPolicy::Closed);
     let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
-    let support = (28..39)
-        .map(|y| Cell { x: 0, y, z: 0 })
-        .find(|cell| {
-            water.material(*cell).unwrap() != 0
-                && water
-                    .material(Cell {
-                        y: cell.y + 1,
-                        ..*cell
-                    })
-                    .unwrap()
-                    == 0
-        })
-        .expect("generated support and open cell");
-    let prepared_structure = water
-        .prepare_structures(vec![StaticInstance::Wall {
-            id: "stale-wall".into(),
-            base: Cell {
-                y: support.y + 1,
-                ..support
-            },
-            height: 1,
-        }])
-        .unwrap()
-        .unwrap();
-    let candidate = water
-        .prepared_structure_air_geometry(&prepared_structure, config.bounds())
-        .unwrap();
+    water.advance(0.0).unwrap();
+    let candidate = water.air_geometry(config.bounds()).unwrap();
     let prepared_air = air.prepare_rebind(&candidate).unwrap().unwrap();
     air.advance(0.0, &[]).unwrap();
     assert!(air.apply_rebind(prepared_air).is_err());
