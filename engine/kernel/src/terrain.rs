@@ -9,7 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-pub const TERRAIN_STATE_VERSION: u16 = 1;
+pub const TERRAIN_STATE_VERSION: u16 = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterialProperty {
@@ -58,7 +58,6 @@ pub struct AppliedChange {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct TerrainSave {
     version: u16,
     generator_version: String,
@@ -67,7 +66,6 @@ struct TerrainSave {
     edits: BoundedEdits,
 }
 #[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct EditRecord {
     x: i64,
     y: i32,
@@ -89,7 +87,13 @@ impl<'de> Deserialize<'de> for BoundedEdits {
                 self,
                 mut sequence: A,
             ) -> Result<Self::Value, A::Error> {
-                let mut edits = Vec::with_capacity(sequence.size_hint().unwrap_or(0).min(65_536));
+                let hint = sequence.size_hint().unwrap_or(0);
+                if hint > 65_536 {
+                    return Err(serde::de::Error::custom(
+                        "terrain edit count exceeds absolute bound",
+                    ));
+                }
+                let mut edits = Vec::with_capacity(hint);
                 while let Some(edit) = sequence.next_element()? {
                     if edits.len() >= 65_536 {
                         return Err(serde::de::Error::custom(
@@ -108,7 +112,6 @@ impl<'de> Deserialize<'de> for BoundedEdits {
 pub struct TerrainOwner {
     generator: CompiledWorld,
     binding: Arc<str>,
-    binding_json_len: usize,
     owner_token: Arc<()>,
     properties: BTreeMap<u16, MaterialProperty>,
     cache: BTreeMap<Page, Box<[u16; 4096]>>,
@@ -121,30 +124,27 @@ pub struct TerrainOwner {
 }
 
 impl TerrainOwner {
-    fn digits(value: i64) -> usize {
-        if value < 0 {
-            1 + value.unsigned_abs().to_string().len()
-        } else {
-            value.to_string().len()
-        }
+    fn edit_entry_bytes(cell: Cell, slot: u16) -> Result<usize, &'static str> {
+        postcard::experimental::serialized_size(&(cell.x, cell.y, cell.z, slot))
+            .map_err(|_| "terrain entry size failed")
     }
-    fn edit_entry_bytes(cell: Cell, slot: u16) -> usize {
-        24 + Self::digits(cell.x)
-            + Self::digits(i64::from(cell.y))
-            + Self::digits(cell.z)
-            + Self::digits(i64::from(slot))
-    }
-    fn encoded_size(&self, revision: u64, edit_bytes: usize, count: usize) -> usize {
-        b"{\"version\":1,\"generator_version\":\"".len()
-            + GENERATOR_VERSION.len()
-            + b"\",\"binding\":".len()
-            + self.binding_json_len
-            + b",\"revision\":".len()
-            + revision.to_string().len()
-            + b",\"edits\":[".len()
-            + edit_bytes
-            + count.saturating_sub(1)
-            + b"]}".len()
+    fn encoded_size(
+        &self,
+        revision: u64,
+        edit_bytes: usize,
+        count: usize,
+    ) -> Result<usize, &'static str> {
+        let header = postcard::experimental::serialized_size(&(
+            TERRAIN_STATE_VERSION,
+            GENERATOR_VERSION,
+            self.binding.as_ref(),
+            revision,
+            count as u32,
+        ))
+        .map_err(|_| "terrain header size failed")?;
+        header
+            .checked_add(edit_bytes)
+            .ok_or("terrain encoded size overflow")
     }
     pub fn new(
         generator: CompiledWorld,
@@ -187,23 +187,20 @@ impl TerrainOwner {
                 property.slot, property.solid as u8, property.diggable as u8
             ));
         }
-        let binding_json_len = serde_json::to_string(&binding_text)
-            .map_err(|_| "terrain binding encoding failed")?
-            .len();
-        let empty_size = b"{\"version\":1,\"generator_version\":\"".len()
-            + GENERATOR_VERSION.len()
-            + b"\",\"binding\":".len()
-            + binding_json_len
-            + b",\"revision\":".len()
-            + 1
-            + b",\"edits\":[]}".len();
+        let empty_size = postcard::experimental::serialized_size(&(
+            TERRAIN_STATE_VERSION,
+            GENERATOR_VERSION,
+            binding_text.as_str(),
+            0u64,
+            0u32,
+        ))
+        .map_err(|_| "terrain header size failed")?;
         if max_bytes < empty_size {
             return Err("terrain byte budget cannot represent empty state");
         }
         Ok(Self {
             generator,
             binding: Arc::from(binding_text),
-            binding_json_len,
             owner_token: Arc::new(()),
             properties: map,
             cache: BTreeMap::new(),
@@ -410,13 +407,14 @@ impl TerrainOwner {
         }
         let base = self.base_query(prepared.cell)?;
         let old = self.edits.get(&prepared.cell).copied();
-        let old_bytes = old
-            .map(|slot| Self::edit_entry_bytes(prepared.cell, slot))
-            .unwrap_or(0);
+        let old_bytes = match old {
+            Some(slot) => Self::edit_entry_bytes(prepared.cell, slot)?,
+            None => 0,
+        };
         let new_bytes = if prepared.replacement == base {
             0
         } else {
-            Self::edit_entry_bytes(prepared.cell, prepared.replacement)
+            Self::edit_entry_bytes(prepared.cell, prepared.replacement)?
         };
         let next_count =
             self.edits.len() - usize::from(old.is_some()) + usize::from(new_bytes != 0);
@@ -428,7 +426,7 @@ impl TerrainOwner {
             .revision
             .checked_add(1)
             .ok_or("terrain revision overflow")?;
-        if self.encoded_size(next_revision, next_edit_bytes, next_count) > self.max_bytes {
+        if self.encoded_size(next_revision, next_edit_bytes, next_count)? > self.max_bytes {
             return Err("terrain save exceeds byte budget");
         }
         if new_bytes == 0 {
@@ -446,6 +444,9 @@ impl TerrainOwner {
         })
     }
     pub fn export(&self) -> Result<Vec<u8>, &'static str> {
+        if self.encoded_size(self.revision, self.edit_bytes, self.edits.len())? > self.max_bytes {
+            return Err("terrain save exceeds byte budget");
+        }
         let edits = self
             .edits
             .iter()
@@ -463,7 +464,7 @@ impl TerrainOwner {
             revision: self.revision,
             edits: BoundedEdits(edits),
         };
-        let bytes = serde_json::to_vec(&save).map_err(|_| "terrain save encoding failed")?;
+        let bytes = postcard::to_allocvec(&save).map_err(|_| "terrain save encoding failed")?;
         if bytes.len() > self.max_bytes {
             return Err("terrain save exceeds byte budget");
         }
@@ -473,8 +474,11 @@ impl TerrainOwner {
         if bytes.len() > self.max_bytes {
             return Err("terrain save exceeds byte budget");
         }
-        let save: TerrainSave =
-            serde_json::from_slice(bytes).map_err(|_| "invalid terrain save")?;
+        let (save, remainder): (TerrainSave, &[u8]) =
+            postcard::take_from_bytes(bytes).map_err(|_| "invalid terrain save")?;
+        if !remainder.is_empty() {
+            return Err("terrain save has trailing bytes");
+        }
         if save.version != TERRAIN_STATE_VERSION
             || save.generator_version != GENERATOR_VERSION
             || save.binding != self.binding.as_ref()
@@ -500,11 +504,11 @@ impl TerrainOwner {
                 return Err("terrain edit outside bounds");
             }
             checked_bytes = checked_bytes
-                .checked_add(Self::edit_entry_bytes(cell, edit.slot))
+                .checked_add(Self::edit_entry_bytes(cell, edit.slot)?)
                 .ok_or("terrain edit bytes overflow")?;
             checked.insert(cell, edit.slot);
         }
-        if self.encoded_size(save.revision, checked_bytes, checked.len()) > self.max_bytes {
+        if self.encoded_size(save.revision, checked_bytes, checked.len())? > self.max_bytes {
             return Err("terrain save exceeds byte budget");
         }
         self.edits = checked;
@@ -600,8 +604,8 @@ mod tests {
             for x in -16..0 {
                 for y in 0..16 {
                     let cell = Cell { x, y, z };
-                    let index =
-                        (y as usize * 16 + z.rem_euclid(16) as usize) * 16 + x.rem_euclid(16) as usize;
+                    let index = (y as usize * 16 + z.rem_euclid(16) as usize) * 16
+                        + x.rem_euclid(16) as usize;
                     assert_eq!(terrain.query(cell).unwrap(), page[index]);
                 }
             }
@@ -674,14 +678,12 @@ mod tests {
         let prepared = terrain
             .prepare_replacement(cell, current, replacement)
             .unwrap();
-        let PrepareResult::Prepared(prepared) = prepared else { panic!("fixture replacement must be admitted") };
+        let PrepareResult::Prepared(prepared) = prepared else {
+            panic!("fixture replacement must be admitted")
+        };
         terrain.apply(prepared).unwrap();
         let bytes = terrain.export().unwrap();
-        assert!(
-            bytes
-                .windows(GENERATOR_VERSION.len())
-                .any(|window| window == GENERATOR_VERSION.as_bytes())
-        );
+        assert!(!bytes.is_empty());
         let mut restored = owner();
         restored.restore(&bytes).unwrap();
         assert_eq!(restored.query(cell).unwrap(), terrain.query(cell).unwrap());
@@ -690,6 +692,13 @@ mod tests {
         broken[0] = b'!';
         assert!(restored.restore(&broken).is_err());
         assert_eq!(restored.query(cell).unwrap(), before);
+        let mut trailing = bytes.clone();
+        trailing.push(0);
+        assert!(restored.restore(&trailing).is_err());
+        let mut small = owner();
+        small.max_edits = 0;
+        assert!(small.restore(&bytes).is_err());
+        assert_eq!(small.query(cell).unwrap(), current);
     }
     #[test]
     fn cache_stays_bounded_across_cold_pages() {
@@ -704,7 +713,7 @@ mod tests {
         let mut terrain = owner();
         assert_eq!(
             terrain.export().unwrap().len(),
-            terrain.encoded_size(0, 0, 0)
+            terrain.encoded_size(0, 0, 0).unwrap()
         );
         let first = Cell {
             x: -1,
@@ -712,10 +721,10 @@ mod tests {
             z: -3,
         };
         terrain.edits.insert(first, 1);
-        terrain.edit_bytes = TerrainOwner::edit_entry_bytes(first, 1);
+        terrain.edit_bytes = TerrainOwner::edit_entry_bytes(first, 1).unwrap();
         assert_eq!(
             terrain.export().unwrap().len(),
-            terrain.encoded_size(0, terrain.edit_bytes, 1)
+            terrain.encoded_size(0, terrain.edit_bytes, 1).unwrap()
         );
         let second = Cell {
             x: -16,
@@ -723,13 +732,19 @@ mod tests {
             z: -18,
         };
         terrain.edits.insert(second, 2);
-        terrain.edit_bytes += TerrainOwner::edit_entry_bytes(second, 2);
-        terrain.revision = 9;
+        terrain.edit_bytes += TerrainOwner::edit_entry_bytes(second, 2).unwrap();
+        terrain.revision = 127;
         assert_eq!(
             terrain.export().unwrap().len(),
-            terrain.encoded_size(9, terrain.edit_bytes, 2)
+            terrain.encoded_size(127, terrain.edit_bytes, 2).unwrap()
         );
-        terrain.revision = 10;
-        assert_eq!(terrain.export().unwrap().len(), terrain.encoded_size(10, terrain.edit_bytes, 2));
+        terrain.revision = 128;
+        assert_eq!(
+            terrain.export().unwrap().len(),
+            terrain.encoded_size(128, terrain.edit_bytes, 2).unwrap()
+        );
+        let boundary = terrain.encoded_size(127, terrain.edit_bytes, 127).unwrap();
+        let next_boundary = terrain.encoded_size(128, terrain.edit_bytes, 128).unwrap();
+        assert!(next_boundary >= boundary);
     }
 }
