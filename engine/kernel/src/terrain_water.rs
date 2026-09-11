@@ -26,16 +26,21 @@ pub struct TerrainWaterGeometry {
     fall: f64,
     spread: f64,
     limits: WaterLimits,
+    max_span_steps: u32,
 }
 
 pub enum ExcavationResult {
     Prepared(PreparedExcavation),
     TerrainBlocked(BlockReason),
     WaterBlocked(WaterRebindBlock),
+    StructuresBlocked(Vec<String>),
 }
 
 /// A short-lived native completion candidate, never a saved job. The Kernel
 /// must admit the matching lot credit before consuming this value.
+#[derive(Debug)]
+pub(crate) enum StructureChangeBlock { Water(WaterRebindBlock), Unsupported(Vec<String>) }
+
 pub(crate) struct PreparedStructureChange {
     structures: StaticGeometry,
     projection: GeometryProjection,
@@ -63,8 +68,9 @@ impl PreparedExcavation {
 
 impl TerrainWaterGeometry {
     pub fn new(id: String, cells: Vec<Cell>, materials: BTreeMap<u16, MaterialWater>,
-        spacing: [f64; 3], fall: f64, spread: f64, limits: WaterLimits)
+        spacing: [f64; 3], fall: f64, spread: f64, limits: WaterLimits, max_span_steps: u32)
         -> Result<Self, String> {
+        if !(1..=64).contains(&max_span_steps) { return Err("invalid structure span policy".into()); }
         if id.is_empty() || id.len() > 160 || id.contains('\0')
             || spacing.iter().any(|value| !value.is_finite() || *value <= 0.0)
             || !fall.is_finite() || fall < 0.0 || !spread.is_finite() || spread < 0.0 {
@@ -79,7 +85,7 @@ impl TerrainWaterGeometry {
             return Err("invalid terrain water definition".into());
         }
         for cell in &cells { coordinates(*cell)?; }
-        Ok(Self { id, cells, materials, spacing, fall, spread, limits })
+        Ok(Self { id, cells, materials, spacing, fall, spread, limits, max_span_steps })
     }
 
     /// Rebuild only after geometry changes, using a single proposed cell override.
@@ -87,7 +93,7 @@ impl TerrainWaterGeometry {
     fn identity(&self) -> Result<Vec<u8>, String> {
         let cells = self.cells.iter().map(|cell| coordinates(*cell)).collect::<Result<Vec<_>, _>>()?;
         let bytes = postcard::to_allocvec(&(self.id.as_str(), cells, &self.materials,
-            self.spacing, self.fall, self.spread)).map_err(|_| "water geometry identity encoding failed")?;
+            self.spacing, self.fall, self.spread, self.max_span_steps)).map_err(|_| "water geometry identity encoding failed")?;
         if bytes.len() > 65536 { return Err("water geometry identity exceeds record budget".into()); }
         Ok(bytes)
     }
@@ -204,7 +210,12 @@ impl TerrainWater {
         terrain.restore(&records.terrain)?;
         if terrain.revision() != terrain_revision { return Err("environment terrain frontier mismatch".into()); }
         let structures = StaticGeometry::decode(terrain.bounds(), &records.structures)?;
+        if !unsupported_structures(&mut terrain, &structures, geometry.max_span_steps, None)?.is_empty() { return Err("saved structures lack support".into()); }
         let structure_projection = structures.projection()?;
+        for cell in structure_projection.solid_cells() {
+            let material = terrain.query(*cell)?;
+            if !terrain.is_open_material(material) { return Err("saved structure overlaps terrain".into()); }
+        }
         let graph = geometry.compile(&mut terrain, water_revision, None, &structure_projection)?;
         let state = graph.decode_state(&records.water)?;
         let scratch = graph.workspace();
@@ -256,6 +267,8 @@ impl TerrainWater {
             PrepareResult::Blocked { reason, .. } => return Ok(ExcavationResult::TerrainBlocked(reason)),
             PrepareResult::Prepared(change) => change,
         };
+        let unsupported = unsupported_structures(&mut self.terrain, &self.structures, self.geometry.max_span_steps, Some((at, replacement)))?;
+        if !unsupported.is_empty() { return Ok(ExcavationResult::StructuresBlocked(unsupported)); }
         let removed = self.terrain.prepared_removed(&prepared);
         let volume_m3 = self.terrain.prepared_volume_m3(&prepared);
         let mut water_kg = 0.0;
@@ -289,9 +302,11 @@ impl TerrainWater {
 
     /// Geometry preparation does not pay construction costs or authorize a
     /// placement. The Kernel completion owner must admit those before publication.
-    pub(crate) fn prepare_structures(&mut self, instances: Vec<StaticInstance>) -> Result<Result<PreparedStructureChange, WaterRebindBlock>, String> {
+    pub(crate) fn prepare_structures(&mut self, instances: Vec<StaticInstance>) -> Result<Result<PreparedStructureChange, StructureChangeBlock>, String> {
         let structures = StaticGeometry::new(self.terrain.bounds(), instances)?;
         structures.encode()?; // Bound the future durable record before mutation.
+        let unsupported = unsupported_structures(&mut self.terrain, &structures, self.geometry.max_span_steps, None)?;
+        if !unsupported.is_empty() { return Ok(Err(StructureChangeBlock::Unsupported(unsupported))); }
         let projection = structures.projection()?;
         for cell in projection.solid_cells() {
             let material = self.terrain.query(*cell)?;
@@ -301,7 +316,7 @@ impl TerrainWater {
         let revision = self.graph.binding().revision().checked_add(1).ok_or("water revision overflow")?;
         let graph = self.geometry.compile(&mut self.terrain, revision, None, &projection)?;
         let state = match self.graph.prepare_rebind(&self.state, &graph)? {
-            WaterRebind::Blocked(reason) => return Ok(Err(reason)),
+            WaterRebind::Blocked(reason) => return Ok(Err(StructureChangeBlock::Water(reason))),
             WaterRebind::Ready(state) => state,
         };
         let scratch = graph.workspace();
@@ -346,6 +361,27 @@ impl TerrainWater {
 
 }
 
+fn unsupported_structures(terrain: &mut TerrainOwner, structures: &StaticGeometry,
+    max_span_steps: u32, replacement: Option<(Cell, u16)>) -> Result<Vec<String>, String> {
+    if structures.instances().is_empty() { return Ok(Vec::new()); }
+    let mut query = |cell: Cell| {
+        let material = if let Some((_, slot)) = replacement.filter(|(at, _)| *at == cell) {
+            slot
+        } else {
+            match terrain.query(cell) {
+                Ok(slot) => slot,
+                Err("cell outside world bounds") => return Ok(false),
+                Err(error) => return Err(error.into()),
+            }
+        };
+        Ok(!terrain.is_open_material(material))
+    };
+    let policy = crate::structure_support::SupportPolicy {
+        max_span_steps, max_instances: 4096, max_work: 1_000_000,
+    };
+    Ok(crate::structure_support::resolve(structures, policy, &mut query)?.unsupported)
+}
+
 fn coordinates(cell: Cell) -> Result<[i32; 3], String> {
     Ok([i32::try_from(cell.x).map_err(|_| "water x out of range")?, cell.y,
         i32::try_from(cell.z).map_err(|_| "water z out of range")?])
@@ -374,19 +410,29 @@ mod tests {
         let high = Cell { y: 31, ..low };
         let geometry = TerrainWaterGeometry::new("floor-water".into(), vec![low, high],
             BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Closed), (2, MaterialWater::Closed)]),
-            [1.0; 3], 1.0, 0.1, WaterLimits::default()).unwrap();
+            [1.0; 3], 1.0, 0.1, WaterLimits::default(), 6).unwrap();
         let mut world = TerrainWater::fresh(geometry.clone(), terrain(), &[
             WaterStock { id: "cell:0,30,0".into(), mass_kg: 0.0 },
             WaterStock { id: "cell:0,31,0".into(), mass_kg: 100.0 },
         ]).unwrap();
-        let floor = || vec![StaticInstance::Floor { id: "floor".into(), support: low }];
+        let anchor = world.terrain.surface_cells(&[(1, 0)]).unwrap()[0].unwrap().cell;
+        let floor = || vec![
+            StaticInstance::Wall { id: "column".into(), base: Cell { y: anchor.y + 1, ..anchor }, height: u8::try_from(low.y - anchor.y).unwrap() },
+            StaticInstance::Floor { id: "floor".into(), support: low },
+        ];
         let before = world.facts().unwrap();
+        assert!(matches!(world.prepare_structures(vec![StaticInstance::Floor {
+            id: "unsupported".into(), support: low,
+        }]).unwrap(), Err(StructureChangeBlock::Unsupported(_))));
         let token = world.prepare_structures(floor()).unwrap().unwrap();
         assert_eq!(world.facts().unwrap(), before);
         world.advance(0.0).unwrap();
         assert!(world.apply_structures(token).is_err());
         let token = world.prepare_structures(floor()).unwrap().unwrap();
         world.apply_structures(token).unwrap();
+        let expected = world.material(anchor).unwrap();
+        assert!(matches!(world.prepare_excavation(anchor, expected, 0).unwrap(), ExcavationResult::StructuresBlocked(_)));
+        assert_eq!(world.material(anchor).unwrap(), expected);
         world.advance(1.0).unwrap();
         let facts = world.facts().unwrap();
         assert_eq!(facts.total_kg, 100.0);
@@ -428,7 +474,7 @@ mod tests {
             absorb_m_per_s: 0.1, seep_m_per_s: 0.02 };
         let geometry = TerrainWaterGeometry::new("colony-water".into(), vec![at, below],
             BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Porous(rule.clone())),
-                (2, MaterialWater::Porous(rule))]), [1.0; 3], 1.0, 0.1, WaterLimits::default()).unwrap();
+                (2, MaterialWater::Porous(rule))]), [1.0; 3], 1.0, 0.1, WaterLimits::default(), 6).unwrap();
         let mut water = TerrainWater::fresh(geometry.clone(), terrain,
             &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
               WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();

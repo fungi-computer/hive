@@ -96,7 +96,7 @@ impl Kernel {
             if work.seconds < required { continue; }
             let prepared = match self.environment.as_mut().unwrap().world.prepare_excavation(cell(work), work.expected, work.replacement)? {
                 ExcavationResult::Prepared(prepared) => prepared,
-                ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) => continue,
+                ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) | ExcavationResult::StructuresBlocked(_) => continue,
             };
             // Capacity/geometry admission failure leaves earned work available for retry.
             match self.complete_excavation(prepared, id) {
