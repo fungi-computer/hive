@@ -33,6 +33,7 @@ import {
 } from "@opentui/keymap/extras";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisual } from "./visual-resolver.js";
+import { terrainCameraFocus } from "./camera-focus.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -485,6 +486,12 @@ export function createHiveClient({
       this.x = (canvasHost.clientWidth - 640 * this.zoom) / 2;
       this.y = (canvasHost.clientHeight - 400 * this.zoom) / 2;
       draw();
+    },
+    focus(target) {
+      if (!target) return;
+      const projected = project(target.x, target.y, target.z);
+      this.x = canvasHost.clientWidth / 2 - projected.x * this.zoom;
+      this.y = canvasHost.clientHeight / 2 - projected.y * this.zoom;
     },
   };
   function screenPoint(subject) {
@@ -1012,9 +1019,15 @@ export function createHiveClient({
           intendedDestinations.clear();
         }
         if (interpolation.push(event, performance.now())) {
+          const previousTerrain = terrainFrame;
+          const newEpoch = frameEpoch === undefined || event.epoch !== frameEpoch;
           latestFacts = event.facts;
           terrainFrame = event.terrain;
           terrainLayer.update(terrainFrame, event.epoch);
+          if (terrainFrame && (newEpoch || !previousTerrain)) {
+            const visibleFacts = event.facts.filter((fact) => projectWorldFact(fact, state.view).visible);
+            camera.focus(terrainCameraFocus(visibleFacts, terrainFrame));
+          }
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             animationClock.reset();
             awaitingEpochTransition = false;
