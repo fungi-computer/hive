@@ -1,4 +1,4 @@
-import { SealedContainer } from "../sdk/construction";
+import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
@@ -62,6 +62,10 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const deliveries = ctx.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask));
   const occupied = new Set<EntityId>([
     ...excavating,
+    ...ctx.query(query(ConstructionSite)).flatMap((row) => {
+      const site = row.get(ConstructionSite);
+      return site.worker === null ? [] : [site.worker];
+    }),
     ...deliveries.flatMap((task) => task.actor ? [task.actor] : []),
   ]);
   const claims = orders.map((row) => ({ task: row.id, actor: row.get(ColonyDigOrder).actor }));
@@ -229,7 +233,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [ColonyDigOrder, DeliveryTask],
   providers: [deliveryProvider, digProvider],
 });

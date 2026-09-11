@@ -1,5 +1,5 @@
 import { component, query } from "./authoring";
-import { SealedContainer } from "./construction";
+import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
   MaterialLot,
@@ -101,7 +101,13 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       );
     };
     const positionIds = new Set(positions.map((row) => row.id));
-    const excavatingActors = new Set(excavations.map((row) => row.id));
+    const occupiedActors = new Set([
+      ...excavations.map((row) => row.id),
+      ...ctx.query(query(ConstructionSite)).flatMap((row) => {
+        const site = row.get(ConstructionSite);
+        return site.worker === null ? [] : [site.worker];
+      }),
+    ]);
     const relevantIds = [
       ...new Set([
         ...controls.map((row) => row.id),
@@ -193,7 +199,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
     let assigned = new Set<EntityId>();
     return {
       claims: deliveryClaims,
-      occupiedActors: [...excavatingActors],
+      occupiedActors: [...occupiedActors],
       candidates,
       estimate: (candidate) => {
         const [source, destination] = ctx.routeCosts([
@@ -223,7 +229,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
       if (state.actor === null || assigned.has(task.id)) continue;
-      if (excavatingActors.has(state.actor)) continue;
+      if (occupiedActors.has(state.actor)) continue;
       const control = controls
         .find((row) => row.id === state.actor)
         ?.get(DeliveryControl);
@@ -349,6 +355,7 @@ export const deliverySystem = createWorkSystem({
     Body,
     Container,
     SealedContainer,
+    ConstructionSite,
     Support,
     Surface,
     MaterialLot,

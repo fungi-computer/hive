@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
-import { SealedContainer } from "./construction";
+import { ConstructionSite, SealedContainer } from "./construction";
 import {
   ExcavationWork,
   Body,
@@ -13,7 +13,8 @@ import {
 } from "./common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "./delivery";
 
-test("native excavation reserves a worker without dropping its delivery state", () => {
+for (const occupation of ["excavation", "construction"] as const) {
+test(`native ${occupation} reserves a worker without dropping its delivery state`, () => {
   const worker = entity("worker.digging");
   const source = entity("stock.source");
   const destination = entity("stock.destination");
@@ -36,9 +37,13 @@ test("native excavation reserves a worker without dropping its delivery state", 
   const values = new Map<string, readonly unknown[]>([
     [DeliveryTask.id, taskRows],
     [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 1 })]],
-    [ExcavationWork.id, [row(worker, ExcavationWork, {
+    [ExcavationWork.id, occupation === "excavation" ? [row(worker, ExcavationWork, {
       x: 0, y: 0, z: 0, expected: 1, replacement: 0, seconds: 0,
-    })]],
+    })] : []],
+    [ConstructionSite.id, occupation === "construction" ? [row(entity("site.building"), ConstructionSite, {
+      catalog: "floor", x: 0, y: 0, z: 0, orientation: "north",
+      contactX: 0, contactY: 0, contactZ: 0, worker, seconds: 0.5, phase: "working",
+    })] : []],
     [Body.id, [row(worker, Body, { speed: 1 })]],
     [Container.id, [
       row(worker, Container, { capacity: 4 }),
@@ -87,6 +92,8 @@ test("native excavation reserves a worker without dropping its delivery state", 
   assert.equal(actions.length, 0);
   assert.deepEqual(taskRows[0].get(DeliveryTask), taskValues(worker, "to-source"));
 });
+
+}
 
 test("delivery rejects impossible pairs before matcher cost", () => {
   const cases = [
