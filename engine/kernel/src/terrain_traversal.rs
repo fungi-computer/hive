@@ -18,6 +18,8 @@ pub struct TraversalNode {
 pub struct TraversalMaterial {
     pub solid: bool,
     pub outside: bool,
+    /// A thin closed/supporting face at the top boundary, without bulk occupancy.
+    pub sealed_top: bool,
 }
 
 pub type MaterialQuery<'a> = dyn FnMut(Cell) -> Result<TraversalMaterial, String> + 'a;
@@ -43,7 +45,8 @@ fn overhead(
             ..support
         };
         let material = query(cell)?;
-        if material.outside || material.solid {
+        if material.outside || material.solid
+            || (offset < i32::from(config.clearance_cells) && material.sealed_top) {
             return Ok(false);
         }
     }
@@ -70,7 +73,7 @@ pub fn node(
 ) -> Result<Option<TraversalNode>, String> {
     validate_config(config)?;
     let support_material = query(support)?;
-    if support_material.outside || !support_material.solid {
+    if support_material.outside || !(support_material.solid || support_material.sealed_top) {
         return Ok(None);
     }
     if !overhead(support, config, query)? {
@@ -102,7 +105,7 @@ pub fn step(
     };
     let from_material = query(from.support)?;
     let target_material = query(target)?;
-    if from_material.outside || target_material.outside || !from_material.solid || !target_material.solid {
+    if from_material.outside || target_material.outside || !(from_material.solid || from_material.sealed_top) || !(target_material.solid || target_material.sealed_top) {
         return Ok(None);
     }
     if !overhead(from.support, config, query)? || !overhead(target, config, query)? {
@@ -116,7 +119,8 @@ pub fn step(
                 ..low
             };
             let material = query(cell)?;
-            if material.outside || material.solid {
+            if material.outside || material.solid
+                || (offset < i32::from(config.clearance_cells) + dy.abs() && material.sealed_top) {
                 return Ok(None);
             }
         }
@@ -136,7 +140,7 @@ mod tests {
 
     fn world(cells: &[(i64, i32, i64)]) -> impl FnMut(Cell) -> Result<TraversalMaterial, String> + '_ {
         let cells = cells.iter().copied().collect::<BTreeSet<_>>();
-        move |cell| Ok(TraversalMaterial { solid: cells.contains(&(cell.x, cell.y, cell.z)), outside: false })
+        move |cell| Ok(TraversalMaterial { solid: cells.contains(&(cell.x, cell.y, cell.z)), outside: false, sealed_top: false })
     }
 
     #[test]
@@ -168,6 +172,32 @@ mod tests {
         let mut hole = world(&[(0, 0, 0)]);
         let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut hole).unwrap().unwrap();
         assert!(step(start, 1, 0, 0, config(), &mut hole).unwrap().is_none());
+    }
+
+    #[test]
+    fn thin_floor_supports_feet_and_blocks_only_intersecting_headroom() {
+        let mut query = |at: Cell| Ok(TraversalMaterial {
+            solid: false, outside: false,
+            sealed_top: at.y == 0 || at.y == 2,
+        });
+        let feet = Cell { x: 0, y: 0, z: 0 };
+        let two_cells = TraversalConfig { clearance_cells: 2, ..config() };
+        let standing = node(feet, two_cells, &mut query).unwrap().unwrap();
+        assert!(step(standing, 1, 0, 0, two_cells, &mut query).unwrap().is_some());
+        // The ceiling's cell remains empty, but its top face cuts a taller body.
+        let taller = TraversalConfig { clearance_cells: 3, ..config() };
+        assert!(node(feet, taller, &mut query).unwrap().is_none());
+        assert!(node(Cell { y: 2, ..feet }, two_cells, &mut query).unwrap().is_some());
+    }
+
+    #[test]
+    fn thin_ceiling_blocks_climb_sweep_without_blocking_flat_contact() {
+        let mut query = |at: Cell| Ok(TraversalMaterial {
+            solid: at.x == 1 && at.y == 1, outside: false,
+            sealed_top: at.x == 0 && (at.y == 0 || at.y == 1),
+        });
+        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut query).unwrap().unwrap();
+        assert!(step(start, 1, 1, 0, config(), &mut query).unwrap().is_none());
     }
 
     #[test]
