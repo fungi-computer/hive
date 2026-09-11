@@ -77,7 +77,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 1,
     observation: {
       time: 0, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [], ignored: true },
     },
   }) });
@@ -88,7 +88,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 2,
     observation: {
       time: 1, paused: false, epoch: 0, sequence: 2, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [
         { at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 },
       ] },
@@ -109,7 +109,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 1,
     observation: {
       time: 1, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 1, verticalMetres: 0.5, surfaces: [{ cell: [9, 9, 9], material: 9 }], water: [] },
     },
   }) });
@@ -118,7 +118,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 3,
     observation: {
       time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 1, verticalMetres: 0.5, surfacesRevision: 1, water: [] },
     },
   }) });
@@ -128,7 +128,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 2,
     observation: {
       time: 2, paused: false, epoch: 0, sequence: 3, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [] },
     },
   }) });
@@ -137,7 +137,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 3,
     observation: {
       time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
     },
   }) });
@@ -153,7 +153,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 4,
     observation: {
       time: 4, paused: false, epoch: 0, sequence: 5, facts: [], cues: [],
-      presentationFacts: [], presentationControls: [],
+      presentationFacts: [], presentationControls: [], terrainMarks: [],
       terrain: { revision: 99, verticalMetres: 0.5, surfacesRevision: 99, water: [] },
     },
   }) });

@@ -94,6 +94,11 @@ export interface PresentationFact {
   readonly label: string;
   readonly value: string | number | boolean;
 }
+export type TerrainMark = {
+  readonly id: string;
+  readonly cell: readonly [number, number, number];
+  readonly status: "queued" | "working" | "blocked";
+};
 export interface GamePresentation {
   /** Opt into committed physical feedback; no simulation behavior is granted. */
   readonly feedback?: boolean;
@@ -101,6 +106,9 @@ export interface GamePresentation {
   readonly inspect: (
     context: Pick<ReadContext, "query">,
   ) => readonly PresentationFact[];
+  readonly terrainMarks?: (
+    context: Pick<ReadContext, "query">,
+  ) => readonly TerrainMark[];
 }
 function controlInput(value: unknown): unknown {
   const wire = JSON.stringify(value, (_key, item) => {
@@ -127,9 +135,10 @@ export function projectPresentation(
 ): {
   readonly facts: readonly PresentationFact[];
   readonly controls: readonly PresentationControl[];
+  readonly terrainMarks: readonly TerrainMark[];
 } {
   const presentation = pack.presentation;
-  if (!presentation) return { facts: [], controls: [] };
+  if (!presentation) return { facts: [], controls: [], terrainMarks: [] };
   if (presentation.controls.length > 16)
     throw new Error("presentation control limit exceeded");
   const commandNames = new Set(Object.keys(pack.commands ?? {}));
@@ -181,8 +190,19 @@ export function projectPresentation(
       throw new Error("presentation value too long");
     return Object.freeze({ id, label, value });
   });
+  const markIds = new Set<string>();
+  const terrainMarks = (presentation.terrainMarks?.(context) ?? []).map((mark) => {
+    if (!mark || typeof mark.id !== "string" || mark.id.length === 0 || mark.id.length > 128 || markIds.has(mark.id) ||
+        !Array.isArray(mark.cell) || mark.cell.length !== 3 || !mark.cell.every(Number.isSafeInteger) ||
+        !["queued", "working", "blocked"].includes(mark.status))
+      throw new Error("invalid terrain presentation mark");
+    markIds.add(mark.id);
+    return Object.freeze({ id: mark.id, cell: [mark.cell[0], mark.cell[1], mark.cell[2]] as [number, number, number], status: mark.status });
+  });
+  if (terrainMarks.length > 256) throw new Error("terrain presentation mark limit exceeded");
   return Object.freeze({
     facts: Object.freeze(structuredClone(facts)),
     controls: Object.freeze(structuredClone(controls)),
+    terrainMarks: Object.freeze(structuredClone(terrainMarks)),
   });
 }

@@ -1,7 +1,7 @@
 import type { PresentationCue } from "./presentation-cues";
 import type { ActionRequest, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
-import type { PresentationControl } from "../presentation";
+import type { PresentationControl, TerrainMark } from "../presentation";
 import type { TerrainWireFrame } from "./terrain-wire";
 
 export type WorkerCommand =
@@ -34,6 +34,7 @@ export type WorkerEvent =
         readonly value: string | number | boolean;
       }[];
       readonly controls: readonly PresentationControl[];
+      readonly terrainMarks: readonly TerrainMark[];
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[] }
