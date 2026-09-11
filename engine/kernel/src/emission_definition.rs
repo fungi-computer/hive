@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     components::valid_id,
@@ -15,7 +15,7 @@ use crate::{
 const MAX_DEFINITIONS: usize = 64;
 const MAX_JSON_BYTES: usize = 64 * 1024;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EmissionDefinition {
     pub id: String,
