@@ -201,7 +201,7 @@ export function createHiveClient({
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
   function displayedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
   function updateTerrainDisplay() {
-    terrainLayer.update(displayedTerrainFrame(), frameEpoch, `${state.view.level}:${state.view.cutaway ? 1 : 0}`);
+    terrainLayer.update(displayedTerrainFrame(), frameEpoch, state.view.cutaway ? `cut:${state.view.level}` : "full");
   }
 
   function prepareNewWorld(remote) {
