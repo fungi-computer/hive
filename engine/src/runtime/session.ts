@@ -253,7 +253,7 @@ export class GameSession {
       throw new Error("invalid command result");
     const actions = result.actions.map(checkedAction);
     const edits = this.validateAuthoredEdits(result.creates ?? [], result.removes ?? [],
-      [...this.pendingWrites, ...result.writes], handler.writes, this.pendingCreates, this.pendingRemoves);
+      [...this.pendingWrites, ...result.writes], handler.lifecycle ?? [], this.pendingCreates, this.pendingRemoves);
     const writes = this.validateWrites(result.writes, handler.writes, edits.known);
     const { creates, removes } = edits;
     const merged = [...this.pendingWrites];
@@ -717,7 +717,7 @@ export class GameSession {
     }
     const authoredDefinitions = Object.values(this.pack.commands ?? {}).flatMap(command => command.writes);
     const edits = this.validateAuthoredEdits(snapshot.pendingCreates, snapshot.pendingRemoves,
-      snapshot.pendingWrites, authoredDefinitions, [], [], initialEntities);
+      snapshot.pendingWrites, Object.values(this.pack.commands ?? {}).flatMap(command => command.lifecycle ?? []), [], [], initialEntities);
     const pendingWrites = this.validateWrites(snapshot.pendingWrites, authoredDefinitions, edits.known);
     const pendingCreates = edits.creates;
     const pendingRemoves = edits.removes;

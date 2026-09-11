@@ -264,12 +264,14 @@ export const colonyPack: GamePack = {
     }),
     dig: command({
       reads: [ColonyDigOrder],
-      writes: [ColonyDigOrder],
+      writes: [],
+      lifecycle: [ColonyDigOrder],
       run: (context, input) => ({ actions: [], writes: [], creates: digArea(context, input) }),
     }),
     cancelDig: command({
       reads: [ColonyDigOrder, ExcavationWork],
-      writes: [ColonyDigOrder],
+      writes: [],
+      lifecycle: [ColonyDigOrder],
       run: (context, input) => {
         const record = input && typeof input === "object" && !Array.isArray(input)
           ? input as { entities?: unknown; area?: { start?: unknown; end?: unknown } }
@@ -292,7 +294,7 @@ export const colonyPack: GamePack = {
           return byWorker || byArea;
         }).map((row) => row.id);
         if (!removes.length) throw new Error("no matching excavation order");
-        const actions = orders.filter((row) => removes.includes(row.id) && row.get(ColonyDigOrder).actor && work.has(row.get(ColonyDigOrder).actor as string)).map((row) => cancelWork(row.get(ColonyDigOrder).actor as EntityId));
+        const actions = orders.filter((row) => removes.includes(row.id) && row.get(ColonyDigOrder).actor && work.has(row.get(ColonyDigOrder).actor as EntityId)).map((row) => cancelWork(row.get(ColonyDigOrder).actor as EntityId));
         return { actions, writes: [], removes };
       },
     }),

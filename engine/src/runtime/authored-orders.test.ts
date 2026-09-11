@@ -15,8 +15,8 @@ const pack: GamePack = {
   id:"authored-orders",version:1,components:[Order],systems:[],
   definition:encodeDefinition("authored-orders",[Order]),
   commands:{
-    designate:command({writes:[Order],run:()=>({actions:[],writes:[],creates:[{id,components:{[Order.id]:{stage:"queued"}}}]})}),
-    cancel:command({writes:[Order],run:()=>({actions:[],writes:[],removes:[id]})}),
+    designate:command({writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],creates:[{id,components:{[Order.id]:{stage:"queued"}}}]})}),
+    cancel:command({writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],removes:[id]})}),
   },
 };
 

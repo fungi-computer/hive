@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
+import { MaterialLot } from "../sdk/common";
 import { query } from "../sdk/authoring";
 import { colonyPack, ColonyDigOrder } from "./colony";
 
@@ -50,4 +51,25 @@ test("actual WASM rejects an area above the bounded designation size", () => {
   } finally {
     port.dispose();
   }
+});
+
+
+test("area workers excavate and return finite spoil without manual movement", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    session.command("dig", { area: { start: [1,13,0], end: [2,13,0] } });
+    let finished = false;
+    for (let tick = 0; tick < 120; tick++) {
+      session.step(.25);
+      if (tick === 12) session.restore(session.save());
+      if (session.query(query(ColonyDigOrder)).length === 0) { finished = true; break; }
+    }
+    const orders = session.query(query(ColonyDigOrder)).map(row => row.get(ColonyDigOrder));
+    assert.equal(finished, true, JSON.stringify(orders));
+    const spoil = session.query(query(MaterialLot)).map(row => row.get(MaterialLot)).filter(lot => lot.kind === "soil-spoil");
+    assert.equal(spoil.reduce((sum,lot)=>sum+lot.quantity,0),6);
+    assert.ok(spoil.every(lot=>lot.container === "colony.pantry"));
+  } finally { port.dispose(); }
 });

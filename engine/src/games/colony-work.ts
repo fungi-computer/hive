@@ -53,7 +53,7 @@ function carriedLots(ctx: WriteContext, actor: EntityId) {
 function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
   const workers = new Set(ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id));
-  const positions = new Map(ctx.worldPoses([...workers]));
+  const positions = new Map(ctx.worldPoses([...workers]).map(pose => [pose.id, pose]));
   const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
   const containers = new Map(ctx.query(query(Container)).map((row) => [row.id, row.get(Container)]));
   const lots = ctx.query(query(MaterialLot)).map((row) => ({ id: row.id, ...row.get(MaterialLot) }));
