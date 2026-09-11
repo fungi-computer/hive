@@ -15,14 +15,13 @@ export interface TerrainWireFrame {
   readonly revision: number;
   readonly verticalMetres: number;
   readonly surfaces: readonly TerrainSurface[];
-  readonly structureSurfaces: readonly (readonly StructureSurface[])[];
+  readonly structureSurfaces: readonly StructureSurface[];
   readonly water: readonly TerrainWireWater[];
 }
 export interface TerrainWireReference {
   readonly revision: number;
   readonly verticalMetres: number;
   readonly surfacesRevision: number;
-  readonly structureSurfacesRevision: number;
   readonly water: readonly TerrainWireWater[];
 }
 export type TerrainWireObservation = TerrainWireFrame | TerrainWireReference;
@@ -37,7 +36,6 @@ export function terrainWireForRevision(
     revision: frame.revision,
     verticalMetres: frame.verticalMetres,
     surfacesRevision: frame.revision,
-    structureSurfacesRevision: frame.revision,
     water: frame.water,
   };
 }
@@ -77,25 +75,17 @@ function parseSurface(value: unknown): TerrainSurface | undefined {
   });
 }
 
-function parseStructureSurfaces(value: unknown): readonly (readonly StructureSurface[])[] | undefined {
-  if (!Array.isArray(value) || value.length > MAX_SURFACES) return undefined;
+function parseStructureSurfaces(value: unknown): readonly StructureSurface[] | undefined {
+  if (!Array.isArray(value)) return undefined;
   let total = 0;
-  const columns: StructureSurface[][] = [];
-  for (const rawColumn of value) {
-    if (!Array.isArray(rawColumn)) return undefined;
-    const seenCells = new Set<string>();
-    const seenHeights = new Set<number>();
-    const column: StructureSurface[] = [];
-    for (const raw of rawColumn) {
-      if (!record(raw) || !cell(raw.cell)) return undefined;
-      const key = `${raw.cell[0]},${raw.cell[1]},${raw.cell[2]}`;
-      if (seenCells.has(key) || seenHeights.has(raw.cell[1])) return undefined;
-      seenCells.add(key);
-      seenHeights.add(raw.cell[1]);
-      if (++total > MAX_STRUCTURE_SURFACES) return undefined;
-      column.push(Object.freeze({ cell: Object.freeze([raw.cell[0], raw.cell[1], raw.cell[2]]) as StructureSurface["cell"] }));
-    }
-    columns.push(Object.freeze(column));
+  const columns: StructureSurface[] = [];
+  const seenCells = new Set<string>();
+  for (const raw of value) {
+    if (!record(raw) || !cell(raw.cell)) return undefined;
+    const key = `${raw.cell[0]},${raw.cell[1]},${raw.cell[2]}`;
+    if (seenCells.has(key) || ++total > MAX_STRUCTURE_SURFACES) return undefined;
+    seenCells.add(key);
+    columns.push(Object.freeze({ cell: Object.freeze([raw.cell[0], raw.cell[1], raw.cell[2]]) as StructureSurface["cell"] }));
   }
   return Object.freeze(columns);
 }
@@ -155,8 +145,6 @@ export function parseTerrainObservation(
     !safeRevision(value.revision) ||
     !safeRevision(value.surfacesRevision) ||
     value.surfacesRevision !== value.revision ||
-    !safeRevision(value.structureSurfacesRevision) ||
-    value.structureSurfacesRevision !== value.revision ||
     !finite(value.verticalMetres) ||
     value.verticalMetres <= 0 ||
     !cached ||

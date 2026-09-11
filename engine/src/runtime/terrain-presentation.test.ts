@@ -35,7 +35,7 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
     return columns.map(([x]) => x === 0
       ? { cell: [x, surfaceY, 0] as const, material: 1 }
       : null);
-  }, columns => { structureCalls++; return columns.map(() => []); });
+  }, columns => { structureCalls++; return columns.flatMap(([x, z]) => [{ cell: [x, 2, z] as const }]); });
   const owner = new TerrainPresentationOwner(port, definition);
   const first = owner.read();
   assert.equal(surfaceCalls, 1);
@@ -60,17 +60,17 @@ test("structure projection preserves multiple authored heights and rejects dupli
   const port = fakePort(
     () => ({ terrainRevision: 1, cells: [] }),
     columns => columns.map(([x, z]) => ({ cell: [x, 0, z] as const, material: 1 })),
-    columns => columns.map(([x, z]) => [
+    columns => columns.flatMap(([x, z]) => [
       { cell: [x, 2, z] as const },
       { cell: [x, 5, z] as const },
     ]),
   );
   const frame = new TerrainPresentationOwner(port, definition).read();
-  assert.deepEqual(frame.structureSurfaces[0].map(surface => surface.cell), [[0, 2, 0], [0, 5, 0]]);
+  assert.deepEqual(frame.structureSurfaces.map(surface => surface.cell), [[0, 2, 0], [0, 5, 0]]);
   const bad = fakePort(
     () => ({ terrainRevision: 1, cells: [] }),
     columns => columns.map(([x, z]) => ({ cell: [x, 0, z] as const, material: 1 })),
-    columns => columns.map(([x, z]) => [{ cell: [x, 2, z] as const }, { cell: [x, 2, z] as const }]),
+    columns => columns.flatMap(([x, z]) => [{ cell: [x, 2, z] as const }, { cell: [x, 2, z] as const }]),
   );
   assert.throws(() => new TerrainPresentationOwner(bad, definition).read(), /duplicate structure surface/);
 });
@@ -78,7 +78,7 @@ test("structure projection preserves multiple authored heights and rejects dupli
 function fakePort(
   facts: () => unknown,
   surfaces: (columns: readonly [number, number][]) => readonly (TerrainSurface | null)[],
-  structures: (columns: readonly [number, number][]) => readonly (readonly StructureSurface[])[] = columns => columns.map(() => []),
+  structures: (columns: readonly [number, number][]) => readonly StructureSurface[] = columns => columns.map(() => []),
 ): KernelPort {
   return {
     routeCosts: () => { throw new Error("unexpected route query"); },

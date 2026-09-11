@@ -177,7 +177,6 @@ export interface ReadContext {
   physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
   terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
   terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
-  structureSurfaces(columns: readonly [number, number][]): readonly (readonly StructureSurface[])[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,

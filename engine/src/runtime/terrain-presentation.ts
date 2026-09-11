@@ -19,7 +19,7 @@ export interface TerrainPresentationFrame {
   readonly revision: number;
   readonly verticalMetres: number;
   readonly surfaces: readonly TerrainSurface[];
-  readonly structureSurfaces: readonly (readonly StructureSurface[])[];
+  readonly structureSurfaces: readonly StructureSurface[];
   readonly water: readonly TerrainWaterFact[];
 }
 
@@ -27,7 +27,7 @@ interface CachedSurfaces {
   readonly revision: number;
   readonly surfaces: readonly TerrainSurface[];
   readonly byColumn: ReadonlyMap<string, TerrainSurface | null>;
-  readonly structureSurfaces: readonly (readonly StructureSurface[])[];
+  readonly structureSurfaces: readonly StructureSurface[];
 }
 
 const MIN_I32 = -2147483648;
@@ -136,7 +136,7 @@ export class TerrainPresentationOwner {
       for (let z = minZ; z < maxZ; z++) columns.push([x, z]);
     const byColumn = new Map<string, TerrainSurface | null>();
     const surfaces: TerrainSurface[] = [];
-    const structureSurfaces: (readonly StructureSurface[])[] = [];
+    const structureSurfaces: StructureSurface[] = [];
     let structureCount = 0;
     for (let offset = 0; offset < columns.length; offset += SURFACE_BATCH) {
       const batch = columns.slice(offset, offset + SURFACE_BATCH);
@@ -187,7 +187,7 @@ export class TerrainPresentationOwner {
             cell: Object.freeze([cell[0], cell[1], cell[2]]) as StructureSurface["cell"],
           }));
         }
-        structureSurfaces.push(Object.freeze(parsed));
+        structureSurfaces.push(...parsed);
       }
     }
     return {
