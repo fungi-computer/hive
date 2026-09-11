@@ -63,6 +63,7 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
 /// both tunnelling through a later corner and scanning an entire future route.
 fn terrain_motion_blocked(position: Position, path: &VecDeque<Point>, mut budget: f64,
     blocked: &BTreeSet<navigation::Cell>) -> bool {
+    if blocked.is_empty() || budget <= 0.0 { return false; }
     let mut from = navigation::point(position);
     for target in path {
         if budget <= 0.0 { break; }
@@ -1789,24 +1790,8 @@ impl Kernel {
         let mut invalid = Vec::new();
         for entity in candidates {
             let Some(capability) = self.ecs.get::<Traversal>(entity).copied() else { invalid.push(entity); continue };
-            let blocked = self.blocked_by_frame.get(&None).cloned().ok_or("missing obstacle frame index")?;
             let environment_view = self.environment.as_ref().ok_or("terrain route needs environment")?;
             let spacing = environment_view.world.cell_spacing_m();
-            let active_blocked = self.terrain_routes.get(&entity).and_then(|state| state.target.as_ref()).is_some_and(|target| {
-                let Some(position) = self.ecs.get::<Position>(entity) else { return true };
-                let from = navigation::point(*position);
-                let ranges = [(from.x,target.x),(from.y,target.y),(from.z,target.z)].map(|(a,b)|
-                    (a.min(b).round() as i32, a.max(b).round() as i32));
-                for x in ranges[0].0..=ranges[0].1 {
-                    for y in ranges[1].0..=ranges[1].1 {
-                        for z in ranges[2].0..=ranges[2].1 {
-                            if blocked.contains(&(x,y,z)) && segment_intersects_cell(&from,target,(x,y,z)) { return true; }
-                        }
-                    }
-                }
-                false
-            });
-            if active_blocked { invalid.push(entity); continue; }
             if let Some(state) = self.terrain_routes.get(&entity) {
                 if let Some(target) = &state.target {
                     let position = *self.ecs.get::<Position>(entity).ok_or("terrain route actor lost position")?;
