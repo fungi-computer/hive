@@ -27,7 +27,8 @@ impl Kernel {
         if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<Container>(actor).is_none() {
             return Err("excavation needs a worker with carrying capacity".into());
         }
-        if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor) {
+        if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor)
+            || self.ecs.query::<&ConstructionSite>().iter(&self.ecs).any(|site| site.worker.as_deref() == Some(id)) {
             return Err("excavation requires terrain contact".into());
         }
         if self.terrain_support_occupied(cell(work))? {
