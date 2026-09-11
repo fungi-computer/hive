@@ -749,7 +749,15 @@ mod tests {
         let state = graph.initial(&[stock(high, 0.2), stock(low, 0.0)]).unwrap();
         let mut workspace = graph.workspace();
         let next = graph.advance(&state, 0.2, &mut workspace).unwrap();
-        assert!(next.state.mass_kg[1] > state.mass_kg[1]);
+        let before = graph.facts(&state).unwrap();
+        let after = graph.facts(&next.state).unwrap();
+        let before_high = before.cells.iter().find(|cell| cell.at == high).unwrap().mass_kg;
+        let before_low = before.cells.iter().find(|cell| cell.at == low).unwrap().mass_kg;
+        let after_high = after.cells.iter().find(|cell| cell.at == high).unwrap().mass_kg;
+        let after_low = after.cells.iter().find(|cell| cell.at == low).unwrap().mass_kg;
+        assert!(after_low > before_low);
+        assert!(after_high < before_high);
+        assert!(nearly_equal(after.total_kg, before.total_kg));
     }
 
     #[test]
