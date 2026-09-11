@@ -235,6 +235,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let blocked = false;
   let socket: SocketLike | undefined;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  let admissionAttempts = 0;
 
   const emit = (event: WorkerEvent) => { if (!disposed) for (const listener of listeners) listener(event); };
   const acceptObservation = (candidate: ObservationWire): boolean => {
@@ -255,7 +256,11 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const openSocket = async () => {
     try {
       const handleResponse = await requestJson(options.fetch, endpointUrl(options.endpoint, "/connect"), { method: "GET" }, abort.signal, 16 * 1024, requestTimeoutMs);
-      if (!handleResponse.response.ok || !isRecord(handleResponse.value) || typeof handleResponse.value.handle !== "string" || handleResponse.value.handle.length === 0 || handleResponse.value.handle.length > 256)
+      if (!handleResponse.response.ok) {
+        const reason = isRecord(handleResponse.value) && typeof handleResponse.value.error === "string" ? handleResponse.value.error : "remote socket admission failed";
+        throw new Error(reason);
+      }
+      if (!isRecord(handleResponse.value) || typeof handleResponse.value.handle !== "string" || handleResponse.value.handle.length === 0 || handleResponse.value.handle.length > 256)
         throw new Error("remote socket admission failed");
       const url = new URL(endpointUrl(options.endpoint, "/socket/" + encodeURIComponent(handleResponse.value.handle)));
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
@@ -264,12 +269,22 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         ? options.createSocket(url.toString())
         : new PartySocket(url.toString(), [], { maxEnqueuedMessages: 0, maxRetries: 8 });
     } catch (error) {
-      if (!disposed) emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
+      if (!disposed && error instanceof Error && error.message === "unsupported-world") {
+        emit({ type: "error", message: "This saved demo uses an older engine. New world starts separately; saved data retained." });
+      } else if (!disposed && admissionAttempts++ < MAX_RETRIES) {
+        await retryDelay(admissionAttempts);
+        if (!disposed) void openSocket();
+      } else if (!disposed) {
+        emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
+      }
       return;
     }
+    admissionAttempts = 0;
     socket.addEventListener("message", (event) => {
       let value: unknown;
-      try { value = JSON.parse(String(event.data)); } catch { emit({ type: "error", message: "invalid remote socket message" }); return; }
+      const raw = String(event.data);
+      if (new TextEncoder().encode(raw).byteLength > MAX_OBSERVATION_BYTES) { emit({ type: "error", message: "remote socket message too large" }); return; }
+      try { value = JSON.parse(raw); } catch { emit({ type: "error", message: "invalid remote socket message" }); return; }
       if (!isRecord(value)) return;
       if (value.type === "ready") {
         readyEmitted = true;

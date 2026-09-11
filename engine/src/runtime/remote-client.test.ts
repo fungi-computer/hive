@@ -95,3 +95,37 @@ test("lost HTTP receipt retries the identical command body and identity", async 
   assert.equal(bodies[0], bodies[1]);
   runtime.dispose();
 });
+
+
+test("transient handle admission recovers without a new world", async () => {
+  let attempts = 0;
+  const runtime = setup(async () => {
+    if (++attempts === 1) return Response.json({ error: "world-unavailable" }, { status: 503 });
+    return Response.json({ handle: "same-world" });
+  });
+  const events: WorkerEvent[] = [];
+  runtime.subscribe((event) => events.push(event));
+  runtime.send({ type: "start", game: "survival" });
+  try {
+    await wait(250);
+    assert.equal(attempts, 2);
+    assert.ok(events.some((event) => event.type === "ready"));
+  } finally { runtime.dispose(); }
+});
+
+test("unsupported saved world is reported without retry or replacement", async () => {
+  let attempts = 0;
+  const runtime = setup(async () => {
+    attempts++;
+    return Response.json({ error: "unsupported-world" }, { status: 503 });
+  });
+  const events: WorkerEvent[] = [];
+  runtime.subscribe((event) => events.push(event));
+  runtime.send({ type: "start", game: "survival" });
+  try {
+    await wait(250);
+    assert.equal(attempts, 1);
+    assert.ok(events.some((event) => event.type === "error" && event.message.includes("saved data retained")));
+    assert.equal(events.some((event) => event.type === "ready"), false);
+  } finally { runtime.dispose(); }
+});
