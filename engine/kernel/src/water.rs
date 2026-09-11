@@ -6,13 +6,16 @@
 //! definitions and water state are the only values that cross a save boundary.
 
 use serde::{Deserialize, Serialize};
+use serde::de::{self, SeqAccess, Visitor};
 use serde::ser::SerializeStruct;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
 use std::sync::Arc;
 
 pub const WATER_DENSITY_KG_PER_M3: f64 = 1_000.0;
 pub const STATE_VERSION: &str = "finite-voxel-water-v1";
 pub const MAX_SUBSTEP_SECONDS: f64 = 0.2;
+const MAX_WIRE_MASS_VALUES: usize = 2_048;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WaterStateVersion {
@@ -74,7 +77,7 @@ pub struct WaterStock {
     pub mass_kg: f64,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WaterState {
     version: WaterStateVersion,
@@ -83,7 +86,7 @@ pub struct WaterState {
     initial_total_kg: f64,
     boundary_kg: f64,
     #[serde(skip)]
-    checked: bool,
+    owner: Arc<()>,
 }
 
 impl WaterState {
@@ -92,6 +95,49 @@ impl WaterState {
     pub fn masses(&self) -> &[f64] { &self.mass_kg }
     pub fn initial_total_kg(&self) -> f64 { self.initial_total_kg }
     pub fn boundary_kg(&self) -> f64 { self.boundary_kg }
+}
+
+impl PartialEq for WaterState {
+    fn eq(&self, other: &Self) -> bool {
+        self.version == other.version && self.binding == other.binding && self.mass_kg == other.mass_kg && self.initial_total_kg == other.initial_total_kg && self.boundary_kg == other.boundary_kg
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct WaterStateWire {
+    version: WaterStateVersion,
+    binding: WaterBinding,
+    #[serde(deserialize_with = "deserialize_bounded_masses")]
+    mass_kg: Vec<f64>,
+    initial_total_kg: f64,
+    boundary_kg: f64,
+}
+
+fn deserialize_bounded_masses<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<f64>, D::Error> {
+    struct MassVisitor;
+    impl<'de> Visitor<'de> for MassVisitor {
+        type Value = Vec<f64>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("a bounded array of water masses")
+        }
+
+        fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
+            if sequence.size_hint().is_some_and(|hint| hint > MAX_WIRE_MASS_VALUES) {
+                return Err(de::Error::custom("water mass array exceeds admission bound"));
+            }
+            let mut masses = Vec::with_capacity(sequence.size_hint().unwrap_or(0));
+            while let Some(mass) = sequence.next_element::<f64>()? {
+                if masses.len() == MAX_WIRE_MASS_VALUES {
+                    return Err(de::Error::custom("water mass array exceeds admission bound"));
+                }
+                masses.push(mass);
+            }
+            Ok(masses)
+        }
+    }
+    deserializer.deserialize_seq(MassVisitor)
 }
 
 /// Compact save binding for the immutable canonical definition held by a
@@ -188,6 +234,7 @@ pub struct WaterLimits {
     pub soils: usize,
     pub max_seconds: f64,
     pub max_face_work: usize,
+    pub max_state_bytes: usize,
 }
 
 impl Default for WaterLimits {
@@ -198,6 +245,7 @@ impl Default for WaterLimits {
             soils: 64,
             max_seconds: 60.0,
             max_face_work: 262_144,
+            max_state_bytes: 256 * 1024,
         }
     }
 }
@@ -242,6 +290,7 @@ pub struct CompiledWater {
     faces: Vec<CompiledFace>,
     index: BTreeMap<String, usize>,
     limits: WaterLimits,
+    owner: Arc<()>,
 }
 
 /// Reusable bounded working memory. Keep one alongside the compiled graph and
@@ -322,7 +371,7 @@ fn resolve_quantity_change(before: f64, delta: f64) -> WaterResult<Option<f64>> 
 
 impl CompiledWater {
     pub fn compile(mut definition: WaterDefinition, limits: WaterLimits) -> WaterResult<Self> {
-        if limits.cells == 0 || limits.faces == 0 || limits.soils == 0 || limits.max_seconds <= 0.0 || !limits.max_seconds.is_finite() || limits.max_face_work == 0 {
+        if limits.cells == 0 || limits.cells > MAX_WIRE_MASS_VALUES || limits.faces == 0 || limits.soils == 0 || limits.max_seconds <= 0.0 || !limits.max_seconds.is_finite() || limits.max_face_work == 0 || limits.max_state_bytes == 0 {
             return Err(fail("invalid water admission limits"));
         }
         bounded_id(&definition.id, "water definition ID")?;
@@ -413,7 +462,7 @@ impl CompiledWater {
         definition.cells = nodes.iter().map(|node| CellDefinition { at: node.at, kind: node.kind, soil_id: node.soil.as_ref().map(|soil| soil.id.clone()) }).collect();
         definition.faces = faces.iter().map(|face| FaceDefinition { a: nodes[face.a].at, b: nodes[face.b].at, open_fraction: face.area_m2 * definition.spacing_m[face.axis] / volume_m3 }).collect();
         let binding = WaterBinding { id: Arc::from(definition.id.as_str()), revision: definition.revision };
-        Ok(Self { definition: Arc::new(definition), binding, nodes, faces, index, limits })
+        Ok(Self { definition: Arc::new(definition), binding, nodes, faces, index, limits, owner: Arc::new(()) })
     }
 
     pub fn definition(&self) -> &WaterDefinition { &self.definition }
@@ -432,13 +481,13 @@ impl CompiledWater {
             mass_kg[index] = stock.mass_kg;
         }
         if seen.len() != self.nodes.len() { return Err(fail("water initial stock has missing cells")); }
-        let state = WaterState { version: WaterStateVersion::V1, binding: self.binding.clone(), initial_total_kg: compensated_sum(mass_kg.iter().copied()), mass_kg, boundary_kg: 0.0, checked: true };
+        let state = WaterState { version: WaterStateVersion::V1, binding: self.binding.clone(), initial_total_kg: compensated_sum(mass_kg.iter().copied()), mass_kg, boundary_kg: 0.0, owner: self.owner.clone() };
         self.validate_state(&state)?;
         Ok(state)
     }
 
     pub fn validate_state(&self, state: &WaterState) -> WaterResult<()> {
-        if !state.checked { return Err(fail("water state has not crossed the admission boundary")); }
+        if !Arc::ptr_eq(&state.owner, &self.owner) { return Err(fail("water state belongs to another compiled graph")); }
         self.validate_state_contents(state)
     }
 
@@ -464,9 +513,10 @@ impl CompiledWater {
     }
 
     pub fn decode_state(&self, wire: &str) -> WaterResult<WaterState> {
-        let mut state: WaterState = serde_json::from_str(wire).map_err(|error| fail(format!("water state decoding failed: {error}")))?;
+        if wire.len() > self.limits.max_state_bytes { return Err(fail("water state wire exceeds admission bound")); }
+        let wire: WaterStateWire = serde_json::from_str(wire).map_err(|error| fail(format!("water state decoding failed: {error}")))?;
+        let state = WaterState { version: wire.version, binding: wire.binding, mass_kg: wire.mass_kg, initial_total_kg: wire.initial_total_kg, boundary_kg: wire.boundary_kg, owner: self.owner.clone() };
         self.validate_state_contents(&state)?;
-        state.checked = true;
         Ok(state)
     }
 
@@ -486,9 +536,10 @@ impl CompiledWater {
         })
     }
 
-    /// Advance an already admitted state. Admission is performed by `initial`
-    /// or `decode_state`; private state fields prevent ordinary callers from
-    /// invalidating it, so a successful tick avoids rescanning every stock.
+/// Advance an already admitted state. Admission is performed by `initial`
+/// or `decode_state`; the private owner token prevents it crossing into a
+/// different compiled graph, so a successful tick avoids rescanning every
+/// stock.
     pub fn advance(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace) -> WaterResult<WaterAdvance> {
         self.advance_inner(state, seconds, workspace, false)
     }
@@ -498,7 +549,7 @@ impl CompiledWater {
     }
 
     fn advance_inner(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace, collect_flows: bool) -> WaterResult<WaterAdvance> {
-        if !state.checked || state.version != WaterStateVersion::V1 || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() {
+        if !Arc::ptr_eq(&state.owner, &self.owner) || state.version != WaterStateVersion::V1 || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() {
             return Err(fail("water state is not an admitted compiled state"));
         }
         if workspace.scratch.next.len() != self.nodes.len() || workspace.scratch.requests.capacity() < self.faces.len() {
@@ -521,7 +572,7 @@ impl CompiledWater {
             work.requests += step_work.requests;
             work.unresolved += step_work.unresolved;
         }
-        let next = WaterState { version: WaterStateVersion::V1, binding: self.binding.clone(), mass_kg: mass, initial_total_kg: state.initial_total_kg, boundary_kg: state.boundary_kg, checked: true };
+        let next = WaterState { version: WaterStateVersion::V1, binding: self.binding.clone(), mass_kg: mass, initial_total_kg: state.initial_total_kg, boundary_kg: state.boundary_kg, owner: self.owner.clone() };
         Ok(WaterAdvance { state: next, seconds, substeps: vec![dt_s; steps], flows: flows.unwrap_or_default(), work })
     }
 
@@ -757,6 +808,21 @@ mod tests {
         assert_eq!(first, reordered);
         let wire = graph.encode_state(&first).unwrap();
         assert_eq!(graph.decode_state(&wire).unwrap(), first);
+    }
+
+    #[test]
+    fn checked_state_cannot_cross_same_id_compiled_graph() {
+        let a = [0, 0, 0];
+        let b = [1, 0, 0];
+        let first_graph = CompiledWater::compile(definition(vec![cell(a), cell(b)], vec![face(a, b)]), WaterLimits::default()).unwrap();
+        let mut other_definition = definition(vec![cell(a), cell(b)], vec![face(a, b)]);
+        other_definition.spacing_m = [0.2, 0.1, 0.1];
+        let other_graph = CompiledWater::compile(other_definition, WaterLimits::default()).unwrap();
+        let state = first_graph.initial(&[stock(a, 0.2), stock(b, 0.1)]).unwrap();
+        let other_state = other_graph.initial(&[stock(a, 0.2), stock(b, 0.1)]).unwrap();
+        assert_eq!(state, other_state);
+        let mut workspace = other_graph.workspace();
+        assert!(other_graph.advance(&state, 0.2, &mut workspace).is_err());
     }
 
     #[test]
