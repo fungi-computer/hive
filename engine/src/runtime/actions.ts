@@ -42,6 +42,10 @@ export function checkedAction(value: unknown): ActionRequest {
         && coordinate(contact.x) && coordinate(contact.y) && coordinate(contact.z);
       break;
     }
+    case "set-structure-open":
+      keys = ["kind", "worker", "site", "open"];
+      valid = id(action.worker) && id(action.site) && typeof action.open === "boolean";
+      break;
     case "attend-construction":
       keys = ["kind", "worker", "site"];
       valid = id(action.worker) && id(action.site);

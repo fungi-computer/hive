@@ -38,3 +38,8 @@ export const planConstruction = (
 export const attendConstruction = (worker: EntityId, site: EntityId): ActionRequest => ({
   kind: "attend-construction", worker, site,
 });
+
+/** Request a desired aperture state; native contact and physical admission decide. */
+export const setStructureOpen = (worker: EntityId, site: EntityId, open: boolean): ActionRequest => ({
+  kind: "set-structure-open", worker, site, open,
+});

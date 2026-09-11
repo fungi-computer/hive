@@ -75,6 +75,7 @@ export interface EnvironmentStructures {
 export type EnvironmentStructureShape =
   | { readonly kind: "floor" }
   | { readonly kind: "wall"; readonly height: number }
+  | { readonly kind: "aperture"; readonly height: number; readonly openingBottom: number; readonly openingHeight: number }
   | { readonly kind: "stair"; readonly run: number; readonly rise: number };
 
 export interface EnvironmentStructureMaterial {

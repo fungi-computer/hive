@@ -3,7 +3,7 @@ import test from "node:test";
 import { checkedAction } from "./actions";
 import { entity } from "../sdk/authoring";
 import { encodeDefinition } from "../sdk/common";
-import { planConstruction, attendConstruction, ConstructionSite, SealedContainer } from "../sdk/construction";
+import { planConstruction, attendConstruction, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
 import { isReservedComponent } from "../contracts";
 
 test("construction authoring cannot choose earned effort, cost or embedded custody", () => {
@@ -27,4 +27,15 @@ test("construction state and sealing use reserved native components", () => {
   assert.ok(isReservedComponent(SealedContainer.id));
   const encoded = JSON.parse(new TextDecoder().decode(encodeDefinition("construction", [ConstructionSite, SealedContainer])));
   assert.deepEqual(encoded.components, []);
+});
+
+test("aperture intent selects a state without bypassing physical admission", () => {
+  const action = setStructureOpen(entity("worker"), entity("door"), true);
+  assert.deepEqual(checkedAction(action), action);
+  assert.deepEqual(checkedAction({ ...action, open: false }), { ...action, open: false });
+  for (const invalid of [
+    { ...action, open: "true" }, { ...action, worker: null },
+    { ...action, site: "" }, { ...action, force: true },
+    { ...action, openingHeight: 12 },
+  ]) assert.throws(() => checkedAction(invalid), /invalid action/);
 });
