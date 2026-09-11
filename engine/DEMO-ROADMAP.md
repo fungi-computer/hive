@@ -763,3 +763,21 @@ Acceptance includes a worker who is geometrically nearer but has a costly
 obstacle/climb route losing to the actually faster worker, an unreachable pair
 being omitted, and a claimed worker remaining assigned. This remains a required
 caller correction, not a completed feature or new deployed behavior.
+
+Levi's retained-fix requirement: impossible work must never reach distance or
+route evaluation. Verify this with an instrumented estimator, not merely an
+empty matcher result. The shared allocator now filters saved actor/task claims
+before invoking its estimator (a6175f6). Delivery eligibility must additionally
+check enabled movement capability, requested quantity, source lot custody/kind,
+and actor/destination capacity before constructing a cost request. Aggregate
+canonical lot occupancy once per assignment pass; do not rescan all lots for
+each worker/task pair. These are cheap eligibility checks, not reservations:
+native transfer admission still checks current custody and capacity at execution.
+
+The next accepted terrain movement packet must prove actual mid-climb recovery,
+rejection of forged remaining waypoints, retained blocked intent, multi-segment
+tick progress, and failed replacement leaving the previous route intact. Cell
+witnesses and metre waypoints cannot be independent saved truths. Validate their
+correspondence using the same route geometry producer. Keep fixed-width route
+costs consistent across native and WASM targets. Source-only checkpoint d62ef54
+has not yet met these laws and is not part of the playable release.
