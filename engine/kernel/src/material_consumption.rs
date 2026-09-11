@@ -277,7 +277,7 @@ mod tests {
     use crate::world::Kernel;
     use serde_json::{Value, json};
 
-    fn kernel(water: Option<f64>, quantity: u32) -> Kernel {
+    fn make_kernel(water: Option<f64>, quantity: u32) -> Kernel {
         let mut kernel = Kernel::new();
         let mut lot = json!({"hive.lot":{"kind":"fuel","quantity":quantity,"container":"store"}});
         if let Some(water) = water {
@@ -304,21 +304,29 @@ mod tests {
 
     #[test]
     fn dry_and_wet_partial_consumption_report_exact_material() {
-        let mut dry = kernel(None, 4);
+        let mut dry = make_kernel(None, 4);
         let prepared = dry.prepare_material_consumption(&[portion(2)]).unwrap();
         let consumed = dry.publish_material_consumption(prepared).unwrap();
         assert_eq!(consumed.water_kg, 0.0);
         assert_eq!(consumed.portions[0].quantity, 2);
-        let mut wet = kernel(Some(8.0), 4);
+        let mut wet = make_kernel(Some(8.0), 4);
         let prepared = wet.prepare_material_consumption(&[portion(2)]).unwrap();
         let consumed = wet.publish_material_consumption(prepared).unwrap();
         assert_eq!(consumed.water_kg, 4.0);
         assert_eq!(water_rows(&mut wet).as_array().unwrap().len(), 1);
+        assert_eq!(
+            lot_rows(&mut wet)[0]["components"]["hive.lot"]["quantity"],
+            2
+        );
+        assert_eq!(
+            water_rows(&mut wet)[0]["components"]["hive.lot-water"]["waterKg"],
+            4.0
+        );
     }
 
     #[test]
     fn failed_second_portion_has_no_first_debit() {
-        let mut kernel = kernel(None, 4);
+        let mut kernel = make_kernel(None, 4);
         let before = lot_rows(&mut kernel);
         let bad = [
             portion(1),
@@ -332,20 +340,34 @@ mod tests {
     }
 
     #[test]
-    fn same_revision_competition_and_foreign_restore_token_are_rejected() {
-        let mut kernel = kernel(None, 4);
+    fn same_revision_competition_and_foreign_token_are_rejected() {
+        let mut kernel = make_kernel(None, 4);
         let first = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
         let second = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
         kernel.publish_material_consumption(first).unwrap();
         assert!(kernel.publish_material_consumption(second).is_err());
-        let mut foreign = kernel(None, 4);
+        let mut foreign = make_kernel(None, 4);
         let token = foreign.prepare_material_consumption(&[portion(1)]).unwrap();
         assert!(kernel.publish_material_consumption(token).is_err());
     }
 
     #[test]
+    fn sealed_container_publication_rejects_without_mutation() {
+        let mut kernel = make_kernel(None, 4);
+        let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
+        let store = kernel.entity("store").unwrap();
+        kernel
+            .ecs
+            .entity_mut(store)
+            .insert(crate::components::SealedContainer {});
+        let before = lot_rows(&mut kernel);
+        assert!(kernel.publish_material_consumption(prepared).is_err());
+        assert_eq!(lot_rows(&mut kernel), before);
+    }
+
+    #[test]
     fn restore_invalidates_prepared_token_and_zero_water_survives_reload() {
-        let mut kernel = kernel(Some(8.0), 1);
+        let mut kernel = make_kernel(Some(8.0), 1);
         let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
@@ -367,7 +389,7 @@ mod tests {
 
     #[test]
     fn stale_container_and_disjoint_weight_change_reject_without_mutation() {
-        let mut kernel = kernel(None, 4);
+        let mut kernel = make_kernel(None, 4);
         let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
         let store = kernel.entity("store").unwrap();
         kernel
@@ -384,7 +406,7 @@ mod tests {
 
     #[test]
     fn zero_quantity_lot_remains_a_valid_fact() {
-        let mut kernel = kernel(None, 1);
+        let mut kernel = make_kernel(None, 1);
         let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
         kernel.publish_material_consumption(prepared).unwrap();
         assert!(lot_rows(&mut kernel).to_string().contains("quantity\":0"));
