@@ -2,21 +2,32 @@
 
 King Bolete · personally authored September 11, 2026
 
-Status: design, not a performance or deployment receipt. Levi asked
-to talk through world generation and groundwater before further implementation;
-existing source checkpoints are preserved and no new runtime work follows merely
-from this document. This is
-part of [DESIGN.md](DESIGN.md) and [DEMO-ROADMAP.md](DEMO-ROADMAP.md), not a new
-project. It supersedes the roadmap's former allowance for keeping environmental
-hot loops in TypeScript. Native draft `86bc35e` supplies reviewed-in-progress
-local transport code; it is not the completed design below.
+## Current status — September 11, native Colony join
 
-The subsequent personally authored [implementation decisions](ENVIRONMENT-IMPLEMENTATION.md)
-settle the hard runtime, generator, groundwater, coupling and shared-presentation
-choices. They supersede the earlier full-clone/full-field-checkpoint sketches.
-Implementers use that companion for the exact owner lifecycle and failure rules;
-this document retains the model, scope and frozen workload. Runtime work remains
-held under the discussion-before-code direction.
+Implementation is authorized and underway under [DEMO-ROADMAP.md](DEMO-ROADMAP.md).
+Rust owns generated terrain, finite water, construction/excavation geometry,
+connected-volume air, material-paid finite emissions, and their saved records.
+The former discussion-only hold and statements below that native air is missing
+are historical and superseded by this status.
+
+At `5550d3a`, native fuel admission/clock/reload and bounded indexed air
+observation have five passing native laws; the earlier authored emission catalog
+has four passing laws. The shared TypeScript observation/action API is joined.
+Colony source now defines a generated village air domain, a finite wood hearth,
+ordinary repeated site supplies, a manual Light hearth command, retained station
+art binding and native temperature/smoke inspection. The actual WASM rebuild and
+whole Colony consumer qualification remain open. The TypeScript observation
+check previously stopped on the missing generated module, not an assertion.
+
+This is source/native-unit evidence, not a new deployment, performance capacity,
+DO crash qualification, visible room-smoke effect or completed brewing workflow.
+The existing live construction/wet-excavation release is unchanged. Keep the
+retained brewing source map and staged-process restoration requirements; the
+hearth is one shared consumer, not a substitute for that complete workflow.
+
+The [implementation decisions](ENVIRONMENT-IMPLEMENTATION.md) own the runtime,
+groundwater and coupling contracts. Earlier paragraphs below retain design
+history and must be read against this current status.
 
 ## Current implementation reference correction — September 11
 
