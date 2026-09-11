@@ -211,6 +211,7 @@ impl StaticInstance {
 pub struct StaticGeometry {
     bounds: Bounds,
     instances: Vec<StaticInstance>,
+    id_index: BTreeMap<String, usize>,
 }
 
 impl StaticGeometry {
@@ -221,16 +222,18 @@ impl StaticGeometry {
         }
         let mut ids = BTreeSet::new();
         let mut derived = 0usize;
-        for instance in &instances {
+        let mut id_index = BTreeMap::new();
+        for (index, instance) in instances.iter().enumerate() {
             if !ids.insert(instance.id()) {
                 return Err("duplicate structure instance identity".into());
             }
+            id_index.insert(instance.id().to_owned(), index);
             derived = derived.checked_add(instance.bound(bounds)?).ok_or("structure geometry budget overflow")?;
             if derived > MAX_DERIVED_CELLS {
                 return Err("structure derived geometry budget exceeded".into());
             }
         }
-        let geometry = Self { bounds, instances };
+        let geometry = Self { bounds, instances, id_index };
         geometry.projection()?;
         Ok(geometry)
     }
@@ -252,6 +255,9 @@ impl StaticGeometry {
 
     pub fn bounds(&self) -> Bounds { self.bounds }
     pub fn instances(&self) -> &[StaticInstance] { &self.instances }
+    pub fn instance(&self, id: &str) -> Option<&StaticInstance> {
+        self.id_index.get(id).and_then(|index| self.instances.get(*index))
+    }
 
     pub fn projection(&self) -> Result<GeometryProjection, String> {
         let mut solids = BTreeSet::new();
@@ -518,6 +524,14 @@ mod tests {
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
             id: "bad".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 4, opening_bottom: 0, opening_height: 0, open: false,
         }]).is_err());
+    }
+
+    #[test]
+    fn canonical_index_rebuilds_after_encode_decode() {
+        let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Wall { id: "wall".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 }]).unwrap();
+        let restored = StaticGeometry::decode(bounds(), &geometry.encode().unwrap()).unwrap();
+        assert!(matches!(restored.instance("wall"), Some(StaticInstance::Wall { .. })));
+        assert!(restored.instance("missing").is_none());
     }
 
     #[test]

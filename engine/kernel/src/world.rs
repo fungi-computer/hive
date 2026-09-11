@@ -21,6 +21,9 @@ mod structure_contact;
 #[cfg(test)]
 #[path = "aperture_tests.rs"]
 mod aperture_tests;
+#[cfg(test)]
+#[path = "structure_observation_tests.rs"]
+mod structure_observation_tests;
 #[path = "construction_work.rs"]
 mod construction_work;
 #[path = "route_query.rs"]
@@ -1036,6 +1039,19 @@ impl Kernel {
             "cell": [surface.cell.x, surface.cell.y, surface.cell.z], "material": surface.material,
         }))).collect();
         serde_json::to_string(&facts).map_err(|error| error.to_string())
+    }
+    pub fn structure_states_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 16 * 1024 { return Err("structure state query exceeds input budget".into()); }
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if ids.is_empty() || ids.len() > 64 { return Err("structure state query exceeds id budget".into()); }
+        let mut seen = BTreeSet::new();
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        let states = ids.into_iter().map(|id| {
+            if !crate::components::valid_id(&id) || !seen.insert(id.clone()) { return Err("invalid or duplicate structure state id".into()); }
+            Ok(environment.world.structure_instance(&id))
+        }).collect::<Result<Vec<_>>>()?;
+        serde_json::to_string(&states).map_err(|error| error.to_string())
     }
     pub fn structure_surfaces_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;

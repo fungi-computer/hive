@@ -272,6 +272,9 @@ impl TerrainWater {
     pub(crate) fn structure_instances(&self) -> Vec<StaticInstance> {
         self.structures.instances().to_vec()
     }
+    pub(crate) fn structure_instance(&self, id: &str) -> Option<&StaticInstance> {
+        self.structures.instance(id)
+    }
     pub fn structure_surfaces(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Vec<Cell>>, String> {
         if columns.is_empty() || columns.len() > 64 { return Err("structure surface query exceeds column budget".into()); }
         let bounds = self.terrain.bounds();
