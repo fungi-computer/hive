@@ -66,10 +66,17 @@ export interface EnvironmentWater {
   readonly spreadMPerS: number;
 }
 
+export interface InitialSurfacePlacement {
+  readonly entity: string;
+  readonly column: readonly [number, number];
+}
+
 export interface EnvironmentDefinition {
   readonly world: EnvironmentWorld;
   readonly materials: readonly EnvironmentMaterial[];
   readonly water: EnvironmentWater;
+  /** Optional fresh-world placement; native restore never reapplies it. */
+  readonly initialPlacements?: readonly InitialSurfacePlacement[];
 }
 
 /** Encode the exact JSON payload consumed by Kernel::load_environment. */
