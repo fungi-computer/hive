@@ -276,7 +276,7 @@ impl TerrainWater {
             let mut exposed = Vec::with_capacity(surfaces.len());
             for cell in surfaces {
                 let Some(above_y) = cell.y.checked_add(1) else { exposed.push(cell); continue; };
-                let above = Cell { y: above_y, ..*cell };
+                let above = Cell { y: above_y, ..cell };
                 if above.x < bounds.min_x || above.x >= bounds.max_x || above.y < bounds.min_y || above.y >= bounds.max_y || above.z < bounds.min_z || above.z >= bounds.max_z {
                     exposed.push(cell);
                     continue;
