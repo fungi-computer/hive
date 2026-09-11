@@ -201,6 +201,9 @@ impl WasmKernel {
     pub fn terrain_materials(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.terrain_materials_json(input).map_err(js_error)
     }
+    pub fn route_costs(&mut self, input: &str) -> Result<String, JsValue> {
+        self.0.route_costs_json(input).map_err(js_error)
+    }
     pub fn environment_facts(&self) -> Result<String, JsValue> {
         self.0.environment_facts_json().map_err(js_error)
     }
