@@ -193,6 +193,9 @@ impl WasmKernel {
     pub fn load_environment(&mut self, definition: &str) -> Result<(), JsValue> {
         self.0.load_environment(definition).map_err(js_error)
     }
+    pub fn terrain_surfaces(&mut self, input: &str) -> Result<String, JsValue> {
+        self.0.terrain_surfaces_json(input).map_err(js_error)
+    }
     pub fn terrain_materials(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.terrain_materials_json(input).map_err(js_error)
     }

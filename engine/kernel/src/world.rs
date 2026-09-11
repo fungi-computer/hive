@@ -590,6 +590,19 @@ impl Kernel {
     }
     /// Trusted host query. Player visibility must be applied before publishing
     /// these facts; this endpoint is not itself an exploration permission.
+    pub fn terrain_surfaces_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 8 * 1024 { return Err("surface query exceeds input budget".into()); }
+        let coordinates: Vec<[i32; 2]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if coordinates.is_empty() || coordinates.len() > 64 { return Err("surface query exceeds column budget".into()); }
+        let columns: Vec<_> = coordinates.into_iter().map(|[x, z]| (i64::from(x), i64::from(z))).collect();
+        let environment = self.environment.as_mut().ok_or("world has no environment")?;
+        let surfaces = environment.world.surface_cells(&columns)?;
+        let facts: Vec<_> = surfaces.into_iter().map(|surface| surface.map(|surface| json!({
+            "cell": [surface.cell.x, surface.cell.y, surface.cell.z], "material": surface.material,
+        }))).collect();
+        serde_json::to_string(&facts).map_err(|error| error.to_string())
+    }
     pub fn terrain_materials_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 32 * 1024 { return Err("terrain query exceeds input budget".into()); }
