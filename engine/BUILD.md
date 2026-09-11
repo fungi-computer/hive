@@ -704,3 +704,15 @@ outer-transaction discard across the existing Region and both DO host callers.
 Session's per-step rollback copy remains until its browser and DO recovery
 callers change coherently. Source review and combined affected qualification
 follow that joined candidate; no historical test matrix is requested.
+
+Membership qualification completed on corrected `4c02fa3`: u5456 / exec89177,
+invocation `97ab838173d24619918c2a73b1e54841`, exit0. One native law, maintained
+WASM release build, three named JS laws, strict engine types and diff passed.
+The earlier u5454 exit101 was a compile-time module qualifier error; no test
+passed in that attempt. Both scopes are inactive/dead with empty ControlGroup.
+
+Generated WASM SHA256 `8666368eecf3ef908f7c9cdb811c3f6c7af171541ed5986d4813d25c61dd0fd8`;
+JS `07df75a115057437fe2fd4d5ce67c55902045341273d60a9b042a6b4bd028cf7`;
+declarations `40393add2b8038de8f5cf497b915bbe97d288c77a3e004f1dc4a658ea147939a`.
+This proves the indexed reference API and no-snapshot command path, not a game
+capacity benchmark, resident lifecycle acceptance or new hosted behavior.
