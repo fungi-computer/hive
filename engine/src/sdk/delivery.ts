@@ -5,6 +5,7 @@ import {
   Body,
   Container,
   ExcavationWork,
+  Destination,
   Position,
   Support,
   Surface,
@@ -59,6 +60,12 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
+    const destinations = new Map(ctx.query(query(Destination)).map(row => [row.id, row.get(Destination)]));
+    const requestMove = (actor: EntityId, target: MoveDestination) => {
+      const current = destinations.get(actor);
+      if (current && current.x === target.x && current.y === target.y && current.z === target.z && current.frame === target.frame) return;
+      ctx.action(move(actor, target));
+    };
     const lots = ctx.query(query(MaterialLot));
     const lotRowsById = new Map(lots.map((row) => [row.id, row]));
     const lotsById = new Map(lots.map((row) => [row.id, row.get(MaterialLot)]));
@@ -241,12 +248,10 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       const actorLotState = actorLot ? lotState : undefined;
       if (!control?.enabled) {
         if (state.phase !== "idle" && state.phase !== "complete")
-          ctx.action(
-            move(state.actor, {
+          requestMove(state.actor, {
               ...actor.get(Position),
               frame: actorPose.support,
-            }),
-          );
+            });
         continue;
       }
       if (state.phase === "idle") {
@@ -260,12 +265,10 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       if (state.phase === "to-source") {
         if (actorLotState) {
           ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
-          ctx.action(
-            move(state.actor, {
+          requestMove(state.actor, {
               ...destination.get(Position),
               frame: destinationPose.support,
-            }),
-          );
+            });
           continue;
         }
         if (distance(actorPose.world, sourcePose.world) <= 1) {
@@ -279,20 +282,16 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
               ),
             );
         } else
-          ctx.action(
-            move(state.actor, {
+          requestMove(state.actor, {
               ...source.get(Position),
               frame: sourcePose.support,
-            }),
-          );
+            });
       } else if (state.phase === "carrying" && actorLotState) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "to-destination" });
-        ctx.action(
-          move(state.actor, {
+        requestMove(state.actor, {
             ...destination.get(Position),
             frame: destinationPose.support,
-          }),
-        );
+          });
       } else if (
         state.phase === "to-destination" &&
         lotState?.container === state.destination
@@ -313,12 +312,10 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
             ),
           );
       } else if (state.phase === "to-destination" && actorLotState) {
-        ctx.action(
-          move(state.actor, {
+        requestMove(state.actor, {
             ...destination.get(Position),
             frame: destinationPose.support,
-          }),
-        );
+          });
       } else if (
         state.phase === "complete" &&
         lotState?.container === state.destination
@@ -343,6 +340,7 @@ export const deliverySystem = createWorkSystem({
     Surface,
     MaterialLot,
     ExcavationWork,
+  Destination,
     DeliveryControl,
   ],
   writes: [DeliveryTask],
