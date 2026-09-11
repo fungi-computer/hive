@@ -680,3 +680,10 @@ it does not establish moving-water rollback, excavation, a DO restart, populatio
 capacity or current demo performance. Full per-step snapshots and disposable
 per-operation reconstruction still exist; do not enable this as a claimed
 performance-complete environmental release before the owned-attempt join.
+
+Final source review added exact GamePack environment-definition matching on
+Session restore (2f832de). u5452 exit0 passed only the extended actual Colony
+record law plus strict engine types/diff: a snapshot from another authored
+terrain/water definition rejects without changing the recipient. Empty filtered
+helper/Session test files in the Node report are not additional executed laws.
+Scope inactive/dead/empty. Existing equilibrium/durability/deployment limits stand.
