@@ -194,7 +194,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
     );
     assert.equal(
       colonyPack.presentation
-        ?.inspect({ query: (spec) => session.query(spec) })
+        ?.inspect({ query: (spec) => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) })
         .find((fact) => fact.id === "delivery-phase-1")?.value,
       "complete",
     );
@@ -327,7 +327,7 @@ test("each pack exposes bounded facts and controls from its committed query", ()
       const session = new GameSession({ port, pack });
       session.start();
       const projection =
-        pack.presentation?.inspect({ query: (spec) => session.query(spec) }) ??
+        pack.presentation?.inspect({ query: (spec) => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }) ??
         [];
       assert.ok(projection.length > 0);
       assert.ok(

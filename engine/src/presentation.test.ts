@@ -23,7 +23,7 @@ const pack = (presentation?: GamePresentation): GamePack =>
     },
     ...(presentation ? { presentation } : {}),
   }) as GamePack;
-const context = { query: () => [] };
+const context = { query: () => [], atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); } };
 test("selection controls capture current IDs without granting game authority", () => {
   const control = {
     id: "order",

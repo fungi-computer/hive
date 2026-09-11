@@ -38,6 +38,7 @@ export function authoringContractProof(): void {
     query: () => [],
     assign: () => [],
     routeCosts: () => { throw new Error("unexpected route query"); },
+    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
     terrainSurfaces: () => [],
     worldPoses: () => [],

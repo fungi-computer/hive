@@ -4,7 +4,7 @@ import { wasmKernelPort, type WasmKernelBinding } from "./wasm-kernel";
 
 function binding(response: unknown, calls: { count: number }): WasmKernelBinding {
   return {
-    atmosphere_samples(json) {
+    atmosphere_samples(json: string) {
       calls.count++;
       assert.deepEqual(JSON.parse(json), [[-2, 13, 4], [0, 13, 4]]);
       return JSON.stringify(response);
