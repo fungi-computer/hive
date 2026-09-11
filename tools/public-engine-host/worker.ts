@@ -711,7 +711,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       ) {
         const input = await readCommand(request);
         const result = await this.command(input, now);
-        this.publishObservation();
+        await this.publishObservation();
         return withCors(Response.json(result.receipt), origin);
       }
       return jsonResponse({ error: "not-found" }, 404, origin);

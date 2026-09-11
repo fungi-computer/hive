@@ -46,6 +46,7 @@ export class FreshRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion>;
   private resident!: SessionResident;
   private readonly ready: Promise<void>;
+  private residentQueue: Promise<void> = Promise.resolve();
   private failBeforeReceipt = false;
   constructor(ctx: DurableObjectState, env: Environment) {
     super(ctx, env);
@@ -92,6 +93,12 @@ export class FreshRegion extends DurableObject<Environment> {
     });
   }
   async fetch(request: Request): Promise<Response> {
+    const run = this.residentQueue.then(() => this.fetchExclusive(request));
+    this.residentQueue = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
+  private async fetchExclusive(request: Request): Promise<Response> {
     await this.ready;
     const path = new URL(request.url).pathname;
     if (path === "/health")
