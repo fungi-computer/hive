@@ -308,6 +308,10 @@ pub enum Action {
 #[serde(deny_unknown_fields)]
 pub struct Batch {
     pub delta: f64,
+    #[serde(default)]
+    pub creates: Vec<EntityRecord>,
+    #[serde(default)]
+    pub removes: Vec<String>,
     pub writes: Vec<Write>,
     pub actions: Vec<Action>,
 }
