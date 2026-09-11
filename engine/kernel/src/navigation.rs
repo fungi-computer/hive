@@ -39,13 +39,13 @@ pub fn direct_step(
     if length <= f64::EPSILON {
         return Ok(position);
     }
-    let scale = speed * DIRECT_STEP_SECONDS / length;
+    let scale = speed * DIRECT_STEP_SECONDS / length.max(1.0);
     let dx = x * scale;
     let dz = z * scale;
     let attempt = |ax: f64, az: f64| -> bool {
         let end = Point { x: position.x + ax, y: position.y, z: position.z + az, frame: None };
         bounds.is_none_or(|b| end.x >= b.min_x && end.x <= b.max_x && end.z >= b.min_z && end.z <= b.max_z)
-            && !blocked.iter().any(|cell| segment_intersects_cell(&point(position), &end, *cell))
+            && !blocked.iter().any(|cell| cell.1 == position.y.round() as i32 && segment_intersects_cell(&point(position), &end, *cell))
     };
     let (move_x, move_z) = if attempt(dx, dz) { (dx, dz) }
         else if attempt(dx, 0.0) { (dx, 0.0) }
@@ -290,6 +290,14 @@ mod direct_tests {
         let moved = direct_step(position, 0.0, 0.0, 2.0, &BTreeSet::new(), None).unwrap();
         assert_eq!(moved.x, position.x);
         assert_eq!(moved.facing, 3.0);
+    }
+
+    #[test]
+    fn direct_ignores_obstacles_on_other_height_levels() {
+        let mut blocked = BTreeSet::new();
+        blocked.insert((1, 1, 0));
+        let moved = direct_step(start(), 1.0, 0.0, 2.0, &blocked, None).unwrap();
+        assert!(moved.x > 0.0);
     }
 }
 
