@@ -26,13 +26,6 @@ export const ColonyDigOrder = component<{
   },
 });
 
-type RouteResult = { readonly actor: EntityId; readonly status: "reachable" | "unavailable"; readonly cost?: number; readonly reason?: string };
-type TerrainContext = WriteContext & {
-  readonly routeCosts: (requests: readonly { actor: EntityId; target: Vec3 & { frame: EntityId | null } }[]) => readonly RouteResult[];
-  readonly terrainMaterials: (cells: readonly [number, number, number][]) => readonly number[];
-  readonly terrainSurfaces: (columns: readonly [number, number][]) => readonly (TerrainSurface | null)[];
-};
-
 type DigCandidate = {
   readonly worker: EntityId;
   readonly task: EntityId;
@@ -48,10 +41,6 @@ const air = colonyEnvironment.world.slots.air;
 const spoilKinds = new Set(["soil-spoil", "stone-spoil"]);
 const distance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
-function terrain(ctx: WriteContext): TerrainContext {
-  return ctx as TerrainContext;
-}
-
 function orderPoint(order: { approachX: number; approachY: number; approachZ: number }) {
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
 }
@@ -61,17 +50,7 @@ function carriedLots(ctx: WriteContext, actor: EntityId) {
     .filter((lot) => lot.container === actor && spoilKinds.has(lot.kind) && lot.quantity > 0);
 }
 
-function pantryHasCapacity(ctx: WriteContext, quantity: number): boolean {
-  const pantry = ctx.query(query(Container)).find((row) => row.id === "colony.pantry")?.get(Container);
-  if (!pantry || !Number.isSafeInteger(pantry.capacity)) return false;
-  const quantityInPantry = ctx.query(query(MaterialLot)).map((row) => row.get(MaterialLot))
-    .filter((lot) => lot.container === "colony.pantry")
-    .reduce((sum, lot) => sum + lot.quantity, 0);
-  return Number.isSafeInteger(quantityInPantry) && quantityInPantry + quantity <= pantry.capacity;
-}
-
 function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
-  const api = terrain(ctx);
   const orders = ctx.query(query(ColonyDigOrder));
   const workers = new Set(ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id));
   const positions = new Map(ctx.worldPoses([...workers]));
@@ -98,7 +77,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
     const state = row.get(ColonyDigOrder);
     return [state.cellX, state.cellY, state.cellZ] as [number, number, number];
   });
-  const materials = cells.length ? api.terrainMaterials(cells) : [];
+  const materials = cells.length ? ctx.terrainMaterials(cells) : [];
   const currentMaterial = new Map(activeOrders.map((row, index) => [row.id, materials[index]]));
   const columns = activeOrders.flatMap((row) => {
     const { cellX: x, cellZ: z } = row.get(ColonyDigOrder);
@@ -108,7 +87,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const surfaceByColumn = new Map<string, TerrainSurface | null>();
   for (let offset = 0; offset < uniqueColumns.length; offset += 64) {
     const batch = uniqueColumns.slice(offset, offset + 64);
-    const surfaces = api.terrainSurfaces(batch);
+    const surfaces = ctx.terrainSurfaces(batch);
     batch.forEach((column, index) => surfaceByColumn.set(column.join(","), surfaces[index] ?? null));
   }
   const requests: { actor: EntityId; target: Vec3 & { frame: null }; candidate: DigCandidate }[] = [];
@@ -143,25 +122,42 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
     }
   }
   const rotated = requests.slice((ctx.clock.tick * 32) % Math.max(1, requests.length)).concat(requests.slice(0, (ctx.clock.tick * 32) % Math.max(1, requests.length))).slice(0, 128);
-  const costed: DigCandidate[] = [];
-  for (let offset = 0; offset < rotated.length; offset += 32) {
-    const batch = rotated.slice(offset, offset + 32);
-    const results = api.routeCosts(batch.map(({ actor, target }) => ({ actor, target })));
-    for (let index = 0; index < batch.length; index++) {
-      const result = results[index];
-      if (result?.status === "reachable" && Number.isFinite(result.cost)) costed.push({ ...batch[index].candidate, cost: result.cost });
+  const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
+  const routable = rotated.filter(({ actor, candidate }) => !occupied.has(actor) && claimByTask.get(candidate.task) === null);
+  const best = new Map<string, { candidate: DigCandidate; cost: number }>();
+  let costsReady = false;
+  const ensureCosts = () => {
+    if (costsReady) return;
+    costsReady = true;
+    for (let offset = 0; offset < routable.length; offset += 32) {
+      const batch = routable.slice(offset, offset + 32);
+      const results = ctx.routeCosts(batch.map(({ actor, target }) => ({ actor, target })));
+      for (let index = 0; index < batch.length; index++) {
+        const result = results[index];
+        if (result?.status !== "reachable" || !Number.isFinite(result.cost)) continue;
+        const candidate = batch[index].candidate;
+        const key = `${candidate.worker}\0${candidate.task}`;
+        const prior = best.get(key);
+        if (!prior || result.cost < prior.cost) best.set(key, { candidate, cost: result.cost });
+      }
     }
-  }
+  };
+  const prepared = rotated.map(({ candidate }) => candidate);
   let assigned = new Set<EntityId>();
   return {
     claims,
-    candidates: costed,
+    candidates: prepared,
     occupiedActors: [...occupied],
-    estimate: (candidate) => candidate.cost,
+    estimate: (candidate) => {
+      ensureCosts();
+      const selected = best.get(`${candidate.worker}\0${candidate.task}`);
+      return selected?.candidate === candidate ? selected.cost : null;
+    },
     apply(assignments) {
       assigned = new Set(assignments.map((assignment) => assignment.task));
       for (const assignment of assignments) {
-        const candidate = costed.find((item) => item.task === assignment.task && item.worker === assignment.worker);
+        ensureCosts();
+        const candidate = best.get(`${assignment.worker}\0${assignment.task}`)?.candidate;
         if (!candidate) continue;
         const state = orders.find((row) => row.id === candidate.order)?.get(ColonyDigOrder);
         if (!state) continue;
@@ -182,26 +178,31 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
         const pose = positions.get(state.actor);
         if (!pose) continue;
         if (state.phase === "approaching") {
+          const failedMove = ctx.outcomes.find((outcome) => {
+            if (outcome.action.kind !== "move" || outcome.action.entity !== state.actor || outcome.result.accepted) return false;
+            const destination = outcome.action.destination;
+            return destination.x === state.approachX && destination.y === state.approachY && destination.z === state.approachZ;
+          });
+          if (failedMove) {
+            ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "blocked", reason: failedMove.result.reason ?? "movement did not complete" });
+            continue;
+          }
           if (distance(pose.world, orderPoint(state)) <= 0.05) {
             ctx.write(ColonyDigOrder, row.id, { ...state, phase: "excavating", reason: "" });
             ctx.action(excavate(state.actor, { x: state.cellX, y: state.cellY, z: state.cellZ }, state.expected, air));
           }
         } else if (state.phase === "excavating") {
           const work = ctx.query(query(ExcavationWork)).some((item) => item.id === state.actor);
-          const material = api.terrainMaterials([[state.cellX, state.cellY, state.cellZ]])[0];
+          const material = ctx.terrainMaterials([[state.cellX, state.cellY, state.cellZ]])[0];
           if (work) continue;
           if (material !== air) {
             const failed = ctx.outcomes.find((outcome) => outcome.action.kind === "excavate" && outcome.action.entity === state.actor && outcome.action.x === state.cellX && outcome.action.y === state.cellY && outcome.action.z === state.cellZ && !outcome.result.accepted);
-            ctx.write(ColonyDigOrder, row.id, { ...state, phase: "blocked", reason: failed?.result.reason ?? "excavation did not complete" });
+            ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "blocked", reason: failed?.result.reason ?? "excavation did not complete" });
             continue;
           }
           const cargo = carriedLots(ctx, state.actor);
           if (!cargo.length) continue;
           const lot = cargo[0];
-          if (!pantryHasCapacity(ctx, lot.quantity)) {
-            ctx.write(ColonyDigOrder, row.id, { ...state, phase: "blocked", reason: "pantry full" });
-            continue;
-          }
           const deliveryId = entity(`${row.id}.delivery`);
           if (!ctx.query(query(DeliveryTask)).some((task) => task.id === deliveryId)) {
             ctx.createAuthoredEntity({ id: deliveryId, components: { [DeliveryTask.id]: {
