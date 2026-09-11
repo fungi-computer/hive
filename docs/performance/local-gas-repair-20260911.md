@@ -180,3 +180,48 @@ with empty ControlGroup; ports 8789 and 5198 free. Evidence retained under
 browser-failure.json/png and cleanup. No public deployment. Next performance work
 is a real-host trace around the delayed committed revision, not another solver
 rewrite or another unchanged numerical matrix.
+
+### Worker profiling and the storage wait
+
+u6051 stopped before sampling because the built-in Node WebSocket did not supply
+the inspector's required Origin header. Owned runtime/listeners closed. The
+installed `ws` client with an explicit localhost Origin then captured the real
+Worker CPU profile in u6053, exit 0, without modifying game source. The sampled
+wall workload completed with a maximum socket gap of 396.73 ms; this does not
+erase the earlier 1563 ms unprofiled result or prove profiling fixed it. Profile
+weights include scheduling/idle intervals and are not a precise CPU billing sum.
+The attempted Explorer query used the wrong column (`start_time` instead of
+`start_ms`); its HTTP400 is retained.
+
+A read-only inspection of the stopped v2 native Explorer SQLite traces isolates
+the actual long alarm: total 1509 ms, storage transaction from offset 84 to 1501
+ms. Its simulation-side SQL writes and alarm request occur by offset 93 ms; the
+next operations only appear after the transaction returns at offset 1501 ms.
+This is evidence of waiting at the storage transaction boundary, not a 1.5-second
+Rust solver operation. It does not establish the lower-level cause of that wait
+or its behavior on hosted Cloudflare/Celld. Durable commitment must not be removed
+to conceal it. Sanitized trace timings are saved in
+`.botanical/performance-do/storage-delay.json`; the actual CPU profile is at
+`profile-v2/worker.cpuprofile`.
+
+The dev-server art source fix d2a63ae serves only the existing manifest-listed
+checked bank; production emission is unchanged. u6055 reached actual art and
+accepted the two-cell drag order but timed out taking the intermediate screenshot.
+Root viewed the fallback capture, errors[] and no failed asset requests. No full
+input pass follows; its successor omits only that intermediate screenshot and
+requires both actual lowered surfaces before a paused final capture.
+
+### Actual browser input accepted
+
+u6058 / exec34647 exited 0 on d2a63ae. The unchanged current game dev client
+connected to the real local DO, loaded the original bank, accepted a physical
+canvas drag selecting [3,13,-2] and [4,13,-2], and both workers' earned completion
+lowered those exact surfaces to y=12. The check waited for committed pause before
+its final screenshot; page errors and failed asset requests were absent. Root
+viewed `input-v4/game-finished.png`. This is a desktop input/result witness, not
+a frame-rate benchmark or a mobile-layout acceptance.
+
+The scope is inactive/dead and empty; its one runtime, browser, Vite listener
+and clients closed, with 8789/5198/9238 free. The failed intermediate screenshot
+from u6055 remains separate. The next action is the ordinary joined release and
+actual hosted update check, retaining the local storage-delay limit.
