@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
@@ -27,13 +28,13 @@ function runConstruction(session: GameSession, quantity?: 1 | 2) {
   session.start();
   if (quantity !== undefined) session.command("deliver", { quantity, entities: [...workers] });
   session.command("build", {
-    catalog: "timber-floor",
+    catalog: "timber-stair",
     orientation: "north",
     target: { cell: [1, 13, 0] },
   });
   let largestCarry = 0;
   let sawConstructionTask = false;
-  for (let tick = 0; tick < 240; tick++) {
+  for (let tick = 0; tick < 480; tick++) {
     session.step(0.25);
     const site = session.query(query(ConstructionSite))[0];
     const task = site && session.query(query(DeliveryTask)).find(row => row.get(DeliveryTask).destination === site.id);
@@ -42,7 +43,7 @@ function runConstruction(session: GameSession, quantity?: 1 | 2) {
     assert.equal(wood(session).reduce((sum, lot) => sum + lot.quantity, 0), 48, "wood remains conserved");
     if (site?.get(ConstructionSite).phase === "finished") return { largestCarry, sawConstructionTask };
   }
-  throw new Error("Colony floor did not finish within the focused proof budget");
+  throw new Error("Colony stair did not finish within the focused proof budget");
 }
 
 test("Colony construction uses three-unit ordinary hauls while explicit delivery control caps them", () => {
