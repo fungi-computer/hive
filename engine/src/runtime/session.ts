@@ -193,6 +193,10 @@ export class GameSession {
   reset(): void {
     this.start();
   }
+  atmosphereSamples(cells: readonly [number, number, number][]) {
+    this.ensureLive();
+    return this.port.atmosphereSamples(cells);
+  }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
     return this.port.query(spec);

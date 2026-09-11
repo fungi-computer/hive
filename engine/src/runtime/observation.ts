@@ -40,7 +40,8 @@ export function buildObservation(
     );
   if (!Number.isFinite(session.simulationTime) || session.simulationTime < 0)
     throw new Error("observation time must be finite and nonnegative");
-  const context: Pick<ReadContext, "query"> = {
+  const context: Pick<ReadContext, "query" | "atmosphereSamples"> = {
+    atmosphereSamples: cells => session.atmosphereSamples(cells),
     query: (spec) => session.query(spec),
   };
   const projected = projectPresentation(session.pack, context);
