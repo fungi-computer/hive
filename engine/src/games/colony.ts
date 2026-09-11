@@ -332,7 +332,8 @@ export const colonyPack: GamePack = {
       if (!definition) throw new Error("Missing construction visual definition");
       const stage = site.phase === "finished" ? "finished" : site.seconds > 0 ? "frame" : "stakes";
       const facing = { south: 0, east: 1, north: 2, west: 3 }[site.orientation];
-      return { id: row.id, visual: `colony.${definition.shape.kind}.${stage}`, label: `${site.catalog} · ${site.phase}`,
+      const cutawayTop = site.y + (definition.shape.kind === "stair" ? definition.shape.rise : definition.shape.kind === "wall" ? definition.shape.height - 1 : 0);
+      return { id: row.id, cutawayTop, visual: `colony.${definition.shape.kind}.${stage}`, label: `${site.catalog} · ${site.phase}`,
         pose: { position: { x: site.x, y: (site.y + (definition.shape.kind === "wall" ? -0.5 : 0.5)) * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
     }),
     terrainMarks: context => context.query(query(ColonyDigOrder)).filter(row => row.get(ColonyDigOrder).phase !== "carrying").map(row => {

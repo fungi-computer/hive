@@ -76,3 +76,11 @@ test("cutaway retains lower authored floors and caches their surface identity", 
   assert.deepEqual(cut.structureSurfaces.map(face => face.cell[1]), [4, 8]);
   assert.strictEqual(cache.update({ ...frame, water: [] }, view, 1).structureSurfaces, cut.structureSurfaces);
 });
+
+
+test("construction cutaway hides upper art without changing lower storeys", () => {
+  const view = createWorldView({range:{min:13,max:21},level:17,cutaway:true});
+  assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:17}},view).visible,true);
+  assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:21}},view).visible,false);
+  assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:21}},toggleWorldCutaway(view,false)).visible,true);
+});

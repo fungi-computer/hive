@@ -98,7 +98,7 @@ function surface(value: unknown): value is SupportSurface {
 function renderFact(value: unknown): value is RenderFact {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)
     return false;
-  if (value.view !== undefined && (!isRecord(value.view) || (value.view.pickable !== undefined && typeof value.view.pickable !== "boolean"))) return false;
+  if (value.view !== undefined && (!isRecord(value.view) || (value.view.pickable !== undefined && typeof value.view.pickable !== "boolean") || (value.view.cutawayTop !== undefined && !Number.isSafeInteger(value.view.cutawayTop)))) return false;
   if (value.pose !== undefined && !pose(value.pose)) return false;
   if (value.local !== undefined && !pose(value.local)) return false;
   if (value.support !== undefined && value.support !== null && typeof value.support !== "string") return false;

@@ -27,7 +27,7 @@ test("actual Colony workers supply and finish a player floor with finite lumber"
     assert.equal(wood.filter(lot => lot.container === sites[0].id).reduce((sum, lot) => sum + lot.quantity, 0), 2);
     const fact = session.renderFacts().find(fact => fact.id === sites[0].id);
     assert.equal(fact?.visual, "colony.floor.finished");
-    assert.deepEqual(fact?.view, { pickable: false });
+    assert.deepEqual(fact?.view, { pickable: false, cutawayTop: 13 });
     assert.deepEqual(port.structureSurfaces([[1, 0]]), [[{ cell: [1, 13, 0] }]]);
     session.restore(session.save());
     assert.deepEqual(port.structureSurfaces([[1, 0]]), [[{ cell: [1, 13, 0] }]]);

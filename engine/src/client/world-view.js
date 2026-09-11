@@ -105,6 +105,8 @@ function metadata(fact) {
 export function projectWorldFact(fact, view) {
   const info = metadata(fact);
   if (!info) return { visible: true, pickable: true };
+  if (info.cutawayTop !== undefined && (!integer(info.cutawayTop) || (view.cutaway && info.cutawayTop > view.level)))
+    return { visible: false, pickable: false };
   if (info.level !== undefined && (!integer(info.level) || info.level !== view.level))
     return { visible: false, pickable: false };
   const coverPresented = info.surfaceId !== undefined && view.presentedSurfaces.has(info.surfaceId);
