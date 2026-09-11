@@ -114,3 +114,16 @@ fn terrain_kernel_route_preparation_does_not_install_work() {
     assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
     assert!(!kernel.terrain_routes.contains_key(&actor));
 }
+
+#[test]
+fn terrain_kernel_failed_replacement_preserves_existing_route() {
+    let (mut kernel,target) = climbing_world();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let before = kernel.snapshot_entities_json().unwrap();
+    let actor = kernel.entity("walker").unwrap();
+    let pose = *kernel.ecs.get::<Position>(actor).unwrap();
+    let impossible = Point{x:1000.0,y:target.y,z:target.z,frame:None};
+    assert!(kernel.route_for(actor,pose,&impossible).is_err());
+    assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
+    Kernel::new().restore_records(&kernel.save_records().unwrap()).unwrap();
+}
