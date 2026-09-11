@@ -70,7 +70,12 @@ impl TerrainChangeIndex {
         }
         let mut columns = BTreeSet::new();
         for changed in self.changes.range((std::ops::Bound::Excluded(since), std::ops::Bound::Included(current))).map(|(_, columns)| columns) {
-            columns.extend(changed.iter().copied());
+            for column in changed {
+                if !columns.contains(column) && columns.len() == CHANGED_COLUMN_LIMIT {
+                    return TerrainChangeSet::FullReset { revision: current, reason: TerrainResetReason::History };
+                }
+                columns.insert(*column);
+            }
         }
         TerrainChangeSet::ChangedColumns {
             revision: current,
@@ -604,6 +609,13 @@ mod tests {
         });
         assert!(matches!(index.since(CHANGE_HISTORY_LIMIT as u64, CHANGE_HISTORY_LIMIT as u64 + 1),
             TerrainChangeSet::ChangedColumns { .. }));
+
+        let mut wide = TerrainChangeIndex::fresh();
+        wide.record(1, (0..2048).map(|x| (x, 0)).collect());
+        wide.record(2, (2048..4097).map(|x| (x, 0)).collect());
+        assert_eq!(wide.since(0, 2), TerrainChangeSet::FullReset {
+            revision: 2, reason: TerrainResetReason::History,
+        });
     }
 
     #[test]
@@ -780,6 +792,9 @@ mod tests {
         assert_eq!(water.facts().unwrap(), before);
         water.apply_excavation(prepared).unwrap();
         assert_eq!(water.material(at).unwrap(), 0);
+        assert_eq!(water.terrain_changes(0), TerrainChangeSet::ChangedColumns {
+            revision: 1, columns: vec![[at.x, at.z]],
+        });
         assert_eq!(water.air_geometry(air_bounds).unwrap(), proposed_air);
         let facts = water.facts().unwrap();
         assert_eq!(facts.total_kg + credited_water_kg, 200.0);
@@ -795,8 +810,13 @@ mod tests {
         let ExcavationResult::Prepared(prepared) = water.prepare_excavation(dry, expected, 0).unwrap() else { panic!("prepare dry"); };
         assert_eq!(prepared.water_kg(), 0.0);
         water.apply_excavation(prepared).unwrap();
+        assert_eq!(water.terrain_changes(1), TerrainChangeSet::ChangedColumns {
+            revision: 2, columns: vec![[dry.x, dry.z]],
+        });
         assert_eq!(water.facts().unwrap(), facts);
+        let physical_before_water_tick = water.terrain_changes(0);
         water.advance(0.2).unwrap();
+        assert_eq!(water.terrain_changes(0), physical_before_water_tick);
         let moved = water.facts().unwrap();
         assert!((moved.total_kg + credited_water_kg - 200.0).abs() < 1e-9);
         let records = water.save_records().unwrap();
