@@ -10,7 +10,7 @@ test("cue cursor establishes a fresh baseline and deduplicates reconnects", () =
   assert.deepEqual(cursor.accept(frame), []);
   assert.deepEqual(cursor.accept({ epoch: "one", cues: [{ epoch: "one", sequence: 2, kind: "cannon.hit" }] }).map(c => c.sequence), [2]);
   time = 101;
-  assert.deepEqual(cursor.accept({ epoch: "one", cues: [{ epoch: "one", sequence: 1, kind: "cannon.fired" }] }).map(c => c.sequence), [1]);
+  assert.deepEqual(cursor.accept({ epoch: "one", cues: [{ sequence: 1, kind: "cannon.fired" }] }), []);
 });
 
 test("effect owner sheds oldest effects at the shared budget", () => {

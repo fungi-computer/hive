@@ -5,15 +5,11 @@ function finite(value, name) {
   return value;
 }
 
-function cueId(cue) {
-  if (cue?.epoch === undefined || cue?.sequence === undefined) return null;
-  return `${cue.epoch}:${cue.sequence}`;
-}
-
 /** Bounded, reconnect-safe cursor for committed presentation cues. */
 export function createCueCursor({ now = () => performance.now(), ttl = 4000 } = {}) {
   const seen = new Map();
   let epoch;
+  let highWater = -1;
   let baseline = true;
   if (!Number.isFinite(ttl) || ttl <= 0) throw new Error("cue TTL must be positive");
   function prune(stamp) {
@@ -28,22 +24,24 @@ export function createCueCursor({ now = () => performance.now(), ttl = 4000 } = 
         epoch = frame.epoch;
         baseline = true;
         seen.clear();
+        highWater = -1;
       }
       if (baseline) {
-        for (const cue of cues) { const id = cueId(cue); if (id) seen.set(id, stamp); }
+        for (const cue of cues) if (Number.isSafeInteger(cue?.sequence)) highWater = Math.max(highWater, cue.sequence);
         baseline = false;
         return [];
       }
       const fresh = [];
       for (const cue of cues) {
-        const id = cueId(cue);
-        if (id && seen.has(id)) continue;
-        if (id) seen.set(id, stamp);
+        if (!Number.isSafeInteger(cue?.sequence)) continue;
+        if (cue.sequence <= highWater || seen.has(cue.sequence)) continue;
+        seen.set(cue.sequence, stamp);
+        highWater = Math.max(highWater, cue.sequence);
         fresh.push(cue);
       }
       return fresh;
     },
-    reset({ fresh = true } = {}) { seen.clear(); baseline = fresh; epoch = undefined; },
+    reset({ fresh = true } = {}) { seen.clear(); baseline = fresh; epoch = undefined; highWater = -1; },
     dispose() { seen.clear(); },
   };
 }
