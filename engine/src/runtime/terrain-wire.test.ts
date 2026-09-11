@@ -105,6 +105,25 @@ test("remote observations forward a parsed terrain capability", async () => {
   socket.emit("open", {});
   socket.emit("message", { data: JSON.stringify({
     type: "observation",
+    revision: 1,
+    observation: {
+      time: 1, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
+      presentationFacts: [], presentationControls: [],
+      terrain: { revision: 1, verticalMetres: 0.5, surfaces: [{ cell: [9, 9, 9], material: 9 }], water: [] },
+    },
+  }) });
+  socket.emit("message", { data: JSON.stringify({
+    type: "observation",
+    revision: 3,
+    observation: {
+      time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
+      presentationFacts: [], presentationControls: [],
+      terrain: { revision: 1, verticalMetres: 0.5, surfacesRevision: 1, water: [] },
+    },
+  }) });
+  assert.equal(socket.reconnectCalls, 1);
+  socket.emit("message", { data: JSON.stringify({
+    type: "observation",
     revision: 2,
     observation: {
       time: 2, paused: false, epoch: 0, sequence: 3, facts: [], cues: [],
@@ -128,16 +147,28 @@ test("remote observations forward a parsed terrain capability", async () => {
     surfaces: [{ cell: [1, 2, 3], material: 4 }],
     water: [],
   });
+  socket.emit("message", { data: JSON.stringify({
+    type: "observation",
+    revision: 4,
+    observation: {
+      time: 4, paused: false, epoch: 0, sequence: 5, facts: [], cues: [],
+      presentationFacts: [], presentationControls: [],
+      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
+    },
+  }) });
+  assert.equal(socket.reconnectCalls, 2);
   runtime.dispose();
 });
 
 class TestSocket {
   private listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
+  reconnectCalls = 0;
   addEventListener(type: string, listener: (event: { data?: unknown }) => void): void {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
   }
   send(): void {}
   close(): void {}
+  reconnect(): void { this.reconnectCalls += 1; }
   emit(type: string, event: { data?: unknown }): void {
     for (const listener of this.listeners.get(type) ?? []) listener(event);
   }
