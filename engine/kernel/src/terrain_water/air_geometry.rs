@@ -4,6 +4,8 @@ use crate::structure_geometry::{Face, FaceAxis};
 use std::collections::BTreeMap;
 
 const MAX_CELLS: usize = 40_000;
+// Bound intermediate geometry as well as the downstream atmosphere graph.
+const MAX_FACES: usize = 56_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AirGeometryBounds {
@@ -174,6 +176,9 @@ fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGe
                 };
                 AirGeometryFaceKind::Frontier { neighbor: frontier, sealed }
             };
+            if faces.len() >= MAX_FACES {
+                return Err("air geometry face budget exceeded".into());
+            }
             faces.insert(face, kind);
         }
     }
