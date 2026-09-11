@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
+import { SealedContainer } from "./construction";
 import {
   ExcavationWork,
   Body,
@@ -89,6 +90,9 @@ test("native excavation reserves a worker without dropping its delivery state", 
 
 test("delivery rejects impossible pairs before matcher cost", () => {
   const cases = [
+    { name: "sealed source", sealed: "source", lots: [{ quantity: 2, kind: "food", container: "source" }] },
+    { name: "sealed destination", sealed: "destination", lots: [{ quantity: 2, kind: "food", container: "source" }] },
+    { name: "sealed worker", sealed: "worker", lots: [{ quantity: 2, kind: "food", container: "source" }] },
     { name: "missing lot", lots: [] },
     { name: "insufficient source", lots: [{ quantity: 1, kind: "food", container: "source" }] },
     { name: "full destination", lots: [
@@ -129,6 +133,10 @@ test("delivery rejects impossible pairs before matcher cost", () => {
         x: 0, y: 0, z: 0, facing: 0,
       }))],
       [MaterialLot.id, lotRows],
+      [SealedContainer.id, "sealed" in candidate ? [row(
+        candidate.sealed === "source" ? source : candidate.sealed === "destination" ? destination : worker,
+        SealedContainer, {},
+      )] : []],
       [ExcavationWork.id, []],
       [Support.id, []],
       [Surface.id, []],
