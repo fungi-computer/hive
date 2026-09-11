@@ -9,10 +9,13 @@ function argument(name) {
 }
 const endpoint = argument("--endpoint");
 const output = argument("--output");
-assert(endpoint && output, "Usage: node hosted-smoke.mjs --endpoint <url> --output <directory> [--origin <frontend-origin>]");
+assert(endpoint && output, "Usage: node hosted-smoke.mjs --endpoint <url> --output <directory> [--origin <frontend-origin>] [--packs colony,formations]");
 const base = endpoint.replace(/\/$/, "");
 const origin = argument("--origin") ?? new URL(base).origin;
-const packs = ["survival", "pirates", "colony", "formations"];
+const supportedPacks = ["survival", "pirates", "colony", "formations"];
+const packs = argument("--packs")?.split(",") ?? supportedPacks;
+assert(packs.length > 0 && packs.length <= supportedPacks.length
+  && new Set(packs).size === packs.length && packs.every(pack => supportedPacks.includes(pack)), "invalid pack selection");
 const tokens = new Map(packs.map((pack) => [pack, randomBytes(32).toString("hex")]));
 const results = [];
 
@@ -56,24 +59,21 @@ async function preflight(pack) {
   assert.match(response.headers.get("Access-Control-Allow-Headers") ?? "", /authorization/i);
   assert.match(response.headers.get("Access-Control-Allow-Headers") ?? "", /content-type/i);
 }
-function body(kind, revision, prefix) { return { id: id(prefix), expectedRevision: revision, command: { kind } }; }
+function body(kind, prefix) { return { id: id(prefix), command: { kind } }; }
 async function admitted(pack, token, kind, prefix) {
-  const attempts = [];
-  for (let index = 0; index < 3; index++) {
-    const fresh = await observe(pack, token);
-    const envelope = body(kind, fresh.wire.revision, `${prefix}-${index}`);
-    const receipt = await command(pack, token, envelope);
-    if (receipt.wire.status === "applied") return { envelope, receipt, staleAttempts: attempts };
-    assert.equal(receipt.wire.result?.reason, "stale-revision", `${pack} unexpected ${kind} rejection`);
-    attempts.push({ id: envelope.id, status: "rejected", reason: receipt.wire.result?.reason });
-  }
-  throw new Error(`${pack} ${kind} admission remained stale after 3 attempts`);
+  // Match remote-client's ordered intent submission. Pause/resume does not
+  // depend on an observation revision; the independently ticking world may
+  // advance between an HTTP read and write. Identity still protects retries.
+  const envelope = body(kind, prefix);
+  const receipt = await command(pack, token, envelope);
+  assert.equal(receipt.wire.status, "applied", `${pack} ${kind} rejected`);
+  return { envelope, receipt };
 }
 async function pauseWithReplay(pack, token) {
   const applied = await admitted(pack, token, "pause", "pause");
   const retry = await command(pack, token, applied.envelope);
   assert.deepEqual(retry.wire, applied.receipt.wire, `${pack} same-command replay receipt changed`);
-  return { commandId: applied.envelope.id, receipt: retry.wire, identical: true, staleAttempts: applied.staleAttempts };
+  return { commandId: applied.envelope.id, receipt: retry.wire, identical: true };
 }
 
 try {
@@ -101,7 +101,7 @@ try {
     await admitted(pack, token, "pause", "final-pause");
     const final = await observe(pack, token);
     assert.equal(final.wire.observation.paused, true, `${pack} was not left paused`);
-    results.push({ pack, initialRevision: initial.wire.revision, staleAttempts: paused.staleAttempts, replay: paused, resumedRevision: advanced.wire.revision, finalRevision: final.wire.revision, finalPaused: true });
+    results.push({ pack, initialRevision: initial.wire.revision, replay: paused, resumedRevision: advanced.wire.revision, finalRevision: final.wire.revision, finalPaused: true });
   }
   await mkdir(output, { recursive: true });
   await writeFile(`${output.replace(/\/$/, "")}/hosted-smoke.json`, JSON.stringify({ status: "passed", origin, packs: results }, null, 2));
