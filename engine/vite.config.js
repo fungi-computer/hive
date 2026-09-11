@@ -12,6 +12,27 @@ const artDirectory = STATIC_ART_BASE.replace(/^\.\//, "").replace(/\/$/, "");
 function originalAssetsAndAuthorSource() {
   return {
     name: "hive-original-assets-and-author-source",
+    configureServer(server) {
+      const manifest = JSON.parse(readFileSync(resolve(repository, "public", artDirectory, "manifest.json"), "utf8"));
+      const files = new Set(["manifest.json", manifest.ground.file, ...manifest.pages.map((page) => page.file)]);
+      const base = server.config.base.endsWith("/") ? server.config.base : `${server.config.base}/`;
+      const prefix = `${base}${artDirectory}/`;
+      server.middlewares.use((request, response, next) => {
+        if (request.method !== "GET" && request.method !== "HEAD") return next();
+        let pathname;
+        try { pathname = decodeURIComponent(new URL(request.url ?? "/", "http://hive.local").pathname); }
+        catch { return next(); }
+        if (!pathname.startsWith(prefix)) return next();
+        const file = pathname.slice(prefix.length);
+        if (!files.has(file)) return next();
+        const source = readFileSync(resolve(repository, "public", artDirectory, file));
+        response.statusCode = 200;
+        response.setHeader("Content-Type", file === "manifest.json" ? "application/json; charset=utf-8" : "image/png");
+        response.setHeader("Content-Length", source.byteLength);
+        response.setHeader("Cache-Control", "no-store");
+        response.end(request.method === "HEAD" ? undefined : source);
+      });
+    },
     generateBundle() {
       const manifest = JSON.parse(readFileSync(resolve(repository, "public", artDirectory, "manifest.json"), "utf8"));
       for (const file of ["manifest.json", manifest.ground.file, ...manifest.pages.map(page => page.file)]) {
