@@ -35,6 +35,11 @@ impl TerrainWaterGeometry {
     pub fn new(id: String, cells: Vec<Cell>, materials: BTreeMap<u16, MaterialWater>,
         spacing: [f64; 3], fall: f64, spread: f64, limits: WaterLimits)
         -> Result<Self, String> {
+        if id.is_empty() || id.len() > 160 || id.contains('\0')
+            || spacing.iter().any(|value| !value.is_finite() || *value <= 0.0)
+            || !fall.is_finite() || fall < 0.0 || !spread.is_finite() || spread < 0.0 {
+            return Err("invalid terrain water identity, metric or rates".into());
+        }
         if cells.is_empty() || cells.len() > limits.cells || cells.len() > 2048 {
             return Err("terrain water admission exceeds cell budget".into());
         }
@@ -49,7 +54,7 @@ impl TerrainWaterGeometry {
 
     /// Rebuild only after geometry changes, using a single proposed cell override.
     /// Missing material definitions are errors, never silently open boundaries.
-    pub fn compile(&self, terrain: &mut TerrainOwner, revision: u64,
+    fn compile(&self, terrain: &mut TerrainOwner, revision: u64,
         replacement: Option<(Cell, u16)>) -> Result<CompiledWater, String> {
         let mut cells = Vec::new();
         let mut soils = BTreeMap::new();

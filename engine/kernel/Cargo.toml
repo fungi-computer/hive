@@ -9,6 +9,7 @@ description = "Headless Bevy-backed simulation kernel for Hive"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+postcard = { version = "=1.1.3", default-features = false, features = ["alloc"] }
 bevy_ecs = { version = "=0.19.1", default-features = false, features = ["std"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["float_roundtrip"] }
