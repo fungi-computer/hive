@@ -735,6 +735,9 @@ impl Kernel {
                 prepared.geometry, prepared.terrain, records)?;
             candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world, excavation_rules: prepared.excavation_rules });
         }
+        for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
+            candidate.validate_terrain_route_witness(entity)?;
+        }
         let route_count = candidate.routes.len();
         candidate.invalidate_terrain_routes()?;
         if candidate.routes.len() != route_count {
@@ -1751,9 +1754,6 @@ impl Kernel {
     }
 
     fn invalidate_terrain_routes(&mut self) -> Result<()> {
-        for entity in self.terrain_routes.iter().filter_map(|(entity,state)| state.revision.is_none().then_some(*entity)).collect::<Vec<_>>() {
-            self.validate_terrain_route_witness(entity)?;
-        }
         let candidates: Vec<_> = self.terrain_routes.iter().filter_map(|(entity, state)| (!state.waiting).then_some(*entity)).collect();
         let mut invalid = Vec::new();
         for entity in candidates {

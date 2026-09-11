@@ -56,3 +56,22 @@ fn terrain_kernel_rejects_forged_waiting_waypoints() {
     saved.entities = data.to_string();
     assert!(Kernel::new().restore_records(&saved).is_err(), "waiting cannot bypass physical route validation");
 }
+
+#[test]
+fn terrain_kernel_waiting_retains_route_and_pose_after_recovery() {
+    let (mut kernel,target) = climbing_world();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let actor = kernel.entity("walker").unwrap();
+    kernel.terrain_routes.get_mut(&actor).unwrap().waiting = true;
+    let before = kernel.routes[&actor].clone();
+    let pose = *kernel.ecs.get::<Position>(actor).unwrap();
+    let saved = kernel.save_records().unwrap();
+    let mut recovered = Kernel::new();
+    recovered.restore_records(&saved).unwrap();
+    recovered.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+    let actor = recovered.entity("walker").unwrap();
+    assert_eq!(recovered.routes[&actor],before);
+    assert!(recovered.ecs.get::<Destination>(actor).is_some());
+    let after = recovered.ecs.get::<Position>(actor).unwrap();
+    assert_eq!((after.x,after.y,after.z),(pose.x,pose.y,pose.z));
+}
