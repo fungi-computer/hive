@@ -28,11 +28,10 @@ impl Kernel {
                 crate::structure_geometry::Cardinal::South => (0, 1),
                 crate::structure_geometry::Cardinal::West => (-1, 0),
             };
-            candidates.push([
-                (site.x + i64::from(dx) * i64::from(*run)) as f64 * spacing[0],
-                (f64::from(site.y) + 0.5 + f64::from(*rise)) * spacing[1],
-                (site.z + i64::from(dz) * i64::from(*run)) as f64 * spacing[2],
-            ]);
+            let Some(x) = i64::from(dx).checked_mul(i64::from(*run)).and_then(|offset| site.x.checked_add(offset)) else { return candidates; };
+            let Some(y) = site.y.checked_add(i32::from(*rise)) else { return candidates; };
+            let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| site.z.checked_add(offset)) else { return candidates; };
+            candidates.push([x as f64 * spacing[0], (f64::from(y) + 0.5) * spacing[1], z as f64 * spacing[2]]);
         }
         candidates
     }
@@ -59,6 +58,8 @@ impl Kernel {
                 return Err(format!("invalid construction site {id}"));
             }
             let spacing = environment.world.cell_spacing_m();
+            let instance = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
+            crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
             if !self.contact_is_valid(site, definition, [site.contact_x, site.contact_y, site.contact_z], spacing) {
                 return Err(format!("construction site {id} has invalid work contact"));
             }
