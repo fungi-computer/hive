@@ -1,3 +1,6 @@
+#[cfg(test)]
+#[path = "fuel_emission_tests.rs"]
+mod fuel_emission_tests;
 #[path = "fuel_emission.rs"]
 mod fuel_emission;
 #[path = "environment_runtime.rs"]
