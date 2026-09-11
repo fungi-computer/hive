@@ -389,6 +389,7 @@ impl Kernel {
                 let centered = |cell: crate::generation::Cell| Point { x:cell.x as f64*spacing[0], y:(f64::from(cell.y)+0.5)*spacing[1], z:cell.z as f64*spacing[2], frame:None };
                 let mut prefix = Vec::new();
                 let mut history = Vec::new();
+                let mut contact_start = 0;
                 let mut origin = start_point.clone();
                 if start_point != centered(start_cell) {
                     let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
@@ -400,6 +401,9 @@ impl Kernel {
                         }
                     }
                     let (point_index,cell_index) = join.ok_or("route has no next support waypoint")?;
+                    let previous_points = crate::terrain_route::waypoints(&previous.path, config)?;
+                    let next = previous_points.len().checked_sub(remaining.len()).ok_or("invalid retained route progress")?;
+                    contact_start = crate::terrain_route::active_support_index(&previous.path, next)?;
                     prefix.extend(remaining.iter().take(point_index+1).cloned());
                     history.extend_from_slice(&previous.path[..=cell_index]);
                     start_cell = previous.path[cell_index];
@@ -421,8 +425,8 @@ impl Kernel {
                         blocked.contains(&(x, y, z))
                     })
                 };
-                if !history.is_empty() && (!crate::terrain_traversal::path_supported(&history, config, &mut query)?
-                    || history.iter().copied().any(&obstacle)) {
+                if !history.is_empty() && (!crate::terrain_traversal::path_supported(&history[contact_start..], config, &mut query)?
+                    || history[contact_start..].iter().copied().any(&obstacle)) {
                     return Err("retained terrain contact is no longer traversable".into());
                 }
                 let mut path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
@@ -1934,7 +1938,8 @@ impl Kernel {
                 Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
                 Err(error) => Err(error),
             };
-            let valid = crate::terrain_traversal::path_supported(&path, config, &mut query)?;
+            let active = crate::terrain_route::active_support_index(&path, offset.ok_or("missing route progress")?)?;
+            let valid = crate::terrain_traversal::path_supported(&path[active..], config, &mut query)?;
             if !valid { invalid.push(entity); }
             else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
         }

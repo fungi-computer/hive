@@ -22,9 +22,9 @@ const configs = {
   colony: {
     title: "Colony",
     subtitle:
-      "Dig the generated ground beside a worker, uncover groundwater, or carry food to your guest.",
+      "Mark an area for workers to dig and haul away the soil. Dig deeper to uncover groundwater.",
     selectionShortcuts: [{ id: "colony.worker.1", label: "Select worker 1" }, { id: "colony.worker.2", label: "Select worker 2" }],
-    controlHelp: "Select one worker · Dig then click nearby ground · Escape exits Dig · right-click to walk · each dig fills the worker’s three-unit carrying capacity",
+    controlHelp: "Dig area, then drag across the ground · Workers dig and unload automatically · Cancel dig area removes orders · Escape cancels a drag · Select a worker and right-click to walk",
     source: "./source/colony.ts",
   },
   survival: {
