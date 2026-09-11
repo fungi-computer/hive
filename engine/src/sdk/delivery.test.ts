@@ -74,6 +74,8 @@ test("native excavation reserves a worker without dropping its delivery state", 
       return [];
     },
     write: (...args) => writes.push(args),
+    createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
+    removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
     action: (request) => actions.push(request),
   });
   assert.equal(assignments, 0);
@@ -144,6 +146,8 @@ test("delivery rejects impossible pairs before matcher cost", () => {
         id, local: point, world: point, support: null, surface: null,
       })),
       assign: () => { assignments++; return []; },
+      createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
+      removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
       write: () => {}, action: () => {},
     });
     assert.equal(assignments, 0, `${candidate.name} reached native matcher`);

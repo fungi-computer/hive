@@ -39,6 +39,8 @@ export function authoringContractProof(): void {
     assign: () => [],
     worldPoses: () => [],
     write: (...args) => writes.push(args),
+    createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
+    removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
     action: () => {},
   });
   if (writes.length !== 1) throw new Error("declared write was not recorded");

@@ -11,6 +11,8 @@ const base = {
   query: () => [],
   worldPoses: () => [],
   write: () => {},
+  createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
+  removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
   action: () => {},
 };
 
@@ -53,7 +55,7 @@ test("shared work system calls one matcher and preserves claims across providers
     },
   });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].length, 1);
+  assert.equal(calls[0].length, 2);
   assert.deepEqual(applied, ["delivery:0", "dig:1"]);
   assert.deepEqual(progressed, ["delivery", "dig"]);
 });
