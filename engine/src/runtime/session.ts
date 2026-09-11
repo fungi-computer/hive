@@ -263,7 +263,11 @@ export class GameSession {
     const referencedIds = [...referenced];
     const membership = knownTargets || referencedIds.length === 0
       ? undefined
-      : this.port.entityMembership(referencedIds);
+      : referencedIds.reduce<boolean[]>((all, _id, index) => {
+          if (index % 128 === 0)
+            all.push(...this.port.entityMembership(referencedIds.slice(index, index + 128)));
+          return all;
+        }, []);
     const referenceMembership = membership
       ? new Map<EntityId, boolean>(referencedIds.map((id, index) => [id, membership[index] ?? false]))
       : undefined;
