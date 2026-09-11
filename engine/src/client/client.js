@@ -335,7 +335,7 @@ export function createHiveClient({
               React.createElement(Button, {
                 size: "sm",
                 variant: state.view.cutaway ? "secondary" : "outline",
-                disabled: state.view.presentedSurfaces.size === 0,
+                disabled: !(terrainFrame?.surfaces?.length || state.view.presentedSurfaces.size > 0),
                 "aria-label": "Toggle cutaway",
                 onClick: () => setCutaway(!state.view.cutaway),
               }, "Cutaway"),
