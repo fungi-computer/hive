@@ -1,3 +1,25 @@
+## Initial generated placement — September 11
+
+Integrated native placement through `5282db3`: authored environment placements
+resolve workers and storage on generated surfaces in a detached initialization
+candidate. Existing work/support/routes cannot be silently relocated. Restore
+preserves the actual moved position instead of reapplying starting placements.
+
+Focused root proof: `run-u5598` exited 101 with three rejection laws passing
+and one fixture failure (`delta:5` exceeds native advancement budget). Corrected
+positive law uses the native queried destination, checks admitted movement and
+actual position change, then restores it. `run-u5601` invocation
+`714543a48ccf4ae69606eabd2dcd6217`, exec88609 exited0 (one corrected law).
+Both scopes are inactive/dead with empty ControlGroup. Earlier `u5595` exited101
+on the array/tuple compile mismatch; correction is integrated. `u5592` was found
+terminal after compaction but its terminal output was unavailable, so no pass
+is claimed from it. The existing unused PreparedMaterialOutput.revision warning
+remains. No WASM rebuild, browser or hosted placement proof follows yet.
+
+Camera framing `10dec72` uses published facts and preserves ordinary flat-demo
+framing; its two pure tests passed in the author lane. Colony consumer and
+shared terrain-target controls remain separate unaccepted source checkpoints.
+
 # Building the fresh examples
 
 The existing clearing stays separate. Root owns this worktree's dependencies and
