@@ -213,3 +213,152 @@ test("resident session reuses accepted candidate and fails closed across retry a
     db.close();
   }
 });
+
+test("resident detaches failed native candidates and preserves primary errors", () => {
+  const db = new DatabaseSync(":memory:");
+  const owner = sqliteTestOwner(db);
+  let failDispose = false;
+  let created = 0;
+  let disposals = 0;
+  const runtime = createSessionRegionRuntime({
+    pack: colonyPack,
+    createKernel: () => {
+      created++;
+      const port = wasmKernelPort(new WasmKernel());
+      const release = port.dispose;
+      return {
+        ...port,
+        dispose: () => {
+          disposals++;
+          if (failDispose) throw new Error("native dispose failed");
+          release();
+        },
+      };
+    },
+    implementationHash: "d".repeat(64),
+    ownerPrincipal: "player",
+    hostPrincipal: "clock",
+    seed: 17,
+  });
+  const resident = runtime.resident;
+  const region = openRegion({ owner, region: "resident-failure-cleanup", program: runtime.program });
+  const disposalsBeforeResident = disposals;
+  const reader = (revision: number) => {
+    const records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
+    return { read: (key: string) => records.get(key) };
+  };
+  try {
+    const committed = region.readCommitted();
+    resident.begin(committed.revision, committed.state, reader(committed.revision));
+    failDispose = true;
+    assert.throws(
+      () => region.dispatch("player", { id: "poisoned", command: { kind: "command", name: "missing" } }),
+      /unknown game command/,
+      "native cleanup must not replace the command error",
+    );
+    assert.equal(disposals, disposalsBeforeResident + 1);
+
+    // The failed candidate was detached even though its destructor threw;
+    // retrying starts from the committed revision in a fresh native port.
+    resident.begin(committed.revision, committed.state, reader(committed.revision));
+    assert.equal(created, 3);
+    const receipt = region.dispatch("clock", { id: "retry", command: { kind: "step", delta: 0.1 } });
+    resident.accept(receipt.revision);
+    assert.equal(region.readCommitted().revision, 1);
+
+    // Explicit lifecycle cleanup still reports its own disposal failure.
+    resident.begin(1, region.readCommitted().state, reader(1));
+    resident.accept(1);
+    assert.throws(() => resident.dispose(), /native dispose failed/);
+    failDispose = false;
+  } finally {
+    failDispose = false;
+    resident.dispose();
+    db.close();
+  }
+});
+
+test("resident preserves an undefined application failure during cleanup", () => {
+  const db = new DatabaseSync(":memory:");
+  const owner = sqliteTestOwner(db);
+  let failDispose = false;
+  let disposals = 0;
+  const runtime = createSessionRegionRuntime({
+    pack: colonyPack,
+    createKernel: () => {
+      const port = wasmKernelPort(new WasmKernel());
+      const release = port.dispose;
+      return {
+        ...port,
+        dispose: () => {
+          disposals++;
+          if (failDispose) throw new Error("native dispose failed");
+          release();
+        },
+      };
+    },
+    implementationHash: "e".repeat(64),
+    ownerPrincipal: "player",
+    hostPrincipal: "clock",
+    seed: 17,
+  });
+  const resident = runtime.resident;
+  const region = openRegion({ owner, region: "resident-undefined-failure", program: runtime.program });
+  const disposalsBeforeResident = disposals;
+  const committed = region.readCommitted();
+  const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
+  try {
+    resident.begin(committed.revision, committed.state, { read: key => records.get(key) });
+    resident.accept(committed.revision);
+    failDispose = true;
+    let threw = false;
+    try {
+      resident.observe(committed.revision, committed.state, { read: key => records.get(key) }, () => {
+        throw undefined;
+      });
+    } catch (error) {
+      threw = true;
+      assert.equal(error, undefined);
+    }
+    assert.equal(threw, true);
+    assert.equal(disposals, disposalsBeforeResident + 1);
+  } finally {
+    failDispose = false;
+    resident.dispose();
+    db.close();
+  }
+});
+
+test("initial resident program preserves start failure when native disposal throws", () => {
+  const db = new DatabaseSync(":memory:");
+  const owner = sqliteTestOwner(db);
+  let disposals = 0;
+  const runtime = createSessionRegionRuntime({
+    pack: colonyPack,
+    createKernel: () => {
+      const port = wasmKernelPort(new WasmKernel());
+      return {
+        ...port,
+        load: () => { throw new Error("initial load failed"); },
+        dispose: () => {
+          disposals++;
+          throw new Error("native dispose failed");
+        },
+      };
+    },
+    implementationHash: "f".repeat(64),
+    ownerPrincipal: "player",
+    hostPrincipal: "clock",
+    seed: 17,
+  });
+  try {
+    assert.throws(
+      () => openRegion({ owner, region: "resident-initial-failure", program: runtime.program }),
+      /initial load failed/,
+    );
+    assert.equal(disposals, 1);
+  } finally {
+    runtime.resident.dispose();
+    db.close();
+  }
+});
