@@ -55,11 +55,32 @@ must prepare salvage and geometry together, including dependent structures and
 actors using the surface. A cache is invalidated at the geometry owner; it cannot
 be another saved representation of a finished building.
 
-The precise static face/support representation is still under caller review.
-Do not start a floor-only collision map while that boundary is unresolved.
-Review thin floor headroom against the current 0.54m voxel spacing, terrain
-traversal and environmental face rules before choosing solid voxel versus face
-geometry. Publish one representation to navigation, water, air and rendering.
+The first native geometry implementation separates occupied cells from sealed
+faces. A floor occupies the top face of its signed support cell, at
+`(y + 0.5) * spacingY`; it supports feet and closes that environmental face without
+claiming the entire cell as solid. Walls occupy explicit cells. Cardinal stairs
+compile into bounded ascending steps with definition-selected run/rise; current
+terrain traversal admits at most one voxel rise per horizontal step. Adjacent
+solids may share a sealing face; derived faces are deduplicated, not treated as
+competing physical objects.
+
+Canonical structure instances and their rebuilt geometry indexes remain distinct.
+The new pure module is an implementation checkpoint, not another runtime or a
+finished building feature. Root owns its joins into `TerrainWater`, terrain route
+admission, retained-route invalidation and restore validation. The existing
+`TraversalMaterial.solid` alone cannot express a thin supporting floor: change
+the real support/clearance query contract together, rather than telling movement
+that empty space is solid. Environmental compilation must consume the same face
+closures. Current native kernel has water but no gas module; room gas remains
+required implementation, not an existing Rust solver to claim as joined.
+
+Construction cannot reuse `Consume` followed by an unrelated structure write.
+Current `complete_excavation` demonstrates the needed order: prepare all finite
+material changes, admit geometry, then publish without a fallible material step
+afterward. Building needs the complementary staged-to-embedded custody operation.
+Keep actual lots accounted for in the structure, so removal can salvage them;
+do not use a boolean "paid" flag that destroys that accounting. The current
+material-output helper only creates output and is not an input/embedding owner.
 
 ## Brewing is a test of the same work design
 
