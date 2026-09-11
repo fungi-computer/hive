@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Application, Sprite, Graphics } from "pixi.js";
-import { bake, anchor, bakeArt } from "./art.js";
+import { anchor, bakeArt } from "./art.js";
+import { bake } from "./art/bake.js";
 import { scene, box, cylinder } from "./art/geometry.js";
 import { figure } from "./art/figures.js";
 import "./study.css";
