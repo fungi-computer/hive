@@ -512,15 +512,6 @@ export function openRegion<State, Command>(options: {
       recordChange.puts.reduce((sum, record) => sum + recordSize(record.key, record.bytes), 0);
     if (nextRecordBytes < 0 || nextStateBytes + current.receipt_bytes + current.event_bytes + eventBytes + nextRecordBytes + nextFrontierBytes > limits.storageBytes)
       throw new Error("region-storage-budget");
-    if (
-      nextStateBytes +
-        current.receipt_bytes +
-        current.event_bytes +
-        eventBytes +
-        nextFrontierBytes >
-      limits.storageBytes
-    )
-      throw new Error("region-storage-budget");
     if (receipt.status === "applied") {
       owner.sql.exec(
         "UPDATE hive_region SET revision=?,state_json=?,state_bytes=?,event_count=?,event_sequence=?,event_bytes=?,record_count=?,record_bytes=? WHERE singleton=1 AND revision=?",
