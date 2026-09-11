@@ -2,6 +2,7 @@ import type { PresentationCue } from "./presentation-cues";
 import type { ActionRequest, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
 import type { PresentationControl } from "../presentation";
+import type { TerrainWireFrame } from "./terrain-wire";
 
 export type WorkerCommand =
   | { readonly type: "command"; readonly name: string; readonly input?: unknown }
@@ -22,6 +23,7 @@ export type WorkerEvent =
       readonly epoch: number;
       readonly sequence: number;
       readonly facts: readonly RenderFact[];
+      readonly terrain?: TerrainWireFrame;
       readonly cues: readonly PresentationCue[];
     }
   | {

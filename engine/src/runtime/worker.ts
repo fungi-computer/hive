@@ -73,6 +73,7 @@ export class WorkerRuntime {
       epoch: observation.epoch,
       sequence: observation.sequence,
       facts: observation.facts,
+      ...(observation.terrain === undefined ? {} : { terrain: observation.terrain }),
       cues: observation.cues,
     });
     this.emit({
