@@ -37,6 +37,82 @@ Read `src/games/{colony,survival,formations,pirates}.ts`, `src/sdk/delivery.ts`,
 Public source remains `c5138fc`. Native environment, paging, cross-region custody
 and container hosting are not current runtime capabilities.
 
+### Larger areas, retained controls and exploration — Levi's amendment
+
+Use an initial layout target of roughly **64×64 horizontal cells per area**,
+with two neighboring areas for the Survival journey. This enlarges explorable
+space, not the amount of detailed underground simulation required every tick.
+Generate/cache pages on demand and retain the bounded active/resident policy.
+The frozen 20×20×24 environmental workload stays a separate comparable measurement;
+qualify the larger playable layout before claiming its performance. Depth is a
+signed world/content bound, not a hard-coded Ground/Upper pair or dense full-height
+allocation. Include a hillside, meaningful route between destinations and space
+for a homestead; acres of empty repeated tiles do not make a better demo.
+
+Bring the level/cutaway controls into checkpoint 1, when terrain becomes diggable,
+rather than waiting for checkpoint 3's completed building. Retained owners are
+`src/ui-actions.ts` (`LEVEL_NAVIGATION`, `dispatchLevelAction`), `src/keys.js`,
+`src/hud.jsx`, and `src/construction-view.js`. They provide button/key parity,
+bounded signed level selection, gesture cancellation, compatible-tool retention,
+inspection clearing, support context and cutaway/picking rules. Port those useful
+mechanisms into the common fresh client; do not import the old Clearing simulator
+or copy separate implementations into four pages.
+
+Use visible Higher/Lower controls, PageUp/PageDown, current physical layer, a
+clearly labelled optional storey jump and cutaway toggle through one catalog.
+The retained button title currently says storey and old logical levels map to
+multiple voxels: resolve that scale through the shared world query instead of
+blindly copying a four-voxel jump into a one-voxel control. Keep controls usable
+paused and without selected stairs/actors, preserve focused widget keys, and
+cancel an old pointer stroke before changing its layer. Camera/cutaway/selection
+cannot advance time or change physical openings. Keep the earlier four-view
+rotation requirement in the shared projection/picking contract; the current
+fresh camera has pan/zoom/reset, not an already-completed rotation implementation.
+
+Real exploration is retained in `src/exploration.ts` and callers, with authored
+laws in `src/vertical-play.test.js`: eye-based voxel sight, wall/corner occlusion,
+remembered geometry, and reconstruction without updating unseen remembered facts.
+Retain those semantics. Replace its whole-actor/site JSON signature, broad sight
+recomputation and copied/sorted global memory array with bounded spatial knowledge
+pages and observer/geometry revisions under the native query/commit owners.
+The old global union of all actors' sight is not the new multiplayer permission
+model. Game definitions choose observer membership, sight range and faction
+sharing; reusable engine mechanisms own visibility and saved knowledge.
+
+The shared view distinguishes:
+
+- **Visible now:** live permitted terrain, people and effects.
+- **Remembered:** subdued last-observed terrain/buildings, with no live hidden
+  enemies, inventory, damage or water updates masquerading as memory.
+- **Unknown:** concealed space; switching layers or removing a visual roof cannot
+  discover a cave, ore deposit or creature.
+
+The first bounded native sight implementation may port the retained conservative
+ray rule; no new lighting research is required. Recompute affected observers on
+relevant position/geometry/policy changes, not camera motion or every render frame.
+Do not let a deferred visibility refresh expose stale live facts through a newly
+closed wall. Persist observed changes with the world occurrence and rebuild live
+visibility from current state on reopen. Page remembered knowledge by observer/
+sharing scope and world coordinates, so region travel neither forgets the map
+nor grants another player's discoveries by accident.
+
+Apply knowledge filtering before online observation leaves the host. Geometry,
+actors, inventory summaries, effects/audio, inspectors, picking, minimap, command
+previews and AI tools use the same scoped facts. Today's host broadcasts one full
+observation to authenticated sockets and needs this actual caller change. A dark
+client overlay alone is insufficient. Do not send private hidden-generation seeds
+or concealed terrain in a purportedly filtered online projection; browser-hosted
+local simulation is not an anti-cheat boundary. A coarse map can use explicitly
+public geographic knowledge without revealing underground content.
+
+Blind quarry plans remain geometric intent with unknown eligibility until work
+or sight reveals it; hidden enemies must not leak through exact preview counts or
+error text. Developer full-world inspection is a distinct explicit debug scope.
+First acceptance combines real level buttons/hotkeys with excavation: descend,
+reveal one chamber, leave it, and cut away the remembered space without exposing
+an unseen neighboring chamber or a creature's new position. Save/reopen and
+cross-region travel retain only the appropriate player's learned map.
+
 ### Checkpoint 1 — a ditch that matters, in the existing Colony
 
 Ship one generated integer-height clearing with a reachable wet cut. The player
