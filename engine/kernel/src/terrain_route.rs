@@ -4,11 +4,17 @@ use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
 use pathfinding::prelude::astar;
 
-fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> usize {
+fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<u64, String> {
     let dx = (i128::from(b.x) - i128::from(a.x)).unsigned_abs() as f64 * spacing[0];
     let dz = (i128::from(b.z) - i128::from(a.z)).unsigned_abs() as f64 * spacing[2];
     let dy = (i64::from(b.y) - i64::from(a.y)).unsigned_abs() as f64 * spacing[1];
-    ((dx + dz + dy) * 1_000_000.0).round().min(usize::MAX as f64) as usize
+    let cost = ((dx + dz + dy) * 1_000_000.0).round();
+    // At most 4096 expanded nodes: this bound keeps path addition below 2^53
+    // and identical on 32-bit WASM and native hosts. Never saturate a cost.
+    if !cost.is_finite() || cost < 1.0 || cost > (1u64 << 40) as f64 {
+        return Err("terrain metric exceeds route cost bounds".into());
+    }
+    Ok(cost as u64)
 }
 
 pub fn search(
@@ -54,7 +60,10 @@ pub fn search_with_blocked(
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) if !blocked(next.support) => neighbors.push((key(next.support), edge_cost(cell(*current), next.support, config.spacing))),
+                        Ok(Some(next)) if !blocked(next.support) => match edge_cost(cell(*current), next.support, config.spacing) {
+                            Ok(cost) => neighbors.push((key(next.support), cost)),
+                            Err(error) => { failure = Some(error); return Vec::new(); }
+                        },
                         Ok(Some(_)) => {},
                         Ok(None) => {},
                         Err(error) => { failure = Some(error); return Vec::new(); }
@@ -63,7 +72,7 @@ pub fn search_with_blocked(
             }
             neighbors
         },
-        |_| 0usize,
+        |_| 0u64,
         |current| *current == key(destination),
     );
     if let Some(error) = failure { return Err(error); }
@@ -150,8 +159,8 @@ mod tests {
     #[test]
     fn weighted_cost_charges_rise_and_cross_geometry() {
         let config = TraversalConfig { spacing:[1.0,0.5,1.0],clearance_cells:1,max_step_cells:1 };
-        let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing);
-        let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing);
+        let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing).unwrap();
+        let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing).unwrap();
         assert!(climb > flat);
     }
 
