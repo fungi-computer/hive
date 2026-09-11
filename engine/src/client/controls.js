@@ -8,6 +8,11 @@ const INPUTS = new Set([
 ]);
 import { createMachine, assign } from "xstate";
 
+export const WORLD_VIEW_CONTROLS = Object.freeze([
+  { id: "view.level.down", key: "pagedown", delta: -1, label: "Lower" },
+  { id: "view.level.up", key: "pageup", delta: 1, label: "Higher" },
+]);
+
 export const pointerGestureMachine = createMachine(
   {
     id: "hive-pointer-gesture",
@@ -95,7 +100,7 @@ export function selectionFromSubjects(
         distance: Math.hypot(subject.screen.x - left, subject.screen.y - top),
         rank: Number.isFinite(subject.renderRank) ? subject.renderRank : index,
       }))
-      .filter(({ subject, distance }) => distance <= (subject.radius ?? 20))
+      .filter(({ subject, distance }) => subject.pickable !== false && distance <= (subject.radius ?? 20))
       .sort(
         (a, b) =>
           a.distance - b.distance || b.rank - a.rank || b.index - a.index,
@@ -110,6 +115,7 @@ export function selectionFromSubjects(
   const selected = additive ? new Set(previous) : new Set();
   for (const subject of subjects) {
     if (
+      subject.pickable !== false &&
       subject.screen.x >= left &&
       subject.screen.x <= right &&
       subject.screen.y >= top &&
@@ -118,4 +124,10 @@ export function selectionFromSubjects(
       selected.add(subject.id);
   }
   return [...selected];
+}
+
+export function surfaceSubjectAt(subjects, point, containsSurface) {
+  return subjects.find((subject) =>
+    subject.pickable !== false && subject.surface && containsSurface(point.x, point.y, subject),
+  );
 }
