@@ -51,12 +51,14 @@ type PendingIntent = {
   command: unknown;
   retries: number;
   staleRetries: number;
+  recoveries: number;
   id?: string;
   body?: string;
 };
 
 const MAX_PENDING = 16;
 const MAX_RETRIES = 3;
+const MAX_SOCKET_RECOVERIES = 3;
 const MAX_STALE_RESUBMISSIONS = 3;
 const REQUEST_TIMEOUT_MS = 5000;
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
@@ -329,6 +331,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
   let pumpRunning = false;
   let blocked = false;
+  let socketOpen = false;
+  let reconnectRequested = false;
+  let recoveryReadyPending = false;
   let socket: SocketLike | undefined;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let admissionAttempts = 0;
@@ -362,6 +367,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     return true;
   };
   const openSocket = async () => {
+    let connectedSocket: SocketLike;
     try {
       const handleResponse = await requestJson(options.fetch, endpointUrl(options.endpoint, "/connect"), { method: "GET" }, abort.signal, 16 * 1024, requestTimeoutMs);
       if (!handleResponse.response.ok) {
@@ -373,9 +379,10 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       const url = new URL(endpointUrl(options.endpoint, "/socket/" + encodeURIComponent(handleResponse.value.handle)));
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
       if (disposed) return;
-      socket = options.createSocket
+      connectedSocket = options.createSocket
         ? options.createSocket(url.toString())
         : new PartySocket(url.toString(), [], { maxEnqueuedMessages: 0, maxRetries: 8 });
+      socket = connectedSocket;
     } catch (error) {
       if (!disposed && error instanceof Error && error.message === "unsupported-world") {
         emit({ type: "error", message: "This saved demo uses an older engine. New world starts separately; saved data retained." });
@@ -388,7 +395,8 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       return;
     }
     admissionAttempts = 0;
-    socket.addEventListener("message", (event) => {
+    connectedSocket.addEventListener("message", (event) => {
+      if (socket !== connectedSocket) return;
       let value: unknown;
       const raw = String(event.data);
       if (new TextEncoder().encode(raw).byteLength > MAX_OBSERVATION_BYTES) { emit({ type: "error", message: "remote socket message too large" }); return; }
@@ -397,6 +405,14 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (value.type === "ready") {
         readyEmitted = true;
         emit({ type: "ready", game: options.game });
+        if (recoveryReadyPending) {
+          recoveryReadyPending = false;
+          if (blocked) {
+            blocked = false;
+            if (pending[0]) pending[0].retries = 0;
+            schedulePump();
+          }
+        }
         return;
       }
       if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
@@ -411,15 +427,24 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         try { socket?.reconnect(); } catch {}
       }
     });
-    socket.addEventListener("error", () => { if (!disposed) emit({ type: "error", message: "remote socket failed; reconnecting" }); });
-    socket.addEventListener("close", () => { if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" }); });
-    socket.addEventListener("open", () => {
+    connectedSocket.addEventListener("error", () => { if (socket !== connectedSocket || disposed) return; emit({ type: "error", message: "remote socket failed; reconnecting" }); });
+    connectedSocket.addEventListener("close", () => {
+      if (socket !== connectedSocket) return;
+      socketOpen = false;
+      if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" });
+    });
+    connectedSocket.addEventListener("open", () => {
+      if (socket !== connectedSocket) return;
+      const reconnect = socketOpen || reconnectRequested;
+      socketOpen = true;
+      reconnectRequested = false;
+      recoveryReadyPending = reconnect;
       // A websocket reconnect has a fresh server-side attachment, so its surface
       // reference must begin with no baseline even when the world revision matches.
       cachedTerrain = undefined;
-      socket?.send(JSON.stringify({ type: "authenticate", token: options.token }));
+      connectedSocket.send(JSON.stringify({ type: "authenticate", token: options.token }));
       if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
-      heartbeatTimer = setInterval(() => { if (!disposed && socket) socket.send(JSON.stringify({ type: "heartbeat" })); }, 5_000);
+      heartbeatTimer = setInterval(() => { if (!disposed && socket === connectedSocket) connectedSocket.send(JSON.stringify({ type: "heartbeat" })); }, 5_000);
     });
   };
   const retryDelay = (attempt: number) =>
@@ -436,6 +461,18 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       retryTimers.add(timer);
       abort.signal.addEventListener("abort", onAbort, { once: true });
     });
+  const blockForRecovery = (item: PendingIntent, message: string) => {
+    blocked = true;
+    emit({ type: "error", message });
+    if (item.recoveries >= MAX_SOCKET_RECOVERIES) {
+      emit({ type: "error", message: `remote command recovery limit exceeded for ${item.id}` });
+      return;
+    }
+    if (reconnectRequested || !socket) return;
+    item.recoveries++;
+    reconnectRequested = true;
+    try { socket.reconnect(); } catch { reconnectRequested = false; }
+  };
   const pump = async () => {
     if (disposed || blocked || pumpRunning || pending.length === 0) return;
     if (revision === undefined || awaitRevision !== undefined) return;
@@ -454,8 +491,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           const response = responseData.response;
           if (response.status >= 500 || response.status === 408) {
             if (item.retries++ < MAX_RETRIES) { await retryDelay(item.retries); continue; }
-            blocked = true;
-            emit({ type: "error", message: `remote command retry limit exceeded for ${item.id}` });
+            blockForRecovery(item, `remote command waiting for socket recovery for ${item.id}`);
             return;
           }
           if (response.status === 409) {
@@ -502,8 +538,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         } catch (error) {
           if (disposed || (error instanceof DOMException && error.name === "AbortError")) return;
           if (item.retries++ < MAX_RETRIES) { await retryDelay(item.retries); continue; }
-          blocked = true;
-          emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
+          blockForRecovery(item, error instanceof Error ? error.message : String(error));
           return;
         }
       }
@@ -531,7 +566,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     const commandValue = command.type === "action" ? { kind: "action", action: command.action } :
       command.type === "command" ? { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) } :
       { kind: command.type };
-    const next: PendingIntent = { command: structuredClone(commandValue), retries: 0, staleRetries: 0 };
+    const next: PendingIntent = { command: structuredClone(commandValue), retries: 0, staleRetries: 0, recoveries: 0 };
     const previous = pending.at(-1);
     if (previous && coalesceDirectInput(previous, next)) { schedulePump(); return; }
     if (pending.length >= MAX_PENDING) { if (command.type === "action" && (command.action.kind === "direct-input" || command.action.kind === "begin-direct")) throw new Error("remote command queue full");
