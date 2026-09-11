@@ -1,8 +1,10 @@
 import {
   terrainFaces,
   terrainColumnKey,
+  terrainColumnMap,
   changedTerrainColumns,
   affectedTerrainColumns,
+  terrainChunkKey,
   terrainChunkKeys,
 } from "./terrain-faces.js";
 import * as THREE from "three";
@@ -36,34 +38,25 @@ function validateScale(verticalMetres) {
     throw new Error("invalid terrain art input");
 }
 
-function chunkCoordinates(key, chunkSize) {
-  const [x, z] = key.split(",").map(Number);
-  return {
-    minX: x * chunkSize,
-    maxX: (x + 1) * chunkSize,
-    minZ: z * chunkSize,
-    maxZ: (z + 1) * chunkSize,
-  };
+function chunkIndex(columnIndex, chunkSize) {
+  const chunks = new Map();
+  for (const surface of columnIndex.values()) {
+    const key = terrainChunkKey(surface.cell[0], surface.cell[2], chunkSize);
+    let columns = chunks.get(key);
+    if (!columns) chunks.set(key, (columns = []));
+    columns.push(surface);
+  }
+  return chunks;
 }
 
-function buildChunk(surfaces, verticalMetres, soilMaterial, chunkSize, chunk) {
-  const bounds = chunk === null ? null : chunkCoordinates(chunk, chunkSize);
+function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex) {
   const buckets = new Map();
   function quad(colour, vertices) {
     let points = buckets.get(colour);
     if (!points) buckets.set(colour, (points = []));
     for (const index of [0, 1, 2, 0, 2, 3]) points.push(...vertices[index]);
   }
-  for (const face of terrainFaces(surfaces, verticalMetres)) {
-    const [x, , z] = face.surface.cell;
-    if (
-      bounds &&
-      (x < bounds.minX ||
-        x >= bounds.maxX ||
-        z < bounds.minZ ||
-        z >= bounds.maxZ)
-    )
-      continue;
+  for (const face of terrainFaces(surfaces, verticalMetres, columnIndex)) {
     const soil = face.surface.material === soilMaterial;
     quad(
       soil ? (face.top ? colours.grass : colours.soil) : colours.stone,
@@ -121,7 +114,14 @@ export function terrainColumnsScene(
   validateScale(verticalMetres);
   validateSurfaces(surfaces);
   const result = scene();
-  result.add(buildChunk(surfaces, verticalMetres, soilMaterial, 1, null));
+  result.add(
+    buildChunk(
+      surfaces,
+      verticalMetres,
+      soilMaterial,
+      terrainColumnMap(surfaces),
+    ),
+  );
   return result;
 }
 
@@ -137,6 +137,7 @@ export function createTerrainSceneCache({
   const retained = scene();
   const chunks = new Map();
   let surfaces = [];
+  let columnIndex = new Map();
   let retainedVerticalMetres = verticalMetres;
   let ready = false;
   let disposed = false;
@@ -146,10 +147,12 @@ export function createTerrainSceneCache({
     validateScale(nextVerticalMetres);
     validateSurfaces(nextSurfaces);
     const previous = surfaces;
+    const nextIndex = terrainColumnMap(nextSurfaces);
+    const nextChunks = chunkIndex(nextIndex, chunkSize);
     const sameScale = nextVerticalMetres === retainedVerticalMetres;
     const changedColumns =
       ready && sameScale
-        ? changedTerrainColumns(previous, nextSurfaces)
+        ? changedTerrainColumns(columnIndex, nextIndex)
         : nextSurfaces.map(({ cell: [x, , z] }) => ({ x, z }));
     const affectedColumns =
       ready && sameScale
@@ -163,17 +166,17 @@ export function createTerrainSceneCache({
     for (const key of dirtyChunks) {
       const old = chunks.get(key);
       const built = buildChunk(
-        nextSurfaces,
+        nextChunks.get(key) ?? [],
         nextVerticalMetres,
         soilMaterial,
-        chunkSize,
-        key,
+        nextIndex,
       );
       if (replaceRetainedChunk(retained, old, built)) chunks.set(key, built);
       else chunks.delete(key);
     }
     reorderChunks(retained, chunks);
     surfaces = nextSurfaces;
+    columnIndex = nextIndex;
     retainedVerticalMetres = nextVerticalMetres;
     const initial = !ready || !sameScale;
     ready = true;
