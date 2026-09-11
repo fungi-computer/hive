@@ -10,7 +10,7 @@ function observation(revision: number) {
 }
 class FakeSocket {
   private listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
-  constructor(private readonly initial = observation(0)) {}
+  constructor(private readonly initial = observation(0), private readonly onReconnect?: () => void) {}
   addEventListener(type: string, listener: (event: { data?: unknown }) => void) { this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]); }
   send(value: string) {
     if (JSON.parse(value).type === "authenticate") {
@@ -19,7 +19,7 @@ class FakeSocket {
     }
   }
   close() { this.emit("close", {}); }
-  reconnect() { this.emit("close", {}); }
+  reconnect() { this.emit("close", {}); this.onReconnect?.(); }
   emit(type: string, event: { data?: unknown }) { for (const listener of this.listeners.get(type) ?? []) listener(event); }
 }
 const wait = (ms = 0) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -96,6 +96,70 @@ test("lost HTTP receipt retries the identical command body and identity", async 
   assert.equal(bodies.length, 2);
   assert.equal(bodies[0], bodies[1]);
   runtime.dispose();
+});
+
+test("healthy socket recovery resumes the same pending command body", async () => {
+  let socket!: FakeSocket;
+  socket = new FakeSocket(observation(0), () => queueMicrotask(() => socket.emit("open", {})));
+  let attempts = 0;
+  const bodies: string[] = [];
+  const runtime = setup(async (input, init) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    bodies.push(String(init?.body));
+    attempts++;
+    if (attempts < 5) throw new Error("temporary command transport failure");
+    const body = JSON.parse(bodies[0]);
+    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+  }, socket);
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    runtime.send({ type: "pause" });
+    await wait(2_000);
+    assert.equal(bodies.length, 5);
+    assert.ok(bodies.every((body) => body === bodies[0]), "recovery retries the immutable command");
+  } finally { runtime.dispose(); }
+});
+
+test("an ordinary observation does not unblock a command awaiting socket recovery", async () => {
+  const socket = new FakeSocket();
+  let attempts = 0;
+  const runtime = setup(async (input) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    attempts++;
+    throw new Error("temporary command transport failure");
+  }, socket);
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    runtime.send({ type: "pause" });
+    await wait(1_600);
+    const exhaustedRetries = attempts;
+    socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(2) }) });
+    await wait(50);
+    assert.equal(attempts, exhaustedRetries);
+  } finally { runtime.dispose(); }
+});
+
+test("socket recovery has a bounded per-command budget", async () => {
+  let socket!: FakeSocket;
+  socket = new FakeSocket(observation(0), () => queueMicrotask(() => socket.emit("open", {})));
+  let attempts = 0;
+  const events: WorkerEvent[] = [];
+  const runtime = setup(async (input) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    attempts++;
+    throw new Error("permanent command transport failure");
+  }, socket);
+  runtime.subscribe((event) => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    runtime.send({ type: "pause" });
+    await wait(6_200);
+    assert.equal(attempts, 16);
+    assert.ok(events.some((event) => event.type === "error" && event.message.includes("recovery limit exceeded")));
+  } finally { runtime.dispose(); }
 });
 
 test("coalesces contiguous unsent direct input behind command barriers and retries immutable batches", async () => {

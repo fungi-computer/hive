@@ -28,6 +28,8 @@ import {
   socketHandleFromPath,
 } from "./protocol";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
+import { createPublicationQueue } from "./publication-queue";
+import { advanceClockOccurrence } from "./clock-schedule";
 
 type Environment = {
   REGIONS: DurableObjectNamespace;
@@ -175,6 +177,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private startupFailure: string | undefined;
   private readonly ready: Promise<void>;
   private residentQueue: Promise<void> = Promise.resolve();
+  private readonly publicationQueue: ReturnType<typeof createPublicationQueue>;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -193,6 +196,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       },
       transactionSync: (operation) => state.storage.transactionSync(operation),
     };
+    this.publicationQueue = createPublicationQueue(
+      () => this.publishObservation(),
+      (error) => this.reportPublicationFailure(error),
+    );
     this.ready = state.blockConcurrencyWhile(async () => {
       try {
         if (!/^[a-f0-9]{64}$/.test(hostEnv.IMPLEMENTATION_HASH)) throw new Error("missing immutable implementation hash");
@@ -485,12 +492,27 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private publishObservation(): Promise<void> {
     return this.serial(() => {
       const payload = this.observationPayload();
+      let failed = false;
       for (const socket of this.state.getWebSockets()) {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
         if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
-        this.sendObservation(socket, payload, attachment);
+        if (!this.sendObservation(socket, payload, attachment)) failed = true;
       }
+      if (failed) throw new Error("observation publication failed");
     });
+  }
+
+  private reportPublicationFailure(error: unknown): void {
+    console.error("public observation publication failed", error);
+    for (const socket of this.state.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
+      try { socket.send(JSON.stringify({ type: "error", error: "observation-publication-failed" })); } catch {}
+    }
+  }
+
+  private queueObservationPublication(): Promise<void> {
+    return this.publicationQueue.request();
   }
 
   private async command(input: PublicCommandInput, now: number) {
@@ -504,44 +526,43 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const committed = this.region.readCommitted();
         this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
         const receipt = this.region.dispatch(`${this.pack}-player`, input);
-      const current = this.hostRow();
-      if (!current) throw new Error("public-host-state");
-      validateHostRow(current);
-      let next = { ...current, lease_until_ms: now + LEASE_MS };
-      const paused = this.region.readCommitted().state.session.paused;
-      if (receipt.status === "applied" && paused) {
-        this.owner.sql.exec(
-          "UPDATE hive_public_host SET paused=1,lease_until_ms=?,due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL WHERE singleton=1",
-          now + LEASE_MS,
-        );
-        next = {
-          ...next,
-          paused: 1,
-          due_sequence: null,
-          due_request_json: null,
-          due_deadline_ms: null,
-        };
-      } else if (receipt.status === "applied" && !paused) {
-        this.owner.sql.exec(
-          "UPDATE hive_public_host SET paused=0,lease_until_ms=? WHERE singleton=1",
-          now + LEASE_MS,
-        );
-        next = { ...next, paused: 0 };
-      } else {
-        this.owner.sql.exec(
-          "UPDATE hive_public_host SET lease_until_ms=? WHERE singleton=1",
-          now + LEASE_MS,
-        );
-      }
-      const armed =
-        this.nextDue(next, now) ?? next;
-      await this.arm(armed);
+        const current = this.hostRow();
+        if (!current) throw new Error("public-host-state");
+        validateHostRow(current);
+        let next = { ...current, lease_until_ms: now + LEASE_MS };
+        const paused = this.region.readCommitted().state.session.paused;
+        if (receipt.status === "applied" && paused) {
+          this.owner.sql.exec(
+            "UPDATE hive_public_host SET paused=1,lease_until_ms=?,due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL WHERE singleton=1",
+            now + LEASE_MS,
+          );
+          next = {
+            ...next,
+            paused: 1,
+            due_sequence: null,
+            due_request_json: null,
+            due_deadline_ms: null,
+          };
+        } else if (receipt.status === "applied" && !paused) {
+          this.owner.sql.exec(
+            "UPDATE hive_public_host SET paused=0,lease_until_ms=? WHERE singleton=1",
+            now + LEASE_MS,
+          );
+          next = { ...next, paused: 0 };
+        } else {
+          this.owner.sql.exec(
+            "UPDATE hive_public_host SET lease_until_ms=? WHERE singleton=1",
+            now + LEASE_MS,
+          );
+        }
+        const armed = this.nextDue(next, now) ?? next;
+        await this.arm(armed);
         return { receipt, row: armed };
       });
       this.resident.accept(this.region.readCommitted().revision);
       return result;
     } catch (error) {
-      this.resident.discard();
+      try { this.resident.discard(); } catch {}
       throw error;
     }
   }
@@ -581,47 +602,43 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         await this.arm(cleared);
         return cleared;
       }
-      // Bounded catch-up preserves scheduled time across late native alarms.
-      // Every occurrence remains individually identified inside this transaction.
-      for (let steps = 0; steps < 5; steps++) {
-        const dueDeadline = row.due_deadline_ms;
-        if (dueDeadline === null || row.due_request_json === null || row.due_sequence === null) throw new Error("public-host-format");
-        if (dueDeadline > now) {
-          acceptedRevision = this.region.readCommitted().revision;
-          await this.arm(row);
-          return row;
-        }
-        const request = JSON.parse(row.due_request_json);
-        this.region.dispatchOccurrence(`${this.pack}-host`, {
-          sequence: row.due_sequence,
-          request,
-        });
-        const sequence = row.due_sequence + 1;
-        const nextRequest = JSON.stringify(clockRequest(sequence));
-        const deadline = dueDeadline + STEP_MS;
-        this.owner.sql.exec(
-          "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
-          sequence,
-          sequence,
-          nextRequest,
-          deadline,
-        );
-        const advanced: HostRow = {
-          ...row,
-          next_sequence: sequence,
-          due_sequence: sequence,
-          due_request_json: nextRequest,
-          due_deadline_ms: deadline,
-        };
-        row = advanced;
+      // One durable occurrence per alarm keeps player requests serviceable.
+      // The next occurrence retains its scheduled deadline and identity.
+      const dueDeadline = row.due_deadline_ms;
+      if (dueDeadline === null || row.due_request_json === null || row.due_sequence === null) throw new Error("public-host-format");
+      if (dueDeadline > now) {
+        acceptedRevision = this.region.readCommitted().revision;
+        await this.arm(row);
+        return row;
       }
+      const request = JSON.parse(row.due_request_json);
+      this.region.dispatchOccurrence(`${this.pack}-host`, {
+        sequence: row.due_sequence,
+        request,
+      });
+      const next = advanceClockOccurrence(row.due_sequence, dueDeadline);
+      this.owner.sql.exec(
+        "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
+        next.sequence,
+        next.sequence,
+        next.request,
+        next.deadline,
+      );
+      const advanced: HostRow = {
+        ...row,
+        next_sequence: next.sequence,
+        due_sequence: next.sequence,
+        due_request_json: next.request,
+        due_deadline_ms: next.deadline,
+      };
+      row = advanced;
       await this.arm(row);
       acceptedRevision = this.region.readCommitted().revision;
       return row;
       });
       if (acceptedRevision !== undefined) this.resident.accept(acceptedRevision);
     } catch (error) {
-      this.resident.discard();
+      try { this.resident.discard(); } catch {}
       throw error;
     }
   }
@@ -645,7 +662,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     await this.initializeStored();
     if (!this.initialized) return;
     await this.runDue(now);
-    if (this.initialized) await this.publishObservation();
+    if (this.initialized) this.state.waitUntil(this.queueObservationPublication());
   }
 
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
@@ -760,7 +777,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       ) {
         const input = await readCommand(request);
         const result = await this.command(input, now);
-        await this.publishObservation();
+        this.state.waitUntil(this.queueObservationPublication());
         return withCors(Response.json(result.receipt), origin);
       }
       return jsonResponse({ error: "not-found" }, 404, origin);

@@ -5,6 +5,19 @@ import { DatabaseSync } from "node:sqlite";
 import { openRegion } from "../../src/engine/region/index.ts";
 import { sqliteTestOwner } from "../../src/engine/region/sqlite-test-owner.mjs";
 import { clockRequest } from "./protocol.ts";
+import { advanceClockOccurrence } from "./clock-schedule.ts";
+
+test("late catchup advances one occurrence and keeps the scheduled cadence", () => {
+ const first = advanceClockOccurrence(17, 12_300);
+ assert.equal(first.sequence, 18);
+ assert.deepEqual(JSON.parse(first.request), { id:"clock-18", command:{kind:"step",delta:0.1} });
+ assert.equal(first.deadline, 12_400);
+ const second = advanceClockOccurrence(first.sequence, first.deadline);
+ assert.equal(second.sequence, 19);
+ assert.equal(second.deadline, 12_500);
+ assert.throws(() => advanceClockOccurrence(Number.MAX_SAFE_INTEGER, 0), /public-host-format/);
+ assert.throws(() => advanceClockOccurrence(0, Number.MAX_SAFE_INTEGER), /public-host-format/);
+});
 
 test("scheduled time survives sustained interleaved player revisions and lost receipt retry", () => {
  const db = new DatabaseSync(":memory:");
