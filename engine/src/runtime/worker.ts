@@ -126,7 +126,7 @@ export class WorkerRuntime {
       const previous = this.failure;
       this.failure = undefined;
       try {
-        const game = previous && this.accepted && this.packs[this.accepted.game];
+        const game = this.accepted && this.packs[this.accepted.game];
         if (!game) throw new Error("accepted game is unavailable");
         const started = this.replaceSession(game, this.seed);
         this.captureAccepted();

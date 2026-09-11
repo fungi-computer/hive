@@ -55,6 +55,9 @@ test("unrecoverable step keeps its first cause until explicit start", () => {
     runtime.command({ type: "reset" });
     assert.equal(events.filter((event) => event.type === "error").length, 2);
     assert.equal(created, 3);
+    runtime.command({ type: "step", delta: 0.1 });
+    const framesAfterReset = events.filter((event) => event.type === "frame");
+    assert.equal(framesAfterReset.at(-1)?.time, 0.1);
 
     runtime.command({ type: "start", game: "survival" });
     assert.equal(events.filter((event) => event.type === "ready").length, 2);
