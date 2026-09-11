@@ -79,7 +79,7 @@ function validateKeyList(keys: readonly unknown[]): asserts keys is readonly str
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
-  const airKeys = keys.filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
+  const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
   if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
     throw new Error("atmosphere record set is incomplete");
 }
@@ -112,7 +112,7 @@ function preflightRecords(records: readonly { readonly key: string; readonly byt
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
-  const airKeys = keys.filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
+  const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
   if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
     throw new Error("atmosphere record set is incomplete");
   const definition = records.find(record => record.key === ENVIRONMENT_KEYS[0]);
