@@ -261,3 +261,22 @@ or checkpoint must preserve failed-step rollback without making JSON the tick
 working representation. Durable Region/save exports still include all canonical
 water and gas state. This is a measured-workload target, not a landed optimization
 or permission to omit environmental state from saves.
+
+### First source checkpoint
+
+Shared ZzFX integration is local at `072e1d5`, with the original cannon tone
+recipes preserved. Root's actual-package sample/lifecycle tests passed 3/3 in
+u5344; scope inactive/dead/empty. A first sample assertion only checked nonzero
+and missed NaN; independent review found the missing upstream volume binding,
+which was corrected and the test now requires finite samples. No new sound
+deployment or listening acceptance is implied. Ordinary npm install encountered
+the existing optional React/keymap peer conflict; the retained legacy-peer install
+added only ZzFX and did not change the joined lockfile.
+
+Native water draft `8ce39e7` is preserved in `native-water`, not yet integrated or
+qualified. Root returned concrete admission, representability, compact identity,
+scratch reuse and test corrections to the same writer. All-face scanning remains
+explicit; active-frontier performance is not yet implemented. The gas source
+trace is retained in `.botanical/native-environment/gas-port-readiness.md`.
+The next acceptance is the corrected native water owner followed by the shared
+rollback/geometry/colony join, not a new standalone fluid demo.
