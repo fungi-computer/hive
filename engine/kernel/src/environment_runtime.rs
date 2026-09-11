@@ -138,6 +138,11 @@ impl KernelEnvironment {
     pub(super) fn advance(&mut self, seconds: f64, revision: u64) -> Result<EnvironmentStep, String> {
         if seconds == 0.0 { return Ok(EnvironmentStep { water: WaterStep::Paused, air: None }); }
         let prepared = self.world.prepare_water_advance(seconds)?;
+        if !self.world.prepared_water_changes_stock(&prepared)? {
+            let water = self.world.apply_water_advance(prepared)?;
+            let receipt = self.advance_emissions(seconds, revision)?;
+            return Ok(EnvironmentStep { water: WaterStep::Applied { work: water }, air: receipt });
+        }
         let air = if let Some(air) = &self.atmosphere {
             let snapshot = self.world.prepared_water_air_geometry(&prepared, air.config().bounds())?;
             match air.prepare_rebind(&snapshot)? {

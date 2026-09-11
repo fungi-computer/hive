@@ -339,6 +339,15 @@ impl TerrainWater {
         Ok(PreparedWaterAdvance { state: next.state, work: next.work,
             owner: self.owner.clone(), epoch: self.epoch })
     }
+    /// Stock equality proves that this water-only proposal cannot change free
+    /// air space. This bounded check avoids querying the whole air domain on
+    /// quiet ticks; it never substitutes for terrain/structure invalidation.
+    pub(crate) fn prepared_water_changes_stock(&self, prepared: &PreparedWaterAdvance) -> Result<bool, String> {
+        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
+            return Err("prepared water advance is stale or foreign".into());
+        }
+        Ok(self.state.masses() != prepared.state.masses())
+    }
     pub(crate) fn prepared_water_air_geometry(&mut self, prepared: &PreparedWaterAdvance, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query_water(self, prepared, bounds)
     }
