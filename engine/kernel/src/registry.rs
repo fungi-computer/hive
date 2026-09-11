@@ -129,6 +129,7 @@ impl Registry {
                     ("penetration", FieldType::Number),
                 ],
             ),
+            ("hive.emitter", vec![("catalog", FieldType::String)]),
             (
                 "hive.projectile",
                 vec![
@@ -187,6 +188,7 @@ impl Registry {
                 "hive.collider" => world.register_component::<Collider>(),
                 "hive.impact-material" => world.register_component::<ImpactMaterial>(),
                 "hive.launcher" => world.register_component::<Launcher>(),
+                "hive.emitter" => world.register_component::<Emitter>(),
                 "hive.projectile" => world.register_component::<Projectile>(),
                 "hive.visual" => world.register_component::<Visual>(),
                 _ => {
@@ -229,6 +231,7 @@ impl Registry {
                 | "hive.collider"
                 | "hive.impact-material"
                 | "hive.launcher"
+                | "hive.emitter"
                 | "hive.projectile"
                 | "hive.visual"
         )
@@ -394,6 +397,12 @@ impl Registry {
                     return Err("invalid launcher".into());
                 }
             }
+            "hive.emitter" => {
+                let emitter: Emitter = decode(value)?;
+                if !valid_id(&emitter.catalog) {
+                    return Err("invalid emitter".into());
+                }
+            }
             "hive.projectile" => {
                 let projectile: Projectile = decode(value)?;
                 if !valid_id(&projectile.launcher)
@@ -490,6 +499,9 @@ impl Registry {
             "hive.launcher" => {
                 world.entity_mut(entity).insert(decode::<Launcher>(value)?);
             }
+            "hive.emitter" => {
+                world.entity_mut(entity).insert(decode::<Emitter>(value)?);
+            }
             "hive.projectile" => {
                 world.entity_mut(entity).insert(decode::<Projectile>(value)?);
             }
@@ -526,6 +538,7 @@ impl Registry {
             "hive.collider" => world.get::<Collider>(entity).map(record),
             "hive.impact-material" => world.get::<ImpactMaterial>(entity).map(record),
             "hive.launcher" => world.get::<Launcher>(entity).map(record),
+            "hive.emitter" => world.get::<Emitter>(entity).map(record),
             "hive.projectile" => world.get::<Projectile>(entity).map(record),
             "hive.visual" => world.get::<Visual>(entity).map(record),
             _ => {

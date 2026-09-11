@@ -158,6 +158,11 @@ pub struct Launcher {
     pub penetration: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Emitter {
+    pub catalog: String,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Projectile {
     pub launcher: String,
@@ -320,6 +325,7 @@ pub enum Action {
         facing: Option<f64>,
     },
     BeginDirect { entity: String, stream: String },
+    BeginEmission { worker: String, station: String },
     DirectInput { entity: String, stream: String, inputs: Vec<DirectInput> },
     Transfer {
         lot: String,
