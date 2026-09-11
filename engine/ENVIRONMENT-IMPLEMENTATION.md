@@ -704,6 +704,32 @@ frontiers; silent timestep dropping is not a performance optimization.
 
 ## 6. Digging, building, vessels and fire are compound operations
 
+### September 11 implementation boundary: wet excavation
+
+The first TerrainWater excavation test retains pore water at the opened cell.
+That proves local conservation, but does **not** implement the wet-spoil rule
+below. The Colony caller must not treat that primitive as completed paid digging.
+
+The current implementation order is a shared native lot-carried-water component
+and ordinary split/transfer support, then a detached field withdrawal joined with
+terrain replacement and finite yield admission. Water credited to spoil comes from
+the actual represented field debit. Both sides reject an unrepresentable change;
+a whole-lot move preserves its carried amount exactly. Wet consumption remains
+unavailable until a real destination or process owns the water. Dry food behavior
+stays on the existing consumer. These source changes are not yet qualified or live.
+
+Completion must preflight actor work/reach, output custody/capacity, entity identity
+and state budget, terrain revision and field replacement before publishing any
+physical change. Insufficient output space leaves earned progress waiting. The
+existing Region transaction owns durable commitment and replay; an animation or
+TypeScript job flag cannot independently credit spoil.
+
+Scope remains the roughly 64×64 generated playable Colony, with bounded active
+water cells. This material work does not enlarge detailed simulation to every
+underground cell, reseed drained groundwater, introduce a second inventory, or
+qualify Rust smoke. Rust smoke and the three usable building levels remain required
+later checkpoints of the same sprint.
+
 ```rust
 fn prepare_completion(view: &View, job: &Completion) -> PreparedOrWaiting {
     let edit = view.geometry.prepare(job.edit)?;

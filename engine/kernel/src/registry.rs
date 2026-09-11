@@ -57,6 +57,7 @@ impl Registry {
                     ("container", FieldType::Entity),
                 ],
             ),
+            ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
             (
                 "hive.destination",
                 vec![
@@ -166,6 +167,7 @@ impl Registry {
                 "hive.body" => world.register_component::<Body>(),
                 "hive.container" => world.register_component::<Container>(),
                 "hive.lot" => world.register_component::<Lot>(),
+                "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.destination" => world.register_component::<Destination>(),
                 "hive.support" => world.register_component::<Support>(),
                 "hive.surface" => world.register_component::<Surface>(),
@@ -203,6 +205,7 @@ impl Registry {
                 | "hive.body"
                 | "hive.container"
                 | "hive.lot"
+                | "hive.lot-water"
                 | "hive.destination"
                 | "hive.support"
                 | "hive.surface"
@@ -272,6 +275,12 @@ impl Registry {
                 let lot: Lot = decode(value)?;
                 if !valid_id(&lot.kind) {
                     return Err("invalid lot".into());
+                }
+            }
+            "hive.lot-water" => {
+                let water: LotWater = decode(value)?;
+                if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
+                    return Err("invalid carried water mass".into());
                 }
             }
             "hive.collider" => {
@@ -405,6 +414,9 @@ impl Registry {
             "hive.lot" => {
                 world.entity_mut(entity).insert(decode::<Lot>(value)?);
             }
+            "hive.lot-water" => {
+                world.entity_mut(entity).insert(decode::<LotWater>(value)?);
+            }
             "hive.destination" => {
                 world
                     .entity_mut(entity)
@@ -452,6 +464,7 @@ impl Registry {
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.container" => world.get::<Container>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
+            "hive.lot-water" => world.get::<LotWater>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),
             "hive.support" => world.get::<Support>(entity).map(record),
             "hive.surface" => world.get::<Surface>(entity).map(record),

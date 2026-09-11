@@ -50,6 +50,10 @@ export const MaterialLot = component<{
   version: 1,
   fields: { quantity: "number", kind: "string", container: "entity" },
 });
+export const LotWater = component<{ waterKg: number }>("hive.lot-water", {
+  version: 1,
+  fields: { waterKg: "number" },
+});
 export const Destination = component<{
   x: number;
   y: number;
