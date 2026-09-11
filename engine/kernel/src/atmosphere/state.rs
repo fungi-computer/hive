@@ -1,6 +1,18 @@
 use super::*;
 
 impl CompiledAtmosphere {
+    pub(crate) fn saved_definition(bytes: &[u8]) -> Result<AtmosphereDefinition, String> {
+        if bytes.len() > MAX_STATE_BYTES {
+            return Err("atmosphere state exceeds byte bound".into());
+        }
+        let (version, definition, _): (u16, AtmosphereDefinition, AtmosphereState) =
+            postcard::from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
+        if version != STATE_VERSION {
+            return Err("unsupported atmosphere state version".into());
+        }
+        Ok(definition)
+    }
+
     pub(super) fn envelope_valid(&self, index: usize, parcel: &AtmosphereParcel) -> bool {
         let temperature = self.temperature(index, parcel);
         let pressure = self.pressure(index, parcel);

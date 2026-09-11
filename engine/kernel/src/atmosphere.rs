@@ -235,6 +235,7 @@ mod geometry;
 pub use geometry::{project as project_geometry, AirAtmosphereGeometry, UnmodeledWaterPolicy};
 mod definition;
 mod rebind;
+pub use rebind::{rebind as rebind_geometry, AtmosphereRebindReceipt, AtmosphereRebindResult, RebindBlockReason};
 #[cfg(test)]
 mod rebind_tests;
 mod exchange;
