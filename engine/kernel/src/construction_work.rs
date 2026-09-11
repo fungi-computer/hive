@@ -42,7 +42,7 @@ impl Kernel {
             distance.is_finite() && distance <= 1.5
         })
     }
-    fn validate_construction_sites(&self) -> Result<()> {
+    pub(super) fn validate_construction_sites(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         let mut workers = BTreeSet::new();
         let geometry_instances = environment.world.structure_instances();
@@ -96,7 +96,7 @@ impl Kernel {
         }
         Ok(())
     }
-    fn plan_construction(&mut self, catalog: String, site: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal, contact: Point) -> Result<()> {
+    pub(super) fn plan_construction(&mut self, catalog: String, site: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal, contact: Point) -> Result<()> {
         if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
         if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
         let environment = self.environment.as_ref().ok_or("construction needs environment")?;
@@ -116,7 +116,7 @@ impl Kernel {
         self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site, BTreeSet::new()); self.state_weight += added;
         Ok(())
     }
-    fn attend_construction(&mut self, worker: &str, site: &str) -> Result<()> {
+    pub(super) fn attend_construction(&mut self, worker: &str, site: &str) -> Result<()> {
         let worker_entity = self.entity(worker)?;
         let site_entity = self.entity(site)?;
         let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
@@ -176,7 +176,7 @@ impl Kernel {
         self.state_weight += marker_weight;
         Ok(true)
     }
-    fn advance_construction(&mut self, delta: f64) -> Result<()> {
+    pub(super) fn advance_construction(&mut self, delta: f64) -> Result<()> {
         if delta == 0.0 { return Ok(()); }
         let mut query = self.ecs.query::<(&ExternalId, &ConstructionSite)>();
         let mut pending: Vec<_> = query.iter(&self.ecs).map(|(id, site)| (id.0.clone(), site.clone())).collect();
