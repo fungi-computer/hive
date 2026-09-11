@@ -231,7 +231,7 @@ fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
 }
 
 mod geometry;
-pub use geometry::{AirAtmosphereGeometry, UnmodeledWaterPolicy};
+pub use geometry::{project as project_geometry, AirAtmosphereGeometry, UnmodeledWaterPolicy};
 mod definition;
 mod exchange;
 mod state;
