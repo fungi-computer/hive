@@ -1,3 +1,4 @@
+import { drawEnvironmentEffects } from "./environment-effects.js";
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPoint, terrainHit, terrainPlaneCell } from "./geometry.js";
@@ -76,6 +77,7 @@ export function createHiveClient({
     presentationFacts: [],
     presentationControls: [],
     terrainMarks: [],
+    environmentVisuals: [],
     view: createWorldView(worldView),
     aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
     message: runtime
@@ -179,6 +181,8 @@ export function createHiveClient({
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
   const terrainMarksGraphic = new Graphics();
+  const environmentGraphic = new Graphics();
+  environmentGraphic.eventMode = "none";
   const aimGraphic = new Graphics();
   const aimArcGraphic = new Graphics();
   const placementGraphic = new Graphics();
@@ -229,6 +233,7 @@ export function createHiveClient({
     state.presentationFacts = [];
     state.presentationControls = [];
     state.terrainMarks = [];
+    state.environmentVisuals = [];
     terrainFrame = undefined;
     terrainProjection.update(undefined, state.view, undefined);
     terrainLayer.update(undefined, undefined);
@@ -591,7 +596,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, transientLayer);
+      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, environmentGraphic, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -604,6 +609,10 @@ export function createHiveClient({
     terrainLayer.position(camera);
     terrainMarksGraphic.clear();
     const displayedTerrain = displayedTerrainFrame();
+    drawEnvironmentEffects(environmentGraphic, state.environmentVisuals, {
+      project, camera, now,
+      maxY: state.view.cutaway ? (state.view.level + 1.5) * (displayedTerrain?.verticalMetres ?? 1) : Infinity,
+    });
     if (state.terrainMarks.length > 0 && displayedTerrain) {
       if (markSurfaceSource !== displayedTerrain.surfaces) {
         markSurfaceSource = displayedTerrain.surfaces;
@@ -1212,6 +1221,7 @@ export function createHiveClient({
           gesture.send({ type: "CANCEL" });
           state.selectedIds = [];
           state.terrainMarks = [];
+    state.environmentVisuals = [];
           exitAim();
           interpolation.reset(event.epoch);
           pendingCues = [];
@@ -1267,6 +1277,7 @@ export function createHiveClient({
         state.presentationFacts = event.facts;
         state.presentationControls = event.controls;
         state.terrainMarks = event.terrainMarks;
+        state.environmentVisuals = event.environmentVisuals;
         renderHud();
       }
       if (event.type === "results" && event.results.some((result) =>
