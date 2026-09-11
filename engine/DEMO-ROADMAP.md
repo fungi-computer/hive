@@ -727,7 +727,10 @@ Public Colony now has Rust-generated terrain and rectangular wet digging
 construction/supply continuation is source-only: native staged construction and
 shared work assignment are under qualification. It is not yet a playable
 three-level building or the complete production-job system. Rust room smoke
-remains an unfinished join. Preserve these distinctions when reporting progress.
+remains an unfinished join. The original stair builder now has a four-cell run
+for the four-voxel storey, with four directional bake entries; this is source-only
+until the original-art export is rendered and inspected. Existing deployed art
+banks remain unchanged. Preserve these distinctions when reporting progress.
 
 ### Standing production jobs — Levi clarification, September 11
 
