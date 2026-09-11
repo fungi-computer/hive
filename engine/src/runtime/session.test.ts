@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { GameSession } from "./session";
 import { command, entity } from "../sdk/authoring";
 import { Position, Support, Surface } from "../sdk/common";
+import { checkedAction } from "./actions";
 import type {
   AssignmentCandidate,
   ActionRequest,
@@ -44,7 +45,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private json = JSON.stringify({
     format: "hive-kernel",
-    version: 3,
+    version: 4,
     revision: 0,
     time: 0,
     scene: {
@@ -109,7 +110,7 @@ class TestPort implements KernelPort {
     this.json = JSON.stringify(state);
     return {
       format: "hive-kernel",
-      version: 3,
+      version: 4,
       revision: this.revision,
       time: state.time,
       json: this.json,
@@ -134,6 +135,20 @@ class TestPort implements KernelPort {
     return candidates.slice(0, 128);
   }
 }
+
+test("direct input admission is bounded, strict, and detached", () => {
+  const action = checkedAction({
+    kind: "direct-input",
+    entity: "survival.survivor.1",
+    stream: "survivor-main",
+    inputs: [{ sequence: 1, x: 0.5, z: -1 }],
+  });
+  assert.equal(action.kind, "direct-input");
+  assert.throws(() => checkedAction({ ...action, stream: "" }), /invalid action/);
+  assert.throws(() => checkedAction({ ...action, inputs: [{ sequence: 0, x: 0, z: 0 }] }), /invalid action/);
+  assert.throws(() => checkedAction({ ...action, inputs: [{ sequence: 1, x: 2, z: 0 }] }), /invalid action/);
+  assert.throws(() => checkedAction({ ...action, extra: true }), /invalid action fields/);
+});
 
 function pack(
   port: KernelPort,

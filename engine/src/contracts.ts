@@ -78,6 +78,13 @@ export type WriteIntent = {
   readonly value: unknown;
 };
 export type ActionRequest =
+  | { readonly kind: "begin-direct"; readonly entity: EntityId; readonly stream: string }
+  | {
+      readonly kind: "direct-input";
+      readonly entity: EntityId;
+      readonly stream: string;
+      readonly inputs: readonly { readonly sequence: number; readonly x: number; readonly z: number }[];
+    }
   | { readonly kind: "launch"; readonly launcher: EntityId; readonly ammunition: EntityId; readonly velocity: Vec3 }
   | { readonly kind: "displace"; readonly entity: EntityId; readonly delta: Vec3 }
   | {
@@ -180,10 +187,18 @@ export interface RenderFact {
   readonly visual?: string | null;
   readonly label?: string | null;
   readonly selected?: boolean;
+  readonly direct?: {
+    readonly stream: string;
+    readonly lastQueued: number;
+    readonly lastProcessed: number;
+    readonly speed: number;
+    readonly blocked: readonly [number, number, number][];
+    readonly bounds: null | { readonly min_x: number; readonly max_x: number; readonly min_z: number; readonly max_z: number };
+  };
 }
 export interface KernelSnapshot {
   readonly format: "hive-kernel";
-  readonly version: 3;
+  readonly version: 4;
   readonly revision: number;
   readonly time: number;
   readonly json: string;
