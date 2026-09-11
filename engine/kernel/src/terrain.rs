@@ -598,7 +598,7 @@ mod tests {
                 for y in 0..16 {
                     let cell = Cell { x, y, z };
                     let index =
-                        (y * 16 + z.rem_euclid(16)) as usize * 16 + x.rem_euclid(16) as usize;
+                        (y as usize * 16 + z.rem_euclid(16) as usize) * 16 + x.rem_euclid(16) as usize;
                     assert_eq!(terrain.query(cell).unwrap(), page[index]);
                 }
             }
@@ -671,6 +671,7 @@ mod tests {
         let prepared = terrain
             .prepare_replacement(cell, current, replacement)
             .unwrap();
+        let PrepareResult::Prepared(prepared) = prepared else { panic!("fixture replacement must be admitted") };
         terrain.apply(prepared).unwrap();
         let bytes = terrain.export().unwrap();
         assert!(
