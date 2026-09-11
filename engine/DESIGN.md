@@ -595,10 +595,18 @@ are optional future host work, not assumed performance in the current demos.
 Large RTS capacity still requires measured movement, collisions, rule execution
 and networking workloads; neither Bevy adoption nor Rust compilation proves it.
 
-Each active region has one authority for tightly interacting bodies, items,
-terrain and fields. Do not distribute water, gas and jobs into separate network
-services. Rendering clients submit permitted actions and receive committed
-observations; they do not settle online physical effects themselves.
+September 11 correction after Levi's cluster/thread challenge: **one physical
+commit owner does not require all calculations to run in one DO or thread.**
+Design substantial computations around explicit versioned inputs and prepared
+outputs so the host can place them locally, on native threads or on other DOs.
+Use cached immutable geometry and batched work, not per-cell RPC. The
+[execution-placement contract](ENVIRONMENT-IMPLEMENTATION.md#2b-compute-placement-is-separate-from-state-authority)
+supersedes the former blanket ban on subsystem distribution. Separate committed
+movement/terrain authorities are possible but need an explicit consistency and
+failure protocol; a broadcaster alone does not establish it. The first useful
+split keeps physical commitment under the existing Region while parallelizing
+expensive computation. Rendering clients receive committed observations and
+cannot settle online physical effects themselves.
 
 Use the existing Region/Watchdog/host lessons: durable command identity, input
 binding, revision checks, atomic state/result/event commitment, and explicit

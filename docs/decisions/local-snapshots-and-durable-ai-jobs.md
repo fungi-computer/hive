@@ -39,9 +39,15 @@ A local save is not authenticated multiplayer history; existing anonymous data
 remains recoverable without silently importing it into a competitive world.
 
 Spatial simulation regions are distinct from render chunks and stored pages.
-Keep tightly interacting terrain, actors, items and fields under one region
-owner. Do not split water, gas and work into separate network services. The
-first region covers the playable clearing and its supported vertical extent;
+Keep a coherent commitment for interacting terrain, actors, items and fields.
+Levi's September 11 clarification supersedes the former categorical ban on
+subsystem distribution: **computation may run on multiple DOs or native threads
+while one Region owns acceptance**, using versioned inputs/prepared results.
+See the [fresh execution-placement contract](../../engine/ENVIRONMENT-IMPLEMENTATION.md#2b-compute-placement-is-separate-from-state-authority).
+Splitting committed state authority itself is also possible, but requires an
+explicit cross-owner consistency/recovery contract. It is not supplied by a
+client broadcaster or assumed atomic SQL across DOs. The first region covers
+the playable clearing and its supported vertical extent;
 do not choose a large-world region size from unmeasured admission limits.
 Separate region owners may advance concurrently, but inter-region transfers
 still need scoped identities, current boundary admission and one custody record.

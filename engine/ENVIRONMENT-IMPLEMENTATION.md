@@ -265,6 +265,140 @@ The practical order is bounded resident colony first, cold-page revisiting next,
 then an actual two-owner handoff. World-scale distribution is achievable design
 work, not a capability proved by today's four small DO demos.
 
+## 2b. Compute placement is separate from state authority
+
+Levi's September 11 correction: an army-movement DO, terrain DO and coordinating
+DO are a legitimate architecture to evaluate. The same boundaries can enable
+native threads. King's earlier blanket prohibition on splitting subsystems was
+too restrictive and is superseded. **Distributed calculation can accelerate
+one battle; distributing independent geographic regions is not the only option.**
+The payoff depends on compute saved, communication, stale work and actual host
+parallelism. None has been measured for this engine's clustered workload yet.
+
+Distinguish two decisions:
+
+1. **Where calculation happens.** Other DOs/threads can compute formation
+   assignment, routes, terrain generation, navigation fields or environmental
+   proposals from checked inputs. The existing Region accepts physical changes.
+2. **Where committed state belongs.** A movement owner and terrain owner could
+   commit their own state, but interacting updates then need a defined causal
+   order, durable coordination and recovery. It is possible; it is additional
+   work, not something an orchestrator solves by broadcasting the latest values.
+
+Choose the first for the initial clustered consumer. It preserves our existing
+receipt/physical-effect owner while allowing substantial work elsewhere. It is
+not a requirement that the coordinator re-run each expensive calculation. It
+checks the result contract, relevant current facts and conservation/admission
+bounds; it applies the prepared result once. DO workers are trusted engine code,
+not arbitrary player scripts claiming to have computed a valid physical result.
+
+| RTS role | Work placement and data |
+| --- | --- |
+| Region/match coordinator | Command order, stable actor/item authority, accepting prepared effects, durable results; bounded hot contact/geometry facts |
+| Movement/planning workers | Joint assignment, route/formation plans, potentially partitioned movement proposals once their collision dependency is explicit; cached relevant terrain/navigation data |
+| Terrain/environment workers | Deterministic generation, dirty navigation geometry, later bounded water/gas proposals; reuse revisioned input pages |
+| Presentation delivery | Route committed visible updates to subscribed clients; can be separated when actual fan-out merits it, without owning simulation |
+
+Movement must not make a network request to the terrain owner for each footstep
+or collision test. Give the worker a bounded read-only terrain projection and
+changes since its last version. Local collision/contact acceptance may still
+need that same small geometry working set in the Region. Do not copy an entire
+world to every worker or expect zero duplication of read-only data.
+
+The concrete conflict example is a bridge destroyed while an army route is being
+calculated. The route result carries the bridge/page version it read. If that
+dependency changed, reject/revalidate the affected route before it authorizes
+movement. Positions based on the old bridge and destruction from the new frame
+must not be presented as one coherent committed result. A remote timeout is a
+missing proposal, not permission to invent movement or repeat a physical effect.
+
+```rust
+// Conceptual shape over existing native functions, not a new job DSL/scheduler.
+fn calculate(input: &CheckedInput, scratch: &mut Scratch) -> PreparedResult;
+struct ReadStamp { key: ResourceKey, generation: u64 }
+struct PreparedResult {
+    task: TaskId,
+    algorithm_and_content: Version,
+    reads: Vec<ReadStamp>,
+    output: TypedOutput,
+}
+```
+
+Keep world-local Bevy handles/borrowed JS callbacks out of this transportable
+input/output. Stable IDs and typed records cross the boundary. Compile immutable
+definition data once and use references/version IDs thereafter. The same Rust
+function runs inline, against shared immutable native data on a thread, or with
+bounded decoded data in a DO. Local execution must not pay mandatory JSON/RPC
+serialization merely because a remote executor is supported. TypeScript game
+rules remain the existing scoped intent/definition interface.
+
+Native host execution can use scoped Rust work/tasks and Bevy scheduling where
+their access rules fit. Independent tasks read immutable geometry and have
+separate scratch/output. Declare reads/writes, partition work without conflicting
+mutations, and merge in stable logical order rather than thread completion order.
+Parallel speedup is available only for independent stages; terrain alteration
+followed by collision on that alteration is an actual ordering dependency.
+Browser/DO hosts may run tasks sequentially or via separate Workers/DOs. This does
+not assume shared-memory WASM threads or that each DO ID receives its own core.
+Rust scoped threads support borrowing data within an explicit lifetime;
+[the native thread contract](https://doc.rust-lang.org/stable/std/thread/fn.scope.html)
+is a reference for a local placement. Cloudflare documents that multiple DOs
+may share an isolate; [object placement is not a per-object core guarantee](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/).
+
+Use the current `assign::optimize` as the first real compute boundary. It already
+accepts bounded stable worker/task IDs and finite costs independently of Kernel.
+Keep it in Rust. Authoritative assignment still checks eligibility, claims and
+capacity before committing. Route planning is another candidate once its current
+position/frame/bounds/blocked inputs are separated from installation of the route.
+Do not substitute an artificial sleeping job or an idle-pawn benchmark.
+
+Validity belongs to the operation: generator output is bound to seed/version/
+coordinate; assignment is bound to admitted candidates/policy and current claims;
+routes depend on their corridor and actor/order generation. Do not reject every
+calculation merely because an unrelated world revision advanced. Conversely,
+do not keep stale results just to improve benchmark numbers. Define allowed
+age/revalidation when an approximate planning input, such as worker distance,
+can legitimately be older than the final assignment. Exact physical integration
+requires its declared time/base state; it cannot use the planning exception.
+
+An accepted long-running calculation has a durable task identity, selected input
+identity and due/retry obligation at its owning host. Recomputable worker caches
+need not be independently durable. Duplicate/late results are fenced by task,
+owner generation and input identity. Only accepted results settle physical state.
+Coalescing/superseding obsolete route requests is allowed; silently dropping an
+acknowledged construction/transfer obligation is not. Reuse the existing Region
+and applicable Watchdog capabilities rather than invent a general scheduler.
+
+For the literal independently authoritative movement/terrain variant, first
+choose the semantics: immutable terrain versions with scheduled effective time,
+or staged per-participant updates with a durable coordinator decision. In the
+latter, participants preserve preparation before the decision, retry application
+idempotently afterward, and the client sees only an accepted coherent revision.
+No participant may expose a prepared result as committed or roll back a durable
+commit decision merely because another participant is temporarily unreachable.
+This may introduce a local barrier and temporary unavailability. It is not a
+global world tick and is not currently supplied by our one-Region SQLite proof.
+
+Memory relief and compute relief are different. Remote calculation alone may
+reduce CPU while duplicating some inputs. A genuinely large authority split needs
+partitioned durable pages plus bounded validation/projection at the coordinator;
+otherwise all positions/fields still pass through the same bottleneck. Do not
+promise that a thin-looking coordinator has unlimited commit or fan-out capacity.
+
+First qualification compares the **same actual formation/route workload** inline
+and on another DO, including input transfer, cache warm/cold behavior, useful
+completion latency, coordinator CPU, stale results and peak memory. A host with
+real native parallel execution can qualify the same functions on threads as a
+separate supported placement. Shipping either host is not started by this plan.
+Separate DOs may share placement/execution resources: confirm actual parallelism;
+the object count itself is not a core count. Coarse batches and cached inputs make
+remote execution plausible; tiny per-entity RPCs can cost more than the arithmetic.
+
+The architecture requirement is now to preserve these scheduling boundaries as
+the native environment is built, without requiring distribution to land the
+first wet colony. Keep topology remap and compound admission explicit, so their
+calculation can move later without moving mutation authority accidentally.
+
 ## 3. One native world generator, with geology underneath the landscape
 
 Port the retained height/sea/cave arithmetic into Rust; retain the approved
