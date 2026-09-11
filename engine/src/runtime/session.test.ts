@@ -49,6 +49,8 @@ class TestPort implements KernelPort {
     revision: 0,
     time: 0,
     scene: {
+      format: "hive-game",
+      version: 1,
       game: "colony",
       initial: [],
       routes: [],
