@@ -366,19 +366,38 @@ impl Kernel {
                 let spacing = environment.world.cell_spacing_m();
                 let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
                     let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
-                    if !values.iter().all(|value| value.is_finite()) {
+                    if !values.iter().all(|value| value.is_finite() && *value >= f64::from(i32::MIN) && *value <= f64::from(i32::MAX)) {
                         return Err("terrain route metric position is not finite".into());
                     }
                     Ok(crate::generation::Cell { x: values[0].round() as i64, y: values[1].round() as i32, z: values[2].round() as i64 })
                 };
                 let start_point = navigation::point(start);
-                let start_cell = to_cell(&start_point)?;
+                let mut start_cell = to_cell(&start_point)?;
                 let destination_cell = to_cell(destination)?;
                 let config = crate::terrain_traversal::TraversalConfig {
                     spacing,
                     clearance_cells: capability.clearance_cells,
                     max_step_cells: capability.max_step_cells,
                 };
+                let centered = |cell: crate::generation::Cell| Point { x:cell.x as f64*spacing[0], y:(f64::from(cell.y)+0.5)*spacing[1], z:cell.z as f64*spacing[2], frame:None };
+                let mut prefix = Vec::new();
+                let mut history = Vec::new();
+                let mut origin = start_point.clone();
+                if start_point != centered(start_cell) {
+                    let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
+                    let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
+                    let mut join = None;
+                    for (point_index,point) in remaining.iter().enumerate() {
+                        if let Some(cell_index) = previous.path.iter().position(|cell| centered(*cell) == *point) {
+                            join = Some((point_index,cell_index)); break;
+                        }
+                    }
+                    let (point_index,cell_index) = join.ok_or("route has no next support waypoint")?;
+                    prefix.extend(remaining.iter().take(point_index+1).cloned());
+                    history.extend_from_slice(&previous.path[..=cell_index]);
+                    start_cell = previous.path[cell_index];
+                    origin = previous.origin.clone();
+                }
                 let mut query = |cell| match environment.world.material(cell) {
                     Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial {
                         solid: !environment.world.is_open_material(material),
@@ -395,16 +414,25 @@ impl Kernel {
                         blocked.contains(&(x, y, z))
                     })
                 };
-                let path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
+                let mut path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
                 let mut points = crate::terrain_route::waypoints(&path, config)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
-                if points.len() > 1 { points.remove(0); }
+                if points.len() > 1 || !prefix.is_empty() { points.remove(0); }
+                if !history.is_empty() {
+                    history.extend_from_slice(&path[1..]);
+                    path = history;
+                    prefix.extend(points);
+                    points = prefix;
+                }
+                if points.len() > 4096 || crate::terrain_route::waypoints(&path,config)?.len() > 4096 {
+                    return Err("terrain route waypoint budget exceeded".into());
+                }
                 let terrain_revision = environment.world.terrain_revision();
                 let terrain = TerrainRouteState {
                     path,
                     revision: Some(terrain_revision),
                     waiting: false,
-                    origin: start_point,
+                    origin,
                     target: points.first().cloned(),
                 };
                 return Ok(PreparedRoute { points: points.into_iter().collect(), terrain: Some(terrain) });
@@ -1773,6 +1801,7 @@ impl Kernel {
         let points = crate::terrain_route::waypoints(&state.path, crate::terrain_traversal::TraversalConfig {
             spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells,
         })?;
+        if points.len() > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
         let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
             .ok_or("invalid terrain route progress")?;
         if !route.iter().eq(points[offset..].iter()) || state.origin != points[offset - 1]

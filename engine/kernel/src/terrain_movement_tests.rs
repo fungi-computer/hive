@@ -135,3 +135,23 @@ fn terrain_kernel_direct_control_cannot_bypass_walking_geometry() {
     assert!(kernel.apply_action(Action::BeginDirect{entity:"walker".into(),stream:"test".into()},0.0).is_err());
     assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
 }
+
+#[test]
+fn terrain_kernel_mid_climb_redirect_preserves_pose_and_recovers() {
+    let (mut kernel,target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    let original = navigation::point(*kernel.ecs.get::<Position>(actor).unwrap());
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let before = *kernel.ecs.get::<Position>(actor).unwrap();
+    kernel.apply_action(Action::Move{entity:"walker".into(),destination:original.clone(),facing:None},0.0).unwrap();
+    let after = kernel.ecs.get::<Position>(actor).unwrap();
+    assert_eq!((before.x,before.y,before.z),(after.x,after.y,after.z));
+    for _ in 0..35 {
+        let mut recovered = Kernel::new();
+        recovered.restore_records(&kernel.save_records().unwrap()).unwrap();
+        recovered.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap();
+        kernel = recovered;
+    }
+    let pose = kernel.ecs.get::<Position>(kernel.entity("walker").unwrap()).unwrap();
+    assert_eq!((pose.x,pose.y,pose.z),(original.x,original.y,original.z));
+}
