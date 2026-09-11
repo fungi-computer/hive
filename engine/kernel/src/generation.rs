@@ -236,6 +236,12 @@ impl<'a> WorldSpec<'a> {
 }
 
 impl CompiledWorld {
+    pub fn vertical_metres(&self) -> f64 {
+        self.vertical_metres
+    }
+    pub fn material_slots(&self) -> MaterialSlots {
+        self.slots
+    }
     fn field(&self, x: f64, z: f64, footprint: f64, kind: FieldKind) -> f64 {
         const OCTAVES: [(f64, f64, &str, &str); 6] = [
             (1024.0, 0.56, "elevation-broad", "groundwater-broad"),
