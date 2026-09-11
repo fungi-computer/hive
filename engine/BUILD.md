@@ -808,3 +808,24 @@ Terrain navigation, generated-ground spawn placement and the playable Colony
 join are still outstanding. No new build or deployment was performed for this
 checkpoint. Public c5138fc remains unchanged. The full geometry wire payload is
 currently repeated and is under source review before enabling the 64×64 consumer.
+
+### Terrain traversal and route source qualification
+
+Root first-shape review rejected the original traversal packet's insufficient
+step-up head clearance and invalid starting fixture. Corrected source integrated
+as `c047092`; no claim is made from the rejected version.
+
+- u5514 / invocation 97d2ad71d96e401aaf84c97a35ada01c: four native traversal
+  laws pass (deep metric support, up/down steps, overhead/hole rejection, explicit
+  query errors). Compile 63 seconds; tests 0.01 seconds. Scope inactive/dead/empty.
+- u5516 / invocation 3123cc10ed3149cc88604ee583c931ae: two native route-search
+  laws pass (deep one-step path and two-voxel cliff rejection). Compile 44 seconds;
+  tests below 0.01 seconds. Scope inactive/dead/empty.
+
+These timings are compiler/fixture timings, not pathfinding capacity or gameplay
+performance. `a6f500b` additionally authors piecewise rise/cross waypoints and a
+focused law; that delta has not yet run. Search is not yet called by Kernel
+movement (unused-function warning remains), and PreparedMaterialOutput's previous
+unused revision warning remains. The full native movement/route recovery caller
+join now has one isolated writer in terrain-movement; networking has a separate
+terrain-stream writer. Neither changes the public release yet.
