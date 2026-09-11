@@ -8,7 +8,7 @@ export interface PresentationControl {
   /** Add the current client selection as input.entities; admission remains game-owned. */
   readonly selection?: "entities";
   /** Arm a shared world-target gesture; admission remains game-owned. */
-  readonly target?: "terrain-cell" | "terrain-area";
+  readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
 }
 export function presentationCommand(
   control: PresentationControl,
@@ -43,10 +43,13 @@ export function presentationCommand(
     }),
   };
 }
-export interface TerrainCommandTarget {
+export type TerrainCommandTarget = {
   readonly cell: readonly [number, number, number];
   readonly material: number;
-}
+} | {
+  readonly cell: readonly [number, number, number];
+  readonly source: "structure";
+};
 
 /** Bind a published visible terrain target without granting edit permission. */
 export function terrainPresentationCommand(
@@ -54,10 +57,12 @@ export function terrainPresentationCommand(
   selected: readonly string[],
   target: TerrainCommandTarget,
 ) {
-  if (control.target !== "terrain-cell") throw new Error("control does not accept terrain");
+  if (control.target !== "terrain-cell" && control.target !== "world-surface") throw new Error("control does not accept surfaces");
+  const structure = "source" in target && target.source === "structure";
+  if (structure && control.target !== "world-surface") throw new Error("control requires terrain, not a structure");
   if (!Array.isArray(target.cell) || target.cell.length !== 3 ||
-      !target.cell.every(Number.isSafeInteger) || !Number.isSafeInteger(target.material) ||
-      target.material < 0 || target.material > 65535)
+      !target.cell.every(Number.isSafeInteger) || (!structure && (!("material" in target) || !Number.isSafeInteger(target.material) ||
+      target.material < 0 || target.material > 65535)))
     throw new Error("invalid terrain command target");
   const command = presentationCommand(control, selected);
   const input = command.input;
@@ -65,7 +70,7 @@ export function terrainPresentationCommand(
       Array.isArray(input) || "target" in input))
     throw new Error("terrain control requires object input without target");
   return { ...command, input: controlInput({ ...(input as object),
-    target: { cell: [...target.cell], material: target.material } }) };
+    target: { cell: [...target.cell], ...(structure ? { source: "structure" } : { material: (target as {material:number}).material }) } }) };
 }
 
 /** A compact designation, independent of the current worker selection. */
@@ -154,10 +159,10 @@ export function projectPresentation(
       throw new Error(`unknown presentation command ${command}`);
     if (control.selection !== undefined && control.selection !== "entities")
       throw new Error("invalid presentation selection binding");
-    if (control.target !== undefined && control.target !== "terrain-cell" && control.target !== "terrain-area")
+    if (control.target !== undefined && control.target !== "terrain-cell" && control.target !== "terrain-area" && control.target !== "world-surface")
       throw new Error("invalid presentation target binding");
     if (control.selection) presentationCommand(control, []);
-    if (control.target === "terrain-cell") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
+    if (control.target === "terrain-cell" || control.target === "world-surface") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
     if (control.target === "terrain-area") terrainAreaPresentationCommand(control, [], { start: [0, 0, 0], end: [0, 0, 0] });
     return Object.freeze({
       id,

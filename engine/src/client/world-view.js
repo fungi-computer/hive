@@ -28,7 +28,7 @@ export function toggleWorldCutaway(view, cutaway) {
 }
 
 export function terrainLevelRange(frame) {
-  const levels = (frame?.surfaces ?? []).map(({ cell }) => cell[1]).filter(integer);
+  const levels = [...(frame?.surfaces ?? []), ...(frame?.structureSurfaces ?? [])].map(({ cell }) => cell[1]).filter(integer);
   if (!levels.length) return { min: 0, max: 0 };
   return { min: Math.min(...levels), max: Math.max(...levels) };
 }
@@ -41,6 +41,7 @@ function filterTerrain(frame, view) {
   return {
     ...frame,
     surfaces,
+    structureSurfaces: frame.structureSurfaces.filter(({ cell }) => cell[1] <= view.level),
     water: frame.water.filter(({ at }) => at[1] <= view.level && columns.has(`${at[0]},${at[2]}`)),
   };
 }
@@ -51,6 +52,7 @@ export function createTerrainProjectionCache() {
   let key;
   let surfaces;
   let columns;
+  let structureSurfaces;
   let result;
   let lastFrame;
   return {
@@ -58,6 +60,7 @@ export function createTerrainProjectionCache() {
       if (!frame) {
         key = undefined;
         surfaces = undefined;
+        structureSurfaces = undefined;
         columns = undefined;
         result = undefined;
         lastFrame = undefined;
@@ -67,12 +70,13 @@ export function createTerrainProjectionCache() {
       if (nextKey === key && result && frame === lastFrame) return result;
       if (nextKey === key && result && view.cutaway) {
         lastFrame = frame;
-        result = { ...frame, surfaces, water: frame.water.filter(({ at }) => at[1] <= view.level && columns.has(`${at[0]},${at[2]}`)) };
+        result = { ...frame, surfaces, structureSurfaces, water: frame.water.filter(({ at }) => at[1] <= view.level && columns.has(`${at[0]},${at[2]}`)) };
         return result;
       }
       key = nextKey;
       if (!view.cutaway) {
         surfaces = frame.surfaces;
+        structureSurfaces = frame.structureSurfaces;
         columns = undefined;
         lastFrame = frame;
         result = frame;
@@ -80,6 +84,7 @@ export function createTerrainProjectionCache() {
       }
       const filtered = filterTerrain(frame, view);
       surfaces = filtered.surfaces;
+      structureSurfaces = filtered.structureSurfaces;
       columns = new Set(surfaces.map(({ cell }) => `${cell[0]},${cell[2]}`));
       lastFrame = frame;
       result = filtered;

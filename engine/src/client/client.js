@@ -450,7 +450,7 @@ export function createHiveClient({
                       size: "sm",
                       disabled: !state.ready,
                       onClick: () => {
-                        if (control.target === "terrain-cell" || control.target === "terrain-area") {
+                        if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
                           exitAim();
                           gesture.send({ type: "CANCEL" });
                           terrainArea.send({ type: "CANCEL" });
@@ -787,9 +787,10 @@ export function createHiveClient({
       if (!state.ready) return;
       const displayed = displayedTerrainFrame();
       const hit = displayed && terrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
-      const surface = hit?.kind === "terrain-top" && displayed.surfaces.find(({ cell }) => cell.every((value, index) => value === hit.column[index]));
+      const structure = hit?.kind === "structure-top";
+      const surface = (hit?.kind === "terrain-top" || (structure && targetControl.target === "world-surface")) && hit.surface;
       if (!surface) {
-        state.message = "Choose a visible terrain top";
+        state.message = targetControl.target === "world-surface" ? "Choose a visible ground or building surface" : "Choose a visible terrain top";
         renderHud();
         return;
       }
@@ -799,7 +800,7 @@ export function createHiveClient({
         draw();
         return;
       }
-      runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, material: surface.material }));
+      runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }));
       return;
     }
     if (isAiming()) {

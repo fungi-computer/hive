@@ -27,7 +27,7 @@ test('raised moving-deck picking preserves local coordinates through rotation', 
 
 test('terrain picking uses signed voxel elevation and rejects unpublished ground', () => {
   for (const cell of [[4,13,-3],[-12,-8,9]]) {
-    const terrain={verticalMetres:0.54,surfaces:[{cell,material:1}]};
+    const terrain={structureSurfaces: [], verticalMetres:0.54,surfaces:[{cell,material:1}]};
     const screen=project(cell[0],(cell[1]+0.5)*0.54,cell[2]);
     assert.deepEqual(terrainPoint(screen.x,screen.y,terrain),{
       cell,point:{x:cell[0],y:(cell[1]+0.5)*0.54,z:cell[2],frame:null}
@@ -38,7 +38,7 @@ test('terrain picking uses signed voxel elevation and rejects unpublished ground
 });
 
 test('visible cliff faces block selection of a lower top behind them', () => {
-  const terrain={verticalMetres:0.54,surfaces:[
+  const terrain={structureSurfaces: [], verticalMetres:0.54,surfaces:[
     {cell:[0,3,0],material:1},{cell:[-1,0,-2],material:1}
   ]};
   const side=project(0.5,1.55,0);
@@ -52,7 +52,21 @@ test('visible cliff faces block selection of a lower top behind them', () => {
 
 test('world camera can pick the near edge of the full generated map', () => {
   const cell=[31,13,31];
-  const terrain={verticalMetres:0.54,surfaces:[{cell,material:1}]};
+  const terrain={structureSurfaces: [], verticalMetres:0.54,surfaces:[{cell,material:1}]};
   const screen=project(31,13.5*0.54,31);
   assert.deepEqual(terrainPoint(screen.x,screen.y,terrain)?.cell,cell);
+});
+
+
+test('authored upper floors are pickable faces without invented earth skirts', () => {
+  const frame = { verticalMetres: 0.54, surfaces: [], structureSurfaces: [
+    { cell: [0, 4, 0] }, { cell: [0, 8, 0] },
+  ] };
+  const top = project(0, 8.5 * 0.54, 0);
+  const hit = terrainHit(top.x, top.y, frame);
+  assert.equal(hit.kind, "structure-top");
+  assert.deepEqual(hit.column, [0, 8, 0]);
+  assert.equal(hit.standingPoint.frame, null);
+  const below = project(0, 2, 0);
+  assert.equal(terrainHit(below.x, below.y, frame), null);
 });

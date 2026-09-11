@@ -146,3 +146,12 @@ test("terrain controls bind selected actors and copy the visible cell", () => {
   assert.throws(() => terrainPresentationCommand({ ...control, input: { target: {} } }, [], { cell, material: 2 }));
   assert.throws(() => terrainPresentationCommand(control, [], { cell: [0, NaN, 0], material: 2 }));
 });
+
+
+test("building surface controls preserve structure identity without fake earth material", () => {
+  const control = { id: "build", label: "Build", command: "greet", target: "world-surface" as const };
+  const target = { cell: [0, 8, 0] as const, source: "structure" as const };
+  assert.deepEqual(terrainPresentationCommand(control, [], target).input, { target });
+  assert.throws(() => terrainPresentationCommand({ ...control, target: "terrain-cell" }, [], target), /requires terrain/);
+  assert.equal(projectPresentation(pack({ controls: [control], inspect: () => [] }), context).controls[0].target, "world-surface");
+});

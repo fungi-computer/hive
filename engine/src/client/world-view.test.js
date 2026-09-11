@@ -33,7 +33,7 @@ test("projected unpickable subjects are excluded from point, box, and surface pa
 test("cutaway displays only published exterior columns at or below the selected level", () => {
   const frame = {
     revision: 4,
-    verticalMetres: 0.5,
+    structureSurfaces: [], verticalMetres: 0.5,
     surfaces: [
       { cell: [0, 3, 0], material: 1 },
       { cell: [1, 1, 0], material: 1 },
@@ -51,7 +51,7 @@ test("cutaway displays only published exterior columns at or below the selected 
 });
 
 test("terrain projection cache reuses surfaces while accepting newer water", () => {
-  const frame = { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [0, 1, 0], material: 1 }], water: [] };
+  const frame = { revision: 2, structureSurfaces: [], verticalMetres: 0.5, surfaces: [{ cell: [0, 1, 0], material: 1 }], water: [] };
   const cache = createTerrainProjectionCache();
   const view = toggleWorldCutaway(setTerrainLevelRange(createWorldView(), terrainLevelRange(frame), 1), true);
   const first = cache.update(frame, view, 3);
@@ -63,4 +63,16 @@ test("terrain projection cache reuses surfaces while accepting newer water", () 
   const changed = cache.update({ ...frame, revision: 3 }, view, 3);
   assert.notStrictEqual(changed.surfaces, first.surfaces);
   assert.equal(cache.update(undefined, view, 4), undefined);
+});
+
+
+test("cutaway retains lower authored floors and caches their surface identity", () => {
+  const frame = { revision: 7, verticalMetres: 0.54, surfaces: [], water: [],
+    structureSurfaces: [{ cell: [0, 4, 0] }, { cell: [0, 8, 0] }, { cell: [0, 12, 0] }] };
+  assert.deepEqual(terrainLevelRange(frame), { min: 4, max: 12 });
+  const view = createWorldView({ range: terrainLevelRange(frame), level: 8, cutaway: true });
+  const cache = createTerrainProjectionCache();
+  const cut = cache.update(frame, view, 1);
+  assert.deepEqual(cut.structureSurfaces.map(face => face.cell[1]), [4, 8]);
+  assert.strictEqual(cache.update({ ...frame, water: [] }, view, 1).structureSurfaces, cut.structureSurfaces);
 });

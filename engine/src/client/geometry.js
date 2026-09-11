@@ -60,6 +60,20 @@ export function surfacePoint(x, y, fact) {
     z: Math.min(surface.maxZ, Math.max(surface.minZ, localZ)), frame: fact.id };
 }
 
+/** Authored floors are faces, never earth columns or invented side walls. */
+function* pickingFaces(terrain) {
+  for (const face of terrainFaces(terrain.surfaces, terrain.verticalMetres))
+    yield { ...face, source: "terrain" };
+  for (const surface of terrain.structureSurfaces) {
+    const [x, y, z] = surface.cell;
+    const height = (y + 0.5) * terrain.verticalMetres;
+    yield { surface, source: "structure", top: true, vertices: [
+      [x - 0.5, height, z - 0.5], [x - 0.5, height, z + 0.5],
+      [x + 0.5, height, z + 0.5], [x + 0.5, height, z - 0.5],
+    ] };
+  }
+}
+
 /** Nearest published face. Side faces identify a displayed column, not hidden material. */
 export function terrainHit(x, y, terrain) {
   let picked = null;
@@ -69,7 +83,7 @@ export function terrainHit(x, y, terrain) {
   const far = ndc.clone().setZ(1).unproject(view);
   const ray = new Ray(origin, far.sub(origin).normalize());
   const hit = new Vector3();
-  for (const face of terrainFaces(terrain.surfaces, terrain.verticalMetres)) {
+  for (const face of pickingFaces(terrain)) {
     const vertices = face.vertices.map(vertex => new Vector3(...vertex));
     for (const indices of [[0,1,2],[0,2,3]]) {
       if (!ray.intersectTriangle(...indices.map(index => vertices[index]), true, hit)) continue;
@@ -78,7 +92,8 @@ export function terrainHit(x, y, terrain) {
       nearest = distance;
       const [cx,cy,cz] = face.surface.cell;
       picked = {
-        kind: face.top ? "terrain-top" : "terrain-side",
+        kind: face.source === "structure" ? "structure-top" : face.top ? "terrain-top" : "terrain-side",
+        surface: face.surface,
         column: face.surface.cell,
         position: {x:hit.x,y:hit.y,z:hit.z},
         standingPoint: face.top ? {x:cx,y:(cy+0.5)*terrain.verticalMetres,z:cz,frame:null} : null,
