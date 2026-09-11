@@ -1,5 +1,6 @@
 import type { GameId } from "../contracts";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
+import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 
 export interface RuntimeConnection {
   send(command: WorkerCommand): void;
@@ -22,6 +23,8 @@ export function connectBrowserRuntime(
   const listeners = new Set<(event: WorkerEvent) => void>();
   let disposed = false;
   let stepping = false;
+  let terrainEpoch: number | undefined;
+  let cachedTerrain: TerrainWireFrame | undefined;
   let cadence: ReturnType<typeof setInterval> | undefined;
   const onMessage = (event: MessageEvent<WorkerEvent>) => {
     if (disposed) return;
@@ -32,7 +35,15 @@ export function connectBrowserRuntime(
       cadence = undefined;
       if (!event.data.paused) startCadence(1 / 30);
     }
-    for (const listener of listeners) listener(event.data);
+    let delivered: WorkerEvent = event.data;
+    if (event.data.type === "frame") {
+      if (terrainEpoch !== undefined && event.data.epoch !== terrainEpoch) cachedTerrain = undefined;
+      terrainEpoch = event.data.epoch;
+      const terrain = parseTerrainObservation(event.data.terrain, cachedTerrain);
+      if (terrain !== undefined) cachedTerrain = terrain;
+      delivered = { ...event.data, ...(terrain === undefined ? {} : { terrain }) };
+    }
+    for (const listener of listeners) listener(delivered);
   };
   worker.addEventListener("message", onMessage);
   const send = (command: WorkerCommand) => {
@@ -56,6 +67,8 @@ export function connectBrowserRuntime(
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    cachedTerrain = undefined;
+    terrainEpoch = undefined;
     if (cadence !== undefined) clearInterval(cadence);
     worker.removeEventListener("message", onMessage);
     worker.terminate();

@@ -34,6 +34,9 @@ test("display frames identify time and reset discontinuities", () => {
       [],
     );
     const frames = events.filter((event) => event.type === "frame");
+    const terrainFrames = frames.filter((frame) => frame.terrain !== undefined);
+    assert.equal(Array.isArray(terrainFrames[0]?.terrain?.surfaces), true);
+    assert.equal(Array.isArray(terrainFrames[1]?.terrain?.surfaces), false);
     assert.deepEqual(
       frames.map(({ time, epoch, sequence }) => [time, epoch, sequence]),
       [
