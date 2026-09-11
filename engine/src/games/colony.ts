@@ -9,17 +9,14 @@ import {
   Traversal,
   cancelWork,
   encodeDefinition,
-  excavate,
   transfer,
 } from "../sdk/common";
-import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
+import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
+import { ColonyDigOrder, Worker, colonyWorkSystem } from "./colony-work";
 import type { EntityId, GamePack } from "../contracts";
 
-export const Worker = component<{ guest: boolean }>("colony.worker", {
-  version: 1,
-  fields: { guest: "boolean" },
-});
+export { Worker, ColonyDigOrder, colonyWorkSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -46,7 +43,7 @@ const colonyInitial = [
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: "goblin.worker", label: `Worker ${index + 1}` },
       "colony.worker": { guest: false },
-      "hive.delivery-control": { enabled: false, quantity: 1 },
+      "hive.delivery-control": { enabled: true, quantity: 1 },
     },
   })),
   {
@@ -91,10 +88,6 @@ const colonyInitial = [
 ];
 
 type DeliveryInput = { readonly quantity?: unknown; readonly entities?: unknown };
-type DigInput = {
-  readonly entities?: unknown;
-  readonly target?: unknown;
-};
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
 
 function inputOf(input: unknown): DeliveryInput {
@@ -162,70 +155,15 @@ function deliveryWrites(
   });
 }
 
-function selectedDigWorker(
-  context: CommandContext,
-  input: unknown,
-  options: { readonly allowActiveExcavation?: boolean; readonly allowActiveDelivery?: boolean } = {},
-): EntityId {
-  if (!input || typeof input !== "object" || Array.isArray(input))
-    throw new Error("dig command requires one selected worker");
-  const entities = (input as DigInput).entities;
-  if (!Array.isArray(entities) || entities.length !== 1 || typeof entities[0] !== "string")
-    throw new Error("dig command requires one selected worker");
+function selectedDigWorker(context: CommandContext, input: unknown): EntityId {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("command requires one selected worker");
+  const entities = (input as { entities?: unknown }).entities;
+  if (!Array.isArray(entities) || entities.length !== 1 || typeof entities[0] !== "string") throw new Error("command requires one selected worker");
   const worker = entities[0] as EntityId;
-  if (!(workers as readonly EntityId[]).includes(worker))
-    throw new Error("dig selection must contain a colony worker");
+  if (!(workers as readonly EntityId[]).includes(worker)) throw new Error("selection must contain a colony worker");
   const workerState = context.query(query(Worker)).find((row) => row.id === worker)?.get(Worker);
-  if (!workerState || workerState.guest) throw new Error("guests cannot dig");
-  const body = context.query(query(Body)).find((row) => row.id === worker)?.get(Body);
-  const container = context.query(query(Container)).find((row) => row.id === worker)?.get(Container);
-  if (!body || !Number.isFinite(body.speed) || body.speed <= 0 || !container)
-    throw new Error("selected worker cannot dig");
-  const activeDelivery = context.query(query(DeliveryTask)).some((row) => {
-    const task = row.get(DeliveryTask);
-    return task.actor === worker && task.phase !== "complete";
-  });
-  if (activeDelivery && !options.allowActiveDelivery) throw new Error("worker is carrying out a delivery");
-  if (!options.allowActiveExcavation && context.query(query(ExcavationWork)).some((row) => row.id === worker))
-    throw new Error("worker already has excavation work");
+  if (!workerState || workerState.guest) throw new Error("guests cannot act");
   return worker;
-}
-
-function excavationInput(context: CommandContext, input: unknown) {
-  const worker = selectedDigWorker(context, input);
-  const target = (input as DigInput).target;
-  if (!target || typeof target !== "object" || Array.isArray(target))
-    throw new Error("dig command requires a terrain target");
-  const record = target as { readonly cell?: unknown; readonly material?: unknown };
-  const cell = record.cell;
-  if (
-    !Array.isArray(cell) ||
-    cell.length !== 3 ||
-    !cell.every((value) => typeof value === "number" && Number.isSafeInteger(value) && Math.abs(value) <= 1_000_000)
-  )
-    throw new Error("dig target cell is invalid");
-  if (typeof record.material !== "number" || !Number.isInteger(record.material) || record.material < 0 || record.material > 65535)
-    throw new Error("dig target material is invalid");
-  const material = colonyEnvironment.materials.find(({ slot }) => slot === record.material);
-  if (!material?.excavation || !material.solid || material.slot === colonyEnvironment.world.slots.air)
-    throw new Error("dig target material is not excavatable");
-  const output = material.excavation.unitsPerCell;
-  const container = context.query(query(Container)).find((row) => row.id === worker)?.get(Container);
-  const carried = context
-    .query(query(MaterialLot))
-    .filter((row) => row.get(MaterialLot).container === worker)
-    .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
-  if (
-    !container ||
-    !Number.isSafeInteger(carried) ||
-    carried < 0 ||
-    !Number.isSafeInteger(output) ||
-    output <= 0 ||
-    !Number.isSafeInteger(carried + output) ||
-    carried + output > container.capacity
-  )
-    throw new Error("worker lacks capacity for excavation output");
-  return { worker, cell: { x: cell[0], y: cell[1], z: cell[2] }, expected: material.slot };
 }
 
 function depositActions(context: CommandContext, input: unknown) {
@@ -273,13 +211,42 @@ const colonyComponents = [
   Guest,
   DeliveryTask,
   DeliveryControl,
+  ColonyDigOrder,
 ] as const;
+
+function areaPoint(value: unknown): [number, number] {
+  if (Array.isArray(value) && value.length === 2 && value.every((v) => typeof v === "number" && Number.isSafeInteger(v) && Math.abs(v) <= 1_000_000)) return [value[0] as number, value[1] as number];
+  const point = value as { readonly x?: unknown; readonly z?: unknown } | null;
+  if (point && typeof point === "object" && typeof point.x === "number" && typeof point.z === "number" && Number.isSafeInteger(point.x) && Number.isSafeInteger(point.z) && Math.abs(point.x) <= 1_000_000 && Math.abs(point.z) <= 1_000_000) return [point.x, point.z];
+  throw new Error("dig area point is invalid");
+}
+function digArea(context: CommandContext, input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("dig command requires an area");
+  const area = (input as { area?: { start?: unknown; end?: unknown; fixedY?: unknown } }).area;
+  if (!area) throw new Error("dig command requires an area");
+  const [startX, startZ] = areaPoint(area.start), [endX, endZ] = areaPoint(area.end);
+  if (!Number.isSafeInteger(area.fixedY) || Math.abs(area.fixedY as number) > 1_000_000) throw new Error("dig area fixedY is invalid");
+  const minX = Math.min(startX, endX), maxX = Math.max(startX, endX), minZ = Math.min(startZ, endZ), maxZ = Math.max(startZ, endZ);
+  const count = (maxX - minX + 1) * (maxZ - minZ + 1);
+  if (!Number.isSafeInteger(count) || count < 1 || count > 256) throw new Error("dig area exceeds 256 cells");
+  const existing = new Set(context.query(query(ColonyDigOrder)).map((row) => row.id));
+  const creates = [];
+  for (let x = minX; x <= maxX; x++) for (let z = minZ; z <= maxZ; z++) {
+    const id = `colony.dig.${x}.${area.fixedY}.${z}` as EntityId;
+    if (existing.has(id)) throw new Error(`dig order already exists for ${id}`);
+    creates.push({ id, components: { [ColonyDigOrder.id]: {
+      cellX: x, cellY: area.fixedY as number, cellZ: z, expected: -1,
+      actor: null, phase: "queued", reason: "", approachX: 0, approachY: 0, approachZ: 0,
+    }}});
+  }
+  return creates;
+}
 
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 2,
+  version: 3,
   components: colonyComponents,
-  systems: [deliverySystem],
+  systems: [colonyWorkSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     deliver: command({
@@ -298,24 +265,37 @@ export const colonyPack: GamePack = {
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
     dig: command({
-      reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
-      writes: [],
-      run: (context, input) => {
-        const { worker, cell, expected } = excavationInput(context, input);
-        return { actions: [excavate(worker, cell, expected, colonyEnvironment.world.slots.air)], writes: [] };
-      },
+      reads: [ColonyDigOrder],
+      writes: [ColonyDigOrder],
+      run: (context, input) => ({ actions: [], writes: [], creates: digArea(context, input) }),
     }),
     cancelDig: command({
-      reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
+      reads: [ColonyDigOrder, ExcavationWork],
       writes: [],
       run: (context, input) => {
-        const worker = selectedDigWorker(context, input, {
-          allowActiveExcavation: true,
-          allowActiveDelivery: true,
-        });
-        if (!context.query(query(ExcavationWork)).some((row) => row.id === worker))
-          throw new Error("worker has no excavation work");
-        return { actions: [cancelWork(worker)], writes: [] };
+        const record = input && typeof input === "object" && !Array.isArray(input)
+          ? input as { entities?: unknown; area?: { start?: unknown; end?: unknown; fixedY?: unknown } }
+          : {};
+        const selected = Array.isArray(record.entities) ? new Set(record.entities) : null;
+        let area: { minX: number; maxX: number; minZ: number; maxZ: number; y: number } | null = null;
+        if (record.area) {
+          const [startX, startZ] = areaPoint(record.area.start);
+          const [endX, endZ] = areaPoint(record.area.end);
+          if (!Number.isSafeInteger(record.area.fixedY) || Math.abs(record.area.fixedY as number) > 1_000_000) throw new Error("cancel dig area fixedY is invalid");
+          area = { minX: Math.min(startX, endX), maxX: Math.max(startX, endX), minZ: Math.min(startZ, endZ), maxZ: Math.max(startZ, endZ), y: record.area.fixedY as number };
+        }
+        if (selected === null && area === null) throw new Error("cancel dig requires workers or an area");
+        const orders = context.query(query(ColonyDigOrder));
+        const work = new Set(context.query(query(ExcavationWork)).map((row) => row.id));
+        const removes = orders.filter((row) => {
+          const state = row.get(ColonyDigOrder);
+          const byWorker = selected !== null && state.actor !== null && selected.has(state.actor);
+          const byArea = area !== null && state.cellY === area.y && state.cellX >= area.minX && state.cellX <= area.maxX && state.cellZ >= area.minZ && state.cellZ <= area.maxZ;
+          return byWorker || byArea;
+        }).map((row) => row.id);
+        if (!removes.length) throw new Error("no matching excavation order");
+        const actions = orders.filter((row) => removes.includes(row.id) && row.get(ColonyDigOrder).actor && work.has(row.get(ColonyDigOrder).actor as string)).map((row) => cancelWork(row.get(ColonyDigOrder).actor as EntityId));
+        return { actions, writes: [], removes };
       },
     }),
     deposit: command({
@@ -330,7 +310,7 @@ export const colonyPack: GamePack = {
       { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
       { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
       { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
-      { id: "dig", label: "Dig selected cell", command: "dig", selection: "entities", target: "terrain-cell" },
+      { id: "dig", label: "Dig area", command: "dig", selection: "entities", target: "terrain-area" },
       { id: "cancel-dig", label: "Cancel digging", command: "cancelDig", selection: "entities" },
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities" },
     ],
@@ -348,6 +328,8 @@ export const colonyPack: GamePack = {
           value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
         })),
         { id: "spoil-carried", label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
+        { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
+        { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
         ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
       ];
     },
