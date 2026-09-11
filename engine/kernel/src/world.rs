@@ -965,8 +965,10 @@ impl Kernel {
         let impacts = self.advance_projectiles(batch.delta)?;
         self.advance_direct(batch.delta)?;
         if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        self.advance_movement(batch.delta);
+        // Work sees the pre-movement occupation. Arriving this tick does not
+        // retroactively earn a full tick of effort after spending it travelling.
         self.advance_excavation(batch.delta)?;
+        self.advance_movement(batch.delta);
         let environment_work = self.environment.as_mut().map(|environment| environment.world.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
