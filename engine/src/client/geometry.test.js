@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { project, groundPoint, surfacePoint } from './geometry.js';
+import { project, groundPoint, surfacePoint, terrainPoint } from './geometry.js';
 test('ground picking inverts the actual retained projection across the clearing', () => {
   for (let x=-7;x<=7;x++) for(let z=-7;z<=7;z++) {
     const point=project(x,0,z);
@@ -22,5 +22,17 @@ test('raised moving-deck picking preserves local coordinates through rotation', 
     assert.equal(picked.y,1);assert.equal(picked.frame,'ship');
     const outside=project(10+Math.cos(angle)*4,3,-4+Math.sin(angle)*4);
     assert.equal(surfacePoint(outside.x,outside.y,fact),null);
+  }
+});
+
+test('terrain picking uses signed voxel elevation and rejects unpublished ground', () => {
+  for (const cell of [[4,13,-3],[-12,-8,9]]) {
+    const terrain={verticalMetres:0.54,surfaces:[{cell,material:1}]};
+    const screen=project(cell[0],(cell[1]+0.5)*0.54,cell[2]);
+    assert.deepEqual(terrainPoint(screen.x,screen.y,terrain),{
+      cell,point:{x:cell[0],y:(cell[1]+0.5)*0.54,z:cell[2],frame:null}
+    });
+    const outside=project(cell[0]+2,(cell[1]+0.5)*0.54,cell[2]);
+    assert.equal(terrainPoint(outside.x,outside.y,terrain),null);
   }
 });

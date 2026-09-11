@@ -1,6 +1,6 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
-import { project, groundPoint, surfacePoint } from "./geometry.js";
+import { project, groundPoint, surfacePoint, terrainPoint } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -785,10 +785,10 @@ export function createHiveClient({
     const y = (at.y - camera.y) / camera.zoom;
     const support = frame === null ? null : state.subjects.find((subject) => subject.pickable !== false && subject.id === frame);
     const world = frame === null
-      ? { ...groundPoint(x, y), frame: null }
+      ? terrainFrame ? terrainPoint(x, y, terrainFrame)?.point : { ...groundPoint(x, y), frame: null }
       : support ? surfacePoint(x, y, support) : null;
     if (!world) {
-      state.message = "Choose a point on the selected deck";
+      state.message = frame === null ? "Choose a visible terrain top" : "Choose a point on the selected deck";
       renderHud();
       return;
     }

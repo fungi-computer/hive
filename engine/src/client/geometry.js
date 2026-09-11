@@ -50,3 +50,24 @@ export function surfacePoint(x, y, fact) {
     y: surface.height,
     z: Math.min(surface.maxZ, Math.max(surface.minZ, localZ)), frame: fact.id };
 }
+
+/** Pick only host-published terrain tops using the same camera as their bake.
+ * The returned cell identifies solid terrain; point is its standing surface.
+ * Native navigation still admits the destination against current geometry.
+ */
+export function terrainPoint(x, y, terrain) {
+  let picked = null;
+  let nearest = Infinity;
+  for (const surface of terrain.surfaces) {
+    const [cx, cy, cz] = surface.cell;
+    const height = (cy + 0.5) * terrain.verticalMetres;
+    const point = planePoint(x, y, height);
+    if (Math.abs(point.x - cx) > 0.5 + 1e-8 || Math.abs(point.z - cz) > 0.5 + 1e-8) continue;
+    const depth = new Vector3(point.x, height, point.z).project(view).z;
+    if (depth < nearest) {
+      nearest = depth;
+      picked = { cell: surface.cell, point: { x: cx, y: height, z: cz, frame: null } };
+    }
+  }
+  return picked;
+}
