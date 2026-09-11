@@ -44,7 +44,7 @@ export function connectBrowserRuntime(
         const terrain = parseTerrainObservation(event.data.terrain, cachedTerrain);
         if (terrain !== undefined) cachedTerrain = terrain;
         else cachedTerrain = undefined;
-        delivered = { ...event.data, ...(terrain === undefined ? {} : { terrain }) };
+        delivered = { ...event.data, terrain };
       } catch (error) {
         delivered = { type: "error", message: error instanceof Error ? error.message : String(error) };
       }

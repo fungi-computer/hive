@@ -16,10 +16,10 @@ test("Colony local worker sends baseline then same-revision terrain reference an
     runtime.command({ type: "start", game: "colony" });
     runtime.command({ type: "step", delta: 0.1 });
     const frames = events.filter((event): event is Extract<WorkerTransportEvent, { type: "frame" }> => event.type === "frame");
-    assert.equal(Array.isArray(frames[0].terrain?.surfaces), true);
-    assert.equal(Array.isArray(frames[1].terrain?.surfaces), false);
+    assert.equal(Boolean(frames[0].terrain && "surfaces" in frames[0].terrain), true);
+    assert.equal(Boolean(frames[1].terrain && "surfaces" in frames[1].terrain), false);
     runtime.command({ type: "reset" });
     const afterReset = events.filter((event): event is Extract<WorkerTransportEvent, { type: "frame" }> => event.type === "frame").at(-1);
-    assert.equal(Array.isArray(afterReset?.terrain?.surfaces), true);
+    assert.equal(Boolean(afterReset?.terrain && "surfaces" in afterReset.terrain), true);
   } finally { runtime.dispose(); }
 });

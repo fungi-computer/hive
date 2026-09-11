@@ -1,6 +1,6 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { WorkerRuntime } from "./worker";
-import type { WorkerCommand, WorkerEvent } from "./protocol";
+import type { WorkerCommand, WorkerTransportEvent } from "./protocol";
 import { wasmKernelPort } from "./wasm-kernel";
 import { piratesPack } from "../games/pirates";
 import { colonyPack } from "../games/colony";
@@ -12,7 +12,7 @@ import * as generated from "../../generated/hive_kernel.js";
 export function installWorkerRuntime(
   scope: {
     onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
-    postMessage(message: WorkerEvent): void;
+    postMessage(message: WorkerTransportEvent): void;
   },
   createKernel: () => KernelPort,
   packs: Readonly<Record<string, GamePack>>,
@@ -28,7 +28,7 @@ export function installWorkerRuntime(
 export async function bootGeneratedWorker(
   scope: {
     onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
-    postMessage(message: WorkerEvent): void;
+    postMessage(message: WorkerTransportEvent): void;
   },
   createKernel: () => KernelPort,
 ): Promise<WorkerRuntime> {
@@ -42,7 +42,7 @@ export async function bootGeneratedWorker(
 
 export async function bootBundledGeneratedWorker(scope: {
   onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
-  postMessage(message: WorkerEvent): void;
+  postMessage(message: WorkerTransportEvent): void;
 }): Promise<WorkerRuntime> {
   await generated.default();
   return bootGeneratedWorker(scope, () => wasmKernelPort(new generated.WasmKernel()));
