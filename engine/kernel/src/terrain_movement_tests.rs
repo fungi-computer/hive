@@ -168,6 +168,7 @@ fn terrain_stop_retains_contact_and_resumes_after_restore() {
         assert_eq!(response["results"][0]["accepted"], true);
         assert!(kernel.ecs.get::<Destination>(actor).is_none());
         assert!(kernel.terrain_routes.get(&actor).unwrap().suspended);
+        assert_eq!(navigation::point(kernel.predicted_world_pose(actor, 1.0, 0).unwrap()), navigation::point(stopped));
         let saved = kernel.save_records().unwrap();
         let mut forged = kernel.save_records().unwrap();
         let mut data: serde_json::Value = serde_json::from_str(&forged.entities).unwrap();
