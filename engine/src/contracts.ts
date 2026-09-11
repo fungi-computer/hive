@@ -177,6 +177,7 @@ export interface ReadContext {
   physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
   terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
   terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
+  structureSurfaces(columns: readonly [number, number][]): readonly (readonly StructureSurface[])[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,
@@ -265,6 +266,9 @@ export type TerrainSurface = {
   readonly cell: readonly [number, number, number];
   readonly material: number;
 };
+export type StructureSurface = {
+  readonly cell: readonly [number, number, number];
+};
 export interface KernelPort {
   readonly physicalContacts: (cells: readonly [number, number, number][]) => readonly PhysicalContact[];
   readonly routeCosts: (requests: readonly RouteCostRequest[]) => readonly RouteCostResult[];
@@ -278,6 +282,9 @@ export interface KernelPort {
   readonly terrainSurfaces: (
     columns: readonly [number, number][],
   ) => readonly (TerrainSurface | null)[];
+  readonly structureSurfaces: (
+    columns: readonly [number, number][],
+  ) => readonly (readonly StructureSurface[])[];
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];

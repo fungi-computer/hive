@@ -11,6 +11,7 @@ import type {
   QuerySpec,
   RenderFact,
   TerrainSurface,
+  StructureSurface,
   RouteCostResult,
   WorldPose,
   WriteIntent,
@@ -32,6 +33,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
+  structure_surfaces(json: string): string;
   query(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -157,6 +159,29 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       )
         throw new Error("invalid terrain surface query result");
       return result as (TerrainSurface | null)[];
+    },
+    structureSurfaces(columns) {
+      if (columns.length === 0 || columns.length > 64 || columns.some(column =>
+        !Array.isArray(column) || column.length !== 2 || column.some(coordinate =>
+          !Number.isInteger(coordinate) || coordinate < -2147483648 || coordinate > 2147483647)))
+        throw new Error("structure surface query must contain between 1 and 64 signed integer columns");
+      const result = JSON.parse(binding.structure_surfaces(JSON.stringify(columns))) as unknown;
+      if (!Array.isArray(result) || result.length !== columns.length || result.some((entry, index) => {
+        if (!Array.isArray(entry)) return true;
+        const seen = new Set<string>();
+        return entry.some(surface => {
+          if (!surface || typeof surface !== "object" || Array.isArray(surface)) return true;
+          const cell = (surface as { readonly cell?: unknown }).cell;
+          if (!Array.isArray(cell) || cell.length !== 3 || !cell.every(coordinate =>
+            Number.isInteger(coordinate) && coordinate >= -2147483648 && coordinate <= 2147483647) ||
+            cell[0] !== columns[index][0] || cell[2] !== columns[index][1]) return true;
+          const key = `${cell[0]},${cell[1]},${cell[2]}`;
+          if (seen.has(key)) return true;
+          seen.add(key);
+          return false;
+        });
+      })) throw new Error("invalid structure surface query result");
+      return result as readonly (readonly StructureSurface[])[];
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);

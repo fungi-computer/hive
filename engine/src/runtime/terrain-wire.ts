@@ -1,4 +1,4 @@
-import type { TerrainSurface } from "../contracts";
+import type { StructureSurface, TerrainSurface } from "../contracts";
 
 export interface TerrainWireWater {
   readonly id?: string;
@@ -15,12 +15,14 @@ export interface TerrainWireFrame {
   readonly revision: number;
   readonly verticalMetres: number;
   readonly surfaces: readonly TerrainSurface[];
+  readonly structureSurfaces: readonly (readonly StructureSurface[])[];
   readonly water: readonly TerrainWireWater[];
 }
 export interface TerrainWireReference {
   readonly revision: number;
   readonly verticalMetres: number;
   readonly surfacesRevision: number;
+  readonly structureSurfacesRevision: number;
   readonly water: readonly TerrainWireWater[];
 }
 export type TerrainWireObservation = TerrainWireFrame | TerrainWireReference;
@@ -35,6 +37,7 @@ export function terrainWireForRevision(
     revision: frame.revision,
     verticalMetres: frame.verticalMetres,
     surfacesRevision: frame.revision,
+    structureSurfacesRevision: frame.revision,
     water: frame.water,
   };
 }
@@ -43,6 +46,7 @@ const MIN_I32 = -2147483648;
 const MAX_I32 = 2147483647;
 const MAX_SURFACES = 4096;
 const MAX_WATER = 2048;
+const MAX_STRUCTURE_SURFACES = 16384;
 
 function record(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -73,6 +77,29 @@ function parseSurface(value: unknown): TerrainSurface | undefined {
   });
 }
 
+function parseStructureSurfaces(value: unknown): readonly (readonly StructureSurface[])[] | undefined {
+  if (!Array.isArray(value) || value.length > MAX_SURFACES) return undefined;
+  let total = 0;
+  const columns: StructureSurface[][] = [];
+  for (const rawColumn of value) {
+    if (!Array.isArray(rawColumn)) return undefined;
+    const seenCells = new Set<string>();
+    const seenHeights = new Set<number>();
+    const column: StructureSurface[] = [];
+    for (const raw of rawColumn) {
+      if (!record(raw) || !cell(raw.cell)) return undefined;
+      const key = `${raw.cell[0]},${raw.cell[1]},${raw.cell[2]}`;
+      if (seenCells.has(key) || seenHeights.has(raw.cell[1])) return undefined;
+      seenCells.add(key);
+      seenHeights.add(raw.cell[1]);
+      if (++total > MAX_STRUCTURE_SURFACES) return undefined;
+      column.push(Object.freeze({ cell: Object.freeze([raw.cell[0], raw.cell[1], raw.cell[2]]) as StructureSurface["cell"] }));
+    }
+    columns.push(Object.freeze(column));
+  }
+  return Object.freeze(columns);
+}
+
 function parseWater(value: unknown): TerrainWireWater | undefined {
   if (!record(value) || !cell(value.at) || !finite(value.massKg) || value.massKg < 0 || !finite(value.liquidVolumeM3) || value.liquidVolumeM3 < 0)
     return undefined;
@@ -98,17 +125,20 @@ export function parseTerrainFrame(value: unknown): TerrainWireFrame | undefined 
   if (value === undefined) return undefined;
   if (!record(value) || !safeRevision(value.revision) || !finite(value.verticalMetres) ||
     value.verticalMetres <= 0 || !Array.isArray(value.surfaces) || value.surfaces.length > MAX_SURFACES ||
+    !Array.isArray(value.structureSurfaces) ||
     !Array.isArray(value.water) || value.water.length > MAX_WATER)
     throw new Error("invalid terrain observation");
   const surfaces = value.surfaces.map(parseSurface);
+  const structureSurfaces = parseStructureSurfaces(value.structureSurfaces);
   const water = value.water.map(parseWater);
   if (surfaces.some((surface): surface is undefined => surface === undefined) ||
-    water.some((entry): entry is undefined => entry === undefined))
+    water.some((entry): entry is undefined => entry === undefined) || !structureSurfaces)
     throw new Error("invalid terrain observation");
   return Object.freeze({
     revision: value.revision,
     verticalMetres: value.verticalMetres,
     surfaces: Object.freeze(surfaces as TerrainSurface[]),
+    structureSurfaces,
     water: Object.freeze(water as TerrainWireWater[]),
   });
 }
@@ -125,6 +155,8 @@ export function parseTerrainObservation(
     !safeRevision(value.revision) ||
     !safeRevision(value.surfacesRevision) ||
     value.surfacesRevision !== value.revision ||
+    !safeRevision(value.structureSurfacesRevision) ||
+    value.structureSurfacesRevision !== value.revision ||
     !finite(value.verticalMetres) ||
     value.verticalMetres <= 0 ||
     !cached ||
@@ -141,6 +173,7 @@ export function parseTerrainObservation(
     revision: value.revision,
     verticalMetres: cached.verticalMetres,
     surfaces: cached.surfaces,
+    structureSurfaces: cached.structureSurfaces,
     water: Object.freeze(water as TerrainWireWater[]),
   });
 }

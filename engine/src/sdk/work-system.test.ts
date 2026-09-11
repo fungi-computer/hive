@@ -11,7 +11,7 @@ const base = {
   query: () => [],
   routeCosts: () => { throw new Error("unexpected route query"); },
   physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
-  terrainSurfaces: () => [],
+  terrainSurfaces: () => [], structureSurfaces: () => [],
   worldPoses: () => [],
   write: () => {},
   createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },

@@ -541,6 +541,7 @@ export class GameSession {
         physicalContacts: cells => this.port.physicalContacts(cells),
         terrainMaterials: cells => this.port.terrainMaterials(cells),
         terrainSurfaces: columns => this.port.terrainSurfaces(columns),
+        structureSurfaces: columns => this.port.structureSurfaces(columns),
         routeCosts: requests => {
           if (!activeReads.some(definition => definition.id === Position.id) || !activeReads.some(definition => definition.id === Body.id))
             throw new Error("route query requires declared position and body reads");

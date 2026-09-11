@@ -1,5 +1,5 @@
 import type { EnvironmentDefinition } from "../sdk/environment";
-import type { KernelPort, TerrainSurface } from "../contracts";
+import type { KernelPort, StructureSurface, TerrainSurface } from "../contracts";
 
 type Coordinate = readonly [number, number, number];
 
@@ -19,6 +19,7 @@ export interface TerrainPresentationFrame {
   readonly revision: number;
   readonly verticalMetres: number;
   readonly surfaces: readonly TerrainSurface[];
+  readonly structureSurfaces: readonly (readonly StructureSurface[])[];
   readonly water: readonly TerrainWaterFact[];
 }
 
@@ -26,12 +27,14 @@ interface CachedSurfaces {
   readonly revision: number;
   readonly surfaces: readonly TerrainSurface[];
   readonly byColumn: ReadonlyMap<string, TerrainSurface | null>;
+  readonly structureSurfaces: readonly (readonly StructureSurface[])[];
 }
 
 const MIN_I32 = -2147483648;
 const MAX_I32 = 2147483647;
 const MAX_COLUMNS = 4096;
 const SURFACE_BATCH = 64;
+const MAX_STRUCTURE_SURFACES = 16384;
 
 function signedInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= MIN_I32 && value <= MAX_I32;
@@ -121,6 +124,7 @@ export class TerrainPresentationOwner {
       revision: facts.terrainRevision,
       verticalMetres: this.definition.world.verticalMetres,
       surfaces: this.cached.surfaces,
+      structureSurfaces: this.cached.structureSurfaces,
       water: Object.freeze(water),
     });
   }
@@ -132,11 +136,16 @@ export class TerrainPresentationOwner {
       for (let z = minZ; z < maxZ; z++) columns.push([x, z]);
     const byColumn = new Map<string, TerrainSurface | null>();
     const surfaces: TerrainSurface[] = [];
+    const structureSurfaces: (readonly StructureSurface[])[] = [];
+    let structureCount = 0;
     for (let offset = 0; offset < columns.length; offset += SURFACE_BATCH) {
       const batch = columns.slice(offset, offset + SURFACE_BATCH);
       const result = this.port.terrainSurfaces(batch);
+      const structures = this.port.structureSurfaces(batch);
       if (result.length !== batch.length)
         throw new Error("terrain surface query returned the wrong count");
+      if (structures.length !== batch.length)
+        throw new Error("structure surface query returned the wrong count");
       for (let index = 0; index < batch.length; index++) {
         const surface = result[index];
         if (surface !== null) {
@@ -157,12 +166,35 @@ export class TerrainPresentationOwner {
           byColumn.set(columnKey(batch[index][0], batch[index][1]), copy);
           surfaces.push(copy);
         } else byColumn.set(columnKey(batch[index][0], batch[index][1]), null);
+        const parsed: StructureSurface[] = [];
+        const seenCells = new Set<string>();
+        const seenHeights = new Set<number>();
+        if (!Array.isArray(structures[index]))
+          throw new Error("invalid structure surface projection");
+        for (const surface of structures[index]) {
+          const cell = surface?.cell;
+          if (!cell || cell.length !== 3 || cell[0] !== batch[index][0] ||
+            cell[2] !== batch[index][1] || !signedInteger(cell[1]))
+            throw new Error("invalid structure surface projection");
+          const key = `${cell[0]},${cell[1]},${cell[2]}`;
+          if (seenCells.has(key) || seenHeights.has(cell[1]))
+            throw new Error("duplicate structure surface projection");
+          seenCells.add(key);
+          seenHeights.add(cell[1]);
+          if (++structureCount > MAX_STRUCTURE_SURFACES)
+            throw new Error("structure surface projection exceeds the budget");
+          parsed.push(Object.freeze({
+            cell: Object.freeze([cell[0], cell[1], cell[2]]) as StructureSurface["cell"],
+          }));
+        }
+        structureSurfaces.push(Object.freeze(parsed));
       }
     }
     return {
       revision,
       surfaces: Object.freeze(surfaces),
       byColumn,
+      structureSurfaces: Object.freeze(structureSurfaces),
     };
   }
 
