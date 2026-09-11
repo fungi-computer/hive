@@ -117,3 +117,18 @@ export const encodeDefinition = (
       initial,
     }),
   );
+
+/** Native progress is observable but cannot be written by authored systems. */
+export const ExcavationWork = component<{
+  x: number; y: number; z: number; expected: number; replacement: number; seconds: number;
+}>("hive.excavation-work", {
+  version: 1,
+  fields: { x: "number", y: "number", z: "number", expected: "number", replacement: "number", seconds: "number" },
+});
+export const excavate = (
+  entity: EntityId,
+  cell: { readonly x: number; readonly y: number; readonly z: number },
+  expected: number,
+  replacement: number,
+): ActionRequest => ({ kind: "excavate", entity, ...cell, expected, replacement });
+export const cancelWork = (entity: EntityId): ActionRequest => ({ kind: "cancel-work", entity });

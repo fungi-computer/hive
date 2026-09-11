@@ -8,6 +8,8 @@ export const RESERVED_COMPONENTS = [
   "hive.body",
   "hive.container",
   "hive.lot",
+  "hive.lot-water",
+  "hive.excavation-work",
   "hive.destination",
   "hive.support",
   "hive.surface",
@@ -80,6 +82,8 @@ export type WriteIntent = {
   readonly value: unknown;
 };
 export type ActionRequest =
+  | { readonly kind: "excavate"; readonly entity: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly expected: number; readonly replacement: number }
+  | { readonly kind: "cancel-work"; readonly entity: EntityId }
   | { readonly kind: "begin-direct"; readonly entity: EntityId; readonly stream: string }
   | {
       readonly kind: "direct-input";
