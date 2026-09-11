@@ -19,12 +19,75 @@ passed; hosted initial observations and pause admission passed for all four
 packs. Exact release/proof limits are in BUILD.md; the former c5138fc availability
 statements below are historical context, superseded by this checkpoint.
 
-Next implementation joins native conservative sight to saved scoped knowledge
-and filtered observations, while separately tracing existing admission/cargo
-owners for the two-region Survival journey. The exterior cutaway is not fog of
-war: it filters only already published surfaces and still leaves above-slice
-actors visible. Full remembered/unknown knowledge, three usable constructed
-levels, room smoke and two-player region travel remain goal requirements.
+### Immediate correction: usable digging before exploration
+
+Levi rejected porting the retained vision implementation on September 11. Keep
+native-sight c9dba38 unintegrated; do not continue that port. Scoped knowledge
+remains a future goal requirement, but its implementation needs fresh product
+review. The public exterior cutaway is not fog of war.
+
+The current dig command is a physical primitive exposed as an unfinished player
+interaction: it requires one selected worker, does not route that worker to the
+cell, handles one click only, and fills the worker after one cut. A scripted
+manual approach/deposit sequence passing is not acceptance of colony playability.
+
+The next joined outcome is a visible rectangular designation, saved queued work,
+automatic reachable assignment/approach, excavation and ordinary spoil storage.
+Use shared client gestures, Rust route queries and Hungarian allocation, native
+excavation completion, and existing finite lot/transfer ownership. Do not add a
+second hauling or resource settlement implementation.
+
+- Designations describe fixed-level integer cells, not worker IDs. Drag previews
+  and accepted queued/working/blocked marks must use the same coordinate rules.
+  Submit bounded batches; reject invalid external ranges before expanding them.
+- Saved tasks own claims. One worker cannot concurrently acquire delivery and
+  excavation jobs. Existing cargo continuation wins. Filter invalid material,
+  capability, claim and capacity candidates before expensive route queries.
+- A reachable adjacent work position is required; never route onto the solid
+  excavation target. Unreachable tasks remain visible and waiting. Route cost
+  comes from native terrain traversal, not straight-line guesses or TypeScript
+  copies of A*. Geometry changes invalidate derived route/eligibility results.
+- Movement earns no digging progress. Native completion alone changes the cell,
+  water and finite spoil. Completion/retry must retire the designation once;
+  cancellation releases intent without undoing completed cuts or deleting cargo.
+- Carrying capacity and storage stay finite. Full storage produces an actionable
+  waiting reason; never invent room in the pantry or discard spoil to keep a
+  worker moving. Ordinary material transport must handle excavation output.
+- Paused designation is allowed; effort and movement remain frozen. Current-format
+  save/reload preserves queued work, ownership and progress. No legacy migration.
+
+The retained brewing consumer is a required design comparison, not an unrelated
+future example. `src/jobs.ts::brewOption` checks station/readiness before approach;
+`src/brewing.ts::brewStationReadiness` resolves supplies and promised output space;
+`src/activity.ts::brew` verifies access and releases attendance for fermentation;
+`advanceBrewing` advances that unattended process on authoritative time. Keep
+these distinctions in the new shared work owner:
+
+```text
+order -> resolve next useful step from committed facts
+  waiting(reason)             -> retain order, no worker claim or path search
+  unattended(process)         -> retain process/resources, release worker
+  needsWorker(requirements)   -> cheap eligibility -> native approach cost
+                              -> joint assignment -> saved step claim
+claimed step -> approach -> existing physical operation -> committed result
+result -> release step claim -> resolve order again
+```
+
+A worker claim is not a reservation of every resource for an entire recipe.
+Cargo, station/process reservations and operation receipts keep their own existing
+owners and must survive worker changes. Dig spoil transport and recipe supply must
+use the same transport implementation. Do not convert the above into arbitrary
+serialized callbacks or a speculative plugin language. Root reviews both real
+consumers before approving the shared runtime implementation.
+
+Acceptance is an ordinary area drag followed by workers walking, cutting,
+unloading and continuing without manually parking them for each cell. Include
+unreachable work and full storage feedback, cancellation and save/reload, plus a
+short changed-consumer interaction. Preserve the existing water/restart evidence;
+do not replay its long manual four-cut trace for every gesture correction.
+
+Three usable constructed levels, room smoke, scoped exploration and two-player
+region travel remain unfinished goal requirements after this usability repair.
 
 ## Next sprint: a living world worth traveling through
 
