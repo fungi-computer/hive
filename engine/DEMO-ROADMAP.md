@@ -645,3 +645,41 @@ A full container blocks that job rather than cancelling unrelated jobs or ticks.
 This remains implementation work: the current native helper is private and the
 public Colony still has neither the worker dig action nor the generated terrain
 projection. Publish the complete wet-dig loop before moving to the smoke join.
+
+### Standing production jobs — Levi clarification, September 11
+
+The player orders a result such as “brew a batch,” not every transport and
+processing step. The same shared work owner must discover ready tasks, assign
+available capable workers, and resume blocked work. Timed excavation is one
+physical operation, not the complete job system.
+
+Retained `src/recipes.ts` expresses ingredients and outputs as data but hardcodes
+prepare/ferment/keg/tap timings; `src/brewing.ts` owns brew-specific phases. Reuse
+the physical requirements and conservation rules, not another brew-only executor.
+Represent a process as validated dependency steps using supported operations:
+ensure finite inputs at endpoints, perform worker effort, wait for world conditions
+or time, transform finite materials, and deliver outputs. A recipe selects and
+connects these operations. Rust owns physical mutation and earned work; TypeScript
+authors the recipe and policies.
+
+Required behavior before claiming the job system complete:
+- One standing order creates a bounded batch; repeat/stock-target policies create
+  further batches only after accounting for existing work and output.
+- Only ready steps compete in one shared worker assignment. Preparation of
+  independent ingredients can overlap; dependent steps cannot start early.
+- Missing inputs or full output storage retain the process and display the reason.
+  Retrying checks readiness; it does not reserve or consume the same goods twice.
+- Waiting for fermentation occupies the vessel as needed, not the worker. An
+  interrupted labor step preserves earned effort and releases the worker safely.
+- Inputs are claimed and consumed through the existing material owner at explicit
+  transition boundaries. Cargo already picked up retains real custody on cancel.
+- Cancellation stops future work without undoing physical transformations; partial
+  products and waste remain real goods. Output creation and step completion commit
+  together, and recovery cannot repeat them.
+- Workers may change between steps. Skills and permissions determine eligibility;
+  task state cannot grant skills or bypass reach/capacity.
+
+Qualify the same owner with delivery, excavation and a small multistep recipe
+that includes passive waiting and a blocked output. Do not claim generic production
+from the assignment helper alone. This is a gameplay requirement for the current
+work design, not permission to defer wet digging behind a full brewing port.
