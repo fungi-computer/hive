@@ -27,12 +27,8 @@ pub struct AirAtmosphereGeometry {
     pub openings: Vec<AtmosphereOpeningDefinition>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct Bin {
-    x: i64,
-    y: i32,
-    z: i64,
-}
+#[derive(Clone, Copy, Debug)]
+struct AirMetric { index: usize, free: f64, liquid: f64 }
 
 pub fn project(
     snapshot: &AirGeometrySnapshot,
@@ -45,15 +41,29 @@ pub fn project(
         return Err("atmosphere geometry voxel volume is invalid".into());
     }
 
+    if snapshot.cells.len() > super::MAX_MEMBERS { return Err("atmosphere geometry exceeds cell bound".into()); }
+    if snapshot.faces.len() > super::MAX_OPENINGS { return Err("atmosphere geometry exceeds face bound".into()); }
+    let mut seen_cells = BTreeSet::new();
+    for cell in &snapshot.cells {
+        if !seen_cells.insert(cell.at) { return Err("duplicate atmosphere geometry cell".into()); }
+        if !cell.voxel_volume_m3.is_finite() || cell.voxel_volume_m3 <= 0.0 || cell.voxel_volume_m3 != voxel_volume { return Err("atmosphere geometry cell metric mismatch".into()); }
+        match &cell.water {
+            AirWaterCoverage::Admitted { liquid_volume_m3 } if !liquid_volume_m3.is_finite() || *liquid_volume_m3 < 0.0 || *liquid_volume_m3 > cell.voxel_volume_m3 => return Err("atmosphere geometry water volume is invalid".into()),
+            AirWaterCoverage::Unmodeled if water_policy == UnmodeledWaterPolicy::Reject => return Err("atmosphere geometry has unmodeled water coverage".into()),
+            _ => {}
+        }
+    }
+    let mut seen_faces = BTreeSet::new();
+    for face in &snapshot.faces {
+        if !seen_faces.insert(face.face) { return Err("duplicate atmosphere geometry face".into()); }
+        if let AirGeometryFaceKind::Internal { a, b, .. } = &face.kind {
+            if face.face.cell != *a || !canonical_neighbor(*a, *b, face.face.axis) || !seen_cells.contains(a) || !seen_cells.contains(b) { return Err("non-canonical atmosphere internal face".into()); }
+        }
+    }
     let mut cells = snapshot.cells.clone();
     cells.sort_by_key(|cell| cell.at);
-    let mut air = BTreeMap::<Cell, (usize, f64)>::new();
+    let mut air = BTreeMap::<Cell, AirMetric>::new();
     for cell in &cells {
-        if !cell.voxel_volume_m3.is_finite() || cell.voxel_volume_m3 <= 0.0
-            || (cell.voxel_volume_m3 - voxel_volume).abs() > 1e-9 * voxel_volume.max(1.0)
-        {
-            return Err("atmosphere geometry cell metric mismatch".into());
-        }
         let liquid = match &cell.water {
             AirWaterCoverage::Admitted { liquid_volume_m3 } => {
                 if !liquid_volume_m3.is_finite() || *liquid_volume_m3 < 0.0 || *liquid_volume_m3 > cell.voxel_volume_m3 {
@@ -61,15 +71,12 @@ pub fn project(
                 }
                 *liquid_volume_m3
             }
-            AirWaterCoverage::Unmodeled => match water_policy {
-                UnmodeledWaterPolicy::Reject => return Err("atmosphere geometry has unmodeled water coverage".into()),
-                UnmodeledWaterPolicy::AssumeNoAdmittedWater => 0.0,
-            },
+            AirWaterCoverage::Unmodeled => 0.0,
         };
         let free = cell.voxel_volume_m3 - liquid;
         if free > 0.0 {
             let index = air.len();
-            air.insert(cell.at, (index, free));
+            air.insert(cell.at, AirMetric { index, free, liquid });
         }
     }
     if air.is_empty() {
@@ -78,7 +85,7 @@ pub fn project(
 
     let mut parent: Vec<usize> = (0..air.len()).collect();
     let mut positions = BTreeMap::new();
-    for (at, (index, _)) in &air { positions.insert(*at, *index); }
+    for (at, metric) in &air { positions.insert(*at, metric.index); }
     for face in &snapshot.faces {
         let AirGeometryFaceKind::Internal { a, b, sealed } = &face.kind else { continue };
         if *sealed || !matches!(face.face.axis, FaceAxis::X | FaceAxis::Z) { continue; }
@@ -87,9 +94,9 @@ pub fn project(
     }
 
     let mut members: BTreeMap<usize, Vec<(Cell, f64)>> = BTreeMap::new();
-    for (at, (index, free)) in &air {
-        let root = find(&mut parent, *index);
-        members.entry(root).or_default().push((*at, *free));
+    for (at, metric) in &air {
+        let root = find(&mut parent, metric.index);
+        members.entry(root).or_default().push((*at, metric.free));
     }
     let mut groups: Vec<Vec<(Cell, f64)>> = members.into_values().collect();
     for group in &mut groups { group.sort_by_key(|(at, _)| *at); }
@@ -100,12 +107,15 @@ pub fn project(
     for group in groups {
         let first = group[0].0;
         let volume_id = cell_id(first);
-        let members = group.iter().map(|(at, free)| {
+        let mut member_defs = Vec::with_capacity(group.len());
+        for (at, free) in &group {
             let id = cell_id(*at);
             volume_by_cell.insert(*at, volume_id.clone());
-            AtmosphereMember { cell_id: id, volume_m3: *free, elevation_m: (f64::from(at.y) + 0.5) * spacing_m[1] }
-        }).collect();
-        volumes.push(AtmosphereVolumeDefinition { id: volume_id, members });
+            let elevation_m = (f64::from(at.y) + 0.5) * spacing_m[1];
+            if !elevation_m.is_finite() || !free.is_finite() || *free <= 0.0 { return Err("atmosphere geometry member metric is invalid".into()); }
+            member_defs.push(AtmosphereMember { cell_id: id, volume_m3: *free, elevation_m });
+        }
+        volumes.push(AtmosphereVolumeDefinition { id: volume_id, members: member_defs });
     }
 
     let mut openings = Vec::new();
@@ -121,6 +131,9 @@ pub fn project(
         if area <= 0.0 { continue; }
         let id = face_id(face.face.axis, face.face.cell);
         if !opening_ids.insert(id.clone()) { return Err("duplicate atmosphere opening".into()); }
+        let elevation_m = (f64::from(a.y) + f64::from(b.y) + 1.0) * spacing_m[1] * 0.5;
+        let distance_m = spacing_m[axis];
+        if !elevation_m.is_finite() || !distance_m.is_finite() || !area.is_finite() { return Err("atmosphere geometry opening metric is invalid".into()); }
         openings.push(AtmosphereOpeningDefinition {
             id,
             from: from.clone(),
@@ -128,18 +141,18 @@ pub fn project(
             to: Some(to.clone()),
             to_cell_id: Some(cell_id(*b)),
             area_m2: area,
-            distance_m: spacing_m[axis],
-            elevation_m: (f64::from(a.y) + f64::from(b.y) + 1.0) * spacing_m[1] * 0.5,
+            distance_m,
+            elevation_m,
             permeability: 1.0,
         });
     }
     openings.sort_by(|left, right| left.id.cmp(&right.id));
-    if volumes.len() > MAX_VOLUMES || openings.len() > MAX_OPENINGS {
+    if volumes.len() > super::MAX_VOLUMES || openings.len() > super::MAX_OPENINGS {
         return Err("atmosphere geometry graph exceeds admission bounds".into());
     }
 
     Ok(AirAtmosphereGeometry {
-        identity: identity(snapshot, &cells, spacing_m, water_policy),
+        identity: identity(snapshot, spacing_m, water_policy, cells.len(), openings.len()),
         physical_revision: snapshot.physical_revision,
         epoch: snapshot.epoch,
         volumes,
@@ -155,6 +168,14 @@ fn validate_spacing(spacing: [f64; 3]) -> Result<(), String> {
 }
 
 fn cell_id(at: Cell) -> String { format!("cell:{},{},{}", at.x, at.y, at.z) }
+
+fn canonical_neighbor(a: Cell, b: Cell, axis: FaceAxis) -> bool {
+    match axis {
+        FaceAxis::X => a.y == b.y && a.z == b.z && a.x.checked_add(1) == Some(b.x),
+        FaceAxis::Y => a.x == b.x && a.z == b.z && a.y.checked_add(1) == Some(b.y),
+        FaceAxis::Z => a.x == b.x && a.y == b.y && a.z.checked_add(1) == Some(b.z),
+    }
+}
 
 fn face_id(axis: FaceAxis, at: Cell) -> String {
     let axis = match axis { FaceAxis::X => 'x', FaceAxis::Y => 'y', FaceAxis::Z => 'z' };
@@ -173,18 +194,18 @@ fn floor_bin(value: f64) -> Result<i64, String> {
 
 fn same_bin(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<bool, String> {
     if a.y != b.y { return Ok(false); }
-    Ok(floor_bin((a.x as f64 + 0.5) * spacing[0])? == floor_bin((b.x as f64 + 0.5) * spacing[0])?
-        && floor_bin((a.z as f64 + 0.5) * spacing[2])? == floor_bin((b.z as f64 + 0.5) * spacing[2])?)
+    Ok(floor_bin((a.x as f64) * spacing[0])? == floor_bin((b.x as f64) * spacing[0])?
+        && floor_bin((a.z as f64) * spacing[2])? == floor_bin((b.z as f64) * spacing[2])?)
 }
 
-fn face_area(axis: FaceAxis, a: Cell, b: Cell, air: &BTreeMap<Cell, (usize, f64)>, spacing: [f64; 3]) -> Result<f64, String> {
-    let left = air.get(&a).ok_or("missing air face endpoint")?.1;
-    let right = air.get(&b).ok_or("missing air face endpoint")?.1;
+fn face_area(axis: FaceAxis, a: Cell, b: Cell, air: &BTreeMap<Cell, AirMetric>, spacing: [f64; 3]) -> Result<f64, String> {
+    let left = air.get(&a).ok_or("missing air face endpoint")?;
+    let right = air.get(&b).ok_or("missing air face endpoint")?;
     let area = match axis {
-        FaceAxis::Y => if spacing[0] * spacing[2] * spacing[1] - right > 0.0 { 0.0 } else { spacing[0] * spacing[2] },
+        FaceAxis::Y => if right.liquid > 0.0 { 0.0 } else { spacing[0] * spacing[2] },
         FaceAxis::X | FaceAxis::Z => {
-            let dry_left = (spacing[1] - (spacing[0] * spacing[2] * spacing[1] - left) / (spacing[0] * spacing[2])).max(0.0);
-            let dry_right = (spacing[1] - (spacing[0] * spacing[2] * spacing[1] - right) / (spacing[0] * spacing[2])).max(0.0);
+            let dry_left = left.free / (spacing[0] * spacing[2]);
+            let dry_right = right.free / (spacing[0] * spacing[2]);
             dry_left.min(dry_right) * if axis == FaceAxis::X { spacing[2] } else { spacing[0] }
         }
     };
@@ -205,27 +226,10 @@ fn union(parent: &mut [usize], left: usize, right: usize) {
     if left < right { parent[right] = left; } else { parent[left] = right; }
 }
 
-fn identity(snapshot: &AirGeometrySnapshot, cells: &[crate::terrain_water::AirGeometryCell], spacing: [f64; 3], policy: UnmodeledWaterPolicy) -> String {
-    let mut hash = 2_166_136_261u32;
-    let feed = |hash: &mut u32, text: &str| { for byte in text.as_bytes() { *hash = (*hash ^ u32::from(*byte)).wrapping_mul(16_777_619); } };
-    feed(&mut hash, &format!("{}:{}:{:?}:{:?}:", snapshot.physical_revision, snapshot.epoch, spacing, policy));
-    let mut sorted = cells.iter().map(|cell| cell_id(cell.at)).collect::<Vec<_>>();
-    sorted.sort();
-    for id in sorted { feed(&mut hash, &id); }
-    let mut faces = snapshot.faces.clone();
-    faces.sort_by_key(|face| face.face);
-    for face in faces {
-        feed(&mut hash, &face_id(face.face.axis, face.face.cell));
-        match face.kind {
-            AirGeometryFaceKind::Internal { a, b, sealed } => {
-                feed(&mut hash, &format!("i:{}:{}:{}", cell_id(a), cell_id(b), sealed));
-            }
-            AirGeometryFaceKind::Frontier { neighbor, sealed } => {
-                feed(&mut hash, &format!("f:{:?}:{}", neighbor, sealed));
-            }
-        }
-    }
-    format!("air-geometry:{:08x}", hash)
+fn identity(snapshot: &AirGeometrySnapshot, spacing: [f64; 3], policy: UnmodeledWaterPolicy, cells: usize, openings: usize) -> String {
+    // This bounded revision tag is not topology authority. The atmosphere
+    // owner retains canonical definition equality when accepting a definition.
+    format!("air-geometry:v1:{}:{}:{:?}:{:?}:{cells}:{openings}", snapshot.physical_revision, snapshot.epoch, spacing, policy)
 }
 
 #[cfg(test)]
@@ -243,7 +247,7 @@ mod tests {
             faces: faces.iter().map(|(face, sealed)| AirGeometryFace { face: *face, kind: AirGeometryFaceKind::Internal { a: face.cell, b: match face.axis { FaceAxis::X => Cell { x: face.cell.x + 1, ..face.cell }, FaceAxis::Y => Cell { y: face.cell.y + 1, ..face.cell }, FaceAxis::Z => Cell { z: face.cell.z + 1, ..face.cell } }, sealed: *sealed } }).collect(),
         }
     }
-    fn project(snapshot: &AirGeometrySnapshot) -> Result<AirAtmosphereGeometry, String> { project(snapshot, [1.0, 1.0, 1.0], UnmodeledWaterPolicy::AssumeNoAdmittedWater) }
+    fn project(snapshot: &AirGeometrySnapshot) -> Result<AirAtmosphereGeometry, String> { super::project(snapshot, [1.0, 1.0, 1.0], UnmodeledWaterPolicy::AssumeNoAdmittedWater) }
 
     #[test]
     fn same_y_eight_m_bins_split_dry_cells() {
