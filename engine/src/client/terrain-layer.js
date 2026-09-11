@@ -34,6 +34,8 @@ function regionForChunk(
   changed,
   previous,
   current,
+  previousIndex,
+  currentIndex,
   verticalMetres,
   camera,
 ) {
@@ -45,12 +47,14 @@ function regionForChunk(
     columns,
     verticalMetres,
     (x, y, z) => projectedPoint(camera, x, y, z),
+    previousIndex,
   );
   const newBounds = terrainFaceBounds(
     current,
     columns,
     verticalMetres,
     (x, y, z) => projectedPoint(camera, x, y, z),
+    currentIndex,
   );
   if (!oldBounds && !newBounds) return null;
   const bounds = {
@@ -129,6 +133,8 @@ export function createTerrainLayer() {
         update.affectedColumns,
         update.previous,
         update.surfaces,
+        update.previousIndex,
+        update.columnIndex,
         frame.verticalMetres,
         canonicalCamera,
       );

@@ -57,4 +57,18 @@ test("dirty bounds include the old and new neighbor wall heights", () => {
   );
   assert.deepEqual(bounds, { left: -5, top: 4.5, right: 15, bottom: 45.5 });
   assert.deepEqual(next, { left: -5, top: 4.5, right: 15, bottom: 25.5 });
+
+  const indexed = new Map(
+    before.map((entry) => [`${entry.cell[0]},${entry.cell[2]}`, entry]),
+  );
+  assert.deepEqual(
+    terrainFaceBounds(
+      [...before, { cell: [100, "invalid", 100], material: 1 }],
+      [{ x: 0, z: 0 }],
+      1,
+      (x, y, z) => ({ x: x * 10, y: y * 10 + z }),
+      indexed,
+    ),
+    { left: -5, top: 14.5, right: 5, bottom: 45.5 },
+  );
 });

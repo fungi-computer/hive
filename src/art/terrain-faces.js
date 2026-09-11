@@ -75,15 +75,25 @@ export function terrainChunkKeys(columns, chunkSize = 8) {
   });
 }
 
-/** Project the old and new affected faces into one conservative dirty rectangle. */
-export function terrainFaceBounds(surfaces, affected, verticalMetres, project) {
-  const wanted = new Set(affected.map(({ x, z }) => `${x},${z}`));
+/** Project affected faces into one conservative dirty rectangle. */
+export function terrainFaceBounds(
+  surfaces,
+  affected,
+  verticalMetres,
+  project,
+  columnIndex = undefined,
+) {
+  const index = columnIndex ?? terrainColumnMap(surfaces);
+  const selected = columnIndex
+    ? affected
+        .map(({ x, z }) => index.get(`${x},${z}`))
+        .filter((surface) => surface !== undefined)
+    : surfaces;
   let left = Infinity,
     top = Infinity,
     right = -Infinity,
     bottom = -Infinity;
-  for (const face of terrainFaces(surfaces, verticalMetres)) {
-    if (!wanted.has(terrainColumnKey(face.surface))) continue;
+  for (const face of terrainFaces(selected, verticalMetres, index)) {
     for (const [x, y, z] of face.vertices) {
       const point = project(x, y, z);
       left = Math.min(left, point.x);
