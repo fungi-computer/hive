@@ -118,24 +118,25 @@ mod construction_tests {
     #[test]
     fn blocked_geometry_preserves_progress_material_and_existing_structure() {
         let (mut kernel, surface, contact) = world();
-        setup(&mut kernel, surface, &contact);
-        let occupied = crate::structure_geometry::StaticInstance::Floor {
-            id: "existing-floor".into(),
-            support: surface,
-        };
-        let prepared = kernel.environment.as_mut().unwrap().world
-            .prepare_structures(vec![occupied]).unwrap().unwrap();
-        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+        kernel.environment.as_mut().unwrap().structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
+            id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0,
+        });
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-wall"}
+        ]}).to_string()).unwrap()).unwrap();
+        assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
 
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
         let lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
         assert!(site.contains("\"seconds\":1.0"));
         assert!(site.contains("\"phase\":\"working\""));
-        assert!(lots.contains("\"container\":\"site-1\""));
-        assert!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().any(|instance| {
-            matches!(instance, crate::structure_geometry::StaticInstance::Floor { id, .. } if id == "existing-floor")
-        }));
+        assert!(lots.contains("\"container\":\"site-wall\""));
+        assert!(!site.contains("hive.sealed-container"));
+        assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
     }
 
     #[test]
