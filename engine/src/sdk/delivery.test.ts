@@ -92,18 +92,19 @@ test("delivery rejects impossible pairs before matcher cost", () => {
     ] },
   ] as const;
   for (const candidate of cases) {
-    const worker = entity(`eligibility.worker.${candidate.name.replaceAll(" ", ".")}`);
-    const source = entity(`eligibility.source.${candidate.name.replaceAll(" ", ".")}`);
-    const destination = entity(`eligibility.destination.${candidate.name.replaceAll(" ", ".")}`);
-    const task = entity(`eligibility.task.${candidate.name.replaceAll(" ", ".")}`);
+    const slug = candidate.name.replaceAll(" ", ".");
+    const worker = entity(`eligibility.worker.${slug}`);
+    const source = entity(`eligibility.source.${slug}`);
+    const destination = entity(`eligibility.destination.${slug}`);
+    const task = entity(`eligibility.task.${slug}`);
     const lotRows = candidate.lots.map((lot, index) => row(
-      entity(`eligibility.lot.${candidate.name}.${index}`),
+      entity(`eligibility.lot.${slug}.${index}`),
       MaterialLot,
       { ...lot, container: lot.container === "source" ? source : destination },
     ));
     const taskValue = {
       actor: null,
-      sourceLot: lotRows[0]?.id ?? entity(`eligibility.missing.${candidate.name}`),
+      sourceLot: lotRows[0]?.id ?? entity(`eligibility.missing.${slug}`),
       source,
       destination,
       material: "food",

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
   Body,
+  Container,
   Destination,
   MaterialLot,
   Position,
@@ -131,6 +132,7 @@ const piratesInitial = [
 const pirateComponents = [
   Position,
   Body,
+  Container,
   Support,
   Surface,
   MaterialLot,
