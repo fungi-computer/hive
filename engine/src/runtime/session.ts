@@ -252,9 +252,10 @@ export class GameSession {
     )
       throw new Error("invalid command result");
     const actions = result.actions.map(checkedAction);
-    const writes = this.validateWrites(result.writes, handler.writes);
-    const creates = this.validateAuthoredCreates(result.creates ?? [], handler.writes);
-    const removes = (result.removes ?? []).map(checkedAuthoredId);
+    const edits = this.validateAuthoredEdits(result.creates ?? [], result.removes ?? [],
+      [...this.pendingWrites, ...result.writes], handler.writes, this.pendingCreates, this.pendingRemoves);
+    const writes = this.validateWrites(result.writes, handler.writes, edits.known);
+    const { creates, removes } = edits;
     const merged = [...this.pendingWrites];
     for (const write of writes) {
       const index = merged.findIndex(
@@ -276,34 +277,98 @@ export class GameSession {
     this.pendingCreates.push(...creates);
     this.pendingRemoves.push(...removes);
   }
-  private validateAuthoredCreates(records: readonly EntityRecord[], allowed: readonly import("../contracts").ComponentDefinition<any>[], knownIds?: ReadonlySet<EntityId>, occupiedIds?: ReadonlySet<EntityId>): EntityRecord[] {
-    if (records.length > MAX_AUTHORED_RECORDS) throw new Error("authored creation limit reached");
-    const permitted = new Set(allowed.map((component) => component.id));
-    const seen = new Set<string>();
-    const existing = knownIds ? new Set(knownIds) : new Set<EntityId>();
-    if (!knownIds) for (const definition of this.pack.components) for (const row of this.port.query({ components: [definition] })) existing.add(row.id);
-    const occupied = occupiedIds ? new Set(occupiedIds) : new Set([...existing, ...this.pendingCreates.map((item) => item.id)]);
-    return records.map((record) => {
-      const id = checkedAuthoredId(record?.id);
-      if (seen.has(id) || occupied.has(id) || this.pendingRemoves.includes(id)) throw new Error("duplicate authored entity id");
-      seen.add(id);
-      if (!record.components || typeof record.components !== "object" || Array.isArray(record.components) || Object.keys(record.components).length === 0 || Object.keys(record.components).length > 32) throw new Error("invalid authored components");
-      const components: Record<string, unknown> = {};
-      for (const [id, value] of Object.entries(record.components)) {
-        const definition = this.pack.components.find((component) => component.id === id);
-        if (!definition || !permitted.has(id) || isReservedComponent(id) || !definition.validate(value)) throw new Error(`invalid authored component ${id}`);
-        components[id] = structuredClone(value);
+  private validateAuthoredEdits(
+    creates: readonly EntityRecord[], removes: readonly EntityId[], writes: readonly WriteIntent[],
+    allowed: readonly import("../contracts").ComponentDefinition<any>[],
+    queuedCreates: readonly EntityRecord[] = [], queuedRemoves: readonly EntityId[] = [],
+    incoming?: readonly EntityRecord[],
+  ) {
+    const allCreates = [...queuedCreates, ...creates];
+    const allRemoves = [...queuedRemoves, ...removes].map(checkedAuthoredId);
+    if (allCreates.length > MAX_AUTHORED_RECORDS || allRemoves.length > MAX_AUTHORED_REMOVES)
+      throw new Error("authored edit budget exceeded");
+    const removed = new Set(allRemoves);
+    if (removed.size !== allRemoves.length) throw new Error("duplicate authored removal");
+    const permitted = new Set(allowed.map(definition => definition.id));
+    const definitions = new Map(this.pack.components.map(definition => [definition.id, definition]));
+    const requested = new Set<EntityId>(allRemoves);
+    const created = new Set<EntityId>();
+    const inspectValue = (name: string, value: unknown) => {
+      const definition = definitions.get(name as import("../contracts").ComponentId);
+      if (!definition || !definition.validate(value)) throw new Error(`invalid authored component ${name}`);
+      for (const [field, kind] of Object.entries(definition.fields)) {
+        const item = (value as Record<string, unknown>)[field];
+        if ((kind === "entity" || kind === "nullable-entity") && item !== null)
+          requested.add(checkedAuthoredId(item));
+        if (typeof item === "string" && new TextEncoder().encode(item).length > 4096)
+          throw new Error("authored string exceeds 4096 bytes");
       }
-      const finalIds = new Set([...occupied, ...records.map((item) => item.id as EntityId)]);
-      for (const [componentId, value] of Object.entries(components)) {
-        const definition = this.pack.components.find((component) => component.id === componentId)!;
-        for (const [field, kind] of Object.entries(definition.fields)) {
-          const reference = (value as Record<string, unknown>)[field];
-          if ((kind === "entity" || kind === "nullable-entity") && reference !== null && (!finalIds.has(reference as EntityId))) throw new Error(`unknown authored entity reference ${field}`);
+    };
+    for (const record of allCreates) {
+      const id = checkedAuthoredId(record?.id);
+      if (created.has(id) || removed.has(id)) throw new Error("conflicting authored identity edit");
+      created.add(id); requested.add(id);
+      if (!record.components || Array.isArray(record.components) || typeof record.components !== "object" ||
+          Object.keys(record.components).length === 0 || Object.keys(record.components).length > 32)
+        throw new Error("invalid authored creation components");
+      for (const [name,value] of Object.entries(record.components)) {
+        if (isReservedComponent(name)) throw new Error("physical authored creation");
+        inspectValue(name,value);
+      }
+    }
+    for (const record of creates)
+      for (const name of Object.keys(record.components))
+        if (!permitted.has(name as import("../contracts").ComponentId)) throw new Error(`undeclared authored creation ${name}`);
+    for (const write of writes) { requested.add(checkedAuthoredId(write.entity)); inspectValue(write.component, write.value); }
+    const known = new Set<EntityId>();
+    const ids = [...requested];
+    const incomingIds = incoming && new Set(incoming.map(record => record.id));
+    for (let offset=0;offset<ids.length;offset+=128) {
+      const batch = ids.slice(offset,offset+128);
+      const membership = incomingIds ? batch.map(id => incomingIds.has(id)) : this.port.entityMembership(batch);
+      if (membership.length !== batch.length) throw new Error("invalid entity membership result");
+      batch.forEach((id,index) => { if (membership[index]) known.add(id); });
+    }
+    for (const id of created) {
+      if (known.has(id)) throw new Error("authored creation already exists");
+      known.add(id);
+    }
+    for (const id of removed) {
+      if (!known.delete(id)) throw new Error("unknown authored removal");
+    }
+    for (const id of requested)
+      if (!created.has(id) && !removed.has(id) && !known.has(id)) throw new Error(`unknown authored reference ${id}`);
+    const checkReferences = (name: string, value: unknown) => {
+      const definition = definitions.get(name as import("../contracts").ComponentId)!;
+      for (const [field,kind] of Object.entries(definition.fields)) {
+        const ref = (value as Record<string,unknown>)[field];
+        if ((kind === "entity" || kind === "nullable-entity") && ref !== null && !known.has(ref as EntityId))
+          throw new Error(`unknown authored reference ${field}`);
+      }
+    };
+    for (const record of allCreates) for (const [name,value] of Object.entries(record.components)) checkReferences(name,value);
+    for (const write of writes) {
+      if (!known.has(write.entity)) throw new Error("write targets removed entity");
+      checkReferences(write.component,write.value);
+    }
+    if (removes.length) {
+      const targets = new Set(removes);
+      const owned = new Set<EntityId>();
+      // Removal is uncommon. Read component membership only here, never for
+      // ordinary ticks or creation. Native removal also checks physical state
+      // and every surviving reference before publication.
+      for (const definition of this.pack.components) {
+        const rows = incoming
+          ? incoming.filter(record => Object.hasOwn(record.components,definition.id)).map(record => ({id:record.id}))
+          : this.port.query({components:[definition]});
+        for (const row of rows) if (targets.has(row.id)) {
+          if (isReservedComponent(definition.id) || !permitted.has(definition.id)) throw new Error("authored removal exceeds component ownership");
+          owned.add(row.id);
         }
       }
-      return { id, components };
-    });
+      if (removes.some(id => !owned.has(id))) throw new Error("authored removal has no owned record");
+    }
+    return { creates: structuredClone([...creates]), removes: [...removes], known };
   }
   private validateWrites(
     writes: readonly WriteIntent[],
@@ -481,14 +546,12 @@ export class GameSession {
           actions.push(checkedAction(action));
         },
         createAuthoredEntity: (record) => {
-          if (queuedCreates.some((item) => item.id === record.id)) throw new Error("duplicate authored entity id");
-          const checked = this.validateAuthoredCreates([record], this.pack.components);
-          queuedCreates.push(...checked);
+          if (queuedCreates.length >= MAX_AUTHORED_RECORDS) throw new Error("authored creation budget exceeded");
+          queuedCreates.push(structuredClone(record));
         },
         removeAuthoredEntity: (id) => {
-          const checked = checkedAuthoredId(id);
-          if (queuedRemoves.includes(checked) || queuedCreates.some((record) => record.id === checked)) throw new Error("duplicate authored removal");
-          queuedRemoves.push(checked);
+          if (queuedRemoves.length >= MAX_AUTHORED_REMOVES) throw new Error("authored removal budget exceeded");
+          queuedRemoves.push(checkedAuthoredId(id));
         },
       };
       for (const definition of this.pack.systems) {
@@ -498,6 +561,8 @@ export class GameSession {
         )
           continue;
         const beforeWrites = writes.length;
+        const beforeCreates = queuedCreates.length;
+        const beforeRemoves = queuedRemoves.length;
         activeReads = definition.reads;
         const impacts = definition.consumesImpacts
           ? this.impactsFor(definition.id, nextFrontiers)
@@ -511,12 +576,10 @@ export class GameSession {
             definition.id,
             this.pendingImpacts[this.pendingImpacts.length - 1].sequence,
           );
-        writes.push(
-          ...this.validateWrites(
-            writes.splice(beforeWrites),
-            definition.writes,
-          ),
-        );
+        const edits = this.validateAuthoredEdits(
+          queuedCreates.slice(beforeCreates), queuedRemoves.slice(beforeRemoves), writes,
+          definition.writes, queuedCreates.slice(0,beforeCreates), queuedRemoves.slice(0,beforeRemoves));
+        writes.push(...this.validateWrites(writes.splice(beforeWrites), definition.writes, edits.known));
       }
       const advanced: AdvanceResult = this.port.advance(delta, writes, actions, { creates: queuedCreates, removes: queuedRemoves });
       if (advanced.results.length !== actions.length)
@@ -641,18 +704,12 @@ export class GameSession {
       if (pendingKeys.has(key)) throw new Error("duplicate pending write");
       pendingKeys.add(key);
     }
-    const pendingWrites = this.validateWrites(
-      snapshot.pendingWrites,
-      Object.values(this.pack.commands ?? {}).flatMap(
-        (command) => command.writes,
-      ),
-      incomingTargets,
-      incomingMembership,
-    );
-    const authoredDefinitions = [...Object.values(this.pack.commands ?? {}).flatMap((command) => command.writes), ...this.pack.systems.flatMap((system) => system.writes)];
-    const pendingCreates = this.validateAuthoredCreates(snapshot.pendingCreates, authoredDefinitions, incomingTargets, incomingTargets);
-    const pendingRemoves = snapshot.pendingRemoves.map(checkedAuthoredId);
-    if (new Set(pendingRemoves).size !== pendingRemoves.length || pendingCreates.some((record) => pendingRemoves.includes(record.id))) throw new Error("invalid authored queue");
+    const authoredDefinitions = Object.values(this.pack.commands ?? {}).flatMap(command => command.writes);
+    const edits = this.validateAuthoredEdits(snapshot.pendingCreates, snapshot.pendingRemoves,
+      snapshot.pendingWrites, authoredDefinitions, [], [], initialEntities);
+    const pendingWrites = this.validateWrites(snapshot.pendingWrites, authoredDefinitions, edits.known);
+    const pendingCreates = edits.creates;
+    const pendingRemoves = edits.removes;
     const pendingImpacts = snapshot.pendingImpacts.map(checkedImpact);
     const impactIds = new Set<string>();
     const impactSequences = new Set<number>();

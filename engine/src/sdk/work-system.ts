@@ -49,12 +49,15 @@ export function createWorkSystem(options: WorkSystemOptions) {
         })),
       );
       const taskProviders = new Map<EntityId, number>();
-      for (const candidate of candidates) {
-        const owner = taskProviders.get(candidate.task);
-        if (owner !== undefined && owner !== candidate.providerIndex)
-          throw new Error("work candidate task belongs to competing providers");
-        taskProviders.set(candidate.task, candidate.providerIndex);
-      }
+      prepared.forEach((provider,index) => {
+        for (const claim of provider.claims) {
+          if (taskProviders.has(claim.task)) throw new Error("work task belongs to competing providers");
+          taskProviders.set(claim.task,index);
+        }
+      });
+      for (const candidate of candidates)
+        if (taskProviders.get(candidate.task) !== candidate.providerIndex)
+          throw new Error("work candidate task belongs to another provider");
       const available = candidates.filter((candidate) => !occupiedActors.has(candidate.worker));
       const assignments = allocateWork(
         claims,
@@ -72,7 +75,7 @@ export function createWorkSystem(options: WorkSystemOptions) {
         },
       );
       const assignmentsByProvider = prepared.map((_, providerIndex) =>
-        assignments.filter((assignment) => assignment.providerIndex === providerIndex),
+        assignments.filter((assignment) => taskProviders.get(assignment.task) === providerIndex),
       );
       prepared.forEach((provider, providerIndex) => {
         provider.apply(assignmentsByProvider[providerIndex]);

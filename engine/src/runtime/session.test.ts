@@ -45,7 +45,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
-    version: 6,
+    version: 7,
     revision: 0,
     time: 0,
     scene: {
@@ -772,4 +772,46 @@ test("world pose access is limited to declared physical reads", () => {
   const allowedValue = session(port, allowed, 5).value;
   allowedValue.step(0.1);
   assert.equal(requested, 1);
+});
+
+test("authored orders are visible to paused commands and survive pending reload", () => {
+  const port = new TestPort();
+  const authoredPack: GamePack = {
+    ...pack(port, undefined),
+    commands: {
+      designate: command({ writes: [morale], run: () => ({actions:[],writes:[],creates:[{
+        id:entity("order.1"),components:{"test.morale":{value:1}},
+      }]}) }),
+      revise: command({reads:[morale],writes:[morale],run: context => {
+        const row = context.query({components:[morale]}).find(row => row.id === "order.1");
+        assert.ok(row);
+        return {actions:[],writes:[{entity:row.id,component:morale.id,value:{value:row.get(morale).value+1}}]};
+      }}),
+    },
+  };
+  const value = new GameSession({port,pack:authoredPack});
+  value.start(); value.pause();
+  value.command("designate", {});
+  value.command("revise", {});
+  const saved = value.save();
+  assert.equal(saved.pendingCreates.length,1);
+  assert.deepEqual(saved.pendingWrites[0].value,{value:2});
+  const restored = new GameSession({port:new TestPort(),pack:authoredPack});
+  restored.start(); restored.restore(saved);
+  restored.command("revise",{});
+  assert.deepEqual(restored.save().pendingWrites[0].value,{value:3});
+  assert.throws(()=>restored.command("designate",{}),/conflicting|already exists/);
+});
+
+test("authored orders reject unowned removals and conflicting pending writes", () => {
+  const port = new TestPort();
+  const value = new GameSession({port,pack:{...pack(port,undefined),commands:{
+    remove:command({writes:[],run:()=>({actions:[],writes:[],removes:[entity("actor")]})}),
+    conflict:command({writes:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:1}}],removes:[entity("actor")]})}),
+  }}});
+  value.start(); value.pause();
+  const before = value.save();
+  assert.throws(()=>value.command("remove",{}),/ownership/);
+  assert.throws(()=>value.command("conflict",{}),/removed/);
+  assert.deepEqual(value.save(),before);
 });

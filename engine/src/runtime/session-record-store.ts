@@ -10,7 +10,7 @@ export function checkedStoredSession(value: unknown): StoredSession {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("missing stored session");
   const state = value as StoredSession;
   const kernel = state.kernel;
-  if (state.format !== "hive-session" || state.version !== 7 || typeof state.game !== "string" ||
+  if (state.format !== "hive-session" || state.version !== 8 || typeof state.game !== "string" ||
       typeof state.paused !== "boolean" || !Number.isSafeInteger(state.tick) || state.tick < 0 ||
       !Number.isFinite(state.now) || state.now < 0 || !kernel || kernel.format !== "hive-kernel-records" ||
       kernel.version !== 1 || kernel.revision !== state.tick || kernel.time !== state.now ||
