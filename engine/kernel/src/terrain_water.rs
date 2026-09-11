@@ -498,6 +498,8 @@ mod tests {
         let facts = restored.facts().unwrap();
         assert_eq!(facts.total_kg, 100.0);
         assert!(facts.cells.iter().find(|cell| cell.at == [0,30,0]).unwrap().mass_kg > 0.0);
+        let bounds = restored.bounds();
+        assert!(restored.structure_surfaces(&[(bounds.max_x, 0)]).is_err());
     }
 
     #[test]
