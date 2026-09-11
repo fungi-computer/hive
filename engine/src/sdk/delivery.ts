@@ -1,5 +1,5 @@
-import { component, query, system } from "./authoring";
-import { allocateWork } from "./work-allocation";
+import { component, query } from "./authoring";
+import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
   MaterialLot,
   Body,
@@ -11,7 +11,7 @@ import {
   move,
   transfer,
 } from "./common";
-import type { EntityId, Vec3, WorldPose } from "../contracts";
+import type { EntityId, Vec3, WorldPose, WriteContext } from "../contracts";
 
 export type DeliveryPhase =
   "idle" | "to-source" | "carrying" | "to-destination" | "complete";
@@ -44,23 +44,15 @@ export const DeliveryTask = component<{
 });
 const distance = (a: Vec3, b: Vec3) =>
   Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-/** Shared resumable delivery: only the kernel's reach/custody checks settle transfer. */
-export const deliverySystem = system({
-  id: "hive.delivery",
-  version: 1,
-  reads: [
-    DeliveryTask,
-    Position,
-    Body,
-    Container,
-    Support,
-    Surface,
-    MaterialLot,
-    ExcavationWork,
-    DeliveryControl,
-  ],
-  writes: [DeliveryTask],
-  run(ctx) {
+type DeliveryCandidate = {
+  readonly worker: EntityId;
+  readonly task: EntityId;
+  readonly actorPosition: Vec3;
+  readonly sourcePosition: Vec3;
+};
+
+/** Provider for the shared work owner; delivery claims remain task.actor. */
+export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<DeliveryCandidate> {
     const tasks = ctx.query(query(DeliveryTask));
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
@@ -182,37 +174,30 @@ export const deliverySystem = system({
       task: row.id,
       actor: row.get(DeliveryTask).actor,
     }));
-    // A saved delivery claim remains the owner of its cargo/state if native
-    // excavation starts for the same actor. The native claim still blocks any
-    // new delivery assignment, and the progression loop below holds the
-    // existing delivery until excavation releases the actor.
-    const deliveryActors = new Set(
-      deliveryClaims.flatMap(({ actor }) => actor === null ? [] : [actor]),
-    );
-    const excavationClaims = [...excavatingActors]
-      .filter((actor) => !deliveryActors.has(actor))
-      .map((actor) => ({ task: actor, actor }));
-    const assignments = allocateWork(
-      [...deliveryClaims, ...excavationClaims],
+    let assigned = new Set<EntityId>();
+    return {
+      claims: deliveryClaims,
+      occupiedActors: [...excavatingActors],
       candidates,
-      candidate => distance(candidate.actorPosition, candidate.sourcePosition),
-      eligible => ctx.assign(eligible),
-    );
-    const assigned = new Set(assignments.map((assignment) => assignment.task));
-    for (const assignment of assignments) {
-      const taskRow = idleTasks.find((row) => row.id === assignment.task);
-      const control = controls
-        .find((row) => row.id === assignment.worker)
-        ?.get(DeliveryControl);
-      if (!taskRow || !control) continue;
-      const task = taskRow.get(DeliveryTask);
-      ctx.write(DeliveryTask, taskRow.id, {
-        ...task,
-        actor: assignment.worker,
-        quantity: control.quantity,
-        phase: "to-source",
-      });
-    }
+      estimate: (candidate) => distance(candidate.actorPosition, candidate.sourcePosition),
+      apply: (assignments) => {
+        assigned = new Set(assignments.map((assignment) => assignment.task));
+        for (const assignment of assignments) {
+          const taskRow = idleTasks.find((row) => row.id === assignment.task);
+          const control = controls
+            .find((row) => row.id === assignment.worker)
+            ?.get(DeliveryControl);
+          if (!taskRow || !control) continue;
+          const task = taskRow.get(DeliveryTask);
+          ctx.write(DeliveryTask, taskRow.id, {
+            ...task,
+            actor: assignment.worker,
+            quantity: control.quantity,
+            phase: "to-source",
+          });
+        }
+      },
+      progress: () => {
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
       if (state.actor === null || assigned.has(task.id)) continue;
@@ -331,5 +316,25 @@ export const deliverySystem = system({
         // Ownership was observed on the previous tick. Host commitment owns durability.
       }
     }
-  },
+      },
+    };
+}
+
+/** Existing delivery composition uses the shared owner with one provider. */
+export const deliverySystem = createWorkSystem({
+  id: "hive.delivery",
+  version: 1,
+  reads: [
+    DeliveryTask,
+    Position,
+    Body,
+    Container,
+    Support,
+    Surface,
+    MaterialLot,
+    ExcavationWork,
+    DeliveryControl,
+  ],
+  writes: [DeliveryTask],
+  providers: [deliveryProvider],
 });
