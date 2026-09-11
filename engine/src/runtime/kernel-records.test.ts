@@ -4,7 +4,7 @@ import { captureKernelRecords, restoreKernelRecords, type NativeRecordHandle } f
 
 const entity = JSON.stringify({ format: "hive-kernel", version: 5, revision: 7, time: 1.5, scene: { format: "hive-game", version: 1, game: "colony", components: [], initial: [] } });
 function handle(seed: readonly { key: string; bytes: Uint8Array }[], fail = false): NativeRecordHandle & { freed: boolean; reads: number; inserts: number } {
-  const records = new Map(seed.map(record => [record.key, Uint8Array.from(record.bytes)]));
+  const records = new Map<string, Uint8Array>(seed.map(record => [record.key, Uint8Array.from(record.bytes)]));
   const result = { freed: false, reads: 0, inserts: 0, free() { this.freed = true; }, keys() { return JSON.stringify([...records.keys()]); }, read(key: string) { this.reads += 1; return records.get(key)!; }, insert(key: string, bytes: Uint8Array) { this.inserts += 1; if (fail) throw new Error("insert failed"); records.set(key, bytes); } };
   return result;
 }
