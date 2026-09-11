@@ -184,7 +184,8 @@ impl Kernel {
     pub(super) fn set_structure_open(&mut self, worker: &str, site: &str, open: bool) -> Result<()> {
         let worker_entity = self.entity(worker)?;
         if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Destination>(worker_entity).is_some()
-            || self.ecs.get::<Support>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some() { return Err("worker cannot operate structure aperture while busy".into()); }
+            || self.direct.contains_key(&worker_entity) || self.ecs.get::<Support>(worker_entity).is_some()
+            || self.ecs.get::<ExcavationWork>(worker_entity).is_some() { return Err("worker cannot operate structure aperture while busy".into()); }
         let site_entity = self.entity(site)?;
         let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
         if state.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(site_entity).is_none() { return Err("aperture requires a finished structure".into()); }

@@ -124,9 +124,9 @@ impl StaticInstance {
                     *opening_height == 0 || u16::from(*opening_bottom) + u16::from(*opening_height) > u16::from(*height) {
                     return Err("invalid bounded aperture wall".into());
                 }
+                if u16::from(*opening_bottom) + u16::from(*opening_height) >= u16::from(*height) { return Err("aperture must retain a lintel".into()); }
                 let occupied = if *open { usize::from(*height - *opening_height) } else { usize::from(*height) };
                 for offset in 0..u32::from(*height) {
-                    if *open && offset >= u32::from(*opening_bottom) && offset < u32::from(*opening_bottom + *opening_height) { continue; }
                     let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
                         .ok_or("structure aperture coordinate overflow")?;
                     if !contains(bounds, Cell { y, ..*base }) { return Err("structure aperture wall is outside generated bounds".into()); }

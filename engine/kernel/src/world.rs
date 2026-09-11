@@ -18,6 +18,9 @@ mod initial_placement;
 mod authored_entities;
 #[path = "structure_contact.rs"]
 mod structure_contact;
+#[cfg(test)]
+#[path = "aperture_tests.rs"]
+mod aperture_tests;
 #[path = "construction_work.rs"]
 mod construction_work;
 #[path = "route_query.rs"]
