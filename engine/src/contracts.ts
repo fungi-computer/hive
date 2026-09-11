@@ -1,3 +1,4 @@
+import type { KernelRecordSnapshot } from "./runtime/kernel-records";
 /** Public boundary between authored TypeScript and the authoritative kernel. */
 export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
@@ -282,4 +283,3 @@ export interface GamePackTransport {
   readonly version: number;
   readonly definition: Uint8Array;
 }
-import type { KernelRecordSnapshot } from "./runtime/kernel-records";

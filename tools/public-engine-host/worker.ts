@@ -5,6 +5,7 @@ import {
 } from "../../src/engine/region/index.ts";
 import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
 import type { SessionRegionState } from "../../engine/src/runtime/region-program";
+import { hydrateSession } from "../../engine/src/runtime/session-record-store";
 import { GameSession } from "../../engine/src/runtime/session";
 import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
@@ -394,7 +395,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         pack: packFor(this.pack),
         seed: 17,
       });
-      session.restore(committed.state.session);
+      const records = new Map<string, Uint8Array>();
+      let cursor = "";
+      for (;;) {
+        const page = this.region.readRecords(committed.revision, cursor, 40);
+        for (const record of page.records) records.set(record.key, record.bytes);
+        if (records.size > 40) throw new Error("public-kernel-record-limit");
+        if (page.nextKey === undefined) break;
+        if (page.nextKey <= cursor) throw new Error("public-kernel-record-cursor");
+        cursor = page.nextKey;
+      }
+      session.restore(hydrateSession(committed.state.session, { read: key => records.get(key) }));
       const observation = buildObservation(session, {
         epoch: 0,
         sequence: committed.revision,

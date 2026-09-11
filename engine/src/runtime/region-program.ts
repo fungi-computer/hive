@@ -3,6 +3,7 @@ import type { RegionProgram, Json } from "../../../src/engine/region/index.ts";
 import type { GamePack, KernelPort, ActionRequest } from "../contracts";
 import { GameSession, type SessionSnapshot } from "./session";
 import { checkedAction } from "./actions";
+import { checkedStoredSession, storeSession, hydrateSession, changedSessionRecords, type StoredSession } from "./session-record-store";
 
 const commandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("action"), action: z.unknown() }).strict(),
@@ -26,7 +27,7 @@ type RegionCommand =
   | Exclude<z.infer<typeof commandSchema>, { kind: "action" }>
   | { kind: "action"; action: ActionRequest };
 export interface SessionRegionState {
-  session: SessionSnapshot;
+  session: StoredSession;
 }
 
 /** Native objects are disposable candidates. openRegion alone commits their JSON state. */
@@ -48,6 +49,7 @@ export function createSessionRegionProgram(options: {
   const pack: GamePack = Object.freeze({
     ...options.pack,
     definition: options.pack.definition.slice(),
+    environmentDefinition: options.pack.environmentDefinition?.slice(),
     components: Object.freeze([...options.pack.components]),
     systems: Object.freeze(
       options.pack.systems.map((system) =>
@@ -97,19 +99,17 @@ export function createSessionRegionProgram(options: {
     }
   }
   return {
-    id: `session-v1:${pack.id}:${implementationHash}`,
-    initial: () => ({ state: {
-      session: withSession(undefined, (session) => session.save()),
-    }, records: [] }),
+    id: `session-v2:${pack.id}:${implementationHash}`,
+    initial: () => {
+      const saved = storeSession(withSession(undefined, session => session.save()));
+      return { state: { session: saved.session }, records: saved.records };
+    },
     parseState(value) {
       const state = z.object({ session: z.unknown() }).strict().parse(value);
-      if (!state.session || typeof state.session !== "object")
-        throw new Error("missing session state");
-      return {
-        session: withSession(state.session as SessionSnapshot, (session) =>
-          session.save(),
-        ),
-      };
+      const session = checkedStoredSession(state.session);
+      if (session.game !== pack.id || session.gameVersion !== pack.version)
+        throw new Error("stored session game mismatch");
+      return { session };
     },
     parseCommand(value) {
       const command = commandSchema.parse(value);
@@ -122,8 +122,9 @@ export function createSessionRegionProgram(options: {
         principal === (command.kind === "step" ? hostPrincipal : ownerPrincipal)
       );
     },
-    execute(candidate, command) {
-      return withSession(candidate.session, (session) => {
+    execute(candidate, command, records) {
+      const before = hydrateSession(candidate.session, records);
+      return withSession(before, (session) => {
         let results: unknown = [];
         switch (command.kind) {
           case "action":
@@ -142,7 +143,8 @@ export function createSessionRegionProgram(options: {
             session.resume();
             break;
         }
-        candidate.session = session.save();
+        const after = session.save();
+        candidate.session = storeSession(after).session;
         return {
           status: "applied",
           result: JSON.parse(
@@ -153,6 +155,7 @@ export function createSessionRegionProgram(options: {
             }),
           ) as Json,
           events: [],
+          records: changedSessionRecords(before.kernel, after.kernel),
         };
       });
     },

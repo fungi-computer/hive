@@ -284,7 +284,7 @@ export class GameSession {
             knownTargets ??
             new Set<EntityId>(
             readKernelEntities(this.port.snapshot()).scene.initial.map(
-                (row: { id: EntityId }) => row.id,
+                (row) => (row as { id: EntityId }).id,
               ),
             );
           if (typeof value !== "string" || !targets.has(value as EntityId))

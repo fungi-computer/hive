@@ -100,6 +100,7 @@ function preflightRecords(records: readonly { readonly key: string; readonly byt
     seen.add(record.key); total += record.bytes.byteLength;
   }
   if (total > TOTAL_BYTES) throw new Error("kernel record bytes exceed 9MiB");
+  if (!seen.has("kernel/header")) throw new Error("missing native record header");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
   const definition = records.find(record => record.key === ENVIRONMENT_KEYS[0]);

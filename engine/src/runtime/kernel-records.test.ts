@@ -10,7 +10,7 @@ function handle(seed: readonly { key: string; bytes: Uint8Array }[], fail = fals
 }
 function entityRecords(): { key: string; bytes: Uint8Array }[] { return [{ key: "kernel/entities/0000", bytes: new TextEncoder().encode(entity) }, { key: "kernel/header", bytes: new Uint8Array([1]) }]; }
 
-test("capture copies bytes and always frees the native handle", () => {
+test("capture retains owned bytes and always frees the native handle", () => {
   const native = handle(entityRecords());
   const snapshot = captureKernelRecords({ capture_records: () => native, restore_records() {} });
   assert.equal(snapshot.revision, 7); assert.equal(snapshot.time, 1.5); assert.equal(native.freed, true);
@@ -21,7 +21,7 @@ test("restore frees a detached handle when insertion fails", () => {
   assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} }, () => (detached = handle(entityRecords(), true)), snapshot));
   assert.equal(detached?.freed, true);
 });
-test("restore rejects duplicate, missing, trailing metadata and oversized records", () => {
+test("restore rejects duplicate, missing and oversized records", () => {
   const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} });
   assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} }, () => handle([]), { ...snapshot, records: [...snapshot.records, snapshot.records[0]] }));
   assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} }, () => handle([]), { ...snapshot, records: snapshot.records.filter(record => record.key !== "kernel/header") }));
