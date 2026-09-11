@@ -11,6 +11,11 @@ one-shot every retained system or let presentation polish substitute for play.
 
 ## Current playable checkpoint — September 11
 
+The [retained brewing restoration map](RETAINED-BREWING-RESTORATION.md) records
+the actual recipe, hauling, attended/unattended work, fuel/emission and output
+callers to restore over Rust ownership. It is a design contract, not a claim
+that brewing is already ported.
+
 **Live construction release:** runtime `a9bbdba` with native routing correction
 `06d03af` is published to the existing four-demo site. Workers can supply/build
 floors and four-facing stairs. Local real input built two stairs and an upper
@@ -20,13 +25,13 @@ through restart and command replay. Frontend deployment `79ff4792` and Worker
 cache-stale readback is preserved as a failed check. Hosted playthrough, narrow
 layout, room smoke and the rest of the sprint are not established by this release.
 
-**Latest live correction:** runtime `6080e4e` supersedes the a13fc44 manual-dig
+**Earlier deployed digging checkpoint (superseded above):** runtime `6080e4e` supersedes the a13fc44 manual-dig
 checkpoint below. Rectangle designation now leads to automatic approach, cutting,
 spoil unloading and continuation. The actual two-cell consumer produced six spoil;
 paused queued-work save/replay/resume was separately checked in a local DO. These
 are bounded evidence, not the completed multi-storey/knowledge/travel sprint.
 
-**Current local construction join:** `22b4a0d` adds the actual Colony supply/build
+**Historical source checkpoint (now superseded by the live release):** `22b4a0d` adds the actual Colony supply/build
 consumer over the native construction owner. Workers supply and finish a floor,
 48 wood remains conserved (two held in the completed structure), and current save/
 restore preserves it. The headless actual-WASM consumer and strict types pass.
