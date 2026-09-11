@@ -2,6 +2,7 @@
 pub mod assign;
 pub mod collision;
 pub mod generation;
+pub mod visibility;
 pub mod terrain;
 pub mod terrain_water;
 pub mod terrain_traversal;
