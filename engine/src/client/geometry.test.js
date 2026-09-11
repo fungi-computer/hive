@@ -36,3 +36,11 @@ test('terrain picking uses signed voxel elevation and rejects unpublished ground
     assert.equal(terrainPoint(outside.x,outside.y,terrain),null);
   }
 });
+
+test('visible cliff faces block selection of a lower top behind them', () => {
+  const terrain={verticalMetres:0.54,surfaces:[
+    {cell:[0,3,0],material:1},{cell:[-1,0,-2],material:1}
+  ]};
+  const side=project(0.5,1.55,0);
+  assert.equal(terrainPoint(side.x,side.y,terrain),null);
+});

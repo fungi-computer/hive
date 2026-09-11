@@ -1,3 +1,4 @@
+import { terrainFaces } from "./terrain-faces.js";
 import * as THREE from "three";
 import { scene, mesh } from "./geometry.js";
 
@@ -29,23 +30,9 @@ export function terrainColumnsScene(surfaces, { verticalMetres, soilMaterial = 1
     if (!points) buckets.set(colour, points = []);
     for (const index of [0, 1, 2, 0, 2, 3]) points.push(...vertices[index]);
   }
-  for (const {cell: [x, y, z], material} of surfaces) {
-    const top = (y + 0.5) * verticalMetres;
-    const left = x - 0.5, right = x + 0.5, back = z - 0.5, front = z + 0.5;
-    quad(material === soilMaterial ? colours.grass : colours.stone,
-      [[left,top,back],[left,top,front],[right,top,front],[right,top,back]]);
-    for (const [dx, dz, edge] of [
-      [-1,0,[[left,back],[left,front]]], [1,0,[[right,front],[right,back]]],
-      [0,-1,[[right,back],[left,back]]], [0,1,[[left,front],[right,front]]],
-    ]) {
-      const neighbor = columns.get(`${x+dx},${z+dz}`);
-      // The outer skirt is visual framing, not a claim about unseen geology.
-      const bottom = neighbor ? (neighbor.cell[1]+0.5)*verticalMetres : top-verticalMetres;
-      if (bottom >= top) continue;
-      quad(material === soilMaterial ? colours.soil : colours.stone,
-        [[edge[0][0],top,edge[0][1]],[edge[0][0],bottom,edge[0][1]],
-         [edge[1][0],bottom,edge[1][1]],[edge[1][0],top,edge[1][1]]]);
-    }
+  for (const face of terrainFaces(surfaces, verticalMetres)) {
+    const soil = face.surface.material === soilMaterial;
+    quad(soil ? face.top ? colours.grass : colours.soil : colours.stone, face.vertices);
   }
   for (const [colour, points] of buckets) {
     const geometry = new THREE.BufferGeometry();

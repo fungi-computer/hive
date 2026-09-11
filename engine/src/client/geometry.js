@@ -1,4 +1,5 @@
-import { Vector3 } from "three";
+import { terrainFaces } from "../../../src/art/terrain-faces.js";
+import { Ray, Vector3 } from "three";
 import { camera } from "../../../src/art/prop-camera.js";
 
 // Retained art/scale projection, centered on the shared bank's 15-cell ground.
@@ -58,15 +59,22 @@ export function surfacePoint(x, y, fact) {
 export function terrainPoint(x, y, terrain) {
   let picked = null;
   let nearest = Infinity;
-  for (const surface of terrain.surfaces) {
-    const [cx, cy, cz] = surface.cell;
-    const height = (cy + 0.5) * terrain.verticalMetres;
-    const point = planePoint(x, y, height);
-    if (Math.abs(point.x - cx) > 0.5 + 1e-8 || Math.abs(point.z - cz) > 0.5 + 1e-8) continue;
-    const depth = new Vector3(point.x, height, point.z).project(view).z;
-    if (depth < nearest) {
-      nearest = depth;
-      picked = { cell: surface.cell, point: { x: cx, y: height, z: cz, frame: null } };
+  const ndc = new Vector3(x / WIDTH * 2 - 1, 1 - y / HEIGHT * 2, -1);
+  const origin = ndc.clone().unproject(view);
+  const far = ndc.clone().setZ(1).unproject(view);
+  const ray = new Ray(origin, far.sub(origin).normalize());
+  const hit = new Vector3();
+  for (const face of terrainFaces(terrain.surfaces, terrain.verticalMetres)) {
+    const vertices = face.vertices.map(vertex => new Vector3(...vertex));
+    for (const indices of [[0,1,2],[0,2,3]]) {
+      if (!ray.intersectTriangle(...indices.map(index => vertices[index]), true, hit)) continue;
+      const distance = origin.distanceToSquared(hit);
+      if (distance >= nearest) continue;
+      nearest = distance;
+      const [cx,cy,cz] = face.surface.cell;
+      picked = face.top ? { cell: face.surface.cell, point: {
+        x:cx,y:(cy+0.5)*terrain.verticalMetres,z:cz,frame:null
+      }} : null;
     }
   }
   return picked;
