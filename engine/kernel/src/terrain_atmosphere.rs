@@ -79,6 +79,7 @@ impl TerrainAtmosphere {
         world: &mut TerrainWater,
         config: TerrainAtmosphereConfig,
     ) -> Result<Self, String> {
+        validate_config(world, &config)?;
         let snapshot = world.air_geometry(config.bounds())?;
         let (compiled, state) = compile_snapshot(world, &config, &snapshot)?;
         Ok(Self {
@@ -155,8 +156,7 @@ impl TerrainAtmosphere {
         let saved_definition = CompiledAtmosphere::saved_definition(&records.state)?;
         let (mut current_definition, _) =
             definition_from_snapshot(&records.config, &snapshot, world.cell_spacing_m())?;
-        current_definition.revision = saved_definition.revision;
-        if current_definition != saved_definition {
+        if !same_physical_definition(&current_definition, &saved_definition) {
             return Err("terrain atmosphere geometry binding mismatch".into());
         }
         let compiled = CompiledAtmosphere::compile(saved_definition)?;
@@ -185,16 +185,14 @@ impl TerrainAtmosphere {
         {
             return Err("atmosphere rebind candidate is stale or mismatched".into());
         }
-        let current_revision = self.geometry_revision;
-        let (current_candidate, _) = compile_snapshot_from_snapshot(
-            &self.config,
-            snapshot,
-            self.spacing,
-            current_revision,
-            self.compiled.definition().model.clone(),
-            self.compiled.definition().ambient.clone(),
-        )?;
-        if same_physical_definition(current_candidate.definition(), self.compiled.definition()) {
+        if !snapshot_has_free_air(snapshot) {
+            return Ok(Err(AtmosphereRebindResult::Blocked(
+                crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved,
+            )));
+        }
+        let (candidate_definition, _) =
+            definition_from_snapshot(&self.config, snapshot, self.spacing)?;
+        if same_physical_definition(&candidate_definition, self.compiled.definition()) {
             return Ok(Ok(PreparedAtmosphereRebind::Unchanged {
                 source_physical_revision: snapshot.physical_revision,
                 source_epoch: snapshot.epoch,
@@ -279,6 +277,17 @@ impl TerrainAtmosphere {
             }
         }
     }
+}
+
+fn snapshot_has_free_air(snapshot: &AirGeometrySnapshot) -> bool {
+    snapshot.cells.iter().any(|cell| match &cell.water {
+        crate::terrain_water::AirWaterCoverage::Unmodeled => true,
+        crate::terrain_water::AirWaterCoverage::Admitted { liquid_volume_m3 } => {
+            liquid_volume_m3.is_finite()
+                && cell.voxel_volume_m3.is_finite()
+                && *liquid_volume_m3 < cell.voxel_volume_m3
+        }
+    })
 }
 
 fn compile_snapshot(

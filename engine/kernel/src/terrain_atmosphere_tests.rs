@@ -1,8 +1,12 @@
 use super::atmosphere::{AtmosphereAmbient, AtmosphereModel};
-use super::generation::{Bounds, MaterialSlots, WorldSpec};
+use super::generation::{Bounds, Cell, MaterialSlots, WorldSpec};
+use super::structure_geometry::StaticInstance;
 use super::terrain::{MaterialProperty, TerrainOwner};
 use super::terrain_atmosphere::{ExteriorPolicy, TerrainAtmosphere, TerrainAtmosphereConfig};
-use super::terrain_water::{MaterialWater, TerrainWater, TerrainWaterGeometry};
+use super::terrain_water::{
+    AirGeometryCell, AirGeometrySnapshot, AirWaterCoverage, MaterialWater, TerrainWater,
+    TerrainWaterGeometry,
+};
 use std::collections::BTreeMap;
 
 fn model() -> AtmosphereModel {
@@ -142,4 +146,115 @@ fn unchanged_water_epoch_reuses_compiled_geometry() {
     let prepared = air.prepare_rebind(&snapshot).unwrap().unwrap();
     air.apply_rebind(prepared).unwrap();
     assert_eq!(air.geometry_revision(), revision);
+}
+
+#[test]
+fn changed_wall_rebinds_and_restores_exact_state() {
+    let mut water = world();
+    let config = config(ExteriorPolicy::Closed);
+    let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
+    let support = (0..28)
+        .map(|y| Cell { x: 0, y, z: 0 })
+        .find(|cell| {
+            water.material(*cell).unwrap() != 0
+                && water
+                    .material(Cell {
+                        y: cell.y + 1,
+                        ..*cell
+                    })
+                    .unwrap()
+                    == 0
+        })
+        .expect("generated support and open cell");
+    let wall = StaticInstance::Wall {
+        id: "air-wall".into(),
+        base: Cell {
+            y: support.y + 1,
+            ..support
+        },
+        height: 1,
+    };
+    let prepared_structure = water.prepare_structures(vec![wall]).unwrap().unwrap();
+    let candidate = water
+        .prepared_structure_air_geometry(&prepared_structure, config.bounds())
+        .unwrap();
+    let prepared_air = air.prepare_rebind(&candidate).unwrap().unwrap();
+    water.apply_structures(prepared_structure).unwrap();
+    air.apply_rebind(prepared_air).unwrap();
+    assert!(air.geometry_revision() > 0);
+    let saved = air.save().unwrap();
+    let restored = TerrainAtmosphere::restore(&mut water, &saved).unwrap();
+    assert_eq!(restored.state().parcels(), air.state().parcels());
+    assert_eq!(
+        restored.compiled().definition(),
+        air.compiled().definition()
+    );
+}
+
+#[test]
+fn rebind_candidate_becomes_stale_after_atmosphere_advance() {
+    let mut water = world();
+    let config = config(ExteriorPolicy::Closed);
+    let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
+    let support = (0..28)
+        .map(|y| Cell { x: 0, y, z: 0 })
+        .find(|cell| {
+            water.material(*cell).unwrap() != 0
+                && water
+                    .material(Cell {
+                        y: cell.y + 1,
+                        ..*cell
+                    })
+                    .unwrap()
+                    == 0
+        })
+        .expect("generated support and open cell");
+    let prepared_structure = water
+        .prepare_structures(vec![StaticInstance::Wall {
+            id: "stale-wall".into(),
+            base: Cell {
+                y: support.y + 1,
+                ..support
+            },
+            height: 1,
+        }])
+        .unwrap()
+        .unwrap();
+    let candidate = water
+        .prepared_structure_air_geometry(&prepared_structure, config.bounds())
+        .unwrap();
+    let prepared_air = air.prepare_rebind(&candidate).unwrap().unwrap();
+    air.advance(0.0, &[]).unwrap();
+    assert!(air.apply_rebind(prepared_air).is_err());
+}
+
+#[test]
+fn fully_flooded_rebind_is_typed_blocked_and_keeps_air_unchanged() {
+    let mut water = world();
+    let config = config(ExteriorPolicy::Closed);
+    let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
+    let before_revision = air.geometry_revision();
+    let before_state = air.state().parcels().to_vec();
+    let candidate = AirGeometrySnapshot {
+        physical_revision: air.geometry_revision() + 1,
+        epoch: air.source_epoch() + 1,
+        bounds: config.bounds(),
+        cells: vec![AirGeometryCell {
+            at: config.min,
+            voxel_volume_m3: 0.54,
+            water: AirWaterCoverage::Admitted {
+                liquid_volume_m3: 0.54,
+            },
+        }],
+        faces: Vec::new(),
+    };
+    let result = air.prepare_rebind(&candidate).unwrap();
+    assert!(matches!(
+        result,
+        Err(crate::atmosphere::AtmosphereRebindResult::Blocked(
+            crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved
+        ))
+    ));
+    assert_eq!(air.geometry_revision(), before_revision);
+    assert_eq!(air.state().parcels(), before_state.as_slice());
 }
