@@ -50,6 +50,7 @@ impl Registry {
             ("hive.body", vec![("speed", FieldType::Number)]),
             ("hive.traversal", vec![("clearanceCells", FieldType::Number), ("maxStepCells", FieldType::Number)]),
             ("hive.container", vec![("capacity", FieldType::Number)]),
+            ("hive.sealed-container", vec![]),
             (
                 "hive.lot",
                 vec![
@@ -169,6 +170,7 @@ impl Registry {
                 "hive.body" => world.register_component::<Body>(),
                 "hive.traversal" => world.register_component::<Traversal>(),
                 "hive.container" => world.register_component::<Container>(),
+                "hive.sealed-container" => world.register_component::<SealedContainer>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
@@ -209,6 +211,7 @@ impl Registry {
                 | "hive.body"
                 | "hive.traversal"
                 | "hive.container"
+                | "hive.sealed-container"
                 | "hive.lot"
                 | "hive.lot-water"
                 | "hive.excavation-work"
@@ -282,6 +285,9 @@ impl Registry {
             }
             "hive.container" => {
                 let _: Container = decode(value)?;
+            }
+            "hive.sealed-container" => {
+                let _: SealedContainer = decode(value)?;
             }
             "hive.lot" => {
                 let lot: Lot = decode(value)?;
@@ -432,6 +438,9 @@ impl Registry {
             "hive.container" => {
                 world.entity_mut(entity).insert(decode::<Container>(value)?);
             }
+            "hive.sealed-container" => {
+                world.entity_mut(entity).insert(decode::<SealedContainer>(value)?);
+            }
             "hive.lot" => {
                 world.entity_mut(entity).insert(decode::<Lot>(value)?);
             }
@@ -488,6 +497,7 @@ impl Registry {
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),
             "hive.container" => world.get::<Container>(entity).map(record),
+            "hive.sealed-container" => world.get::<SealedContainer>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),

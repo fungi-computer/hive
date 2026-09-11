@@ -34,6 +34,11 @@ pub struct Traversal {
 pub struct Container {
     pub capacity: u32,
 }
+/// A custody boundary installed by a native completion owner. Presence is
+/// the capability and is saved as an empty record.
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SealedContainer {}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Lot {
