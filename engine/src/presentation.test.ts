@@ -54,6 +54,7 @@ test("unconfigured packs project empty output", () =>
   assert.deepEqual(projectPresentation(pack(), context), {
     facts: [],
     controls: [],
+    terrainMarks: [],
   }));
 test("projects bounded facts and cloned command input", () => {
   const input = { amount: 2 };
@@ -67,6 +68,22 @@ test("projects bounded facts and cloned command input", () => {
   input.amount = 9;
   assert.equal(result.facts[0].value, 0.5);
   assert.deepEqual(result.controls[0].input, { amount: 2 });
+});
+
+test("projects bounded committed terrain marks", () => {
+  const result = projectPresentation(pack({
+    controls: [],
+    inspect: () => [],
+    terrainMarks: () => [
+      { id: "order-1", cell: [1, 4, -2], status: "queued" },
+      { id: "order-2", cell: [2, 4, -2], status: "working" },
+    ],
+  }), context);
+  assert.deepEqual(result.terrainMarks, [
+    { id: "order-1", cell: [1, 4, -2], status: "queued" },
+    { id: "order-2", cell: [2, 4, -2], status: "working" },
+  ]);
+  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], terrainMarks: () => Array.from({ length: 257 }, (_, index) => ({ id: `mark-${index}`, cell: [0, 0, 0], status: "queued" })) }), context));
 });
 test("rejects unknown commands, duplicate IDs, and nonfinite values", () => {
   assert.throws(() =>
