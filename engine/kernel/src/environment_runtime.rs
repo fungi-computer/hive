@@ -3,7 +3,8 @@ use super::KernelEnvironment;
 use crate::atmosphere::{AtmosphereReceipt, AtmosphereRebindResult};
 use crate::terrain_water::{PreparedExcavation, PreparedStructureChange};
 use crate::water::WaterWork;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
+use std::collections::BTreeMap;
 
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "camelCase")]
@@ -18,7 +19,60 @@ pub(super) struct EnvironmentStep {
 }
 
 
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub(super) struct PaidEmission {
+    pub catalog: String,
+    pub cell: crate::generation::Cell,
+    pub elapsed_s: f64,
+    pub admitted_revision: u64,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SavedAir {
+    version: u16,
+    atmosphere: crate::terrain_atmosphere::TerrainAtmosphereRecords,
+    emissions: BTreeMap<String, PaidEmission>,
+}
+
 impl KernelEnvironment {
+    pub(super) fn save_air(&self) -> Result<Option<Vec<u8>>, String> {
+        let Some(air) = &self.atmosphere else {
+            if !self.paid_emissions.is_empty() { return Err("paid emissions require atmosphere".into()); }
+            return Ok(None);
+        };
+        let records = SavedAir { version: 1, atmosphere: air.save()?, emissions: self.paid_emissions.clone() };
+        let bytes = postcard::to_allocvec(&records).map_err(|_| "air record encoding failed")?;
+        if bytes.len() > 2 * 1024 * 1024 + 64 * 1024 { return Err("air records exceed bound".into()); }
+        Ok(Some(bytes))
+    }
+    pub(super) fn restore_air(&mut self, expected: Option<&crate::terrain_atmosphere::TerrainAtmosphereConfig>, bytes: Option<&[u8]>, revision: u64) -> Result<(), String> {
+        let (expected, bytes) = match (expected, bytes) {
+            (None, None) => return Ok(()),
+            (Some(expected), Some(bytes)) => (expected, bytes),
+            _ => return Err("saved atmosphere capability does not match environment".into()),
+        };
+        if bytes.len() > 2 * 1024 * 1024 + 64 * 1024 { return Err("air records exceed bound".into()); }
+        let (saved, rest): (SavedAir, &[u8]) = postcard::take_from_bytes(bytes).map_err(|_| "invalid air records")?;
+        if !rest.is_empty() || saved.version != 1 || saved.emissions.len() > 64 { return Err("invalid air record binding".into()); }
+        let air = crate::terrain_atmosphere::TerrainAtmosphere::restore(&mut self.world, &saved.atmosphere)?;
+        if air.config() != expected { return Err("saved atmosphere does not match authored environment".into()); }
+        let bounds = self.world.bounds();
+        for (id, source) in &saved.emissions {
+            let definition = self.emissions.get(&source.catalog).ok_or("saved emission definition is missing")?.definition();
+            if !crate::components::valid_id(id) || !source.elapsed_s.is_finite() || source.elapsed_s < 0.0
+                || source.elapsed_s >= definition.duration_s || source.admitted_revision > revision
+                || source.cell.x < bounds.min_x || source.cell.x >= bounds.max_x
+                || source.cell.y < bounds.min_y || source.cell.y >= bounds.max_y
+                || source.cell.z < bounds.min_z || source.cell.z >= bounds.max_z {
+                return Err("invalid saved paid emission".into());
+            }
+        }
+        self.atmosphere = Some(air);
+        self.paid_emissions = saved.emissions;
+        Ok(())
+    }
+
     pub(super) fn apply_excavation(&mut self, prepared: PreparedExcavation) -> Result<bool, String> {
         let air = if let Some(air) = &self.atmosphere {
             let snapshot = self.world.prepared_excavation_air_geometry(&prepared, air.config().bounds())?;

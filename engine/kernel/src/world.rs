@@ -287,6 +287,7 @@ pub struct KernelRecords {
     pub environment: Option<(String, crate::terrain_water::TerrainWaterRecords)>,
 }
 struct KernelEnvironment {
+    paid_emissions: BTreeMap<String, environment_runtime::PaidEmission>,
     emissions: crate::emission_definition::EmissionCatalog,
     atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphere>,
     definition: String,
@@ -1007,7 +1008,7 @@ impl Kernel {
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { atmosphere, emissions: built.emissions, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
@@ -1084,9 +1085,7 @@ impl Kernel {
         let environment = self.environment.as_ref().map(|environment| {
             Ok::<_, String>((environment.definition.clone(), environment.world.save_records()?))
         }).transpose()?;
-        let atmosphere = self.environment.as_ref().and_then(|environment| environment.atmosphere.as_ref())
-            .map(|air| air.save().and_then(|records| postcard::to_allocvec(&records).map_err(|_| "atmosphere record encoding failed".into())))
-            .transpose()?;
+        let atmosphere = self.environment.as_ref().map(|environment| environment.save_air()).transpose()?.flatten();
         Ok(KernelRecords { entities: self.snapshot_entities_json()?, environment, atmosphere })
     }
     pub fn restore_records(&mut self, records: &KernelRecords) -> Result<()> {
@@ -1100,20 +1099,9 @@ impl Kernel {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
             let mut world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            let atmosphere = match (&prepared.atmosphere, &records_atmosphere) {
-                (None, None) => None,
-                (Some(expected), Some(bytes)) => {
-                    if bytes.len() > 2 * 1024 * 1024 + 64 * 1024 { return Err("atmosphere records exceed bound".into()); }
-                    let (saved, rest): (crate::terrain_atmosphere::TerrainAtmosphereRecords, &[u8]) =
-                        postcard::take_from_bytes(bytes).map_err(|_| "invalid atmosphere records")?;
-                    if !rest.is_empty() { return Err("trailing atmosphere record bytes".into()); }
-                    let air = crate::terrain_atmosphere::TerrainAtmosphere::restore(&mut world, &saved)?;
-                    if air.config() != expected { return Err("saved atmosphere does not match authored environment".into()); }
-                    Some(air)
-                }
-                _ => return Err("saved atmosphere capability does not match environment".into()),
-            };
-            candidate.environment = Some(KernelEnvironment { atmosphere, emissions: prepared.emissions, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures });
+            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
+            environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
+            candidate.environment = Some(environment);
             candidate.validate_construction_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
