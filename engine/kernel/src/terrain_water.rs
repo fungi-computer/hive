@@ -1,7 +1,7 @@
 //! Physical terrain-to-water composition. No independent material grid is kept.
 //! The admitted coordinates bound transport work, not the generated world size.
 use crate::generation::Cell;
-use crate::structure_geometry::{StaticGeometry, GeometryProjection, Face, FaceAxis};
+use crate::structure_geometry::{StaticGeometry, StaticInstance, GeometryProjection, Face, FaceAxis};
 use crate::terrain::{AppliedChange, BlockReason, PrepareResult, SurfaceCell, TerrainOwner};
 use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
     WaterCellKind, WaterDefinition, WaterLimits, WaterRebind, WaterRebindBlock,
@@ -36,6 +36,16 @@ pub enum ExcavationResult {
 
 /// A short-lived native completion candidate, never a saved job. The Kernel
 /// must admit the matching lot credit before consuming this value.
+pub(crate) struct PreparedStructureChange {
+    structures: StaticGeometry,
+    projection: GeometryProjection,
+    graph: CompiledWater,
+    state: WaterState,
+    scratch: WaterWorkspace,
+    owner: Arc<()>,
+    epoch: u64,
+}
+
 pub struct PreparedExcavation {
     terrain: crate::terrain::PreparedChange,
     water: Option<(CompiledWater, WaterState, WaterWorkspace)>,
@@ -143,6 +153,7 @@ pub struct TerrainWater {
     terrain: TerrainOwner,
     structures: StaticGeometry,
     structure_projection: GeometryProjection,
+    physical_revision: u64,
     geometry: TerrainWaterGeometry,
     identity: Vec<u8>,
     graph: CompiledWater,
@@ -161,11 +172,11 @@ impl TerrainWater {
         let state = graph.initial(stocks)?;
         let scratch = graph.workspace();
         let identity = geometry.identity()?;
-        Ok(Self { terrain, structures, structure_projection, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
+        Ok(Self { terrain, structures, structure_projection, physical_revision: 0, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
     pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
-        let header = postcard::to_allocvec(&(1u16, self.identity.as_slice(),
-            self.terrain.revision(), self.graph.binding().revision()))
+        let header = postcard::to_allocvec(&(2u16, self.identity.as_slice(),
+            self.terrain.revision(), self.graph.binding().revision(), self.physical_revision))
             .map_err(|_| "environment header encoding failed")?;
         let terrain = self.terrain.export()?;
         let water = self.graph.encode_state(&self.state)?;
@@ -182,11 +193,11 @@ impl TerrainWater {
         records: &TerrainWaterRecords) -> Result<Self, String> {
         if records.header.len() > 65568 || records.terrain.len() > 256 * 1024
             || records.water.len() > 256 * 1024 { return Err("environment record budget".into()); }
-        let ((version, saved_identity, terrain_revision, water_revision), remainder):
-            ((u16, &[u8], u64, u64), _) = postcard::take_from_bytes(&records.header)
+        let ((version, saved_identity, terrain_revision, water_revision, physical_revision), remainder):
+            ((u16, &[u8], u64, u64, u64), _) = postcard::take_from_bytes(&records.header)
             .map_err(|_| "invalid environment header")?;
         let identity = geometry.identity()?;
-        if version != 1 || !remainder.is_empty() || saved_identity != identity.as_slice()
+        if version != 2 || physical_revision < terrain_revision || !remainder.is_empty() || saved_identity != identity.as_slice()
             || geometry.spacing != terrain.cell_spacing_m() {
             return Err("environment record binding mismatch".into());
         }
@@ -197,7 +208,7 @@ impl TerrainWater {
         let graph = geometry.compile(&mut terrain, water_revision, None, &structure_projection)?;
         let state = graph.decode_state(&records.water)?;
         let scratch = graph.workspace();
-        Ok(Self { terrain, structures, structure_projection, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
+        Ok(Self { terrain, structures, structure_projection, physical_revision, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
 
     pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
@@ -227,7 +238,7 @@ impl TerrainWater {
     pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, String> {
         Ok(self.terrain.surface_cells(columns)?)
     }
-    pub fn terrain_revision(&self) -> u64 { self.terrain.revision() }
+    pub fn terrain_revision(&self) -> u64 { self.physical_revision }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
         let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
@@ -276,6 +287,44 @@ impl TerrainWater {
         }))
     }
 
+    /// Geometry preparation does not pay construction costs or authorize a
+    /// placement. The Kernel completion owner must admit those before publication.
+    pub(crate) fn prepare_structures(&mut self, instances: Vec<StaticInstance>) -> Result<Result<PreparedStructureChange, WaterRebindBlock>, String> {
+        let structures = StaticGeometry::new(self.terrain.bounds(), instances)?;
+        structures.encode()?; // Bound the future durable record before mutation.
+        let projection = structures.projection()?;
+        for cell in projection.solid_cells() {
+            let material = self.terrain.query(*cell)?;
+            if !self.terrain.is_open_material(material) { return Err("structure overlaps solid terrain".into()); }
+        }
+        self.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
+        let revision = self.graph.binding().revision().checked_add(1).ok_or("water revision overflow")?;
+        let graph = self.geometry.compile(&mut self.terrain, revision, None, &projection)?;
+        let state = match self.graph.prepare_rebind(&self.state, &graph)? {
+            WaterRebind::Blocked(reason) => return Ok(Err(reason)),
+            WaterRebind::Ready(state) => state,
+        };
+        let scratch = graph.workspace();
+        Ok(Ok(PreparedStructureChange { structures, projection, graph, state, scratch,
+            owner: self.owner.clone(), epoch: self.epoch }))
+    }
+
+    pub(crate) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<(), String> {
+        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
+            return Err("prepared structure change is stale or foreign".into());
+        }
+        let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        let revision = self.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
+        self.structures = prepared.structures;
+        self.structure_projection = prepared.projection;
+        self.graph = prepared.graph;
+        self.state = prepared.state;
+        self.scratch = prepared.scratch;
+        self.physical_revision = revision;
+        self.epoch = epoch;
+        Ok(())
+    }
+
     /// Called only by the compound native completion after admitting its
     /// material credit. A water advance or another edit invalidates the token.
     pub(crate) fn apply_excavation(&mut self, prepared: PreparedExcavation) -> Result<AppliedChange, String> {
@@ -283,7 +332,9 @@ impl TerrainWater {
             return Err("prepared environment change is stale or foreign".into());
         }
         let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        let revision = self.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
         let applied = self.terrain.apply(prepared.terrain)?;
+        self.physical_revision = revision;
         if let Some((graph, state, scratch)) = prepared.water {
             self.graph = graph;
             self.state = state;
@@ -305,6 +356,55 @@ mod tests {
     use super::*;
     use crate::generation::{Bounds, MaterialSlots, WorldSpec};
     use crate::terrain::MaterialProperty;
+
+    #[test]
+    fn structure_floor_seals_water_and_restores_without_reseeding() {
+        let terrain = || {
+            let generator = WorldSpec { seed: "building-water", identity: "structures",
+                bounds: Bounds { min_x: -4, max_x: 4, min_y: -32, max_y: 40, min_z: -4, max_z: 4 },
+                slots: MaterialSlots { air: 0, soil: 1, stone: 2 }, sea_level: 12,
+                vertical_metres: 1.0, max_samples: 4096 }.compile().unwrap();
+            TerrainOwner::new(generator, [
+                MaterialProperty { slot: 0, solid: false, diggable: false },
+                MaterialProperty { slot: 1, solid: true, diggable: true },
+                MaterialProperty { slot: 2, solid: true, diggable: true },
+            ], 4, 128, 32768).unwrap()
+        };
+        let low = Cell { x: 0, y: 30, z: 0 };
+        let high = Cell { y: 31, ..low };
+        let geometry = TerrainWaterGeometry::new("floor-water".into(), vec![low, high],
+            BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Closed), (2, MaterialWater::Closed)]),
+            [1.0; 3], 1.0, 0.1, WaterLimits::default()).unwrap();
+        let mut world = TerrainWater::fresh(geometry.clone(), terrain(), &[
+            WaterStock { id: "cell:0,30,0".into(), mass_kg: 0.0 },
+            WaterStock { id: "cell:0,31,0".into(), mass_kg: 100.0 },
+        ]).unwrap();
+        let floor = || vec![StaticInstance::Floor { id: "floor".into(), support: low }];
+        let before = world.facts().unwrap();
+        let token = world.prepare_structures(floor()).unwrap().unwrap();
+        assert_eq!(world.facts().unwrap(), before);
+        world.advance(0.0).unwrap();
+        assert!(world.apply_structures(token).is_err());
+        let token = world.prepare_structures(floor()).unwrap().unwrap();
+        world.apply_structures(token).unwrap();
+        world.advance(1.0).unwrap();
+        let facts = world.facts().unwrap();
+        assert_eq!(facts.total_kg, 100.0);
+        assert_eq!(facts.cells.iter().find(|cell| cell.at == [0,30,0]).unwrap().mass_kg, 0.0);
+        assert!(world.traversal_material(low).unwrap().sealed_top);
+        assert!(!world.traversal_material(low).unwrap().solid);
+        let records = world.save_records().unwrap();
+        let mut restored = TerrainWater::restore_records(geometry, terrain(), &records).unwrap();
+        assert_eq!(restored.facts().unwrap(), facts);
+        assert_eq!(restored.terrain_revision(), world.terrain_revision());
+        assert!(restored.traversal_material(low).unwrap().sealed_top);
+        let token = restored.prepare_structures(Vec::new()).unwrap().unwrap();
+        restored.apply_structures(token).unwrap();
+        restored.advance(1.0).unwrap();
+        let facts = restored.facts().unwrap();
+        assert_eq!(facts.total_kg, 100.0);
+        assert!(facts.cells.iter().find(|cell| cell.at == [0,30,0]).unwrap().mass_kg > 0.0);
+    }
 
     #[test]
     fn actual_generated_excavation_preserves_water_and_allows_dry_world_edits() {
