@@ -1294,6 +1294,7 @@ impl Kernel {
                     return Err("direct control requires body and position".into());
                 }
                 if self.ecs.get::<Support>(e).is_some() { return Err("direct control does not support boarded actors".into()); }
+                if self.ecs.get::<Traversal>(e).is_some() { return Err("terrain walkers require routed movement".into()); }
                 if self.ecs.get::<ExcavationWork>(e).is_some() { return Err("cancel work before taking direct control".into()); }
                 if let Some(existing) = self.direct.get(&e) {
                     if existing.stream == stream { return Ok(None); }
@@ -1858,9 +1859,9 @@ impl Kernel {
                 for pair in path.windows(2) {
                     let from = crate::terrain_traversal::node(pair[0], config, &mut query)?;
                     let Some(from) = from else { valid = false; break };
-                    let dx = i32::try_from(pair[1].x - pair[0].x).unwrap_or(2);
-                    let dz = i32::try_from(pair[1].z - pair[0].z).unwrap_or(2);
-                    let dy = pair[1].y - pair[0].y;
+                    let dx = i32::try_from(i128::from(pair[1].x) - i128::from(pair[0].x)).unwrap_or(2);
+                    let dz = i32::try_from(i128::from(pair[1].z) - i128::from(pair[0].z)).unwrap_or(2);
+                    let dy = i32::try_from(i64::from(pair[1].y) - i64::from(pair[0].y)).unwrap_or(2);
                     if !matches!(crate::terrain_traversal::step(from, dx, dy, dz, config, &mut query)?, Some(_)) { valid = false; break; }
                 }
             }

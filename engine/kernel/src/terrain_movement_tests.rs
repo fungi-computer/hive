@@ -127,3 +127,11 @@ fn terrain_kernel_failed_replacement_preserves_existing_route() {
     assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
     Kernel::new().restore_records(&kernel.save_records().unwrap()).unwrap();
 }
+
+#[test]
+fn terrain_kernel_direct_control_cannot_bypass_walking_geometry() {
+    let (mut kernel,_) = climbing_world();
+    let before = kernel.snapshot_entities_json().unwrap();
+    assert!(kernel.apply_action(Action::BeginDirect{entity:"walker".into(),stream:"test".into()},0.0).is_err());
+    assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
+}
