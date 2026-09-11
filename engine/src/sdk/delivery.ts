@@ -110,7 +110,8 @@ export const deliverySystem = system({
           {
             worker: controlRow.id,
             task: taskRow.id,
-            cost: distance(actorPosition.world, sourcePosition.world),
+            actorPosition: actorPosition.world,
+            sourcePosition: sourcePosition.world,
           },
         ];
       });
@@ -132,6 +133,7 @@ export const deliverySystem = system({
     const assignments = allocateWork(
       [...deliveryClaims, ...excavationClaims],
       candidates,
+      candidate => distance(candidate.actorPosition, candidate.sourcePosition),
       eligible => ctx.assign(eligible),
     );
     const assigned = new Set(assignments.map((assignment) => assignment.task));

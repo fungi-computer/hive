@@ -10,9 +10,10 @@ export interface WorkClaim {
  * Existing claims win, including paused work and workers carrying a task's goods.
  * Callers release claims in their saved task state, never in a separate cache.
  */
-export function allocateWork(
+export function allocateWork<Candidate extends { readonly worker: EntityId; readonly task: EntityId }>(
   claims: readonly WorkClaim[],
-  candidates: readonly AssignmentCandidate[],
+  candidates: readonly Candidate[],
+  estimate: (candidate: Candidate) => number | null,
   match: (candidates: readonly AssignmentCandidate[]) => readonly AssignmentPair[],
 ): readonly AssignmentPair[] {
   const tasks = new Set<EntityId>();
@@ -30,5 +31,12 @@ export function allocateWork(
     if (!tasks.has(candidate.task)) throw new Error("candidate references unknown work task");
     return !occupied.has(candidate.worker) && !claimedTasks.has(candidate.task);
   });
-  return eligible.length ? match(eligible) : [];
+  const costed: AssignmentCandidate[] = [];
+  for (const candidate of eligible) {
+    const cost = estimate(candidate);
+    if (cost === null) continue;
+    if (!Number.isFinite(cost) || cost < 0) throw new Error("invalid work candidate cost");
+    costed.push({ worker: candidate.worker, task: candidate.task, cost });
+  }
+  return costed.length ? match(costed) : [];
 }
