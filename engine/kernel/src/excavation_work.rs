@@ -9,7 +9,7 @@ fn same_target(a: ExcavationWork, b: ExcavationWork) -> bool {
     a.x == b.x && a.y == b.y && a.z == b.z && a.expected == b.expected && a.replacement == b.replacement
 }
 impl Kernel {
-    fn terrain_support_occupied(&self, target: Cell) -> Result<bool> {
+    fn terrain_support_occupied(&mut self, target: Cell) -> Result<bool> {
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
         let mut query = self.ecs.query::<(Entity, &Body, &Position)>();
         for (entity, _, position) in query.iter(&self.ecs) {

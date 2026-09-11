@@ -255,7 +255,7 @@ pub struct Vector3 {
     pub y: f64,
     pub z: f64,
 }
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Point {
     pub x: f64,

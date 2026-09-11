@@ -212,10 +212,11 @@ impl Kernel {
             + serde_json::to_vec(&self.registry.schemas.values().collect::<Vec<_>>())
                 .expect("physical schemas")
                 .len();
-        for (id, entity) in &self.ids {
+        let indexed_entities: Vec<_> = self.ids.iter().map(|(id, entity)| (id.clone(), *entity)).collect();
+        for (id, entity) in indexed_entities {
             weight += id.len() + 128;
             for name in self.registry.schemas.keys() {
-                if let Some(value) = self.registry.read(&self.ecs, *entity, name) {
+                if let Some(value) = self.registry.read(&self.ecs, entity, name) {
                     weight += self.registry.weight(name, &value);
                 }
             }
@@ -364,7 +365,7 @@ impl Kernel {
                 let path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
                 let mut points = crate::terrain_route::waypoints(&path, config)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
-                if let Some(first) = points.first_mut() { *first = start_point; }
+                if let Some(first) = points.first_mut() { *first = start_point.clone(); }
                 let terrain_revision = environment.world.terrain_revision();
                 self.terrain_routes.insert(entity, TerrainRouteState {
                     path,
@@ -563,28 +564,27 @@ impl Kernel {
                 self.blocked_by_frame.entry(Some(id.clone())).or_default();
             }
         }
-        for (id, entity) in &self.ids {
-            if let Some(container) = self.ecs.get::<Container>(*entity) {
-                if self.quantity(id) > u64::from(container.capacity) {
+        let indexed_entities: Vec<_> = self.ids.iter().map(|(id, entity)| (id.clone(), *entity)).collect();
+        for (id, entity) in indexed_entities {
+            if let Some(container) = self.ecs.get::<Container>(entity) {
+                if self.quantity(&id) > u64::from(container.capacity) {
                     return Err("container over capacity".into());
                 }
             }
-            if let Some(target) = self.ecs.get::<Destination>(*entity) {
+            if let Some(target) = self.ecs.get::<Destination>(entity) {
                 if !target.facing.is_finite() || target.facing.abs() > 1_000_000.0 {
                     return Err("invalid destination facing".into());
                 }
                 let p = *self
                     .ecs
-                    .get::<Position>(*entity)
+                    .get::<Position>(entity)
                     .ok_or("destination needs body position")?;
-                if self.ecs.get::<Body>(*entity).is_none() {
+                if self.ecs.get::<Body>(entity).is_none() {
                     return Err("destination needs body".into());
                 }
                 if build_routes {
-                    self.routes.insert(
-                        *entity,
-                        self.route_for(
-                            *entity,
+                    let route = self.route_for(
+                            entity,
                             p,
                             &Point {
                                 x: target.x,
@@ -592,8 +592,8 @@ impl Kernel {
                                 z: target.z,
                                 frame: target.frame.clone(),
                             },
-                        )?,
-                    );
+                        )?;
+                    self.routes.insert(entity, route);
                 }
             }
         }
@@ -1221,7 +1221,7 @@ impl Kernel {
                     y: destination.y,
                     z: destination.z,
                     facing,
-                    frame: destination.frame,
+                    frame: destination.frame.clone(),
                 };
                 let extra = if self.ecs.get::<Destination>(e).is_some() {
                     0
