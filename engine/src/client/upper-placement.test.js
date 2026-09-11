@@ -10,6 +10,6 @@ test("upper placement is limited to empty neighbors of a published anchor", () =
 });
 test("pointer selection returns only a candidate plane cell", () => {
   const screen = project(1, 4.5, 0);
-  assert.deepEqual(upperPlacementAt(screen, frame, [0, 4, 0], project), [1, 4, 0]);
-  assert.equal(upperPlacementAt({ x: 8, y: 8 }, frame, [0, 4, 0], project), null);
+  assert.deepEqual(upperPlacementAt(screen, frame, [0, 4, 0]), [1, 4, 0]);
+  assert.equal(upperPlacementAt({ x: 8, y: 8 }, frame, [0, 4, 0]), null);
 });

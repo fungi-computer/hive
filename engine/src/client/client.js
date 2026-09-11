@@ -813,7 +813,7 @@ export function createHiveClient({
       const displayed = displayedTerrainFrame();
       const localPoint = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
       if (displayed && targetControl.target === "world-surface" && terrainTarget.getSnapshot().context.anchor) {
-        const candidate = upperPlacementAt(localPoint, displayed, terrainTarget.getSnapshot().context.anchor, project);
+          const candidate = upperPlacementAt(localPoint, displayed, terrainTarget.getSnapshot().context.anchor);
         if (candidate) {
           runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }));
           clearPlacement();
@@ -880,7 +880,7 @@ export function createHiveClient({
       if (displayed && hit?.kind === "structure-top")
         terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       const anchor = terrainTarget.getSnapshot().context.anchor;
-      const candidate = displayed && anchor ? upperPlacementAt(local, displayed, anchor, project) : null;
+      const candidate = displayed && anchor ? upperPlacementAt(local, displayed, anchor) : null;
       terrainTarget.send({ type: "HOVER", cell: candidate });
       draw();
       return;
