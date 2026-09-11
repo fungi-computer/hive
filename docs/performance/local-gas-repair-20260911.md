@@ -225,3 +225,45 @@ The scope is inactive/dead and empty; its one runtime, browser, Vite listener
 and clients closed, with 8789/5198/9238 free. The failed intermediate screenshot
 from u6055 remains separate. The next action is the ordinary joined release and
 actual hosted update check, retaining the local storage-delay limit.
+
+## Performance correction published — September 11, 20:35 UTC
+
+Source f24881f4a5e1d466ac734fcd15d96c03fd4fcef0, Worker program identity
+ff50cc7a96323f17252bd4259ddc2c29a969981b9dedb1e65cbe9e4b1cf1c179.
+Frontend deployment 2261bbe7-a9c8-42d7-8169-b87263711d9c; DO Worker version
+3766fb4b-bec1-4784-8268-eeb1016272fa. Existing hosts retained:
+
+- https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html
+- https://hive-public-engine-demo.levi-fe0.workers.dev
+
+Use New world for the changed program identity. Prior worlds/data and the prior
+dist remain preserved; no unsupported-save migration or automatic reset was added.
+
+u6061 / exec11672 exited 0: one ordinary engine-only production build (20.69 s)
+and maintained Worker preparation. Retained Rollup annotation and bundle-size
+warnings remain; no new native build, art bake or unrelated study build.
+u6063 / exec63358 exited 0: ordinary existing Worker deploy and same-preview
+publication. All 120 non-engine files remain byte-identical to the previous dist.
+u6065 / exec68068 exited 0: all 158 served files matched their built SHA256; the
+real hosted DO then completed the same two digs, four wood hauls, finished wall,
+two-unit wood debit and smoke emission with two clients agreeing on paused facts.
+
+Six warm commands had maximum 206.39 ms. Client update gaps: p95 108.04 / 110.06 ms,
+maximum 165.58 / 159.95 ms across 411 / 407 frames. The original 1000 ms threshold
+passed without adjustment. This does not erase the local 1563 ms result or prove
+large-population capacity, all-browser smoothness, multi-account access or a
+multi-region world. Two connections share one test world's capability. The
+64×64 generated terrain still has a bounded 16×16-column air domain and the
+existing admitted water domain; this release does not claim whole-world fields.
+
+All three scopes are inactive/dead with empty ControlGroups. Hosted test world
+was explicitly paused and both clients closed. No browser/server was launched
+by the hosted check. Exact inventories, logs, previous dist tar and raw result
+are in `.botanical/performance-release`; no credential values are stored there.
+The real browser input evidence is separately u6058 above. Current public proof
+is not a newly rendered hosted-browser capture.
+
+Remaining performance-plan work: change-local gas definition assembly/remap and
+quiet/active exchange are not complete. Existing rare native topology hitches
+remain visible in the measured maxima. Keep this playable correction available
+while improving those owners; do not describe the complete plan as finished.

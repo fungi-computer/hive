@@ -286,3 +286,18 @@ and paid smoke for two connected clients, but failed responsiveness with a
 1.3-second update gap. Native speedup is therefore not the endpoint. Continue
 with the actual host/client path, preserving that failure and the same acceptance
 threshold. See the [live trial record](../docs/performance/local-gas-repair-20260911.md#actual-local-do-trial-and-remaining-responsiveness-failure).
+
+### Published correction and remaining work
+
+The source/caller repairs above are published from f24881f on the existing
+[Colony page](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html).
+One actual hosted two-client dig/build/paid-smoke trial passed: command maximum
+206.39 ms and update maximum 165.58 ms, with all 158 served files matching the
+build. Desktop physical drag input passed locally on the same source. The local
+1563 ms storage-boundary wait did not recur in this hosted trial; it remains
+recorded, not erased. Use New world for the changed program identity.
+
+The repair goal stays active: global gas definition assembly/remap and quiet/active
+exchange remain incomplete, as do broader population and multi-region proofs.
+Details and exact limits are in the linked performance receipt. This is a playable
+correction, not a claim that every item in this plan is implemented.

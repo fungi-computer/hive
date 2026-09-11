@@ -11,7 +11,19 @@ one-shot every retained system or let presentation polish substitute for play.
 
 ## Current playable checkpoint — September 11
 
-**Latest live correction:** runtime `6080e4e` supersedes the a13fc44 manual-dig
+**Latest live performance correction:** source `f24881f`, frontend deployment
+`2261bbe7-a9c8-42d7-8169-b87263711d9c`, Worker `3766fb4b-bec1-4784-8268-eeb1016272fa`.
+The existing Colony page now includes the gas/capture/terrain-query/render and
+route-crash repairs. Hosted two-client earned digging, wood deliveries, finished
+wall, paid hearth smoke and matching paused state passed; maximum update gap
+165.58 ms and command 206.39 ms in that bounded run. All 158 served files match.
+Use **New world** for the changed program identity. Local browser drag-to-dig
+passed; no new hosted-browser or population-capacity claim. See the
+[performance receipt](../docs/performance/local-gas-repair-20260911.md#performance-correction-published--september-11-2035-utc).
+Historical checkpoints below retain their original evidence and limits.
+
+
+**Earlier live correction:** runtime `6080e4e` supersedes the a13fc44 manual-dig
 checkpoint below. Rectangle designation now leads to automatic approach, cutting,
 spoil unloading and continuation. The actual two-cell consumer produced six spoil;
 paused queued-work save/replay/resume was separately checked in a local DO. These

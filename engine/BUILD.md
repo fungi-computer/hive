@@ -1067,3 +1067,13 @@ Consumer check u5587 / exec32565 exited0: 10 Colony/Pirates/native-record
 tests and strict engine types. Both owned scopes are inactive/dead/empty.
 No browser or deployment ran. Colony still lacks enabled environment/initial
 placement; route-aware assignment and the remaining sprint are unfinished.
+
+# September 11 performance correction — published
+
+Source f24881f; engine build u6061, publication u6063, exact 158-file readback and
+actual hosted two-client work/smoke u6065 all exited 0. Existing frontend
+deployment2261bbe7-a9c8-42d7-8169-b87263711d9c; DO version
+3766fb4b-bec1-4784-8268-eeb1016272fa. Local actual browser drag-to-dig u6058 passed.
+Detailed source/law, failed trial, cleanup, latency and retained limits live in
+[the performance receipt](../docs/performance/local-gas-repair-20260911.md).
+This supersedes older availability statements above, not their historical proof.
