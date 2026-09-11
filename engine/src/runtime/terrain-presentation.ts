@@ -167,7 +167,6 @@ export class TerrainPresentationOwner {
           surfaces.push(copy);
         } else byColumn.set(columnKey(batch[index][0], batch[index][1]), null);
         const parsed: StructureSurface[] = [];
-        const seenCells = new Set<string>();
         const seenHeights = new Set<number>();
         if (!Array.isArray(structures[index]))
           throw new Error("invalid structure surface projection");
@@ -176,10 +175,8 @@ export class TerrainPresentationOwner {
           if (!cell || cell.length !== 3 || cell[0] !== batch[index][0] ||
             cell[2] !== batch[index][1] || !signedInteger(cell[1]))
             throw new Error("invalid structure surface projection");
-          const key = `${cell[0]},${cell[1]},${cell[2]}`;
-          if (seenCells.has(key) || seenHeights.has(cell[1]))
+          if (seenHeights.has(cell[1]))
             throw new Error("duplicate structure surface projection");
-          seenCells.add(key);
           seenHeights.add(cell[1]);
           if (++structureCount > MAX_STRUCTURE_SURFACES)
             throw new Error("structure surface projection exceeds the budget");

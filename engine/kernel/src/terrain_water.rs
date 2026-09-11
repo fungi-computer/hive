@@ -502,7 +502,7 @@ mod tests {
 
     #[test]
     fn structure_surface_query_validates_late_column_before_sampling() {
-        let bounds = Bounds { min_x: -2, max_x: 2, min_y: -2, max_y: 4, min_z: -2, max_z: 2 };
+        let bounds = Bounds { min_x: -2, max_x: 2, min_y: -2, max_y: 40, min_z: -2, max_z: 2 };
         let generator = WorldSpec { seed: "surface-query", identity: "surface-query",
             bounds, slots: MaterialSlots { air: 0, soil: 1, stone: 2 }, sea_level: 1,
             vertical_metres: 1.0, max_samples: 256 }.compile().unwrap();
@@ -511,10 +511,10 @@ mod tests {
             MaterialProperty { slot: 1, solid: true, diggable: true },
             MaterialProperty { slot: 2, solid: true, diggable: true },
         ], 4, 16, 256).unwrap();
-        let geometry = TerrainWaterGeometry::new("surface-query".into(), vec![Cell { x: 0, y: 0, z: 0 }],
+        let geometry = TerrainWaterGeometry::new("surface-query".into(), vec![Cell { x: 0, y: 35, z: 0 }],
             BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Closed), (2, MaterialWater::Closed)]),
             [1.0; 3], 1.0, 0.1, WaterLimits::default(), 6).unwrap();
-        let mut world = TerrainWater::fresh(geometry, terrain, &[]).unwrap();
+        let mut world = TerrainWater::fresh(geometry, terrain, &[WaterStock { id: "cell:0,35,0".into(), mass_kg: 0.0 }]).unwrap();
         assert_eq!(world.structure_surfaces(&[(bounds.min_x, bounds.min_z)]).unwrap(), vec![Vec::new()]);
         assert!(world.structure_surfaces(&[(bounds.min_x, bounds.min_z), (bounds.max_x, bounds.min_z)]).is_err());
     }

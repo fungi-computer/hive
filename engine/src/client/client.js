@@ -457,7 +457,7 @@ export function createHiveClient({
                           terrainTarget.send({ type: "ARM", control });
                           state.message = control.target === "terrain-area"
                             ? `${control.label}: drag a rectangle; Escape exits`
-                            : `${control.label}: choose a visible terrain top; Escape exits`;
+                            : `${control.label}: choose a visible ${control.target === "world-surface" ? "ground or building surface" : "terrain top"}; Escape exits`;
                           renderHud();
                           return;
                         }
