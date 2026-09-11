@@ -368,3 +368,7 @@ impl Default for WasmKernel {
         Self::new()
     }
 }
+
+// Standalone atmosphere qualification; no live Kernel caller yet.
+#[cfg(test)]
+mod atmosphere;
