@@ -228,8 +228,8 @@ mod tests {
     fn dry_air_geometry_includes_open_building_space_outside_sparse_water() {
         let (mut world, wet) = world();
         let snapshot = world.air_geometry(AirGeometryBounds {
-            min: Cell { x: -2, y: wet.y, z: -2 },
-            max: Cell { x: 3, y: wet.y + 2, z: 3 },
+            min: wet,
+            max: Cell { x: wet.x + 5, y: wet.y + 2, z: wet.z + 5 },
         }).unwrap();
         assert!(snapshot.cells.iter().any(|cell| cell.at != wet && matches!(cell.water, AirWaterCoverage::Unmodeled)));
         assert!(snapshot.cells.iter().any(|cell| cell.at == wet && matches!(cell.water, AirWaterCoverage::Admitted { liquid_volume_m3: 0.0 })));
@@ -237,13 +237,12 @@ mod tests {
 
     #[test]
     fn floor_projection_seals_an_air_face_without_removing_air_cells() {
-        let (mut world, _) = world();
-        let bounds = AirGeometryBounds { min: Cell { x: -2, y: -3, z: -2 }, max: Cell { x: 3, y: 7, z: 3 } };
+        let (mut world, support) = world();
+        let bounds = AirGeometryBounds {
+            min: support,
+            max: Cell { x: support.x + 1, y: support.y + 2, z: support.z + 1 },
+        };
         let before = world.air_geometry(bounds).unwrap();
-        let support = before.cells.iter().find_map(|cell| {
-            let above = Cell { y: cell.at.y.checked_add(1)?, ..cell.at };
-            before.cells.iter().any(|other| other.at == above).then_some(cell.at)
-        }).expect("fixture has two air cells for a floor face");
         let geometry = StaticGeometry::new(world.bounds(), vec![StaticInstance::Floor { id: "air-floor".into(), support }]).unwrap();
         world.structures = geometry.clone();
         world.structure_projection = geometry.projection().unwrap();
@@ -258,12 +257,12 @@ mod tests {
         let (mut world, _) = world();
         let before = world.terrain.cache_len();
         assert!(world.air_geometry(AirGeometryBounds {
-            min: Cell { x: -4, y: -4, z: -4 },
-            max: Cell { x: 4, y: 8, z: 4 },
+            min: Cell { x: -32, y: -32, z: -32 },
+            max: Cell { x: 32, y: 32, z: 32 },
         }).is_err());
         assert_eq!(world.terrain.cache_len(), before);
         assert!(world.air_geometry(AirGeometryBounds {
-            min: Cell { x: -5, y: -1, z: -1 },
+            min: Cell { x: -33, y: -1, z: -1 },
             max: Cell { x: 1, y: 1, z: 1 },
         }).is_err());
         assert_eq!(world.terrain.cache_len(), before);
