@@ -492,7 +492,7 @@ pub(crate) mod tests {
         let before = kernel.environment_facts_json().unwrap();
         let step = r#"{"delta":0.2,"writes":[],"actions":[]}"#;
         let output: serde_json::Value = serde_json::from_str(&kernel.advance_json(step).unwrap()).unwrap();
-        assert!(output["environmentWork"]["faces"].as_u64().unwrap() > 0);
+        assert!(output["environmentWork"]["work"]["faces"].as_u64().unwrap() > 0);
         // These two submerged cave cells are full: clock work must not invent flow.
         let moved = kernel.environment_facts_json().unwrap();
         assert_eq!(moved, before);

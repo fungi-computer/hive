@@ -34,7 +34,7 @@ test("actual WASM captures opaque water records and restores atomically", () => 
     first.load_environment(JSON.stringify(environmentFixture));
     const step = JSON.stringify({ delta: 0.2, writes: [], actions: [] });
     const advanced = JSON.parse(first.advance(step));
-    assert.ok(advanced.environmentWork.faces > 0);
+    assert.ok(advanced.environmentWork.work.faces > 0);
     const saved = capture(first);
     assert.ok(saved.every(({ bytes }) => bytes instanceof Uint8Array && bytes.length <= 256 * 1024));
     assert.ok(saved.some(({ key }) => key === "kernel/environment/water"));
