@@ -44,6 +44,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     let mut kernel = Kernel::new();
     kernel.load(&serde_json::json!({"format":"hive-game","version":1,"game":"aperture-laws","components":[],"initial":[
         {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
+        {"id":"worker.2","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
         {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":4}}},
         {"id":"lot","components":{"hive.lot":{"kind":"stone-spoil","quantity":1,"container":"source"}}}
     ]}).to_string()).unwrap();
@@ -52,10 +53,12 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
     let contact = Point { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y)+0.5)*spacing[1], z: surface.z as f64*spacing[2], frame: None };
     kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+    kernel.ecs.entity_mut(kernel.entity("worker.2").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
     kernel.ecs.entity_mut(kernel.entity("source").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
     kernel.rebuild_physical_indexes(true).unwrap();
+    let site_surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 1, surface.z)]).unwrap().into_iter().next().flatten().unwrap().cell;
     let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[
-        {"kind":"plan-construction","catalog":"floor","site":"door","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"north","contact":contact},
+        {"kind":"plan-construction","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north","contact":contact},
         {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1},
         {"kind":"attend-construction","worker":"worker","site":"door"}
     ]});
@@ -86,7 +89,9 @@ fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     let worker = kernel.entity("worker").unwrap();
     let current = *kernel.ecs.get::<Position>(worker).unwrap();
     let current_surface_y = surface_y(&mut kernel);
-    kernel.ecs.entity_mut(worker).insert(Position { y: (current_surface_y as f64 + 1.5) * spacing[1], ..current });
+    let second = kernel.entity("worker.2").unwrap();
+    let second_current = *kernel.ecs.get::<Position>(second).unwrap();
+    kernel.ecs.entity_mut(second).insert(Position { x: current.x + 1.0, y: (current_surface_y as f64 + 1.5) * spacing[1], z: current.z, ..second_current });
     kernel.rebuild_physical_indexes(true).unwrap();
     let closed = aperture_action(&mut kernel, false);
     assert_eq!(closed["results"][0]["accepted"], false);
