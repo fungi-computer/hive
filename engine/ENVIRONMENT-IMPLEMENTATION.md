@@ -5,9 +5,10 @@ King Bolete · September 11, 2026 · personally designed after Levi's Ultra requ
 This completes the hard-design pass for [WATER-AND-GAS.md](WATER-AND-GAS.md).
 It selects implementation rules; it is not itself evidence of implemented or
 measured behavior. Levi's subsequent connected-world goal resumes implementation
-from the retained Rust draft `86bc35e`. That draft now has reviewed corrections
-in `hive-worktrees/native-water`; its first focused compile/test qualification is
-underway. The live Colony does not yet use this Rust water module. “Preserved”
+from the retained Rust draft `86bc35e`. The corrected local transport module is
+now compiled and qualified by the eleven water laws recorded in
+[BUILD.md](BUILD.md#native-water-source-checkpoint--september-11). The live Colony
+does not yet use this Rust water module. “Preserved”
 describes retained source, not a decision to keep JavaScript water at runtime.
 The [demo roadmap](DEMO-ROADMAP.md) owns the active outcome and publication status.
 

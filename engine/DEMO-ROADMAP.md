@@ -20,8 +20,9 @@ water, world-generation and shared-controls worktrees under King's review.
 
 **Water is moving to Rust.** The earlier word “preserved” meant that the unfinished
 Rust source was kept during the architecture discussion. It did not mean retaining
-the JavaScript simulator as the new engine's water owner. Native water source is
-being qualified; it is not yet connected to the live Colony. Rust will own finite
+the JavaScript simulator as the new engine's water owner. The first native water
+module has compiled and passed its focused laws; it is not yet connected to the
+live Colony. Rust will own finite
 water/soil state and transport, TypeScript supplies game definitions and commands,
 and the shared client displays committed observations. The current public release
 remains `c5138fc` until an actual joined checkpoint is published.

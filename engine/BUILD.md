@@ -13,6 +13,30 @@ Install ordinary Rust using rustup, or use the isolated
 The local CLI comes from the official wasm-bindgen 0.2.128 Linux musl release.
 No shell profile or other lane's dependencies are changed.
 
+Native build caches belong on the existing mounted drive. The integration
+`engine/kernel/target` already links to
+`/mnt/fungi-data/botanical-work/hive-build-cache/fresh-engine-target`.
+For new worktree checks, reuse the root-owned toolchain and an explicitly owned
+mounted target; do not accidentally create another large Cargo target on the
+nearly full root disk. Cache placement does not move source or durable world data.
+
+## Native water source checkpoint — September 11
+
+The bounded local Rust module at water-writer `847ff3c` is integrated with its
+public Rust module export. It has no live Colony, WASM binding or Region record
+consumer yet. The first focused compile/test, `u5379`, compiled successfully and
+passed ten of eleven water laws. The gravity law incorrectly treated the sorted
+upper cell as the lower cell. Its test-only correction now looks up coordinates;
+`u5384` passed that exact law, including downward movement and conserved total.
+The other ten laws were not replayed after this test-only change.
+
+The initial missing-Cargo PATH attempt, `u5381` misplaced test-runner flag, and
+`u5382` disk-full compiler exit are setup failures, not additional water results.
+Only this writer's rebuildable target moved to mounted `native-water-target`,
+recovering roughly 700 MB on the root disk. All four owned scopes were collected
+inactive/dead with empty control groups. This establishes native source behavior,
+not browser/DO performance, pressure, pollution, remapping, gas or hosted water.
+
 The retained frontend lock installs with `npm ci --legacy-peer-deps
 --ignore-scripts`: Caps uses React 18, while OpenTUI's optional React integration
 declares React 19. Hive uses OpenTUI's independent HTML integration, not that
