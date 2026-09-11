@@ -32,6 +32,11 @@ pub struct Lot {
     pub quantity: u32,
     pub container: String,
 }
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LotWater {
+    pub water_kg: f64,
+}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Destination {
