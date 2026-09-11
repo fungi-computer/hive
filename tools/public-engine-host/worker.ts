@@ -3,10 +3,8 @@ import {
   openRegion,
   type RegionSqliteOwner,
 } from "../../src/engine/region/index.ts";
-import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
+import { createSessionRegionRuntime, type SessionResident } from "../../engine/src/runtime/region-program";
 import type { SessionRegionState } from "../../engine/src/runtime/region-program";
-import { hydrateSession } from "../../engine/src/runtime/session-record-store";
-import { GameSession } from "../../engine/src/runtime/session";
 import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
@@ -155,12 +153,14 @@ function validateHostRow(row: HostRow): void {
 
 export class PublicEngineRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion<SessionRegionState, unknown>>;
+  private resident!: SessionResident;
   private pack!: PublicPack;
   private tokenHash!: string;
   private readonly owner: RegionSqliteOwner;
   private initialized = false;
   private startupFailure: string | undefined;
   private readonly ready: Promise<void>;
+  private residentQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly state: DurableObjectState,
@@ -216,7 +216,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const game = packFor(pack);
     const hostPrincipal = `${pack}-host`;
     const playerPrincipal = `${pack}-player`;
-    const program = createSessionRegionProgram({
+    const runtime = createSessionRegionRuntime({
       pack: game,
       createKernel: () => wasmKernelPort(new WasmKernel()),
       implementationHash: this.hostEnv.IMPLEMENTATION_HASH,
@@ -224,6 +224,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       hostPrincipal,
       seed: 17,
     });
+    this.resident = runtime.resident;
+    const program = runtime.program;
     this.pack = pack;
     this.tokenHash = tokenHash;
     this.region = openRegion({
@@ -314,6 +316,12 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return this.state.storage.transaction(async () => await operation());
   }
 
+  private serial<T>(operation: () => T | Promise<T>): Promise<T> {
+    const run = this.residentQueue.then(operation, operation);
+    this.residentQueue = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
   private nextDue(row: HostRow, now: number) {
     if (row.paused || row.lease_until_ms === null || row.lease_until_ms <= now)
       return null;
@@ -367,6 +375,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async observe(now: number): Promise<Response> {
+    return this.serial(() => this.observeExclusive(now));
+  }
+
+  private async observeExclusive(now: number): Promise<Response> {
     const row = await this.inTransaction(async () => {
       const current = this.hostRow();
       if (!current) throw new Error("public-host-state");
@@ -388,51 +400,60 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private observationPayload() {
     const committed = this.region.readCommitted();
-    const port = wasmKernelPort(new WasmKernel());
-    try {
-      const session = new GameSession({
-        port,
-        pack: packFor(this.pack),
-        seed: 17,
-      });
-      const records = new Map<string, Uint8Array>();
-      let cursor = "";
-      for (;;) {
-        const page = this.region.readRecords(committed.revision, cursor, 40);
-        for (const record of page.records) records.set(record.key, record.bytes);
-        if (records.size > 40) throw new Error("public-kernel-record-limit");
-        if (page.nextKey === undefined) break;
-        if (page.nextKey <= cursor) throw new Error("public-kernel-record-cursor");
-        cursor = page.nextKey;
-      }
-      session.restore(hydrateSession(committed.state.session, { read: key => records.get(key) }));
+    return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), (session) => {
       const observation = buildObservation(session, {
         epoch: 0,
         sequence: committed.revision,
       });
       return { revision: committed.revision, observation };
-    } finally {
-      port.dispose();
-    }
+    });
+  }
+
+  private residentRecords(revision: number) {
+    let records: Map<string, Uint8Array> | undefined;
+    return { read: (key: string) => {
+      if (!records) {
+        records = new Map();
+        let cursor = "";
+        for (;;) {
+          const page = this.region.readRecords(revision, cursor, 40);
+          for (const record of page.records) records.set(record.key, record.bytes);
+          if (records.size > 40) throw new Error("public-kernel-record-limit");
+          if (page.nextKey === undefined) break;
+          if (page.nextKey <= cursor) throw new Error("public-kernel-record-cursor");
+          cursor = page.nextKey;
+        }
+      }
+      return records.get(key);
+    } };
   }
 
   private observationResponse(): Response {
     return Response.json(this.observationPayload());
   }
 
-  private publishObservation(): void {
-    const payload = JSON.stringify({ type: "observation", ...this.observationPayload() });
-    for (const socket of this.state.getWebSockets()) {
-      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
-      try { socket.send(payload); } catch { /* lifecycle removes failed sockets */ }
-    }
+  private publishObservation(): Promise<void> {
+    return this.serial(() => {
+      const payload = JSON.stringify({ type: "observation", ...this.observationPayload() });
+      for (const socket of this.state.getWebSockets()) {
+        const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+        if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
+        try { socket.send(payload); } catch { /* lifecycle removes failed sockets */ }
+      }
+    });
   }
 
   private async command(input: PublicCommandInput, now: number) {
+    return this.serial(() => this.commandExclusive(input, now));
+  }
+
+  private async commandExclusive(input: PublicCommandInput, now: number) {
     if (commandKind(input) === "step") throw new Error("public-step-forbidden");
-    const result = await this.inTransaction(async () => {
-      const receipt = this.region.dispatch(`${this.pack}-player`, input);
+    try {
+      const result = await this.inTransaction(async () => {
+        const committed = this.region.readCommitted();
+        this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
+        const receipt = this.region.dispatch(`${this.pack}-player`, input);
       const current = this.hostRow();
       if (!current) throw new Error("public-host-state");
       validateHostRow(current);
@@ -465,13 +486,24 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       const armed =
         this.nextDue(next, now) ?? next;
       await this.arm(armed);
-      return { receipt, row: armed };
-    });
-    return result;
+        return { receipt, row: armed };
+      });
+      this.resident.accept(this.region.readCommitted().revision);
+      return result;
+    } catch (error) {
+      this.resident.discard();
+      throw error;
+    }
   }
 
   private async runDue(now: number): Promise<void> {
-    await this.inTransaction(async () => {
+    return this.serial(() => this.runDueExclusive(now));
+  }
+
+  private async runDueExclusive(now: number): Promise<void> {
+    try {
+      let acceptedRevision: number | undefined;
+      await this.inTransaction(async () => {
       const stored = this.hostRow();
       if (!stored) throw new Error("public-host-state");
       let row: HostRow = stored;
@@ -496,6 +528,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         await this.arm(cleared);
         return cleared;
       }
+      const committed = this.region.readCommitted();
+      this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
+      acceptedRevision = committed.revision;
       // Bounded catch-up preserves scheduled time across late native alarms.
       // Every occurrence remains individually identified inside this transaction.
       for (let steps = 0; steps < 5; steps++) {
@@ -530,8 +565,14 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         row = advanced;
       }
       await this.arm(row);
+      acceptedRevision = this.region.readCommitted().revision;
       return row;
-    });
+      });
+      if (acceptedRevision !== undefined) this.resident.accept(acceptedRevision);
+    } catch (error) {
+      this.resident.discard();
+      throw error;
+    }
   }
 
   async alarm(): Promise<void> {
@@ -553,7 +594,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     await this.initializeStored();
     if (!this.initialized) return;
     await this.runDue(now);
-    if (this.initialized) this.publishObservation();
+    if (this.initialized) await this.publishObservation();
   }
 
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {

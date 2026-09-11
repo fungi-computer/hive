@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { RegionProgram, Json } from "../../../src/engine/region/index.ts";
+import type { RegionProgram, Json, RegionRecordReader, RegionTransition } from "../../../src/engine/region/index.ts";
 import type { GamePack, KernelPort, ActionRequest } from "../contracts";
 import { GameSession, type SessionSnapshot } from "./session";
 import { checkedAction } from "./actions";
@@ -30,15 +30,118 @@ export interface SessionRegionState {
   session: StoredSession;
 }
 
+export type SessionResidentOptions = {
+  readonly pack: GamePack;
+  readonly createKernel: () => KernelPort;
+  readonly implementationHash: string;
+  readonly ownerPrincipal: string;
+  readonly hostPrincipal: string;
+  readonly seed: number;
+};
+
+export interface SessionResident {
+  readonly begin: (revision: number, state: SessionRegionState, records: RegionRecordReader) => void;
+  readonly execute: (candidate: SessionRegionState, command: RegionCommand, records: RegionRecordReader, baseRevision: number) => RegionTransition;
+  readonly accept: (revision: number) => void;
+  readonly discard: () => void;
+  readonly dispose: () => void;
+  readonly observe: <T>(revision: number, state: SessionRegionState, records: RegionRecordReader, use: (session: GameSession) => T) => T;
+}
+
+function applyCommand(session: GameSession, command: RegionCommand): unknown {
+  switch (command.kind) {
+    case "action": session.request(command.action); return [];
+    case "command": session.command(command.name, command.input); return [];
+    case "step": return session.step(command.delta);
+    case "pause": session.pause(); return [];
+    case "resume": session.resume(); return [];
+  }
+}
+
+/** Exclusive native/session lifetime for one host's serialized Region owner. */
+export function createSessionResident(options: SessionResidentOptions): SessionResident {
+  let accepted: { revision: number; session: GameSession; port: KernelPort; capture: SessionSnapshot } | undefined;
+  let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort; capture: SessionSnapshot } | undefined;
+  const make = (snapshot: SessionSnapshot, restore: boolean) => {
+    const port = options.createKernel();
+    try {
+      const session = new GameSession({ port, pack: options.pack, seed: options.seed });
+      if (restore) session.restore(snapshot); else session.start();
+      return { session, port };
+    } catch (error) { port.dispose(); throw error; }
+  };
+  const disposeEntry = (entry: { session: GameSession; port: KernelPort } | undefined) => {
+    if (!entry) return;
+    entry.port.dispose();
+  };
+  const discardAttempt = () => { disposeEntry(attempt); attempt = undefined; };
+  return {
+    begin(revision, state, records) {
+      if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("invalid resident revision");
+      discardAttempt();
+      if (accepted?.revision === revision) {
+        attempt = { provisionalRevision: revision, ...accepted };
+        accepted = undefined;
+        return;
+      }
+      disposeEntry(accepted); accepted = undefined;
+      const hydrated = hydrateSession(state.session, records);
+      const made = make(hydrated, true);
+      attempt = { provisionalRevision: revision, ...made, capture: hydrated };
+    },
+    execute(candidate, command, records, baseRevision) {
+      if (!attempt || attempt.provisionalRevision !== baseRevision) throw new Error("resident-attempt-missing");
+      const before = attempt.capture;
+      const results = applyCommand(attempt.session, command);
+      const after = attempt.session.save();
+      candidate.session = storeSession(after).session;
+      attempt.capture = after;
+      attempt.provisionalRevision++;
+      return {
+        status: "applied",
+        result: JSON.parse(JSON.stringify({ tick: candidate.session.tick, paused: attempt.session.isPaused, results })) as Json,
+        events: [],
+        records: changedSessionRecords(before.kernel, after.kernel),
+      };
+    },
+    accept(revision) {
+      if (!attempt || !Number.isSafeInteger(revision) || revision < 0 || revision !== attempt.provisionalRevision)
+        throw new Error("resident-revision-mismatch");
+      accepted = { revision, session: attempt.session, port: attempt.port, capture: attempt.capture };
+      attempt = undefined;
+    },
+    discard() {
+      discardAttempt();
+      disposeEntry(accepted); accepted = undefined;
+    },
+    dispose() {
+      discardAttempt();
+      disposeEntry(accepted); accepted = undefined;
+    },
+    observe(revision, state, records, use) {
+      if (attempt) throw new Error("resident-attempt-active");
+      if (accepted?.revision !== revision) {
+        disposeEntry(accepted); accepted = undefined;
+        const hydrated = hydrateSession(state.session, records);
+        const made = make(hydrated, true);
+        accepted = { revision, ...made, capture: hydrated };
+      }
+      try {
+        return use(accepted.session);
+      } catch (error) {
+        this.discard();
+        throw error;
+      }
+    },
+  };
+}
+
 /** Native objects are disposable candidates. openRegion alone commits their JSON state. */
-export function createSessionRegionProgram(options: {
-  pack: GamePack;
-  createKernel(): KernelPort;
-  implementationHash: string;
-  ownerPrincipal: string;
-  hostPrincipal: string;
-  seed: number;
-}): RegionProgram<SessionRegionState, RegionCommand> {
+type SessionRegionProgramOptions = SessionResidentOptions & {
+  resident: SessionResident;
+};
+
+function createSessionRegionProgram(options: SessionRegionProgramOptions): RegionProgram<SessionRegionState, RegionCommand> {
   const {
     implementationHash,
     ownerPrincipal,
@@ -122,42 +225,14 @@ export function createSessionRegionProgram(options: {
         principal === (command.kind === "step" ? hostPrincipal : ownerPrincipal)
       );
     },
-    execute(candidate, command, records) {
-      const before = hydrateSession(candidate.session, records);
-      return withSession(before, (session) => {
-        let results: unknown = [];
-        switch (command.kind) {
-          case "action":
-            session.request(command.action);
-            break;
-          case "command":
-            session.command(command.name, command.input);
-            break;
-          case "step":
-            results = session.step(command.delta);
-            break;
-          case "pause":
-            session.pause();
-            break;
-          case "resume":
-            session.resume();
-            break;
-        }
-        const after = session.save();
-        candidate.session = storeSession(after).session;
-        return {
-          status: "applied",
-          result: JSON.parse(
-            JSON.stringify({
-              tick: candidate.session.tick,
-              paused: session.isPaused,
-              results,
-            }),
-          ) as Json,
-          events: [],
-          records: changedSessionRecords(before.kernel, after.kernel),
-        };
-      });
+    execute(candidate, command, records, baseRevision) {
+      return options.resident.execute(candidate, command, records, baseRevision);
     },
   };
+}
+
+export function createSessionRegionRuntime(options: SessionResidentOptions) {
+  const resident = createSessionResident(options);
+  const program = createSessionRegionProgram({ ...options, resident });
+  return Object.freeze({ resident, program });
 }
