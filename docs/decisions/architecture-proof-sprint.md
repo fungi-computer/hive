@@ -22,11 +22,16 @@ The isolated integration root is `hive-worktrees/fresh-engine`. The initial thre
 browser/Worker publication was source `3478538`; it is historical. Current four
 public DO demos are recorded in the [demo roadmap](../../engine/DEMO-ROADMAP.md#first-shared-slice-published)
 at `c5138fc`. The [connected-world sprint](../../engine/DEMO-ROADMAP.md#next-sprint-a-living-world-worth-traveling-through)
-owns the next proposed sequence: wet Colony and two-region Survival, followed by
-multi-storey smoke/ventilation, RTS fort combat and loaded-ship travel. Native
+owns the now-active sequence: wet Colony and two-region Survival, followed by
+multi-storey smoke/ventilation. RTS fort combat and loaded-ship travel are later
+follow-ons. Native
 environment, paging, cross-region handoff and alternate container hosting remain
-unfinished. Local Rust/host evidence is retained in `engine/BUILD.md`; this source
-planning update neither restarts held writers nor publishes a new runtime.
+unfinished. Local Rust/host evidence is retained in `engine/BUILD.md`. Levi's
+connected-world goal has resumed the retained native water source and released
+Rust world generation and shared client controls in isolated worktrees. Water
+simulation is moving to Rust; retained JavaScript studies remain reference
+evidence, not the fresh engine's planned simulation owner. No new runtime has
+been published from these in-progress source changes.
 Older JavaScript repair queues below are historical context, not parallel fresh
 assignments. Native porting is a build/API test, not a claimed lag cure.
 

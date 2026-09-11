@@ -12,10 +12,19 @@ one-shot every retained system or let presentation polish substitute for play.
 ## Next sprint: a living world worth traveling through
 
 September 11 recut after Levi's larger-world and busy-region hosting discussion.
-Personally checked against fresh source `38ca137`. This is the proposed delivery
-sequence, replacing the order of upcoming work below while preserving accepted
-gameplay and environmental ownership laws. It is planning: the preserved water
-writer is not restarted by this document.
+Personally checked against fresh source `38ca137`. Levi has now activated this
+delivery sequence as the connected-world goal in the existing Game CTO Session.
+It replaces the order of upcoming work below while retaining accepted gameplay
+and environmental ownership laws. Implementation has resumed in isolated native
+water, world-generation and shared-controls worktrees under King's review.
+
+**Water is moving to Rust.** The earlier word “preserved” meant that the unfinished
+Rust source was kept during the architecture discussion. It did not mean retaining
+the JavaScript simulator as the new engine's water owner. Native water source is
+being qualified; it is not yet connected to the live Colony. Rust will own finite
+water/soil state and transport, TypeScript supplies game definitions and commands,
+and the shared client displays committed observations. The current public release
+remains `c5138fc` until an actual joined checkpoint is published.
 
 **Two headline outcomes: a useful wet colony and a Survival journey across two
 real region owners.** Indoor smoke is the next colony checkpoint on the same

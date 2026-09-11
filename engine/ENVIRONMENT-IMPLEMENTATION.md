@@ -3,10 +3,13 @@
 King Bolete · September 11, 2026 · personally designed after Levi's Ultra request
 
 This completes the hard-design pass for [WATER-AND-GAS.md](WATER-AND-GAS.md).
-It selects implementation rules; it is not implemented or measured behavior.
-Levi's discussion-before-code instruction still holds. Native draft `86bc35e`
-stays preserved, unintegrated and unqualified. No new runtime assignment follows
-from this document alone.
+It selects implementation rules; it is not itself evidence of implemented or
+measured behavior. Levi's subsequent connected-world goal resumes implementation
+from the retained Rust draft `86bc35e`. That draft now has reviewed corrections
+in `hive-worktrees/native-water`; its first focused compile/test qualification is
+underway. The live Colony does not yet use this Rust water module. “Preserved”
+describes retained source, not a decision to keep JavaScript water at runtime.
+The [demo roadmap](DEMO-ROADMAP.md) owns the active outcome and publication status.
 
 The product is a colony where digging, building, irrigation and ventilation
 matter, sharing its engine with Survival, Formations and Pirates. These decisions
