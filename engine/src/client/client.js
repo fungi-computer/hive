@@ -1,3 +1,4 @@
+import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
@@ -179,6 +180,8 @@ export function createHiveClient({
   let frameEpoch;
   let awaitingEpochTransition = false;
   let groundSprite = null;
+  const terrainLayer = createTerrainLayer();
+  let terrainFrame;
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
@@ -539,7 +542,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, groundEffects, actorLayer, transientLayer);
+      overlay.addChild(groundSprite, terrainLayer.container, groundEffects, actorLayer, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -548,6 +551,8 @@ export function createHiveClient({
       200 * camera.zoom + camera.y,
     );
     groundSprite.scale.set(camera.zoom);
+    groundSprite.visible = !terrainFrame;
+    terrainLayer.position(camera);
     const animationById = new Map(
       animationClock
         .sample(state.subjects, {
@@ -1008,6 +1013,8 @@ export function createHiveClient({
         }
         if (interpolation.push(event, performance.now())) {
           latestFacts = event.facts;
+          terrainFrame = event.terrain;
+          terrainLayer.update(terrainFrame, event.epoch);
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             animationClock.reset();
             awaitingEpochTransition = false;
@@ -1105,6 +1112,7 @@ export function createHiveClient({
       app.canvas?.removeEventListener("pointermove", pointerMove);
       app.canvas?.removeEventListener("pointerup", pointerUp);
       app.canvas?.removeEventListener("contextmenu", contextMenu);
+      terrainLayer.dispose();
       state.disposeArt?.();
       for (const child of overlay.removeChildren())
         child.destroy?.({
