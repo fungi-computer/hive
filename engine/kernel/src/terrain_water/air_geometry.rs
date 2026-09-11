@@ -128,6 +128,26 @@ pub(super) fn query_excavation(
     }, bounds)
 }
 
+pub(super) fn query_water(
+    world: &mut TerrainWater,
+    prepared: &super::PreparedWaterAdvance,
+    bounds: AirGeometryBounds,
+) -> Result<AirGeometrySnapshot, String> {
+    if !std::sync::Arc::ptr_eq(&world.owner, &prepared.owner) || world.epoch != prepared.epoch {
+        return Err("prepared water advance is stale or foreign".into());
+    }
+    let epoch = world.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+    query_view(AirQueryView {
+        terrain: &mut world.terrain,
+        structures: &world.structure_projection,
+        graph: &world.graph,
+        state: &prepared.state,
+        replacement: None,
+        physical_revision: world.physical_revision,
+        epoch,
+    }, bounds)
+}
+
 fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
     validate_bounds(bounds, view.terrain.bounds())?;
     let spacing = view.terrain.cell_spacing_m();

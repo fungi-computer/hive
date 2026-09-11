@@ -56,6 +56,14 @@ pub(crate) struct PreparedStructureChange {
     epoch: u64,
 }
 
+/// Detached field advancement for compound water/air admission.
+pub(crate) struct PreparedWaterAdvance {
+    state: WaterState,
+    work: WaterWork,
+    owner: Arc<()>,
+    epoch: u64,
+}
+
 pub struct PreparedExcavation {
     terrain: crate::terrain::PreparedChange,
     water: Option<(CompiledWater, WaterState, WaterWorkspace)>,
@@ -322,11 +330,26 @@ impl TerrainWater {
     pub fn terrain_revision(&self) -> u64 { self.physical_revision }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
-        let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        let prepared = self.prepare_water_advance(seconds)?;
+        self.apply_water_advance(prepared)
+    }
+    pub(crate) fn prepare_water_advance(&mut self, seconds: f64) -> Result<PreparedWaterAdvance, String> {
+        self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
         let next = self.graph.advance(&self.state, seconds, &mut self.scratch)?;
-        self.state = next.state;
+        Ok(PreparedWaterAdvance { state: next.state, work: next.work,
+            owner: self.owner.clone(), epoch: self.epoch })
+    }
+    pub(crate) fn prepared_water_air_geometry(&mut self, prepared: &PreparedWaterAdvance, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+        air_geometry::query_water(self, prepared, bounds)
+    }
+    pub(crate) fn apply_water_advance(&mut self, prepared: PreparedWaterAdvance) -> Result<WaterWork, String> {
+        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
+            return Err("prepared water advance is stale or foreign".into());
+        }
+        let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        self.state = prepared.state;
         self.epoch = epoch;
-        Ok(next.work)
+        Ok(prepared.work)
     }
 
     /// Preparation has no physical effect. The credit amount is the exact
@@ -525,7 +548,16 @@ mod tests {
         assert!(restored.traversal_material(low).unwrap().sealed_top);
         let token = restored.prepare_structures(Vec::new()).unwrap().unwrap();
         restored.apply_structures(token).unwrap();
-        restored.advance(1.0).unwrap();
+        let before_flow = restored.air_geometry(air_bounds).unwrap();
+        let stale = restored.prepare_water_advance(1.0).unwrap();
+        let flowing = restored.prepare_water_advance(1.0).unwrap();
+        let proposed_flow = restored.prepared_water_air_geometry(&flowing, air_bounds).unwrap();
+        assert_eq!(restored.air_geometry(air_bounds).unwrap(), before_flow);
+        assert_ne!(proposed_flow.cells, before_flow.cells);
+        restored.apply_water_advance(flowing).unwrap();
+        assert_eq!(restored.air_geometry(air_bounds).unwrap(), proposed_flow);
+        assert!(restored.prepared_water_air_geometry(&stale, air_bounds).is_err());
+        assert!(restored.apply_water_advance(stale).is_err());
         let facts = restored.facts().unwrap();
         assert_eq!(facts.total_kg, 100.0);
         assert!(facts.cells.iter().find(|cell| cell.at == [0,30,0]).unwrap().mass_kg > 0.0);
