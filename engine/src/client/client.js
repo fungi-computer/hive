@@ -25,7 +25,7 @@ import {
   surfaceSubjectAt,
   eligibleSelectedIds,
 } from "./controls.js";
-import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact } from "./world-view.js";
+import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact, createTerrainProjectionCache, terrainLevelRange, setTerrainLevelRange } from "./world-view.js";
 import { createActor } from "xstate";
 import { createDefaultHtmlKeymap } from "@opentui/keymap/html";
 import {
@@ -141,6 +141,7 @@ export function createHiveClient({
     exitAim();
     state.dragging = null;
     state.hoverId = null;
+    updateTerrainDisplay();
     draw();
     renderHud();
   }
@@ -150,6 +151,7 @@ export function createHiveClient({
     exitAim();
     state.dragging = null;
     state.hoverId = null;
+    updateTerrainDisplay();
     draw();
     renderHud();
   }
@@ -185,6 +187,7 @@ export function createHiveClient({
   let groundSprite = null;
   const terrainLayer = createTerrainLayer();
   let terrainFrame;
+  const terrainProjection = createTerrainProjectionCache();
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
@@ -196,6 +199,10 @@ export function createHiveClient({
   let latestFacts = [];
   let pendingCues = [];
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
+  function displayedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
+  function updateTerrainDisplay() {
+    terrainLayer.update(displayedTerrainFrame(), frameEpoch, `${state.view.level}:${state.view.cutaway ? 1 : 0}`);
+  }
 
   function prepareNewWorld(remote) {
     if (remote) state.ready = false;
@@ -205,6 +212,9 @@ export function createHiveClient({
     latestFacts = [];
     state.presentationFacts = [];
     state.presentationControls = [];
+    terrainFrame = undefined;
+    terrainProjection.update(undefined, state.view, undefined);
+    terrainLayer.update(undefined, undefined);
     state.view = createWorldView(worldView);
     state.dragging = null;
     intendedDestinations.clear();
@@ -728,8 +738,9 @@ export function createHiveClient({
     const targetControl = terrainTarget.getSnapshot().context.control;
     if (targetControl) {
       if (!state.ready) return;
-      const hit = terrainFrame && terrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, terrainFrame);
-      const surface = hit?.kind === "terrain-top" && terrainFrame.surfaces.find(({ cell }) => cell.every((value, index) => value === hit.column[index]));
+      const displayed = displayedTerrainFrame();
+      const hit = displayed && terrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
+      const surface = hit?.kind === "terrain-top" && displayed.surfaces.find(({ cell }) => cell.every((value, index) => value === hit.column[index]));
       if (!surface) {
         state.message = "Choose a visible terrain top";
         renderHud();
@@ -818,8 +829,9 @@ export function createHiveClient({
     const x = (at.x - camera.x) / camera.zoom;
     const y = (at.y - camera.y) / camera.zoom;
     const support = frame === null ? null : state.subjects.find((subject) => subject.pickable !== false && subject.id === frame);
+    const displayed = displayedTerrainFrame();
     const world = frame === null
-      ? terrainFrame ? terrainPoint(x, y, terrainFrame)?.point : { ...groundPoint(x, y), frame: null }
+      ? displayed ? terrainPoint(x, y, displayed)?.point : { ...groundPoint(x, y), frame: null }
       : support ? surfacePoint(x, y, support) : null;
     if (!world) {
       state.message = frame === null ? "Choose a visible terrain top" : "Choose a point on the selected deck";
@@ -1065,10 +1077,24 @@ export function createHiveClient({
           const newEpoch = frameEpoch === undefined || event.epoch !== frameEpoch;
           latestFacts = event.facts;
           terrainFrame = event.terrain;
-          terrainLayer.update(terrainFrame, event.epoch);
+          const terrainChanged = terrainFrame && (newEpoch || !previousTerrain || previousTerrain.revision !== terrainFrame.revision);
+          if (terrainChanged) {
+            const publishedById = new Map(event.facts.map((fact) => [fact.id, fact]));
+            const actor = state.selectedIds.map((id) => publishedById.get(id)).find((fact) => fact?.pose?.position)
+              ?? selectionShortcuts.map(({ id }) => publishedById.get(id)).find((fact) => fact?.pose?.position);
+            const observedRange = terrainLevelRange(terrainFrame);
+            const range = newEpoch ? observedRange : {
+              min: Math.min(state.view.range.min, observedRange.min),
+              max: Math.max(state.view.range.max, observedRange.max),
+            };
+            const preferred = newEpoch && actor && Number.isFinite(actor.pose.position.y)
+              ? Math.round(actor.pose.position.y / terrainFrame.verticalMetres - 0.5)
+              : undefined;
+            state.view = setTerrainLevelRange(state.view, range, newEpoch ? (preferred ?? range.max) : undefined);
+          }
           if (terrainFrame && (newEpoch || !previousTerrain)) {
             const visibleFacts = event.facts.filter((fact) => projectWorldFact(fact, state.view).visible);
-            camera.focus(terrainCameraFocus(visibleFacts, terrainFrame));
+            camera.focus(terrainCameraFocus(visibleFacts, displayedTerrainFrame()));
           }
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             animationClock.reset();
@@ -1076,6 +1102,7 @@ export function createHiveClient({
           }
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
+          updateTerrainDisplay();
           if (!state.paused) directControl?.observe(event.facts);
           for (const [id, pending] of intendedDestinations) {
             const destination = pending.destination;

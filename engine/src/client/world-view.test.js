@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorldView, projectWorldFact, setWorldViewLevel, toggleWorldCutaway } from "./world-view.js";
+import { createTerrainProjectionCache, createWorldView, displayedTerrain, projectWorldFact, setTerrainLevelRange, setWorldViewLevel, terrainLevelRange, toggleWorldCutaway } from "./world-view.js";
 import { eligibleSelectedIds, selectionFromSubjects, surfaceSubjectAt } from "./controls.js";
 
 test("world view honors its supplied signed range", () => {
@@ -28,4 +28,39 @@ test("projected unpickable subjects are excluded from point, box, and surface pa
   assert.equal(surfaceSubjectAt(subjects, { x: 2, y: 3 }, () => true)?.id, "open");
   assert.deepEqual(eligibleSelectedIds(subjects, ["hidden", "open"]), ["open"]);
   assert.deepEqual(eligibleSelectedIds(subjects, ["hidden"]), []);
+});
+
+test("cutaway displays only published exterior columns at or below the selected level", () => {
+  const frame = {
+    revision: 4,
+    verticalMetres: 0.5,
+    surfaces: [
+      { cell: [0, 3, 0], material: 1 },
+      { cell: [1, 1, 0], material: 1 },
+    ],
+    water: [
+      { at: [0, 1, 0], liquidVolumeM3: 0.1, massKg: 100 },
+      { at: [1, 1, 0], liquidVolumeM3: 0.1, massKg: 100 },
+    ],
+  };
+  const view = setTerrainLevelRange(createWorldView(), terrainLevelRange(frame), 1);
+  const cut = displayedTerrain(frame, toggleWorldCutaway(view, true));
+  assert.deepEqual(cut.surfaces.map(({ cell }) => cell), [[1, 1, 0]]);
+  assert.deepEqual(cut.water.map(({ at }) => at), [[1, 1, 0]]);
+  assert.deepEqual(displayedTerrain(frame, view).surfaces, frame.surfaces);
+});
+
+test("terrain projection cache reuses surfaces while accepting newer water", () => {
+  const frame = { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [0, 1, 0], material: 1 }], water: [] };
+  const cache = createTerrainProjectionCache();
+  const view = toggleWorldCutaway(setTerrainLevelRange(createWorldView(), terrainLevelRange(frame), 1), true);
+  const first = cache.update(frame, view, 3);
+  assert.strictEqual(cache.update(frame, view, 3), first);
+  const next = cache.update({ ...frame, water: [{ at: [0, 1, 0], liquidVolumeM3: 0.1, massKg: 100 }] }, view, 3);
+  assert.strictEqual(next.surfaces, first.surfaces);
+  assert.notStrictEqual(next.water, first.water);
+  assert.equal(next.water[0].liquidVolumeM3, 0.1);
+  const changed = cache.update({ ...frame, revision: 3 }, view, 3);
+  assert.notStrictEqual(changed.surfaces, first.surfaces);
+  assert.equal(cache.update(undefined, view, 4), undefined);
 });
