@@ -42,5 +42,6 @@ test('visible cliff faces block selection of a lower top behind them', () => {
     {cell:[0,3,0],material:1},{cell:[-1,0,-2],material:1}
   ]};
   const side=project(0.5,1.55,0);
+  assert.deepEqual(terrainPoint(side.x,side.y,{...terrain,surfaces:[terrain.surfaces[1]]})?.cell,[-1,0,-2]);
   assert.equal(terrainPoint(side.x,side.y,terrain),null);
 });
