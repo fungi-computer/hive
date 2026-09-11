@@ -77,6 +77,13 @@ mod construction_tests {
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
     }
 
+    fn wall_catalog(kernel: &mut Kernel) {
+        kernel.environment.as_mut().unwrap().structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
+            id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0,
+        });
+    }
+
     #[test]
     fn staged_materials_and_worker_replacement_finish_once_and_restore() {
         let (mut kernel, surface, contact) = world();
@@ -118,10 +125,7 @@ mod construction_tests {
     #[test]
     fn standing_wall_obstruction_preserves_progress_and_material() {
         let (mut kernel, surface, contact) = world();
-        kernel.environment.as_mut().unwrap().structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
-            id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
-            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0,
-        });
+        wall_catalog(&mut kernel);
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1},
@@ -140,6 +144,46 @@ mod construction_tests {
         assert!(lots.contains("\"quantity\":1"));
         assert_eq!(sealed, "[]");
         assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
+    }
+
+    #[test]
+    fn active_bystander_edge_blocks_wall_completion() {
+        let (mut kernel, surface, contact) = world();
+        wall_catalog(&mut kernel);
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x + 1,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-edge","quantity":1},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-edge"},
+            {"kind":"move","entity":"worker-2","destination":target}
+        ]}).to_string()).unwrap()).unwrap();
+        assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        assert!(kernel.query_json(r#"["hive.construction-site"]"#).unwrap().contains("\"phase\":\"working\""));
+    }
+
+    #[test]
+    fn future_route_obstruction_allows_current_completion_and_invalidates_route() {
+        let (mut kernel, surface, contact) = world();
+        wall_catalog(&mut kernel);
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let next_contact = Point { x: contact.x + spacing[0], y: contact.y, z: contact.z, frame: None };
+        for id in ["worker-1", "source"] {
+            let entity = kernel.entity(id).unwrap();
+            kernel.ecs.entity_mut(entity).insert(Position { x: next_contact.x, y: next_contact.y, z: next_contact.z, facing: 0.0 });
+        }
+        kernel.rebuild_physical_indexes(true).unwrap();
+        let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":next_contact},
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-future"},
+            {"kind":"move","entity":"worker-2","destination":target}
+        ]}).to_string()).unwrap()).unwrap();
+        assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        assert!(kernel.query_json(r#"["hive.sealed-container"]"#).unwrap().contains("site-future"));
     }
 
     #[test]
