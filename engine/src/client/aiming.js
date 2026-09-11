@@ -51,12 +51,12 @@ export function createPreviewCache({ preview, now = () => performance.now(), min
   if (!Number.isFinite(minInterval) || minInterval < 0) throw new Error("invalid preview interval");
   let key, result, lastAt = -Infinity;
   return {
-    get(input) {
+    get(input, { force = false } = {}) {
       const serialized = JSON.stringify(input);
       if (serialized.length > MAX_PREVIEW_BYTES) throw new Error("aim preview input too large");
       const stamp = now();
       if (serialized === key && result !== undefined) return result;
-      if (stamp - lastAt < minInterval && result !== undefined) return result;
+      if (!force && stamp - lastAt < minInterval && result !== undefined) return result;
       const next = preview(serialized);
       if (typeof next === "string") {
         if (next.length > MAX_PREVIEW_BYTES) throw new Error("aim preview result too large");

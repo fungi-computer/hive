@@ -35,6 +35,7 @@ const configs = {
   },
   formations: {
     visualBindings: CANNON_VISUAL_BINDINGS,
+    aiming: { launcherId: "formations.cannon", command: "fire" },
     title: "Formations",
     orderCommand: "march",
     subtitle:

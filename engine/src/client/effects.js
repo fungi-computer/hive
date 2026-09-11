@@ -73,14 +73,15 @@ export function createEffectOwner({ spawn = () => {}, update = () => {}, destroy
         dispose(active.keys().next().value);
       const id = ++nextId;
       const value = spawn(definition, cue);
-      active.set(id, { value, definition, expires: now() + lifetime, sprites: count });
+      active.set(id, { value, definition, cue, expires: now() + lifetime, started: now(), sprites: count });
       sprites += count;
       return id;
     },
     tick(time = now(), context) {
       for (const [id, entry] of active) {
         if (time >= entry.expires) { dispose(id); continue; }
-        update(entry.value, Math.max(0, Math.min(1, (entry.expires - time) / (entry.definition.lifetime ?? 1))), context);
+        const elapsed = Math.max(0, time - entry.started);
+        update(entry.value, Math.max(0, Math.min(1, (entry.expires - time) / (entry.definition.lifetime ?? 1))), context, entry.cue, elapsed);
       }
     },
     clear() { for (const id of [...active.keys()]) dispose(id); },
