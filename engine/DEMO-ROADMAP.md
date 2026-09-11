@@ -9,6 +9,23 @@ shared hauling/storage, useful crafting and eventually hospitality. Keep the
 existing four URLs. Restore a playable loop in successive releases; do not
 one-shot every retained system or let presentation polish substitute for play.
 
+## Current playable checkpoint — September 11
+
+The four-page demo is now deployed from a13fc44. Colony uses the Rust generator
+for64×64 exterior columns and native finite water near the camp. Real mouse
+input completed soil/stone excavation, spoil deposits and an exterior cutaway
+that exposed groundwater. Local actual DO restart and identical-command replay
+passed; hosted initial observations and pause admission passed for all four
+packs. Exact release/proof limits are in BUILD.md; the former c5138fc availability
+statements below are historical context, superseded by this checkpoint.
+
+Next implementation joins native conservative sight to saved scoped knowledge
+and filtered observations, while separately tracing existing admission/cargo
+owners for the two-region Survival journey. The exterior cutaway is not fog of
+war: it filters only already published surfaces and still leaves above-slice
+actors visible. Full remembered/unknown knowledge, three usable constructed
+levels, room smoke and two-player region travel remain goal requirements.
+
 ## Next sprint: a living world worth traveling through
 
 September 11 recut after Levi's larger-world and busy-region hosting discussion.
