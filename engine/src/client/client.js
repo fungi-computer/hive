@@ -998,6 +998,13 @@ export function createHiveClient({
           desc: "Cancel selection",
           run: () => {
             gesture.send({ type: "CANCEL" });
+            if (terrainTarget.getSnapshot().value === "armed") {
+              terrainTarget.send({ type: "ESCAPE" });
+              state.message = "Selection";
+              renderHud();
+              draw();
+              return;
+            }
             state.selectedIds = [];
             renderHud();
             draw();
