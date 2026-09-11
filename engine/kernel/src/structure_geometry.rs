@@ -7,6 +7,7 @@
 
 use crate::generation::{Bounds, Cell};
 use std::collections::BTreeSet;
+use serde::{Deserialize, Serialize};
 
 const MAX_INSTANCES: usize = 4096;
 const MAX_DERIVED_CELLS: usize = 16384;
@@ -14,7 +15,8 @@ const MAX_WALL_HEIGHT: u8 = 64;
 const MAX_STAIR_RUN: u8 = 64;
 const MAX_STAIR_RISE: u8 = 64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Cardinal {
     North,
     East,
@@ -65,7 +67,8 @@ impl Face {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum StaticInstance {
     Floor { id: String, support: Cell },
     Wall { id: String, base: Cell, height: u8 },
@@ -198,6 +201,21 @@ impl StaticGeometry {
         let geometry = Self { bounds, instances };
         geometry.projection()?;
         Ok(geometry)
+    }
+
+    /// Save canonical instances only; projection indexes are rebuilt and validated.
+    pub fn encode(&self) -> Result<Vec<u8>, String> {
+        let bytes = serde_json::to_vec(&(1u16, &self.instances)).map_err(|error| error.to_string())?;
+        if bytes.len() > 256 * 1024 { return Err("structure record budget exceeded".into()); }
+        Ok(bytes)
+    }
+
+    pub fn decode(bounds: Bounds, bytes: &[u8]) -> Result<Self, String> {
+        if bytes.len() > 256 * 1024 { return Err("structure record budget exceeded".into()); }
+        let (version, instances): (u16, Vec<StaticInstance>) = serde_json::from_slice(bytes)
+            .map_err(|_| "invalid structure record")?;
+        if version != 1 { return Err("unsupported structure record version".into()); }
+        Self::new(bounds, instances)
     }
 
     pub fn bounds(&self) -> Bounds { self.bounds }
@@ -374,6 +392,23 @@ mod tests {
             });
             assert!(!crate::terrain_traversal::path_supported(&path, config, &mut removed).unwrap());
         }
+    }
+
+    #[test]
+    fn canonical_record_rebuilds_geometry_and_rejects_invalid_custody() {
+        let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Floor {
+            id: "saved-floor".into(), support: Cell { x: -3, y: -8, z: 2 },
+        }]).unwrap();
+        let bytes = geometry.encode().unwrap();
+        let restored = StaticGeometry::decode(bounds(), &bytes).unwrap();
+        assert_eq!(restored, geometry);
+        assert_eq!(restored.projection().unwrap(), geometry.projection().unwrap());
+        assert!(StaticGeometry::decode(bounds(), br#"[0,[]]"#).is_err());
+        let overlapping = vec![
+            StaticInstance::Wall { id: "one".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "two".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
+        ];
+        assert!(StaticGeometry::decode(bounds(), &serde_json::to_vec(&(1u16, overlapping)).unwrap()).is_err());
     }
 
     #[test]
