@@ -43,7 +43,7 @@ const definition = new TextEncoder().encode(
 
 class TestPort implements KernelPort {
   dispose(): void {}
-  private json = JSON.stringify({
+  private entityJson = JSON.stringify({
     format: "hive-kernel",
     version: 5,
     revision: 0,
@@ -69,6 +69,8 @@ class TestPort implements KernelPort {
   load(_definition: Uint8Array): void {
     this.loaded++;
   }
+  loadEnvironment(_definition: Uint8Array): void {}
+  environmentFacts(): unknown { return null; }
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] {
     return _spec.components.some((component) => component.id === morale.id)
       ? [{
@@ -86,13 +88,13 @@ class TestPort implements KernelPort {
     if (this.failAdvance) throw new Error("native advance failed");
     this.writes.push(...structuredClone(writes));
     this.committedWrites.push(...structuredClone(writes));
-    const state = JSON.parse(this.json) as { revision: number; time: number; impactQueue: Impact[] };
+    const state = JSON.parse(this.entityJson) as { revision: number; time: number; impactQueue: Impact[] };
     state.revision = this.revision;
     state.time += delta;
     const impacts = this.impacts;
     this.impacts = [];
     state.impactQueue = [];
-    this.json = JSON.stringify(state);
+    this.entityJson = JSON.stringify(state);
     const results = actions.map((action) => {
       if (action.kind === "consume") {
         if (this.acceptConsume) this.acceptedConsumes++;
@@ -105,21 +107,24 @@ class TestPort implements KernelPort {
     return { revision: this.revision, results, impacts };
   }
   snapshot(): KernelSnapshot {
-    const state = JSON.parse(this.json) as { time: number; impactQueue: Impact[] };
+    const state = JSON.parse(this.entityJson) as { time: number; impactQueue: Impact[] };
     state.impactQueue = this.impacts;
-    this.json = JSON.stringify(state);
+    this.entityJson = JSON.stringify(state);
+    const bytes = new TextEncoder().encode(this.entityJson);
     return {
-      format: "hive-kernel",
-      version: 5,
+      format: "hive-kernel-records",
+      version: 1,
       revision: this.revision,
       time: state.time,
-      json: this.json,
+      records: [{ key: "kernel/entities/0000", bytes }],
     };
   }
   restore(snapshot: KernelSnapshot): void {
-    this.json = snapshot.json;
+    const record = snapshot.records.find(({ key }) => key === "kernel/entities/0000");
+    if (!record) throw new Error("missing test entity record");
+    this.entityJson = new TextDecoder().decode(record.bytes);
     this.revision = snapshot.revision;
-    this.impacts = (JSON.parse(this.json) as { impactQueue?: Impact[] }).impactQueue ?? [];
+    this.impacts = (JSON.parse(this.entityJson) as { impactQueue?: Impact[] }).impactQueue ?? [];
   }
   renderFacts(_limit?: number): readonly RenderFact[] {
     return [];
@@ -454,7 +459,13 @@ test("invalid restores do not mutate queued actions, game time, or the port", ()
     { ...before, game: "survival" as const },
     { ...before, now: 2 },
     { ...before, pendingActions: [{ kind: "bogus" } as never] },
-    { ...before, kernel: { ...before.kernel, json: "{}" } },
+    {
+      ...before,
+      kernel: {
+        ...before.kernel,
+        records: [{ ...before.kernel.records[0], bytes: new Uint8Array([123]) }],
+      },
+    },
   ];
   for (const invalid of cases) {
     assert.throws(() => value.restore(invalid));

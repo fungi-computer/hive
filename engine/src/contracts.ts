@@ -231,16 +231,12 @@ export interface RenderFact {
     readonly bounds: null | { readonly min_x: number; readonly max_x: number; readonly min_z: number; readonly max_z: number };
   } | null;
 }
-export interface KernelSnapshot {
-  readonly format: "hive-kernel";
-  readonly version: 5;
-  readonly revision: number;
-  readonly time: number;
-  readonly json: string;
-}
+export type KernelSnapshot = KernelRecordSnapshot;
 export interface KernelPort {
   readonly dispose: () => void;
   readonly load: (definition: Uint8Array) => void;
+  readonly loadEnvironment: (definition: Uint8Array) => void;
+  readonly environmentFacts: () => unknown;
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];
@@ -262,6 +258,7 @@ export interface GamePack {
   readonly id: GameId;
   readonly version: number;
   readonly definition: Uint8Array;
+  readonly environmentDefinition?: Uint8Array;
   readonly components: readonly ComponentDefinition<any>[];
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: import("./presentation").GamePresentation;
@@ -285,3 +282,4 @@ export interface GamePackTransport {
   readonly version: number;
   readonly definition: Uint8Array;
 }
+import type { KernelRecordSnapshot } from "./runtime/kernel-records";
