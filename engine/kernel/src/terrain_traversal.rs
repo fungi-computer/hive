@@ -12,7 +12,6 @@ pub struct TraversalConfig {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TraversalNode {
     pub support: Cell,
-    pub feet_y: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -36,17 +35,29 @@ fn overhead(
     support: Cell,
     config: TraversalConfig,
     query: &mut MaterialQuery<'_>,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     for offset in 1..=i32::from(config.clearance_cells) {
         let cell = Cell {
             y: support.y.checked_add(offset).ok_or("traversal coordinate overflow")?,
             ..support
         };
         if query(cell)?.solid {
-            return Err("traversal clearance is blocked".into());
+            return Ok(false);
         }
     }
-    Ok(())
+    Ok(true)
+}
+
+fn feet_y(support: Cell, spacing_y: f64) -> Result<f64, String> {
+    let value = (f64::from(support.y) + 0.5) * spacing_y;
+    value.is_finite().then_some(value).ok_or("traversal metric position is not finite".into())
+}
+
+impl TraversalNode {
+    pub fn feet_y(self, config: TraversalConfig) -> Result<f64, String> {
+        validate_config(config)?;
+        feet_y(self.support, config.spacing[1])
+    }
 }
 
 /// Admit a supported voxel and verify the requested open head clearance.
@@ -54,13 +65,16 @@ pub fn node(
     support: Cell,
     config: TraversalConfig,
     query: &mut MaterialQuery<'_>,
-) -> Result<TraversalNode, String> {
+) -> Result<Option<TraversalNode>, String> {
     validate_config(config)?;
     if !query(support)?.solid {
-        return Err("traversal support is not solid".into());
+        return Ok(None);
     }
-    overhead(support, config, query)?;
-    Ok(TraversalNode { support, feet_y: (f64::from(support.y) + 0.5) * config.spacing[1] })
+    if !overhead(support, config, query)? {
+        return Ok(None);
+    }
+    feet_y(support, config.spacing[1])?;
+    Ok(Some(TraversalNode { support }))
 }
 
 /// Attempt one cardinal one-voxel transition. `dx`/`dz` select one cardinal
@@ -73,9 +87,9 @@ pub fn step(
     dz: i32,
     config: TraversalConfig,
     query: &mut MaterialQuery<'_>,
-) -> Result<TraversalNode, String> {
+) -> Result<Option<TraversalNode>, String> {
     validate_config(config)?;
-    if (dx.abs() + dz.abs()) != 1 || !(-1..=1).contains(&dy) {
+    if !matches!((dx, dz), (1, 0) | (-1, 0) | (0, 1) | (0, -1)) || !(-1..=1).contains(&dy) {
         return Err("traversal step is not cardinal or bounded".into());
     }
     let target = Cell {
@@ -84,14 +98,25 @@ pub fn step(
         z: from.support.z.checked_add(i64::from(dz)).ok_or("traversal coordinate overflow")?,
     };
     if !query(from.support)?.solid || !query(target)?.solid {
-        return Err("traversal step lacks solid support".into());
+        return Ok(None);
     }
-    overhead(target, config, query)?;
+    if !overhead(from.support, config, query)? || !overhead(target, config, query)? {
+        return Ok(None);
+    }
     if dy != 0 {
         let low = if dy < 0 { target } else { from.support };
-        overhead(low, config, query)?;
+        for offset in 1..=i32::from(config.clearance_cells) + dy.abs() {
+            let cell = Cell {
+                y: low.y.checked_add(offset).ok_or("traversal coordinate overflow")?,
+                ..low
+            };
+            if query(cell)?.solid {
+                return Ok(None);
+            }
+        }
     }
-    Ok(TraversalNode { support: target, feet_y: (f64::from(target.y) + 0.5) * config.spacing[1] })
+    feet_y(target, config.spacing[1])?;
+    Ok(Some(TraversalNode { support: target }))
 }
 
 #[cfg(test)]
@@ -111,9 +136,9 @@ mod tests {
     #[test]
     fn deep_flat_traversal_and_metric_feet_height() {
         let mut query = world(&[(0, -20, 0), (1, -20, 0)]);
-        let start = node(Cell { x: 0, y: -20, z: 0 }, config(), &mut query).unwrap();
-        assert_eq!(start.feet_y, -9.75);
-        let next = step(start, 1, 0, 0, config(), &mut query).unwrap();
+        let start = node(Cell { x: 0, y: -20, z: 0 }, config(), &mut query).unwrap().unwrap();
+        assert_eq!(start.feet_y(config()).unwrap(), -9.75);
+        let next = step(start, 1, 0, 0, config(), &mut query).unwrap().unwrap();
         assert_eq!(next.support, Cell { x: 1, y: -20, z: 0 });
     }
 
@@ -122,21 +147,21 @@ mod tests {
         let mut query = world(&[
             (0, 0, 0), (1, 1, 0),
         ]);
-        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut query).unwrap();
-        let up = step(start, 1, 1, 0, config(), &mut query).unwrap();
+        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut query).unwrap().unwrap();
+        let up = step(start, 1, 1, 0, config(), &mut query).unwrap().unwrap();
         assert_eq!(up.support.y, 1);
-        let down = step(up, -1, -1, 0, config(), &mut query).unwrap();
+        let down = step(up, -1, -1, 0, config(), &mut query).unwrap().unwrap();
         assert_eq!(down.support.y, 0);
     }
 
     #[test]
     fn low_ceiling_blocks_step_and_unsupported_hole_fails_closed() {
-        let mut ceiling = world(&[(0, 0, 0), (1, 0, 0), (1, 1, 0), (1, 2, 0)]);
-        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut ceiling).unwrap();
-        assert!(step(start, 1, 0, 0, config(), &mut ceiling).is_err());
-        let mut hole = world(&[(0, 0, 0), (0, 1, 0), (1, 1, 0)]);
-        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut hole).unwrap();
-        assert!(step(start, 1, 0, 0, config(), &mut hole).is_err());
+        let mut ceiling = world(&[(0, 0, 0), (0, 2, 0), (1, 1, 0)]);
+        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut ceiling).unwrap().unwrap();
+        assert!(step(start, 1, 1, 0, config(), &mut ceiling).unwrap().is_none());
+        let mut hole = world(&[(0, 0, 0)]);
+        let start = node(Cell { x: 0, y: 0, z: 0 }, config(), &mut hole).unwrap().unwrap();
+        assert!(step(start, 1, 0, 0, config(), &mut hole).unwrap().is_none());
     }
 
     #[test]
