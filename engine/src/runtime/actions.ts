@@ -30,6 +30,22 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "plan-construction": {
+      keys = ["kind", "catalog", "site", "x", "y", "z", "orientation", "contact"];
+      const contact = action.contact as Record<string, unknown> | null;
+      valid = id(action.catalog) && id(action.site)
+        && [action.x, action.z].every(value => typeof value === "number" && Number.isSafeInteger(value))
+        && typeof action.y === "number" && Number.isInteger(action.y) && action.y >= -2147483648 && action.y <= 2147483647
+        && ["north", "east", "south", "west"].includes(action.orientation as string)
+        && !!contact && typeof contact === "object" && !Array.isArray(contact)
+        && Object.keys(contact).length === 4 && contact.frame === null
+        && coordinate(contact.x) && coordinate(contact.y) && coordinate(contact.z);
+      break;
+    }
+    case "attend-construction":
+      keys = ["kind", "worker", "site"];
+      valid = id(action.worker) && id(action.site);
+      break;
     case "excavate":
       keys = ["kind", "entity", "x", "y", "z", "expected", "replacement"];
       valid = id(action.entity) && [action.x, action.y, action.z].every(value => coordinate(value) && Number.isInteger(value)) &&
