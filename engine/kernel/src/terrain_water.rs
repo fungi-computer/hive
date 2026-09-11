@@ -313,6 +313,12 @@ impl TerrainWater {
     pub fn air_exterior(&mut self, starts: &[Cell], ceiling_y: i32) -> Result<Vec<AirExteriorResult>, String> {
         air_exterior::query(self, starts, ceiling_y)
     }
+    pub(crate) fn prepared_excavation_air_geometry(&mut self, prepared: &PreparedExcavation, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+        air_geometry::query_excavation(self, prepared, bounds)
+    }
+    pub(crate) fn prepared_excavation_replacement(&self, prepared: &PreparedExcavation) -> (Cell, u16) {
+        (self.terrain.prepared_cell(&prepared.terrain), self.terrain.prepared_replacement(&prepared.terrain))
+    }
     pub fn terrain_revision(&self) -> u64 { self.physical_revision }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
@@ -575,6 +581,11 @@ mod tests {
         assert_eq!(water.facts().unwrap(), before);
         assert_eq!(water.material(at).unwrap(), expected);
         water.advance(0.0).unwrap();
+        let stale_bounds = AirGeometryBounds {
+            min: at,
+            max: Cell { x: at.x + 1, y: at.y + 1, z: at.z + 1 },
+        };
+        assert!(water.prepared_excavation_air_geometry(&stale, stale_bounds).is_err());
         assert!(water.apply_excavation(stale).is_err());
         assert_eq!(water.material(at).unwrap(), expected);
         let ExcavationResult::Prepared(prepared) = water.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
@@ -582,12 +593,30 @@ mod tests {
         assert_eq!(credited_water_kg, 200.0);
         assert_eq!(prepared.removed(), expected);
         assert_eq!(prepared.volume_m3(), 1.0);
+        let mut foreign = TerrainWater::fresh(geometry.clone(), terrain_factory(),
+            &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
+              WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();
+        let foreign_expected = foreign.material(at).unwrap();
+        let ExcavationResult::Prepared(foreign_prepared) = foreign.prepare_excavation(at, foreign_expected, 0).unwrap() else { panic!("foreign prepare"); };
+        assert!(water.prepared_excavation_air_geometry(&foreign_prepared, AirGeometryBounds {
+            min: at, max: Cell { x: at.x + 1, y: at.y + 1, z: at.z + 1 },
+        }).is_err());
+        let air_bounds = AirGeometryBounds {
+            min: at,
+            max: Cell { x: at.x + 1, y: at.y + 1, z: at.z + 1 },
+        };
+        let before_air = water.air_geometry(air_bounds).unwrap();
+        let proposed_air = water.prepared_excavation_air_geometry(&prepared, air_bounds).unwrap();
+        assert!(before_air.cells.iter().all(|cell| cell.at != at));
+        assert!(proposed_air.cells.iter().any(|cell| cell.at == at));
+        assert_eq!(water.air_geometry(air_bounds).unwrap(), before_air);
         // Failed admission changes no canonical state, so it need not invalidate
         // an otherwise current completion candidate.
         assert!(water.advance(-1.0).is_err());
         assert_eq!(water.facts().unwrap(), before);
         water.apply_excavation(prepared).unwrap();
         assert_eq!(water.material(at).unwrap(), 0);
+        assert_eq!(water.air_geometry(air_bounds).unwrap(), proposed_air);
         let facts = water.facts().unwrap();
         assert_eq!(facts.total_kg + credited_water_kg, 200.0);
         assert_eq!(facts.total_kg, 0.0);
