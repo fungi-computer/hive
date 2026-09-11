@@ -145,6 +145,63 @@ These are proposed shapes, not existing exports or permission to add a generic
 event bus/plugin language. First callers are the cannon plus a completed parcel
 transfer, so the mechanism must serve both before being called reusable.
 
+### Real cannon trajectory and multiple hits — direct Levi amendment
+
+Levi wants one cannonball to knock over all three lined-up soldiers and to fly
+like a heavy projectile rather than an endless straight line. This is physical
+engine work added to the proposal, not something the effects layer can fake.
+
+Current source: `formations.ts` launches at velocity(8,0,0), with range20 and
+lifetime4 seconds. `world.rs::advance_projectiles` uses constant velocity, sweeps
+for the nearest collider, emits one impact and despawns the ball at first contact.
+It is a real entity with real collision, but has no gravity, piercing or ground
+response. It is not infinite; the straight flight and first-hit removal are real
+limitations. TypeScript currently applies fixed damage and bounded grounded
+knockback from each impact.
+
+First playable upgrade:
+
+- Give projectiles authored gravity/initial velocity and a readable low ballistic
+  arc. Render the authoritative elevation and a ground shadow; the client must
+  not draw a different decorative parabola over a straight physical path.
+- Support a finite penetration policy: continue after a susceptible body hit,
+  reduce the remaining speed/energy according to authored resistance, and stop
+  when exhausted or against a blocking surface. Three bodies in the actual path
+  can all receive a hit from the same projectile. There is no special three-person
+  list, area-damage substitute, or new projectile spawned behind each victim.
+- Register the practice ground through real surface/collider geometry. Do not
+  invent a global ground-y=0 rule that would break towers, decks and future terrain.
+  Ground impact ends the first shot with dust and a small mark. Bouncing/rolling is
+  a subsequent optional response if it improves play, not required to get this
+  initial low arc and three-person knockdown working.
+- Each physical contact supplies the committed cue for its own knockback/tumble.
+  An actor that moves out of the path escapes; a nearer blocking wall protects
+  actors behind it. Ammo is paid once for the entire flight. No fake death policy.
+
+Engine ownership remains Rust: bounded curved-flight integration, swept contact,
+ordered multiple contacts, projectile identity and finite remaining travel/energy.
+Use the existing maintained collision owner on bounded trajectory segments rather
+than endpoint-only checks that tunnel through targets. Clip the final interval to
+range/lifetime and ground contact. Define maximum contacts/substeps and the exact
+budget-exhaustion rule before implementation; never skip collision silently.
+Preserve remaining simulation time through multiple contacts within a tick.
+Track contact entry/exit or a bounded per-flight victim policy so starting inside
+an already-hit body cannot create repeated hits or a zero-time collision loop.
+
+TypeScript authors projectile profiles, penetration resistance and game damage/
+morale/knockdown responses. The same supported primitives can serve arrows that
+stop, cannon rounds that penetrate and later other ammunition. Do not add a full
+weapon scripting language. Existing original cannonball/figure art, render
+interpolation and shared cue/effect owners consume the result.
+
+Qualify the actual scene: one ball crosses three aligned colliders and produces
+three ordered unique impacts; a blocking wall stops it; moving aside avoids it;
+gravity changes both trajectory and hit height; a miss lands/expires; saving and
+restarting between victims preserves the remaining flight and never spends ammo
+or damages an earlier victim twice. Show that same shot in the existing RTS page,
+with actual arc, ground contact and three reactions. This physical upgrade comes
+before decorating the cannon as if it already has those behaviors.
+
 ### Cannon ragdoll effect — direct Levi amendment
 
 Levi explicitly wants a ragdoll effect on cannon hits. Make this part of the
@@ -212,7 +269,8 @@ character style or model detail that disappears at the game's real scale.
    dust, shared effect lifecycle, restrained footsteps, and pending/accepted order
    feedback. Survival is the sustained-motion acceptance case; a sailor standing
    on a moving deck is the counterexample. Deliver on the existing pages.
-2. **Cannon payoff plus colony completion.** Identified committed cues, recoil,
+2. **Real cannon flight, payoff and colony completion.** First land the bounded
+   gravity/multiple-hit/ground-contact upgrade above. Then identified committed cues, recoil,
    muzzle smoke/boom, directional ragdoll-like tumbles and landing bursts, and pickup/delivery confirmation through
    the same owner. Preserve finite ammo, exact retry and physical knockback.
 3. **Character and prop pass, across all four.** Shared roles, retained carry/eat
