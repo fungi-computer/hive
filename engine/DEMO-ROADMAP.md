@@ -45,6 +45,33 @@ is absent. `construction-input/failure.json` preserves the crash with no capture
 page error or final frame. Root disk was subsequently measured at only 6 MB free;
 causation is unproved. Do not repeat the browser before resolving host headroom.
 
+### Current construction and air frontier
+
+`642b154` includes the local terrain-revision transport correction and ordinary
+three-unit Colony supply batches; explicit one-unit player deliveries remain
+one unit. The affected supply consumer and strict types passed u5858. The last
+built 37-file artifact is still `667ee62`, so it does not contain that batch
+configuration. Neither candidate is the current public release.
+
+The input failure is now more specific than the first disk observation above:
+u5855 recorded Chromium `Target.targetCrashed` with error code 139 after real
+stair designation and wood delivery. A retry after freeing owned cache space
+also crashed; disk causation is not established. Full Chrome comparison u5860
+failed before opening a page because `libcups.so.2` was missing. Preserve these
+separate failures; no completed mouse-built stair or narrow-screen proof follows.
+Do not repeat either unchanged browser setup.
+
+The isolated Rust atmosphere owner at `3cc590d` passed eight affected laws in
+u5868, including finite exchanges, ownership/restore, positive temperature and
+sub-resolution transfer handling. `178b7f6` mechanically separates compilation,
+state, exchange and tests; its changed module structure still needs compilation.
+Air is currently test-only, with no live Kernel, fuel, room producer or DO caller.
+Next coupling uses canonical terrain/structure cell and face geometry: floors
+must seal upward flow, lateral region limits are not invented ambient air, and
+doors/vents need shared physical definitions before they can change ventilation.
+The retained `goblin-environment/gas-geometry.ts` supplies the comparison for
+water-displaced free volume and actual exterior classification.
+
 ### Retained production is the restoration reference
 
 Levi reaffirmed that construction alone does not restore Colony. Read actual
