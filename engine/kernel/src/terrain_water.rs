@@ -1,6 +1,7 @@
 //! Physical terrain-to-water composition. No independent material grid is kept.
 //! The admitted coordinates bound transport work, not the generated world size.
 use crate::generation::Cell;
+use crate::structure_geometry::{StaticGeometry, GeometryProjection, Face, FaceAxis};
 use crate::terrain::{AppliedChange, BlockReason, PrepareResult, SurfaceCell, TerrainOwner};
 use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
     WaterCellKind, WaterDefinition, WaterLimits, WaterRebind, WaterRebindBlock,
@@ -82,11 +83,12 @@ impl TerrainWaterGeometry {
     }
 
     fn compile(&self, terrain: &mut TerrainOwner, revision: u64,
-        replacement: Option<(Cell, u16)>) -> Result<CompiledWater, String> {
+        replacement: Option<(Cell, u16)>, structures: &GeometryProjection) -> Result<CompiledWater, String> {
         let mut cells = Vec::new();
         let mut soils = BTreeMap::new();
         let mut represented = BTreeSet::new();
         for cell in &self.cells {
+            if structures.is_bulk_solid(*cell) { continue; }
             let slot = match replacement {
                 Some((at, slot)) if at == *cell => slot,
                 _ => terrain.query(*cell)?,
@@ -111,7 +113,9 @@ impl TerrainWaterGeometry {
             for axis in 0..3 {
                 let mut b = *a;
                 b[axis] = b[axis].checked_add(1).ok_or("water face coordinate overflow")?;
-                if represented.contains(&b) {
+                let face = Face { cell: Cell { x: i64::from(a[0]), y: a[1], z: i64::from(a[2]) },
+                    axis: [FaceAxis::X, FaceAxis::Y, FaceAxis::Z][axis] };
+                if represented.contains(&b) && !structures.is_face_sealed(face) {
                     faces.push(FaceDefinition { a: *a, b, open_fraction: 1.0 });
                 }
             }
@@ -132,10 +136,13 @@ pub struct TerrainWaterRecords {
     pub header: Vec<u8>,
     pub terrain: Vec<u8>,
     pub water: Vec<u8>,
+    pub structures: Vec<u8>,
 }
 
 pub struct TerrainWater {
     terrain: TerrainOwner,
+    structures: StaticGeometry,
+    structure_projection: GeometryProjection,
     geometry: TerrainWaterGeometry,
     identity: Vec<u8>,
     graph: CompiledWater,
@@ -148,11 +155,13 @@ impl TerrainWater {
     pub fn fresh(geometry: TerrainWaterGeometry, mut terrain: TerrainOwner,
         stocks: &[WaterStock]) -> Result<Self, String> {
         if geometry.spacing != terrain.cell_spacing_m() { return Err("terrain and water metric differ".into()); }
-        let graph = geometry.compile(&mut terrain, 0, None)?;
+        let structures = StaticGeometry::new(terrain.bounds(), Vec::new())?;
+        let structure_projection = structures.projection()?;
+        let graph = geometry.compile(&mut terrain, 0, None, &structure_projection)?;
         let state = graph.initial(stocks)?;
         let scratch = graph.workspace();
         let identity = geometry.identity()?;
-        Ok(Self { terrain, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
+        Ok(Self { terrain, structures, structure_projection, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
     pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
         let header = postcard::to_allocvec(&(1u16, self.identity.as_slice(),
@@ -163,7 +172,8 @@ impl TerrainWater {
         if terrain.len() > 256 * 1024 || water.len() > 256 * 1024 {
             return Err("environment record exceeds Region record budget".into());
         }
-        Ok(TerrainWaterRecords { header, terrain, water })
+        let structures = self.structures.encode()?;
+        Ok(TerrainWaterRecords { header, terrain, water, structures })
     }
 
     /// Hydrate a disposable candidate. This never calls fresh/initial: zero
@@ -182,10 +192,12 @@ impl TerrainWater {
         }
         terrain.restore(&records.terrain)?;
         if terrain.revision() != terrain_revision { return Err("environment terrain frontier mismatch".into()); }
-        let graph = geometry.compile(&mut terrain, water_revision, None)?;
+        let structures = StaticGeometry::decode(terrain.bounds(), &records.structures)?;
+        let structure_projection = structures.projection()?;
+        let graph = geometry.compile(&mut terrain, water_revision, None, &structure_projection)?;
         let state = graph.decode_state(&records.water)?;
         let scratch = graph.workspace();
-        Ok(Self { terrain, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
+        Ok(Self { terrain, structures, structure_projection, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
 
     pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
@@ -197,7 +209,8 @@ impl TerrainWater {
         use crate::terrain_traversal::TraversalMaterial;
         match self.terrain.query(at) {
             Ok(material) => Ok(TraversalMaterial {
-                solid: !self.terrain.is_open_material(material), outside: false, sealed_top: false,
+                solid: !self.terrain.is_open_material(material) || self.structure_projection.is_bulk_solid(at),
+                outside: false, sealed_top: self.structure_projection.supports(at),
             }),
             Err("cell outside world bounds") => Ok(TraversalMaterial {
                 solid: false, outside: true, sealed_top: false,
@@ -237,7 +250,7 @@ impl TerrainWater {
         let mut water_kg = 0.0;
         let water = if self.geometry.cells.contains(&at) {
             let revision = self.graph.binding().revision().checked_add(1).ok_or("water revision overflow")?;
-            let next = self.geometry.compile(&mut self.terrain, revision, Some((at, replacement)))?;
+            let next = self.geometry.compile(&mut self.terrain, revision, Some((at, replacement)), &self.structure_projection)?;
             let coordinate = coordinates(at)?;
             let pore_mass = self.graph.facts(&self.state)?.cells.iter()
                 .find(|cell| cell.at == coordinate && cell.kind == WaterCellKind::Soil)
