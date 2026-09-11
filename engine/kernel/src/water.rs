@@ -204,6 +204,20 @@ pub struct WaterAdvance {
     pub work: WaterWork,
 }
 
+/// A geometry change can wait for water without failing unrelated work.
+/// `Ready` is a detached candidate, not an authoritative or durable commit.
+#[derive(Clone, Debug, PartialEq)]
+pub enum WaterRebind {
+    Ready(WaterState),
+    Blocked(WaterRebindBlock),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum WaterRebindBlock {
+    WetCellRemoved { at: [i32; 3], mass_kg: f64 },
+    CapacityExceeded { at: [i32; 3], mass_kg: f64, capacity_kg: f64 },
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WaterCellFact {
@@ -468,6 +482,49 @@ impl CompiledWater {
     pub fn definition(&self) -> &WaterDefinition { &self.definition }
     pub fn binding(&self) -> &WaterBinding { &self.binding }
     pub fn workspace(&self) -> WaterWorkspace { WaterWorkspace::new(self) }
+
+    /// Rebind existing finite stocks after an admitted geometry edit. Newly
+    /// represented cells start empty: generation/admission is a separate physical
+    /// operation, and this operation cannot manufacture an initial water supply.
+    /// The caller commits this candidate with terrain/material changes or drops
+    /// it. Both compiled graphs and the input state remain unchanged.
+    pub fn prepare_rebind(&self, state: &WaterState, next: &CompiledWater) -> WaterResult<WaterRebind> {
+        self.validate_state(state)?;
+        if self.binding.id != next.binding.id || next.binding.revision <= self.binding.revision {
+            return Err(fail("water geometry replacement requires the same owner and a newer definition"));
+        }
+        if self.definition.spacing_m != next.definition.spacing_m {
+            return Err(fail("water geometry replacement cannot change the world metric"));
+        }
+        let mut masses = vec![0.0; next.nodes.len()];
+        for (node, amount) in self.nodes.iter().zip(&state.mass_kg) {
+            let Some(&destination) = next.index.get(&node.id) else {
+                if *amount != 0.0 {
+                    return Ok(WaterRebind::Blocked(WaterRebindBlock::WetCellRemoved {
+                        at: node.at, mass_kg: *amount,
+                    }));
+                }
+                continue;
+            };
+            let capacity_kg = next.nodes[destination].capacity_kg;
+            if *amount > capacity_kg {
+                return Ok(WaterRebind::Blocked(WaterRebindBlock::CapacityExceeded {
+                    at: node.at, mass_kg: *amount, capacity_kg,
+                }));
+            }
+            masses[destination] = *amount;
+        }
+        let candidate = WaterState {
+            version: WaterStateVersion::V1,
+            binding: next.binding.clone(),
+            mass_kg: masses,
+            initial_total_kg: state.initial_total_kg,
+            boundary_kg: state.boundary_kg,
+            owner: next.owner.clone(),
+        };
+        next.validate_state(&candidate)?;
+        Ok(WaterRebind::Ready(candidate))
+    }
 
     pub fn initial(&self, stocks: &[WaterStock]) -> WaterResult<WaterState> {
         if stocks.len() != self.nodes.len() { return Err(fail("water initial stock must name every cell exactly once")); }
@@ -871,5 +928,68 @@ mod tests {
         rule.retention = rule.porosity;
         assert!(CompiledWater::compile(WaterDefinition { soils: vec![rule], ..definition(vec![bad], vec![]) }, WaterLimits::default()).is_err());
         assert!(CompiledWater::compile(definition(vec![cell([0, 0, 0]), cell([2, 0, 0])], vec![face([0, 0, 0], [2, 0, 0])]), WaterLimits::default()).is_err());
+    }
+
+    #[test]
+    fn rebind_excavation_keeps_pore_water_and_does_not_seed_new_space() {
+        let at = [0, 0, 0];
+        let added = [-1, 0, 0];
+        let mut earth = cell(at);
+        earth.kind = WaterCellKind::Soil;
+        earth.soil_id = Some("loam".into());
+        let old = CompiledWater::compile(definition(vec![earth], vec![]), WaterLimits::default()).unwrap();
+        let state = old.initial(&[stock(at, 0.2)]).unwrap();
+        let before = old.encode_state(&state).unwrap();
+        let mut replacement = definition(vec![cell(at), cell(added)], vec![face(at, added)]);
+        replacement.revision = 1;
+        let next = CompiledWater::compile(replacement, WaterLimits::default()).unwrap();
+        let WaterRebind::Ready(candidate) = old.prepare_rebind(&state, &next).unwrap() else { panic!("excavation should fit"); };
+        let facts = next.facts(&candidate).unwrap();
+        assert_eq!(facts.cells.iter().find(|cell| cell.at == at).unwrap().mass_kg, 0.2);
+        assert_eq!(facts.cells.iter().find(|cell| cell.at == added).unwrap().mass_kg, 0.0);
+        assert_eq!(facts.initial_total_kg, 0.2);
+        assert_eq!(facts.total_kg, 0.2);
+        assert_eq!(old.encode_state(&state).unwrap(), before);
+        assert_eq!(next.decode_state(&next.encode_state(&candidate).unwrap()).unwrap(), candidate);
+    }
+
+    #[test]
+    fn rebind_blocked_geometry_keeps_water_when_a_wet_cell_is_removed_or_filled() {
+        let at = [0, 0, 0];
+        let dry = [1, 0, 0];
+        let old = CompiledWater::compile(definition(vec![cell(at), cell(dry)], vec![face(at, dry)]), WaterLimits::default()).unwrap();
+        let state = old.initial(&[stock(at, 0.8), stock(dry, 0.0)]).unwrap();
+        let before = old.encode_state(&state).unwrap();
+        let mut removed = definition(vec![cell(dry)], vec![]);
+        removed.revision = 1;
+        let removed = CompiledWater::compile(removed, WaterLimits::default()).unwrap();
+        assert!(matches!(old.prepare_rebind(&state, &removed).unwrap(), WaterRebind::Blocked(WaterRebindBlock::WetCellRemoved { .. })));
+        let mut earth = cell(at);
+        earth.kind = WaterCellKind::Soil;
+        earth.soil_id = Some("loam".into());
+        let mut filled = definition(vec![earth, cell(dry)], vec![face(at, dry)]);
+        filled.revision = 1;
+        let filled = CompiledWater::compile(filled, WaterLimits::default()).unwrap();
+        assert!(matches!(old.prepare_rebind(&state, &filled).unwrap(), WaterRebind::Blocked(WaterRebindBlock::CapacityExceeded { .. })));
+        assert_eq!(old.encode_state(&state).unwrap(), before);
+    }
+
+    #[test]
+    fn rebind_rejects_foreign_stale_or_rescaled_definitions() {
+        let at = [0, 0, 0];
+        let definition = definition(vec![cell(at)], vec![]);
+        let old = CompiledWater::compile(definition.clone(), WaterLimits::default()).unwrap();
+        let state = old.initial(&[stock(at, 0.1)]).unwrap();
+        assert!(old.prepare_rebind(&state, &old).is_err());
+        let mut foreign = definition.clone();
+        foreign.id = "another-region".into();
+        foreign.revision = 1;
+        let foreign = CompiledWater::compile(foreign, WaterLimits::default()).unwrap();
+        assert!(old.prepare_rebind(&state, &foreign).is_err());
+        let mut rescaled = definition;
+        rescaled.revision = 1;
+        rescaled.spacing_m[0] *= 2.0;
+        let rescaled = CompiledWater::compile(rescaled, WaterLimits::default()).unwrap();
+        assert!(old.prepare_rebind(&state, &rescaled).is_err());
     }
 }
