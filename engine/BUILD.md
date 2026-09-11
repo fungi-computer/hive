@@ -653,3 +653,30 @@ inject a small store and exercise structuredClone, transaction waiting/failure
 and disposal; they are not actual browser IndexedDB/reload proof. No browser or
 public deployment was run. Scope inactive/dead/empty. The coupled SDK/Region
 record snapshot and disposable-attempt migration is still outstanding.
+
+### SDK/Session/Region record consumer
+
+SDK record capture/restore and Session version7 replace JSON-only kernel saves.
+Region session-v2 stores control/header keys separately from byte records and
+writes only changed records from its before/after captures. Public-host observation
+hydrates the same committed revision through bounded record pagination. Metadata
+parsing no longer constructs a native kernel. Independent source review found
+no commit/transport blocker; full resident-attempt optimization remains pending.
+
+Qualification: u5441 stopped at fixture typing (no laws ran); corrected u5443
+passed strict engine types and19 of24 affected laws. Five fixture failures were
+retained: native camelCase totalKg, current Session version, and missing native
+header/Scene format in the mock. u5445 passed the actual WASM+SQLite Colony law
+and version assertion; u5447 passed the remaining three mock restore laws. Its
+public-host type check exposed an old clock fixture initializer. Corrected
+f338cfc/u5449 passed public-host strict types and that actual clock/replay law.
+No previously passed law replay, Rust rebuild, browser or DO launch. All command
+handles collected; scopes inactive/dead/empty.
+
+The Colony law covers initial finite water records, source Session advancement,
+reopen, duplicate command receipt, SQL record-write failure/rollback and retry,
+then hydration through the actual WASM port. Its water fixture is at equilibrium:
+it does not establish moving-water rollback, excavation, a DO restart, population
+capacity or current demo performance. Full per-step snapshots and disposable
+per-operation reconstruction still exist; do not enable this as a claimed
+performance-complete environmental release before the owned-attempt join.
