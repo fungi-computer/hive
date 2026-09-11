@@ -200,39 +200,60 @@ mod tests {
     #[test]
     fn generated_dry_column_reaches_world_top() {
         let mut world = world();
-        let result = world
-            .air_exterior(&[Cell { x: 0, y: 35, z: 0 }], 40)
-            .unwrap();
+        let support = world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        let start = Cell {
+            y: support.y + 1,
+            ..support
+        };
+        let result = world.air_exterior(&[start], 40).unwrap();
         assert_eq!(result[0].status, AirExteriorStatus::ClearToWorldTop);
     }
 
     #[test]
     fn query_ceiling_is_not_outdoor() {
         let mut world = world();
-        let result = world
-            .air_exterior(&[Cell { x: 0, y: 35, z: 0 }], 37)
-            .unwrap();
+        let support = world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        let start = Cell {
+            y: support.y + 1,
+            ..support
+        };
+        let result = world.air_exterior(&[start], start.y + 1).unwrap();
         assert_eq!(result[0].status, AirExteriorStatus::ClearToQueryCeiling);
     }
 
     #[test]
     fn authored_floor_blocks_upward_clearance() {
         let mut world = world();
+        let anchor = world.surface_cells(&[(1, 0)]).unwrap()[0].unwrap().cell;
+        let support = Cell {
+            x: 0,
+            y: anchor.y + 2,
+            z: 0,
+        };
+        let wall_base = Cell {
+            y: anchor.y + 1,
+            ..anchor
+        };
         let token = world
-            .prepare_structures(vec![crate::structure_geometry::StaticInstance::Floor {
-                id: "roof".into(),
-                support: Cell { x: 0, y: 36, z: 0 },
-            }])
+            .prepare_structures(vec![
+                crate::structure_geometry::StaticInstance::Wall {
+                    id: "column".into(),
+                    base: wall_base,
+                    height: 2,
+                },
+                crate::structure_geometry::StaticInstance::Floor {
+                    id: "roof".into(),
+                    support,
+                },
+            ])
             .unwrap()
             .unwrap();
         world.apply_structures(token).unwrap();
-        let result = world
-            .air_exterior(&[Cell { x: 0, y: 35, z: 0 }], 40)
-            .unwrap();
+        let result = world.air_exterior(&[start], 40).unwrap();
         assert_eq!(
             result[0].status,
             AirExteriorStatus::Blocked {
-                cell: Cell { x: 0, y: 36, z: 0 },
+                cell: support,
                 blocker: AirExteriorBlocker::SealedFace
             }
         );
@@ -241,11 +262,13 @@ mod tests {
     #[test]
     fn oversized_request_is_rejected_before_sampling() {
         let mut world = world();
+        let before = world.terrain.cache_len();
         let starts = (-32..1)
             .flat_map(|x| (-32..0).map(move |z| Cell { x, y: -2, z }))
             .chain((-32..1).map(|x| Cell { x, y: -1, z: -32 }))
             .collect::<Vec<_>>();
         assert!(starts.len() > 1024);
         assert!(world.air_exterior(&starts, 40).is_err());
+        assert_eq!(world.terrain.cache_len(), before);
     }
 }
