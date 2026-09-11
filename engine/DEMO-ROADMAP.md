@@ -722,9 +722,12 @@ Progress must be canonical and restored, scoped to the target's expected materia
 and cleared or rejected when that target has changed. Repeated actions in one
 batch cannot multiply the available time. Paused intent changes earn no work.
 A full container blocks that job rather than cancelling unrelated jobs or ticks.
-This remains implementation work: the current native helper is private and the
-public Colony still has neither the worker dig action nor the generated terrain
-projection. Publish the complete wet-dig loop before moving to the smoke join.
+Public Colony now has Rust-generated terrain and rectangular wet digging
+(runtime 6080e4e), including approach, finite spoil and ordinary unloading. The
+construction/supply continuation is source-only: native staged construction and
+shared work assignment are under qualification. It is not yet a playable
+three-level building or the complete production-job system. Rust room smoke
+remains an unfinished join. Preserve these distinctions when reporting progress.
 
 ### Standing production jobs — Levi clarification, September 11
 
