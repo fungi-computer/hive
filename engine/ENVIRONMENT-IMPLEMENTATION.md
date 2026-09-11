@@ -889,3 +889,33 @@ source invariant when a design change is needed.
 - Checked Botanical `45db487` Woodstock progress/recording and observation files
   are enumerated in WATER-AND-GAS. Reuse the live/durable distinction; this does
   not claim the chat runtime itself supplies an engine transaction or scheduler.
+
+## Independent current and wind — Levi, September 11
+
+Accepted design amendment; not a shipped capability. Water current and air wind
+are independently authored directional velocity fields in metres per second.
+Start with a uniform vector per region/channel and bounded coarse-cell overrides;
+no per-voxel turbulence or global fluid-velocity solve. A common immutable field
+query can serve transport, sails, floating bodies and cosmetic effects. Sampling
+a field grants no mutation authority. Current may oppose wind.
+
+For transport, project the sampled velocity onto an existing open face. Add the
+bounded directional transfer request to gravity/diffusion requests BEFORE the
+existing shared donor-stock/receiver-capacity allocation. Never separately apply
+a full current transfer after gravity has already spent the same stock. Solid
+faces remain closed; wind cannot move smoke through walls. Region-edge transfer
+requires the later actual ownership protocol, never a local deletion. Coarse wind
+does not imply outdoor wind blows unchanged through a sealed room.
+
+For ships, compute relative air velocity against sail velocity and relative water
+velocity against hull velocity; authored sail area/trim and hull drag determine
+forces. The native body/movement owner applies them once. Do not both drift a ship
+by adding current directly to its position and apply equivalent hull drag again.
+Client wake, sail flutter and particles observe these facts; they do not push bodies.
+
+Persist field definition/version and any time-dependent phase through normal world
+state; derive sampled vectors without saving a dense duplicate grid. Rate bounds
+and existing substep budgets limit transport requests under extreme authored wind.
+Qualify opposite directions, closed walls, finite donor competition, stationary
+hull/sail response and restart before calling sailing/weather implemented. This
+extends the existing Colony/Pirates roadmap, not a new demo or turbulence project.
