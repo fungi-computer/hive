@@ -1,7 +1,7 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { WorkerRuntime } from "./worker";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
-import { wasmKernelPort, type WasmKernelBinding } from "./wasm-kernel";
+import { wasmKernelPort } from "./wasm-kernel";
 import { piratesPack } from "../games/pirates";
 import { colonyPack } from "../games/colony";
 import { survivalPack } from "../games/survival";
@@ -30,11 +30,9 @@ export async function bootGeneratedWorker(
     onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
     postMessage(message: WorkerEvent): void;
   },
-  binding: WasmKernelBinding,
+  createKernel: () => KernelPort,
 ): Promise<WorkerRuntime> {
-  const Binding = binding.constructor as new () => WasmKernelBinding;
-  binding.free();
-  return installWorkerRuntime(scope, () => wasmKernelPort(new Binding()), {
+  return installWorkerRuntime(scope, createKernel, {
     pirates: piratesPack,
     colony: colonyPack,
     survival: survivalPack,
@@ -47,10 +45,7 @@ export async function bootBundledGeneratedWorker(scope: {
   postMessage(message: WorkerEvent): void;
 }): Promise<WorkerRuntime> {
   await generated.default();
-  const binding = new (
-    generated as unknown as { WasmKernel: new () => WasmKernelBinding }
-  ).WasmKernel();
-  return bootGeneratedWorker(scope, binding);
+  return bootGeneratedWorker(scope, () => wasmKernelPort(new generated.WasmKernel()));
 }
 
 // This module is the browser Worker entry, not a second simulation host.

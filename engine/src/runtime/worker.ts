@@ -15,16 +15,21 @@ export class WorkerRuntime {
     private readonly emit: (event: WorkerEvent) => void,
   ) {}
   private replaceSession(pack: GamePack, seed?: number, snapshot?: import("./session").SessionSnapshot): GameSession {
-    this.port?.dispose();
-    const port = this.createKernel();
+    const oldPort = this.port;
+    this.port = undefined;
+    this.session = undefined;
+    oldPort?.dispose();
+    let port: KernelPort | undefined;
     try {
-      const session = new GameSession({ port, pack, seed });
+      const created = this.createKernel();
+      port = created;
+      const session = new GameSession({ port: created, pack, seed });
       if (snapshot) session.restore(snapshot); else session.start();
       this.port = port;
       this.session = session;
       return session;
     } catch (error) {
-      port.dispose(); this.port = undefined; this.session = undefined; throw error;
+      port?.dispose(); this.port = undefined; this.session = undefined; throw error;
     }
   }
   private captureAccepted(): void {

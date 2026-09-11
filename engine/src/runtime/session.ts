@@ -106,7 +106,7 @@ export class GameSession {
   private impactHighWater = 0;
   private cues: CueSnapshot = { sequence: 0, recent: [] };
   private impactFrontiers = new Map<string, number | null>();
-  private poisoned = false;
+  private poisoned = true;
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
@@ -131,6 +131,20 @@ export class GameSession {
     }
   }
   start(): void {
+    this.poisoned = true;
+    this.random.restore(this.seed);
+    this.paused = false;
+    this.now = 0;
+    this.tick = 0;
+    this.outcomes = [];
+    this.pendingActions = [];
+    this.pendingWrites = [];
+    this.pendingImpacts = [];
+    this.impactHighWater = 0;
+    this.cues = { sequence: 0, recent: [] };
+    this.impactFrontiers = new Map(
+      this.pack.systems.filter(system => system.consumesImpacts).map(system => [system.id, null]),
+    );
     this.port.load(this.pack.definition);
     if (this.pack.environmentDefinition)
       this.port.loadEnvironment(this.pack.environmentDefinition);
@@ -158,18 +172,6 @@ export class GameSession {
     return this.now;
   }
   reset(): void {
-    this.poisoned = true;
-    this.random.restore(this.seed);
-    this.paused = false;
-    this.now = 0;
-    this.tick = 0;
-    this.outcomes = [];
-    this.pendingActions = [];
-    this.pendingWrites = [];
-    this.pendingImpacts = [];
-    this.impactHighWater = 0;
-    this.cues = { sequence: 0, recent: [] };
-    for (const id of this.impactFrontiers.keys()) this.impactFrontiers.set(id, null);
     this.start();
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
