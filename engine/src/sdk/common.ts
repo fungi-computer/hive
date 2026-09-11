@@ -13,6 +13,15 @@ export const Body = component<{ speed: number }>("hive.body", {
   fields: { speed: "number" },
 });
 
+/** Authored walking geometry; native routing owns its interpretation and state. */
+export const Traversal = component<{
+  clearanceCells: number;
+  maxStepCells: number;
+}>("hive.traversal", {
+  version: 1,
+  fields: { clearanceCells: "number", maxStepCells: "number" },
+});
+
 export const Position = component<{
   x: number;
   y: number;

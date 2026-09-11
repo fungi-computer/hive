@@ -6,6 +6,7 @@ export type GameId = string;
 export const RESERVED_COMPONENTS = [
   "hive.position",
   "hive.body",
+  "hive.traversal",
   "hive.container",
   "hive.lot",
   "hive.lot-water",
