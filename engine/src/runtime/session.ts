@@ -1,3 +1,5 @@
+import { TerrainPresentationOwner } from "./terrain-presentation";
+import type { EnvironmentDefinition } from "../sdk/environment";
 import { appendPresentationCues, checkedCueSnapshot, type CueSnapshot } from "./presentation-cues";
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
@@ -107,6 +109,7 @@ export class GameSession {
   private cues: CueSnapshot = { sequence: 0, recent: [] };
   private impactFrontiers = new Map<string, number | null>();
   private poisoned = true;
+  private terrainPresentation: TerrainPresentationOwner | undefined;
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
@@ -131,6 +134,7 @@ export class GameSession {
     }
   }
   start(): void {
+    this.terrainPresentation = undefined;
     this.poisoned = true;
     this.random.restore(this.seed);
     this.paused = false;
@@ -663,7 +667,17 @@ export class GameSession {
     this.outcomes = outcomes;
     this.cues = cues;
     this.paused = snapshot.paused;
+    this.terrainPresentation = undefined;
     this.poisoned = false;
+  }
+  terrainView() {
+    this.ensureLive();
+    if (!this.pack.environmentDefinition) return undefined;
+    if (!this.terrainPresentation) {
+      const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
+      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition);
+    }
+    return this.terrainPresentation.read();
   }
   presentationCues() {
     this.ensureLive();

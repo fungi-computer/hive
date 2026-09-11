@@ -18,6 +18,7 @@ export interface SessionObservation {
   readonly epoch: number;
   readonly sequence: number;
   readonly facts: readonly RenderFact[];
+  readonly terrain: ReturnType<GameSession["terrainView"]>;
   readonly cues: readonly PresentationCue[];
   readonly presentationFacts: ReturnType<typeof projectPresentation>["facts"];
   readonly presentationControls: readonly PresentationControl[];
@@ -49,6 +50,7 @@ export function buildObservation(
     epoch: metadata.epoch,
     sequence: metadata.sequence,
     facts: Object.freeze(facts),
+    terrain: session.terrainView(),
     cues: session.presentationCues(),
     presentationFacts: projected.facts,
     presentationControls: projected.controls,

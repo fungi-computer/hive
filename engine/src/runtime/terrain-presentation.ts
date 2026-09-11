@@ -34,7 +34,7 @@ const MAX_COLUMNS = 4096;
 const SURFACE_BATCH = 64;
 
 function signedInteger(value: unknown): value is number {
-  return Number.isInteger(value) && value >= MIN_I32 && value <= MAX_I32;
+  return typeof value === "number" && Number.isInteger(value) && value >= MIN_I32 && value <= MAX_I32;
 }
 
 function columnKey(x: number, z: number): string {
@@ -61,9 +61,9 @@ function parseFacts(value: unknown): {
       at.length !== 3 ||
       !at.every(signedInteger) ||
       typeof cell.massKg !== "number" ||
-      !Number.isFinite(cell.massKg) ||
+      !Number.isFinite(cell.massKg) || cell.massKg < 0 ||
       typeof cell.liquidVolumeM3 !== "number" ||
-      !Number.isFinite(cell.liquidVolumeM3)
+      !Number.isFinite(cell.liquidVolumeM3) || cell.liquidVolumeM3 < 0
     )
       throw new Error("invalid environment water cell values");
     for (const field of ["capacityKg", "mobileKg", "moisture"])
@@ -167,10 +167,10 @@ export class TerrainPresentationOwner {
   }
 
   private isExteriorWater(cell: TerrainWaterFact): boolean {
-    const { minX, maxX, minZ, maxZ } = this.definition.world.bounds;
+    const { minX, maxX, minY, maxY, minZ, maxZ } = this.definition.world.bounds;
     const [x, y, z] = cell.at;
-    if (x < minX || x >= maxX || z < minZ || z >= maxZ) return false;
+    if (x < minX || x >= maxX || z < minZ || z >= maxZ || y < minY || y >= maxY) return false;
     const surface = this.cached?.byColumn.get(columnKey(x, z));
-    return surface === undefined || surface === null || y >= surface.cell[1];
+    return surface === null || (surface !== undefined && y >= surface.cell[1]);
   }
 }

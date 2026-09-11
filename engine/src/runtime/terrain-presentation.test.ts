@@ -64,7 +64,7 @@ function fakePort(
     query: () => [],
     entityMembership: () => [],
     advance: () => ({ revision: 0, results: [], impacts: [] }),
-    snapshot: () => ({ format: "hive-kernel-records", version: 1, revision: 0, records: [] }),
+    snapshot: () => ({ format: "hive-kernel-records", version: 1, time: 0, revision: 0, records: [] }),
     restore() {},
     renderFacts: () => [],
     worldPoses: () => [],
