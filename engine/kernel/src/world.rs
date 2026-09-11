@@ -3,6 +3,8 @@ use crate::{collision, combat, components::*, navigation, registry::Registry};
 mod material_output;
 #[path = "excavation_work.rs"]
 mod excavation_work;
+#[path = "initial_placement.rs"]
+mod initial_placement;
 #[cfg(test)]
 #[path = "terrain_movement_tests.rs"]
 mod terrain_movement_tests;
@@ -742,13 +744,54 @@ impl Kernel {
         let membership = ids.iter().map(|id| self.ids.contains_key(id)).collect::<Vec<_>>();
         serde_json::to_string(&membership).map_err(|e| e.to_string())
     }
+    fn apply_initial_surface_placements(&mut self, placements: &[crate::environment_definition::InitialSurfacePlacement]) -> Result<()> {
+        if placements.is_empty() {
+            return Ok(());
+        }
+        let entities: Vec<_> = placements.iter().map(|placement| {
+            let entity = self.entity(&placement.entity)?;
+            if self.ecs.get::<Support>(entity).is_some() || self.ecs.get::<Destination>(entity).is_some()
+                || self.ecs.get::<Surface>(entity).is_some() || self.routes.contains_key(&entity) || self.direct.contains_key(&entity)
+            {
+                return Err("initial placement entity has support, surface, or active route".into());
+            }
+            let position = *self.ecs.get::<Position>(entity).ok_or("initial placement entity has no position")?;
+            Ok((placement.entity.clone(), position, self.ecs.get::<Traversal>(entity).copied(), placement.column))
+        }).collect::<Result<Vec<_>>>()?;
+        let environment = self.environment.as_mut().ok_or("initial placement needs environment")?;
+        let columns: Vec<_> = entities.iter().map(|(_, _, _, column)| *column).collect();
+        let mut surfaces = Vec::with_capacity(columns.len());
+        for batch in columns.chunks(64) { surfaces.extend(environment.world.surface_cells(batch)?); }
+        if surfaces.len() != entities.len() { return Err("initial placement surface count mismatch".into()); }
+        let spacing = environment.world.cell_spacing_m();
+        let mut query = |cell| match environment.world.material(cell) {
+            Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false }),
+            Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
+            Err(error) => Err(error),
+        };
+        let requests = entities.into_iter().zip(surfaces).map(|((entity, position, traversal, _), surface)| {
+            Ok(initial_placement::Request { entity, position, traversal, surface: surface.ok_or("initial placement column has no solid surface")? })
+        }).collect::<Result<Vec<_>>>()?;
+        let resolved = initial_placement::resolve(requests, spacing, &mut query)?;
+        drop(query);
+        drop(environment);
+        for (entity, position) in resolved { self.ecs.entity_mut(self.entity(&entity)?).insert(position); }
+        self.rebuild_physical_indexes(true)?;
+        Ok(())
+    }
+
     pub fn load_environment(&mut self, definition: &str) -> Result<()> {
         self.ensure_ready()?;
         if self.revision != 0 || self.environment.is_some() {
             return Err("environment initialization requires a new world".into());
         }
         let built = crate::environment_definition::build_from_json(definition)?;
-        self.environment = Some(KernelEnvironment { definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules });
+        let entities = self.snapshot_entities_json()?;
+        let mut candidate = Self::new();
+        candidate.restore_json(&entities)?;
+        candidate.environment = Some(KernelEnvironment { definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules });
+        candidate.apply_initial_surface_placements(&built.initial_placements)?;
+        *self = candidate;
         Ok(())
     }
     /// Trusted host query. Player visibility must be applied before publishing

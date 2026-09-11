@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const MAX_JSON_BYTES: usize = 128 * 1024;
 const MAX_MATERIALS: usize = 64;
 const MAX_CELLS: usize = 2048;
+const MAX_INITIAL_PLACEMENTS: usize = 128;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -20,6 +21,19 @@ struct DefinitionInput {
     world: WorldInput,
     materials: Vec<MaterialInput>,
     water: WaterInput,
+    #[serde(default)]
+    initial_placements: Vec<InitialPlacementInput>,
+}
+#[derive(Debug, Clone)]
+pub struct InitialSurfacePlacement {
+    pub entity: String,
+    pub column: [i64; 2],
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct InitialPlacementInput {
+    entity: String,
+    column: [i64; 2],
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -92,16 +106,18 @@ pub struct PreparedDefinition {
     pub geometry: TerrainWaterGeometry,
     pub stocks: Vec<WaterStock>,
     pub excavation_rules: BTreeMap<u16, ExcavationRule>,
+    pub initial_placements: Vec<InitialSurfacePlacement>,
 }
 
 pub struct BuiltEnvironment {
     pub world: TerrainWater,
     pub excavation_rules: BTreeMap<u16, ExcavationRule>,
+    pub initial_placements: Vec<InitialSurfacePlacement>,
 }
 pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
     let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
-    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules })
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -120,6 +136,19 @@ fn prepare_definition_mode(
     if definition.world.seed.is_empty() || definition.world.identity.is_empty() {
         return Err("world seed and identity are required".into());
     }
+    if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
+        return Err("initial placement count exceeds 128".into());
+    }
+    let mut placement_entities = BTreeSet::new();
+    let mut placement_columns = BTreeSet::new();
+    let initial_placements = definition.initial_placements.into_iter().map(|placement| {
+        if !crate::components::valid_id(&placement.entity) || !placement_entities.insert(placement.entity.clone())
+            || !placement_columns.insert(placement.column)
+        {
+            return Err("initial placements contain duplicate or invalid target".into());
+        }
+        Ok(InitialSurfacePlacement { entity: placement.entity, column: placement.column })
+    }).collect::<Result<Vec<_>, String>>()?;
     let bounds = Bounds {
         min_x: definition.world.bounds.min_x,
         max_x: definition.world.bounds.max_x,
@@ -128,6 +157,9 @@ fn prepare_definition_mode(
         min_z: definition.world.bounds.min_z,
         max_z: definition.world.bounds.max_z,
     };
+    if initial_placements.iter().any(|placement| placement.column[0] < bounds.min_x || placement.column[0] >= bounds.max_x || placement.column[1] < bounds.min_z || placement.column[1] >= bounds.max_z) {
+        return Err("initial placement column is outside world bounds".into());
+    }
     let slots = MaterialSlots {
         air: definition.world.slots.air,
         soil: definition.world.slots.soil,
@@ -273,6 +305,7 @@ fn prepare_definition_mode(
         geometry,
         stocks,
         excavation_rules,
+        initial_placements,
     })
 }
 
@@ -370,6 +403,52 @@ pub(crate) mod tests {
         restored.restore_records(&committed).unwrap();
         assert_eq!(restored.environment_facts_json().unwrap(), kernel.environment_facts_json().unwrap());
 
+    }
+
+    #[test]
+    fn initial_surface_placements_use_generated_surface_and_survive_restore() {
+        use serde_json::json;
+        let mut definition: serde_json::Value = serde_json::from_str(&fixture("placement")).unwrap();
+        definition["initialPlacements"] = json!([
+            {"entity":"actor", "column":[0, 0]},
+            {"entity":"pantry", "column":[1, 0]}
+        ]);
+        let mut kernel = crate::Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"placement", "components":[],
+            "initial":[
+                {"id":"actor","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0.25},"hive.body":{"speed":1},"hive.container":{"capacity":2}}},
+                {"id":"pantry","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":1.25},"hive.container":{"capacity":20}}}
+            ]
+        }).to_string()).unwrap();
+        kernel.load_environment(&definition.to_string()).unwrap();
+        let first: serde_json::Value = serde_json::from_str(&kernel.render_json().unwrap()).unwrap();
+        let actor = first.as_array().unwrap().iter().find(|fact| fact["id"] == "actor").unwrap();
+        let pantry = first.as_array().unwrap().iter().find(|fact| fact["id"] == "pantry").unwrap();
+        assert_ne!(actor["local"]["position"]["y"], 0.0);
+        assert_ne!(pantry["local"]["position"]["y"], 0.0);
+        assert_eq!(actor["local"]["position"]["x"], 0.0);
+        assert_eq!(pantry["local"]["position"]["x"], 1.0);
+        let records = kernel.save_records().unwrap();
+        let mut restored = crate::Kernel::new();
+        restored.restore_records(&records).unwrap();
+        assert_eq!(restored.render_json().unwrap(), kernel.render_json().unwrap());
+    }
+
+    #[test]
+    fn initial_surface_placements_reject_duplicate_columns_and_missing_entities() {
+        use serde_json::json;
+        let mut duplicate: serde_json::Value = serde_json::from_str(&fixture("duplicate-placement")).unwrap();
+        duplicate["initialPlacements"] = json!([
+            {"entity":"actor", "column":[0, 0]},
+            {"entity":"other", "column":[0, 0]}
+        ]);
+        assert!(build_from_json(&duplicate.to_string()).is_err());
+        let mut missing: serde_json::Value = serde_json::from_str(&fixture("missing-placement")).unwrap();
+        missing["initialPlacements"] = json!([{ "entity":"missing", "column":[0, 0] }]);
+        let mut kernel = crate::Kernel::new();
+        kernel.load(r#"{"format":"hive-game","version":1,"game":"placement","components":[],"initial":[]}"#).unwrap();
+        assert!(kernel.load_environment(&missing.to_string()).is_err());
     }
 
 }
