@@ -301,6 +301,8 @@ export interface GameCommandResult {
   readonly removes?: readonly EntityId[];
 }
 export interface GameCommandDefinition {
+  /** Authored record creation/removal only; does not grant progress writes. */
+  readonly lifecycle?: readonly ComponentDefinition<any>[];
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
   readonly run: (

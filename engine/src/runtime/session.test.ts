@@ -780,7 +780,7 @@ test("authored orders are visible to paused commands and survive pending reload"
   const authoredPack: GamePack = {
     ...pack(port, undefined),
     commands: {
-      designate: command({ writes: [morale], run: () => ({actions:[],writes:[],creates:[{
+      designate: command({ writes: [], lifecycle: [morale], run: () => ({actions:[],writes:[],creates:[{
         id:entity("order.1"),components:{"test.morale":{value:1}},
       }]}) }),
       revise: command({reads:[morale],writes:[morale],run: context => {
@@ -808,11 +808,23 @@ test("authored orders reject unowned removals and conflicting pending writes", (
   const port = new TestPort();
   const value = new GameSession({port,pack:{...pack(port,undefined),commands:{
     remove:command({writes:[],run:()=>({actions:[],writes:[],removes:[entity("actor")]})}),
-    conflict:command({writes:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:1}}],removes:[entity("actor")]})}),
+    conflict:command({writes:[morale],lifecycle:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:1}}],removes:[entity("actor")]})}),
   }}});
   value.start(); value.pause();
   const before = value.save();
   assert.throws(()=>value.command("remove",{}),/ownership/);
   assert.throws(()=>value.command("conflict",{}),/removed/);
+  assert.deepEqual(value.save(),before);
+});
+
+
+test("authored lifecycle permission does not grant progress writes", () => {
+  const port = new TestPort();
+  const value = new GameSession({port,pack:{...pack(port,undefined),commands:{
+    illicit:command({writes:[],lifecycle:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:9}}]})}),
+  }}});
+  value.start();
+  const before = value.save();
+  assert.throws(()=>value.command("illicit",{}),/undeclared/);
   assert.deepEqual(value.save(),before);
 });

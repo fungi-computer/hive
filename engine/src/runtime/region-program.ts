@@ -221,7 +221,7 @@ export function createSessionRegionRuntime(options: SessionResidentOptions) {
     }) : undefined,
     components: Object.freeze([...options.pack.components]),
     systems: Object.freeze(options.pack.systems.map(system => Object.freeze({ ...system, reads: Object.freeze([...system.reads]), writes: Object.freeze([...system.writes]) }))),
-    commands: Object.freeze(Object.fromEntries(Object.entries(options.pack.commands ?? {}).map(([name, command]) => [name, Object.freeze({ ...command, reads: Object.freeze([...(command.reads ?? [])]), writes: Object.freeze([...command.writes]) })]))),
+    commands: Object.freeze(Object.fromEntries(Object.entries(options.pack.commands ?? {}).map(([name, command]) => [name, Object.freeze({ ...command, lifecycle: Object.freeze([...(command.lifecycle ?? [])]), reads: Object.freeze([...(command.reads ?? [])]), writes: Object.freeze([...command.writes]) })]))),
     initialActions: options.pack.initialActions ? structuredClone(options.pack.initialActions) : undefined,
   });
   const frozenOptions = Object.freeze({ ...options, pack });

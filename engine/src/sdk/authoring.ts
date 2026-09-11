@@ -111,6 +111,7 @@ export function system(options: SystemOptions): SystemDefinition {
 
 export function command(options: GameCommandDefinition): GameCommandDefinition {
   return Object.freeze({
+    lifecycle: Object.freeze([...(options.lifecycle ?? [])]),
     reads: Object.freeze([...(options.reads ?? [])]),
     writes: Object.freeze([...options.writes]),
     run: options.run,
