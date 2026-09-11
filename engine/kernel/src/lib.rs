@@ -9,6 +9,7 @@ pub mod structure_geometry;
 pub mod structure_support;
 mod terrain_route;
 pub mod environment_definition;
+pub mod finite_release;
 pub mod water;
 mod quantity;
 mod combat;
