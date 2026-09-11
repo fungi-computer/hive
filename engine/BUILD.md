@@ -843,3 +843,18 @@ laws passed (5 total); strict engine types and diff check passed. Scope is
 inactive/dead with empty ControlGroup. This used the existing generated WASM,
 not the pending native terrain movement branch. It establishes preservation of
 these delivery consumers, not route-aware assignment or a new hosted release.
+# September 11 terrain movement WASM join
+
+Native route correction through 642ec43 and the matching TypeScript record
+format6 caller are integrated at b921c07. Targeted native movement coverage
+includes partial-climb recovery, mid-climb redirection, inert waiting recovery,
+forged waiting waypoints, zero-distance completion, multi-segment obstacle
+protection, preparation without publication and direct-mode exclusion.
+
+Maintained release WASM build u5584 / exec98762 exited0 (2m07s);
+`hive_kernel_bg.wasm` SHA256
+8e20b8e06d9e8999c6b82c7c9a0de8a7938f0c676040b0ceafe51c63e0244ceb.
+Consumer check u5587 / exec32565 exited0: 10 Colony/Pirates/native-record
+tests and strict engine types. Both owned scopes are inactive/dead/empty.
+No browser or deployment ran. Colony still lacks enabled environment/initial
+placement; route-aware assignment and the remaining sprint are unfinished.
