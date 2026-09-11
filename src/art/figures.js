@@ -24,7 +24,7 @@ function legs(
   parent,
   phase,
   moving,
-  { hip, spread, width, cloth, boots, action = "idle" },
+  { hip, spread, width, cloth, boots, action = "idle", hitProgress = 1 },
 ) {
   if (action === "dig") action = "build";
   const length = (hip - 0.1) / 2;
@@ -37,7 +37,7 @@ function legs(
           ? 0
           : -1.45
         : action === "hit"
-          ? side * 0.55 + Math.sin(phase * Math.PI * 2 + side) * 0.3
+          ? hitProgress * (side * 0.55 + Math.sin(phase * Math.PI * 2 + side) * 0.3)
           : swing * 0.42;
     limb(thigh, cloth, length, width);
     const knee = group(thigh, 0, -length, 0);
@@ -47,7 +47,7 @@ function legs(
           ? Math.PI / 2
           : 1.45
         : action === "hit"
-          ? 0.5 + Math.sin(phase * Math.PI * 2 + side * 0.7) * 0.55
+          ? 0.04 + hitProgress * (0.46 + Math.sin(phase * Math.PI * 2 + side * 0.7) * 0.55)
           : Math.max(0, -swing) * 0.62 + 0.04;
     limb(knee, boots, length, width * 0.82);
     const foot = box(
@@ -71,7 +71,7 @@ function arms(
   parent,
   phase,
   moving,
-  { shoulder, spread, length, sleeve, hand, action = "idle" },
+  { shoulder, spread, length, sleeve, hand, action = "idle", hitProgress = 1 },
 ) {
   const carryingParcel = [
     "carry-herb",
@@ -94,8 +94,8 @@ function arms(
       arm.rotation.x = -1.2 + Math.sin(phase * Math.PI * 2) * 0.95;
     if (action === "hit") {
       arm.rotation.x =
-        0.5 + side * 0.5 + Math.sin(phase * Math.PI * 2 + side) * 0.7;
-      arm.rotation.z = side * (0.45 + Math.sin(phase * Math.PI * 2) * 0.18);
+        -0.05 + hitProgress * (0.55 + side * 0.5 + Math.sin(phase * Math.PI * 2 + side) * 0.7);
+      arm.rotation.z = side * (0.12 + hitProgress * (0.45 + Math.sin(phase * Math.PI * 2) * 0.18));
     }
     if (["pickup", "deliver"].includes(action))
       arm.rotation.x = -0.9 + Math.sin(phase * Math.PI * 2) * 0.3;
@@ -123,7 +123,7 @@ function arms(
           ? -1.65
           : -0.85
         : action === "hit"
-          ? 0.5 + Math.sin(phase * Math.PI * 2 + side) * 0.65
+          ? -0.12 + hitProgress * (0.62 + Math.sin(phase * Math.PI * 2 + side) * 0.65)
         : carryingParcel
           ? -0.95
           : action === "build"
@@ -418,12 +418,20 @@ function goblinEar(parent, side) {
 }
 
 function goblin(body, phase, moving, pose) {
+  const hitProgress =
+    pose === "hit"
+      ? phase < 0.55
+        ? Math.sin((phase / 0.55) * Math.PI / 2)
+        : Math.cos(((phase - 0.55) / 0.45) * Math.PI / 2)
+      : 1;
   legs(body, phase, moving, {
     hip: 0.57,
     spread: 0.115,
     width: 0.105,
     cloth: GREEN,
     boots: "#59794a",
+    action: pose,
+    hitProgress,
   });
   coat(body, "#a14b43", 0.6, 0.96, 0.47, 0.27);
   box(body, "#573f32", 0, 0.6, 0, 0.26, 0.055, 0.23);
@@ -433,6 +441,8 @@ function goblin(body, phase, moving, pose) {
     length: 0.21,
     sleeve: GREEN,
     hand: "#a6b65c",
+    action: pose,
+    hitProgress,
   });
   ball(body, GREEN, 0, 1.12, 0.03, 0.22, 0.21, 0.17);
   ball(body, "#a4b659", 0, 1.01, 0.2, 0.15, 0.09, 0.12);
@@ -473,15 +483,14 @@ function goblin(body, phase, moving, pose) {
   box(body, "#853e3c", -0.03, 0.77, -0.17, 0.2, 0.37, 0.05).rotation.z = -0.13;
   if (pose === "hit") {
     // Tumble through a low landing and recover without a flat vertical spin.
-    const recovery = Math.max(0, (phase - 0.55) / 0.45);
-    body.rotation.z = (1 - recovery) * (-0.65 + phase * 1.15);
-    body.rotation.x = (1 - recovery) * (0.22 - phase * 0.7);
+    body.rotation.z = -1.0 * hitProgress;
+    body.rotation.x = 0.35 * hitProgress;
     // Keep the native foot clearance while the torso tumbles; the rotation
     // supplies the landing read without sinking the whole puppet underground.
     body.position.y =
       phase < 0.55
-        ? -Math.min(1, phase * 2.4) * 0.05
-        : -0.05 * (1 - recovery);
+        ? -hitProgress * 0.05
+        : -hitProgress * 0.05;
   }
 }
 
