@@ -34,7 +34,10 @@ function context(overrides: Partial<Fixture> = {}) {
   const values = new Map<string, readonly unknown[]>([
     ["colony.worker", [row(worker, { id: "colony.worker" }, { guest: false })]],
     [Body.id, [row(worker, Body, { speed: 2 })]],
-    [Container.id, [row(worker, Container, { capacity: 3 })]],
+    [Container.id, [
+      row(worker, Container, { capacity: 3 }),
+      row(source, Container, { capacity: 20 }),
+    ]],
     [MaterialLot.id, fixture.lots],
     [DeliveryTask.id, fixture.tasks],
     [ExcavationWork.id, fixture.work],
@@ -96,4 +99,45 @@ test("Colony cancelDig emits native cancel-work only for active excavation", () 
     { actions: [{ kind: "cancel-work", entity: worker }], writes: [] },
   );
   assert.throws(() => colonyPack.commands!.cancelDig.run(context(), { entities: [worker] }), /no excavation work/);
+});
+
+test("Colony deposit emits stable whole-lot transfers for unreserved cargo", () => {
+  const first = row(entity("colony.spoil.z"), MaterialLot, {
+    quantity: 2, kind: "stone-spoil", container: worker,
+  });
+  const second = row(entity("colony.spoil.a"), MaterialLot, {
+    quantity: 1, kind: "soil-spoil", container: worker,
+  });
+  const result = colonyPack.commands!.deposit.run(context({ lots: [first, second] }), { entities: [worker] });
+  assert.deepEqual(result, {
+    writes: [],
+    actions: [
+      { kind: "transfer", lot: "colony.spoil.a", from: worker, to: source, quantity: 1 },
+      { kind: "transfer", lot: "colony.spoil.z", from: worker, to: source, quantity: 2 },
+    ],
+  });
+});
+
+test("Colony deposit rejects reserved cargo and aggregate pantry overflow", () => {
+  const reserved = row(entity("colony.spoil.reserved"), MaterialLot, {
+    quantity: 1, kind: "soil-spoil", container: worker,
+  });
+  const claim = row(entity("colony.delivery.claimed"), DeliveryTask, {
+    actor: null, sourceLot: reserved.id, source: worker,
+    destination: entity("colony.guest.1"), material: "soil-spoil", quantity: 1, phase: "idle",
+  });
+  assert.throws(
+    () => colonyPack.commands!.deposit.run(context({ lots: [reserved], tasks: [claim] }), { entities: [worker] }),
+    /reserved/,
+  );
+  const pantryStock = row(entity("colony.pantry.stock"), MaterialLot, {
+    quantity: 19, kind: "bread", container: source,
+  });
+  const carried = row(entity("colony.spoil.overflow"), MaterialLot, {
+    quantity: 2, kind: "soil-spoil", container: worker,
+  });
+  assert.throws(
+    () => colonyPack.commands!.deposit.run(context({ lots: [pantryStock, carried] }), { entities: [worker] }),
+    /capacity/,
+  );
 });

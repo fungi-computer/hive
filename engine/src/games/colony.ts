@@ -10,6 +10,7 @@ import {
   cancelWork,
   encodeDefinition,
   excavate,
+  transfer,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
@@ -227,6 +228,39 @@ function excavationInput(context: CommandContext, input: unknown) {
   return { worker, cell: { x: cell[0], y: cell[1], z: cell[2] }, expected: material.slot };
 }
 
+function depositActions(context: CommandContext, input: unknown) {
+  const worker = selectedDigWorker(context, input);
+  const lots = context.query(query(MaterialLot)).map((row) => ({
+    id: row.id,
+    ...row.get(MaterialLot),
+  }));
+  const reservedLots = new Set(
+    context
+      .query(query(DeliveryTask))
+      .map((row) => row.get(DeliveryTask))
+      .filter((task) => task.phase !== "complete")
+      .map((task) => task.sourceLot),
+  );
+  const carried = lots.filter((lot) => lot.container === worker);
+  if (carried.some((lot) => reservedLots.has(lot.id)))
+    throw new Error("worker cargo is reserved by delivery");
+  if (!carried.length) throw new Error("worker has no carried goods");
+  if (carried.some((lot) => !Number.isSafeInteger(lot.quantity) || lot.quantity <= 0 || lot.quantity > 0xffffffff))
+    throw new Error("worker cargo is invalid");
+  const pantry = context.query(query(Container)).find((row) => row.id === pantryId)?.get(Container);
+  if (!pantry) throw new Error("pantry is unavailable");
+  const pantryQuantity = lots
+    .filter((lot) => lot.container === pantryId)
+    .reduce((sum, lot) => sum + lot.quantity, 0);
+  const carriedQuantity = carried.reduce((sum, lot) => sum + lot.quantity, 0);
+  if (!Number.isSafeInteger(pantryQuantity) || !Number.isSafeInteger(carriedQuantity) ||
+      carriedQuantity > pantry.capacity - pantryQuantity)
+    throw new Error("pantry lacks capacity");
+  return carried
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((lot) => transfer(lot.id, worker, pantryId, lot.quantity));
+}
+
 const colonyComponents = [
   Position,
   Body,
@@ -284,6 +318,11 @@ export const colonyPack: GamePack = {
         return { actions: [cancelWork(worker)], writes: [] };
       },
     }),
+    deposit: command({
+      reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
+      writes: [],
+      run: (context, input) => ({ actions: depositActions(context, input), writes: [] }),
+    }),
   },
   presentation: {
     controls: [
@@ -293,6 +332,7 @@ export const colonyPack: GamePack = {
       { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
       { id: "dig", label: "Dig selected cell", command: "dig", selection: "entities", target: "terrain-cell" },
       { id: "cancel-dig", label: "Cancel digging", command: "cancelDig", selection: "entities" },
+      { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities" },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
