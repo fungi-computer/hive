@@ -451,6 +451,7 @@ export function createHiveClient({
         z: fact.pose.position.z,
         facing: fact.pose.facing,
         visual: fact.visual,
+        motion: bindings[fact.visual]?.motion,
         local: fact.local,
         support: fact.support,
         surface: fact.surface,
