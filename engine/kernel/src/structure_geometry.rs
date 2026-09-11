@@ -195,7 +195,9 @@ impl StaticGeometry {
                 return Err("structure derived geometry budget exceeded".into());
             }
         }
-        Ok(Self { bounds, instances })
+        let geometry = Self { bounds, instances };
+        geometry.projection()?;
+        Ok(geometry)
     }
 
     pub fn bounds(&self) -> Bounds { self.bounds }
@@ -317,7 +319,7 @@ mod tests {
 
     #[test]
     fn shared_sealing_faces_deduplicate_but_bulk_conflicts_reject() {
-        let floor = |id| StaticInstance::Floor { id: id.into(), support: Cell { x: 0, y: 0, z: 0 } };
+        let floor = |id: &str| StaticInstance::Floor { id: id.into(), support: Cell { x: 0, y: 0, z: 0 } };
         let geometry = StaticGeometry::new(bounds(), vec![floor("floor-a"), floor("floor-b")]).unwrap();
         assert_eq!(geometry.projection().unwrap().explicit_faces().count(), 1);
         assert!(StaticGeometry::new(bounds(), vec![
@@ -338,6 +340,40 @@ mod tests {
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
             id: "".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1,
         }]).is_err());
+    }
+
+    #[test]
+    fn constructed_stairs_and_floor_use_existing_native_route_search() {
+        for (orientation, dx, dz) in [
+            (Cardinal::North, 0, -1), (Cardinal::East, 1, 0),
+            (Cardinal::South, 0, 1), (Cardinal::West, -1, 0),
+        ] {
+            let origin = Cell { x: 0, y: -7, z: 0 };
+            let target = Cell { x: 4 * dx, y: -4, z: 4 * dz };
+            let geometry = StaticGeometry::new(bounds(), vec![
+                StaticInstance::Stair { id: "stairs".into(), origin, orientation, run: 3, rise: 3 },
+                StaticInstance::Floor { id: "landing".into(), support: target },
+            ]).unwrap();
+            let projection = geometry.projection().unwrap();
+            let mut query = |at: Cell| Ok(crate::terrain_traversal::TraversalMaterial {
+                solid: at == origin || projection.is_bulk_solid(at),
+                sealed_top: projection.supports(at), outside: !contains(bounds(), at),
+            });
+            let config = crate::terrain_traversal::TraversalConfig {
+                spacing: [1.0, 0.54, 1.0], clearance_cells: 1, max_step_cells: 1,
+            };
+            let path = crate::terrain_route::search(origin, target, config, &mut query).unwrap();
+            assert_eq!(path.len(), 5);
+            assert_eq!(path.last(), Some(&target));
+            assert!(!projection.is_bulk_solid(target));
+            assert!(crate::terrain_traversal::path_supported(&path, config, &mut query).unwrap());
+            // A removed floor invalidates the same saved support witness.
+            let mut removed = |at: Cell| Ok(crate::terrain_traversal::TraversalMaterial {
+                solid: at == origin || projection.is_bulk_solid(at),
+                sealed_top: at != target && projection.supports(at), outside: !contains(bounds(), at),
+            });
+            assert!(!crate::terrain_traversal::path_supported(&path, config, &mut removed).unwrap());
+        }
     }
 
     #[test]
