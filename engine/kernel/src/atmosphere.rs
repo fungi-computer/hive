@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 const DEFINITION_VERSION: u16 = 1;
 const STATE_VERSION: u16 = 1;
@@ -16,7 +17,7 @@ const MAX_STEPS: usize = 64;
 const MAX_ID_BYTES: usize = 16_384;
 const MAX_STATE_BYTES: usize = 2 * 1024 * 1024;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AtmosphereMember {
     pub cell_id: String,
@@ -67,7 +68,7 @@ pub struct AtmosphereAmbient {
     pub temperature_k: f64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AtmosphereDefinition {
     pub version: String,
@@ -83,26 +84,43 @@ pub struct AtmosphereDefinition {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AtmosphereParcel {
-    pub volume_id: String,
-    pub carrier_kg: f64,
-    pub smoke_kg: f64,
-    pub heat_j: f64,
+    volume_id: String,
+    carrier_kg: f64,
+    smoke_kg: f64,
+    heat_j: f64,
+}
+
+impl AtmosphereParcel {
+    pub fn volume_id(&self) -> &str { &self.volume_id }
+    pub fn carrier_kg(&self) -> f64 { self.carrier_kg }
+    pub fn smoke_kg(&self) -> f64 { self.smoke_kg }
+    pub fn heat_j(&self) -> f64 { self.heat_j }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AtmosphereState {
-    pub version: String,
-    pub identity: String,
-    pub parcels: Vec<AtmosphereParcel>,
-    pub initial_carrier_kg: f64,
-    pub initial_smoke_kg: f64,
-    pub initial_heat_j: f64,
-    pub smoke_source_kg: f64,
-    pub heat_source_j: f64,
-    pub carrier_boundary_kg: f64,
-    pub smoke_boundary_kg: f64,
-    pub heat_boundary_j: f64,
+    version: String,
+    identity: String,
+    parcels: Vec<AtmosphereParcel>,
+    initial_carrier_kg: f64,
+    initial_smoke_kg: f64,
+    initial_heat_j: f64,
+    smoke_source_kg: f64,
+    heat_source_j: f64,
+    carrier_boundary_kg: f64,
+    smoke_boundary_kg: f64,
+    heat_boundary_j: f64,
+}
+
+impl AtmosphereState {
+    pub fn parcels(&self) -> &[AtmosphereParcel] { &self.parcels }
+    pub fn identity(&self) -> &str { &self.identity }
+    pub fn smoke_source_kg(&self) -> f64 { self.smoke_source_kg }
+    pub fn heat_source_j(&self) -> f64 { self.heat_source_j }
+    pub fn carrier_boundary_kg(&self) -> f64 { self.carrier_boundary_kg }
+    pub fn smoke_boundary_kg(&self) -> f64 { self.smoke_boundary_kg }
+    pub fn heat_boundary_j(&self) -> f64 { self.heat_boundary_j }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -112,6 +130,7 @@ struct OpeningIndex {
     area_m2: f64,
     distance_m: f64,
     permeability: f64,
+    elevation_m: f64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -129,6 +148,7 @@ pub struct CompiledAtmosphere {
     elevation_m: Vec<f64>,
     ambient_carrier_density: f64,
     identity: String,
+    owner: Arc<()>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -210,12 +230,12 @@ impl CompiledAtmosphere {
             let to = match opening.to.as_ref() { Some(id) => Some(*volume_index.get(id).ok_or("atmosphere opening destination volume missing")?), None => None };
             if to == Some(from) || !definition.volumes[from].members.iter().any(|member| member.cell_id == opening.from_cell_id) || (to.is_some() != opening.to_cell_id.is_some()) || to.zip(opening.to_cell_id.as_ref()).is_some_and(|(index, cell)| !definition.volumes[index].members.iter().any(|member| member.cell_id == *cell)) { return Err("atmosphere opening endpoint membership mismatch".into()); }
             if !opening.area_m2.is_finite() || opening.area_m2 <= 0.0 || !opening.distance_m.is_finite() || opening.distance_m <= 0.0 || !opening.elevation_m.is_finite() || !opening.permeability.is_finite() || opening.permeability < 0.0 { return Err("invalid atmosphere opening metric".into()); }
-            openings.push(OpeningIndex { from, to, area_m2: opening.area_m2, distance_m: opening.distance_m, permeability: opening.permeability });
+            openings.push(OpeningIndex { from, to, area_m2: opening.area_m2, distance_m: opening.distance_m, permeability: opening.permeability, elevation_m: opening.elevation_m });
         }
         let ambient_carrier_density = definition.ambient.pressure_pa / (model.specific_gas_constant_jkg_k * definition.ambient.temperature_k);
         if !ambient_carrier_density.is_finite() || ambient_carrier_density <= 0.0 { return Err("invalid atmosphere ambient density".into()); }
         let identity = identity(&definition)?;
-        Ok(Self { definition, openings, volume_index, volume_m3, elevation_m, ambient_carrier_density, identity })
+        Ok(Self { definition, openings, volume_index, volume_m3, elevation_m, ambient_carrier_density, identity, owner: Arc::new(()) })
     }
 
     pub fn definition(&self) -> &AtmosphereDefinition { &self.definition }
@@ -334,15 +354,16 @@ impl CompiledAtmosphere {
 
     pub fn encode_state(&self, state: &AtmosphereState) -> Result<Vec<u8>, String> {
         self.validate_state(state)?;
-        let bytes = postcard::to_allocvec(&(STATE_VERSION, state)).map_err(|_| "atmosphere state encoding failed")?;
+        let bytes = postcard::to_allocvec(&(STATE_VERSION, &self.definition, state)).map_err(|_| "atmosphere state encoding failed")?;
         if bytes.len() > MAX_STATE_BYTES { return Err("atmosphere state exceeds byte bound".into()); }
         Ok(bytes)
     }
 
     pub fn decode_state(&self, bytes: &[u8]) -> Result<AtmosphereState, String> {
         if bytes.len() > MAX_STATE_BYTES { return Err("atmosphere state exceeds byte bound".into()); }
-        let (version, state): (u16, AtmosphereState) = postcard::from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
+        let (version, definition, state): (u16, AtmosphereDefinition, AtmosphereState) = postcard::from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
         if version != STATE_VERSION { return Err("unsupported atmosphere state version".into()); }
+        if definition != self.definition { return Err("atmosphere state definition binding mismatch".into()); }
         self.validate_state(&state)?;
         Ok(state)
     }
