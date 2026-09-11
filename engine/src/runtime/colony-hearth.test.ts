@@ -4,15 +4,15 @@ import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { MaterialLot, transfer } from "../sdk/common";
+import { MaterialLot } from "../sdk/common";
 import { entity, query } from "../sdk/authoring";
+import { DeliveryTask } from "../sdk/delivery";
 import { colonyLumberId, colonyPack } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 const worker = entity("colony.worker.1");
 const hearth = entity("colony.hearth");
-const lumberLot = entity("colony.lumber.initial");
 
 function quantity(session: GameSession, container: string): number {
   return session.query(query(MaterialLot)).reduce((total, row) => {
@@ -32,12 +32,24 @@ test("actual Colony hearth consumes wood and emits into sampled air", () => {
     const beforeAir = port.atmosphereSamples([airCell]).samples[0];
     assert(beforeAir, "Colony hearth must begin in a modeled air receiver");
 
-    // Colony's current delivery work is authored for bread/guest service. The
-    // existing native transfer owner is therefore used to stage hearth fuel;
-    // no lot or position is manufactured by this proof.
-    session.request(transfer(lumberLot, colonyLumberId, hearth, 2));
+    // The supply system plans hearth fuel through the same finite delivery
+    // tasks and delivery provider used by the Colony's other work.
     session.step(0);
-    assert.equal(quantity(session, hearth), 2);
+    const hearthTask = session.query(query(DeliveryTask)).find(row => {
+      const task = row.get(DeliveryTask);
+      return task.destination === hearth && task.material === "wood";
+    });
+    assert(hearthTask, "Colony supply system must plan the hearth's wood task");
+    session.command("deliver", { entities: [worker], quantity: 2 });
+    let delivered = false;
+    for (let tick = 0; tick < 160; tick++) {
+      session.step(0.25);
+      if (quantity(session, hearth) === 2) {
+        delivered = true;
+        break;
+      }
+    }
+    assert.equal(delivered, true, "shared delivery must bring two wood to the hearth");
     assert.equal(quantity(session, colonyLumberId), 46);
 
     session.command("lightHearth", { entities: [worker] });
