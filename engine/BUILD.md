@@ -687,3 +687,20 @@ record law plus strict engine types/diff: a snapshot from another authored
 terrain/water definition rejects without changing the recipient. Empty filtered
 helper/Session test files in the Node report are not additional executed laws.
 Scope inactive/dead/empty. Existing equilibrium/durability/deployment limits stand.
+
+### Indexed entity references — source checkpoint, September 11
+
+Root integrated `a0e2944`/`547bfcc` and corrected the remaining accidental
+total-reference cap in `28196bd`. Session authored references now query the
+existing native entity index in batches of at most 128 instead of capturing
+the entire Kernel. Native, actual-WASM and command-level test sources cover the
+boundary; the command fixture forbids snapshot capture, and a second fixture
+exercises 130 references across two calls. These new laws have **not run**.
+Generated bindings still predate this new export and require the maintained
+Rust/WASM build before qualification. No speedup or deployment is claimed.
+
+The independent resident-region writer is implementing exact-revision reuse and
+outer-transaction discard across the existing Region and both DO host callers.
+Session's per-step rollback copy remains until its browser and DO recovery
+callers change coherently. Source review and combined affected qualification
+follow that joined candidate; no historical test matrix is requested.
