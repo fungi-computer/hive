@@ -203,17 +203,17 @@ mod construction_tests {
     fn physical_contacts_compose_floor_seal_wall_bulk_and_outside() {
         let (mut kernel, surface, _) = world();
         let structures = vec![
-            crate::structure_geometry::StaticInstance::Floor { id: "floor-contact".into(), support: surface },
+            crate::structure_geometry::StaticInstance::Floor { id: "floor-contact".into(), support: crate::generation::Cell { x: surface.x + 1, y: surface.y + 1, ..surface } },
             crate::structure_geometry::StaticInstance::Wall { id: "wall-contact".into(), base: crate::generation::Cell { y: surface.y + 1, ..surface }, height: 1 },
         ];
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(structures).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
         let outside = kernel.environment.as_ref().unwrap().world.bounds().max_x + 1;
         let facts: serde_json::Value = serde_json::from_str(&kernel.physical_contacts_json(&json!([
-            [surface.x, surface.y, surface.z], [surface.x, surface.y + 1, surface.z], [outside, surface.y, surface.z]
+            [surface.x + 1, surface.y + 1, surface.z], [surface.x, surface.y + 1, surface.z], [outside, surface.y, surface.z]
         ]).to_string()).unwrap()).unwrap();
         assert_eq!(facts[0], json!({"solid":false,"sealedTop":true,"outside":false}));
-        assert_eq!(facts[1], json!({"solid":true,"sealedTop":false,"outside":false}));
+        assert_eq!(facts[1], json!({"solid":true,"sealedTop":true,"outside":false}));
         assert_eq!(facts[2], json!({"solid":false,"sealedTop":false,"outside":true}));
         assert!(kernel.physical_contacts_json(&json!([[surface.x, i64::from(i32::MAX) + 1, surface.z]]).to_string()).is_err());
     }
