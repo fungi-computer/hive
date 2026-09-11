@@ -103,14 +103,52 @@ mod construction_tests {
     #[test]
     fn construction_waits_without_staged_material_and_repeated_attend_is_idempotent() {
         let (mut kernel, surface, contact) = world();
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north","contact":contact},
             {"kind":"attend-construction","worker":"worker-1","site":"site-1"},
             {"kind":"attend-construction","worker":"worker-1","site":"site-1"}
-        ]}).to_string()).unwrap();
+        ]}).to_string()).unwrap()).unwrap();
+        assert_eq!(response["results"].as_array().unwrap().len(), 3);
+        assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let state = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
         assert!(state.contains("\"seconds\":0.0"));
+    }
+
+    #[test]
+    fn blocked_geometry_preserves_progress_material_and_existing_structure() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        let occupied = crate::structure_geometry::StaticInstance::Floor {
+            id: "existing-floor".into(),
+            support: surface,
+        };
+        let prepared = kernel.environment.as_mut().unwrap().world
+            .prepare_structures(vec![occupied]).unwrap().unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
+        let lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
+        assert!(site.contains("\"seconds\":1.0"));
+        assert!(site.contains("\"phase\":\"working\""));
+        assert!(lots.contains("\"container\":\"site-1\""));
+        assert!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().any(|instance| {
+            matches!(instance, crate::structure_geometry::StaticInstance::Floor { id, .. } if id == "existing-floor")
+        }));
+    }
+
+    #[test]
+    fn restore_rejects_out_of_bounds_construction_footprint() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        let mut records = kernel.save_records().unwrap();
+        let mut entities: serde_json::Value = serde_json::from_str(&records.entities).unwrap();
+        let site = entities["scene"]["initial"].as_array_mut().unwrap().iter_mut().find(|entity| entity["id"] == "site-1").unwrap();
+        site["components"]["hive.construction-site"]["x"] = serde_json::Value::from(i64::MAX);
+        records.entities = serde_json::to_string(&entities).unwrap();
+        let mut restored = Kernel::new();
+        assert!(restored.restore_records(&records).is_err());
     }
 }
 
