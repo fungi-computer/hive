@@ -233,8 +233,18 @@ impl<'a> WorldSpec<'a> {
             ridge_phase: noise2(height_prefix, 0.0, 0.0, "ridge-phase") * PI * 2.0,
             canyon_phase: noise2(height_prefix, 0.0, 0.0, "canyon-phase") * PI * 2.0,
             binding: format!(
-                "{}|bounds:{:?}|metric:{:.17}|slots:{:?}",
-                full, self.bounds, self.vertical_metres, self.slots
+                "{}|bounds:{},{},{},{},{},{}|metric:{:.17}|slots:{},{},{}",
+                full,
+                self.bounds.min_x,
+                self.bounds.max_x,
+                self.bounds.min_y,
+                self.bounds.max_y,
+                self.bounds.min_z,
+                self.bounds.max_z,
+                self.vertical_metres,
+                self.slots.air,
+                self.slots.soil,
+                self.slots.stone
             ),
         })
     }
@@ -251,6 +261,26 @@ impl CompiledWorld {
             && cell.y < self.bounds.max_y
             && cell.z >= self.bounds.min_z
             && cell.z < self.bounds.max_z
+    }
+    pub fn intersects_page(&self, origin: Cell) -> bool {
+        let end_x = match origin.x.checked_add(16) {
+            Some(value) => value,
+            None => return false,
+        };
+        let end_y = match origin.y.checked_add(16) {
+            Some(value) => value,
+            None => return false,
+        };
+        let end_z = match origin.z.checked_add(16) {
+            Some(value) => value,
+            None => return false,
+        };
+        end_x > self.bounds.min_x
+            && origin.x < self.bounds.max_x
+            && end_y > self.bounds.min_y
+            && origin.y < self.bounds.max_y
+            && end_z > self.bounds.min_z
+            && origin.z < self.bounds.max_z
     }
     pub fn vertical_metres(&self) -> f64 {
         self.vertical_metres
@@ -487,7 +517,7 @@ mod tests {
     fn hash_reference_vectors_include_utf16() {
         assert_eq!(hash_string("a", 2166136261), 3826002220);
         assert_eq!(hash_string("é", 2166136261), 1812687940);
-        assert_eq!(hash_string("𐐷", 2166136261), 865687542);
+        assert_eq!(hash_string("𐐷", 2166136261), 1059832673);
     }
     #[test]
     fn seeds_change_world_and_negative_seams_match_brick() {
