@@ -9,6 +9,39 @@ shared hauling/storage, useful crafting and eventually hospitality. Keep the
 existing four URLs. Restore a playable loop in successive releases; do not
 one-shot every retained system or let presentation polish substitute for play.
 
+## First shared slice published
+
+Source c5138fc is live on the existing four demo pages. King authored/reviewed
+Mosswake's bow/sail/stern, shared cargo props and goblin wardrobes. The common
+client now shows inventory-driven carrying poses, distance-based dust and wakes.
+The 1774-frame original static bank uses four atlas pages. This is original
+builder composition, not imported art or new live-model baking.
+
+Frontend deployment `3e753ec3-17bf-431d-ba32-801f8a15fd09`; DO version
+`c2018e71-f360-4cbe-8127-1f8293f9426e`. All 33 engine files match hosted bytes.
+Actual remote colony observation witnessed pantry → worker → guest ownership,
+with one bread delivered and five retained at source; test world paused after.
+Runtime implementation hash
+`e9633431b5e97be656566bb6ab42632129084f0fed1c8b87aee5f545231e0e11`.
+
+Evidence is `.botanical/demo-polish`: 17 affected laws passed; an authored-test
+EntityId type error was corrected and strict app/host types then passed. u5329
+export/build passed, u5333 actual ship/colony input and 390 containment passed.
+King viewed the contact sheet, ship, carrying and narrow captures. A subsequent
+wake depth correction puts ground effects beneath subjects; final build u5335
+passed. Its screenshot-only check u5337 timed out before the sailing action,
+retained the rendered initial page in failure.png (personally viewed), and closed.
+Do not call that corrected wake capture a pass; no further browser loop followed.
+u5340 publication/readback/remote-custody passed. All owned scopes ended and
+5187/5198 listeners were released. No new Fallow acceptance is claimed.
+
+Building, excavation, environmental stocks and the shared synth API are still
+next work, not implied by this visual release. Current initial snapshots stay
+versioned; use the visible New server world action if an older demo identity is
+reported unsupported. Prior cannon deployment 8d8b66a1 and DO 079d18c7 remain
+recorded rollback versions. Private source recovery remains the existing
+`recovery/hive-public-do-20260910T1533Z` branch in Botanical-next.
+
 ## What exists and what can actually be reused
 
 Read against fresh source df7f2a7 plus the retained source in this same repository.

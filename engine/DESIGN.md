@@ -2,6 +2,14 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## Latest shared presentation release
+
+September 11 source c5138fc is published: Mosswake hull/cargo/wardrobes,
+shared distance-based dust/wakes and real inventory carrying poses. The
+[roadmap release receipt](DEMO-ROADMAP.md#first-shared-slice-published) records
+hosted bytes, actual DO transfer observations and the screenshot-only limit.
+Retained colony construction/environment remains the next gameplay port.
+
 ## September 11 larger playable demos
 
 Levi reaffirmed the retained Clearing ambition for the colony: multiple storeys,
