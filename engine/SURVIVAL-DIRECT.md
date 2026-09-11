@@ -5,7 +5,8 @@ Preserve colony/formation/raft destination controls and RTS cannon behavior.
 
 Native Rust owns continuous collision movement. Browser prediction invokes the
 same exported pure step; it never advances hunger, goods, combat or saved state.
-Numbered20ms input samples are batched up to5 per command. Server clocks alone
+Numbered20ms input samples normally flush five at a time. Adjacent unsent batches
+may combine up to50 samples without changing an issued command. Server clocks alone
 consume samples, at most their elapsed budget, with no banked idle movement time.
 A bounded50-sample native queue and matching client replay horizon prevent
 unbounded latency accumulation. Holding diagonal keys normalizes speed.
@@ -108,3 +109,22 @@ seconds, maximum20 unacknowledged samples, all400 consumed, one actual workerd s
 no client errors; scope/listener8789 closed. This is not rendered smoothness or
 population capacity acceptance. Root reuses checkedAction for transport batching;
 there is no second structural action validator.
+
+
+Published sourcecf172bf: u5272 build/backend/frontend exit0; backend version
+f1fc42e5-caf5-4046-a7db-352a6a106dfd / program
+fbb01ff81f4c768cb15fa5d297cd788ffd90a54646b62bfc27958108efefb544;
+frontend360491d5-ff47-4051-b489-358e22a0624f. Same existing URLs.
+u5273 stopped on a test-only unbranded EntityId before remote execution. Root used
+the existing entity() constructor; no runtime rebuild required. u5275 strict
+engine types, real deployed DO400 inputs with200ms injected command delay and
+all17 changed asset hashes passed. Maximum25 samples pending, errors[]; that
+straight path ended at the actual locker collision, so it proves held input
+throughput, not eight seconds of free travel. A bounded square-path follow-up
+separately checks continued travel rather than counting inputs against a wall.
+
+u5277 actual hosted square traversal passed:400 samples, four sides and return
+to origin,200ms injected command delay, maximum40 pending (below50), errors[].
+Owned client disposed after acknowledged pause; scope inactive/dead. No new browser
+or visual smoothness claim. Residual high-latency horizon and local multi-world
+capacity limits remain; user playtesting is still the feel acceptance.

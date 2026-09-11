@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
+import { entity } from "../sdk/authoring";
 import { connectRemoteRuntime } from "./remote-client";
 import type { WorkerEvent } from "./protocol";
 
@@ -130,15 +131,15 @@ test("coalesces contiguous unsent direct input behind command barriers and retri
   }, socket);
   runtime.send({ type: "start", game: "survival" });
   await wait(20);
-  runtime.send({ type: "action", action: { kind: "begin-direct", entity: "player", stream: "held" } });
+  runtime.send({ type: "action", action: { kind: "begin-direct", entity: entity("player"), stream: "held" } });
   await wait(40);
   const batch = (first: number) => Array.from({ length: 5 }, (_, index) => ({ sequence: first + index, x: 1, z: 0 }));
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(1) } });
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(6) } });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: entity("player"), stream: "held", inputs: batch(1) } });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: entity("player"), stream: "held", inputs: batch(6) } });
   runtime.send({ type: "pause" });
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(11) } });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: entity("player"), stream: "held", inputs: batch(11) } });
   await firstSeen;
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(16) } });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: entity("player"), stream: "held", inputs: batch(16) } });
   releaseFirst();
   await retrySeen;
   await finalSeen;

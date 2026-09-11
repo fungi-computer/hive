@@ -2,7 +2,11 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
-## September 11 Survival sustained-input correction — active
+## September 11 Survival sustained-input correction — published
+
+Source cf172bf is published on the existing four demo URLs; frontend360491d5-ff47-4051-b489-358e22a0624f and backendf1fc42e5-caf5-4046-a7db-352a6a106dfd.
+Seventeen changed served assets match; no art or cannon-rule change. This remains
+a targeted input/clock correction, not user acceptance of smooth play.
 
 Levi likes the RTS cannon and reports the first predicted Survival steps improve,
 then sustained movement stutters. Preserve the cannon and existing four demos.
