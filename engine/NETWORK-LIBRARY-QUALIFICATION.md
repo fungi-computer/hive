@@ -7,7 +7,7 @@ The retained reproducer intentionally fails at the Geckos rotation defect.
 
 ## Decisions
 
-**PartySocket1.3.0: qualified for bounded transport integration.** ISC package,
+**PartySocket1.3.0: qualified for bounded transport integration.** MIT package,
 public partysocket WebSocket export. Actual ws8.21.3 TCP server on an ephemeral
 loopback port: echo before disconnect, terminate server-side peer, same client
 reconnects, echo after reconnect, explicit close prevents another connection.
