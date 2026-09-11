@@ -62,6 +62,9 @@ test("native excavation reserves a worker without dropping its delivery state", 
     impacts: [],
     random: { next: () => 0 },
     query: (spec) => values.get(spec.components[0].id) as never,
+    routeCosts: () => { throw new Error("unexpected route query"); },
+    terrainMaterials: () => [],
+    terrainSurfaces: () => [],
     worldPoses: (ids) => ids.map((id) => ({
       id,
       local: { x: 0, y: 0, z: 0, facing: 0 },
@@ -142,7 +145,10 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       clock: { now: 0, delta: 0.1, tick: 1 },
       outcomes: [], impacts: [], random: { next: () => 0 },
       query: (spec) => values.get(spec.components[0].id) as never,
-      worldPoses: (ids) => ids.map((id) => ({
+      routeCosts: () => { throw new Error("unexpected route query"); },
+    terrainMaterials: () => [],
+    terrainSurfaces: () => [],
+    worldPoses: (ids) => ids.map((id) => ({
         id, local: point, world: point, support: null, surface: null,
       })),
       assign: () => { assignments++; return []; },

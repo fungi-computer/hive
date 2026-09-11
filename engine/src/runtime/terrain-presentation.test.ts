@@ -55,6 +55,7 @@ function fakePort(
   surfaces: (columns: readonly [number, number][]) => readonly (TerrainSurface | null)[],
 ): KernelPort {
   return {
+    routeCosts: () => { throw new Error("unexpected route query"); },
     dispose() {},
     load() {},
     loadEnvironment() {},

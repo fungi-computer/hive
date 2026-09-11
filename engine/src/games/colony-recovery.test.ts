@@ -22,6 +22,7 @@ test("colony delivery retains cargo and completes with restore between every hos
     session.command("deliver", { ...selection, quantity: 1 });
     let interruptedAt: number | undefined;
     let complete = false;
+    let taskId: string | undefined;
     for (let tick = 0; tick < 100; tick++) {
       session.restore(session.save());
       session.step(0.25);
@@ -33,7 +34,9 @@ test("colony delivery retains cargo and completes with restore between every hos
         assert.equal(held(worker), 1, "paused work preserves physical cargo");
         if (tick === interruptedAt + 4) session.command("resumeDelivery", selection);
       }
-      if (session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).actor === worker && row.get(DeliveryTask).phase === "complete")) {
+      const taskRows = session.query(query(DeliveryTask));
+      taskId ??= taskRows.find(row => row.get(DeliveryTask).actor === worker)?.id;
+      if (taskRows.some(row => row.id === taskId && row.get(DeliveryTask).phase === "complete" && row.get(DeliveryTask).actor === null)) {
         complete = true;
         break;
       }

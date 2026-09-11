@@ -11,7 +11,7 @@ import {
   move,
   transfer,
 } from "./common";
-import type { EntityId, Vec3, WorldPose, WriteContext } from "../contracts";
+import type { EntityId, Vec3, WorldPose, WriteContext, MoveDestination } from "../contracts";
 
 export type DeliveryPhase =
   "idle" | "to-source" | "carrying" | "to-destination" | "complete";
@@ -49,6 +49,8 @@ type DeliveryCandidate = {
   readonly task: EntityId;
   readonly actorPosition: Vec3;
   readonly sourcePosition: Vec3;
+  readonly sourceTarget: MoveDestination;
+  readonly destinationTarget: MoveDestination;
 };
 
 /** Provider for the shared work owner; delivery claims remain task.actor. */
@@ -166,6 +168,8 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
             task: taskRow.id,
             actorPosition: actorPosition.world,
             sourcePosition: sourcePosition.world,
+            sourceTarget: { ...sourcePosition.local, frame: sourcePosition.support },
+            destinationTarget: { ...destinationPosition.local, frame: destinationPosition.support },
           },
         ];
       });
@@ -179,7 +183,13 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       claims: deliveryClaims,
       occupiedActors: [...excavatingActors],
       candidates,
-      estimate: (candidate) => distance(candidate.actorPosition, candidate.sourcePosition),
+      estimate: (candidate) => {
+        const [source, destination] = ctx.routeCosts([
+          { actor: candidate.worker, target: candidate.sourceTarget },
+          { actor: candidate.worker, target: candidate.destinationTarget },
+        ]);
+        return source.status === "reachable" && destination.status === "reachable" ? source.cost : null;
+      },
       apply: (assignments) => {
         assigned = new Set(assignments.map((assignment) => assignment.task));
         for (const assignment of assignments) {
@@ -287,7 +297,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
         state.phase === "to-destination" &&
         lotState?.container === state.destination
       ) {
-        ctx.write(DeliveryTask, task.id, { ...state, phase: "complete" });
+        ctx.write(DeliveryTask, task.id, { ...state, actor: null, phase: "complete" });
       } else if (
         state.phase === "to-destination" &&
         actorLotState &&
