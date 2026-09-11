@@ -54,6 +54,9 @@ impl Face {
     }
 
     pub fn metric_height(self, spacing_y: f64) -> Result<f64, String> {
+        if self.axis != FaceAxis::Y {
+            return Err("metric height is defined only for horizontal faces".into());
+        }
         if !spacing_y.is_finite() || spacing_y <= 0.0 {
             return Err("invalid structure vertical spacing".into());
         }
@@ -64,10 +67,10 @@ impl Face {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StaticInstance {
-    Floor { id: u64, support: Cell },
-    Wall { id: u64, base: Cell, height: u8 },
+    Floor { id: String, support: Cell },
+    Wall { id: String, base: Cell, height: u8 },
     Stair {
-        id: u64,
+        id: String,
         origin: Cell,
         orientation: Cardinal,
         run: u8,
@@ -76,22 +79,22 @@ pub enum StaticInstance {
 }
 
 impl StaticInstance {
-    fn id(&self) -> u64 {
+    fn id(&self) -> &str {
         match self {
-            Self::Floor { id, .. } | Self::Wall { id, .. } | Self::Stair { id, .. } => *id,
+            Self::Floor { id, .. } | Self::Wall { id, .. } | Self::Stair { id, .. } => id.as_str(),
         }
     }
 
     fn bound(&self, bounds: Bounds) -> Result<usize, String> {
         match self {
             Self::Floor { id, support } => {
-                if *id == 0 || !contains(bounds, *support) {
+                if !crate::components::valid_id(id) || !contains(bounds, *support) {
                     return Err("structure floor is outside generated bounds".into());
                 }
                 Ok(1)
             }
             Self::Wall { id, base, height } => {
-                if *id == 0 || *height == 0 || *height > MAX_WALL_HEIGHT {
+                if !crate::components::valid_id(id) || *height == 0 || *height > MAX_WALL_HEIGHT {
                     return Err("invalid bounded structure wall".into());
                 }
                 for offset in 0..u32::from(*height) {
@@ -105,10 +108,13 @@ impl StaticInstance {
             }
             Self::Stair { id, origin, orientation, run, rise } => {
                 let _ = orientation.delta();
-                if *id == 0 || *run == 0 || *run > MAX_STAIR_RUN || *rise == 0 || *rise > MAX_STAIR_RISE || *rise > *run {
+                if !crate::components::valid_id(id) || *run == 0 || *run > MAX_STAIR_RUN || *rise == 0 || *rise > MAX_STAIR_RISE || *rise > *run {
                     return Err("invalid bounded structure stair".into());
                 }
-                for index in 0..=u32::from(*run) {
+                if !contains(bounds, *origin) {
+                    return Err("structure stair origin is outside generated bounds".into());
+                }
+                for index in 1..=u32::from(*run) {
                     let (dx, dz) = orientation.delta();
                     let horizontal = i64::from(index);
                     let x = origin.x.checked_add(dx.checked_mul(horizontal).ok_or("structure stair coordinate overflow")?)
@@ -123,7 +129,7 @@ impl StaticInstance {
                         return Err("structure stair is outside generated bounds".into());
                     }
                 }
-                usize::from(*run) + 1
+                Ok(usize::from(*run))
             }
         }
     }
@@ -144,7 +150,7 @@ impl StaticInstance {
             }
             Self::Stair { origin, orientation, run, rise, .. } => {
                 let (dx, dz) = orientation.delta();
-                for index in 0..=u32::from(*run) {
+                for index in 1..=u32::from(*run) {
                     let horizontal = i64::from(index);
                     let x = origin.x.checked_add(dx.checked_mul(horizontal).ok_or("structure stair coordinate overflow")?)
                         .ok_or("structure stair coordinate overflow")?;
@@ -174,6 +180,7 @@ pub struct StaticGeometry {
 
 impl StaticGeometry {
     pub fn new(bounds: Bounds, instances: Vec<StaticInstance>) -> Result<Self, String> {
+        validate_bounds(bounds)?;
         if instances.len() > MAX_INSTANCES {
             return Err("structure instance budget exceeded".into());
         }
@@ -201,22 +208,50 @@ impl StaticGeometry {
             instance.bound(self.bounds)?;
             instance.derive(&mut solids, &mut faces)?;
         }
-        Ok(GeometryProjection { solids, sealed_faces: faces })
+        Ok(GeometryProjection { solids, explicit_faces: faces })
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GeometryProjection {
     solids: BTreeSet<Cell>,
-    sealed_faces: BTreeSet<Face>,
+    explicit_faces: BTreeSet<Face>,
 }
 
 impl GeometryProjection {
     pub fn is_bulk_solid(&self, cell: Cell) -> bool { self.solids.contains(&cell) }
-    pub fn is_face_sealed(&self, face: Face) -> bool { self.sealed_faces.contains(&face) }
-    pub fn supports(&self, cell: Cell) -> bool { self.is_face_sealed(Face::upward(cell)) }
+    /// A face is sealed when explicitly authored (floor/stair top) or when it
+    /// touches a bulk structure cell. The latter keeps walls and stair bodies
+    /// consistent without materializing six faces per solid cell.
+    pub fn is_face_sealed(&self, face: Face) -> bool {
+        self.explicit_faces.contains(&face)
+            || self.solids.contains(&face.cell)
+            || face.neighbor().is_some_and(|neighbor| self.solids.contains(&neighbor))
+    }
+    pub fn supports(&self, cell: Cell) -> bool {
+        self.solids.contains(&cell) || self.explicit_faces.contains(&Face::upward(cell))
+    }
     pub fn solid_cells(&self) -> impl Iterator<Item = &Cell> { self.solids.iter() }
-    pub fn sealed_faces(&self) -> impl Iterator<Item = &Face> { self.sealed_faces.iter() }
+    pub fn explicit_faces(&self) -> impl Iterator<Item = &Face> { self.explicit_faces.iter() }
+}
+
+impl Face {
+    fn neighbor(self) -> Option<Cell> {
+        let mut cell = self.cell;
+        match self.axis {
+            FaceAxis::X => cell.x = cell.x.checked_add(1)?,
+            FaceAxis::Y => cell.y = cell.y.checked_add(1)?,
+            FaceAxis::Z => cell.z = cell.z.checked_add(1)?,
+        }
+        Some(cell)
+    }
+}
+
+fn validate_bounds(bounds: Bounds) -> Result<(), String> {
+    if bounds.min_x >= bounds.max_x || bounds.min_y >= bounds.max_y || bounds.min_z >= bounds.max_z {
+        return Err("invalid structure geometry bounds".into());
+    }
+    Ok(())
 }
 
 fn contains(bounds: Bounds, cell: Cell) -> bool {
@@ -236,7 +271,7 @@ mod tests {
     #[test]
     fn floor_seals_and_supports_without_bulk_volume() {
         let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Floor {
-            id: 1,
+            id: "floor-a".into(),
             support: Cell { x: -4, y: -7, z: 3 },
         }]).unwrap();
         let projection = geometry.projection().unwrap();
@@ -250,13 +285,13 @@ mod tests {
     #[test]
     fn stair_orientations_derive_expected_cardinal_cells() {
         for (id, orientation, expected) in [
-            (1, Cardinal::North, Cell { x: 0, y: 1, z: -2 }),
-            (2, Cardinal::East, Cell { x: 2, y: 1, z: 0 }),
-            (3, Cardinal::South, Cell { x: 0, y: 1, z: 2 }),
-            (4, Cardinal::West, Cell { x: -2, y: 1, z: 0 }),
+            ("north", Cardinal::North, Cell { x: 0, y: 1, z: -2 }),
+            ("east", Cardinal::East, Cell { x: 2, y: 1, z: 0 }),
+            ("south", Cardinal::South, Cell { x: 0, y: 1, z: 2 }),
+            ("west", Cardinal::West, Cell { x: -2, y: 1, z: 0 }),
         ] {
             let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
-                id,
+                id: id.into(),
                 origin: Cell { x: 0, y: 0, z: 0 },
                 orientation,
                 run: 2,
@@ -269,38 +304,44 @@ mod tests {
     #[test]
     fn negative_deep_coordinates_are_valid_and_outside_is_rejected() {
         let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: 1,
+            id: "deep-wall".into(),
             base: Cell { x: -31, y: -31, z: -31 },
             height: 2,
         }]).unwrap();
         assert!(geometry.projection().unwrap().is_bulk_solid(Cell { x: -31, y: -30, z: -31 }));
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Floor {
-            id: 2,
+            id: "outside-floor".into(),
             support: Cell { x: 32, y: 0, z: 0 },
         }]).is_err());
     }
 
     #[test]
     fn shared_sealing_faces_deduplicate_but_bulk_conflicts_reject() {
-        let floor = |id| StaticInstance::Floor { id, support: Cell { x: 0, y: 0, z: 0 } };
-        let geometry = StaticGeometry::new(bounds(), vec![floor(1), floor(2)]).unwrap();
-        assert_eq!(geometry.projection().unwrap().sealed_faces().count(), 1);
+        let floor = |id| StaticInstance::Floor { id: id.into(), support: Cell { x: 0, y: 0, z: 0 } };
+        let geometry = StaticGeometry::new(bounds(), vec![floor("floor-a"), floor("floor-b")]).unwrap();
+        assert_eq!(geometry.projection().unwrap().explicit_faces().count(), 1);
         assert!(StaticGeometry::new(bounds(), vec![
-            StaticInstance::Wall { id: 3, base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
-            StaticInstance::Wall { id: 4, base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "wall-a".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "wall-b".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
         ]).is_err());
     }
 
     #[test]
     fn invalid_limits_and_coordinate_overflow_reject_before_expansion() {
+        assert!(StaticGeometry::new(Bounds { min_x: 0, max_x: 0, min_y: 0, max_y: 1, min_z: 0, max_z: 1 }, Vec::new()).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
-            id: 1, origin: Cell { x: i64::MAX, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 1,
+            id: "overflow".into(), origin: Cell { x: i64::MAX, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 1,
         }]).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
-            id: 1, origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 3,
+            id: "too-steep".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 3,
         }]).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: 0, base: Cell { x: 0, y: 0, z: 0 }, height: 1,
+            id: "".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1,
         }]).is_err());
+    }
+
+    #[test]
+    fn metric_height_rejects_vertical_faces() {
+        assert!(Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }.metric_height(0.54).is_err());
     }
 }
