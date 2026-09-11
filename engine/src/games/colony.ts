@@ -382,7 +382,15 @@ export const colonyPack: GamePack = {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
       const total = (container: EntityId) => lots.filter((lot) => lot.container === container).reduce((sum, lot) => sum + lot.quantity, 0);
       const taskRows = context.query(query(DeliveryTask));
+      const hearth = context.query(query(Position)).find(row => row.id === hearthId)?.get(Position);
+      const hearthAir = hearth ? context.atmosphereSamples([[
+        Math.floor(hearth.x + 0.5),
+        Math.floor(hearth.y / colonyEnvironment.world.verticalMetres + 0.5),
+        Math.floor(hearth.z + 0.5),
+      ]]).samples[0] : null;
       return [
+        { id: "hearth-air-temperature", label: "Hearth air", value: hearthAir ? `${hearthAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
+        { id: "hearth-air-smoke", label: "Hearth smoke", value: hearthAir ? `${(hearthAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
         { id: "pantry-quantity", label: "Pantry", value: total(pantryId) },
         { id: "lumber-quantity", label: "Starter lumber", value: total(colonyLumberId) },
         { id: "hearth-fuel", label: "Hearth wood", value: total(hearthId) },
