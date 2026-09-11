@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Application, Container, Rectangle, Sprite, Text } from "pixi.js";
-import { anchor, bake } from "./src/art.js";
+import { anchor } from "./src/art.js";
+import { bake } from "./src/art/bake.js";
 import {
   camera,
   HEIGHT,

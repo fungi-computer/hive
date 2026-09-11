@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Application, Sprite } from "pixi.js";
 import "@fungi.computer/caps/styles.css";
-import { bake } from "./src/art.js";
+import { bake } from "./src/art/bake.js";
 import { camera } from "./src/art/scale.js";
 import { FIRE_COLORS, fireProp, fireCourt } from "./fire-study-fires.js";
 
