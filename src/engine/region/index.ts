@@ -50,7 +50,12 @@ export type RegionProgram<State, Command> = {
     command: Readonly<Command>,
     state: Readonly<State>,
   ): boolean;
-  execute(candidate: State, command: Command, records: RegionRecordReader): RegionTransition;
+  execute(
+    candidate: State,
+    command: Command,
+    records: RegionRecordReader,
+    baseRevision: number,
+  ): RegionTransition;
 };
 export type RegionReceipt = {
   region: string;
@@ -451,7 +456,7 @@ export function openRegion<State, Command>(options: {
       const reader = createRecordReader(owner, limits.recordBytes);
       let transition: RegionTransition;
       try {
-        transition = program.execute(candidate, checkedCommand(), reader);
+        transition = program.execute(candidate, checkedCommand(), reader, current.revision);
       } finally {
         reader.close();
       }

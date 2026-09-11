@@ -3,9 +3,7 @@ import {
   openRegion,
   type RegionSqliteOwner,
 } from "../../src/engine/region/index.ts";
-import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
-import { GameSession } from "../../engine/src/runtime/session";
-import { hydrateSession } from "../../engine/src/runtime/session-record-store";
+import { createSessionRegionRuntime, type SessionResident } from "../../engine/src/runtime/region-program";
 import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -46,6 +44,7 @@ function packFor(id: string) {
 
 export class FreshRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion>;
+  private resident!: SessionResident;
   private readonly ready: Promise<void>;
   private failBeforeReceipt = false;
   constructor(ctx: DurableObjectState, env: Environment) {
@@ -75,7 +74,7 @@ export class FreshRegion extends DurableObject<Environment> {
       initSync({ module: wasmBytes });
       const pack = packFor(this.env.PROOF_PACK);
       const principalPrefix = pack.id;
-      const program = createSessionRegionProgram({
+      const runtime = createSessionRegionRuntime({
         pack,
         createKernel: () => wasmKernelPort(new WasmKernel()),
         implementationHash: env.IMPLEMENTATION_HASH,
@@ -83,6 +82,8 @@ export class FreshRegion extends DurableObject<Environment> {
         hostPrincipal: `${principalPrefix}-host`,
         seed: 17,
       });
+      this.resident = runtime.resident;
+      const program = runtime.program;
       this.region = openRegion({
         owner,
         region: `${pack.id}-proof-v1`,
@@ -109,16 +110,8 @@ export class FreshRegion extends DurableObject<Environment> {
         return new Response("Forbidden", { status: 403 });
       await this.ctx.storage.sync();
       const committed = this.region.readCommitted();
-      const pack = packFor(this.env.PROOF_PACK);
-      const port = wasmKernelPort(new WasmKernel());
-      try {
-        const session = new GameSession({ port, pack, seed: 17 });
-        const page = this.region.readRecords(committed.revision, "", 40);
-        if (page.nextKey !== undefined) throw new Error("proof-kernel-record-limit");
-        const records = new Map(page.records.map(record => [record.key, record.bytes]));
-        session.restore(hydrateSession(committed.state.session, {
-          read: key => records.get(key),
-        }));
+      const sessionRecords = this.residentRecords(committed.revision);
+      const observation = this.resident.observe(committed.revision, committed.state, sessionRecords, (session) => {
         const observation = buildObservation(session, {
           epoch: 0,
           sequence: committed.revision,
@@ -127,13 +120,8 @@ export class FreshRegion extends DurableObject<Environment> {
           revision: committed.revision,
           observation,
         });
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "observe-failed";
-        return Response.json({ error: message }, { status: 500 });
-      } finally {
-        port.dispose();
-      }
+      });
+      return observation;
     }
     if (path !== "/command" || request.method !== "POST")
       return new Response("Not found", { status: 404 });
@@ -162,18 +150,24 @@ export class FreshRegion extends DurableObject<Environment> {
       this.failBeforeReceipt = fault === "before-commit";
       let receipt;
       try {
+        const committed = this.region.readCommitted();
+        this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
         receipt = this.region.dispatch(principal, input);
       } finally {
         this.failBeforeReceipt = false;
       }
       await this.ctx.storage.sync();
       if (fault === "after-commit")
+        this.resident.discard();
+      if (fault === "after-commit")
         return Response.json(
           { error: "injected-after-commit" },
           { status: 503 },
         );
+      this.resident.accept(this.region.readCommitted().revision);
       return Response.json(receipt);
     } catch (error) {
+      this.resident.discard();
       const message = error instanceof Error ? error.message : "command-failed";
       const status =
         message === "region-forbidden"
@@ -187,6 +181,25 @@ export class FreshRegion extends DurableObject<Environment> {
     } finally {
       this.failBeforeReceipt = false;
     }
+  }
+
+  private residentRecords(revision: number) {
+    let records: Map<string, Uint8Array> | undefined;
+    return { read: (key: string) => {
+      if (!records) {
+        records = new Map();
+        let cursor = "";
+        for (;;) {
+          const page = this.region.readRecords(revision, cursor, 40);
+          for (const record of page.records) records.set(record.key, record.bytes);
+          if (records.size > 40) throw new Error("proof-kernel-record-limit");
+          if (page.nextKey === undefined) break;
+          if (page.nextKey <= cursor) throw new Error("proof-kernel-record-cursor");
+          cursor = page.nextKey;
+        }
+      }
+      return records.get(key);
+    } };
   }
 }
 export default {
