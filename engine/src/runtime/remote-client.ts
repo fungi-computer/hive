@@ -2,16 +2,23 @@ import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import type { PresentationControl } from "../presentation";
+import { WebSocket as PartySocket } from "partysocket";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+type SocketLike = {
+  addEventListener(type: string, listener: (event: { data?: unknown }) => void): void;
+  send(data: string): void;
+  close(): void;
+};
 export interface RemoteRuntimeOptions {
   readonly endpoint: string | URL;
   readonly game: string;
   /** Authentication is supplied by the caller; this function adds no secret. */
   readonly fetch: AuthorizedFetch;
-  readonly pollMs?: number;
+  readonly token: string;
   readonly requestTimeoutMs?: number;
   readonly createCommandId?: () => string;
+  readonly createSocket?: (url: string) => SocketLike;
 }
 
 type ObservationWire = {
@@ -41,7 +48,6 @@ type PendingIntent = {
 const MAX_PENDING = 16;
 const MAX_RETRIES = 3;
 const MAX_STALE_RESUBMISSIONS = 3;
-const DEFAULT_POLL_MS = 1000;
 const REQUEST_TIMEOUT_MS = 5000;
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
 const MAX_RECEIPT_BYTES = 64 * 1024;
@@ -210,11 +216,8 @@ function actionResult(value: unknown): value is ActionResult {
 }
 
 export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConnection {
-  if (options.pollMs !== undefined && (!Number.isFinite(options.pollMs) || options.pollMs < 100 || options.pollMs > 60_000))
-    throw new Error("remote poll interval must be between 100ms and 60s");
   if (options.requestTimeoutMs !== undefined && (!Number.isFinite(options.requestTimeoutMs) || options.requestTimeoutMs < 10 || options.requestTimeoutMs > 60_000))
     throw new Error("remote request timeout must be between 10ms and 60s");
-  const pollMs = Math.round(options.pollMs ?? DEFAULT_POLL_MS);
   const requestTimeoutMs = Math.round(options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS);
   const listeners = new Set<(event: WorkerEvent) => void>();
   const pending: PendingIntent[] = [];
@@ -227,17 +230,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let lastPaused: boolean | undefined;
   let lastSequence: number | undefined;
   let lastTime: number | undefined;
-  let pollPromise: Promise<boolean> | undefined;
-  let pollTimer: ReturnType<typeof setTimeout> | undefined;
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
   let pumpRunning = false;
   let blocked = false;
+  let socket: SocketLike | undefined;
+  let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
   const emit = (event: WorkerEvent) => { if (!disposed) for (const listener of listeners) listener(event); };
-  const schedulePoll = () => {
-    if (disposed || !started || pollTimer !== undefined) return;
-    pollTimer = setTimeout(() => { pollTimer = undefined; void poll(); }, pollMs);
-  };
   const acceptObservation = (candidate: ObservationWire): boolean => {
     if (revision !== undefined && candidate.revision <= revision) return false;
     if (lastSequence !== undefined && (candidate.observation.sequence < lastSequence ||
@@ -253,28 +252,44 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls });
     return true;
   };
-  const poll = (): Promise<boolean> => {
-    if (disposed || !started) return Promise.resolve(false);
-    if (pollPromise) return pollPromise;
-    pollPromise = (async () => {
-      try {
-        const result = await requestJson(options.fetch, endpointUrl(options.endpoint, "/observe"), { method: "GET" }, abort.signal, MAX_OBSERVATION_BYTES, requestTimeoutMs);
-        if (!result.response.ok) throw new Error(`remote observation failed (${result.response.status})`);
-        const candidate = parseObservation(result.value);
-        if (!readyEmitted) { readyEmitted = true; emit({ type: "ready", game: options.game }); }
-        return acceptObservation(candidate);
-      } catch (error) {
-        if (!disposed && !(error instanceof DOMException && error.name === "AbortError"))
-          emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
-        return false;
+  const openSocket = async () => {
+    try {
+      const handleResponse = await requestJson(options.fetch, endpointUrl(options.endpoint, "/connect"), { method: "GET" }, abort.signal, 16 * 1024, requestTimeoutMs);
+      if (!handleResponse.response.ok || !isRecord(handleResponse.value) || typeof handleResponse.value.handle !== "string" || handleResponse.value.handle.length === 0 || handleResponse.value.handle.length > 256)
+        throw new Error("remote socket admission failed");
+      const url = new URL(endpointUrl(options.endpoint, "/socket/" + encodeURIComponent(handleResponse.value.handle)));
+      url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+      if (disposed) return;
+      socket = options.createSocket
+        ? options.createSocket(url.toString())
+        : new PartySocket(url.toString(), [], { maxEnqueuedMessages: 0, maxRetries: 8 });
+    } catch (error) {
+      if (!disposed) emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+    socket.addEventListener("message", (event) => {
+      let value: unknown;
+      try { value = JSON.parse(String(event.data)); } catch { emit({ type: "error", message: "invalid remote socket message" }); return; }
+      if (!isRecord(value)) return;
+      if (value.type === "ready") {
+        readyEmitted = true;
+        emit({ type: "ready", game: options.game });
+        return;
       }
-    })();
-    void pollPromise.finally(() => {
-      pollPromise = undefined;
-      schedulePoll();
-      if (!disposed && !blocked && pending.length > 0 && !pumpRunning) schedulePump();
+      if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
+      if (value.type !== "observation") return;
+      try {
+        const accepted = acceptObservation(parseObservation(value));
+        if (accepted && !blocked && pending.length > 0 && !pumpRunning) schedulePump();
+      } catch (error) { emit({ type: "error", message: error instanceof Error ? error.message : String(error) }); }
     });
-    return pollPromise;
+    socket.addEventListener("error", () => { if (!disposed) emit({ type: "error", message: "remote socket failed; reconnecting" }); });
+    socket.addEventListener("close", () => { if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" }); });
+    socket.addEventListener("open", () => {
+      socket?.send(JSON.stringify({ type: "authenticate", token: options.token }));
+      if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => { if (!disposed && socket) socket.send(JSON.stringify({ type: "heartbeat" })); }, 5_000);
+    });
   };
   const retryDelay = (attempt: number) =>
     new Promise<void>((resolve) => {
@@ -292,13 +307,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     });
   const pump = async () => {
     if (disposed || blocked || pumpRunning || pending.length === 0) return;
-    if (pollPromise || revision === undefined || awaitRevision !== undefined) { void poll(); return; }
+    if (revision === undefined || awaitRevision !== undefined) return;
     pumpRunning = true;
     const item = pending[0];
     try {
       if (!item.body) {
         item.id = safeId(options.createCommandId);
-        item.body = JSON.stringify({ id: item.id, expectedRevision: revision, command: item.command });
+        item.body = JSON.stringify({ id: item.id, command: item.command });
       }
       while (!disposed && !blocked) {
         try {
@@ -315,7 +330,6 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           if (response.status === 409) {
             pending.shift();
             emit({ type: "error", message: "remote command conflict" });
-            await poll();
             return;
           }
           if (!response.ok) throw new Error(`remote command failed (${response.status})`);
@@ -333,17 +347,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
                 return;
               }
               item.staleRetries++;
-              item.id = undefined;
-              item.body = undefined;
               item.retries = 0;
               if (revision === undefined || revision < rejectedRevision)
                 awaitRevision = rejectedRevision;
-              await poll();
               return;
             }
             pending.shift();
             emit({ type: "error", message: "remote command rejected" });
-            await poll();
             return;
           }
           if (receipt.status !== "applied" || !safeNonnegativeInteger(receipt.revision))
@@ -357,7 +367,6 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           pending.shift();
           if (isRecord(payload) && Array.isArray(payload.results))
             emit({ type: "results", results: payload.results });
-          await poll();
           return;
         } catch (error) {
           if (disposed || (error instanceof DOMException && error.name === "AbortError")) return;
@@ -373,14 +382,14 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     }
   };
   function schedulePump() {
-    if (disposed || blocked || pumpRunning || pollPromise || pending.length === 0 || awaitRevision !== undefined) return;
+    if (disposed || blocked || pumpRunning || pending.length === 0 || awaitRevision !== undefined) return;
     queueMicrotask(() => void pump());
   }
   const send = (command: WorkerCommand) => {
     if (disposed) throw new Error("runtime connection disposed");
     if (command.type === "start") {
       if (command.game !== options.game) throw new Error(`remote game is ${options.game}`);
-      if (!started) { started = true; void poll(); }
+        if (!started) { started = true; void openSocket(); }
       return;
     }
     if (!started) throw new Error("remote runtime has not started");
@@ -403,8 +412,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const dispose = () => {
     if (disposed) return;
     disposed = true;
-    if (pollTimer !== undefined) clearTimeout(pollTimer);
     abort.abort();
+    socket?.close();
+    if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
     for (const timer of retryTimers) clearTimeout(timer);
     retryTimers.clear();
     pending.length = 0;

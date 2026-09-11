@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { packFromPath, readCommand, tokenFromRequest } from "./protocol.ts";
+import { packFromPath, readCommand, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
 
 const token = "a".repeat(64);
 
@@ -27,6 +27,14 @@ test("public capability requires exactly a lowercase 256-bit bearer token", () =
     /public-unauthorized/,
   );
   assert.throws(() => tokenFromRequest(request("")), /public-unauthorized/);
+});
+
+test("socket admission accepts an opaque routing handle but authenticates separately", () => {
+  assert.equal(packFromPath("/v1/survival/connect"), "survival");
+  assert.equal(packFromPath("/v1/survival/socket/abc-123"), "survival");
+  assert.equal(socketHandleFromPath("/v1/survival/socket/abc-123"), "abc-123");
+  assert.deepEqual(readSocketMessage(JSON.stringify({ type: "authenticate", token })), { type: "authenticate", token });
+  assert.throws(() => readSocketMessage(JSON.stringify({ type: "authenticate", token, extra: true })), /invalid/);
 });
 
 test("public command body is strict and bounded before Region admission", async () => {
