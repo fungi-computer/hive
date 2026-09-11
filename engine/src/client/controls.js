@@ -50,11 +50,13 @@ export const pointerGestureMachine = createMachine(
 export const terrainTargetMachine = createMachine({
   id: "hive-terrain-target",
   initial: "idle",
-  context: { control: null },
+  context: { control: null, anchor: null, hover: null },
   states: {
     idle: { on: { ARM: { target: "armed", actions: "arm" } } },
     armed: { on: {
       ARM: { actions: "arm" },
+      SET_ANCHOR: { actions: "anchor" },
+      HOVER: { actions: "hover" },
       CANCEL_STROKE: {},
       ESCAPE: { target: "idle", actions: "clear" },
       CANCEL: { target: "idle", actions: "clear" },
@@ -62,7 +64,9 @@ export const terrainTargetMachine = createMachine({
   },
 }, { actions: {
   arm: assign(({ event }) => ({ control: event.control })),
-  clear: assign({ control: null }),
+      clear: assign({ control: null, anchor: null, hover: null }),
+      anchor: assign(({ event }) => ({ anchor: event.anchor, hover: null })),
+      hover: assign(({ event }) => ({ hover: event.cell ?? null })),
 } });
 
 // Owns the pointer stroke for a bounded terrain rectangle. The committed

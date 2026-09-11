@@ -36,6 +36,7 @@ import {
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisual } from "./visual-resolver.js";
 import { terrainCameraFocus } from "./camera-focus.js";
+import { structureAnchor, upperPlacementAt, upperPlacementCandidates } from "./upper-placement.js";
 
 import { rectangleCells, visibleTerrainAreaPreview } from "./terrain-area-selection.js";
 
@@ -140,6 +141,7 @@ export function createHiveClient({
   };
   function changeViewLevel(level) {
     terrainArea.send({ type: "CANCEL" });
+    clearPlacement();
     const next = setWorldViewLevel(state.view, level);
     if (next.level === state.view.level) return;
     state.view = next;
@@ -153,6 +155,7 @@ export function createHiveClient({
   }
   function setCutaway(value) {
     terrainArea.send({ type: "CANCEL" });
+    clearPlacement();
     state.view = toggleWorldCutaway(state.view, value);
     gesture.send({ type: "CANCEL" });
     exitAim();
@@ -178,7 +181,8 @@ export function createHiveClient({
   const terrainMarksGraphic = new Graphics();
   const aimGraphic = new Graphics();
   const aimArcGraphic = new Graphics();
-  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic);
+  const placementGraphic = new Graphics();
+  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic);
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
@@ -210,6 +214,7 @@ export function createHiveClient({
   let pendingCues = [];
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
   function displayedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
+  function clearPlacement() { terrainTarget.send({ type: "CANCEL" }); }
   function updateTerrainDisplay() {
     terrainLayer.update(displayedTerrainFrame(), frameEpoch, state.view.cutaway ? `cut:${state.view.level}` : "full");
   }
@@ -457,7 +462,7 @@ export function createHiveClient({
                           terrainTarget.send({ type: "ARM", control });
                           state.message = control.target === "terrain-area"
                             ? `${control.label}: drag a rectangle; Escape exits`
-                            : `${control.label}: choose a visible ${control.target === "world-surface" ? "ground or building surface" : "terrain top"}; Escape exits`;
+                            : `${control.label}: choose a visible ${control.target === "world-surface" ? "ground or building surface (blue neighbors preview locations; native support is checked on submit)" : "terrain top"}; Escape exits`;
                           renderHud();
                           return;
                         }
@@ -753,6 +758,26 @@ export function createHiveClient({
       }
       dragGraphic.visible = true;
     }
+    placementGraphic.clear();
+    placementGraphic.visible = false;
+    const targetSnapshot = terrainTarget.getSnapshot();
+    if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayed) {
+      const anchor = structureAnchor(displayed, targetSnapshot.context.anchor);
+      if (targetSnapshot.context.anchor && !anchor) clearPlacement();
+      else if (anchor) {
+        for (const cell of upperPlacementCandidates(displayed, anchor)) {
+          const height = (cell[1] + 0.5) * displayed.verticalMetres;
+          const points = [[cell[0] - 0.5, cell[2] - 0.5], [cell[0] + 0.5, cell[2] - 0.5], [cell[0] + 0.5, cell[2] + 0.5], [cell[0] - 0.5, cell[2] + 0.5]].flatMap(([x, z]) => {
+            const projected = project(x, height, z);
+            return [projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y];
+          });
+          const hovered = targetSnapshot.context.hover?.every((value, index) => value === cell[index]);
+          placementGraphic.poly(points).fill({ color: hovered ? 0xe8c779 : 0x9fd8ff, alpha: hovered ? 0.3 : 0.12 })
+            .stroke({ color: hovered ? 0xe8c779 : 0x9fd8ff, width: 1, alpha: 0.9 });
+        }
+        placementGraphic.visible = true;
+      }
+    }
     if (isAiming() && state.aim.point && state.aim.target) {
       const marker = state.aim.preview?.contacts?.find(contact => contact.response === "ground")?.point ?? state.aim.preview?.position;
       const target = marker ? project(marker.x, marker.y, marker.z) : null;
@@ -786,6 +811,15 @@ export function createHiveClient({
     if (targetControl) {
       if (!state.ready) return;
       const displayed = displayedTerrainFrame();
+      const localPoint = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
+      if (displayed && targetControl.target === "world-surface" && terrainTarget.getSnapshot().context.anchor) {
+        const candidate = upperPlacementAt(localPoint, displayed, terrainTarget.getSnapshot().context.anchor, project);
+        if (candidate) {
+          runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }));
+          clearPlacement();
+          return;
+        }
+      }
       const hit = displayed && terrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
       const structure = hit?.kind === "structure-top";
       const surface = (hit?.kind === "terrain-top" || (structure && targetControl.target === "world-surface")) && hit.surface;
@@ -799,6 +833,9 @@ export function createHiveClient({
         app.canvas.setPointerCapture?.(event.pointerId);
         draw();
         return;
+      }
+      if (targetControl.target === "world-surface" && structure) {
+        terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       }
       runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }));
       return;
@@ -833,6 +870,20 @@ export function createHiveClient({
         state.message = error.message;
       }
       renderHud(); draw(); return;
+    }
+    const targetSnapshot = terrainTarget.getSnapshot();
+    if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface") {
+      const displayed = displayedTerrainFrame();
+      const at = point(event);
+      const local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
+      const hit = displayed && terrainHit(local.x, local.y, displayed);
+      if (displayed && hit?.kind === "structure-top")
+        terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
+      const anchor = terrainTarget.getSnapshot().context.anchor;
+      const candidate = displayed && anchor ? upperPlacementAt(local, displayed, anchor, project) : null;
+      terrainTarget.send({ type: "HOVER", cell: candidate });
+      draw();
+      return;
     }
     if (isAiming()) {
       state.aim.point = point(event);
