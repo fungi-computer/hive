@@ -537,3 +537,15 @@ were collected inactive/dead with empty control groups. No older water-law repla
 This qualifies local native source only: no WASM/Colony/DO join or capacity claim.
 Terrain owner source 9ca7657 is now joined for focused qualification, with root
 corrections for ordered Cell keys and the revision9-to10 encoded-size assertion.
+
+Terrain qualification u5399 stopped at compile with two test-only typing mistakes
+(coordinate integer widths and unwrapping PrepareResult). Root corrected them at
+104b3d9. u5401 exit0: five terrain laws and four generator laws passed, including
+negative-page agreement, bounded cache, excavation/retry, save binding, exact
+encoded size and finite groundwater proposals. Generator laws reran because the
+seed framing changed in this terrain join. Both scopes inactive/dead/empty. No
+WASM, actual movement integration, browser, DO or performance claim follows.
+
+Opaque Region record source7c7d048 joined as488653c after personal and independent
+review. Its focused runtime/type qualification remains pending. Public release
+is unchanged; native terrain/water still need the actual Kernel/Colony consumer.
