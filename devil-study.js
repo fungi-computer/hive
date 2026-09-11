@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Application, Sprite, Graphics } from "pixi.js";
-import { bake, anchor } from "./src/art.js";
+import { anchor } from "./src/art.js";
+import { bake } from "./src/art/bake.js";
 import { camera } from "./src/art/scale.js";
 import { figure } from "./src/art/figures.js";
 import { DEMONS, demon, courtyard, chessTable } from "./devil-study-figures.js";

@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { Application, Sprite, Graphics } from "pixi.js";
 import "@fungi.computer/caps/styles.css";
-import { bake, anchor } from "./src/art.js";
+import { anchor } from "./src/art.js";
+import { bake } from "./src/art/bake.js";
 import { camera } from "./src/art/scale.js";
 import { figure } from "./src/art/figures.js";
 import { ANIMALS, animal, pasture } from "./animal-study-animals.js";
