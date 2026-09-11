@@ -3,6 +3,8 @@ import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
+  Emitter,
+  beginEmission,
   Body,
   Container,
   Destination,
@@ -16,7 +18,7 @@ import {
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, Worker, colonyWorkSystem, colonyConstructionSupplySystem } from "./colony-work";
+import { ColonyDigOrder, Worker, colonyWorkSystem, colonySupplySystem } from "./colony-work";
 import type { EntityId, GamePack } from "../contracts";
 
 export { Worker, ColonyDigOrder, colonyWorkSystem } from "./colony-work";
@@ -37,7 +39,14 @@ const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
 const tasks = [taskOne, taskTwo] as const;
 
+const hearthId = entity("colony.hearth");
 const colonyInitial = [
+  { id: hearthId, components: {
+    "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
+    "hive.container": { capacity: 4 },
+    "hive.emitter": { catalog: "wood-hearth" },
+    "hive.visual": { sprite: "colony.hearth", label: "Wood hearth" },
+  } },
   ...workers.map((id, index) => ({
     id,
     components: {
@@ -219,6 +228,7 @@ function depositActions(context: CommandContext, input: unknown) {
 
 const colonyComponents = [
   Position,
+  Emitter,
   Body,
   Container,
   Traversal,
@@ -264,10 +274,25 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 3,
   components: colonyComponents,
-  systems: [colonyConstructionSupplySystem, colonyWorkSystem],
+  systems: [colonySupplySystem, colonyWorkSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
+    lightHearth: command({
+      reads: [Worker, Emitter, Destination, ExcavationWork, ConstructionSite, DeliveryTask],
+      writes: [],
+      run(context, input) {
+        const selected = selectedWorkers(context, input);
+        if (selected.length !== 1) throw new Error("Select one worker beside the hearth");
+        const worker = selected[0];
+        const busy = context.query(query(Destination)).some(row => row.id === worker)
+          || context.query(query(ExcavationWork)).some(row => row.id === worker)
+          || context.query(query(ConstructionSite)).some(row => row.get(ConstructionSite).worker === worker)
+          || context.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).actor === worker);
+        if (busy) throw new Error("Worker must finish current work before lighting the hearth");
+        return { actions: [beginEmission(worker, hearthId)], writes: [] };
+      },
+    }),
     deliver: command({
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
@@ -342,6 +367,7 @@ export const colonyPack: GamePack = {
         status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
     }),
     controls: [
+      { id: "light-hearth", label: "Light hearth", command: "lightHearth", selection: "entities" },
       { id: "deliver", label: "Deliver 1", command: "deliver", input: { quantity: 1 }, selection: "entities" },
       { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
       { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
@@ -359,6 +385,7 @@ export const colonyPack: GamePack = {
       return [
         { id: "pantry-quantity", label: "Pantry", value: total(pantryId) },
         { id: "lumber-quantity", label: "Starter lumber", value: total(colonyLumberId) },
+        { id: "hearth-fuel", label: "Hearth wood", value: total(hearthId) },
         { id: "worker-carried", label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         { id: "guest-quantity", label: "Guest meal", value: total(guestId) },
         ...workers.map((worker, index) => ({

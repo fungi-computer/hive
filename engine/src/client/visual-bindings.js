@@ -6,6 +6,10 @@ const constructionBindings = Object.fromEntries(["floor", "wall", "stair"].flatM
   })])));
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,
+  "colony.hearth": Object.freeze({
+    kind: "static", path: ["buildings", "brew-station", "finished", 0],
+    facing: false, anchor: "propAnchor",
+  }),
   crate: Object.freeze({
     kind: "static",
     path: ["props", "crate"],

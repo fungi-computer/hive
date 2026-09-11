@@ -5,7 +5,7 @@ import { component, entity, query, system } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import {
-  Body, Container, Destination, ExcavationWork, MaterialLot, LotWater, Position, Support, Surface, Traversal,
+  Emitter, Body, Container, Destination, ExcavationWork, MaterialLot, LotWater, Position, Support, Surface, Traversal,
   excavate, move, cancelWork,
 } from "../sdk/common";
 import type { EntityId, TerrainSurface, Vec3, WriteContext } from "../contracts";
@@ -252,21 +252,24 @@ export function digOrderId(x: number, y: number, z: number): EntityId {
 export function cancelDigAction(actor: EntityId) { return cancelWork(actor); }
 
 /** Sites request stock through the same finite deliveries as every other task. */
-export const colonyConstructionSupplySystem = system({
-  id: "colony.construction-supplies", version: 1,
-  reads: [ConstructionSite, Container, MaterialLot, SealedContainer, DeliveryTask],
+export const colonySupplySystem = system({
+  id: "colony.site-supplies", version: 1,
+  reads: [ConstructionSite, Emitter, Container, MaterialLot, SealedContainer, DeliveryTask],
   writes: [DeliveryTask],
   run(ctx) {
     const sites = ctx.query(query(ConstructionSite));
     const start = sites.length ? (ctx.clock.tick * 4) % sites.length : 0;
-    const active = Array.from({ length: Math.min(4, sites.length) }, (_, offset) => sites[(start + offset) % sites.length]);
+    const active = Array.from({ length: Math.min(3, sites.length) }, (_, offset) => sites[(start + offset) % sites.length]);
     planSiteSupplies(ctx, {
       sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
-      requirements: active.flatMap(row => {
+      requirements: [...active.flatMap(row => {
         const site = row.get(ConstructionSite);
         const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
         return definition ? definition.materials.map(({ kind: material, quantity }) => ({ destination: row.id, material, quantity })) : [];
-      }),
+      }), ...ctx.query(query(Emitter)).slice(0, 8).flatMap(row => {
+        const definition = colonyEnvironment.emissions?.find(item => item.id === row.get(Emitter).catalog);
+        return definition ? [{ destination: row.id, material: definition.materialKind, quantity: definition.quantity }] : [];
+      })],
     });
   },
 });
