@@ -292,7 +292,14 @@ mod tests {
     fn kernel_clock_and_record_restore_advance_one_authored_environment() {
         let mut kernel = crate::Kernel::new();
         kernel.load(r#"{"format":"hive-game","version":1,"game":"colony","components":[],"initial":[]}"#).unwrap();
-        kernel.load_environment(&fixture("seed-a")).unwrap();
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("seed-a")).unwrap();
+        let mut prepared = prepare_definition(&input.to_string()).unwrap();
+        let at = (-7..8).flat_map(|x| (-6..0).map(move |y| Cell { x, y, z: 0 }))
+            .find(|at| prepared.terrain.query(*at).unwrap() != 0
+                && prepared.terrain.query(Cell { y: at.y - 1, ..*at }).unwrap() != 0)
+            .expect("generated fixture contains adjacent porous rock");
+        input["water"]["cells"] = serde_json::json!([[at.x, at.y, 0], [at.x, at.y - 1, 0], [0, 39, 0]]);
+        kernel.load_environment(&input.to_string()).unwrap();
         let before = kernel.environment_facts_json().unwrap();
         let step = r#"{"delta":0.2,"writes":[],"actions":[]}"#;
         kernel.advance_json(step).unwrap();
