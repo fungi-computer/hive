@@ -417,7 +417,7 @@ pub(crate) mod tests {
         kernel.load(&json!({
             "format":"hive-game", "version":1, "game":"placement", "components":[],
             "initial":[
-                {"id":"actor","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0.25},"hive.body":{"speed":1},"hive.container":{"capacity":2}}},
+                {"id":"actor","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0.25},"hive.body":{"speed":1},"hive.container":{"capacity":2},"hive.traversal":{"clearanceCells":1,"maxStepCells":1}}},
                 {"id":"pantry","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":1.25},"hive.container":{"capacity":20}}}
             ]
         }).to_string()).unwrap();
@@ -425,10 +425,17 @@ pub(crate) mod tests {
         let first: serde_json::Value = serde_json::from_str(&kernel.render_json().unwrap()).unwrap();
         let actor = first.as_array().unwrap().iter().find(|fact| fact["id"] == "actor").unwrap();
         let pantry = first.as_array().unwrap().iter().find(|fact| fact["id"] == "pantry").unwrap();
-        assert_ne!(actor["local"]["position"]["y"], 0.0);
-        assert_ne!(pantry["local"]["position"]["y"], 0.0);
+        let surfaces: serde_json::Value = serde_json::from_str(&kernel.terrain_surfaces_json("[[0,0],[1,0]]").unwrap()).unwrap();
+        let actor_y = (surfaces[0]["cell"][1].as_i64().unwrap() as f64 + 0.5) * 0.54;
+        let pantry_y = (surfaces[1]["cell"][1].as_i64().unwrap() as f64 + 0.5) * 0.54;
+        assert_eq!(actor["local"]["position"]["y"], actor_y);
+        assert_eq!(pantry["local"]["position"]["y"], pantry_y);
         assert_eq!(actor["local"]["position"]["x"], 0.0);
         assert_eq!(pantry["local"]["position"]["x"], 1.0);
+        assert_eq!(actor["local"]["facing"], 0.25);
+        assert_eq!(pantry["local"]["facing"], 1.25);
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"actor","destination":{"x":2,"y":0,"z":0,"frame":null}}]}"#).unwrap();
+        kernel.advance_json(r#"{"delta":5,"writes":[],"actions":[]}"#).unwrap();
         let records = kernel.save_records().unwrap();
         let mut restored = crate::Kernel::new();
         restored.restore_records(&records).unwrap();
@@ -448,7 +455,10 @@ pub(crate) mod tests {
         missing["initialPlacements"] = json!([{ "entity":"missing", "column":[0, 0] }]);
         let mut kernel = crate::Kernel::new();
         kernel.load(r#"{"format":"hive-game","version":1,"game":"placement","components":[],"initial":[]}"#).unwrap();
+        let before = kernel.save_records().unwrap().entities;
         assert!(kernel.load_environment(&missing.to_string()).is_err());
+        assert_eq!(kernel.save_records().unwrap().entities, before);
+        assert!(kernel.environment_facts_json().is_err());
     }
 
 }
