@@ -35,6 +35,36 @@ published. This headless construction sequence does not complete the goal's
 usable three-storey house, smoke/ventilation, exploration or region journey.
 
 
+**Construction input checkpoint:** `d40ab28` joins upper placement and keeps
+an armed build tool active after placement clearing. Five focused placement/
+gesture laws and strict types passed (u5830). The following ordinary build
+passed (u5832), but its browser target crashed while waiting for the first
+stair to finish. No mouse-built stair or three-level visual acceptance is claimed.
+The scope is inactive/dead with an empty control group; its old terminal handle
+is absent. `construction-input/failure.json` preserves the crash with no captured
+page error or final frame. Root disk was subsequently measured at only 6 MB free;
+causation is unproved. Do not repeat the browser before resolving host headroom.
+
+### Retained production is the restoration reference
+
+Levi reaffirmed that construction alone does not restore Colony. Read actual
+`src/recipes.ts`, `src/brewing.ts` and their material/work callers before the next
+production extension. Preserve consumed ingredients versus retained vessels,
+attended preparation, unattended fermentation, kegging/serving, finite products
+and spent grain, output backpressure, and progress across worker replacement and
+current-format save/reload. The intended player order is a standing production
+request; available workers perform eligible steps without manual stage commands.
+That standing-order experience is a target, not a claim about the retained UI.
+
+Use the existing shared delivery, claims, lot/container and native work owners.
+Recipe definitions should compose supported steps; brewing must not introduce a
+parallel fuel inventory or special hauling loop. Fuel debit and physical smoke
+must join the same committed outcome. The retained air Region and finite-fuel
+callers provide conservation/restart requirements, not a mandate to copy their
+numerical implementation. Rust room air remains unfinished. Construction and
+production must exercise shared mechanisms rather than two independent job stacks.
+
+
 The four-page demo is now deployed from a13fc44. Colony uses the Rust generator
 for64×64 exterior columns and native finite water near the camp. Real mouse
 input completed soil/stone excavation, spoil deposits and an exterior cutaway
