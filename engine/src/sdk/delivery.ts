@@ -152,15 +152,17 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
         )
           return [];
         const lot = lotsById.get(task.sourceLot);
+        const quantity = Math.min(control.quantity, task.quantity);
         if (
+          !Number.isSafeInteger(task.quantity) || task.quantity <= 0 || task.quantity > 0xffffffff ||
           !lot ||
           lot.container !== task.source ||
           lot.kind !== task.material ||
           !Number.isSafeInteger(lot.quantity) ||
           lot.quantity > 0xffffffff ||
-          lot.quantity < control.quantity ||
-          !hasCapacity(controlRow.id, control.quantity) ||
-          !hasCapacity(task.destination, control.quantity)
+          lot.quantity < quantity ||
+          !hasCapacity(controlRow.id, quantity) ||
+          !hasCapacity(task.destination, quantity)
         )
           return [];
         const sourcePosition = poses.get(task.source);
@@ -212,7 +214,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
           ctx.write(DeliveryTask, taskRow.id, {
             ...task,
             actor: assignment.worker,
-            quantity: control.quantity,
+            quantity: Math.min(control.quantity, task.quantity),
             phase: "to-source",
           });
         }
@@ -267,7 +269,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       if (state.phase === "idle") {
         ctx.write(DeliveryTask, task.id, {
           ...state,
-          quantity: control.quantity,
+          quantity: Math.min(control.quantity, state.quantity),
           phase: "to-source",
         });
         continue;

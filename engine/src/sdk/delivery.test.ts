@@ -117,7 +117,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       source,
       destination,
       material: "food",
-      quantity: 1,
+      quantity: 2,
       phase: "idle",
     };
     const values = new Map<string, readonly unknown[]>([

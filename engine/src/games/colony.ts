@@ -95,7 +95,7 @@ const colonyInitial = [
         source: pantryId,
         destination: guestId,
         material: "bread",
-        quantity: 1,
+        quantity: 2,
         phase: "idle",
       },
     },
