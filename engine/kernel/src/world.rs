@@ -1109,6 +1109,16 @@ impl Kernel {
         let facts: Vec<_> = surfaces.into_iter().map(|cells| cells.into_iter().map(|cell| json!({"cell": [cell.x, cell.y, cell.z]})).collect::<Vec<_>>()).collect();
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
+    /// Return the bounded physical columns changed after a known revision.
+    /// The native owner returns a full-reset marker when its disposable index
+    /// cannot prove the requested history (including after restore).
+    pub fn terrain_changes_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 64 { return Err("terrain change query exceeds input budget".into()); }
+        let since: u64 = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        serde_json::to_string(&environment.world.terrain_changes(since)).map_err(|error| error.to_string())
+    }
     pub fn terrain_materials_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 32 * 1024 { return Err("terrain query exceeds input budget".into()); }

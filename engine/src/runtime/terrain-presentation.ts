@@ -1,5 +1,5 @@
 import type { EnvironmentDefinition } from "../sdk/environment";
-import type { KernelPort, StructureSurface, TerrainSurface } from "../contracts";
+import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainSurface } from "../contracts";
 
 type Coordinate = readonly [number, number, number];
 
@@ -27,6 +27,7 @@ interface CachedSurfaces {
   readonly revision: number;
   readonly surfaces: readonly TerrainSurface[];
   readonly byColumn: ReadonlyMap<string, TerrainSurface | null>;
+  readonly structuresByColumn: ReadonlyMap<string, readonly StructureSurface[]>;
   readonly structureSurfaces: readonly StructureSurface[];
 }
 
@@ -117,8 +118,15 @@ export class TerrainPresentationOwner {
 
   read(): TerrainPresentationFrame {
     const facts = parseFacts(this.port.environmentFacts());
-    if (!this.cached || this.cached.revision !== facts.terrainRevision)
-      this.cached = this.sampleSurfaces(facts.terrainRevision);
+    if (!this.cached) this.cached = this.sampleSurfaces(facts.terrainRevision);
+    else if (this.cached.revision !== facts.terrainRevision) {
+      const changes = this.port.terrainChanges(this.cached.revision);
+      if (changes.revision !== facts.terrainRevision)
+        throw new Error("terrain change revision does not match environment facts");
+      this.cached = changes.kind === "full-reset"
+        ? this.sampleSurfaces(facts.terrainRevision)
+        : this.patchSurfaces(this.cached, facts.terrainRevision, changes);
+    }
     const water = facts.cells.filter((cell) => this.isExteriorWater(cell));
     return Object.freeze({
       revision: facts.terrainRevision,
@@ -130,67 +138,111 @@ export class TerrainPresentationOwner {
   }
 
   private sampleSurfaces(revision: number): CachedSurfaces {
+    const columns = this.columns();
+    const sampled = this.sampleColumns(columns);
+    return this.assemble(revision, columns, sampled.byColumn, sampled.structuresByColumn);
+  }
+
+  private patchSurfaces(
+    cached: CachedSurfaces,
+    revision: number,
+    changes: Extract<TerrainChangeSet, { readonly kind: "changed-columns" }>,
+  ): CachedSurfaces {
+    const seen = new Set<string>();
+    for (const column of changes.columns) {
+      const key = columnKey(column[0], column[1]);
+      if (!this.inBounds(column) || seen.has(key)) throw new Error("invalid terrain changed column");
+      seen.add(key);
+    }
+    const sampled = this.sampleColumns(changes.columns);
+    const byColumn = new Map(cached.byColumn);
+    const structuresByColumn = new Map(cached.structuresByColumn);
+    for (const column of changes.columns) {
+      const key = columnKey(column[0], column[1]);
+      byColumn.set(key, sampled.byColumn.get(key) ?? null);
+      structuresByColumn.set(key, sampled.structuresByColumn.get(key) ?? []);
+    }
+    return this.assemble(revision, this.columns(), byColumn, structuresByColumn);
+  }
+
+  private columns(): [number, number][] {
     const { minX, maxX, minZ, maxZ } = this.definition.world.bounds;
     const columns: [number, number][] = [];
     for (let x = minX; x < maxX; x++)
       for (let z = minZ; z < maxZ; z++) columns.push([x, z]);
+    return columns;
+  }
+
+  private inBounds(column: readonly [number, number]): boolean {
+    const { minX, maxX, minZ, maxZ } = this.definition.world.bounds;
+    return column[0] >= minX && column[0] < maxX && column[1] >= minZ && column[1] < maxZ;
+  }
+
+  private sampleColumns(columns: readonly [number, number][]): {
+    readonly byColumn: ReadonlyMap<string, TerrainSurface | null>;
+    readonly structuresByColumn: ReadonlyMap<string, readonly StructureSurface[]>;
+  } {
     const byColumn = new Map<string, TerrainSurface | null>();
-    const surfaces: TerrainSurface[] = [];
-    const structureSurfaces: StructureSurface[] = [];
-    let structureCount = 0;
+    const structuresByColumn = new Map<string, readonly StructureSurface[]>();
     for (let offset = 0; offset < columns.length; offset += SURFACE_BATCH) {
       const batch = columns.slice(offset, offset + SURFACE_BATCH);
       const result = this.port.terrainSurfaces(batch);
       const structures = this.port.structureSurfaces(batch);
-      if (result.length !== batch.length)
-        throw new Error("terrain surface query returned the wrong count");
-      if (structures.length !== batch.length)
-        throw new Error("structure surface query returned the wrong count");
+      if (result.length !== batch.length) throw new Error("terrain surface query returned the wrong count");
+      if (structures.length !== batch.length) throw new Error("structure surface query returned the wrong count");
       for (let index = 0; index < batch.length; index++) {
+        const column = batch[index];
         const surface = result[index];
         if (surface !== null) {
           const cell = surface.cell;
-          if (
-            cell[0] !== batch[index][0] ||
-            cell[2] !== batch[index][1] ||
-            !signedInteger(cell[1]) ||
-            !Number.isInteger(surface.material) ||
-            surface.material < 0 ||
-            surface.material > 65535
-          )
+          if (cell[0] !== column[0] || cell[2] !== column[1] || !signedInteger(cell[1]) ||
+            !Number.isInteger(surface.material) || surface.material < 0 || surface.material > 65535)
             throw new Error("invalid terrain surface projection");
-          const copy = Object.freeze({
+          byColumn.set(columnKey(column[0], column[1]), Object.freeze({
             cell: Object.freeze([cell[0], cell[1], cell[2]]) as TerrainSurface["cell"],
             material: surface.material,
-          });
-          byColumn.set(columnKey(batch[index][0], batch[index][1]), copy);
-          surfaces.push(copy);
-        } else byColumn.set(columnKey(batch[index][0], batch[index][1]), null);
+          }));
+        } else byColumn.set(columnKey(column[0], column[1]), null);
         const parsed: StructureSurface[] = [];
         const seenHeights = new Set<number>();
-        if (!Array.isArray(structures[index]))
-          throw new Error("invalid structure surface projection");
+        if (!Array.isArray(structures[index])) throw new Error("invalid structure surface projection");
         for (const surface of structures[index]) {
           const cell = surface?.cell;
-          if (!cell || cell.length !== 3 || cell[0] !== batch[index][0] ||
-            cell[2] !== batch[index][1] || !signedInteger(cell[1]))
+          if (!cell || cell.length !== 3 || cell[0] !== column[0] || cell[2] !== column[1] || !signedInteger(cell[1]))
             throw new Error("invalid structure surface projection");
-          if (seenHeights.has(cell[1]))
-            throw new Error("duplicate structure surface projection");
+          if (seenHeights.has(cell[1])) throw new Error("duplicate structure surface projection");
           seenHeights.add(cell[1]);
-          if (++structureCount > MAX_STRUCTURE_SURFACES)
-            throw new Error("structure surface projection exceeds the budget");
-          parsed.push(Object.freeze({
-            cell: Object.freeze([cell[0], cell[1], cell[2]]) as StructureSurface["cell"],
-          }));
+          parsed.push(Object.freeze({ cell: Object.freeze([cell[0], cell[1], cell[2]]) as StructureSurface["cell"] }));
         }
-        structureSurfaces.push(...parsed);
+        structuresByColumn.set(columnKey(column[0], column[1]), Object.freeze(parsed));
       }
+    }
+    return { byColumn, structuresByColumn };
+  }
+
+  private assemble(
+    revision: number,
+    columns: readonly [number, number][],
+    byColumn: ReadonlyMap<string, TerrainSurface | null>,
+    structuresByColumn: ReadonlyMap<string, readonly StructureSurface[]>,
+  ): CachedSurfaces {
+    const surfaces: TerrainSurface[] = [];
+    const structureSurfaces: StructureSurface[] = [];
+    for (const column of columns) {
+      const key = columnKey(column[0], column[1]);
+      const surface = byColumn.get(key);
+      if (surface !== undefined && surface !== null) surfaces.push(surface);
+      const structures = structuresByColumn.get(key);
+      if (!structures) throw new Error("terrain structure projection is missing a column");
+      if (structureSurfaces.length + structures.length > MAX_STRUCTURE_SURFACES)
+        throw new Error("structure surface projection exceeds the budget");
+      structureSurfaces.push(...structures);
     }
     return {
       revision,
       surfaces: Object.freeze(surfaces),
-      byColumn,
+      byColumn: new Map(byColumn),
+      structuresByColumn: new Map(structuresByColumn),
       structureSurfaces: Object.freeze(structureSurfaces),
     };
   }

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import type { EnvironmentDefinition } from "../sdk/environment";
-import type { KernelPort, StructureSurface, TerrainSurface } from "../contracts";
+import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainSurface } from "../contracts";
 import { TerrainPresentationOwner } from "./terrain-presentation";
 
 const definition: EnvironmentDefinition = {
@@ -35,7 +35,8 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
     return columns.map(([x]) => x === 0
       ? { cell: [x, surfaceY, 0] as const, material: 1 }
       : null);
-  }, columns => { structureCalls++; return columns.map(([x, z]) => [{ cell: [x, 2, z] as const }]); });
+  }, columns => { structureCalls++; return columns.map(([x, z]) => [{ cell: [x, 2, z] as const }]); },
+  () => ({ kind: "full-reset", revision, reason: "history" }));
   const owner = new TerrainPresentationOwner(port, definition);
   const first = owner.read();
   assert.equal(surfaceCalls, 1);
@@ -54,6 +55,33 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
   owner.read();
   assert.equal(surfaceCalls, 3);
   assert.equal(structureCalls, 3);
+});
+
+test("physical column changes patch terrain and structures in canonical order", () => {
+  let revision = 1;
+  let surfaceCalls = 0;
+  let structureCalls = 0;
+  const port = fakePort(
+    () => ({ terrainRevision: revision, cells: [] }),
+    columns => {
+      surfaceCalls++;
+      return columns.map(([x, z]) => ({ cell: [x, x === 0 ? revision : 7, z] as const, material: x + 1 }));
+    },
+    columns => {
+      structureCalls++;
+      return columns.map(([x, z]) => [{ cell: [x, x === 0 ? revision + 10 : 20, z] as const }]);
+    },
+    () => ({ kind: "changed-columns", revision: 2, columns: [[0, 0]] }),
+  );
+  const owner = new TerrainPresentationOwner(port, definition);
+  const first = owner.read();
+  revision = 2;
+  const changed = owner.read();
+  assert.equal(surfaceCalls, 2);
+  assert.equal(structureCalls, 2);
+  assert.deepEqual(changed.surfaces.map(surface => surface.cell), [[0, 2, 0], [1, 7, 0]]);
+  assert.deepEqual(changed.structureSurfaces.map(surface => surface.cell), [[0, 12, 0], [1, 20, 0]]);
+  assert.deepEqual(first.surfaces.map(surface => surface.cell), [[0, 1, 0], [1, 7, 0]]);
 });
 
 test("structure projection preserves multiple authored heights and rejects duplicates", () => {
@@ -79,6 +107,7 @@ function fakePort(
   facts: () => unknown,
   surfaces: (columns: readonly [number, number][]) => readonly (TerrainSurface | null)[],
   structures: (columns: readonly [number, number][]) => readonly (readonly StructureSurface[])[] = columns => columns.map(() => []),
+  changes: (since: number) => TerrainChangeSet = () => ({ kind: "full-reset", revision: 1, reason: "history" }),
 ): KernelPort {
   return {
     routeCosts: () => { throw new Error("unexpected route query"); },
@@ -91,6 +120,7 @@ function fakePort(
     terrainMaterials: () => [],
     terrainSurfaces: surfaces,
     structureSurfaces: structures,
+    terrainChanges: changes,
     query: () => [],
     entityMembership: () => [],
     advance: () => ({ revision: 0, results: [], impacts: [] }),

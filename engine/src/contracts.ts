@@ -285,6 +285,9 @@ export type TerrainSurface = {
 export type StructureSurface = {
   readonly cell: readonly [number, number, number];
 };
+export type TerrainChangeSet =
+  | { readonly kind: "changed-columns"; readonly revision: number; readonly columns: readonly (readonly [number, number])[] }
+  | { readonly kind: "full-reset"; readonly revision: number; readonly reason: "history" | "restored" | "stale" };
 export interface KernelPort {
   readonly physicalContacts: (cells: readonly [number, number, number][]) => readonly PhysicalContact[];
   readonly routeCosts: (requests: readonly RouteCostRequest[]) => readonly RouteCostResult[];
@@ -299,6 +302,7 @@ export interface KernelPort {
   readonly terrainSurfaces: (
     columns: readonly [number, number][],
   ) => readonly (TerrainSurface | null)[];
+  readonly terrainChanges: (sinceRevision: number) => TerrainChangeSet;
   readonly structureSurfaces: (
     columns: readonly [number, number][],
   ) => readonly (readonly StructureSurface[])[];
