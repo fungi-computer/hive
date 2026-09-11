@@ -91,6 +91,11 @@ export type WriteIntent = {
   readonly value: unknown;
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
+export type StructureState =
+  | { readonly kind: "floor"; readonly id: EntityId; readonly support: Vec3 }
+  | { readonly kind: "wall"; readonly id: EntityId; readonly base: Vec3; readonly height: number }
+  | { readonly kind: "stair"; readonly id: EntityId; readonly origin: Vec3; readonly orientation: CardinalOrientation; readonly run: number; readonly rise: number }
+  | { readonly kind: "aperture-wall"; readonly id: EntityId; readonly base: Vec3; readonly height: number; readonly openingBottom: number; readonly openingHeight: number; readonly open: boolean };
 export type ActionRequest =
   | { readonly kind: "set-structure-open"; readonly worker: EntityId; readonly site: EntityId; readonly open: boolean }
   | { readonly kind: "plan-construction"; readonly catalog: string; readonly site: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly orientation: CardinalOrientation; readonly contact: Vec3 & { readonly frame: null } }
@@ -183,6 +188,7 @@ export interface ReadContext {
   atmosphereSamples(cells: readonly [number, number, number][]): AtmosphereSamples;
   terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
   terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
+  structureStates(ids: readonly EntityId[]): readonly (StructureState | null)[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,
@@ -302,6 +308,7 @@ export interface KernelPort {
   readonly structureSurfaces: (
     columns: readonly [number, number][],
   ) => readonly (readonly StructureSurface[])[];
+  readonly structureStates: (ids: readonly EntityId[]) => readonly (StructureState | null)[];
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];

@@ -13,6 +13,7 @@ import type {
   RenderFact,
   TerrainSurface,
   StructureSurface,
+  StructureState,
   RouteCostResult,
   WorldPose,
   WriteIntent,
@@ -36,6 +37,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
   structure_surfaces(json: string): string;
+  structure_states(json: string): string;
   query(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -249,6 +251,28 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         });
       })) throw new Error("invalid structure surface query result");
       return result as readonly (readonly StructureSurface[])[];
+    },
+    structureStates(ids) {
+      const wire = JSON.stringify(ids);
+      if (ids.length === 0 || ids.length > 64 || new TextEncoder().encode(wire).byteLength > 16 * 1024 ||
+          ids.some(id => typeof id !== "string" || !/^[A-Za-z0-9._:-]+$/.test(id) || id.length > 128))
+        throw new Error("structure state query must contain 1..64 valid IDs within 16KiB");
+      const result: unknown = JSON.parse(binding.structure_states(wire));
+      const coordinate = (value: unknown, signed32 = false) => Number.isSafeInteger(value) && (!signed32 || (value as number) >= -2147483648 && (value as number) <= 2147483647);
+      const point = (value: unknown) => Boolean(value) && typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length === 3 && coordinate((value as Record<string, unknown>).x) && coordinate((value as Record<string, unknown>).y, true) && coordinate((value as Record<string, unknown>).z);
+      const exact = (value: Record<string, unknown>, fields: readonly string[]) => Object.keys(value).length === fields.length && fields.every(field => Object.hasOwn(value, field));
+      const valid = (value: unknown, index: number): value is StructureState | null => {
+        if (value === null) return true;
+        if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+        const entry = value as Record<string, unknown>;
+        if (entry.id !== ids[index] || typeof entry.id !== "string") return false;
+        if (entry.kind === "floor") return exact(entry, ["kind", "id", "support"]) && point(entry.support);
+        if (entry.kind === "wall") return exact(entry, ["kind", "id", "base", "height"]) && point(entry.base) && Number.isInteger(entry.height) && (entry.height as number) >= 1 && (entry.height as number) <= 64;
+        if (entry.kind === "stair") return exact(entry, ["kind", "id", "origin", "orientation", "run", "rise"]) && point(entry.origin) && ["north", "east", "south", "west"].includes(entry.orientation as string) && Number.isInteger(entry.run) && (entry.run as number) >= 1 && (entry.run as number) <= 64 && Number.isInteger(entry.rise) && (entry.rise as number) >= 1 && (entry.rise as number) <= 64;
+        return entry.kind === "aperture-wall" && exact(entry, ["kind", "id", "base", "height", "openingBottom", "openingHeight", "open"]) && point(entry.base) && Number.isInteger(entry.height) && (entry.height as number) >= 1 && (entry.height as number) <= 64 && Number.isInteger(entry.openingBottom) && (entry.openingBottom as number) >= 0 && Number.isInteger(entry.openingHeight) && (entry.openingHeight as number) > 0 && (entry.openingBottom as number) + (entry.openingHeight as number) < (entry.height as number) && typeof entry.open === "boolean";
+      };
+      if (!Array.isArray(result) || result.length !== ids.length || result.some((value, index) => !valid(value, index))) throw new Error("invalid structure state query result");
+      return result as readonly (StructureState | null)[];
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);

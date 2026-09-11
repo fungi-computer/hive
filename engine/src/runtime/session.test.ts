@@ -83,6 +83,7 @@ class TestPort implements KernelPort {
   terrainMaterials(_cells: readonly [number, number, number][]): readonly number[] { return []; }
   terrainSurfaces(_columns: readonly [number, number][]): readonly null[] { return []; }
   structureSurfaces(_columns: readonly [number, number][]): readonly (readonly [])[] { return []; }
+  structureStates(ids: readonly import("../contracts").EntityId[]): readonly null[] { return ids.map(() => null); }
   entityMembership(ids: readonly import("../contracts").EntityId[]): readonly boolean[] {
     return ids.map((id) => id === "actor");
   }

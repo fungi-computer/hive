@@ -91,6 +91,7 @@ function fakePort(
     terrainMaterials: () => [],
     terrainSurfaces: surfaces,
     structureSurfaces: structures,
+    structureStates: ids => ids.map(() => null),
     query: () => [],
     entityMembership: () => [],
     advance: () => ({ revision: 0, results: [], impacts: [] }),

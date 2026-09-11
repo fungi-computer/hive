@@ -24,6 +24,7 @@ import type {
   EntityId,
   WorldPose,
   Impact,
+  StructureState,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -551,6 +552,7 @@ export class GameSession {
         atmosphereSamples: cells => this.port.atmosphereSamples(cells),
         terrainMaterials: cells => this.port.terrainMaterials(cells),
         terrainSurfaces: columns => this.port.terrainSurfaces(columns),
+        structureStates: ids => this.port.structureStates(ids),
         routeCosts: requests => {
           if (!activeReads.some(definition => definition.id === Position.id) || !activeReads.some(definition => definition.id === Body.id))
             throw new Error("route query requires declared position and body reads");
@@ -850,7 +852,11 @@ export class GameSession {
     const physical = this.port.renderFacts(limit);
     const project = this.pack.presentation?.visuals;
     if (!project) return physical;
-    return appendVisualProjections(physical, project({ query: spec => this.query(spec) }),
+    return appendVisualProjections(physical, project({ query: spec => this.query(spec), structureStates: ids => this.port.structureStates(ids) }),
       ids => this.port.entityMembership(ids), limit);
+  }
+  structureStates(ids: readonly EntityId[]): readonly (StructureState | null)[] {
+    this.ensureLive();
+    return this.port.structureStates(ids);
   }
 }
