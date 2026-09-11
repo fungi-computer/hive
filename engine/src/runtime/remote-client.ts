@@ -38,7 +38,7 @@ type ObservationWire = {
   };
 };
 type PendingIntent = {
-  readonly command: unknown;
+  command: unknown;
   retries: number;
   staleRetries: number;
   id?: string;
@@ -221,6 +221,32 @@ function actionResult(value: unknown): value is ActionResult {
   return isRecord(value) && typeof value.accepted === "boolean" &&
     safeNonnegativeInteger(value.revision) &&
     (value.reason === undefined || (typeof value.reason === "string" && value.reason.length <= 256));
+}
+function directInputBatch(value: unknown): { entity: string; stream: string; inputs: readonly { sequence: number; x: number; z: number }[] } | undefined {
+  if (!isRecord(value) || value.kind !== "action" || !isRecord(value.action) || value.action.kind !== "direct-input" ||
+    typeof value.action.entity !== "string" || typeof value.action.stream !== "string" || !Array.isArray(value.action.inputs)) return undefined;
+  const inputs = value.action.inputs;
+  if (inputs.length < 1 || inputs.length > 50 || inputs.some((input) => !isRecord(input) ||
+    !safeNonnegativeInteger(input.sequence) || input.sequence < 1 || !finite(input.x) || !finite(input.z))) return undefined;
+  return { entity: value.action.entity, stream: value.action.stream, inputs: inputs as { sequence: number; x: number; z: number }[] };
+}
+function coalesceDirectInput(previous: PendingIntent, next: PendingIntent): boolean {
+  if (previous.body !== undefined || previous.id !== undefined) return false;
+  const first = directInputBatch(previous.command);
+  const second = directInputBatch(next.command);
+  if (!first || !second || first.entity !== second.entity || first.stream !== second.stream ||
+    first.inputs.length + second.inputs.length > 50 ||
+    first.inputs.at(-1)!.sequence + 1 !== second.inputs[0].sequence) return false;
+  previous.command = {
+    kind: "action",
+    action: {
+      kind: "direct-input",
+      entity: first.entity,
+      stream: first.stream,
+      inputs: [...first.inputs, ...second.inputs],
+    },
+  };
+  return true;
 }
 
 export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConnection {
@@ -420,12 +446,15 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       emit({ type: "error", message: `remote command ${command.type} is unsupported` });
       return;
     }
-    if (pending.length >= MAX_PENDING) { if (command.type === "action" && (command.action.kind === "direct-input" || command.action.kind === "begin-direct")) throw new Error("remote command queue full");
-      emit({ type: "error", message: "remote command queue full" }); return; }
     const commandValue = command.type === "action" ? { kind: "action", action: command.action } :
       command.type === "command" ? { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) } :
       { kind: command.type };
-    pending.push({ command: structuredClone(commandValue), retries: 0, staleRetries: 0 });
+    const next: PendingIntent = { command: structuredClone(commandValue), retries: 0, staleRetries: 0 };
+    const previous = pending.at(-1);
+    if (previous && coalesceDirectInput(previous, next)) { schedulePump(); return; }
+    if (pending.length >= MAX_PENDING) { if (command.type === "action" && (command.action.kind === "direct-input" || command.action.kind === "begin-direct")) throw new Error("remote command queue full");
+      emit({ type: "error", message: "remote command queue full" }); return; }
+    pending.push(next);
     schedulePump();
   };
   const subscribe = (listener: (event: WorkerEvent) => void) => {
