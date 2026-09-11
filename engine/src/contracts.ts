@@ -20,6 +20,7 @@ export const RESERVED_COMPONENTS = [
   "hive.visual",
   "hive.collider",
   "hive.launcher",
+  "hive.emitter",
   "hive.projectile",
   "hive.impact-material",
 ] as const;
@@ -96,6 +97,7 @@ export type ActionRequest =
   | { readonly kind: "excavate"; readonly entity: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly expected: number; readonly replacement: number }
   | { readonly kind: "cancel-work"; readonly entity: EntityId }
   | { readonly kind: "begin-direct"; readonly entity: EntityId; readonly stream: string }
+  | { readonly kind: "begin-emission"; readonly worker: EntityId; readonly station: EntityId }
   | {
       readonly kind: "direct-input";
       readonly entity: EntityId;
@@ -175,6 +177,8 @@ export interface ReadContext {
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
+  /** Returns modeled atmosphere at each cell; null means the receiver is unmodeled, not clean air. */
+  atmosphereSamples(cells: readonly [number, number, number][]): AtmosphereSamples;
   terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
   terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
   assign(
@@ -255,6 +259,17 @@ export interface RenderFact {
   } | null;
 }
 export type KernelSnapshot = KernelRecordSnapshot;
+export interface AtmosphereSample {
+  readonly volumeId: string;
+  readonly temperatureC: number;
+  readonly pressurePa: number;
+  readonly smokeKgM3: number;
+}
+export interface AtmosphereSamples {
+  readonly revision: number;
+  readonly geometryRevision: number;
+  readonly samples: readonly (AtmosphereSample | null)[];
+}
 export type PhysicalContact = {
   readonly solid: boolean;
   readonly sealedTop: boolean;
@@ -275,6 +290,7 @@ export interface KernelPort {
   readonly load: (definition: Uint8Array) => void;
   readonly loadEnvironment: (definition: Uint8Array) => void;
   readonly environmentFacts: () => unknown;
+  readonly atmosphereSamples: (cells: readonly [number, number, number][]) => AtmosphereSamples;
   readonly terrainMaterials: (
     cells: readonly [number, number, number][],
   ) => readonly number[];

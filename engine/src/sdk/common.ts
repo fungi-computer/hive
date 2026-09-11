@@ -13,6 +13,17 @@ export const Body = component<{ speed: number }>("hive.body", {
   fields: { speed: "number" },
 });
 
+/** Native finite-emission capability; catalog admission remains native-owned. */
+export const Emitter = component<{ catalog: string }>("hive.emitter", {
+  version: 1,
+  fields: { catalog: "string" },
+});
+export const beginEmission = (worker: EntityId, station: EntityId): ActionRequest => ({
+  kind: "begin-emission",
+  worker,
+  station,
+});
+
 /** Native carrying capacity; authored systems may query but cannot write it. */
 export const Container = component<{ capacity: number }>("hive.container", {
   version: 1,

@@ -60,6 +60,10 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "entity", "stream"];
       valid = id(action.entity) && stream(action.stream);
       break;
+    case "begin-emission":
+      keys = ["kind", "worker", "station"];
+      valid = id(action.worker) && id(action.station);
+      break;
     case "direct-input": {
       keys = ["kind", "entity", "stream", "inputs"];
       const inputs = action.inputs;

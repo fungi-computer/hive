@@ -4,6 +4,7 @@ import type {
   AssignmentPair,
   ActionRequest,
   AdvanceResult,
+  AtmosphereSamples,
   ComponentDefinition,
   EntityId,
   KernelPort,
@@ -30,6 +31,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   load(json: string): void;
   load_environment(json: string): void;
   environment_facts(): string;
+  atmosphere_samples(json: string): string;
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
@@ -68,6 +70,71 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     },
     environmentFacts() {
       return JSON.parse(binding.environment_facts()) as unknown;
+    },
+    atmosphereSamples(cells): AtmosphereSamples {
+      if (
+        cells.length === 0 ||
+        cells.length > 64 ||
+        cells.some(
+          (cell) =>
+            !Array.isArray(cell) ||
+            cell.length !== 3 ||
+            cell.some(
+              (coordinate) =>
+                !Number.isInteger(coordinate) ||
+                coordinate < -2147483648 ||
+                coordinate > 2147483647,
+            ),
+        )
+      )
+        throw new Error("atmosphere query must contain between 1 and 64 signed integer cells");
+      const value: unknown = JSON.parse(
+        binding.atmosphere_samples(JSON.stringify(cells)),
+      );
+      if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new Error("invalid atmosphere sample result");
+      const result = value as {
+        readonly revision?: unknown;
+        readonly geometryRevision?: unknown;
+        readonly samples?: unknown;
+      };
+      if (
+        !Number.isSafeInteger(result.revision) ||
+        (result.revision as number) < 0 ||
+        !Number.isSafeInteger(result.geometryRevision) ||
+        (result.geometryRevision as number) < 0 ||
+        !Array.isArray(result.samples) ||
+        result.samples.length !== cells.length
+      )
+        throw new Error("invalid atmosphere sample result");
+      const samples = result.samples.map((sample): AtmosphereSamples["samples"][number] => {
+        if (sample === null) return null;
+        if (!sample || typeof sample !== "object" || Array.isArray(sample))
+          throw new Error("invalid atmosphere sample");
+        const entry = sample as Record<string, unknown>;
+        if (
+          typeof entry.volumeId !== "string" ||
+          entry.volumeId.length === 0 ||
+          entry.volumeId.length > 128 ||
+          !Number.isFinite(entry.temperatureC) ||
+          !Number.isFinite(entry.pressurePa) ||
+          (entry.pressurePa as number) < 0 ||
+          !Number.isFinite(entry.smokeKgM3) ||
+          (entry.smokeKgM3 as number) < 0
+        )
+          throw new Error("invalid atmosphere sample");
+        return {
+          volumeId: entry.volumeId,
+          temperatureC: entry.temperatureC as number,
+          pressurePa: entry.pressurePa as number,
+          smokeKgM3: entry.smokeKgM3 as number,
+        };
+      });
+      return {
+        revision: result.revision as number,
+        geometryRevision: result.geometryRevision as number,
+        samples,
+      };
     },
     physicalContacts(cells) {
       return physicalContactQuery(json => binding.physical_contacts(json), cells);
