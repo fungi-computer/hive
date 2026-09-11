@@ -785,3 +785,26 @@ porous rule. `u5498` loaded that definition through actual WASM and measured 125
 admitted cells, 50 wet porous cells and 877.5 kg initial total, derived from the
 Rust groundwater proposal. Receipts are in `.botanical/colony-world/`. These are
 initialization/query observations, not a transport benchmark or rendered demo.
+
+### Rust terrain client join — September 11 local checkpoint
+
+Source `9b90b52` forwards the Rust-derived terrain observation through the shared
+Worker/remote client. Root correction `065f470` validates unknown coordinate types
+and rejects negative water quantities. `bbad5a3` uses the retained camera inversion
+to pick published voxel tops at `(y + 0.5) * verticalMetres`; legacy flat ground
+and moving-deck picking remain separate actual capabilities.
+
+- u5509 / invocation f4efc0cb870a4c16b8ccf976f2fee6a4: three transport/projection
+  laws, strict engine types and diff check passed; scope inactive/dead/empty.
+- u5512 / invocation 7d3393b48ae94587b243fb830c9e4e9b: three shared geometry laws
+  passed; scope inactive/dead/empty. This is mathematical picking evidence, not a
+  rendered cliff-occlusion or browser interaction proof.
+- Private recovery remote readback now matches
+  `e9ed9d0b59d83b1ea010c202c27dea290171c201` at the existing private
+  Botanical-next `recovery/hive-public-do-20260910T1533Z` ref. This protects local
+  source and does not mark it accepted for release.
+
+Terrain navigation, generated-ground spawn placement and the playable Colony
+join are still outstanding. No new build or deployment was performed for this
+checkpoint. Public c5138fc remains unchanged. The full geometry wire payload is
+currently repeated and is under source review before enabling the 64×64 consumer.
