@@ -1434,7 +1434,7 @@ impl Kernel {
         self.advance_excavation(batch.delta)?;
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
-        let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta)).transpose()?;
+        let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
         if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work.water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(work.air).map_err(|e| e.to_string())?; }

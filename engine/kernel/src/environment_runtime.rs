@@ -99,7 +99,43 @@ impl KernelEnvironment {
         if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }
         Ok(true)
     }
-    pub(super) fn advance(&mut self, seconds: f64) -> Result<EnvironmentStep, String> {
+    fn advance_emissions(&mut self, seconds: f64, revision: u64) -> Result<Option<AtmosphereReceipt>, String> {
+        let Some(air) = self.atmosphere.as_mut() else { return Ok(None); };
+        let mut grouped: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+        let mut progress = Vec::new();
+        for (id, source) in &self.paid_emissions {
+            // An action admitted this tick does not earn an entire prior tick.
+            if source.admitted_revision >= revision { continue; }
+            let cell_id = format!("cell:{},{},{}", source.cell.x, source.cell.y, source.cell.z);
+            let Some(volume) = air.compiled().volume_for_cell(&cell_id) else { continue; };
+            let definition = self.emissions.get(&source.catalog).ok_or("paid emission catalog missing")?;
+            let end = (source.elapsed_s + seconds).min(definition.definition().duration_s);
+            if !end.is_finite() || end <= source.elapsed_s { continue; }
+            let released = definition.release().released_between(Some(0.0), source.elapsed_s, end)?;
+            let target = grouped.entry(volume.to_owned()).or_default();
+            target.0 += released["smokeKg"] / seconds;
+            target.1 += released["heatJ"] / seconds;
+            if !target.0.is_finite() || !target.1.is_finite() { return Err("paid emission aggregate overflow".into()); }
+            progress.push((id.clone(), end, definition.definition().duration_s));
+        }
+        let sources: Vec<_> = grouped.into_iter().map(|(volume_id, (smoke_kg_s, heat_j_s))| crate::atmosphere::AtmosphereSource { volume_id, smoke_kg_s, heat_j_s }).collect();
+        let receipt = match air.advance(seconds, &sources) {
+            Ok(receipt) => receipt,
+            // The owner computes detached state: failed source admission has
+            // published neither gas nor progress. Vent existing air and retain
+            // the paid obligation for a later admissible step.
+            Err(reason) if reason == "atmosphere parcel exceeds physical envelope" => {
+                return air.advance(seconds, &[]).map(Some);
+            }
+            Err(reason) => return Err(reason),
+        };
+        for (id, elapsed, duration) in progress {
+            if elapsed == duration { self.paid_emissions.remove(&id); }
+            else { self.paid_emissions.get_mut(&id).unwrap().elapsed_s = elapsed; }
+        }
+        Ok(Some(receipt))
+    }
+    pub(super) fn advance(&mut self, seconds: f64, revision: u64) -> Result<EnvironmentStep, String> {
         if seconds == 0.0 { return Ok(EnvironmentStep { water: WaterStep::Paused, air: None }); }
         let prepared = self.world.prepare_water_advance(seconds)?;
         let air = if let Some(air) = &self.atmosphere {
@@ -107,15 +143,15 @@ impl KernelEnvironment {
             match air.prepare_rebind(&snapshot)? {
                 Ok(candidate) => Some(candidate),
                 Err(AtmosphereRebindResult::Blocked(reason)) => {
-                    let receipt = self.atmosphere.as_mut().unwrap().advance(seconds, &[])?;
-                    return Ok(EnvironmentStep { water: WaterStep::Blocked { reason }, air: Some(receipt) });
+                    let receipt = self.advance_emissions(seconds, revision)?;
+                    return Ok(EnvironmentStep { water: WaterStep::Blocked { reason }, air: receipt });
                 }
                 Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
             }
         } else { None };
         let water = self.world.apply_water_advance(prepared)?;
         if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }
-        let receipt = self.atmosphere.as_mut().map(|air| air.advance(seconds, &[])).transpose()?;
+        let receipt = self.advance_emissions(seconds, revision)?;
         Ok(EnvironmentStep { water: WaterStep::Applied { work: water }, air: receipt })
     }
 }
