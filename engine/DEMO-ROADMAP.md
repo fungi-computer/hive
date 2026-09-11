@@ -714,3 +714,21 @@ are integrated locally. Checks u5509 (three transport/projection laws and strict
 types) and u5512 (three shared picking laws) passed and owned scopes closed.
 Neither establishes terrain navigation, cliff-face picking, remembered
 underground knowledge, rendered appearance, or a new hosted Colony release.
+
+### Declarative world interaction — Levi clarification, September 11
+
+Levi means the world interaction system, not merely the HUD. Drawn geometry,
+picking and tool applicability must compose from shared capabilities. The current
+terrain face producer is shared by the original bake and ray picking; extend
+that same boundary for actual inspect/dig/selection consumers. A displayed side
+face does not prove the material hidden behind it or grant excavation permission.
+Return a visible geometric hit and its provenance, then let the active tool
+resolve an admitted game command. Preserve XState gesture ownership, shared
+selection/hotkey behavior, and native physical admission. Do not introduce a
+second simulation or arbitrary callback code in saved definitions.
+
+HUD decomposition alone does not meet this requirement. Ordinary typed
+TypeScript definitions and shared operations should express supported targets
+and tools; reuse original asset geometry instead of writing separate coordinate
+formulas for every new object. Keep work on the playable terrain connection
+moving while this boundary is deepened through those real consumers.
