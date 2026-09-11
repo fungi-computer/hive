@@ -40,6 +40,38 @@ export const pointerGestureMachine = createMachine(
   },
 );
 
+// RTS aiming is a distinct gesture so a cannon click cannot accidentally
+// select a soldier or become a march order. Escape and a completed fire both
+// return to ordinary selection; paused/invalid commands are handled by the
+// runtime at the existing command boundary.
+export const aimGestureMachine = createMachine(
+  {
+    id: "hive-aim-gesture",
+    initial: "idle",
+    context: { launcherId: null, point: null, elevation: 0.12 },
+    states: {
+      idle: { on: { ENTER: { target: "aiming", actions: "enter" } } },
+      aiming: {
+        on: {
+          MOVE: { actions: "move" },
+          SET_ELEVATION: { actions: "elevation" },
+          FIRE: { target: "idle", actions: "clear" },
+          ESCAPE: { target: "idle", actions: "clear" },
+          CANCEL: { target: "idle", actions: "clear" },
+        },
+      },
+    },
+  },
+  {
+    actions: {
+      enter: assign(({ event }) => ({ launcherId: event.launcherId, point: event.point ?? null })),
+      move: assign(({ event }) => ({ point: event.point })),
+      elevation: assign(({ event }) => ({ elevation: event.elevation })),
+      clear: assign({ launcherId: null, point: null, elevation: 0.12 }),
+    },
+  },
+);
+
 export function isTypingTarget(target) {
   return !!target?.closest?.([...INPUTS].join(","));
 }
