@@ -85,7 +85,8 @@ fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
     let worker = kernel.entity("worker").unwrap();
     let current = *kernel.ecs.get::<Position>(worker).unwrap();
-    kernel.ecs.entity_mut(worker).insert(Position { y: (surface_y(&kernel) as f64 + 1.5) * spacing[1], ..current });
+    let current_surface_y = surface_y(&kernel);
+    kernel.ecs.entity_mut(worker).insert(Position { y: (current_surface_y as f64 + 1.5) * spacing[1], ..current });
     kernel.rebuild_physical_indexes(true).unwrap();
     let closed = aperture_action(&mut kernel, false);
     assert_eq!(closed["results"][0]["accepted"], false);
