@@ -63,6 +63,7 @@ struct KernelEnvironment {
 pub struct Kernel {
     ecs: World,
     environment: Option<KernelEnvironment>,
+    discard_required: bool,
     registry: Registry,
     ids: BTreeMap<String, Entity>,
     known: BTreeSet<String>,
@@ -91,6 +92,7 @@ impl Kernel {
         Self {
             ecs,
             environment: None,
+            discard_required: false,
             registry,
             ids: BTreeMap::new(),
             known: BTreeSet::new(),
@@ -110,6 +112,10 @@ impl Kernel {
             collider_ids: BTreeSet::new(),
             state_weight: 0,
         }
+    }
+    fn ensure_ready(&self) -> Result<()> {
+        if self.discard_required { return Err("kernel attempt requires durable restore".into()); }
+        Ok(())
     }
     pub fn load(&mut self, input: &str) -> Result<()> {
         if input.len() > 8 * 1024 * 1024 {
@@ -483,6 +489,7 @@ impl Kernel {
         Ok(())
     }
     pub fn query_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
         let mut names: Vec<String> = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if names.is_empty() || names.len() > 32 {
             return Err("invalid query size".into());
@@ -542,6 +549,7 @@ impl Kernel {
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
     pub fn load_environment(&mut self, definition: &str) -> Result<()> {
+        self.ensure_ready()?;
         if self.revision != 0 || self.environment.is_some() {
             return Err("environment initialization requires a new world".into());
         }
@@ -550,10 +558,12 @@ impl Kernel {
         Ok(())
     }
     pub fn environment_facts_json(&self) -> Result<String> {
+        self.ensure_ready()?;
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         serde_json::to_string(&environment.world.facts()?).map_err(|error| error.to_string())
     }
     pub fn save_records(&self) -> Result<KernelRecords> {
+        self.ensure_ready()?;
         let environment = self.environment.as_ref().map(|environment| {
             Ok::<_, String>((environment.definition.clone(), environment.world.save_records()?))
         }).transpose()?;
@@ -572,6 +582,7 @@ impl Kernel {
         Ok(())
     }
     pub fn snapshot_json(&self) -> Result<String> {
+        self.ensure_ready()?;
         if self.environment.is_some() { return Err("environment worlds require save_records".into()); }
         self.snapshot_entities_json()
     }
@@ -729,6 +740,7 @@ impl Kernel {
         Ok(())
     }
     pub fn render_json(&self) -> Result<String> {
+        self.ensure_ready()?;
         let mut facts = Vec::new();
         for (id, e) in &self.ids {
             let Some(local) = self.ecs.get::<Position>(*e) else {
@@ -797,6 +809,7 @@ impl Kernel {
         serde_json::to_string(&facts).map_err(|e| e.to_string())
     }
     pub fn world_pose_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
         if input.len() > 16 * 1024 {
             return Err("world pose query too large".into());
         }
@@ -820,6 +833,7 @@ impl Kernel {
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
     pub fn advance_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
         if input.len() > 1024 * 1024 {
             return Err("batch too large".into());
         }
@@ -837,7 +851,9 @@ impl Kernel {
             }
             return result;
         }
-        self.advance_batch(batch)
+        let result = self.advance_batch(batch);
+        if result.is_err() && self.environment.is_some() { self.discard_required = true; }
+        result
     }
 
     fn advance_batch(&mut self, batch: Batch) -> Result<String> {
@@ -905,12 +921,11 @@ impl Kernel {
         self.advance_direct(batch.delta)?;
         if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         self.advance_movement(batch.delta);
-        if let Some(environment) = &mut self.environment {
-            environment.world.advance(batch.delta)?;
-        }
+        let environment_work = self.environment.as_mut().map(|environment| environment.world.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
-        serde_json::to_string(&json!({"revision":self.revision,"results":results,"impacts":impacts}))
-            .map_err(|e| e.to_string())
+        let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
+        if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work).map_err(|e| e.to_string())?; }
+        serde_json::to_string(&output).map_err(|e| e.to_string())
     }
     fn entity(&self, id: &str) -> Result<Entity> {
         self.ids
