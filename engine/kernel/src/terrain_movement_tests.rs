@@ -101,3 +101,16 @@ fn terrain_kernel_long_tick_cannot_cross_blocked_second_segment() {
     assert!(kernel.terrain_routes[&actor].waiting);
     assert!(kernel.ecs.get::<Destination>(actor).is_some());
 }
+
+#[test]
+fn terrain_kernel_route_preparation_does_not_install_work() {
+    let (mut kernel,target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    let pose = *kernel.ecs.get::<Position>(actor).unwrap();
+    let before = kernel.snapshot_entities_json().unwrap();
+    let prepared = kernel.route_for(actor,pose,&target).unwrap();
+    assert!(!prepared.points.is_empty());
+    assert!(prepared.terrain.is_some());
+    assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
+    assert!(!kernel.terrain_routes.contains_key(&actor));
+}

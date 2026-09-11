@@ -94,6 +94,10 @@ struct KernelEnvironment {
     world: crate::terrain_water::TerrainWater,
     excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
 }
+struct PreparedRoute {
+    points: VecDeque<Point>,
+    terrain: Option<TerrainRouteState>,
+}
 struct TerrainRouteState {
     path: Vec<crate::generation::Cell>,
     revision: Option<u64>,
@@ -338,7 +342,7 @@ impl Kernel {
         entity: Entity,
         start: Position,
         destination: &Point,
-    ) -> Result<VecDeque<Point>> {
+    ) -> Result<PreparedRoute> {
         let frame = self.support_id(entity);
         if destination.frame.as_deref() != frame.as_deref() {
             return Err("destination frame does not match actor support".into());
@@ -396,14 +400,14 @@ impl Kernel {
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
                 if points.len() > 1 { points.remove(0); }
                 let terrain_revision = environment.world.terrain_revision();
-                self.terrain_routes.insert(entity, TerrainRouteState {
+                let terrain = TerrainRouteState {
                     path,
                     revision: Some(terrain_revision),
                     waiting: false,
                     origin: start_point,
                     target: points.first().cloned(),
-                });
-                return Ok(points.into_iter().collect());
+                };
+                return Ok(PreparedRoute { points: points.into_iter().collect(), terrain: Some(terrain) });
             }
         }
         let route = navigation::route(
@@ -412,7 +416,14 @@ impl Kernel {
             &blocked,
             self.frame_bounds(frame.as_deref())?,
         )?;
-        Ok(route)
+        Ok(PreparedRoute { points: route, terrain: None })
+    }
+    fn install_route(&mut self, entity: Entity, prepared: PreparedRoute) {
+        self.routes.insert(entity, prepared.points);
+        match prepared.terrain {
+            Some(state) => { self.terrain_routes.insert(entity, state); }
+            None => { self.terrain_routes.remove(&entity); }
+        }
     }
     fn restore_routes(&mut self, saved: Vec<RouteSnapshot>) -> Result<()> {
         if saved.len() > self.ids.len() {
@@ -622,7 +633,7 @@ impl Kernel {
                                 frame: target.frame.clone(),
                             },
                         )?;
-                    self.routes.insert(entity, route);
+                    self.install_route(entity, route);
                 }
             }
         }
@@ -1273,7 +1284,7 @@ impl Kernel {
                 self.direct.remove(&e);
                 self.ecs.entity_mut(e).insert(target);
                 self.state_weight += extra;
-                self.routes.insert(e, path);
+                self.install_route(e, path);
                 Ok(None)
             }
             Action::BeginDirect { entity, stream } => {
