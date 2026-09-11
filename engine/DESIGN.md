@@ -21,8 +21,17 @@ art export adds 82 textures to the existing three atlas pages (1497 total); root
 viewed the contact sheet and actual existing Formations page. Bounded local input
 proved aim/fire/damage/pause and 390px containment with no page errors. The new
 presentation clock follows the existing interpolation timeline, including pause.
-Publication receipt follows the stopped exact build; this paragraph does not
-claim hosted acceptance until that receipt is recorded.
+Published September 11 from `b94baad`: frontend deployment
+`8d8b66a1-e21c-4d77-89d7-5ba6e8095431`, DO version
+`079d18c7-aa65-4520-b89a-260a56886efa`. All 32 engine files match the local
+build by hosted SHA256 readback. Actual remote DO shot hit all three soldiers
+and soft ground, then settled; the owned test world was paused. Receipts:
+`.botanical/cannon-juice/hosted.json`, `remote.json`; build u5310,
+publication u5311 and remote u5313 exited zero. The local browser capture
+preceded the final presentation-clock alignment and small aiming/copy corrections;
+no second hosted browser matrix is claimed. Existing saved server worlds may
+require the visible New server world action because current formats changed.
+Play: https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/formations.html
 
 This is a first juice pass: original articulated hit clips plus grounded native
 knockback, not joint-physics ragdolls. The current aiming preview uses the visible
