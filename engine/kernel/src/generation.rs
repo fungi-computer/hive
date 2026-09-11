@@ -1,6 +1,7 @@
 //! Deterministic, bounded world source. It produces immutable facts only.
 
 use std::f64::consts::PI;
+use serde::{Deserialize, Serialize};
 
 pub const GENERATOR_VERSION: &str = "world-lab-terrain-height-sea-v5-native-1";
 pub const BRICK_SIDE: i32 = 16;
@@ -13,7 +14,7 @@ pub fn floor_div(value: i64, divisor: i64) -> Option<i64> {
     Some(if value % divisor < 0 { q - 1 } else { q })
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Cell {
     pub x: i64,
     pub y: i32,

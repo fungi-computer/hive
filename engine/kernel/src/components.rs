@@ -24,6 +24,12 @@ pub struct Body {
     pub speed: f64,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Traversal {
+    pub clearance_cells: u8,
+    pub max_step_cells: u8,
+}
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Container {
     pub capacity: u32,
@@ -230,6 +236,7 @@ pub type DirectSnapshot = DirectState;
 pub struct RouteSnapshot {
     pub entity: String,
     pub path: Vec<Point>,
+    pub terrain_path: Option<Vec<crate::generation::Cell>>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

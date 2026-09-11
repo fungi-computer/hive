@@ -77,6 +77,7 @@ pub struct Kernel {
     contents: BTreeMap<String, BTreeSet<Entity>>,
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     routes: BTreeMap<Entity, VecDeque<Point>>,
+    terrain_paths: BTreeMap<Entity, Vec<crate::generation::Cell>>,
     direct: BTreeMap<Entity, DirectState>,
     game: String,
     revision: u64,
@@ -106,6 +107,7 @@ impl Kernel {
             contents: BTreeMap::new(),
             blocked_by_frame: BTreeMap::new(),
             routes: BTreeMap::new(),
+            terrain_paths: BTreeMap::new(),
             direct: BTreeMap::new(),
             game: String::new(),
             revision: 0,
@@ -295,11 +297,12 @@ impl Kernel {
             .transpose()
     }
     fn route_for(
-        &self,
+        &mut self,
         entity: Entity,
         start: Position,
         destination: &Point,
     ) -> Result<VecDeque<Point>> {
+        self.terrain_paths.remove(&entity);
         let frame = self.support_id(entity);
         if destination.frame.as_deref() != frame.as_deref() {
             return Err("destination frame does not match actor support".into());
@@ -315,7 +318,49 @@ impl Kernel {
         let blocked = self
             .blocked_by_frame
             .get(&frame)
-            .expect("rebuilt obstacle frame index");
+            .cloned()
+            .ok_or("missing obstacle frame index")?;
+        if frame.is_none() {
+            if let Some(capability) = self.ecs.get::<Traversal>(entity).copied() {
+                let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+                let spacing = environment.world.cell_spacing_m();
+                let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
+                    let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
+                    if !values.iter().all(|value| value.is_finite()) {
+                        return Err("terrain route metric position is not finite".into());
+                    }
+                    Ok(crate::generation::Cell { x: values[0].round() as i64, y: values[1].round() as i32, z: values[2].round() as i64 })
+                };
+                let start_point = navigation::point(start);
+                let start_cell = to_cell(&start_point)?;
+                let destination_cell = to_cell(destination)?;
+                let config = crate::terrain_traversal::TraversalConfig {
+                    spacing,
+                    clearance_cells: capability.clearance_cells,
+                    max_step_cells: capability.max_step_cells,
+                };
+                let mut query = |cell| match environment.world.material(cell) {
+                    Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial {
+                        solid: !environment.world.is_open_material(material),
+                    }),
+                    Err(error) if error == "cell outside world bounds" => {
+                        Ok(crate::terrain_traversal::TraversalMaterial { solid: false })
+                    }
+                    Err(error) => Err(error),
+                };
+                let path = crate::terrain_route::search(start_cell, destination_cell, config, &mut query)?;
+                if path.iter().any(|cell| {
+                    i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok())
+                    .is_some_and(|(x, z)| blocked.contains(&(x, cell.y, z)))
+                }) {
+                    return Err("terrain route intersects obstacle".into());
+                }
+                let mut points = crate::terrain_route::waypoints(&path, config)?;
+                if let Some(first) = points.first_mut() { *first = start_point; }
+                self.terrain_paths.insert(entity, path);
+                return Ok(points.into_iter().collect());
+            }
+        }
         navigation::route(
             navigation::point(start),
             destination.clone(),
@@ -328,6 +373,7 @@ impl Kernel {
             return Err("too many saved routes".into());
         }
         let mut restored = BTreeMap::new();
+        self.terrain_paths.clear();
         for route in saved {
             if route.path.len() > 4096 {
                 return Err("saved route exceeds bound".into());
@@ -362,6 +408,17 @@ impl Kernel {
                 blocked,
                 bounds,
             )?;
+            if let Some(path) = route.terrain_path {
+                if self.ecs.get::<Support>(entity).is_some()
+                    || self.ecs.get::<Traversal>(entity).is_none()
+                    || path.is_empty() || path.len() > 4097
+                {
+                    return Err("invalid saved terrain route capability".into());
+                }
+                self.terrain_paths.insert(entity, path);
+            } else if self.ecs.get::<Traversal>(entity).is_some() && self.ecs.get::<Support>(entity).is_none() {
+                return Err("terrain route is missing saved support witness".into());
+            }
         }
         let expected = self
             .ids
@@ -372,11 +429,19 @@ impl Kernel {
             return Err("saved route set does not match destinations".into());
         }
         self.routes = restored;
+        if self.environment.is_some() {
+            let route_count = self.routes.len();
+            self.invalidate_terrain_routes()?;
+            if self.routes.len() != route_count {
+                return Err("saved terrain route witness is stale".into());
+            }
+        }
         Ok(())
     }
     fn rebuild_physical_indexes(&mut self, build_routes: bool) -> Result<()> {
         self.blocked_by_frame.clear();
         self.routes.clear();
+        self.terrain_paths.clear();
         for (id, entity) in &self.ids {
             let position = self.ecs.get::<Position>(*entity);
             if let Some(surface) = self.ecs.get::<Surface>(*entity) {
@@ -637,6 +702,11 @@ impl Kernel {
                 prepared.geometry, prepared.terrain, records)?;
             candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world, excavation_rules: prepared.excavation_rules });
         }
+        let route_count = candidate.routes.len();
+        candidate.invalidate_terrain_routes()?;
+        if candidate.routes.len() != route_count {
+            return Err("saved terrain route witness is stale".into());
+        }
         candidate.validate_excavation_work()?;
         *self = candidate;
         Ok(())
@@ -670,6 +740,7 @@ impl Kernel {
             .map(|(entity, path)| RouteSnapshot {
                 entity: self.ecs.get::<ExternalId>(*entity).unwrap().0.clone(),
                 path: path.iter().cloned().collect(),
+                terrain_path: self.terrain_paths.get(entity).cloned(),
             })
             .collect();
         routes.sort_by(|a: &RouteSnapshot, b: &RouteSnapshot| a.entity.cmp(&b.entity));
@@ -685,7 +756,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 5,
+            version: 6,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -714,7 +785,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 5
+            || state.version != 6
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -983,7 +1054,7 @@ impl Kernel {
         // Work sees the pre-movement occupation. Arriving this tick does not
         // retroactively earn a full tick of effort after spending it travelling.
         self.advance_excavation(batch.delta)?;
-        self.advance_movement(batch.delta);
+        self.advance_movement(batch.delta)?;
         let environment_work = self.environment.as_mut().map(|environment| environment.world.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
@@ -1222,6 +1293,7 @@ impl Kernel {
             self.state_weight = self.state_weight.saturating_sub(self.registry.weight("hive.destination", &record(&destination)));
             self.ecs.entity_mut(entity).remove::<Destination>();
             self.routes.remove(&entity);
+            self.terrain_paths.remove(&entity);
         }
     }
     fn projectile_ids(&self) -> Vec<String> {
@@ -1607,7 +1679,54 @@ impl Kernel {
         self.contents.entry(to.into()).or_default().insert(e);
         Ok(())
     }
-    fn advance_movement(&mut self, delta: f64) {
+    fn invalidate_terrain_routes(&mut self) -> Result<()> {
+        let candidates: Vec<_> = self.terrain_paths.iter().map(|(entity, path)| (*entity, path.clone())).collect();
+        let mut invalid = Vec::new();
+        for (entity, path) in candidates {
+            let Some(capability) = self.ecs.get::<Traversal>(entity).copied() else { invalid.push(entity); continue };
+            let blocked = self.blocked_by_frame.get(&None).ok_or("missing obstacle frame index")?;
+            if path.iter().any(|cell| i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok())
+                .is_some_and(|(x, z)| blocked.contains(&(x, cell.y, z)))) {
+                invalid.push(entity);
+                continue;
+            }
+            let environment = self.environment.as_mut().ok_or("terrain route needs environment")?;
+            let spacing = environment.world.cell_spacing_m();
+            let config = crate::terrain_traversal::TraversalConfig {
+                spacing,
+                clearance_cells: capability.clearance_cells,
+                max_step_cells: capability.max_step_cells,
+            };
+            let mut query = |cell| match environment.world.material(cell) {
+                Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material) }),
+                Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false }),
+                Err(error) => Err(error),
+            };
+            let mut valid = true;
+            for cell in &path {
+                if !matches!(crate::terrain_traversal::node(*cell, config, &mut query)?, Some(_)) { valid = false; break; }
+            }
+            if valid {
+                for pair in path.windows(2) {
+                    let from = crate::terrain_traversal::node(pair[0], config, &mut query)?;
+                    let Some(from) = from else { valid = false; break };
+                    let dx = i32::try_from(pair[1].x - pair[0].x).unwrap_or(2);
+                    let dz = i32::try_from(pair[1].z - pair[0].z).unwrap_or(2);
+                    let dy = pair[1].y - pair[0].y;
+                    if !matches!(crate::terrain_traversal::step(from, dx, dy, dz, config, &mut query)?, Some(_)) { valid = false; break; }
+                }
+            }
+            if !valid { invalid.push(entity); }
+        }
+        for entity in invalid {
+            self.routes.remove(&entity);
+            self.terrain_paths.remove(&entity);
+        }
+        Ok(())
+    }
+
+    fn advance_movement(&mut self, delta: f64) -> Result<()> {
+        self.invalidate_terrain_routes()?;
         self.routes.retain(|entity, path| {
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
             let target = self
@@ -1627,6 +1746,7 @@ impl Kernel {
                 true
             }
         });
+        Ok(())
     }
 
     fn advance_direct(&mut self, delta: f64) -> Result<()> {
