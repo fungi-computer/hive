@@ -73,7 +73,7 @@ fn world() -> TerrainWater {
     .unwrap();
     let geometry = TerrainWaterGeometry::new(
         "terrain-atmosphere-water".into(),
-        vec![],
+        vec![Cell { x: 0, y: 39, z: 0 }],
         BTreeMap::from([
             (0, MaterialWater::Open),
             (1, MaterialWater::Closed),
@@ -86,7 +86,7 @@ fn world() -> TerrainWater {
         6,
     )
     .unwrap();
-    TerrainWater::fresh(geometry, terrain, &[]).unwrap()
+    TerrainWater::fresh(geometry, terrain, &[super::water::WaterStock { id: "cell:0,39,0".into(), mass_kg: 0.0 }]).unwrap()
 }
 fn config(exterior: ExteriorPolicy) -> TerrainAtmosphereConfig {
     TerrainAtmosphereConfig {
