@@ -1,4 +1,5 @@
 import { component, query } from "./authoring";
+import { SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
   MaterialLot,
@@ -57,6 +58,7 @@ type DeliveryCandidate = {
 /** Provider for the shared work owner; delivery claims remain task.actor. */
 export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<DeliveryCandidate> {
     const tasks = ctx.query(query(DeliveryTask));
+    const sealed = new Set(ctx.query(query(SealedContainer)).map(row => row.id));
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
@@ -126,7 +128,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
     });
     const candidates = controls.flatMap((controlRow) => {
       const control = controlRow.get(DeliveryControl);
-      if (!control.enabled) return [];
+      if (!control.enabled || sealed.has(controlRow.id)) return [];
       if (
         !Number.isSafeInteger(control.quantity) ||
         control.quantity <= 0 ||
@@ -141,6 +143,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       return idleTasks.flatMap((taskRow) => {
         const task = taskRow.get(DeliveryTask);
         if (
+          sealed.has(task.source) || sealed.has(task.destination) ||
           task.source === task.destination ||
           task.source === controlRow.id ||
           task.destination === controlRow.id ||
@@ -244,6 +247,13 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
         continue;
       const lot = lotRowsById.get(state.sourceLot);
       const lotState = lotsById.get(state.sourceLot);
+      // A completed deposit must still retire its claim if the destination
+      // became sealed in that same committed step. Otherwise keep custody and
+      // wait without issuing futile movement or transfer requests.
+      if (lotState?.container !== state.destination && (
+        sealed.has(state.actor) || sealed.has(state.destination)
+        || (lotState?.container === state.source && sealed.has(state.source))
+      )) continue;
       const actorLot = lotState?.container === state.actor ? lot : undefined;
       const actorLotState = actorLot ? lotState : undefined;
       if (!control?.enabled) {
@@ -336,6 +346,7 @@ export const deliverySystem = createWorkSystem({
     Position,
     Body,
     Container,
+    SealedContainer,
     Support,
     Surface,
     MaterialLot,
