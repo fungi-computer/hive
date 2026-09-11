@@ -229,5 +229,5 @@ export function createInterpolationBuffer({
       .map((fact) => interpolateFact(fact, afterById.get(fact.id), amount));
     return publish(sampled);
   }
-  return { push, render, reset, size: () => frames.length, cadence, delayMs };
+  return { push, render, reset, size: () => frames.length, presentationTime: () => displayedTime, cadence, delayMs };
 }

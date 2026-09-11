@@ -1,3 +1,4 @@
+import type { PresentationCue } from "./presentation-cues";
 import type { ActionRequest, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
 import type { PresentationControl } from "../presentation";
@@ -21,6 +22,7 @@ export type WorkerEvent =
       readonly epoch: number;
       readonly sequence: number;
       readonly facts: readonly RenderFact[];
+      readonly cues: readonly PresentationCue[];
     }
   | {
       readonly type: "presentation";

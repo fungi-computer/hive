@@ -1,3 +1,4 @@
+import { appendPresentationCues, checkedCueSnapshot, type CueSnapshot } from "./presentation-cues";
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
 import { Position, Support, Surface } from "../sdk/common";
@@ -46,7 +47,8 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 5;
+  readonly version: 6;
+  readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
   readonly paused: boolean;
@@ -101,6 +103,7 @@ export class GameSession {
   private pendingWrites: WriteIntent[] = [];
   private pendingImpacts: Impact[] = [];
   private impactHighWater = 0;
+  private cues: CueSnapshot = { sequence: 0, recent: [] };
   private impactFrontiers = new Map<string, number | null>();
   constructor(options: SessionOptions) {
     this.pack = options.pack;
@@ -152,6 +155,7 @@ export class GameSession {
     this.pendingWrites = [];
     this.pendingImpacts = [];
     this.impactHighWater = 0;
+    this.cues = { sequence: 0, recent: [] };
     for (const id of this.impactFrontiers.keys()) this.impactFrontiers.set(id, null);
     this.start();
   }
@@ -412,6 +416,9 @@ export class GameSession {
       for (const impact of incoming) {
         if (seen.has(impact.sequence) || impact.sequence <= this.impactHighWater)
           throw new Error("duplicate physical impact sequence");
+        if (impact.time < this.now - 1e-9 || impact.time > this.now + delta + 1e-9)
+          throw new Error("physical impact outside committed step");
+
         if (impact.sequence <= previousSequence) throw new Error("physical impacts out of order");
         seen.add(impact.sequence);
         previousSequence = impact.sequence;
@@ -427,6 +434,8 @@ export class GameSession {
         action,
         result: advanced.results[index],
       }));
+      if (this.pack.presentation?.feedback)
+        this.cues = appendPresentationCues(this.cues, this.now + delta, this.outcomes, incoming);
       this.now += delta;
       this.tick++;
       return advanced.results;
@@ -443,13 +452,15 @@ export class GameSession {
         before.impactFrontiers.map((frontier) => [frontier.system, frontier.sequence]),
       );
       this.outcomes = structuredClone([...before.outcomes]);
+      this.cues = before.cues;
       throw error;
     }
   }
   save(): SessionSnapshot {
     return {
       format: "hive-session",
-      version: 5,
+      version: 6,
+      cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
       gameVersion: this.pack.version,
@@ -473,7 +484,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 5 ||
+      snapshot.version !== 6 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||
@@ -499,6 +510,7 @@ export class GameSession {
       !Array.isArray(snapshot.systems)
     )
       throw new Error("invalid session queues");
+    const cues = checkedCueSnapshot(snapshot.cues, snapshot.now);
     const pending = snapshot.pendingActions.map(checkedAction);
     let canonical: any;
     try {
@@ -621,7 +633,11 @@ export class GameSession {
     this.impactHighWater = snapshot.impactHighWater;
     this.impactFrontiers = frontiers;
     this.outcomes = outcomes;
+    this.cues = cues;
     this.paused = snapshot.paused;
+  }
+  presentationCues() {
+    return structuredClone(this.cues.recent);
   }
   renderFacts(limit = 512) {
     return this.port.renderFacts(limit);

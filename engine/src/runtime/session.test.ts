@@ -45,7 +45,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private json = JSON.stringify({
     format: "hive-kernel",
-    version: 4,
+    version: 5,
     revision: 0,
     time: 0,
     scene: {
@@ -110,7 +110,7 @@ class TestPort implements KernelPort {
     this.json = JSON.stringify(state);
     return {
       format: "hive-kernel",
-      version: 4,
+      version: 5,
       revision: this.revision,
       time: state.time,
       json: this.json,
@@ -365,7 +365,7 @@ test("a live consumer compacts a sustained impact stream", () => {
   const port = new TestPort();
   const { value } = session(port, system);
   for (let sequence = 1; sequence <= 1100; sequence++) {
-    port.impacts = [{ ...impact, id: `impact.${sequence}`, sequence, time: sequence }];
+    port.impacts = [{ ...impact, id: `impact.${sequence}`, sequence, time: sequence * 0.1 }];
     value.step(0.1);
   }
   value.step(0.1);
@@ -387,11 +387,11 @@ test("an unconsumed impact backlog rejects the whole step at its bound", () => {
   const port = new TestPort();
   const { value } = session(port, system);
   for (let sequence = 1; sequence <= 1024; sequence++) {
-    port.impacts = [{ ...impact, id: `impact.${sequence}`, sequence, time: sequence }];
+    port.impacts = [{ ...impact, id: `impact.${sequence}`, sequence, time: sequence * 0.1 }];
     value.step(0.1);
   }
   const before = value.save();
-  port.impacts = [{ ...impact, id: "impact.1025", sequence: 1025, time: 1025 }];
+  port.impacts = [{ ...impact, id: "impact.1025", sequence: 1025, time: 102.5 }];
   assert.throws(() => value.step(0.1), /physical impact backlog limit reached/);
   const after = value.save();
   assert.deepEqual(after.pendingImpacts, before.pendingImpacts);
@@ -557,7 +557,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", null));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 5);
+  assert.equal(value.save().version, 6);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {

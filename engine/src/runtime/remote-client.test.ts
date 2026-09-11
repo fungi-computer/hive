@@ -6,7 +6,7 @@ import type { WorkerEvent } from "./protocol";
 
 const token = "a".repeat(64);
 function observation(revision: number) {
-  return { revision, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], presentationFacts: [], presentationControls: [] } };
+  return { revision, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], presentationControls: [] } };
 }
 class FakeSocket {
   private listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();

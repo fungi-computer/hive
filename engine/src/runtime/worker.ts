@@ -34,6 +34,7 @@ export class WorkerRuntime {
       epoch: observation.epoch,
       sequence: observation.sequence,
       facts: observation.facts,
+      cues: observation.cues,
     });
     this.emit({
       type: "presentation",

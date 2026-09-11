@@ -1,3 +1,9 @@
+> September 11 implementation update: Levi selected the existing Formations
+> demo for the first pass. Native ballistics/aiming, explicit material contact,
+> committed feedback, recoil/smoke/dust/hit clips and optional synthesized sound
+> are joined locally. DESIGN.md owns current qualification/publication status.
+> Other demos, full physics ragdolls and footsteps remain later work.
+
 # Four demos, one reusable presentation kit
 
 King Bolete · September 11, 2026 · proposal, not an implementation assignment

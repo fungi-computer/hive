@@ -20,3 +20,11 @@ test("preview cache throttles changed hover points and reuses identical inputs",
   cache.get({ velocity: { x: 2 } });
   assert.equal(calls, 2);
 });
+
+test("every aim heading stays inside the native speed cap", () => {
+  for (let i = 0; i < 360; i++) {
+    const angle = i * Math.PI / 180;
+    const v = aimVelocity({x:0,y:0,z:0}, {x:Math.cos(angle),y:0,z:Math.sin(angle)}, 0.37, 8);
+    assert(Math.hypot(v.x,v.y,v.z) <= 8);
+  }
+});

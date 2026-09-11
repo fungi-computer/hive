@@ -63,6 +63,8 @@ struct DirectPredictionResponse { position: components::Position }
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct PreviewProjectileRequest {
     origin: components::Vector3,
+    muzzle: components::Vector3,
+    inherited_velocity: components::Vector3,
     velocity: components::Vector3,
     radius: f64,
     gravity: f64,
@@ -246,8 +248,8 @@ pub fn preview_projectile(json: &str) -> Result<String, JsValue> {
     let request: PreviewProjectileRequest = serde_json::from_str(json).map_err(|e| js_error(e.to_string()))?;
     if request.colliders.len() > collision::MAX_CANDIDATE_COLLIDERS
         || [request.radius, request.gravity, request.penetration, request.max_range, request.max_lifetime].iter().any(|value| !value.is_finite())
-        || request.radius <= 0.0 || request.penetration < 0.0 || request.max_range <= 0.0 || request.max_lifetime <= 0.0 || request.max_range > 1000.0 || request.max_lifetime > 10.0
-        || [request.origin.x, request.origin.y, request.origin.z, request.velocity.x, request.velocity.y, request.velocity.z].iter().any(|value| !value.is_finite())
+        || request.radius <= 0.0 || request.penetration < 0.0 || request.max_range <= 0.0 || request.max_lifetime <= 0.0 || request.max_lifetime > 10.0 || request.max_range > 1000.0 || request.max_lifetime > 10.0
+        || [request.muzzle.x, request.muzzle.y, request.muzzle.z, request.inherited_velocity.x, request.inherited_velocity.y, request.inherited_velocity.z, request.origin.x, request.origin.y, request.origin.z, request.velocity.x, request.velocity.y, request.velocity.z].iter().any(|value| !value.is_finite())
     { return Err(js_error("invalid projectile preview profile".into())); }
     let mut candidates = Vec::with_capacity(request.colliders.len());
     let mut materials = BTreeMap::new();
@@ -267,73 +269,35 @@ pub fn preview_projectile(json: &str) -> Result<String, JsValue> {
         });
     }
     candidates.sort_by(|a, b| a.id.cmp(&b.id));
-    let mut origin = [request.origin.x, request.origin.y, request.origin.z];
-    let mut velocity = [request.velocity.x, request.velocity.y, request.velocity.z];
-    let mut roll_friction = 0.5;
-    let mut penetration = request.penetration;
-    let mut age = 0.0;
-    let mut distance = 0.0;
-    let mut state = "flying".to_string();
-    let mut seen = BTreeSet::new();
-    let mut support_seen = BTreeSet::new();
-    let mut trajectory = Vec::new();
-    let mut contacts = Vec::new();
-    let mut iterations = 0usize;
-    while age < request.max_lifetime && distance < request.max_range && iterations < 500 {
-        iterations += 1;
-        let speed = (velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2]).sqrt();
-        if speed <= 1e-9 { state = "resting".into(); break; }
-        let step = combat::PROJECTILE_SUBSTEP_SECONDS.min(request.max_lifetime - age).min(((request.max_range - distance) / speed).max(0.0));
-        if step <= 1e-9 { break; }
-        let (end, average) = combat::ballistic_interval(origin, velocity, request.gravity, step);
-        let active_candidates: Vec<_> = candidates.iter().filter(|candidate| {
-            if seen.contains(&candidate.id) { return false; }
-            if materials.get(&candidate.id).is_some_and(|material| material.response == "ground") { return !support_seen.contains(&candidate.id); }
-            true
-        }).cloned().collect();
-        let hit = collision::sweep_projectile(&collision::Projectile { id: "preview".into(), radius: request.radius, origin, linear_velocity: average }, &active_candidates, step).map_err(|e| js_error(e.to_string()))?;
-        let Some(hit) = hit else {
-            let previous = origin;
-            origin = end;
-            velocity = combat::ballistic_velocity(velocity, request.gravity, step);
-            if state == "rolling" {
-                support_seen.clear();
-                let factor = (1.0 - roll_friction * step).max(0.0);
-                velocity[0] *= factor;
-                velocity[2] *= factor;
-                if (velocity[0] * velocity[0] + velocity[2] * velocity[2]).sqrt() < 0.05 {
-                    velocity = [0.0; 3];
-                    state = "resting".into();
-                    break;
-                }
-            }
-            age += step;
-            distance += ((end[0] - previous[0]).powi(2) + (end[1] - previous[1]).powi(2) + (end[2] - previous[2]).powi(2)).sqrt();
-            if trajectory.len() < 128 && (iterations % 4 == 0 || age >= request.max_lifetime || distance >= request.max_range) {
-                trajectory.push(PreviewTrajectoryPoint { time: age, position: components::Vector3 { x: origin[0], y: origin[1], z: origin[2] }, velocity: components::Vector3 { x: velocity[0], y: velocity[1], z: velocity[2] } });
-            }
-            continue;
-        };
-        let material = materials.get(&hit.target_id).ok_or_else(|| js_error("preview material disappeared".into()))?;
-        if material.response != "ground" && seen.contains(&hit.target_id) { break; }
-        let hit_velocity = combat::ballistic_velocity(velocity, request.gravity, hit.time);
-        let center = [origin[0] + average[0] * hit.time, origin[1] + average[1] * hit.time, origin[2] + average[2] * hit.time];
-        age += hit.time.max(1e-6);
-        distance += ((center[0] - origin[0]).powi(2) + (center[1] - origin[1]).powi(2) + (center[2] - origin[2]).powi(2)).sqrt();
-        contacts.push(PreviewContact { target_id: hit.target_id.clone(), time: age, point: components::Vector3 { x: hit.point[0], y: hit.point[1], z: hit.point[2] }, normal: components::Vector3 { x: hit.normal[0], y: hit.normal[1], z: hit.normal[2] }, response: material.response.clone() });
-        let material_profile = combat::ImpactProfile { response: material.response.clone(), resistance: material.resistance, restitution: material.restitution, friction: material.friction, embed_speed: material.embed_speed };
-        let mut motion = combat::ProjectileMotion { velocity: hit_velocity, penetration, state: state.clone(), embed_depth: 0.0, normal: [0.0, 1.0, 0.0], friction: roll_friction };
-        let settled = combat::resolve_contact(&mut motion, hit.normal, &material_profile, request.radius);
-        penetration = motion.penetration;
-        state = motion.state;
-        velocity = motion.velocity;
-        roll_friction = motion.friction;
-        origin = [center[0] + motion.normal[0] * 1e-5, center[1] + motion.normal[1] * 1e-5, center[2] + motion.normal[2] * 1e-5];
-        if material.response != "ground" { seen.insert(hit.target_id.clone()); }
-        if material.response == "ground" && state == "rolling" { support_seen.insert(hit.target_id.clone()); }
-        if settled { break; }
+    let muzzle=combat::muzzle_origin([request.origin.x,request.origin.y,request.origin.z],[request.muzzle.x,request.muzzle.y,request.muzzle.z],[request.velocity.x,request.velocity.y,request.velocity.z]);
+    let mut position=components::Position{x:muzzle[0],y:muzzle[1],z:muzzle[2],facing:0.0};
+    let mut projectile=components::Projectile {launcher:"preview-launcher".into(),velocity_x:request.velocity.x+request.inherited_velocity.x,velocity_y:request.velocity.y+request.inherited_velocity.y,velocity_z:request.velocity.z+request.inherited_velocity.z,radius:request.radius,age:0.0,distance:0.0,max_range:request.max_range,max_lifetime:request.max_lifetime,gravity:request.gravity,penetration:request.penetration,state:"flying".into(),roll_normal_x:0.0,roll_normal_y:1.0,roll_normal_z:0.0,embed_depth:0.0,roll_friction:0.0};
+    let mut victims=BTreeSet::new();
+    let mut trajectory=vec![PreviewTrajectoryPoint{time:0.0,position:components::Vector3{x:muzzle[0],y:muzzle[1],z:muzzle[2]},velocity:components::Vector3{x:projectile.velocity_x,y:projectile.velocity_y,z:projectile.velocity_z}}];
+    let mut contacts=Vec::new();
+    for _ in 0..10 {
+        let start=projectile.age;
+        let result=combat::advance_motion("preview",&mut projectile,&mut position,&mut victims,1.0,|elapsed,_step,_origin,_velocity| {
+            candidates.iter().map(|candidate| {
+                let mut geometry=candidate.clone();
+                for axis in 0..3 {geometry.origin[axis]+=geometry.linear_velocity[axis]*(start+elapsed);}
+                let material=materials.get(&geometry.id).ok_or("preview material disappeared")?;
+                Ok(combat::ContactCollider{geometry,material:combat::ImpactProfile{response:material.response.clone(),resistance:material.resistance,restitution:material.restitution,friction:material.friction,embed_speed:material.embed_speed}})
+            }).collect()
+        }).map_err(js_error)?;
+        for (index,(elapsed,p,v)) in result.samples.iter().enumerate() {
+            if index%5==0 && trajectory.len()<127 {trajectory.push(PreviewTrajectoryPoint{time:start+elapsed,position:components::Vector3{x:p[0],y:p[1],z:p[2]},velocity:components::Vector3{x:v[0],y:v[1],z:v[2]}});}
+        }
+        for contact in result.contacts {
+            if contacts.len()>=128 {return Err(js_error("preview contact budget exceeded".into()));}
+            contacts.push(PreviewContact{target_id:contact.hit.target_id,time:start+contact.elapsed,point:components::Vector3{x:contact.hit.point[0],y:contact.hit.point[1],z:contact.hit.point[2]},normal:components::Vector3{x:contact.hit.normal[0],y:contact.hit.normal[1],z:contact.hit.normal[2]},response:contact.response});
+        }
+        if result.expired || !matches!(projectile.state.as_str(),"flying"|"rolling") {break;}
     }
-    let response = PreviewProjectileResponse { trajectory, contacts, state, position: components::Vector3 { x: origin[0], y: origin[1], z: origin[2] }, velocity: components::Vector3 { x: velocity[0], y: velocity[1], z: velocity[2] }, penetration };
+    let end=components::Vector3{x:position.x,y:position.y,z:position.z};
+    let velocity=components::Vector3{x:projectile.velocity_x,y:projectile.velocity_y,z:projectile.velocity_z};
+    trajectory.push(PreviewTrajectoryPoint{time:projectile.age,position:end,velocity});
+    let response=PreviewProjectileResponse{trajectory,contacts,state:projectile.state,position:end,velocity,penetration:projectile.penetration};
     serde_json::to_string(&response).map_err(|e| js_error(e.to_string()))
 }
 

@@ -1,3 +1,4 @@
+import type { PresentationCue } from "./presentation-cues";
 import type { RenderFact } from "../contracts";
 import {
   projectPresentation,
@@ -16,6 +17,7 @@ export interface SessionObservation {
   readonly epoch: number;
   readonly sequence: number;
   readonly facts: readonly RenderFact[];
+  readonly cues: readonly PresentationCue[];
   readonly presentationFacts: ReturnType<typeof projectPresentation>["facts"];
   readonly presentationControls: readonly PresentationControl[];
 }
@@ -45,6 +47,7 @@ export function buildObservation(
     epoch: metadata.epoch,
     sequence: metadata.sequence,
     facts: Object.freeze(facts),
+    cues: session.presentationCues(),
     presentationFacts: projected.facts,
     presentationControls: projected.controls,
   });

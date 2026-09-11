@@ -40,7 +40,7 @@ const configs = {
     title: "Formations",
     orderCommand: "march",
     subtitle:
-      "Select the cannon, aim a low arc, and fire six finite rounds. Watch committed hits change health and morale, or drag-select soldiers and right-click to move them out of its path.",
+      "Aim the cannon and bowl through the line. Adjust the arc, fire six rounds, or drag-select soldiers and right-click to move them out of its path.",
     controlHelp: "Select the cannon · Aim cannon · move pointer and click to fire · Escape cancels · drag-select soldiers and right-click to march",
     source: "./source/formations.ts",
   },

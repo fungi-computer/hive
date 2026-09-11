@@ -33,10 +33,12 @@ export function aimVelocity(origin, target, elevation = 0.12, speed = 8) {
   const dx = to.x - from.x, dz = to.z - from.z;
   const length = Math.hypot(dx, dz);
   if (length < 1e-6) throw new Error("aim target is too close to launcher");
-  const horizontal = speed * Math.cos(elevation);
+  // Stay inside the advertised speed cap despite trig rounding.
+  const launchSpeed = speed * (1 - 1e-12);
+  const horizontal = launchSpeed * Math.cos(elevation);
   return {
     x: (dx / length) * horizontal,
-    y: speed * Math.sin(elevation),
+    y: launchSpeed * Math.sin(elevation),
     z: (dz / length) * horizontal,
   };
 }

@@ -42,9 +42,11 @@ export const PIRATE_VISUAL_BINDINGS = Object.freeze({
 
 /** Formation consumers may opt into these authored static visuals later. */
 export const CANNON_VISUAL_BINDINGS = Object.freeze({
+  "goblin.soldier": Object.freeze({kind: "figure", key: "goblin", reactions: {impact: {path: ["figures", "goblin", "hit"], duration: 720}}}),
   "formation.cannon": Object.freeze({
     kind: "static",
     path: ["props", "cannon"],
+    reactions: {launch: {path: ["props", "cannonRecoil"], duration: 480}},
     facing: true,
     anchor: "propAnchor",
   }),

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { command, component, entity, query, system } from "../sdk/authoring";
 import { Destination, Position, MaterialLot, encodeDefinition, move } from "../sdk/common";
-import { Collider, Launcher, launch, displace } from "../sdk/combat";
+import { Collider, Launcher, ImpactMaterial, launch, displace } from "../sdk/combat";
 import type { EntityId, GamePack } from "../contracts";
 
 export const FormationMember = component<{ group: EntityId; slot: number }>(
@@ -73,8 +73,8 @@ const formationInitial = [
     "hive.position": { x: -3, y: 0, z: 0, facing: 0 },
     "hive.container": { capacity: 6 },
     "hive.visual": { sprite: "formation.cannon", label: "Timber cannon" },
-    "hive.launcher": { ammoKind: "iron-round", muzzleX: 0.9, muzzleY: 0.45, muzzleZ: 0,
-      maxSpeed: 12, projectileRadius: 0.22, maxRange: 20, maxLifetime: 4,
+    "hive.launcher": { ammoKind: "iron-round", muzzleX: 1.435, muzzleY: 0.77, muzzleZ: 0,
+      maxSpeed: 8, projectileRadius: 0.22, maxRange: 20, maxLifetime: 6, gravity: -2.5, penetration: 4,
       projectileSprite: "formation.cannonball", projectileLabel: "Iron round" },
   } },
   { id: ammunitionId, components: {
@@ -89,6 +89,14 @@ const formationInitial = [
       "hive.visual": { sprite: "crate", label: "Obstacle" },
     },
   },
+  ...[
+    { id: "formations.firm-ground", x: -2, halfX: 6, resistance: 0.2, restitution: 0.18, friction: 0.35, embedSpeed: 3 },
+    { id: "formations.soft-ground", x: 8, halfX: 4, resistance: 1, restitution: 0, friction: 0.8, embedSpeed: 1 },
+  ].map(ground => ({ id: entity(ground.id), components: {
+    "hive.position": { x: ground.x, y: -0.5, z: 0, facing: 0 },
+    "hive.collider": { shape: "cuboid", radius: 0, halfX: ground.halfX, halfY: 0.5, halfZ: 8, yaw: 0, offsetX: 0, offsetY: 0, offsetZ: 0 },
+    "hive.impact-material": { response: "ground", resistance: ground.resistance, restitution: ground.restitution, friction: ground.friction, embedSpeed: ground.embedSpeed },
+  }})),
   ...[1, 2, 3].map((slot) => ({
     id: entity(`formations.unit.${slot}`),
     components: {
@@ -98,7 +106,8 @@ const formationInitial = [
       "formations.member": { group: groupId, slot },
       "formations.morale": { value: 80 },
       "formations.health": { value: 100 },
-      "hive.collider": { shape: "ball", radius: 0.5, halfX: 0, halfY: 0, halfZ: 0, yaw: 0 },
+      "hive.collider": { shape: "ball", radius: 0.4, halfX: 0, halfY: 0, halfZ: 0, yaw: 0, offsetX: 0, offsetY: 0.65, offsetZ: 0 },
+      "hive.impact-material": { response: "pierce", resistance: 0.5, restitution: 0, friction: 0, embedSpeed: 0 },
     },
   })),
 ];
@@ -110,16 +119,18 @@ export const formationsPack: GamePack = {
     Destination,
     FormationMember,
     Morale,
-    FormationSettings, Health, Collider, Launcher, MaterialLot,
+    FormationSettings, Health, Collider, Launcher, ImpactMaterial, MaterialLot,
   ],
   systems: [cannonDamage, formations],
   commands: {
     fire: command({ reads: [Launcher, MaterialLot], writes: [], run(context, raw) {
-      z.object({}).strict().parse(raw);
+      const { velocity } = z.object({ velocity: z.object({ x: z.number().finite(), y: z.number().finite(), z: z.number().finite() }).strict() }).strict().parse(raw);
+      if (velocity.y < 0 || velocity.y > 8 || Math.hypot(velocity.x, velocity.y, velocity.z) > 12)
+        throw new Error("Aim within the cannon elevation and speed limits");
       const cannon = context.query(query(Launcher)).find(row => row.id === cannonId);
       const stock = context.query(query(MaterialLot)).find(row => row.id === ammunitionId)?.get(MaterialLot);
       if (!cannon || !stock || stock.quantity < 1) throw new Error("No cannon rounds remain");
-      return { actions: [launch(cannonId, ammunitionId, { x: 8, y: 0, z: 0 })], writes: [] };
+      return { actions: [launch(cannonId, ammunitionId, velocity)], writes: [] };
     } }),
     march: command({
       reads: [FormationMember, FormationSettings],
@@ -242,12 +253,13 @@ export const formationsPack: GamePack = {
   },
   definition: encodeDefinition(
     "formations",
-    [Position, Destination, FormationMember, Morale, FormationSettings, Health, Collider, Launcher, MaterialLot],
+    [Position, Destination, FormationMember, Morale, FormationSettings, Health, Collider, Launcher, ImpactMaterial, MaterialLot],
     formationInitial,
   ),
   presentation: {
+    feedback: true,
     controls: [
-      { id: "fire-cannon", label: "Fire downrange", command: "fire", input: {} },
+      { id: "fire-cannon", label: "Fire downrange", command: "fire", input: { velocity: { x: 8 * Math.cos(0.12), y: 8 * Math.sin(0.12), z: 0 } } },
       {
         id: "facing-0",
         label: "Formation north",

@@ -8,9 +8,29 @@ Levi playtested the sustained-input release: "This feels WAY better." He also
 loves the RTS cannon. This is actual positive player feedback, not a population
 or cross-network guarantee. Preserve the movement/cannon gains.
 
-The [four-demo juice proposal](JUICE-PROPOSAL.md) plans reusable client effects,
-confirmed feedback, better original models and scene polish on all four existing
-pages. It is a proposal, not a new implementation assignment or deployed feature.
+Levi authorized implementation of the existing RTS first; the other demos follow.
+The current joined cannon slice adds shared native ballistic/contact stepping,
+finite piercing ammunition, explicit ground roll/embed response, the same native
+aim preview, committed bounded feedback cues and original baked recoil/hit/effect
+clips. Browser and DO still use the same Rust kernel; feedback cannot mutate play.
+
+Current source qualification: actual WASM formation shot hits all three soldiers
+once, spends one round, restores the same mid-flight result and retains a settled
+ball. Native affected combat laws and strict engine/host types pass. The original
+art export adds 82 textures to the existing three atlas pages (1497 total); root
+viewed the contact sheet and actual existing Formations page. Bounded local input
+proved aim/fire/damage/pause and 390px containment with no page errors. The new
+presentation clock follows the existing interpolation timeline, including pause.
+Publication receipt follows the stopped exact build; this paragraph does not
+claim hosted acceptance until that receipt is recorded.
+
+This is a first juice pass: original articulated hit clips plus grounded native
+knockback, not joint-physics ragdolls. The current aiming preview uses the visible
+colliders at their current positions; moving soldiers can leave the projected
+path. No camera shake, new game page or Survival movement rewrite. Launcher
+profiles and contact materials are game definitions; client reaction bindings
+choose the existing original art pack. Further plans remain in
+[JUICE-PROPOSAL.md](JUICE-PROPOSAL.md).
 
 ## September 11 Survival sustained-input correction — published
 

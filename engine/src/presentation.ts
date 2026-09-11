@@ -47,6 +47,8 @@ export interface PresentationFact {
   readonly value: string | number | boolean;
 }
 export interface GamePresentation {
+  /** Opt into committed physical feedback; no simulation behavior is granted. */
+  readonly feedback?: boolean;
   readonly controls: readonly PresentationControl[];
   readonly inspect: (
     context: Pick<ReadContext, "query">,

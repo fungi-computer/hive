@@ -160,7 +160,7 @@ mod tests {
     fn bounded_ballistic_interval_is_shared_and_conservative() {
         let (position, average) = super::ballistic_interval([0.0, 2.0, 0.0], [10.0, 4.0, 0.0], -10.0, 0.2);
         assert!((position[0] - 2.0).abs() < 1e-12);
-        assert!((position[1] - 1.8).abs() < 1e-12);
+        assert!((position[1] - 2.6).abs() < 1e-12);
         assert!((average[1] - 3.0).abs() < 1e-12);
     }
 
@@ -185,4 +185,125 @@ mod tests {
         assert_eq!(motion.state, "embedded");
         assert!(motion.embed_depth > 0.0);
     }
+}
+
+use crate::{collision, components::{Position, Projectile}};
+use std::collections::BTreeSet;
+
+#[derive(Clone)]
+pub struct ContactCollider {
+    pub geometry: collision::Collider,
+    pub material: ImpactProfile,
+}
+pub struct MotionContact {
+    pub hit: collision::SweepHit,
+    pub elapsed: f64,
+    pub velocity: [f64; 3],
+    pub response: String,
+}
+pub struct MotionStep {
+    pub contacts: Vec<MotionContact>,
+    pub samples: Vec<(f64, [f64; 3], [f64; 3])>,
+    pub expired: bool,
+}
+fn length(v: [f64; 3]) -> f64 { (v[0]*v[0]+v[1]*v[1]+v[2]*v[2]).sqrt() }
+
+/// One physical interval owner for both authority and aiming. The caller only
+/// supplies collider poses at the requested time and publishes returned facts.
+pub fn advance_motion(
+    id: &str,
+    shot: &mut Projectile,
+    position: &mut Position,
+    victims: &mut BTreeSet<String>,
+    delta: f64,
+    mut candidates: impl FnMut(f64, f64, [f64;3], [f64;3]) -> Result<Vec<ContactCollider>, String>,
+) -> Result<MotionStep, String> {
+    let mut output = MotionStep { contacts: Vec::new(), samples: Vec::new(), expired: false };
+    let mut elapsed = 0.0;
+    let mut iterations = 0;
+    while elapsed + 1e-9 < delta && matches!(shot.state.as_str(), "flying" | "rolling") {
+        iterations += 1;
+        if iterations > MAX_PROJECTILE_SUBSTEPS + MAX_CONTACTS_PER_PROJECTILE_STEP + 2 {
+            return Err("projectile substep budget exceeded".into());
+        }
+        let origin = [position.x, position.y, position.z];
+        let mut velocity = [shot.velocity_x, shot.velocity_y, shot.velocity_z];
+        let speed = length(velocity);
+        let step = sweep_interval((delta-elapsed).min(PROJECTILE_SUBSTEP_SECONDS), shot.age, shot.distance, speed, shot.max_lifetime, shot.max_range)?;
+        if step <= 1e-9 { output.expired = true; break; }
+        let available = candidates(elapsed, step, origin, velocity)?;
+        if available.len() > collision::MAX_CANDIDATE_COLLIDERS { return Err("projectile candidate budget exceeded".into()); }
+        let mut support = None;
+        if shot.state == "rolling" {
+            // Check the next foot position against real horizontal ground.
+            // No remembered infinite plane: leaving its edge restores gravity.
+            let probe = collision::Projectile { id: id.into(), radius: shot.radius,
+                origin: [origin[0]+velocity[0]*step, origin[1]+0.002, origin[2]+velocity[2]*step],
+                linear_velocity: [0.0,-1.0,0.0] };
+            let ground: Vec<_> = available.iter().filter(|c| c.material.response == "ground").map(|c| c.geometry.clone()).collect();
+            if let Some(hit) = collision::sweep_projectile(&probe, &ground, 0.006).map_err(|e|e.to_string())? {
+                if hit.normal[1] < -0.99 {
+                    let material = &available.iter().find(|c|c.geometry.id==hit.target_id).ok_or("ground contact disappeared")?.material;
+                    shot.roll_friction = material.friction;
+                    support = Some(hit.target_id);
+                    let horizontal = velocity[0].hypot(velocity[2]);
+                    let next = (horizontal - material.friction * shot.gravity.abs().max(1.0) * step).max(0.0);
+                    let scale = if horizontal > 0.0 { next/horizontal } else { 0.0 };
+                    velocity = [velocity[0]*scale, 0.0, velocity[2]*scale];
+                    if next < 0.05 {
+                        shot.state = "resting".into();
+                        shot.velocity_x=0.0; shot.velocity_y=0.0; shot.velocity_z=0.0;
+                        break;
+                    }
+                }
+            }
+            if support.is_none() { shot.state="flying".into(); }
+        }
+        let gravity = if support.is_some() { 0.0 } else { shot.gravity };
+        let (end, average) = ballistic_interval(origin, velocity, gravity, step);
+        let geometry: Vec<_> = available.iter().filter(|candidate|
+            !victims.contains(&candidate.geometry.id) && support.as_ref()!=Some(&candidate.geometry.id)
+        ).map(|c|c.geometry.clone()).collect();
+        let hit = collision::sweep_projectile(&collision::Projectile {id:id.into(),radius:shot.radius,origin,linear_velocity:average}, &geometry, step).map_err(|e|e.to_string())?;
+        let used;
+        if let Some(hit) = hit {
+            if output.contacts.len() >= MAX_CONTACTS_PER_PROJECTILE_STEP { return Err("projectile contact budget exceeded".into()); }
+            let material=&available.iter().find(|c|c.geometry.id==hit.target_id).ok_or("contact material disappeared")?.material;
+            used=hit.time.max(1e-6).min(step);
+            let center=[origin[0]+average[0]*hit.time, origin[1]+average[1]*hit.time, origin[2]+average[2]*hit.time];
+            velocity=ballistic_velocity(velocity,gravity,hit.time);
+            output.contacts.push(MotionContact {hit:hit.clone(),elapsed:elapsed+hit.time,velocity,response:material.response.clone()});
+            let mut motion=ProjectileMotion {velocity,penetration:shot.penetration,state:shot.state.clone(),embed_depth:shot.embed_depth,normal:[0.0;3],friction:shot.roll_friction};
+            resolve_contact(&mut motion,hit.normal,material,shot.radius);
+            if material.response!="ground" {
+                if victims.len()>=128 { return Err("projectile victim limit exceeded".into()); }
+                victims.insert(hit.target_id);
+            }
+            shot.penetration=motion.penetration; shot.state=motion.state; shot.embed_depth=motion.embed_depth;
+            shot.roll_normal_x=motion.normal[0];shot.roll_normal_y=motion.normal[1];shot.roll_normal_z=motion.normal[2];shot.roll_friction=motion.friction;
+            velocity=motion.velocity;
+            position.x=center[0];position.y=center[1];position.z=center[2];
+            if material.response=="ground" {
+                position.x+=motion.normal[0]*1e-5;position.y+=motion.normal[1]*1e-5;position.z+=motion.normal[2]*1e-5;
+            }
+        } else {
+            used=step;
+            position.x=end[0];position.y=end[1];position.z=end[2];
+            velocity=ballistic_velocity(velocity,gravity,step);
+        }
+        shot.velocity_x=velocity[0];shot.velocity_y=velocity[1];shot.velocity_z=velocity[2];
+        shot.age+=used;
+        shot.distance+=length([position.x-origin[0],position.y-origin[1],position.z-origin[2]]);
+        elapsed+=used;
+        output.samples.push((elapsed,[position.x,position.y,position.z],velocity));
+    }
+    if matches!(shot.state.as_str(),"flying"|"rolling") && (shot.age+1e-9>=shot.max_lifetime || shot.distance+1e-9>=shot.max_range) { output.expired=true; }
+    Ok(output)
+}
+
+/// Local barrel placement for both the shot and its aiming preview.
+pub fn muzzle_origin(base: [f64;3], muzzle: [f64;3], velocity: [f64;3]) -> [f64;3] {
+    let yaw=velocity[2].atan2(velocity[0]);
+    let (sin,cos)=yaw.sin_cos();
+    [base[0]+cos*muzzle[0]-sin*muzzle[2],base[1]+muzzle[1],base[2]+sin*muzzle[0]+cos*muzzle[2]]
 }

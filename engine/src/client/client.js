@@ -146,12 +146,15 @@ export function createHiveClient({
   const subjectReactions = new Map();
   const audio = createAudioOwner();
   let latestFacts = [];
+  let pendingCues = [];
+  const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
 
   function prepareNewWorld(remote) {
     if (remote) state.ready = false;
     state.pendingSave = false;
     state.pendingRestore = false;
     state.subjects = [];
+    latestFacts = [];
     state.presentationFacts = [];
     state.presentationControls = [];
     state.dragging = null;
@@ -166,6 +169,7 @@ export function createHiveClient({
     effectOwner?.clear();
     previewCache?.clear();
     subjectReactions.clear();
+    pendingCues = [];
     interpolation.reset();
     animationClock.reset();
     for (const entry of actorCache.values())
@@ -213,7 +217,7 @@ export function createHiveClient({
       !Number.isFinite(profile.maxRange) || profile.maxRange <= 0 || !Number.isFinite(profile.maxLifetime) || profile.maxLifetime <= 0)
       throw new Error("launcher preview profile unavailable");
     const velocity = fireInput({ launcherId: launcher.id, origin: profile.origin, target: state.aim.target, elevation: state.aim.elevation, speed: profile.speed ?? 8 }).velocity;
-    const request = { origin: profile.origin, velocity: { x: velocity.x + (profile.inheritedVelocity?.x ?? 0), y: velocity.y + (profile.inheritedVelocity?.y ?? 0), z: velocity.z + (profile.inheritedVelocity?.z ?? 0) }, radius: profile.radius, gravity: profile.gravity, penetration: profile.penetration, maxRange: profile.maxRange, maxLifetime: profile.maxLifetime, colliders: latestFacts.filter((fact) => fact.id !== launcher.id && fact.collision).map((fact) => ({ id: fact.id, ...fact.collision })) };
+    const request = { origin: profile.origin, muzzle: profile.muzzle, velocity, inheritedVelocity: profile.inheritedVelocity, radius: profile.radius, gravity: profile.gravity, penetration: profile.penetration, maxRange: profile.maxRange, maxLifetime: profile.maxLifetime, colliders: latestFacts.filter((fact) => fact.id !== launcher.id && fact.collision).map((fact) => ({ id: fact.id, ...fact.collision })) };
     state.aim.velocity = velocity;
     state.aim.preview = previewCache.get(request, { force });
   }
@@ -277,7 +281,7 @@ export function createHiveClient({
               { onClick: () => act("pause"), size: "sm" },
               state.paused ? "Resume" : "Pause",
             ),
-            React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { audio.setMuted(!audio.muted); renderHud(); } }, audio.muted ? "Sound off" : "Sound on"),
+            aiming ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { audio.setMuted(!audio.muted); renderHud(); } }, audio.muted ? "Sound off" : "Sound on") : null,
             React.createElement(
               Button,
               { onClick: () => act("reset"), size: "sm", variant: "secondary" },
@@ -321,7 +325,7 @@ export function createHiveClient({
           ),
           isAiming()
             ? React.createElement("div", { className: "hive-actions" },
-                React.createElement("label", null, `Elevation ${state.aim.elevation.toFixed(2)}`),
+                React.createElement("label", null, `Elevation ${Math.round(state.aim.elevation * 180 / Math.PI)}°`),
                 React.createElement(Slider, {
                   type: "range", min: "0", max: "0.5", step: "0.01", value: state.aim.elevation,
                   onChange: (event) => { state.aim.elevation = Number(event.target.value); updateAimPreview(); renderHud(); draw(); },
@@ -354,10 +358,12 @@ export function createHiveClient({
                       key: control.id,
                       size: "sm",
                       disabled: !state.ready,
-                      onClick: () =>
-                        state.ready && runtime?.send(
+                      onClick: () => {
+                        if (aiming) audio.unlock();
+                        return state.ready && runtime?.send(
                           presentationCommand(control, state.selectedIds),
-                        ),
+                        );
+                      },
                     },
                     control.label,
                   ),
@@ -428,8 +434,12 @@ export function createHiveClient({
     const now = performance.now();
     directControl?.tick(now, state.paused);
     const visibleFacts = interpolation.render(now, { paused: state.paused });
+    const presentedTime = interpolation.presentationTime();
+    const due = pendingCues.filter(cue => cue.time <= presentedTime + 1e-9);
+    pendingCues = pendingCues.filter(cue => cue.time > presentedTime + 1e-9);
+    for (const cue of due) if (presentedTime - cue.time <= 3) playCue(cue);
     state.subjects = (directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts)
-      .filter((fact) => fact.pose?.position)
+      .filter((fact) => fact.pose?.position && fact.visual)
       .map((fact) => ({
         id: fact.id,
         name: fact.label || fact.id,
@@ -535,7 +545,7 @@ export function createHiveClient({
       entry.marker.visible = state.selectedIds.includes(subject.id);
       const figure = art?.figures?.[binding.key];
       const reaction = subjectReactions.get(subject.id);
-      const reactionFrames = reaction && reaction.until > performance.now()
+      const reactionFrames = reaction && reaction.until > effectClock()
         ? reaction.frames : null;
       if (reaction && !reactionFrames) subjectReactions.delete(subject.id);
       const frames = reactionFrames ?? (isStatic
@@ -552,7 +562,7 @@ export function createHiveClient({
           : resolveStaticVisual(art, binding, physicalFacing))
         : undefined;
       const texture = reactionFrames?.length
-        ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((performance.now() - reaction.started) / 45))]
+        ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((effectClock() - reaction.started) / 45))]
         : isStatic
         ? staticVisual?.texture
         : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
@@ -593,13 +603,13 @@ export function createHiveClient({
       drag.current,
     );
     if (isAiming() && state.aim.point && state.aim.target) {
-      const marker = state.aim.preview?.landing ?? state.aim.preview?.firstGroundContact ?? state.aim.target;
-      const target = project(marker.x, marker.y, marker.z);
-      const sx = target.x * camera.zoom + camera.x, sy = target.y * camera.zoom + camera.y;
+      const marker = state.aim.preview?.contacts?.find(contact => contact.response === "ground")?.point ?? state.aim.preview?.position;
+      const target = marker ? project(marker.x, marker.y, marker.z) : null;
+      const sx = target ? target.x * camera.zoom + camera.x : 0, sy = target ? target.y * camera.zoom + camera.y : 0;
       aimGraphic.clear().circle(sx, sy, 8).stroke({ color: 0xe8c779, width: 2 });
-      aimGraphic.visible = true;
+      aimGraphic.visible = Boolean(marker);
       aimArcGraphic.clear();
-      const arc = state.aim.preview?.points ?? state.aim.preview?.trajectory;
+      const arc = state.aim.preview?.trajectory?.map(sample => sample.position);
       if (Array.isArray(arc)) {
         for (let index = 1; index < arc.length; index += 2) {
           const a = project(arc[index - 1].x, arc[index - 1].y, arc[index - 1].z);
@@ -611,7 +621,7 @@ export function createHiveClient({
       }
       aimArcGraphic.visible = true;
     } else { aimGraphic.visible = false; aimArcGraphic.visible = false; }
-    effectOwner?.tick(now);
+    effectOwner?.tick(effectClock());
   }
   function point(event) {
     const rect = app.canvas.getBoundingClientRect();
@@ -745,15 +755,14 @@ export function createHiveClient({
     const direction = cue.kind === "launch" && Number.isFinite(subject?.pose?.facing)
       ? ((Math.round(subject.pose.facing) % 4) + 4) % 4
       : ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
-    const authored = cue.kind === "launch"
-      ? art.props?.cannonRecoil?.[direction]
-      : art.figures?.goblin?.hit?.[direction];
-    if (subject && authored) subjectReactions.set(subject.id, {
-      frames: authored, started: performance.now(), until: performance.now() + (cue.kind === "launch" ? 360 : 720), direction,
+    const reaction = bindings[subject?.visual]?.reactions?.[cue.kind];
+    const authored = reaction?.path.reduce((value, key) => value?.[key], art)?.[direction];
+    if (subject && Array.isArray(authored)) subjectReactions.set(subject.id, {
+      frames: authored, started: effectClock(), until: effectClock() + reaction.duration, direction,
     });
     const bank = cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
-    const texture = frames.length ? frames[Math.abs(cue.sequence ?? 0) % frames.length] : undefined;
+    const texture = frames.length ? frames[0] : undefined;
     if (frames.length) effectOwner.play({ texture, frames, lifetime: cue.kind === "launch" ? 220 : 420, sprites: 1 }, cue);
     const smoke = cue.kind === "launch" ? art.effects?.smoke : undefined;
     if (smoke) {
@@ -783,6 +792,7 @@ export function createHiveClient({
     state.disposeArt = pack.dispose;
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
+      now: effectClock,
       maxEffects: 32,
       maxSprites: 128,
       spawn(definition, cue) {
@@ -896,17 +906,20 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "frame") {
-        latestFacts = Array.isArray(event.facts) ? event.facts : [];
         // A reset/restore publishes a higher epoch. Stale frames from the
         // old stream must never clear the new interpolation timeline.
         if (frameEpoch !== undefined && event.epoch < frameEpoch) return;
         if (frameEpoch !== undefined && event.epoch > frameEpoch) {
           directControl?.reset();
           interpolation.reset(event.epoch);
+          pendingCues = [];
+          subjectReactions.clear();
+          effectOwner?.clear();
           animationClock.reset();
           intendedDestinations.clear();
         }
         if (interpolation.push(event, performance.now())) {
+          latestFacts = event.facts;
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             animationClock.reset();
             awaitingEpochTransition = false;
@@ -922,8 +935,8 @@ export function createHiveClient({
               Math.hypot(position.x - destination.x, position.z - destination.z) < 0.05)
               intendedDestinations.delete(id);
           }
+          pendingCues = [...pendingCues, ...cueCursor.accept(event)].slice(-64);
         }
-        for (const cue of cueCursor.accept(event)) playCue(cue);
       }
       if (event.type === "presentation") {
         state.presentationFacts = event.facts;

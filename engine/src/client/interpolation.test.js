@@ -183,3 +183,15 @@ test("facing wraps across the quarter-turn boundary", () => {
   assert.equal(buffer.render(1500)[0].pose.facing, -0.5);
   assert.equal(buffer.render(2000)[0].pose.facing, 3);
 });
+
+test("feedback clock follows displayed world time and freezes with pause", () => {
+  const buffer = createInterpolationBuffer({ delayMs: 100 });
+  buffer.push(frame(0, 0, 0), 0);
+  buffer.push(frame(1, 1, 10), 1000);
+  buffer.render(500);
+  assert.equal(buffer.presentationTime(), 0.4);
+  buffer.render(9000, { paused: true });
+  assert.equal(buffer.presentationTime(), 0.4);
+  buffer.reset();
+  assert.equal(buffer.presentationTime(), -Infinity);
+});

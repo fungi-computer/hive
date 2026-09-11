@@ -645,7 +645,7 @@ impl Kernel {
         for saved in state.projectile_contacts {
             let projectile = candidate.entity(&saved.projectile_id)?;
             if candidate.ecs.get::<Projectile>(projectile).is_none()
-                || saved.targets.len() > combat::MAX_CONTACTS_PER_PROJECTILE_STEP
+                || saved.targets.len() > 128
                 || saved.targets.iter().any(|target| candidate.entity(target).is_err())
                 || saved.targets.windows(2).any(|pair| pair[0] >= pair[1])
                 || contacts.insert(saved.projectile_id, saved.targets.into_iter().collect()).is_some()
@@ -655,7 +655,7 @@ impl Kernel {
         }
         candidate.projectile_contacts = contacts;
         candidate.refresh_state_weight();
-        if candidate.state_weight.saturating_add(direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES {
+        if candidate.state_weight > STATE_BYTES {
             return Err("projectile contact state exceeds canonical capacity".into());
         }
         candidate.revision = state.revision;
@@ -692,7 +692,7 @@ impl Kernel {
             let visual=self.ecs.get::<Visual>(*e);
             let launcher=self.ecs.get::<Launcher>(*e);
             let collider=self.ecs.get::<Collider>(*e);
-            let launcher_velocity=self.world_linear_velocity(*e, 0.02)?;
+            let launcher_velocity=if launcher.is_some() {self.world_linear_velocity(*e, 0.02)?} else {[0.0;3]};
             let launcher_radians=p.facing * std::f64::consts::FRAC_PI_2;
             let (launcher_sin, launcher_cos)=launcher_radians.sin_cos();
             facts.push(json!({
@@ -704,7 +704,8 @@ impl Kernel {
                 "visual":visual.map(|v|&v.sprite),
                 "label":visual.map(|v|&v.label),
                 "aim":launcher.map(|launcher| json!({
-                    "origin":{"x":p.x + launcher_cos * launcher.muzzle_x - launcher_sin * launcher.muzzle_z,"y":p.y + launcher.muzzle_y,"z":p.z + launcher_sin * launcher.muzzle_x + launcher_cos * launcher.muzzle_z},
+                    "origin":{"x":p.x,"y":p.y,"z":p.z},
+                    "muzzle":{"x":launcher.muzzle_x,"y":launcher.muzzle_y,"z":launcher.muzzle_z},
                     "inheritedVelocity":{"x":launcher_velocity[0],"y":launcher_velocity[1],"z":launcher_velocity[2]},
                     "radius":launcher.projectile_radius,
                     "gravity":launcher.gravity,
@@ -721,12 +722,12 @@ impl Kernel {
                     "halfX":collider.half_x,
                     "halfY":collider.half_y,
                     "halfZ":collider.half_z,
-                    "yaw":collider.yaw,
-                    "offsetX":collider.offset_x,
+                    "yaw":launcher_radians+collider.yaw,
+                    "offsetX":launcher_cos*collider.offset_x-launcher_sin*collider.offset_z,
                     "offsetY":collider.offset_y,
-                    "offsetZ":collider.offset_z,
+                    "offsetZ":launcher_sin*collider.offset_x+launcher_cos*collider.offset_z,
                     "velocity":{"x":0.0,"y":0.0,"z":0.0},
-                    "material":self.ecs.get::<ImpactMaterial>(*e),
+                    "material":self.ecs.get::<ImpactMaterial>(*e).map(|m|json!(m)).unwrap_or(json!({"response":"stop","resistance":0.0,"restitution":0.0,"friction":1.0,"embedSpeed":0.0})),
                 })),
                 "projectile":self.ecs.get::<Projectile>(*e).map(|projectile| json!({
                     "velocity":{"x":projectile.velocity_x,"y":projectile.velocity_y,"z":projectile.velocity_z},
@@ -1066,10 +1067,8 @@ impl Kernel {
         if self.projectile_count >= combat::MAX_ACTIVE_PROJECTILES || self.ids.len() >= 16384 {
             return Err("projectile capacity exhausted".into());
         }
-        let radians = launcher_position.facing * std::f64::consts::FRAC_PI_2;
-        let (sin, cos) = radians.sin_cos();
-        let muzzle_x = cos * launcher.muzzle_x - sin * launcher.muzzle_z;
-        let muzzle_z = sin * launcher.muzzle_x + cos * launcher.muzzle_z;
+        let radians = velocity.z.atan2(velocity.x);
+        let muzzle = combat::muzzle_origin([launcher_position.x,launcher_position.y,launcher_position.z],[launcher.muzzle_x,launcher.muzzle_y,launcher.muzzle_z],[velocity.x,velocity.y,velocity.z]);
         let support_velocity = self.world_linear_velocity(launcher_entity, delta)?;
         let projectile_id = format!("shot.{}", self.next_projectile);
         let next_projectile = self.next_projectile.checked_add(1).ok_or("projectile ID exhausted")?;
@@ -1118,12 +1117,15 @@ impl Kernel {
         self.next_projectile = next_projectile;
         lot.quantity -= 1;
         self.ecs.entity_mut(lot_entity).insert(lot);
+        if let Some(mut local)=self.ecs.get_mut::<Position>(launcher_entity) {
+            local.facing += radians/std::f64::consts::FRAC_PI_2-launcher_position.facing;
+        }
         let projectile_entity = self.ecs.spawn((
             ExternalId(projectile_id.clone()),
             Position {
-                x: launcher_position.x + muzzle_x,
-                y: launcher_position.y + launcher.muzzle_y,
-                z: launcher_position.z + muzzle_z,
+                x: muzzle[0],
+                y: muzzle[1],
+                z: muzzle[2],
                 facing: launcher_position.facing,
             },
             Projectile {
@@ -1155,7 +1157,7 @@ impl Kernel {
         self.projectile_count += 1;
         self.projectile_contacts.insert(projectile_id.clone(), BTreeSet::new());
         self.refresh_state_weight();
-        Ok(Some((projectile_id, Vector3 { x: launcher_position.x + muzzle_x, y: launcher_position.y + launcher.muzzle_y, z: launcher_position.z + muzzle_z })))
+        Ok(Some((projectile_id, Vector3 { x: muzzle[0], y: muzzle[1], z: muzzle[2] })))
     }
     fn displace(&mut self, id: &str, delta: Vector3) -> Result<()> {
         if [delta.x, delta.y, delta.z]
@@ -1259,133 +1261,66 @@ impl Kernel {
         let end = self.predicted_world_pose(entity, delta, 0)?;
         Ok([(end.x - start.x) / delta, (end.y - start.y) / delta, (end.z - start.z) / delta])
     }
-    fn advance_projectiles(&mut self, delta: f64) -> Result<Vec<ImpactEvent>> {
-        if self.projectile_count == 0 || delta == 0.0 {
-            return Ok(Vec::new());
+    fn projectile_colliders(&self, launcher: &str, elapsed: f64, step: f64, origin:[f64;3], velocity:[f64;3], radius:f64, gravity:f64) -> Result<Vec<combat::ContactCollider>> {
+        let mut candidates=Vec::new();
+        for id in &self.collider_ids {
+            if id==launcher { continue; }
+            let entity=self.entity(id)?;
+            let collider=self.ecs.get::<Collider>(entity).ok_or("stale collider index")?;
+            let start=self.predicted_world_pose(entity,elapsed,0)?;
+            let end=self.predicted_world_pose(entity,elapsed+step,0)?;
+            let initial=self.world_pose_entity(entity,0)?;
+            let extent=match collider.shape {ColliderShape::Ball=>collider.radius,ColliderShape::Cuboid=>(collider.half_x.powi(2)+collider.half_y.powi(2)+collider.half_z.powi(2)).sqrt()}+radius+0.01;
+            let projectile_end=combat::ballistic_interval(origin,velocity,gravity,step).0;
+            let offset_radius=(collider.offset_x.powi(2)+collider.offset_z.powi(2)).sqrt();
+            let target_start=[start.x,start.y+collider.offset_y,start.z];
+            let target_end=[end.x,end.y+collider.offset_y,end.z];
+            if (0..3).any(|axis| origin[axis].min(projectile_end[axis])-extent > target_start[axis].max(target_end[axis])+extent+offset_radius || origin[axis].max(projectile_end[axis])+extent < target_start[axis].min(target_end[axis])-extent-offset_radius) {continue;}
+            if matches!(collider.shape,ColliderShape::Cuboid) && (end.facing-initial.facing).abs()>1e-9 { return Err("rotating cuboid collision is unsupported".into()); }
+            let angle=start.facing*std::f64::consts::FRAC_PI_2;
+            let (sin,cos)=angle.sin_cos();
+            let material=self.ecs.get::<ImpactMaterial>(entity);
+            candidates.push(combat::ContactCollider {
+                geometry:collision::Collider {id:id.clone(),shape:match collider.shape {
+                    ColliderShape::Ball=>collision::ColliderShape::Ball{radius:collider.radius},
+                    ColliderShape::Cuboid=>collision::ColliderShape::Cuboid{half_extents:[collider.half_x,collider.half_y,collider.half_z]},
+                },origin:[start.x+cos*collider.offset_x-sin*collider.offset_z,start.y+collider.offset_y,start.z+sin*collider.offset_x+cos*collider.offset_z],
+                linear_velocity:if step>0.0 {[(end.x-start.x)/step,(end.y-start.y)/step,(end.z-start.z)/step]} else {[0.0;3]},yaw:angle+collider.yaw},
+                material:combat::ImpactProfile {response:material.map_or("stop",|m|m.response.as_str()).into(),resistance:material.map_or(0.0,|m|m.resistance),restitution:material.map_or(0.0,|m|m.restitution),friction:material.map_or(1.0,|m|m.friction),embed_speed:material.map_or(0.0,|m|m.embed_speed)},
+            });
+            if candidates.len()>collision::MAX_CANDIDATE_COLLIDERS {return Err("projectile candidate budget exceeded".into());}
         }
-        let mut impacts = Vec::new();
-        for projectile_id in self.projectile_ids() {
-            let entity = self.entity(&projectile_id)?;
-            let mut projectile = self.ecs.get::<Projectile>(entity).cloned().ok_or("missing projectile")?;
-            if projectile.state != "flying" && projectile.state != "rolling" { continue; }
-            let mut position = *self.ecs.get::<Position>(entity).ok_or("projectile has no position")?;
-            let mut remaining = delta;
-            let mut elapsed = 0.0;
-            let mut step_count = 0usize;
-            let mut contact_count = 0usize;
-            while remaining > 1e-9 && step_count < combat::MAX_PROJECTILE_SUBSTEPS {
-                step_count += 1;
-                let speed = (projectile.velocity_x * projectile.velocity_x
-                    + projectile.velocity_y * projectile.velocity_y
-                    + projectile.velocity_z * projectile.velocity_z).sqrt();
-                let lifetime = (projectile.max_lifetime - projectile.age).max(0.0);
-                let range = if speed > 1e-9 { ((projectile.max_range - projectile.distance) / speed).max(0.0) } else { remaining };
-                let step = remaining.min(combat::PROJECTILE_SUBSTEP_SECONDS).min(lifetime).min(range);
-                if step <= 1e-9 {
-                    self.ecs.despawn(entity);
-                    self.ids.remove(&projectile_id);
-                    self.known.remove(&projectile_id);
-                    self.projectile_contacts.remove(&projectile_id);
-                    self.projectile_count = self.projectile_count.saturating_sub(1);
-                    break;
-                }
-                let start = [position.x, position.y, position.z];
-                let velocity = [projectile.velocity_x, projectile.velocity_y, projectile.velocity_z];
-                // Rolling is constrained only while the explicit contacted
-                // ground collider is present; gravity remains active so a
-                // ledge naturally returns the ball to flight.
-                let gravity = projectile.gravity;
-                let (projectile_end, average_velocity) = combat::ballistic_interval(start, velocity, gravity, step);
-                let mut candidates = Vec::new();
-                for target_id in &self.collider_ids {
-                    if target_id == &projectile_id || target_id == &projectile.launcher { continue; }
-                    let target_entity = self.ids.get(target_id).ok_or("collider index is stale")?;
-                    let Some(collider) = self.ecs.get::<Collider>(*target_entity) else { continue };
-                    let material = self.ecs.get::<ImpactMaterial>(*target_entity);
-                    if self.projectile_contacts.get(&projectile_id).is_some_and(|set| set.contains(target_id))
-                        && (material.map_or(true, |m| m.response != "ground") || projectile.state == "rolling")
-                    { continue; }
-                    let target_position = self.predicted_world_pose(*target_entity, elapsed, 0)?;
-                    let target_end = self.predicted_world_pose(*target_entity, elapsed + step, 0)?;
-                    let target_velocity = if step > 0.0 { [(target_end.x - target_position.x) / step, (target_end.y - target_position.y) / step, (target_end.z - target_position.z) / step] } else { [0.0; 3] };
-                    let radians = target_position.facing * std::f64::consts::FRAC_PI_2;
-                    let (sin, cos) = radians.sin_cos();
-                    let offset_x = cos * collider.offset_x - sin * collider.offset_z;
-                    let offset_z = sin * collider.offset_x + cos * collider.offset_z;
-                    let origin = [target_position.x + offset_x, target_position.y + collider.offset_y, target_position.z + offset_z];
-                    let extent = match collider.shape { ColliderShape::Ball => collider.radius, ColliderShape::Cuboid => collider.half_x.max(collider.half_y).max(collider.half_z) } + projectile.radius;
-                    let projectile_min = [start[0].min(projectile_end[0]) - extent, start[1].min(projectile_end[1]) - extent, start[2].min(projectile_end[2]) - extent];
-                    let projectile_max = [start[0].max(projectile_end[0]) + extent, start[1].max(projectile_end[1]) + extent, start[2].max(projectile_end[2]) + extent];
-                    let target_min = [origin[0].min(target_end.x + offset_x) - extent, origin[1].min(target_end.y + collider.offset_y) - extent, origin[2].min(target_end.z + offset_z) - extent];
-                    let target_max = [origin[0].max(target_end.x + offset_x) + extent, origin[1].max(target_end.y + collider.offset_y) + extent, origin[2].max(target_end.z + offset_z) + extent];
-                    if (0..3).any(|axis| projectile_max[axis] < target_min[axis] || target_max[axis] < projectile_min[axis]) { continue; }
-                    if matches!(collider.shape, ColliderShape::Cuboid) && (target_end.facing - target_position.facing).abs() > 1e-9 { return Err("rotating cuboid collision is unsupported".into()); }
-                    if candidates.len() >= collision::MAX_CANDIDATE_COLLIDERS { return Err("swept collider candidate budget exceeded".into()); }
-                    candidates.push(collision::Collider { id: target_id.clone(), shape: match collider.shape { ColliderShape::Ball => collision::ColliderShape::Ball { radius: collider.radius }, ColliderShape::Cuboid => collision::ColliderShape::Cuboid { half_extents: [collider.half_x, collider.half_y, collider.half_z] } }, origin, linear_velocity: target_velocity, yaw: target_position.facing * std::f64::consts::FRAC_PI_2 + collider.yaw });
-                }
-                candidates.sort_by(|a, b| a.id.cmp(&b.id));
-                let hit = collision::sweep_projectile(&collision::Projectile { id: projectile_id.clone(), radius: projectile.radius, origin: start, linear_velocity: average_velocity }, &candidates, step).map_err(|error| error.to_string())?;
-                let Some(hit) = hit else {
-                    let distance = ((projectile_end[0] - start[0]).powi(2) + (projectile_end[1] - start[1]).powi(2) + (projectile_end[2] - start[2]).powi(2)).sqrt();
-                    position.x = projectile_end[0]; position.y = projectile_end[1]; position.z = projectile_end[2];
-                    projectile.velocity_y = combat::ballistic_velocity(velocity, gravity, step)[1];
-                    projectile.age += step; projectile.distance += distance; elapsed += step;
-                    if projectile.state == "rolling" {
-                        let ground_contacts: BTreeSet<String> = self.projectile_contacts.get(&projectile_id).into_iter().flatten().filter(|target| self.ids.get(*target).and_then(|entity| self.ecs.get::<ImpactMaterial>(*entity)).is_some_and(|material| material.response == "ground")).cloned().collect();
-                        if let Some(contacts) = self.projectile_contacts.get_mut(&projectile_id) {
-                            contacts.retain(|target| !ground_contacts.contains(target));
-                        }
-                        let factor = (1.0 - projectile.roll_friction * step).max(0.0);
-                        projectile.velocity_x *= factor; projectile.velocity_z *= factor;
-                        if (projectile.velocity_x * projectile.velocity_x + projectile.velocity_z * projectile.velocity_z).sqrt() < 0.05 { projectile.velocity_x = 0.0; projectile.velocity_z = 0.0; projectile.state = "resting".into(); self.projectile_count = self.projectile_count.saturating_sub(1); remaining = 0.0; }
-                    }
-                    remaining -= step;
-                    continue;
-                };
-                contact_count += 1;
-                if contact_count > combat::MAX_CONTACTS_PER_PROJECTILE_STEP { return Err("projectile contact budget exceeded".into()); }
-                let hit_time = hit.time.min(step);
-                let hit_velocity = combat::ballistic_velocity(velocity, gravity, hit_time);
-                let center = [start[0] + average_velocity[0] * hit_time, start[1] + average_velocity[1] * hit_time, start[2] + average_velocity[2] * hit_time];
-                position.x = center[0]; position.y = center[1]; position.z = center[2];
-                projectile.age += hit_time;
-                projectile.distance += ((center[0] - start[0]).powi(2) + (center[1] - start[1]).powi(2) + (center[2] - start[2]).powi(2)).sqrt();
-                if impacts.len() >= combat::MAX_IMPACTS_PER_STEP { return Err("impact event budget exceeded".into()); }
-                if self.next_impact > 9_007_199_254_740_991 { return Err("impact sequence exhausted".into()); }
-                let target_id = hit.target_id.clone();
-                let impact_id = format!("{}/impact.{}", projectile_id, self.next_impact);
-                self.next_impact += 1;
-                impacts.push(ImpactEvent { id: impact_id, sequence: self.next_impact - 1, projectile_id: projectile_id.clone(), source_id: projectile.launcher.clone(), target_id: target_id.clone(), time: self.time + elapsed + hit_time, point: Vector3 { x: hit.point[0], y: hit.point[1], z: hit.point[2] }, normal: Vector3 { x: hit.normal[0], y: hit.normal[1], z: hit.normal[2] }, velocity: Vector3 { x: hit_velocity[0], y: hit_velocity[1], z: hit_velocity[2] } });
-                let target_entity = self.entity(&target_id)?;
-                let material = self.ecs.get::<ImpactMaterial>(target_entity).cloned().unwrap_or(ImpactMaterial { response: "stop".into(), resistance: f64::INFINITY, restitution: 0.0, friction: 1.0, embed_speed: f64::INFINITY });
-                let material_profile = combat::ImpactProfile { response: material.response.clone(), resistance: material.resistance, restitution: material.restitution, friction: material.friction, embed_speed: material.embed_speed };
-                let mut motion = combat::ProjectileMotion { velocity: hit_velocity, penetration: projectile.penetration, state: projectile.state.clone(), embed_depth: projectile.embed_depth, normal: [projectile.roll_normal_x, projectile.roll_normal_y, projectile.roll_normal_z], friction: projectile.roll_friction };
-                let settled = combat::resolve_contact(&mut motion, hit.normal, &material_profile, projectile.radius);
-                projectile.penetration = motion.penetration;
-                projectile.state = motion.state;
-                projectile.embed_depth = motion.embed_depth;
-                projectile.roll_normal_x = motion.normal[0]; projectile.roll_normal_y = motion.normal[1]; projectile.roll_normal_z = motion.normal[2];
-                projectile.roll_friction = motion.friction;
-                projectile.velocity_x = motion.velocity[0]; projectile.velocity_y = motion.velocity[1]; projectile.velocity_z = motion.velocity[2];
-                position.x += motion.normal[0] * 1e-5; position.y += motion.normal[1] * 1e-5; position.z += motion.normal[2] * 1e-5;
-                if material.response != "ground" || projectile.state == "rolling" { self.projectile_contacts.entry(projectile_id.clone()).or_default().insert(target_id); }
-                if settled { self.projectile_count = self.projectile_count.saturating_sub(1); }
-                let consumed = hit_time.max(1e-6).min(remaining);
-                remaining -= consumed;
-                elapsed += consumed;
-                if settled { break; }
+        Ok(candidates)
+    }
+    fn advance_projectiles(&mut self, delta: f64) -> Result<Vec<ImpactEvent>> {
+        if self.projectile_count==0 || delta==0.0 {return Ok(Vec::new());}
+        let mut impacts=Vec::new();
+        for id in self.projectile_ids() {
+            let entity=self.entity(&id)?;
+            let mut projectile=self.ecs.get::<Projectile>(entity).cloned().ok_or("missing projectile")?;
+            if !matches!(projectile.state.as_str(),"flying"|"rolling") {continue;}
+            let launcher=projectile.launcher.clone();
+            let mut position=*self.ecs.get::<Position>(entity).ok_or("projectile has no position")?;
+            let mut victims=self.projectile_contacts.get(&id).cloned().unwrap_or_default();
+            let radius=projectile.radius;let gravity=projectile.gravity;
+            let result=combat::advance_motion(&id,&mut projectile,&mut position,&mut victims,delta,|elapsed,step,origin,velocity|self.projectile_colliders(&launcher,elapsed,step,origin,velocity,radius,gravity))?;
+            for contact in result.contacts {
+                if impacts.len()>=combat::MAX_IMPACTS_PER_STEP || self.next_impact>9_007_199_254_740_991 {return Err("impact event budget exceeded".into());}
+                let hit=contact.hit;
+                impacts.push(ImpactEvent {id:format!("{}/impact.{}",id,self.next_impact),sequence:self.next_impact,projectile_id:id.clone(),source_id:launcher.clone(),target_id:hit.target_id,time:self.time+contact.elapsed,point:Vector3{x:hit.point[0],y:hit.point[1],z:hit.point[2]},normal:Vector3{x:hit.normal[0],y:hit.normal[1],z:hit.normal[2]},velocity:Vector3{x:contact.velocity[0],y:contact.velocity[1],z:contact.velocity[2]}});
+                self.next_impact+=1;
             }
-            if step_count >= combat::MAX_PROJECTILE_SUBSTEPS && remaining > 1e-9 { return Err("projectile substep budget exceeded".into()); }
-            if self.ids.contains_key(&projectile_id) && (projectile.state == "flying" || projectile.state == "rolling") {
-                self.ecs.entity_mut(entity).insert((position, projectile));
-            } else if self.ids.contains_key(&projectile_id) && projectile.state != "flying" && projectile.state != "rolling" {
-                self.ecs.entity_mut(entity).insert((position, projectile));
+            if result.expired {
+                self.ecs.despawn(entity);self.ids.remove(&id);self.known.remove(&id);self.projectile_contacts.remove(&id);
+                self.projectile_count=self.projectile_count.saturating_sub(1);
+            } else {
+                if !matches!(projectile.state.as_str(),"flying"|"rolling") {self.projectile_count=self.projectile_count.saturating_sub(1);}
+                self.ecs.entity_mut(entity).insert((position,projectile));
+                self.projectile_contacts.insert(id,victims);
             }
         }
         self.refresh_state_weight();
-        if self.state_weight > STATE_BYTES {
-            return Err("region canonical state capacity".into());
-        }
+        if self.state_weight>STATE_BYTES {return Err("region canonical state capacity".into());}
         Ok(impacts)
     }
     fn transfer(&mut self, lot: &str, from: &str, to: &str, quantity: u32) -> Result<()> {

@@ -66,7 +66,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     snapshot() {
       const json = binding.snapshot();
       const parsed = JSON.parse(json) as Omit<KernelSnapshot, "json">;
-      if (parsed.format !== "hive-kernel" || parsed.version !== 4)
+      if (parsed.format !== "hive-kernel" || parsed.version !== 5)
         throw new Error("unsupported kernel snapshot");
       return {
         format: parsed.format,
@@ -77,7 +77,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       };
     },
     restore(snapshot) {
-      if (snapshot.format !== "hive-kernel" || snapshot.version !== 4)
+      if (snapshot.format !== "hive-kernel" || snapshot.version !== 5)
         throw new Error("unsupported kernel snapshot");
       binding.restore(snapshot.json);
     },

@@ -1,3 +1,4 @@
+import { checkedCueList, type PresentationCue } from "./presentation-cues";
 import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
@@ -30,6 +31,7 @@ type ObservationWire = {
     readonly epoch: number;
     readonly sequence: number;
     readonly facts: readonly RenderFact[];
+    readonly cues: readonly PresentationCue[];
     readonly presentationFacts: readonly {
       readonly id: string;
       readonly label: string;
@@ -95,7 +97,29 @@ function renderFact(value: unknown): value is RenderFact {
   if (value.support !== undefined && value.support !== null && typeof value.support !== "string") return false;
   if (value.surface !== undefined && value.surface !== null && !surface(value.surface)) return false;
   for (const key of ["visual", "label"] as const)
-    if (value[key] !== undefined && value[key] !== null && (typeof value[key] !== "string" || value[key].length > 512)) return false;
+      if (value[key] !== undefined && value[key] !== null && (typeof value[key] !== "string" || value[key].length > 512)) return false;
+  if (value.aim !== undefined && value.aim !== null) {
+    const aim = value.aim;
+    if (!isRecord(aim) || !vec3(aim.origin) || !vec3(aim.muzzle) || !vec3(aim.inheritedVelocity) ||
+        ![aim.radius, aim.gravity, aim.penetration, aim.maxRange, aim.maxLifetime, aim.speed].every(finite) ||
+        Number(aim.radius) <= 0 || Number(aim.maxRange) <= 0 || Number(aim.maxLifetime) <= 0 || Number(aim.speed) <= 0)
+      return false;
+  }
+  if (value.collision !== undefined && value.collision !== null) {
+    const collider = value.collision;
+    if (!isRecord(collider) || collider.id !== value.id || !vec3(collider.origin) || !vec3(collider.velocity) ||
+        !["ball", "cuboid"].includes(String(collider.shape)) ||
+        ![collider.radius, collider.halfX, collider.halfY, collider.halfZ, collider.yaw, collider.offsetX, collider.offsetY, collider.offsetZ].every(finite) ||
+        !isRecord(collider.material) || !["stop", "pierce", "ground"].includes(String(collider.material.response)) ||
+        ![collider.material.resistance, collider.material.restitution, collider.material.friction, collider.material.embedSpeed].every(finite))
+      return false;
+  }
+  if (value.projectile !== undefined && value.projectile !== null) {
+    const shot = value.projectile;
+    if (!isRecord(shot) || !vec3(shot.velocity) || !vec3(shot.rollNormal) ||
+        ![shot.gravity, shot.embedDepth, shot.penetration].every(finite) ||
+        !["flying", "rolling", "resting", "embedded"].includes(String(shot.state))) return false;
+  }
   if (value.direct !== undefined && value.direct !== null) {
     const d = value.direct;
     if (!isRecord(d) || typeof d.stream !== "string" || d.stream.length > 64 ||
@@ -208,6 +232,7 @@ function parseObservation(value: unknown): ObservationWire {
       epoch: observation.epoch,
       sequence: observation.sequence,
       facts: facts as RenderFact[],
+      cues: checkedCueList(observation.cues, observation.time),
       presentationFacts: presentationFacts as ObservationWire["observation"]["presentationFacts"],
       presentationControls: presentationControls as PresentationControl[],
     },
@@ -283,7 +308,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     const pauseChanged = lastPaused === undefined || lastPaused !== candidate.observation.paused;
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
-    emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts });
+    emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, cues: candidate.observation.cues });
     emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls });
     return true;
   };

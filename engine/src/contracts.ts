@@ -15,6 +15,7 @@ export const RESERVED_COMPONENTS = [
   "hive.collider",
   "hive.launcher",
   "hive.projectile",
+  "hive.impact-material",
 ] as const;
 export const isReservedComponent = (id: string): boolean =>
   (RESERVED_COMPONENTS as readonly string[]).includes(id);
@@ -110,6 +111,7 @@ export interface ActionResult {
   readonly accepted: boolean;
   readonly reason?: string | null;
   readonly projectileId?: EntityId;
+  readonly launchPoint?: Vec3;
   readonly revision: number;
 }
 export interface Impact {
@@ -178,7 +180,36 @@ export interface SystemDefinition {
   readonly run: (context: WriteContext) => void;
 }
 
+export interface ProjectileAim {
+  readonly origin: Vec3;
+  readonly muzzle: Vec3;
+  readonly inheritedVelocity: Vec3;
+  readonly radius: number;
+  readonly gravity: number;
+  readonly penetration: number;
+  readonly maxRange: number;
+  readonly maxLifetime: number;
+  readonly speed: number;
+}
+export interface CollisionFact {
+  readonly id: EntityId;
+  readonly origin: Vec3;
+  readonly velocity: Vec3;
+  readonly shape: "ball" | "cuboid";
+  readonly radius: number;
+  readonly halfX: number;
+  readonly halfY: number;
+  readonly halfZ: number;
+  readonly yaw: number;
+  readonly offsetX: number;
+  readonly offsetY: number;
+  readonly offsetZ: number;
+  readonly material: { readonly response: "stop" | "pierce" | "ground"; readonly resistance: number; readonly restitution: number; readonly friction: number; readonly embedSpeed: number };
+}
 export interface RenderFact {
+  readonly aim?: ProjectileAim | null;
+  readonly collision?: CollisionFact | null;
+  readonly projectile?: { readonly velocity: Vec3; readonly gravity: number; readonly state: "flying" | "rolling" | "resting" | "embedded"; readonly embedDepth: number; readonly rollNormal: Vec3; readonly penetration: number } | null;
   readonly id: EntityId;
   readonly pose?: Pose;
   readonly local?: Pose;
@@ -198,7 +229,7 @@ export interface RenderFact {
 }
 export interface KernelSnapshot {
   readonly format: "hive-kernel";
-  readonly version: 4;
+  readonly version: 5;
   readonly revision: number;
   readonly time: number;
   readonly json: string;
