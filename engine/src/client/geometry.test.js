@@ -49,3 +49,10 @@ test('visible cliff faces block selection of a lower top behind them', () => {
   assert.equal(hit.standingPoint,null);
   assert.deepEqual(hit.column,[0,3,0]);
 });
+
+test('world camera can pick the near edge of the full generated map', () => {
+  const cell=[31,13,31];
+  const terrain={verticalMetres:0.54,surfaces:[{cell,material:1}]};
+  const screen=project(31,13.5*0.54,31);
+  assert.deepEqual(terrainPoint(screen.x,screen.y,terrain)?.cell,cell);
+});

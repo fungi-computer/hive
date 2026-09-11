@@ -28,7 +28,7 @@ export function createTerrainLayer() {
       container.visible = true;
       if (revision !== frame.revision) {
         renderer ??= new WebGLRenderer({ alpha: true, antialias: false });
-        const texture = bake(renderer, terrainColumnsScene(frame.surfaces, frame), artCamera(width, height, 1.03), width, height, false);
+        const texture = bake(renderer, terrainColumnsScene(frame.surfaces, frame), artCamera(width, height, 1.03, 256), width, height, false);
         sprite?.texture.destroy(true);
         sprite?.destroy();
         sprite = new Sprite(texture);
