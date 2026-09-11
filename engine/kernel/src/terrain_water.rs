@@ -426,7 +426,7 @@ impl TerrainWater {
             owner: self.owner.clone(), epoch: self.epoch }))
     }
 
-    pub(crate) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<(), String> {
+    pub(crate) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<bool, String> {
         if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
             return Err("prepared structure change is stale or foreign".into());
         }
@@ -439,7 +439,7 @@ impl TerrainWater {
         self.scratch = prepared.scratch;
         self.physical_revision = revision;
         self.epoch = epoch;
-        Ok(())
+        Ok(true)
     }
 
     /// Called only by the compound native completion after admitting its

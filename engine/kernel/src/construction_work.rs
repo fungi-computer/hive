@@ -173,7 +173,7 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(site_entity).is_some() { return Ok(false); }
         let marker_weight = self.registry.weight("hive.sealed-container", &record(&SealedContainer {}));
         if self.state_weight.saturating_add(marker_weight) > STATE_BYTES { return Ok(false); }
-        if !self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)? { return Ok(false); }
+        self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
         finished.worker = None;
@@ -185,7 +185,10 @@ impl Kernel {
         let worker_entity = self.entity(worker)?;
         if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Destination>(worker_entity).is_some()
             || self.direct.contains_key(&worker_entity) || self.ecs.get::<Support>(worker_entity).is_some()
-            || self.ecs.get::<ExcavationWork>(worker_entity).is_some() { return Err("worker cannot operate structure aperture while busy".into()); }
+            || self.ecs.get::<ExcavationWork>(worker_entity).is_some()
+            || self.ids.values().any(|entity| self.ecs.get::<ConstructionSite>(*entity).is_some_and(|state| state.worker.as_deref() == Some(worker))) {
+            return Err("worker cannot operate structure aperture while busy".into());
+        }
         let site_entity = self.entity(site)?;
         let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
         if state.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(site_entity).is_none() { return Err("aperture requires a finished structure".into()); }
@@ -209,7 +212,9 @@ impl Kernel {
             match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("aperture change is blocked".into()) }
         };
         if self.structure_contact_problem(&prepared)?.is_some() { return Err("aperture change would obstruct an actor".into()); }
-        self.environment.as_mut().ok_or("structure needs environment")?.apply_structures(prepared)?;
+        if !self.environment.as_mut().ok_or("structure needs environment")?.apply_structures(prepared)? {
+            return Err("aperture change is blocked by atmosphere".into());
+        }
         Ok(())
     }
 
