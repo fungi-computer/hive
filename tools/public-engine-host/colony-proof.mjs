@@ -145,16 +145,11 @@ function physical(observation) {
     digMarks: digMarks(observation),
   };
 }
-function assertQueuedArea(observation) {
+function assertPausedUnchanged(observation, baseline) {
   assert.equal(observation.observation.paused, true, "Colony should remain paused");
-  assert.equal(presentationFact(observation, "dig-orders").value, 2, "queued dig order count changed");
-  assert.deepEqual(digMarks(observation).map((mark) => [mark.id, mark.status]), [
-    ["colony.dig.1.13.0", "queued"], ["colony.dig.2.13.0", "queued"],
-  ], "queued area projection changed");
-  assert.equal(quantity(observation, "colony.pantry"), 6, "paused area changed pantry inventory");
-  assert.equal(quantity(observation, "colony.worker.1"), 0, "paused area changed worker 1 inventory");
-  assert.equal(quantity(observation, "colony.worker.2"), 0, "paused area changed worker 2 inventory");
+  assert.deepEqual(physical(observation), physical(baseline), "paused area command changed committed physical state");
 }
+
 function assertCutsAndSpoil(observation) {
   for (const x of [1, 2]) {
     const row = surfaceAt(observation, x, 0);
@@ -195,25 +190,26 @@ try {
   assert.equal(digMarks(initial).length, 0, "fresh Colony has unexpected dig orders");
 
   const pause = await admit({ kind: "pause" }, "pause-before-area");
+  const paused = await observe();
+  assert.equal(paused.observation.paused, true, "pause-before-area was not applied");
   const area = await admit({ kind: "command", name: "dig", input: {
     area: { start: [1, 13, 0], end: [2, 13, 0] },
   } }, "area");
   const queued = await observe();
-  assertQueuedArea(queued);
+  assertPausedUnchanged(queued, paused);
 
   const queuedWitness = { initial: physical(initial), pause: pause.receipt, area: { body: area.body, receipt: area.receipt },
+    paused: { revision: paused.revision, physical: physical(paused) },
     queued: { revision: queued.revision, observation: queued, physical: physical(queued) } };
 
   await stop();
   await start();
   const reopened = await observe();
-  assertQueuedArea(reopened);
-  assert.deepEqual(digMarks(reopened), digMarks(queued), "restart changed queued area projection");
+  assertPausedUnchanged(reopened, paused);
   const replay = await send(area.body);
   assert.deepEqual(replay, area.receipt, "replayed area receipt changed");
   const afterReplay = await observe();
-  assertQueuedArea(afterReplay);
-  assert.equal(digMarks(afterReplay).length, 2, "replayed area duplicated an order");
+  assertPausedUnchanged(afterReplay, paused);
   queuedWitness.replay = replay;
   queuedWitness.afterReplay = { revision: afterReplay.revision, physical: physical(afterReplay) };
   await writeFile(resolve(output, "colony-proof-area.json"), JSON.stringify(queuedWitness, null, 2));
