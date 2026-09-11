@@ -28,7 +28,7 @@ export function createAudioOwner({
         // close it even if this owner was disposed while the import was pending.
         if (ZZFX.audioContext?.state !== "closed") await ZZFX.audioContext?.close?.();
         if (disposed) return false;
-        generator = ZZFX.buildSamples.bind({ sampleRate: 44100 });
+        generator = ZZFX.buildSamples.bind({ sampleRate: 44100, volume: ZZFX.volume });
         return true;
       }).catch(() => false);
       return await loading;

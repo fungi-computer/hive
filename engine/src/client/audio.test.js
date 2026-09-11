@@ -55,7 +55,9 @@ test('actual maintained ZzFX generates samples without retaining its eager conte
     assert.equal(await owner.unlock(), true);
     assert.equal(owner.play('footOnDirt'), true);
     const active = FakeContext.all.findLast(c => c.state === 'running');
-    assert.ok(active.sources.at(-1).buffer.getChannelData(0).some(n => n !== 0));
+    const samples = active.sources.at(-1).buffer.getChannelData(0);
+    assert.ok(samples.every(Number.isFinite));
+    assert.ok(samples.some(n => n !== 0));
     assert.equal((await import('zzfx')).ZZFX.audioContext.state, 'closed');
   } finally { owner.dispose(); globalThis.AudioContext = previous; }
 });
