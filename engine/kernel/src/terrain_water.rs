@@ -11,6 +11,8 @@ use std::sync::Arc;
 
 mod air_geometry;
 pub use air_geometry::{AirGeometryBounds, AirGeometryCell, AirGeometryFace, AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot, AirWaterCoverage};
+mod air_exterior;
+pub use air_exterior::{AirExteriorBlocker, AirExteriorResult, AirExteriorStatus};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub enum MaterialWater {
@@ -305,6 +307,11 @@ impl TerrainWater {
     }
     pub(crate) fn prepared_structure_air_geometry(&mut self, prepared: &PreparedStructureChange, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query_structure(self, prepared, bounds)
+    }
+    /// Bounded physical upward clearance. This reports world/query reachability
+    /// only; it does not admit ambient gas or inspect water stocks.
+    pub fn air_exterior(&mut self, starts: &[Cell], ceiling_y: i32) -> Result<Vec<AirExteriorResult>, String> {
+        air_exterior::query(self, starts, ceiling_y)
     }
     pub fn terrain_revision(&self) -> u64 { self.physical_revision }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
