@@ -119,6 +119,18 @@ pub fn waypoints(path: &[Cell], config: TraversalConfig) -> Result<Vec<crate::co
     Ok(points)
 }
 
+/// Support edge containing the next movement waypoint. Earlier cells are history,
+/// not terrain that the actor still needs in order to finish the route.
+pub fn active_support_index(path: &[Cell], next_waypoint: usize) -> Result<usize, String> {
+    if next_waypoint == 0 { return Err("invalid terrain waypoint progress".into()); }
+    let mut end = 0usize;
+    for (index, pair) in path.windows(2).enumerate() {
+        end += if pair[0].y == pair[1].y { 1 } else { 2 };
+        if next_waypoint <= end { return Ok(index); }
+    }
+    Err("terrain waypoint progress exceeds route".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

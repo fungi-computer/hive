@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
@@ -72,4 +72,26 @@ test("area workers excavate and return finite spoil without manual movement", ()
     assert.equal(spoil.reduce((sum,lot)=>sum+lot.quantity,0),6);
     assert.ok(spoil.every(lot=>lot.container === "colony.pantry"));
   } finally { port.dispose(); }
+});
+
+
+test("area excavation preserves hauling across changed terrain at browser-sized steps", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({port,pack:colonyPack});
+    session.start();
+    for(let tick=0;tick<60;tick++) session.step(.016);
+    session.command("dig",{area:{start:[1,13,0],end:[2,13,0]}});
+    let finished=false;
+    for(let tick=0;tick<2500;tick++) {
+      session.step(.016);
+      if(tick % 200 === 199) session.restore(session.save());
+      if(session.query(query(ColonyDigOrder)).length===0) {finished=true;break;}
+    }
+    if(!finished) writeFileSync(".botanical/area-lifecycle/stuck.json",JSON.stringify(session.save()));
+    assert.equal(finished,true,"both excavations unload after nearby terrain changes");
+    const spoil = session.query(query(MaterialLot)).map(row=>row.get(MaterialLot)).filter(lot=>lot.kind === "soil-spoil");
+    assert.equal(spoil.reduce((sum,lot)=>sum+lot.quantity,0),6);
+    assert.ok(spoil.every(lot=>lot.container === "colony.pantry"));
+  } finally {port.dispose();}
 });
