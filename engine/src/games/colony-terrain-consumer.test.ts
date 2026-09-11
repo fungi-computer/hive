@@ -6,7 +6,8 @@ import { colonyPack } from "./colony";
 test("Colony pack enables native terrain placement and traversal", () => {
   assert.ok(colonyPack.environmentDefinition instanceof Uint8Array);
   assert.deepEqual(colonyPack.environmentDefinition, colonyEnvironmentDefinition);
-  assert.deepEqual(colonyPack.initialPlacements.map(({ entity, column }) => [entity, [...column]]), [
+  const environment = JSON.parse(new TextDecoder().decode(colonyPack.environmentDefinition));
+  assert.deepEqual(environment.initialPlacements.map(({ entity, column }: { entity: string; column: number[] }) => [entity, [...column]]), [
     ["colony.worker.1", [0, 0]],
     ["colony.worker.2", [0, 2]],
     ["colony.guest.1", [3, 1]],
