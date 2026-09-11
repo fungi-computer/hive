@@ -310,20 +310,22 @@ impl TerrainOwner {
         if columns.is_empty() || columns.len() > Self::SURFACE_COLUMNS {
             return Err("surface query batch exceeds bound");
         }
-        let mut starts = Vec::with_capacity(columns.len());
+        let (min_y, max_y) = self.generator.vertical_bounds();
+        let mut requested = BTreeMap::new();
         for &(x, z) in columns {
             let bed = self.generator.bed_level(x, z)?;
-            let mut start = bed.checked_sub(1).ok_or("surface coordinate underflow")?;
-            for (cell, slot) in &self.edits {
-                if cell.x == x && cell.z == z && self.properties.get(slot).is_some_and(|property| property.solid) {
-                    start = start.max(cell.y);
-                }
+            let start = bed.checked_sub(1).ok_or("surface coordinate underflow")?.clamp(min_y, max_y - 1);
+            requested.entry((x, z)).and_modify(|value| *value = (*value).max(start)).or_insert(start);
+        }
+        for (cell, slot) in &self.edits {
+            if requested.contains_key(&(cell.x, cell.z)) && self.properties.get(slot).is_some_and(|property| property.solid) {
+                requested.entry((cell.x, cell.z)).and_modify(|value| *value = (*value).max(cell.y));
             }
-            starts.push((x, z, start));
         }
         let mut samples = 0usize;
         let mut result = Vec::with_capacity(columns.len());
-        for (x, z, mut y) in starts {
+        for (x, z) in columns {
+            let mut y = *requested.get(&(*x, *z)).expect("validated surface column");
             let mut found = None;
             while self.generator.contains_cell(Cell { x, y, z }) {
                 if samples == Self::SURFACE_SAMPLES {
@@ -819,6 +821,37 @@ mod tests {
         let mut terrain = owner();
         assert!(terrain.surface_cells(&vec![(0, 0); 65]).is_err());
         assert!(terrain.surface_cells(&[(i64::MAX, 0)]).is_err());
+    }
+
+    #[test]
+    fn surface_query_clamps_generated_bed_to_clipped_upper_bound() {
+        let spec = WorldSpec {
+            seed: "clipped-surface",
+            identity: "clipped-surface",
+            bounds: Bounds { min_x: -8, max_x: 8, min_y: -16, max_y: 8, min_z: -8, max_z: 8 },
+            slots: MaterialSlots { air: 0, soil: 1, stone: 2 },
+            sea_level: 4,
+            vertical_metres: 1.0,
+            max_samples: 4096,
+        };
+        let generator = spec.compile().unwrap();
+        let column = (-8..8)
+            .flat_map(|x| (-8..8).map(move |z| (x, z)))
+            .find(|&(x, z)| generator.bed_level(x, z).unwrap() > 8)
+            .expect("fixture has a bed above clipped bound");
+        let mut terrain = TerrainOwner::new(
+            generator,
+            [
+                MaterialProperty { slot: 0, solid: false, diggable: false },
+                MaterialProperty { slot: 1, solid: true, diggable: true },
+                MaterialProperty { slot: 2, solid: true, diggable: true },
+            ],
+            4,
+            64,
+            32 * 1024,
+        ).unwrap();
+        let surface = terrain.surface_cells(&[column]).unwrap()[0].unwrap();
+        assert_eq!(surface.cell.y, 7);
     }
     #[test]
     fn encoded_size_matches_export_for_empty_and_negative_edits() {

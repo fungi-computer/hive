@@ -288,6 +288,9 @@ impl CompiledWorld {
     pub fn vertical_metres(&self) -> f64 {
         self.vertical_metres
     }
+    pub fn vertical_bounds(&self) -> (i32, i32) {
+        (self.bounds.min_y, self.bounds.max_y)
+    }
     pub fn material_slots(&self) -> MaterialSlots {
         self.slots
     }
