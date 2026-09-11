@@ -59,14 +59,14 @@ function applyCommand(session: GameSession, command: RegionCommand): unknown {
 }
 
 /** Exclusive native/session lifetime for one host's serialized Region owner. */
-export function createSessionResident(options: SessionResidentOptions): SessionResident {
+function createSessionResident(options: SessionResidentOptions): SessionResident {
   let accepted: { revision: number; session: GameSession; port: KernelPort; capture: SessionSnapshot } | undefined;
   let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort; capture: SessionSnapshot } | undefined;
-  const make = (snapshot: SessionSnapshot, restore: boolean) => {
+  const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
       const session = new GameSession({ port, pack: options.pack, seed: options.seed });
-      if (restore) session.restore(snapshot); else session.start();
+      session.restore(snapshot);
       return { session, port };
     } catch (error) { port.dispose(); throw error; }
   };
@@ -75,6 +75,7 @@ export function createSessionResident(options: SessionResidentOptions): SessionR
     entry.port.dispose();
   };
   const discardAttempt = () => { disposeEntry(attempt); attempt = undefined; };
+  const invalidate = () => { discardAttempt(); disposeEntry(accepted); accepted = undefined; };
   return {
     begin(revision, state, records) {
       if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("invalid resident revision");
@@ -86,50 +87,55 @@ export function createSessionResident(options: SessionResidentOptions): SessionR
       }
       disposeEntry(accepted); accepted = undefined;
       const hydrated = hydrateSession(state.session, records);
-      const made = make(hydrated, true);
+      const made = make(hydrated);
       attempt = { provisionalRevision: revision, ...made, capture: hydrated };
     },
     execute(candidate, command, records, baseRevision) {
       if (!attempt || attempt.provisionalRevision !== baseRevision) throw new Error("resident-attempt-missing");
-      const before = attempt.capture;
-      const results = applyCommand(attempt.session, command);
-      const after = attempt.session.save();
-      candidate.session = storeSession(after).session;
-      attempt.capture = after;
-      attempt.provisionalRevision++;
-      return {
-        status: "applied",
-        result: JSON.parse(JSON.stringify({ tick: candidate.session.tick, paused: attempt.session.isPaused, results })) as Json,
-        events: [],
-        records: changedSessionRecords(before.kernel, after.kernel),
-      };
+      try {
+        const before = attempt.capture;
+        const results = applyCommand(attempt.session, command);
+        const after = attempt.session.save();
+        candidate.session = storeSession(after).session;
+        attempt.capture = after;
+        attempt.provisionalRevision++;
+        return {
+          status: "applied",
+          result: JSON.parse(JSON.stringify({ tick: candidate.session.tick, paused: attempt.session.isPaused, results })) as Json,
+          events: [],
+          records: changedSessionRecords(before.kernel, after.kernel),
+        };
+      } catch (error) {
+        invalidate();
+        throw error;
+      }
     },
     accept(revision) {
-      if (!attempt || !Number.isSafeInteger(revision) || revision < 0 || revision !== attempt.provisionalRevision)
+      if (!attempt || !Number.isSafeInteger(revision) || revision < 0 || revision !== attempt.provisionalRevision) {
+        invalidate();
         throw new Error("resident-revision-mismatch");
+      }
       accepted = { revision, session: attempt.session, port: attempt.port, capture: attempt.capture };
       attempt = undefined;
     },
     discard() {
-      discardAttempt();
-      disposeEntry(accepted); accepted = undefined;
+      invalidate();
     },
     dispose() {
-      discardAttempt();
-      disposeEntry(accepted); accepted = undefined;
+      invalidate();
     },
     observe(revision, state, records, use) {
       if (attempt) throw new Error("resident-attempt-active");
       if (accepted?.revision !== revision) {
         disposeEntry(accepted); accepted = undefined;
         const hydrated = hydrateSession(state.session, records);
-        const made = make(hydrated, true);
+        const made = make(hydrated);
         accepted = { revision, ...made, capture: hydrated };
       }
       try {
         return use(accepted.session);
       } catch (error) {
-        this.discard();
+        invalidate();
         throw error;
       }
     },
@@ -149,36 +155,7 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
     seed,
     createKernel,
   } = options;
-  const pack: GamePack = Object.freeze({
-    ...options.pack,
-    definition: options.pack.definition.slice(),
-    environmentDefinition: options.pack.environmentDefinition?.slice(),
-    components: Object.freeze([...options.pack.components]),
-    systems: Object.freeze(
-      options.pack.systems.map((system) =>
-        Object.freeze({
-          ...system,
-          reads: Object.freeze([...system.reads]),
-          writes: Object.freeze([...system.writes]),
-        }),
-      ),
-    ),
-    commands: Object.freeze(
-      Object.fromEntries(
-        Object.entries(options.pack.commands ?? {}).map(([name, command]) => [
-          name,
-          Object.freeze({
-            ...command,
-            reads: Object.freeze([...(command.reads ?? [])]),
-            writes: Object.freeze([...command.writes]),
-          }),
-        ]),
-      ),
-    ),
-    initialActions: options.pack.initialActions
-      ? structuredClone(options.pack.initialActions)
-      : undefined,
-  });
+  const pack = options.pack;
   if (!/^[a-f0-9]{64}$/.test(implementationHash))
     throw new Error("expected immutable implementation SHA256");
   if (!ownerPrincipal || !hostPrincipal || ownerPrincipal === hostPrincipal)
@@ -232,7 +209,17 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
 }
 
 export function createSessionRegionRuntime(options: SessionResidentOptions) {
-  const resident = createSessionResident(options);
-  const program = createSessionRegionProgram({ ...options, resident });
+  const pack: GamePack = Object.freeze({
+    ...options.pack,
+    definition: options.pack.definition.slice(),
+    environmentDefinition: options.pack.environmentDefinition?.slice(),
+    components: Object.freeze([...options.pack.components]),
+    systems: Object.freeze(options.pack.systems.map(system => Object.freeze({ ...system, reads: Object.freeze([...system.reads]), writes: Object.freeze([...system.writes]) }))),
+    commands: Object.freeze(Object.fromEntries(Object.entries(options.pack.commands ?? {}).map(([name, command]) => [name, Object.freeze({ ...command, reads: Object.freeze([...(command.reads ?? [])]), writes: Object.freeze([...command.writes]) })]))),
+    initialActions: options.pack.initialActions ? structuredClone(options.pack.initialActions) : undefined,
+  });
+  const frozenOptions = Object.freeze({ ...options, pack });
+  const resident = createSessionResident(frozenOptions);
+  const program = createSessionRegionProgram({ ...frozenOptions, resident });
   return Object.freeze({ resident, program });
 }
