@@ -2,6 +2,14 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## September 11 environmental planning discussion
+
+King personally authored [the Rust water/gas plan](WATER-AND-GAS.md), including
+actual Session/Region rebuild costs, native world generation, layered groundwater
+and the checked Shiitake live-progress/durable-result pattern. It is a discussion
+draft: Levi asked to talk before further implementation. Existing native water
+source remains preserved and unqualified; no new runtime release is implied.
+
 ## Latest shared presentation release
 
 September 11 source c5138fc is published: Mosswake hull/cargo/wardrobes,

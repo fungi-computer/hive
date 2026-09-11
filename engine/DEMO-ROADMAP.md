@@ -9,6 +9,13 @@ shared hauling/storage, useful crafting and eventually hospitality. Keep the
 existing four URLs. Restore a playable loop in successive releases; do not
 one-shot every retained system or let presentation polish substitute for play.
 
+## Current planning discussion
+
+[King's Rust water/gas design](WATER-AND-GAS.md) now owns the detailed proposed
+shape, including native generation and layered groundwater. Levi asked to discuss
+it before more implementation. Source checkpoints stay preserved; no new writer
+scope, qualification or deployment follows from the draft.
+
 ## First shared slice published
 
 Source c5138fc is live on the existing four demo pages. King authored/reviewed
