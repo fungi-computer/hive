@@ -1,6 +1,20 @@
 use super::*;
 
 impl CompiledAtmosphere {
+    pub(super) fn envelope_valid(&self, index: usize, parcel: &AtmosphereParcel) -> bool {
+        let temperature = self.temperature(index, parcel);
+        let pressure = self.pressure(index, parcel);
+        temperature.is_finite()
+            && temperature > 0.0
+            && (temperature - self.definition.ambient.temperature_k).abs()
+                <= self.definition.model.max_temperature_delta_k
+            && pressure.is_finite()
+            && pressure >= 0.0
+            && pressure
+                <= self.definition.ambient.pressure_pa * self.definition.model.max_pressure_ratio
+            && parcel.smoke_kg <= parcel.carrier_kg * self.definition.model.max_smoke_mass_fraction
+    }
+
     pub fn initial(&self) -> AtmosphereState {
         let parcels = self
             .definition
@@ -53,19 +67,7 @@ impl CompiledAtmosphere {
             {
                 return Err("invalid atmosphere parcel".into());
             }
-            let temperature = self.temperature(index, parcel);
-            let pressure = self.pressure(index, parcel);
-            if !temperature.is_finite()
-                || temperature <= 0.0
-                || (temperature - self.definition.ambient.temperature_k).abs()
-                    > self.definition.model.max_temperature_delta_k
-                || !pressure.is_finite()
-                || pressure < 0.0
-                || pressure
-                    > self.definition.ambient.pressure_pa * self.definition.model.max_pressure_ratio
-                || parcel.smoke_kg
-                    > parcel.carrier_kg * self.definition.model.max_smoke_mass_fraction
-            {
+            if !self.envelope_valid(index, parcel) {
                 return Err("atmosphere parcel exceeds physical envelope".into());
             }
         }

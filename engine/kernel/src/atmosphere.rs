@@ -236,6 +236,9 @@ mod definition;
 mod rebind;
 #[cfg(test)]
 mod rebind_tests;
+mod rebind;
+#[cfg(test)]
+mod rebind_tests;
 mod exchange;
 mod state;
 #[cfg(test)]

@@ -22,8 +22,6 @@ pub struct AtmosphereRebindReceipt {
 #[derive(Clone, Debug)]
 pub enum AtmosphereRebindResult {
     Applied {
-        compiled: CompiledAtmosphere,
-        definition: AtmosphereDefinition,
         state: AtmosphereState,
         receipt: AtmosphereRebindReceipt,
     },
@@ -38,7 +36,8 @@ struct Stock {
 }
 
 fn add_stock(before: f64, amount: f64) -> Result<f64, String> {
-    resolve_quantity_change(before, amount)?.ok_or_else(|| "atmosphere rebind quantity is below resolution".into())
+    resolve_quantity_change(before, amount)?
+        .ok_or_else(|| "atmosphere rebind quantity is below resolution".into())
 }
 
 fn add_stock_to(target: &mut Stock, amount: Stock) -> Result<(), String> {
@@ -54,7 +53,12 @@ fn member_volumes(compiled: &CompiledAtmosphere) -> BTreeMap<String, (usize, f64
         .volumes
         .iter()
         .enumerate()
-        .flat_map(|(index, volume)| volume.members.iter().map(move |member| (member.cell_id.clone(), (index, member.volume_m3))))
+        .flat_map(|(index, volume)| {
+            volume
+                .members
+                .iter()
+                .map(move |member| (member.cell_id.clone(), (index, member.volume_m3)))
+        })
         .collect()
 }
 
@@ -77,7 +81,9 @@ fn topology(compiled: &CompiledAtmosphere) -> (Vec<Vec<usize>>, BTreeSet<usize>)
     let mut neighbors = vec![Vec::new(); compiled.definition.volumes.len()];
     let mut ambient = BTreeSet::new();
     for opening in &compiled.openings {
-        if opening.permeability == 0.0 { continue; }
+        if opening.permeability == 0.0 {
+            continue;
+        }
         if let Some(right) = opening.to {
             neighbors[opening.from].push(right);
             neighbors[right].push(opening.from);
@@ -97,9 +103,15 @@ fn forced_route(
     let mut pending = VecDeque::from([seed]);
     let mut seen = BTreeSet::new();
     while let Some(index) = pending.pop_front() {
-        if !seen.insert(index) { continue; }
-        if index != seed && receivers.contains(&index) { return Some(Some(index)); }
-        if ambient.contains(&index) { return Some(None); }
+        if !seen.insert(index) {
+            continue;
+        }
+        if index != seed && receivers.contains(&index) {
+            return Some(Some(index));
+        }
+        if ambient.contains(&index) {
+            return Some(None);
+        }
         pending.extend(neighbors[index].iter().copied());
     }
     None
@@ -116,46 +128,89 @@ fn direct_displacement_route(
     let contracted: BTreeSet<_> = old_volume
         .members
         .iter()
-        .filter(|member| next_members.get(&member.cell_id).map(|(_, amount)| *amount < member.volume_m3).unwrap_or(true))
+        .filter(|member| {
+            next_members
+                .get(&member.cell_id)
+                .map(|(_, amount)| *amount < member.volume_m3)
+                .unwrap_or(true)
+        })
         .map(|member| member.cell_id.as_str())
         .collect();
     for opening in &old.definition.openings {
         let from = old.volume_index[&opening.from];
         let to = opening.to.as_ref().map(|id| old.volume_index[id]);
-        if opening.permeability == 0.0 { continue; }
+        if opening.permeability == 0.0 {
+            continue;
+        }
         let from_lost = from == old_index && contracted.contains(opening.from_cell_id.as_str());
         let to_lost = to == Some(old_index)
-            && opening.to_cell_id.as_deref().is_some_and(|cell| contracted.contains(cell));
-        if !from_lost && !to_lost { continue; }
-        let other_cell = if from_lost { opening.to_cell_id.as_deref() } else { Some(opening.from_cell_id.as_str()) };
-        let Some(other_cell) = other_cell else { return Some(None); };
+            && opening
+                .to_cell_id
+                .as_deref()
+                .is_some_and(|cell| contracted.contains(cell));
+        if !from_lost && !to_lost {
+            continue;
+        }
+        let other_cell = if from_lost {
+            opening.to_cell_id.as_deref()
+        } else {
+            Some(opening.from_cell_id.as_str())
+        };
+        let Some(other_cell) = other_cell else {
+            return Some(None);
+        };
         if let Some((target, _)) = next_members.get(other_cell) {
-            if !retained.contains(target) { return Some(Some(*target)); }
+            if !retained.contains(target) {
+                return Some(Some(*target));
+            }
         }
     }
     None
 }
 
-fn receiver_names(next: &CompiledAtmosphere, overlap: &[BTreeMap<usize, f64>], old_index: usize) -> Vec<String> {
+fn receiver_names(
+    next: &CompiledAtmosphere,
+    overlap: &[BTreeMap<usize, f64>],
+    old_index: usize,
+) -> Vec<String> {
     overlap[old_index]
         .keys()
         .map(|index| next.definition.volumes[*index].id.clone())
         .collect()
 }
 
-fn allocate(targets: &mut [Stock], weights: &BTreeMap<usize, f64>, input: Stock) -> Result<(), String> {
-    let entries: Vec<_> = weights.iter().filter(|(_, weight)| **weight > 0.0).collect();
-    if entries.is_empty() { return Err("atmosphere rebind parcel has no receiver".into()); }
+fn allocate(
+    targets: &mut [Stock],
+    weights: &BTreeMap<usize, f64>,
+    input: Stock,
+) -> Result<(), String> {
+    let entries: Vec<_> = weights
+        .iter()
+        .filter(|(_, weight)| **weight > 0.0)
+        .collect();
+    if entries.is_empty() {
+        return Err("atmosphere rebind parcel has no receiver".into());
+    }
     let mut total: f64 = entries.iter().map(|(_, weight)| **weight).sum();
-    if !total.is_finite() || total <= 0.0 { return Err("atmosphere rebind receiver weight is invalid".into()); }
+    if !total.is_finite() || total <= 0.0 {
+        return Err("atmosphere rebind receiver weight is invalid".into());
+    }
     let mut remaining = input;
     for (position, (index, weight)) in entries.iter().enumerate() {
-        let fraction = if position + 1 == entries.len() { 1.0 } else { **weight / total };
-        let part = if fraction == 1.0 { remaining } else { Stock {
-            carrier: remaining.carrier * fraction,
-            smoke: remaining.smoke * fraction,
-            heat: remaining.heat * fraction,
-        }};
+        let fraction = if position + 1 == entries.len() {
+            1.0
+        } else {
+            **weight / total
+        };
+        let part = if fraction == 1.0 {
+            remaining
+        } else {
+            Stock {
+                carrier: remaining.carrier * fraction,
+                smoke: remaining.smoke * fraction,
+                heat: remaining.heat * fraction,
+            }
+        };
         if !part.carrier.is_finite() || !part.smoke.is_finite() || !part.heat.is_finite() {
             return Err("atmosphere rebind allocation is not finite".into());
         }
@@ -176,48 +231,59 @@ fn compatible(old: &CompiledAtmosphere, next: &CompiledAtmosphere) -> bool {
 }
 
 fn envelope_blocked(compiled: &CompiledAtmosphere, parcels: &[AtmosphereParcel]) -> bool {
-    parcels.iter().enumerate().any(|(index, parcel)| {
-        let temperature = compiled.temperature(index, parcel);
-        let pressure = compiled.pressure(index, parcel);
-        !temperature.is_finite()
-            || temperature <= 0.0
-            || (temperature - compiled.definition.ambient.temperature_k).abs() > compiled.definition.model.max_temperature_delta_k
-            || !pressure.is_finite()
-            || pressure < 0.0
-            || pressure > compiled.definition.ambient.pressure_pa * compiled.definition.model.max_pressure_ratio
-            || parcel.smoke_kg > parcel.carrier_kg * compiled.definition.model.max_smoke_mass_fraction
-    })
+    parcels
+        .iter()
+        .enumerate()
+        .any(|(index, parcel)| !compiled.envelope_valid(index, parcel))
 }
 
 pub fn rebind(
     old: &CompiledAtmosphere,
     state: &AtmosphereState,
-    next_definition: AtmosphereDefinition,
+    next: &CompiledAtmosphere,
 ) -> Result<AtmosphereRebindResult, String> {
     old.validate_state(state)?;
-    let next = CompiledAtmosphere::compile(next_definition)?;
-    if !compatible(old, &next) { return Err("atmosphere rebind requires newer compatible geometry".into()); }
-    let overlap = overlaps(old, &next);
-    let receivers: BTreeSet<_> = overlap.iter().enumerate().filter(|(_, targets)| !targets.is_empty()).map(|(index, _)| index).collect();
+    if !compatible(old, next) {
+        return Err("atmosphere rebind requires newer compatible geometry".into());
+    }
+    let overlap = overlaps(old, next);
+    let receivers: BTreeSet<_> = overlap
+        .iter()
+        .enumerate()
+        .filter(|(_, targets)| !targets.is_empty())
+        .map(|(index, _)| index)
+        .collect();
     let (neighbors, ambient) = topology(old);
     let mut parcels = vec![Stock::default(); next.definition.volumes.len()];
     let mut boundary = Stock::default();
     let mut routed = Vec::new();
-    let old_stocks: Vec<_> = state.parcels.iter().map(|parcel| Stock { carrier: parcel.carrier_kg, smoke: parcel.smoke_kg, heat: parcel.heat_j }).collect();
+    let old_stocks: Vec<_> = state
+        .parcels
+        .iter()
+        .map(|parcel| Stock {
+            carrier: parcel.carrier_kg,
+            smoke: parcel.smoke_kg,
+            heat: parcel.heat_j,
+        })
+        .collect();
     for (old_index, volume) in old.definition.volumes.iter().enumerate() {
         let direct = &overlap[old_index];
         if !direct.is_empty() {
             let retained_m3: f64 = direct.values().sum();
             let displaced_fraction = (1.0 - retained_m3 / old.volume_m3[old_index]).max(0.0);
             let route = if displaced_fraction > 0.0 {
-                direct_displacement_route(old, &next, old_index, &direct.keys().copied().collect())
+                direct_displacement_route(old, next, old_index, &direct.keys().copied().collect())
             } else {
                 None
             };
             // A contraction with no real face route has no authoritative
             // displacement destination. Keep that stock in the retained
             // allocation; never delete it as an implementation fallback.
-            let effective_displaced_fraction = if route.is_some() { displaced_fraction } else { 0.0 };
+            let effective_displaced_fraction = if route.is_some() {
+                displaced_fraction
+            } else {
+                0.0
+            };
             let displaced = Stock {
                 carrier: old_stocks[old_index].carrier * effective_displaced_fraction,
                 smoke: old_stocks[old_index].smoke * effective_displaced_fraction,
@@ -232,7 +298,10 @@ pub fn rebind(
             match route {
                 Some(Some(target)) => {
                     allocate(&mut parcels, &BTreeMap::from([(target, 1.0)]), displaced)?;
-                    routed.push((volume.id.clone(), Some(vec![next.definition.volumes[target].id.clone()])));
+                    routed.push((
+                        volume.id.clone(),
+                        Some(vec![next.definition.volumes[target].id.clone()]),
+                    ));
                 }
                 Some(None) => {
                     add_stock_to(&mut boundary, displaced)?;
@@ -243,24 +312,50 @@ pub fn rebind(
             continue;
         }
         let stock = old_stocks[old_index];
-        if stock.carrier == 0.0 && stock.smoke == 0.0 && stock.heat == 0.0 { continue; }
+        if stock.carrier == 0.0 && stock.smoke == 0.0 && stock.heat == 0.0 {
+            continue;
+        }
         let Some(route) = forced_route(&neighbors, &ambient, old_index, &receivers) else {
-            return Ok(AtmosphereRebindResult::Blocked(RebindBlockReason::TrappedVolumeRemoved));
+            return Ok(AtmosphereRebindResult::Blocked(
+                RebindBlockReason::TrappedVolumeRemoved,
+            ));
         };
         match route {
             Some(target) => allocate(&mut parcels, &overlap[target], stock)?,
             None => add_stock_to(&mut boundary, stock)?,
         }
-        routed.push((volume.id.clone(), route.map(|target| receiver_names(&next, &overlap, target))));
+        routed.push((
+            volume.id.clone(),
+            route.map(|target| receiver_names(next, &overlap, target)),
+        ));
     }
-    let candidate_parcels: Vec<_> = next.definition.volumes.iter().enumerate().map(|(index, volume)| AtmosphereParcel {
-        volume_id: volume.id.clone(), carrier_kg: parcels[index].carrier, smoke_kg: parcels[index].smoke, heat_j: parcels[index].heat,
-    }).collect();
-    if envelope_blocked(&next, &candidate_parcels) { return Ok(AtmosphereRebindResult::Blocked(RebindBlockReason::PressureEnvelope)); }
+    let candidate_parcels: Vec<_> = next
+        .definition
+        .volumes
+        .iter()
+        .enumerate()
+        .map(|(index, volume)| AtmosphereParcel {
+            volume_id: volume.id.clone(),
+            carrier_kg: parcels[index].carrier,
+            smoke_kg: parcels[index].smoke,
+            heat_j: parcels[index].heat,
+        })
+        .collect();
+    if envelope_blocked(next, &candidate_parcels) {
+        return Ok(AtmosphereRebindResult::Blocked(
+            RebindBlockReason::PressureEnvelope,
+        ));
+    }
     let candidate = AtmosphereState {
-        owner: next.owner.clone(), version: state.version.clone(), identity: next.identity.clone(), parcels: candidate_parcels,
-        initial_carrier_kg: state.initial_carrier_kg, initial_smoke_kg: state.initial_smoke_kg, initial_heat_j: state.initial_heat_j,
-        smoke_source_kg: state.smoke_source_kg, heat_source_j: state.heat_source_j,
+        owner: next.owner.clone(),
+        version: state.version.clone(),
+        identity: next.identity.clone(),
+        parcels: candidate_parcels,
+        initial_carrier_kg: state.initial_carrier_kg,
+        initial_smoke_kg: state.initial_smoke_kg,
+        initial_heat_j: state.initial_heat_j,
+        smoke_source_kg: state.smoke_source_kg,
+        heat_source_j: state.heat_source_j,
         carrier_boundary_kg: add_stock(state.carrier_boundary_kg, boundary.carrier)?,
         smoke_boundary_kg: add_stock(state.smoke_boundary_kg, boundary.smoke)?,
         heat_boundary_j: add_stock(state.heat_boundary_j, boundary.heat)?,
@@ -269,8 +364,16 @@ pub fn rebind(
     let old_volume_m3: f64 = old.volume_m3.iter().sum();
     let new_volume_m3: f64 = next.volume_m3.iter().sum();
     Ok(AtmosphereRebindResult::Applied {
-        compiled: next.clone(), definition: next.definition.clone(), state: candidate,
-        receipt: AtmosphereRebindReceipt { old_identity: old.identity.clone(), new_identity: next.identity.clone(), old_volume_m3, new_volume_m3,
-            carrier_boundary_kg: boundary.carrier, smoke_boundary_kg: boundary.smoke, heat_boundary_j: boundary.heat, routed_parcels: routed },
+        state: candidate,
+        receipt: AtmosphereRebindReceipt {
+            old_identity: old.identity.clone(),
+            new_identity: next.identity.clone(),
+            old_volume_m3,
+            new_volume_m3,
+            carrier_boundary_kg: boundary.carrier,
+            smoke_boundary_kg: boundary.smoke,
+            heat_boundary_j: boundary.heat,
+            routed_parcels: routed,
+        },
     })
 }
