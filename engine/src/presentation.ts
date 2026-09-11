@@ -8,7 +8,7 @@ export interface PresentationControl {
   /** Add the current client selection as input.entities; admission remains game-owned. */
   readonly selection?: "entities";
   /** Arm a shared world-target gesture; admission remains game-owned. */
-  readonly target?: "terrain-cell";
+  readonly target?: "terrain-cell" | "terrain-area";
 }
 export function presentationCommand(
   control: PresentationControl,
@@ -68,6 +68,27 @@ export function terrainPresentationCommand(
     target: { cell: [...target.cell], material: target.material } }) };
 }
 
+/** A compact designation, independent of the current worker selection. */
+export function terrainAreaPresentationCommand(
+  control: PresentationControl,
+  selected: readonly string[],
+  area: { readonly start: readonly number[]; readonly end: readonly number[] },
+) {
+  if (control.target !== "terrain-area") throw new Error("control does not accept terrain areas");
+  for (const cell of [area.start, area.end])
+    if (!Array.isArray(cell) || cell.length !== 3 || !cell.every(Number.isSafeInteger))
+      throw new Error("invalid terrain area cell");
+  const width = Math.abs(area.end[0] - area.start[0]) + 1;
+  const depth = Math.abs(area.end[2] - area.start[2]) + 1;
+  if (area.start[1] !== area.end[1] || !Number.isSafeInteger(width * depth) || width * depth > 256)
+    throw new Error("terrain area exceeds one level or 256 cells");
+  const command = presentationCommand(control, selected);
+  const input = command.input;
+  if (input !== undefined && (input === null || typeof input !== "object" || Array.isArray(input) || "area" in input))
+    throw new Error("terrain area control requires object input without area");
+  return { ...command, input: controlInput({ ...(input as object), area: { start: [...area.start], end: [...area.end] } }) };
+}
+
 export interface PresentationFact {
   readonly id: string;
   readonly label: string;
@@ -123,10 +144,11 @@ export function projectPresentation(
       throw new Error(`unknown presentation command ${command}`);
     if (control.selection !== undefined && control.selection !== "entities")
       throw new Error("invalid presentation selection binding");
-    if (control.target !== undefined && control.target !== "terrain-cell")
+    if (control.target !== undefined && control.target !== "terrain-cell" && control.target !== "terrain-area")
       throw new Error("invalid presentation target binding");
     if (control.selection) presentationCommand(control, []);
-    if (control.target) terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
+    if (control.target === "terrain-cell") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
+    if (control.target === "terrain-area") terrainAreaPresentationCommand(control, [], { start: [0, 0, 0], end: [0, 0, 0] });
     return Object.freeze({
       id,
       label,
