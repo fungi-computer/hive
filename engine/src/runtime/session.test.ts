@@ -61,6 +61,8 @@ class TestPort implements KernelPort {
     },
   });
   private revision = 0;
+  snapshotCalls = 0;
+  throwOnSnapshot = false;
   impacts: Impact[] = [];
   failAdvance = false;
   writes: WriteIntent[] = [];
@@ -77,7 +79,7 @@ class TestPort implements KernelPort {
     return ids.map((id) => id === "actor");
   }
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] {
-    return _spec.components.length > 0
+    return _spec.components.every((component) => [morale.id, "test.link"].includes(component.id))
       ? [{
           id: entity("actor"),
           get: <V extends object>(_definition: ComponentDefinition<V>) => ({ value: 0 } as V),
@@ -112,6 +114,8 @@ class TestPort implements KernelPort {
     return { revision: this.revision, results, impacts };
   }
   snapshot(): KernelSnapshot {
+    this.snapshotCalls++;
+    if (this.throwOnSnapshot) throw new Error("snapshot should not be used");
     const state = JSON.parse(this.entityJson) as { time: number; impactQueue: Impact[] };
     state.impactQueue = this.impacts;
     this.entityJson = JSON.stringify(state);
@@ -211,7 +215,7 @@ test("a rejected action returns its result while the simulation step advances", 
   assert.equal(port.snapshot().revision, 1);
 });
 
-test("authored entity references use the bounded native membership batch", () => {
+test("authored entity references use native membership without snapshot capture", () => {
   const Link = {
     id: "test.link",
     version: 1,
@@ -229,18 +233,36 @@ test("authored entity references use the bounded native membership batch", () =>
     pack: {
       ...pack(port, undefined),
       components: [morale, Link],
-      systems: [{
-        id: "test.link-system",
-        version: 1,
-        reads: [],
-        writes: [Link],
-        run(context) { context.write(Link, actor, { target: "actor" }); },
-      }],
+      systems: [],
+      commands: {
+        setLink: {
+          reads: [],
+          writes: [Link],
+          run: (_context, input) => ({
+            actions: [],
+            writes: [{ component: Link.id, entity: actor, value: input }],
+          }),
+        },
+        setMorale: {
+          reads: [],
+          writes: [morale],
+          run: (_context, input) => ({
+            actions: [],
+            writes: [{ component: morale.id, entity: actor, value: input }],
+          }),
+        },
+      },
     },
   });
   value.start();
-  value.step(0.1);
+  port.throwOnSnapshot = true;
+  value.command("setLink", { target: "actor" });
   assert.equal(calls, 1);
+  assert.throws(() => value.command("setLink", { target: "missing" }), /unknown entity reference/);
+  assert.equal(calls, 2);
+  value.command("setMorale", { value: 3 });
+  assert.equal(calls, 2);
+  assert.equal(port.snapshotCalls, 0);
 });
 
 const impact: Impact = {

@@ -1526,7 +1526,7 @@ mod entity_membership_tests {
         let mut kernel = Kernel::new();
         kernel.load(&serde_json::to_string(&json!({
             "format":"hive-game", "version":1, "game":"membership",
-            "components":[], "initial":[{"id":"actor","components":[]}]
+            "components":[], "initial":[{"id":"actor","components":{}}]
         })).unwrap()).unwrap();
         assert_eq!(kernel.entity_membership_json(r#"["actor","missing"]"#).unwrap(), "[true,false]");
         assert!(kernel.entity_membership_json(r#"["bad id"]"#).is_err());
