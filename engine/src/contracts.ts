@@ -295,7 +295,7 @@ export interface GameCommandDefinition {
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
   readonly run: (
-    context: Pick<WriteContext, "query" | "createAuthoredEntity" | "removeAuthoredEntity">,
+    context: Pick<ReadContext, "query">,
     input: unknown,
   ) => GameCommandResult;
 }

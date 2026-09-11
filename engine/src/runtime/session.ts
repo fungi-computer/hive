@@ -74,7 +74,7 @@ const MAX_PENDING_IMPACTS = 1024;
 const MAX_AUTHORED_RECORDS = 256;
 const MAX_AUTHORED_REMOVES = 256;
 function checkedAuthoredId(value: unknown): EntityId {
-  if (typeof value !== "string" || !/^[A-Za-z0-9._:-]+$/.test(value) || value.length > 160)
+  if (typeof value !== "string" || !/^[A-Za-z0-9._:-]+$/.test(value) || value.length > 128)
     throw new Error("invalid authored entity id");
   return value as EntityId;
 }
@@ -240,8 +240,6 @@ export class GameSession {
               throw new Error(`command ${name} cannot read ${component.id}`);
           return this.queryOverlay(spec, this.pendingWrites);
         },
-        createAuthoredEntity: () => { throw new Error("command authored creation must be returned"); },
-        removeAuthoredEntity: () => { throw new Error("command authored removal must be returned"); },
       },
       structuredClone(input),
     );
@@ -278,13 +276,16 @@ export class GameSession {
     this.pendingCreates.push(...creates);
     this.pendingRemoves.push(...removes);
   }
-  private validateAuthoredCreates(records: readonly EntityRecord[], allowed: readonly import("../contracts").ComponentDefinition<any>[]): EntityRecord[] {
+  private validateAuthoredCreates(records: readonly EntityRecord[], allowed: readonly import("../contracts").ComponentDefinition<any>[], knownIds?: ReadonlySet<EntityId>, occupiedIds?: ReadonlySet<EntityId>): EntityRecord[] {
     if (records.length > MAX_AUTHORED_RECORDS) throw new Error("authored creation limit reached");
     const permitted = new Set(allowed.map((component) => component.id));
     const seen = new Set<string>();
+    const existing = knownIds ? new Set(knownIds) : new Set<EntityId>();
+    if (!knownIds) for (const definition of this.pack.components) for (const row of this.port.query({ components: [definition] })) existing.add(row.id);
+    const occupied = occupiedIds ? new Set(occupiedIds) : new Set([...existing, ...this.pendingCreates.map((item) => item.id)]);
     return records.map((record) => {
       const id = checkedAuthoredId(record?.id);
-      if (seen.has(id) || this.pendingCreates.some((item) => item.id === id) || this.pendingRemoves.includes(id)) throw new Error("duplicate authored entity id");
+      if (seen.has(id) || occupied.has(id) || this.pendingRemoves.includes(id)) throw new Error("duplicate authored entity id");
       seen.add(id);
       if (!record.components || typeof record.components !== "object" || Array.isArray(record.components) || Object.keys(record.components).length === 0 || Object.keys(record.components).length > 32) throw new Error("invalid authored components");
       const components: Record<string, unknown> = {};
@@ -292,6 +293,14 @@ export class GameSession {
         const definition = this.pack.components.find((component) => component.id === id);
         if (!definition || !permitted.has(id) || isReservedComponent(id) || !definition.validate(value)) throw new Error(`invalid authored component ${id}`);
         components[id] = structuredClone(value);
+      }
+      const finalIds = new Set([...occupied, ...records.map((item) => item.id as EntityId)]);
+      for (const [componentId, value] of Object.entries(components)) {
+        const definition = this.pack.components.find((component) => component.id === componentId)!;
+        for (const [field, kind] of Object.entries(definition.fields)) {
+          const reference = (value as Record<string, unknown>)[field];
+          if ((kind === "entity" || kind === "nullable-entity") && reference !== null && (!finalIds.has(reference as EntityId))) throw new Error(`unknown authored entity reference ${field}`);
+        }
       }
       return { id, components };
     });
@@ -472,6 +481,7 @@ export class GameSession {
           actions.push(checkedAction(action));
         },
         createAuthoredEntity: (record) => {
+          if (queuedCreates.some((item) => item.id === record.id)) throw new Error("duplicate authored entity id");
           const checked = this.validateAuthoredCreates([record], this.pack.components);
           queuedCreates.push(...checked);
         },
@@ -640,7 +650,7 @@ export class GameSession {
       incomingMembership,
     );
     const authoredDefinitions = [...Object.values(this.pack.commands ?? {}).flatMap((command) => command.writes), ...this.pack.systems.flatMap((system) => system.writes)];
-    const pendingCreates = this.validateAuthoredCreates(snapshot.pendingCreates, authoredDefinitions);
+    const pendingCreates = this.validateAuthoredCreates(snapshot.pendingCreates, authoredDefinitions, incomingTargets, incomingTargets);
     const pendingRemoves = snapshot.pendingRemoves.map(checkedAuthoredId);
     if (new Set(pendingRemoves).size !== pendingRemoves.length || pendingCreates.some((record) => pendingRemoves.includes(record.id))) throw new Error("invalid authored queue");
     const pendingImpacts = snapshot.pendingImpacts.map(checkedImpact);
