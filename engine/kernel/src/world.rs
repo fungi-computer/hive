@@ -3,6 +3,9 @@ use crate::{collision, combat, components::*, navigation, registry::Registry};
 mod material_output;
 #[path = "excavation_work.rs"]
 mod excavation_work;
+#[cfg(test)]
+#[path = "terrain_movement_tests.rs"]
+mod terrain_movement_tests;
 use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
 use bevy_ecs::{
     prelude::{Entity, World},
@@ -56,6 +59,32 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
     true
 }
 
+/// Check only the segments this movement budget could consume. This avoids
+/// both tunnelling through a later corner and scanning an entire future route.
+fn terrain_motion_blocked(position: Position, path: &VecDeque<Point>, mut budget: f64,
+    blocked: &BTreeSet<navigation::Cell>) -> bool {
+    if blocked.is_empty() || budget <= 0.0 { return false; }
+    let mut from = navigation::point(position);
+    for target in path {
+        if budget <= 0.0 { break; }
+        let distance = ((target.x-from.x).powi(2)+(target.y-from.y).powi(2)+(target.z-from.z).powi(2)).sqrt();
+        let fraction = if distance == 0.0 { 1.0 } else { (budget/distance).min(1.0) };
+        let end = Point { x:from.x+(target.x-from.x)*fraction, y:from.y+(target.y-from.y)*fraction,
+            z:from.z+(target.z-from.z)*fraction, frame:None };
+        let ranges = [(from.x,end.x),(from.y,end.y),(from.z,end.z)].map(|(a,b)| (a.min(b).round() as i32,a.max(b).round() as i32));
+        for x in ranges[0].0..=ranges[0].1 {
+            for y in ranges[1].0..=ranges[1].1 {
+                for z in ranges[2].0..=ranges[2].1 {
+                    if blocked.contains(&(x,y,z)) && segment_intersects_cell(&from,&end,(x,y,z)) { return true; }
+                }
+            }
+        }
+        budget = (budget-distance).max(0.0);
+        from = target.clone();
+    }
+    false
+}
+
 pub struct KernelRecords {
     pub entities: String,
     pub environment: Option<(String, crate::terrain_water::TerrainWaterRecords)>,
@@ -64,6 +93,17 @@ struct KernelEnvironment {
     definition: String,
     world: crate::terrain_water::TerrainWater,
     excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
+}
+struct PreparedRoute {
+    points: VecDeque<Point>,
+    terrain: Option<TerrainRouteState>,
+}
+struct TerrainRouteState {
+    path: Vec<crate::generation::Cell>,
+    revision: Option<u64>,
+    waiting: bool,
+    origin: Point,
+    target: Option<Point>,
 }
 
 pub struct Kernel {
@@ -77,6 +117,7 @@ pub struct Kernel {
     contents: BTreeMap<String, BTreeSet<Entity>>,
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     routes: BTreeMap<Entity, VecDeque<Point>>,
+    terrain_routes: BTreeMap<Entity, TerrainRouteState>,
     direct: BTreeMap<Entity, DirectState>,
     game: String,
     revision: u64,
@@ -106,6 +147,7 @@ impl Kernel {
             contents: BTreeMap::new(),
             blocked_by_frame: BTreeMap::new(),
             routes: BTreeMap::new(),
+            terrain_routes: BTreeMap::new(),
             direct: BTreeMap::new(),
             game: String::new(),
             revision: 0,
@@ -203,10 +245,11 @@ impl Kernel {
             + serde_json::to_vec(&self.registry.schemas.values().collect::<Vec<_>>())
                 .expect("physical schemas")
                 .len();
-        for (id, entity) in &self.ids {
+        let indexed_entities: Vec<_> = self.ids.iter().map(|(id, entity)| (id.clone(), *entity)).collect();
+        for (id, entity) in indexed_entities {
             weight += id.len() + 128;
             for name in self.registry.schemas.keys() {
-                if let Some(value) = self.registry.read(&self.ecs, *entity, name) {
+                if let Some(value) = self.registry.read(&self.ecs, entity, name) {
                     weight += self.registry.weight(name, &value);
                 }
             }
@@ -295,11 +338,11 @@ impl Kernel {
             .transpose()
     }
     fn route_for(
-        &self,
+        &mut self,
         entity: Entity,
         start: Position,
         destination: &Point,
-    ) -> Result<VecDeque<Point>> {
+    ) -> Result<PreparedRoute> {
         let frame = self.support_id(entity);
         if destination.frame.as_deref() != frame.as_deref() {
             return Err("destination frame does not match actor support".into());
@@ -315,19 +358,107 @@ impl Kernel {
         let blocked = self
             .blocked_by_frame
             .get(&frame)
-            .expect("rebuilt obstacle frame index");
-        navigation::route(
+            .cloned()
+            .ok_or("missing obstacle frame index")?;
+        if frame.is_none() {
+            if let Some(capability) = self.ecs.get::<Traversal>(entity).copied() {
+                let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+                let spacing = environment.world.cell_spacing_m();
+                let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
+                    let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
+                    if !values.iter().all(|value| value.is_finite() && *value >= f64::from(i32::MIN) && *value <= f64::from(i32::MAX)) {
+                        return Err("terrain route metric position is not finite".into());
+                    }
+                    Ok(crate::generation::Cell { x: values[0].round() as i64, y: values[1].round() as i32, z: values[2].round() as i64 })
+                };
+                let start_point = navigation::point(start);
+                let mut start_cell = to_cell(&start_point)?;
+                let destination_cell = to_cell(destination)?;
+                let config = crate::terrain_traversal::TraversalConfig {
+                    spacing,
+                    clearance_cells: capability.clearance_cells,
+                    max_step_cells: capability.max_step_cells,
+                };
+                let centered = |cell: crate::generation::Cell| Point { x:cell.x as f64*spacing[0], y:(f64::from(cell.y)+0.5)*spacing[1], z:cell.z as f64*spacing[2], frame:None };
+                let mut prefix = Vec::new();
+                let mut history = Vec::new();
+                let mut origin = start_point.clone();
+                if start_point != centered(start_cell) {
+                    let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
+                    let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
+                    let mut join = None;
+                    for (point_index,point) in remaining.iter().enumerate() {
+                        if let Some(cell_index) = previous.path.iter().position(|cell| centered(*cell) == *point) {
+                            join = Some((point_index,cell_index)); break;
+                        }
+                    }
+                    let (point_index,cell_index) = join.ok_or("route has no next support waypoint")?;
+                    prefix.extend(remaining.iter().take(point_index+1).cloned());
+                    history.extend_from_slice(&previous.path[..=cell_index]);
+                    start_cell = previous.path[cell_index];
+                    origin = previous.origin.clone();
+                }
+                let mut query = |cell| match environment.world.material(cell) {
+                    Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial {
+                        solid: !environment.world.is_open_material(material),
+                        outside: false,
+                    }),
+                    Err(error) if error == "cell outside world bounds" => {
+                        Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true })
+                    }
+                    Err(error) => Err(error),
+                };
+                let obstacle = |cell: crate::generation::Cell| {
+                    i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x, z)| {
+                        let y = ((f64::from(cell.y) + 0.5) * spacing[1]).round() as i32;
+                        blocked.contains(&(x, y, z))
+                    })
+                };
+                let mut path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
+                let mut points = crate::terrain_route::waypoints(&path, config)?;
+                if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
+                if points.len() > 1 || !prefix.is_empty() { points.remove(0); }
+                if !history.is_empty() {
+                    history.extend_from_slice(&path[1..]);
+                    path = history;
+                    prefix.extend(points);
+                    points = prefix;
+                }
+                if points.len() > 4096 || crate::terrain_route::waypoints(&path,config)?.len() > 4096 {
+                    return Err("terrain route waypoint budget exceeded".into());
+                }
+                let terrain_revision = environment.world.terrain_revision();
+                let terrain = TerrainRouteState {
+                    path,
+                    revision: Some(terrain_revision),
+                    waiting: false,
+                    origin,
+                    target: points.first().cloned(),
+                };
+                return Ok(PreparedRoute { points: points.into_iter().collect(), terrain: Some(terrain) });
+            }
+        }
+        let route = navigation::route(
             navigation::point(start),
             destination.clone(),
             &blocked,
             self.frame_bounds(frame.as_deref())?,
-        )
+        )?;
+        Ok(PreparedRoute { points: route, terrain: None })
+    }
+    fn install_route(&mut self, entity: Entity, prepared: PreparedRoute) {
+        self.routes.insert(entity, prepared.points);
+        match prepared.terrain {
+            Some(state) => { self.terrain_routes.insert(entity, state); }
+            None => { self.terrain_routes.remove(&entity); }
+        }
     }
     fn restore_routes(&mut self, saved: Vec<RouteSnapshot>) -> Result<()> {
         if saved.len() > self.ids.len() {
             return Err("too many saved routes".into());
         }
         let mut restored = BTreeMap::new();
+        self.terrain_routes.clear();
         for route in saved {
             if route.path.len() > 4096 {
                 return Err("saved route exceeds bound".into());
@@ -350,18 +481,42 @@ impl Kernel {
                 .get(&frame)
                 .expect("rebuilt obstacle frame index");
             let start = *self.ecs.get::<Position>(entity).ok_or("saved route has no position")?;
-            navigation::validate_saved_path(
-                navigation::point(start),
-                &route.path,
-                Point {
-                    x: destination.x,
-                    y: destination.y,
-                    z: destination.z,
-                    frame: destination.frame.clone(),
-                },
-                blocked,
-                bounds,
-            )?;
+            if route.terrain_path.is_none() {
+                navigation::validate_saved_path(
+                    navigation::point(start),
+                    &route.path,
+                    Point {
+                        x: destination.x,
+                        y: destination.y,
+                        z: destination.z,
+                        frame: destination.frame.clone(),
+                    },
+                    blocked,
+                    bounds,
+                )?;
+            }
+            if let Some(path) = route.terrain_path {
+                if self.ecs.get::<Support>(entity).is_some()
+                    || self.ecs.get::<Traversal>(entity).is_none()
+                    || path.is_empty() || path.len() > 4097
+                    || route.path.is_empty()
+                    || route.terrain_origin.is_none() || route.terrain_target.is_none()
+                {
+                    return Err("invalid saved terrain route capability".into());
+                }
+                if route.terrain_target.as_ref() != route.path.first() {
+                    return Err("saved terrain route target witness mismatch".into());
+                }
+                self.terrain_routes.insert(entity, TerrainRouteState {
+                    path,
+                    revision: None,
+                    waiting: route.terrain_waiting,
+                    origin: route.terrain_origin.unwrap_or_else(|| navigation::point(start)),
+                    target: route.terrain_target.or_else(|| route.path.first().cloned()),
+                });
+            } else if self.ecs.get::<Traversal>(entity).is_some() && self.ecs.get::<Support>(entity).is_none() && !route.terrain_waiting {
+                return Err("terrain route is missing saved support witness".into());
+            }
         }
         let expected = self
             .ids
@@ -372,11 +527,20 @@ impl Kernel {
             return Err("saved route set does not match destinations".into());
         }
         self.routes = restored;
+        if self.environment.is_some() {
+            let route_count = self.routes.len();
+            let waiting_before = self.terrain_routes.values().filter(|state| state.waiting).count();
+            self.invalidate_terrain_routes()?;
+            if self.routes.len() != route_count || self.terrain_routes.values().filter(|state| state.waiting).count() != waiting_before {
+                return Err("saved terrain route witness is stale".into());
+            }
+        }
         Ok(())
     }
     fn rebuild_physical_indexes(&mut self, build_routes: bool) -> Result<()> {
         self.blocked_by_frame.clear();
         self.routes.clear();
+        self.terrain_routes.clear();
         for (id, entity) in &self.ids {
             let position = self.ecs.get::<Position>(*entity);
             if let Some(surface) = self.ecs.get::<Surface>(*entity) {
@@ -468,28 +632,27 @@ impl Kernel {
                 self.blocked_by_frame.entry(Some(id.clone())).or_default();
             }
         }
-        for (id, entity) in &self.ids {
-            if let Some(container) = self.ecs.get::<Container>(*entity) {
-                if self.quantity(id) > u64::from(container.capacity) {
+        let indexed_entities: Vec<_> = self.ids.iter().map(|(id, entity)| (id.clone(), *entity)).collect();
+        for (id, entity) in indexed_entities {
+            if let Some(container) = self.ecs.get::<Container>(entity) {
+                if self.quantity(&id) > u64::from(container.capacity) {
                     return Err("container over capacity".into());
                 }
             }
-            if let Some(target) = self.ecs.get::<Destination>(*entity) {
+            if let Some(target) = self.ecs.get::<Destination>(entity) {
                 if !target.facing.is_finite() || target.facing.abs() > 1_000_000.0 {
                     return Err("invalid destination facing".into());
                 }
                 let p = *self
                     .ecs
-                    .get::<Position>(*entity)
+                    .get::<Position>(entity)
                     .ok_or("destination needs body position")?;
-                if self.ecs.get::<Body>(*entity).is_none() {
+                if self.ecs.get::<Body>(entity).is_none() {
                     return Err("destination needs body".into());
                 }
                 if build_routes {
-                    self.routes.insert(
-                        *entity,
-                        self.route_for(
-                            *entity,
+                    let route = self.route_for(
+                            entity,
                             p,
                             &Point {
                                 x: target.x,
@@ -497,8 +660,8 @@ impl Kernel {
                                 z: target.z,
                                 frame: target.frame.clone(),
                             },
-                        )?,
-                    );
+                        )?;
+                    self.install_route(entity, route);
                 }
             }
         }
@@ -637,6 +800,14 @@ impl Kernel {
                 prepared.geometry, prepared.terrain, records)?;
             candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world, excavation_rules: prepared.excavation_rules });
         }
+        for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
+            candidate.validate_terrain_route_witness(entity)?;
+        }
+        let route_count = candidate.routes.len();
+        candidate.invalidate_terrain_routes()?;
+        if candidate.routes.len() != route_count {
+            return Err("saved terrain route witness is stale".into());
+        }
         candidate.validate_excavation_work()?;
         *self = candidate;
         Ok(())
@@ -670,6 +841,10 @@ impl Kernel {
             .map(|(entity, path)| RouteSnapshot {
                 entity: self.ecs.get::<ExternalId>(*entity).unwrap().0.clone(),
                 path: path.iter().cloned().collect(),
+                terrain_path: self.terrain_routes.get(entity).map(|state| state.path.clone()),
+                terrain_waiting: self.terrain_routes.get(entity).is_some_and(|state| state.waiting),
+                terrain_origin: self.terrain_routes.get(entity).map(|state| state.origin.clone()),
+                terrain_target: self.terrain_routes.get(entity).and_then(|state| state.target.clone()),
             })
             .collect();
         routes.sort_by(|a: &RouteSnapshot, b: &RouteSnapshot| a.entity.cmp(&b.entity));
@@ -685,7 +860,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 5,
+            version: 6,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -714,7 +889,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 5
+            || state.version != 6
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -983,7 +1158,7 @@ impl Kernel {
         // Work sees the pre-movement occupation. Arriving this tick does not
         // retroactively earn a full tick of effort after spending it travelling.
         self.advance_excavation(batch.delta)?;
-        self.advance_movement(batch.delta);
+        self.advance_movement(batch.delta)?;
         let environment_work = self.environment.as_mut().map(|environment| environment.world.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
@@ -1101,6 +1276,7 @@ impl Kernel {
                     && existing.z == destination.z
                     && existing.frame == destination.frame
                     && self.routes.contains_key(&e)
+                    && !self.terrain_routes.get(&e).is_some_and(|state| state.waiting)
                 {
                     self.ecs.entity_mut(e).insert(Destination {
                         x: existing.x,
@@ -1111,13 +1287,18 @@ impl Kernel {
                     });
                     return Ok(None);
                 }
-                let path = self.route_for(e, p, &destination)?;
+                if p.x == destination.x && p.y == destination.y && p.z == destination.z
+                    && destination.frame == self.support_id(e) {
+                    self.clear_destination(e);
+                    self.ecs.entity_mut(e).insert(Position { facing, ..p });
+                    return Ok(None);
+                }
                 let target = Destination {
                     x: destination.x,
                     y: destination.y,
                     z: destination.z,
                     facing,
-                    frame: destination.frame,
+                    frame: destination.frame.clone(),
                 };
                 let extra = if self.ecs.get::<Destination>(e).is_some() {
                     0
@@ -1127,10 +1308,11 @@ impl Kernel {
                 if self.state_weight + extra > STATE_BYTES {
                     return Err("region canonical state capacity".into());
                 }
+                let path = self.route_for(e, p, &destination)?;
                 self.direct.remove(&e);
                 self.ecs.entity_mut(e).insert(target);
                 self.state_weight += extra;
-                self.routes.insert(e, path);
+                self.install_route(e, path);
                 Ok(None)
             }
             Action::BeginDirect { entity, stream } => {
@@ -1140,6 +1322,7 @@ impl Kernel {
                     return Err("direct control requires body and position".into());
                 }
                 if self.ecs.get::<Support>(e).is_some() { return Err("direct control does not support boarded actors".into()); }
+                if self.ecs.get::<Traversal>(e).is_some() { return Err("terrain walkers require routed movement".into()); }
                 if self.ecs.get::<ExcavationWork>(e).is_some() { return Err("cancel work before taking direct control".into()); }
                 if let Some(existing) = self.direct.get(&e) {
                     if existing.stream == stream { return Ok(None); }
@@ -1221,8 +1404,9 @@ impl Kernel {
         if let Some(destination) = self.ecs.get::<Destination>(entity).cloned() {
             self.state_weight = self.state_weight.saturating_sub(self.registry.weight("hive.destination", &record(&destination)));
             self.ecs.entity_mut(entity).remove::<Destination>();
-            self.routes.remove(&entity);
         }
+        self.routes.remove(&entity);
+        self.terrain_routes.remove(&entity);
     }
     fn projectile_ids(&self) -> Vec<String> {
         self.ids
@@ -1607,7 +1791,120 @@ impl Kernel {
         self.contents.entry(to.into()).or_default().insert(e);
         Ok(())
     }
-    fn advance_movement(&mut self, delta: f64) {
+    /// Validate saved geometry even when work is waiting on a changed world.
+    /// Waiting suspends movement, never the relationship between pose and route.
+    fn validate_terrain_route_witness(&self, entity: Entity) -> Result<()> {
+        let state = self.terrain_routes.get(&entity).ok_or("missing terrain witness")?;
+        let route = self.routes.get(&entity).ok_or("missing terrain route")?;
+        let capability = self.ecs.get::<Traversal>(entity).ok_or("missing terrain capability")?;
+        let spacing = self.environment.as_ref().ok_or("missing terrain environment")?.world.cell_spacing_m();
+        let points = crate::terrain_route::waypoints(&state.path, crate::terrain_traversal::TraversalConfig {
+            spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells,
+        })?;
+        if points.len() > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
+        let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
+            .ok_or("invalid terrain route progress")?;
+        if !route.iter().eq(points[offset..].iter()) || state.origin != points[offset - 1]
+            || state.target.as_ref() != route.front() {
+            return Err("terrain route geometry witness mismatch".into());
+        }
+        let destination = self.ecs.get::<Destination>(entity).ok_or("missing terrain destination")?;
+        let last = points.last().ok_or("empty terrain witness")?;
+        if last.x != destination.x || last.y != destination.y || last.z != destination.z || last.frame != destination.frame {
+            return Err("terrain route destination mismatch".into());
+        }
+        let pose = self.ecs.get::<Position>(entity).ok_or("missing terrain pose")?;
+        let target = &points[offset];
+        let delta = [target.x-state.origin.x, target.y-state.origin.y, target.z-state.origin.z];
+        let relative = [pose.x-state.origin.x, pose.y-state.origin.y, pose.z-state.origin.z];
+        let length2 = delta.iter().map(|v| v*v).sum::<f64>();
+        let along = if length2 == 0.0 { 0.0 } else { relative.iter().zip(delta).map(|(a,b)| a*b).sum::<f64>()/length2 };
+        let error2 = relative.iter().zip(delta).map(|(a,b)| (a-b*along).powi(2)).sum::<f64>();
+        if !along.is_finite() || !error2.is_finite() || along < -1e-9 || along > 1.0+1e-9 || error2 > 1e-14 {
+            return Err("terrain pose is outside active segment".into());
+        }
+        Ok(())
+    }
+
+    fn invalidate_terrain_routes(&mut self) -> Result<()> {
+        let candidates: Vec<_> = self.terrain_routes.iter().filter_map(|(entity, state)| (!state.waiting).then_some(*entity)).collect();
+        let mut invalid = Vec::new();
+        for entity in candidates {
+            let Some(capability) = self.ecs.get::<Traversal>(entity).copied() else { invalid.push(entity); continue };
+            let environment_view = self.environment.as_ref().ok_or("terrain route needs environment")?;
+            let spacing = environment_view.world.cell_spacing_m();
+            if let Some(state) = self.terrain_routes.get(&entity) {
+                if let Some(target) = &state.target {
+                    let position = *self.ecs.get::<Position>(entity).ok_or("terrain route actor lost position")?;
+                    let current = navigation::point(position);
+                    let delta = [target.x - state.origin.x, target.y - state.origin.y, target.z - state.origin.z];
+                    let length2 = delta.iter().map(|value| value * value).sum::<f64>();
+                    let along = if length2 <= f64::EPSILON { 0.0 } else {
+                        ((current.x - state.origin.x) * delta[0] + (current.y - state.origin.y) * delta[1]
+                            + (current.z - state.origin.z) * delta[2]) / length2
+                    };
+                    let along = along.clamp(0.0, 1.0);
+                    let expected = [state.origin.x + delta[0] * along, state.origin.y + delta[1] * along, state.origin.z + delta[2] * along];
+                    let error = ((current.x - expected[0]).powi(2) + (current.y - expected[1]).powi(2) + (current.z - expected[2]).powi(2)).sqrt();
+                    if !error.is_finite() || error > 1e-7 || along < -1e-9 || along > 1.0 + 1e-9 {
+                        invalid.push(entity);
+                        continue;
+                    }
+                }
+            }
+            let current_revision = environment_view.world.terrain_revision();
+            if self.terrain_routes.get(&entity).and_then(|state| state.revision) == Some(current_revision) { continue; }
+            let path = self.terrain_routes.get(&entity).map(|state| state.path.clone()).ok_or("terrain route witness missing")?;
+            let environment = self.environment.as_mut().ok_or("terrain route needs environment")?;
+            let config = crate::terrain_traversal::TraversalConfig {
+                spacing,
+                clearance_cells: capability.clearance_cells,
+                max_step_cells: capability.max_step_cells,
+            };
+            let expected_points = crate::terrain_route::waypoints(&path, config)?;
+            let remaining: Vec<_> = self.routes.get(&entity).map(|route| route.iter().cloned().collect()).unwrap_or_default();
+            let offset = expected_points.len().checked_sub(remaining.len());
+            let correspondence = offset.filter(|offset| *offset > 0).is_some_and(|offset| {
+                remaining == expected_points[offset..]
+                    && self.terrain_routes[&entity].origin == expected_points[offset - 1]
+                    && self.ecs.get::<Destination>(entity).is_some_and(|target| {
+                        expected_points.last().is_some_and(|last| last.x == target.x && last.y == target.y && last.z == target.z && last.frame == target.frame)
+                    })
+            });
+            if !correspondence {
+                invalid.push(entity);
+                continue;
+            }
+            let mut query = |cell| match environment.world.material(cell) {
+                Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false }),
+                Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
+                Err(error) => Err(error),
+            };
+            let mut valid = true;
+            for cell in &path {
+                if !matches!(crate::terrain_traversal::node(*cell, config, &mut query)?, Some(_)) { valid = false; break; }
+            }
+            if valid {
+                for pair in path.windows(2) {
+                    let from = crate::terrain_traversal::node(pair[0], config, &mut query)?;
+                    let Some(from) = from else { valid = false; break };
+                    let dx = i32::try_from(i128::from(pair[1].x) - i128::from(pair[0].x)).unwrap_or(2);
+                    let dz = i32::try_from(i128::from(pair[1].z) - i128::from(pair[0].z)).unwrap_or(2);
+                    let dy = i32::try_from(i64::from(pair[1].y) - i64::from(pair[0].y)).unwrap_or(2);
+                    if !matches!(crate::terrain_traversal::step(from, dx, dy, dz, config, &mut query)?, Some(_)) { valid = false; break; }
+                }
+            }
+            if !valid { invalid.push(entity); }
+            else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
+        }
+        for entity in invalid {
+            if let Some(state) = self.terrain_routes.get_mut(&entity) { state.waiting = true; state.revision = None; }
+        }
+        Ok(())
+    }
+
+    fn advance_movement(&mut self, delta: f64) -> Result<()> {
+        self.invalidate_terrain_routes()?;
         self.routes.retain(|entity, path| {
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
             let target = self
@@ -1615,8 +1912,22 @@ impl Kernel {
                 .get::<Destination>(*entity)
                 .expect("route destination")
                 .clone();
+            if self.terrain_routes.get(entity).is_some_and(|state| state.waiting) {
+                return true;
+            }
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");
-            navigation::advance(&mut p, path, speed * delta);
+            if self.terrain_routes.contains_key(entity) {
+                let blocked = self.blocked_by_frame.get(&None).expect("terrain obstacle index");
+                if terrain_motion_blocked(p, path, speed * delta, blocked) {
+                    self.terrain_routes.get_mut(entity).expect("terrain route").waiting = true;
+                    return true;
+                }
+            }
+            let last_reached = navigation::advance(&mut p, path, speed * delta);
+            if let Some(state) = self.terrain_routes.get_mut(entity) {
+                if let Some(point) = last_reached { state.origin = point; }
+                state.target = path.front().cloned();
+            }
             p.facing = target.facing;
             self.ecs.entity_mut(*entity).insert(p);
             if path.is_empty() {
@@ -1627,6 +1938,9 @@ impl Kernel {
                 true
             }
         });
+        let finished: Vec<_> = self.terrain_routes.keys().filter(|entity| !self.routes.contains_key(entity)).copied().collect();
+        for entity in finished { self.terrain_routes.remove(&entity); }
+        Ok(())
     }
 
     fn advance_direct(&mut self, delta: f64) -> Result<()> {

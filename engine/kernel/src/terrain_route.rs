@@ -2,13 +2,36 @@
 //! The supplied query reads canonical terrain; this module stores no material grid.
 use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
-use pathfinding::prelude::bfs;
+use pathfinding::prelude::astar;
+
+fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<u64, String> {
+    let dx = (i128::from(b.x) - i128::from(a.x)).unsigned_abs() as f64 * spacing[0];
+    let dz = (i128::from(b.z) - i128::from(a.z)).unsigned_abs() as f64 * spacing[2];
+    let dy = (i64::from(b.y) - i64::from(a.y)).unsigned_abs() as f64 * spacing[1];
+    let cost = ((dx + dz + dy) * 1_000_000.0).round();
+    // At most 4096 expanded nodes: this bound keeps path addition below 2^53
+    // and identical on 32-bit WASM and native hosts. Never saturate a cost.
+    if !cost.is_finite() || cost < 1.0 || cost > (1u64 << 40) as f64 {
+        return Err("terrain metric exceeds route cost bounds".into());
+    }
+    Ok(cost as u64)
+}
 
 pub fn search(
     start: Cell,
     destination: Cell,
     config: TraversalConfig,
     query: &mut MaterialQuery<'_>,
+) -> Result<Vec<Cell>, String> {
+    search_with_blocked(start, destination, config, query, &|_| false)
+}
+
+pub fn search_with_blocked(
+    start: Cell,
+    destination: Cell,
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
 ) -> Result<Vec<Cell>, String> {
     if terrain_traversal::node(start, config, query)?.is_none()
         || terrain_traversal::node(destination, config, query)?.is_none()
@@ -19,7 +42,7 @@ pub fn search(
     let cell = |(x, y, z)| Cell { x, y, z };
     let mut expanded = 0usize;
     let mut failure = None;
-    let path = bfs(
+    let path = astar(
         &key(start),
         |current| {
             if failure.is_some() { return Vec::new(); }
@@ -37,7 +60,11 @@ pub fn search(
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) => neighbors.push(key(next.support)),
+                        Ok(Some(next)) if !blocked(next.support) => match edge_cost(cell(*current), next.support, config.spacing) {
+                            Ok(cost) => neighbors.push((key(next.support), cost)),
+                            Err(error) => { failure = Some(error); return Vec::new(); }
+                        },
+                        Ok(Some(_)) => {},
                         Ok(None) => {},
                         Err(error) => { failure = Some(error); return Vec::new(); }
                     }
@@ -45,10 +72,11 @@ pub fn search(
             }
             neighbors
         },
+        |_| 0u64,
         |current| *current == key(destination),
     );
     if let Some(error) = failure { return Err(error); }
-    path.map(|path| path.into_iter().map(cell).collect())
+    path.map(|(path, _cost)| path.into_iter().map(cell).collect())
         .ok_or_else(|| "no supported terrain route".into())
 }
 
@@ -100,7 +128,7 @@ mod tests {
     #[test]
     fn search_uses_deep_support_and_climbs_one_voxel() {
         let solid: BTreeSet<_> = [(0,-20,0),(1,-19,0),(2,-19,0)].into_iter().collect();
-        let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x,at.y,at.z)) });
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x,at.y,at.z)), outside: false });
         let start = Cell { x:0,y:-20,z:0 };
         let end = Cell { x:2,y:-19,z:0 };
         let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
@@ -123,8 +151,23 @@ mod tests {
 
     #[test]
     fn search_rejects_a_two_voxel_cliff() {
-        let mut query = |at: Cell| Ok(TraversalMaterial { solid: [(0,0,0),(1,2,0)].contains(&(at.x,at.y,at.z)) });
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: [(0,0,0),(1,2,0)].contains(&(at.x,at.y,at.z)), outside: false });
         let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
         assert!(search(Cell{x:0,y:0,z:0},Cell{x:1,y:2,z:0},config,&mut query).is_err());
+    }
+
+    #[test]
+    fn weighted_cost_charges_rise_and_cross_geometry() {
+        let config = TraversalConfig { spacing:[1.0,0.5,1.0],clearance_cells:1,max_step_cells:1 };
+        let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing).unwrap();
+        let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing).unwrap();
+        assert!(climb > flat);
+    }
+
+    #[test]
+    fn outside_material_blocks_support_and_ceiling() {
+        let config = TraversalConfig { spacing:[1.0,1.0,1.0],clearance_cells:1,max_step_cells:1 };
+        let mut query = |cell: Cell| Ok(TraversalMaterial { solid: cell.y == 0, outside: cell.x < 0 });
+        assert!(terrain_traversal::node(Cell{x:-1,y:0,z:0}, config, &mut query).unwrap().is_none());
     }
 }

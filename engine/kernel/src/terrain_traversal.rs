@@ -17,6 +17,7 @@ pub struct TraversalNode {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TraversalMaterial {
     pub solid: bool,
+    pub outside: bool,
 }
 
 pub type MaterialQuery<'a> = dyn FnMut(Cell) -> Result<TraversalMaterial, String> + 'a;
@@ -41,7 +42,8 @@ fn overhead(
             y: support.y.checked_add(offset).ok_or("traversal coordinate overflow")?,
             ..support
         };
-        if query(cell)?.solid {
+        let material = query(cell)?;
+        if material.outside || material.solid {
             return Ok(false);
         }
     }
@@ -67,7 +69,8 @@ pub fn node(
     query: &mut MaterialQuery<'_>,
 ) -> Result<Option<TraversalNode>, String> {
     validate_config(config)?;
-    if !query(support)?.solid {
+    let support_material = query(support)?;
+    if support_material.outside || !support_material.solid {
         return Ok(None);
     }
     if !overhead(support, config, query)? {
@@ -97,7 +100,9 @@ pub fn step(
         y: from.support.y.checked_add(dy).ok_or("traversal coordinate overflow")?,
         z: from.support.z.checked_add(i64::from(dz)).ok_or("traversal coordinate overflow")?,
     };
-    if !query(from.support)?.solid || !query(target)?.solid {
+    let from_material = query(from.support)?;
+    let target_material = query(target)?;
+    if from_material.outside || target_material.outside || !from_material.solid || !target_material.solid {
         return Ok(None);
     }
     if !overhead(from.support, config, query)? || !overhead(target, config, query)? {
@@ -110,7 +115,8 @@ pub fn step(
                 y: low.y.checked_add(offset).ok_or("traversal coordinate overflow")?,
                 ..low
             };
-            if query(cell)?.solid {
+            let material = query(cell)?;
+            if material.outside || material.solid {
                 return Ok(None);
             }
         }
@@ -130,7 +136,7 @@ mod tests {
 
     fn world(cells: &[(i64, i32, i64)]) -> impl FnMut(Cell) -> Result<TraversalMaterial, String> + '_ {
         let cells = cells.iter().copied().collect::<BTreeSet<_>>();
-        move |cell| Ok(TraversalMaterial { solid: cells.contains(&(cell.x, cell.y, cell.z)) })
+        move |cell| Ok(TraversalMaterial { solid: cells.contains(&(cell.x, cell.y, cell.z)), outside: false })
     }
 
     #[test]

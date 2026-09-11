@@ -9,6 +9,19 @@ fn same_target(a: ExcavationWork, b: ExcavationWork) -> bool {
     a.x == b.x && a.y == b.y && a.z == b.z && a.expected == b.expected && a.replacement == b.replacement
 }
 impl Kernel {
+    fn terrain_support_occupied(&mut self, target: Cell) -> Result<bool> {
+        let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
+        let mut query = self.ecs.query::<(Entity, &Body, &Position)>();
+        for (entity, _, position) in query.iter(&self.ecs) {
+            if self.ecs.get::<Support>(entity).is_some() { continue; }
+            let values = [position.x / spacing[0], position.y / spacing[1] - 0.5, position.z / spacing[2]];
+            if !values.iter().all(|value| value.is_finite()) { return Err("invalid standing terrain pose".into()); }
+            let cell = Cell { x: values[0].round() as i64, y: values[1].round() as i32, z: values[2].round() as i64 };
+            if cell == target { return Ok(true); }
+        }
+        Ok(false)
+    }
+
     pub(super) fn request_excavation(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
         let actor = self.entity(id)?;
         if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<Container>(actor).is_none() {
@@ -16,6 +29,9 @@ impl Kernel {
         }
         if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor) {
             return Err("excavation requires terrain contact".into());
+        }
+        if self.terrain_support_occupied(cell(work))? {
+            return Err("excavation target supports a standing actor".into());
         }
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         if !environment.excavation_rules.contains_key(&work.expected) || !environment.world.is_open_material(work.replacement) || work.expected == work.replacement
@@ -61,6 +77,7 @@ impl Kernel {
             // Routing retains saved work but earns no effort while travelling.
             if self.direct.contains_key(&actor) || self.ecs.get::<Destination>(actor).is_some() { continue; }
             let pose = self.world_pose_entity(actor, 0)?;
+            if self.terrain_support_occupied(cell(work))? { continue; }
             let environment = self.environment.as_mut().ok_or("saved work needs environment")?;
             if environment.world.material(cell(work))? != work.expected {
                 self.ecs.entity_mut(actor).remove::<ExcavationWork>();

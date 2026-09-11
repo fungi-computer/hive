@@ -240,7 +240,8 @@ pub fn validate_saved_path(
     Ok(())
 }
 
-pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: f64) {
+pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: f64) -> Option<Point> {
+    let mut last_reached = None;
     while let Some(target) = path.front().cloned() {
         let current = DVec3::new(position.x, position.y, position.z);
         let toward = DVec3::new(target.x, target.y, target.z) - current;
@@ -250,7 +251,7 @@ pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: 
             position.y = target.y;
             position.z = target.z;
             budget = (budget - length).max(0.0);
-            path.pop_front();
+            last_reached = path.pop_front();
         } else {
             let moved = current + toward * (budget / length);
             position.x = moved.x;
@@ -259,6 +260,7 @@ pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: 
             break;
         }
     }
+    last_reached
 }
 
 #[cfg(test)]

@@ -48,6 +48,7 @@ impl Registry {
                 ],
             ),
             ("hive.body", vec![("speed", FieldType::Number)]),
+            ("hive.traversal", vec![("clearanceCells", FieldType::Number), ("maxStepCells", FieldType::Number)]),
             ("hive.container", vec![("capacity", FieldType::Number)]),
             (
                 "hive.lot",
@@ -166,6 +167,7 @@ impl Registry {
             let id = match name.as_str() {
                 "hive.position" => world.register_component::<Position>(),
                 "hive.body" => world.register_component::<Body>(),
+                "hive.traversal" => world.register_component::<Traversal>(),
                 "hive.container" => world.register_component::<Container>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
@@ -205,6 +207,7 @@ impl Registry {
             name,
             "hive.position"
                 | "hive.body"
+                | "hive.traversal"
                 | "hive.container"
                 | "hive.lot"
                 | "hive.lot-water"
@@ -269,6 +272,12 @@ impl Registry {
                 let body: Body = decode(value)?;
                 if body.speed <= 0.0 || body.speed > 100.0 {
                     return Err("invalid speed".into());
+                }
+            }
+            "hive.traversal" => {
+                let traversal: Traversal = decode(value)?;
+                if traversal.clearance_cells == 0 || traversal.clearance_cells > 8 || traversal.max_step_cells != 1 {
+                    return Err("invalid traversal capability".into());
                 }
             }
             "hive.container" => {
@@ -417,6 +426,9 @@ impl Registry {
             "hive.body" => {
                 world.entity_mut(entity).insert(decode::<Body>(value)?);
             }
+            "hive.traversal" => {
+                world.entity_mut(entity).insert(decode::<Traversal>(value)?);
+            }
             "hive.container" => {
                 world.entity_mut(entity).insert(decode::<Container>(value)?);
             }
@@ -474,6 +486,7 @@ impl Registry {
         match name {
             "hive.position" => world.get::<Position>(entity).map(record),
             "hive.body" => world.get::<Body>(entity).map(record),
+            "hive.traversal" => world.get::<Traversal>(entity).map(record),
             "hive.container" => world.get::<Container>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
