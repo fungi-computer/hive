@@ -1,18 +1,6 @@
 use super::*;
 
 impl CompiledAtmosphere {
-    pub(crate) fn saved_definition(bytes: &[u8]) -> Result<AtmosphereDefinition, String> {
-        if bytes.len() > MAX_STATE_BYTES {
-            return Err("atmosphere state exceeds byte bound".into());
-        }
-        let (version, definition, _): (u16, AtmosphereDefinition, AtmosphereState) =
-            postcard::from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
-        if version != STATE_VERSION {
-            return Err("unsupported atmosphere state version".into());
-        }
-        Ok(definition)
-    }
-
     pub(super) fn envelope_valid(&self, index: usize, parcel: &AtmosphereParcel) -> bool {
         let temperature = self.temperature(index, parcel);
         let pressure = self.pressure(index, parcel);
@@ -131,7 +119,7 @@ impl CompiledAtmosphere {
 
     pub fn encode_state(&self, state: &AtmosphereState) -> Result<Vec<u8>, String> {
         self.validate_state(state)?;
-        let bytes = postcard::to_allocvec(&(STATE_VERSION, &self.definition, state))
+        let bytes = postcard::to_allocvec(&(STATE_VERSION, self.content_digest, state))
             .map_err(|_| "atmosphere state encoding failed")?;
         if bytes.len() > MAX_STATE_BYTES {
             return Err("atmosphere state exceeds byte bound".into());
@@ -143,12 +131,15 @@ impl CompiledAtmosphere {
         if bytes.len() > MAX_STATE_BYTES {
             return Err("atmosphere state exceeds byte bound".into());
         }
-        let (version, definition, mut state): (u16, AtmosphereDefinition, AtmosphereState) =
-            postcard::from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
+        let ((version, digest, mut state), rest): ((u16, [u8; 32], AtmosphereState), &[u8]) =
+            postcard::take_from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
+        if !rest.is_empty() {
+            return Err("atmosphere state contains trailing bytes".into());
+        }
         if version != STATE_VERSION {
             return Err("unsupported atmosphere state version".into());
         }
-        if definition != self.definition {
+        if digest != self.content_digest {
             return Err("atmosphere state definition binding mismatch".into());
         }
         state.owner = self.owner.clone();

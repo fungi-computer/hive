@@ -1,4 +1,5 @@
 use super::*;
+use sha2::{Digest, Sha256};
 
 impl CompiledAtmosphere {
     pub fn compile(definition: AtmosphereDefinition) -> Result<Self, String> {
@@ -166,8 +167,17 @@ impl CompiledAtmosphere {
             }
         }
         let identity = identity(&definition)?;
+        // Revision labels are not topology authority. Bind all physical content,
+        // including same-count opening changes, model and ambient. A no-op world
+        // edit can advance the terrain revision without changing this content.
+        let binding = postcard::to_allocvec(&(
+            &definition.version, &definition.region_id, &definition.ambient,
+            &definition.model, &definition.volumes, &definition.openings,
+        )).map_err(|_| "atmosphere definition binding failed")?;
+        let content_digest = Sha256::digest(&binding).into();
         Ok(Self {
             definition,
+            content_digest,
             openings,
             volume_index,
             member_index,

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-const STATE_VERSION: u16 = 1;
+const STATE_VERSION: u16 = 2;
 const MAX_VOLUMES: usize = 2048;
 const MAX_OPENINGS: usize = 56_000;
 const MAX_MEMBERS: usize = 40_000;
@@ -175,6 +175,8 @@ enum Quantity {
 #[derive(Clone, Debug)]
 pub struct CompiledAtmosphere {
     definition: AtmosphereDefinition,
+    /// Complete physical definition binding, computed only when geometry is compiled.
+    content_digest: [u8; 32],
     openings: Vec<OpeningIndex>,
     volume_index: BTreeMap<String, usize>,
     member_index: BTreeMap<String, usize>,

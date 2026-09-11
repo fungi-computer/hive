@@ -10,7 +10,7 @@ use crate::terrain_water::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-const RECORD_VERSION: u16 = 1;
+const RECORD_VERSION: u16 = 2;
 const MAX_CONFIG_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -41,6 +41,8 @@ impl TerrainAtmosphereConfig {
 pub struct TerrainAtmosphereRecords {
     version: u16,
     config: TerrainAtmosphereConfig,
+    geometry_revision: u64,
+    geometry_identity: String,
     state: Vec<u8>,
 }
 pub struct TerrainAtmosphere {
@@ -133,6 +135,8 @@ impl TerrainAtmosphere {
         Ok(TerrainAtmosphereRecords {
             version: RECORD_VERSION,
             config: self.config.clone(),
+            geometry_revision: self.compiled.definition().revision,
+            geometry_identity: self.compiled.definition().geometry_identity.clone(),
             state,
         })
     }
@@ -153,13 +157,14 @@ impl TerrainAtmosphere {
             return Err("atmosphere config exceeds record budget".into());
         }
         let snapshot = world.air_geometry(records.config.bounds())?;
-        let saved_definition = CompiledAtmosphere::saved_definition(&records.state)?;
         let (mut current_definition, _) =
             definition_from_snapshot(&records.config, &snapshot, world.cell_spacing_m())?;
-        if !same_physical_definition(&current_definition, &saved_definition) {
-            return Err("terrain atmosphere geometry binding mismatch".into());
-        }
-        let compiled = CompiledAtmosphere::compile(saved_definition)?;
+        // Physical content is rebuilt, not trusted from a second saved geometry.
+        // Keep the gas owner's original labels through unrelated world edits;
+        // decode_state verifies a SHA-256 binding of the full physical content.
+        current_definition.revision = records.geometry_revision;
+        current_definition.geometry_identity = records.geometry_identity.clone();
+        let compiled = CompiledAtmosphere::compile(current_definition)?;
         let state = compiled.decode_state(&records.state)?;
         let geometry_revision = compiled.definition().revision;
         Ok(Self {
@@ -185,7 +190,7 @@ impl TerrainAtmosphere {
         {
             return Err("atmosphere rebind candidate is stale or mismatched".into());
         }
-        let (candidate_definition, _) = match definition_from_snapshot(&self.config, snapshot, self.spacing) {
+        let (mut candidate_definition, _) = match definition_from_snapshot(&self.config, snapshot, self.spacing) {
             Ok(definition) => definition,
             Err(_error) if snapshot_has_no_free_air(snapshot) => {
                 return Ok(Err(AtmosphereRebindResult::Blocked(
@@ -207,14 +212,10 @@ impl TerrainAtmosphere {
             .geometry_revision
             .checked_add(1)
             .ok_or("atmosphere geometry revision exhausted")?;
-        let (compiled, _) = compile_snapshot_from_snapshot(
-            &self.config,
-            snapshot,
-            self.spacing,
-            next_revision,
-            self.compiled.definition().model.clone(),
-            self.compiled.definition().ambient.clone(),
-        )?;
+        // The exact candidate was already projected above. Do not scan and
+        // partition the entire air domain a second time for the same edit.
+        candidate_definition.revision = next_revision;
+        let compiled = CompiledAtmosphere::compile(candidate_definition)?;
         match rebind_geometry(&self.compiled, &self.state, &compiled)? {
             AtmosphereRebindResult::Blocked(reason) => {
                 Ok(Err(AtmosphereRebindResult::Blocked(reason)))
@@ -299,22 +300,6 @@ fn compile_snapshot(
 ) -> Result<(CompiledAtmosphere, AtmosphereState), String> {
     validate_config(world, config)?;
     let (definition, _) = definition_from_snapshot(config, snapshot, world.cell_spacing_m())?;
-    let compiled = CompiledAtmosphere::compile(definition)?;
-    let state = compiled.initial();
-    Ok((compiled, state))
-}
-fn compile_snapshot_from_snapshot(
-    config: &TerrainAtmosphereConfig,
-    snapshot: &AirGeometrySnapshot,
-    spacing: [f64; 3],
-    revision: u64,
-    model: AtmosphereModel,
-    ambient: AtmosphereAmbient,
-) -> Result<(CompiledAtmosphere, AtmosphereState), String> {
-    let (mut definition, _) = definition_from_snapshot(config, snapshot, spacing)?;
-    definition.revision = revision;
-    definition.model = model;
-    definition.ambient = ambient;
     let compiled = CompiledAtmosphere::compile(definition)?;
     let state = compiled.initial();
     Ok((compiled, state))

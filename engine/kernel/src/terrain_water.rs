@@ -339,14 +339,22 @@ impl TerrainWater {
         Ok(PreparedWaterAdvance { state: next.state, work: next.work,
             owner: self.owner.clone(), epoch: self.epoch })
     }
-    /// Stock equality proves that this water-only proposal cannot change free
-    /// air space. This bounded check avoids querying the whole air domain on
-    /// quiet ticks; it never substitutes for terrain/structure invalidation.
-    pub(crate) fn prepared_water_changes_stock(&self, prepared: &PreparedWaterAdvance) -> Result<bool, String> {
+    /// Only changed open-water stocks inside this gas owner displace air. Pore
+    /// water remains inside solid soil. Inspect the admitted water graph (not
+    /// the whole terrain/air box), preserving exact changes without a tolerance.
+    pub(crate) fn prepared_water_changes_air_space(&self, prepared: &PreparedWaterAdvance, bounds: AirGeometryBounds) -> Result<bool, String> {
         if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
             return Err("prepared water advance is stale or foreign".into());
         }
-        Ok(self.state.masses() != prepared.state.masses())
+        Ok(self.graph.definition().cells.iter()
+            .zip(self.state.masses().iter().zip(prepared.state.masses()))
+            .any(|(cell, (before, after))| {
+                let [x, y, z] = cell.at;
+                before != after && cell.kind == WaterCellKind::Void
+                    && i64::from(x) >= bounds.min.x && i64::from(x) < bounds.max.x
+                    && y >= bounds.min.y && y < bounds.max.y
+                    && i64::from(z) >= bounds.min.z && i64::from(z) < bounds.max.z
+            }))
     }
     pub(crate) fn prepared_water_air_geometry(&mut self, prepared: &PreparedWaterAdvance, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query_water(self, prepared, bounds)
@@ -560,12 +568,17 @@ mod tests {
         let before_flow = restored.air_geometry(air_bounds).unwrap();
         let stale = restored.prepare_water_advance(1.0).unwrap();
         let flowing = restored.prepare_water_advance(1.0).unwrap();
+        assert!(restored.prepared_water_changes_air_space(&flowing, air_bounds).unwrap());
+        assert!(!restored.prepared_water_changes_air_space(&flowing, AirGeometryBounds {
+            min: Cell { x: 2, y: 30, z: 2 }, max: Cell { x: 3, y: 32, z: 3 },
+        }).unwrap());
         let proposed_flow = restored.prepared_water_air_geometry(&flowing, air_bounds).unwrap();
         assert_eq!(restored.air_geometry(air_bounds).unwrap(), before_flow);
         assert_ne!(proposed_flow.cells, before_flow.cells);
         restored.apply_water_advance(flowing).unwrap();
         assert_eq!(restored.air_geometry(air_bounds).unwrap(), proposed_flow);
         assert!(restored.prepared_water_air_geometry(&stale, air_bounds).is_err());
+        assert!(restored.prepared_water_changes_air_space(&stale, air_bounds).is_err());
         assert!(restored.apply_water_advance(stale).is_err());
         let facts = restored.facts().unwrap();
         assert_eq!(facts.total_kg, 100.0);
@@ -617,6 +630,12 @@ mod tests {
         let mut water = TerrainWater::fresh(geometry.clone(), terrain,
             &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
               WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();
+        let air_bounds = AirGeometryBounds { min: below,
+            max: Cell { x: at.x + 1, y: at.y + 1, z: at.z + 1 } };
+        let pore_step = water.prepare_water_advance(0.2).unwrap();
+        assert_ne!(pore_step.state.masses(), water.state.masses(), "fixture must move pore water");
+        assert!(!water.prepared_water_changes_air_space(&pore_step, air_bounds).unwrap());
+        // Discard the detached probe, preserving the excavation's original stock.
         let before = water.facts().unwrap();
         let ExcavationResult::Prepared(stale) = water.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
         assert_eq!(water.facts().unwrap(), before);

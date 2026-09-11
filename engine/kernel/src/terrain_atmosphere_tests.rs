@@ -149,6 +149,32 @@ fn unchanged_water_epoch_reuses_compiled_geometry() {
 }
 
 #[test]
+fn unrelated_physical_edit_retains_compact_air_binding_after_restore() {
+    let mut water = world();
+    let cfg = config(ExteriorPolicy::Closed);
+    let mut air = TerrainAtmosphere::fresh(&mut water, cfg.clone()).unwrap();
+    let original = air.compiled().definition().clone();
+    let at = (-30..0).map(|y| Cell { x: 1, y, z: 1 })
+        .find(|at| water.material(*at).unwrap() != 0).unwrap();
+    let material = water.material(at).unwrap();
+    let super::terrain_water::ExcavationResult::Prepared(change) =
+        water.prepare_excavation(at, material, 0).unwrap() else { panic!("dry excavation"); };
+    let candidate = water.prepared_excavation_air_geometry(&change, cfg.bounds()).unwrap();
+    let rebind = air.prepare_rebind(&candidate).unwrap().unwrap();
+    water.apply_excavation(change).unwrap();
+    air.apply_rebind(rebind).unwrap();
+    assert_eq!(air.compiled().definition(), &original);
+    assert!(water.terrain_revision() > original.revision);
+    let saved = air.save().unwrap();
+    let encoded = postcard::to_allocvec(&saved).unwrap();
+    let full_geometry = postcard::to_allocvec(&original).unwrap();
+    assert!(encoded.len() * 2 < full_geometry.len(), "stock {} / geometry {}", encoded.len(), full_geometry.len());
+    let restored = TerrainAtmosphere::restore(&mut water, &saved).unwrap();
+    assert_eq!(restored.compiled().definition(), &original);
+    assert_eq!(restored.state().parcels(), air.state().parcels());
+}
+
+#[test]
 fn changed_wall_rebinds_and_restores_exact_state() {
     let mut water = world();
     let mut config = config(ExteriorPolicy::Closed);

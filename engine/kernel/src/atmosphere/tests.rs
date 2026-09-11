@@ -90,6 +90,22 @@ use super::*;
     }
 
     #[test]
+    fn compact_stock_rejects_same_count_geometry_and_trailing_bytes() {
+        let original = CompiledAtmosphere::compile(definition()).unwrap();
+        let bytes = original.encode_state(&original.initial()).unwrap();
+        let mut changed = definition();
+        changed.openings[0].permeability = 0.0;
+        let closed = CompiledAtmosphere::compile(changed).unwrap();
+        // Existing label/count identities deliberately match; the full content
+        // digest must still reject a different opening, not just a new revision.
+        assert_eq!(original.identity(), closed.identity());
+        assert!(closed.decode_state(&bytes).is_err());
+        let mut trailing = bytes;
+        trailing.push(0);
+        assert!(original.decode_state(&trailing).is_err());
+    }
+
+    #[test]
     fn foreign_owner_is_rejected_and_exact_definition_restore_rebinds() {
         let first = CompiledAtmosphere::compile(definition()).unwrap();
         let second = CompiledAtmosphere::compile(definition()).unwrap();

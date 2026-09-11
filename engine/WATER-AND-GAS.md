@@ -13,6 +13,11 @@ not met it. Read the [measured audit and repair order](../docs/performance/colon
 before further environmental expansion. Earlier correctness/restart receipts below
 remain valid only for their named behaviors, not general playability acceptance.
 
+The current implementation and qualification order is
+[GAS-REPAIR-PLAN.md](GAS-REPAIR-PLAN.md). It separates pore-water invalidation,
+compact bound stocks, actual geometry edits, exchange activity and client cost;
+its results section distinguishes measured repairs from remaining work.
+
 Implementation is authorized and underway under [DEMO-ROADMAP.md](DEMO-ROADMAP.md).
 Rust owns generated terrain, finite water, construction/excavation geometry,
 connected-volume air, material-paid finite emissions, and their saved records.
