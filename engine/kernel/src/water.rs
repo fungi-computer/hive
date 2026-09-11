@@ -97,6 +97,13 @@ impl WaterState {
     pub fn boundary_kg(&self) -> f64 { self.boundary_kg }
 }
 
+/// Detached field debit. The enclosing material operation must admit its
+/// matching credit before publishing this candidate. This is not a sink.
+pub struct WaterWithdrawal {
+    pub state: WaterState,
+    pub mass_kg: f64,
+}
+
 impl PartialEq for WaterState {
     fn eq(&self, other: &Self) -> bool {
         self.version == other.version && self.binding == other.binding && self.mass_kg == other.mass_kg && self.initial_total_kg == other.initial_total_kg && self.boundary_kg == other.boundary_kg
@@ -543,6 +550,27 @@ impl CompiledWater {
         Ok(state)
     }
 
+    pub fn prepare_withdrawal(&self, state: &WaterState, at: [i32; 3],
+        requested_kg: f64) -> WaterResult<WaterWithdrawal> {
+        self.validate_state(state)?;
+        if !requested_kg.is_finite() || requested_kg <= 0.0 {
+            return Err(fail("water withdrawal must be finite and positive"));
+        }
+        let index = *self.index.get(&cell_id(at)).ok_or_else(|| fail("water cell is not admitted"))?;
+        let available = state.mass_kg[index];
+        if requested_kg > available { return Err(fail("water stock is insufficient")); }
+        let remaining = available - requested_kg;
+        // The material credit uses the actual representable debit, never an
+        // independently rounded request that could create an extra quantity.
+        let removed = available - remaining;
+        if removed <= 0.0 { return Err(fail("water withdrawal is below representable quantity")); }
+        let mut candidate = state.clone();
+        candidate.mass_kg[index] = remaining;
+        candidate.boundary_kg -= removed;
+        self.validate_state(&candidate)?;
+        Ok(WaterWithdrawal { state: candidate, mass_kg: removed })
+    }
+
     pub fn validate_state(&self, state: &WaterState) -> WaterResult<()> {
         if !Arc::ptr_eq(&state.owner, &self.owner) { return Err(fail("water state belongs to another compiled graph")); }
         self.validate_state_contents(state)
@@ -773,6 +801,35 @@ mod tests {
     fn cell(at: [i32; 3]) -> CellDefinition { CellDefinition { at, kind: WaterCellKind::Void, soil_id: None } }
     fn face(a: [i32; 3], b: [i32; 3]) -> FaceDefinition { FaceDefinition { a, b, open_fraction: 1.0 } }
     fn stock(at: [i32; 3], mass_kg: f64) -> WaterStock { WaterStock { id: cell_id(at), mass_kg } }
+
+    #[test]
+    fn detached_withdrawal_preserves_field_and_external_custody_on_rebind() {
+        let at = [0, 0, 0];
+        let porous = CellDefinition { at, kind: WaterCellKind::Soil, soil_id: Some("loam".into()) };
+        let graph = CompiledWater::compile(definition(vec![porous], vec![]), WaterLimits::default()).unwrap();
+        let state = graph.initial(&[stock(at, 0.2)]).unwrap();
+        let before = graph.encode_state(&state).unwrap();
+        let part = graph.prepare_withdrawal(&state, at, 0.05).unwrap();
+        assert!(nearly_equal(part.state.masses()[0] + part.mass_kg, 0.2));
+        assert!(nearly_equal(part.state.boundary_kg(), -part.mass_kg));
+        let rest = graph.prepare_withdrawal(&part.state, at, part.state.masses()[0]).unwrap();
+        assert_eq!(rest.state.masses()[0], 0.0);
+        assert!(nearly_equal(part.mass_kg + rest.mass_kg, 0.2));
+        let mut next_definition = definition(vec![cell(at)], vec![]);
+        next_definition.revision = 1;
+        let next = CompiledWater::compile(next_definition, WaterLimits::default()).unwrap();
+        let WaterRebind::Ready(rebound) = graph.prepare_rebind(&rest.state, &next).unwrap() else { panic!("empty excavation must fit"); };
+        assert_eq!(next.facts(&rebound).unwrap().total_kg, 0.0);
+        let saved = next.encode_state(&rebound).unwrap();
+        assert_eq!(next.decode_state(&saved).unwrap(), rebound);
+        assert_eq!(graph.encode_state(&state).unwrap(), before);
+        for invalid in [0.0, -1.0, f64::NAN, f64::INFINITY, 0.3, f64::MIN_POSITIVE] {
+            assert!(graph.prepare_withdrawal(&state, at, invalid).is_err());
+        }
+        assert!(graph.prepare_withdrawal(&state, [1, 0, 0], 0.1).is_err());
+        assert!(next.prepare_withdrawal(&state, at, 0.1).is_err());
+        assert_eq!(graph.encode_state(&state).unwrap(), before);
+    }
 
     #[test]
     fn binary_state_preserves_empty_stock_and_rejects_trailing_bytes() {
