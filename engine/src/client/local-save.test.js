@@ -58,6 +58,29 @@ test("local save owner observes both request and transaction failures", async ()
   assert.equal(closed, true);
 });
 
+test("local save owner waits for transaction commit after put resolves", async () => {
+  let commit;
+  const db = {
+    objectStoreNames: { contains: () => true },
+    close() {},
+    transaction() {
+      return {
+        store: { put: async () => {} },
+        done: new Promise((resolve) => { commit = resolve; }),
+      };
+    },
+  };
+  const owner = createLocalSaveOwner({ mode: "pirates", indexedDBSource: {}, openDBImpl: async () => db });
+  let finished = false;
+  const writing = owner.write({ value: 1 }).then(() => { finished = true; });
+  await Promise.resolve();
+  assert.equal(finished, false);
+  commit();
+  await writing;
+  assert.equal(finished, true);
+  await owner.close();
+});
+
 test("closed local save owner rejects later reads", async () => {
   const db = {
     objectStoreNames: { contains: () => true },
@@ -67,6 +90,31 @@ test("closed local save owner rejects later reads", async () => {
   const owner = createLocalSaveOwner({ mode: "colony", indexedDBSource: {}, openDBImpl: async () => db });
   await owner.close();
   await assert.rejects(owner.read(), /local save is closed/);
+});
+
+test("continue does not restore after local runtime disposal", async () => {
+  let resolveRead;
+  const sent = [];
+  const choice = createConnectionChoice({
+    mode: "survival",
+    runtime: "local",
+    saveOwner: {
+      read: () => new Promise((resolve) => { resolveRead = resolve; }),
+      write: async () => {},
+      close: async () => {},
+    },
+    connectLocal: () => ({
+      send(command) { sent.push(command); },
+      subscribe: () => () => {},
+      dispose() {},
+    }),
+    connectRemote: () => { throw new Error("remote factory should not run"); },
+  });
+  const pending = choice.persistence.continue();
+  choice.runtime.dispose();
+  resolveRead({ binary: new Uint8Array([4]) });
+  await assert.rejects(pending, /connection choice disposed/);
+  assert.deepEqual(sent, []);
 });
 
 test("connection choice awaits injected durable save and restore", async () => {
