@@ -52,9 +52,10 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0,0)]).unwrap().into_iter().next().flatten().unwrap().cell;
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
     let contact = Point { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y)+0.5)*spacing[1], z: surface.z as f64*spacing[2], frame: None };
-    kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
-    kernel.ecs.entity_mut(kernel.entity("worker.2").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
-    kernel.ecs.entity_mut(kernel.entity("source").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+    for id in ["worker", "worker.2", "source"] {
+        let entity = kernel.entity(id).unwrap();
+        kernel.ecs.entity_mut(entity).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+    }
     kernel.rebuild_physical_indexes(true).unwrap();
     let site_surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 1, surface.z)]).unwrap().into_iter().next().flatten().unwrap().cell;
     let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[
@@ -65,11 +66,9 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&setup.to_string()).unwrap()).unwrap();
     assert!(result["results"].as_array().unwrap().iter().all(|r| r["accepted"] == true));
     kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
-    (kernel, surface, contact)
-}
-
-fn surface_y(kernel: &mut Kernel) -> i32 {
-    kernel.environment.as_ref().unwrap().world.surface_cells(&[(0, 0)]).unwrap().into_iter().next().flatten().unwrap().cell.y
+    let site = kernel.entity("door").unwrap();
+    assert_eq!(kernel.ecs.get::<ConstructionSite>(site).unwrap().phase, ConstructionPhase::Finished);
+    (kernel, site_surface, contact)
 }
 
 fn aperture_action(kernel: &mut Kernel, open: bool) -> serde_json::Value {
@@ -78,7 +77,7 @@ fn aperture_action(kernel: &mut Kernel, open: bool) -> serde_json::Value {
 
 #[test]
 fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
-    let (mut kernel, _, _) = constructed_aperture();
+    let (mut kernel, surface, _) = constructed_aperture();
     let opened = aperture_action(&mut kernel, true);
     assert_eq!(opened["results"][0]["accepted"], true);
     let revision = kernel.environment.as_ref().unwrap().world.terrain_revision();
@@ -86,15 +85,14 @@ fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     assert_eq!(repeated["results"][0]["accepted"], true);
     assert_eq!(kernel.environment.as_ref().unwrap().world.terrain_revision(), revision);
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
-    let worker = kernel.entity("worker").unwrap();
-    let current = *kernel.ecs.get::<Position>(worker).unwrap();
-    let current_surface_y = surface_y(&mut kernel);
+
     let second = kernel.entity("worker.2").unwrap();
     let second_current = *kernel.ecs.get::<Position>(second).unwrap();
-    kernel.ecs.entity_mut(second).insert(Position { x: current.x + 1.0, y: (current_surface_y as f64 + 1.5) * spacing[1], z: current.z, ..second_current });
+    kernel.ecs.entity_mut(second).insert(Position { x: surface.x as f64 * spacing[0], y: (surface.y as f64 + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], ..second_current });
     kernel.rebuild_physical_indexes(true).unwrap();
     let closed = aperture_action(&mut kernel, false);
     assert_eq!(closed["results"][0]["accepted"], false);
+    assert_eq!(closed["results"][0]["reason"], "aperture change would obstruct an actor");
     assert_eq!(kernel.environment.as_ref().unwrap().world.terrain_revision(), revision);
 }
 
@@ -106,9 +104,47 @@ fn native_open_aperture_record_restores_and_corrupt_shape_is_rejected() {
     let mut restored = Kernel::new();
     restored.restore_records(&saved).unwrap();
     assert!(matches!(restored.environment.as_ref().unwrap().world.structure_instances()[0], StaticInstance::ApertureWall { open: true, .. }));
-    let mut corrupted = saved.clone();
+    let mut corrupted = kernel.save_records().unwrap();
     let mut records: serde_json::Value = serde_json::from_slice(&corrupted.environment.as_ref().unwrap().1.structures).unwrap();
     records[1][0]["openingHeight"] = serde_json::json!(0);
     corrupted.environment.as_mut().unwrap().1.structures = serde_json::to_vec(&records).unwrap();
     assert!(Kernel::new().restore_records(&corrupted).is_err());
+}
+
+#[test]
+fn closing_air_filled_aperture_rejects_without_publishing_any_physical_owner() {
+    let (mut kernel, support, _) = constructed_aperture();
+    assert_eq!(aperture_action(&mut kernel, true)["results"][0]["accepted"], true);
+    // A one-cell modeled closed pocket in the opening has nowhere to send
+    // its air if the aperture is closed. Water is deliberately elsewhere:
+    // this must exercise the actual air rejection, not a water/body blocker.
+    let cell = Cell { y: support.y + 1, ..support };
+    let config_value = serde_json::json!({
+        "regionId":"sealed-aperture-pocket",
+        "min":cell,"max":{"x":cell.x+1,"y":cell.y+1,"z":cell.z+1},
+        "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
+        "model":{"specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,
+          "mixingVelocityMps":1.0,"buoyancyVelocityMpsK":0.1,"pressureVelocityMpsPa":0.001,
+          "maxStepS":0.2,"maxExchangeFraction":0.5,"maxPressureRatio":4.0,
+          "maxTemperatureDeltaK":100.0,"maxSmokeMassFraction":0.01},
+        "exterior":"Closed"
+    });
+    let config = serde_json::from_value(config_value.clone()).unwrap();
+    let environment = kernel.environment.as_mut().unwrap();
+    environment.atmosphere = Some(crate::terrain_atmosphere::TerrainAtmosphere::fresh(&mut environment.world, config).unwrap());
+    let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
+    definition["atmosphere"] = config_value;
+    environment.definition = definition.to_string();
+    let before = kernel.save_records().unwrap();
+    let result = aperture_action(&mut kernel, false);
+    assert_eq!(result["results"][0]["accepted"], false);
+    assert_eq!(result["results"][0]["reason"], "aperture change is blocked by atmosphere");
+    let after = kernel.save_records().unwrap();
+    assert_eq!(before.atmosphere, after.atmosphere);
+    let left = before.environment.unwrap().1;
+    let right = after.environment.unwrap().1;
+    assert_eq!(left.header, right.header);
+    assert_eq!(left.terrain, right.terrain);
+    assert_eq!(left.water, right.water);
+    assert_eq!(left.structures, right.structures);
 }

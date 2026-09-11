@@ -47,7 +47,7 @@ struct StructureInput {
 enum StructureShapeInput {
     Floor,
     Wall { height: u8 },
-    Aperture { height: u8, opening_bottom: u8, opening_height: u8 },
+    Aperture { height: u8, #[serde(rename = "openingBottom")] opening_bottom: u8, #[serde(rename = "openingHeight")] opening_height: u8 },
     Stair { run: u8, rise: u8 },
 }
 #[derive(Debug, Deserialize)]
@@ -62,9 +62,7 @@ pub enum StructureShape {
     Wall { height: u8 },
     Aperture {
         height: u8,
-        #[serde(rename = "openingBottom")]
         opening_bottom: u8,
-        #[serde(rename = "openingHeight")]
         opening_height: u8,
     },
     Stair { run: u8, rise: u8 },

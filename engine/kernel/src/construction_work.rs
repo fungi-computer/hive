@@ -49,6 +49,7 @@ impl Kernel {
         let geometry_ids: BTreeSet<String> = geometry_instances.iter().map(|instance| match instance {
             crate::structure_geometry::StaticInstance::Floor { id, .. }
             | crate::structure_geometry::StaticInstance::Wall { id, .. }
+            | crate::structure_geometry::StaticInstance::ApertureWall { id, .. }
             | crate::structure_geometry::StaticInstance::Stair { id, .. } => id.clone(),
         }).collect();
         for (id, entity) in &self.ids {
