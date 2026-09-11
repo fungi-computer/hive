@@ -45,6 +45,25 @@ export const pointerGestureMachine = createMachine(
   },
 );
 
+// Persistent world tool intent is separate from each pointer stroke.
+export const terrainTargetMachine = createMachine({
+  id: "hive-terrain-target",
+  initial: "idle",
+  context: { control: null },
+  states: {
+    idle: { on: { ARM: { target: "armed", actions: "arm" } } },
+    armed: { on: {
+      ARM: { actions: "arm" },
+      CANCEL_STROKE: {},
+      ESCAPE: { target: "idle", actions: "clear" },
+      CANCEL: { target: "idle", actions: "clear" },
+    } },
+  },
+}, { actions: {
+  arm: assign(({ event }) => ({ control: event.control })),
+  clear: assign({ control: null }),
+} });
+
 // RTS aiming is a distinct gesture so a cannon click cannot accidentally
 // select a soldier or become a march order. Escape and a completed fire both
 // return to ordinary selection; paused/invalid commands are handled by the
