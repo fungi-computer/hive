@@ -10,6 +10,7 @@ import type {
   QuerySpec,
   RenderFact,
   TerrainSurface,
+  RouteCostResult,
   WorldPose,
   WriteIntent,
   EntityRecord,
@@ -34,12 +35,24 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   advance(json: string): string;
   render_facts(): string;
   world_pose(json: string): string;
+  route_costs(json: string): string;
   assign(json: string): string;
 }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
+    routeCosts(requests) {
+      if (!Array.isArray(requests) || requests.length < 1 || requests.length > 32)
+        throw new Error("route costs need 1..32 requests");
+      const result: unknown = JSON.parse(binding.route_costs(JSON.stringify(requests)));
+      if (!Array.isArray(result) || result.length !== requests.length || result.some((entry,index) =>
+        !entry || entry.actor !== requests[index].actor ||
+        (entry.status === "reachable" ? !Number.isFinite(entry.cost) || entry.cost < 0 :
+          entry.status !== "unavailable" || typeof entry.reason !== "string")))
+        throw new Error("invalid route cost result");
+      return result as RouteCostResult[];
+    },
     dispose() {
       binding.free();
     },

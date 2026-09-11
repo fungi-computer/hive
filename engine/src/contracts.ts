@@ -32,6 +32,11 @@ export interface Vec3 {
 export interface MoveDestination extends Vec3 {
   readonly frame: EntityId | null;
 }
+export interface RouteCostRequest { readonly actor: EntityId; readonly target: MoveDestination; }
+export type RouteCostResult =
+  | { readonly actor: EntityId; readonly status: "reachable"; readonly cost: number }
+  | { readonly actor: EntityId; readonly status: "unavailable"; readonly reason: string };
+
 export interface Pose {
   readonly position: Vec3;
   readonly facing: number;
@@ -163,6 +168,9 @@ export interface ReadContext {
   readonly impacts: readonly Impact[];
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
+  routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
+  terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
+  terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,
@@ -245,6 +253,7 @@ export type TerrainSurface = {
   readonly material: number;
 };
 export interface KernelPort {
+  readonly routeCosts: (requests: readonly RouteCostRequest[]) => readonly RouteCostResult[];
   readonly dispose: () => void;
   readonly load: (definition: Uint8Array) => void;
   readonly loadEnvironment: (definition: Uint8Array) => void;

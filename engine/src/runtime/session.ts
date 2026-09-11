@@ -4,7 +4,7 @@ import { appendPresentationCues, checkedCueSnapshot, type CueSnapshot } from "./
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
 import { readKernelEntities } from "./kernel-records";
-import { Position, Support, Surface } from "../sdk/common";
+import { Body, Position, Support, Surface } from "../sdk/common";
 import type {
   ActionRequest,
   AdvanceResult,
@@ -527,6 +527,7 @@ export class GameSession {
       const actions: ActionRequest[] = this.pendingActions.splice(0);
       const nextFrontiers = new Map(this.impactFrontiers);
       let systemActionCount = 0;
+      let routeRequests = 0;
       let activeReads: readonly import("../contracts").ComponentDefinition<any>[] =
         [];
       const context: WriteContext = {
@@ -535,6 +536,16 @@ export class GameSession {
         impacts: [],
         assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
+        terrainMaterials: cells => this.port.terrainMaterials(cells),
+        terrainSurfaces: columns => this.port.terrainSurfaces(columns),
+        routeCosts: requests => {
+          if (!activeReads.some(definition => definition.id === Position.id) || !activeReads.some(definition => definition.id === Body.id))
+            throw new Error("route query requires declared position and body reads");
+          if (routeRequests + requests.length > 128)
+            return requests.map(request => ({actor:request.actor,status:"unavailable" as const,reason:"Route planning deferred"}));
+          routeRequests += requests.length;
+          return this.port.routeCosts(requests);
+        },
         outcomes: structuredClone(this.outcomes),
         query: (spec) => this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves),
         write: (definition, entity, value) => {
