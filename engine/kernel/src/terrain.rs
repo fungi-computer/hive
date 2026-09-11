@@ -282,6 +282,18 @@ impl TerrainOwner {
         }
         self.base_query(cell)
     }
+    /// Query a bounded batch in caller order. Validation is completed before
+    /// touching the rebuildable page cache, so a rejected request has no
+    /// partial result.
+    pub fn query_cells(&mut self, cells: &[Cell]) -> Result<Vec<u16>, &'static str> {
+        if cells.is_empty() || cells.len() > 256 {
+            return Err("terrain query batch exceeds bound");
+        }
+        if cells.iter().any(|cell| !self.generator.contains_cell(*cell)) {
+            return Err("cell outside world bounds");
+        }
+        cells.iter().map(|cell| self.query(*cell)).collect()
+    }
     pub fn page_projection(&mut self, origin: Cell) -> Result<Box<[u16; 4096]>, &'static str> {
         if origin.x.rem_euclid(16) != 0
             || origin.y.rem_euclid(16) != 0
@@ -710,6 +722,31 @@ mod tests {
             let _ = terrain.query(Cell { x, y: -1, z: 0 });
         }
         assert!(terrain.cache_len() <= 4);
+    }
+
+    #[test]
+    fn batch_query_returns_changed_cells_in_input_order() {
+        let mut terrain = owner();
+        let changed = Cell { x: 0, y: -1, z: 0 };
+        let other = Cell { x: 1, y: -1, z: 0 };
+        let expected = terrain.query(other).unwrap();
+        let current = terrain.query(changed).unwrap();
+        let replacement = if current == 0 { 1 } else { 0 };
+        let prepared = match terrain.prepare_replacement(changed, current, replacement).unwrap() {
+            PrepareResult::Prepared(value) => value,
+            blocked => panic!("unexpected {blocked:?}"),
+        };
+        terrain.apply(prepared).unwrap();
+        assert_eq!(terrain.query_cells(&[changed, other, changed]).unwrap(), vec![replacement, expected, replacement]);
+    }
+
+    #[test]
+    fn batch_query_rejects_bad_budget_and_bounds_before_sampling() {
+        let mut terrain = owner();
+        let valid = Cell { x: 0, y: -1, z: 0 };
+        let too_many = vec![valid; 257];
+        assert!(terrain.query_cells(&too_many).is_err());
+        assert!(terrain.query_cells(&[valid, Cell { x: i64::MAX, y: i32::MAX, z: i64::MAX }]).is_err());
     }
     #[test]
     fn encoded_size_matches_export_for_empty_and_negative_edits() {
