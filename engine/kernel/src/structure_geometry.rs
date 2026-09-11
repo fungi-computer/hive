@@ -72,6 +72,16 @@ impl Face {
 pub enum StaticInstance {
     Floor { id: String, support: Cell },
     Wall { id: String, base: Cell, height: u8 },
+    ApertureWall {
+        id: String,
+        base: Cell,
+        height: u8,
+        #[serde(rename = "openingBottom")]
+        opening_bottom: u8,
+        #[serde(rename = "openingHeight")]
+        opening_height: u8,
+        open: bool,
+    },
     Stair {
         id: String,
         origin: Cell,
@@ -84,7 +94,7 @@ pub enum StaticInstance {
 impl StaticInstance {
     fn id(&self) -> &str {
         match self {
-            Self::Floor { id, .. } | Self::Wall { id, .. } | Self::Stair { id, .. } => id.as_str(),
+            Self::Floor { id, .. } | Self::Wall { id, .. } | Self::ApertureWall { id, .. } | Self::Stair { id, .. } => id.as_str(),
         }
     }
 
@@ -108,6 +118,20 @@ impl StaticInstance {
                     }
                 }
                 Ok(usize::from(*height))
+            }
+            Self::ApertureWall { id, base, height, opening_bottom, opening_height, open } => {
+                if !crate::components::valid_id(id) || *height == 0 || *height > MAX_WALL_HEIGHT ||
+                    *opening_height == 0 || u16::from(*opening_bottom) + u16::from(*opening_height) > u16::from(*height) {
+                    return Err("invalid bounded aperture wall".into());
+                }
+                let occupied = if *open { usize::from(*height - *opening_height) } else { usize::from(*height) };
+                for offset in 0..u32::from(*height) {
+                    if *open && offset >= u32::from(*opening_bottom) && offset < u32::from(*opening_bottom + *opening_height) { continue; }
+                    let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
+                        .ok_or("structure aperture coordinate overflow")?;
+                    if !contains(bounds, Cell { y, ..*base }) { return Err("structure aperture wall is outside generated bounds".into()); }
+                }
+                Ok(occupied)
             }
             Self::Stair { id, origin, orientation, run, rise } => {
                 let _ = orientation.delta();
@@ -149,6 +173,14 @@ impl StaticInstance {
                     if !solids.insert(Cell { y, ..*base }) {
                         return Err("duplicate structure bulk occupied cell".into());
                     }
+                }
+            }
+            Self::ApertureWall { base, height, opening_bottom, opening_height, open, .. } => {
+                for offset in 0..u32::from(*height) {
+                    if *open && offset >= u32::from(*opening_bottom) && offset < u32::from(*opening_bottom + *opening_height) { continue; }
+                    let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
+                        .ok_or("structure aperture coordinate overflow")?;
+                    if !solids.insert(Cell { y, ..*base }) { return Err("duplicate structure bulk occupied cell".into()); }
                 }
             }
             Self::Stair { origin, orientation, run, rise, .. } => {
@@ -457,6 +489,35 @@ mod tests {
             StaticInstance::Wall { id: "two".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
         ];
         assert!(StaticGeometry::decode(bounds(), &serde_json::to_vec(&(1u16, overlapping)).unwrap()).is_err());
+    }
+
+    #[test]
+    fn aperture_opening_preserves_rooted_frame_and_omits_only_open_interval() {
+        let base = Cell { x: 0, y: -2, z: 0 };
+        let closed = StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
+            id: "door".into(), base, height: 5, opening_bottom: 1, opening_height: 2, open: false,
+        }]).unwrap().projection().unwrap();
+        let open = StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
+            id: "door".into(), base, height: 5, opening_bottom: 1, opening_height: 2, open: true,
+        }]).unwrap().projection().unwrap();
+        assert!(closed.is_bulk_solid(base));
+        assert!(closed.is_bulk_solid(Cell { y: 0, ..base }));
+        assert!(open.is_bulk_solid(base));
+        assert!(!open.is_bulk_solid(Cell { y: -1, ..base }));
+        assert!(!open.is_bulk_solid(Cell { y: 0, ..base }));
+        assert!(open.is_bulk_solid(Cell { y: 1, ..base }));
+        assert!(open.supports(base));
+        assert!(open.supports(Cell { y: 1, ..base }));
+    }
+
+    #[test]
+    fn aperture_opening_bounds_are_rejected_before_projection() {
+        assert!(StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
+            id: "bad".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 4, opening_bottom: 3, opening_height: 2, open: true,
+        }]).is_err());
+        assert!(StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
+            id: "bad".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 4, opening_bottom: 0, opening_height: 0, open: false,
+        }]).is_err());
     }
 
     #[test]

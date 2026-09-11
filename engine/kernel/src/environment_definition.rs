@@ -47,6 +47,7 @@ struct StructureInput {
 enum StructureShapeInput {
     Floor,
     Wall { height: u8 },
+    Aperture { height: u8, opening_bottom: u8, opening_height: u8 },
     Stair { run: u8, rise: u8 },
 }
 #[derive(Debug, Deserialize)]
@@ -59,6 +60,7 @@ struct StructureMaterialInput {
 pub enum StructureShape {
     Floor,
     Wall { height: u8 },
+    Aperture { height: u8, #[serde(rename = "openingBottom")] opening_bottom: u8, #[serde(rename = "openingHeight")] opening_height: u8 },
     Stair { run: u8, rise: u8 },
 }
 #[derive(Clone, Debug)]
@@ -202,6 +204,7 @@ fn prepare_definition_mode(
         let shape = match entry.shape {
             StructureShapeInput::Floor => StructureShape::Floor,
             StructureShapeInput::Wall { height } if (1..=64).contains(&height) => StructureShape::Wall { height },
+            StructureShapeInput::Aperture { height, opening_bottom, opening_height } if (1..=64).contains(&height) && opening_height > 0 && u16::from(opening_bottom) + u16::from(opening_height) <= u16::from(height) => StructureShape::Aperture { height, opening_bottom, opening_height },
             StructureShapeInput::Stair { run, rise } if (1..=64).contains(&run) && (1..=64).contains(&rise) && rise <= run => StructureShape::Stair { run, rise },
             _ => return Err("invalid structure catalog shape".into()),
         };

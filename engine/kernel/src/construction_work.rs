@@ -15,6 +15,7 @@ impl Kernel {
         match &definition.shape {
             StructureShape::Floor => StaticInstance::Floor { id: site.into(), support: crate::generation::Cell { x, y, z } },
             StructureShape::Wall { height } => StaticInstance::Wall { id: site.into(), base: crate::generation::Cell { x, y, z }, height: *height },
+            StructureShape::Aperture { height, opening_bottom, opening_height } => StaticInstance::ApertureWall { id: site.into(), base: crate::generation::Cell { x, y, z }, height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false },
             StructureShape::Stair { run, rise } => StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise },
         }
     }
@@ -71,7 +72,10 @@ impl Kernel {
                     let expected = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
                     if self.ecs.get::<SealedContainer>(*entity).is_none() || site.worker.is_some()
                         || site.seconds != definition.work_seconds
-                        || !geometry_instances.iter().any(|instance| instance == &expected) { return Err("finished construction linkage is invalid".into()); }
+                        || !geometry_instances.iter().any(|instance| match (&expected, instance) {
+                            (crate::structure_geometry::StaticInstance::ApertureWall { id, base, height, opening_bottom, opening_height, .. }, crate::structure_geometry::StaticInstance::ApertureWall { id: other, base: other_base, height: other_height, opening_bottom: other_bottom, opening_height: other_opening, .. }) => id == other && base == other_base && height == other_height && opening_bottom == other_bottom && opening_height == other_opening,
+                            _ => instance == &expected,
+                        }) { return Err("finished construction linkage is invalid".into()); }
                 }
                 ConstructionPhase::Planned => if site.worker.is_some() || geometry_ids.contains(id) { return Err("planned construction progress is invalid".into()); },
                 ConstructionPhase::Working => {
@@ -177,6 +181,37 @@ impl Kernel {
         self.state_weight += marker_weight;
         Ok(true)
     }
+    pub(super) fn set_structure_open(&mut self, worker: &str, site: &str, open: bool) -> Result<()> {
+        let worker_entity = self.entity(worker)?;
+        if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Destination>(worker_entity).is_some()
+            || self.ecs.get::<Support>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some() { return Err("worker cannot operate structure aperture while busy".into()); }
+        let site_entity = self.entity(site)?;
+        let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
+        if state.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(site_entity).is_none() { return Err("aperture requires a finished structure".into()); }
+        let definition = self.environment.as_ref().ok_or("structure needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
+        if !matches!(definition.shape, crate::environment_definition::StructureShape::Aperture { .. }) { return Err("structure is not an aperture".into()); }
+        let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
+        let pose = self.world_pose(worker)?;
+        if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing) { return Err("worker is not at aperture contact".into()); }
+        let mut instances = self.environment.as_ref().unwrap().world.structure_instances();
+        let mut changed = false;
+        for instance in &mut instances {
+            if let crate::structure_geometry::StaticInstance::ApertureWall { id, open: current, .. } = instance && id == site {
+                if *current == open { return Ok(()); }
+                *current = open;
+                changed = true;
+            }
+        }
+        if !changed { return Err("finished aperture geometry is missing".into()); }
+        let prepared = {
+            let environment = self.environment.as_mut().ok_or("structure needs environment")?;
+            match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("aperture change is blocked".into()) }
+        };
+        if self.structure_contact_problem(&prepared)?.is_some() { return Err("aperture change would obstruct an actor".into()); }
+        self.environment.as_mut().ok_or("structure needs environment")?.apply_structures(prepared)?;
+        Ok(())
+    }
+
     pub(super) fn advance_construction(&mut self, delta: f64) -> Result<()> {
         if delta == 0.0 { return Ok(()); }
         let mut query = self.ecs.query::<(&ExternalId, &ConstructionSite)>();
