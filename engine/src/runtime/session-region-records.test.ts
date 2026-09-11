@@ -41,7 +41,7 @@ test("actual Colony water records commit with session and recover after failed S
     resident.begin(committed.revision, committed.state, { read: key => page.records.find(record => record.key === key)?.bytes });
     try {
       const receipt = region.dispatch("clock", command);
-      resident.accept(receipt.revision);
+      resident.accept(region.readCommitted().revision);
       return receipt;
     } catch (error) { resident.discard(); throw error; }
   };
@@ -86,6 +86,72 @@ test("actual Colony water records commit with session and recover after failed S
       assert.ok((port.environmentFacts() as { totalKg: number }).totalKg > 0);
     } finally { port.dispose(); }
   } finally { resident?.dispose(); db.close(); }
+});
+
+test("resident discards rolled-back multi-command work and accepts historical replay at current revision", () => {
+  const db = new DatabaseSync(":memory:");
+  const owner = sqliteTestOwner(db);
+  // Native SQLite savepoints exercise the resident lifecycle, not DO alarms.
+  let savepoint = 0;
+  owner.transactionSync = operation => {
+    const name = `resident_${savepoint++}`;
+    db.exec(`SAVEPOINT ${name}`);
+    try {
+      const value = operation();
+      db.exec(`RELEASE ${name}`);
+      return value;
+    } catch (error) {
+      db.exec(`ROLLBACK TO ${name}`);
+      db.exec(`RELEASE ${name}`);
+      throw error;
+    }
+  };
+  let disposed = 0;
+  const runtime = createSessionRegionRuntime({ pack: colonyPack,
+    createKernel: () => {
+      const port = wasmKernelPort(new WasmKernel());
+      const release = port.dispose;
+      port.dispose = () => { disposed++; release(); };
+      return port;
+    },
+    implementationHash: "c".repeat(64), ownerPrincipal: "player", hostPrincipal: "clock", seed: 17,
+  });
+  const region = openRegion({ owner, region: "outer-resident", program: runtime.program });
+  const reader = (revision: number) => {
+    const records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
+    return { read: (key: string) => records.get(key) };
+  };
+  const first = { id: "first", command: { kind: "step", delta: 0.1 } };
+  const second = { id: "second", command: { kind: "step", delta: 0.1 } };
+  try {
+    const before = region.readCommitted();
+    const bytes = region.readRecords(before.revision).records;
+    assert.throws(() => owner.transactionSync(() => {
+      runtime.resident.begin(before.revision, before.state, reader(before.revision));
+      region.dispatch("clock", first);
+      region.dispatch("clock", second);
+      throw new Error("outer commit failed");
+    }), /outer commit failed/);
+    assert.deepEqual(region.readCommitted(), before);
+    assert.deepEqual(region.readRecords(before.revision).records, bytes);
+    const disposedBeforeRetry = disposed;
+    // A retried storage callback begins afresh even without a host catch between callbacks.
+    runtime.resident.begin(before.revision, before.state, reader(before.revision));
+    assert.equal(disposed, disposedBeforeRetry + 1);
+    const receipt = owner.transactionSync(() => {
+      const result = region.dispatch("clock", first);
+      region.dispatch("clock", second);
+      return result;
+    });
+    runtime.resident.accept(region.readCommitted().revision);
+    const current = region.readCommitted();
+    assert.equal(current.revision, 2);
+    assert.equal(runtime.resident.observe(2, current.state, reader(2), session => session.simulationTime), 0.2);
+    runtime.resident.begin(2, current.state, reader(2));
+    assert.deepEqual(region.dispatch("clock", first), receipt);
+    runtime.resident.accept(region.readCommitted().revision);
+    assert.equal(runtime.resident.observe(2, current.state, reader(2), session => session.simulationTime), 0.2);
+  } finally { runtime.resident.dispose(); db.close(); }
 });
 
 test("resident session reuses accepted candidate and fails closed across retry and observation", () => {
