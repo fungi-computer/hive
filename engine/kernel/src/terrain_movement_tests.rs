@@ -16,13 +16,18 @@ fn climbing_world() -> (Kernel, Point) {
     let actor = kernel.entity("walker").unwrap();
     for (&(x,z), start) in &cells {
         let Some(end) = cells.get(&(x+1,z)) else { continue };
-        if end.y != start.y + 1 { continue; }
+        if end.y != start.y { continue; }
+        let world = &mut kernel.environment.as_mut().unwrap().world;
+        let expected = world.material(*start).unwrap();
+        let crate::terrain_water::ExcavationResult::Prepared(change) = world.prepare_excavation(*start,expected,0).unwrap() else { continue };
+        world.apply_excavation(change).unwrap();
+        let start = crate::generation::Cell { y:start.y-1, ..*start };
         let pose = Position{x:x as f64,y:(f64::from(start.y)+0.5)*0.54,z:z as f64,facing:0.0};
         let target = Point{x:end.x as f64,y:(f64::from(end.y)+0.5)*0.54,z:end.z as f64,frame:None};
         kernel.ecs.entity_mut(actor).insert(pose);
         if kernel.route_for(actor,pose,&target).is_ok() { return (kernel,target); }
     }
-    panic!("fixture must contain an admitted one-voxel climb");
+    panic!("excavated generated fixture must admit a one-voxel climb");
 }
 
 #[test]
