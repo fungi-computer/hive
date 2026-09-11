@@ -5,8 +5,8 @@ import {
 } from "../../src/engine/region/index.ts";
 import { createSessionRegionRuntime, type SessionResident } from "../../engine/src/runtime/region-program";
 import type { SessionRegionState } from "../../engine/src/runtime/region-program";
-import { buildObservation } from "../../engine/src/runtime/observation";
-import { terrainWireForRevision, type TerrainWireFrame } from "../../engine/src/runtime/terrain-wire";
+import { buildObservation, type SessionObservation } from "../../engine/src/runtime/observation";
+import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import { colonyPack } from "../../engine/src/games/colony";
@@ -57,11 +57,7 @@ type SocketAttachment = {
 };
 type PublicObservationPayload = {
   readonly revision: number;
-  readonly observation: {
-    readonly terrain?: TerrainWireFrame;
-    readonly [key: string]: unknown;
-  };
-  readonly [key: string]: unknown;
+  readonly observation: SessionObservation;
 };
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
 
@@ -488,7 +484,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private publishObservation(): Promise<void> {
     return this.serial(() => {
-      const payload = this.observationPayload() as PublicObservationPayload;
+      const payload = this.observationPayload();
       for (const socket of this.state.getWebSockets()) {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
         if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
@@ -677,7 +673,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.observe(Date.now());
-          const payload = await this.queuedObservationPayload() as PublicObservationPayload;
+          const payload = await this.queuedObservationPayload();
           this.sendObservation(socket, payload, attachment, true);
           return;
         }
@@ -694,7 +690,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       await this.observe(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
       const authenticated = socket.deserializeAttachment() as SocketAttachment;
-      const payload = await this.queuedObservationPayload() as PublicObservationPayload;
+      const payload = await this.queuedObservationPayload();
       this.sendObservation(socket, payload, authenticated, true);
     } catch (error) {
       try { socket.send(JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "public-socket-auth-failed" })); } catch {}

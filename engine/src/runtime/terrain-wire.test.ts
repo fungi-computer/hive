@@ -55,7 +55,7 @@ test("terrain surface references retain only a connection's baseline surfaces", 
   assert.throws(() => parseTerrainObservation({ ...wire, verticalMetres: 0.51 }, baseline), /surface reference is unavailable/);
 });
 
-test("remote observations forward a parsed terrain capability", async () => {
+test("remote observations forward a parsed terrain capability", async (t) => {
   const socket = new TestSocket();
   const runtime = connectRemoteRuntime({
     endpoint: "https://hive.test/runtime",
@@ -67,6 +67,7 @@ test("remote observations forward a parsed terrain capability", async () => {
       return socket;
     },
   });
+  t.after(() => runtime.dispose());
   const events: WorkerEvent[] = [];
   runtime.subscribe((event) => events.push(event));
   runtime.send({ type: "start", game: "terrain-test" });
@@ -153,7 +154,7 @@ test("remote observations forward a parsed terrain capability", async () => {
     observation: {
       time: 4, paused: false, epoch: 0, sequence: 5, facts: [], cues: [],
       presentationFacts: [], presentationControls: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
+      terrain: { revision: 99, verticalMetres: 0.5, surfacesRevision: 99, water: [] },
     },
   }) });
   assert.equal(socket.reconnectCalls, 2);
