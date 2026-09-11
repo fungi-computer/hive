@@ -18,10 +18,10 @@ fn door_and_upper_vent_keep_frame_support_while_opening_only_the_interval() {
         }]).unwrap();
         let closed_projection = closed.projection().unwrap();
         let open_projection = open.projection().unwrap();
-        assert!(closed_projection.is_bulk_solid(Cell { y: bottom, ..base }));
-        assert!(!open_projection.is_bulk_solid(Cell { y: bottom, ..base }));
+        assert!(closed_projection.is_bulk_solid(Cell { y: i32::from(bottom), ..base }));
+        assert!(!open_projection.is_bulk_solid(Cell { y: i32::from(bottom), ..base }));
         assert!(open_projection.is_bulk_solid(Cell { y: 4, ..base }));
-        assert!(open_projection.supports(base));
+        assert!(open_projection.supports(Cell { y: 4, ..base }));
     }
 }
 
@@ -65,7 +65,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     (kernel, surface, contact)
 }
 
-fn surface_y(kernel: &Kernel) -> i32 {
+fn surface_y(kernel: &mut Kernel) -> i32 {
     kernel.environment.as_ref().unwrap().world.surface_cells(&[(0, 0)]).unwrap().into_iter().next().flatten().unwrap().cell.y
 }
 
@@ -85,7 +85,7 @@ fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
     let worker = kernel.entity("worker").unwrap();
     let current = *kernel.ecs.get::<Position>(worker).unwrap();
-    let current_surface_y = surface_y(&kernel);
+    let current_surface_y = surface_y(&mut kernel);
     kernel.ecs.entity_mut(worker).insert(Position { y: (current_surface_y as f64 + 1.5) * spacing[1], ..current });
     kernel.rebuild_physical_indexes(true).unwrap();
     let closed = aperture_action(&mut kernel, false);
