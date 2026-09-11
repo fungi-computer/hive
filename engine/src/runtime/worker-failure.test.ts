@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import type { KernelPort } from "../contracts";
-import { survivalPack } from "./games/survival";
+import { survivalPack } from "../games/survival";
 import type { WorkerTransportEvent } from "./protocol";
 import { wasmKernelPort } from "./wasm-kernel";
 import { WorkerRuntime } from "./worker";
