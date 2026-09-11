@@ -88,6 +88,19 @@ impl Registry {
                     ("halfY", FieldType::Number),
                     ("halfZ", FieldType::Number),
                     ("yaw", FieldType::Number),
+                    ("offsetX", FieldType::Number),
+                    ("offsetY", FieldType::Number),
+                    ("offsetZ", FieldType::Number),
+                ],
+            ),
+            (
+                "hive.impact-material",
+                vec![
+                    ("response", FieldType::String),
+                    ("resistance", FieldType::Number),
+                    ("restitution", FieldType::Number),
+                    ("friction", FieldType::Number),
+                    ("embedSpeed", FieldType::Number),
                 ],
             ),
             (
@@ -103,6 +116,8 @@ impl Registry {
                     ("maxLifetime", FieldType::Number),
                     ("projectileSprite", FieldType::String),
                     ("projectileLabel", FieldType::String),
+                    ("gravity", FieldType::Number),
+                    ("penetration", FieldType::Number),
                 ],
             ),
             (
@@ -117,6 +132,14 @@ impl Registry {
                     ("distance", FieldType::Number),
                     ("maxRange", FieldType::Number),
                     ("maxLifetime", FieldType::Number),
+                    ("gravity", FieldType::Number),
+                    ("penetration", FieldType::Number),
+                    ("state", FieldType::String),
+                    ("rollNormalX", FieldType::Number),
+                    ("rollNormalY", FieldType::Number),
+                    ("rollNormalZ", FieldType::Number),
+                    ("embedDepth", FieldType::Number),
+                    ("rollFriction", FieldType::Number),
                 ],
             ),
             (
@@ -148,6 +171,7 @@ impl Registry {
                 "hive.surface" => world.register_component::<Surface>(),
                 "hive.obstacle" => world.register_component::<Obstacle>(),
                 "hive.collider" => world.register_component::<Collider>(),
+                "hive.impact-material" => world.register_component::<ImpactMaterial>(),
                 "hive.launcher" => world.register_component::<Launcher>(),
                 "hive.projectile" => world.register_component::<Projectile>(),
                 "hive.visual" => world.register_component::<Visual>(),
@@ -184,6 +208,7 @@ impl Registry {
                 | "hive.surface"
                 | "hive.obstacle"
                 | "hive.collider"
+                | "hive.impact-material"
                 | "hive.launcher"
                 | "hive.projectile"
                 | "hive.visual"
@@ -256,6 +281,9 @@ impl Registry {
                     || !collider.half_y.is_finite()
                     || !collider.half_z.is_finite()
                     || !collider.yaw.is_finite()
+                    || !collider.offset_x.is_finite()
+                    || !collider.offset_y.is_finite()
+                    || !collider.offset_z.is_finite()
                     || collider.radius < 0.0
                     || collider.half_x < 0.0
                     || collider.half_y < 0.0
@@ -277,6 +305,23 @@ impl Registry {
                     _ => {}
                 }
             }
+            "hive.impact-material" => {
+                let material: ImpactMaterial = decode(value)?;
+                if !matches!(material.response.as_str(), "stop" | "pierce" | "ground")
+                    || !material.resistance.is_finite()
+                    || !material.restitution.is_finite()
+                    || !material.friction.is_finite()
+                    || !material.embed_speed.is_finite()
+                    || material.resistance < 0.0
+                    || material.restitution < 0.0
+                    || material.restitution > 1.0
+                    || material.friction < 0.0
+                    || material.friction > 1.0
+                    || material.embed_speed < 0.0
+                {
+                    return Err("invalid impact material".into());
+                }
+            }
             "hive.launcher" => {
                 let launcher: Launcher = decode(value)?;
                 if !valid_id(&launcher.ammo_kind)
@@ -287,12 +332,17 @@ impl Registry {
                     || !launcher.projectile_radius.is_finite()
                     || !launcher.max_range.is_finite()
                     || !launcher.max_lifetime.is_finite()
+                    || !launcher.gravity.is_finite()
+                    || !launcher.penetration.is_finite()
                     || !valid_id(&launcher.projectile_sprite)
                     || launcher.projectile_label.len() > 4096
                     || launcher.max_speed <= 0.0
                     || launcher.projectile_radius <= 0.0
                     || launcher.max_range <= 0.0
                     || launcher.max_lifetime <= 0.0
+                    || launcher.max_range > 1000.0
+                    || launcher.max_lifetime > 10.0
+                    || launcher.penetration < 0.0
                 {
                     return Err("invalid launcher".into());
                 }
@@ -308,11 +358,25 @@ impl Registry {
                     || !projectile.distance.is_finite()
                     || !projectile.max_range.is_finite()
                     || !projectile.max_lifetime.is_finite()
+                    || !projectile.gravity.is_finite()
+                    || !projectile.penetration.is_finite()
+                    || !projectile.roll_normal_x.is_finite()
+                    || !projectile.roll_normal_y.is_finite()
+                    || !projectile.roll_normal_z.is_finite()
+                    || !projectile.embed_depth.is_finite()
+                    || !projectile.roll_friction.is_finite()
+                    || !matches!(projectile.state.as_str(), "flying" | "rolling" | "embedded" | "resting")
                     || projectile.radius <= 0.0
                     || projectile.age < 0.0
                     || projectile.distance < 0.0
                     || projectile.max_range <= 0.0
                     || projectile.max_lifetime <= 0.0
+                    || projectile.max_range > 1000.0
+                    || projectile.max_lifetime > 10.0
+                    || projectile.penetration < 0.0
+                    || projectile.embed_depth < 0.0
+                    || projectile.roll_friction < 0.0
+                    || projectile.roll_friction > 1.0
                 {
                     return Err("invalid projectile".into());
                 }
@@ -358,6 +422,9 @@ impl Registry {
             "hive.collider" => {
                 world.entity_mut(entity).insert(decode::<Collider>(value)?);
             }
+            "hive.impact-material" => {
+                world.entity_mut(entity).insert(decode::<ImpactMaterial>(value)?);
+            }
             "hive.launcher" => {
                 world.entity_mut(entity).insert(decode::<Launcher>(value)?);
             }
@@ -390,6 +457,7 @@ impl Registry {
             "hive.surface" => world.get::<Surface>(entity).map(record),
             "hive.obstacle" => world.get::<Obstacle>(entity).map(record),
             "hive.collider" => world.get::<Collider>(entity).map(record),
+            "hive.impact-material" => world.get::<ImpactMaterial>(entity).map(record),
             "hive.launcher" => world.get::<Launcher>(entity).map(record),
             "hive.projectile" => world.get::<Projectile>(entity).map(record),
             "hive.visual" => world.get::<Visual>(entity).map(record),

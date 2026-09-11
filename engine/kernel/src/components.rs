@@ -69,12 +69,24 @@ pub struct Collider {
     pub half_y: f64,
     pub half_z: f64,
     pub yaw: f64,
+    pub offset_x: f64,
+    pub offset_y: f64,
+    pub offset_z: f64,
 }
 #[derive(Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ColliderShape {
     Ball,
     Cuboid,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ImpactMaterial {
+    pub response: String,
+    pub resistance: f64,
+    pub restitution: f64,
+    pub friction: f64,
+    pub embed_speed: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -89,6 +101,8 @@ pub struct Launcher {
     pub max_lifetime: f64,
     pub projectile_sprite: String,
     pub projectile_label: String,
+    pub gravity: f64,
+    pub penetration: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -102,6 +116,14 @@ pub struct Projectile {
     pub distance: f64,
     pub max_range: f64,
     pub max_lifetime: f64,
+    pub gravity: f64,
+    pub penetration: f64,
+    pub state: String,
+    pub roll_normal_x: f64,
+    pub roll_normal_y: f64,
+    pub roll_normal_z: f64,
+    pub embed_depth: f64,
+    pub roll_friction: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -158,6 +180,13 @@ pub struct Snapshot {
     pub scene: Scene,
     pub routes: Vec<RouteSnapshot>,
     pub direct: Vec<DirectSnapshot>,
+    pub projectile_contacts: Vec<ProjectileContactsSnapshot>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProjectileContactsSnapshot {
+    pub projectile_id: String,
+    pub targets: Vec<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -257,6 +286,8 @@ pub struct ActionResult {
     pub revision: u64,
     #[serde(rename = "projectileId", skip_serializing_if = "Option::is_none")]
     pub projectile_id: Option<String>,
+    #[serde(rename = "launchPoint", skip_serializing_if = "Option::is_none")]
+    pub launch_point: Option<Vector3>,
 }
 pub fn valid_id(s: &str) -> bool {
     !s.is_empty()
