@@ -43,8 +43,8 @@ export function terrainColumnsScene(surfaces, { verticalMetres, soilMaterial = 1
       const bottom = neighbor ? (neighbor.cell[1]+0.5)*verticalMetres : top-verticalMetres;
       if (bottom >= top) continue;
       quad(material === soilMaterial ? colours.soil : colours.stone,
-        [[edge[0][0],top,edge[0][1]],[edge[1][0],top,edge[1][1]],
-         [edge[1][0],bottom,edge[1][1]],[edge[0][0],bottom,edge[0][1]]]);
+        [[edge[0][0],top,edge[0][1]],[edge[0][0],bottom,edge[0][1]],
+         [edge[1][0],bottom,edge[1][1]],[edge[1][0],top,edge[1][1]]]);
     }
   }
   for (const [colour, points] of buckets) {
