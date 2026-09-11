@@ -5,6 +5,8 @@ mod material_output;
 mod excavation_work;
 #[path = "initial_placement.rs"]
 mod initial_placement;
+#[path = "authored_entities.rs"]
+mod authored_entities;
 #[cfg(test)]
 #[path = "terrain_movement_tests.rs"]
 mod terrain_movement_tests;
@@ -1130,7 +1132,8 @@ impl Kernel {
             return Err("batch too large".into());
         }
         let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
-        let needs_staging = self.projectile_count > 0 || !self.direct.is_empty()
+        let needs_staging = !batch.creates.is_empty() || !batch.removes.is_empty()
+            || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. })
@@ -1158,42 +1161,8 @@ impl Kernel {
         {
             return Err("invalid advancement budget".into());
         }
-        // Every potentially failing authored write is validated before mutation.
-        for write in &batch.writes {
-            self.entity(&write.entity)?;
-            if Registry::is_physical(&write.component) {
-                return Err("physical component is not game-writable".into());
-            }
-            self.registry
-                .validate(&write.component, &write.value, &self.known)?;
-        }
-        let mut weights = BTreeMap::new();
-        let mut projected = self.state_weight;
-        for write in &batch.writes {
-            let key = (write.entity.clone(), write.component.clone());
-            let old = *weights.entry(key.clone()).or_insert_with(|| {
-                self.registry
-                    .read(&self.ecs, self.ids[&write.entity], &write.component)
-                    .map_or(0, |v| self.registry.weight(&write.component, &v))
-            });
-            let new = self.registry.weight(&write.component, &write.value);
-            projected = projected - old + new;
-            weights.insert(key, new);
-        }
-        if projected > STATE_BYTES {
-            return Err("region canonical state capacity".into());
-        }
-        for write in batch.writes {
-            self.registry
-                .insert(
-                    &mut self.ecs,
-                    self.ids[&write.entity],
-                    &write.component,
-                    &write.value,
-                )
-                .expect("validated authored write");
-        }
-        self.state_weight = projected;
+        let prepared = self.prepare_authored_entities(batch.creates, batch.removes, batch.writes)?;
+        self.publish_authored_entities(prepared);
         self.revision += 1;
         let results = batch
             .actions
