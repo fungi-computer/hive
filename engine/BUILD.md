@@ -755,3 +755,21 @@ finite spoil publication. Both passed (75 other laws filtered); compilation
 inactive/dead with an empty ControlGroup. The unused prepared-output `revision`
 field remains a compiler warning. This does not qualify a WASM rebuild, worker
 progress, a browser interaction, DO execution or deployment.
+
+### Timed excavation and authoring connection — September 11
+
+Native `dc0a94c`, corrected by `d690051`, adds saved earned excavation effort
+advanced once per tick. `u5480` failed compilation before tests (fixture method
+name and child-module visibility); corrected `u5482` passed repeated-request and
+mid-work recovery coverage. `u5486` passed that law plus direct-control exclusion
+and cancellation preserving soil. All scopes exited and were verified closed.
+The existing fixed numeric state-weight rule does not vary with progress values.
+Unexpected environment failure uses the existing discard/reload owner; these
+local tests do not establish a new hosted transaction proof.
+
+`e409f63` exposes intent-only authoring and reserves both excavation progress and
+carried water from authored writes. `u5484` passed two API laws and strict engine
+types. `46001d7` joins native work occupancy to delivery; `u5488` passed its focused
+caller law and strict types. `e99c8f6`/`a972cb0` add bounded trusted terrain queries;
+`u5490` passed two sparse-edit/budget laws. Player visibility is not granted by
+that host query. None of these receipts claims browser or hosted playability.
