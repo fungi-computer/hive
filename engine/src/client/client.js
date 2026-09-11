@@ -2,6 +2,7 @@ import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
+import { createMotionCueOwner } from "./motion.js";
 import { createAudioOwner } from "./audio.js";
 import { presentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
@@ -127,6 +128,7 @@ export function createHiveClient({
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
+  const motionCues = createMotionCueOwner();
   // Remote observations arrive at the server's fixed publication cadence;
   // local Worker frames can stay responsive with the shorter local delay.
   const interpolation = createInterpolationBuffer({
@@ -172,6 +174,7 @@ export function createHiveClient({
     pendingCues = [];
     interpolation.reset();
     animationClock.reset();
+    motionCues.reset();
     for (const entry of actorCache.values())
       entry.container.destroy({ children: true, texture: false, textureSource: false });
     actorCache.clear();
@@ -455,6 +458,7 @@ export function createHiveClient({
         pose: fact.pose,
         screen: { x: 0, y: 0 },
       }));
+    for (const cue of motionCues.sample(state.subjects, { now: presentedTime, paused: state.paused, sequence: frameSequence })) playMotionCue(cue);
     if (!groundSprite) {
       if (environment === "water") {
         groundSprite = new Graphics().rect(-320, -200, 640, 400).fill(0x173c55);
@@ -770,6 +774,13 @@ export function createHiveClient({
       effectOwner.play({ texture: smokeFrames[0], frames: smokeFrames, lifetime: 900, sprites: 1 }, cue);
     }
     audio.play(cue.kind);
+  }
+  function playMotionCue(cue) {
+    if (!effectOwner || !art) return;
+    const bank = cue.kind === "wake" ? art.effects?.ripple : art.effects?.dust;
+    const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
+    if (!frames.length) return;
+    effectOwner.play({ texture: frames[0], frames, lifetime: cue.kind === "wake" ? 700 : 260, sprites: 1 }, cue);
   }
   async function start() {
     if (directControlId || aiming) {
