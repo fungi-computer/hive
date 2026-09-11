@@ -3,6 +3,7 @@
 //! Geometry producers supply volumes and openings. This module owns only
 //! carrier, smoke, sensible heat, detached advancement, and durable state.
 
+use crate::quantity::resolve_quantity_change;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -196,6 +197,7 @@ pub struct AtmosphereSource {
 pub struct AtmosphereReceipt {
     pub seconds: f64,
     pub steps: usize,
+    pub unresolved_exchanges: usize,
     pub source_smoke_kg: f64,
     pub source_heat_j: f64,
     pub carrier_boundary_kg: f64,
@@ -210,13 +212,22 @@ fn finite_nonnegative(value: f64, name: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn changed_quantity(before: f64, delta: f64) -> Result<f64, String> {
+    resolve_quantity_change(before, delta)?
+        .ok_or_else(|| "atmosphere source is below representable quantity resolution".into())
+}
+
 fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
     if definition.geometry_identity.len() > MAX_ID_BYTES {
         return Err("atmosphere geometry identity exceeds bound".into());
     }
     Ok(format!(
-        "atmosphere:{}:{}",
-        definition.geometry_identity, definition.revision
+        "atmosphere:{}:{}:{}:{}:{}",
+        definition.region_id.len(),
+        definition.region_id,
+        definition.geometry_identity.len(),
+        definition.geometry_identity,
+        definition.revision
     ))
 }
 
@@ -258,10 +269,13 @@ impl CompiledAtmosphere {
         ] {
             finite_nonnegative(value, name)?;
         }
-        if model.max_step_s == 0.0
+        if model.specific_gas_constant_jkg_k == 0.0
+            || model.heat_capacity_jkg_k == 0.0
+            || model.max_step_s == 0.0
             || model.max_exchange_fraction > 1.0
             || model.max_pressure_ratio < 1.0
             || model.max_temperature_delta_k == 0.0
+            || model.max_smoke_mass_fraction > 1.0
             || model.max_smoke_mass_fraction == 0.0
         {
             return Err("invalid atmosphere model bounds".into());
@@ -359,6 +373,7 @@ impl CompiledAtmosphere {
                 || !opening.elevation_m.is_finite()
                 || !opening.permeability.is_finite()
                 || opening.permeability < 0.0
+                || opening.permeability > 1.0
             {
                 return Err("invalid atmosphere opening metric".into());
             }
@@ -451,9 +466,11 @@ impl CompiledAtmosphere {
             let temperature = self.temperature(index, parcel);
             let pressure = self.pressure(index, parcel);
             if !temperature.is_finite()
+                || temperature <= 0.0
                 || (temperature - self.definition.ambient.temperature_k).abs()
                     > self.definition.model.max_temperature_delta_k
                 || !pressure.is_finite()
+                || pressure < 0.0
                 || pressure
                     > self.definition.ambient.pressure_pa * self.definition.model.max_pressure_ratio
                 || parcel.smoke_kg
@@ -558,19 +575,24 @@ impl CompiledAtmosphere {
             state.smoke_boundary_kg,
             state.heat_boundary_j,
         );
+        let mut unresolved_exchanges = 0;
         for _ in 0..steps {
             for (index, source) in &source_indexes {
-                next.parcels[*index].smoke_kg += source.smoke_kg_s * dt;
-                next.parcels[*index].heat_j += source.heat_j_s * dt;
-                next.smoke_source_kg += source.smoke_kg_s * dt;
-                next.heat_source_j += source.heat_j_s * dt;
+                next.parcels[*index].smoke_kg =
+                    changed_quantity(next.parcels[*index].smoke_kg, source.smoke_kg_s * dt)?;
+                next.parcels[*index].heat_j =
+                    changed_quantity(next.parcels[*index].heat_j, source.heat_j_s * dt)?;
+                next.smoke_source_kg =
+                    changed_quantity(next.smoke_source_kg, source.smoke_kg_s * dt)?;
+                next.heat_source_j = changed_quantity(next.heat_source_j, source.heat_j_s * dt)?;
             }
-            self.exchange_step(&mut next, dt)?;
+            unresolved_exchanges += self.exchange_step(&mut next, dt)?;
             self.validate_state(&next)?;
         }
         let receipt = AtmosphereReceipt {
             seconds,
             steps,
+            unresolved_exchanges,
             source_smoke_kg: next.smoke_source_kg - before_source.0,
             source_heat_j: next.heat_source_j - before_source.1,
             carrier_boundary_kg: next.carrier_boundary_kg - before_boundary.0,
@@ -580,14 +602,15 @@ impl CompiledAtmosphere {
         Ok((next, receipt))
     }
 
-    fn exchange_step(&self, state: &mut AtmosphereState, dt: f64) -> Result<(), String> {
+    fn exchange_step(&self, state: &mut AtmosphereState, dt: f64) -> Result<usize, String> {
         let snapshot = state.parcels.clone();
         let flows = self.bounded_flows(self.opening_flows(&snapshot, dt));
+        let mut unresolved = 0;
         for flow in flows {
-            self.mix_pair(state, &snapshot, &flow)?;
-            self.advect_pair(state, &snapshot, &flow)?;
+            unresolved += self.mix_pair(state, &snapshot, &flow)?;
+            unresolved += self.advect_pair(state, &snapshot, &flow)?;
         }
-        Ok(())
+        Ok(unresolved)
     }
 
     fn opening_flows(&self, parcels: &[AtmosphereParcel], dt: f64) -> Vec<Flow> {
@@ -745,7 +768,7 @@ impl CompiledAtmosphere {
         flow: &Flow,
         quantity: Quantity,
         delta_left: f64,
-    ) -> Result<(), String> {
+    ) -> Result<bool, String> {
         let current_left = match quantity {
             Quantity::Carrier => state.parcels[flow.left].carrier_kg,
             Quantity::Smoke => state.parcels[flow.left].smoke_kg,
@@ -766,8 +789,12 @@ impl CompiledAtmosphere {
                 Quantity::Smoke => state.smoke_boundary_kg,
                 Quantity::Heat => state.heat_boundary_j,
             });
-        let next_left = current_left + delta_left;
-        let next_right = current_right - delta_left;
+        let Some(next_left) = resolve_quantity_change(current_left, delta_left)? else {
+            return Ok(false);
+        };
+        let Some(next_right) = resolve_quantity_change(current_right, -delta_left)? else {
+            return Ok(false);
+        };
         if !next_left.is_finite()
             || !next_right.is_finite()
             || (quantity != Quantity::Heat
@@ -795,41 +822,47 @@ impl CompiledAtmosphere {
                 Quantity::Heat => state.heat_boundary_j = next_right,
             }
         }
-        Ok(())
+        Ok(true)
     }
     fn mix_pair(
         &self,
         state: &mut AtmosphereState,
         snapshot: &[AtmosphereParcel],
         flow: &Flow,
-    ) -> Result<(), String> {
+    ) -> Result<usize, String> {
+        let mut unresolved = 0;
         for quantity in [Quantity::Carrier, Quantity::Smoke, Quantity::Heat] {
             let delta = (self.concentration(snapshot, flow.right, quantity)
                 - self.concentration(snapshot, Some(flow.left), quantity))
                 * flow.mixed_m3;
-            self.apply_pair(state, flow, quantity, delta)?;
+            if !self.apply_pair(state, flow, quantity, delta)? {
+                unresolved += 1;
+            }
         }
-        Ok(())
+        Ok(unresolved)
     }
     fn advect_pair(
         &self,
         state: &mut AtmosphereState,
         snapshot: &[AtmosphereParcel],
         flow: &Flow,
-    ) -> Result<(), String> {
+    ) -> Result<usize, String> {
         if flow.pressure_m3 == 0.0 {
-            return Ok(());
+            return Ok(0);
         }
         let donor = if flow.pressure_m3 > 0.0 {
             Some(flow.left)
         } else {
             flow.right
         };
+        let mut unresolved = 0;
         for quantity in [Quantity::Carrier, Quantity::Smoke, Quantity::Heat] {
             let delta = -flow.pressure_m3 * self.concentration(snapshot, donor, quantity);
-            self.apply_pair(state, flow, quantity, delta)?;
+            if !self.apply_pair(state, flow, quantity, delta)? {
+                unresolved += 1;
+            }
         }
-        Ok(())
+        Ok(unresolved)
     }
 
     pub fn encode_state(&self, state: &AtmosphereState) -> Result<Vec<u8>, String> {
@@ -916,6 +949,41 @@ mod tests {
                 permeability: 1.0,
             }],
         }
+    }
+
+    #[test]
+    fn distinct_regions_and_nonpositive_absolute_temperature_are_rejected() {
+        let mut first_definition = definition();
+        first_definition.model.max_temperature_delta_k = 1000.0;
+        let first = CompiledAtmosphere::compile(first_definition.clone()).unwrap();
+        let mut other_definition = first_definition;
+        other_definition.region_id = "other-region".into();
+        let other = CompiledAtmosphere::compile(other_definition).unwrap();
+        assert_ne!(first.identity(), other.identity());
+        let mut state = first.initial();
+        state.parcels[0].heat_j =
+            -400.0 * state.parcels[0].carrier_kg * first.definition.model.heat_capacity_jkg_k;
+        state.initial_heat_j = state.parcels[0].heat_j;
+        assert!(first.advance(&state, 0.2, &[]).is_err());
+    }
+
+    #[test]
+    fn unrepresentable_exchange_leaves_both_stocks_unchanged() {
+        let atmosphere = CompiledAtmosphere::compile(definition()).unwrap();
+        let mut state = atmosphere.initial();
+        let before = state.clone();
+        let flow = Flow {
+            left: 0,
+            right: Some(1),
+            mixed_m3: 0.0,
+            pressure_m3: 0.0,
+        };
+        assert!(
+            !atmosphere
+                .apply_pair(&mut state, &flow, Quantity::Carrier, 1e-30)
+                .unwrap()
+        );
+        assert_eq!(state, before);
     }
 
     #[test]

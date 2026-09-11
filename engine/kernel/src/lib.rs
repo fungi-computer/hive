@@ -10,6 +10,7 @@ pub mod structure_support;
 mod terrain_route;
 pub mod environment_definition;
 pub mod water;
+mod quantity;
 mod combat;
 mod components;
 mod navigation;

@@ -5,6 +5,7 @@
 //! entity per cell.  A compiled graph is reusable across advances; canonical
 //! definitions and water state are the only values that cross a save boundary.
 
+use crate::quantity::resolve_quantity_change;
 use serde::{Deserialize, Serialize};
 use serde::de::{self, SeqAccess, Visitor};
 use serde::ser::SerializeStruct;
@@ -375,24 +376,6 @@ fn nearly_equal(a: f64, b: f64) -> bool {
     (a - b).abs() <= 1e-9 + 64.0 * f64::EPSILON * a.abs().max(b.abs())
 }
 
-/// The arithmetic owner rejects a transfer when either operand cannot
-/// represent its signed change at its own scale. A state-wide tolerance is
-/// deliberately not used to authorize one-sided quantity changes.
-fn resolve_quantity_change(before: f64, delta: f64) -> WaterResult<Option<f64>> {
-    let after = before + delta;
-    if !before.is_finite() || !delta.is_finite() || !after.is_finite() {
-        return Err(fail("water quantity change must be finite"));
-    }
-    if delta == 0.0 { return Ok(Some(before)); }
-    let represented = after - before;
-    let error = represented - delta;
-    let uncertainty = 4.0 * f64::EPSILON * before.abs().max(after.abs()).max(delta.abs());
-    if represented.signum() == delta.signum() && uncertainty < delta.abs() && error.abs() <= uncertainty {
-        Ok(Some(after))
-    } else {
-        Ok(None)
-    }
-}
 
 impl CompiledWater {
     pub fn compile(mut definition: WaterDefinition, limits: WaterLimits) -> WaterResult<Self> {
