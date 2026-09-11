@@ -2,13 +2,13 @@
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   crate: Object.freeze({
     kind: "static",
-    path: ["buildings", "shelf", "finished", 0],
+    path: ["props", "crate"],
     facing: false,
     anchor: "propAnchor",
   }),
-  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin" }),
+  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", carryPoses: { bread: "carry-ration", wood: "carry" } }),
   "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
-  "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin" }),
+  "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin-traveler", carryPoses: { bread: "carry-ration" } }),
   "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin" }),
 });
 
@@ -19,22 +19,22 @@ export const PIRATE_VISUAL_BINDINGS = Object.freeze({
     facing: true,
     anchor: "vehicleAnchor",
   }),
-  "pirate.crew": Object.freeze({ kind: "figure", key: "goblin" }),
+  "pirate.crew": Object.freeze({ kind: "figure", key: "goblin-sailor", carryPoses: { bread: "carry-ration", wood: "carry" } }),
   "pirate.chest": Object.freeze({
     kind: "static",
-    path: ["buildings", "shelf", "finished", 0],
+    path: ["props", "chest"],
     facing: false,
     anchor: "propAnchor",
   }),
   "pirate.hold": Object.freeze({
     kind: "static",
-    path: ["buildings", "shelf", "finished", 0],
+    path: ["props", "crate"],
     facing: false,
     anchor: "propAnchor",
   }),
   "pirate.deck-obstacle": Object.freeze({
     kind: "static",
-    path: ["buildings", "shelf", "finished", 0],
+    path: ["props", "barrel"],
     facing: false,
     anchor: "propAnchor",
   }),

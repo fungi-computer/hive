@@ -10,12 +10,12 @@ import { connectRemoteRuntime } from "../runtime/remote-client.ts";
 const mode = document.body.dataset.mode || "hub";
 const configs = {
   pirates: {
-    title: "Timber raft",
+    title: "Mosswake",
     environment: "water",
     visualBindings: PIRATE_VISUAL_BINDINGS,
-    subtitle: "Sail the raft, walk its deck, and carry finite supplies into the hold. Save and continue your voyage.",
-    selectionShortcuts: [{ id: "pirates.ship", label: "Select raft" }],
-    controlHelp: "Sail: choose Select raft, then right-click water. Walk: click a crew member, then right-click the deck.",
+    subtitle: "Sail Mosswake, walk its working deck, and carry supplies into the hold.",
+    selectionShortcuts: [{ id: "pirates.ship", label: "Select ship" }],
+    controlHelp: "Sail: choose Select ship, then right-click water. Walk: click a crew member, then right-click the deck.",
     orderCommand: "move",
     source: "./source/pirates.ts",
   },
@@ -64,7 +64,7 @@ if (mode === "hub" && configs[queryMode]) {
   root.className = "hive-shell";
   mount(queryMode, configs[queryMode]);
 } else if (mode === "hub") {
-  root.innerHTML = `<div class="hive-hub"><div class="hive-kicker">HIVE / FRESH ENGINE</div><h1>Four small worlds, one client</h1><p>Choose a world. Each tab keeps its own runtime identity while sharing the same camera, controls, HUD, and original Goblin static art bank.</p><div class="hive-links"><a href="./?game=colony"><strong>Colony</strong><span>Shared workers and finite food</span></a><a href="./?game=survival"><strong>Survival</strong><span>Direct body actions and condition</span></a><a href="./?game=formations"><strong>Formations</strong><span>Group orders and morale</span></a><a href="./?game=pirates"><strong>Timber raft</strong><span>Moving decks and shared cargo</span></a></div><a href="../index.html">Open the old Goblin game ↗</a></div>`;
+  root.innerHTML = `<div class="hive-hub"><div class="hive-kicker">HIVE / FRESH ENGINE</div><h1>Four small worlds, one client</h1><p>Choose a world. Each tab keeps its own runtime identity while sharing the same camera, controls, HUD, and original Goblin static art bank.</p><div class="hive-links"><a href="./?game=colony"><strong>Colony</strong><span>Shared workers and finite food</span></a><a href="./?game=survival"><strong>Survival</strong><span>Direct body actions and condition</span></a><a href="./?game=formations"><strong>Formations</strong><span>Group orders and morale</span></a><a href="./?game=pirates"><strong>Mosswake</strong><span>Moving decks and shared cargo</span></a></div><a href="../index.html">Open the old Goblin game ↗</a></div>`;
 } else {
   const config = configs[mode] || configs.colony;
   root.className = "hive-shell";

@@ -417,7 +417,13 @@ function goblinEar(parent, side) {
   mesh(parent, new THREE.ShapeGeometry(inner), "#c4b466", 0, 0, 0.025);
 }
 
-function goblin(body, phase, moving, pose) {
+const GOBLIN_WARDROBES = Object.freeze({
+  traveler: { coat: "#507f7b", boots: "#574538", hat: "hood" },
+  worker: { coat: "#8d8051", boots: "#674f3a", hat: "cap" },
+  sailor: { coat: "#526c85", boots: "#4b4540", hat: "bandana" },
+});
+
+function goblin(body, phase, moving, pose, wardrobe) {
   const hitProgress =
     pose === "hit"
       ? phase < 0.55
@@ -429,11 +435,11 @@ function goblin(body, phase, moving, pose) {
     spread: 0.115,
     width: 0.105,
     cloth: GREEN,
-    boots: "#59794a",
+    boots: wardrobe?.boots ?? "#59794a",
     action: pose,
     hitProgress,
   });
-  coat(body, "#a14b43", 0.6, 0.96, 0.47, 0.27);
+  coat(body, wardrobe?.coat ?? "#a14b43", 0.6, 0.96, 0.47, 0.27);
   box(body, "#573f32", 0, 0.6, 0, 0.26, 0.055, 0.23);
   arms(body, phase, moving, {
     shoulder: 0.91,
@@ -481,6 +487,29 @@ function goblin(body, phase, moving, pose) {
   }
   box(body, "#b16c45", 0, 0.93, 0.035, 0.28, 0.06, 0.25);
   box(body, "#853e3c", -0.03, 0.77, -0.17, 0.2, 0.37, 0.05).rotation.z = -0.13;
+  if (wardrobe?.hat === "cap") {
+    ball(body,"#bea978",0,1.32,-0.015,0.21,0.095,0.175);
+    box(body,"#8a744e",0,1.31,0.16,0.3,0.045,0.15);
+    box(body,"#d2c29a",0,0.71,0.17,0.27,0.27,0.035);
+  } else if (wardrobe?.hat === "bandana") {
+    ball(body,"#a15750",0,1.32,-0.02,0.21,0.095,0.18);
+    box(body,"#d1b67f",0,1.29,0.1,0.34,0.045,0.11);
+    box(body,"#93483f",-0.17,1.23,-0.12,0.1,0.27,0.07).rotation.z=-0.3;
+    box(body,"#ddd2aa",0,0.82,0.16,0.25,0.055,0.035);
+    box(body,"#ddd2aa",0,0.69,0.17,0.29,0.055,0.035);
+  } else if (wardrobe?.hat === "hood") {
+    ball(body,"#45685e",0,1.29,-0.095,0.22,0.17,0.15);
+    box(body,"#bba76e",0.17,0.83,-0.2,0.19,0.36,0.14).rotation.z=-0.12;
+    box(body,"#8b714c",-0.07,0.83,0.16,0.055,0.28,0.035).rotation.z=0.32;
+  }
+  if (pose === "carry-ration") {
+    const parcel=rationParcel(body);parcel.position.set(0,0.62,0.35);parcel.scale.setScalar(0.82);
+  } else if (pose === "carry") {
+    for(const [x,y] of [[-0.13,0.62],[0.13,0.62],[0,0.79]]) {
+      cylinder(body,"#865d3d",x,y,0.37,0.105,0.105,0.55,7).rotation.x=Math.PI/2;
+      cylinder(body,"#c5a26a",x,y,0.65,0.082,0.082,0.012,7).rotation.x=Math.PI/2;
+    }
+  }
   if (pose === "hit") {
     // Tumble through a low landing and recover without a flat vertical spin.
     body.rotation.z = -1.0 * hitProgress;
@@ -773,6 +802,9 @@ const FIGURES = {
   knight,
   wizard,
   goblin,
+  "goblin-worker": (body,phase,moving,pose) => goblin(body,phase,moving,pose,GOBLIN_WARDROBES.worker),
+  "goblin-sailor": (body,phase,moving,pose) => goblin(body,phase,moving,pose,GOBLIN_WARDROBES.sailor),
+  "goblin-traveler": (body,phase,moving,pose) => goblin(body,phase,moving,pose,GOBLIN_WARDROBES.traveler),
   cat,
   "witch-crooked": witchCrooked,
   "witch-runner": witchRunner,

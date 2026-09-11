@@ -20,6 +20,7 @@ import { stonePile } from "./art/stone.js";
 import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
 import { shipScene } from "./art/ship.js";
+import { cargoScene, rippleScene } from "./art/demo-props.js";
 import {
   cannonScene,
   cannonballScene,
@@ -449,6 +450,9 @@ export async function bakeArt(onProgress = () => {}) {
       ["witch-runner", workPoses],
       ["cat", ["idle", "walk", "sleep"]],
       ["goblin", ["idle", "walk", "hit"]],
+      ["goblin-worker", ["idle", "walk", "carry", "carry-ration"]],
+      ["goblin-sailor", ["idle", "walk", "carry", "carry-ration"]],
+      ["goblin-traveler", ["idle", "walk", "carry-ration"]],
     ]) {
       const target = (art.figures[kind] = {});
       for (const pose of poses) {
@@ -457,7 +461,7 @@ export async function bakeArt(onProgress = () => {}) {
         target[pose] = [];
         for (let direction = 0; direction < 4; direction++) {
           const count =
-            pose === "sleep" || (pose === "idle" && kind === "goblin") ? 1 : 8;
+            pose === "sleep" || (pose === "idle" && kind.startsWith("goblin")) ? 1 : 8;
           target[pose].push(
             Array.from({ length: count }, (_, frame) =>
               bakeStartup(
@@ -614,6 +618,10 @@ export async function bakeArt(onProgress = () => {}) {
         STATIC_ART_RENDER.vehicle.height,
       ),
     );
+    for (const kind of ["crate", "chest", "barrel"])
+      art.props[kind] = bakeStartup(renderer, cargoScene(kind), prop, 112, 112);
+    art.effects.ripple = Array.from({length:6},(_,frame) =>
+      bakeStartup(renderer,rippleScene(frame/6),prop,112,112));
     detail = "Drawing cannon props";
     report();
     art.props.cannon = Array.from({ length: 4 }, (_, direction) =>
