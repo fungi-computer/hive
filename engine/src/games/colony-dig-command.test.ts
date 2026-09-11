@@ -52,7 +52,7 @@ test("Colony dig rejects invalid material, active delivery, and full spoil cargo
   }), /not excavatable/);
   const task = row(entity("colony.delivery.1"), DeliveryTask, {
     actor: worker, sourceLot: entity("colony.food.1"), source,
-    destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "carrying",
+    destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "idle",
   });
   assert.throws(() => colonyPack.commands!.dig.run(context({ tasks: [task] }), {
     entities: [worker], target: { cell: [0, 12, 0], material: 1 },
@@ -74,5 +74,13 @@ test("Colony cancelDig emits native cancel-work only for active excavation", () 
     actions: [{ kind: "cancel-work", entity: worker }],
     writes: [],
   });
+  const activeDelivery = row(entity("colony.delivery.1"), DeliveryTask, {
+    actor: worker, sourceLot: entity("colony.food.1"), source,
+    destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "idle",
+  });
+  assert.deepEqual(
+    colonyPack.commands!.cancelDig.run(context({ work: [work], tasks: [activeDelivery] }), { entities: [worker] }),
+    { actions: [{ kind: "cancel-work", entity: worker }], writes: [] },
+  );
   assert.throws(() => colonyPack.commands!.cancelDig.run(context(), { entities: [worker] }), /no excavation work/);
 });
