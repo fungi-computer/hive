@@ -11,8 +11,6 @@ use crate::quantity::resolve_quantity_change;
 const MAX_CHANNELS: usize = 16;
 const MAX_CHANNEL_ID_BYTES: usize = 160;
 
-pub const MAX_CHANNELS_SUPPORTED: usize = MAX_CHANNELS;
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct FiniteReleaseDefinition {
     pub duration_s: f64,
@@ -72,6 +70,8 @@ impl FiniteRelease {
             return Err("finite release requires 1..16 channels".into());
         }
         for (channel, total) in &definition.totals {
+            // Native IDs are bounded by UTF-8 bytes; callers own any text
+            // encoding policy at the content boundary.
             if channel.is_empty() || channel.len() > MAX_CHANNEL_ID_BYTES {
                 return Err("finite release channel id is invalid".into());
             }
@@ -282,6 +282,18 @@ mod tests {
     }
 
     #[test]
+    fn represented_decimal_boundary_has_no_owed_coast_piece() {
+        let source = release(0.6, &[("smoke", 0.6)]);
+        let plan = source.plan(Some(0.3), 0.3, 0.6, 0.1).unwrap();
+        let ReleasePlan::Ready { segments } = plan else {
+            panic!("boundary should be ready");
+        };
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].seconds, 0.6);
+        assert!(segments[0].rates.is_some());
+    }
+
+    #[test]
     fn zero_channel_is_retained_and_inactive_source_has_zero_rates() {
         let source = release(2.0, &[("smoke", 0.0), ("heat", 4.0)]);
         let facts = source.read(Some(1.0), 1.5).unwrap();
@@ -290,6 +302,16 @@ mod tests {
         assert!(
             matches!(source.plan(None, 0.0, 1.0, 0.25).unwrap(), ReleasePlan::Ready { segments } if segments[0].rates.is_none())
         );
+    }
+
+    #[test]
+    fn signed_channel_partitions_conserve_the_declared_total() {
+        let source = release(2.0, &[("smoke", -4.0)]);
+        let first = source.released_between(Some(0.0), 0.0, 1.0).unwrap();
+        let second = source.released_between(Some(0.0), 1.0, 2.0).unwrap();
+        assert_eq!(first["smoke"], -2.0);
+        assert_eq!(second["smoke"], -2.0);
+        assert_eq!(first["smoke"] + second["smoke"], -4.0);
     }
 
     #[test]
@@ -315,8 +337,9 @@ mod tests {
         let tiny = FiniteRelease::new(FiniteReleaseDefinition {
             duration_s: f64::EPSILON,
             totals: BTreeMap::from([(String::from("smoke"), 1.0)]),
-        });
-        assert!(tiny.is_err());
+        })
+        .unwrap();
+        assert!(tiny.read(Some(1.0e12), 1.0e12).is_err());
     }
 
     #[test]
