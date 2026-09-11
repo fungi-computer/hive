@@ -1095,6 +1095,13 @@ impl Kernel {
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         let mut facts = serde_json::to_value(environment.world.facts()?).map_err(|error| error.to_string())?;
         facts["terrainRevision"] = json!(environment.world.terrain_revision());
+        // Bounded saved obligations drive fire presentation; they are never a
+        // client clock or an instruction to add more smoke.
+        facts["emissions"] = json!(environment.paid_emissions.iter().map(|(source, emission)| {
+            json!({"source":source,"catalog":emission.catalog,
+                "cell":[emission.cell.x,emission.cell.y,emission.cell.z],
+                "elapsedS":emission.elapsed_s})
+        }).collect::<Vec<_>>());
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
     pub fn save_records(&self) -> Result<KernelRecords> {
