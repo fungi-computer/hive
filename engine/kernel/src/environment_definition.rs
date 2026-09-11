@@ -255,7 +255,7 @@ mod tests {
     use super::*;
     fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
         )
     }
     #[test]
@@ -274,7 +274,7 @@ mod tests {
         let prepared = prepare_definition(&input).unwrap();
         assert!(prepared.stocks.is_empty());
         let admitted = prepare_definition_mode(&input, true).unwrap();
-        assert!(!admitted.stocks.is_empty() && admitted.stocks.len() <= 2);
+        assert!(!admitted.stocks.is_empty() && admitted.stocks.len() <= 3);
         assert!(
             admitted
                 .stocks
@@ -288,4 +288,27 @@ mod tests {
         assert!(admitted.stocks.iter().any(|stock| stock.mass_kg == 0.0));
         assert_ne!(admitted.terrain.export().unwrap(), other.terrain.export().unwrap());
     }
+    #[test]
+    fn kernel_clock_and_record_restore_advance_one_authored_environment() {
+        let mut kernel = crate::Kernel::new();
+        kernel.load(r#"{"format":"hive-game","version":1,"game":"colony","components":[],"initial":[]}"#).unwrap();
+        kernel.load_environment(&fixture("seed-a")).unwrap();
+        let before = kernel.environment_facts_json().unwrap();
+        let step = r#"{"delta":0.2,"writes":[],"actions":[]}"#;
+        kernel.advance_json(step).unwrap();
+        let moved = kernel.environment_facts_json().unwrap();
+        assert_ne!(moved, before);
+        assert!(kernel.snapshot_json().is_err());
+        let records = kernel.save_records().unwrap();
+        let entities: serde_json::Value = serde_json::from_str(&records.entities).unwrap();
+        assert_eq!(entities["time"], 0.2);
+        let mut restored = crate::Kernel::new();
+        restored.restore_records(&records).unwrap();
+        assert_eq!(restored.environment_facts_json().unwrap(), moved);
+        kernel.advance_json(step).unwrap();
+        restored.advance_json(step).unwrap();
+        assert_eq!(restored.environment_facts_json().unwrap(), kernel.environment_facts_json().unwrap());
+        assert_eq!(restored.save_records().unwrap().entities, kernel.save_records().unwrap().entities);
+    }
+
 }
