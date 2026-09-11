@@ -37,7 +37,7 @@ export function colonyAtmosphereVisuals(context: Context): readonly EnvironmentV
   const emissions = (facts as { emissions: readonly { source: string }[] }).emissions;
   if (emissions.length > 64) throw new Error("Native emission observation exceeds bound");
   if (emissions.some(source => source.source === station.id)) {
-    result.push({ id: `fire:${station.id}`, kind: "fire", position: { x: pose.x, y: pose.y + 0.08, z: pose.z }, intensity: 1 });
+    result.push({ id: `fire:${station.id}`, kind: "fire", position: { x: pose.x + 0.5, y: pose.y + 0.08, z: pose.z + 0.5 }, intensity: 1 });
   }
   return result;
 }
