@@ -432,6 +432,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return Response.json(this.observationPayload());
   }
 
+  private queuedObservationPayload() {
+    return this.serial(() => this.observationPayload());
+  }
+
   private publishObservation(): Promise<void> {
     return this.serial(() => {
       const payload = JSON.stringify({ type: "observation", ...this.observationPayload() });
@@ -508,6 +512,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       if (!stored) throw new Error("public-host-state");
       let row: HostRow = stored;
       validateHostRow(row);
+      const committed = this.region.readCommitted();
+      this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
+      acceptedRevision = committed.revision;
       if (
         row.paused ||
         row.lease_until_ms === null ||
@@ -528,15 +535,13 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         await this.arm(cleared);
         return cleared;
       }
-      const committed = this.region.readCommitted();
-      this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
-      acceptedRevision = committed.revision;
       // Bounded catch-up preserves scheduled time across late native alarms.
       // Every occurrence remains individually identified inside this transaction.
       for (let steps = 0; steps < 5; steps++) {
         const dueDeadline = row.due_deadline_ms;
         if (dueDeadline === null || row.due_request_json === null || row.due_sequence === null) throw new Error("public-host-format");
         if (dueDeadline > now) {
+          acceptedRevision = this.region.readCommitted().revision;
           await this.arm(row);
           return row;
         }
@@ -622,7 +627,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.observe(Date.now());
-          socket.send(JSON.stringify({ type: "observation", ...this.observationPayload() }));
+          socket.send(JSON.stringify({ type: "observation", ...(await this.queuedObservationPayload()) }));
           return;
         }
       } catch { /* malformed heartbeat is rejected below */ }
@@ -637,7 +642,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       socket.serializeAttachment({ pack: attachment.pack, tokenHash, authenticated: true, authDeadline: null } satisfies SocketAttachment);
       await this.observe(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
-      socket.send(JSON.stringify({ type: "observation", ...this.observationPayload() }));
+      socket.send(JSON.stringify({ type: "observation", ...(await this.queuedObservationPayload()) }));
     } catch (error) {
       try { socket.send(JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "public-socket-auth-failed" })); } catch {}
       socket.close(1008, "authentication failed");

@@ -107,9 +107,14 @@ test("resident session reuses accepted candidate and fails closed across retry a
   });
   const resident = runtime.resident;
   const region = openRegion({ owner, region: "resident-colony", program: runtime.program });
+  let recordReads = 0;
   const reader = (revision: number) => {
-    const records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
-    return { read: (key: string) => records.get(key) };
+    let records: Map<string, Uint8Array> | undefined;
+    return { read: (key: string) => {
+      recordReads++;
+      if (!records) records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
+      return records.get(key);
+    } };
   };
   try {
     const first = region.readCommitted();
@@ -118,16 +123,25 @@ test("resident session reuses accepted candidate and fails closed across retry a
     resident.accept(firstReceipt.revision);
     const afterFirst = region.readCommitted();
     const beforeReuse = created;
+    const readsBeforeReuse = recordReads;
     resident.begin(afterFirst.revision, afterFirst.state, reader(afterFirst.revision));
     const second = region.dispatch("clock", { id: "resident-2", command: { kind: "step", delta: 0.1 } });
     resident.accept(second.revision);
     assert.equal(created, beforeReuse);
+    assert.equal(recordReads, readsBeforeReuse);
     assert.equal(resident.observe(second.revision, region.readCommitted().state, reader(second.revision), session => session.simulationTime), 0.2);
-    resident.begin(second.revision, region.readCommitted().state, reader(second.revision));
-    resident.discard();
-    resident.begin(second.revision, region.readCommitted().state, reader(second.revision));
-    assert.throws(() => resident.accept(second.revision + 1), /resident-revision-mismatch/);
-    resident.discard();
+    const batch = region.readCommitted();
+    resident.begin(batch.revision, batch.state, reader(batch.revision));
+    for (const id of ["resident-3", "resident-4", "resident-5"])
+      region.dispatch("clock", { id, command: { kind: "step", delta: 0.1 } });
+    resident.accept(region.readCommitted().revision);
+    assert.equal(resident.observe(5, region.readCommitted().state, reader(5), session => session.simulationTime), 0.5);
+    const current = region.readCommitted();
+    resident.begin(current.revision, current.state, reader(current.revision));
+    assert.throws(() => resident.accept(current.revision + 1), /resident-revision-mismatch/);
+    const failed = region.readCommitted();
+    resident.begin(failed.revision, failed.state, reader(failed.revision));
+    assert.throws(() => region.dispatch("clock", { id: "resident-failure", command: { kind: "command", name: "missing" } }), /unknown game command/);
     assert.ok(created > beforeReuse);
   } finally {
     resident.dispose();
