@@ -587,16 +587,16 @@ impl Kernel {
                 if start_point != centered(start_cell) {
                     let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
                     let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
-                    let mut join = None;
-                    for (point_index,point) in remaining.iter().enumerate() {
-                        if let Some(cell_index) = previous.path.iter().position(|cell| centered(*cell) == *point) {
-                            join = Some((point_index,cell_index)); break;
-                        }
-                    }
-                    let (point_index,cell_index) = join.ok_or("route has no next support waypoint")?;
                     let previous_points = crate::terrain_route::waypoints(&previous.path, config)?;
                     let next = previous_points.len().checked_sub(remaining.len()).ok_or("invalid retained route progress")?;
                     contact_start = crate::terrain_route::active_support_index(&previous.path, next)?;
+                    // A route may revisit a support cell. Select the endpoint of
+                    // the active edge by progress, never the first equal cell in
+                    // historical path data (which can precede contact_start).
+                    let cell_index = contact_start.checked_add(1).ok_or("terrain route progress overflow")?;
+                    let next_cell = *previous.path.get(cell_index).ok_or("route has no next support cell")?;
+                    let point_index = remaining.iter().position(|point| *point == centered(next_cell))
+                        .ok_or("route has no next support waypoint")?;
                     prefix.extend(remaining.iter().take(point_index+1).cloned());
                     history.extend_from_slice(&previous.path[..=cell_index]);
                     start_cell = previous.path[cell_index];

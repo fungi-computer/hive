@@ -187,3 +187,22 @@ fn terrain_stop_retains_contact_and_resumes_after_restore() {
         assert!((reached.x-target.x).abs()<1e-9 && (reached.y-target.y).abs()<1e-9);
     }
 }
+
+#[test]
+fn repeated_mid_edge_retarget_uses_active_support_not_historical_visit() {
+    let (mut kernel, target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    let origin = navigation::point(*kernel.ecs.get::<Position>(actor).unwrap());
+    for tick in 0..120 {
+        let destination = if tick % 10 < 5 { &target } else { &origin };
+        kernel.advance_json(&json!({"delta":0.033,"writes":[],"actions":[{
+            "kind":"move","entity":"walker","destination":destination
+        }]}).to_string()).expect("revisiting an active support must not panic or lose the route");
+        if tick % 10 == 9 {
+            let saved = kernel.save_records().unwrap();
+            let mut restored = Kernel::new();
+            restored.restore_records(&saved).expect("repeated support visits restore with progress");
+            kernel = restored;
+        }
+    }
+}
