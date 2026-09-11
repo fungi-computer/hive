@@ -638,6 +638,11 @@ impl Kernel {
             if self.ecs.get::<Container>(*entity).is_some() {
                 self.contents.entry(id.clone()).or_default();
             }
+            if self.ecs.get::<SealedContainer>(*entity).is_some()
+                && self.ecs.get::<Container>(*entity).is_none()
+            {
+                return Err("sealed container requires container".into());
+            }
         }
         self.blocked_by_frame.entry(None).or_default();
         for (id, entity) in &self.ids {
@@ -1395,7 +1400,10 @@ impl Kernel {
                 lot,
                 quantity,
             } => {
-                self.entity(&entity)?;
+                let container = self.entity(&entity)?;
+                if self.ecs.get::<SealedContainer>(container).is_some() {
+                    return Err("sealed container cannot consume".into());
+                }
                 let e = self.entity(&lot)?;
                 let mut stock = self
                     .ecs
@@ -1751,6 +1759,11 @@ impl Kernel {
         }
         let source = self.entity(from)?;
         let dest = self.entity(to)?;
+        if self.ecs.get::<SealedContainer>(source).is_some()
+            || self.ecs.get::<SealedContainer>(dest).is_some()
+        {
+            return Err("sealed container cannot transfer".into());
+        }
         let e = self.entity(lot)?;
         let mut stock = self
             .ecs
@@ -2045,6 +2058,16 @@ mod lot_water_tests {
     fn rows(kernel: &mut Kernel, component: &str) -> Value {
         serde_json::from_str(&kernel.query_json(&format!("[\"{component}\"]")).unwrap()).unwrap()
     }
+    fn sealed_scene(source: bool, destination: bool) -> String {
+        let mut value: Value = serde_json::from_str(&scene(None, 10)).unwrap();
+        if source {
+            value["initial"][0]["components"]["hive.sealed-container"] = json!({});
+        }
+        if destination {
+            value["initial"][1]["components"]["hive.sealed-container"] = json!({});
+        }
+        value.to_string()
+    }
 
     #[test]
     fn partial_and_whole_transfer_conserve_carried_water() {
@@ -2102,6 +2125,56 @@ mod lot_water_tests {
         let dry_result: Value = serde_json::from_str(&dry.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#).unwrap()).unwrap();
         assert_eq!(dry_result["results"][0]["accepted"], true);
         assert_eq!(rows(&mut dry, "hive.lot")[0]["components"]["hive.lot"]["quantity"], 3);
+    }
+
+    #[test]
+    fn sealed_source_or_destination_rejects_transfer_without_mutation() {
+        for (sealed_source, sealed_destination) in [(true, false), (false, true)] {
+            let mut kernel = Kernel::new();
+            kernel.load(&sealed_scene(sealed_source, sealed_destination)).unwrap();
+            let before_lot = rows(&mut kernel, "hive.lot");
+            let result = transfer(&mut kernel, 1);
+            assert_eq!(result["results"][0]["accepted"], false);
+            assert_eq!(rows(&mut kernel, "hive.lot"), before_lot);
+        }
+    }
+
+    #[test]
+    fn sealed_container_rejects_consume_and_survives_snapshot_restore() {
+        let mut kernel = Kernel::new();
+        kernel.load(&sealed_scene(true, false)).unwrap();
+        let before = rows(&mut kernel, "hive.lot");
+        let result: Value = serde_json::from_str(&kernel.advance_json(
+            r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#,
+        ).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(rows(&mut kernel, "hive.lot"), before);
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&saved).unwrap();
+        assert_eq!(rows(&mut restored, "hive.sealed-container"), json!([
+            {"id":"source", "components":{"hive.sealed-container":{}}}
+        ]));
+        assert_eq!(rows(&mut restored, "hive.lot"), before);
+    }
+
+    #[test]
+    fn sealed_marker_requires_container_and_is_not_authored_writable() {
+        let mut invalid: Value = serde_json::from_str(&sealed_scene(true, false)).unwrap();
+        invalid["initial"][0]["components"].as_object_mut().unwrap().remove("hive.container");
+        assert!(Kernel::new().load(&invalid.to_string()).is_err());
+
+        let mut kernel = Kernel::new();
+        kernel.load(&serde_json::to_string(&json!({
+            "format":"hive-game", "version":1, "game":"sealed",
+            "components":[], "initial":[{"id":"actor","components":{}}]
+        })).unwrap()).unwrap();
+        let creates = json!([{"id":"container","components":{"hive.container":{"capacity":2}}}]);
+        kernel.advance_json(&json!({"delta":0,"creates":creates,"removes":[],"writes":[],"actions":[]}).to_string()).unwrap();
+        let forged = json!({"delta":0,"creates":[],"removes":[],"writes":[
+            {"entity":"container","component":"hive.sealed-container","value":{}}
+        ],"actions":[]});
+        assert!(kernel.advance_json(&forged.to_string()).is_err());
     }
 }
 
