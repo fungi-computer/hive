@@ -11,6 +11,16 @@ const quantity = (value: unknown): boolean =>
   Number.isInteger(value) &&
   value > 0 &&
   value <= 0xffffffff;
+const stream = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0 && value.length <= 64 && /^[A-Za-z0-9._:-]+$/.test(value);
+const axis = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= -1 && value <= 1;
+const directSample = (value: unknown): boolean => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const sample = value as Record<string, unknown>;
+  return Object.keys(sample).length === 3 && Number.isSafeInteger(sample.sequence) &&
+    sample.sequence > 0 && axis(sample.x) && axis(sample.z);
+};
 
 /** Structural admission only. Native custody, capacity and reach decide availability. */
 export function checkedAction(value: unknown): ActionRequest {
@@ -20,6 +30,17 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "begin-direct":
+      keys = ["kind", "entity", "stream"];
+      valid = id(action.entity) && stream(action.stream);
+      break;
+    case "direct-input": {
+      keys = ["kind", "entity", "stream", "inputs"];
+      const inputs = action.inputs;
+      valid = id(action.entity) && stream(action.stream) && Array.isArray(inputs) && inputs.length >= 1 && inputs.length <= 5 &&
+        inputs.every(directSample);
+      break;
+    }
     case "launch":
     case "displace": {
       const launch = action.kind === "launch";
