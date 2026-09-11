@@ -564,14 +564,19 @@ impl CompiledWater {
     /// Canonical state is small, explicit, and sufficient to restore after
     /// compiling the same definition again. Compiled neighbor caches never
     /// become an independent save truth.
-    pub fn encode_state(&self, state: &WaterState) -> WaterResult<String> {
+    pub fn encode_state(&self, state: &WaterState) -> WaterResult<Vec<u8>> {
         self.validate_state(state)?;
-        serde_json::to_string(state).map_err(|error| fail(format!("water state encoding failed: {error}")))
+        let size = postcard::experimental::serialized_size(state)
+            .map_err(|error| fail(format!("water state sizing failed: {error}")))?;
+        if size > self.limits.max_state_bytes { return Err(fail("water state wire exceeds admission bound")); }
+        postcard::to_allocvec(state).map_err(|error| fail(format!("water state encoding failed: {error}")))
     }
 
-    pub fn decode_state(&self, wire: &str) -> WaterResult<WaterState> {
-        if wire.len() > self.limits.max_state_bytes { return Err(fail("water state wire exceeds admission bound")); }
-        let wire: WaterStateWire = serde_json::from_str(wire).map_err(|error| fail(format!("water state decoding failed: {error}")))?;
+    pub fn decode_state(&self, bytes: &[u8]) -> WaterResult<WaterState> {
+        if bytes.len() > self.limits.max_state_bytes { return Err(fail("water state wire exceeds admission bound")); }
+        let (wire, remaining): (WaterStateWire, _) = postcard::take_from_bytes(bytes)
+            .map_err(|error| fail(format!("water state decoding failed: {error}")))?;
+        if !remaining.is_empty() { return Err(fail("water state contains trailing bytes")); }
         let state = WaterState { version: wire.version, binding: wire.binding, mass_kg: wire.mass_kg, initial_total_kg: wire.initial_total_kg, boundary_kg: wire.boundary_kg, owner: self.owner.clone() };
         self.validate_state_contents(&state)?;
         Ok(state)
@@ -768,6 +773,20 @@ mod tests {
     fn cell(at: [i32; 3]) -> CellDefinition { CellDefinition { at, kind: WaterCellKind::Void, soil_id: None } }
     fn face(a: [i32; 3], b: [i32; 3]) -> FaceDefinition { FaceDefinition { a, b, open_fraction: 1.0 } }
     fn stock(at: [i32; 3], mass_kg: f64) -> WaterStock { WaterStock { id: cell_id(at), mass_kg } }
+
+    #[test]
+    fn binary_state_preserves_empty_stock_and_rejects_trailing_bytes() {
+        let at = [0, 0, 0];
+        let graph = CompiledWater::compile(definition(vec![cell(at)], vec![]), WaterLimits::default()).unwrap();
+        let empty = graph.initial(&[stock(at, 0.0)]).unwrap();
+        let mut bytes = graph.encode_state(&empty).unwrap();
+        assert_eq!(graph.decode_state(&bytes).unwrap(), empty);
+        bytes.push(0);
+        assert!(graph.decode_state(&bytes).is_err());
+        assert!(graph.decode_state(b"{\"version\":1}").is_err());
+        let short = &bytes[..2];
+        assert!(graph.decode_state(short).is_err());
+    }
 
     #[test]
     fn local_transport_conserves_and_leaves_input_unchanged() {
