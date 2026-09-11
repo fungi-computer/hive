@@ -1045,10 +1045,9 @@ impl Kernel {
         if input.len() > 16 * 1024 { return Err("structure state query exceeds input budget".into()); }
         let ids: Vec<String> = serde_json::from_str(input).map_err(|error| error.to_string())?;
         if ids.is_empty() || ids.len() > 64 { return Err("structure state query exceeds id budget".into()); }
-        let mut seen = BTreeSet::new();
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         let states = ids.into_iter().map(|id| {
-            if !crate::components::valid_id(&id) || !seen.insert(id.clone()) { return Err("invalid or duplicate structure state id".into()); }
+            if !crate::components::valid_id(&id) { return Err("invalid structure state id".into()); }
             Ok(environment.world.structure_instance(&id))
         }).collect::<Result<Vec<_>>>()?;
         serde_json::to_string(&states).map_err(|error| error.to_string())

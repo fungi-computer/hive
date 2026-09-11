@@ -27,7 +27,8 @@ fn structure_state_query_preserves_order_and_missing_is_null() {
     assert_eq!(value[0]["kind"], "aperture-wall");
     assert!(value[1].is_null());
     assert_eq!(value[2]["kind"], "wall");
-    assert!(kernel.structure_states_json(r#"["door","door"]"#).is_err());
+    let duplicate: serde_json::Value = serde_json::from_str(&kernel.structure_states_json(r#"["door","door"]"#).unwrap()).unwrap();
+    assert_eq!(duplicate[0], duplicate[1]);
     assert!(kernel.structure_states_json(&serde_json::to_string(&vec!["wall"; 65]).unwrap()).is_err());
 }
 
