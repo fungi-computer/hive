@@ -790,7 +790,12 @@ export function createHiveClient({
     if (terrainArea.getSnapshot().value === "dragging") {
       const context = terrainArea.getSnapshot().context;
       const displayed = displayedTerrainFrame();
-      if (!displayed) return;
+      if (!displayed) {
+        terrainArea.send({ type: "CANCEL" });
+        app.canvas.releasePointerCapture?.(event.pointerId);
+        state.message = "Terrain changed; select the area again";
+        renderHud(); draw(); return;
+      }
       const at = point(event);
       const cell = terrainPlaneCell((at.x-camera.x)/camera.zoom, (at.y-camera.y)/camera.zoom, context.start[1], displayed.verticalMetres);
       if (cell.every((value,index) => value === context.current[index])) return;
@@ -817,6 +822,11 @@ export function createHiveClient({
   }
   function pointerUp(event) {
     if (terrainArea.getSnapshot().value === "dragging") {
+      pointerMove(event);
+      if (terrainArea.getSnapshot().value !== "dragging") {
+        app.canvas.releasePointerCapture?.(event.pointerId);
+        return;
+      }
       const { start, current } = terrainArea.getSnapshot().context;
       const control = terrainTarget.getSnapshot().context.control;
       terrainArea.send({ type: "END" });
