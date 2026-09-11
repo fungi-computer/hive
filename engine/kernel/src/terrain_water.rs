@@ -92,21 +92,25 @@ impl TerrainWaterGeometry {
  }
 
 /// The graph, stocks and scratch cannot be independently swapped by a caller.
-/// Terrain remains the single material owner, composed by the enclosing Kernel.
+/// Its owned TerrainOwner remains the single material authority. The Kernel
+/// uses material queries and compound edits rather than mutating terrain beside water.
 pub struct TerrainWater {
+    terrain: TerrainOwner,
     geometry: TerrainWaterGeometry,
     graph: CompiledWater,
     state: WaterState,
     scratch: WaterWorkspace,
 }
 impl TerrainWater {
-    pub fn fresh(geometry: TerrainWaterGeometry, terrain: &mut TerrainOwner,
+    pub fn fresh(geometry: TerrainWaterGeometry, mut terrain: TerrainOwner,
         stocks: &[WaterStock]) -> Result<Self, String> {
-        let graph = geometry.compile(terrain, 0, None)?;
+        if geometry.spacing != terrain.cell_spacing_m() { return Err("terrain and water metric differ".into()); }
+        let graph = geometry.compile(&mut terrain, 0, None)?;
         let state = graph.initial(stocks)?;
         let scratch = graph.workspace();
-        Ok(Self { geometry, graph, state, scratch })
+        Ok(Self { terrain, geometry, graph, state, scratch })
     }
+    pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
         let next = self.graph.advance(&self.state, seconds, &mut self.scratch)?;
@@ -116,8 +120,9 @@ impl TerrainWater {
 
     /// All fallible water work precedes terrain publication. The enclosing
     /// Kernel must also admit finite yield custody before invoking this step.
-    pub fn excavate(&mut self, terrain: &mut TerrainOwner,
+    pub fn excavate(&mut self,
         at: Cell, expected: u16, replacement: u16) -> Result<ExcavationResult, String> {
+        let terrain = &mut self.terrain;
         let prepared = match terrain.prepare_excavation(at, expected, replacement)? {
             PrepareResult::Blocked { reason, .. } => return Ok(ExcavationResult::TerrainBlocked(reason)),
             PrepareResult::Prepared(change) => change,
@@ -171,20 +176,20 @@ mod tests {
         let geometry = TerrainWaterGeometry::new("colony-water".into(), vec![at],
             BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Porous(rule.clone())),
                 (2, MaterialWater::Porous(rule))]), [1.0; 3], 1.0, 0.1, WaterLimits::default()).unwrap();
-        let mut water = TerrainWater::fresh(geometry, &mut terrain,
+        let mut water = TerrainWater::fresh(geometry, terrain,
             &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 }]).unwrap();
-        assert!(matches!(water.excavate(&mut terrain, at, expected, 0).unwrap(), ExcavationResult::Applied(_)));
-        assert_eq!(terrain.query(at).unwrap(), 0);
+        assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::Applied(_)));
+        assert_eq!(water.material(at).unwrap(), 0);
         let facts = water.facts().unwrap();
         assert_eq!(facts.total_kg, 200.0);
         assert_eq!(facts.cells[0].kind, WaterCellKind::Void);
         assert_eq!(facts.cells[0].capacity_kg, 1000.0);
-        assert!(matches!(water.excavate(&mut terrain, at, expected, 0).unwrap(), ExcavationResult::TerrainBlocked(_)));
+        assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::TerrainBlocked(_)));
         assert_eq!(water.facts().unwrap(), facts);
         let dry = (-20..0).map(|y| Cell { x: 20, y, z: 0 })
-            .find(|at| terrain.query(*at).unwrap() != 0).unwrap();
-        let expected = terrain.query(dry).unwrap();
-        assert!(matches!(water.excavate(&mut terrain, dry, expected, 0).unwrap(), ExcavationResult::Applied(_)));
+            .find(|at| water.material(*at).unwrap() != 0).unwrap();
+        let expected = water.material(dry).unwrap();
+        assert!(matches!(water.excavate(dry, expected, 0).unwrap(), ExcavationResult::Applied(_)));
         assert_eq!(water.facts().unwrap(), facts);
         water.advance(0.2).unwrap();
         assert_eq!(water.facts().unwrap().total_kg, 200.0);

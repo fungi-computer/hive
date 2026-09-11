@@ -513,6 +513,9 @@ impl TerrainOwner {
         self.cache.clear();
         Ok(())
     }
+    pub fn cell_spacing_m(&self) -> [f64; 3] {
+        [1.0, self.generator.vertical_metres(), 1.0]
+    }
     pub fn revision(&self) -> u64 {
         self.revision
     }
