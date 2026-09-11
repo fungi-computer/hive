@@ -20,7 +20,14 @@ import { stonePile } from "./art/stone.js";
 import { rationPile } from "./art/food.js";
 import { stationScene } from "./art/brew-station.js";
 import { shipScene } from "./art/ship.js";
-import { cannonScene, cannonballScene } from "./art/cannon.js";
+import {
+  cannonScene,
+  cannonballScene,
+  cannonballEmbeddedScene,
+  smokeScene,
+  dustScene,
+  flashScene,
+} from "./art/cannon.js";
 import {
   STATION_VISUAL_PROFILES,
   stationProfileOptions,
@@ -411,6 +418,7 @@ export async function bakeArt(onProgress = () => {}) {
       mixedShelf: {},
       props: { cannon: [] },
       projectiles: {},
+      effects: { smoke: [], dust: [], flash: [] },
       pawnAnchor: anchor(portrait),
       propAnchor: anchor(prop),
       vehicleAnchor,
@@ -440,7 +448,7 @@ export async function bakeArt(onProgress = () => {}) {
       ["rowan", workPoses],
       ["witch-runner", workPoses],
       ["cat", ["idle", "walk", "sleep"]],
-      ["goblin", ["idle", "walk"]],
+      ["goblin", ["idle", "walk", "hit"]],
     ]) {
       const target = (art.figures[kind] = {});
       for (const pose of poses) {
@@ -611,9 +619,30 @@ export async function bakeArt(onProgress = () => {}) {
     art.props.cannon = Array.from({ length: 4 }, (_, direction) =>
       bakeStartup(renderer, cannonScene(direction), prop, 112, 112),
     );
+    art.props.cannonRecoil = Array.from({ length: 4 }, (_, direction) =>
+      Array.from({ length: 8 }, (_, frame) =>
+        bakeStartup(renderer, cannonScene(direction, frame < 2 ? 1 - frame * 0.18 : Math.max(0, 0.64 - (frame - 2) * 0.16)), prop, 112, 112),
+      ),
+    );
+    art.effects.smoke = Array.from({ length: 6 }, (_, frame) =>
+      bakeStartup(renderer, smokeScene(frame / 6), prop, 112, 112),
+    );
+    art.effects.dust = Array.from({ length: 6 }, (_, frame) =>
+      bakeStartup(renderer, dustScene(frame / 6), prop, 112, 112),
+    );
+    art.effects.flash = Array.from({ length: 5 }, (_, frame) =>
+      bakeStartup(renderer, flashScene(frame / 5), prop, 112, 112),
+    );
     art.projectiles.cannonball = bakeStartup(
       renderer,
       cannonballScene(),
+      prop,
+      112,
+      112,
+    );
+    art.projectiles.cannonballEmbedded = bakeStartup(
+      renderer,
+      cannonballEmbeddedScene(),
       prop,
       112,
       112,
