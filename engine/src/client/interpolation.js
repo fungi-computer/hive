@@ -1,7 +1,7 @@
 const MAX_FRAMES = 32;
 const MAX_FACTS = 512;
 const DEFAULT_LOCAL_DELAY_MS = 66;
-const DEFAULT_ONLINE_SAMPLE_MS = 250;
+const DEFAULT_ONLINE_SAMPLE_MS = 100;
 
 function copyPoint(point) {
   return point ? { x: point.x, y: point.y, z: point.z } : point;
@@ -23,17 +23,22 @@ function copyFacts(facts) {
 }
 function interpolatePose(a, b, amount) {
   if (!a?.position || !b?.position) return amount < 0.5 ? a : b;
+  let turn = (b.facing - a.facing) % 4;
+  if (turn > 2) turn -= 4;
+  if (turn < -2) turn += 4;
   return {
     position: {
       x: a.position.x + (b.position.x - a.position.x) * amount,
       y: a.position.y + (b.position.y - a.position.y) * amount,
       z: a.position.z + (b.position.z - a.position.z) * amount,
     },
-    facing: a.facing + (b.facing - a.facing) * amount,
+    facing: a.facing + turn * amount,
   };
 }
 function interpolateFact(a, b, amount) {
   if (!a || !b) return copyFact(a ?? b);
+  if ((a.support ?? null) !== (b.support ?? null))
+    return copyFact(amount < 0.5 ? a : b);
   const next = copyFact(a);
   next.pose = interpolatePose(a.pose, b.pose, amount);
   if (a.local || b.local)
@@ -85,7 +90,7 @@ function composeFacts(facts) {
 }
 
 /**
- * Server-time snapshot interpolation. Online playback buffers two 250ms
+ * Server-time snapshot interpolation. Online playback buffers two 100ms
  * publications by default; local Worker playback retains its 66ms delay.
  * The buffer never extrapolates and reanchors only after a committed sample.
  */
@@ -98,6 +103,14 @@ export function createInterpolationBuffer({
 } = {}) {
   if (cadence !== "local" && cadence !== "online")
     throw new Error("unknown interpolation cadence");
+  if (
+    !Number.isFinite(sampleIntervalMs) ||
+    sampleIntervalMs < 25 ||
+    sampleIntervalMs > 1000
+  )
+    throw new Error("invalid interpolation sample interval");
+  if (!Number.isFinite(delayMs) || delayMs < 0 || delayMs > 2000)
+    throw new Error("invalid interpolation delay");
   const frames = [];
   let epoch;
   let latestSequence = -1;

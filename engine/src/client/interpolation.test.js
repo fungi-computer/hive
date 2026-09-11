@@ -108,14 +108,16 @@ test("default delayed clock cannot rewind after short recovery", () => {
 test("online cadence buffers delayed and jittered publications", () => {
   const buffer = createInterpolationBuffer({ cadence: "online" });
   assert.equal(buffer.cadence, "online");
-  assert.equal(buffer.delayMs, 500);
+  assert.equal(buffer.delayMs, 200);
   buffer.push(frame(0, 0, 0), 0);
   buffer.push(frame(1, 0.25, 25), 310);
   buffer.push(frame(2, 0.5, 50), 590);
-  // At 800ms the two-sample delay leaves us between the first two
+  // At 500ms the two-sample delay leaves us between the first two
   // publications; no extrapolation is needed despite receipt jitter.
-  assert.equal(buffer.render(800)[0].pose.position.x, 30);
-  assert.equal(buffer.render(1000)[0].pose.position.x, 50);
+  assert.equal(buffer.render(500)[0].pose.position.x, 30);
+  assert.equal(buffer.render(700)[0].pose.position.x, 50);
+  buffer.push(frame(3, 0.75, 75), 900);
+  assert.equal(buffer.render(850)[0].pose.position.x, 65);
 });
 
 test("supported children interpolate in parent-local space", () => {
@@ -141,4 +143,27 @@ test("supported children interpolate in parent-local space", () => {
   assert.ok(Math.abs(crew.pose.position.x - Math.SQRT1_2) < 1e-9);
   assert.ok(Math.abs(crew.pose.position.z - Math.SQRT1_2) < 1e-9);
   assert.equal(crew.local.position.x, 1);
+});
+
+test("facing wraps across the quarter-turn boundary", () => {
+  const buffer = createInterpolationBuffer({ delayMs: 0 });
+  buffer.push(frame(0, 0, 0), 0);
+  buffer.push(
+    {
+      epoch: "one",
+      sequence: 1,
+      time: 1,
+      facts: [{ id: "a", pose: { position: { x: 0, y: 0, z: 0 }, facing: 0 } }],
+    },
+    1000,
+  );
+  const wrapped = {
+    epoch: "one",
+    sequence: 2,
+    time: 2,
+    facts: [{ id: "a", pose: { position: { x: 0, y: 0, z: 0 }, facing: 3 } }],
+  };
+  buffer.push(wrapped, 2000);
+  assert.equal(buffer.render(1500)[0].pose.facing, -0.5);
+  assert.equal(buffer.render(2000)[0].pose.facing, 3);
 });
