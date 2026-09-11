@@ -1,0 +1,78 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { entity } from "../sdk/authoring";
+import {
+  Body,
+  Container,
+  ExcavationWork,
+  MaterialLot,
+} from "../sdk/common";
+import { DeliveryTask } from "../sdk/delivery";
+import { colonyPack } from "./colony";
+
+const worker = entity("colony.worker.1");
+const source = entity("colony.pantry");
+
+function row(id: ReturnType<typeof entity>, definition: { id: string }, value: object) {
+  return { id, get(requested: { id: string }) { assert.equal(requested.id, definition.id); return value; } };
+}
+
+function context({ lots = [], tasks = [], work = [] } = {}) {
+  const values = new Map<string, readonly unknown[]>([
+    ["colony.worker", [row(worker, { id: "colony.worker" }, { guest: false })]],
+    [Body.id, [row(worker, Body, { speed: 2 })]],
+    [Container.id, [row(worker, Container, { capacity: 3 })]],
+    [MaterialLot.id, lots],
+    [DeliveryTask.id, tasks],
+    [ExcavationWork.id, work],
+  ]);
+  return { query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
+}
+
+test("Colony dig emits one native excavation request for an admitted target", () => {
+  const result = colonyPack.commands!.dig.run(context(), {
+    entities: [worker],
+    target: { cell: [0, 12, 0], material: 1 },
+  });
+  assert.deepEqual(result.writes, []);
+  assert.deepEqual(result.actions, [{
+    kind: "excavate",
+    entity: worker,
+    x: 0,
+    y: 12,
+    z: 0,
+    expected: 1,
+    replacement: 0,
+  }]);
+});
+
+test("Colony dig rejects invalid material, active delivery, and full spoil cargo", () => {
+  assert.throws(() => colonyPack.commands!.dig.run(context(), {
+    entities: [worker], target: { cell: [0, 12, 0], material: 0 },
+  }), /not excavatable/);
+  const task = row(entity("colony.delivery.1"), DeliveryTask, {
+    actor: worker, sourceLot: entity("colony.food.1"), source,
+    destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "carrying",
+  });
+  assert.throws(() => colonyPack.commands!.dig.run(context({ tasks: [task] }), {
+    entities: [worker], target: { cell: [0, 12, 0], material: 1 },
+  }), /carrying out a delivery/);
+  const lot = row(entity("colony.spoil.1"), MaterialLot, {
+    quantity: 3, kind: "soil-spoil", container: worker,
+  });
+  assert.throws(() => colonyPack.commands!.dig.run(context({ lots: [lot] }), {
+    entities: [worker], target: { cell: [0, 12, 0], material: 1 },
+  }), /capacity/);
+});
+
+test("Colony cancelDig emits native cancel-work only for active excavation", () => {
+  const work = row(worker, ExcavationWork, {
+    x: 0, y: 12, z: 0, expected: 1, replacement: 0, seconds: 0,
+  });
+  const result = colonyPack.commands!.cancelDig.run(context({ work: [work] }), { entities: [worker] });
+  assert.deepEqual(result, {
+    actions: [{ kind: "cancel-work", entity: worker }],
+    writes: [],
+  });
+  assert.throws(() => colonyPack.commands!.cancelDig.run(context(), { entities: [worker] }), /no excavation work/);
+});

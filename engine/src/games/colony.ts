@@ -1,7 +1,18 @@
 import { command, component, entity, query } from "../sdk/authoring";
-import { Body, Container, Destination, MaterialLot, Position, Traversal, encodeDefinition } from "../sdk/common";
+import {
+  Body,
+  Container,
+  Destination,
+  ExcavationWork,
+  MaterialLot,
+  Position,
+  Traversal,
+  cancelWork,
+  encodeDefinition,
+  excavate,
+} from "../sdk/common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
-import { colonyEnvironmentDefinition } from "./colony-environment";
+import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import type { EntityId, GamePack } from "../contracts";
 
 export const Worker = component<{ guest: boolean }>("colony.worker", {
@@ -79,6 +90,10 @@ const colonyInitial = [
 ];
 
 type DeliveryInput = { readonly quantity?: unknown; readonly entities?: unknown };
+type DigInput = {
+  readonly entities?: unknown;
+  readonly target?: unknown;
+};
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
 
 function inputOf(input: unknown): DeliveryInput {
@@ -146,6 +161,66 @@ function deliveryWrites(
   });
 }
 
+function selectedDigWorker(context: CommandContext, input: unknown, allowActiveExcavation = false): EntityId {
+  if (!input || typeof input !== "object" || Array.isArray(input))
+    throw new Error("dig command requires one selected worker");
+  const entities = (input as DigInput).entities;
+  if (!Array.isArray(entities) || entities.length !== 1 || typeof entities[0] !== "string")
+    throw new Error("dig command requires one selected worker");
+  const worker = entities[0] as EntityId;
+  if (!(workers as readonly EntityId[]).includes(worker))
+    throw new Error("dig selection must contain a colony worker");
+  const workerState = context.query(query(Worker)).find((row) => row.id === worker)?.get(Worker);
+  if (!workerState || workerState.guest) throw new Error("guests cannot dig");
+  const body = context.query(query(Body)).find((row) => row.id === worker)?.get(Body);
+  const container = context.query(query(Container)).find((row) => row.id === worker)?.get(Container);
+  if (!body || !Number.isFinite(body.speed) || body.speed <= 0 || !container)
+    throw new Error("selected worker cannot dig");
+  const activeDelivery = context.query(query(DeliveryTask)).some((row) => {
+    const task = row.get(DeliveryTask);
+    return task.actor === worker && task.phase !== "idle" && task.phase !== "complete";
+  });
+  if (activeDelivery) throw new Error("worker is carrying out a delivery");
+  if (!allowActiveExcavation && context.query(query(ExcavationWork)).some((row) => row.id === worker))
+    throw new Error("worker already has excavation work");
+  const carried = context
+    .query(query(MaterialLot))
+    .filter((row) => row.get(MaterialLot).container === worker)
+    .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
+  if (!Number.isSafeInteger(carried) || carried < 0)
+    throw new Error("worker cargo is invalid");
+  return worker;
+}
+
+function excavationInput(context: CommandContext, input: unknown) {
+  const worker = selectedDigWorker(context, input);
+  const target = (input as DigInput).target;
+  if (!target || typeof target !== "object" || Array.isArray(target))
+    throw new Error("dig command requires a terrain target");
+  const record = target as { readonly cell?: unknown; readonly material?: unknown };
+  const cell = record.cell;
+  if (
+    !Array.isArray(cell) ||
+    cell.length !== 3 ||
+    !cell.every((value) => typeof value === "number" && Number.isSafeInteger(value) && Math.abs(value) <= 1_000_000)
+  )
+    throw new Error("dig target cell is invalid");
+  if (typeof record.material !== "number" || !Number.isInteger(record.material) || record.material < 0 || record.material > 65535)
+    throw new Error("dig target material is invalid");
+  const material = colonyEnvironment.materials.find(({ slot }) => slot === record.material);
+  if (!material?.excavation || !material.solid || material.slot === colonyEnvironment.world.slots.air)
+    throw new Error("dig target material is not excavatable");
+  const output = material.excavation.unitsPerCell;
+  const container = context.query(query(Container)).find((row) => row.id === worker)?.get(Container);
+  const carried = context
+    .query(query(MaterialLot))
+    .filter((row) => row.get(MaterialLot).container === worker)
+    .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
+  if (!container || !Number.isSafeInteger(output) || output <= 0 || carried + output > container.capacity)
+    throw new Error("worker lacks capacity for excavation output");
+  return { worker, cell: { x: cell[0], y: cell[1], z: cell[2] }, expected: material.slot };
+}
+
 const colonyComponents = [
   Position,
   Body,
@@ -181,6 +256,27 @@ export const colonyPack: GamePack = {
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
+    dig: command({
+      reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
+      writes: [],
+      run: (context, input) => {
+        // The first interaction sends a target only when the worker is already
+        // within native reach; routing a queued dig job belongs to the shared
+        // work approach layer and is deliberately not recreated here.
+        const { worker, cell, expected } = excavationInput(context, input);
+        return { actions: [excavate(worker, cell, expected, colonyEnvironment.world.slots.air)], writes: [] };
+      },
+    }),
+    cancelDig: command({
+      reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
+      writes: [],
+      run: (context, input) => {
+        const worker = selectedDigWorker(context, input, true);
+        if (!context.query(query(ExcavationWork)).some((row) => row.id === worker))
+          throw new Error("worker has no excavation work");
+        return { actions: [cancelWork(worker)], writes: [] };
+      },
+    }),
   },
   presentation: {
     controls: [
@@ -197,6 +293,12 @@ export const colonyPack: GamePack = {
         { id: "pantry-quantity", label: "Pantry", value: total(pantryId) },
         { id: "worker-carried", label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         { id: "guest-quantity", label: "Guest meal", value: total(guestId) },
+        ...workers.map((worker, index) => ({
+          id: `dig-progress-${index + 1}`,
+          label: `Worker ${index + 1} digging`,
+          value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
+        })),
+        { id: "spoil-carried", label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
         ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
       ];
     },
