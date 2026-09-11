@@ -241,8 +241,8 @@ export class TerrainPresentationOwner {
     return {
       revision,
       surfaces: Object.freeze(surfaces),
-      byColumn: new Map(byColumn),
-      structuresByColumn: new Map(structuresByColumn),
+      byColumn,
+      structuresByColumn,
       structureSurfaces: Object.freeze(structureSurfaces),
     };
   }
