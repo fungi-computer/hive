@@ -829,3 +829,17 @@ movement (unused-function warning remains), and PreparedMaterialOutput's previou
 unused revision warning remains. The full native movement/route recovery caller
 join now has one isolated writer in terrain-movement; networking has a separate
 terrain-stream writer. Neither changes the public release yet.
+# September 11 delivery eligibility consumer join
+
+Integrated 60ccbda and 1d7cb81: shared delivery filters movement capability,
+native integer quantity/capacity, lot custody and available space before cost
+evaluation. Container occupancy is aggregated once per pass. Colony and Pirates
+declare the queried capabilities; transfer admission remains the native owner.
+
+Actual consumer qualification u5545 / invocation
+260412519fd943d08ebe277455807ca3 / exec29860 exited 0: Colony delivery with
+save/restore between every step, plus four existing pirate movement/cargo/facing
+laws passed (5 total); strict engine types and diff check passed. Scope is
+inactive/dead with empty ControlGroup. This used the existing generated WASM,
+not the pending native terrain movement branch. It establishes preservation of
+these delivery consumers, not route-aware assignment or a new hosted release.
