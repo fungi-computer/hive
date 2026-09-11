@@ -1,3 +1,23 @@
+## Terrain Colony delivery regression and correction — September 11
+
+Generated Colony consumer u5610 failed its real restore-between-steps delivery:
+a pause at x=-1.5 cleared the terrain route; resume repeatedly rejected with
+`terrain pose lacks an in-flight route`. The u5615 diagnostic captured the
+actual rejection and stationary pose. u5613 accidentally repeated the unchanged
+failed test because the diagnostic insertion did not match bundled source;
+no new evidence is claimed from that repeat. All scopes closed inactive/dead.
+
+Native correction retains suspended physical contact without a Destination.
+Stopped movement and predicted motion remain stationary; later route preparation
+uses the contact witness and revalidates its terrain. Snapshot format7 explicitly
+records suspended contact and rejects old formats. Root u5620 invocation
+6cb086536875467b9740cda4ceeebbd9, exec43656 exited0: all10 affected terrain
+movement laws, including stop/restore/resume and forged state rejection. Scope
+inactive/dead/empty. Existing unused material-output revision warning remains.
+The rebuilt WASM/full Colony delivery consumer still must qualify this correction;
+no hosted fix is claimed. Shared Dig/Cancel commands and generated-world placement
+are integrated source, not a release receipt.
+
 ## Initial generated placement — September 11
 
 Integrated native placement through `5282db3`: authored environment placements
