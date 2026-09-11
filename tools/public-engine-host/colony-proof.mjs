@@ -118,25 +118,61 @@ function fact(observation, id) {
   assert(row, `published fact missing: ${id}`);
   return row;
 }
-function quantity(observation, container) {
-  const row = observation.observation.facts.find((fact) => fact.id === container);
+function quantity(observation, container, kind = undefined) {
+  const row = observation.observation.facts.find((candidate) => candidate.id === container);
   return (row?.inventory?.items ?? [])
+    .filter((item) => kind === undefined || item.kind === kind)
     .reduce((sum, item) => sum + item.quantity, 0);
+}
+function presentationFact(observation, id) {
+  const row = observation.observation.presentationFacts?.find((candidate) => candidate.id === id);
+  assert(row, `published presentation fact missing: ${id}`);
+  return row;
+}
+function digMarks(observation) {
+  return (observation.observation.terrainMarks ?? [])
+    .filter((mark) => mark.id.startsWith("colony.dig."))
+    .sort((left, right) => left.id.localeCompare(right.id));
 }
 function physical(observation) {
   const frame = terrain(observation);
   return {
     terrain: { revision: frame.revision, surfaces: frame.surfaces, water: frame.water },
     pantry: quantity(observation, "colony.pantry"),
-    worker: quantity(observation, "colony.worker.1"),
+    pantrySpoil: quantity(observation, "colony.pantry", "soil-spoil") + quantity(observation, "colony.pantry", "stone-spoil"),
+    worker1: quantity(observation, "colony.worker.1"),
+    worker2: quantity(observation, "colony.worker.2"),
+    digMarks: digMarks(observation),
   };
 }
+function assertQueuedArea(observation) {
+  assert.equal(observation.observation.paused, true, "Colony should remain paused");
+  assert.equal(presentationFact(observation, "dig-orders").value, 2, "queued dig order count changed");
+  assert.deepEqual(digMarks(observation).map((mark) => [mark.id, mark.status]), [
+    ["colony.dig.1.13.0", "queued"], ["colony.dig.2.13.0", "queued"],
+  ], "queued area projection changed");
+  assert.equal(quantity(observation, "colony.pantry"), 6, "paused area changed pantry inventory");
+  assert.equal(quantity(observation, "colony.worker.1"), 0, "paused area changed worker 1 inventory");
+  assert.equal(quantity(observation, "colony.worker.2"), 0, "paused area changed worker 2 inventory");
+}
+function assertCutsAndSpoil(observation) {
+  for (const x of [1, 2]) {
+    const row = surfaceAt(observation, x, 0);
+    assert(row.cell[1] < 13, `area cell ${x},13,0 was not excavated`);
+  }
+  assert.equal(quantity(observation, "colony.pantry", "soil-spoil") + quantity(observation, "colony.pantry", "stone-spoil"), 6,
+    "pantry does not contain six spoil units");
+  assert.equal(quantity(observation, "colony.worker.1") + quantity(observation, "colony.worker.2"), 0,
+    "workers still carry material");
+  assert.equal(digMarks(observation).length, 0, "completed dig orders remain projected");
+}
+
 
 await mkdir(output, { recursive: true });
 try {
   const inventory = [
     "tools/public-engine-host/worker.ts", "tools/public-engine-host/protocol.ts",
-    "engine/src/games/colony.ts", "engine/src/games/colony-environment.ts", "engine/src/runtime/observation.ts",
+    "engine/src/games/colony.ts", "engine/src/games/colony-environment.ts", "engine/src/games/colony-work.ts", "engine/src/presentation.ts", "engine/src/runtime/observation.ts",
     "engine/src/runtime/session.ts", "engine/src/runtime/region-program.ts", "engine/src/contracts.ts",
     "engine/generated/hive_kernel.js", "engine/generated/hive_kernel_bg.wasm",
   ].sort();
@@ -155,84 +191,52 @@ try {
 
   await start();
   const initial = await observe();
-  const cuts = [
-    { walk: null, cut: [1, 0] },
-    { walk: [0, 0], cut: [1, 0] },
-    { walk: [2, 1], cut: [2, 0] },
-    { walk: [2, 0], cut: [1, 0] },
-  ];
-  const cutEvidence = [];
-  for (const { walk, cut } of cuts) {
-    const [x, z] = cut;
-    const before = await observe();
-    const surface = surfaceAt(before, x, z);
-    const y = surface.cell[1];
-    const move = walk === null ? undefined : await admit({ kind: "action", action: { kind: "move", entity: "colony.worker.1", destination: {
-      x: walk[0], y: (surfaceAt(before, walk[0], walk[1]).cell[1] + 0.5) * terrain(before).verticalMetres,
-      z: walk[1], frame: null,
-    } } }, `move-${walk[0]}-${walk[1]}`);
-    const moved = walk === null ? before : await waitFor((current) => {
-      const position = fact(current, "colony.worker.1").pose?.position;
-      return position && Math.abs(position.x - walk[0]) < 0.1 && Math.abs(position.z - walk[1]) < 0.1;
-    }, `worker reaches ${walk[0]},${walk[1]}`);
-    const dig = await admit({ kind: "command", name: "dig", input: {
-      entities: ["colony.worker.1"], target: { cell: [x, y, z], material: surface.material },
-    } }, `dig-${x}-${y}-${z}`);
-    const completed = await waitFor((current) => quantity(current, "colony.worker.1") >= 3,
-      `dig completes ${x},${y},${z}`, 30_000);
-    const lowered = completed.observation.terrain.surfaces.find(({ cell }) => cell[0] === x && cell[2] === z);
-    assert(lowered && lowered.cell[1] < surface.cell[1], `cut ${x},${y},${z} did not lower its published surface`);
-    cutEvidence.push({ cell: [x, y, z], surface, move: move?.receipt, movedRevision: moved.revision, dig: dig.receipt,
-      after: physical(completed) });
-    if (cutEvidence.length < cuts.length) {
-      const pantry = fact(completed, "colony.pantry").pose?.position;
-      assert(pantry, "published pantry position missing");
-      const toPantry = await admit({ kind: "action", action: { kind: "move", entity: "colony.worker.1", destination: {
-        x: pantry.x, y: pantry.y, z: pantry.z, frame: null,
-      } } }, `pantry-${cutEvidence.length}`);
-      await waitFor((current) => {
-        const position = fact(current, "colony.worker.1").pose?.position;
-        return position && Math.abs(position.x - pantry.x) < 0.1 && Math.abs(position.z - pantry.z) < 0.1;
-      }, `worker reaches pantry ${cutEvidence.length}`);
-      const unload = await admit({ kind: "command", name: "deposit", input: { entities: ["colony.worker.1"] } }, `deposit-${cutEvidence.length}`);
-      const unloaded = await waitFor((current) => quantity(current, "colony.worker.1") === 0, `deposit ${cutEvidence.length}`);
-      cutEvidence.at(-1).deposit = { move: toPantry.receipt, command: unload.body, receipt: unload.receipt, after: physical(unloaded) };
-    }
-  }
-  const carried = await waitFor((current) => quantity(current, "colony.worker.1") >= 3, "finite spoil carried");
-  const pantryBefore = quantity(carried, "colony.pantry");
-  assert.equal(pantryBefore + quantity(carried, "colony.worker.1"), 18, "Colony material total changed before final deposit");
-  const finalPantry = fact(carried, "colony.pantry").pose?.position;
-  assert(finalPantry, "published pantry position missing before final deposit");
-  await admit({ kind: "action", action: { kind: "move", entity: "colony.worker.1", destination: {
-    x: finalPantry.x, y: finalPantry.y, z: finalPantry.z, frame: null,
-  } } }, "pantry-final");
-  await waitFor((current) => {
-    const position = fact(current, "colony.worker.1").pose?.position;
-    return position && Math.abs(position.x - finalPantry.x) < 0.1 && Math.abs(position.z - finalPantry.z) < 0.1;
-  }, "worker reaches pantry final");
-  const deposit = await admit({ kind: "command", name: "deposit", input: { entities: ["colony.worker.1"] } }, "deposit");
-  const deposited = await waitFor((current) => quantity(current, "colony.worker.1") === 0 && quantity(current, "colony.pantry") > pantryBefore, "deposit settles");
-  await waitFor((current) => terrain(current).water?.some((cell) => cell.liquidVolumeM3 > 0) === true,
-    "visible liquid water before pause", 30_000);
-  const pause = await admit({ kind: "pause" }, "pause");
-  const wetEnd = await observe();
-  assert((terrain(wetEnd).water?.length ?? 0) > 0, "paused Colony observation has no visible water");
-  const finalCell = cutEvidence.at(-1).cell;
-  assert(terrain(wetEnd).water.some((cell) => cell.at[0] === finalCell[0] && cell.at[1] === finalCell[1] && cell.at[2] === finalCell[2] && cell.liquidVolumeM3 > 0), "paused water is not present at final cut");
-  const witness = { initial: physical(initial), cuts: cutEvidence, deposit: { body: deposit.body, receipt: deposit.receipt },
-    wetEnd: { receipt: pause.receipt, observation: wetEnd, physical: physical(wetEnd) } };
-  await writeFile(resolve(output, "colony-proof-wet.json"), JSON.stringify(witness, null, 2));
+  assert.equal(quantity(initial, "colony.pantry"), 6, "fresh Colony pantry baseline changed");
+  assert.equal(digMarks(initial).length, 0, "fresh Colony has unexpected dig orders");
+
+  const pause = await admit({ kind: "pause" }, "pause-before-area");
+  const area = await admit({ kind: "command", name: "dig", input: {
+    area: { start: [1, 13, 0], end: [2, 13, 0] },
+  } }, "area");
+  const queued = await observe();
+  assertQueuedArea(queued);
+
+  const queuedWitness = { initial: physical(initial), pause: pause.receipt, area: { body: area.body, receipt: area.receipt },
+    queued: { revision: queued.revision, observation: queued, physical: physical(queued) } };
+
   await stop();
   await start();
   const reopened = await observe();
-  assert.deepEqual(physical(reopened), physical(wetEnd), "restart changed Colony geometry or quantities");
-  const replay = await send(deposit.body);
-  assert.deepEqual(replay, deposit.receipt, "replayed deposit receipt changed");
+  assertQueuedArea(reopened);
+  assert.deepEqual(digMarks(reopened), digMarks(queued), "restart changed queued area projection");
+  const replay = await send(area.body);
+  assert.deepEqual(replay, area.receipt, "replayed area receipt changed");
   const afterReplay = await observe();
-  assert.deepEqual(physical(afterReplay), physical(reopened), "replayed deposit had an extra effect");
-  await writeFile(resolve(output, "colony-proof-restart.json"), JSON.stringify({ reopened, replay, afterReplay }, null, 2));
-  console.log(JSON.stringify({ status: "passed", starts, cuts: cuts.length, restarted: true }));
+  assertQueuedArea(afterReplay);
+  assert.equal(digMarks(afterReplay).length, 2, "replayed area duplicated an order");
+  queuedWitness.replay = replay;
+  queuedWitness.afterReplay = { revision: afterReplay.revision, physical: physical(afterReplay) };
+  await writeFile(resolve(output, "colony-proof-area.json"), JSON.stringify(queuedWitness, null, 2));
+
+  const resume = await admit({ kind: "resume" }, "resume-after-restart");
+  const completed = await waitFor((current) => {
+    try {
+      assertCutsAndSpoil(current);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "both area cuts, six pantry spoil, and empty workers", 45_000);
+  const finalPause = await admit({ kind: "pause" }, "pause-final");
+  const final = await observe();
+  assertCutsAndSpoil(final);
+  assert.equal(final.observation.paused, true, "final Colony pause was not applied");
+  await writeFile(resolve(output, "colony-proof-restart.json"), JSON.stringify({
+    reopened, resume: resume.receipt, completed: { revision: completed.revision, observation: completed, physical: physical(completed) },
+    finalPause: finalPause.receipt, final: { revision: final.revision, observation: final, physical: physical(final) },
+  }, null, 2));
+  console.log(JSON.stringify({ status: "passed", starts, areaCells: 2, restarted: true }));
+
 } catch (error) {
   await writeFile(resolve(output, "colony-proof-diagnostics.json"), JSON.stringify({ status: "failed", starts, error: redact(error?.stack ?? error), log: redact(log.slice(-16384)) }, null, 2));
   throw error;
