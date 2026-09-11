@@ -160,6 +160,17 @@ impl CompiledAtmosphere {
         if !ambient_carrier_density.is_finite() || ambient_carrier_density <= 0.0 {
             return Err("invalid atmosphere ambient density".into());
         }
+        let mut initial_carrier_kg = 0.0;
+        for volume_m3 in &volume_m3 {
+            let carrier_kg = ambient_carrier_density * *volume_m3;
+            if !carrier_kg.is_finite() || carrier_kg < 0.0 {
+                return Err("atmosphere initial carrier exceeds finite range".into());
+            }
+            initial_carrier_kg += carrier_kg;
+            if !initial_carrier_kg.is_finite() {
+                return Err("atmosphere initial carrier ledger exceeds finite range".into());
+            }
+        }
         let identity = identity(&definition)?;
         Ok(Self {
             definition,

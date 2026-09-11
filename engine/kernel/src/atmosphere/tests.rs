@@ -215,6 +215,16 @@ use super::*;
     }
 
     #[test]
+    fn finite_definition_rejects_nonfinite_initial_carrier() {
+        let mut extreme = definition();
+        extreme.ambient.pressure_pa = 1.0e308;
+        extreme.ambient.temperature_k = 1.0;
+        extreme.model.specific_gas_constant_jkg_k = 1.0;
+        extreme.volumes[0].members[0].volume_m3 = 1.0e308;
+        assert!(CompiledAtmosphere::compile(extreme).is_err());
+    }
+
+    #[test]
     fn malformed_definition_and_late_source_fail_before_state_change() {
         let mut malformed = definition();
         malformed.volumes.push(AtmosphereVolumeDefinition {
