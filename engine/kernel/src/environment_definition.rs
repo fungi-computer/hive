@@ -285,6 +285,30 @@ pub(crate) mod tests {
         )
     }
     #[test]
+    fn excavation_rules_are_validated_and_rebuilt_from_definition() {
+        use serde_json::json;
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("rules")).unwrap();
+        let rule = json!({"workSeconds":2.5,"outputKind":"soil-spoil","unitsPerCell":4});
+        input["materials"][1]["excavation"] = rule.clone();
+        let built = build_from_json(&input.to_string()).unwrap();
+        assert_eq!(built.excavation_rules[&1].output_kind, "soil-spoil");
+        assert_eq!(built.excavation_rules[&1].units_per_cell, 4);
+        assert_eq!(built.excavation_rules[&1].work_seconds, 2.5);
+        let restored_definition = prepare_definition(&input.to_string()).unwrap();
+        assert_eq!(restored_definition.excavation_rules[&1].units_per_cell, 4);
+        for invalid in [json!({"workSeconds":0,"outputKind":"soil-spoil","unitsPerCell":4}),
+            json!({"workSeconds":-1,"outputKind":"soil-spoil","unitsPerCell":4}),
+            json!({"workSeconds":2,"outputKind":"bad kind","unitsPerCell":4}),
+            json!({"workSeconds":2,"outputKind":"soil-spoil","unitsPerCell":0})] {
+            input["materials"][1]["excavation"] = invalid;
+            assert!(prepare_definition(&input.to_string()).is_err());
+        }
+        input["materials"][1]["excavation"] = rule.clone();
+        input["materials"][0]["excavation"] = rule;
+        assert!(prepare_definition(&input.to_string()).is_err());
+    }
+
+    #[test]
     fn rejects_oversized_or_duplicate_content() {
         assert!(build_from_json(&"x".repeat(MAX_JSON_BYTES + 1)).is_err());
         let duplicate = r#"{"world":{"seed":"s","identity":"i","bounds":{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8},"slots":{"air":0,"soil":1,"stone":2},"seaLevel":2,"verticalMetres":0.54},"materials":[{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}},{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}}],"water":{"id":"w","cells":[[0,0,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}"#;
