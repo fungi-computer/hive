@@ -743,8 +743,18 @@ mod tests {
             terrain.export().unwrap().len(),
             terrain.encoded_size(128, terrain.edit_bytes, 2).unwrap()
         );
-        let boundary = terrain.encoded_size(127, terrain.edit_bytes, 127).unwrap();
-        let next_boundary = terrain.encoded_size(128, terrain.edit_bytes, 128).unwrap();
-        assert!(next_boundary >= boundary);
+        terrain.max_edits = 128;
+        terrain.revision = 127;
+        for count in [127usize, 128] {
+            terrain.edits.clear();
+            terrain.edit_bytes = 0;
+            for index in 0..count {
+                let cell = Cell { x: index as i64 - 64, y: -2, z: -3 };
+                terrain.edits.insert(cell, 1);
+                terrain.edit_bytes += TerrainOwner::edit_entry_bytes(cell, 1).unwrap();
+            }
+            assert_eq!(terrain.export().unwrap().len(),
+                terrain.encoded_size(127, terrain.edit_bytes, count).unwrap());
+        }
     }
 }

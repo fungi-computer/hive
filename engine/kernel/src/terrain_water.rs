@@ -7,7 +7,7 @@ use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
     WaterState, WaterStock, WaterWorkspace, WaterFacts, WaterWork};
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub enum MaterialWater {
     Closed,
     Open,
@@ -54,6 +54,14 @@ impl TerrainWaterGeometry {
 
     /// Rebuild only after geometry changes, using a single proposed cell override.
     /// Missing material definitions are errors, never silently open boundaries.
+    fn identity(&self) -> Result<Vec<u8>, String> {
+        let cells = self.cells.iter().map(|cell| coordinates(*cell)).collect::<Result<Vec<_>, _>>()?;
+        let bytes = postcard::to_allocvec(&(self.id.as_str(), cells, &self.materials,
+            self.spacing, self.fall, self.spread)).map_err(|_| "water geometry identity encoding failed")?;
+        if bytes.len() > 65536 { return Err("water geometry identity exceeds record budget".into()); }
+        Ok(bytes)
+    }
+
     fn compile(&self, terrain: &mut TerrainOwner, revision: u64,
         replacement: Option<(Cell, u16)>) -> Result<CompiledWater, String> {
         let mut cells = Vec::new();
@@ -99,9 +107,18 @@ impl TerrainWaterGeometry {
 /// The graph, stocks and scratch cannot be independently swapped by a caller.
 /// Its owned TerrainOwner remains the single material authority. The Kernel
 /// uses material queries and compound edits rather than mutating terrain beside water.
+/// Three logical records. The Region transaction stores them at one revision.
+/// Environment data is not embedded into the entity snapshot.
+pub struct TerrainWaterRecords {
+    pub header: Vec<u8>,
+    pub terrain: Vec<u8>,
+    pub water: Vec<u8>,
+}
+
 pub struct TerrainWater {
     terrain: TerrainOwner,
     geometry: TerrainWaterGeometry,
+    identity: Vec<u8>,
     graph: CompiledWater,
     state: WaterState,
     scratch: WaterWorkspace,
@@ -113,8 +130,43 @@ impl TerrainWater {
         let graph = geometry.compile(&mut terrain, 0, None)?;
         let state = graph.initial(stocks)?;
         let scratch = graph.workspace();
-        Ok(Self { terrain, geometry, graph, state, scratch })
+        let identity = geometry.identity()?;
+        Ok(Self { terrain, geometry, identity, graph, state, scratch })
     }
+    pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
+        let header = postcard::to_allocvec(&(1u16, self.identity.as_slice(),
+            self.terrain.revision(), self.graph.binding().revision()))
+            .map_err(|_| "environment header encoding failed")?;
+        let terrain = self.terrain.export()?;
+        let water = self.graph.encode_state(&self.state)?;
+        if terrain.len() > 256 * 1024 || water.len() > 256 * 1024 {
+            return Err("environment record exceeds Region record budget".into());
+        }
+        Ok(TerrainWaterRecords { header, terrain, water })
+    }
+
+    /// Hydrate a disposable candidate. This never calls fresh/initial: zero
+    /// remaining water is a saved fact, not permission to reseed a source.
+    pub fn restore_records(geometry: TerrainWaterGeometry, mut terrain: TerrainOwner,
+        records: &TerrainWaterRecords) -> Result<Self, String> {
+        if records.header.len() > 65568 || records.terrain.len() > 256 * 1024
+            || records.water.len() > 256 * 1024 { return Err("environment record budget".into()); }
+        let ((version, saved_identity, terrain_revision, water_revision), remainder):
+            ((u16, &[u8], u64, u64), _) = postcard::take_from_bytes(&records.header)
+            .map_err(|_| "invalid environment header")?;
+        let identity = geometry.identity()?;
+        if version != 1 || !remainder.is_empty() || saved_identity != identity.as_slice()
+            || geometry.spacing != terrain.cell_spacing_m() {
+            return Err("environment record binding mismatch".into());
+        }
+        terrain.restore(&records.terrain)?;
+        if terrain.revision() != terrain_revision { return Err("environment terrain frontier mismatch".into()); }
+        let graph = geometry.compile(&mut terrain, water_revision, None)?;
+        let state = graph.decode_state(&records.water)?;
+        let scratch = graph.workspace();
+        Ok(Self { terrain, geometry, identity, graph, state, scratch })
+    }
+
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
