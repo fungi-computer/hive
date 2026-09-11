@@ -1,7 +1,7 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
-import type { WorkerCommand, WorkerEvent } from "./protocol";
+import type { WorkerCommand, WorkerTransportEvent } from "./protocol";
 import { terrainWireForRevision } from "./terrain-wire";
 
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
@@ -13,7 +13,7 @@ export class WorkerRuntime {
   constructor(
     private readonly createKernel: () => KernelPort,
     private readonly packs: Readonly<Record<string, GamePack>>,
-    private readonly emit: (event: WorkerEvent) => void,
+    private readonly emit: (event: WorkerTransportEvent) => void,
   ) {}
   private replaceSession(pack: GamePack, seed?: number, snapshot?: import("./session").SessionSnapshot): GameSession {
     const oldPort = this.port;

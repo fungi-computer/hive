@@ -1,5 +1,5 @@
 import type { GameId } from "../contracts";
-import type { WorkerCommand, WorkerEvent } from "./protocol";
+import type { WorkerCommand, WorkerEvent, WorkerTransportEvent } from "./protocol";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 
 export interface RuntimeConnection {
@@ -26,7 +26,7 @@ export function connectBrowserRuntime(
   let terrainEpoch: number | undefined;
   let cachedTerrain: TerrainWireFrame | undefined;
   let cadence: ReturnType<typeof setInterval> | undefined;
-  const onMessage = (event: MessageEvent<WorkerEvent>) => {
+  const onMessage = (event: MessageEvent<WorkerTransportEvent>) => {
     if (disposed) return;
     if (event.data.type === "results" || event.data.type === "error")
       stepping = false;
@@ -35,13 +35,19 @@ export function connectBrowserRuntime(
       cadence = undefined;
       if (!event.data.paused) startCadence(1 / 30);
     }
-    let delivered: WorkerEvent = event.data;
-    if (event.data.type === "frame") {
-      if (terrainEpoch !== undefined && event.data.epoch !== terrainEpoch) cachedTerrain = undefined;
-      terrainEpoch = event.data.epoch;
-      const terrain = parseTerrainObservation(event.data.terrain, cachedTerrain);
-      if (terrain !== undefined) cachedTerrain = terrain;
-      delivered = { ...event.data, ...(terrain === undefined ? {} : { terrain }) };
+    let delivered: WorkerEvent;
+    if (event.data.type !== "frame") delivered = event.data;
+    else {
+      try {
+        if (terrainEpoch !== undefined && event.data.epoch !== terrainEpoch) cachedTerrain = undefined;
+        terrainEpoch = event.data.epoch;
+        const terrain = parseTerrainObservation(event.data.terrain, cachedTerrain);
+        if (terrain !== undefined) cachedTerrain = terrain;
+        else cachedTerrain = undefined;
+        delivered = { ...event.data, ...(terrain === undefined ? {} : { terrain }) };
+      } catch (error) {
+        delivered = { type: "error", message: error instanceof Error ? error.message : String(error) };
+      }
     }
     for (const listener of listeners) listener(delivered);
   };

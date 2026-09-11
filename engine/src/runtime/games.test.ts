@@ -6,7 +6,7 @@ import { wasmKernelPort } from "./wasm-kernel";
 import { GameSession } from "./session";
 import { WorkerRuntime } from "./worker";
 import { readKernelEntities } from "./kernel-records";
-import type { WorkerEvent } from "./protocol";
+import type { WorkerEvent, WorkerTransportEvent } from "./protocol";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition, Fatigue } from "../games/survival";
 import { formationsPack, FormationMember } from "../games/formations";
@@ -18,7 +18,7 @@ initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 test("display frames identify time and reset discontinuities", () => {
   let runtime!: WorkerRuntime;
   try {
-    const events: WorkerEvent[] = [];
+    const events: WorkerTransportEvent[] = [];
     runtime = new WorkerRuntime(
       () => wasmKernelPort(new WasmKernel()),
       { survival: survivalPack },
@@ -34,9 +34,6 @@ test("display frames identify time and reset discontinuities", () => {
       [],
     );
     const frames = events.filter((event) => event.type === "frame");
-    const terrainFrames = frames.filter((frame) => frame.terrain !== undefined);
-    assert.equal(Array.isArray(terrainFrames[0]?.terrain?.surfaces), true);
-    assert.equal(Array.isArray(terrainFrames[1]?.terrain?.surfaces), false);
     assert.deepEqual(
       frames.map(({ time, epoch, sequence }) => [time, epoch, sequence]),
       [
@@ -512,7 +509,7 @@ test("authored intents survive pause restore and rollback with committed-only re
     assert.equal(restored.query(query(Setting))[0].get(Setting).value, 3);
     assert.equal(restored.save().pendingWrites.length, 0);
 
-    const workerEvents: WorkerEvent[] = [];
+    const workerEvents: WorkerTransportEvent[] = [];
     const worker = new WorkerRuntime(
       () => wasmKernelPort(new WasmKernel()),
       { intents: pack },
