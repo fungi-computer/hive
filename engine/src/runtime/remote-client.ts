@@ -128,6 +128,21 @@ function renderFact(value: unknown): value is RenderFact {
         !d.blocked.every(cell => Array.isArray(cell) && cell.length === 3 && cell.every(Number.isSafeInteger))) return false;
     if (d.bounds !== null && (!isRecord(d.bounds) || !finite(d.bounds.min_x) || !finite(d.bounds.max_x) || !finite(d.bounds.min_z) || !finite(d.bounds.max_z) || d.bounds.min_x > d.bounds.max_x || d.bounds.min_z > d.bounds.max_z)) return false;
   }
+  if (value.inventory !== undefined) {
+    const inventory = value.inventory;
+    if (!isRecord(inventory) || !Array.isArray(inventory.items) || inventory.items.length > 8 ||
+        (inventory.overflow !== undefined && typeof inventory.overflow !== "boolean") ||
+        inventory.items.some((item) => !isRecord(item) || typeof item.kind !== "string" ||
+          item.kind.length === 0 || item.kind.length > 128 || !finite(item.quantity) || item.quantity < 0))
+      return false;
+  }
+  if (value.activity !== undefined) {
+    const activity = value.activity;
+    if (!isRecord(activity) || activity.kind !== "delivery" || typeof activity.phase !== "string" ||
+        activity.phase.length === 0 || activity.phase.length > 128 || typeof activity.material !== "string" ||
+        activity.material.length === 0 || activity.material.length > 128 || !finite(activity.quantity) || activity.quantity < 0)
+      return false;
+  }
   return value.selected === undefined || typeof value.selected === "boolean";
 }
 function presentationFact(value: unknown): value is ObservationWire["observation"]["presentationFacts"][number] {

@@ -1,10 +1,9 @@
-import type { PresentationFact } from "../presentation";
-import type { ReadContext } from "../contracts";
+import type { EntityId, ReadContext, RenderFact } from "../contracts";
 import { query } from "../sdk/authoring";
-import { DeliveryTask } from "../sdk/delivery";
 import { MaterialLot } from "../sdk/common";
+import { DeliveryTask } from "../sdk/delivery";
 
-const MAX_TASKS = 8;
+const MAX_ITEMS_PER_ENTITY = 8;
 const MAX_TEXT = 128;
 
 function text(value: unknown, fallback: string): string {
@@ -13,51 +12,64 @@ function text(value: unknown, fallback: string): string {
     : fallback;
 }
 
-/**
- * Projects the shared delivery owner's committed state for display.
- * Material custody comes from MaterialLot.container; task phase is activity
- * intent. This function never infers a transfer from position or animation.
- */
-export function deliveryPresentationFacts(
+/** Decorates render facts from canonical lot custody and shared delivery state. */
+export function decorateDeliveryFacts(
+  facts: readonly RenderFact[],
   context: Pick<ReadContext, "query">,
-): readonly PresentationFact[] {
+): readonly RenderFact[] {
+  const visible = new Set(facts.map((fact) => fact.id));
   const tasks = [...context.query(query(DeliveryTask))].sort((a, b) =>
     a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
   );
-  if (tasks.length > MAX_TASKS)
-    throw new Error("delivery presentation task limit exceeded");
-  const lots = new Map(
-    context
-      .query(query(MaterialLot))
-      .map((row) => [row.id, row.get(MaterialLot)]),
+  const actors = new Set<EntityId>(
+    tasks
+      .map((row) => row.get(DeliveryTask).actor)
+      .filter((actor): actor is EntityId => actor !== null && visible.has(actor)),
   );
-  const facts: PresentationFact[] = [];
-  tasks.forEach((row, index) => {
+  const inventory = new Map<string, Map<string, number>>();
+  const lotRows = context.query(query(MaterialLot));
+  for (const row of lotRows) {
+    const lot = row.get(MaterialLot);
+    if (!actors.has(lot.container) || !Number.isFinite(lot.quantity)) continue;
+    const byKind = inventory.get(lot.container) ?? new Map<string, number>();
+    byKind.set(lot.kind, (byKind.get(lot.kind) ?? 0) + lot.quantity);
+    inventory.set(lot.container, byKind);
+  }
+  const activity = new Map<string, RenderFact["activity"]>();
+  for (const row of tasks) {
     const task = row.get(DeliveryTask);
-    const lot = lots.get(task.sourceLot);
-    const prefix = `delivery-${index + 1}`;
-    facts.push(
-      {
-        id: `${prefix}-phase`,
-        label: `Delivery ${index + 1} activity`,
-        value: text(task.phase, "unknown"),
-      },
-      {
-        id: `${prefix}-material`,
-        label: `Delivery ${index + 1} material`,
-        value: text(lot?.kind, text(task.material, "unknown")),
-      },
-      {
-        id: `${prefix}-quantity`,
-        label: `Delivery ${index + 1} carried quantity`,
-        value: lot?.quantity ?? 0,
-      },
-      {
-        id: `${prefix}-custody`,
-        label: `Delivery ${index + 1} custody`,
-        value: lot?.container ?? "missing",
-      },
-    );
+    if (task.actor === null || !visible.has(task.actor) || activity.has(task.actor)) continue;
+    const lot = lotRows.find((candidate) => candidate.id === task.sourceLot)?.get(MaterialLot);
+    activity.set(task.actor, {
+      kind: "delivery",
+      phase: text(task.phase, "unknown"),
+      material: text(lot?.kind, text(task.material, "unknown")),
+      quantity: Number.isFinite(task.quantity) ? task.quantity : 0,
+    });
+  }
+  return facts.map((fact) => {
+    const byKind = inventory.get(fact.id);
+    const entries = byKind
+      ? [...byKind.entries()].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+      : [];
+    const items = entries.slice(0, MAX_ITEMS_PER_ENTITY).map(([kind, quantity]) => ({
+      kind: text(kind, "unknown"),
+      quantity,
+    }));
+    const carried = activity.get(fact.id);
+    return byKind || carried
+      ? {
+          ...fact,
+          ...(byKind
+            ? {
+                inventory: {
+                  items,
+                  ...(entries.length > MAX_ITEMS_PER_ENTITY ? { overflow: true } : {}),
+                },
+              }
+            : {}),
+          ...(carried ? { activity: carried } : {}),
+        }
+      : fact;
   });
-  return facts;
 }
