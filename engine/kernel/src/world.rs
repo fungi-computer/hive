@@ -2156,6 +2156,7 @@ mod lot_water_tests {
             r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#,
         ).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(result["results"][0]["reason"], "sealed container cannot consume");
         assert_eq!(rows(&mut kernel, "hive.lot"), before);
         let saved = kernel.snapshot_json().unwrap();
         let mut restored = Kernel::new();
@@ -2191,7 +2192,7 @@ mod lot_water_tests {
             "format":"hive-game", "version":1, "game":"sealed",
             "components":[], "initial":[
                 {"id":"actor","components":{}},
-                {"id":"container","components":{"hive.container":{"capacity":2}}}
+                {"id":"container","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":2}}}
             ]
         })).unwrap()).unwrap();
         let before = kernel.snapshot_json().unwrap();
