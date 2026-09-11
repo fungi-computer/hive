@@ -47,7 +47,7 @@ const colonyInitial = [
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: "goblin.worker", label: `Worker ${index + 1}` },
       "colony.worker": { guest: false },
-      "hive.delivery-control": { enabled: true, quantity: 1 },
+      "hive.delivery-control": { enabled: true, quantity: 3 },
     },
   })),
   {
