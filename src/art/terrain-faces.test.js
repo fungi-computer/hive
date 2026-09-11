@@ -72,3 +72,11 @@ test("dirty bounds include the old and new neighbor wall heights", () => {
     { left: -5, top: 14.5, right: 5, bottom: 45.5 },
   );
 });
+
+
+test("dirty bounds exclude unrelated columns with or without a supplied index", () => {
+  const surfaces = [{cell:[0,1,0], material:1}, {cell:[100,30,100], material:2}];
+  const project = (x,y,z) => ({x:x*10,y:y*10+z});
+  const actual = terrainFaceBounds(surfaces,[{x:0,z:0}],1,project);
+  assert.deepEqual(actual,terrainFaceBounds(surfaces.slice(0,1),[{x:0,z:0}],1,project));
+});

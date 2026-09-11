@@ -62,3 +62,27 @@ terrain sampling, not a finished sparse gas graph. Quiet exchange, actual server
 cost/command recovery and two-client playability remain unaccepted. The client
 chunk/picking source has a separate visual/input qualification. Nothing here
 claims a new hosted game release.
+
+## Client and recovery follow-through
+
+The joined terrain renderer updates affected chunks and keeps one shared physical
+face definition for rendering and indexed picking. u6029 compared its full canvas
+against the original full render at initial state, after two earned Colony digs,
+and after reset: all three had zero differing RGBA pixels. The software-rendered
+dig update took 59.1 ms; this is not a player GPU or hosted frame-rate claim.
+The first launch failed on an executable filename and is retained. The passing
+fixture emitted an unrelated retained-page dependency-scan warning; no clean
+production build is claimed. Browser/server cleanup completed and port 5198 was
+free. The screenshot shows only the top of the large canvas; numerical pixel
+parity is not a claim of personally inspecting the dug hole in that screenshot.
+
+u6032 passed 21 client/art tests and five SQLite recovery tests. Its first SQLite
+test failed because it combined current Colony actors with an unrelated terrain
+fixture. The corrected test uses the actual Colony definition. u6033 reran that
+failed test only, then strict engine TypeScript and diff checks; all passed.
+Both scopes are inactive/dead with empty control groups. Current-format failed
+commit recovery and cleanup-error handling retain their explicit laws.
+
+The changed-column observer implementation is committed separately as daa114f
+and awaits source review and affected qualification. It is not accepted by these
+results. No new public deployment or two-client playability is claimed here.

@@ -84,11 +84,9 @@ export function terrainFaceBounds(
   columnIndex = undefined,
 ) {
   const index = columnIndex ?? terrainColumnMap(surfaces);
-  const selected = columnIndex
-    ? affected
-        .map(({ x, z }) => index.get(`${x},${z}`))
-        .filter((surface) => surface !== undefined)
-    : surfaces;
+  const selected = affected
+    .map(({ x, z }) => index.get(`${x},${z}`))
+    .filter((surface) => surface !== undefined);
   let left = Infinity,
     top = Infinity,
     right = -Infinity,

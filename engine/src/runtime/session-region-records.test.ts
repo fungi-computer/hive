@@ -10,7 +10,6 @@ import { hydrateSession } from "./session-record-store";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { colonyPack } from "../games/colony";
-import { environmentFixture } from "./fixtures/environment";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -20,7 +19,8 @@ test("actual Colony water records commit with session and recover after failed S
   const owner = sqliteTestOwner(db, (statement: string) => {
     if (failRecord && statement.startsWith("INSERT OR REPLACE INTO hive_region_records")) throw new Error("injected record failure");
   });
-  const pack = { ...colonyPack, environmentDefinition: new TextEncoder().encode(JSON.stringify(environmentFixture)) };
+  const pack = colonyPack;
+  const environment = JSON.parse(new TextDecoder().decode(pack.environmentDefinition));
   let resident!: SessionResident;
   const open = () => {
     if (resident) resident.dispose();
@@ -77,7 +77,7 @@ test("actual Colony water records commit with session and recover after failed S
       const otherPort = wasmKernelPort(new WasmKernel());
       try {
         const incompatible = new GameSession({ port: otherPort, pack: { ...pack,
-          environmentDefinition: new TextEncoder().encode(JSON.stringify({ ...environmentFixture, world: { ...environmentFixture.world, seed: "other-seed" } })) }, seed: 17 });
+          environmentDefinition: new TextEncoder().encode(JSON.stringify({ ...environment, world: { ...environment.world, seed: "other-seed" } })) }, seed: 17 });
         incompatible.start();
         const previous = incompatible.save();
         assert.throws(() => incompatible.restore(saved), /environment definitions do not match/);
