@@ -207,7 +207,7 @@ test("resident session reuses accepted candidate and fails closed across retry a
     assert.throws(() => resident.accept(current.revision + 1), /resident-revision-mismatch/);
     const failed = region.readCommitted();
     resident.begin(failed.revision, failed.state, reader(failed.revision));
-    assert.throws(() => region.dispatch("clock", { id: "resident-failure", command: { kind: "command", name: "missing" } }), /unknown game command/);
+    assert.throws(() => region.dispatch("player", { id: "resident-failure", command: { kind: "command", name: "missing" } }), /unknown game command/);
     assert.ok(created > beforeReuse);
   } finally {
     resident.dispose();
