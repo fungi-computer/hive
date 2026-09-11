@@ -69,6 +69,7 @@ export function createHiveClient({
   };
   const gesture = createActor(pointerGestureMachine).start();
   const aimGesture = createActor(aimGestureMachine).start();
+  const isAiming = () => aimGesture.getSnapshot().value === "aiming";
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
   const emit = (action) => {
@@ -142,6 +143,7 @@ export function createHiveClient({
   const cueCursor = createCueCursor();
   let effectOwner;
   let previewCache;
+  const subjectReactions = new Map();
 
   function prepareNewWorld(remote) {
     if (remote) state.ready = false;
@@ -154,6 +156,7 @@ export function createHiveClient({
     intendedDestinations.clear();
     directControl?.reset();
     gesture.send({ type: "CANCEL" });
+    if (isAiming()) aimGesture.send({ type: "ESCAPE" });
     frameEpoch = undefined;
     frameSequence = 0;
     awaitingEpochTransition = false;
@@ -161,6 +164,7 @@ export function createHiveClient({
     cueCursor.reset();
     effectOwner?.clear();
     previewCache?.clear();
+    subjectReactions.clear();
     interpolation.reset();
     animationClock.reset();
     for (const entry of actorCache.values())
@@ -181,14 +185,13 @@ export function createHiveClient({
     return state.subjects.find((subject) => subject.id === aiming.launcherId && state.selectedIds.includes(subject.id));
   }
   function toggleAim() {
-    if (state.aim.active) {
+    if (isAiming()) {
       aimGesture.send({ type: "ESCAPE" });
       state.aim = { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null };
       previewCache?.clear();
     } else {
       const launcher = selectedLauncher();
       if (!launcher) return;
-      state.aim.active = true;
       state.aim.launcherId = launcher.id;
       state.aim.elevation = 0.12;
       aimGesture.send({ type: "ENTER", launcherId: launcher.id });
@@ -197,14 +200,14 @@ export function createHiveClient({
     draw();
   }
   function updateAimPreview(force = false) {
-    if (!state.aim.active || !state.aim.target || !previewCache) return;
+    if (!isAiming() || !state.aim.target || !previewCache) return;
     const launcher = selectedLauncher();
     if (!launcher) return;
     const velocity = fireInput({ launcherId: launcher.id, origin: launcher.pose.position, target: state.aim.target, elevation: state.aim.elevation, speed: launcher.aim?.speed ?? 8 }).velocity;
     state.aim.preview = previewCache.get({ launcherId: launcher.id, velocity }, { force });
   }
   function fireAim() {
-    if (!state.ready || !state.aim.active) return;
+    if (!state.ready || !isAiming()) return;
     const launcher = selectedLauncher();
     if (!launcher || !state.aim.target) return;
     updateAimPreview(true);
@@ -244,9 +247,9 @@ export function createHiveClient({
             aiming && selectedLauncher()
               ? React.createElement(Button, {
                   size: "sm",
-                  variant: state.aim.active ? "secondary" : "outline",
+                  variant: isAiming() ? "secondary" : "outline",
                   onClick: () => toggleAim(),
-                }, state.aim.active ? "Exit aim" : "Aim cannon")
+                }, isAiming() ? "Exit aim" : "Aim cannon")
               : null,
             directControl ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { directControl.setPrediction(!directControl.predictionEnabled); app.canvas?.focus(); renderHud(); } }, directControl.predictionEnabled ? "Prediction on" : "Prediction off") : null,
             ...selectionShortcuts.map(({ id, label }) => React.createElement(
@@ -302,7 +305,7 @@ export function createHiveClient({
               state.selectedIds.length ? state.selectedIds.join(", ") : "none",
             ),
           ),
-          state.aim.active
+          isAiming()
             ? React.createElement("div", { className: "hive-actions" },
                 React.createElement("label", null, `Elevation ${state.aim.elevation.toFixed(2)}`),
                 React.createElement(Slider, {
@@ -516,18 +519,24 @@ export function createHiveClient({
       const animation = animationById.get(subject.id);
       entry.marker.visible = state.selectedIds.includes(subject.id);
       const figure = art?.figures?.[binding.key];
-      const frames = isStatic
+      const reaction = subjectReactions.get(subject.id);
+      const reactionFrames = reaction && reaction.until > performance.now()
+        ? reaction.frames : null;
+      if (reaction && !reactionFrames) subjectReactions.delete(subject.id);
+      const frames = reactionFrames ?? (isStatic
         ? []
         : animationFrames(
             figure,
             animation?.direction ?? 0,
             animation?.walking ?? false,
-          );
+          ));
       const physicalFacing = ((Math.round(subject.facing ?? 0) % 4) + 4) % 4;
       const staticVisual = isStatic
         ? resolveStaticVisual(art, binding, physicalFacing)
         : undefined;
-      const texture = isStatic
+      const texture = reactionFrames?.length
+        ? reactionFrames[Math.floor((performance.now() - reaction.started) / 45) % reactionFrames.length]
+        : isStatic
         ? staticVisual?.texture
         : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
       if (art && !texture)
@@ -566,7 +575,7 @@ export function createHiveClient({
       drag.start &&
       drag.current,
     );
-    if (state.aim.active && state.aim.point && state.aim.target) {
+    if (isAiming() && state.aim.point && state.aim.target) {
       const marker = state.aim.preview?.landing ?? state.aim.preview?.firstGroundContact ?? state.aim.target;
       const target = project(marker.x, marker.y, marker.z);
       const sx = target.x * camera.zoom + camera.x, sy = target.y * camera.zoom + camera.y;
@@ -595,7 +604,7 @@ export function createHiveClient({
     if (isTypingTarget(event.target) || event.button !== 0) return;
     app.canvas.focus();
     const at = point(event);
-    if (state.aim.active) {
+    if (isAiming()) {
       state.aim.point = at;
       try { state.aim.target = aimGroundPoint(at, camera); updateAimPreview(); } catch { state.aim.target = null; }
       sound?.unlock?.(); fireAim(); return;
@@ -604,7 +613,7 @@ export function createHiveClient({
     app.canvas.setPointerCapture?.(event.pointerId);
   }
   function pointerMove(event) {
-    if (state.aim.active) {
+    if (isAiming()) {
       state.aim.point = point(event);
       aimGesture.send({ type: "MOVE", point: state.aim.point });
       try { state.aim.target = aimGroundPoint(state.aim.point, camera); updateAimPreview(); } catch { state.aim.target = null; }
@@ -653,7 +662,7 @@ export function createHiveClient({
   }
   function contextMenu(event) {
     event.preventDefault();
-    if (state.aim.active) return;
+    if (isAiming()) return;
     if (!state.ready) {
       state.message = "World is still connecting…";
       renderHud();
@@ -699,7 +708,7 @@ export function createHiveClient({
     if (isTypingTarget(event.target)) return;
     if (!state.ready) return;
     const key = event.key.toLowerCase();
-    if (key === "escape" && state.aim.active) { event.preventDefault(); toggleAim(); return; }
+    if (key === "escape" && isAiming()) { event.preventDefault(); toggleAim(); return; }
     if (directControl && directControl.key(key, true)) { event.preventDefault(); return; }
     if (mode === "survival") {
       if (key === "e" || key === "f") {
@@ -715,11 +724,15 @@ export function createHiveClient({
   function releaseDirect() { directControl?.release(); }
   function playCue(cue) {
     if (!art || !effectOwner || !cue?.kind) return;
-    const direction = Math.max(0, Math.min(3, Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 1) / (Math.PI / 2))));
+    const direction = ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
+    const subject = state.subjects.find((item) => item.id === cue.subject);
     const authored = cue.kind === "launch"
       ? art.props?.cannonRecoil?.[direction]
       : art.figures?.goblin?.hit?.[direction];
-    const bank = authored ?? (cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null);
+    if (subject && authored) subjectReactions.set(subject.id, {
+      frames: authored, started: performance.now(), until: performance.now() + (cue.kind === "launch" ? 360 : 720), direction,
+    });
+    const bank = cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
     const texture = frames.length ? frames[Math.abs(cue.sequence ?? 0) % frames.length] : undefined;
     if (frames.length) effectOwner.play({ texture, frames, lifetime: cue.kind === "launch" ? 220 : 420, sprites: 1 }, cue);
@@ -947,6 +960,7 @@ export function createHiveClient({
       runtime?.dispose();
       hudRoot.unmount();
       gesture.stop();
+      aimGesture.stop();
       resizeObserver?.disconnect();
       window.removeEventListener("keydown", keydown);
       window.removeEventListener("keyup", keyup);
