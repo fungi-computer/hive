@@ -716,3 +716,30 @@ JS `07df75a115057437fe2fd4d5ce67c55902045341273d60a9b042a6b4bd028cf7`;
 declarations `40393add2b8038de8f5cf497b915bbe97d288c77a3e004f1dc4a658ea147939a`.
 This proves the indexed reference API and no-snapshot command path, not a game
 capacity benchmark, resident lifecycle acceptance or new hosted behavior.
+
+## Resident recovery, controls and native wet excavation — September 11
+
+Joined source `f633513` includes the reviewed Session recovery/shared level
+controls and native field-to-spoil preparation. These are local engine outcomes;
+public demos remain `c5138fc`. No new browser/DO/playable excavation is claimed.
+
+Session/controls `eb6c72a`: u5469 / exec45943, invocation
+`881d7419943c422792b8993d7ffab37b`, exit0. Thirteen named affected laws, strict
+engine types, existing two-host type configuration and diff passed. Host types
+retain their existing skipLibCheck setting. Earlier u5467 exit2 exposed erased
+FreshRegion generic state, corrected in c8ae83c. Resident's three earlier laws
+passed across u5463/u5465; their fixture/type failures remain recorded.
+
+Native wet excavation `25d121c`: u5473 / exec90125, invocation
+`09a2fc9afcc349d0b5be9ad6c127c043`, exit0. Ten named native laws passed, covering
+withdrawal, ordinary wet lot transfers, output admission, compound excavation,
+stale preparations and record recovery. Compile took 28.94s; tests 0.45s. Neither
+number is simulation performance. Earlier u5471 exit101 failed compilation before
+any test ran. An unused material-output revision warning remains. All four cited
+proof scopes are terminal; final successful scopes were inactive/dead/empty.
+
+The generated WASM remains the older membership build above. This Rust change
+still requires a maintained WASM build and real Colony work/observation callers.
+Current private completion accepts trusted internal yield arguments; material
+rule admission and earned work must precede any public excavation action. Gas,
+contaminant channels and cross-region water are still unimplemented.
