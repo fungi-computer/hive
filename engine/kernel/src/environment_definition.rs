@@ -55,7 +55,17 @@ struct MaterialInput {
     solid: bool,
     diggable: bool,
     water: WaterKindInput,
+    excavation: Option<ExcavationRule>,
 }
+/// Authored conversion for one physical voxel, not caller-selected output.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ExcavationRule {
+    pub work_seconds: f64,
+    pub output_kind: String,
+    pub units_per_cell: u32,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(
     tag = "kind",
@@ -81,11 +91,17 @@ pub struct PreparedDefinition {
     pub terrain: TerrainOwner,
     pub geometry: TerrainWaterGeometry,
     pub stocks: Vec<WaterStock>,
+    pub excavation_rules: BTreeMap<u16, ExcavationRule>,
 }
 
-pub fn build_from_json(input: &str) -> Result<TerrainWater, String> {
+pub struct BuiltEnvironment {
+    pub world: TerrainWater,
+    pub excavation_rules: BTreeMap<u16, ExcavationRule>,
+}
+pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
-    TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)
+    let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -132,9 +148,18 @@ fn prepare_definition_mode(
     }
     let mut properties = Vec::with_capacity(definition.materials.len());
     let mut behavior = BTreeMap::new();
+    let mut excavation_rules = BTreeMap::new();
     for material in definition.materials {
         if behavior.contains_key(&material.slot) {
             return Err("duplicate material slot".into());
+        }
+        if let Some(rule) = material.excavation {
+            if !material.solid || !material.diggable || !rule.work_seconds.is_finite()
+                || rule.work_seconds <= 0.0 || !crate::components::valid_id(&rule.output_kind)
+                || rule.units_per_cell == 0 {
+                return Err("invalid material excavation rule".into());
+            }
+            excavation_rules.insert(material.slot, rule);
         }
         let water = match material.water {
             WaterKindInput::Closed => MaterialWater::Closed,
@@ -247,6 +272,7 @@ fn prepare_definition_mode(
         terrain,
         geometry,
         stocks,
+        excavation_rules,
     })
 }
 
@@ -281,7 +307,7 @@ pub(crate) mod tests {
                 .iter()
                 .all(|stock| stock.mass_kg.is_finite() && stock.mass_kg >= 0.0)
         );
-        let built = build_from_json(&input).unwrap();
+        let built = build_from_json(&input).unwrap().world;
         assert!(built.facts().unwrap().total_kg.is_finite());
         let other = prepare_definition_mode(&fixture("seed-b"), true).unwrap();
         assert!(admitted.stocks.iter().any(|stock| stock.mass_kg > 0.0));

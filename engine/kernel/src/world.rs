@@ -61,6 +61,7 @@ pub struct KernelRecords {
 struct KernelEnvironment {
     definition: String,
     world: crate::terrain_water::TerrainWater,
+    excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
 }
 
 pub struct Kernel {
@@ -581,8 +582,8 @@ impl Kernel {
         if self.revision != 0 || self.environment.is_some() {
             return Err("environment initialization requires a new world".into());
         }
-        let world = crate::environment_definition::build_from_json(definition)?;
-        self.environment = Some(KernelEnvironment { definition: definition.to_owned(), world });
+        let built = crate::environment_definition::build_from_json(definition)?;
+        self.environment = Some(KernelEnvironment { definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules });
         Ok(())
     }
     pub fn environment_facts_json(&self) -> Result<String> {
@@ -604,7 +605,7 @@ impl Kernel {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
             let world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world });
+            candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world, excavation_rules: prepared.excavation_rules });
         }
         *self = candidate;
         Ok(())
@@ -1008,9 +1009,11 @@ impl Kernel {
     // Work/reach and the material definition are admitted by the native work
     // caller. Water credit is always derived from the opaque geometry token.
     fn complete_excavation(&mut self, excavation: crate::terrain_water::PreparedExcavation,
-        container: String, kind: String, quantity: u32) -> Result<String> {
+        container: String) -> Result<String> {
+        let rule = self.environment.as_ref().ok_or("world has no environment")?
+            .excavation_rules.get(&excavation.removed()).ok_or("material has no excavation yield")?;
         let output = self.prepare_material_output(MaterialOutputSpec {
-            container, kind, quantity, water_kg: (excavation.water_kg() > 0.0).then_some(excavation.water_kg()),
+            container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg: (excavation.water_kg() > 0.0).then_some(excavation.water_kg()),
         })?;
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.world.apply_excavation(excavation)?;
