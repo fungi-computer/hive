@@ -1,3 +1,32 @@
+## Published generated Colony, wet excavation and exterior cutaway — September 11
+
+Runtime/client source a13fc44 is deployed on the existing four-demo preview.
+Frontend deployment6ad151aa-94df-4b30-a5ba-1972f445dc68; DO Worker
+version014ea6b3-cc6d-4ad8-9bf5-282351a77fea. Public origin remains
+https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/ .
+Server program901c532de60b849c84866db5f11791b88509c5e9746b82a713a90d7ebc1d2d1b.
+
+Root mouse u5681 (exec26697, invocation6659d65a292747c88e3a4755b78ccc1f)
+exited0 with four real cuts, native carrying, three Deposit commands, Lower,
+canvas-focused PageDown and Cutaway; final liquid17.096 litres at[1,11,0].
+Root personally viewed .botanical/colony-wet-browser/v6/colony-wet-final.png.
+Cutaway is intentionally rough: higher exterior columns disappear and actors
+above the slice remain visible. It is not completed exploration/fog of war.
+Earlier u5678 failed because the test left focus on a button before PageDown;
+retained widget-focus protection was not changed. All owned browser scopes closed.
+
+Six affected view/gesture laws passed u5672. Final client build u5676 passed;
+no water/native replay was needed for client-only corrections. Publication
+exec21784 uploaded both hosts; immediate HTTP readback saw stale propagation
+(98/155 matches), then exec23056 verified all155 exact release hashes with
+no failures. Preserve both readback receipts in .botanical/colony-release/.
+Existing demo saves require Reset world due to the deliberate current native
+format change; old persisted source is not silently migrated or deleted.
+
+The larger goal remains open: scoped remembered/unknown knowledge, three-storey
+construction and room gas, two-player/two-DO Survival travel, and broader water
+activation are not qualified by this wet-camp release.
+
 ## Mouse-driven deep excavation frontier — September 11
 
 u5658 failed after first excavation: Escape cleared selection without exiting
