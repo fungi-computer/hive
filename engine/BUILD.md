@@ -582,3 +582,21 @@ This is source composition, not the complete Kernel consumer: finite spoil
 admission, native record restore, initial groundwater admission, active-page
 changes, actual Colony actions and hosted behavior remain pending. No large-world
 performance or all-dry hydraulic-region acceptance claim.
+
+### Typed native environment records
+
+Selected Postcard1.1.3 (alloc, no default features) through ordinary Cargo fetch
+and pinned lockfile. u5416 passed the water binary-state law: saved zero remains
+zero and truncated/extra/old JSON bytes reject. New dependency triggered a93s
+local compile; this is compilation time, not simulation cost.
+
+At5b89890, u5418 exit0 passed the extended actual generated excavation/transport
+law with combined terrain/water reconstruction and identical next-step facts,
+plus exact Postcard terrain size and save-binding laws. Changed hydraulic rules
+reject restore. Terrain version2 replaces JSON, no compatibility decoder. Header
+and two logical byte records remain separate from entity snapshots; current
+export covers the bounded edited-terrain set, not yet incremental brick writes.
+No user action, finite spoil, actual Region/DO/native-WASM storage consumer or
+large-world performance claim follows. One unused test import warning was removed
+after the run; no unchanged test replay for that removal. Scopes5416/5418 collected
+inactive/dead/empty.

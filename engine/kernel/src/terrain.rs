@@ -540,7 +540,7 @@ impl TerrainOwner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generation::{Bounds, GENERATOR_VERSION, MaterialSlots, WorldSpec};
+    use crate::generation::{Bounds, MaterialSlots, WorldSpec};
 
     fn owner() -> TerrainOwner {
         let spec = WorldSpec {
