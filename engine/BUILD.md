@@ -1,3 +1,26 @@
+## Actual Colony deposit and groundwater consumer — September 11
+
+Integrated test a1dd9a2 plus optional-message type correction 69376e5 exercises
+four native excavations through Colony commands, three real deposits, and native
+walks to each reachable standing surface. The final exposed cut contains liquid;
+field water plus LotWater on physical spoil conserves the initial water mass
+within 1e-8 kg. Eighteen material units remain (six initial bread plus twelve
+spoil), and the complete current snapshot survives save/restore exactly.
+
+Focused new test u5646 (invocation 8e57251f547746b79000b71c07561aa7,
+exec56564) exited0. Strict types u5647 exited2 on an optional nullable assertion
+message; corrected-source strict-only u5649 (exec99114) exited0. No unchanged
+native test matrix was replayed. All owned scopes are inactive/dead/empty.
+
+Engine Vite production build u5652 (exec63663, invocation
+4bc2f5ccb3d047f397ef4e2419b3b1ae) exited0 in 32.96 seconds with the actual
+public DO host configured. Dependency annotation and large-bundle warnings
+remain. This build is local, not publication. Native WASM remains format7.
+Private recovery ref recovery/hive-public-do-20260910T1533Z in verified-private
+Botanical-next was remotely read back at 69376e5. Server restart qualification
+and the new wet visual remain pending; browser-local save/restore is not DO
+restart evidence.
+
 ## Actual deep cut reaches groundwater — September 11
 
 Root diagnostic u5640 established that the first surface cut at[1,13,0] is dry:
