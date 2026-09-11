@@ -95,7 +95,6 @@ test("reanchoring does not move the displayed pose backward", () => {
   assert.equal(buffer.render(21001)[0].pose.position.x, 10.5);
 });
 
-
 test("default delayed clock cannot rewind after short recovery", () => {
   const buffer = createInterpolationBuffer();
   buffer.push(frame(0, 0, 0), 0);
@@ -104,4 +103,42 @@ test("default delayed clock cannot rewind after short recovery", () => {
   buffer.push(frame(2, 1.033, 10.33), 2033);
   assert.equal(buffer.render(2033)[0].pose.position.x, 10);
   assert.ok(buffer.render(2100)[0].pose.position.x >= 10);
+});
+
+test("online cadence buffers delayed and jittered publications", () => {
+  const buffer = createInterpolationBuffer({ cadence: "online" });
+  assert.equal(buffer.cadence, "online");
+  assert.equal(buffer.delayMs, 500);
+  buffer.push(frame(0, 0, 0), 0);
+  buffer.push(frame(1, 0.25, 25), 310);
+  buffer.push(frame(2, 0.5, 50), 590);
+  // At 800ms the two-sample delay leaves us between the first two
+  // publications; no extrapolation is needed despite receipt jitter.
+  assert.equal(buffer.render(800)[0].pose.position.x, 30);
+  assert.equal(buffer.render(1000)[0].pose.position.x, 50);
+});
+
+test("supported children interpolate in parent-local space", () => {
+  const buffer = createInterpolationBuffer({ delayMs: 0 });
+  const supported = (sequence, time, facing) => ({
+    epoch: "one",
+    sequence,
+    time,
+    facts: [
+      { id: "ship", pose: { position: { x: 0, y: 0, z: 0 }, facing } },
+      {
+        id: "crew",
+        support: "ship",
+        local: { position: { x: 1, y: 0, z: 0 }, facing: 0 },
+        pose: { position: { x: 1, y: 0, z: 0 }, facing: 0 },
+      },
+    ],
+  });
+  buffer.push(supported(0, 0, 0), 0);
+  buffer.push(supported(1, 1, 1), 1000);
+  const crew = buffer.render(500).find((fact) => fact.id === "crew");
+  assert.ok(crew);
+  assert.ok(Math.abs(crew.pose.position.x - Math.SQRT1_2) < 1e-9);
+  assert.ok(Math.abs(crew.pose.position.z - Math.SQRT1_2) < 1e-9);
+  assert.equal(crew.local.position.x, 1);
 });
