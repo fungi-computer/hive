@@ -24,12 +24,22 @@ await collect(resolve(root, "src/engine"));
 files.push("tools/public-engine-host/worker.ts", "tools/public-engine-host/protocol.ts",
   "engine/generated/hive_kernel.js", "engine/generated/hive_kernel.d.ts",
   "engine/generated/hive_kernel_bg.wasm");
+// Package inventory remains complete. Persisted program identity excludes client,
+// test and unrelated legacy engine code: changing a button cannot retire a world.
+function ownsProgram(path) {
+  if (/\.test\.[cm]?[jt]sx?$/.test(path) || path.endsWith(".d.ts")) return false;
+  if (path.startsWith("engine/src/client/")) return false;
+  if (path.startsWith("src/engine/")) return path.startsWith("src/engine/region/");
+  return true;
+}
 const digest = createHash("sha256");
 const inventory = [];
 for (const path of files.sort()) {
   const bytes = await readFile(resolve(root, path));
-  digest.update(path); digest.update("\0"); digest.update(bytes); digest.update("\0");
-  inventory.push({ path, sha256: createHash("sha256").update(bytes).digest("hex") });
+  if (ownsProgram(path)) {
+    digest.update(path); digest.update("\0"); digest.update(bytes); digest.update("\0");
+  }
+  inventory.push({ path, programIdentity: ownsProgram(path), sha256: createHash("sha256").update(bytes).digest("hex") });
 }
 const config = JSON.parse(await readFile(resolve(root, "tools/public-engine-host/wrangler.json"), "utf8"));
 config.main = resolve(root, "tools/public-engine-host/worker.ts");
