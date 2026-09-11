@@ -90,7 +90,7 @@ impl CompiledAtmosphere {
     }
 
     fn opening_flows(&self, parcels: &[AtmosphereParcel], dt: f64) -> Vec<Flow> {
-        self.openings
+        self.exchange_openings
             .iter()
             .map(|opening| {
                 let left_temperature = self.temperature(opening.from, &parcels[opening.from]);

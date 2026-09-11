@@ -181,6 +181,8 @@ pub struct CompiledAtmosphere {
     /// Complete physical definition binding, computed only when geometry is compiled.
     content_digest: [u8; 32],
     openings: Vec<OpeningIndex>,
+    /// Equivalent face conductances for exchange; physical openings remain for remap.
+    exchange_openings: Vec<OpeningIndex>,
     volume_index: BTreeMap<String, usize>,
     member_index: BTreeMap<String, MemberLocation>,
     incident_openings: Vec<Vec<usize>>,

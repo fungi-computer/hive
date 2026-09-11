@@ -170,6 +170,7 @@ impl CompiledAtmosphere {
                 return Err("atmosphere initial carrier ledger exceeds finite range".into());
             }
         }
+        let exchange_openings = aggregate_exchange_openings(&openings)?;
         let identity = identity(&definition)?;
         // Revision labels are not topology authority. Bind all physical content,
         // including same-count opening changes, model and ambient. A no-op world
@@ -183,6 +184,7 @@ impl CompiledAtmosphere {
             definition,
             content_digest,
             openings,
+            exchange_openings,
             volume_index,
             member_index,
             incident_openings,
@@ -205,4 +207,27 @@ impl CompiledAtmosphere {
     pub fn identity(&self) -> &str {
         &self.identity
     }
+}
+
+/// Only area is additive: direction, endpoints, distance, elevation and
+/// permeability remain identical within a group. These are the exact inputs
+/// used by the exchange law. Physical face identities are retained separately.
+fn aggregate_exchange_openings(openings: &[OpeningIndex]) -> Result<Vec<OpeningIndex>, String> {
+    let mut groups = BTreeMap::new();
+    let mut result: Vec<OpeningIndex> = Vec::new();
+    for opening in openings {
+        let key = (opening.from, opening.to, opening.distance_m.to_bits(),
+            opening.elevation_m.to_bits(), opening.permeability.to_bits());
+        if let Some(&index) = groups.get(&key) {
+            let combined: &mut OpeningIndex = &mut result[index];
+            combined.area_m2 += opening.area_m2;
+            if !combined.area_m2.is_finite() {
+                return Err("atmosphere aggregate opening exceeds finite range".into());
+            }
+        } else {
+            groups.insert(key, result.len());
+            result.push(opening.clone());
+        }
+    }
+    Ok(result)
 }

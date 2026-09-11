@@ -265,3 +265,69 @@ use super::*;
         );
         assert_eq!(state.smoke_source_kg, 0.0);
     }
+
+
+#[test]
+fn aggregated_faces_match_physical_face_exchange_with_sources_and_ambient() {
+    let mut definition = definition();
+    let template = definition.openings[0].clone();
+    definition.openings.clear();
+    for index in 0..64 {
+        let mut opening = template.clone();
+        opening.id = format!("face-{index}");
+        opening.area_m2 = (index + 1) as f64 / 128.0;
+        definition.openings.push(opening);
+    }
+    for index in 0..16 {
+        let mut opening = template.clone();
+        opening.id = format!("sky-{index}");
+        opening.from = "upper".into();
+        opening.from_cell_id = "cell:0,1,0".into();
+        opening.to = None;
+        opening.to_cell_id = None;
+        opening.elevation_m = 2.0;
+        opening.area_m2 = 0.05;
+        definition.openings.push(opening);
+    }
+    let compiled = CompiledAtmosphere::compile(definition).unwrap();
+    assert_eq!(compiled.openings.len(), 80);
+    assert_eq!(compiled.exchange_openings.len(), 2);
+    let mut reference = compiled.clone();
+    reference.exchange_openings = reference.openings.clone();
+    let mut actual = compiled.initial();
+    let mut expected = actual.clone();
+    for _ in 0..30 {
+        let sources = [AtmosphereSource { volume_id: "lower".into(), smoke_kg_s: 0.0001, heat_j_s: 10.0 }];
+        actual = compiled.advance(&actual, 0.1, &sources).unwrap().0;
+        expected = reference.advance(&expected, 0.1, &sources).unwrap().0;
+        for (left, right) in actual.parcels.iter().zip(&expected.parcels) {
+            for (a, b) in [(left.carrier_kg, right.carrier_kg), (left.smoke_kg, right.smoke_kg), (left.heat_j, right.heat_j)] {
+                assert!((a-b).abs() <= 1e-10 * b.abs().max(1.0), "{a} differs from {b}");
+            }
+        }
+        for (a,b) in [(actual.carrier_boundary_kg,expected.carrier_boundary_kg),
+            (actual.smoke_boundary_kg,expected.smoke_boundary_kg), (actual.heat_boundary_j,expected.heat_boundary_j)] {
+            assert!((a-b).abs() <= 1e-10 * b.abs().max(1.0));
+        }
+    }
+    assert!(actual.parcels[1].smoke_kg > 0.0);
+    assert_eq!(compiled.decode_state(&compiled.encode_state(&actual).unwrap()).unwrap(), actual);
+}
+
+#[test]
+fn exchange_aggregation_keeps_height_distance_and_permeability_distinct() {
+    let mut definition = definition();
+    let template = definition.openings[0].clone();
+    for index in 0..3 {
+        let mut opening = template.clone();
+        opening.id = format!("different-{index}");
+        match index {
+            0 => opening.elevation_m += 1.0,
+            1 => opening.distance_m += 1.0,
+            _ => opening.permeability = 0.5,
+        }
+        definition.openings.push(opening);
+    }
+    let compiled = CompiledAtmosphere::compile(definition).unwrap();
+    assert_eq!(compiled.exchange_openings.len(), 4);
+}
