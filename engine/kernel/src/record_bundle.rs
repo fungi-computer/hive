@@ -15,6 +15,7 @@ const ENV_HEADER_KEY: &str = "kernel/environment/header";
 const DEFINITION_KEY: &str = "kernel/environment/definition";
 const TERRAIN_KEY: &str = "kernel/environment/terrain";
 const WATER_KEY: &str = "kernel/environment/water";
+const STRUCTURES_KEY: &str = "kernel/environment/structures";
 const ENTITY_PREFIX: &str = "kernel/entities/";
 
 #[derive(Serialize, Deserialize)]
@@ -83,6 +84,7 @@ impl RecordBundle {
                     || records.header.len() > 65_568
                     || records.terrain.len() > RECORD_BYTES
                     || records.water.len() > RECORD_BYTES
+                    || records.structures.len() > RECORD_BYTES
                 {
                     return Err("environment record exceeds bound".to_owned());
                 }
@@ -90,7 +92,7 @@ impl RecordBundle {
             })
             .transpose()?;
         let entity_chunks = entity.len().div_ceil(RECORD_BYTES).max(1);
-        let environment_records = usize::from(records.environment.is_some()) * 4;
+        let environment_records = usize::from(records.environment.is_some()) * 5;
         if entity_chunks + environment_records + 1 > MAX_RECORDS {
             return Err("record count exceeds bound".into());
         }
@@ -102,7 +104,7 @@ impl RecordBundle {
         }
         let environment_present = records.environment.is_some();
         let header = postcard::to_allocvec(&Header {
-            version: 1,
+            version: 2,
             entity_bytes: entity.len() as u64,
             environment: environment_present,
         })
@@ -119,6 +121,7 @@ impl RecordBundle {
             bundle.insert(ENV_HEADER_KEY, &environment.header)?;
             bundle.insert(TERRAIN_KEY, &environment.terrain)?;
             bundle.insert(WATER_KEY, &environment.water)?;
+            bundle.insert(STRUCTURES_KEY, &environment.structures)?;
         }
         Ok(bundle)
     }
@@ -133,7 +136,7 @@ impl RecordBundle {
         }
         let (header, remainder): (Header, &[u8]) =
             take_from_bytes(header_bytes).map_err(|_| "invalid record header")?;
-        if !remainder.is_empty() || header.version != 1 || header.entity_bytes > ENTITY_BYTES as u64
+        if !remainder.is_empty() || header.version != 2 || header.entity_bytes > ENTITY_BYTES as u64
         {
             return Err("invalid record header binding".into());
         }
@@ -143,7 +146,7 @@ impl RecordBundle {
         for key in self.records.keys() {
             validate_key(key)?;
         }
-        let environment_keys = [DEFINITION_KEY, ENV_HEADER_KEY, TERRAIN_KEY, WATER_KEY];
+        let environment_keys = [DEFINITION_KEY, ENV_HEADER_KEY, TERRAIN_KEY, WATER_KEY, STRUCTURES_KEY];
         for key in environment_keys {
             if header.environment != self.records.contains_key(key) {
                 return Err("environment record set is incomplete or unexpected".into());
@@ -158,6 +161,7 @@ impl RecordBundle {
                 || environment_header.len() > 65_568
                 || terrain.len() > RECORD_BYTES
                 || water.len() > RECORD_BYTES
+                || self.records.get(STRUCTURES_KEY).is_some_and(|bytes| bytes.len() > RECORD_BYTES)
             {
                 return Err("environment record exceeds bound".into());
             }
@@ -225,10 +229,12 @@ impl RecordBundle {
                 .get(TERRAIN_KEY)
                 .ok_or("missing terrain record")?;
             let water = self.records.get(WATER_KEY).ok_or("missing water record")?;
+            let structures = self.records.get(STRUCTURES_KEY).ok_or("missing structures record")?;
             if definition.len() > 128 * 1024
                 || environment_header.len() > 65_568
                 || terrain.len() > RECORD_BYTES
                 || water.len() > RECORD_BYTES
+                || structures.len() > RECORD_BYTES
             {
                 return Err("environment record exceeds bound".into());
             }
@@ -239,6 +245,7 @@ impl RecordBundle {
                     header: environment_header.clone(),
                     terrain: terrain.clone(),
                     water: water.clone(),
+                    structures: structures.clone(),
                 },
             ))
         } else {
@@ -272,7 +279,7 @@ fn validate_key(key: &str) -> Result<(), String> {
         }
     } else if !matches!(
         key,
-        HEADER_KEY | DEFINITION_KEY | ENV_HEADER_KEY | TERRAIN_KEY | WATER_KEY
+        HEADER_KEY | DEFINITION_KEY | ENV_HEADER_KEY | TERRAIN_KEY | WATER_KEY | STRUCTURES_KEY
     ) {
         return Err("unrecognized record key".into());
     }
@@ -302,6 +309,7 @@ mod tests {
                     header: vec![1, 0],
                     terrain: vec![0, 255, 0],
                     water: vec![0, 0, 128],
+                    structures: vec![4, 5, 6],
                 },
             )),
         };
@@ -312,7 +320,35 @@ mod tests {
         assert_eq!(environment.header, [1, 0]);
         assert_eq!(environment.terrain, [0, 255, 0]);
         assert_eq!(environment.water, [0, 0, 128]);
+        assert_eq!(environment.structures, [4, 5, 6]);
     }
+    #[test]
+    fn environment_requires_structures_record() {
+        let records = KernelRecords {
+            entities: "{}".into(),
+            environment: Some((
+                String::new(),
+                crate::terrain_water::TerrainWaterRecords {
+                    header: vec![1],
+                    terrain: vec![2],
+                    water: vec![3],
+                    structures: vec![4],
+                },
+            )),
+        };
+        let mut bundle = RecordBundle::from_records(records).unwrap();
+        bundle.records.remove(STRUCTURES_KEY);
+        assert!(bundle.into_records().is_err());
+    }
+
+    #[test]
+    fn rejects_previous_record_format_without_migration() {
+        let records = KernelRecords { entities: "{}".into(), environment: None };
+        let mut bundle = RecordBundle::from_records(records).unwrap();
+        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 1;
+        assert!(bundle.into_records().is_err());
+    }
+
     #[test]
     fn rejects_missing_extra_duplicate_oversized_and_trailing_header() {
         let records = KernelRecords {
