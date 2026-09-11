@@ -118,12 +118,20 @@ try {
   const pauseBCursor = eventsB.length; clientB.send({ type: "pause" }); await waitFor(eventsB, (event) => event.type === "state" && event.paused, "second pause", pauseBCursor);
   const pausedB = await observe(tokens.second); await delay(700); assert.equal((await observe(tokens.second)).revision, pausedB.revision);
   const resumeCursor = eventsA.length; clientA.send({ type: "resume" }); await waitFor(eventsA, (event) => event.type === "state" && !event.paused, "resume", resumeCursor);
-  const resumed = await waitRevision(tokens.first, paused.revision); const beforeRestart = await hostRow(tokens.first);
+  const resumed = await waitRevision(tokens.first, paused.revision);
+  const directCursor = eventsA.length;
+  clientA.send({type:"action",action:{kind:"begin-direct",entity:"survival.survivor.1",stream:"native-direct"}});
+  await waitFor(eventsA, event => event.type === "frame" && event.facts.some(f => f.direct?.stream === "native-direct"), "direct stream", directCursor);
+  clientA.send({type:"action",action:{kind:"direct-input",entity:"survival.survivor.1",stream:"native-direct",inputs:Array.from({length:5},(_,index)=>({sequence:index+1,x:0,z:1}))}});
+  await waitFor(eventsA, event => event.type === "frame" && event.facts.some(f => f.direct?.lastProcessed === 5 && f.pose.position.z > 0.19), "consumed direct input", directCursor);
+  const beforeRestart = await hostRow(tokens.first);
   clientA.dispose(); clientA = undefined; clientB.dispose(); clientB = undefined;
   await stop(); const persisted = await hostRow(tokens.first); assert.ok(persisted.next_sequence >= beforeRestart.next_sequence);
   await start(); let after; const deadline = Date.now() + 10000; while (Date.now() < deadline) { after = await hostRow(tokens.first); if (after.next_sequence > persisted.next_sequence) break; await delay(100); }
   assert.ok(after.next_sequence > persisted.next_sequence, "alarm advanced after restart before game request");
-  assert.ok((await observe(tokens.first)).revision >= resumed.revision); assert.equal((await observe(tokens.second)).revision, pausedB.revision);
+  const reopened = await observe(tokens.first);
+  assert.ok(reopened.revision >= resumed.revision);
+  assert.equal(reopened.observation.facts.find(f => f.id === "survival.survivor.1").direct.lastProcessed,5); assert.equal((await observe(tokens.second)).revision, pausedB.revision);
 } finally {
   clientA?.dispose(); clientB?.dispose(); await stop(); await rm(configPath, { force: true });
   await writeFile(resolve(output, "public-proof-diagnostics.json"), JSON.stringify({ runtimeLog: redact(runtimeLog.slice(-16384)), clientA: summarize(eventsA), clientB: summarize(eventsB), lastObservation }, null, 2));

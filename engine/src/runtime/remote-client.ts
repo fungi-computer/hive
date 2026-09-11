@@ -95,6 +95,14 @@ function renderFact(value: unknown): value is RenderFact {
   if (value.surface !== undefined && value.surface !== null && !surface(value.surface)) return false;
   for (const key of ["visual", "label"] as const)
     if (value[key] !== undefined && value[key] !== null && (typeof value[key] !== "string" || value[key].length > 512)) return false;
+  if (value.direct !== undefined && value.direct !== null) {
+    const d = value.direct;
+    if (!isRecord(d) || typeof d.stream !== "string" || d.stream.length > 64 ||
+        !safeNonnegativeInteger(d.lastQueued) || !safeNonnegativeInteger(d.lastProcessed) || d.lastProcessed > d.lastQueued ||
+        !finite(d.speed) || d.speed < 0 || !Array.isArray(d.blocked) || d.blocked.length > 4096 ||
+        !d.blocked.every(cell => Array.isArray(cell) && cell.length === 3 && cell.every(Number.isSafeInteger))) return false;
+    if (d.bounds !== null && (!isRecord(d.bounds) || !finite(d.bounds.min_x) || !finite(d.bounds.max_x) || !finite(d.bounds.min_z) || !finite(d.bounds.max_z) || d.bounds.min_x > d.bounds.max_x || d.bounds.min_z > d.bounds.max_z)) return false;
+  }
   return value.selected === undefined || typeof value.selected === "boolean";
 }
 function presentationFact(value: unknown): value is ObservationWire["observation"]["presentationFacts"][number] {
@@ -412,7 +420,8 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       emit({ type: "error", message: `remote command ${command.type} is unsupported` });
       return;
     }
-    if (pending.length >= MAX_PENDING) { emit({ type: "error", message: "remote command queue full" }); return; }
+    if (pending.length >= MAX_PENDING) { if (command.type === "action" && (command.action.kind === "direct-input" || command.action.kind === "begin-direct")) throw new Error("remote command queue full");
+      emit({ type: "error", message: "remote command queue full" }); return; }
     const commandValue = command.type === "action" ? { kind: "action", action: command.action } :
       command.type === "command" ? { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) } :
       { kind: command.type };

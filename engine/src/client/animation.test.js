@@ -3,12 +3,15 @@ import { test } from "node:test";
 import { createAnimationClock, animationFrames } from "./animation.js";
 
 const actor = (id, x, z, facing = 0) => ({ id, x, y: 0, z, facing });
-test("extra render frames retain walking until a new stationary sample", () => {
+test("brief stationary samples retain walking and facing, then settle without turning", () => {
   const clock = createAnimationClock();
   clock.sample([actor("a", 0, 0)], { now: 0, sequence: 1 });
   assert.equal(clock.sample([actor("a", 1, 0)], { now: 33, sequence: 2 })[0].walking, true);
   assert.equal(clock.sample([actor("a", 1, 0)], { now: 50, sequence: 2 })[0].walking, true);
-  assert.equal(clock.sample([actor("a", 1, 0)], { now: 66, sequence: 3 })[0].walking, false);
+  assert.equal(clock.sample([actor("a", 1, 0)], { now: 66, sequence: 3 })[0].walking, true);
+  const stopped = clock.sample([actor("a", 1, 0)], { now: 200, sequence: 4 })[0];
+  assert.equal(stopped.walking, false);
+  assert.equal(stopped.direction, 1);
 });
 test("movement samples select walk and measured direction, stationary samples return idle", () => {
   const clock = createAnimationClock({ frameMs: 100 });
@@ -18,8 +21,8 @@ test("movement samples select walk and measured direction, stationary samples re
   assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 250 }), [
     { id: "a", walking: true, direction: 1, frame: 2 },
   ]);
-  assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 350 }), [
-    { id: "a", walking: false, direction: 2, frame: 0 },
+  assert.deepEqual(clock.sample([actor("a", 1, 0)], { now: 400 }), [
+    { id: "a", walking: false, direction: 1, frame: 1 },
   ]);
 });
 test("pause freezes history and reset clears teleport-looking motion", () => {

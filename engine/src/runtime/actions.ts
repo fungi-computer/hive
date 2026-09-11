@@ -18,7 +18,7 @@ const axis = (value: unknown): value is number =>
 const directSample = (value: unknown): boolean => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const sample = value as Record<string, unknown>;
-  return Object.keys(sample).length === 3 && Number.isSafeInteger(sample.sequence) &&
+  return Object.keys(sample).length === 3 && typeof sample.sequence === "number" && Number.isSafeInteger(sample.sequence) &&
     sample.sequence > 0 && axis(sample.x) && axis(sample.z);
 };
 

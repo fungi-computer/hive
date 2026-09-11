@@ -161,10 +161,10 @@ pub fn predict_direct(json: &str) -> Result<String, JsValue> {
         if !blocked.insert((cell[0], cell[1], cell[2])) { return Err(js_error("duplicate blocked cell".into())); }
     }
     let bounds = request.bounds.map(|b| navigation::Bounds { min_x: b.min_x, max_x: b.max_x, min_z: b.min_z, max_z: b.max_z });
-    let mut position = request.position;
-    let mut expected = None;
+    let mut position = navigation::direct_step(request.position, 0.0, 0.0, request.speed, &blocked, bounds).map_err(js_error)?;
+    let mut expected: Option<u64> = None;
     for input in request.inputs {
-        if input.sequence == 0 || expected.is_some_and(|value| input.sequence != value.saturating_add(1)) { return Err(js_error("direct prediction sequence gap".into())); }
+        if input.sequence == 0 || input.sequence > 9_007_199_254_740_991 || expected.is_some_and(|value| input.sequence != value.saturating_add(1)) { return Err(js_error("direct prediction sequence gap".into())); }
         expected = Some(input.sequence);
         position = navigation::direct_step(position, input.x, input.z, request.speed, &blocked, bounds).map_err(js_error)?;
     }

@@ -1,3 +1,4 @@
+import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint } from "./geometry.js";
 import { presentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
@@ -33,12 +34,14 @@ export function createHiveClient({
   runtime,
   persistence,
   orderCommand,
+  directControlId,
   controlHelp,
   selectionShortcuts = [],
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
+  let directControl;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   const state = {
     ready: false,
@@ -135,6 +138,7 @@ export function createHiveClient({
     state.presentationControls = [];
     state.dragging = null;
     intendedDestinations.clear();
+    directControl?.reset();
     gesture.send({ type: "CANCEL" });
     frameEpoch = undefined;
     frameSequence = 0;
@@ -182,6 +186,7 @@ export function createHiveClient({
           React.createElement(
             "div",
             { className: "hive-controls" },
+            directControl ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { directControl.setPrediction(!directControl.predictionEnabled); app.canvas?.focus(); renderHud(); } }, directControl.predictionEnabled ? "Prediction on" : "Prediction off") : null,
             ...selectionShortcuts.map(({ id, label }) => React.createElement(
               Button,
               { key: id, size: "sm", variant: "outline",
@@ -331,8 +336,10 @@ export function createHiveClient({
   }
   function draw() {
     if (!app.stage) return;
-    state.subjects = interpolation
-      .render(performance.now(), { paused: state.paused })
+    const now = performance.now();
+    directControl?.tick(now, state.paused);
+    const visibleFacts = interpolation.render(now, { paused: state.paused });
+    state.subjects = (directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts)
       .filter((fact) => fact.pose?.position)
       .map((fact) => ({
         id: fact.id,
@@ -547,6 +554,7 @@ export function createHiveClient({
       renderHud();
       return;
     }
+    if (directControl) return;
     const at = point(event);
     const selected = state.subjects.filter((subject) => state.selectedIds.includes(subject.id));
     const frames = new Set(selected.map((subject) => subject.support ?? null));
@@ -586,46 +594,9 @@ export function createHiveClient({
     if (isTypingTarget(event.target)) return;
     if (!state.ready) return;
     const key = event.key.toLowerCase();
+    if (directControl && directControl.key(key, true)) { event.preventDefault(); return; }
     if (mode === "survival") {
-      const id = state.selectedIds[0];
-      const actor = state.subjects.find((subject) => subject.id === id);
-      if (
-        [
-          "w",
-          "a",
-          "s",
-          "d",
-          "arrowup",
-          "arrowdown",
-          "arrowleft",
-          "arrowright",
-        ].includes(key) &&
-        actor
-      ) {
-        event.preventDefault();
-        const dx = key === "a" || key === "arrowleft" ? -1 :
-          key === "d" || key === "arrowright" ? 1 : 0;
-        const dz = key === "w" || key === "arrowup" ? -1 :
-          key === "s" || key === "arrowdown" ? 1 : 0;
-        const pending = intendedDestinations.get(id);
-        // OS key repeat can be much faster than the authoritative movement
-        // cadence. Coalesce a held direction so intent stays at one cell.
-        if (pending && pending.dx === dx && pending.dz === dz) return;
-        const local = actor.local?.position ?? actor;
-        const destination = {
-          frame: actor.support ?? null,
-          x: local.x + dx,
-          y: local.y,
-          z: local.z + dz,
-        };
-        // A pending cell is held until an authoritative frame catches up;
-        // this is an input convenience, not prediction.
-        intendedDestinations.set(id, { destination, dx, dz });
-        emit({
-          kind: "action",
-          action: { kind: "move", entity: id, destination },
-        });
-      } else if (key === "e" || key === "f") {
+      if (key === "e" || key === "f") {
         event.preventDefault();
         runtime.send({
           type: "command",
@@ -634,7 +605,14 @@ export function createHiveClient({
       }
     }
   }
+  function keyup(event) { if (directControl?.key(event.key, false)) event.preventDefault(); }
+  function releaseDirect() { directControl?.release(); }
   async function start() {
+    if (directControlId) {
+      const native = await import("../../generated/hive_kernel.js");
+      await native.default();
+      directControl = createDirectControl({ entity: directControlId, send: command => runtime.send(command), predict: input => JSON.parse(native.predict_direct(JSON.stringify(input))) });
+    }
     await app.init({
       resizeTo: canvasHost,
       backgroundAlpha: 0,
@@ -659,6 +637,9 @@ export function createHiveClient({
       state.dragging = null;
     });
     window.addEventListener("keydown", keydown);
+    window.addEventListener("keyup", keyup);
+    window.addEventListener("blur", releaseDirect);
+    document.addEventListener("visibilitychange", releaseDirect);
     app.canvas.addEventListener(
       "wheel",
       (event) => {
@@ -722,6 +703,7 @@ export function createHiveClient({
     keymap.on("state", renderHud);
     unsubscribeRuntime = runtime?.subscribe?.((event) => {
       if (event.type === "state" && typeof event.paused === "boolean") {
+        if (state.paused !== event.paused) directControl?.reset();
         state.paused = event.paused;
         if (state.paused) intendedDestinations.clear();
         renderHud();
@@ -742,6 +724,7 @@ export function createHiveClient({
           }
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
+          if (!state.paused) directControl?.observe(event.facts);
           for (const [id, pending] of intendedDestinations) {
             const destination = pending.destination;
             const subject = event.facts.find((fact) => fact.id === id);
@@ -784,6 +767,7 @@ export function createHiveClient({
         state.pendingSave = false;
         state.pendingRestore = false;
         intendedDestinations.clear();
+        directControl?.reset();
         state.message = event.message;
         renderHud();
       }
@@ -810,6 +794,10 @@ export function createHiveClient({
       gesture.stop();
       resizeObserver?.disconnect();
       window.removeEventListener("keydown", keydown);
+      window.removeEventListener("keyup", keyup);
+      window.removeEventListener("blur", releaseDirect);
+      document.removeEventListener("visibilitychange", releaseDirect);
+      directControl?.reset();
       app.canvas?.removeEventListener("pointerdown", pointerDown);
       app.canvas?.removeEventListener("pointermove", pointerMove);
       app.canvas?.removeEventListener("pointerup", pointerUp);

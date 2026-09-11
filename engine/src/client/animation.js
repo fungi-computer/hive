@@ -43,7 +43,6 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
           continue;
         }
         const previous = history.get(subject.id);
-        const repeated = sequence !== undefined && previous?.sequence === sequence;
         const local = subject.local?.position ?? subject;
         const sameSupport = previous?.support === subject.support;
         const localDx = previous && sameSupport ? local.x - previous.x : 0;
@@ -54,17 +53,19 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
         const moved = Boolean(
           previous && (Math.abs(dx) > EPSILON || Math.abs(dz) > EPSILON),
         );
-        const direction = directionFromVector(dx, dz, subject.facing);
+        const prior = states.get(subject.id);
+        const facingChanged = previous && Math.abs((subject.facing ?? 0) - previous.facing) > EPSILON;
+        const lastMotion = moved ? now : previous?.lastMotion;
+        const walking = moved || Boolean(sameSupport && prior?.walking && lastMotion !== undefined && now - lastMotion < 120);
+        const direction = moved ? directionFromVector(dx, dz, subject.facing)
+          : sameSupport && prior && !facingChanged ? prior.direction
+          : directionFromVector(0, 0, subject.facing);
         const state = {
-          id: subject.id,
-          walking: repeated ? states.get(subject.id)?.walking ?? false : moved,
-          direction: repeated ? states.get(subject.id)?.direction ?? direction : direction,
-          frame: (repeated ? states.get(subject.id)?.walking : moved)
-            ? Math.floor(phase / frameMs)
-            : Math.floor(phase / (frameMs * 4)),
+          id: subject.id, walking, direction,
+          frame: Math.floor(phase / (walking ? frameMs : frameMs * 4)),
         };
         sampled.push(state);
-        history.set(subject.id, { x: local.x, y: local.y, z: local.z, support: subject.support, sequence });
+        history.set(subject.id, { x: local.x, y: local.y, z: local.z, support: subject.support, sequence, facing: subject.facing ?? 0, lastMotion });
         states.set(subject.id, state);
       }
       return sampled;

@@ -26,6 +26,8 @@ const configs = {
     source: "./source/colony.ts",
   },
   survival: {
+    directControlId: "survival.survivor.1",
+    controlHelp: "Hold WASD or arrows to move freely. E takes bread; F eats. Compare Prediction on/off.",
     title: "Survival",
     subtitle:
       "Take and eat finite bread, watch hunger, and change how much a meal restores.",

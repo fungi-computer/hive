@@ -194,7 +194,7 @@ export interface RenderFact {
     readonly speed: number;
     readonly blocked: readonly [number, number, number][];
     readonly bounds: null | { readonly min_x: number; readonly max_x: number; readonly min_z: number; readonly max_z: number };
-  };
+  } | null;
 }
 export interface KernelSnapshot {
   readonly format: "hive-kernel";

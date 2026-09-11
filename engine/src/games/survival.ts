@@ -126,6 +126,7 @@ const survivalInitial = [
     components: {
       "hive.position": { x: 2, y: 0, z: 0, facing: 0 },
       "hive.container": { capacity: 12 },
+      "hive.obstacle": { occupied: true },
       "hive.visual": { sprite: "crate", label: "Locker" },
     },
   },
