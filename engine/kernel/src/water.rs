@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 pub const WATER_DENSITY_KG_PER_M3: f64 = 1_000.0;
 pub const STATE_VERSION: &str = "finite-voxel-water-v1";
@@ -70,10 +71,24 @@ pub struct WaterStock {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WaterState {
     pub version: String,
-    pub identity: String,
+    pub binding: WaterBinding,
     pub mass_kg: Vec<f64>,
     pub initial_total_kg: f64,
     pub boundary_kg: f64,
+}
+
+/// Compact save binding for the immutable canonical definition held by a
+/// `CompiledWater`. The definition itself is not duplicated into each state.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct WaterBinding {
+    id: String,
+    revision: u64,
+}
+
+impl WaterBinding {
+    pub fn id(&self) -> &str { &self.id }
+    pub fn revision(&self) -> u64 { self.revision }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -168,12 +183,6 @@ struct CompiledFace {
     area_m2: f64,
 }
 
-#[derive(Clone, Copy, Debug)]
-struct Neighbor {
-    to: usize,
-    face: usize,
-}
-
 #[derive(Clone, Debug)]
 struct Request {
     face: usize,
@@ -187,13 +196,18 @@ struct Request {
 /// only when this definition is admitted, never for an ordinary advance.
 #[derive(Clone, Debug)]
 pub struct CompiledWater {
-    pub definition: WaterDefinition,
-    pub identity: String,
+    definition: Arc<WaterDefinition>,
+    binding: WaterBinding,
     nodes: Vec<CompiledNode>,
     faces: Vec<CompiledFace>,
-    neighbors: Vec<Vec<Neighbor>>,
     index: BTreeMap<String, usize>,
     limits: WaterLimits,
+}
+
+/// Reusable bounded working memory. Keep one alongside the compiled graph and
+/// pass it to each advance; it is never part of a checkpoint.
+pub struct WaterWorkspace {
+    scratch: TransferScratch,
 }
 
 pub type WaterResult<T> = Result<T, String>;
@@ -223,7 +237,7 @@ fn face_id(a: [i32; 3], b: [i32; 3]) -> WaterResult<(String, usize)> {
         a[1].abs_diff(b[1]),
         a[2].abs_diff(b[2]),
     ];
-    if distance.iter().sum::<u32>() != 1 {
+    if distance.iter().map(|value| u64::from(*value)).sum::<u64>() != 1 {
         return Err(fail("water face endpoints must be adjacent voxels"));
     }
     let axis = distance.iter().position(|value| *value == 1).unwrap();
@@ -245,6 +259,25 @@ fn compensated_sum(values: impl IntoIterator<Item = f64>) -> f64 {
 
 fn nearly_equal(a: f64, b: f64) -> bool {
     (a - b).abs() <= 1e-9 + 64.0 * f64::EPSILON * a.abs().max(b.abs())
+}
+
+/// The arithmetic owner rejects a transfer when either operand cannot
+/// represent its signed change at its own scale. A state-wide tolerance is
+/// deliberately not used to authorize one-sided quantity changes.
+fn resolve_quantity_change(before: f64, delta: f64) -> WaterResult<Option<f64>> {
+    let after = before + delta;
+    if !before.is_finite() || !delta.is_finite() || !after.is_finite() {
+        return Err(fail("water quantity change must be finite"));
+    }
+    if delta == 0.0 { return Ok(Some(before)); }
+    let represented = after - before;
+    let error = represented - delta;
+    let uncertainty = 4.0 * f64::EPSILON * before.abs().max(after.abs()).max(delta.abs());
+    if represented.signum() == delta.signum() && uncertainty < delta.abs() && error.abs() <= uncertainty {
+        Ok(Some(after))
+    } else {
+        Ok(None)
+    }
 }
 
 impl CompiledWater {
@@ -312,7 +345,8 @@ impl CompiledWater {
             let capacity_kg = WATER_DENSITY_KG_PER_M3 * volume_m3 * porosity;
             let retained_kg = WATER_DENSITY_KG_PER_M3 * volume_m3 * retention;
             let base_m = f64::from(cell.at[1]) * definition.spacing_m[1];
-            if !capacity_kg.is_finite() || capacity_kg <= 0.0 || !retained_kg.is_finite() || retained_kg < 0.0 || retained_kg >= capacity_kg || !base_m.is_finite() {
+            let top_m = base_m + definition.spacing_m[1];
+            if !capacity_kg.is_finite() || capacity_kg <= 0.0 || !retained_kg.is_finite() || retained_kg < 0.0 || retained_kg >= capacity_kg || !base_m.is_finite() || !top_m.is_finite() || top_m <= base_m {
                 return Err(fail("water cell capacity is not representable"));
             }
             nodes.push(CompiledNode { id, at: cell.at, kind: cell.kind, soil, volume_m3, capacity_kg, retained_kg, base_m });
@@ -338,14 +372,13 @@ impl CompiledWater {
         definition.soils = soils.into_values().collect();
         definition.cells = nodes.iter().map(|node| CellDefinition { at: node.at, kind: node.kind, soil_id: node.soil.as_ref().map(|soil| soil.id.clone()) }).collect();
         definition.faces = faces.iter().map(|face| FaceDefinition { a: nodes[face.a].at, b: nodes[face.b].at, open_fraction: face.area_m2 * definition.spacing_m[face.axis] / volume_m3 }).collect();
-        let identity = serde_json::to_string(&definition).map_err(|error| fail(format!("water identity encoding failed: {error}")))?;
-        let mut neighbors = vec![Vec::new(); nodes.len()];
-        for (face_index, face) in faces.iter().enumerate() {
-            neighbors[face.a].push(Neighbor { to: face.b, face: face_index });
-            neighbors[face.b].push(Neighbor { to: face.a, face: face_index });
-        }
-        Ok(Self { definition, identity, nodes, faces, neighbors, index, limits })
+        let binding = WaterBinding { id: definition.id.clone(), revision: definition.revision };
+        Ok(Self { definition: Arc::new(definition), binding, nodes, faces, index, limits })
     }
+
+    pub fn definition(&self) -> &WaterDefinition { &self.definition }
+    pub fn binding(&self) -> &WaterBinding { &self.binding }
+    pub fn workspace(&self) -> WaterWorkspace { WaterWorkspace::new(self) }
 
     pub fn initial(&self, stocks: &[WaterStock]) -> WaterResult<WaterState> {
         if stocks.len() != self.nodes.len() { return Err(fail("water initial stock must name every cell exactly once")); }
@@ -359,13 +392,13 @@ impl CompiledWater {
             mass_kg[index] = stock.mass_kg;
         }
         if seen.len() != self.nodes.len() { return Err(fail("water initial stock has missing cells")); }
-        let state = WaterState { version: STATE_VERSION.into(), identity: self.identity.clone(), initial_total_kg: compensated_sum(mass_kg.iter().copied()), mass_kg, boundary_kg: 0.0 };
+        let state = WaterState { version: STATE_VERSION.into(), binding: self.binding.clone(), initial_total_kg: compensated_sum(mass_kg.iter().copied()), mass_kg, boundary_kg: 0.0 };
         self.validate_state(&state)?;
         Ok(state)
     }
 
     pub fn validate_state(&self, state: &WaterState) -> WaterResult<()> {
-        if state.version != STATE_VERSION || state.identity != self.identity || state.mass_kg.len() != self.nodes.len() || !state.initial_total_kg.is_finite() || state.initial_total_kg < 0.0 || !state.boundary_kg.is_finite() {
+        if state.version != STATE_VERSION || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() || !state.initial_total_kg.is_finite() || state.initial_total_kg < 0.0 || !state.boundary_kg.is_finite() {
             return Err(fail("water state does not match compiled definition"));
         }
         for (amount, node) in state.mass_kg.iter().zip(&self.nodes) {
@@ -407,8 +440,19 @@ impl CompiledWater {
         })
     }
 
-    pub fn advance(&self, state: &WaterState, seconds: f64) -> WaterResult<WaterAdvance> {
+    pub fn advance(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace) -> WaterResult<WaterAdvance> {
+        self.advance_inner(state, seconds, workspace, false)
+    }
+
+    pub fn advance_with_flows(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace) -> WaterResult<WaterAdvance> {
+        self.advance_inner(state, seconds, workspace, true)
+    }
+
+    fn advance_inner(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace, collect_flows: bool) -> WaterResult<WaterAdvance> {
         self.validate_state(state)?;
+        if workspace.scratch.next.len() != self.nodes.len() || workspace.scratch.requests.capacity() < self.faces.len() {
+            return Err(fail("water workspace does not match compiled definition"));
+        }
         if !seconds.is_finite() || seconds < 0.0 || seconds > self.limits.max_seconds { return Err(fail("water interval is outside bounded admission")); }
         if seconds == 0.0 {
             return Ok(WaterAdvance { state: state.clone(), seconds, substeps: Vec::new(), flows: Vec::new(), work: WaterWork::default() });
@@ -417,22 +461,21 @@ impl CompiledWater {
         if steps == 0 || steps > self.limits.max_face_work / self.faces.len().max(1) { return Err(fail("water interval exceeds bounded face work")); }
         let dt_s = seconds / steps as f64;
         let mut mass = state.mass_kg.clone();
-        let mut flows = Vec::new();
-        let mut scratch = TransferScratch::new(self.nodes.len(), self.faces.len());
+        let mut flows: Option<Vec<WaterFlow>> = if collect_flows { Some(Vec::new()) } else { None };
         let mut work = WaterWork { faces: 0, requests: 0, unresolved: 0 };
         for _ in 0..steps {
-            let step_work = self.transfer_step(&mass, dt_s, &mut scratch, &mut flows)?;
-            mass.copy_from_slice(&scratch.next);
+            let step_work = self.transfer_step(&mass, dt_s, &mut workspace.scratch, flows.as_mut())?;
+            mass.copy_from_slice(&workspace.scratch.next);
             work.faces += step_work.faces;
             work.requests += step_work.requests;
             work.unresolved += step_work.unresolved;
         }
-        let next = WaterState { version: STATE_VERSION.into(), identity: self.identity.clone(), mass_kg: mass, initial_total_kg: state.initial_total_kg, boundary_kg: state.boundary_kg };
+        let next = WaterState { version: STATE_VERSION.into(), binding: self.binding.clone(), mass_kg: mass, initial_total_kg: state.initial_total_kg, boundary_kg: state.boundary_kg };
         self.validate_state(&next)?;
-        Ok(WaterAdvance { state: next, seconds, substeps: vec![dt_s; steps], flows, work })
+        Ok(WaterAdvance { state: next, seconds, substeps: vec![dt_s; steps], flows: flows.unwrap_or_default(), work })
     }
 
-    fn transfer_step(&self, mass: &[f64], dt_s: f64, scratch: &mut TransferScratch, flows: &mut Vec<WaterFlow>) -> WaterResult<WaterWork> {
+    fn transfer_step(&self, mass: &[f64], dt_s: f64, scratch: &mut TransferScratch, mut flows: Option<&mut Vec<WaterFlow>>) -> WaterResult<WaterWork> {
         scratch.requests.clear();
         scratch.next.copy_from_slice(mass);
         scratch.outgoing.fill(0.0);
@@ -456,25 +499,28 @@ impl CompiledWater {
         }
         let mut unresolved = 0;
         for request in &scratch.requests {
-            let mut factor = 1.0;
+            let mut factor: f64 = 1.0;
             if scratch.outgoing[request.from] > 0.0 { factor = factor.min(scratch.available[request.from] / scratch.outgoing[request.from]); }
             if scratch.incoming[request.to] > 0.0 { factor = factor.min(scratch.space[request.to] / scratch.incoming[request.to]); }
             if request.absorption && scratch.absorbed[request.to] > 0.0 { factor = factor.min(scratch.retention_space[request.to] / scratch.absorbed[request.to]); }
             let quantity = (request.quantity * factor).min(scratch.remaining[request.from]).min(scratch.receiving[request.to]).min(scratch.next[request.from]).min(self.nodes[request.to].capacity_kg - scratch.next[request.to]);
             let quantity = if request.absorption { quantity.min(scratch.retaining[request.to]) } else { quantity };
             if !(quantity > 0.0) { continue; }
-            let debit = scratch.next[request.from] - quantity;
-            let credit = scratch.next[request.to] + quantity;
-            if !debit.is_finite() || !credit.is_finite() || debit < 0.0 || credit > self.nodes[request.to].capacity_kg || debit == scratch.next[request.from] || credit == scratch.next[request.to] {
+            let debit = resolve_quantity_change(scratch.next[request.from], -quantity)?;
+            let credit = resolve_quantity_change(scratch.next[request.to], quantity)?;
+            let (Some(debit), Some(credit)) = (debit, credit) else {
                 unresolved += 1;
                 continue;
-            }
+            };
+            if debit < 0.0 || credit > self.nodes[request.to].capacity_kg { unresolved += 1; continue; }
             scratch.next[request.from] = debit;
             scratch.next[request.to] = credit;
             scratch.remaining[request.from] -= quantity;
             scratch.receiving[request.to] -= quantity;
             if request.absorption { scratch.retaining[request.to] -= quantity; }
-            flows.push(WaterFlow { face_id: self.faces[request.face].id.clone(), from: self.nodes[request.from].id.clone(), to: self.nodes[request.to].id.clone(), mass_kg: quantity });
+            if let Some(flows) = flows.as_mut() {
+                flows.push(WaterFlow { face_id: self.faces[request.face].id.clone(), from: self.nodes[request.from].id.clone(), to: self.nodes[request.to].id.clone(), mass_kg: quantity });
+            }
         }
         Ok(WaterWork { faces: self.faces.len(), requests: scratch.requests.len(), unresolved })
     }
@@ -549,6 +595,12 @@ impl TransferScratch {
     }
 }
 
+impl WaterWorkspace {
+    fn new(graph: &CompiledWater) -> Self {
+        Self { scratch: TransferScratch::new(graph.nodes.len(), graph.faces.len()) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -566,7 +618,8 @@ mod tests {
         let graph = CompiledWater::compile(definition(vec![cell(a), cell(b)], vec![face(a, b)]), WaterLimits::default()).unwrap();
         let state = graph.initial(&[stock(a, 0.2), stock(b, 0.0)]).unwrap();
         let before = state.clone();
-        let advanced = graph.advance(&state, 0.2).unwrap();
+        let mut workspace = graph.workspace();
+        let advanced = graph.advance_with_flows(&state, 0.2, &mut workspace).unwrap();
         assert_eq!(state, before);
         assert!(advanced.flows.iter().any(|flow| flow.mass_kg > 0.0));
         assert!(nearly_equal(graph.facts(&advanced.state).unwrap().total_kg, 0.2));
@@ -581,7 +634,8 @@ mod tests {
         soil_cell.soil_id = Some("loam".into());
         let graph = CompiledWater::compile(definition(vec![soil_cell, cell(puddle)], vec![face(earth, puddle)]), WaterLimits::default()).unwrap();
         let state = graph.initial(&[stock(earth, 0.0), stock(puddle, 0.2)]).unwrap();
-        let next = graph.advance(&state, 1.0).unwrap();
+        let mut workspace = graph.workspace();
+        let next = graph.advance(&state, 1.0, &mut workspace).unwrap();
         assert!(next.state.mass_kg[0] > 0.0);
         assert!(nearly_equal(graph.facts(&next.state).unwrap().total_kg, 0.2));
     }
@@ -592,8 +646,9 @@ mod tests {
         let low = [0, 0, 0];
         let graph = CompiledWater::compile(definition(vec![cell(high), cell(low)], vec![face(high, low)]), WaterLimits::default()).unwrap();
         let state = graph.initial(&[stock(high, 0.2), stock(low, 0.0)]).unwrap();
-        let next = graph.advance(&state, 0.2).unwrap();
-        assert!(next.state.mass_kg[1] > 0.0);
+        let mut workspace = graph.workspace();
+        let next = graph.advance(&state, 0.2, &mut workspace).unwrap();
+        assert!(next.state.mass_kg[1] > state.mass_kg[1]);
     }
 
     #[test]
@@ -601,9 +656,86 @@ mod tests {
         let at = [0, 0, 0];
         let graph = CompiledWater::compile(definition(vec![cell(at)], vec![]), WaterLimits::default()).unwrap();
         let state = graph.initial(&[stock(at, 0.1)]).unwrap();
-        assert_eq!(graph.advance(&state, 0.0).unwrap().state, state);
-        assert!(graph.advance(&state, -0.1).is_err());
+        let mut workspace = graph.workspace();
+        assert_eq!(graph.advance(&state, 0.0, &mut workspace).unwrap().state, state);
+        assert!(graph.advance(&state, -0.1, &mut workspace).is_err());
         assert_eq!(state.mass_kg, vec![0.1]);
+    }
+
+    #[test]
+    fn positive_interval_with_no_water_is_dry_stable() {
+        let at = [0, 0, 0];
+        let graph = CompiledWater::compile(definition(vec![cell(at)], vec![]), WaterLimits::default()).unwrap();
+        let state = graph.initial(&[stock(at, 0.0)]).unwrap();
+        let mut workspace = graph.workspace();
+        let next = graph.advance(&state, 1.0, &mut workspace).unwrap();
+        assert_eq!(next.state.mass_kg, state.mass_kg);
+        assert!(next.flows.is_empty());
+    }
+
+    #[test]
+    fn shared_receiver_budget_respects_capacity() {
+        let left = [-1, 0, 0];
+        let receiver = [0, 0, 0];
+        let right = [1, 0, 0];
+        let mut receiver_cell = cell(receiver);
+        receiver_cell.kind = WaterCellKind::Soil;
+        receiver_cell.soil_id = Some("loam".into());
+        let mut saturated_soil = soil();
+        saturated_soil.porosity = 0.1;
+        saturated_soil.retention = 0.0;
+        saturated_soil.absorb_m_per_s = 10.0;
+        saturated_soil.seep_m_per_s = 10.0;
+        let graph = CompiledWater::compile(WaterDefinition { soils: vec![saturated_soil], ..definition(vec![cell(left), receiver_cell, cell(right)], vec![face(left, receiver), face(right, receiver)]) }, WaterLimits::default()).unwrap();
+        let state = graph.initial(&[stock(left, 0.8), stock(receiver, 0.0), stock(right, 0.8)]).unwrap();
+        let mut workspace = graph.workspace();
+        let next = graph.advance(&state, 60.0, &mut workspace).unwrap();
+        assert!(next.state.mass_kg[1] <= 0.1);
+        assert!(next.state.mass_kg[1] > 0.0);
+        assert!(next.state.mass_kg[0] < state.mass_kg[0]);
+        assert!(next.state.mass_kg[2] < state.mass_kg[2]);
+        assert!(nearly_equal(graph.facts(&next.state).unwrap().total_kg, 1.6));
+    }
+
+    #[test]
+    fn state_roundtrip_and_stock_reordering_preserve_binding() {
+        let a = [0, 0, 0];
+        let b = [1, 0, 0];
+        let graph = CompiledWater::compile(definition(vec![cell(a), cell(b)], vec![face(a, b)]), WaterLimits::default()).unwrap();
+        let first = graph.initial(&[stock(a, 0.2), stock(b, 0.1)]).unwrap();
+        let reordered = graph.initial(&[stock(b, 0.1), stock(a, 0.2)]).unwrap();
+        assert_eq!(first, reordered);
+        let wire = graph.encode_state(&first).unwrap();
+        assert_eq!(graph.decode_state(&wire).unwrap(), first);
+    }
+
+    #[test]
+    fn unrepresentable_paired_transfer_is_deferred() {
+        let before = 1.0e20;
+        assert!(resolve_quantity_change(before, 1.0).unwrap().is_none());
+        assert!(resolve_quantity_change(before, -1.0).unwrap().is_none());
+    }
+
+    #[test]
+    fn unrepresentable_paired_transfer_leaves_both_stocks_unchanged() {
+        let a = [0, 0, 0];
+        let b = [1, 0, 0];
+        let graph = CompiledWater::compile(WaterDefinition {
+            id: "large-water".into(),
+            revision: 0,
+            spacing_m: [1.0e7, 1.0e7, 1.0e7],
+            soils: vec![soil()],
+            cells: vec![cell(a), cell(b)],
+            faces: vec![face(a, b)],
+            fall_m_per_s: 1.0,
+            spread_m_per_s: 5.0e-17,
+        }, WaterLimits::default()).unwrap();
+        let state = graph.initial(&[stock(a, 1.0e20), stock(b, 0.0)]).unwrap();
+        let mut workspace = graph.workspace();
+        let next = graph.advance_with_flows(&state, 0.2, &mut workspace).unwrap();
+        assert_eq!(next.state.mass_kg, state.mass_kg);
+        assert_eq!(next.flows.len(), 0);
+        assert_eq!(next.work.unresolved, 1);
     }
 
     #[test]
