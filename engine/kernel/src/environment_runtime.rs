@@ -80,7 +80,10 @@ impl KernelEnvironment {
                 || source.elapsed_s >= definition.duration_s || source.admitted_revision > revision
                 || source.cell.x < bounds.min_x || source.cell.x >= bounds.max_x
                 || source.cell.y < bounds.min_y || source.cell.y >= bounds.max_y
-                || source.cell.z < bounds.min_z || source.cell.z >= bounds.max_z {
+                || source.cell.z < bounds.min_z || source.cell.z >= bounds.max_z
+                || source.cell.x < expected.min.x || source.cell.x >= expected.max.x
+                || source.cell.y < expected.min.y || source.cell.y >= expected.max.y
+                || source.cell.z < expected.min.z || source.cell.z >= expected.max.z {
                 return Err("invalid saved paid emission".into());
             }
         }
