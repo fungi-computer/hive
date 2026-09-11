@@ -1,3 +1,22 @@
+## Actual local DO wet excavation and restart — September 11
+
+Root u5656 (invocation bebfaa68e2c74480bcb82738ca5376e4, exec3244)
+exited0: four observed cuts, real public commands, autonomous alarm ticks,
+three intermediate deposits plus final deposit, pause, two owned Wrangler starts
+using the same SQLite store, then exact committed-deposit replay. Pantry holds
+all18 units; worker holds0. The final cut [1,11,0] contains23.12992582825149kg
+liquid in the paused observation. Restart preserves the observed terrain/water
+and material quantities; replay returns the identical receipt without another
+effect. Owned scope inactive/dead/empty and port8789 closed by the driver.
+
+Evidence: .botanical/colony-wet-host/native-v2/colony-proof-wet.json and
+colony-proof-restart.json. Previous native-v1/u5654 exited1 because the witness
+used expectedRevision against autonomously advancing ticks; corrected witness
+1cc4ad9 uses the existing public client's ordinary command envelope. No runtime
+change or new admission exception. This is local actual Durable Object evidence,
+not hosted latency/capacity or abrupt-mid-commit crash qualification. Current
+live demos remain unchanged pending the visible wet consumer and publication.
+
 ## Actual Colony deposit and groundwater consumer — September 11
 
 Integrated test a1dd9a2 plus optional-message type correction 69376e5 exercises
