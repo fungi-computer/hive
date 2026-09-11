@@ -7,6 +7,8 @@ export interface PresentationControl {
   readonly input?: unknown;
   /** Add the current client selection as input.entities; admission remains game-owned. */
   readonly selection?: "entities";
+  /** Arm a shared world-target gesture; admission remains game-owned. */
+  readonly target?: "terrain-cell";
 }
 export function presentationCommand(
   control: PresentationControl,
@@ -41,6 +43,31 @@ export function presentationCommand(
     }),
   };
 }
+export interface TerrainCommandTarget {
+  readonly cell: readonly [number, number, number];
+  readonly material: number;
+}
+
+/** Bind a published visible terrain target without granting edit permission. */
+export function terrainPresentationCommand(
+  control: PresentationControl,
+  selected: readonly string[],
+  target: TerrainCommandTarget,
+) {
+  if (control.target !== "terrain-cell") throw new Error("control does not accept terrain");
+  if (!Array.isArray(target.cell) || target.cell.length !== 3 ||
+      !target.cell.every(Number.isSafeInteger) || !Number.isSafeInteger(target.material) ||
+      target.material < 0 || target.material > 65535)
+    throw new Error("invalid terrain command target");
+  const command = presentationCommand(control, selected);
+  const input = command.input;
+  if (input !== undefined && (input === null || typeof input !== "object" ||
+      Array.isArray(input) || "target" in input))
+    throw new Error("terrain control requires object input without target");
+  return { ...command, input: controlInput({ ...(input as object),
+    target: { cell: [...target.cell], material: target.material } }) };
+}
+
 export interface PresentationFact {
   readonly id: string;
   readonly label: string;
@@ -96,11 +123,15 @@ export function projectPresentation(
       throw new Error(`unknown presentation command ${command}`);
     if (control.selection !== undefined && control.selection !== "entities")
       throw new Error("invalid presentation selection binding");
+    if (control.target !== undefined && control.target !== "terrain-cell")
+      throw new Error("invalid presentation target binding");
     if (control.selection) presentationCommand(control, []);
+    if (control.target) terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
     return Object.freeze({
       id,
       label,
       command,
+      ...(control.target ? { target: control.target } : {}),
       ...(control.selection ? { selection: control.selection } : {}),
       ...(control.input === undefined
         ? {}
