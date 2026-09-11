@@ -19,6 +19,30 @@ passed; hosted initial observations and pause admission passed for all four
 packs. Exact release/proof limits are in BUILD.md; the former c5138fc availability
 statements below are historical context, superseded by this checkpoint.
 
+### Shared work checkpoint — September 11, source only
+
+Native authored order creation/removal and route-cost queries are joined into
+TypeScript game systems. Orders saved while paused remain queued; resuming commits
+them through the existing kernel. Actual WASM order reload/cancellation passed
+(u5705). Delivery now uses native reachability after cheap eligibility and releases
+its actor after completed transfer. Its actual WASM recovery test restores between
+every tick. The repeated-route correction preserves an already-owned native
+movement destination; four affected tests and strict types passed (u5710).
+
+Shared rectangle input is integrated, including cancellation when its terrain
+projection disappears and the final pointer-release position. Colony automation
+is still under review in colony-area-work; do not call it playable or publish it
+based on order creation tests. Required next witness: one area command, automatic
+approach/excavation, finite spoil returned by the ordinary delivery owner, continued
+work after restore, and visible waiting rather than permanent silent claims.
+Review found eager route evaluation, copied-candidate identity comparison, blocked
+claims that never retry, and mismatched area input; those require corrected source
+and actual consumer evidence. Retained brewing remains the multi-stage reference.
+
+The public deployment remains a13fc44. Source a7ebd80 is remotely verified on the
+existing private Botanical recovery/hive-public-do-20260910T1533Z branch; this is
+a recovery checkpoint, not public release or whole-goal acceptance.
+
 ### Immediate correction: usable digging before exploration
 
 Levi rejected porting the retained vision implementation on September 11. Keep
