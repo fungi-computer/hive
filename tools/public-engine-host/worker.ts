@@ -189,7 +189,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           if (persisted) await this.initializeCore(persisted.pack as PublicPack, persisted.token_hash);
         }
       } catch (error) {
-        this.startupFailure = error instanceof Error && error.message === "public-capability-conflict" ? "unsupported-world" : "world-unavailable";
+        const message = error instanceof Error ? error.message : "";
+        this.startupFailure = /region-identity-conflict|public-capability-conflict|public-host-format/.test(message) ? "unsupported-world" : "world-unavailable";
       }
     });
   }
@@ -344,8 +345,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       const attachment = socket.deserializeAttachment() as SocketAttachment | null;
       return attachment?.retired ? null : attachment?.authDeadline;
     }).filter((value): value is number => value !== null && value !== undefined);
-    const values = [...deadlines, row.lease_until_ms, row.due_deadline_ms].filter((value): value is number => value !== null);
+    const lease = row.lease_until_ms !== null && row.lease_until_ms > Date.now() ? row.lease_until_ms : null;
+    const values = [...deadlines, lease, row.due_deadline_ms].filter((value): value is number => value !== null);
     return values.length === 0 ? null : Math.min(...values);
+  }
+
+  private socketAlarmAt(): number | null {
+    const deadlines = this.state.getWebSockets().map((socket) => {
+      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+      return attachment?.retired ? null : attachment?.authDeadline;
+    }).filter((value): value is number => value !== null && value !== undefined);
+    return deadlines.length === 0 ? null : Math.min(...deadlines);
   }
 
   private expireUnauthenticated(now: number): void {
@@ -524,21 +534,46 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   async alarm(): Promise<void> {
     await this.ready;
-    this.expireUnauthenticated(Date.now());
+    const now = Date.now();
+    this.expireUnauthenticated(now);
+    if (this.startupFailure) {
+      const next = this.socketAlarmAt();
+      if (next === null) await this.state.storage.deleteAlarm();
+      else await this.state.storage.setAlarm(next);
+      return;
+    }
+    if (!this.hasHostTable()) {
+      const next = this.socketAlarmAt();
+      if (next === null) await this.state.storage.deleteAlarm();
+      else await this.state.storage.setAlarm(next);
+      return;
+    }
     await this.initializeStored();
-    if (this.startupFailure) return;
     if (!this.initialized) return;
-    await this.runDue(Date.now());
+    await this.runDue(now);
     if (this.initialized) this.publishObservation();
   }
 
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
     await this.ready;
+    if (this.startupFailure) {
+      try { socket.send(JSON.stringify({ type: "error", error: this.startupFailure })); socket.close(1011, this.startupFailure); } catch {}
+      return;
+    }
     if (typeof message !== "string" || new TextEncoder().encode(message).byteLength > 8_192) {
       try { socket.close(1009, "message too large"); } catch {}
       return;
     }
     const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+    if (!attachment) {
+      try { socket.close(1008, "missing socket attachment"); } catch {}
+      return;
+    }
+    if (!attachment.authenticated && (attachment.retired || (attachment.authDeadline !== null && attachment.authDeadline !== undefined && attachment.authDeadline <= Date.now()))) {
+      socket.serializeAttachment({ ...attachment, retired: true, authDeadline: null });
+      try { socket.close(1008, "authentication timeout"); } catch {}
+      return;
+    }
     if (attachment?.authenticated) {
       try {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
@@ -597,15 +632,16 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           return jsonResponse({ error: "websocket-upgrade-required" }, 426, origin);
         const pair = new WebSocketPair();
         const server = pair[1];
-        const unauthenticated = this.state.getWebSockets().filter((candidate) => {
+        const sockets = this.state.getWebSockets();
+        const unauthenticated = sockets.filter((candidate) => {
           const attachment = candidate.deserializeAttachment() as SocketAttachment | null;
           return !attachment?.authenticated;
         });
-        if (unauthenticated.length >= 32) return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
-        server.serializeAttachment({ pack, tokenHash: "", authenticated: false, authDeadline: Date.now() + 5_000 } satisfies SocketAttachment);
-        this.state.acceptWebSocket(server);
+        if (sockets.length >= 64 || unauthenticated.length >= 32) return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
         const deadline = Date.now() + 5_000;
-        const row = this.hostRow();
+        server.serializeAttachment({ pack, tokenHash: "", authenticated: false, authDeadline: deadline } satisfies SocketAttachment);
+        this.state.acceptWebSocket(server);
+        const row = this.hasHostTable() ? this.hostRow() : undefined;
         if (row) await this.arm(row);
         else await this.state.storage.setAlarm(deadline);
         return new Response(null, { status: 101, webSocket: pair[0] });
