@@ -118,9 +118,15 @@ function localConnection({ mode, connectLocal, saveOwner }) {
   const runtime = connectLocal();
   const owner = saveOwner ?? createLocalSaveOwner({ mode });
   const disposeRuntime = runtime.dispose?.bind(runtime);
+  let disposed = false;
   runtime.dispose = () => {
-    disposeRuntime?.();
-    void Promise.resolve(owner.close?.()).catch(() => {});
+    if (disposed) return;
+    disposed = true;
+    try {
+      disposeRuntime?.();
+    } finally {
+      void Promise.resolve().then(() => owner.close?.()).catch(() => {});
+    }
   };
   return {
     runtime,
@@ -134,7 +140,9 @@ function localConnection({ mode, connectLocal, saveOwner }) {
         runtime.send({ type: "save" });
       },
       async continue() {
+        if (disposed) throw new Error("connection choice disposed");
         const saved = await owner.read();
+        if (disposed) throw new Error("connection choice disposed");
         if (saved === undefined) throw new Error("No saved world yet");
         runtime.send({ type: "restore", snapshot: saved });
       },
