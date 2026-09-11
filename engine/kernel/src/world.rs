@@ -1,4 +1,4 @@
-use crate::{collision, combat, components::*, material_output::MaterialOutputSpec, navigation, registry::Registry};
+use crate::{collision, combat, components::*, navigation, registry::Registry};
 #[path = "material_output.rs"]
 mod material_output;
 use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
@@ -1692,7 +1692,7 @@ mod lot_water_tests {
         assert!(transfer(&mut full, 1)["results"][0]["accepted"] == true);
         let before_full_lot = rows(&mut full, "hive.lot");
         let before_full_water = rows(&mut full, "hive.lot-water");
-        let rejected = serde_json::from_str(&full.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"lot.1","from":"source","to":"dest","quantity":1}]}"#).unwrap()).unwrap();
+        let rejected: Value = serde_json::from_str(&full.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"lot.1","from":"source","to":"dest","quantity":1}]}"#).unwrap()).unwrap();
         assert_eq!(rejected["results"][0]["accepted"], false);
         assert_eq!(rows(&mut full, "hive.lot"), before_full_lot);
         assert_eq!(rows(&mut full, "hive.lot-water"), before_full_water);

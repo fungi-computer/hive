@@ -51,7 +51,7 @@ pub(super) fn prepare(
     if container_quantity.saturating_add(u64::from(spec.quantity)) > u64::from(container_capacity) {
         return Err("material output exceeds container capacity".into());
     }
-    let water = spec.water_kg.map(|mass| {
+    let water = spec.water_kg.map(|mass| -> Result<LotWater, String> {
         if !mass.is_finite() || mass < 0.0 || mass > MAX_CARRIED_WATER_KG {
             return Err("invalid material output water mass".into());
         }
