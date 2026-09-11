@@ -834,6 +834,15 @@ mod tests {
         assert!(graph.prepare_withdrawal(&state, [1, 0, 0], 0.1).is_err());
         assert!(next.prepare_withdrawal(&state, at, 0.1).is_err());
         assert_eq!(graph.encode_state(&state).unwrap(), before);
+        // A valid state-wide tolerance cannot authorize a debit that the
+        // accumulated boundary ledger cannot represent at its own magnitude.
+        let mut large_ledger = graph.initial(&[stock(at, 1.0e-12)]).unwrap();
+        large_ledger.initial_total_kg = 1.0e12;
+        large_ledger.boundary_kg = -1.0e12;
+        graph.validate_state(&large_ledger).unwrap();
+        let saved_ledger = graph.encode_state(&large_ledger).unwrap();
+        assert!(graph.prepare_withdrawal(&large_ledger, at, 1.0e-12).is_err());
+        assert_eq!(graph.encode_state(&large_ledger).unwrap(), saved_ledger);
     }
 
     #[test]
