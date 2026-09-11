@@ -1,11 +1,11 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
-import { project, groundPoint, surfacePoint, terrainPoint, terrainHit } from "./geometry.js";
+import { project, groundPoint, surfacePoint, terrainPoint, terrainHit, terrainPlaneCell } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
 import { createAudioOwner } from "./audio.js";
-import { presentationCommand, terrainPresentationCommand } from "../presentation.ts";
+import { presentationCommand, terrainPresentationCommand, terrainAreaPresentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
@@ -21,6 +21,7 @@ import {
   pointerGestureMachine,
   aimGestureMachine,
   terrainTargetMachine,
+  terrainAreaGestureMachine,
   WORLD_VIEW_CONTROLS,
   surfaceSubjectAt,
   eligibleSelectedIds,
@@ -35,6 +36,8 @@ import {
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisual } from "./visual-resolver.js";
 import { terrainCameraFocus } from "./camera-focus.js";
+
+import { rectangleCells, visibleTerrainAreaPreview } from "./terrain-area-selection.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -80,6 +83,7 @@ export function createHiveClient({
   const gesture = createActor(pointerGestureMachine).start();
   const aimGesture = createActor(aimGestureMachine).start();
   const terrainTarget = createActor(terrainTargetMachine).start();
+  const terrainArea = createActor(terrainAreaGestureMachine).start();
   const isAiming = () => aimGesture.getSnapshot().value === "aiming";
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
@@ -134,6 +138,7 @@ export function createHiveClient({
     notify();
   };
   function changeViewLevel(level) {
+    terrainArea.send({ type: "CANCEL" });
     const next = setWorldViewLevel(state.view, level);
     if (next.level === state.view.level) return;
     state.view = next;
@@ -146,6 +151,7 @@ export function createHiveClient({
     renderHud();
   }
   function setCutaway(value) {
+    terrainArea.send({ type: "CANCEL" });
     state.view = toggleWorldCutaway(state.view, value);
     gesture.send({ type: "CANCEL" });
     exitAim();
@@ -221,6 +227,7 @@ export function createHiveClient({
     directControl?.reset();
     gesture.send({ type: "CANCEL" });
     exitAim();
+    terrainArea.send({ type: "CANCEL" });
     terrainTarget.send({ type: "CANCEL" });
     frameEpoch = undefined;
     frameSequence = 0;
@@ -438,11 +445,14 @@ export function createHiveClient({
                       size: "sm",
                       disabled: !state.ready,
                       onClick: () => {
-                        if (control.target === "terrain-cell") {
+                        if (control.target === "terrain-cell" || control.target === "terrain-area") {
                           exitAim();
                           gesture.send({ type: "CANCEL" });
+                          terrainArea.send({ type: "CANCEL" });
                           terrainTarget.send({ type: "ARM", control });
-                          state.message = `${control.label}: choose a visible terrain top; Escape exits`;
+                          state.message = control.target === "terrain-area"
+                            ? `${control.label}: drag a rectangle; Escape exits`
+                            : `${control.label}: choose a visible terrain top; Escape exits`;
                           renderHud();
                           return;
                         }
@@ -706,6 +716,19 @@ export function createHiveClient({
       drag.start &&
       drag.current,
     );
+    const area = terrainArea.getSnapshot();
+    const displayed = displayedTerrainFrame();
+    if (area.value === "dragging" && displayed) {
+      for (const surface of visibleTerrainAreaPreview(displayed, area.context.start, area.context.current)) {
+        const [x,y,z] = surface.cell;
+        const points = [[x-.5,z-.5],[x+.5,z-.5],[x+.5,z+.5],[x-.5,z+.5]].flatMap(([a,b]) => {
+          const p = project(a,(y+.5)*displayed.verticalMetres,b);
+          return [p.x*camera.zoom+camera.x,p.y*camera.zoom+camera.y];
+        });
+        dragGraphic.poly(points).fill({color:0xe8c779,alpha:.22}).stroke({color:0xe8c779,width:1});
+      }
+      dragGraphic.visible = true;
+    }
     if (isAiming() && state.aim.point && state.aim.target) {
       const marker = state.aim.preview?.contacts?.find(contact => contact.response === "ground")?.point ?? state.aim.preview?.position;
       const target = marker ? project(marker.x, marker.y, marker.z) : null;
@@ -746,6 +769,12 @@ export function createHiveClient({
         renderHud();
         return;
       }
+      if (targetControl.target === "terrain-area") {
+        terrainArea.send({ type: "BEGIN", cell: surface.cell });
+        app.canvas.setPointerCapture?.(event.pointerId);
+        draw();
+        return;
+      }
       runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, material: surface.material }));
       return;
     }
@@ -758,6 +787,23 @@ export function createHiveClient({
     app.canvas.setPointerCapture?.(event.pointerId);
   }
   function pointerMove(event) {
+    if (terrainArea.getSnapshot().value === "dragging") {
+      const context = terrainArea.getSnapshot().context;
+      const displayed = displayedTerrainFrame();
+      if (!displayed) return;
+      const at = point(event);
+      const cell = terrainPlaneCell((at.x-camera.x)/camera.zoom, (at.y-camera.y)/camera.zoom, context.start[1], displayed.verticalMetres);
+      if (cell.every((value,index) => value === context.current[index])) return;
+      try {
+        rectangleCells(context.start, cell, 256);
+        terrainArea.send({ type: "MOVE", cell });
+        state.message = `Designate ${visibleTerrainAreaPreview(displayed, context.start, cell).length} visible cells`;
+      } catch (error) {
+        terrainArea.send({ type: "CANCEL" });
+        state.message = error.message;
+      }
+      renderHud(); draw(); return;
+    }
     if (isAiming()) {
       state.aim.point = point(event);
       aimGesture.send({ type: "MOVE", point: state.aim.point });
@@ -770,6 +816,17 @@ export function createHiveClient({
     draw();
   }
   function pointerUp(event) {
+    if (terrainArea.getSnapshot().value === "dragging") {
+      const { start, current } = terrainArea.getSnapshot().context;
+      const control = terrainTarget.getSnapshot().context.control;
+      terrainArea.send({ type: "END" });
+      app.canvas.releasePointerCapture?.(event.pointerId);
+      if (control?.target === "terrain-area") {
+        runtime?.send(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
+        state.message = "Digging area submitted";
+      }
+      renderHud(); draw(); return;
+    }
     const snapshot = gesture.getSnapshot();
     if (snapshot.value !== "dragging") return;
     const drag = snapshot.context;
@@ -806,6 +863,7 @@ export function createHiveClient({
   function contextMenu(event) {
     event.preventDefault();
     if (terrainTarget.getSnapshot().value === "armed") {
+      terrainArea.send({ type: "CANCEL" });
       terrainTarget.send({ type: "CANCEL" }); state.message = "Selection"; renderHud(); return;
     }
     if (isAiming()) return;
@@ -857,7 +915,7 @@ export function createHiveClient({
     if (!state.ready) return;
     const key = event.key.toLowerCase();
     if (key === "escape" && terrainTarget.getSnapshot().value === "armed") {
-      event.preventDefault(); terrainTarget.send({ type: "ESCAPE" });
+      event.preventDefault(); terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
       state.message = "Selection"; renderHud(); return;
     }
     if (key === "escape" && isAiming()) { event.preventDefault(); toggleAim(); return; }
@@ -965,6 +1023,7 @@ export function createHiveClient({
     app.canvas.addEventListener("contextmenu", contextMenu);
     app.canvas.addEventListener("pointercancel", () => {
       gesture.send({ type: "CANCEL" });
+      terrainArea.send({ type: "CANCEL" });
       state.dragging = null;
     });
     window.addEventListener("keydown", keydown);
@@ -1011,7 +1070,7 @@ export function createHiveClient({
           run: () => {
             gesture.send({ type: "CANCEL" });
             if (terrainTarget.getSnapshot().value === "armed") {
-              terrainTarget.send({ type: "ESCAPE" });
+              terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
               state.message = "Selection";
               renderHud();
               draw();
@@ -1061,7 +1120,8 @@ export function createHiveClient({
         if (frameEpoch !== undefined && event.epoch < frameEpoch) return;
         if (frameEpoch !== undefined && event.epoch > frameEpoch) {
           directControl?.reset();
-          terrainTarget.send({ type: "CANCEL" });
+          terrainArea.send({ type: "CANCEL" });
+    terrainTarget.send({ type: "CANCEL" });
           gesture.send({ type: "CANCEL" });
           state.selectedIds = [];
           exitAim();
@@ -1180,6 +1240,7 @@ export function createHiveClient({
       hudRoot.unmount();
       gesture.stop();
       terrainTarget.stop();
+      terrainArea.stop();
       aimGesture.stop();
       resizeObserver?.disconnect();
       window.removeEventListener("keydown", keydown);

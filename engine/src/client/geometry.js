@@ -35,6 +35,14 @@ export function groundPoint(x, y) {
   return { x: Math.round(point.x), y: 0, z: Math.round(point.z) };
 }
 
+/** Drag on the initially picked voxel plane; never ray-pick a different layer. */
+export function terrainPlaneCell(x, y, level, verticalMetres) {
+  if (!Number.isSafeInteger(level) || !Number.isFinite(verticalMetres) || verticalMetres <= 0)
+    throw new Error("invalid terrain selection plane");
+  const point = planePoint(x, y, (level + 0.5) * verticalMetres);
+  return [Math.round(point.x), level, Math.round(point.z)];
+}
+
 /** Pick a displayed horizontal support; native admission checks the returned order. */
 export function surfacePoint(x, y, fact) {
   const { pose, surface } = fact;
