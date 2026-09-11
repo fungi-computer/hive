@@ -4,7 +4,7 @@
 //! Query frontiers are intentionally closed until a caller supplies an explicit
 //! exterior policy.
 
-use super::{AtmosphereOpeningDefinition, AtmosphereVolumeDefinition};
+use super::{AtmosphereMember, AtmosphereOpeningDefinition, AtmosphereVolumeDefinition};
 use crate::generation::Cell;
 use crate::structure_geometry::FaceAxis;
 use crate::terrain_water::{AirGeometryFaceKind, AirGeometrySnapshot, AirWaterCoverage};
