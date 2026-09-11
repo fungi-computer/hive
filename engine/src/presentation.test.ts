@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
   presentationCommand,
+  terrainPresentationCommand,
   projectPresentation,
   type GamePresentation,
 } from "./presentation";
@@ -116,4 +117,15 @@ test("presentation rejects inputs whose JSON meaning would change", () => {
       ),
     );
   }
+});
+
+test("terrain controls bind selected actors and copy the visible cell", () => {
+  const control = { id: "dig", label: "Dig", command: "greet", selection: "entities" as const, target: "terrain-cell" as const };
+  const cell: [number, number, number] = [2, -5, 3];
+  const result = terrainPresentationCommand(control, ["worker"], { cell, material: 2 });
+  cell[0] = 9;
+  assert.deepEqual(result.input, { entities: ["worker"], target: { cell: [2, -5, 3], material: 2 } });
+  assert.equal(projectPresentation(pack({ controls: [control], inspect: () => [] }), context).controls[0].target, "terrain-cell");
+  assert.throws(() => terrainPresentationCommand({ ...control, input: { target: {} } }, [], { cell, material: 2 }));
+  assert.throws(() => terrainPresentationCommand(control, [], { cell: [0, NaN, 0], material: 2 }));
 });

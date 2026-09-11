@@ -1,11 +1,11 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
-import { project, groundPoint, surfacePoint, terrainPoint } from "./geometry.js";
+import { project, groundPoint, surfacePoint, terrainPoint, terrainHit } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
 import { createAudioOwner } from "./audio.js";
-import { presentationCommand } from "../presentation.ts";
+import { presentationCommand, terrainPresentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
@@ -20,6 +20,7 @@ import {
   selectionFromSubjects,
   pointerGestureMachine,
   aimGestureMachine,
+  terrainTargetMachine,
   WORLD_VIEW_CONTROLS,
   surfaceSubjectAt,
   eligibleSelectedIds,
@@ -78,6 +79,7 @@ export function createHiveClient({
   };
   const gesture = createActor(pointerGestureMachine).start();
   const aimGesture = createActor(aimGestureMachine).start();
+  const terrainTarget = createActor(terrainTargetMachine).start();
   const isAiming = () => aimGesture.getSnapshot().value === "aiming";
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
@@ -209,6 +211,7 @@ export function createHiveClient({
     directControl?.reset();
     gesture.send({ type: "CANCEL" });
     exitAim();
+    terrainTarget.send({ type: "CANCEL" });
     frameEpoch = undefined;
     frameSequence = 0;
     awaitingEpochTransition = false;
@@ -425,6 +428,14 @@ export function createHiveClient({
                       size: "sm",
                       disabled: !state.ready,
                       onClick: () => {
+                        if (control.target === "terrain-cell") {
+                          exitAim();
+                          gesture.send({ type: "CANCEL" });
+                          terrainTarget.send({ type: "ARM", control });
+                          state.message = `${control.label}: choose a visible terrain top; Escape exits`;
+                          renderHud();
+                          return;
+                        }
                         if (aiming) audio.unlock();
                         return state.ready && runtime?.send(
                           presentationCommand(control, state.selectedIds),
@@ -714,6 +725,19 @@ export function createHiveClient({
     if (isTypingTarget(event.target) || event.button !== 0) return;
     app.canvas.focus();
     const at = point(event);
+    const targetControl = terrainTarget.getSnapshot().context.control;
+    if (targetControl) {
+      if (!state.ready) return;
+      const hit = terrainFrame && terrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, terrainFrame);
+      const surface = hit?.kind === "terrain-top" && terrainFrame.surfaces.find(({ cell }) => cell.every((value, index) => value === hit.column[index]));
+      if (!surface) {
+        state.message = "Choose a visible terrain top";
+        renderHud();
+        return;
+      }
+      runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, material: surface.material }));
+      return;
+    }
     if (isAiming()) {
       state.aim.point = at;
       try { state.aim.target = aimGroundPoint(at, camera); updateAimPreview(); } catch { state.aim.target = null; }
@@ -770,6 +794,9 @@ export function createHiveClient({
   }
   function contextMenu(event) {
     event.preventDefault();
+    if (terrainTarget.getSnapshot().value === "armed") {
+      terrainTarget.send({ type: "CANCEL" }); state.message = "Selection"; renderHud(); return;
+    }
     if (isAiming()) return;
     if (!state.ready) {
       state.message = "World is still connecting…";
@@ -817,6 +844,10 @@ export function createHiveClient({
     if (isTypingTarget(event.target)) return;
     if (!state.ready) return;
     const key = event.key.toLowerCase();
+    if (key === "escape" && terrainTarget.getSnapshot().value === "armed") {
+      event.preventDefault(); terrainTarget.send({ type: "ESCAPE" });
+      state.message = "Selection"; renderHud(); return;
+    }
     if (key === "escape" && isAiming()) { event.preventDefault(); toggleAim(); return; }
     if (directControl && directControl.key(key, true)) { event.preventDefault(); return; }
     if (mode === "survival") {
@@ -1110,6 +1141,7 @@ export function createHiveClient({
       runtime?.dispose();
       hudRoot.unmount();
       gesture.stop();
+      terrainTarget.stop();
       aimGesture.stop();
       resizeObserver?.disconnect();
       window.removeEventListener("keydown", keydown);
