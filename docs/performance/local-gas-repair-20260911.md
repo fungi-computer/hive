@@ -117,3 +117,66 @@ owned scopes are inactive/dead and empty. The original failed type output remain
 Source inventories, raw third measurements and logs are retained under
 `.botanical/gas-local/v3`. Public host/command recovery and actual two-client
 qualification are the next joined consumer, not yet established by these results.
+
+## Actual local DO trial and remaining responsiveness failure
+
+The first joined real DO trial (u6043, source eb20a0d) completed two public digs,
+all four ordinary wood deliveries and a finished timber wall, then paid hearth
+emission. Two authenticated clients received identical committed paused facts.
+Six warm commands took at most 200.10 ms. Nevertheless both clients had an
+approximately 1313 ms update gap, exceeding the declared 1000 ms maximum. The
+trial failed; abrupt-restart and browser stages were not reached. This is not a
+playability pass. It uses two connections to one private world, not two accounts.
+
+The harness also polls HTTP observation every 150 ms, in addition to its sockets.
+That is extra load compared with the browser, but is not evidence that polling
+caused the hitch. Exact stages, diagnostics and cleanup are retained in
+`.botanical/performance-do/native-v1`. u6043 exited 1; its scope was inactive/dead
+and empty, both clients closed and port 8789 clear.
+
+A separate actual-current-caller wall measurement (u6045) completed the wall after
+329 steps / 32.9 simulated seconds. Whole-step p95 was 9.35 ms, maximum 158.21 ms;
+current observation p95 was 10.50 ms, maximum 16.45 ms; median save was 0.36 ms.
+This is local WASM timing, not DO CPU profiling. It does not explain the 1.3-second
+server gap. The earlier 16-second fixture was too short to prove four deliveries
+and construction, not evidence of impossible work. Raw output is retained at
+`.botanical/performance-do/session-v1.json` and `wall-cost.log`.
+
+Source 2c2dc52 removes discarded observation rendering during socket authentication
+and heartbeat and retains one derived observation at the actual committed revision.
+The cache is shared by HTTP/socket readers, never candidate authority; forced
+heartbeat baseline remains. Its consumer trial must determine whether this helps.
+No public deployment follows from these measurements alone.
+
+### Second real DO trial: recovery passed, responsiveness still failed
+
+u6048 / exec58028 exited 1 on source 2c2dc52. Strict host types passed. The same
+physical sequence again completed: two digs, four wood hauls, finished wall, paid
+hearth smoke, and equal committed facts on both clients. Commands peaked at
+167.00 ms; update-gap p95 was 178.08 / 176.26 ms, but the maximum was 1563.22 /
+1562.94 ms. The delayed frame advanced revision 143 to 144 and simulated time
+14.1 to 14.2 seconds, with no remaining dig marks. The cache correction does not
+establish a hitch fix. Cause remains unmeasured; do not call this gas, GC or disk
+without a corresponding trace.
+
+The unchanged original responsiveness threshold remains failed. The driver deferred
+that assertion to gather independent recovery/input evidence rather than stopping
+at it: abrupt owned-runtime termination, reopening the same SQLite world, exact
+paused physical state, identical light-command receipt replay and resumed paid
+fire all passed before the browser stage. This is a source-ordered assertion
+frontier in the retained driver, not a whole-driver pass.
+
+The browser stage failed before gameplay: its screenshot says the checked static
+art pack could not load, no first observation arrived, and the Dig button wait
+expired. Root viewed that screenshot. The maintained Vite config has publicDir
+disabled and copies art only in generateBundle; this dev-run fixture did not serve
+that bank. Production art completeness is not disproved by this dev-fixture error,
+and no browser interaction is accepted. Serve the existing checked bank (or use
+the ordinary built frontend) in the next input check; do not rebake original art.
+
+Cleanup: both owned runtime starts stopped, clients closed, scope inactive/dead
+with empty ControlGroup; ports 8789 and 5198 free. Evidence retained under
+`.botanical/performance-do/native-v2`, including stages, diagnostics, runtime log,
+browser-failure.json/png and cleanup. No public deployment. Next performance work
+is a real-host trace around the delayed committed revision, not another solver
+rewrite or another unchanged numerical matrix.

@@ -272,3 +272,17 @@ The second repair is not a claim of complete change-local execution.
 See [the second repair receipt](../docs/performance/local-gas-repair-20260911.md).
 Client chunk baking/picking and poisoned-resident cleanup are separately joined
 source; their client/host acceptance is not inferred from these Rust measurements.
+
+### Third repair and real-server acceptance
+
+Equivalent physical faces are aggregated only for ordinary exchange; the original
+faces remain for displacement and geometry admission. The same digging workload
+now measures 9.67 ms p95 and 127.37 ms maximum. Current terrain observations query
+changed columns rather than regenerating every column. These repairs preserve
+water, smoke, heat, paid sources and current-format recovery.
+
+The first real local DO trial completed digging, four wood deliveries, building
+and paid smoke for two connected clients, but failed responsiveness with a
+1.3-second update gap. Native speedup is therefore not the endpoint. Continue
+with the actual host/client path, preserving that failure and the same acceptance
+threshold. See the [live trial record](../docs/performance/local-gas-repair-20260911.md#actual-local-do-trial-and-remaining-responsiveness-failure).
