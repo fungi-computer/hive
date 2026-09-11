@@ -13,6 +13,12 @@ export const Body = component<{ speed: number }>("hive.body", {
   fields: { speed: "number" },
 });
 
+/** Native carrying capacity; authored systems may query but cannot write it. */
+export const Container = component<{ capacity: number }>("hive.container", {
+  version: 1,
+  fields: { capacity: "number" },
+});
+
 /** Authored walking geometry; native routing owns its interpretation and state. */
 export const Traversal = component<{
   clearanceCells: number;
