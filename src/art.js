@@ -465,7 +465,7 @@ export async function bakeArt(onProgress = () => {}) {
           ? ["stakes", "frame", "finished", "filled"]
           : ["stakes", "frame", "finished"];
       for (const stage of stages)
-        art.buildings[type][stage] = [0, 1].map((direction) =>
+        art.buildings[type][stage] = (type === "stair" ? [0, 1, 2, 3] : [0, 1]).map((direction) =>
           bakeStartup(
             renderer,
             building(type, stage, direction),
