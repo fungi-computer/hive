@@ -169,7 +169,7 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(site_entity).is_some() { return Ok(false); }
         let marker_weight = self.registry.weight("hive.sealed-container", &record(&SealedContainer {}));
         if self.state_weight.saturating_add(marker_weight) > STATE_BYTES { return Ok(false); }
-        self.environment.as_mut().ok_or("construction needs environment")?.world.apply_structures(prepared)?;
+        if !self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)? { return Ok(false); }
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
         finished.worker = None;

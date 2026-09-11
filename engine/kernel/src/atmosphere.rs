@@ -193,7 +193,8 @@ pub struct AtmosphereSource {
     pub heat_j_s: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct AtmosphereReceipt {
     pub seconds: f64,
     pub steps: usize,

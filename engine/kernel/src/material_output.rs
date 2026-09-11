@@ -150,7 +150,7 @@ mod tests {
         let ExcavationResult::Prepared(prepared) = kernel.environment.as_mut().unwrap().world.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
         let credit = prepared.water_kg();
         kernel.ecs.get_mut::<crate::components::Container>(bin).unwrap().capacity = 10;
-        let lot = kernel.complete_excavation(prepared, "bin".into()).unwrap();
+        let lot = kernel.complete_excavation(prepared, "bin".into()).unwrap().unwrap();
         let entity = kernel.entity(&lot).unwrap();
         assert_eq!(kernel.ecs.get::<LotWater>(entity).unwrap().water_kg, credit);
         assert_eq!(kernel.ecs.get::<Lot>(entity).unwrap().quantity, 3);

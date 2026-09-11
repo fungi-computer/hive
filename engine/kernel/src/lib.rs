@@ -374,6 +374,5 @@ impl Default for WasmKernel {
     }
 }
 
-// Standalone atmosphere qualification; no live Kernel caller yet.
-#[cfg(test)]
-mod atmosphere;
+// Shared native atmosphere owner; game content supplies its bounded definition.
+pub mod atmosphere;

@@ -22,6 +22,7 @@ struct DefinitionInput {
     materials: Vec<MaterialInput>,
     water: WaterInput,
     structures: StructuresInput,
+    atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
 }
@@ -149,6 +150,7 @@ pub struct PreparedDefinition {
     pub excavation_rules: BTreeMap<u16, ExcavationRule>,
     pub initial_placements: Vec<InitialSurfacePlacement>,
     pub structures: BTreeMap<String, StructureDefinition>,
+    pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
 }
 
 pub struct BuiltEnvironment {
@@ -156,11 +158,12 @@ pub struct BuiltEnvironment {
     pub excavation_rules: BTreeMap<u16, ExcavationRule>,
     pub initial_placements: Vec<InitialSurfacePlacement>,
     pub structures: BTreeMap<String, StructureDefinition>,
+    pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
 }
 pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
     let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
-    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures })
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -380,6 +383,7 @@ fn prepare_definition_mode(
         excavation_rules,
         initial_placements,
         structures,
+        atmosphere: definition.atmosphere,
     })
 }
 

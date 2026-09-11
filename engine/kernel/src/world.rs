@@ -1,3 +1,5 @@
+#[path = "environment_runtime.rs"]
+mod environment_runtime;
 use crate::{collision, combat, components::*, navigation, registry::Registry};
 #[path = "material_output.rs"]
 mod material_output;
@@ -281,9 +283,11 @@ fn terrain_motion_blocked(position: Position, path: &VecDeque<Point>, mut budget
 
 pub struct KernelRecords {
     pub entities: String,
+    pub atmosphere: Option<Vec<u8>>,
     pub environment: Option<(String, crate::terrain_water::TerrainWaterRecords)>,
 }
 struct KernelEnvironment {
+    atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphere>,
     definition: String,
     world: crate::terrain_water::TerrainWater,
     excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
@@ -997,11 +1001,12 @@ impl Kernel {
         if self.revision != 0 || self.environment.is_some() {
             return Err("environment initialization requires a new world".into());
         }
-        let built = crate::environment_definition::build_from_json(definition)?;
+        let mut built = crate::environment_definition::build_from_json(definition)?;
+        let atmosphere = built.atmosphere.map(|config| crate::terrain_atmosphere::TerrainAtmosphere::fresh(&mut built.world, config)).transpose()?;
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
@@ -1078,16 +1083,36 @@ impl Kernel {
         let environment = self.environment.as_ref().map(|environment| {
             Ok::<_, String>((environment.definition.clone(), environment.world.save_records()?))
         }).transpose()?;
-        Ok(KernelRecords { entities: self.snapshot_entities_json()?, environment })
+        let atmosphere = self.environment.as_ref().and_then(|environment| environment.atmosphere.as_ref())
+            .map(|air| air.save().and_then(|records| postcard::to_allocvec(&records).map_err(|_| "atmosphere record encoding failed".into())))
+            .transpose()?;
+        Ok(KernelRecords { entities: self.snapshot_entities_json()?, environment, atmosphere })
     }
     pub fn restore_records(&mut self, records: &KernelRecords) -> Result<()> {
+        let records_atmosphere = &records.atmosphere;
+        if records.environment.is_none() && records_atmosphere.is_some() {
+            return Err("atmosphere records require an environment".into());
+        }
         let mut candidate = Self::new();
         candidate.restore_json(&records.entities)?;
         if let Some((definition, records)) = &records.environment {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
-            let world = crate::terrain_water::TerrainWater::restore_records(
+            let mut world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures });
+            let atmosphere = match (&prepared.atmosphere, &records_atmosphere) {
+                (None, None) => None,
+                (Some(expected), Some(bytes)) => {
+                    if bytes.len() > 2 * 1024 * 1024 + 64 * 1024 { return Err("atmosphere records exceed bound".into()); }
+                    let (saved, rest): (crate::terrain_atmosphere::TerrainAtmosphereRecords, &[u8]) =
+                        postcard::take_from_bytes(bytes).map_err(|_| "invalid atmosphere records")?;
+                    if !rest.is_empty() { return Err("trailing atmosphere record bytes".into()); }
+                    let air = crate::terrain_atmosphere::TerrainAtmosphere::restore(&mut world, &saved)?;
+                    if air.config() != expected { return Err("saved atmosphere does not match authored environment".into()); }
+                    Some(air)
+                }
+                _ => return Err("saved atmosphere capability does not match environment".into()),
+            };
+            candidate.environment = Some(KernelEnvironment { atmosphere, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures });
             candidate.validate_construction_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
@@ -1418,10 +1443,10 @@ impl Kernel {
         self.advance_excavation(batch.delta)?;
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
-        let environment_work = self.environment.as_mut().map(|environment| environment.world.advance(batch.delta)).transpose()?;
+        let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
-        if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work).map_err(|e| e.to_string())?; }
+        if let Some((water, air)) = environment_work { output["environmentWork"] = serde_json::to_value(water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(air).map_err(|e| e.to_string())?; }
         serde_json::to_string(&output).map_err(|e| e.to_string())
     }
     fn entity(&self, id: &str) -> Result<Entity> {
@@ -1480,17 +1505,17 @@ impl Kernel {
     // Work/reach and the material definition are admitted by the native work
     // caller. Water credit is always derived from the opaque geometry token.
     fn complete_excavation(&mut self, excavation: crate::terrain_water::PreparedExcavation,
-        container: String) -> Result<String> {
+        container: String) -> Result<Option<String>> {
         let rule = self.environment.as_ref().ok_or("world has no environment")?
             .excavation_rules.get(&excavation.removed()).ok_or("material has no excavation yield")?;
         let output = self.prepare_material_output(MaterialOutputSpec {
             container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg: (excavation.water_kg() > 0.0).then_some(excavation.water_kg()),
         })?;
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
-        environment.world.apply_excavation(excavation)?;
+        if !environment.apply_excavation(excavation)? { return Ok(None); }
         // All material admission precedes the terrain commit. There is no
         // fallible material operation between this point and publication.
-        Ok(self.publish_material_output(output))
+        Ok(Some(self.publish_material_output(output)))
     }
     fn quantity(&self, id: &str) -> u64 {
         self.contents

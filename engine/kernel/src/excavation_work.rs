@@ -101,10 +101,11 @@ impl Kernel {
             };
             // Capacity/geometry admission failure leaves earned work available for retry.
             match self.complete_excavation(prepared, id) {
-                Ok(_) => {
+                Ok(Some(_)) => {
                     self.ecs.entity_mut(actor).remove::<ExcavationWork>();
                     self.refresh_state_weight();
                 }
+                Ok(None) => {},
                 Err(reason) if reason == "material output exceeds container capacity"
                     || reason == "region entity capacity" || reason == "region canonical state capacity" => {}
                 Err(reason) => return Err(reason),
