@@ -27,6 +27,7 @@ const workerTwo = entity("colony.worker.2");
 const workers = [workerOne, workerTwo] as const;
 const guestId = entity("colony.guest.1");
 const pantryId = entity("colony.pantry");
+export const colonyLumberId = entity("colony.lumber");
 const lotOne = entity("colony.food.1");
 const lotTwo = entity("colony.food.2");
 const taskOne = entity("colony.delivery.1");
@@ -63,6 +64,20 @@ const colonyInitial = [
       "hive.position": { x: -2, y: 0, z: 0, facing: 0 },
       "hive.container": { capacity: 20 },
       "hive.visual": { sprite: "crate", label: "Pantry" },
+    },
+  },
+  {
+    id: colonyLumberId,
+    components: {
+      "hive.position": { x: -3, y: 0, z: 1, facing: 0 },
+      "hive.container": { capacity: 48 },
+      "hive.visual": { sprite: "crate", label: "Starter lumber" },
+    },
+  },
+  {
+    id: entity("colony.lumber.initial"),
+    components: {
+      "hive.lot": { quantity: 48, kind: "wood", container: colonyLumberId },
     },
   },
   ...([lotOne, lotTwo] as const).map((id) => ({
@@ -326,6 +341,7 @@ export const colonyPack: GamePack = {
       const taskRows = context.query(query(DeliveryTask));
       return [
         { id: "pantry-quantity", label: "Pantry", value: total(pantryId) },
+        { id: "lumber-quantity", label: "Starter lumber", value: total(colonyLumberId) },
         { id: "worker-carried", label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         { id: "guest-quantity", label: "Guest meal", value: total(guestId) },
         ...workers.map((worker, index) => ({
