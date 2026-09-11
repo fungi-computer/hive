@@ -1,5 +1,7 @@
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint } from "./geometry.js";
+import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
+import { createCueCursor, createEffectOwner } from "./effects.js";
 import { presentationCommand } from "../presentation.ts";
 import { animationFrames, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
@@ -39,6 +41,8 @@ export function createHiveClient({
   selectionShortcuts = [],
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
+  previewProjectile,
+  sound,
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
@@ -55,6 +59,7 @@ export function createHiveClient({
     pendingRestore: false,
     presentationFacts: [],
     presentationControls: [],
+    aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null },
     message: runtime
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
@@ -111,7 +116,9 @@ export function createHiveClient({
   const actorLayer = new Container();
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
-  transientLayer.addChild(dragGraphic);
+  const aimGraphic = new Graphics();
+  const aimArcGraphic = new Graphics();
+  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic);
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
@@ -127,7 +134,9 @@ export function createHiveClient({
   let groundSprite = null;
   let art = null;
   let resizeObserver = null;
-  let unsubscribeRuntime = null;
+  const cueCursor = createCueCursor();
+  let effectOwner;
+  let previewCache;
 
   function prepareNewWorld(remote) {
     if (remote) state.ready = false;
@@ -143,6 +152,10 @@ export function createHiveClient({
     frameEpoch = undefined;
     frameSequence = 0;
     awaitingEpochTransition = false;
+    state.aim = { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null };
+    cueCursor.reset();
+    effectOwner?.clear();
+    previewCache?.clear();
     interpolation.reset();
     animationClock.reset();
     for (const entry of actorCache.values())
@@ -157,6 +170,39 @@ export function createHiveClient({
     emit({ kind: "select", entities: ids });
     renderHud();
     draw();
+  }
+  function selectedLauncher() {
+    return state.subjects.find((subject) => state.selectedIds.includes(subject.id) &&
+      (subject.id === "formations.cannon" || subject.visual === "formation.cannon"));
+  }
+  function toggleAim() {
+    if (state.aim.active) {
+      state.aim = { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null };
+      previewCache?.clear();
+    } else {
+      const launcher = selectedLauncher();
+      if (!launcher) return;
+      state.aim.active = true;
+      state.aim.launcherId = launcher.id;
+      state.aim.elevation = 0.12;
+    }
+    renderHud();
+    draw();
+  }
+  function updateAimPreview() {
+    if (!state.aim.active || !state.aim.target || !previewCache) return;
+    const launcher = selectedLauncher();
+    if (!launcher) return;
+    const velocity = fireInput({ launcherId: launcher.id, origin: launcher.pose.position, target: state.aim.target, elevation: state.aim.elevation, speed: launcher.aim?.speed ?? 8 }).velocity;
+    state.aim.preview = previewCache.get({ launcherId: launcher.id, velocity });
+  }
+  function fireAim() {
+    if (!state.ready || !state.aim.active) return;
+    const launcher = selectedLauncher();
+    if (!launcher || !state.aim.target) return;
+    const velocity = fireInput({ launcherId: launcher.id, origin: launcher.pose.position, target: state.aim.target, elevation: state.aim.elevation, speed: launcher.aim?.speed ?? 8 }).velocity;
+    runtime?.send({ type: "command", name: "fire", input: { velocity } });
+    toggleAim();
   }
   function renderHud() {
     const act = (kind) => {
@@ -186,6 +232,13 @@ export function createHiveClient({
           React.createElement(
             "div",
             { className: "hive-controls" },
+            mode === "formations" && state.selectedIds.some((id) => id === "formations.cannon" || id.includes?.("cannon"))
+              ? React.createElement(Button, {
+                  size: "sm",
+                  variant: state.aim.active ? "secondary" : "outline",
+                  onClick: () => toggleAim(),
+                }, state.aim.active ? "Exit aim" : "Aim cannon")
+              : null,
             directControl ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { directControl.setPrediction(!directControl.predictionEnabled); app.canvas?.focus(); renderHud(); } }, directControl.predictionEnabled ? "Prediction on" : "Prediction off") : null,
             ...selectionShortcuts.map(({ id, label }) => React.createElement(
               Button,
@@ -240,6 +293,16 @@ export function createHiveClient({
               state.selectedIds.length ? state.selectedIds.join(", ") : "none",
             ),
           ),
+          state.aim.active
+            ? React.createElement("div", { className: "hive-actions" },
+                React.createElement("label", null, `Elevation ${state.aim.elevation.toFixed(2)}`),
+                React.createElement("input", {
+                  type: "range", min: "0", max: "0.5", step: "0.01", value: state.aim.elevation,
+                  onChange: (event) => { state.aim.elevation = Number(event.target.value); updateAimPreview(); renderHud(); draw(); },
+                }),
+                React.createElement("span", null, "Move pointer to aim · click to fire · Escape cancels"),
+              )
+            : null,
           React.createElement(
             "div",
             { className: "hive-actions" },
@@ -494,6 +557,25 @@ export function createHiveClient({
       drag.start &&
       drag.current,
     );
+    if (state.aim.active && state.aim.point && state.aim.target) {
+      const target = project(state.aim.target.x, state.aim.target.y, state.aim.target.z);
+      const sx = target.x * camera.zoom + camera.x, sy = target.y * camera.zoom + camera.y;
+      aimGraphic.clear().circle(sx, sy, 8).stroke({ color: 0xe8c779, width: 2 });
+      aimGraphic.visible = true;
+      aimArcGraphic.clear();
+      const arc = state.aim.preview?.points ?? state.aim.preview?.trajectory;
+      if (Array.isArray(arc)) {
+        for (let index = 1; index < arc.length; index += 2) {
+          const a = project(arc[index - 1].x, arc[index - 1].y, arc[index - 1].z);
+          const b = project(arc[index].x, arc[index].y, arc[index].z);
+          aimArcGraphic.moveTo(a.x * camera.zoom + camera.x, a.y * camera.zoom + camera.y)
+            .lineTo(b.x * camera.zoom + camera.x, b.y * camera.zoom + camera.y)
+            .stroke({ color: 0xe8c779, width: 2, alpha: 0.75 });
+        }
+      }
+      aimArcGraphic.visible = true;
+    } else { aimGraphic.visible = false; aimArcGraphic.visible = false; }
+    effectOwner?.tick(now);
   }
   function point(event) {
     const rect = app.canvas.getBoundingClientRect();
@@ -503,10 +585,17 @@ export function createHiveClient({
     if (isTypingTarget(event.target) || event.button !== 0) return;
     app.canvas.focus();
     const at = point(event);
+    if (state.aim.active) { sound?.unlock?.(); fireAim(); return; }
     gesture.send({ type: "BEGIN", point: at, additive: event.shiftKey });
     app.canvas.setPointerCapture?.(event.pointerId);
   }
   function pointerMove(event) {
+    if (state.aim.active) {
+      state.aim.point = point(event);
+      try { state.aim.target = aimGroundPoint(state.aim.point, camera); updateAimPreview(); } catch { state.aim.target = null; }
+      draw();
+      return;
+    }
     if (gesture.getSnapshot().value !== "dragging") return;
     gesture.send({ type: "MOVE", point: point(event) });
     draw();
@@ -549,6 +638,7 @@ export function createHiveClient({
   }
   function contextMenu(event) {
     event.preventDefault();
+    if (state.aim.active) return;
     if (!state.ready) {
       state.message = "World is still connecting…";
       renderHud();
@@ -594,6 +684,7 @@ export function createHiveClient({
     if (isTypingTarget(event.target)) return;
     if (!state.ready) return;
     const key = event.key.toLowerCase();
+    if (key === "escape" && state.aim.active) { event.preventDefault(); toggleAim(); return; }
     if (directControl && directControl.key(key, true)) { event.preventDefault(); return; }
     if (mode === "survival") {
       if (key === "e" || key === "f") {
@@ -607,6 +698,19 @@ export function createHiveClient({
   }
   function keyup(event) { if (directControl?.key(event.key, false)) event.preventDefault(); }
   function releaseDirect() { directControl?.release(); }
+  function playCue(cue) {
+    if (!art || !effectOwner || !cue?.kind) return;
+    const bank = cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null;
+    const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
+    const texture = frames.length ? frames[Math.abs(cue.sequence ?? 0) % frames.length] : undefined;
+    if (texture) effectOwner.play({ texture, lifetime: cue.kind === "launch" ? 220 : 420, sprites: 1 }, cue);
+    const smoke = cue.kind === "launch" ? art.effects?.smoke : undefined;
+    if (smoke) {
+      const smokeFrames = Array.isArray(smoke) ? smoke : [smoke];
+      effectOwner.play({ texture: smokeFrames[Math.abs(cue.sequence ?? 0) % smokeFrames.length], lifetime: 900, sprites: 1 }, cue);
+    }
+    sound?.play?.(cue.kind, cue);
+  }
   async function start() {
     if (directControlId) {
       const native = await import("../../generated/hive_kernel.js");
@@ -625,6 +729,25 @@ export function createHiveClient({
     const pack = await loadStaticArtPack();
     art = pack.art;
     state.disposeArt = pack.dispose;
+    if (typeof previewProjectile === "function") previewCache = createPreviewCache({ preview: previewProjectile });
+    effectOwner = createEffectOwner({
+      maxEffects: 32,
+      maxSprites: 128,
+      spawn(definition, cue) {
+        const texture = definition.texture;
+        if (!texture) return null;
+        const sprite = new Sprite(texture);
+        const at = cue.at ?? { x: 0, y: 0, z: 0 };
+        const projected = project(at.x, at.y, at.z);
+        sprite.anchor.set(0.5, 1);
+        sprite.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
+        sprite.scale.set(camera.zoom);
+        transientLayer.addChild(sprite);
+        return sprite;
+      },
+      update(sprite, opacity) { if (sprite) sprite.alpha = opacity; },
+      destroy(sprite) { sprite?.destroy?.(); },
+    });
     app.ticker.add(draw);
     draw();
     renderHud();
@@ -735,6 +858,7 @@ export function createHiveClient({
               intendedDestinations.delete(id);
           }
         }
+        for (const cue of cueCursor.accept(event)) playCue(cue);
       }
       if (event.type === "presentation") {
         state.presentationFacts = event.facts;
@@ -799,6 +923,8 @@ export function createHiveClient({
       window.removeEventListener("blur", releaseDirect);
       document.removeEventListener("visibilitychange", releaseDirect);
       directControl?.reset();
+      cueCursor.dispose();
+      effectOwner?.clear();
       app.canvas?.removeEventListener("pointerdown", pointerDown);
       app.canvas?.removeEventListener("pointermove", pointerMove);
       app.canvas?.removeEventListener("pointerup", pointerUp);
