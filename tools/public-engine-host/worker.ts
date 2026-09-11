@@ -477,8 +477,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     } catch {
       return false;
     }
-    if (terrain && (forceComplete || attachment.terrainRevision !== terrain.revision)) {
-      socket.serializeAttachment({ ...attachment, terrainRevision: terrain.revision });
+    if (terrain) {
+      if (forceComplete || attachment.terrainRevision !== terrain.revision)
+        socket.serializeAttachment({ ...attachment, terrainRevision: terrain.revision });
+    } else if (attachment.terrainRevision !== undefined) {
+      socket.serializeAttachment({ ...attachment, terrainRevision: undefined });
     }
     return true;
   }

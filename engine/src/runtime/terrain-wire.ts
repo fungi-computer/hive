@@ -125,14 +125,22 @@ export function parseTerrainObservation(
     !safeRevision(value.revision) ||
     !safeRevision(value.surfacesRevision) ||
     value.surfacesRevision !== value.revision ||
+    !finite(value.verticalMetres) ||
+    value.verticalMetres <= 0 ||
     !cached ||
-    cached.revision !== value.surfacesRevision
+    cached.revision !== value.surfacesRevision ||
+    cached.verticalMetres !== value.verticalMetres ||
+    !Array.isArray(value.water) ||
+    value.water.length > MAX_WATER
   )
     throw new Error("terrain surface reference is unavailable");
-  return parseTerrainFrame({
+  const water = value.water.map(parseWater);
+  if (water.some((entry): entry is undefined => entry === undefined))
+    throw new Error("invalid terrain observation");
+  return Object.freeze({
     revision: value.revision,
-    verticalMetres: value.verticalMetres,
+    verticalMetres: cached.verticalMetres,
     surfaces: cached.surfaces,
-    water: value.water,
+    water: Object.freeze(water as TerrainWireWater[]),
   });
 }

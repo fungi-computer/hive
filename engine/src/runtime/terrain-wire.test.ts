@@ -52,6 +52,7 @@ test("terrain surface references retain only a connection's baseline surfaces", 
   });
   assert.throws(() => parseTerrainObservation(wire, undefined), /surface reference is unavailable/);
   assert.throws(() => parseTerrainObservation({ ...wire, surfacesRevision: 8 }, baseline), /surface reference is unavailable/);
+  assert.throws(() => parseTerrainObservation({ ...wire, verticalMetres: 0.51 }, baseline), /surface reference is unavailable/);
 });
 
 test("remote observations forward a parsed terrain capability", async () => {
@@ -76,11 +77,11 @@ test("remote observations forward a parsed terrain capability", async () => {
     observation: {
       time: 0, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
       presentationFacts: [], presentationControls: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [], water: [], ignored: true },
+      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [], ignored: true },
     },
   }) });
   const frame = events.find((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame");
-  assert.deepEqual(frame?.terrain, { revision: 2, verticalMetres: 0.5, surfaces: [], water: [] });
+  assert.deepEqual(frame?.terrain, { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [] });
   socket.emit("message", { data: JSON.stringify({
     type: "observation",
     revision: 2,
@@ -96,8 +97,36 @@ test("remote observations forward a parsed terrain capability", async () => {
   assert.deepEqual(hydrated?.terrain, {
     revision: 2,
     verticalMetres: 0.5,
-    surfaces: [],
+    surfaces: [{ cell: [1, 2, 3], material: 4 }],
     water: [{ at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 }],
+  });
+  // Reconnect receives a complete baseline at the same committed revision.
+  // It is stale for presentation, but must repopulate the new connection cache.
+  socket.emit("open", {});
+  socket.emit("message", { data: JSON.stringify({
+    type: "observation",
+    revision: 2,
+    observation: {
+      time: 2, paused: false, epoch: 0, sequence: 3, facts: [], cues: [],
+      presentationFacts: [], presentationControls: [],
+      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [] },
+    },
+  }) });
+  socket.emit("message", { data: JSON.stringify({
+    type: "observation",
+    revision: 3,
+    observation: {
+      time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
+      presentationFacts: [], presentationControls: [],
+      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
+    },
+  }) });
+  const afterReconnect = events.filter((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame").at(-1);
+  assert.deepEqual(afterReconnect?.terrain, {
+    revision: 2,
+    verticalMetres: 0.5,
+    surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    water: [],
   });
   runtime.dispose();
 });

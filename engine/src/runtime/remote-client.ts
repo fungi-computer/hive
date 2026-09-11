@@ -26,6 +26,7 @@ export interface RemoteRuntimeOptions {
 
 type ObservationWire = {
   readonly revision: number;
+  readonly terrainBaseline: boolean;
   readonly observation: {
     readonly time: number;
     readonly paused: boolean;
@@ -237,6 +238,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
     throw new Error("invalid remote observation");
   return {
     revision: value.revision,
+    terrainBaseline: isRecord(observation.terrain) && Array.isArray(observation.terrain.surfaces),
     observation: {
       time: observation.time,
       paused: observation.paused,
@@ -311,6 +313,10 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
 
   const emit = (event: WorkerEvent) => { if (!disposed) for (const listener of listeners) listener(event); };
   const acceptObservation = (candidate: ObservationWire): boolean => {
+    // A reconnect can replay the same committed revision. Install its complete
+    // baseline before stale-frame filtering, while still suppressing duplicate UI frames.
+    if (candidate.terrainBaseline && cachedTerrain === undefined && candidate.observation.terrain !== undefined)
+      cachedTerrain = candidate.observation.terrain;
     if (revision !== undefined && candidate.revision <= revision) return false;
     if (lastSequence !== undefined && (candidate.observation.sequence < lastSequence ||
       (candidate.observation.sequence === lastSequence && candidate.observation.time < (lastTime ?? 0)))) return false;
@@ -369,7 +375,12 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       try {
         const accepted = acceptObservation(parseObservation(value, cachedTerrain));
         if (accepted && !blocked && pending.length > 0 && !pumpRunning) schedulePump();
-      } catch (error) { emit({ type: "error", message: error instanceof Error ? error.message : String(error) }); }
+      } catch (error) {
+        emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
+        // A missing or mismatched reference cannot be safely displayed. Force
+        // the existing socket recovery path to obtain a complete baseline.
+        try { socket?.close(); } catch {}
+      }
     });
     socket.addEventListener("error", () => { if (!disposed) emit({ type: "error", message: "remote socket failed; reconnecting" }); });
     socket.addEventListener("close", () => { if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" }); });
