@@ -469,9 +469,9 @@ export async function bakeArt(onProgress = () => {}) {
           bakeStartup(
             renderer,
             building(type, stage, direction),
-            prop,
-            112,
-            112,
+            type === "stair" ? vehicle : prop,
+            type === "stair" ? STATIC_ART_RENDER.vehicle.width : STATIC_ART_RENDER.prop.width,
+            type === "stair" ? STATIC_ART_RENDER.vehicle.height : STATIC_ART_RENDER.prop.height,
           ),
         );
       if (type === "brew-station")
