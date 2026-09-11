@@ -19,6 +19,7 @@ class FakeSocket {
     }
   }
   close() { this.emit("close", {}); }
+  reconnect() { this.emit("close", {}); }
   emit(type: string, event: { data?: unknown }) { for (const listener of this.listeners.get(type) ?? []) listener(event); }
 }
 const wait = (ms = 0) => new Promise<void>((resolve) => setTimeout(resolve, ms));

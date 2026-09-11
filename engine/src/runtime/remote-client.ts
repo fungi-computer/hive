@@ -12,6 +12,7 @@ type SocketLike = {
   addEventListener(type: string, listener: (event: { data?: unknown }) => void): void;
   send(data: string): void;
   close(): void;
+  reconnect(): void;
 };
 export interface RemoteRuntimeOptions {
   readonly endpoint: string | URL;
@@ -315,7 +316,14 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const acceptObservation = (candidate: ObservationWire): boolean => {
     // A reconnect can replay the same committed revision. Install its complete
     // baseline before stale-frame filtering, while still suppressing duplicate UI frames.
-    if (candidate.terrainBaseline && cachedTerrain === undefined && candidate.observation.terrain !== undefined)
+    const currentRevision = revision;
+    const currentSequence = lastSequence;
+    const currentTime = lastTime;
+    const isCurrentOrNewer = currentRevision === undefined || candidate.revision > currentRevision ||
+      (candidate.revision === currentRevision && (currentSequence === undefined ||
+        candidate.observation.sequence > currentSequence ||
+        (candidate.observation.sequence === currentSequence && candidate.observation.time >= (currentTime ?? 0))));
+    if (candidate.terrainBaseline && cachedTerrain === undefined && candidate.observation.terrain !== undefined && isCurrentOrNewer)
       cachedTerrain = candidate.observation.terrain;
     if (revision !== undefined && candidate.revision <= revision) return false;
     if (lastSequence !== undefined && (candidate.observation.sequence < lastSequence ||
@@ -379,7 +387,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
         // A missing or mismatched reference cannot be safely displayed. Force
         // the existing socket recovery path to obtain a complete baseline.
-        try { socket?.close(); } catch {}
+        try { socket?.reconnect(); } catch {}
       }
     });
     socket.addEventListener("error", () => { if (!disposed) emit({ type: "error", message: "remote socket failed; reconnecting" }); });
