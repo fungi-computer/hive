@@ -24,6 +24,7 @@ test("observation matches the session and does not mutate committed state", () =
     const presentation = projectPresentation(survivalPack, {
       query: (spec) => session.query(spec),
       atmosphereSamples: cells => session.atmosphereSamples(cells),
+      environmentFacts: () => session.environmentFacts(),
     });
 
     assert.equal(observation.time, session.simulationTime);
