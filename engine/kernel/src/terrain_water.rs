@@ -6,6 +6,7 @@ use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
     WaterCellKind, WaterDefinition, WaterLimits, WaterRebind, WaterRebindBlock,
     WaterState, WaterStock, WaterWorkspace, WaterFacts, WaterWork};
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub enum MaterialWater {
@@ -27,9 +28,26 @@ pub struct TerrainWaterGeometry {
 }
 
 pub enum ExcavationResult {
-    Applied(AppliedChange),
+    Prepared(PreparedExcavation),
     TerrainBlocked(BlockReason),
     WaterBlocked(WaterRebindBlock),
+}
+
+/// A short-lived native completion candidate, never a saved job. The Kernel
+/// must admit the matching lot credit before consuming this value.
+pub struct PreparedExcavation {
+    terrain: crate::terrain::PreparedChange,
+    water: Option<(CompiledWater, WaterState, WaterWorkspace)>,
+    water_kg: f64,
+    removed: u16,
+    volume_m3: f64,
+    owner: Arc<()>,
+    epoch: u64,
+}
+impl PreparedExcavation {
+    pub fn water_kg(&self) -> f64 { self.water_kg }
+    pub fn removed(&self) -> u16 { self.removed }
+    pub fn volume_m3(&self) -> f64 { self.volume_m3 }
 }
 
 impl TerrainWaterGeometry {
@@ -123,6 +141,8 @@ pub struct TerrainWater {
     graph: CompiledWater,
     state: WaterState,
     scratch: WaterWorkspace,
+    owner: Arc<()>,
+    epoch: u64,
 }
 impl TerrainWater {
     pub fn fresh(geometry: TerrainWaterGeometry, mut terrain: TerrainOwner,
@@ -132,7 +152,7 @@ impl TerrainWater {
         let state = graph.initial(stocks)?;
         let scratch = graph.workspace();
         let identity = geometry.identity()?;
-        Ok(Self { terrain, geometry, identity, graph, state, scratch })
+        Ok(Self { terrain, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
     pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
         let header = postcard::to_allocvec(&(1u16, self.identity.as_slice(),
@@ -165,43 +185,75 @@ impl TerrainWater {
         let graph = geometry.compile(&mut terrain, water_revision, None)?;
         let state = graph.decode_state(&records.water)?;
         let scratch = graph.workspace();
-        Ok(Self { terrain, geometry, identity, graph, state, scratch })
+        Ok(Self { terrain, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
 
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
+        let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
         let next = self.graph.advance(&self.state, seconds, &mut self.scratch)?;
         self.state = next.state;
+        self.epoch = epoch;
         Ok(next.work)
     }
 
-    /// All fallible water work precedes terrain publication. The enclosing
-    /// Kernel must also admit finite yield custody before invoking this step.
-    pub fn excavate(&mut self,
+    /// Preparation has no physical effect. The credit amount is the exact
+    /// pore-water debit, not a newly created material quantity.
+    pub fn prepare_excavation(&mut self,
         at: Cell, expected: u16, replacement: u16) -> Result<ExcavationResult, String> {
-        let terrain = &mut self.terrain;
-        let prepared = match terrain.prepare_excavation(at, expected, replacement)? {
+        let prepared = match self.terrain.prepare_excavation(at, expected, replacement)? {
             PrepareResult::Blocked { reason, .. } => return Ok(ExcavationResult::TerrainBlocked(reason)),
             PrepareResult::Prepared(change) => change,
         };
-        // Admission bounds limit transport, never excavation elsewhere.
-        if !self.geometry.cells.contains(&at) {
-            return Ok(ExcavationResult::Applied(terrain.apply(prepared)?));
-        }
-        let revision = self.graph.binding().revision().checked_add(1).ok_or("water revision overflow")?;
-        let next = self.geometry.compile(terrain, revision, Some((at, replacement)))?;
-        let next_state = match self.graph.prepare_rebind(&self.state, &next)? {
-            WaterRebind::Blocked(reason) => return Ok(ExcavationResult::WaterBlocked(reason)),
-            WaterRebind::Ready(state) => state,
-        };
-        let scratch = next.workspace();
-        let applied = terrain.apply(prepared)?;
-        self.graph = next;
-        self.state = next_state;
-        self.scratch = scratch;
-        Ok(ExcavationResult::Applied(applied))
+        let removed = self.terrain.prepared_removed(&prepared);
+        let volume_m3 = self.terrain.prepared_volume_m3(&prepared);
+        let mut water_kg = 0.0;
+        let water = if self.geometry.cells.contains(&at) {
+            let revision = self.graph.binding().revision().checked_add(1).ok_or("water revision overflow")?;
+            let next = self.geometry.compile(&mut self.terrain, revision, Some((at, replacement)))?;
+            let coordinate = coordinates(at)?;
+            let pore_mass = self.graph.facts(&self.state)?.cells.iter()
+                .find(|cell| cell.at == coordinate && cell.kind == WaterCellKind::Soil)
+                .map_or(0.0, |cell| cell.mass_kg);
+            let withdrawn;
+            let source = if pore_mass > 0.0 {
+                let credit = self.graph.prepare_withdrawal(&self.state, coordinate, pore_mass)?;
+                let (candidate, amount) = credit.into_parts();
+                water_kg = amount;
+                withdrawn = candidate;
+                &withdrawn
+            } else { &self.state };
+            let state = match self.graph.prepare_rebind(source, &next)? {
+                WaterRebind::Blocked(reason) => return Ok(ExcavationResult::WaterBlocked(reason)),
+                WaterRebind::Ready(state) => state,
+            };
+            let scratch = next.workspace();
+            Some((next, state, scratch))
+        } else { None };
+        Ok(ExcavationResult::Prepared(PreparedExcavation {
+            terrain: prepared, water, water_kg, removed, volume_m3,
+            owner: self.owner.clone(), epoch: self.epoch,
+        }))
     }
+
+    /// Called only by the compound native completion after admitting its
+    /// material credit. A water advance or another edit invalidates the token.
+    pub(crate) fn apply_excavation(&mut self, prepared: PreparedExcavation) -> Result<AppliedChange, String> {
+        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
+            return Err("prepared environment change is stale or foreign".into());
+        }
+        let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        let applied = self.terrain.apply(prepared.terrain)?;
+        if let Some((graph, state, scratch)) = prepared.water {
+            self.graph = graph;
+            self.state = state;
+            self.scratch = scratch;
+        }
+        self.epoch = epoch;
+        Ok(applied)
+    }
+
 }
 
 fn coordinates(cell: Cell) -> Result<[i32; 3], String> {
@@ -241,24 +293,38 @@ mod tests {
         let mut water = TerrainWater::fresh(geometry.clone(), terrain,
             &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
               WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();
-        assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::Applied(_)));
+        let before = water.facts().unwrap();
+        let ExcavationResult::Prepared(stale) = water.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
+        assert_eq!(water.facts().unwrap(), before);
+        assert_eq!(water.material(at).unwrap(), expected);
+        water.advance(0.0).unwrap();
+        assert!(water.apply_excavation(stale).is_err());
+        assert_eq!(water.material(at).unwrap(), expected);
+        let ExcavationResult::Prepared(prepared) = water.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
+        let credited_water_kg = prepared.water_kg();
+        assert_eq!(credited_water_kg, 200.0);
+        assert_eq!(prepared.removed(), expected);
+        assert_eq!(prepared.volume_m3(), 1.0);
+        water.apply_excavation(prepared).unwrap();
         assert_eq!(water.material(at).unwrap(), 0);
         let facts = water.facts().unwrap();
-        assert_eq!(facts.total_kg, 200.0);
+        assert_eq!(facts.total_kg + credited_water_kg, 200.0);
+        assert_eq!(facts.total_kg, 0.0);
         let opened = facts.cells.iter().find(|fact| fact.at == [0, at.y, 0]).unwrap();
         assert_eq!(opened.kind, WaterCellKind::Void);
         assert_eq!(opened.capacity_kg, 1000.0);
-        assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::TerrainBlocked(_)));
+        assert!(matches!(water.prepare_excavation(at, expected, 0).unwrap(), ExcavationResult::TerrainBlocked(_)));
         assert_eq!(water.facts().unwrap(), facts);
         let dry = (-20..0).map(|y| Cell { x: 20, y, z: 0 })
             .find(|at| water.material(*at).unwrap() != 0).unwrap();
         let expected = water.material(dry).unwrap();
-        assert!(matches!(water.excavate(dry, expected, 0).unwrap(), ExcavationResult::Applied(_)));
+        let ExcavationResult::Prepared(prepared) = water.prepare_excavation(dry, expected, 0).unwrap() else { panic!("prepare dry"); };
+        assert_eq!(prepared.water_kg(), 0.0);
+        water.apply_excavation(prepared).unwrap();
         assert_eq!(water.facts().unwrap(), facts);
         water.advance(0.2).unwrap();
         let moved = water.facts().unwrap();
-        assert!((moved.total_kg - 200.0).abs() < 1e-9);
-        assert!(moved.cells.iter().find(|fact| fact.at == [0, below.y, 0]).unwrap().mass_kg > 0.0);
+        assert!((moved.total_kg + credited_water_kg - 200.0).abs() < 1e-9);
         let records = water.save_records().unwrap();
         let mut restored = TerrainWater::restore_records(geometry.clone(), terrain_factory(), &records).unwrap();
         assert_eq!(restored.facts().unwrap(), moved);
