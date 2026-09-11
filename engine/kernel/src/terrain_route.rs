@@ -10,6 +10,16 @@ pub fn search(
     config: TraversalConfig,
     query: &mut MaterialQuery<'_>,
 ) -> Result<Vec<Cell>, String> {
+    search_with_blocked(start, destination, config, query, &|_| false)
+}
+
+pub fn search_with_blocked(
+    start: Cell,
+    destination: Cell,
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+) -> Result<Vec<Cell>, String> {
     if terrain_traversal::node(start, config, query)?.is_none()
         || terrain_traversal::node(destination, config, query)?.is_none()
     {
@@ -37,7 +47,7 @@ pub fn search(
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) => neighbors.push(key(next.support)),
+                        Ok(Some(next)) if !blocked(next.support) => neighbors.push(key(next.support)),
                         Ok(None) => {},
                         Err(error) => { failure = Some(error); return Vec::new(); }
                     }
@@ -100,7 +110,7 @@ mod tests {
     #[test]
     fn search_uses_deep_support_and_climbs_one_voxel() {
         let solid: BTreeSet<_> = [(0,-20,0),(1,-19,0),(2,-19,0)].into_iter().collect();
-        let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x,at.y,at.z)) });
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x,at.y,at.z)), outside: false });
         let start = Cell { x:0,y:-20,z:0 };
         let end = Cell { x:2,y:-19,z:0 };
         let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
@@ -123,7 +133,7 @@ mod tests {
 
     #[test]
     fn search_rejects_a_two_voxel_cliff() {
-        let mut query = |at: Cell| Ok(TraversalMaterial { solid: [(0,0,0),(1,2,0)].contains(&(at.x,at.y,at.z)) });
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: [(0,0,0),(1,2,0)].contains(&(at.x,at.y,at.z)), outside: false });
         let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
         assert!(search(Cell{x:0,y:0,z:0},Cell{x:1,y:2,z:0},config,&mut query).is_err());
     }
