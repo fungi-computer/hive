@@ -1,3 +1,4 @@
+import { colonyAtmosphereVisuals } from "./colony-atmosphere";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
@@ -351,6 +352,7 @@ export const colonyPack: GamePack = {
     }),
   },
   presentation: {
+    environmentVisuals: colonyAtmosphereVisuals,
     visuals: context => context.query(query(ConstructionSite)).map(row => {
       const site = row.get(ConstructionSite);
       const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
