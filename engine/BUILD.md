@@ -1,3 +1,34 @@
+## Published automatic area digging — September 11
+
+Runtime/client source6080e4e is now live on the existing four-demo preview.
+Frontend deployment9ee7045c-1aba-47ba-9c1d-94a2b1db0f4e; DO Worker
+version59c3d5a3-d092-40d2-8344-e2ee379efc5d. Program identity
+946548518d5a12c7e51bd9f37f8f034cf5c1aaada017dfb21eb1346f75407d4b.
+The entries below describe prior releases unless explicitly retained here.
+
+Dig area uses the shared rectangle gesture without selecting a worker. Saved
+orders feed one shared native assignment pass with hauling; workers approach,
+excavate and return finite spoil. Committed marks and area cancellation are
+available. Native route validation now ignores consumed historical support while
+preserving the current segment and saved geometry witness. Earlier browser
+u5724 exposed the historical-support bug; u5727 reproduced it headlessly.
+Nine affected native movement laws passed u5729; WASM build u5730 and the
+browser-sized excavation/recovery/conservation regression u5731 passed.
+Final build u5733 and actual mouse rectangle/mark/two-cut/automatic-unload browser
+u5734 passed. Root viewed browser-v2/completed.png. No narrow/mobile proof or
+full four-game interaction matrix is claimed.
+
+Publication u5737 deployed both hosts, then its immediate readback exited1 due
+to stale edge responses. Separate u5738 verified all156 files byte-identical;
+no second deployment. Hosted u5740 verified fresh observations and pause receipts
+for all4 games, including terrain-area control and terrainMarks schema. All owned
+scopes closed. Evidence: .botanical/area-release; earlier release rollback retained.
+These hosted admissions are not a new crash-injection proof for area orders.
+
+Larger objectives remain unfinished: scoped exploration is deferred by Levi;
+two actual neighboring regions/player travel, three-storey construction and
+actual generated-world room smoke remain separate implementation outcomes.
+
 ## Published generated Colony, wet excavation and exterior cutaway — September 11
 
 Runtime/client source a13fc44 is deployed on the existing four-demo preview.

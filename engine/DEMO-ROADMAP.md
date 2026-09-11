@@ -11,13 +11,13 @@ one-shot every retained system or let presentation polish substitute for play.
 
 ## Current playable checkpoint — September 11
 
-The four-page demo is now deployed from a13fc44. Colony uses the Rust generator
-for64×64 exterior columns and native finite water near the camp. Real mouse
-input completed soil/stone excavation, spoil deposits and an exterior cutaway
-that exposed groundwater. Local actual DO restart and identical-command replay
-passed; hosted initial observations and pause admission passed for all four
-packs. Exact release/proof limits are in BUILD.md; the former c5138fc availability
-statements below are historical context, superseded by this checkpoint.
+The four-page demo is deployed from6080e4e. Colony now supports rectangle
+orders, automatic approach/dig/unload, visible marks and area cancellation.
+The real browser loop completed two cuts and returned all spoil after correcting
+a native historical-route support bug. All156 deployed files match; fresh hosted
+observations/pause receipts pass for all4 games. See BUILD.md and
+.botanical/area-release for exact evidence and limits. Earlier source-only
+paragraphs below are historical, superseded by this release.
 
 ### Shared work checkpoint — September 11, source only
 
