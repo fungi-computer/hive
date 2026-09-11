@@ -258,19 +258,14 @@ export class GameSession {
           }
         }
       }
-      if (referenced.size > 128) throw new Error("entity reference batch limit reached");
     }
     const referencedIds = [...referenced];
-    const membership = knownTargets || referencedIds.length === 0
-      ? undefined
-      : referencedIds.reduce<boolean[]>((all, _id, index) => {
-          if (index % 128 === 0)
-            all.push(...this.port.entityMembership(referencedIds.slice(index, index + 128)));
-          return all;
-        }, []);
-    const referenceMembership = membership
-      ? new Map<EntityId, boolean>(referencedIds.map((id, index) => [id, membership[index] ?? false]))
-      : undefined;
+    const referenceMembership = new Map<EntityId, boolean>();
+    for (let offset = 0; offset < referencedIds.length; offset += 128) {
+      const batch = referencedIds.slice(offset, offset + 128);
+      const membership = this.port.entityMembership(batch);
+      batch.forEach((id, index) => referenceMembership.set(id, membership[index] === true));
+    }
     return writes.map((write) => {
       if (
         !permitted.has(write.component) ||

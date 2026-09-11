@@ -265,6 +265,33 @@ test("authored entity references use native membership without snapshot capture"
   assert.equal(port.snapshotCalls, 0);
 });
 
+test("authored references span bounded membership calls without a new total limit", () => {
+  const Link: ComponentDefinition<{ target: string; peer: string }> = {
+    id: "test.link", version: 1,
+    fields: { target: "entity", peer: "entity" },
+    validate: (value: unknown): value is { target: string; peer: string } =>
+      typeof (value as { target?: unknown })?.target === "string" &&
+      typeof (value as { peer?: unknown })?.peer === "string",
+  };
+  const port = new TestPort();
+  const batches: number[] = [];
+  port.entityMembership = ids => { batches.push(ids.length); return ids.map(() => true); };
+  const session = new GameSession({ port, pack: {
+    ...pack(port, undefined), components: [morale, Link], systems: [],
+    commands: { links: { reads: [], writes: [Link], run: () => ({ actions: [],
+      writes: Array.from({ length: 65 }, (_, index) => ({
+        entity: entity("actor"), component: Link.id,
+        value: { target: `target-${index}`, peer: `peer-${index}` },
+      })),
+    }) } },
+  } });
+  session.start();
+  port.throwOnSnapshot = true;
+  session.command("links", null);
+  assert.deepEqual(batches, [128, 2]);
+  assert.equal(port.snapshotCalls, 0);
+});
+
 const impact: Impact = {
   id: "impact.1",
   sequence: 1,
