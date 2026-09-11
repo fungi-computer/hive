@@ -4,6 +4,7 @@ pub mod collision;
 pub mod generation;
 pub mod terrain;
 pub mod terrain_water;
+pub mod terrain_traversal;
 pub mod environment_definition;
 pub mod water;
 mod combat;
