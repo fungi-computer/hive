@@ -13,7 +13,6 @@ class FakeSocket {
   addEventListener(type: string, listener: (event: { data?: unknown }) => void) { this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]); }
   send(value: string) {
     if (JSON.parse(value).type === "authenticate") {
-      queueMicrotask(() => this.emit("open", {}));
       queueMicrotask(() => this.emit("message", { data: JSON.stringify({ type: "ready", game: "survival" }) }));
       queueMicrotask(() => this.emit("message", { data: JSON.stringify({ type: "observation", ...this.initial }) }));
     }
@@ -28,7 +27,7 @@ function setup(fetcher: (input: RequestInfo | URL, init?: RequestInit) => Promis
     game: "survival",
     token,
     fetch: fetcher,
-    createSocket: () => socket,
+    createSocket: () => { queueMicrotask(() => socket.emit("open", {})); return socket; },
     createCommandId: () => "stable-command",
   });
 }

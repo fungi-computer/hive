@@ -17,6 +17,7 @@ await mkdir(output, { recursive: true });
 const tokens = { first: randomBytes(32).toString("hex"), second: randomBytes(32).toString("hex"), wrong: randomBytes(32).toString("hex") };
 const inventory = [
   "tools/public-engine-host/worker.ts", "tools/public-engine-host/protocol.ts",
+  "src/engine/region/index.ts", "src/engine/region/codec.ts", "engine/src/sdk/combat.ts",
   "engine/src/contracts.ts", "engine/src/presentation.ts", "engine/src/runtime/actions.ts",
   "engine/src/runtime/observation.ts", "engine/src/runtime/protocol.ts", "engine/src/runtime/region-program.ts",
   "engine/src/runtime/session.ts", "engine/src/runtime/wasm-kernel.ts", "engine/src/runtime/remote-client.ts",
@@ -101,8 +102,8 @@ try {
   assert.equal((await fetch(`${endpoint}/v1/survival/observe`, { headers: { Authorization: `Bearer ${tokens.wrong}` } })).status, 200);
   const publicEndpoint = `${endpoint}/v1/survival`;
   const pauseAttemptsA = [];
-  clientA = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.first, "pause", pauseAttemptsA), pollMs: 100 });
-  clientB = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.second), pollMs: 100 });
+  clientA = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.first, "pause", pauseAttemptsA), token: tokens.first });
+  clientB = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.second), token: tokens.second });
   clientA.subscribe((event) => eventsA.push(event)); clientB.subscribe((event) => eventsB.push(event));
   clientA.send({ type: "start", game: "survival" }); clientB.send({ type: "start", game: "survival" });
   await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "first ready"), waitFor(eventsB, (event) => event.type === "ready", "second ready")]);

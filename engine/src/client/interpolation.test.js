@@ -130,8 +130,10 @@ test("online cadence buffers delayed and jittered publications", () => {
   // A publication gap holds the last committed pose, then resumes from the
   // new sample without rewinding the already displayed server time.
   assert.equal(renderAt(1200), 70);
-  assert.equal(renderAt(1300), 100);
-  assert.ok(renderAt(1400) >= 100);
+  assert.equal(renderAt(1300), 70);
+  assert.equal(renderAt(1400), 70);
+  assert.ok(Math.abs(renderAt(1450) - 75) < 1e-9);
+  assert.equal(renderAt(1500), 80);
 });
 
 test("supported children interpolate in parent-local space", () => {
