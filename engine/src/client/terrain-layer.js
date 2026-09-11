@@ -11,7 +11,7 @@ export function createTerrainLayer() {
   container.eventMode = "none";
   const water = new Graphics();
   water.eventMode = "none";
-  let renderer, sprite, revision, epoch;
+  let renderer, sprite, revision, epoch, projectionKey;
   const width = 2304, height = 1536;
   function clear() {
     sprite?.texture.destroy(true);
@@ -19,14 +19,15 @@ export function createTerrainLayer() {
     sprite = undefined;
     revision = undefined;
     water.clear();
+    projectionKey = undefined;
   }
   return {
     container,
-    update(frame, nextEpoch) {
+    update(frame, nextEpoch, nextProjectionKey = "full") {
       if (epoch !== nextEpoch) { clear(); epoch = nextEpoch; }
       if (!frame) { clear(); container.visible = false; return; }
       container.visible = true;
-      if (revision !== frame.revision) {
+      if (revision !== frame.revision || projectionKey !== nextProjectionKey) {
         renderer ??= new WebGLRenderer({ alpha: true, antialias: false });
         const texture = bake(renderer, terrainColumnsScene(frame.surfaces, frame), artCamera(width, height, 1.03, 256), width, height, false);
         sprite?.texture.destroy(true);
@@ -36,6 +37,7 @@ export function createTerrainLayer() {
         sprite.eventMode = "none";
         container.addChildAt(sprite, 0);
         revision = frame.revision;
+        projectionKey = nextProjectionKey;
       }
       if (!water.parent) container.addChild(water);
       water.clear();
