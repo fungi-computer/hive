@@ -198,6 +198,24 @@ mod construction_tests {
         let mut restored = Kernel::new();
         assert!(restored.restore_records(&records).is_err());
     }
+
+    #[test]
+    fn physical_contacts_compose_floor_seal_wall_bulk_and_outside() {
+        let (mut kernel, surface, _) = world();
+        let structures = vec![
+            crate::structure_geometry::StaticInstance::Floor { id: "floor-contact".into(), support: surface },
+            crate::structure_geometry::StaticInstance::Wall { id: "wall-contact".into(), base: crate::generation::Cell { y: surface.y + 1, ..surface }, height: 1 },
+        ];
+        let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(structures).unwrap().unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+        let outside = kernel.environment.as_ref().unwrap().world.bounds().max_x + 1;
+        let facts: serde_json::Value = serde_json::from_str(&kernel.physical_contacts_json(&json!([
+            [surface.x, surface.y, surface.z], [surface.x, surface.y + 1, surface.z], [outside, surface.y, surface.z]
+        ]).to_string()).unwrap()).unwrap();
+        assert_eq!(facts[0], json!({"solid":false,"sealedTop":true,"outside":false}));
+        assert_eq!(facts[1], json!({"solid":true,"sealedTop":false,"outside":false}));
+        assert_eq!(facts[2], json!({"solid":false,"sealedTop":false,"outside":true}));
+    }
 }
 
 fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -> bool {
@@ -1007,6 +1025,21 @@ impl Kernel {
         }).collect();
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         serde_json::to_string(&environment.world.materials(&cells)?).map_err(|error| error.to_string())
+    }
+    /// Bounded read-only physical contact facts, composed from terrain and
+    /// currently published static structures in the same TerrainWater owner.
+    pub fn physical_contacts_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 16 * 1024 { return Err("physical contact query exceeds input budget".into()); }
+        let coordinates: Vec<[i64; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if coordinates.is_empty() || coordinates.len() > 64 { return Err("physical contact query exceeds cell budget".into()); }
+        let cells: Vec<_> = coordinates.into_iter().map(|[x, y, z]| crate::generation::Cell { x, y: i32::try_from(y).map_err(|_| "physical contact y coordinate out of range")?, z }).collect();
+        let environment = self.environment.as_mut().ok_or("world has no environment")?;
+        let facts: Vec<_> = cells.into_iter().map(|cell| {
+            let material = environment.world.traversal_material(cell)?;
+            Ok(json!({"solid": material.solid, "sealedTop": material.sealed_top, "outside": material.outside}))
+        }).collect::<Result<_, String>>()?;
+        serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
     /// Bounded read-only route costs. Preparation uses the same route owner as
     /// movement but never installs a destination or mutates canonical state.
