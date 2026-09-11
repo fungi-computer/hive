@@ -1,7 +1,7 @@
 import { drawEnvironmentEffects } from "./environment-effects.js";
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
-import { project, groundPoint, surfacePoint, terrainPoint, terrainHit, terrainPlaneCell } from "./geometry.js";
+import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -206,6 +206,7 @@ export function createHiveClient({
   let markSurfaceSource;
   let markSurfaces;
   const terrainProjection = createTerrainProjectionCache();
+  const terrainPicker = createTerrainPicker();
   const placementCache = createUpperPlacementCache();
   let art = null;
   let resizeObserver = null;
@@ -219,6 +220,8 @@ export function createHiveClient({
   let pendingCues = [];
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
   function displayedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
+  function displayedTerrainHit(x, y, displayed) { return terrainPicker.hit(x, y, displayed, frameEpoch); }
+  function displayedTerrainPoint(x, y, displayed) { return terrainPicker.point(x, y, displayed, frameEpoch); }
   function clearPlacement() { terrainTarget.send({ type: "CLEAR_PLACEMENT" }); }
   function updateTerrainDisplay() {
     terrainLayer.update(displayedTerrainFrame(), frameEpoch, state.view.cutaway ? `cut:${state.view.level}` : "full");
@@ -236,6 +239,7 @@ export function createHiveClient({
     state.environmentVisuals = [];
     terrainFrame = undefined;
     terrainProjection.update(undefined, state.view, undefined);
+    terrainPicker.reset();
     terrainLayer.update(undefined, undefined);
     state.view = createWorldView(worldView);
     state.dragging = null;
@@ -830,7 +834,7 @@ export function createHiveClient({
           return;
         }
       }
-      const hit = displayed && terrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
+      const hit = displayed && displayedTerrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
       const structure = hit?.kind === "structure-top";
       const surface = (hit?.kind === "terrain-top" || (structure && targetControl.target === "world-surface")) && hit.surface;
       if (!surface) {
@@ -886,7 +890,7 @@ export function createHiveClient({
       const displayed = displayedTerrainFrame();
       const at = point(event);
       const local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const hit = displayed && terrainHit(local.x, local.y, displayed);
+      const hit = displayed && displayedTerrainHit(local.x, local.y, displayed);
       if (displayed && hit?.kind === "structure-top")
         terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       const anchor = terrainTarget.getSnapshot().context.anchor;
@@ -985,7 +989,7 @@ export function createHiveClient({
     const support = frame === null ? null : state.subjects.find((subject) => subject.pickable !== false && subject.id === frame);
     const displayed = displayedTerrainFrame();
     const world = frame === null
-      ? displayed ? terrainPoint(x, y, displayed)?.point : { ...groundPoint(x, y), frame: null }
+      ? displayed ? displayedTerrainPoint(x, y, displayed)?.point : { ...groundPoint(x, y), frame: null }
       : support ? surfacePoint(x, y, support) : null;
     if (!world) {
       state.message = frame === null ? "Choose a visible terrain top" : "Choose a point on the selected deck";
@@ -1352,6 +1356,7 @@ export function createHiveClient({
       audio.dispose();
       cueCursor.dispose();
       effectOwner?.clear();
+      terrainPicker.dispose();
       app.canvas?.removeEventListener("pointerdown", pointerDown);
       app.canvas?.removeEventListener("pointermove", pointerMove);
       app.canvas?.removeEventListener("pointerup", pointerUp);
