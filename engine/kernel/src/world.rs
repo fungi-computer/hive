@@ -434,12 +434,12 @@ impl Kernel {
                 if self.ecs.get::<Support>(entity).is_some()
                     || self.ecs.get::<Traversal>(entity).is_none()
                     || path.is_empty() || path.len() > 4097
-                    || (!route.terrain_waiting && route.path.is_empty())
+                    || route.path.is_empty()
                     || route.terrain_origin.is_none() || route.terrain_target.is_none()
                 {
                     return Err("invalid saved terrain route capability".into());
                 }
-                if !route.terrain_waiting && route.terrain_target.as_ref() != route.path.first() {
+                if route.terrain_target.as_ref() != route.path.first() {
                     return Err("saved terrain route target witness mismatch".into());
                 }
                 self.terrain_routes.insert(entity, TerrainRouteState {
@@ -1716,7 +1716,44 @@ impl Kernel {
         self.contents.entry(to.into()).or_default().insert(e);
         Ok(())
     }
+    /// Validate saved geometry even when work is waiting on a changed world.
+    /// Waiting suspends movement, never the relationship between pose and route.
+    fn validate_terrain_route_witness(&self, entity: Entity) -> Result<()> {
+        let state = self.terrain_routes.get(&entity).ok_or("missing terrain witness")?;
+        let route = self.routes.get(&entity).ok_or("missing terrain route")?;
+        let capability = self.ecs.get::<Traversal>(entity).ok_or("missing terrain capability")?;
+        let spacing = self.environment.as_ref().ok_or("missing terrain environment")?.world.cell_spacing_m();
+        let points = crate::terrain_route::waypoints(&state.path, crate::terrain_traversal::TraversalConfig {
+            spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells,
+        })?;
+        let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
+            .ok_or("invalid terrain route progress")?;
+        if !route.iter().eq(points[offset..].iter()) || state.origin != points[offset - 1]
+            || state.target.as_ref() != route.front() {
+            return Err("terrain route geometry witness mismatch".into());
+        }
+        let destination = self.ecs.get::<Destination>(entity).ok_or("missing terrain destination")?;
+        let last = points.last().ok_or("empty terrain witness")?;
+        if last.x != destination.x || last.y != destination.y || last.z != destination.z || last.frame != destination.frame {
+            return Err("terrain route destination mismatch".into());
+        }
+        let pose = self.ecs.get::<Position>(entity).ok_or("missing terrain pose")?;
+        let target = &points[offset];
+        let delta = [target.x-state.origin.x, target.y-state.origin.y, target.z-state.origin.z];
+        let relative = [pose.x-state.origin.x, pose.y-state.origin.y, pose.z-state.origin.z];
+        let length2 = delta.iter().map(|v| v*v).sum::<f64>();
+        let along = if length2 == 0.0 { 0.0 } else { relative.iter().zip(delta).map(|(a,b)| a*b).sum::<f64>()/length2 };
+        let error2 = relative.iter().zip(delta).map(|(a,b)| (a-b*along).powi(2)).sum::<f64>();
+        if !along.is_finite() || !error2.is_finite() || along < -1e-9 || along > 1.0+1e-9 || error2 > 1e-14 {
+            return Err("terrain pose is outside active segment".into());
+        }
+        Ok(())
+    }
+
     fn invalidate_terrain_routes(&mut self) -> Result<()> {
+        for entity in self.terrain_routes.iter().filter_map(|(entity,state)| state.revision.is_none().then_some(*entity)).collect::<Vec<_>>() {
+            self.validate_terrain_route_witness(entity)?;
+        }
         let candidates: Vec<_> = self.terrain_routes.iter().filter_map(|(entity, state)| (!state.waiting).then_some(*entity)).collect();
         let mut invalid = Vec::new();
         for entity in candidates {
@@ -1795,7 +1832,6 @@ impl Kernel {
             else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
         }
         for entity in invalid {
-            if let Some(route) = self.routes.get_mut(&entity) { route.clear(); }
             if let Some(state) = self.terrain_routes.get_mut(&entity) { state.waiting = true; state.revision = None; }
         }
         Ok(())
@@ -1810,7 +1846,7 @@ impl Kernel {
                 .get::<Destination>(*entity)
                 .expect("route destination")
                 .clone();
-            if path.is_empty() && self.terrain_routes.get(entity).is_some_and(|state| state.waiting) {
+            if self.terrain_routes.get(entity).is_some_and(|state| state.waiting) {
                 return true;
             }
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");

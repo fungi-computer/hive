@@ -44,3 +44,15 @@ fn terrain_kernel_climb_recovers_after_every_partial_segment() {
     let position = kernel.ecs.get::<Position>(kernel.entity("walker").unwrap()).unwrap();
     assert!((position.x-target.x).abs()<1e-9 && (position.y-target.y).abs()<1e-9);
 }
+
+#[test]
+fn terrain_kernel_rejects_forged_waiting_waypoints() {
+    let (mut kernel,target) = climbing_world();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let mut saved = kernel.save_records().unwrap();
+    let mut data: serde_json::Value = serde_json::from_str(&saved.entities).unwrap();
+    data["routes"][0]["terrain_waiting"] = json!(true);
+    data["routes"][0]["path"][0]["x"] = json!(1000);
+    saved.entities = data.to_string();
+    assert!(Kernel::new().restore_records(&saved).is_err(), "waiting cannot bypass physical route validation");
+}
