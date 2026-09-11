@@ -2,6 +2,7 @@
 pub mod assign;
 pub mod collision;
 pub mod generation;
+pub mod terrain;
 pub mod water;
 mod combat;
 mod components;

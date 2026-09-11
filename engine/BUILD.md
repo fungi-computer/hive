@@ -522,3 +522,18 @@ files are unchanged. Proof scopes closed. Prior cannon dist/config are preserved
 in .botanical/route-release. The public DO clients exercised above use the same
 unchanged UI behavior; the new browser-mode WASM now includes the native fix too.
 No large-world, fleet, shared-player lobby or hosted fault-injection claim.
+
+
+## Native environmental source — September 11
+
+At 0a5d836, u5388 compiled the Rust generator and passed three of four generator
+laws. The supplied supplementary Unicode expected hash was wrong. u5391 checked
+the actual retained JavaScript hash owner: 1059832673, matching Rust. Corrected
+7f2588f passed that single hash law and all three new water geometry-rebind laws
+in u5393 (exit0). Soil-to-void keeps mass, newly represented cells start empty,
+and removing wet capacity blocks without mutating either input. All three scopes
+were collected inactive/dead with empty control groups. No older water-law replay.
+
+This qualifies local native source only: no WASM/Colony/DO join or capacity claim.
+Terrain owner source 9ca7657 is now joined for focused qualification, with root
+corrections for ordered Cell keys and the revision9-to10 encoded-size assertion.

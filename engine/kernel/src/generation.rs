@@ -13,7 +13,7 @@ pub fn floor_div(value: i64, divisor: i64) -> Option<i64> {
     Some(if value % divisor < 0 { q - 1 } else { q })
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Cell {
     pub x: i64,
     pub y: i32,
@@ -170,6 +170,7 @@ pub struct CompiledWorld {
     coast_phase: f64,
     ridge_phase: f64,
     canyon_phase: f64,
+    binding: String,
 }
 
 impl<'a> WorldSpec<'a> {
@@ -211,7 +212,9 @@ impl<'a> WorldSpec<'a> {
         {
             return Err("material slots must be distinct");
         }
-        let full = format!("{}:{}:{}", GENERATOR_VERSION, self.identity, self.seed);
+        let recipe = serde_json::to_string(&(GENERATOR_VERSION, self.identity, self.seed))
+            .map_err(|_| "world identity encoding failed")?;
+        let full = recipe.clone();
         let height_prefix = hash_string(&format!("{}|", full), 2_166_136_261);
         let cave_prefix = hash_string(
             &format!(
@@ -231,11 +234,63 @@ impl<'a> WorldSpec<'a> {
             coast_phase: noise2(height_prefix, 0.0, 0.0, "coast-phase") * PI * 2.0,
             ridge_phase: noise2(height_prefix, 0.0, 0.0, "ridge-phase") * PI * 2.0,
             canyon_phase: noise2(height_prefix, 0.0, 0.0, "canyon-phase") * PI * 2.0,
+            binding: serde_json::to_string(&(
+                recipe,
+                (
+                    self.bounds.min_x,
+                    self.bounds.max_x,
+                    self.bounds.min_y,
+                    self.bounds.max_y,
+                    self.bounds.min_z,
+                    self.bounds.max_z,
+                ),
+                self.sea_level,
+                self.vertical_metres.to_bits(),
+                (self.slots.air, self.slots.soil, self.slots.stone),
+            ))
+            .map_err(|_| "world binding encoding failed")?,
         })
     }
 }
 
 impl CompiledWorld {
+    pub fn identity_binding(&self) -> &str {
+        &self.binding
+    }
+    pub fn contains_cell(&self, cell: Cell) -> bool {
+        cell.x >= self.bounds.min_x
+            && cell.x < self.bounds.max_x
+            && cell.y >= self.bounds.min_y
+            && cell.y < self.bounds.max_y
+            && cell.z >= self.bounds.min_z
+            && cell.z < self.bounds.max_z
+    }
+    pub fn intersects_page(&self, origin: Cell) -> bool {
+        let end_x = match origin.x.checked_add(16) {
+            Some(value) => value,
+            None => return false,
+        };
+        let end_y = match origin.y.checked_add(16) {
+            Some(value) => value,
+            None => return false,
+        };
+        let end_z = match origin.z.checked_add(16) {
+            Some(value) => value,
+            None => return false,
+        };
+        end_x > self.bounds.min_x
+            && origin.x < self.bounds.max_x
+            && end_y > self.bounds.min_y
+            && origin.y < self.bounds.max_y
+            && end_z > self.bounds.min_z
+            && origin.z < self.bounds.max_z
+    }
+    pub fn vertical_metres(&self) -> f64 {
+        self.vertical_metres
+    }
+    pub fn material_slots(&self) -> MaterialSlots {
+        self.slots
+    }
     fn field(&self, x: f64, z: f64, footprint: f64, kind: FieldKind) -> f64 {
         const OCTAVES: [(f64, f64, &str, &str); 6] = [
             (1024.0, 0.56, "elevation-broad", "groundwater-broad"),
@@ -465,7 +520,6 @@ mod tests {
     fn hash_reference_vectors_include_utf16() {
         assert_eq!(hash_string("a", 2166136261), 3826002220);
         assert_eq!(hash_string("é", 2166136261), 1812687940);
-        // Retained JS hashString, UTF-16 units [55297, 56375], u5391.
         assert_eq!(hash_string("𐐷", 2166136261), 1059832673);
     }
     #[test]
