@@ -112,11 +112,19 @@ struct OpeningIndex {
     permeability: f64,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct Flow { left: usize, right: Option<usize>, mixed_m3: f64, pressure_m3: f64 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Quantity { Carrier, Smoke, Heat }
+
 #[derive(Clone, Debug)]
 pub struct CompiledAtmosphere {
-    pub definition: AtmosphereDefinition,
+    definition: AtmosphereDefinition,
     openings: Vec<OpeningIndex>,
     volume_index: BTreeMap<String, usize>,
+    volume_m3: Vec<f64>,
+    elevation_m: Vec<f64>,
     ambient_carrier_density: f64,
     identity: String,
 }
@@ -146,11 +154,11 @@ fn finite_nonnegative(value: f64, name: &str) -> Result<(), String> {
 }
 
 fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
-    postcard::to_allocvec(definition).map(|bytes| format!("atmosphere:{:x}", fnv1a(&bytes))).map_err(|_| "atmosphere identity encoding failed".into())
-}
-
-fn fnv1a(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(0xcbf29ce484222325u64, |hash, byte| (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3))
+    let bytes = postcard::to_allocvec(definition).map_err(|_| "atmosphere identity encoding failed")?;
+    let mut value = String::with_capacity(bytes.len() * 2 + 12);
+    value.push_str("atmosphere:");
+    for byte in bytes { value.push_str(&format!("{byte:02x}")); }
+    Ok(value)
 }
 
 impl CompiledAtmosphere {
@@ -178,6 +186,8 @@ impl CompiledAtmosphere {
         ] { finite_nonnegative(value, name)?; }
         if model.max_step_s == 0.0 || model.max_exchange_fraction > 1.0 || model.max_pressure_ratio < 1.0 || model.max_temperature_delta_k == 0.0 || model.max_smoke_mass_fraction == 0.0 { return Err("invalid atmosphere model bounds".into()); }
         let mut volume_index = BTreeMap::new();
+        let mut volume_m3 = Vec::with_capacity(definition.volumes.len());
+        let mut elevation_m = Vec::with_capacity(definition.volumes.len());
         let mut members = 0usize;
         for (index, volume) in definition.volumes.iter().enumerate() {
             if volume.id.is_empty() || volume.members.is_empty() || volume_index.insert(volume.id.clone(), index).is_some() { return Err("invalid atmosphere volume identity".into()); }
@@ -186,6 +196,11 @@ impl CompiledAtmosphere {
                 members = members.checked_add(1).ok_or("atmosphere member budget overflow")?;
                 if members > MAX_MEMBERS { return Err("atmosphere member budget exceeded".into()); }
             }
+            let total: f64 = volume.members.iter().map(|member| member.volume_m3).sum();
+            let elevation = volume.members.iter().map(|member| member.elevation_m * member.volume_m3).sum::<f64>() / total;
+            if !total.is_finite() || total <= 0.0 || !elevation.is_finite() { return Err("invalid atmosphere volume aggregate".into()); }
+            volume_m3.push(total);
+            elevation_m.push(elevation);
         }
         let mut openings = Vec::with_capacity(definition.openings.len());
         let mut ids = BTreeSet::new();
@@ -199,12 +214,15 @@ impl CompiledAtmosphere {
         let ambient_carrier_density = definition.ambient.pressure_pa / (model.specific_gas_constant_jkg_k * definition.ambient.temperature_k);
         if !ambient_carrier_density.is_finite() || ambient_carrier_density <= 0.0 { return Err("invalid atmosphere ambient density".into()); }
         let identity = identity(&definition)?;
-        Ok(Self { definition, openings, volume_index, ambient_carrier_density, identity })
+        Ok(Self { definition, openings, volume_index, volume_m3, elevation_m, ambient_carrier_density, identity })
     }
+
+    pub fn definition(&self) -> &AtmosphereDefinition { &self.definition }
+    pub fn identity(&self) -> &str { &self.identity }
 
     pub fn initial(&self) -> AtmosphereState {
         let parcels = self.definition.volumes.iter().map(|volume| {
-            let volume_m3: f64 = volume.members.iter().map(|member| member.volume_m3).sum();
+            let volume_m3 = self.volume_m3[self.volume_index[&volume.id]];
             AtmosphereParcel { volume_id: volume.id.clone(), carrier_kg: self.ambient_carrier_density * volume_m3, smoke_kg: 0.0, heat_j: 0.0 }
         }).collect::<Vec<_>>();
         let initial_carrier_kg = parcels.iter().map(|parcel| parcel.carrier_kg).sum();
@@ -252,40 +270,59 @@ impl CompiledAtmosphere {
     }
 
     fn exchange_step(&self, state: &mut AtmosphereState, dt: f64) -> Result<(), String> {
-        let mut deltas = vec![(0.0, 0.0, 0.0); state.parcels.len()];
-        for opening in &self.openings {
-            let donor = &state.parcels[opening.from];
-            let conductance = opening.area_m2 * opening.permeability * self.definition.model.mixing_velocity_mps * dt / opening.distance_m;
-            if conductance <= 0.0 { continue; }
-            let donor_volume = self.volume_m3(opening.from);
-            let (other_carrier, other_smoke, other_heat, other_volume) = opening.to.map(|index| {
-                let parcel = &state.parcels[index]; (parcel.carrier_kg, parcel.smoke_kg, parcel.heat_j, self.volume_m3(index))
-            }).unwrap_or((self.ambient_carrier_density * donor_volume, 0.0, 0.0, donor_volume));
-            let carrier_delta = ((other_carrier / other_volume) - (donor.carrier_kg / donor_volume)) * conductance * donor_volume;
-            let bounded = carrier_delta.clamp(-donor.carrier_kg * self.definition.model.max_exchange_fraction, other_carrier * self.definition.model.max_exchange_fraction);
-            let fraction = if carrier_delta < 0.0 { (-bounded / donor.carrier_kg.max(1e-12)).min(1.0) } else { 0.0 };
-            let smoke_delta = if bounded < 0.0 { -donor.smoke_kg * fraction } else { (other_smoke / other_volume - donor.smoke_kg / donor_volume) * conductance * donor_volume };
-            let heat_delta = if bounded < 0.0 { -donor.heat_j * fraction } else { (other_heat / other_volume - donor.heat_j / donor_volume) * conductance * donor_volume };
-            deltas[opening.from].0 += bounded; deltas[opening.from].1 += smoke_delta; deltas[opening.from].2 += heat_delta;
-            if let Some(index) = opening.to {
-                deltas[index].0 -= bounded; deltas[index].1 -= smoke_delta; deltas[index].2 -= heat_delta;
-            } else {
-                state.carrier_boundary_kg += bounded;
-                state.smoke_boundary_kg += smoke_delta;
-                state.heat_boundary_j += heat_delta;
-            }
-        }
-        for (parcel, (carrier, smoke, heat)) in state.parcels.iter_mut().zip(deltas) {
-            parcel.carrier_kg += carrier;
-            parcel.smoke_kg = (parcel.smoke_kg + smoke).max(0.0);
-            parcel.heat_j += heat;
-            if parcel.carrier_kg < -1e-9 || !parcel.carrier_kg.is_finite() || !parcel.smoke_kg.is_finite() || !parcel.heat_j.is_finite() { return Err("atmosphere exchange produced invalid parcel".into()); }
-            parcel.carrier_kg = parcel.carrier_kg.max(0.0);
-        }
+        let snapshot = state.parcels.clone();
+        let flows = self.bounded_flows(self.opening_flows(&snapshot, dt));
+        for flow in flows { self.mix_pair(state, &snapshot, &flow)?; self.advect_pair(state, &snapshot, &flow)?; }
         Ok(())
     }
 
-    fn volume_m3(&self, index: usize) -> f64 { self.definition.volumes[index].members.iter().map(|member| member.volume_m3).sum() }
+    fn opening_flows(&self, parcels: &[AtmosphereParcel], dt: f64) -> Vec<Flow> {
+        self.openings.iter().map(|opening| {
+            let left_temperature = self.temperature(opening.from, &parcels[opening.from]);
+            let right_temperature = opening.to.map(|index| self.temperature(index, &parcels[index])).unwrap_or(self.definition.ambient.temperature_k);
+            let lower = if self.elevation_m[opening.from] <= opening.to.map(|index| self.elevation_m[index]).unwrap_or(opening.elevation_m) { left_temperature } else { right_temperature };
+            let upper = if self.elevation_m[opening.from] <= opening.to.map(|index| self.elevation_m[index]).unwrap_or(opening.elevation_m) { right_temperature } else { left_temperature };
+            let height = (opening.to.map(|index| self.elevation_m[index]).unwrap_or(opening.elevation_m) - self.elevation_m[opening.from]).abs();
+            let buoyancy = self.definition.model.buoyancy_velocity_mps_k * (lower - upper).max(0.0) * height / opening.distance_m;
+            let interval = opening.area_m2 * opening.permeability * dt;
+            let left_pressure = self.pressure(opening.from, &parcels[opening.from]);
+            let right_pressure = opening.to.map(|index| self.pressure(index, &parcels[index])).unwrap_or(self.definition.ambient.pressure_pa);
+            Flow { left: opening.from, right: opening.to, mixed_m3: interval * (self.definition.model.mixing_velocity_mps + buoyancy), pressure_m3: interval * self.definition.model.pressure_velocity_mps_pa * (left_pressure - right_pressure) }
+        }).collect()
+    }
+
+    fn bounded_flows(&self, flows: Vec<Flow>) -> Vec<Flow> {
+        let mut outgoing = vec![0.0; self.volume_m3.len()];
+        let mut incoming = vec![0.0; self.volume_m3.len()];
+        for flow in &flows {
+            outgoing[flow.left] += flow.mixed_m3 + flow.pressure_m3.max(0.0); incoming[flow.left] += flow.mixed_m3 + (-flow.pressure_m3).max(0.0);
+            if let Some(right) = flow.right { outgoing[right] += flow.mixed_m3 + (-flow.pressure_m3).max(0.0); incoming[right] += flow.mixed_m3 + flow.pressure_m3.max(0.0); }
+        }
+        let out = outgoing.iter().enumerate().map(|(i, amount)| if *amount == 0.0 { 1.0 } else { (self.volume_m3[i] * self.definition.model.max_exchange_fraction / amount).min(1.0) }).collect::<Vec<_>>();
+        let into = incoming.iter().enumerate().map(|(i, amount)| if *amount == 0.0 { 1.0 } else { (self.volume_m3[i] * self.definition.model.max_exchange_fraction / amount).min(1.0) }).collect::<Vec<_>>();
+        flows.into_iter().map(|flow| {
+            let right_out = flow.right.map(|i| out[i]).unwrap_or(1.0); let right_in = flow.right.map(|i| into[i]).unwrap_or(1.0);
+            Flow { mixed_m3: flow.mixed_m3 * out[flow.left].min(into[flow.left]).min(right_out).min(right_in), pressure_m3: flow.pressure_m3 * if flow.pressure_m3 >= 0.0 { out[flow.left].min(right_in) } else { into[flow.left].min(right_out) }, ..flow }
+        }).collect()
+    }
+
+    fn concentration(&self, parcels: &[AtmosphereParcel], index: Option<usize>, quantity: Quantity) -> f64 {
+        match index { Some(i) => match quantity { Quantity::Carrier => parcels[i].carrier_kg, Quantity::Smoke => parcels[i].smoke_kg, Quantity::Heat => parcels[i].heat_j } / self.volume_m3[i], None => if quantity == Quantity::Carrier { self.ambient_carrier_density } else { 0.0 } }
+    }
+    fn temperature(&self, index: usize, parcel: &AtmosphereParcel) -> f64 { self.definition.ambient.temperature_k + parcel.heat_j / (parcel.carrier_kg.max(1e-12) * self.definition.model.heat_capacity_jkg_k) }
+    fn pressure(&self, index: usize, parcel: &AtmosphereParcel) -> f64 { parcel.carrier_kg * self.definition.model.specific_gas_constant_jkg_k * self.temperature(index, parcel) / self.volume_m3[index] }
+    fn apply_pair(&self, state: &mut AtmosphereState, flow: &Flow, quantity: Quantity, delta_left: f64) -> Result<(), String> {
+        let current_left = match quantity { Quantity::Carrier => state.parcels[flow.left].carrier_kg, Quantity::Smoke => state.parcels[flow.left].smoke_kg, Quantity::Heat => state.parcels[flow.left].heat_j };
+        let current_right = flow.right.map(|i| { let parcel = &state.parcels[i]; match quantity { Quantity::Carrier => parcel.carrier_kg, Quantity::Smoke => parcel.smoke_kg, Quantity::Heat => parcel.heat_j } }).unwrap_or(match quantity { Quantity::Carrier => 0.0, Quantity::Smoke => state.smoke_boundary_kg, Quantity::Heat => state.heat_boundary_j });
+        let next_left = current_left + delta_left; let next_right = current_right - delta_left;
+        if !next_left.is_finite() || !next_right.is_finite() || (quantity != Quantity::Heat && (next_left < 0.0 || (flow.right.is_some() && next_right < 0.0))) { return Ok(()); }
+        let left = &mut state.parcels[flow.left];
+        match quantity { Quantity::Carrier => left.carrier_kg = next_left, Quantity::Smoke => left.smoke_kg = next_left, Quantity::Heat => left.heat_j = next_left }
+        if let Some(index) = flow.right { let parcel = &mut state.parcels[index]; match quantity { Quantity::Carrier => parcel.carrier_kg = next_right, Quantity::Smoke => parcel.smoke_kg = next_right, Quantity::Heat => parcel.heat_j = next_right } } else { match quantity { Quantity::Carrier => state.carrier_boundary_kg = next_right, Quantity::Smoke => state.smoke_boundary_kg = next_right, Quantity::Heat => state.heat_boundary_j = next_right } }
+        Ok(())
+    }
+    fn mix_pair(&self, state: &mut AtmosphereState, snapshot: &[AtmosphereParcel], flow: &Flow) -> Result<(), String> { for quantity in [Quantity::Carrier, Quantity::Smoke, Quantity::Heat] { let delta = (self.concentration(snapshot, flow.right, quantity) - self.concentration(snapshot, Some(flow.left), quantity)) * flow.mixed_m3; self.apply_pair(state, flow, quantity, delta)?; } Ok(()) }
+    fn advect_pair(&self, state: &mut AtmosphereState, snapshot: &[AtmosphereParcel], flow: &Flow) -> Result<(), String> { if flow.pressure_m3 == 0.0 { return Ok(()); } let donor = if flow.pressure_m3 > 0.0 { Some(flow.left) } else { flow.right }; for quantity in [Quantity::Carrier, Quantity::Smoke, Quantity::Heat] { let delta = -flow.pressure_m3 * self.concentration(snapshot, donor, quantity); self.apply_pair(state, flow, quantity, delta)?; } Ok(()) }
 
     pub fn encode_state(&self, state: &AtmosphereState) -> Result<Vec<u8>, String> {
         self.validate_state(state)?;
@@ -333,6 +370,33 @@ mod tests {
         let (next, _) = atmosphere.advance(&state, 1.0, &[AtmosphereSource { volume_id: "upper".into(), smoke_kg_s: 0.001, heat_j_s: 0.0 }]).unwrap();
         assert!(next.smoke_boundary_kg <= 0.0);
         assert_eq!(state.smoke_source_kg, 0.0);
+    }
+
+    #[test]
+    fn equal_density_tracer_mixes_and_multiple_openings_share_donor_budget() {
+        let mut definition = definition();
+        definition.openings.push(AtmosphereOpeningDefinition { id: "second".into(), from: "lower".into(), from_cell_id: "cell:0,0,0".into(), to: Some("upper".into()), to_cell_id: Some("cell:0,1,0".into()), area_m2: 1.0, distance_m: 1.0, elevation_m: 0.54, permeability: 1.0 });
+        let atmosphere = CompiledAtmosphere::compile(definition).unwrap();
+        let mut state = atmosphere.initial();
+        state.parcels[0].smoke_kg = 0.01;
+        let total_before = state.parcels.iter().map(|parcel| parcel.smoke_kg).sum::<f64>() + state.smoke_boundary_kg;
+        let (next, _) = atmosphere.advance(&state, 0.2, &[]).unwrap();
+        let total_after = next.parcels.iter().map(|parcel| parcel.smoke_kg).sum::<f64>() + next.smoke_boundary_kg;
+        assert!((total_after - total_before).abs() < 1e-12);
+        assert!(next.parcels[0].smoke_kg >= 0.0 && next.parcels[1].smoke_kg >= 0.0);
+    }
+
+    #[test]
+    fn pressure_and_height_temperature_drive_signed_exchange() {
+        let atmosphere = CompiledAtmosphere::compile(definition()).unwrap();
+        let mut pressure = atmosphere.initial();
+        pressure.parcels[0].carrier_kg *= 1.1;
+        let (after_pressure, _) = atmosphere.advance(&pressure, 0.2, &[]).unwrap();
+        assert!(after_pressure.parcels[0].carrier_kg < pressure.parcels[0].carrier_kg);
+        let mut warm = atmosphere.initial();
+        warm.parcels[0].heat_j = 10_000.0;
+        let (after_warm, _) = atmosphere.advance(&warm, 0.2, &[]).unwrap();
+        assert!(after_warm.parcels[1].carrier_kg > warm.parcels[1].carrier_kg || after_warm.parcels[0].carrier_kg < warm.parcels[0].carrier_kg);
     }
 
     #[test]
