@@ -5,7 +5,7 @@ import {
   type PresentationControl,
 } from "../presentation";
 import type { GameSession } from "./session";
-import { decorateDeliveryFacts } from "./delivery-presentation";
+import { decorateInventoryFacts } from "./inventory-presentation";
 
 /**
  * The bounded, committed view shared by browser and host readers.
@@ -42,7 +42,7 @@ export function buildObservation(
     query: (spec) => session.query(spec),
   };
   const projected = projectPresentation(session.pack, context);
-  const facts = decorateDeliveryFacts(structuredClone(session.renderFacts(512)), context);
+  const facts = decorateInventoryFacts(structuredClone(session.renderFacts(512)), context);
   return Object.freeze({
     time: session.simulationTime,
     paused: session.isPaused,

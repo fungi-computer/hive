@@ -222,12 +222,6 @@ export interface RenderFact {
     readonly items: readonly { readonly kind: string; readonly quantity: number }[];
     readonly overflow?: boolean;
   };
-  readonly activity?: {
-    readonly kind: "delivery";
-    readonly phase: string;
-    readonly material: string;
-    readonly quantity: number;
-  };
   readonly direct?: {
     readonly stream: string;
     readonly lastQueued: number;
