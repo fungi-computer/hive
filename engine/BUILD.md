@@ -638,3 +638,18 @@ Generated JS SHA256:
 8bd7a8fff2dd34678d22a6d181ff56a54dffe9d8c4d199d4f35bc26bd5f2c9b3.
 Declarations SHA256:
 ada1348c463f7b374f2ffcf2caca858b86a8b889b25f5b57c02a585318c90c6d.
+
+### Browser binary-save consumer source
+
+Browser-save writer e80cbcc is joined through8f2ec4c. The fresh browser demo now
+uses a dedicated lazy idb owner for structured-clone snapshots; bearer-token
+localStorage and the retained Clearing database are unchanged. Save feedback
+waits for transaction completion. Independent review corrections cover failed
+put/transaction promises and late callbacks after disposal.
+
+u5438 (c5b1511985744a17bb565e4e799638e1) exit0 passed the12 local-save/connection
+laws, strict engine TypeScript, client syntax and diff checks. The storage tests
+inject a small store and exercise structuredClone, transaction waiting/failure
+and disposal; they are not actual browser IndexedDB/reload proof. No browser or
+public deployment was run. Scope inactive/dead/empty. The coupled SDK/Region
+record snapshot and disposable-attempt migration is still outstanding.
