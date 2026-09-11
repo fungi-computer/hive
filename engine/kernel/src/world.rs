@@ -1016,6 +1016,17 @@ impl Kernel {
         }))).collect();
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
+    pub fn structure_surfaces_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 16 * 1024 { return Err("structure surface query exceeds input budget".into()); }
+        let coordinates: Vec<[i32; 2]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if coordinates.is_empty() || coordinates.len() > 64 { return Err("structure surface query exceeds column budget".into()); }
+        let columns: Vec<_> = coordinates.into_iter().map(|[x, z]| (i64::from(x), i64::from(z))).collect();
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        let surfaces = environment.world.structure_surfaces(&columns)?;
+        let facts: Vec<_> = surfaces.into_iter().map(|cells| cells.into_iter().map(|cell| json!({"cell": [cell.x, cell.y, cell.z]})).collect::<Vec<_>>()).collect();
+        serde_json::to_string(&facts).map_err(|error| error.to_string())
+    }
     pub fn terrain_materials_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 32 * 1024 { return Err("terrain query exceeds input budget".into()); }
