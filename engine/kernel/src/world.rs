@@ -78,6 +78,7 @@ pub struct Kernel {
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     routes: BTreeMap<Entity, VecDeque<Point>>,
     terrain_paths: BTreeMap<Entity, Vec<crate::generation::Cell>>,
+    terrain_revisions: BTreeMap<Entity, u64>,
     terrain_waiting: BTreeSet<Entity>,
     direct: BTreeMap<Entity, DirectState>,
     game: String,
@@ -109,6 +110,7 @@ impl Kernel {
             blocked_by_frame: BTreeMap::new(),
             routes: BTreeMap::new(),
             terrain_paths: BTreeMap::new(),
+            terrain_revisions: BTreeMap::new(),
             terrain_waiting: BTreeSet::new(),
             direct: BTreeMap::new(),
             game: String::new(),
@@ -359,7 +361,9 @@ impl Kernel {
                 let path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
                 let mut points = crate::terrain_route::waypoints(&path, config)?;
                 if let Some(first) = points.first_mut() { *first = start_point; }
+                let terrain_revision = environment.world.terrain_revision();
                 self.terrain_paths.insert(entity, path);
+                self.terrain_revisions.insert(entity, terrain_revision);
                 self.terrain_waiting.remove(&entity);
                 return Ok(points.into_iter().collect());
             }
@@ -380,6 +384,7 @@ impl Kernel {
         }
         let mut restored = BTreeMap::new();
         self.terrain_paths.clear();
+        self.terrain_revisions.clear();
         self.terrain_waiting.clear();
         for route in saved {
             if route.path.len() > 4096 {
@@ -425,6 +430,7 @@ impl Kernel {
                     return Err("invalid saved terrain route capability".into());
                 }
                 self.terrain_paths.insert(entity, path);
+                self.terrain_revisions.insert(entity, 0);
             } else if self.ecs.get::<Traversal>(entity).is_some() && self.ecs.get::<Support>(entity).is_none() && !route.terrain_waiting {
                 return Err("terrain route is missing saved support witness".into());
             }
@@ -453,6 +459,7 @@ impl Kernel {
         self.blocked_by_frame.clear();
         self.routes.clear();
         self.terrain_paths.clear();
+        self.terrain_revisions.clear();
         self.terrain_waiting.clear();
         for (id, entity) in &self.ids {
             let position = self.ecs.get::<Position>(*entity);
@@ -1307,6 +1314,7 @@ impl Kernel {
             self.ecs.entity_mut(entity).remove::<Destination>();
             self.routes.entry(entity).or_default().clear();
             self.terrain_paths.remove(&entity);
+            self.terrain_revisions.remove(&entity);
             self.terrain_waiting.insert(entity);
         }
     }
@@ -1694,17 +1702,22 @@ impl Kernel {
         Ok(())
     }
     fn invalidate_terrain_routes(&mut self) -> Result<()> {
-        let candidates: Vec<_> = self.terrain_paths.iter().map(|(entity, path)| (*entity, path.clone())).collect();
+        let candidates: Vec<_> = self.terrain_paths.keys().copied().collect();
         let mut invalid = Vec::new();
-        for (entity, path) in candidates {
+        for entity in candidates {
             let Some(capability) = self.ecs.get::<Traversal>(entity).copied() else { invalid.push(entity); continue };
             let blocked = self.blocked_by_frame.get(&None).cloned().ok_or("missing obstacle frame index")?;
-            let spacing = self.environment.as_ref().ok_or("terrain route needs environment")?.world.cell_spacing_m();
-            if path.iter().any(|cell| i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok())
-                .is_some_and(|(x, z)| blocked.contains(&(x, ((f64::from(cell.y) + 0.5) * spacing[1]).round() as i32, z)))) {
-                invalid.push(entity);
-                continue;
-            }
+            let environment_view = self.environment.as_ref().ok_or("terrain route needs environment")?;
+            let spacing = environment_view.world.cell_spacing_m();
+            let active_blocked = self.terrain_paths.get(&entity).and_then(|path| path.get(0..2)).is_some_and(|edge| edge.iter().any(|cell| {
+                i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x, z)| {
+                    blocked.contains(&(x, ((f64::from(cell.y) + 0.5) * spacing[1]).round() as i32, z))
+                })
+            }));
+            if active_blocked { invalid.push(entity); continue; }
+            let current_revision = environment_view.world.terrain_revision();
+            if self.terrain_revisions.get(&entity).copied() == Some(current_revision) { continue; }
+            let path = self.terrain_paths.get(&entity).cloned().ok_or("terrain route witness missing")?;
             let environment = self.environment.as_mut().ok_or("terrain route needs environment")?;
             let config = crate::terrain_traversal::TraversalConfig {
                 spacing,
@@ -1731,6 +1744,7 @@ impl Kernel {
                 }
             }
             if !valid { invalid.push(entity); }
+            else { self.terrain_revisions.insert(entity, current_revision); }
         }
         for entity in invalid {
             self.routes.remove(&entity);

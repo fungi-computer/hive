@@ -2,7 +2,14 @@
 //! The supplied query reads canonical terrain; this module stores no material grid.
 use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
-use pathfinding::prelude::bfs;
+use pathfinding::prelude::astar;
+
+fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> usize {
+    let dx = (i128::from(b.x) - i128::from(a.x)).unsigned_abs() as f64 * spacing[0];
+    let dz = (i128::from(b.z) - i128::from(a.z)).unsigned_abs() as f64 * spacing[2];
+    let dy = (i64::from(b.y) - i64::from(a.y)).unsigned_abs() as f64 * spacing[1];
+    ((dx + dz + dy) * 1_000_000.0).round().min(usize::MAX as f64) as usize
+}
 
 pub fn search(
     start: Cell,
@@ -29,7 +36,7 @@ pub fn search_with_blocked(
     let cell = |(x, y, z)| Cell { x, y, z };
     let mut expanded = 0usize;
     let mut failure = None;
-    let path = bfs(
+    let path = astar(
         &key(start),
         |current| {
             if failure.is_some() { return Vec::new(); }
@@ -47,7 +54,7 @@ pub fn search_with_blocked(
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) if !blocked(next.support) => neighbors.push(key(next.support)),
+                        Ok(Some(next)) if !blocked(next.support) => neighbors.push((key(next.support), edge_cost(cell(*current), next.support, config.spacing))),
                         Ok(None) => {},
                         Err(error) => { failure = Some(error); return Vec::new(); }
                     }
@@ -55,6 +62,7 @@ pub fn search_with_blocked(
             }
             neighbors
         },
+        |_| 0usize,
         |current| *current == key(destination),
     );
     if let Some(error) = failure { return Err(error); }
