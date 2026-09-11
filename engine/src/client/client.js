@@ -603,28 +603,24 @@ export function createHiveClient({
         actor
       ) {
         event.preventDefault();
-        const local = intendedDestinations.get(id) ?? actor.local?.position ?? actor;
+        const dx = key === "a" || key === "arrowleft" ? -1 :
+          key === "d" || key === "arrowright" ? 1 : 0;
+        const dz = key === "w" || key === "arrowup" ? -1 :
+          key === "s" || key === "arrowdown" ? 1 : 0;
+        const pending = intendedDestinations.get(id);
+        // OS key repeat can be much faster than the authoritative movement
+        // cadence. Coalesce a held direction so intent stays at one cell.
+        if (pending && pending.dx === dx && pending.dz === dz) return;
+        const local = actor.local?.position ?? actor;
         const destination = {
           frame: actor.support ?? null,
-          x:
-            local.x +
-            (key === "a" || key === "arrowleft"
-              ? -1
-              : key === "d" || key === "arrowright"
-                ? 1
-                : 0),
+          x: local.x + dx,
           y: local.y,
-          z:
-            local.z +
-            (key === "w" || key === "arrowup"
-              ? -1
-              : key === "s" || key === "arrowdown"
-                ? 1
-                : 0),
+          z: local.z + dz,
         };
         // Key repeat continues from the last requested local cell while the
         // server catches up; this is an input convenience, not prediction.
-        intendedDestinations.set(id, destination);
+        intendedDestinations.set(id, { destination, dx, dz });
         emit({
           kind: "action",
           action: { kind: "move", entity: id, destination },
@@ -746,7 +742,8 @@ export function createHiveClient({
           }
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
-          for (const [id, destination] of intendedDestinations) {
+          for (const [id, pending] of intendedDestinations) {
+            const destination = pending.destination;
             const subject = event.facts.find((fact) => fact.id === id);
             const position = subject?.local?.position;
             if (!position || (subject.support ?? null) !== destination.frame ||
@@ -762,6 +759,9 @@ export function createHiveClient({
         state.presentationControls = event.controls;
         renderHud();
       }
+      if (event.type === "results" && event.results.some((result) =>
+        result && typeof result === "object" && result.accepted === false))
+        intendedDestinations.clear();
       if (event.type === "saved") {
         state.pendingSave = false;
         try {
