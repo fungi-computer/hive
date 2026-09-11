@@ -40,7 +40,6 @@ test("actual Colony hearth consumes wood and emits into sampled air", () => {
       return task.destination === hearth && task.material === "wood";
     });
     assert(hearthTask, "Colony supply system must plan the hearth's wood task");
-    session.command("deliver", { entities: [worker], quantity: 2 });
     let delivered = false;
     let deliveringWorker = worker;
     for (let tick = 0; tick < 160; tick++) {
