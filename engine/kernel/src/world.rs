@@ -617,7 +617,9 @@ impl Kernel {
     pub fn environment_facts_json(&self) -> Result<String> {
         self.ensure_ready()?;
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
-        serde_json::to_string(&environment.world.facts()?).map_err(|error| error.to_string())
+        let mut facts = serde_json::to_value(environment.world.facts()?).map_err(|error| error.to_string())?;
+        facts["terrainRevision"] = json!(environment.world.terrain_revision());
+        serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
     pub fn save_records(&self) -> Result<KernelRecords> {
         self.ensure_ready()?;

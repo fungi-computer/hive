@@ -199,6 +199,7 @@ impl TerrainWater {
     pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, String> {
         Ok(self.terrain.surface_cells(columns)?)
     }
+    pub fn terrain_revision(&self) -> u64 { self.terrain.revision() }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
         let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
