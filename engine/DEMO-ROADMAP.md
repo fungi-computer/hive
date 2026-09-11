@@ -11,6 +11,15 @@ one-shot every retained system or let presentation polish substitute for play.
 
 ## Current playable checkpoint — September 11
 
+**Live construction release:** runtime `a9bbdba` with native routing correction
+`06d03af` is published to the existing four-demo site. Workers can supply/build
+floors and four-facing stairs. Local real input built two stairs and an upper
+floor and walked a worker to the top; the actual local DO preserved construction
+through restart and command replay. Frontend deployment `79ff4792` and Worker
+`5ba2478f` are uploaded; fresh HTTP readback matched all 157 files. Immediate
+cache-stale readback is preserved as a failed check. Hosted playthrough, narrow
+layout, room smoke and the rest of the sprint are not established by this release.
+
 **Latest live correction:** runtime `6080e4e` supersedes the a13fc44 manual-dig
 checkpoint below. Rectangle designation now leads to automatic approach, cutting,
 spoil unloading and continuation. The actual two-cell consumer produced six spoil;
