@@ -513,6 +513,12 @@ export class GameSession {
       !Array.isArray(snapshot.systems)
     )
       throw new Error("invalid session queues");
+    const expectedEnvironment = this.pack.environmentDefinition;
+    const savedEnvironment = snapshot.kernel.records?.find(record => record.key === "kernel/environment/definition")?.bytes;
+    if (Boolean(expectedEnvironment) !== Boolean(savedEnvironment) ||
+        (expectedEnvironment && savedEnvironment && (expectedEnvironment.byteLength !== savedEnvironment.byteLength ||
+          expectedEnvironment.some((byte, index) => byte !== savedEnvironment[index]))))
+      throw new Error("snapshot environment definitions do not match");
     const cues = checkedCueSnapshot(snapshot.cues, snapshot.now);
     const pending = snapshot.pendingActions.map(checkedAction);
     let canonical: any;

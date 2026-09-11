@@ -57,6 +57,16 @@ test("actual Colony water records commit with session and recover after failed S
       const session = new GameSession({ port, pack, seed: 17 });
       session.restore(hydrateSession(current.state.session, { read: key => bytes.get(key) }));
       assert.equal(session.simulationTime, 0.2);
+      const saved = session.save();
+      const otherPort = wasmKernelPort(new WasmKernel());
+      try {
+        const incompatible = new GameSession({ port: otherPort, pack: { ...pack,
+          environmentDefinition: new TextEncoder().encode(JSON.stringify({ ...environmentFixture, world: { ...environmentFixture.world, seed: "other-seed" } })) }, seed: 17 });
+        incompatible.start();
+        const previous = incompatible.save();
+        assert.throws(() => incompatible.restore(saved), /environment definitions do not match/);
+        assert.deepEqual(incompatible.save(), previous);
+      } finally { otherPort.dispose(); }
       assert.ok((port.environmentFacts() as { totalKg: number }).totalKg > 0);
     } finally { port.dispose(); }
   } finally { db.close(); }
