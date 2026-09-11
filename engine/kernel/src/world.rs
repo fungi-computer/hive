@@ -1078,6 +1078,18 @@ impl Kernel {
     pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
         route_query::execute(self, input)
     }
+    /// Bounded indexed observation. No world scan, solver step, or cache mutation.
+    pub fn atmosphere_samples_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 16 * 1024 { return Err("atmosphere query exceeds input budget".into()); }
+        let cells: Vec<[i64; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if cells.len() > 64 { return Err("atmosphere query exceeds cell budget".into()); }
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        let air = environment.atmosphere.as_ref().ok_or("world has no atmosphere")?;
+        let keys: Vec<_> = cells.iter().map(|[x,y,z]| format!("cell:{x},{y},{z}")).collect();
+        let samples = air.compiled().sample_cells(air.state(), &keys)?;
+        serde_json::to_string(&json!({"revision":self.revision,"geometryRevision":air.geometry_revision(),"samples":samples})).map_err(|error| error.to_string())
+    }
     pub fn environment_facts_json(&self) -> Result<String> {
         self.ensure_ready()?;
         let environment = self.environment.as_ref().ok_or("world has no environment")?;

@@ -243,3 +243,34 @@ mod exchange;
 mod state;
 #[cfg(test)]
 mod tests;
+
+/// Read-only physical facts at one admitted receiver. `None` means there is no
+/// modeled air receiver; it must not be presented as clean or breathable air.
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AtmosphereSample {
+    pub volume_id: String,
+    pub temperature_c: f64,
+    pub pressure_pa: f64,
+    pub smoke_kg_m3: f64,
+}
+
+impl CompiledAtmosphere {
+    pub fn sample_cells(&self, state: &AtmosphereState, cells: &[String]) -> Result<Vec<Option<AtmosphereSample>>, String> {
+        if cells.len() > 64 || cells.iter().any(|cell| cell.len() > 128) {
+            return Err("atmosphere observation exceeds query budget".into());
+        }
+        if !Arc::ptr_eq(&self.owner, &state.owner) {
+            return Err("atmosphere observation belongs to another geometry".into());
+        }
+        Ok(cells.iter().map(|cell| self.member_index.get(cell).map(|&index| {
+            let parcel = &state.parcels[index];
+            AtmosphereSample {
+                volume_id: parcel.volume_id.clone(),
+                temperature_c: self.temperature(index, parcel) - 273.15,
+                pressure_pa: self.pressure(index, parcel),
+                smoke_kg_m3: parcel.smoke_kg / self.volume_m3[index],
+            }
+        })).collect())
+    }
+}
