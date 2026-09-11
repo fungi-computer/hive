@@ -21,14 +21,17 @@ async function collect(directory) {
 }
 await collect(resolve(root, "engine/src"));
 await collect(resolve(root, "src/engine"));
-files.push("tools/public-engine-host/worker.ts", "tools/public-engine-host/protocol.ts",
-  "engine/generated/hive_kernel.js", "engine/generated/hive_kernel.d.ts",
+await collect(resolve(root, "tools/public-engine-host"));
+files.push("engine/generated/hive_kernel.js", "engine/generated/hive_kernel.d.ts",
   "engine/generated/hive_kernel_bg.wasm");
 // Package inventory remains complete. Persisted program identity excludes client,
 // test and unrelated legacy engine code: changing a button cannot retire a world.
 function ownsProgram(path) {
   if (/\.test\.[cm]?[jt]sx?$/.test(path) || path.endsWith(".d.ts")) return false;
   if (path.startsWith("engine/src/client/")) return false;
+  if (["browser-client.ts", "worker.ts", "worker-entry.ts", "remote-client.ts"]
+      .some(name => path === `engine/src/runtime/${name}`)) return false;
+  if (path.startsWith("tools/public-engine-host/")) return path.endsWith(".ts");
   if (path.startsWith("src/engine/")) return path.startsWith("src/engine/region/");
   return true;
 }
