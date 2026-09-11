@@ -326,6 +326,7 @@ pub enum Action {
     },
     BeginDirect { entity: String, stream: String },
     BeginEmission { worker: String, station: String },
+    SetStructureOpen { worker: String, site: String, open: bool },
     DirectInput { entity: String, stream: String, inputs: Vec<DirectInput> },
     Transfer {
         lot: String,

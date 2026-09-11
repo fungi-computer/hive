@@ -18,6 +18,9 @@ mod initial_placement;
 mod authored_entities;
 #[path = "structure_contact.rs"]
 mod structure_contact;
+#[cfg(test)]
+#[path = "aperture_tests.rs"]
+mod aperture_tests;
 #[path = "construction_work.rs"]
 mod construction_work;
 #[path = "route_query.rs"]
@@ -1406,7 +1409,7 @@ impl Kernel {
             || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
-                    | Action::BeginDirect { .. } | Action::DirectInput { .. })
+                    | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -1575,6 +1578,10 @@ impl Kernel {
             }
             Action::BeginEmission { worker, station } => {
                 self.begin_emission(&worker, &station)?;
+                Ok(None)
+            }
+            Action::SetStructureOpen { worker, site, open } => {
+                self.set_structure_open(&worker, &site, open)?;
                 Ok(None)
             }
             Action::AttendConstruction { worker, site } => {

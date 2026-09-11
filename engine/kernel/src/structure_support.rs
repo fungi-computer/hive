@@ -29,6 +29,7 @@ fn instance_id(instance: &StaticInstance) -> &str {
     match instance {
         StaticInstance::Floor { id, .. }
         | StaticInstance::Wall { id, .. }
+        | StaticInstance::ApertureWall { id, .. }
         | StaticInstance::Stair { id, .. } => id,
     }
 }
@@ -115,7 +116,7 @@ pub fn resolve(
     for instance in instances {
         let base = match instance {
             StaticInstance::Floor { support, .. } => *support,
-            StaticInstance::Wall { base, .. } => wall_support(*base)?,
+            StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
             StaticInstance::Stair { origin, .. } => *origin,
         };
         if support_at(base)? {
@@ -212,7 +213,7 @@ pub fn resolve(
         for instance in instances {
             charge(&mut work, policy)?;
             match instance {
-                StaticInstance::Wall { id, base, height } if !rooted_walls.contains(id) && load_contacts.contains(&wall_support(*base)?) => {
+                StaticInstance::Wall { id, base, height } | StaticInstance::ApertureWall { id, base, height, .. } if !rooted_walls.contains(id) && load_contacts.contains(&wall_support(*base)?) => {
                     rooted_walls.insert(id.clone());
                     rooted.insert(id.clone());
                     column_tops.insert(wall_top(*base, *height)?);
