@@ -121,6 +121,42 @@ mod tests {
     }
 
     #[test]
+    fn wet_excavation_joins_output_and_field_or_leaves_both_unchanged() {
+        use crate::terrain_water::ExcavationResult;
+        use crate::generation::Cell;
+        let mut kernel = kernel();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("wet-output")).unwrap();
+        let facts = kernel.environment.as_ref().unwrap().world.facts().unwrap();
+        let wet = facts.cells.iter().find(|cell| cell.kind == crate::water::WaterCellKind::Soil && cell.mass_kg > 0.0).expect("generated wet material");
+        let at = Cell { x: i64::from(wet.at[0]), y: wet.at[1], z: i64::from(wet.at[2]) };
+        let expected = kernel.environment.as_mut().unwrap().world.material(at).unwrap();
+        let before = kernel.save_records().unwrap();
+        let ExcavationResult::Prepared(prepared) = kernel.environment.as_mut().unwrap().world.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
+        assert!(kernel.complete_excavation(prepared, "bin".into(), "spoil".into(), 11).is_err());
+        let unchanged = kernel.save_records().unwrap();
+        assert_eq!(before.entities, unchanged.entities);
+        let a = &before.environment.as_ref().unwrap().1;
+        let b = &unchanged.environment.as_ref().unwrap().1;
+        assert_eq!(a.terrain, b.terrain);
+        assert_eq!(a.water, b.water);
+        let ExcavationResult::Prepared(prepared) = kernel.environment.as_mut().unwrap().world.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
+        let credit = prepared.water_kg();
+        let lot = kernel.complete_excavation(prepared, "bin".into(), "spoil".into(), 3).unwrap();
+        let entity = kernel.entity(&lot).unwrap();
+        assert_eq!(kernel.ecs.get::<LotWater>(entity).unwrap().water_kg, credit);
+        assert_eq!(kernel.ecs.get::<Lot>(entity).unwrap().quantity, 3);
+        let remaining = kernel.environment.as_ref().unwrap().world.facts().unwrap().total_kg;
+        assert!((remaining + credit - facts.total_kg).abs() < 1e-9);
+        assert!(matches!(kernel.environment.as_mut().unwrap().world.prepare_excavation(at, expected, 0).unwrap(), ExcavationResult::TerrainBlocked(_)));
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.environment.as_mut().unwrap().world.material(at).unwrap(), 0);
+        assert_eq!(restored.ecs.get::<LotWater>(restored.entity(&lot).unwrap()).unwrap().water_kg, credit);
+        assert_eq!(restored.environment.as_ref().unwrap().world.facts().unwrap().total_kg, remaining);
+    }
+
+    #[test]
     fn kernel_publication_consumes_prepared_token_and_preserves_preparation_snapshot() {
         let mut kernel = kernel();
         let first = kernel.complete_material_output(spec(None)).unwrap();
