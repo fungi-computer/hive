@@ -2,6 +2,7 @@ import type { GamePack, KernelPort } from "../contracts";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
+import { terrainWireForRevision } from "./terrain-wire";
 
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
 export class WorkerRuntime {
@@ -37,6 +38,7 @@ export class WorkerRuntime {
     this.accepted = this.session.save();
   }
   private recover(): void {
+    this.terrainRevision = undefined;
     if (!this.accepted) {
       this.port?.dispose(); this.port = undefined; this.session = undefined; return;
     }
@@ -52,6 +54,7 @@ export class WorkerRuntime {
   }
   private frameEpoch = 0;
   private frameSequence = 0;
+  private terrainRevision?: number;
   private emitObservation(
     discontinuity = false,
     stateOnly = false,
@@ -61,19 +64,22 @@ export class WorkerRuntime {
       this.emit({ type: "state", paused: this.session.isPaused });
       return;
     }
-    if (discontinuity) this.frameEpoch++;
+    if (discontinuity) { this.frameEpoch++; this.terrainRevision = undefined; }
     const observation = buildObservation(this.session, {
       epoch: this.frameEpoch,
       sequence: this.frameSequence + 1,
     });
     this.frameSequence = observation.sequence;
+    const terrain = observation.terrain === undefined ? undefined : terrainWireForRevision(observation.terrain, this.terrainRevision);
+    if (observation.terrain === undefined) this.terrainRevision = undefined;
+    else this.terrainRevision = observation.terrain.revision;
     this.emit({
       type: "frame",
       time: observation.time,
       epoch: observation.epoch,
       sequence: observation.sequence,
       facts: observation.facts,
-      ...(observation.terrain === undefined ? {} : { terrain: observation.terrain }),
+      ...(terrain === undefined ? {} : { terrain }),
       cues: observation.cues,
     });
     this.emit({
