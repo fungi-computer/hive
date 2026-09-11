@@ -18,15 +18,21 @@ check (`u5977`, exit 0) selected a worker and lit the supplied hearth through th
 real buttons. Native fuel fell from two to zero and observed smoke increased;
 page errors were empty. King personally viewed supplied and burning captures.
 
-Visual acceptance is **not complete**: the outdoor fire/smoke is too subtle at
-initial zoom, and this check does not demonstrate an enclosed room or opening a
-vent. Door/vent geometry operations are still missing. The earlier `u5973`
-before-page failure is retained; the successor used mounted browser temporary
-storage on this nearly full host and completed with its scope empty/dead.
+At `109957b`, the cosmetic smoke display curve and flame silhouette are legible
+at the ordinary zoom. Local built-client input `u5982` passed; King personally
+viewed the corrected burning capture. This is an outdoor hearth, not an enclosed
+room or working vent. Door/vent geometry remains isolated unaccepted source.
+The earlier `u5973` before-page failure is retained; mounted browser temporary
+storage was used for both passing successors.
 
-This is actual local gameplay evidence, not a new deployment, a population
-capacity claim, or DO crash qualification of the new air records. The existing
-live construction/wet-excavation release is unchanged.
+The actual local DO host also passed `u5986`: ordinary supply, public approach
+and lighting, paid smoke, pause, abrupt owned-runtime kill, reopen same SQLite,
+identical light-command replay and resumed air time. Paused physical facts and
+smoke/fire projection remained equal; replay did not debit fuel or add effects.
+Two owned host starts, exit 0, scope empty/dead and port 8789 free. This is one
+local abrupt-restart witness, not population capacity, cross-region transfer or
+an arbitrary crash-point matrix. The new runtime is being published separately;
+read the release receipt before claiming hosted availability.
 
 The retained [brewing restoration map](RETAINED-BREWING-RESTORATION.md) remains
 the behavior reference. Its native recipe binding and staged-process API are
