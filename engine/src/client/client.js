@@ -19,7 +19,10 @@ import {
   selectionFromSubjects,
   pointerGestureMachine,
   aimGestureMachine,
+  WORLD_VIEW_CONTROLS,
+  surfaceSubjectAt,
 } from "./controls.js";
+import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact } from "./world-view.js";
 import { createActor } from "xstate";
 import { createDefaultHtmlKeymap } from "@opentui/keymap/html";
 import {
@@ -46,6 +49,7 @@ export function createHiveClient({
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
   aiming = null,
+  worldView = {},
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
@@ -63,6 +67,7 @@ export function createHiveClient({
     pendingRestore: false,
     presentationFacts: [],
     presentationControls: [],
+    view: createWorldView(worldView),
     aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
     message: runtime
       ? "Connecting to the world…"
@@ -111,6 +116,25 @@ export function createHiveClient({
     }
     notify();
   };
+  function changeViewLevel(level) {
+    const next = setWorldViewLevel(state.view, level);
+    if (next.level === state.view.level) return;
+    state.view = next;
+    gesture.send({ type: "CANCEL" });
+    exitAim();
+    state.dragging = null;
+    state.hoverId = null;
+    draw();
+    renderHud();
+  }
+  function setCutaway(value) {
+    state.view = toggleWorldCutaway(state.view, value);
+    gesture.send({ type: "CANCEL" });
+    exitAim();
+    state.hoverId = null;
+    draw();
+    renderHud();
+  }
   const canvasHost = document.createElement("div");
   canvasHost.className = "hive-canvas";
   const hud = document.createElement("aside");
@@ -161,6 +185,7 @@ export function createHiveClient({
     latestFacts = [];
     state.presentationFacts = [];
     state.presentationControls = [];
+    state.view = createWorldView(worldView);
     state.dragging = null;
     intendedDestinations.clear();
     directControl?.reset();
@@ -192,7 +217,7 @@ export function createHiveClient({
   }
   function selectedLauncher() {
     if (!aiming?.launcherId) return null;
-    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id));
+    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id) && projectWorldFact(fact, state.view).pickable);
   }
   function toggleAim() {
     if (isAiming()) {
@@ -266,6 +291,24 @@ export function createHiveClient({
           React.createElement(
             "div",
             { className: "hive-controls" },
+            React.createElement("div", { className: "hive-view-controls", role: "group", "aria-label": "World view" },
+              React.createElement("span", { "aria-live": "polite" }, `Voxel layer ${state.view.level}`),
+              ...WORLD_VIEW_CONTROLS.map((control) => React.createElement(Button, {
+                key: control.id,
+                size: "sm",
+                variant: "outline",
+                disabled: state.view.level + control.delta < state.view.range.min || state.view.level + control.delta > state.view.range.max,
+                "aria-label": `${control.label} voxel layer`,
+                onClick: () => changeViewLevel(state.view.level + control.delta),
+              }, control.label)),
+              React.createElement(Button, {
+                size: "sm",
+                variant: state.view.cutaway ? "secondary" : "outline",
+                disabled: state.view.presentedSurfaces.size === 0,
+                "aria-label": "Toggle cutaway",
+                onClick: () => setCutaway(!state.view.cutaway),
+              }, "Cutaway"),
+            ),
             aiming && selectedLauncher()
               ? React.createElement(Button, {
                   size: "sm",
@@ -443,7 +486,9 @@ export function createHiveClient({
     const due = pendingCues.filter(cue => cue.time <= presentedTime + 1e-9);
     pendingCues = pendingCues.filter(cue => cue.time > presentedTime + 1e-9);
     for (const cue of due) if (presentedTime - cue.time <= 3) playCue(cue);
-    state.subjects = (directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts)
+    const presentedFacts = (directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts)
+      .filter((fact) => projectWorldFact(fact, state.view).visible);
+    state.subjects = presentedFacts
       .filter((fact) => fact.pose?.position && fact.visual)
       .map((fact) => ({
         id: fact.id,
@@ -461,6 +506,7 @@ export function createHiveClient({
         inventory: fact.inventory,
         pose: fact.pose,
         screen: { x: 0, y: 0 },
+        pickable: projectWorldFact(fact, state.view).pickable,
       }));
     for (const cue of motionCues.sample(state.subjects, { now: presentedTime, paused: state.paused, sequence: frameSequence })) playMotionCue(cue);
     if (!groundSprite) {
@@ -691,9 +737,7 @@ export function createHiveClient({
         x: (end.x - camera.x) / camera.zoom,
         y: (end.y - camera.y) / camera.zoom,
       };
-      const deck = state.subjects.find(
-        (subject) => subject.surface && surfacePoint(local.x, local.y, subject),
-      );
+      const deck = surfaceSubjectAt(state.subjects, local, surfacePoint);
       if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.id])] : [deck.id];
     }
     selectEntities(hit);
@@ -708,7 +752,7 @@ export function createHiveClient({
     }
     if (directControl) return;
     const at = point(event);
-    const selected = state.subjects.filter((subject) => state.selectedIds.includes(subject.id));
+    const selected = state.subjects.filter((subject) => subject.pickable !== false && state.selectedIds.includes(subject.id));
     const frames = new Set(selected.map((subject) => subject.support ?? null));
     if (frames.size > 1) {
       state.message = "Select people on the same surface to move together";
@@ -718,7 +762,7 @@ export function createHiveClient({
     const frame = selected[0]?.support ?? null;
     const x = (at.x - camera.x) / camera.zoom;
     const y = (at.y - camera.y) / camera.zoom;
-    const support = frame === null ? null : state.subjects.find((subject) => subject.id === frame);
+    const support = frame === null ? null : state.subjects.find((subject) => subject.pickable !== false && subject.id === frame);
     const world = frame === null
       ? { ...groundPoint(x, y), frame: null }
       : support ? surfacePoint(x, y, support) : null;
@@ -878,6 +922,7 @@ export function createHiveClient({
       "camera.right": "right",
       "camera.up": "up",
       "camera.down": "down",
+      ...Object.fromEntries(WORLD_VIEW_CONTROLS.map((control) => [control.id, control.key])),
     });
     keymap.registerLayer({
       target: root,
@@ -900,6 +945,12 @@ export function createHiveClient({
             draw();
           },
         },
+        ...WORLD_VIEW_CONTROLS.map((control) => ({
+          name: control.id,
+          desc: `${control.label} voxel layer`,
+          enabled: () => state.view.level + control.delta >= state.view.range.min && state.view.level + control.delta <= state.view.range.max,
+          run: () => changeViewLevel(state.view.level + control.delta),
+        })),
         ...[
           ["camera.left", -24, 0],
           ["camera.right", 24, 0],
