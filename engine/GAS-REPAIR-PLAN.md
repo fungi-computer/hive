@@ -424,3 +424,44 @@ laws verify identical owned-format content binding/save bytes, fresh state-owner
 identity despite shared geometry, generic non-terrain member IDs and duplicate
 rejection. Independent source review found no semantic blocker; Rust check also
 passed. The current WASM dig/build comparison is still required for speed claims.
+
+Shared-only e55c1ec actual WASM result: both earned digs and completed wall match
+published-kernel physical save hashes and restore to the same next step. Linear
+WASM footprint was 41,222,144 → 33,292,288 bytes in both workloads. Timing does
+not establish a gain: digging p95 10.04 → 11.89 ms/max 141.61 → 152.99 ms;
+building p95 8.42 → 9.53 ms/max 124.83 → 138.91 ms. The representation is now a
+qualified memory improvement and foundation for reuse, not a claimed hitch fix.
+See [the paired receipt](../docs/performance/gas-shared-geometry-20260911.json).
+
+The next coupled source uses exact immutable-volume identity to reuse prior
+validated aggregates and merge retained member ordering with only changed
+members. New/changed members and all cross-volume duplicate/endpoint rules remain
+validated. Opening identity uniqueness uses a membership-only hash set, never its
+iteration order. Fresh construction and restore still fully validate. This does
+not weaken content binding or share physical state-owner tokens.
+
+Volume/member reuse passes 37 laws and actual WASM physical/restore parity
+(u6086/u6087). It still does not establish a hitch improvement: dig maximum
+149.18 → 177.45 ms, wall maximum 168.11 → 121.37 ms in this pair. Retain
+the paired results rather than presenting the wall result alone.
+
+A Node CPU profile of the actual 160-step colony dig workload identified
+repeated opening endpoint membership lookup inside compilation (64.83 ms of
+samples) and whole-content SHA256 (48.93 ms) as remaining work. These are
+sampled local workload costs, not DO billing or capacity measurements.
+
+The next candidate reuses compiled opening metrics and remaps endpoint indices
+only when the exact immutable opening and both endpoint volumes survive.
+Changed endpoints still take full validation; identity/duplicate checks remain.
+The address lookup is private, rebuilt, and kept safe by retained Arc ownership;
+it is neither saved identity nor mutation authority. Independent source review
+found no blocker; u6089 passed all 37 laws. Actual WASM measurement is pending.
+
+Opening reuse actual WASM qualification u6091 passed with exact earned-dig,
+completed-wall, and restore/next-step physical parity. Worst dig step decreased
+137.86 → 110.50 ms; worst wall step 160.41 → 72.73 ms. Normal p95 was
+essentially unchanged (dig 10.33 → 10.57 ms; wall 9.56 → 9.53 ms). Memory
+remained lower: 41,222,144 → 33,292,288 bytes. This supports retaining the
+shared compiler reuse, but does not establish playable hosted latency or finish
+the repair. Whole-content hashing and full-graph preparation remain; follow the
+actual profile before further changes. No new deployment or browser claim.

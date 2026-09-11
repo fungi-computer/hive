@@ -250,7 +250,7 @@ impl TerrainAtmosphere {
         // The exact candidate was already projected above. Do not scan and
         // partition the entire air domain a second time for the same edit.
         candidate_definition.revision = next_revision;
-        let compiled = CompiledAtmosphere::compile_shared(candidate_definition)?;
+        let compiled = self.compiled.recompile_shared(candidate_definition)?;
         match rebind_geometry(&self.compiled, &self.state, &compiled)? {
             AtmosphereRebindResult::Blocked(reason) => {
                 Ok(Err(AtmosphereRebindResult::Blocked(reason)))

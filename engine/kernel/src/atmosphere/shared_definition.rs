@@ -95,3 +95,65 @@ impl CompiledAtmosphere {
         &self.definition
     }
 }
+
+/// Merge only newly validated members into the old lexical order. Reused
+/// references are remapped to this definition's volume positions; removed or
+/// changed volumes contribute no retained members. No string identities copied.
+pub(super) fn compile_members(
+    definition: &SharedAtmosphereDefinition,
+    mut changed: Vec<MemberLocation>,
+    previous: Option<&CompiledAtmosphere>,
+    reused: &[Option<usize>],
+) -> Result<Vec<MemberLocation>, String> {
+    changed.sort_unstable_by(|a, b| member_id(definition, a).cmp(member_id(definition, b)));
+    let mut retained = previous
+        .into_iter()
+        .flat_map(|old| old.member_index.iter())
+        .filter_map(|member| {
+            reused[member.volume].map(|volume| MemberLocation { volume, ..*member })
+        })
+        .peekable();
+    let mut changed = changed.into_iter().peekable();
+    let mut members = Vec::new();
+    while let (Some(old), Some(new)) = (retained.peek(), changed.peek()) {
+        if member_id(definition, old) <= member_id(definition, new) {
+            members.push(retained.next().unwrap());
+        } else {
+            members.push(changed.next().unwrap());
+        }
+    }
+    members.extend(retained);
+    members.extend(changed);
+    if members
+        .windows(2)
+        .any(|pair| member_id(definition, &pair[0]) == member_id(definition, &pair[1]))
+    {
+        return Err("invalid atmosphere member".into());
+    }
+    Ok(members)
+}
+
+/// Pointer identities are private rebuildable lookups, never saved authority.
+/// The previous definition retains every Arc, so an address cannot be recycled
+/// during this preparation. Both endpoint volumes must also be exactly retained.
+pub(super) fn reused_opening(
+    previous: Option<&CompiledAtmosphere>,
+    opening: &Arc<AtmosphereOpeningDefinition>,
+    reused: &[Option<usize>],
+) -> Option<OpeningIndex> {
+    let old = previous?;
+    let index = *old
+        .shared_opening_index
+        .get(&(Arc::as_ptr(opening) as usize))?;
+    let indexed = &old.openings[index];
+    let from = reused[indexed.from]?;
+    let to = match indexed.to {
+        Some(index) => Some(reused[index]?),
+        None => None,
+    };
+    Some(OpeningIndex {
+        from,
+        to,
+        ..indexed.clone()
+    })
+}

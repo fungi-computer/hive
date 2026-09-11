@@ -1,0 +1,763 @@
+{
+  "source": "e55c1ec",
+  "status": "shared representation physically qualified; memory reduction measured; timing win not demonstrated; not deployed",
+  "native": {
+    "scope": "u6084",
+    "laws": 36,
+    "exit": 0
+  },
+  "wasm": {
+    "scope": "u6085",
+    "exit": 0,
+    "exactPhysicalSnapshots": true
+  },
+  "retainedFailure": "u6083 compiler output failed because root filesystem full; no tests ran",
+  "baseline": {
+    "source": "same current TS; selected WASM; digging and completed wall",
+    "node": "v24.20.0",
+    "cpu": "AMD EPYC-Milan Processor",
+    "platform": "linux",
+    "tests": [
+      {
+        "name": "full-dig",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 1038.8929799999999,
+        "firstObservationMs": 234.64292699999987,
+        "observationBytes": 148028,
+        "commandMs": 6.7013580000000275,
+        "lastCompletedStep": 159,
+        "finalTime": 15.99999999999996,
+        "digOrders": [],
+        "sites": [],
+        "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 41222144,
+          "rss": 143581184,
+          "heapTotal": 27648000,
+          "heapUsed": 9197120,
+          "external": 43771694,
+          "arrayBuffers": 251376
+        },
+        "totalMs": 3493.328627,
+        "summary": {
+          "step": {
+            "n": 160,
+            "totalMs": 1072.5714289999996,
+            "p50": 4.23323900000014,
+            "p95": 10.037216000000171,
+            "max": 141.6125280000001
+          },
+          "save": {
+            "n": 160,
+            "totalMs": 164.73617099999933,
+            "p50": 0.3658510000000206,
+            "p95": 4.51313099999993,
+            "max": 7.422545999999784
+          },
+          "observe": {
+            "n": 32,
+            "totalMs": 198.20934300000022,
+            "p50": 5.494259000000056,
+            "p95": 17.362012999999934,
+            "max": 26.974378000000115
+          }
+        }
+      },
+      {
+        "name": "full-build",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 398.90624700000035,
+        "firstObservationMs": 169.34833300000082,
+        "observationBytes": 148292,
+        "commandMs": 1.2028620000000956,
+        "lastCompletedStep": 328,
+        "finishedAtStep": 328,
+        "finalTime": 32.9000000000002,
+        "digOrders": [],
+        "sites": [
+          {
+            "catalog": "timber-wall",
+            "contactX": 1,
+            "contactY": 7.290000000000001,
+            "contactZ": 2,
+            "orientation": "north",
+            "phase": "finished",
+            "seconds": 4,
+            "worker": null,
+            "x": 2,
+            "y": 14,
+            "z": 2
+          }
+        ],
+        "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 41222144,
+          "rss": 160235520,
+          "heapTotal": 32665600,
+          "heapUsed": 21138088,
+          "external": 44063201,
+          "arrayBuffers": 683574
+        },
+        "totalMs": 3570.640551,
+        "summary": {
+          "step": {
+            "n": 329,
+            "totalMs": 1493.6668059999938,
+            "p50": 4.303133999999773,
+            "p95": 8.416562999999769,
+            "max": 124.8272049999996
+          },
+          "save": {
+            "n": 329,
+            "totalMs": 335.9067260000047,
+            "p50": 0.34360800000013114,
+            "p95": 4.387462000000596,
+            "max": 8.588911999999254
+          },
+          "observe": {
+            "n": 66,
+            "totalMs": 298.3409819999988,
+            "p50": 5.450041999999485,
+            "p95": 7.67895099999987,
+            "max": 9.531683000000157
+          }
+        }
+      }
+    ],
+    "limits": {
+      "steps": 1000,
+      "delta": 0.1,
+      "secondsPerScenario": 35
+    },
+    "kind": "Node actual released WASM; no DO/storage/network/browser"
+  },
+  "candidate": {
+    "source": "same current TS; selected WASM; digging and completed wall",
+    "node": "v24.20.0",
+    "cpu": "AMD EPYC-Milan Processor",
+    "platform": "linux",
+    "tests": [
+      {
+        "name": "full-dig",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 1094.640246,
+        "firstObservationMs": 286.0333069999999,
+        "observationBytes": 148028,
+        "commandMs": 7.946404999999913,
+        "lastCompletedStep": 159,
+        "finalTime": 15.99999999999996,
+        "digOrders": [],
+        "sites": [],
+        "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 33292288,
+          "rss": 138706944,
+          "heapTotal": 27648000,
+          "heapUsed": 9894544,
+          "external": 35701107,
+          "arrayBuffers": 251376
+        },
+        "totalMs": 3512.697796,
+        "summary": {
+          "step": {
+            "n": 160,
+            "totalMs": 1055.5230859999972,
+            "p50": 4.308982999999898,
+            "p95": 11.892259999999851,
+            "max": 152.9874789999999
+          },
+          "save": {
+            "n": 160,
+            "totalMs": 194.2687989999995,
+            "p50": 0.36798399999997855,
+            "p95": 5.47210599999994,
+            "max": 8.73794799999996
+          },
+          "observe": {
+            "n": 32,
+            "totalMs": 185.5365890000005,
+            "p50": 5.4276199999999335,
+            "p95": 12.604004000000032,
+            "max": 17.765891999999894
+          }
+        }
+      },
+      {
+        "name": "full-build",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 438.7919609999999,
+        "firstObservationMs": 137.3665200000005,
+        "observationBytes": 148292,
+        "commandMs": 3.30691299999944,
+        "lastCompletedStep": 328,
+        "finishedAtStep": 328,
+        "finalTime": 32.9000000000002,
+        "digOrders": [],
+        "sites": [
+          {
+            "catalog": "timber-wall",
+            "contactX": 1,
+            "contactY": 7.290000000000001,
+            "contactZ": 2,
+            "orientation": "north",
+            "phase": "finished",
+            "seconds": 4,
+            "worker": null,
+            "x": 2,
+            "y": 14,
+            "z": 2
+          }
+        ],
+        "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 33292288,
+          "rss": 153985024,
+          "heapTotal": 32714752,
+          "heapUsed": 21327560,
+          "external": 36117743,
+          "arrayBuffers": 667972
+        },
+        "totalMs": 3689.3339099999994,
+        "summary": {
+          "step": {
+            "n": 329,
+            "totalMs": 1645.510541000005,
+            "p50": 5.211903999999777,
+            "p95": 9.53354599999966,
+            "max": 138.90976599999976
+          },
+          "save": {
+            "n": 329,
+            "totalMs": 322.667800000012,
+            "p50": 0.3467420000006314,
+            "p95": 4.401952999999594,
+            "max": 8.426977999999508
+          },
+          "observe": {
+            "n": 66,
+            "totalMs": 328.3781399999998,
+            "p50": 5.49287700000059,
+            "p95": 7.74434999999994,
+            "max": 14.064755000000332
+          }
+        }
+      }
+    ],
+    "limits": {
+      "steps": 1000,
+      "delta": 0.1,
+      "secondsPerScenario": 35
+    },
+    "kind": "Node actual released WASM; no DO/storage/network/browser"
+  },
+  "volumeReuse": {
+    "status": "Physical equivalence and lower memory verified; mixed timings do not establish hitch improvement. Undeployed.",
+    "native": "u6086: 37 laws passed",
+    "wasm": "u6087: exact physical snapshots and restore/next-step matched",
+    "baseline": {
+      "source": "same current TS; selected WASM; digging and completed wall",
+      "node": "v24.20.0",
+      "cpu": "AMD EPYC-Milan Processor",
+      "platform": "linux",
+      "tests": [
+        {
+          "name": "full-dig",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 1059.818493,
+          "firstObservationMs": 290.7345620000001,
+          "observationBytes": 148028,
+          "commandMs": 3.7543379999999615,
+          "lastCompletedStep": 159,
+          "finalTime": 15.99999999999996,
+          "digOrders": [],
+          "sites": [],
+          "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 41222144,
+            "rss": 139223040,
+            "heapTotal": 27385856,
+            "heapUsed": 9796920,
+            "external": 43630963,
+            "arrayBuffers": 251376
+          },
+          "totalMs": 3747.898093,
+          "summary": {
+            "step": {
+              "n": 160,
+              "totalMs": 1153.5458660000033,
+              "p50": 5.016669999999976,
+              "p95": 11.362632999999732,
+              "max": 149.17751699999985
+            },
+            "save": {
+              "n": 160,
+              "totalMs": 213.18236900000124,
+              "p50": 0.37325300000020434,
+              "p95": 6.119099999999889,
+              "max": 9.487235999999939
+            },
+            "observe": {
+              "n": 32,
+              "totalMs": 230.18077100000096,
+              "p50": 5.706388999999945,
+              "p95": 18.928173000000015,
+              "max": 20.648455999999896
+            }
+          }
+        },
+        {
+          "name": "full-build",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 545.3255770000001,
+          "firstObservationMs": 176.0155789999999,
+          "observationBytes": 148292,
+          "commandMs": 5.229902000000038,
+          "lastCompletedStep": 328,
+          "finishedAtStep": 328,
+          "finalTime": 32.9000000000002,
+          "digOrders": [],
+          "sites": [
+            {
+              "catalog": "timber-wall",
+              "contactX": 1,
+              "contactY": 7.290000000000001,
+              "contactZ": 2,
+              "orientation": "north",
+              "phase": "finished",
+              "seconds": 4,
+              "worker": null,
+              "x": 2,
+              "y": 14,
+              "z": 2
+            }
+          ],
+          "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 41222144,
+            "rss": 158568448,
+            "heapTotal": 32714752,
+            "heapUsed": 21518280,
+            "external": 44047599,
+            "arrayBuffers": 667972
+          },
+          "totalMs": 3979.669681,
+          "summary": {
+            "step": {
+              "n": 329,
+              "totalMs": 1582.0822809999918,
+              "p50": 4.4188789999998335,
+              "p95": 8.470884999999726,
+              "max": 168.10997700000007
+            },
+            "save": {
+              "n": 329,
+              "totalMs": 372.49144899998646,
+              "p50": 0.34679200000027777,
+              "p95": 4.611369000000195,
+              "max": 7.573111000000608
+            },
+            "observe": {
+              "n": 66,
+              "totalMs": 355.2806699999974,
+              "p50": 5.569132000000536,
+              "p95": 9.080641999999898,
+              "max": 13.701096000000689
+            }
+          }
+        }
+      ],
+      "limits": {
+        "steps": 1000,
+        "delta": 0.1,
+        "secondsPerScenario": 35
+      },
+      "kind": "Node actual released WASM; no DO/storage/network/browser"
+    },
+    "candidate": {
+      "source": "same current TS; selected WASM; digging and completed wall",
+      "node": "v24.20.0",
+      "cpu": "AMD EPYC-Milan Processor",
+      "platform": "linux",
+      "tests": [
+        {
+          "name": "full-dig",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 910.907538,
+          "firstObservationMs": 245.28319999999997,
+          "observationBytes": 148028,
+          "commandMs": 3.134364000000005,
+          "lastCompletedStep": 159,
+          "finalTime": 15.99999999999996,
+          "digOrders": [],
+          "sites": [],
+          "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 33161216,
+            "rss": 131055616,
+            "heapTotal": 27648000,
+            "heapUsed": 9517952,
+            "external": 35829445,
+            "arrayBuffers": 251376
+          },
+          "totalMs": 3593.1755900000003,
+          "summary": {
+            "step": {
+              "n": 160,
+              "totalMs": 1251.0281439999999,
+              "p50": 5.173084999999901,
+              "p95": 12.426917000000003,
+              "max": 177.45331699999997
+            },
+            "save": {
+              "n": 160,
+              "totalMs": 189.4619039999966,
+              "p50": 0.4084459999999126,
+              "p95": 4.578510000000051,
+              "max": 15.713346999999885
+            },
+            "observe": {
+              "n": 32,
+              "totalMs": 214.04477200000088,
+              "p50": 4.74127499999986,
+              "p95": 23.861746999999923,
+              "max": 32.6500410000001
+            }
+          }
+        },
+        {
+          "name": "full-build",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 558.1301830000002,
+          "firstObservationMs": 164.5664969999998,
+          "observationBytes": 148292,
+          "commandMs": 5.442622000000483,
+          "lastCompletedStep": 328,
+          "finishedAtStep": 328,
+          "finalTime": 32.9000000000002,
+          "digOrders": [],
+          "sites": [
+            {
+              "catalog": "timber-wall",
+              "contactX": 1,
+              "contactY": 7.290000000000001,
+              "contactZ": 2,
+              "orientation": "north",
+              "phase": "finished",
+              "seconds": 4,
+              "worker": null,
+              "x": 2,
+              "y": 14,
+              "z": 2
+            }
+          ],
+          "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 33161216,
+            "rss": 150585344,
+            "heapTotal": 32563200,
+            "heapUsed": 20324384,
+            "external": 35945939,
+            "arrayBuffers": 627240
+          },
+          "totalMs": 4015.0056499999996,
+          "summary": {
+            "step": {
+              "n": 329,
+              "totalMs": 1615.3052170000028,
+              "p50": 4.929188000000067,
+              "p95": 9.040403999999398,
+              "max": 121.37442099999953
+            },
+            "save": {
+              "n": 329,
+              "totalMs": 358.60522800001036,
+              "p50": 0.38751400000001013,
+              "p95": 4.4397790000002715,
+              "max": 6.907239000000118
+            },
+            "observe": {
+              "n": 66,
+              "totalMs": 342.35406299999613,
+              "p50": 5.539977999999792,
+              "p95": 7.84565399999974,
+              "max": 11.932832000000417
+            }
+          }
+        }
+      ],
+      "limits": {
+        "steps": 1000,
+        "delta": 0.1,
+        "secondsPerScenario": 35
+      },
+      "kind": "Node actual released WASM; no DO/storage/network/browser"
+    }
+  },
+  "openingReuse": {
+    "status": "Both maximum stalls improved in this local pair; normal p95 nearly unchanged; not hosted or complete performance acceptance.",
+    "native": "u6089: 37 passed; scope inactive/dead/empty",
+    "wasm": "u6091 / 3d80354715f54b60947fb581abcc5c63: exit0; exact snapshots and restore; scope inactive/dead/empty",
+    "baseline": {
+      "source": "same current TS; selected WASM; digging and completed wall",
+      "node": "v24.20.0",
+      "cpu": "AMD EPYC-Milan Processor",
+      "platform": "linux",
+      "tests": [
+        {
+          "name": "full-dig",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 900.8267769999999,
+          "firstObservationMs": 187.801831,
+          "observationBytes": 148028,
+          "commandMs": 4.941626000000042,
+          "lastCompletedStep": 159,
+          "finalTime": 15.99999999999996,
+          "digOrders": [],
+          "sites": [],
+          "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 41222144,
+            "rss": 151781376,
+            "heapTotal": 29872128,
+            "heapUsed": 17292512,
+            "external": 43919822,
+            "arrayBuffers": 540235
+          },
+          "totalMs": 3172.286937,
+          "summary": {
+            "step": {
+              "n": 160,
+              "totalMs": 916.8511969999972,
+              "p50": 3.8204469999996036,
+              "p95": 10.332010000000082,
+              "max": 137.86401
+            },
+            "save": {
+              "n": 160,
+              "totalMs": 160.20263799999884,
+              "p50": 0.359831999999642,
+              "p95": 4.365819000000101,
+              "max": 6.194164000000001
+            },
+            "observe": {
+              "n": 32,
+              "totalMs": 171.44976599999995,
+              "p50": 4.492729999999938,
+              "p95": 11.012164000000212,
+              "max": 20.761175000000094
+            }
+          }
+        },
+        {
+          "name": "full-build",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 487.19604200000003,
+          "firstObservationMs": 173.84941500000014,
+          "observationBytes": 148292,
+          "commandMs": 1.7667129999999815,
+          "lastCompletedStep": 328,
+          "finishedAtStep": 328,
+          "finalTime": 32.9000000000002,
+          "digOrders": [],
+          "sites": [
+            {
+              "catalog": "timber-wall",
+              "contactX": 1,
+              "contactY": 7.290000000000001,
+              "contactZ": 2,
+              "orientation": "north",
+              "phase": "finished",
+              "seconds": 4,
+              "worker": null,
+              "x": 2,
+              "y": 14,
+              "z": 2
+            }
+          ],
+          "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 41222144,
+            "rss": 162598912,
+            "heapTotal": 32301056,
+            "heapUsed": 20111320,
+            "external": 43969871,
+            "arrayBuffers": 590244
+          },
+          "totalMs": 3695.4025270000006,
+          "summary": {
+            "step": {
+              "n": 329,
+              "totalMs": 1579.0467429999921,
+              "p50": 3.7365910000007716,
+              "p95": 9.562579999999798,
+              "max": 160.41421999999966
+            },
+            "save": {
+              "n": 329,
+              "totalMs": 337.0435339999867,
+              "p50": 0.34314699999958975,
+              "p95": 4.413630000000012,
+              "max": 9.398833000000195
+            },
+            "observe": {
+              "n": 66,
+              "totalMs": 270.90911700000106,
+              "p50": 3.577922000000399,
+              "p95": 7.798832000000402,
+              "max": 10.554324000000634
+            }
+          }
+        }
+      ],
+      "limits": {
+        "steps": 1000,
+        "delta": 0.1,
+        "secondsPerScenario": 35
+      },
+      "kind": "Node actual released WASM; no DO/storage/network/browser"
+    },
+    "candidate": {
+      "source": "same current TS; selected WASM; digging and completed wall",
+      "node": "v24.20.0",
+      "cpu": "AMD EPYC-Milan Processor",
+      "platform": "linux",
+      "tests": [
+        {
+          "name": "full-dig",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 1089.8927609999998,
+          "firstObservationMs": 284.26906799999983,
+          "observationBytes": 148028,
+          "commandMs": 5.783584999999903,
+          "lastCompletedStep": 159,
+          "finalTime": 15.99999999999996,
+          "digOrders": [],
+          "sites": [],
+          "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 33292288,
+            "rss": 138977280,
+            "heapTotal": 27123712,
+            "heapUsed": 9903640,
+            "external": 36109055,
+            "arrayBuffers": 251376
+          },
+          "totalMs": 3505.209031,
+          "summary": {
+            "step": {
+              "n": 160,
+              "totalMs": 1060.2088959999996,
+              "p50": 5.345165000000179,
+              "p95": 10.565099999999802,
+              "max": 110.50334900000007
+            },
+            "save": {
+              "n": 160,
+              "totalMs": 173.08307799999739,
+              "p50": 0.36630300000024363,
+              "p95": 4.375453999999991,
+              "max": 10.65258300000005
+            },
+            "observe": {
+              "n": 32,
+              "totalMs": 201.4817829999988,
+              "p50": 5.488320999999814,
+              "p95": 17.288821999999982,
+              "max": 19.022515000000112
+            }
+          }
+        },
+        {
+          "name": "full-build",
+          "errors": [],
+          "noAirPresentationOmitted": false,
+          "startMs": 423.61811400000033,
+          "firstObservationMs": 192.89974400000028,
+          "observationBytes": 148292,
+          "commandMs": 2.8307960000001913,
+          "lastCompletedStep": 328,
+          "finishedAtStep": 328,
+          "finalTime": 32.9000000000002,
+          "digOrders": [],
+          "sites": [
+            {
+              "catalog": "timber-wall",
+              "contactX": 1,
+              "contactY": 7.290000000000001,
+              "contactZ": 2,
+              "orientation": "north",
+              "phase": "finished",
+              "seconds": 4,
+              "worker": null,
+              "x": 2,
+              "y": 14,
+              "z": 2
+            }
+          ],
+          "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+          "recoveredNextStepEqual": true,
+          "memory": {
+            "wasmLinearBytes": 33292288,
+            "rss": 152576000,
+            "heapTotal": 32452608,
+            "heapUsed": 21059072,
+            "external": 36117743,
+            "arrayBuffers": 667972
+          },
+          "totalMs": 3373.274497,
+          "summary": {
+            "step": {
+              "n": 329,
+              "totalMs": 1398.6464760000017,
+              "p50": 3.3883649999997942,
+              "p95": 9.526876999999331,
+              "max": 72.72553199999948
+            },
+            "save": {
+              "n": 329,
+              "totalMs": 303.92800500000703,
+              "p50": 0.34918699999980163,
+              "p95": 4.23125600000003,
+              "max": 7.50186500000018
+            },
+            "observe": {
+              "n": 66,
+              "totalMs": 279.455261000001,
+              "p50": 3.5855540000002293,
+              "p95": 8.514459999999417,
+              "max": 9.971466000000873
+            }
+          }
+        }
+      ],
+      "limits": {
+        "steps": 1000,
+        "delta": 0.1,
+        "secondsPerScenario": 35
+      },
+      "kind": "Node actual released WASM; no DO/storage/network/browser"
+    }
+  }
+}

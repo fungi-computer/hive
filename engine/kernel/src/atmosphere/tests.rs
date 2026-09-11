@@ -370,3 +370,19 @@ fn numeric_members_keep_generic_id_lookup_and_reject_cross_volume_duplicates() {
     owned.volumes[1].members[0].cell_id = "z/custom:10".into();
     assert!(CompiledAtmosphere::compile(owned).is_err());
 }
+
+#[test]
+fn recompiled_shared_members_remap_indices_and_validate_changed_endpoints() {
+    let mut shared: SharedAtmosphereDefinition = definition().into();
+    let original = CompiledAtmosphere::compile_shared(shared.clone()).unwrap();
+    shared.volumes.reverse();
+    shared.revision += 1;
+    let reused = original.recompile_shared(shared.clone()).unwrap();
+    let fresh = CompiledAtmosphere::compile_shared(shared.clone()).unwrap();
+    assert_eq!(reused.encode_state(&reused.initial()).unwrap(), fresh.encode_state(&fresh.initial()).unwrap());
+    assert_eq!(reused.volume_for_cell("cell:0,0,0"), Some("lower"));
+    assert_eq!(reused.volume_for_cell("cell:0,1,0"), Some("upper"));
+    Arc::make_mut(&mut shared.volumes[0]).members[0].cell_id = "changed".into();
+    assert!(reused.recompile_shared(shared).is_err());
+    assert_eq!(reused.volume_for_cell("cell:0,1,0"), Some("upper"));
+}
