@@ -292,19 +292,14 @@ mod tests {
     fn kernel_clock_and_record_restore_advance_one_authored_environment() {
         let mut kernel = crate::Kernel::new();
         kernel.load(r#"{"format":"hive-game","version":1,"game":"colony","components":[],"initial":[]}"#).unwrap();
-        let mut input: serde_json::Value = serde_json::from_str(&fixture("seed-a")).unwrap();
-        let mut prepared = prepare_definition(&input.to_string()).unwrap();
-        let at = (-7..8).flat_map(|x| (-6..0).map(move |y| Cell { x, y, z: 0 }))
-            .find(|at| prepared.terrain.query(*at).unwrap() != 0
-                && prepared.terrain.query(Cell { y: at.y - 1, ..*at }).unwrap() != 0)
-            .expect("generated fixture contains adjacent porous rock");
-        input["water"]["cells"] = serde_json::json!([[at.x, at.y, 0], [at.x, at.y - 1, 0], [0, 39, 0]]);
-        kernel.load_environment(&input.to_string()).unwrap();
+        kernel.load_environment(&fixture("seed-a")).unwrap();
         let before = kernel.environment_facts_json().unwrap();
         let step = r#"{"delta":0.2,"writes":[],"actions":[]}"#;
-        kernel.advance_json(step).unwrap();
+        let output: serde_json::Value = serde_json::from_str(&kernel.advance_json(step).unwrap()).unwrap();
+        assert!(output["environmentWork"]["faces"].as_u64().unwrap() > 0);
+        // These two submerged cave cells are full: clock work must not invent flow.
         let moved = kernel.environment_facts_json().unwrap();
-        assert_ne!(moved, before);
+        assert_eq!(moved, before);
         assert!(kernel.snapshot_json().is_err());
         let records = kernel.save_records().unwrap();
         let entities: serde_json::Value = serde_json::from_str(&records.entities).unwrap();
@@ -316,6 +311,15 @@ mod tests {
         restored.advance_json(step).unwrap();
         assert_eq!(restored.environment_facts_json().unwrap(), kernel.environment_facts_json().unwrap());
         assert_eq!(restored.save_records().unwrap().entities, kernel.save_records().unwrap().entities);
+        let committed = restored.save_records().unwrap();
+        assert!(restored.advance_json(r#"{"delta":2,"writes":[],"actions":[]}"#).is_err());
+        assert!(restored.environment_facts_json().is_err());
+        assert!(restored.render_json().is_err());
+        assert!(restored.save_records().is_err());
+        assert!(restored.advance_json(step).is_err());
+        restored.restore_records(&committed).unwrap();
+        assert_eq!(restored.environment_facts_json().unwrap(), kernel.environment_facts_json().unwrap());
+
     }
 
 }

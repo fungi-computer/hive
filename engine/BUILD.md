@@ -600,3 +600,22 @@ No user action, finite spoil, actual Region/DO/native-WASM storage consumer or
 large-world performance claim follows. One unused test import warning was removed
 after the run; no unchanged test replay for that removal. Scopes5416/5418 collected
 inactive/dead/empty.
+
+### Authored environment joined to the native Kernel clock
+
+Source76498a0 plus the corrected environment-definition law connects one owned
+TerrainWater to Kernel advance and separate native records. u5426 (invocation
+3e3e49c88b754dfda70f562cffcd5689) passed the one affected clock/reconstruction law;
+its scope is inactive/dead/empty. The law checks actual face work at equilibrium,
+entity time, identical reconstructed next-step facts, and rejection of further
+reads/saves/advances after a failed attempt until complete record restore.
+Independent source review found no public failed-attempt guard gap. That failure
+fixture uses invalid delta before mutation; it does not inject a late transport
+failure. Ordinary water updates do not copy the environment to stage each tick.
+
+Earlier u5420 failed compilation on a fixture format argument; u5422 passed two
+admission laws and failed a mistaken expectation of flow between full submerged
+cells; u5423 failed a replacement search for porous material in cave air. These
+are retained fixture failures, not transport performance results. All are closed.
+WASM methods, GameSession records, Region consumption, finite spoil and actual
+playable environment projections remain to join; nothing new is deployed.
