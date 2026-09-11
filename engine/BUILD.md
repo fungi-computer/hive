@@ -549,3 +549,16 @@ WASM, actual movement integration, browser, DO or performance claim follows.
 Opaque Region record source7c7d048 joined as488653c after personal and independent
 review. Its focused runtime/type qualification remains pending. Public release
 is unchanged; native terrain/water still need the actual Kernel/Colony consumer.
+
+### Opaque durable record qualification
+
+At8f1ffce, u5404 passed18/20 Region laws and exposed a real page continuation
+property error plus an ineffective failure injector. Root corrected
+`admitted.at(-1)?.record_key` and matched the actual INSERT OR REPLACE statement
+at a335828. u5406 passed only the two corrected laws and strict engine TypeScript
+checking; the18 earlier passes were not replayed. Both commands are collected
+and scopes inactive/dead/empty. Record paging now demonstrates a1MiB aggregate
+page boundary with five250000-byte records, no loss across continuation; the
+clock test injects an actual record-write failure and proves retry/frontier
+rollback. No DO crash, browser, WASM or old-study full-runtime qualification
+is implied. Changed retained worker/field initializer callers are source-reviewed.
