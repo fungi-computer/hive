@@ -78,12 +78,12 @@ export function createQuarryRegionProgram(): RegionProgram<State, Command> {
   return {
     id: "quarry-footing-material2-v1",
     initial() {
-      return {
+      return { state: {
         world: worldFrom().save(),
         materials: materials.snapshot(materials.createState(), []),
         excavated: 0,
         tick: 0,
-      };
+      }, records: [] };
     },
     parseState,
     parseCommand: (value) => commandSchema.parse(value),

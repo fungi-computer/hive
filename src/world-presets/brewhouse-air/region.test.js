@@ -92,7 +92,7 @@ test("finite-source boundary refuses subminimum remainder and coast before eithe
 
 test("restore refuses a physically advanced state stranded below the shared field interval", () => {
   const program = createBrewhouseAirProgram(),
-    state = program.initial();
+    state = program.initial().state;
   assert.equal(
     program.execute(state, program.parseCommand({ kind: "ignite" })).status,
     "applied",
@@ -401,11 +401,11 @@ test("real exterior excavation co-saves wet spoil while the generated room rejec
   assert.equal(region.readEvents(0).length, 1);
 
   const program = createBrewhouseAirProgram(),
-    changed = structuredClone(program.initial());
+    changed = structuredClone(program.initial().state);
   changed.terrain = excavateTerrain(initialTerrain(), [0, 14, 128]);
   assert.throws(() => program.parseState(changed), /support changed at 7,9/);
 
-  const changedFluid = structuredClone(program.initial()),
+  const changedFluid = structuredClone(program.initial().state),
     world = createVoxelWorld(changedFluid.terrain.world.identity, {
       checkpoint: changedFluid.terrain.world,
       maxChangedCells: 4096,
@@ -436,7 +436,7 @@ test("real exterior excavation co-saves wet spoil while the generated room rejec
 
 test("generated room admission rejects an outside water exchange without a material counterpart", async () => {
   const p = createBrewhouseAirProgram(),
-    s = p.initial();
+    s = p.initial().state;
   assert.equal(
     p.execute(s, { kind: "excavate", at: [0, 14, 129] }).status,
     "applied",
@@ -460,7 +460,7 @@ test("generated room admission rejects an outside water exchange without a mater
 
 test("fixed-volume study rejects real liquid in a gas receiver without publishing any paid state", () => {
   const program = createBrewhouseAirProgram(),
-    state = program.initial();
+    state = program.initial().state;
   assert.equal(program.execute(state, { kind: "ignite" }).status, "applied");
   const source = {
     terrain: terrainEnvironment(state.terrain),

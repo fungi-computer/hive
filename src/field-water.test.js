@@ -203,7 +203,7 @@ test("Goblin Region returns one held portion pair across rollback, lost acknowle
   // actual Goblin program. This is not an earned-work or native-DO witness.
   const program = {
     ...createGoblinRegionProgram(colony),
-    initial: () => ({ clearing: serializeClearing(f.state) }),
+    initial: () => ({ state: { clearing: serializeClearing(f.state) }, records: [] }),
   };
   const open = () => openRegion({ owner, region: "field-vessel", program });
   const region = open(),

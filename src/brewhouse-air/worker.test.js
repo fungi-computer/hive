@@ -110,8 +110,8 @@ test("unpublished and rejected worker stages cannot change local room truth", ()
 
 test("equal terrain revisions from different excavation histories have distinct static scene keys", () => {
   const program = createBrewhouseAirProgram(),
-    a = program.initial(),
-    b = program.initial();
+    a = program.initial().state,
+    b = program.initial().state;
   assert.equal(
     program.execute(
       a,
@@ -135,7 +135,7 @@ test("equal terrain revisions from different excavation histories have distinct 
 
 test("study scene uses shared partial voxel interfaces and actual physical height", () => {
   const program = createBrewhouseAirProgram(),
-    state = program.initial();
+    state = program.initial().state;
   assert.equal(
     program.execute(state, { kind: "excavate", at: [0, 14, 129] }).status,
     "applied",

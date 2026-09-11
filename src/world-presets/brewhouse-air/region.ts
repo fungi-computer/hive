@@ -289,7 +289,7 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
       const opening = { open: false, revision: 0 },
         terrain = initialTerrain(),
         registered = generatedBrewhouseRoom(terrain, opening);
-      return parseState({
+      return { state: parseState({
         version: "goblin-generated-dry-room-v2",
         opening,
         burn: null,
@@ -298,7 +298,7 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
         water: initialRoomWater(terrain),
         removals: initialTerrainRemovals(terrain),
         air: createAir(registered.definition).initial(registered.initialAir),
-      });
+      }), records: [] };
     },
     parseState,
     parseCommand: (value) => commandSchema.parse(value),

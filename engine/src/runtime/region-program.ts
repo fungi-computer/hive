@@ -98,9 +98,9 @@ export function createSessionRegionProgram(options: {
   }
   return {
     id: `session-v1:${pack.id}:${implementationHash}`,
-    initial: () => ({
+    initial: () => ({ state: {
       session: withSession(undefined, (session) => session.save()),
-    }),
+    }, records: [] }),
     parseState(value) {
       const state = z.object({ session: z.unknown() }).strict().parse(value);
       if (!state.session || typeof state.session !== "object")

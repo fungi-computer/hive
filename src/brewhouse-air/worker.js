@@ -176,7 +176,7 @@ function commandFor(program, request, state) {
  * remains detached until the worker has successfully cloned its reply. */
 export function createLocalBrewhouseSession() {
   const program = createBrewhouseAirProgram();
-  let state = program.parseState(program.initial());
+  let state = program.parseState(program.initial().state);
   let revision = 0;
 
   function snapshot(action, nextState, nextRevision, result = null) {
@@ -234,7 +234,7 @@ export function createLocalBrewhouseSession() {
     }
     let staged;
     if (request.action === "reset") {
-      staged = snapshot(request.action, program.initial(), 0);
+      staged = snapshot(request.action, program.initial().state, 0);
     } else if (request.action === "reopen") {
       const reopened = decodeCheckpoint(program, request.checkpoint);
       staged = snapshot(request.action, reopened.state, reopened.revision);
