@@ -9,7 +9,7 @@ import { clockRequest } from "./protocol.ts";
 test("scheduled time survives sustained interleaved player revisions and lost receipt retry", () => {
  const db = new DatabaseSync(":memory:");
  const open = () => openRegion({owner: sqliteTestOwner(db), region:"clock-test", clock:{principal:"host"}, program:{
-  id:"clock-test-v1", initial:()=>({ticks:0,inputs:0}),
+  id:"clock-test-v1", initial:()=>({state:{ticks:0,inputs:0},records:[]}),
   parseState:value=>z.object({ticks:z.number(),inputs:z.number()}).parse(value), parseCommand:value=>z.object({kind:z.string()}).parse(value),
   authorize:(who,command)=>who === (command.kind === "step" ? "host" : "player"),
   execute:(state,command)=>{if(command.kind === "step")state.ticks++;else state.inputs++;return {status:"applied",result:{},events:[]};}
