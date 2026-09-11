@@ -18,6 +18,27 @@ added in this correction. Runtime source changes require affected native socket
 and sustained visual evidence before claiming improvement. Root prepare identity
 now excludes client/tests so future UI-only edits cannot invalidate worlds.
 
+## September 11 online transport interim — published
+
+Source `34cc910`; frontend deployment `4b0366ff-ca55-4bb8-9b9c-bcd8b310f912`,
+server version `5bb4ebe5-a1ee-4e07-a4b5-6417f98b4356`. Same four demo URLs.
+All143 served files match the build. PartySocket1.3.0 now carries authenticated
+committed observations; commands use the existing HTTP/Region receipt owner.
+Ordinary commands omit implicit stale revisions, exact retries keep their identity.
+DO socket deadlines share the durable alarm owner. Client-only code is excluded
+from the program identity. No compatibility migration or automatic world deletion.
+
+Actual local DO u5202 passed two-owner streams, lost-response retry, pause and
+request-free restart. Focused transport/protocol10 laws and strict types pass.
+Hosted u5208 colony passed before a fixture-label failure; corrected remaining
+three u5211 passed. All four load, receive live observations without HTTP polling,
+and accept physical movement; command responses were49–59ms from this host.
+King viewed colony and raft. Software Chromium frame stalls remain poor, so this
+is a connection/movement interim, **not smooth-play acceptance**. The maintained
+shared rendering hotpath is the next correction. No prediction, high-population
+capacity, narrow-screen or shared-player lobby claim. Prior dist and receipts
+remain in `.botanical/online-play-release`.
+
 ## Current playable interim — September 10
 
 The four demos are live at
