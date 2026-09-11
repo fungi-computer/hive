@@ -2,6 +2,15 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## September 11 larger playable demos
+
+Levi reaffirmed the retained Clearing ambition for the colony: multiple storeys,
+deep digging, finite water and soil saturation, crops, hauling and hospitality.
+Restore it in playable steps using the current shared owners, not a one-shot
+rebuild. [DEMO-ROADMAP.md](DEMO-ROADMAP.md) names retained source, engine/game
+boundaries, the sequence, personal art ownership and the tower-defense/sound
+plans. The published cannon pass remains accepted; the broader port is planned.
+
 ## September 11 player feedback and next proposal
 
 Levi playtested the sustained-input release: "This feels WAY better." He also

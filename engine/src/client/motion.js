@@ -21,6 +21,9 @@ export function createMotionCueOwner({ teleport = 2.5, maxCues = MAX_CUES_PER_SA
       const cues = [];
       for (const subject of subjects) {
         const motion = subject.motion, world = subject.pose?.position ?? subject;
+        if (motion && (!['foot','wake'].includes(motion.kind) || !Number.isFinite(motion.stride) || motion.stride<=0 ||
+            (motion.localOffset && !['x','y','z'].every(key => Number.isFinite(motion.localOffset[key])))))
+          throw new Error("invalid motion definition");
         const local = subject.local?.position ?? world, support = subject.support ?? null;
         const previous = history.get(subject.id);
         const discontinuity = previous && (previous.support !== support || subject.correction || Math.hypot(local.x - previous.x, local.z - previous.z) > teleport);
@@ -29,7 +32,7 @@ export function createMotionCueOwner({ teleport = 2.5, maxCues = MAX_CUES_PER_SA
         if (!motion || !previous || discontinuity) continue;
         const dx = local.x - previous.x, dz = local.z - previous.z, distance = Math.hypot(dx, dz);
         if (!(distance > EPSILON)) continue;
-        const angle = (subject.facing ?? 0) * Math.PI / 2, c = Math.cos(angle), s = Math.sin(angle);
+        const angle = (subject.local ? (subject.facing ?? 0) - (subject.local.facing ?? 0) : 0) * Math.PI / 2, c = Math.cos(angle), s = Math.sin(angle);
         const worldDx = dx * c - dz * s, worldDz = dx * s + dz * c, worldDistance = Math.hypot(worldDx, worldDz);
         const direction = { x: worldDx / worldDistance, y: 0, z: worldDz / worldDistance };
         record.residual += distance;

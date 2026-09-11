@@ -119,6 +119,8 @@ export function createHiveClient({
   root.replaceChildren(canvasHost, hud);
   const app = new Application();
   const overlay = new Container();
+  const groundEffects = new Container();
+  groundEffects.eventMode = "none";
   const actorLayer = new Container();
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
@@ -456,6 +458,7 @@ export function createHiveClient({
         support: fact.support,
         surface: fact.surface,
         projectile: fact.projectile,
+        inventory: fact.inventory,
         pose: fact.pose,
         screen: { x: 0, y: 0 },
       }));
@@ -476,7 +479,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, actorLayer, transientLayer);
+      overlay.addChild(groundSprite, groundEffects, actorLayer, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -553,7 +556,10 @@ export function createHiveClient({
       const reactionFrames = reaction && reaction.until > effectClock()
         ? reaction.frames : null;
       if (reaction && !reactionFrames) subjectReactions.delete(subject.id);
-      const frames = reactionFrames ?? (isStatic
+      const heldKind = subject.inventory?.items.find(item => item.quantity > 0 && binding.carryPoses?.[item.kind])?.kind;
+      const carryPose = heldKind && binding.carryPoses[heldKind];
+      const carryFrames = carryPose && figure?.[carryPose]?.[animation?.direction ?? 0];
+      const frames = reactionFrames ?? carryFrames ?? (isStatic
         ? []
         : animationFrames(
             figure,
@@ -570,7 +576,7 @@ export function createHiveClient({
         ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((effectClock() - reaction.started) / 45))]
         : isStatic
         ? staticVisual?.texture
-        : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
+        : frames[(carryFrames && !animation?.walking ? 0 : animation?.frame ?? 0) % Math.max(1, frames.length)];
       if (art && !texture)
         throw new Error(`visual asset unavailable for ${subject.visual}`);
       if (texture) entry.pawn.texture = texture;
@@ -781,7 +787,7 @@ export function createHiveClient({
     const bank = cue.kind === "wake" ? art.effects?.ripple : art.effects?.dust;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
     if (!frames.length) return;
-    effectOwner.play({ texture: frames[0], frames, scale: cue.kind === "wake" ? 1.5 : 1, lifetime: cue.kind === "wake" ? 700 : 260, sprites: 1 }, cue);
+    effectOwner.play({ texture: frames[0], frames, layer: "ground", scale: cue.kind === "wake" ? 1.5 : 1, lifetime: cue.kind === "wake" ? 700 : 260, sprites: 1 }, cue);
   }
   async function start() {
     if (directControlId || aiming) {
@@ -820,7 +826,7 @@ export function createHiveClient({
         sprite.anchor.set(art.propAnchor?.x ?? 0.5, art.propAnchor?.y ?? 1);
         sprite.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
         sprite.scale.set(camera.zoom * scale);
-        transientLayer.addChild(sprite);
+        (definition.layer === "ground" ? groundEffects : transientLayer).addChild(sprite);
         return sprite;
       },
       update(sprite, opacity, _context, cue, elapsed) {

@@ -29,7 +29,7 @@ test("observation matches the session and does not mutate committed state", () =
     assert.equal(observation.paused, session.isPaused);
     assert.equal(observation.epoch, 4);
     assert.equal(observation.sequence, 9);
-    assert.deepEqual(observation.facts, session.renderFacts(512));
+    assert.deepEqual(observation.facts.map(({inventory,...fact})=>fact), session.renderFacts(512));
     assert.deepEqual(observation.presentationFacts, presentation.facts);
     assert.deepEqual(observation.presentationControls, presentation.controls);
     assert.deepEqual(session.save(), before);

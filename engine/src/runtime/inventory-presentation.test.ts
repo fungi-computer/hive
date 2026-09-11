@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
+import { entity } from "../sdk/authoring";
 import type { RenderFact } from "../contracts";
 import { MaterialLot } from "../sdk/common";
 import { decorateInventoryFacts } from "./inventory-presentation";
@@ -14,9 +15,9 @@ const row = (id: string, value: object) => ({
 
 test("projects visible material custody without inventing transfer state", () => {
   const facts: RenderFact[] = [
-    { id: "pantry", visual: "crate" },
-    { id: "worker.1", visual: "goblin" },
-    { id: "guest", visual: "goblin" },
+    { id: entity("pantry"), visual: "crate" },
+    { id: entity("worker.1"), visual: "goblin" },
+    { id: entity("guest"), visual: "goblin" },
   ];
   const result = decorateInventoryFacts(facts, {
     query: () => [
@@ -31,12 +32,12 @@ test("projects visible material custody without inventing transfer state", () =>
 });
 
 test("packs without material lots leave render facts unchanged", () => {
-  const facts: RenderFact[] = [{ id: "actor", visual: "worker" }];
+  const facts: RenderFact[] = [{ id: entity("actor"), visual: "worker" }];
   assert.deepEqual(decorateInventoryFacts(facts, { query: () => [] as never }), facts);
 });
 
 test("aggregates positive safe quantities and bounds kinds without failing the frame", () => {
-  const facts: RenderFact[] = [{ id: "worker", visual: "worker" }];
+  const facts: RenderFact[] = [{ id: entity("worker"), visual: "worker" }];
   const lots = Array.from({ length: 9 }, (_, index) =>
     row(`lot.${index}`, { quantity: 1, kind: `kind.${index}`, container: "worker" }),
   );
@@ -47,9 +48,15 @@ test("aggregates positive safe quantities and bounds kinds without failing the f
 
 test("rejects malformed canonical quantities instead of inventing a display value", () => {
   assert.throws(
-    () => decorateInventoryFacts([{ id: "worker" }], {
+    () => decorateInventoryFacts([{ id: entity("worker") }], {
       query: () => [row("bad", { quantity: Number.NaN, kind: "bread", container: "worker" })] as never,
     }),
     /invalid material lot quantity/,
   );
+});
+
+
+test("consumed zero-quantity lots keep their identity without rendering goods", () => {
+  const facts: RenderFact[] = [{id: entity("actor"),visual:"worker"}];
+  assert.deepEqual(decorateInventoryFacts(facts,{query:()=>[row("empty",{quantity:0,kind:"bread",container:"actor"})] as never}), facts);
 });

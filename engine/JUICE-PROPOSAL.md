@@ -1,3 +1,9 @@
+> September 11 scope correction: Colony must regain the retained Clearing's
+> multi-storey building, digging, finite water/soil and growing/crafting loop.
+> [DEMO-ROADMAP.md](DEMO-ROADMAP.md) owns the staged return, ship/art direction,
+> recorded tower-defense proposal and sound-recipe boundary. Cosmetics are the
+> first shared chunk, not the final size of the colony game.
+
 > September 11 implementation update: Levi selected the existing Formations
 > demo for the first pass. Native ballistics/aiming, explicit material contact,
 > committed feedback, recoil/smoke/dust/hit clips and optional synthesized sound

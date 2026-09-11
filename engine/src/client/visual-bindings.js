@@ -6,16 +6,17 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
     facing: false,
     anchor: "propAnchor",
   }),
-  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", carryPoses: { bread: "carry-ration", wood: "carry" } }),
+  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", motion: {kind:"foot",stride:0.65}, carryPoses: { bread: "carry-ration", wood: "carry" } }),
   "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
-  "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin-traveler", carryPoses: { bread: "carry-ration" } }),
-  "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin" }),
+  "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin-traveler", motion: {kind:"foot",stride:0.7}, carryPoses: { bread: "carry-ration" } }),
+  "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin", motion:{kind:"foot",stride:0.7} }),
 });
 
 export const PIRATE_VISUAL_BINDINGS = Object.freeze({
   "pirate.ship": Object.freeze({
     kind: "static",
     path: ["vehicles", "ship"],
+    motion: {kind:"wake",stride:0.65,localOffset:{x:-3.7,y:0.04,z:0}},
     facing: true,
     anchor: "vehicleAnchor",
   }),
@@ -42,7 +43,7 @@ export const PIRATE_VISUAL_BINDINGS = Object.freeze({
 
 /** Formation consumers may opt into these authored static visuals later. */
 export const CANNON_VISUAL_BINDINGS = Object.freeze({
-  "goblin.soldier": Object.freeze({kind: "figure", key: "goblin", reactions: {impact: {path: ["figures", "goblin", "hit"], duration: 720}}}),
+  "goblin.soldier": Object.freeze({kind: "figure", key: "goblin", motion:{kind:"foot",stride:0.7}, reactions: {impact: {path: ["figures", "goblin", "hit"], duration: 720}}}),
   "formation.cannon": Object.freeze({
     kind: "static",
     path: ["props", "cannon"],

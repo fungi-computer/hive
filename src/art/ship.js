@@ -53,9 +53,20 @@ function deck(parent) {
       3.88,
     );
   // Low rim sits just beyond the walkable rectangle.
-  for (const x of [-3.18, 3.18]) {
+  for (const x of [-3.18]) {
     plank(parent, "#754b32", x, 1.23, 0, 0.18, 0.34, 4.55);
     plank(parent, "#a26c3f", x, 1.45, 0, 0.22, 0.12, 4.7);
+  }
+  // Triangular forecastle outside the rectangular working deck.
+  const bowDeck = new THREE.Shape();
+  bowDeck.moveTo(2.88,-2.08);bowDeck.lineTo(4.02,0);bowDeck.lineTo(2.88,2.08);bowDeck.closePath();
+  mesh(parent,new THREE.ExtrudeGeometry(bowDeck,{depth:0.1,bevelEnabled:false}),"#bc8c51",0,0.9,0).rotation.x=-Math.PI/2;
+  for (const side of [-1,1]) {
+    const dx=1.18,dz=-side*2.12;
+    for(const [height,color,width] of [[1.2,"#754b32",0.16],[1.42,"#b78a53",0.13]]) {
+      const rail=box(parent,color,3.43,height,side*1.06,Math.hypot(dx,dz),width,0.12);
+      rail.rotation.y=-Math.atan2(dz,dx);
+    }
   }
   for (const z of [-2.18, 2.18]) {
     plank(parent, "#754b32", 0, 1.23, z, 6.55, 0.34, 0.18);

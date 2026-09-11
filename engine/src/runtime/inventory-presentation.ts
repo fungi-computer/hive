@@ -20,9 +20,9 @@ export function decorateInventoryFacts(
   const inventory = new Map<string, Map<string, number>>();
   for (const row of context.query(query(MaterialLot))) {
     const lot = row.get(MaterialLot);
-    if (!Number.isSafeInteger(lot.quantity) || lot.quantity <= 0)
+    if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 0)
       throw new Error("invalid material lot quantity");
-    if (!visible.has(lot.container)) continue;
+    if (lot.quantity === 0 || !visible.has(lot.container)) continue;
     const kind = checkedText(lot.kind);
     const byKind = inventory.get(lot.container) ?? new Map<string, number>();
     const quantity = (byKind.get(kind) ?? 0) + lot.quantity;
