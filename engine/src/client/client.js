@@ -44,11 +44,11 @@ export function createHiveClient({
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
   aiming = null,
-  previewProjectile,
   sound,
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
+  let nativeBinding;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   const state = {
     ready: false,
@@ -62,7 +62,7 @@ export function createHiveClient({
     pendingRestore: false,
     presentationFacts: [],
     presentationControls: [],
-    aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, preview: null },
+    aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
     message: runtime
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
@@ -144,6 +144,7 @@ export function createHiveClient({
   let effectOwner;
   let previewCache;
   const subjectReactions = new Map();
+  let latestFacts = [];
 
   function prepareNewWorld(remote) {
     if (remote) state.ready = false;
@@ -203,15 +204,21 @@ export function createHiveClient({
     if (!isAiming() || !state.aim.target || !previewCache) return;
     const launcher = selectedLauncher();
     if (!launcher) return;
-    const velocity = fireInput({ launcherId: launcher.id, origin: launcher.pose.position, target: state.aim.target, elevation: state.aim.elevation, speed: launcher.aim?.speed ?? 8 }).velocity;
-    state.aim.preview = previewCache.get({ launcherId: launcher.id, velocity }, { force });
+    const profile = launcher.aim;
+    if (!profile?.origin || !profile.radius || !profile.gravity || !profile.penetration || !profile.maxRange || !profile.maxLifetime)
+      throw new Error("launcher preview profile unavailable");
+    const velocity = fireInput({ launcherId: launcher.id, origin: profile.origin, target: state.aim.target, elevation: state.aim.elevation, speed: profile.speed ?? 8 }).velocity;
+    const request = { origin: profile.origin, velocity: { x: velocity.x + (profile.inheritedVelocity?.x ?? 0), y: velocity.y + (profile.inheritedVelocity?.y ?? 0), z: velocity.z + (profile.inheritedVelocity?.z ?? 0) }, radius: profile.radius, gravity: profile.gravity, penetration: profile.penetration, maxRange: profile.maxRange, maxLifetime: profile.maxLifetime, colliders: latestFacts.filter((fact) => fact.collider).map((fact) => ({ id: fact.id, ...fact.collider })) };
+    state.aim.velocity = velocity;
+    state.aim.preview = previewCache.get(request, { force });
   }
   function fireAim() {
     if (!state.ready || !isAiming()) return;
     const launcher = selectedLauncher();
     if (!launcher || !state.aim.target) return;
     updateAimPreview(true);
-    const velocity = fireInput({ launcherId: launcher.id, origin: launcher.pose.position, target: state.aim.target, elevation: state.aim.elevation, speed: launcher.aim?.speed ?? 8 }).velocity;
+    const velocity = state.aim.velocity;
+    if (!velocity) throw new Error("aim preview velocity unavailable");
     runtime?.send({ type: "command", name: aiming.command, input: { velocity } });
     aimGesture.send({ type: "FIRE" });
     toggleAim();
@@ -744,10 +751,11 @@ export function createHiveClient({
     sound?.play?.(cue.kind, cue);
   }
   async function start() {
-    if (directControlId) {
-      const native = await import("../../generated/hive_kernel.js");
-      await native.default();
-      directControl = createDirectControl({ entity: directControlId, send: command => runtime.send(command), predict: input => JSON.parse(native.predict_direct(JSON.stringify(input))) });
+    if (directControlId || aiming) {
+      nativeBinding = await import("../../generated/hive_kernel.js");
+      await nativeBinding.default();
+      if (aiming && typeof nativeBinding.preview_projectile !== "function") throw new Error("native projectile preview unavailable");
+      if (directControlId) directControl = createDirectControl({ entity: directControlId, send: command => runtime.send(command), predict: input => JSON.parse(nativeBinding.predict_direct(JSON.stringify(input))) });
     }
     await app.init({
       resizeTo: canvasHost,
@@ -761,7 +769,7 @@ export function createHiveClient({
     const pack = await loadStaticArtPack();
     art = pack.art;
     state.disposeArt = pack.dispose;
-    if (typeof previewProjectile === "function") previewCache = createPreviewCache({ preview: previewProjectile });
+    if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
       maxEffects: 32,
       maxSprites: 128,
@@ -875,6 +883,7 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "frame") {
+        latestFacts = Array.isArray(event.facts) ? event.facts : [];
         // A reset/restore publishes a higher epoch. Stale frames from the
         // old stream must never clear the new interpolation timeline.
         if (frameEpoch !== undefined && event.epoch < frameEpoch) return;
