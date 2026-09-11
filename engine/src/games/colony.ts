@@ -43,6 +43,7 @@ const colonyInitial = [
       "hive.position": { x: 3, y: 0, z: 1, facing: 0 },
       "hive.body": { speed: 1 },
       "hive.container": { capacity: 4 },
+      "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: "goblin.guest", label: "Guest" },
       "colony.guest": { hungry: true },
     },
@@ -158,25 +159,12 @@ const colonyComponents = [
   DeliveryControl,
 ] as const;
 
-type InitialPlacement = {
-  readonly entity: EntityId;
-  readonly column: readonly [number, number];
-};
-
-const colonyInitialPlacements: readonly InitialPlacement[] = [
-  { entity: workerOne, column: [0, 0] },
-  { entity: workerTwo, column: [0, 2] },
-  { entity: guestId, column: [3, 1] },
-  { entity: pantryId, column: [-2, 0] },
-];
-
-export const colonyPack = {
+export const colonyPack: GamePack = {
   id: "colony",
   version: 2,
   components: colonyComponents,
   systems: [deliverySystem],
   environmentDefinition: colonyEnvironmentDefinition,
-  initialPlacements: colonyInitialPlacements,
   commands: {
     deliver: command({
       reads: [Worker, DeliveryTask, DeliveryControl],
@@ -214,4 +202,4 @@ export const colonyPack = {
     },
   },
   definition: encodeDefinition("colony", colonyComponents, colonyInitial),
-} as GamePack & { readonly initialPlacements: readonly InitialPlacement[] };
+};
