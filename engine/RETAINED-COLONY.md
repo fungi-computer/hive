@@ -11,7 +11,7 @@ The retained game is the behavioral reference. In particular:
 
 | Retained owner | Behavior to preserve | Current native gap |
 | --- | --- | --- |
-| `src/structure-support.js` | Rooted columns, connected spans, distance measured from the original anchor | No static structure support query |
+| `src/structure-support.js` | Rooted columns, connected spans, distance measured from the original anchor | Rooted support and structure queries now exist in source; player construction remains unjoined |
 | `src/physical-completion.ts` | Recheck access and support; prepare material and geometry together; a blocked job waits | Excavation exists, building and removal do not |
 | `src/construction.js` and `src/materials.ts` | Finite staged, embedded and salvaged material custody | No native construction site or embedded-material state |
 | `src/navigation-space.ts` | Actual stairs, landings, headroom and swept occupancy | Native terrain routes exist; constructed links do not |
@@ -126,3 +126,43 @@ hashes, area/replay observations and final physical observations. This qualifies
 queued area-command recovery in a local native DO host. It does not establish
 abrupt mid-commit crash behavior, cross-region handoff, hosted restart or new
 performance capacity. No runtime source or deployment changed for this witness.
+
+
+### Retained production source comparison, September 11
+
+Direct caller review of `src/recipes.ts` and `src/brewing.ts` adds these concrete
+requirements to the native production join. The retained herbal-ale definition
+has consumed malt, water, mugwort and fuel; retained barm and a keg; ale output
+inside the retained keg and spent-grain output at a station tray. These are
+separate material roles, not an interchangeable input/output counter.
+
+`admitBrew` reserves the resolved binding and prevents two processes owning the
+same station. `cancelPreparingBrew` releases the binding only during preparation,
+leaving staged goods in custody. Settlement resolves current retained interiors
+and station endpoints before committing outputs. Paid atmosphere obligations
+remain attached to their actual hearth until their finite emission finishes.
+Preserve these behaviors through reusable native operations; do not carry the
+herbal-ale names into native persistence or material transport.
+
+The native recipe proof must therefore cover:
+
+- Consumed portions versus retained tools/containers, including water content.
+- Exclusive process/vessel use without holding a worker during passive waiting.
+- A substitute worker continuing already-earned effort.
+- Output capacity and destination validity checked before irreversible settlement.
+- Waste as real output and fuel emissions as finite paid obligations.
+- Cancellation before transformation versus handling actual intermediate goods
+  afterward; cancellation cannot manufacture the original ingredients again.
+- Save/restart and command retry preserving the same binding and physical outcome.
+
+Construction currently establishes staged-to-embedded custody first. A proposed
+native sealed-container marker blocks ordinary access to the same stored lots;
+it is not another inventory or a recipe scheduler. Review found that transfer
+and consumption checks alone were insufficient: projectile ammunition and
+excavation output are also actual material callers. All must respect this
+boundary before the marker is accepted. The component has no public authored
+seal/unseal mutation; the eventual compound completion owner must install it only
+after all geometry, actor, capacity and material admission succeeds.
+
+These are source requirements, not a claim that native brewing, paid smoke or
+player construction is playable. The published area-dig demo remains unchanged.
