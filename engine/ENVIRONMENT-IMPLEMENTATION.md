@@ -114,6 +114,53 @@ both simulation hosts.
 
 ## 2. Persist bounded records, not a full field inside every JSON snapshot
 
+### Resident integration disposition — September 11, source `5de6e4e`
+
+The record boundary is now joined through the SDK, Session and Region. Local
+actual-WASM/SQLite qualification is recorded in BUILD; this is not native DO
+or resident-world qualification. The next coupled change retains `openRegion`
+as the state/receipt/record owner. It does not introduce another transaction
+engine or combine five clock identities into one command.
+
+Current concrete costs: `session.ts` captures the whole Kernel before each
+step; `region-program.ts` hydrates/disposes per execution; the public host
+hydrates/disposes again for observation. `validateWrites` also captures an
+entire snapshot to check an entity reference. The latter gets a bounded native
+membership query over Kernel's existing ID map; it is independent of resident
+lifetime and must not add another ID cache in TypeScript.
+
+For the resident join, pass the actual Region base revision to program execution.
+The Session owner may reuse a candidate only at that exact revision inside its
+exclusive host attempt. A cache hit is not command authorization. Receipt replay
+must still bypass execution. Keep per-occurrence Region writes and receipts for
+the first join; coalescing physical record writes is a later optimization, not a
+reason to replace the tested commit path. This refines the coalescing target in
+section 1 without relaxing outer-transaction atomicity.
+
+The public host's `inTransaction` is the promotion boundary, including `arm`.
+Start/retry invalidates any previous unfinished candidate; a throw anywhere in
+the outer operation discards native and Session state. Successful inner dispatch
+only advances the attempt's provisional revision. The host makes it reusable
+after outer success, and must serialize access across storage awaits. Observation
+must use an accepted resident revision or hydrate committed records, never a
+provisional candidate. The browser Worker needs the same fail-closed lifetime
+before removal of Session's local rollback copy; changing Session alone would
+leave its catch-and-continue caller unsafe.
+
+Source review found no established nested-transaction defect. Cloudflare's
+[SQLite storage contract](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/#transaction)
+states that direct storage operations, including SQL, participate in the async
+transaction on SQLite-backed owners. Our existing native fixtures cover inner
+Region rollback and committed lost-response/restart replay. They do not inject
+outer alarm failure, callback retry or a later failure in a five-occurrence
+batch. Qualify those exact cases with the existing native host when the resident
+join is ready; do not infer either a bug or acceptance from source ordering.
+
+The read of current callers also found the retained `fresh-engine-do` observation
+still passing metadata directly to Session restore. Its source now hydrates the
+same revision's bounded native records through `hydrateSession`, like the public
+host. That correction remains source-only until the affected host qualification.
+
 Keep the existing Region transaction/receipt/event/clock owner. Replace its
 JSON-only state boundary for this consumer with **opaque versioned records**.
 This is one state, in the same SQLite transaction, not a second database or an

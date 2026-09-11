@@ -5,6 +5,7 @@ import {
 } from "../../src/engine/region/index.ts";
 import { createSessionRegionProgram } from "../../engine/src/runtime/region-program";
 import { GameSession } from "../../engine/src/runtime/session";
+import { hydrateSession } from "../../engine/src/runtime/session-record-store";
 import { buildObservation } from "../../engine/src/runtime/observation";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -112,7 +113,12 @@ export class FreshRegion extends DurableObject<Environment> {
       const port = wasmKernelPort(new WasmKernel());
       try {
         const session = new GameSession({ port, pack, seed: 17 });
-        session.restore(committed.state.session);
+        const page = this.region.readRecords(committed.revision, "", 40);
+        if (page.nextKey !== undefined) throw new Error("proof-kernel-record-limit");
+        const records = new Map(page.records.map(record => [record.key, record.bytes]));
+        session.restore(hydrateSession(committed.state.session, {
+          read: key => records.get(key),
+        }));
         const observation = buildObservation(session, {
           epoch: 0,
           sequence: committed.revision,
