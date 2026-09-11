@@ -1,10 +1,11 @@
 import type { PresentationCue } from "./presentation-cues";
-import type { RenderFact } from "../contracts";
+import type { ReadContext, RenderFact } from "../contracts";
 import {
   projectPresentation,
   type PresentationControl,
 } from "../presentation";
 import type { GameSession } from "./session";
+import { deliveryPresentationFacts } from "./delivery-presentation";
 
 /**
  * The bounded, committed view shared by browser and host readers.
@@ -37,9 +38,19 @@ export function buildObservation(
     );
   if (!Number.isFinite(session.simulationTime) || session.simulationTime < 0)
     throw new Error("observation time must be finite and nonnegative");
-  const projected = projectPresentation(session.pack, {
+  const context: Pick<ReadContext, "query"> = {
     query: (spec) => session.query(spec),
-  });
+  };
+  const projected = projectPresentation(session.pack, context);
+  const deliveryFacts = deliveryPresentationFacts(context);
+  if (projected.facts.length + deliveryFacts.length > 32)
+    throw new Error("presentation fact limit exceeded");
+  const presentationIds = new Set<string>();
+  for (const fact of [...projected.facts, ...deliveryFacts]) {
+    if (presentationIds.has(fact.id))
+      throw new Error(`duplicate presentation fact ${fact.id}`);
+    presentationIds.add(fact.id);
+  }
   const facts = structuredClone(session.renderFacts(512));
   return Object.freeze({
     time: session.simulationTime,
@@ -48,7 +59,10 @@ export function buildObservation(
     sequence: metadata.sequence,
     facts: Object.freeze(facts),
     cues: session.presentationCues(),
-    presentationFacts: projected.facts,
+    presentationFacts: Object.freeze([
+      ...projected.facts,
+      ...deliveryFacts,
+    ]),
     presentationControls: projected.controls,
   });
 }
