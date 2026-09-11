@@ -182,7 +182,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     fn world() -> (TerrainWater, Cell) {
-        let bounds = Bounds { min_x: -32, max_x: 32, min_y: -32, max_y: 32, min_z: -32, max_z: 32 };
+        let bounds = Bounds { min_x: -32, max_x: 32, min_y: -32, max_y: 64, min_z: -32, max_z: 32 };
         let generator = WorldSpec {
             seed: "air-geometry",
             identity: "air-geometry",
@@ -258,7 +258,7 @@ mod tests {
         let before = world.terrain.cache_len();
         assert!(world.air_geometry(AirGeometryBounds {
             min: Cell { x: -32, y: -32, z: -32 },
-            max: Cell { x: 32, y: 32, z: 32 },
+            max: Cell { x: 32, y: 64, z: 32 },
         }).is_err());
         assert_eq!(world.terrain.cache_len(), before);
         assert!(world.air_geometry(AirGeometryBounds {
