@@ -225,9 +225,12 @@ function actionResult(value: unknown): value is ActionResult {
 function directInputBatch(value: unknown): { entity: string; stream: string; inputs: readonly { sequence: number; x: number; z: number }[] } | undefined {
   if (!isRecord(value) || value.kind !== "action" || !isRecord(value.action) || value.action.kind !== "direct-input" ||
     typeof value.action.entity !== "string" || typeof value.action.stream !== "string" || !Array.isArray(value.action.inputs)) return undefined;
+  if (Object.keys(value.action).some((key) => !["kind", "entity", "stream", "inputs"].includes(key))) return undefined;
   const inputs = value.action.inputs;
-  if (inputs.length < 1 || inputs.length > 50 || inputs.some((input) => !isRecord(input) ||
-    !safeNonnegativeInteger(input.sequence) || input.sequence < 1 || !finite(input.x) || !finite(input.z))) return undefined;
+  if (inputs.length < 1 || inputs.length > 50 || inputs.some((input) => !isRecord(input) || Object.keys(input).some((key) => !["sequence", "x", "z"].includes(key)) ||
+    !safeNonnegativeInteger(input.sequence) || input.sequence < 1 || !finite(input.x) || input.x < -1 || input.x > 1 || !finite(input.z) || input.z < -1 || input.z > 1)) return undefined;
+  for (let index = 1; index < inputs.length; index++)
+    if ((inputs[index] as Record<string, unknown>).sequence !== (inputs[index - 1] as Record<string, unknown>).sequence + 1) return undefined;
   return { entity: value.action.entity, stream: value.action.stream, inputs: inputs as { sequence: number; x: number; z: number }[] };
 }
 function coalesceDirectInput(previous: PendingIntent, next: PendingIntent): boolean {
