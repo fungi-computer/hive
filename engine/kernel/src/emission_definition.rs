@@ -13,6 +13,7 @@ use crate::{
 };
 
 const MAX_DEFINITIONS: usize = 64;
+const MAX_JSON_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -48,21 +49,25 @@ pub struct EmissionCatalog {
 
 impl EmissionCatalog {
     pub fn from_json(input: &str) -> Result<Self, String> {
+        if input.len() > MAX_JSON_BYTES {
+            return Err("emission definition JSON exceeds 64KiB".into());
+        }
         let definitions: Vec<EmissionDefinition> = serde_json::from_str(input)
             .map_err(|error| format!("invalid emission definitions: {error}"))?;
+        Self::from_definitions(definitions)
+    }
+
+    pub fn from_definitions(definitions: Vec<EmissionDefinition>) -> Result<Self, String> {
         if definitions.len() > MAX_DEFINITIONS {
             return Err("emission definition catalog exceeds 64 entries".into());
         }
         let mut compiled = BTreeMap::new();
         for definition in definitions {
-            let release = compile(definition.clone())?;
+            let compiled_definition = compile(definition)?;
             if compiled
                 .insert(
-                    definition.id.clone(),
-                    CompiledEmissionDefinition {
-                        definition,
-                        release,
-                    },
+                    compiled_definition.definition.id.clone(),
+                    compiled_definition,
                 )
                 .is_some()
             {
