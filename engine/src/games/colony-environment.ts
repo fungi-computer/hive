@@ -24,6 +24,26 @@ export const colonyEnvironment: EnvironmentDefinition = {
     seaLevel: 12,
     verticalMetres: 0.54,
   },
+  // The village's 16×16 active air domain includes deep cells and the real sky
+  // boundary. Outside it is unmodeled, never reported as smoke-free air.
+  atmosphere: {
+    regionId: "colony-village-air",
+    min: { x: -8, y: -32, z: -8 },
+    max: { x: 8, y: 40, z: 8 },
+    ambient: { pressurePa: 101325, temperatureK: 293.15 },
+    exterior: "WorldTop",
+    model: {
+      specificGasConstantJkgK: 287.05, heatCapacityJkgK: 1005,
+      mixingVelocityMps: 1, buoyancyVelocityMpsK: 0.1,
+      pressureVelocityMpsPa: 0.001, maxStepS: 0.2,
+      maxExchangeFraction: 0.5, maxPressureRatio: 4,
+      maxTemperatureDeltaK: 100, maxSmokeMassFraction: 0.01,
+    },
+  },
+  emissions: [{
+    id: "wood-hearth", materialKind: "wood", quantity: 2,
+    durationS: 30, smokeKg: 0.03, heatJ: 30000,
+  }],
   structures: {
     maxSpanSteps: 6,
     catalog: [

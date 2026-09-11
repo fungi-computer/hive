@@ -94,8 +94,41 @@ export interface InitialSurfacePlacement {
   readonly column: readonly [number, number];
 }
 
+/** Voxel-game air: connected volumes use the same generated/build geometry. */
+export interface EnvironmentAtmosphere {
+  readonly regionId: string;
+  readonly min: { readonly x: number; readonly y: number; readonly z: number };
+  readonly max: { readonly x: number; readonly y: number; readonly z: number };
+  readonly ambient: { readonly pressurePa: number; readonly temperatureK: number };
+  readonly exterior: "Closed" | "WorldTop";
+  readonly model: {
+    readonly specificGasConstantJkgK: number;
+    readonly heatCapacityJkgK: number;
+    readonly mixingVelocityMps: number;
+    readonly buoyancyVelocityMpsK: number;
+    readonly pressureVelocityMpsPa: number;
+    readonly maxStepS: number;
+    readonly maxExchangeFraction: number;
+    readonly maxPressureRatio: number;
+    readonly maxTemperatureDeltaK: number;
+    readonly maxSmokeMassFraction: number;
+  };
+}
+
+/** A finite, material-paid release; native admission owns quantities/progress. */
+export interface EnvironmentEmission {
+  readonly id: string;
+  readonly materialKind: string;
+  readonly quantity: number;
+  readonly durationS: number;
+  readonly smokeKg: number;
+  readonly heatJ: number;
+}
+
 export interface EnvironmentDefinition {
   readonly world: EnvironmentWorld;
+  readonly atmosphere?: EnvironmentAtmosphere;
+  readonly emissions?: readonly EnvironmentEmission[];
   readonly materials: readonly EnvironmentMaterial[];
   readonly water: EnvironmentWater;
   readonly structures: EnvironmentStructures;
