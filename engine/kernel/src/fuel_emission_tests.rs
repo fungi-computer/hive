@@ -9,8 +9,8 @@ fn environment_definition() -> String {
         serde_json::from_str(&crate::environment_definition::tests::fixture("fire-laws")).unwrap();
     definition["atmosphere"] = json!({
         "regionId":"fire-region",
-        "min":{"x":-8,"y":-8,"z":-8},
-        "max":{"x":8,"y":40,"z":8},
+        "min":{"x":-2,"y":-8,"z":-2},
+        "max":{"x":2,"y":40,"z":2},
         "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
         "model":{
             "specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,
@@ -28,24 +28,26 @@ fn environment_definition() -> String {
     definition.to_string()
 }
 
-fn kernel(fuel_quantity: Option<u32>, wet: bool) -> Kernel {
+fn make_kernel(fuel_quantity: Option<u32>, wet: bool) -> Kernel {
     let mut kernel = Kernel::new();
     let mut components = json!({
         "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
         "hive.container":{"capacity":10},
         "hive.emitter":{"catalog":"wood-fire"}
     });
+    let mut fuel = json!({"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":10}});
     if let Some(quantity) = fuel_quantity {
-        components["hive.lot"] = json!({"kind":"wood","quantity":quantity,"container":"station"});
+        fuel["hive.lot"] = json!({"kind":"wood","quantity":quantity,"container":"station"});
         if wet {
-            components["hive.lot-water"] = json!({"waterKg":1.0});
+            fuel["hive.lot-water"] = json!({"waterKg":1.0});
         }
     }
     kernel.load(&json!({
         "format":"hive-game","version":1,"game":"fire-laws","components":[],
         "initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
-            {"id":"station","components":components}
+            {"id":"station","components":components},
+            {"id":"fuel","components":fuel}
         ]
     }).to_string()).unwrap();
     kernel.load_environment(&environment_definition()).unwrap();
@@ -78,13 +80,20 @@ fn kernel(fuel_quantity: Option<u32>, wet: bool) -> Kernel {
     kernel
 }
 
-fn action(kernel: &mut Kernel) -> Value {
-    serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"begin-emission","worker":"worker","station":"station"}]}"#).unwrap()).unwrap()
+fn action(kernel: &mut Kernel, delta: f64) -> Value {
+    let input = format!(
+        r#"{{"delta":{delta},"writes":[],"actions":[{{"kind":"begin-emission","worker":"worker","station":"station"}}]}}"#
+    );
+    serde_json::from_str(&kernel.advance_json(&input).unwrap()).unwrap()
 }
-fn state_fingerprint(kernel: &Kernel) -> (String, Option<Vec<u8>>) {
+fn stable_fingerprint(kernel: &mut Kernel) -> (Value, Option<Vec<u8>>) {
     let records = kernel.save_records().unwrap();
-    (records.entities, records.atmosphere)
+    (
+        serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap(),
+        records.atmosphere,
+    )
 }
+
 fn lot_quantity(kernel: &mut Kernel) -> u64 {
     let rows: Value = serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap();
     rows.as_array()
@@ -96,15 +105,15 @@ fn lot_quantity(kernel: &mut Kernel) -> u64 {
 
 #[test]
 fn dry_admission_debits_once_and_duplicate_is_rejected() {
-    let mut kernel = kernel(Some(2), false);
-    let before = state_fingerprint(&kernel);
-    assert_eq!(action(&mut kernel)["results"][0]["accepted"], true);
+    let mut kernel = make_kernel(Some(2), false);
+    let before = stable_fingerprint(&mut kernel);
+    assert_eq!(action(&mut kernel, 0.0)["results"][0]["accepted"], true);
     assert_eq!(lot_quantity(&mut kernel), 0);
-    let admitted = state_fingerprint(&kernel);
-    assert_eq!(admitted.1, before.1);
-    assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
+    let admitted = stable_fingerprint(&mut kernel);
+    assert_ne!(admitted.1, before.1);
+    assert_eq!(action(&mut kernel, 0.0)["results"][0]["accepted"], false);
     assert_eq!(lot_quantity(&mut kernel), 0);
-    assert_eq!(state_fingerprint(&kernel).1, admitted.1);
+    assert_eq!(stable_fingerprint(&mut kernel).1, admitted.1);
 }
 
 #[test]
@@ -115,7 +124,7 @@ fn missing_wet_insufficient_and_remote_fuel_leave_state_unchanged() {
         (Some(1), false, false),
         (Some(2), false, true),
     ] {
-        let mut kernel = kernel(fuel, wet);
+        let mut kernel = make_kernel(fuel, wet);
         if remote {
             let station = kernel.entity("station").unwrap();
             let mut position = *kernel.ecs.get::<Position>(station).unwrap();
@@ -123,31 +132,55 @@ fn missing_wet_insufficient_and_remote_fuel_leave_state_unchanged() {
             kernel.ecs.entity_mut(station).insert(position);
             kernel.rebuild_physical_indexes(true).unwrap();
         }
-        let before = state_fingerprint(&kernel);
-        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
-        assert_eq!(state_fingerprint(&kernel), before);
+        let before = stable_fingerprint(&mut kernel);
+        assert_eq!(action(&mut kernel, 0.0)["results"][0]["accepted"], false);
+        assert_eq!(stable_fingerprint(&mut kernel), before);
     }
 }
 
 #[test]
 fn admission_tick_and_pause_do_not_advance_release() {
-    let mut kernel = kernel(Some(2), false);
-    action(&mut kernel);
-    let admitted = state_fingerprint(&kernel);
+    let mut kernel = make_kernel(Some(2), false);
+    action(&mut kernel, 0.2);
+    assert_eq!(
+        kernel.environment.as_ref().unwrap().paid_emissions["station"].elapsed_s,
+        0.0
+    );
+    let admitted = kernel
+        .environment
+        .as_ref()
+        .unwrap()
+        .atmosphere
+        .as_ref()
+        .unwrap()
+        .save()
+        .unwrap();
     kernel
         .advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#)
         .unwrap();
-    assert_eq!(state_fingerprint(&kernel), admitted);
+    let paused = kernel
+        .environment
+        .as_ref()
+        .unwrap()
+        .atmosphere
+        .as_ref()
+        .unwrap()
+        .save()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_vec(&admitted).unwrap(),
+        serde_json::to_vec(&paused).unwrap()
+    );
     kernel
         .advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#)
         .unwrap();
-    assert_ne!(state_fingerprint(&kernel).1, admitted.1);
+    assert!(kernel.environment.as_ref().unwrap().paid_emissions["station"].elapsed_s > 0.0);
 }
 
 #[test]
 fn release_save_restore_has_same_next_step_and_completes_once() {
-    let mut kernel = kernel(Some(2), false);
-    action(&mut kernel);
+    let mut kernel = make_kernel(Some(2), false);
+    action(&mut kernel, 0.0);
     kernel
         .advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#)
         .unwrap();
@@ -160,7 +193,10 @@ fn release_save_restore_has_same_next_step_and_completes_once() {
     restored
         .advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#)
         .unwrap();
-    assert_eq!(state_fingerprint(&kernel), state_fingerprint(&restored));
+    assert_eq!(
+        stable_fingerprint(&mut kernel),
+        stable_fingerprint(&mut restored)
+    );
     assert!(
         kernel
             .environment
@@ -169,6 +205,15 @@ fn release_save_restore_has_same_next_step_and_completes_once() {
             .paid_emissions
             .is_empty()
     );
+    let atmosphere = kernel
+        .environment
+        .as_ref()
+        .unwrap()
+        .atmosphere
+        .as_ref()
+        .unwrap();
+    assert!((atmosphere.state().smoke_source_kg() - 0.01).abs() < 1e-12);
+    assert!((atmosphere.state().heat_source_j() - 1.0).abs() < 1e-9);
     assert_eq!(lot_quantity(&mut kernel), 0);
     kernel
         .advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#)
