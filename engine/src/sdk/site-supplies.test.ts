@@ -53,7 +53,7 @@ test("plans one bounded ordinary delivery, subtracts partial stock, and does not
     { id: entity("lot.destination"), quantity: 1, container: destination },
   ]);
   const state = context(rows);
-  assert.deepEqual(planSiteSupplies(state.fake, { requirements: [requirement(destination)], sourceContainers: [source] }), [entity("site-supply.supply.destination.wood")]);
+  assert.deepEqual(planSiteSupplies(state.fake, { requirements: [requirement(destination)], sourceContainers: [source] }), [entity("site-supply.18:supply.destination4:wood")]);
   assert.equal(state.created[0].components[DeliveryTask.id].quantity, 1);
   assert.deepEqual(planSiteSupplies(state.fake, { requirements: [requirement(destination)], sourceContainers: [source] }), []);
 });
@@ -85,7 +85,7 @@ test("cleans only its deposited completed task, then selects the next remaining 
   ]);
   const state = context(rows);
   planSiteSupplies(state.fake, { requirements: [requirement(destination, 2)], sourceContainers: [source] });
-  const taskId = entity("site-supply.supply.destination.next.wood");
+  const taskId = entity("site-supply.23:supply.destination.next4:wood");
   const taskRow = rows.find((candidate) => candidate.id === taskId)!;
   const task = taskRow.values.get(DeliveryTask.id) as Record<string, unknown>;
   task.phase = "complete";
@@ -95,4 +95,19 @@ test("cleans only its deposited completed task, then selects the next remaining 
   assert.deepEqual(state.removed, [taskId]);
   assert.deepEqual(planSiteSupplies(state.fake, { requirements: [requirement(destination, 2)], sourceContainers: [source] }), [taskId]);
   assert.equal(state.created.at(-1)?.components[DeliveryTask.id].sourceLot, second);
+});
+
+test("validates duplicate requirements and bounded injective task identities before mutation", () => {
+  const source = entity("supply.source.validation");
+  const destination = entity("supply.destination.validation");
+  const state = context(baseRows(source, destination, [{ id: entity("lot.validation"), quantity: 2 }]));
+  assert.throws(() => planSiteSupplies(state.fake, {
+    requirements: [requirement(destination), requirement(destination)], sourceContainers: [source],
+  }), /duplicate site supply requirement/);
+  assert.equal(state.created.length, 0);
+  const longDestination = entity("d".repeat(120));
+  assert.throws(() => planSiteSupplies(state.fake, {
+    requirements: [{ destination: longDestination, material: "wood", quantity: 1 }], sourceContainers: [source],
+  }), /task identity exceeds bound/);
+  assert.equal(state.created.length, 0);
 });
