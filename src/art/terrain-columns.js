@@ -183,7 +183,9 @@ export function createTerrainSceneCache({
     return {
       initial,
       previous,
+      previousIndex: columnIndex,
       surfaces: nextSurfaces,
+      columnIndex: nextIndex,
       changedColumns,
       affectedColumns,
       dirtyChunks,
