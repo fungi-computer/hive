@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { parseTerrainFrame } from "./terrain-wire";
+import { parseTerrainFrame, parseTerrainObservation, terrainWireForRevision } from "./terrain-wire";
 import { connectRemoteRuntime } from "./remote-client";
 import type { WorkerEvent } from "./protocol";
 
@@ -24,6 +24,34 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
   assert.throws(() => parseTerrainFrame({
     revision: 0, verticalMetres: 1, surfaces: [], water: [{ at: [0, 0, 0], massKg: Infinity, liquidVolumeM3: 0 }],
   }), /invalid terrain observation/);
+});
+
+test("terrain surface references retain only a connection's baseline surfaces", () => {
+  const baseline = parseTerrainFrame({
+    revision: 7,
+    verticalMetres: 0.5,
+    surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    water: [],
+  });
+  assert(baseline);
+  const wire = terrainWireForRevision(baseline, baseline.revision);
+  assert.deepEqual(wire, {
+    revision: 7,
+    verticalMetres: 0.5,
+    surfacesRevision: 7,
+    water: [],
+  });
+  assert.deepEqual(parseTerrainObservation({
+    ...wire,
+    water: [{ at: [1, 3, 3], massKg: 1, liquidVolumeM3: 0.001 }],
+  }, baseline), {
+    revision: 7,
+    verticalMetres: 0.5,
+    surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    water: [{ at: [1, 3, 3], massKg: 1, liquidVolumeM3: 0.001 }],
+  });
+  assert.throws(() => parseTerrainObservation(wire, undefined), /surface reference is unavailable/);
+  assert.throws(() => parseTerrainObservation({ ...wire, surfacesRevision: 8 }, baseline), /surface reference is unavailable/);
 });
 
 test("remote observations forward a parsed terrain capability", async () => {
@@ -53,6 +81,24 @@ test("remote observations forward a parsed terrain capability", async () => {
   }) });
   const frame = events.find((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame");
   assert.deepEqual(frame?.terrain, { revision: 2, verticalMetres: 0.5, surfaces: [], water: [] });
+  socket.emit("message", { data: JSON.stringify({
+    type: "observation",
+    revision: 2,
+    observation: {
+      time: 1, paused: false, epoch: 0, sequence: 2, facts: [], cues: [],
+      presentationFacts: [], presentationControls: [],
+      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [
+        { at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 },
+      ] },
+    },
+  }) });
+  const hydrated = events.filter((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame").at(-1);
+  assert.deepEqual(hydrated?.terrain, {
+    revision: 2,
+    verticalMetres: 0.5,
+    surfaces: [],
+    water: [{ at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 }],
+  });
   runtime.dispose();
 });
 

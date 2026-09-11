@@ -17,6 +17,27 @@ export interface TerrainWireFrame {
   readonly surfaces: readonly TerrainSurface[];
   readonly water: readonly TerrainWireWater[];
 }
+export interface TerrainWireReference {
+  readonly revision: number;
+  readonly verticalMetres: number;
+  readonly surfacesRevision: number;
+  readonly water: readonly TerrainWireWater[];
+}
+export type TerrainWireObservation = TerrainWireFrame | TerrainWireReference;
+
+/** Emit a complete baseline until this connection has received this revision. */
+export function terrainWireForRevision(
+  frame: TerrainWireFrame,
+  knownRevision: number | undefined,
+): TerrainWireObservation {
+  if (knownRevision !== frame.revision) return frame;
+  return {
+    revision: frame.revision,
+    verticalMetres: frame.verticalMetres,
+    surfacesRevision: frame.revision,
+    water: frame.water,
+  };
+}
 
 const MIN_I32 = -2147483648;
 const MAX_I32 = 2147483647;
@@ -89,5 +110,29 @@ export function parseTerrainFrame(value: unknown): TerrainWireFrame | undefined 
     verticalMetres: value.verticalMetres,
     surfaces: Object.freeze(surfaces as TerrainSurface[]),
     water: Object.freeze(water as TerrainWireWater[]),
+  });
+}
+
+/** Hydrate an explicit same-revision surface reference from this connection's cache. */
+export function parseTerrainObservation(
+  value: unknown,
+  cached: TerrainWireFrame | undefined,
+): TerrainWireFrame | undefined {
+  if (value === undefined) return undefined;
+  if (record(value) && Array.isArray(value.surfaces)) return parseTerrainFrame(value);
+  if (
+    !record(value) ||
+    !safeRevision(value.revision) ||
+    !safeRevision(value.surfacesRevision) ||
+    value.surfacesRevision !== value.revision ||
+    !cached ||
+    cached.revision !== value.surfacesRevision
+  )
+    throw new Error("terrain surface reference is unavailable");
+  return parseTerrainFrame({
+    revision: value.revision,
+    verticalMetres: value.verticalMetres,
+    surfaces: cached.surfaces,
+    water: value.water,
   });
 }
