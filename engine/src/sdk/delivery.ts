@@ -2,6 +2,7 @@ import { component, query, system } from "./authoring";
 import { allocateWork } from "./work-allocation";
 import {
   MaterialLot,
+  ExcavationWork,
   Position,
   Support,
   Surface,
@@ -51,15 +52,18 @@ export const deliverySystem = system({
     Support,
     Surface,
     MaterialLot,
+    ExcavationWork,
     DeliveryControl,
   ],
   writes: [DeliveryTask],
   run(ctx) {
     const tasks = ctx.query(query(DeliveryTask));
     const controls = ctx.query(query(DeliveryControl));
+    const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
     const lots = ctx.query(query(MaterialLot));
     const positionIds = new Set(positions.map((row) => row.id));
+    const excavatingActors = new Set(excavations.map((row) => row.id));
     const relevantIds = [
       ...new Set([
         ...controls.map((row) => row.id),
@@ -111,8 +115,22 @@ export const deliverySystem = system({
         ];
       });
     });
+    const deliveryClaims = tasks.map(row => ({
+      task: row.id,
+      actor: row.get(DeliveryTask).actor,
+    }));
+    // A saved delivery claim remains the owner of its cargo/state if native
+    // excavation starts for the same actor. The native claim still blocks any
+    // new delivery assignment, and the progression loop below holds the
+    // existing delivery until excavation releases the actor.
+    const deliveryActors = new Set(
+      deliveryClaims.flatMap(({ actor }) => actor === null ? [] : [actor]),
+    );
+    const excavationClaims = [...excavatingActors]
+      .filter((actor) => !deliveryActors.has(actor))
+      .map((actor) => ({ task: actor, actor }));
     const assignments = allocateWork(
-      tasks.map(row => ({ task: row.id, actor: row.get(DeliveryTask).actor })),
+      [...deliveryClaims, ...excavationClaims],
       candidates,
       eligible => ctx.assign(eligible),
     );
@@ -134,6 +152,7 @@ export const deliverySystem = system({
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
       if (state.actor === null || assigned.has(task.id)) continue;
+      if (excavatingActors.has(state.actor)) continue;
       const control = controls
         .find((row) => row.id === state.actor)
         ?.get(DeliveryControl);
