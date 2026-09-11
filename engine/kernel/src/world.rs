@@ -287,6 +287,7 @@ pub struct KernelRecords {
     pub environment: Option<(String, crate::terrain_water::TerrainWaterRecords)>,
 }
 struct KernelEnvironment {
+    emissions: crate::emission_definition::EmissionCatalog,
     atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphere>,
     definition: String,
     world: crate::terrain_water::TerrainWater,
@@ -1006,7 +1007,7 @@ impl Kernel {
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { atmosphere, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, emissions: built.emissions, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
@@ -1112,7 +1113,7 @@ impl Kernel {
                 }
                 _ => return Err("saved atmosphere capability does not match environment".into()),
             };
-            candidate.environment = Some(KernelEnvironment { atmosphere, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures });
+            candidate.environment = Some(KernelEnvironment { atmosphere, emissions: prepared.emissions, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures });
             candidate.validate_construction_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
@@ -1446,7 +1447,7 @@ impl Kernel {
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
-        if let Some((water, air)) = environment_work { output["environmentWork"] = serde_json::to_value(water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(air).map_err(|e| e.to_string())?; }
+        if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work.water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(work.air).map_err(|e| e.to_string())?; }
         serde_json::to_string(&output).map_err(|e| e.to_string())
     }
     fn entity(&self, id: &str) -> Result<Entity> {

@@ -1,7 +1,8 @@
 use super::*;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub enum RebindBlockReason {
     TrappedVolumeRemoved,
     PressureEnvelope,
