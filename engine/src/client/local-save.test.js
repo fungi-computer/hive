@@ -40,6 +40,35 @@ test("local save owner retains binary snapshot values through its store", async 
   await owner.close();
 });
 
+test("local save owner observes both request and transaction failures", async () => {
+  let closed = false;
+  const db = {
+    objectStoreNames: { contains: () => true },
+    close() { closed = true; },
+    transaction() {
+      return {
+        store: { put: () => Promise.reject(new Error("put failed")) },
+        done: Promise.reject(new Error("transaction failed")),
+      };
+    },
+  };
+  const owner = createLocalSaveOwner({ mode: "pirates", indexedDBSource: {}, openDBImpl: async () => db });
+  await assert.rejects(owner.write({}), /put failed|transaction failed/);
+  await owner.close();
+  assert.equal(closed, true);
+});
+
+test("closed local save owner rejects later reads", async () => {
+  const db = {
+    objectStoreNames: { contains: () => true },
+    close() {},
+    get() { return undefined; },
+  };
+  const owner = createLocalSaveOwner({ mode: "colony", indexedDBSource: {}, openDBImpl: async () => db });
+  await owner.close();
+  await assert.rejects(owner.read(), /local save is closed/);
+});
+
 test("connection choice awaits injected durable save and restore", async () => {
   const sent = [];
   const listeners = new Set();

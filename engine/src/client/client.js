@@ -103,7 +103,8 @@ export function createHiveClient({
       try {
         state.pendingRestore = true;
         state.message = "Continue requested…";
-        void Promise.resolve(persistence.continue?.()).catch((error) => {
+        void Promise.resolve().then(() => persistence.continue?.()).catch((error) => {
+          if (state.disposed) return;
           state.pendingRestore = false;
           state.message = error instanceof Error ? error.message : String(error);
           renderHud();
@@ -972,11 +973,13 @@ export function createHiveClient({
         result && typeof result === "object" && result.accepted === false))
         intendedDestinations.clear();
       if (event.type === "saved") {
-        void Promise.resolve(persistence.onSaved?.(event.snapshot)).then(() => {
+        void Promise.resolve().then(() => persistence.onSaved?.(event.snapshot)).then(() => {
+          if (state.disposed) return;
           state.pendingSave = false;
           state.message = persistence.online ? "Saved on server" : "Saved in this browser";
           renderHud();
         }, (error) => {
+          if (state.disposed) return;
           state.pendingSave = false;
           state.message = `Could not save: ${error instanceof Error ? error.message : String(error)}`;
           renderHud();
