@@ -536,6 +536,7 @@ export class GameSession {
         impacts: [],
         assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
+        physicalContacts: cells => this.port.physicalContacts(cells),
         terrainMaterials: cells => this.port.terrainMaterials(cells),
         terrainSurfaces: columns => this.port.terrainSurfaces(columns),
         routeCosts: requests => {

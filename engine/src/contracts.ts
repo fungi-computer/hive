@@ -174,6 +174,7 @@ export interface ReadContext {
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
+  physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
   terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
   terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
   assign(
@@ -253,11 +254,18 @@ export interface RenderFact {
   } | null;
 }
 export type KernelSnapshot = KernelRecordSnapshot;
+export type PhysicalContact = {
+  readonly solid: boolean;
+  readonly sealedTop: boolean;
+  readonly outside: boolean;
+};
+
 export type TerrainSurface = {
   readonly cell: readonly [number, number, number];
   readonly material: number;
 };
 export interface KernelPort {
+  readonly physicalContacts: (cells: readonly [number, number, number][]) => readonly PhysicalContact[];
   readonly routeCosts: (requests: readonly RouteCostRequest[]) => readonly RouteCostResult[];
   readonly dispose: () => void;
   readonly load: (definition: Uint8Array) => void;

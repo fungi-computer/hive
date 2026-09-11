@@ -61,7 +61,7 @@ function fakePort(
     load() {},
     loadEnvironment() {},
     environmentFacts: facts,
-    terrainMaterials: () => [],
+    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
     terrainSurfaces: surfaces,
     query: () => [],
     entityMembership: () => [],

@@ -1,3 +1,4 @@
+import { physicalContactQuery } from "./physical-contact-query";
 import type {
   AssignmentCandidate,
   AssignmentPair,
@@ -28,6 +29,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   load(json: string): void;
   load_environment(json: string): void;
   environment_facts(): string;
+  physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
   query(json: string): string;
@@ -64,6 +66,9 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     },
     environmentFacts() {
       return JSON.parse(binding.environment_facts()) as unknown;
+    },
+    physicalContacts(cells) {
+      return physicalContactQuery(json => binding.physical_contacts(json), cells);
     },
     terrainMaterials(cells) {
       if (

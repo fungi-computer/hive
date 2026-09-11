@@ -21,7 +21,7 @@ function context(rows: Row[]) {
       id: candidate.id,
       get: (definition: { id: string }) => candidate.values.get(definition.id),
     })),
-    worldPoses: () => [], routeCosts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [], assign: () => [],
+    worldPoses: () => [], routeCosts: () => [], physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [], assign: () => [],
     write: () => {}, action: () => {},
     createAuthoredEntity: (record: { id: EntityId; components: Record<string, Record<string, unknown>> }) => {
       created.push(record);

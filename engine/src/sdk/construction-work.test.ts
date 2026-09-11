@@ -69,7 +69,7 @@ function context(options: {
       routes.push(requests);
       return requests.map(() => ({ status: "reachable", cost: 3 }));
     },
-    terrainMaterials: () => [], terrainSurfaces: () => [],
+    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,
     write: () => {},
     action: (action: unknown) => actions.push(action),

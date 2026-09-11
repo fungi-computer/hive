@@ -69,7 +69,7 @@ test(`native ${occupation} reserves a worker without dropping its delivery state
     random: { next: () => 0 },
     query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
     routeCosts: () => { throw new Error("unexpected route query"); },
-    terrainMaterials: () => [],
+    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
     terrainSurfaces: () => [],
     worldPoses: (ids) => ids.map((id) => ({
       id,
@@ -161,7 +161,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       outcomes: [], impacts: [], random: { next: () => 0 },
       query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
       routeCosts: () => { throw new Error("unexpected route query"); },
-    terrainMaterials: () => [],
+    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
     terrainSurfaces: () => [],
     worldPoses: (ids) => ids.map((id) => ({
         id, local: point, world: point, support: null, surface: null,
@@ -214,7 +214,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
         world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
       routeCosts: () => { throw new Error("claimed delivery must not search a new route"); },
       assign: () => { throw new Error("claimed delivery must not be reassigned"); },
-      terrainMaterials: () => [], terrainSurfaces: () => [],
+      physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
       createAuthoredEntity: () => { throw new Error("no new task"); },
       removeAuthoredEntity: () => { throw new Error("no task removal"); },
       write: (...args) => writes.push(args), action: request => actions.push(request),
@@ -246,7 +246,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
     routeCosts: requests => requests.map(request => ({ actor: request.actor, status: "reachable", cost: 1 })),
     assign: candidates => { assert.equal(candidates.length, 1); return [{ worker, task, cost: 1 }]; },
-    terrainMaterials: () => [], terrainSurfaces: () => [],
+    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     createAuthoredEntity: () => { throw new Error("no new task"); }, removeAuthoredEntity: () => { throw new Error("no removal"); },
     write: (...args) => writes.push(args), action: () => { throw new Error("assignment earns no transfer"); },
   });

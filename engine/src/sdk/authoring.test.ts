@@ -38,7 +38,7 @@ export function authoringContractProof(): void {
     query: () => [],
     assign: () => [],
     routeCosts: () => { throw new Error("unexpected route query"); },
-    terrainMaterials: () => [],
+    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
     terrainSurfaces: () => [],
     worldPoses: () => [],
     write: (...args) => writes.push(args),

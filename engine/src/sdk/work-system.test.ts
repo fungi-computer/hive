@@ -10,7 +10,7 @@ const base = {
   random: { next: () => 0 },
   query: () => [],
   routeCosts: () => { throw new Error("unexpected route query"); },
-  terrainMaterials: () => [],
+  physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
   terrainSurfaces: () => [],
   worldPoses: () => [],
   write: () => {},

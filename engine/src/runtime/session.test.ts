@@ -76,6 +76,7 @@ class TestPort implements KernelPort {
   }
   loadEnvironment(_definition: Uint8Array): void {}
   environmentFacts(): unknown { return null; }
+  physicalContacts(): never { throw new Error("unexpected physical contact query in session fixture"); }
   terrainMaterials(_cells: readonly [number, number, number][]): readonly number[] { return []; }
   terrainSurfaces(_columns: readonly [number, number][]): readonly null[] { return []; }
   entityMembership(ids: readonly import("../contracts").EntityId[]): readonly boolean[] {
