@@ -6,12 +6,19 @@
 //! definitions and water state are the only values that cross a save boundary.
 
 use serde::{Deserialize, Serialize};
+use serde::ser::SerializeStruct;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 pub const WATER_DENSITY_KG_PER_M3: f64 = 1_000.0;
 pub const STATE_VERSION: &str = "finite-voxel-water-v1";
 pub const MAX_SUBSTEP_SECONDS: f64 = 0.2;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WaterStateVersion {
+    #[serde(rename = "finite-voxel-water-v1")]
+    V1,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -70,24 +77,57 @@ pub struct WaterStock {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WaterState {
-    pub version: String,
-    pub binding: WaterBinding,
-    pub mass_kg: Vec<f64>,
-    pub initial_total_kg: f64,
-    pub boundary_kg: f64,
+    version: WaterStateVersion,
+    binding: WaterBinding,
+    mass_kg: Vec<f64>,
+    initial_total_kg: f64,
+    boundary_kg: f64,
+    #[serde(skip)]
+    checked: bool,
+}
+
+impl WaterState {
+    pub fn version(&self) -> WaterStateVersion { self.version }
+    pub fn binding(&self) -> &WaterBinding { &self.binding }
+    pub fn masses(&self) -> &[f64] { &self.mass_kg }
+    pub fn initial_total_kg(&self) -> f64 { self.initial_total_kg }
+    pub fn boundary_kg(&self) -> f64 { self.boundary_kg }
 }
 
 /// Compact save binding for the immutable canonical definition held by a
-/// `CompiledWater`. The definition itself is not duplicated into each state.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+/// `CompiledWater`. The definition itself is not duplicated into each state;
+/// its revision is the content boundary and must change for any edit.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WaterBinding {
+    id: Arc<str>,
+    revision: u64,
+}
+
+impl Serialize for WaterBinding {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("WaterBinding", 2)?;
+        state.serialize_field("id", self.id.as_ref())?;
+        state.serialize_field("revision", &self.revision)?;
+        state.end()
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct WaterBindingWire {
     id: String,
     revision: u64,
 }
 
+impl<'de> Deserialize<'de> for WaterBinding {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let wire = WaterBindingWire::deserialize(deserializer)?;
+        Ok(Self { id: Arc::from(wire.id), revision: wire.revision })
+    }
+}
+
 impl WaterBinding {
-    pub fn id(&self) -> &str { &self.id }
+    pub fn id(&self) -> &str { self.id.as_ref() }
     pub fn revision(&self) -> u64 { self.revision }
 }
 
@@ -372,7 +412,7 @@ impl CompiledWater {
         definition.soils = soils.into_values().collect();
         definition.cells = nodes.iter().map(|node| CellDefinition { at: node.at, kind: node.kind, soil_id: node.soil.as_ref().map(|soil| soil.id.clone()) }).collect();
         definition.faces = faces.iter().map(|face| FaceDefinition { a: nodes[face.a].at, b: nodes[face.b].at, open_fraction: face.area_m2 * definition.spacing_m[face.axis] / volume_m3 }).collect();
-        let binding = WaterBinding { id: definition.id.clone(), revision: definition.revision };
+        let binding = WaterBinding { id: Arc::from(definition.id.as_str()), revision: definition.revision };
         Ok(Self { definition: Arc::new(definition), binding, nodes, faces, index, limits })
     }
 
@@ -392,13 +432,18 @@ impl CompiledWater {
             mass_kg[index] = stock.mass_kg;
         }
         if seen.len() != self.nodes.len() { return Err(fail("water initial stock has missing cells")); }
-        let state = WaterState { version: STATE_VERSION.into(), binding: self.binding.clone(), initial_total_kg: compensated_sum(mass_kg.iter().copied()), mass_kg, boundary_kg: 0.0 };
+        let state = WaterState { version: WaterStateVersion::V1, binding: self.binding.clone(), initial_total_kg: compensated_sum(mass_kg.iter().copied()), mass_kg, boundary_kg: 0.0, checked: true };
         self.validate_state(&state)?;
         Ok(state)
     }
 
     pub fn validate_state(&self, state: &WaterState) -> WaterResult<()> {
-        if state.version != STATE_VERSION || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() || !state.initial_total_kg.is_finite() || state.initial_total_kg < 0.0 || !state.boundary_kg.is_finite() {
+        if !state.checked { return Err(fail("water state has not crossed the admission boundary")); }
+        self.validate_state_contents(state)
+    }
+
+    fn validate_state_contents(&self, state: &WaterState) -> WaterResult<()> {
+        if state.version != WaterStateVersion::V1 || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() || !state.initial_total_kg.is_finite() || state.initial_total_kg < 0.0 || !state.boundary_kg.is_finite() {
             return Err(fail("water state does not match compiled definition"));
         }
         for (amount, node) in state.mass_kg.iter().zip(&self.nodes) {
@@ -419,8 +464,9 @@ impl CompiledWater {
     }
 
     pub fn decode_state(&self, wire: &str) -> WaterResult<WaterState> {
-        let state: WaterState = serde_json::from_str(wire).map_err(|error| fail(format!("water state decoding failed: {error}")))?;
-        self.validate_state(&state)?;
+        let mut state: WaterState = serde_json::from_str(wire).map_err(|error| fail(format!("water state decoding failed: {error}")))?;
+        self.validate_state_contents(&state)?;
+        state.checked = true;
         Ok(state)
     }
 
@@ -440,6 +486,9 @@ impl CompiledWater {
         })
     }
 
+    /// Advance an already admitted state. Admission is performed by `initial`
+    /// or `decode_state`; private state fields prevent ordinary callers from
+    /// invalidating it, so a successful tick avoids rescanning every stock.
     pub fn advance(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace) -> WaterResult<WaterAdvance> {
         self.advance_inner(state, seconds, workspace, false)
     }
@@ -449,7 +498,9 @@ impl CompiledWater {
     }
 
     fn advance_inner(&self, state: &WaterState, seconds: f64, workspace: &mut WaterWorkspace, collect_flows: bool) -> WaterResult<WaterAdvance> {
-        self.validate_state(state)?;
+        if !state.checked || state.version != WaterStateVersion::V1 || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() {
+            return Err(fail("water state is not an admitted compiled state"));
+        }
         if workspace.scratch.next.len() != self.nodes.len() || workspace.scratch.requests.capacity() < self.faces.len() {
             return Err(fail("water workspace does not match compiled definition"));
         }
@@ -470,8 +521,7 @@ impl CompiledWater {
             work.requests += step_work.requests;
             work.unresolved += step_work.unresolved;
         }
-        let next = WaterState { version: STATE_VERSION.into(), binding: self.binding.clone(), mass_kg: mass, initial_total_kg: state.initial_total_kg, boundary_kg: state.boundary_kg };
-        self.validate_state(&next)?;
+        let next = WaterState { version: WaterStateVersion::V1, binding: self.binding.clone(), mass_kg: mass, initial_total_kg: state.initial_total_kg, boundary_kg: state.boundary_kg, checked: true };
         Ok(WaterAdvance { state: next, seconds, substeps: vec![dt_s; steps], flows: flows.unwrap_or_default(), work })
     }
 
@@ -519,7 +569,7 @@ impl CompiledWater {
             scratch.receiving[request.to] -= quantity;
             if request.absorption { scratch.retaining[request.to] -= quantity; }
             if let Some(flows) = flows.as_mut() {
-                flows.push(WaterFlow { face_id: self.faces[request.face].id.clone(), from: self.nodes[request.from].id.clone(), to: self.nodes[request.to].id.clone(), mass_kg: quantity });
+                (*flows).push(WaterFlow { face_id: self.faces[request.face].id.clone(), from: self.nodes[request.from].id.clone(), to: self.nodes[request.to].id.clone(), mass_kg: quantity });
             }
         }
         Ok(WaterWork { faces: self.faces.len(), requests: scratch.requests.len(), unresolved })
