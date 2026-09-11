@@ -219,3 +219,29 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
     assert.equal(state.actor, worker, "queried committed data was not mutated in place");
   }
 });
+
+test("worker batch preference cannot exceed a delivery's requested quantity", () => {
+  const worker = entity("worker"), source = entity("source"), destination = entity("destination");
+  const task = entity("task"), lot = entity("lot");
+  const state = { actor: null, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" };
+  const values = new Map<string, readonly unknown[]>([
+    [DeliveryTask.id, [row(task, DeliveryTask, state)]],
+    [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 2 })]],
+    [Body.id, [row(worker, Body, { speed: 1 })]],
+    [Container.id, [row(worker, Container, { capacity: 2 }), row(source, Container, { capacity: 2 }), row(destination, Container, { capacity: 1 })]],
+    [Position.id, [worker, source, destination].map(id => row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }))],
+    [MaterialLot.id, [row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source })]],
+  ]);
+  const writes: unknown[][] = [];
+  deliverySystem.run({
+    clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: [], impacts: [], random: { next: () => 0 },
+    query: spec => (values.get(spec.components[0].id) ?? []) as never,
+    worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
+    routeCosts: requests => requests.map(request => ({ actor: request.actor, status: "reachable", cost: 1 })),
+    assign: candidates => { assert.equal(candidates.length, 1); return [{ worker, task }]; },
+    terrainMaterials: () => [], terrainSurfaces: () => [],
+    createAuthoredEntity: () => { throw new Error("no new task"); }, removeAuthoredEntity: () => { throw new Error("no removal"); },
+    write: (...args) => writes.push(args), action: () => { throw new Error("assignment earns no transfer"); },
+  });
+  assert.deepEqual(writes, [[DeliveryTask, task, { ...state, actor: worker, quantity: 1, phase: "to-source" }]]);
+});
