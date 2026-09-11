@@ -11,6 +11,7 @@ mod components;
 mod navigation;
 mod registry;
 mod world;
+mod record_bundle;
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -48,6 +49,26 @@ struct AssignmentWire {
 
 #[wasm_bindgen]
 pub struct WasmKernel(Kernel);
+
+/// Detached, bounded save bytes. This handle never mutates a live world.
+/// The JS caller frees captures after copying; restore_records consumes its input.
+#[wasm_bindgen]
+pub struct WasmKernelRecords(record_bundle::RecordBundle);
+
+#[wasm_bindgen]
+impl WasmKernelRecords {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self { Self(record_bundle::RecordBundle::new()) }
+    pub fn insert(&mut self, key: &str, bytes: &[u8]) -> Result<(), JsValue> {
+        self.0.insert(key, bytes).map_err(js_error)
+    }
+    pub fn keys(&self) -> Result<String, JsValue> {
+        serde_json::to_string(&self.0.keys()).map_err(|error| js_error(error.to_string()))
+    }
+    pub fn read(&self, key: &str) -> Result<Vec<u8>, JsValue> {
+        self.0.read(key).map_err(js_error)
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -165,6 +186,20 @@ impl WasmKernel {
     }
     pub fn restore(&mut self, json: &str) -> Result<(), JsValue> {
         self.0.restore_json(json).map_err(js_error)
+    }
+    pub fn load_environment(&mut self, definition: &str) -> Result<(), JsValue> {
+        self.0.load_environment(definition).map_err(js_error)
+    }
+    pub fn environment_facts(&self) -> Result<String, JsValue> {
+        self.0.environment_facts_json().map_err(js_error)
+    }
+    pub fn capture_records(&self) -> Result<WasmKernelRecords, JsValue> {
+        let records = self.0.save_records().map_err(js_error)?;
+        record_bundle::RecordBundle::from_records(records).map(WasmKernelRecords).map_err(js_error)
+    }
+    pub fn restore_records(&mut self, records: WasmKernelRecords) -> Result<(), JsValue> {
+        let records = records.0.into_records().map_err(js_error)?;
+        self.0.restore_records(&records).map_err(js_error)
     }
     pub fn render_facts(&self) -> Result<String, JsValue> {
         self.0.render_json().map_err(js_error)

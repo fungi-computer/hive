@@ -159,16 +159,8 @@ impl RecordBundle {
                 || terrain.len() > RECORD_BYTES
                 || water.len() > RECORD_BYTES
             {
-                return Err("environment record exceeds bound");
+                return Err("environment record exceeds bound".into());
             }
-        }
-        if !header.environment
-            && self
-                .records
-                .keys()
-                .any(|key| environment_keys.contains(&key.as_str()))
-        {
-            return Err("unexpected environment record");
         }
         let mut chunks = Vec::new();
         for (key, bytes) in &self.records {
@@ -307,15 +299,19 @@ mod tests {
             environment: Some((
                 String::new(),
                 crate::terrain_water::TerrainWaterRecords {
-                    header: vec![1],
-                    terrain: vec![],
-                    water: vec![],
+                    header: vec![1, 0],
+                    terrain: vec![0, 255, 0],
+                    water: vec![0, 0, 128],
                 },
             )),
         };
         let bundle = RecordBundle::from_records(records).unwrap();
         let roundtrip = bundle.into_records().unwrap();
-        assert_eq!(roundtrip.environment.unwrap().1.terrain, Vec::<u8>::new());
+        let (definition, environment) = roundtrip.environment.unwrap();
+        assert_eq!(definition, "");
+        assert_eq!(environment.header, [1, 0]);
+        assert_eq!(environment.terrain, [0, 255, 0]);
+        assert_eq!(environment.water, [0, 0, 128]);
     }
     #[test]
     fn rejects_missing_extra_duplicate_oversized_and_trailing_header() {
