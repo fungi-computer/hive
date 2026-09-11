@@ -54,12 +54,12 @@ pub fn project(
         {
             return Err("atmosphere geometry cell metric mismatch".into());
         }
-        let liquid = match cell.water {
+        let liquid = match &cell.water {
             AirWaterCoverage::Admitted { liquid_volume_m3 } => {
-                if !liquid_volume_m3.is_finite() || liquid_volume_m3 < 0.0 || liquid_volume_m3 > cell.voxel_volume_m3 {
+                if !liquid_volume_m3.is_finite() || *liquid_volume_m3 < 0.0 || *liquid_volume_m3 > cell.voxel_volume_m3 {
                     return Err("atmosphere geometry water volume is invalid".into());
                 }
-                liquid_volume_m3
+                *liquid_volume_m3
             }
             AirWaterCoverage::Unmodeled => match water_policy {
                 UnmodeledWaterPolicy::Reject => return Err("atmosphere geometry has unmodeled water coverage".into()),
@@ -80,10 +80,10 @@ pub fn project(
     let mut positions = BTreeMap::new();
     for (at, (index, _)) in &air { positions.insert(*at, *index); }
     for face in &snapshot.faces {
-        let AirGeometryFaceKind::Internal { a, b, sealed } = face.kind else { continue };
-        if sealed || !matches!(face.face.axis, FaceAxis::X | FaceAxis::Z) { continue; }
-        let (Some(left), Some(right)) = (positions.get(&a), positions.get(&b)) else { continue };
-        if same_bin(a, b, spacing_m)? { union(&mut parent, *left, *right); }
+        let AirGeometryFaceKind::Internal { a, b, sealed } = &face.kind else { continue };
+        if *sealed || !matches!(face.face.axis, FaceAxis::X | FaceAxis::Z) { continue; }
+        let (Some(left), Some(right)) = (positions.get(a), positions.get(b)) else { continue };
+        if same_bin(*a, *b, spacing_m)? { union(&mut parent, *left, *right); }
     }
 
     let mut members: BTreeMap<usize, Vec<(Cell, f64)>> = BTreeMap::new();
@@ -111,22 +111,22 @@ pub fn project(
     let mut openings = Vec::new();
     let mut opening_ids = BTreeSet::new();
     for face in &snapshot.faces {
-        let AirGeometryFaceKind::Internal { a, b, sealed } = face.kind else { continue };
-        if sealed || !air.contains_key(&a) || !air.contains_key(&b) { continue; }
-        let from = volume_by_cell.get(&a).ok_or("air volume missing face endpoint")?;
-        let to = volume_by_cell.get(&b).ok_or("air volume missing face endpoint")?;
+        let AirGeometryFaceKind::Internal { a, b, sealed } = &face.kind else { continue };
+        if *sealed || !air.contains_key(a) || !air.contains_key(b) { continue; }
+        let from = volume_by_cell.get(a).ok_or("air volume missing face endpoint")?;
+        let to = volume_by_cell.get(b).ok_or("air volume missing face endpoint")?;
         if from == to { continue; }
         let axis = axis_index(face.face.axis);
-        let area = face_area(face.face.axis, a, b, &air, spacing_m)?;
+        let area = face_area(face.face.axis, *a, *b, &air, spacing_m)?;
         if area <= 0.0 { continue; }
         let id = face_id(face.face.axis, face.face.cell);
         if !opening_ids.insert(id.clone()) { return Err("duplicate atmosphere opening".into()); }
         openings.push(AtmosphereOpeningDefinition {
             id,
             from: from.clone(),
-            from_cell_id: cell_id(a),
+            from_cell_id: cell_id(*a),
             to: Some(to.clone()),
-            to_cell_id: Some(cell_id(b)),
+            to_cell_id: Some(cell_id(*b)),
             area_m2: area,
             distance_m: spacing_m[axis],
             elevation_m: (f64::from(a.y) + f64::from(b.y) + 1.0) * spacing_m[1] * 0.5,
