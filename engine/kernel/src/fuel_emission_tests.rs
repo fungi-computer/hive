@@ -66,7 +66,7 @@ fn make_kernel(fuel_quantity: Option<u32>, wet: bool) -> Kernel {
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
     let position = Position {
         x: surface.x as f64 * spacing[0],
-        y: (f64::from(surface.y) + 1.5) * spacing[1],
+        y: (f64::from(surface.y) + 0.5) * spacing[1],
         z: surface.z as f64 * spacing[2],
         facing: 0.0,
     };

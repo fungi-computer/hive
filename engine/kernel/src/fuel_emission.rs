@@ -22,7 +22,10 @@ impl Kernel {
         if !distance.is_finite() || distance > 1.5 { return Err("worker is not at emitter contact".into()); }
         if self.ecs.get::<Support>(station_entity).is_some() { return Err("emitter requires terrain placement".into()); }
         let spacing = environment.world.cell_spacing_m();
-        let coordinates = [(target.x / spacing[0]).floor(), (target.y / spacing[1]).floor(), (target.z / spacing[2]).floor()];
+        // Terrain cells are centered on integer coordinates. Initial placement
+        // puts a station on the supporting cell's positive half-face; that
+        // boundary belongs to the air cell above, not to the solid support.
+        let coordinates = [(target.x / spacing[0] + 0.5).floor(), (target.y / spacing[1] + 0.5).floor(), (target.z / spacing[2] + 0.5).floor()];
         let bounds = environment.world.bounds();
         if !coordinates.iter().all(|value| value.is_finite())
             || coordinates[0] < bounds.min_x as f64 || coordinates[0] >= bounds.max_x as f64
