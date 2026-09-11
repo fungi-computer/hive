@@ -5,7 +5,7 @@ pub mod generation;
 pub mod terrain;
 pub mod terrain_water;
 pub mod environment_definition;
-pub mod material_output;
+mod material_output;
 pub mod water;
 mod combat;
 mod components;
