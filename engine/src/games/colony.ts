@@ -1,6 +1,7 @@
 import { command, component, entity, query } from "../sdk/authoring";
-import { Body, Container, Destination, MaterialLot, Position, encodeDefinition } from "../sdk/common";
+import { Body, Container, Destination, MaterialLot, Position, Traversal, encodeDefinition } from "../sdk/common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
+import { colonyEnvironmentDefinition } from "./colony-environment";
 import type { EntityId, GamePack } from "../contracts";
 
 export const Worker = component<{ guest: boolean }>("colony.worker", {
@@ -29,7 +30,8 @@ const colonyInitial = [
     components: {
       "hive.position": { x: 0, y: 0, z: index * 2, facing: 0 },
       "hive.body": { speed: 2 },
-      "hive.container": { capacity: 2 },
+      "hive.container": { capacity: 3 },
+      "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: "goblin.worker", label: `Worker ${index + 1}` },
       "colony.worker": { guest: false },
       "hive.delivery-control": { enabled: false, quantity: 1 },
@@ -147,6 +149,7 @@ const colonyComponents = [
   Position,
   Body,
   Container,
+  Traversal,
   MaterialLot,
   Destination,
   Worker,
@@ -155,11 +158,25 @@ const colonyComponents = [
   DeliveryControl,
 ] as const;
 
-export const colonyPack: GamePack = {
+type InitialPlacement = {
+  readonly entity: EntityId;
+  readonly column: readonly [number, number];
+};
+
+const colonyInitialPlacements: readonly InitialPlacement[] = [
+  { entity: workerOne, column: [0, 0] },
+  { entity: workerTwo, column: [0, 2] },
+  { entity: guestId, column: [3, 1] },
+  { entity: pantryId, column: [-2, 0] },
+];
+
+export const colonyPack = {
   id: "colony",
   version: 2,
   components: colonyComponents,
   systems: [deliverySystem],
+  environmentDefinition: colonyEnvironmentDefinition,
+  initialPlacements: colonyInitialPlacements,
   commands: {
     deliver: command({
       reads: [Worker, DeliveryTask, DeliveryControl],
@@ -197,4 +214,4 @@ export const colonyPack: GamePack = {
     },
   },
   definition: encodeDefinition("colony", colonyComponents, colonyInitial),
-};
+} as GamePack & { readonly initialPlacements: readonly InitialPlacement[] };
