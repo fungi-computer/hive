@@ -2,6 +2,8 @@ import { component, query, system } from "./authoring";
 import { allocateWork } from "./work-allocation";
 import {
   MaterialLot,
+  Body,
+  Container,
   ExcavationWork,
   Position,
   Support,
@@ -49,6 +51,8 @@ export const deliverySystem = system({
   reads: [
     DeliveryTask,
     Position,
+    Body,
+    Container,
     Support,
     Surface,
     MaterialLot,
@@ -62,6 +66,36 @@ export const deliverySystem = system({
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
     const lots = ctx.query(query(MaterialLot));
+    const lotRowsById = new Map(lots.map((row) => [row.id, row]));
+    const lotsById = new Map(lots.map((row) => [row.id, row.get(MaterialLot)]));
+    const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
+    const containers = new Map(ctx.query(query(Container)).map((row) => [row.id, row.get(Container)]));
+    const lotsByContainer = new Map<EntityId, { quantity: number; kind: string }[]>();
+    const invalidLotContainers = new Set<EntityId>();
+    for (const row of lots) {
+      const lot = row.get(MaterialLot);
+      if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 0)
+        invalidLotContainers.add(lot.container);
+      const existing = lotsByContainer.get(lot.container) ?? [];
+      existing.push({ quantity: lot.quantity, kind: lot.kind });
+      lotsByContainer.set(lot.container, existing);
+    }
+    const quantityIn = (container: EntityId) => {
+      if (invalidLotContainers.has(container)) return null;
+      return (lotsByContainer.get(container) ?? []).reduce((sum, lot) => sum + lot.quantity, 0);
+    };
+    const hasCapacity = (container: EntityId, additional: number) => {
+      const capacity = containers.get(container)?.capacity;
+      const quantity = quantityIn(container);
+      return (
+        typeof capacity === "number" &&
+        Number.isSafeInteger(capacity) &&
+        capacity >= 0 &&
+        quantity !== null &&
+        Number.isSafeInteger(quantity + additional) &&
+        quantity + additional <= capacity
+      );
+    };
     const positionIds = new Set(positions.map((row) => row.id));
     const excavatingActors = new Set(excavations.map((row) => row.id));
     const relevantIds = [
@@ -81,9 +115,7 @@ export const deliverySystem = system({
       poses.get(a)?.support === poses.get(b)?.support;
     const idleTasks = tasks.filter((row) => {
       const task = row.get(DeliveryTask);
-      const lot = lots
-        .find((candidate) => candidate.id === task.sourceLot)
-        ?.get(MaterialLot);
+      const lot = lotsById.get(task.sourceLot);
       return (
         task.actor === null &&
         task.phase === "idle" &&
@@ -93,10 +125,37 @@ export const deliverySystem = system({
     const candidates = controls.flatMap((controlRow) => {
       const control = controlRow.get(DeliveryControl);
       if (!control.enabled) return [];
+      if (
+        !Number.isSafeInteger(control.quantity) ||
+        control.quantity <= 0 ||
+        !bodies.has(controlRow.id) ||
+        !Number.isFinite(bodies.get(controlRow.id)?.speed) ||
+        (bodies.get(controlRow.id)?.speed ?? 0) <= 0
+      )
+        return [];
       const actorPosition = poses.get(controlRow.id);
       if (!actorPosition) return [];
       return idleTasks.flatMap((taskRow) => {
         const task = taskRow.get(DeliveryTask);
+        if (
+          task.source === task.destination ||
+          task.source === controlRow.id ||
+          task.destination === controlRow.id ||
+          !containers.has(task.source) ||
+          !containers.has(task.destination)
+        )
+          return [];
+        const lot = lotsById.get(task.sourceLot);
+        if (
+          !lot ||
+          lot.container !== task.source ||
+          lot.kind !== task.material ||
+          !Number.isSafeInteger(lot.quantity) ||
+          lot.quantity < control.quantity ||
+          !hasCapacity(controlRow.id, control.quantity) ||
+          !hasCapacity(task.destination, control.quantity)
+        )
+          return [];
         const sourcePosition = poses.get(task.source);
         const destinationPosition = poses.get(task.destination);
         if (
@@ -178,14 +237,10 @@ export const deliverySystem = system({
         !sameFrame(state.actor, state.destination)
       )
         continue;
-      const lot = lots.find((row) => row.id === state.sourceLot);
-      const lotState = lot?.get(MaterialLot);
-      const actorLot = lots.find(
-        (row) =>
-          row.id === state.sourceLot &&
-          row.get(MaterialLot).container === state.actor,
-      );
-      const actorLotState = actorLot?.get(MaterialLot);
+      const lot = lotRowsById.get(state.sourceLot);
+      const lotState = lotsById.get(state.sourceLot);
+      const actorLot = lotState?.container === state.actor ? lot : undefined;
+      const actorLotState = actorLot ? lotState : undefined;
       if (!control?.enabled) {
         if (state.phase !== "idle" && state.phase !== "complete")
           ctx.action(
