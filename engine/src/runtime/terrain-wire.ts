@@ -33,7 +33,7 @@ function safeRevision(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 function coordinate(value: unknown): value is number {
-  return Number.isInteger(value) && value >= MIN_I32 && value <= MAX_I32;
+  return typeof value === "number" && Number.isInteger(value) && value >= MIN_I32 && value <= MAX_I32;
 }
 function cell(value: unknown): value is readonly [number, number, number] {
   return Array.isArray(value) && value.length === 3 && value.every(coordinate);
@@ -53,7 +53,7 @@ function parseSurface(value: unknown): TerrainSurface | undefined {
 }
 
 function parseWater(value: unknown): TerrainWireWater | undefined {
-  if (!record(value) || !cell(value.at) || !finite(value.massKg) || !finite(value.liquidVolumeM3))
+  if (!record(value) || !cell(value.at) || !finite(value.massKg) || value.massKg < 0 || !finite(value.liquidVolumeM3) || value.liquidVolumeM3 < 0)
     return undefined;
   for (const field of ["capacityKg", "mobileKg", "moisture"])
     if (field in value && !finite(value[field])) return undefined;
