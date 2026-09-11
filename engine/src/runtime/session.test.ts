@@ -75,6 +75,7 @@ class TestPort implements KernelPort {
   }
   loadEnvironment(_definition: Uint8Array): void {}
   environmentFacts(): unknown { return null; }
+  terrainMaterials(_cells: readonly [number, number, number][]): readonly number[] { return []; }
   entityMembership(ids: readonly import("../contracts").EntityId[]): readonly boolean[] {
     return ids.map((id) => id === "actor");
   }

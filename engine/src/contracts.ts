@@ -242,6 +242,9 @@ export interface KernelPort {
   readonly load: (definition: Uint8Array) => void;
   readonly loadEnvironment: (definition: Uint8Array) => void;
   readonly environmentFacts: () => unknown;
+  readonly terrainMaterials: (
+    cells: readonly [number, number, number][],
+  ) => readonly number[];
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];
