@@ -52,11 +52,8 @@ export function surfacePoint(x, y, fact) {
     z: Math.min(surface.maxZ, Math.max(surface.minZ, localZ)), frame: fact.id };
 }
 
-/** Pick only host-published terrain tops using the same camera as their bake.
- * The returned cell identifies solid terrain; point is its standing surface.
- * Native navigation still admits the destination against current geometry.
- */
-export function terrainPoint(x, y, terrain) {
+/** Nearest published face. Side faces identify a displayed column, not hidden material. */
+export function terrainHit(x, y, terrain) {
   let picked = null;
   let nearest = Infinity;
   const ndc = new Vector3(x / WIDTH * 2 - 1, 1 - y / HEIGHT * 2, -1);
@@ -72,10 +69,19 @@ export function terrainPoint(x, y, terrain) {
       if (distance >= nearest) continue;
       nearest = distance;
       const [cx,cy,cz] = face.surface.cell;
-      picked = face.top ? { cell: face.surface.cell, point: {
-        x:cx,y:(cy+0.5)*terrain.verticalMetres,z:cz,frame:null
-      }} : null;
+      picked = {
+        kind: face.top ? "terrain-top" : "terrain-side",
+        column: face.surface.cell,
+        position: {x:hit.x,y:hit.y,z:hit.z},
+        standingPoint: face.top ? {x:cx,y:(cy+0.5)*terrain.verticalMetres,z:cz,frame:null} : null,
+      };
     }
   }
   return picked;
+}
+
+/** Movement consumes standing surfaces; inspection can consume the complete hit. */
+export function terrainPoint(x, y, terrain) {
+  const hit = terrainHit(x,y,terrain);
+  return hit?.standingPoint ? {cell:hit.column,point:hit.standingPoint} : null;
 }

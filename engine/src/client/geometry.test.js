@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { project, groundPoint, surfacePoint, terrainPoint } from './geometry.js';
+import { project, groundPoint, surfacePoint, terrainPoint, terrainHit } from './geometry.js';
 test('ground picking inverts the actual retained projection across the clearing', () => {
   for (let x=-7;x<=7;x++) for(let z=-7;z<=7;z++) {
     const point=project(x,0,z);
@@ -44,4 +44,8 @@ test('visible cliff faces block selection of a lower top behind them', () => {
   const side=project(0.5,1.55,0);
   assert.deepEqual(terrainPoint(side.x,side.y,{...terrain,surfaces:[terrain.surfaces[1]]})?.cell,[-1,0,-2]);
   assert.equal(terrainPoint(side.x,side.y,terrain),null);
+  const hit=terrainHit(side.x,side.y,terrain);
+  assert.equal(hit.kind,"terrain-side");
+  assert.equal(hit.standingPoint,null);
+  assert.deepEqual(hit.column,[0,3,0]);
 });
