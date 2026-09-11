@@ -743,3 +743,15 @@ still requires a maintained WASM build and real Colony work/observation callers.
 Current private completion accepts trusted internal yield arguments; material
 rule admission and earned work must precede any public excavation action. Gas,
 contaminant channels and cross-region water are still unimplemented.
+
+### Material-defined wet excavation — local native qualification, September 11
+
+Source `850a158` qualified in `run-u5475.scope`, invocation
+`fc13b91c0ac147578a904950aa876189`, terminal `89803`, exit 0.
+The two exact native laws cover authored excavation rule validation/reconstruction
+and compound wet excavation with a full destination followed by successful
+finite spoil publication. Both passed (75 other laws filtered); compilation
+27.43 seconds and test execution 0.19 seconds. Scope was collected and verified
+inactive/dead with an empty ControlGroup. The unused prepared-output `revision`
+field remains a compiler warning. This does not qualify a WASM rebuild, worker
+progress, a browser interaction, DO execution or deployment.

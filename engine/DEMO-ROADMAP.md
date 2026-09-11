@@ -608,3 +608,40 @@ explicit; active-frontier performance is not yet implemented. The gas source
 trace is retained in `.botanical/native-environment/gas-port-readiness.md`.
 The next acceptance is the corrected native water owner followed by the shared
 rollback/geometry/colony join, not a new standalone fluid demo.
+
+### Immediate wet-dig gameplay join — September 11 source decision
+
+The material definition now supplies excavation work cost and finite spoil yield.
+Native completion derives both yield and carried pore water; the client cannot
+choose an output quantity. The next join must expose earned work, not expose the
+private completion helper as a free player action.
+
+Use one actor occupation decision for delivery and digging. The current
+`engine/src/sdk/delivery.ts` only excludes actors held by delivery tasks; a separate
+dig assignment loop would therefore double-book workers. Extend this existing
+assignment/occupation boundary before the Colony enables both jobs. Delivery
+remains the shared consumer used by Colony and Pirates.
+
+The intended native work contract is:
+
+```text
+player command: designate target (intent only)
+authoritative work system: choose an available actor and route to reachable contact
+native tick:
+  validate actor/contact/target and consume at most this tick's work allowance
+  accumulate saved progress once per actor, never once per submitted action
+  when material-defined cost is earned:
+    prepare terrain + displaced pore-water + finite output together
+    if output cannot fit: retain earned progress, leave the cell intact
+    otherwise commit all three and settle that target once
+shared delivery: carry resulting real lot using ordinary transfer
+client: display committed work, terrain and water; animate without granting work
+```
+
+Progress must be canonical and restored, scoped to the target's expected material,
+and cleared or rejected when that target has changed. Repeated actions in one
+batch cannot multiply the available time. Paused intent changes earn no work.
+A full container blocks that job rather than cancelling unrelated jobs or ticks.
+This remains implementation work: the current native helper is private and the
+public Colony still has neither the worker dig action nor the generated terrain
+projection. Publish the complete wet-dig loop before moving to the smoke join.
