@@ -21,8 +21,14 @@ struct DefinitionInput {
     world: WorldInput,
     materials: Vec<MaterialInput>,
     water: WaterInput,
+    structures: StructuresInput,
     #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct StructuresInput {
+    max_span_steps: u32,
 }
 #[derive(Debug, Clone)]
 pub struct InitialSurfacePlacement {
@@ -135,6 +141,9 @@ fn prepare_definition_mode(
         .map_err(|error| format!("invalid environment definition: {error}"))?;
     if definition.world.seed.is_empty() || definition.world.identity.is_empty() {
         return Err("world seed and identity are required".into());
+    }
+    if !(1..=64).contains(&definition.structures.max_span_steps) {
+        return Err("structures maxSpanSteps must be an integer from 1 through 64".into());
     }
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
         return Err("initial placement count exceeds 128".into());
@@ -299,6 +308,7 @@ fn prepare_definition_mode(
         water.fall_m_per_s,
         water.spread_m_per_s,
         limits,
+        definition.structures.max_span_steps,
     )?;
     Ok(PreparedDefinition {
         terrain,
@@ -314,7 +324,7 @@ pub(crate) mod tests {
     use super::*;
     pub(crate) fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
         )
     }
     #[test]
@@ -344,12 +354,27 @@ pub(crate) mod tests {
     #[test]
     fn rejects_oversized_or_duplicate_content() {
         assert!(build_from_json(&"x".repeat(MAX_JSON_BYTES + 1)).is_err());
-        let duplicate = r#"{"world":{"seed":"s","identity":"i","bounds":{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8},"slots":{"air":0,"soil":1,"stone":2},"seaLevel":2,"verticalMetres":0.54},"materials":[{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}},{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}}],"water":{"id":"w","cells":[[0,0,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}"#;
+        let duplicate = r#"{"world":{"seed":"s","identity":"i","bounds":{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8},"slots":{"air":0,"soil":1,"stone":2},"seaLevel":2,"verticalMetres":0.54},"structures":{"maxSpanSteps":6},"materials":[{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}},{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}}],"water":{"id":"w","cells":[[0,0,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}"#;
         let error = match build_from_json(duplicate) {
             Ok(_) => panic!("duplicate material accepted"),
             Err(error) => error,
         };
         assert!(error.contains("duplicate material slot"));
+    }
+
+    #[test]
+    fn structures_policy_is_required_and_bounded() {
+        use serde_json::json;
+
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("structures")).unwrap();
+        for value in [json!(0), json!(65), json!(-1), json!(6.5), json!("6")] {
+            input["structures"]["maxSpanSteps"] = value;
+            assert!(prepare_definition(&input.to_string()).is_err());
+        }
+        input["structures"] = serde_json::Value::Null;
+        assert!(prepare_definition(&input.to_string()).is_err());
+        input.as_object_mut().unwrap().remove("structures");
+        assert!(prepare_definition(&input.to_string()).is_err());
     }
     #[test]
     fn fresh_proposes_finite_stocks_once_and_restore_shape_is_dry() {
