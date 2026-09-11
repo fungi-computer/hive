@@ -683,3 +683,34 @@ Qualify the same owner with delivery, excavation and a small multistep recipe
 that includes passive waiting and a blocked output. Do not claim generic production
 from the assignment helper alone. This is a gameplay requirement for the current
 work design, not permission to defer wet digging behind a full brewing port.
+
+### Terrain movement join — September 11
+
+The generated world remains Rust-owned. Exterior surface observations are a
+rendering projection, never the navigation map: a cave route must query the
+actual solid/open cells at its own depth. Current published demos remain on the
+previous runtime while this join is implemented.
+
+The shared traversal node identifies the solid support voxel. Its foot position
+is `(x * spacingX, (y + 0.5) * spacingY, z * spacingZ)`. Do not round world metres
+to voxel rows. Clearance and maximum step height are explicit traversal inputs;
+the first walking profile admits cardinal moves and one-voxel steps. Both ends
+need support, and the swept head space must be open. Ordinary deck-local routes
+continue to use their support frame; ship decks do not query world soil using
+local coordinates. Body dimensions and sailing are not silently inferred from
+sprite art.
+
+One shared edge rule must serve route search, saved-route validation, and
+invalidation after excavation. The existing bounded search remains the path
+owner. A saved position partway along an edge must be validated against that
+edge, not snapped to the nearest voxel. Dig completion must invalidate affected
+travel before further movement; a worker cannot finish walking across newly
+removed support. Actual fall/settling behavior needs an explicit rule as part of
+that join, rather than leaving an actor suspended. No full-world terrain scan or
+per-tick save snapshot is required to establish these laws.
+
+Current source progress: host terrain transport and signed-height top picking
+are integrated locally. Checks u5509 (three transport/projection laws and strict
+types) and u5512 (three shared picking laws) passed and owned scopes closed.
+Neither establishes terrain navigation, cliff-face picking, remembered
+underground knowledge, rendered appearance, or a new hosted Colony release.
