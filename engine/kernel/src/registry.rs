@@ -58,6 +58,7 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
+            ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             (
                 "hive.destination",
                 vec![
@@ -168,6 +169,7 @@ impl Registry {
                 "hive.container" => world.register_component::<Container>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
+                "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.destination" => world.register_component::<Destination>(),
                 "hive.support" => world.register_component::<Support>(),
                 "hive.surface" => world.register_component::<Surface>(),
@@ -206,6 +208,7 @@ impl Registry {
                 | "hive.container"
                 | "hive.lot"
                 | "hive.lot-water"
+                | "hive.excavation-work"
                 | "hive.destination"
                 | "hive.support"
                 | "hive.surface"
@@ -275,6 +278,12 @@ impl Registry {
                 let lot: Lot = decode(value)?;
                 if !valid_id(&lot.kind) {
                     return Err("invalid lot".into());
+                }
+            }
+            "hive.excavation-work" => {
+                let work: ExcavationWork = decode(value)?;
+                if !work.seconds.is_finite() || work.seconds < 0.0 || work.expected == work.replacement {
+                    return Err("invalid excavation progress".into());
                 }
             }
             "hive.lot-water" => {
@@ -414,6 +423,9 @@ impl Registry {
             "hive.lot" => {
                 world.entity_mut(entity).insert(decode::<Lot>(value)?);
             }
+            "hive.excavation-work" => {
+                world.entity_mut(entity).insert(decode::<ExcavationWork>(value)?);
+            }
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
@@ -465,6 +477,7 @@ impl Registry {
             "hive.container" => world.get::<Container>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
+            "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),
             "hive.support" => world.get::<Support>(entity).map(record),
             "hive.surface" => world.get::<Surface>(entity).map(record),

@@ -40,6 +40,17 @@ pub struct Lot {
 pub struct LotWater {
     pub water_kg: f64,
 }
+/// Native earned work; authored systems may request work, never write progress.
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExcavationWork {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub expected: u16,
+    pub replacement: u16,
+    pub seconds: f64,
+}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Destination {
@@ -252,6 +263,8 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },
+    CancelWork { entity: String },
     Move {
         entity: String,
         destination: Point,

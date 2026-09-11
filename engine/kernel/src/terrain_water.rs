@@ -188,6 +188,8 @@ impl TerrainWater {
         Ok(Self { terrain, geometry, identity, graph, state, scratch, owner: Arc::new(()), epoch: 0 })
     }
 
+    pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
+    pub fn cell_spacing_m(&self) -> [f64; 3] { self.terrain.cell_spacing_m() }
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {

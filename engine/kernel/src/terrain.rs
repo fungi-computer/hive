@@ -517,6 +517,9 @@ impl TerrainOwner {
         self.cache.clear();
         Ok(())
     }
+    pub fn is_open_material(&self, slot: u16) -> bool {
+        self.properties.get(&slot).is_some_and(|property| !property.solid)
+    }
     pub fn cell_spacing_m(&self) -> [f64; 3] {
         [1.0, self.generator.vertical_metres(), 1.0]
     }

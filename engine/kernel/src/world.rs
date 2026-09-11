@@ -1,6 +1,8 @@
 use crate::{collision, combat, components::*, navigation, registry::Registry};
 #[path = "material_output.rs"]
 mod material_output;
+#[path = "excavation_work.rs"]
+mod excavation_work;
 use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
 use bevy_ecs::{
     prelude::{Entity, World},
@@ -607,6 +609,7 @@ impl Kernel {
                 prepared.geometry, prepared.terrain, records)?;
             candidate.environment = Some(KernelEnvironment { definition: definition.clone(), world, excavation_rules: prepared.excavation_rules });
         }
+        candidate.validate_excavation_work()?;
         *self = candidate;
         Ok(())
     }
@@ -950,6 +953,7 @@ impl Kernel {
         self.advance_direct(batch.delta)?;
         if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         self.advance_movement(batch.delta);
+        self.advance_excavation(batch.delta)?;
         let environment_work = self.environment.as_mut().map(|environment| environment.world.advance(batch.delta)).transpose()?;
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
@@ -1039,6 +1043,16 @@ impl Kernel {
     }
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<Option<(String, Vector3)>> {
         match action {
+            Action::Excavate { entity, x, y, z, expected, replacement } => {
+                self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
+                Ok(None)
+            }
+            Action::CancelWork { entity } => {
+                let actor = self.entity(&entity)?;
+                self.ecs.entity_mut(actor).remove::<ExcavationWork>();
+                self.refresh_state_weight();
+                Ok(None)
+            }
             Action::Move {
                 entity,
                 destination,
