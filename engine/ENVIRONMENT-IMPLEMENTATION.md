@@ -399,6 +399,46 @@ the native environment is built, without requiring distribution to land the
 first wet colony. Keep topology remap and compound admission explicit, so their
 calculation can move later without moving mutation authority accidentally.
 
+### Facets are an eligible host composition, not a proven parallel accelerator
+
+Levi asked whether Durable Object facets provide nearby small objects for this
+cluster. Current [Cloudflare facet documentation](https://developers.cloudflare.com/dynamic-workers/usage/durable-object-facets/)
+describes named child DOs created through `ctx.facets.get`, backed by classes
+loaded through Dynamic Workers. Each gets isolated SQLite storage, stored with
+the supervisor as part of the same overall DO, and supports fetch/RPC. A
+supervisor can restart a facet while preserving its data or explicitly delete
+it. Those are useful module/storage/lifecycle boundaries.
+
+A world supervisor with terrain/planning/game-rule facets is therefore a real
+candidate host arrangement. It is not forbidden by the engine's one-commit-owner
+law. A computation facet can return prepared results without owning independent
+physical stock. A persistently stateful game extension can own its private state
+and use scoped engine operations for physical effects, provided its command and
+recovery contract is explicit. Keep game author APIs independent of `ctx.facets`.
+
+Do not infer independent cores, a fresh memory allowance per facet, zero-cost
+calls, or cross-database atomic commitment. The facet docs do not establish those
+guarantees. Cloudflare's [Dynamic Workers explanation](https://blog.cloudflare.com/dynamic-workers/)
+says one-off dynamic workers usually run on the caller's machine and even thread;
+that is not a concurrency/latency benchmark for persistent facets. Colocated
+storage and an RPC stub make close communication plausible, but actual facet
+call overhead, scheduling and memory must be checked on the chosen host.
+
+Personally source-checked Botanical Integration
+`runtimes/app/src/cloudflare.ts`: `createCloudflareAppInstance` already uses a
+named `app` facet, immutable artifact digest/class loading, `globalOutbound:null`,
+abort/purge and ordinary forwarded fetch. This establishes existing API use;
+it is not Hive simulation-facet performance or acceptance. Reuse that platform
+knowledge before adding any host facade. No Botanical source is changed here.
+
+Include facets as an optional third placement in the existing actual-workload
+comparison: inline versus another ordinary DO versus a facet, with native
+threads as the separate native-host comparison. Only run the placements needed
+for a concrete hosting decision; no new matrix or runtime launch follows now.
+Choose facets for isolated persistent composition when they fit; use measured
+execution capacity to decide how to accelerate CPU-heavy physics. Facet count
+alone answers neither total-world memory nor throughput.
+
 ## 3. One native world generator, with geology underneath the landscape
 
 Port the retained height/sea/cave arithmetic into Rust; retain the approved
