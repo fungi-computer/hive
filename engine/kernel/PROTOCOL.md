@@ -53,3 +53,33 @@ Game-side selection stays client state. Group orders and delivery plans are
 shared SDK/game rules composed from these operations, not kernel branches on
 colony/survival/formations names. First examples use level ground; coordinates
 retain y and do not impose a shallow global-world envelope.
+
+
+## Native environment records (source join in progress)
+
+`load_environment(definition)` initializes authored terrain and finite initial
+water exactly once, before the first clock revision. `environment_facts()` reads
+its bounded physical projection. Ordinary `advance` steps this same owned state.
+
+`capture_records()` returns a detached `WasmKernelRecords` handle. Read its
+`keys()` JSON string list and copy each `read(key)` Uint8Array; then free the
+handle. These are opaque bytes, not JSON arrays of numbers. To restore, construct
+one `WasmKernelRecords`, insert each unique key/byte pair, and pass it to
+`restore_records(handle)`. That call consumes the handle even when admission
+fails. Failure leaves the destination Kernel unchanged. A failed ordinary world
+attempt must be restored or discarded before further stateful use.
+
+The bundle uses a Postcard version1 header, contiguous 256KiB entity chunks and
+separate definition/terrain/water records. Maximum entity bytes remain8MiB; each
+record is at most256KiB, with at most40 records and9MiB total. These capture bounds
+are not a promise that a Region admits a change that large: its existing initial,
+changed-byte and storage limits apply independently. No arbitrary record keys,
+missing parts, trailing bytes or old-format decoder is admitted.
+
+The remaining SDK/Region join must consume these records directly and retain
+only JSON control/record metadata in Region state. Browser saves use structured
+clone; network observations continue to contain only bounded presentation facts.
+A full capture is for save/export/hydration. It is not the per-tick rollback or
+incremental dirty-record implementation. Existing non-environment JSON methods
+remain used by current clients until that coupled caller change is complete;
+they explicitly reject an environment world rather than drop its water.

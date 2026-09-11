@@ -619,3 +619,22 @@ cells; u5423 failed a replacement search for porous material in cave air. These
 are retained fixture failures, not transport performance results. All are closed.
 WASM methods, GameSession records, Region consumption, finite spoil and actual
 playable environment projections remain to join; nothing new is deployed.
+
+### Actual WASM native record transport
+
+At60ed697, u5430 passed three new record-bundle laws and the ordinary WASM
+release build. Its final Node command did not start (exit127) because the
+restricted Rust PATH omitted /home/levi/.local/bin. No build or law replay:
+u5435 ran only the actual WASM record test and passed. All scopes are now
+inactive/dead/empty. The test uses generated wasm-bindgen handles, captures
+finite water, copies bytes through structuredClone, restores another Kernel,
+checks identical next-step records, and rejects corrupt/missing environment
+records without changing the destination. It does not prove a browser database,
+Region transaction, current demo or dirty-page persistence join.
+
+Built WASM SHA256:
+1bc51253055b0bfb2bdf912a703b4c8644a6e0b2865b351dc187e923925e33ba.
+Generated JS SHA256:
+8bd7a8fff2dd34678d22a6d181ff56a54dffe9d8c4d199d4f35bc26bd5f2c9b3.
+Declarations SHA256:
+ada1348c463f7b374f2ffcf2caca858b86a8b889b25f5b57c02a585318c90c6d.
