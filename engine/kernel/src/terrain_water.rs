@@ -171,19 +171,22 @@ mod tests {
         let at = (-20..0).map(|y| Cell { x: 0, y, z: 0 })
             .find(|at| terrain.query(*at).unwrap() != 0).unwrap();
         let expected = terrain.query(at).unwrap();
+        let below = Cell { y: at.y - 1, ..at };
         let rule = SoilRule { id: "pores".into(), porosity: 0.4, retention: 0.1,
             absorb_m_per_s: 0.1, seep_m_per_s: 0.02 };
-        let geometry = TerrainWaterGeometry::new("colony-water".into(), vec![at],
+        let geometry = TerrainWaterGeometry::new("colony-water".into(), vec![at, below],
             BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Porous(rule.clone())),
                 (2, MaterialWater::Porous(rule))]), [1.0; 3], 1.0, 0.1, WaterLimits::default()).unwrap();
         let mut water = TerrainWater::fresh(geometry, terrain,
-            &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 }]).unwrap();
+            &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
+              WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();
         assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::Applied(_)));
         assert_eq!(water.material(at).unwrap(), 0);
         let facts = water.facts().unwrap();
         assert_eq!(facts.total_kg, 200.0);
-        assert_eq!(facts.cells[0].kind, WaterCellKind::Void);
-        assert_eq!(facts.cells[0].capacity_kg, 1000.0);
+        let opened = facts.cells.iter().find(|fact| fact.at == [0, at.y, 0]).unwrap();
+        assert_eq!(opened.kind, WaterCellKind::Void);
+        assert_eq!(opened.capacity_kg, 1000.0);
         assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::TerrainBlocked(_)));
         assert_eq!(water.facts().unwrap(), facts);
         let dry = (-20..0).map(|y| Cell { x: 20, y, z: 0 })
@@ -192,6 +195,8 @@ mod tests {
         assert!(matches!(water.excavate(dry, expected, 0).unwrap(), ExcavationResult::Applied(_)));
         assert_eq!(water.facts().unwrap(), facts);
         water.advance(0.2).unwrap();
-        assert_eq!(water.facts().unwrap().total_kg, 200.0);
+        let moved = water.facts().unwrap();
+        assert!((moved.total_kg - 200.0).abs() < 1e-9);
+        assert!(moved.cells.iter().find(|fact| fact.at == [0, below.y, 0]).unwrap().mass_kg > 0.0);
     }
 }
