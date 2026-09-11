@@ -9,7 +9,8 @@ import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 
-assert(process.argv[2] === "--output" && process.argv.length === 4, "Usage: node proof.mjs --output <directory>");
+const sustained = process.argv[4] === "--sustained";
+assert(process.argv[2] === "--output" && (process.argv.length === 4 || (process.argv.length === 5 && sustained)), "Usage: node proof.mjs --output <directory> [--sustained]");
 const output = resolve(process.argv[3]);
 const directory = fileURLToPath(new URL(".", import.meta.url));
 const hostRoot = resolve(directory, "../..");
@@ -99,14 +100,31 @@ try {
   const { connectRemoteRuntime } = await import(`${pathToFileURL(clientPath).href}?public-proof`);
   await start();
   assert.equal((await fetch(`${endpoint}/v1/survival/observe`)).status, 403);
-  assert.equal((await fetch(`${endpoint}/v1/survival/observe`, { headers: { Authorization: `Bearer ${tokens.wrong}` } })).status, 200);
+  if (!sustained) assert.equal((await fetch(`${endpoint}/v1/survival/observe`, { headers: { Authorization: `Bearer ${tokens.wrong}` } })).status, 200);
   const publicEndpoint = `${endpoint}/v1/survival`;
   const pauseAttemptsA = [];
   clientA = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.first, "pause", pauseAttemptsA), token: tokens.first });
-  clientB = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.second), token: tokens.second });
-  clientA.subscribe((event) => eventsA.push(event)); clientB.subscribe((event) => eventsB.push(event));
-  clientA.send({ type: "start", game: "survival" }); clientB.send({ type: "start", game: "survival" });
-  await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "first ready"), waitFor(eventsB, (event) => event.type === "ready", "second ready")]);
+  if (!sustained) clientB = connectRemoteRuntime({ endpoint: publicEndpoint, game: "survival", fetch: authorizedFetch(tokens.second), token: tokens.second });
+  clientA.subscribe((event) => eventsA.push(event)); clientB?.subscribe((event) => eventsB.push(event));
+  clientA.send({ type: "start", game: "survival" }); clientB?.send({ type: "start", game: "survival" });
+  await Promise.all([waitFor(eventsA, (event) => event.type === "ready", "first ready"), ...(sustained ? [] : [waitFor(eventsB, (event) => event.type === "ready", "second ready")])]);
+  if (sustained) {
+    const cursor = eventsA.length;
+    clientA.send({type:"action",action:{kind:"begin-direct",entity:"survival.survivor.1",stream:"held"}});
+    await waitFor(eventsA,event=>event.type === "frame" && event.facts.some(f=>f.direct?.stream === "held"),"held stream",cursor);
+    let maximumLag = 0;
+    const frontier = () => eventsA.findLast(e=>e.type === "frame")?.facts.find(f=>f.id === "survival.survivor.1")?.direct?.lastProcessed ?? 0;
+    for(let batch=0;batch<80;batch++) {
+      clientA.send({type:"action",action:{kind:"direct-input",entity:"survival.survivor.1",stream:"held",inputs:Array.from({length:5},(_,i)=>({sequence:batch*5+i+1,x:1,z:0}))}});
+      await delay(100);
+      maximumLag = Math.max(maximumLag,(batch+1)*5-frontier());
+      await writeFile(resolve(output,"sustained-progress.json"),JSON.stringify({sent:(batch+1)*5,processed:frontier(),maximumLag}));
+      assert(maximumLag < 50,`sustained input reached prediction limit: ${maximumLag}`);
+    }
+    await waitUntil(()=>frontier() === 400,"all held inputs consumed");
+    assert.equal(eventsA.filter(e=>e.type === "error").length,0);
+    await writeFile(resolve(output,"sustained.json"),JSON.stringify({samples:400,maximumLag,processed:frontier()}));
+  } else {
   const first = await observe(tokens.first); const second = await observe(tokens.second);
   const pauseCursor = eventsA.length; clientA.send({ type: "pause" }); await waitFor(eventsA, (event) => event.type === "state" && event.paused, "pause", pauseCursor);
   await waitUntil(() => pauseAttemptsA.filter((attempt) => attempt.status === 200 && attempt.receipt?.status === "applied").length >= 2, "pause retry receipt");
@@ -132,6 +150,7 @@ try {
   const reopened = await observe(tokens.first);
   assert.ok(reopened.revision >= resumed.revision);
   assert.equal(reopened.observation.facts.find(f => f.id === "survival.survivor.1").direct.lastProcessed,5); assert.equal((await observe(tokens.second)).revision, pausedB.revision);
+  }
 } finally {
   clientA?.dispose(); clientB?.dispose(); await stop(); await rm(configPath, { force: true });
   await writeFile(resolve(output, "public-proof-diagnostics.json"), JSON.stringify({ runtimeLog: redact(runtimeLog.slice(-16384)), clientA: summarize(eventsA), clientB: summarize(eventsB), lastObservation }, null, 2));

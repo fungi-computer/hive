@@ -16,6 +16,7 @@ import { survivalPack } from "../../engine/src/games/survival";
 import {
   LEASE_MS,
   STEP_MS,
+  clockRequest,
   corsHeaders,
   packFromPath,
   readCommand,
@@ -131,14 +132,11 @@ function validateHostRow(row: HostRow): void {
     const request = JSON.parse(dueRequest) as Record<string, unknown>;
     const command = request.command;
     const id = request.id;
-    const expectedRevision = request.expectedRevision;
     if (
       typeof id !== "string" ||
       id.length < 1 ||
       id.length > 160 ||
-      typeof expectedRevision !== "number" ||
-      !Number.isSafeInteger(expectedRevision) ||
-      expectedRevision < 0 ||
+      request.expectedRevision !== undefined ||
       !command ||
       typeof command !== "object" ||
       Array.isArray(command) ||
@@ -315,16 +313,12 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return this.state.storage.transaction(async () => await operation());
   }
 
-  private nextDue(row: HostRow, revision: number, now: number) {
+  private nextDue(row: HostRow, now: number) {
     if (row.paused || row.lease_until_ms === null || row.lease_until_ms <= now)
       return null;
     if (row.due_sequence !== null) return row;
     const sequence = row.next_sequence;
-    const request = JSON.stringify({
-      id: `clock-${sequence}`,
-      expectedRevision: revision,
-      command: { kind: "step", delta: STEP_MS / 1000 },
-    });
+    const request = JSON.stringify(clockRequest(sequence));
     const deadline = now + STEP_MS;
     this.owner.sql.exec(
       "UPDATE hive_public_host SET due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
@@ -383,7 +377,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       );
       const renewed = { ...current, lease_until_ms: lease };
       const next =
-        this.nextDue(renewed, this.region.readCommitted().revision, now) ??
+        this.nextDue(renewed, now) ??
         renewed;
       await this.arm(next);
       return next;
@@ -458,7 +452,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         );
       }
       const armed =
-        this.nextDue(next, this.region.readCommitted().revision, now) ?? next;
+        this.nextDue(next, now) ?? next;
       await this.arm(armed);
       return { receipt, row: armed };
     });
@@ -467,8 +461,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private async runDue(now: number): Promise<void> {
     await this.inTransaction(async () => {
-      const row = this.hostRow();
-      if (!row) throw new Error("public-host-state");
+      const stored = this.hostRow();
+      if (!stored) throw new Error("public-host-state");
+      let row: HostRow = stored;
       validateHostRow(row);
       if (
         row.paused ||
@@ -490,43 +485,41 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         await this.arm(cleared);
         return cleared;
       }
-      const dueDeadline = row.due_deadline_ms;
-      if (dueDeadline === null) throw new Error("public-host-format");
-      if (dueDeadline > now) {
-        await this.arm(row);
-        return row;
+      // Bounded catch-up preserves scheduled time across late native alarms.
+      // Every occurrence remains individually identified inside this transaction.
+      for (let steps = 0; steps < 5; steps++) {
+        const dueDeadline = row.due_deadline_ms;
+        if (dueDeadline === null || row.due_request_json === null || row.due_sequence === null) throw new Error("public-host-format");
+        if (dueDeadline > now) {
+          await this.arm(row);
+          return row;
+        }
+        const request = JSON.parse(row.due_request_json);
+        this.region.dispatchOccurrence(`${this.pack}-host`, {
+          sequence: row.due_sequence,
+          request,
+        });
+        const sequence = row.due_sequence + 1;
+        const nextRequest = JSON.stringify(clockRequest(sequence));
+        const deadline = dueDeadline + STEP_MS;
+        this.owner.sql.exec(
+          "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
+          sequence,
+          sequence,
+          nextRequest,
+          deadline,
+        );
+        const advanced: HostRow = {
+          ...row,
+          next_sequence: sequence,
+          due_sequence: sequence,
+          due_request_json: nextRequest,
+          due_deadline_ms: deadline,
+        };
+        row = advanced;
       }
-      const request = JSON.parse(row.due_request_json);
-      const receipt = this.region.dispatchOccurrence(`${this.pack}-host`, {
-        sequence: row.due_sequence,
-        request,
-      });
-      const sequence = row.due_sequence + 1;
-      const nextRequest = JSON.stringify({
-        id: `clock-${sequence}`,
-        expectedRevision: receipt.revision,
-        command: { kind: "step", delta: STEP_MS / 1000 },
-      });
-      const deadline = Math.max(
-        now + STEP_MS,
-        (row.due_deadline_ms ?? now) + STEP_MS,
-      );
-      this.owner.sql.exec(
-        "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
-        sequence,
-        sequence,
-        nextRequest,
-        deadline,
-      );
-      const advanced = {
-        ...row,
-        next_sequence: sequence,
-        due_sequence: sequence,
-        due_request_json: nextRequest,
-        due_deadline_ms: deadline,
-      };
-      await this.arm(advanced);
-      return advanced;
+      await this.arm(row);
+      return row;
     });
   }
 

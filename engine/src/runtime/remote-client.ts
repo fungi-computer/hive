@@ -1,3 +1,4 @@
+import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
@@ -222,16 +223,12 @@ function actionResult(value: unknown): value is ActionResult {
     safeNonnegativeInteger(value.revision) &&
     (value.reason === undefined || (typeof value.reason === "string" && value.reason.length <= 256));
 }
-function directInputBatch(value: unknown): { entity: string; stream: string; inputs: readonly { sequence: number; x: number; z: number }[] } | undefined {
-  if (!isRecord(value) || value.kind !== "action" || !isRecord(value.action) || value.action.kind !== "direct-input" ||
-    typeof value.action.entity !== "string" || typeof value.action.stream !== "string" || !Array.isArray(value.action.inputs)) return undefined;
-  if (Object.keys(value.action).some((key) => !["kind", "entity", "stream", "inputs"].includes(key))) return undefined;
-  const inputs = value.action.inputs;
-  if (inputs.length < 1 || inputs.length > 50 || inputs.some((input) => !isRecord(input) || Object.keys(input).some((key) => !["sequence", "x", "z"].includes(key)) ||
-    !safeNonnegativeInteger(input.sequence) || input.sequence < 1 || !finite(input.x) || input.x < -1 || input.x > 1 || !finite(input.z) || input.z < -1 || input.z > 1)) return undefined;
-  for (let index = 1; index < inputs.length; index++)
-    if ((inputs[index] as Record<string, unknown>).sequence !== (inputs[index - 1] as Record<string, unknown>).sequence + 1) return undefined;
-  return { entity: value.action.entity, stream: value.action.stream, inputs: inputs as { sequence: number; x: number; z: number }[] };
+function directInputBatch(value: unknown) {
+  if (!isRecord(value) || value.kind !== "action") return undefined;
+  try {
+    const action = checkedAction(value.action);
+    return action.kind === "direct-input" ? action : undefined;
+  } catch { return undefined; }
 }
 function coalesceDirectInput(previous: PendingIntent, next: PendingIntent): boolean {
   if (previous.body !== undefined || previous.id !== undefined) return false;

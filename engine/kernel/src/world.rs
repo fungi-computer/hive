@@ -873,7 +873,7 @@ impl Kernel {
                 Ok(None)
             }
             Action::DirectInput { entity, stream, inputs } => {
-                if inputs.is_empty() || inputs.len() > 5 { return Err("invalid direct input batch".into()); }
+                if inputs.is_empty() || inputs.len() > navigation::MAX_DIRECT_INPUTS { return Err("invalid direct input batch".into()); }
                 let e = self.entity(&entity)?;
                 let direct_bytes = self.direct.values().map(Self::direct_weight).sum::<usize>();
                 let state = self.direct.get_mut(&e).ok_or("direct stream is not active")?;
@@ -1695,7 +1695,7 @@ mod direct_tests {
         kernel.load(&scene()).unwrap();
         kernel.advance_json(&batch(0.0, json!([{"kind":"begin-direct","entity":"survivor","stream":"keyboard"}]))).unwrap();
         let inputs: Vec<_> = (1..=50).map(|sequence| json!({"sequence":sequence,"x":1.0,"z":0.0})).collect();
-        for chunk in inputs.chunks(5) {
+        for chunk in inputs.chunks(50) {
             let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch(0.0, json!([{"kind":"direct-input","entity":"survivor","stream":"keyboard","inputs":chunk}]))).unwrap()).unwrap();
             assert_eq!(result["results"][0]["accepted"], true);
         }

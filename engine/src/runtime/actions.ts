@@ -37,8 +37,8 @@ export function checkedAction(value: unknown): ActionRequest {
     case "direct-input": {
       keys = ["kind", "entity", "stream", "inputs"];
       const inputs = action.inputs;
-      valid = id(action.entity) && stream(action.stream) && Array.isArray(inputs) && inputs.length >= 1 && inputs.length <= 5 &&
-        inputs.every(directSample);
+      valid = id(action.entity) && stream(action.stream) && Array.isArray(inputs) && inputs.length >= 1 && inputs.length <= 50 &&
+        inputs.every((input, index) => directSample(input) && (index === 0 || input.sequence === inputs[index - 1].sequence + 1));
       break;
     }
     case "launch":

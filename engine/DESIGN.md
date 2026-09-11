@@ -2,6 +2,21 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## September 11 Survival sustained-input correction — active
+
+Levi likes the RTS cannon and reports the first predicted Survival steps improve,
+then sustained movement stutters. Preserve the cannon and existing four demos.
+The short delayed-admission browser proof is not sustained-play acceptance.
+
+Source diagnosis found two independent owners at fault: the private host clock
+captured a player revision, so intervening input could retire a tick as rejected;
+and serial HTTP sent only five samples per round trip although input produces
+50 samples/second. The client eventually fills its 50-sample replay horizon.
+Late alarms also discarded scheduled elapsed time. Correct private clock identity,
+bounded catch-up and unsent input batching together; do not increase the prediction
+horizon or claim animation smoothing repairs server throughput. Existing Rust
+movement remains the shared prediction/authority owner. See SURVIVAL-DIRECT.md.
+
 ## September 11 release correction — active
 
 Levi's sustained play contradicts the earlier practical playability acceptance:

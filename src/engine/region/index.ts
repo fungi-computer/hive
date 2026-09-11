@@ -7,7 +7,7 @@ export type RegionOccurrence = {
   readonly sequence: number;
   readonly request: {
     readonly id: string;
-    readonly expectedRevision: number;
+    readonly expectedRevision?: number;
     readonly command: unknown;
   };
 };
@@ -53,7 +53,7 @@ const inputSchema = z
   .object({ id: identity, expectedRevision: integer.optional(), command: z.unknown() })
   .strict();
 const occurrenceSchema = z
-  .object({ sequence: integer, request: inputSchema.extend({ expectedRevision: integer }) })
+  .object({ sequence: integer, request: inputSchema })
   .strict();
 const limitsSchema = z
   .object({

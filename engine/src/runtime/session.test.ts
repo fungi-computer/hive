@@ -144,6 +144,10 @@ test("direct input admission is bounded, strict, and detached", () => {
     inputs: [{ sequence: 1, x: 0.5, z: -1 }],
   });
   assert.equal(action.kind, "direct-input");
+  const batched = Array.from({length:50},(_,i)=>({sequence:i+1,x:1,z:0}));
+  assert.equal(checkedAction({...action,inputs:batched}).kind,"direct-input");
+  assert.throws(()=>checkedAction({...action,inputs:[batched[0],batched[2]]}),/invalid action/);
+  assert.throws(()=>checkedAction({...action,inputs:[...batched,{sequence:51,x:1,z:0}]}),/invalid action/);
   assert.throws(() => checkedAction({ ...action, stream: "" }), /invalid action/);
   assert.throws(() => checkedAction({ ...action, inputs: [{ sequence: 0, x: 0, z: 0 }] }), /invalid action/);
   assert.throws(() => checkedAction({ ...action, inputs: [{ sequence: 1, x: 2, z: 0 }] }), /invalid action/);

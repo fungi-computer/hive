@@ -6,6 +6,11 @@ export const BODY_BYTES = 8192;
 export const LEASE_MS = 15_000;
 export const STEP_MS = 100;
 
+/** Ordered private time is protected by the Region occurrence frontier, not a player revision. */
+export function clockRequest(sequence: number) {
+  return { id: `clock-${sequence}`, command: { kind: "step" as const, delta: STEP_MS / 1000 } };
+}
+
 const tokenPattern = /^[a-f0-9]{64}$/;
 const commandInput = z
   .object({
