@@ -187,3 +187,28 @@ fn terrain_stop_retains_contact_and_resumes_after_restore() {
         assert!((reached.x-target.x).abs()<1e-9 && (reached.y-target.y).abs()<1e-9);
     }
 }
+
+#[test]
+fn terrain_kernel_mid_segment_return_join_uses_waypoint_cursor() {
+    let (mut kernel, target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    let origin = navigation::point(*kernel.ecs.get::<Position>(actor).unwrap());
+
+    // The return route deliberately revisits its origin. It first reaches the
+    // far support cell, then retargets while partway back, so a historical
+    // coordinate lookup would join the wrong path occurrence.
+    kernel.advance_json(&json!({"delta":0.25,"writes":[],"actions":[{
+        "kind":"move","entity":"walker","destination":target
+    }]}).to_string()).expect("initial segment must advance");
+    kernel.advance_json(&json!({"delta":0.85,"writes":[],"actions":[{
+        "kind":"move","entity":"walker","destination":origin
+    }]}).to_string()).expect("return segment must advance");
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{
+        "kind":"move","entity":"walker","destination":target
+    }]}).to_string()).expect("mid-segment return join must not panic");
+
+    let actor = kernel.entity("walker").unwrap();
+    let path = &kernel.terrain_routes[&actor].path;
+    assert!(path.len() >= 4, "return retarget must retain the revisited support history");
+    assert_eq!(path[0], path[2], "the route should contain the original support revisit");
+}

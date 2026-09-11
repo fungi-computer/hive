@@ -607,17 +607,36 @@ impl Kernel {
                 if start_point != centered(start_cell) {
                     let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
                     let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
+                    let previous_points = crate::terrain_route::waypoints(&previous.path, config)?;
+                    let next = previous_points.len().checked_sub(remaining.len()).ok_or("invalid retained route progress")?;
+                    if next == 0 || next >= previous_points.len()
+                        || !remaining.iter().eq(previous_points[next..].iter())
+                    {
+                        return Err("invalid retained route progress".into());
+                    }
+                    contact_start = crate::terrain_route::active_support_index(&previous.path, next)?;
+                    // A route may revisit a support cell. The retained deque's
+                    // cursor identifies the active waypoint; searching by
+                    // coordinate can select an earlier visit in path history.
+                    // Resolve the endpoint of the active support edge from the
+                    // waypoint cursor and reject inconsistent progress.
+                    let mut waypoint_end = 0usize;
                     let mut join = None;
-                    for (point_index,point) in remaining.iter().enumerate() {
-                        if let Some(cell_index) = previous.path.iter().position(|cell| centered(*cell) == *point) {
-                            join = Some((point_index,cell_index)); break;
+                    for (index, pair) in previous.path.windows(2).enumerate() {
+                        let emitted = if pair[0].y == pair[1].y { 1 } else { 2 };
+                        waypoint_end = waypoint_end.checked_add(emitted).ok_or("terrain route progress overflow")?;
+                        if next <= waypoint_end {
+                            let point_index = waypoint_end.checked_sub(next).ok_or("invalid terrain route progress")?;
+                            let cell_index = index.checked_add(1).ok_or("terrain route progress overflow")?;
+                            if point_index >= remaining.len() {
+                                return Err("route has no next support waypoint".into());
+                            }
+                            join = Some((point_index, cell_index));
+                            break;
                         }
                     }
                     let (point_index,cell_index) = join.ok_or("route has no next support waypoint")?;
-                    let previous_points = crate::terrain_route::waypoints(&previous.path, config)?;
-                    let next = previous_points.len().checked_sub(remaining.len()).ok_or("invalid retained route progress")?;
-                    contact_start = crate::terrain_route::active_support_index(&previous.path, next)?;
-                    prefix.extend(remaining.iter().take(point_index+1).cloned());
+                    prefix.extend(remaining.iter().take(point_index.checked_add(1).ok_or("terrain route progress overflow")?).cloned());
                     history.extend_from_slice(&previous.path[..=cell_index]);
                     start_cell = previous.path[cell_index];
                     origin = previous.origin.clone();
