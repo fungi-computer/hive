@@ -35,7 +35,6 @@ import {
   stationProfileOptions,
 } from "./brew-station-profiles.js";
 import { BUILDINGS } from "./construction.js";
-import { registerVisibleTexture } from "./visual-hit-geometry.js";
 import { loadStaticArtPack } from "./art/static-pack.js";
 import { STATIC_ART_RENDER } from "./art/static-manifest.js";
 
