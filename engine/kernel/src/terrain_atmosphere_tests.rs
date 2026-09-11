@@ -376,3 +376,32 @@ fn local_water_geometry_matches_full_and_rejects_foreign_proposals() {
         assert_local_matches_full(&mut water, &air);
     }
 }
+
+#[test]
+fn local_sky_opening_removal_and_return_match_full_projection() {
+    use super::terrain_water::AirGeometryEdit;
+    let mut water = world();
+    let mut air = TerrainAtmosphere::fresh(&mut water, config(ExteriorPolicy::WorldTop)).unwrap();
+    let support = (-31..39).map(|y| Cell { x: -1, y, z: -1 })
+        .find(|cell| water.material(*cell).unwrap() != 0
+            && water.material(Cell { y: cell.y + 1, ..*cell }).unwrap() == 0).unwrap();
+    let base = Cell { y: support.y + 1, ..support };
+    let sky_id = "sky:-1,39,-1";
+    assert!(air.compiled().definition().openings.iter().any(|o| o.id == sky_id));
+    // Keep the two admitted water cells at (0, y, 0) open. This fixture
+    // exercises air exterior replacement, not rejection of an empty water graph.
+    for (instances, present) in [
+        (vec![StaticInstance::Wall {
+            id: "ceiling-contact".into(), base,
+            height: u8::try_from(40 - base.y).unwrap(),
+        }], false),
+        (vec![], true),
+    ] {
+        let change = water.prepare_structures(instances).unwrap().unwrap();
+        let prepared = air.prepare_world_change(&mut water, AirGeometryEdit::Structures(&change)).unwrap().unwrap();
+        water.apply_structures(change).unwrap();
+        air.apply_rebind(prepared).unwrap();
+        assert_eq!(air.compiled().definition().openings.iter().any(|o| o.id == sky_id), present);
+        assert_local_matches_full(&mut water, &air);
+    }
+}

@@ -1,0 +1,7291 @@
+{
+  "status": "source experiment qualified physically; not deployed; geometry hitch remains",
+  "native": {
+    "rebind": {
+      "scope": "u6071",
+      "laws": 3,
+      "exit": 0
+    },
+    "terrain": {
+      "scope": "u6072",
+      "laws": 9,
+      "exit": 0
+    },
+    "sky": {
+      "scope": "u6078",
+      "laws": 1,
+      "exit": 0
+    }
+  },
+  "wasm": {
+    "scope": "u6080",
+    "invocation": "ac4247c03f104744899cb77281785d7b",
+    "exit": 0,
+    "exactPhysicalSnapshots": true
+  },
+  "retainedFailures": [
+    "u6074 unsupported floating-wall fixture",
+    "u6075 fixture integer type mismatch",
+    "u6076 grounded column covered both admitted water cells, leaving an empty water graph",
+    "u6077 aperture fixture violated retained-lintel rule",
+    "u6079 baseline harness mixed generated module instances at restore; physical work completed but recovery failed"
+  ],
+  "baseline": {
+    "source": "same current TS; selected WASM; digging and completed wall",
+    "node": "v24.20.0",
+    "cpu": "AMD EPYC-Milan Processor",
+    "platform": "linux",
+    "tests": [
+      {
+        "name": "full-dig",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 1100.012068,
+        "firstObservationMs": 236.9416000000001,
+        "observationBytes": 148028,
+        "commandMs": 3.8284100000000763,
+        "lastCompletedStep": 159,
+        "finalTime": 15.99999999999996,
+        "digOrders": [],
+        "sites": [],
+        "environment": {
+          "boundaryKg": 0,
+          "cells": [
+            {
+              "at": [
+                -1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,13,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,13,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            }
+          ],
+          "emissions": [],
+          "initialTotalKg": 877.5,
+          "residualKg": 0,
+          "terrainRevision": 2,
+          "totalKg": 877.5
+        },
+        "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 41353216,
+          "rss": 143085568,
+          "heapTotal": 27385856,
+          "heapUsed": 9502200,
+          "external": 44199538,
+          "arrayBuffers": 251376
+        },
+        "totalMs": 3559.264709,
+        "summary": {
+          "step": {
+            "n": 160,
+            "totalMs": 1156.370897999998,
+            "p50": 4.372939000000315,
+            "p95": 14.360349000000042,
+            "max": 177.5149580000002
+          },
+          "save": {
+            "n": 160,
+            "totalMs": 169.2727399999992,
+            "p50": 0.3597620000000461,
+            "p95": 4.377886999999646,
+            "max": 7.470978999999716
+          },
+          "observe": {
+            "n": 32,
+            "totalMs": 196.5930519999995,
+            "p50": 4.553110999999717,
+            "p95": 17.87954200000013,
+            "max": 25.675550999999814
+          }
+        }
+      },
+      {
+        "name": "full-build",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 542.4466670000002,
+        "firstObservationMs": 171.3439610000005,
+        "observationBytes": 148292,
+        "commandMs": 4.352147999999943,
+        "lastCompletedStep": 328,
+        "finishedAtStep": 328,
+        "finalTime": 32.9000000000002,
+        "digOrders": [],
+        "sites": [
+          {
+            "catalog": "timber-wall",
+            "contactX": 1,
+            "contactY": 7.290000000000001,
+            "contactZ": 2,
+            "orientation": "north",
+            "phase": "finished",
+            "seconds": 4,
+            "worker": null,
+            "x": 2,
+            "y": 14,
+            "z": 2
+          }
+        ],
+        "environment": {
+          "boundaryKg": 0,
+          "cells": [
+            {
+              "at": [
+                -1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            }
+          ],
+          "emissions": [],
+          "initialTotalKg": 877.5,
+          "residualKg": 0,
+          "terrainRevision": 1,
+          "totalKg": 877.5
+        },
+        "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 41353216,
+          "rss": 162017280,
+          "heapTotal": 32714752,
+          "heapUsed": 20911392,
+          "external": 44166106,
+          "arrayBuffers": 655407
+        },
+        "totalMs": 3876.344088,
+        "summary": {
+          "step": {
+            "n": 329,
+            "totalMs": 1571.3019589999994,
+            "p50": 4.313849999999547,
+            "p95": 8.411976000000323,
+            "max": 180.79872700000033
+          },
+          "save": {
+            "n": 329,
+            "totalMs": 336.12851700000374,
+            "p50": 0.3516200000003664,
+            "p95": 4.393380999999863,
+            "max": 13.414946000000782
+          },
+          "observe": {
+            "n": 66,
+            "totalMs": 312.9087520000012,
+            "p50": 4.848756000000321,
+            "p95": 7.656187999999929,
+            "max": 9.655110000000604
+          }
+        }
+      }
+    ],
+    "limits": {
+      "steps": 1000,
+      "delta": 0.1,
+      "secondsPerScenario": 35
+    },
+    "kind": "Node actual released WASM; no DO/storage/network/browser"
+  },
+  "candidate": {
+    "source": "same current TS; selected WASM; digging and completed wall",
+    "node": "v24.20.0",
+    "cpu": "AMD EPYC-Milan Processor",
+    "platform": "linux",
+    "tests": [
+      {
+        "name": "full-dig",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 901.8113579999999,
+        "firstObservationMs": 201.15715499999988,
+        "observationBytes": 148028,
+        "commandMs": 1.8349560000001475,
+        "lastCompletedStep": 159,
+        "finalTime": 15.99999999999996,
+        "digOrders": [],
+        "sites": [],
+        "environment": {
+          "boundaryKg": 0,
+          "cells": [
+            {
+              "at": [
+                -1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,13,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,13,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            }
+          ],
+          "emissions": [],
+          "initialTotalKg": 877.5,
+          "residualKg": 0,
+          "terrainRevision": 2,
+          "totalKg": 877.5
+        },
+        "finalSnapshot": "fdba0afae8de90c888d5b76a4b4d8ce068d0e97f541d2f19a8f2c4d3140da429",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 41287680,
+          "rss": 144891904,
+          "heapTotal": 27123712,
+          "heapUsed": 9716176,
+          "external": 43696499,
+          "arrayBuffers": 251376
+        },
+        "totalMs": 3293.035028,
+        "summary": {
+          "step": {
+            "n": 160,
+            "totalMs": 1060.9297290000013,
+            "p50": 3.9688609999998334,
+            "p95": 11.909735999999839,
+            "max": 196.11507800000004
+          },
+          "save": {
+            "n": 160,
+            "totalMs": 139.03505199999722,
+            "p50": 0.3576579999999012,
+            "p95": 3.9402490000002217,
+            "max": 6.621157999999923
+          },
+          "observe": {
+            "n": 32,
+            "totalMs": 174.4991630000004,
+            "p50": 3.891805000000204,
+            "p95": 13.53441399999997,
+            "max": 22.40095599999995
+          }
+        }
+      },
+      {
+        "name": "full-build",
+        "errors": [],
+        "noAirPresentationOmitted": false,
+        "startMs": 549.9234940000001,
+        "firstObservationMs": 168.696551,
+        "observationBytes": 148292,
+        "commandMs": 3.2191210000000865,
+        "lastCompletedStep": 328,
+        "finishedAtStep": 328,
+        "finalTime": 32.9000000000002,
+        "digOrders": [],
+        "sites": [
+          {
+            "catalog": "timber-wall",
+            "contactX": 1,
+            "contactY": 7.290000000000001,
+            "contactZ": 2,
+            "orientation": "north",
+            "phase": "finished",
+            "seconds": 4,
+            "worker": null,
+            "x": 2,
+            "y": 14,
+            "z": 2
+          }
+        ],
+        "environment": {
+          "boundaryKg": 0,
+          "cells": [
+            {
+              "at": [
+                -1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:-2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:-2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                -2,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:-2,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                0,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:0,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                0,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:0,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                0,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:0,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                1,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:1,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                1,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:1,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                1,
+                14,
+                2
+              ],
+              "capacityKg": 540,
+              "id": "cell:1,14,2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                10,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                10,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,10,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 27,
+              "mobileKg": 21.6,
+              "moisture": 0.05
+            },
+            {
+              "at": [
+                2,
+                11,
+                -1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                -2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                0
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                1
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                11,
+                2
+              ],
+              "capacityKg": 27,
+              "id": "cell:2,11,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 8.100000000000001,
+              "mobileKg": 2.700000000000001,
+              "moisture": 0.015000000000000003
+            },
+            {
+              "at": [
+                2,
+                12,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                12,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,12,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                -2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,-2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                0
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,0",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                1
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,1",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                13,
+                2
+              ],
+              "capacityKg": 216,
+              "id": "cell:2,13,2",
+              "kind": "soil",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                -2
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,-2",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                0
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,0",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            },
+            {
+              "at": [
+                2,
+                14,
+                1
+              ],
+              "capacityKg": 540,
+              "id": "cell:2,14,1",
+              "kind": "void",
+              "liquidVolumeM3": 0,
+              "massKg": 0,
+              "mobileKg": 0,
+              "moisture": 0
+            }
+          ],
+          "emissions": [],
+          "initialTotalKg": 877.5,
+          "residualKg": 0,
+          "terrainRevision": 1,
+          "totalKg": 877.5
+        },
+        "finalSnapshot": "9dd1fe293dca3d04d3aa48684a4faf00b263561abf78afe4f726872c89b79760",
+        "recoveredNextStepEqual": true,
+        "memory": {
+          "wasmLinearBytes": 41287680,
+          "rss": 163483648,
+          "heapTotal": 32714752,
+          "heapUsed": 20920184,
+          "external": 44084968,
+          "arrayBuffers": 639805
+        },
+        "totalMs": 3860.6394960000002,
+        "summary": {
+          "step": {
+            "n": 329,
+            "totalMs": 1527.5190949999896,
+            "p50": 3.6628899999996065,
+            "p95": 8.48117099999945,
+            "max": 176.16231100000005
+          },
+          "save": {
+            "n": 329,
+            "totalMs": 351.2186160000092,
+            "p50": 0.3471129999998084,
+            "p95": 4.413370999999643,
+            "max": 7.650408000000425
+          },
+          "observe": {
+            "n": 66,
+            "totalMs": 325.19320800000696,
+            "p50": 5.474429999999302,
+            "p95": 8.076100000000224,
+            "max": 10.10638900000049
+          }
+        }
+      }
+    ],
+    "limits": {
+      "steps": 1000,
+      "delta": 0.1,
+      "secondsPerScenario": 35
+    },
+    "kind": "Node actual released WASM; no DO/storage/network/browser"
+  }
+}

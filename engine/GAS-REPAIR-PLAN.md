@@ -342,3 +342,43 @@ compiled-definition assembly/validation/hashing and stock remapping on actual
 geometry changes; repeated timing runs of this quiet-hearth fixture are not a
 substitute. Exact baseline/candidate measurements are retained in
 [gas-activity-20260911.json](../docs/performance/gas-activity-20260911.json).
+
+### Geometry follow-through: ordered openings and lazy evacuation
+
+The retained actual Worker CPU profile contains the compiled-definition and full
+opening-sort paths during the existing build/dig trial. These samples select work
+to remove; they are not precise per-edit or billable CPU measurements.
+
+Two focused changes now remove repeated work without changing definitions:
+
+* Keep ordered immutable references to existing opening records. Patch admission
+  removes replaced face IDs, sorts only new opening references, and merges them
+  with the retained order. Initial construction/restore still establishes the
+  complete order. The definition uses exactly the original `(is exterior, id)`
+  ordering, so content binding and transfer order do not change.
+* Build the old gas evacuation graph only if a fully removed nonempty parcel
+  actually needs a route. Expansion, splitting, and partial contraction continue
+  through their existing overlap/real-face paths without building that graph.
+
+This still copies the retained opening list and materializes/validates/hashes the
+full definition. It does not complete local compilation. Qualify exact full
+projector parity for internal and sky openings, conservative removal behavior,
+and current restore; then compare the same actual Colony dig/completed-wall
+workload before claiming a performance gain. Do not publish on source reasoning
+alone or replay unrelated browser matrices.
+
+Actual qualification u6080: both dig and completed-wall physical snapshots match
+exactly, and each restores to the same next step. Three rebind laws, nine terrain
+laws and one sky-opening add/remove law pass. The retained fixture setup failures
+and mixed-module harness failure are listed in the measurement receipt.
+
+The measured worst digging step **did not improve** (177.51 → 196.12 ms).
+Dig p95 changed 14.36 → 11.91 ms; completed-wall p95 8.41 → 8.48 ms and maximum
+180.80 → 176.16 ms. This does not establish a robust hitch reduction. These
+source changes remain provisional and undeployed alongside the activity cache.
+Do not add more caching around the edges and declare the geometry problem solved:
+the next cut must address full definition materialization/compilation and remap
+representation itself, using these exact physical/restore comparisons. No broad
+browser rerun or another timing-only repetition is warranted by this result.
+
+See [the exact comparison](../docs/performance/gas-geometry-order-20260911.json).

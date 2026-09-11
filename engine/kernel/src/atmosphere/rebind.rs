@@ -239,7 +239,10 @@ pub fn rebind(
         .filter(|(_, targets)| !targets.is_empty())
         .map(|(index, _)| index)
         .collect();
-    let (neighbors, ambient) = topology(old);
+    // Only a fully removed, nonempty parcel needs a graph search. Ordinary
+    // excavation/splits and partial contractions use overlap or actual faces.
+    // Build the old graph once on demand, not for every local geometry edit.
+    let mut displacement_topology = None;
     let mut parcels = vec![Stock::default(); next.definition.volumes.len()];
     let mut boundary = Stock::default();
     let mut routed = Vec::new();
@@ -301,7 +304,8 @@ pub fn rebind(
         if stock.carrier == 0.0 && stock.smoke == 0.0 && stock.heat == 0.0 {
             continue;
         }
-        let Some(route) = forced_route(&neighbors, &ambient, old_index, &receivers) else {
+        let (neighbors, ambient) = displacement_topology.get_or_insert_with(|| topology(old));
+        let Some(route) = forced_route(neighbors, ambient, old_index, &receivers) else {
             return Ok(AtmosphereRebindResult::Blocked(
                 RebindBlockReason::TrappedVolumeRemoved,
             ));
