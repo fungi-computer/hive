@@ -29,6 +29,41 @@ struct DefinitionInput {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct StructuresInput {
     max_span_steps: u32,
+    catalog: Vec<StructureInput>,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct StructureInput {
+    id: String,
+    shape: StructureShapeInput,
+    materials: Vec<StructureMaterialInput>,
+    work_seconds: f64,
+}
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
+enum StructureShapeInput {
+    Floor,
+    Wall { height: u8 },
+    Stair { run: u8, rise: u8 },
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct StructureMaterialInput {
+    kind: String,
+    quantity: u32,
+}
+#[derive(Clone, Debug)]
+pub enum StructureShape {
+    Floor,
+    Wall { height: u8 },
+    Stair { run: u8, rise: u8 },
+}
+#[derive(Clone, Debug)]
+pub struct StructureDefinition {
+    pub id: String,
+    pub shape: StructureShape,
+    pub materials: BTreeMap<String, u32>,
+    pub work_seconds: f64,
 }
 #[derive(Debug, Clone)]
 pub struct InitialSurfacePlacement {
@@ -113,17 +148,19 @@ pub struct PreparedDefinition {
     pub stocks: Vec<WaterStock>,
     pub excavation_rules: BTreeMap<u16, ExcavationRule>,
     pub initial_placements: Vec<InitialSurfacePlacement>,
+    pub structures: BTreeMap<String, StructureDefinition>,
 }
 
 pub struct BuiltEnvironment {
     pub world: TerrainWater,
     pub excavation_rules: BTreeMap<u16, ExcavationRule>,
     pub initial_placements: Vec<InitialSurfacePlacement>,
+    pub structures: BTreeMap<String, StructureDefinition>,
 }
 pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
     let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
-    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements })
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -144,6 +181,32 @@ fn prepare_definition_mode(
     }
     if !(1..=64).contains(&definition.structures.max_span_steps) {
         return Err("structures maxSpanSteps must be an integer from 1 through 64".into());
+    }
+    if definition.structures.catalog.len() > 64 {
+        return Err("structure catalog exceeds 64 entries".into());
+    }
+    let mut structures = BTreeMap::new();
+    for entry in definition.structures.catalog {
+        if !crate::components::valid_id(&entry.id) || structures.contains_key(&entry.id)
+            || !entry.work_seconds.is_finite() || entry.work_seconds <= 0.0 || entry.work_seconds > 86_400.0
+            || entry.materials.is_empty() || entry.materials.len() > 16 {
+            return Err("invalid structure catalog entry".into());
+        }
+        let shape = match entry.shape {
+            StructureShapeInput::Floor => StructureShape::Floor,
+            StructureShapeInput::Wall { height } if (1..=64).contains(&height) => StructureShape::Wall { height },
+            StructureShapeInput::Stair { run, rise } if (1..=64).contains(&run) && (1..=64).contains(&rise) && rise <= run => StructureShape::Stair { run, rise },
+            _ => return Err("invalid structure catalog shape".into()),
+        };
+        let mut materials = BTreeMap::new();
+        let mut _total_materials = 0u32;
+        for material in entry.materials {
+            _total_materials = _total_materials.checked_add(material.quantity).ok_or("structure material quantity overflow")?;
+            if !crate::components::valid_id(&material.kind) || material.quantity == 0 || materials.insert(material.kind, material.quantity).is_some() {
+                return Err("invalid structure required material".into());
+            }
+        }
+        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds });
     }
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
         return Err("initial placement count exceeds 128".into());
@@ -316,6 +379,7 @@ fn prepare_definition_mode(
         stocks,
         excavation_rules,
         initial_placements,
+        structures,
     })
 }
 
@@ -324,7 +388,7 @@ pub(crate) mod tests {
     use super::*;
     pub(crate) fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
         )
     }
     #[test]
@@ -354,7 +418,7 @@ pub(crate) mod tests {
     #[test]
     fn rejects_oversized_or_duplicate_content() {
         assert!(build_from_json(&"x".repeat(MAX_JSON_BYTES + 1)).is_err());
-        let duplicate = r#"{"world":{"seed":"s","identity":"i","bounds":{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8},"slots":{"air":0,"soil":1,"stone":2},"seaLevel":2,"verticalMetres":0.54},"structures":{"maxSpanSteps":6},"materials":[{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}},{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}}],"water":{"id":"w","cells":[[0,0,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}"#;
+        let duplicate = r#"{"world":{"seed":"s","identity":"i","bounds":{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8},"slots":{"air":0,"soil":1,"stone":2},"seaLevel":2,"verticalMetres":0.54},"structures":{"maxSpanSteps":6,"catalog":[{"id":"floor","shape":{"kind":"floor"},"materials":[{"kind":"stone-spoil","quantity":1}],"workSeconds":1}]},"materials":[{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}},{"slot":0,"solid":false,"diggable":false,"water":{"kind":"closed"}}],"water":{"id":"w","cells":[[0,0,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}"#;
         let error = match build_from_json(duplicate) {
             Ok(_) => panic!("duplicate material accepted"),
             Err(error) => error,
@@ -374,6 +438,21 @@ pub(crate) mod tests {
         input["structures"] = serde_json::Value::Null;
         assert!(prepare_definition(&input.to_string()).is_err());
         input.as_object_mut().unwrap().remove("structures");
+        assert!(prepare_definition(&input.to_string()).is_err());
+    }
+
+    #[test]
+    fn structure_catalog_rejects_duplicate_or_unbounded_material_definitions() {
+        use serde_json::json;
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("catalog")).unwrap();
+        input["structures"]["catalog"][0]["materials"] = json!([
+            {"kind":"stone-spoil","quantity":1},
+            {"kind":"stone-spoil","quantity":2}
+        ]);
+        assert!(prepare_definition(&input.to_string()).is_err());
+        input["structures"]["catalog"][0]["materials"] = json!([{"kind":"stone-spoil","quantity":0}]);
+        assert!(prepare_definition(&input.to_string()).is_err());
+        input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":2,"rise":3});
         assert!(prepare_definition(&input.to_string()).is_err());
     }
     #[test]

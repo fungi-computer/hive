@@ -91,7 +91,7 @@ impl Kernel {
                 + (pose.y - f64::from(work.y) * spacing[1]).powi(2)
                 + (pose.z - f64::from(work.z) * spacing[2]).powi(2)).sqrt();
             if distance > 1.5 || self.ecs.get::<Support>(actor).is_some() { continue; }
-            work.seconds = (work.seconds + delta).min(required);
+            work.seconds = super::earned_work_seconds(work.seconds, delta, required)?;
             self.ecs.entity_mut(actor).insert(work);
             if work.seconds < required { continue; }
             let prepared = match self.environment.as_mut().unwrap().world.prepare_excavation(cell(work), work.expected, work.replacement)? {
