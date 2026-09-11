@@ -8,6 +8,8 @@ export const RESERVED_COMPONENTS = [
   "hive.body",
   "hive.traversal",
   "hive.container",
+  "hive.sealed-container",
+  "hive.construction-site",
   "hive.lot",
   "hive.lot-water",
   "hive.excavation-work",
@@ -87,7 +89,10 @@ export type WriteIntent = {
   readonly entity: EntityId;
   readonly value: unknown;
 };
+export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
+  | { readonly kind: "plan-construction"; readonly catalog: string; readonly site: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly orientation: CardinalOrientation; readonly contact: Vec3 & { readonly frame: null } }
+  | { readonly kind: "attend-construction"; readonly worker: EntityId; readonly site: EntityId }
   | { readonly kind: "excavate"; readonly entity: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly expected: number; readonly replacement: number }
   | { readonly kind: "cancel-work"; readonly entity: EntityId }
   | { readonly kind: "begin-direct"; readonly entity: EntityId; readonly stream: string }
