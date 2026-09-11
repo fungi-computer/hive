@@ -7,6 +7,7 @@ const INPUTS = new Set([
   "[contenteditable='true']",
 ]);
 import { createMachine, assign } from "xstate";
+import { rectangleCells } from "./terrain-area-selection.js";
 
 export const WORLD_VIEW_CONTROLS = Object.freeze([
   { id: "view.level.down", key: "pagedown", delta: -1, label: "Lower" },
@@ -62,6 +63,29 @@ export const terrainTargetMachine = createMachine({
 }, { actions: {
   arm: assign(({ event }) => ({ control: event.control })),
   clear: assign({ control: null }),
+} });
+
+// Owns the pointer stroke for a bounded terrain rectangle. The committed
+// cells remain a pure value for the caller; this machine only owns gesture
+// lifetime and never queries hidden terrain.
+export const terrainAreaGestureMachine = createMachine({
+  id: "hive-terrain-area-gesture",
+  initial: "idle",
+  context: { start: null, current: null, committed: [], maxArea: 256 },
+  states: {
+    idle: { on: { BEGIN: { target: "dragging", actions: "begin" } } },
+    dragging: { on: {
+      MOVE: { actions: "move" },
+      END: { target: "idle", actions: "commit" },
+      CANCEL: { target: "idle", actions: "cancel" },
+      ESCAPE: { target: "idle", actions: "cancel" },
+    } },
+  },
+}, { actions: {
+  begin: assign(({ event }) => ({ start: event.cell, current: event.cell, committed: [] })),
+  move: assign(({ event }) => ({ current: event.cell })),
+  commit: assign(({ context }) => ({ committed: context.start && context.current ? rectangleCells(context.start, context.current, context.maxArea) : [] })),
+  cancel: assign({ start: null, current: null, committed: [] }),
 } });
 
 // RTS aiming is a distinct gesture so a cannon click cannot accidentally
