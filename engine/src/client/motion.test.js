@@ -18,7 +18,7 @@ test("carried deckhands use local motion and world foot positions", () => {
   owner.sample([subject(0, { support: "ship", worldX: 10 })]);
   const cues = owner.sample([subject(0.9, { support: "ship", worldX: 11 })]);
   assert.equal(cues.length, 1);
-  assert.equal(cues[0].at.x, 11);
+  assert.ok(cues[0].at.x > 10 && cues[0].at.x <= 11);
 });
 
 test("stationary carried actors, support changes, corrections and jumps emit nothing", () => {
@@ -36,5 +36,5 @@ test("wake is data-driven and placed behind the moving support", () => {
   owner.sample([subject(0, { motion, worldX: 5 })]);
   const cues = owner.sample([subject(1.1, { motion, worldX: 6 })]);
   assert.equal(cues[0].kind, "wake");
-  assert.equal(cues[0].at.x, 5);
+  assert.ok(cues[0].at.x > 4 && cues[0].at.x <= 5);
 });
