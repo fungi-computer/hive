@@ -1,9 +1,11 @@
+import { ConstructionApproach, constructionWorkProvider } from "../sdk/construction-work";
+import { planSiteSupplies } from "../sdk/site-supplies";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
-import { component, entity, query } from "../sdk/authoring";
+import { component, entity, query, system } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import {
-  Body, Container, Destination, ExcavationWork, MaterialLot, Position, Support, Surface, Traversal,
+  Body, Container, Destination, ExcavationWork, MaterialLot, LotWater, Position, Support, Surface, Traversal,
   excavate, move, cancelWork,
 } from "../sdk/common";
 import type { EntityId, TerrainSurface, Vec3, WriteContext } from "../contracts";
@@ -233,9 +235,14 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
-  writes: [ColonyDigOrder, DeliveryTask],
-  providers: [deliveryProvider, digProvider],
+  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  writes: [ColonyDigOrder, DeliveryTask, ConstructionApproach],
+  providers: [deliveryProvider, digProvider, ctx => constructionWorkProvider(ctx, {
+    workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
+    catalogMaterials: Object.fromEntries(colonyEnvironment.structures.catalog.map(definition => [
+      definition.id, definition.materials.map(({ kind: material, quantity }) => ({ material, quantity })),
+    ])),
+  })],
 });
 
 export function digOrderId(x: number, y: number, z: number): EntityId {
@@ -243,3 +250,23 @@ export function digOrderId(x: number, y: number, z: number): EntityId {
 }
 
 export function cancelDigAction(actor: EntityId) { return cancelWork(actor); }
+
+/** Sites request stock through the same finite deliveries as every other task. */
+export const colonyConstructionSupplySystem = system({
+  id: "colony.construction-supplies", version: 1,
+  reads: [ConstructionSite, Container, MaterialLot, SealedContainer, DeliveryTask],
+  writes: [DeliveryTask],
+  run(ctx) {
+    const sites = ctx.query(query(ConstructionSite));
+    const start = sites.length ? (ctx.clock.tick * 4) % sites.length : 0;
+    const active = Array.from({ length: Math.min(4, sites.length) }, (_, offset) => sites[(start + offset) % sites.length]);
+    planSiteSupplies(ctx, {
+      sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
+      requirements: active.flatMap(row => {
+        const site = row.get(ConstructionSite);
+        const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
+        return definition ? definition.materials.map(({ kind: material, quantity }) => ({ destination: row.id, material, quantity })) : [];
+      }),
+    });
+  },
+});

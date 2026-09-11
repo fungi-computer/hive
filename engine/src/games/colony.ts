@@ -1,3 +1,4 @@
+import { ConstructionApproach } from "../sdk/construction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
   Body,
@@ -13,7 +14,7 @@ import {
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, Worker, colonyWorkSystem } from "./colony-work";
+import { ColonyDigOrder, Worker, colonyWorkSystem, colonyConstructionSupplySystem } from "./colony-work";
 import type { EntityId, GamePack } from "../contracts";
 
 export { Worker, ColonyDigOrder, colonyWorkSystem } from "./colony-work";
@@ -227,6 +228,7 @@ const colonyComponents = [
   DeliveryTask,
   DeliveryControl,
   ColonyDigOrder,
+  ConstructionApproach,
 ] as const;
 
 function areaPoint(value: unknown): [number, number, number] {
@@ -260,7 +262,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 3,
   components: colonyComponents,
-  systems: [colonyWorkSystem],
+  systems: [colonyConstructionSupplySystem, colonyWorkSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     deliver: command({
