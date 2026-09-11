@@ -4,6 +4,15 @@ King Bolete · personally authored September 11, 2026
 
 ## Current status — September 11, native Colony join
 
+**Later performance audit: this release is not playability-qualified.** Actual
+released WASM reproduces a routing panic during wall work, with and without air.
+Moving water plus air also produces over 300 ms native updates in a bounded local
+probe; unchanged geometry is repeatedly captured inside roughly 1.7 MB of air data.
+The existing incremental plan below remains the target; the implementation has
+not met it. Read the [measured audit and repair order](../docs/performance/colony-audit-20260911.md)
+before further environmental expansion. Earlier correctness/restart receipts below
+remain valid only for their named behaviors, not general playability acceptance.
+
 Implementation is authorized and underway under [DEMO-ROADMAP.md](DEMO-ROADMAP.md).
 Rust owns generated terrain, finite water, construction/excavation geometry,
 connected-volume air, material-paid finite emissions, and their saved records.
