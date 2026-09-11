@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { MaterialLot } from "../sdk/common";
+import { MaterialLot, Destination, Position, move } from "../sdk/common";
 import { entity, query } from "../sdk/authoring";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyLumberId, colonyPack } from "../games/colony";
@@ -54,8 +54,18 @@ test("actual Colony hearth consumes wood and emits into sampled air", () => {
     assert.equal(delivered, true, "shared delivery must bring two wood to the hearth");
     assert.equal(quantity(session, colonyLumberId), 46);
 
-    // Retire the completed delivery claim through its ordinary next-step owner.
-    session.step(0);
+    // Delivery can deposit within contact range before its final move ends.
+    // Let that real work finish, then navigate to the station through the same
+    // public movement operation available to the player.
+    const busy = () => session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).actor === deliveringWorker)
+      || session.query(query(Destination)).some(row => row.id === deliveringWorker);
+    for (let tick = 0; tick < 160 && busy(); tick++) session.step(0.25);
+    assert.equal(busy(), false, "ordinary delivery must release its worker");
+    const contact = session.query(query(Position)).find(row => row.id === hearth)!.get(Position);
+    session.request(move(deliveringWorker, { x: contact.x, y: contact.y, z: contact.z, frame: null }));
+    session.step(0.25);
+    for (let tick = 0; tick < 80 && busy(); tick++) session.step(0.25);
+    assert.equal(busy(), false, "worker must reach the hearth through native movement");
     session.command("lightHearth", { entities: [deliveringWorker] });
     session.step(0);
     const admission = session.save().outcomes.find(
