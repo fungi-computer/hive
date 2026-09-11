@@ -194,21 +194,51 @@ fn terrain_kernel_mid_segment_return_join_uses_waypoint_cursor() {
     let actor = kernel.entity("walker").unwrap();
     let origin = navigation::point(*kernel.ecs.get::<Position>(actor).unwrap());
 
-    // The return route deliberately revisits its origin. It first reaches the
-    // far support cell, then retargets while partway back, so a historical
-    // coordinate lookup would join the wrong path occurrence.
-    kernel.advance_json(&json!({"delta":0.25,"writes":[],"actions":[{
+    // The return route deliberately revisits its origin. Its vertical rise
+    // and cross waypoints have different lengths, so find the exact retained
+    // cursor state instead of assuming a fixed travel time.
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{
         "kind":"move","entity":"walker","destination":target
     }]}).to_string()).expect("initial segment must advance");
-    kernel.advance_json(&json!({"delta":0.85,"writes":[],"actions":[{
-        "kind":"move","entity":"walker","destination":origin
-    }]}).to_string()).expect("return segment must advance");
     kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{
-        "kind":"move","entity":"walker","destination":target
-    }]}).to_string()).expect("mid-segment return join must not panic");
+        "kind":"move","entity":"walker","destination":origin
+    }]}).to_string()).expect("return route must be admitted");
 
+    let capability = *kernel.ecs.get::<Traversal>(actor).unwrap();
+    let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+    let config = crate::terrain_traversal::TraversalConfig {
+        spacing,
+        clearance_cells: capability.clearance_cells,
+        max_step_cells: capability.max_step_cells,
+    };
+    let mut joined = false;
+    for _ in 0..400 {
+        let actor = kernel.entity("walker").unwrap();
+        let Some(state) = kernel.terrain_routes.get(&actor) else { break };
+        let Some(route) = kernel.routes.get(&actor) else { break };
+        let points = crate::terrain_route::waypoints(&state.path, config).unwrap();
+        let Some(next) = points.len().checked_sub(route.len()) else { break };
+        let active = kernel.ecs.get::<Position>(actor).copied().unwrap();
+        let mid_segment = state.target.as_ref().is_some_and(|target| {
+            navigation::distance(navigation::point(active), state.origin.clone()) > 1e-9
+                && navigation::distance(navigation::point(active), target.clone()) > 1e-9
+        });
+        let revisited_next = next > 0 && next < points.len()
+            && route.front().is_some_and(|front| points[..next].iter().any(|point| point == front));
+        if mid_segment && revisited_next {
+            kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{
+                "kind":"move","entity":"walker","destination":target
+            }]}).to_string()).expect("revisited mid-segment join must not panic");
+            joined = true;
+            break;
+        }
+        kernel.advance_json(r#"{"delta":0.033,"writes":[],"actions":[]}"#).expect("return route must remain valid");
+    }
+
+    assert!(joined, "test must reach a revisited waypoint while the route is in flight");
     let actor = kernel.entity("walker").unwrap();
     let path = &kernel.terrain_routes[&actor].path;
     assert!(path.len() >= 4, "return retarget must retain the revisited support history");
-    assert_eq!(path[0], path[2], "the route should contain the original support revisit");
+    assert!(path.iter().enumerate().any(|(index, cell)| path[..index].contains(cell)),
+        "the joined route should retain its revisited support history");
 }

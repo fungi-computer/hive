@@ -161,6 +161,48 @@ mod construction_tests {
     }
 
     #[test]
+    fn trapped_air_blocks_wall_completion_and_preserves_work_material() {
+        let (mut kernel, surface, contact) = world();
+        wall_catalog(&mut kernel);
+        let cell = crate::generation::Cell { y: surface.y + 1, ..surface };
+        let config_value = json!({
+            "regionId":"construction-trapped-air",
+            "min":cell,"max":{"x":cell.x+1,"y":cell.y+1,"z":cell.z+1},
+            "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
+            "model":{"specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,
+              "mixingVelocityMps":1.0,"buoyancyVelocityMpsK":0.1,"pressureVelocityMpsPa":0.001,
+              "maxStepS":0.2,"maxExchangeFraction":0.5,"maxPressureRatio":4.0,
+              "maxTemperatureDeltaK":100.0,"maxSmokeMassFraction":0.01},
+            "exterior":"Closed"
+        });
+        let config = serde_json::from_value(config_value.clone()).unwrap();
+        let environment = kernel.environment.as_mut().unwrap();
+        environment.atmosphere = Some(crate::terrain_atmosphere::TerrainAtmosphere::fresh(&mut environment.world, config).unwrap());
+        let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
+        definition["atmosphere"] = config_value;
+        environment.definition = definition.to_string();
+
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"wall","site":"site-air-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-air-wall","quantity":1},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-air-wall"}
+        ]}).to_string()).unwrap()).unwrap();
+        assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
+        let lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
+        let sealed = kernel.query_json(r#"["hive.sealed-container"]"#).unwrap();
+        assert!(site.contains("\"seconds\":1.0"));
+        assert!(site.contains("\"phase\":\"working\""));
+        assert!(site.contains("\"worker\":\"worker-1\""));
+        assert!(lots.contains("\"container\":\"site-air-wall\""));
+        assert!(lots.contains("\"quantity\":1"));
+        assert_eq!(sealed, "[]");
+        assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
+    }
+
+    #[test]
     fn active_bystander_edge_blocks_wall_completion() {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
