@@ -238,7 +238,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     query: spec => (values.get(spec.components[0].id) ?? []) as never,
     worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
     routeCosts: requests => requests.map(request => ({ actor: request.actor, status: "reachable", cost: 1 })),
-    assign: candidates => { assert.equal(candidates.length, 1); return [{ worker, task }]; },
+    assign: candidates => { assert.equal(candidates.length, 1); return [{ worker, task, cost: 1 }]; },
     terrainMaterials: () => [], terrainSurfaces: () => [],
     createAuthoredEntity: () => { throw new Error("no new task"); }, removeAuthoredEntity: () => { throw new Error("no removal"); },
     write: (...args) => writes.push(args), action: () => { throw new Error("assignment earns no transfer"); },
