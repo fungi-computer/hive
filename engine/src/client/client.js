@@ -1042,6 +1042,10 @@ export function createHiveClient({
         if (frameEpoch !== undefined && event.epoch < frameEpoch) return;
         if (frameEpoch !== undefined && event.epoch > frameEpoch) {
           directControl?.reset();
+          terrainTarget.send({ type: "CANCEL" });
+          gesture.send({ type: "CANCEL" });
+          state.selectedIds = [];
+          exitAim();
           interpolation.reset(event.epoch);
           pendingCues = [];
           subjectReactions.clear();
