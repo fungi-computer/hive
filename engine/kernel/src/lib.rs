@@ -6,6 +6,7 @@ pub mod terrain;
 pub mod terrain_water;
 pub mod terrain_traversal;
 pub mod structure_geometry;
+pub mod structure_support;
 mod terrain_route;
 pub mod environment_definition;
 pub mod water;
