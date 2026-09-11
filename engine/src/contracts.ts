@@ -237,6 +237,10 @@ export interface RenderFact {
   } | null;
 }
 export type KernelSnapshot = KernelRecordSnapshot;
+export type TerrainSurface = {
+  readonly cell: readonly [number, number, number];
+  readonly material: number;
+};
 export interface KernelPort {
   readonly dispose: () => void;
   readonly load: (definition: Uint8Array) => void;
@@ -245,6 +249,9 @@ export interface KernelPort {
   readonly terrainMaterials: (
     cells: readonly [number, number, number][],
   ) => readonly number[];
+  readonly terrainSurfaces: (
+    columns: readonly [number, number][],
+  ) => readonly (TerrainSurface | null)[];
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];

@@ -9,6 +9,7 @@ import type {
   QueryRow,
   QuerySpec,
   RenderFact,
+  TerrainSurface,
   WorldPose,
   WriteIntent,
 } from "../contracts";
@@ -26,6 +27,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   load_environment(json: string): void;
   environment_facts(): string;
   terrain_materials(json: string): string;
+  terrain_surfaces(json: string): string;
   query(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -81,6 +83,61 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       )
         throw new Error("invalid terrain material query result");
       return result;
+    },
+    terrainSurfaces(columns) {
+      if (
+        columns.length === 0 ||
+        columns.length > 64 ||
+        columns.some(
+          (column) =>
+            !Array.isArray(column) ||
+            column.length !== 2 ||
+            column.some(
+              (coordinate) =>
+                !Number.isInteger(coordinate) ||
+                coordinate < -2147483648 ||
+                coordinate > 2147483647,
+            ),
+        )
+      )
+        throw new Error(
+          "terrain surface query must contain between 1 and 64 signed integer columns",
+        );
+      const result = JSON.parse(
+        binding.terrain_surfaces(JSON.stringify(columns)),
+      ) as unknown;
+      if (
+        !Array.isArray(result) ||
+        result.length !== columns.length ||
+        !result.every((surface, index) => {
+          if (surface === null) return true;
+          if (!surface || typeof surface !== "object" || Array.isArray(surface))
+            return false;
+          const value = surface as {
+            readonly cell?: unknown;
+            readonly material?: unknown;
+          };
+          const cell = value.cell;
+          const column = columns[index];
+          return (
+            Array.isArray(cell) &&
+            cell.length === 3 &&
+            cell.every(
+              (coordinate) =>
+                Number.isInteger(coordinate) &&
+                coordinate >= -2147483648 &&
+                coordinate <= 2147483647,
+            ) &&
+            cell[0] === column[0] &&
+            cell[2] === column[1] &&
+            Number.isInteger(value.material) &&
+            (value.material as number) >= 0 &&
+            (value.material as number) <= 65535
+          );
+        })
+      )
+        throw new Error("invalid terrain surface query result");
+      return result as (TerrainSurface | null)[];
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);
