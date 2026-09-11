@@ -1,6 +1,8 @@
 use crate::{collision, combat, components::*, navigation, registry::Registry};
 #[path = "material_output.rs"]
 mod material_output;
+#[path = "material_consumption.rs"]
+mod material_consumption;
 #[path = "excavation_work.rs"]
 mod excavation_work;
 #[path = "initial_placement.rs"]
@@ -17,6 +19,7 @@ mod route_query;
 #[path = "terrain_movement_tests.rs"]
 mod terrain_movement_tests;
 use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
+use material_consumption::{MaterialPortion, PreparedConsumption, ConsumedMaterial};
 use bevy_ecs::{
     prelude::{Entity, World},
     query::{QueryBuilder, QueryState},
@@ -24,6 +27,7 @@ use bevy_ecs::{
 use serde::Serialize;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::Arc;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -321,6 +325,7 @@ pub struct Kernel {
     projectile_contacts: BTreeMap<String, BTreeSet<String>>,
     collider_ids: BTreeSet<String>,
     state_weight: usize,
+    material_consumption_owner: Arc<()>,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -359,6 +364,7 @@ impl Kernel {
             projectile_contacts: BTreeMap::new(),
             collider_ids: BTreeSet::new(),
             state_weight: 0,
+            material_consumption_owner: Arc::new(()),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -2002,6 +2008,27 @@ impl Kernel {
         if self.state_weight>STATE_BYTES {return Err("region canonical state capacity".into());}
         Ok(impacts)
     }
+    pub(super) fn prepare_material_consumption(&self, portions: &[MaterialPortion]) -> Result<PreparedConsumption> {
+        material_consumption::prepare(
+            &self.material_consumption_owner,
+            self.revision,
+            &self.ecs,
+            &self.ids,
+            &self.registry,
+            self.state_weight,
+            portions,
+        )
+    }
+    pub(super) fn publish_material_consumption(&mut self, prepared: PreparedConsumption) -> Result<ConsumedMaterial> {
+        material_consumption::publish(
+            prepared,
+            &self.material_consumption_owner,
+            self.revision,
+            &mut self.ecs,
+            &mut self.state_weight,
+        )
+    }
+
     fn transfer(&mut self, lot: &str, from: &str, to: &str, quantity: u32) -> Result<()> {
         if quantity == 0 || from == to {
             return Err("invalid transfer".into());
