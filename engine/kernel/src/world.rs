@@ -368,14 +368,14 @@ impl Kernel {
                 let path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
                 let mut points = crate::terrain_route::waypoints(&path, config)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
-                if let Some(first) = points.first_mut() { *first = start_point.clone(); }
+                if points.len() > 1 { points.remove(0); }
                 let terrain_revision = environment.world.terrain_revision();
                 self.terrain_routes.insert(entity, TerrainRouteState {
                     path,
                     revision: Some(terrain_revision),
                     waiting: false,
                     origin: start_point,
-                    target: points.get(1).cloned(),
+                    target: points.first().cloned(),
                 });
                 return Ok(points.into_iter().collect());
             }
@@ -1760,7 +1760,15 @@ impl Kernel {
             };
             let expected_points = crate::terrain_route::waypoints(&path, config)?;
             let remaining: Vec<_> = self.routes.get(&entity).map(|route| route.iter().cloned().collect()).unwrap_or_default();
-            if expected_points.len() < 2 || remaining != expected_points[1..] {
+            let offset = expected_points.len().checked_sub(remaining.len());
+            let correspondence = offset.filter(|offset| *offset > 0).is_some_and(|offset| {
+                remaining == expected_points[offset..]
+                    && self.terrain_routes[&entity].origin == expected_points[offset - 1]
+                    && self.ecs.get::<Destination>(entity).is_some_and(|target| {
+                        expected_points.last().is_some_and(|last| last.x == target.x && last.y == target.y && last.z == target.z && last.frame == target.frame)
+                    })
+            });
+            if !correspondence {
                 invalid.push(entity);
                 continue;
             }
@@ -1795,7 +1803,6 @@ impl Kernel {
 
     fn advance_movement(&mut self, delta: f64) -> Result<()> {
         self.invalidate_terrain_routes()?;
-        let prior_targets: BTreeMap<_, _> = self.terrain_routes.iter().filter_map(|(entity, state)| state.target.clone().map(|target| (*entity, target))).collect();
         self.routes.retain(|entity, path| {
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
             let target = self
@@ -1807,7 +1814,11 @@ impl Kernel {
                 return true;
             }
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");
-            navigation::advance(&mut p, path, speed * delta);
+            let last_reached = navigation::advance(&mut p, path, speed * delta);
+            if let Some(state) = self.terrain_routes.get_mut(entity) {
+                if let Some(point) = last_reached { state.origin = point; }
+                state.target = path.front().cloned();
+            }
             p.facing = target.facing;
             self.ecs.entity_mut(*entity).insert(p);
             if path.is_empty() {
@@ -1820,29 +1831,6 @@ impl Kernel {
         });
         let finished: Vec<_> = self.terrain_routes.keys().filter(|entity| !self.routes.contains_key(entity)).copied().collect();
         for entity in finished { self.terrain_routes.remove(&entity); }
-        if let Some(environment) = self.environment.as_ref() {
-            let spacing = environment.world.cell_spacing_m();
-            for (entity, state) in self.terrain_routes.iter_mut().filter(|(_, state)| !state.waiting) {
-                let Some(position) = self.ecs.get::<Position>(*entity) else { continue };
-                let current = crate::generation::Cell {
-                    x: (position.x / spacing[0]).round() as i64,
-                    y: (position.y / spacing[1] - 0.5).round() as i32,
-                    z: (position.z / spacing[2]).round() as i64,
-                };
-                if let Some(index) = state.path.iter().position(|cell| *cell == current) {
-                    if index > 0 { state.path.drain(..index); }
-                }
-            }
-        }
-        for (entity, prior) in prior_targets {
-            if let Some(state) = self.terrain_routes.get_mut(&entity) {
-                let next = self.routes.get(&entity).and_then(|path| path.front().cloned());
-                if next.as_ref() != state.target.as_ref() {
-                    state.origin = prior;
-                    state.target = next;
-                }
-            }
-        }
         Ok(())
     }
 
