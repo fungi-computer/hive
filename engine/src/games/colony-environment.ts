@@ -24,7 +24,14 @@ export const colonyEnvironment: EnvironmentDefinition = {
     seaLevel: 12,
     verticalMetres: 0.54,
   },
-  structures: { maxSpanSteps: 6 },
+  structures: {
+    maxSpanSteps: 6,
+    catalog: [
+      { id: "timber-floor", shape: { kind: "floor" }, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 2 },
+      { id: "timber-wall", shape: { kind: "wall", height: 4 }, materials: [{ kind: "wood", quantity: 4 }], workSeconds: 4 },
+      { id: "timber-stair", shape: { kind: "stair", run: 4, rise: 4 }, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 6 },
+    ],
+  },
   materials: [
     {
       slot: 0,
