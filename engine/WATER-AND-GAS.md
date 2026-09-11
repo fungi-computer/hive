@@ -729,3 +729,34 @@ work single-threaded in its actual browser/DO WASM consumers.
 [Bevy ECS](https://docs.rs/bevy_ecs/latest/bevy_ecs/) remains the maintained entity
 component foundation. It does not prescribe one entity per fluid voxel or supply
 our game field/conservation/durable-commit semantics.
+
+## September 11 material-to-environment integration checkpoint
+
+Native material consumption is integrated at `29c0150`, using the existing
+Rust lot/container, quantity arithmetic and canonical state-weight owners.
+It prepares exact portions without mutation, then checks owner/revision, lot
+contents, water mass, container/seal and state-weight witnesses before any debit.
+The caller receives consumed quantities and carried water; consuming wet material
+does not authorize dropping its water from the enclosing transaction. Zero lots
+retain their identities and remain valid through restore.
+
+Seven focused native laws passed in `run-u5945` (invocation
+`be661cf3dc0e49c3899812ed799c03d6`, terminal33999 exit0), with183 unrelated tests
+filtered out. The older-branch missing quantity dependency and subsequent linker
+crash remain recorded in `.botanical/material-consumption/RESULT.md`; neither was
+a passing run. This evidence is not a paid-fire, brewing or hosted-air proof.
+
+The immediate consumer is finite fuel admission: validate the station/contact
+and authored fuel conversion, prepare exact material consumption, prepare a
+bounded saved emission obligation at the canonical clock, and publish both in
+one admitted Kernel/Region transaction. A rejected receiver, capacity or material
+witness publishes neither. Ordinary air advancement spends that obligation's
+finite smoke/heat budget; it does not charge fuel again. Retained brewing's
+attended prepare transition uses the same operation later. The retained source
+map is `engine/RETAINED-BREWING-RESTORATION.md` on the game integration branch.
+
+World-backed atmosphere composition remains under source correction. Its geometry
+refresh must compare physical members/openings before recompilation, preserve
+unchanged parcels and compiled ownership, and restore after water epoch resets
+or unrelated terrain edits. It must not rebuild or reset air merely because a
+water tick elapsed. No full live Kernel air caller is accepted yet.
