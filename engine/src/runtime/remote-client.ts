@@ -3,7 +3,7 @@ import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
-import type { PresentationControl, TerrainMark } from "../presentation";
+import type { EnvironmentVisual, PresentationControl, TerrainMark } from "../presentation";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { WebSocket as PartySocket } from "partysocket";
 
@@ -44,6 +44,7 @@ type ObservationWire = {
     }[];
     readonly presentationControls: readonly PresentationControl[];
     readonly terrainMarks: readonly TerrainMark[];
+    readonly environmentVisuals: readonly EnvironmentVisual[];
   };
 };
 type PendingIntent = {
@@ -161,6 +162,12 @@ function terrainMark(value: unknown): value is TerrainMark {
     Array.isArray(value.cell) && value.cell.length === 3 && value.cell.every(Number.isSafeInteger) &&
     (value.status === "queued" || value.status === "working" || value.status === "blocked");
 }
+function environmentVisual(value: unknown): value is EnvironmentVisual {
+  if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 128 ||
+      !isRecord(value.position) || !finite(value.position.x) || !finite(value.position.y) || !finite(value.position.z) ||
+      value.kind !== "smoke" && value.kind !== "fire" || !finite(value.intensity) || value.intensity < 0 || value.intensity > 1) return false;
+  return true;
+}
 async function requestJson(
   fetcher: AuthorizedFetch,
   input: RequestInfo | URL,
@@ -239,12 +246,15 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
   const presentationFacts = observation.presentationFacts;
   const presentationControls = observation.presentationControls;
   const terrainMarks = observation.terrainMarks;
+  const environmentVisuals = observation.environmentVisuals;
   if (typeof observation.paused !== "boolean" || !finite(observation.time) || observation.time < 0 ||
     !safeNonnegativeInteger(observation.epoch) || !safeNonnegativeInteger(observation.sequence) ||
     !Array.isArray(facts) || facts.length > 512 || facts.some((item) => !renderFact(item)) ||
     !Array.isArray(presentationFacts) || presentationFacts.length > 32 || presentationFacts.some((item) => !presentationFact(item)) ||
     !Array.isArray(presentationControls) || presentationControls.length > 16 || presentationControls.some((item) => !presentationControl(item)) ||
-    !Array.isArray(terrainMarks) || terrainMarks.length > 256 || terrainMarks.some((item) => !terrainMark(item)))
+    !Array.isArray(terrainMarks) || terrainMarks.length > 256 || terrainMarks.some((item) => !terrainMark(item)) ||
+    !Array.isArray(environmentVisuals) || environmentVisuals.length > 64 || environmentVisuals.some((item) => !environmentVisual(item)) ||
+    new Set(environmentVisuals.map(item => (item as { id: string }).id)).size !== environmentVisuals.length)
     throw new Error("invalid remote observation");
   return {
     revision: value.revision,
@@ -260,6 +270,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
       presentationFacts: presentationFacts as ObservationWire["observation"]["presentationFacts"],
       presentationControls: presentationControls as PresentationControl[],
       terrainMarks: terrainMarks as TerrainMark[],
+      environmentVisuals: environmentVisuals as EnvironmentVisual[],
     },
   };
 }
@@ -347,7 +358,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
     emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, ...(candidate.observation.terrain === undefined ? {} : { terrain: candidate.observation.terrain }), cues: candidate.observation.cues });
-    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls, terrainMarks: candidate.observation.terrainMarks });
+    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls, terrainMarks: candidate.observation.terrainMarks, environmentVisuals: candidate.observation.environmentVisuals });
     return true;
   };
   const openSocket = async () => {

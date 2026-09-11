@@ -87,6 +87,7 @@ export class WorkerRuntime {
       facts: observation.presentationFacts,
       controls: observation.presentationControls,
       terrainMarks: observation.terrainMarks,
+      environmentVisuals: observation.environmentVisuals,
     });
   }
   command(command: WorkerCommand): void {

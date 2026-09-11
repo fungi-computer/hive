@@ -23,7 +23,7 @@ const pack = (presentation?: GamePresentation): GamePack =>
     },
     ...(presentation ? { presentation } : {}),
   }) as GamePack;
-const context = { query: () => [], atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); } };
+const context = { query: () => [], environmentFacts: () => ({}), atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); } };
 test("selection controls capture current IDs without granting game authority", () => {
   const control = {
     id: "order",
@@ -55,6 +55,7 @@ test("unconfigured packs project empty output", () =>
     facts: [],
     controls: [],
     terrainMarks: [],
+    environmentVisuals: [],
   }));
 test("projects bounded facts and cloned command input", () => {
   const input = { amount: 2 };
@@ -154,4 +155,27 @@ test("building surface controls preserve structure identity without fake earth m
   assert.deepEqual(terrainPresentationCommand(control, [], target).input, { target });
   assert.throws(() => terrainPresentationCommand({ ...control, target: "terrain-cell" }, [], target), /requires terrain/);
   assert.equal(projectPresentation(pack({ controls: [control], inspect: () => [] }), context).controls[0].target, "world-surface");
+});
+
+
+test("projects bounded environment visuals and rejects duplicates or invalid intensity", () => {
+  const result = projectPresentation(pack({
+    controls: [],
+    inspect: () => [],
+    environmentVisuals: () => [
+      { id: "hearth-smoke", position: { x: 1, y: 2, z: -1 }, kind: "smoke", intensity: 0.25 },
+      { id: "hearth-fire", position: { x: 1, y: 1, z: -1 }, kind: "fire", intensity: 1 },
+    ],
+  }), context);
+  assert.deepEqual(result.environmentVisuals, [
+    { id: "hearth-smoke", position: { x: 1, y: 2, z: -1 }, kind: "smoke", intensity: 0.25 },
+    { id: "hearth-fire", position: { x: 1, y: 1, z: -1 }, kind: "fire", intensity: 1 },
+  ]);
+  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], environmentVisuals: () => [
+    { id: "same", position: { x: 0, y: 0, z: 0 }, kind: "smoke", intensity: 0 },
+    { id: "same", position: { x: 1, y: 0, z: 0 }, kind: "smoke", intensity: 0 },
+  ] }), context), /duplicate environment visual/);
+  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], environmentVisuals: () => [
+    { id: "bad", position: { x: 0, y: 0, z: 0 }, kind: "fire", intensity: 2 },
+  ] }), context), /invalid environment presentation visual/);
 });

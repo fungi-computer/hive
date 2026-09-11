@@ -177,6 +177,7 @@ export interface ReadContext {
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
+  environmentFacts(): unknown;
   /** Returns modeled atmosphere at each cell; null means the receiver is unmodeled, not clean air. */
   atmosphereSamples(cells: readonly [number, number, number][]): AtmosphereSamples;
   terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
