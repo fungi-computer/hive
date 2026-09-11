@@ -195,6 +195,8 @@ export function createHiveClient({
   let groundSprite = null;
   const terrainLayer = createTerrainLayer();
   let terrainFrame;
+  let markSurfaceSource;
+  let markSurfaces;
   const terrainProjection = createTerrainProjectionCache();
   let art = null;
   let resizeObserver = null;
@@ -596,14 +598,22 @@ export function createHiveClient({
     terrainLayer.position(camera);
     terrainMarksGraphic.clear();
     const displayedTerrain = displayedTerrainFrame();
-    const markSurfaces = new Map((displayedTerrain?.surfaces ?? []).map((surface) => [surface.cell.join(","), surface]));
-    for (const mark of state.terrainMarks) {
-      const surface = markSurfaces.get(mark.cell.join(","));
-      if (!surface) continue;
-      const [x, y, z] = surface.cell;
-      const projected = project(x, (y + 0.5) * (displayedTerrain?.verticalMetres ?? 1), z);
-      const color = mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : 0xe8c779;
-      terrainMarksGraphic.rect(projected.x * camera.zoom + camera.x - 5, projected.y * camera.zoom + camera.y - 5, 10, 10).fill({ color, alpha: 0.8 });
+    if (state.terrainMarks.length > 0 && displayedTerrain) {
+      if (markSurfaceSource !== displayedTerrain.surfaces) {
+        markSurfaceSource = displayedTerrain.surfaces;
+        markSurfaces = new Map(displayedTerrain.surfaces.map((surface) => [surface.cell.join(","), surface]));
+      }
+      for (const mark of state.terrainMarks) {
+        const surface = markSurfaces.get(mark.cell.join(","));
+        if (!surface) continue;
+        const [x, y, z] = surface.cell;
+        const corners = [[x - 0.5, z - 0.5], [x + 0.5, z - 0.5], [x + 0.5, z + 0.5], [x - 0.5, z + 0.5]].flatMap(([a, b]) => {
+          const projected = project(a, (y + 0.5) * displayedTerrain.verticalMetres, b);
+          return [projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y];
+        });
+        const color = mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : 0xe8c779;
+        terrainMarksGraphic.poly(corners).stroke({ color, width: 2, alpha: 0.85 });
+      }
     }
     const animationById = new Map(
       animationClock

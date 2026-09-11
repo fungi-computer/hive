@@ -346,7 +346,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
     emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, ...(candidate.observation.terrain === undefined ? {} : { terrain: candidate.observation.terrain }), cues: candidate.observation.cues });
-    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls });
+    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls, terrainMarks: candidate.observation.terrainMarks });
     return true;
   };
   const openSocket = async () => {
