@@ -161,7 +161,11 @@ function deliveryWrites(
   });
 }
 
-function selectedDigWorker(context: CommandContext, input: unknown, allowActiveExcavation = false): EntityId {
+function selectedDigWorker(
+  context: CommandContext,
+  input: unknown,
+  options: { readonly allowActiveExcavation?: boolean; readonly allowActiveDelivery?: boolean } = {},
+): EntityId {
   if (!input || typeof input !== "object" || Array.isArray(input))
     throw new Error("dig command requires one selected worker");
   const entities = (input as DigInput).entities;
@@ -178,17 +182,11 @@ function selectedDigWorker(context: CommandContext, input: unknown, allowActiveE
     throw new Error("selected worker cannot dig");
   const activeDelivery = context.query(query(DeliveryTask)).some((row) => {
     const task = row.get(DeliveryTask);
-    return task.actor === worker && task.phase !== "idle" && task.phase !== "complete";
+    return task.actor === worker && task.phase !== "complete";
   });
-  if (activeDelivery) throw new Error("worker is carrying out a delivery");
-  if (!allowActiveExcavation && context.query(query(ExcavationWork)).some((row) => row.id === worker))
+  if (activeDelivery && !options.allowActiveDelivery) throw new Error("worker is carrying out a delivery");
+  if (!options.allowActiveExcavation && context.query(query(ExcavationWork)).some((row) => row.id === worker))
     throw new Error("worker already has excavation work");
-  const carried = context
-    .query(query(MaterialLot))
-    .filter((row) => row.get(MaterialLot).container === worker)
-    .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
-  if (!Number.isSafeInteger(carried) || carried < 0)
-    throw new Error("worker cargo is invalid");
   return worker;
 }
 
@@ -216,7 +214,15 @@ function excavationInput(context: CommandContext, input: unknown) {
     .query(query(MaterialLot))
     .filter((row) => row.get(MaterialLot).container === worker)
     .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
-  if (!container || !Number.isSafeInteger(output) || output <= 0 || carried + output > container.capacity)
+  if (
+    !container ||
+    !Number.isSafeInteger(carried) ||
+    carried < 0 ||
+    !Number.isSafeInteger(output) ||
+    output <= 0 ||
+    !Number.isSafeInteger(carried + output) ||
+    carried + output > container.capacity
+  )
     throw new Error("worker lacks capacity for excavation output");
   return { worker, cell: { x: cell[0], y: cell[1], z: cell[2] }, expected: material.slot };
 }
@@ -227,6 +233,7 @@ const colonyComponents = [
   Container,
   Traversal,
   MaterialLot,
+  ExcavationWork,
   Destination,
   Worker,
   Guest,
@@ -260,9 +267,6 @@ export const colonyPack: GamePack = {
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
       writes: [],
       run: (context, input) => {
-        // The first interaction sends a target only when the worker is already
-        // within native reach; routing a queued dig job belongs to the shared
-        // work approach layer and is deliberately not recreated here.
         const { worker, cell, expected } = excavationInput(context, input);
         return { actions: [excavate(worker, cell, expected, colonyEnvironment.world.slots.air)], writes: [] };
       },
@@ -271,7 +275,10 @@ export const colonyPack: GamePack = {
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
       writes: [],
       run: (context, input) => {
-        const worker = selectedDigWorker(context, input, true);
+        const worker = selectedDigWorker(context, input, {
+          allowActiveExcavation: true,
+          allowActiveDelivery: true,
+        });
         if (!context.query(query(ExcavationWork)).some((row) => row.id === worker))
           throw new Error("worker has no excavation work");
         return { actions: [cancelWork(worker)], writes: [] };
@@ -284,6 +291,8 @@ export const colonyPack: GamePack = {
       { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
       { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
       { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
+      { id: "dig", label: "Dig selected cell", command: "dig", selection: "entities", target: "terrain-cell" },
+      { id: "cancel-dig", label: "Cancel digging", command: "cancelDig", selection: "entities" },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
