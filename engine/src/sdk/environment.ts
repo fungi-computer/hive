@@ -69,6 +69,24 @@ export interface EnvironmentWater {
 /** Structural policy shared by terrain placement and support admission. */
 export interface EnvironmentStructures {
   readonly maxSpanSteps: number;
+  readonly catalog: readonly EnvironmentStructureDefinition[];
+}
+
+export type EnvironmentStructureShape =
+  | { readonly kind: "floor" }
+  | { readonly kind: "wall"; readonly height: number }
+  | { readonly kind: "stair"; readonly run: number; readonly rise: number };
+
+export interface EnvironmentStructureMaterial {
+  readonly kind: string;
+  readonly quantity: number;
+}
+
+export interface EnvironmentStructureDefinition {
+  readonly id: string;
+  readonly shape: EnvironmentStructureShape;
+  readonly materials: readonly EnvironmentStructureMaterial[];
+  readonly workSeconds: number;
 }
 
 export interface InitialSurfacePlacement {
@@ -95,6 +113,39 @@ export function validateEnvironmentDefinition(
     maxSpanSteps > 64
   ) {
     throw new Error("structures.maxSpanSteps must be an integer from 1 through 64");
+  }
+  const catalog = definition?.structures?.catalog;
+  if (!Array.isArray(catalog) || catalog.length > 64) {
+    throw new Error("structures.catalog must contain at most 64 entries");
+  }
+  const ids = new Set<string>();
+  for (const entry of catalog) {
+    if (!entry || typeof entry.id !== "string" || entry.id.length === 0 || entry.id.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(entry.id) || ids.has(entry.id)
+      || !Number.isFinite(entry.workSeconds) || entry.workSeconds <= 0 || entry.workSeconds > 86_400
+      || !Array.isArray(entry.materials) || entry.materials.length < 1 || entry.materials.length > 16) {
+      throw new Error("invalid structure catalog entry");
+    }
+    ids.add(entry.id);
+    const shape = entry.shape;
+    if (!shape || (shape.kind !== "floor" && shape.kind !== "wall" && shape.kind !== "stair")
+      || shape.kind === "wall" && (!Number.isSafeInteger(shape.height) || shape.height < 1 || shape.height > 64)
+      || shape.kind === "stair" && (!Number.isSafeInteger(shape.run) || !Number.isSafeInteger(shape.rise)
+        || shape.run < 1 || shape.run > 64 || shape.rise < 1 || shape.rise > shape.run)) {
+      throw new Error("invalid structure catalog shape");
+    }
+    const kinds = new Set<string>();
+    let totalQuantity = 0;
+    for (const material of entry.materials) {
+      if (!material || typeof material.kind !== "string" || material.kind.length === 0 || material.kind.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(material.kind)
+        || kinds.has(material.kind) || !Number.isSafeInteger(material.quantity) || material.quantity <= 0 || material.quantity > 0xffff_ffff) {
+        throw new Error("invalid structure required material");
+      }
+      kinds.add(material.kind);
+      totalQuantity += material.quantity;
+      if (!Number.isSafeInteger(totalQuantity) || totalQuantity > 0xffff_ffff) {
+        throw new Error("structure material quantity exceeds capacity");
+      }
+    }
   }
 }
 

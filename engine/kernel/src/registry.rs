@@ -61,6 +61,11 @@ impl Registry {
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
+            ("hive.construction-site", vec![
+                ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
+                ("orientation", FieldType::String), ("contactX", FieldType::Number), ("contactY", FieldType::Number), ("contactZ", FieldType::Number),
+                ("worker", FieldType::NullableEntity), ("seconds", FieldType::Number), ("phase", FieldType::String),
+            ]),
             (
                 "hive.destination",
                 vec![
@@ -174,6 +179,7 @@ impl Registry {
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
+                "hive.construction-site" => world.register_component::<ConstructionSite>(),
                 "hive.destination" => world.register_component::<Destination>(),
                 "hive.support" => world.register_component::<Support>(),
                 "hive.surface" => world.register_component::<Surface>(),
@@ -215,6 +221,7 @@ impl Registry {
                 | "hive.lot"
                 | "hive.lot-water"
                 | "hive.excavation-work"
+                | "hive.construction-site"
                 | "hive.destination"
                 | "hive.support"
                 | "hive.surface"
@@ -299,6 +306,13 @@ impl Registry {
                 let work: ExcavationWork = decode(value)?;
                 if !work.seconds.is_finite() || work.seconds < 0.0 || work.expected == work.replacement {
                     return Err("invalid excavation progress".into());
+                }
+            }
+            "hive.construction-site" => {
+                let site: ConstructionSite = decode(value)?;
+                if !valid_id(&site.catalog) || !site.contact_x.is_finite() || !site.contact_y.is_finite()
+                    || !site.contact_z.is_finite() || !site.seconds.is_finite() || site.seconds < 0.0 {
+                    return Err("invalid construction site".into());
                 }
             }
             "hive.lot-water" => {
@@ -447,6 +461,9 @@ impl Registry {
             "hive.excavation-work" => {
                 world.entity_mut(entity).insert(decode::<ExcavationWork>(value)?);
             }
+            "hive.construction-site" => {
+                world.entity_mut(entity).insert(decode::<ConstructionSite>(value)?);
+            }
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
@@ -501,6 +518,7 @@ impl Registry {
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
+            "hive.construction-site" => world.get::<ConstructionSite>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),
             "hive.support" => world.get::<Support>(entity).map(record),
             "hive.surface" => world.get::<Surface>(entity).map(record),

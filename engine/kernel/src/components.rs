@@ -2,6 +2,7 @@ use bevy_ecs::prelude::Component;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
+use crate::structure_geometry::Cardinal;
 pub type Record = BTreeMap<String, Value>;
 pub type Result<T> = std::result::Result<T, String>;
 /// Safety bound for one carried-water field; canonical state capacity remains
@@ -61,6 +62,28 @@ pub struct ExcavationWork {
     pub expected: u16,
     pub replacement: u16,
     pub seconds: f64,
+}
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ConstructionSite {
+    pub catalog: String,
+    pub x: i64,
+    pub y: i32,
+    pub z: i64,
+    pub orientation: Cardinal,
+    pub contact_x: f64,
+    pub contact_y: f64,
+    pub contact_z: f64,
+    pub worker: Option<String>,
+    pub seconds: f64,
+    pub phase: ConstructionPhase,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ConstructionPhase {
+    Planned,
+    Working,
+    Finished,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -281,6 +304,16 @@ where
 pub enum Action {
     Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },
     CancelWork { entity: String },
+    PlanConstruction {
+        catalog: String,
+        site: String,
+        x: i64,
+        y: i32,
+        z: i64,
+        orientation: Cardinal,
+        contact: Point,
+    },
+    AttendConstruction { worker: String, site: String },
     Move {
         entity: String,
         destination: Point,

@@ -223,6 +223,7 @@ impl TerrainWater {
     }
 
     pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
+    pub fn bounds(&self) -> crate::generation::Bounds { self.terrain.bounds() }
     pub fn cell_spacing_m(&self) -> [f64; 3] { self.terrain.cell_spacing_m() }
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     /// Shared physical contact query for placement, route admission and retained
@@ -239,6 +240,24 @@ impl TerrainWater {
             }),
             Err(error) => Err(error.into()),
         }
+    }
+    pub(crate) fn prepared_traversal_material(&mut self, prepared: &PreparedStructureChange, at: Cell) -> Result<crate::terrain_traversal::TraversalMaterial, String> {
+        use crate::terrain_traversal::TraversalMaterial;
+        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
+            return Err("prepared structure change is stale or foreign".into());
+        }
+        match self.terrain.query(at) {
+            Ok(material) => Ok(TraversalMaterial {
+                solid: !self.terrain.is_open_material(material) || prepared.projection.is_bulk_solid(at),
+                outside: false,
+                sealed_top: prepared.projection.supports(at),
+            }),
+            Err("cell outside world bounds") => Ok(TraversalMaterial { solid: false, outside: true, sealed_top: false }),
+            Err(error) => Err(error.into()),
+        }
+    }
+    pub(crate) fn structure_instances(&self) -> Vec<StaticInstance> {
+        self.structures.instances().to_vec()
     }
 
     /// Query current terrain material through the composed owner, preserving
