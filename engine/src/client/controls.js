@@ -131,3 +131,10 @@ export function surfaceSubjectAt(subjects, point, containsSurface) {
     subject.pickable !== false && subject.surface && containsSurface(point.x, point.y, subject),
   );
 }
+
+export function eligibleSelectedIds(subjects, selectedIds) {
+  const eligible = new Set(
+    subjects.filter((subject) => subject.pickable !== false).map((subject) => subject.id),
+  );
+  return selectedIds.filter((id) => eligible.has(id));
+}
