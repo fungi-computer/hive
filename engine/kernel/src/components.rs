@@ -238,6 +238,8 @@ pub struct RouteSnapshot {
     pub path: Vec<Point>,
     pub terrain_path: Option<Vec<crate::generation::Cell>>,
     pub terrain_waiting: bool,
+    pub terrain_origin: Option<Point>,
+    pub terrain_target: Option<Point>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
