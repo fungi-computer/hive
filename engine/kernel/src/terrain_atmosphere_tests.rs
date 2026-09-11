@@ -153,7 +153,7 @@ fn changed_wall_rebinds_and_restores_exact_state() {
     let mut water = world();
     let config = config(ExteriorPolicy::Closed);
     let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
-    let support = (0..28)
+    let support = (28..39)
         .map(|y| Cell { x: 0, y, z: 0 })
         .find(|cell| {
             water.material(*cell).unwrap() != 0
@@ -181,14 +181,59 @@ fn changed_wall_rebinds_and_restores_exact_state() {
     let prepared_air = air.prepare_rebind(&candidate).unwrap().unwrap();
     water.apply_structures(prepared_structure).unwrap();
     air.apply_rebind(prepared_air).unwrap();
+    let (candidate_definition, _) =
+        super::terrain_atmosphere::definition_from_snapshot(&config, &candidate, water.cell_spacing_m())
+            .unwrap();
+    assert_ne!(
+        candidate_definition.volumes,
+        air.compiled().definition().volumes,
+        "the authored wall must change the air partition"
+    );
     assert!(air.geometry_revision() > 0);
+    let source_volume = air.compiled().definition().volumes[0].id.clone();
+    air.advance(
+        0.2,
+        &[super::atmosphere::AtmosphereSource {
+            volume_id: source_volume.clone(),
+            smoke_kg_s: 0.001,
+            heat_j_s: 10.0,
+        }],
+    )
+    .unwrap();
+    assert!(air.state().smoke_source_kg() > 0.0);
+    assert!(air.state().heat_source_j() > 0.0);
     let saved = air.save().unwrap();
     let restored = TerrainAtmosphere::restore(&mut water, &saved).unwrap();
     assert_eq!(restored.state().parcels(), air.state().parcels());
+    assert_eq!(restored.state().smoke_source_kg(), air.state().smoke_source_kg());
+    assert_eq!(restored.state().heat_source_j(), air.state().heat_source_j());
     assert_eq!(
         restored.compiled().definition(),
         air.compiled().definition()
     );
+    let mut expected = air;
+    let mut continued = restored;
+    expected
+        .advance(
+            0.2,
+            &[super::atmosphere::AtmosphereSource {
+                volume_id: source_volume.clone(),
+                smoke_kg_s: 0.001,
+                heat_j_s: 10.0,
+            }],
+        )
+        .unwrap();
+    continued
+        .advance(
+            0.2,
+            &[super::atmosphere::AtmosphereSource {
+                volume_id: source_volume,
+                smoke_kg_s: 0.001,
+                heat_j_s: 10.0,
+            }],
+        )
+        .unwrap();
+    assert_eq!(continued.state().parcels(), expected.state().parcels());
 }
 
 #[test]
@@ -196,7 +241,7 @@ fn rebind_candidate_becomes_stale_after_atmosphere_advance() {
     let mut water = world();
     let config = config(ExteriorPolicy::Closed);
     let mut air = TerrainAtmosphere::fresh(&mut water, config.clone()).unwrap();
-    let support = (0..28)
+    let support = (28..39)
         .map(|y| Cell { x: 0, y, z: 0 })
         .find(|cell| {
             water.material(*cell).unwrap() != 0

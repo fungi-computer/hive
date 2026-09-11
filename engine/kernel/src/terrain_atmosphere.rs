@@ -185,13 +185,15 @@ impl TerrainAtmosphere {
         {
             return Err("atmosphere rebind candidate is stale or mismatched".into());
         }
-        if !snapshot_has_free_air(snapshot) {
-            return Ok(Err(AtmosphereRebindResult::Blocked(
-                crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved,
-            )));
-        }
-        let (candidate_definition, _) =
-            definition_from_snapshot(&self.config, snapshot, self.spacing)?;
+        let (candidate_definition, _) = match definition_from_snapshot(&self.config, snapshot, self.spacing) {
+            Ok(definition) => definition,
+            Err(_error) if snapshot_has_no_free_air(snapshot) => {
+                return Ok(Err(AtmosphereRebindResult::Blocked(
+                    crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved,
+                )))
+            }
+            Err(error) => return Err(error),
+        };
         if same_physical_definition(&candidate_definition, self.compiled.definition()) {
             return Ok(Ok(PreparedAtmosphereRebind::Unchanged {
                 source_physical_revision: snapshot.physical_revision,
@@ -279,14 +281,14 @@ impl TerrainAtmosphere {
     }
 }
 
-fn snapshot_has_free_air(snapshot: &AirGeometrySnapshot) -> bool {
-    snapshot.cells.iter().any(|cell| match &cell.water {
-        crate::terrain_water::AirWaterCoverage::Unmodeled => true,
+fn snapshot_has_no_free_air(snapshot: &AirGeometrySnapshot) -> bool {
+    snapshot.cells.iter().all(|cell| match &cell.water {
         crate::terrain_water::AirWaterCoverage::Admitted { liquid_volume_m3 } => {
             liquid_volume_m3.is_finite()
                 && cell.voxel_volume_m3.is_finite()
-                && *liquid_volume_m3 < cell.voxel_volume_m3
+                && *liquid_volume_m3 >= cell.voxel_volume_m3
         }
+        crate::terrain_water::AirWaterCoverage::Unmodeled => false,
     })
 }
 
