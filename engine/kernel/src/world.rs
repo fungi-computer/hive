@@ -3,6 +3,9 @@ use crate::{collision, combat, components::*, navigation, registry::Registry};
 mod material_output;
 #[path = "excavation_work.rs"]
 mod excavation_work;
+#[cfg(test)]
+#[path = "terrain_movement_tests.rs"]
+mod terrain_movement_tests;
 use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
 use bevy_ecs::{
     prelude::{Entity, World},
