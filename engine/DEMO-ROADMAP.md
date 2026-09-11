@@ -781,3 +781,29 @@ witnesses and metre waypoints cannot be independent saved truths. Validate their
 correspondence using the same route geometry producer. Keep fixed-width route
 costs consistent across native and WASM targets. Source-only checkpoint d62ef54
 has not yet met these laws and is not part of the playable release.
+
+### Initial Colony placement on generated terrain
+
+Current Colony still declares actors and pantry at y=0 and does not enable its
+prepared environment. Do not enable that environment until native placement and
+walking are joined: rendering a hill underneath an actor is not placement.
+
+Use an explicit initial surface-placement list in environment authoring, with
+entity IDs and signed generator columns. This is initialization configuration,
+not a permanent ECS capability that repeatedly forces an entity onto the surface.
+Both walking bodies and the static pantry use it. Resolve each column through
+the existing Rust `surface_cells` owner and convert the returned support cell
+to metres with the environment metric. No seed-specific y=13, TypeScript noise,
+water-cell-derived height, or restore-time regrounding.
+
+The existing scene loads valid authored positions before `load_environment`.
+Initial placement replaces those positions only in a detached fresh candidate;
+validate all IDs, distinct placement targets, bounds, support/clearance and
+physical indexes before publishing environment and poses together. Reject an
+invalid placement without leaving a partially installed environment. Moving
+surfaces and entities with active routes are not eligible for this initial
+placement operation. Restore retains saved positions and edited terrain and
+does not replay placement. Test a static container as well as an actor, varied
+generated heights, failed admission leaving the original scene intact, and
+recovery after movement/excavation. This boundary is the next native join after
+the current route correction, not a second concurrent kernel writer.
