@@ -1252,10 +1252,11 @@ impl Kernel {
     fn validate_construction_sites(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         let mut workers = BTreeSet::new();
-        let geometry_ids: BTreeSet<String> = environment.world.structure_instances().into_iter().filter_map(|instance| match instance {
+        let geometry_instances = environment.world.structure_instances();
+        let geometry_ids: BTreeSet<String> = geometry_instances.iter().map(|instance| match instance {
             crate::structure_geometry::StaticInstance::Floor { id, .. }
             | crate::structure_geometry::StaticInstance::Wall { id, .. }
-            | crate::structure_geometry::StaticInstance::Stair { id, .. } => Some(id),
+            | crate::structure_geometry::StaticInstance::Stair { id, .. } => id.clone(),
         }).collect();
         for (id, entity) in &self.ids {
             let Some(site) = self.ecs.get::<ConstructionSite>(*entity) else { continue; };
@@ -1270,7 +1271,9 @@ impl Kernel {
             }
             match site.phase {
                 ConstructionPhase::Finished => {
-                    if self.ecs.get::<SealedContainer>(*entity).is_none() || site.worker.is_some() || !geometry_ids.contains(id) { return Err("finished construction linkage is invalid".into()); }
+                    let expected = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
+                    if self.ecs.get::<SealedContainer>(*entity).is_none() || site.worker.is_some()
+                        || !geometry_instances.iter().any(|instance| instance == &expected) { return Err("finished construction linkage is invalid".into()); }
                 }
                 ConstructionPhase::Planned => if site.worker.is_some() || site.seconds != 0.0 || geometry_ids.contains(id) { return Err("planned construction progress is invalid".into()); },
                 ConstructionPhase::Working => {
