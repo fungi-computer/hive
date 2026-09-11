@@ -19,6 +19,7 @@ import type {
   SimulationClock,
   WriteContext,
   WriteIntent,
+  EntityRecord,
   EntityId,
   WorldPose,
   Impact,
@@ -50,7 +51,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 7;
+  readonly version: 8;
   readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
@@ -62,12 +63,21 @@ export interface SessionSnapshot {
   readonly outcomes: readonly ActionOutcome[];
   readonly pendingActions: readonly ActionRequest[];
   readonly pendingWrites: readonly WriteIntent[];
+  readonly pendingCreates: readonly EntityRecord[];
+  readonly pendingRemoves: readonly EntityId[];
   readonly pendingImpacts: readonly Impact[];
   readonly impactHighWater: number;
   readonly impactFrontiers: readonly { system: string; sequence: number | null }[];
   readonly systems: readonly { id: string; version: number; consumesImpacts: boolean }[];
 }
 const MAX_PENDING_IMPACTS = 1024;
+const MAX_AUTHORED_RECORDS = 256;
+const MAX_AUTHORED_REMOVES = 256;
+function checkedAuthoredId(value: unknown): EntityId {
+  if (typeof value !== "string" || !/^[A-Za-z0-9._:-]+$/.test(value) || value.length > 160)
+    throw new Error("invalid authored entity id");
+  return value as EntityId;
+}
 function finiteVec3(value: unknown): value is { x: number; y: number; z: number } {
   return Boolean(value) && typeof value === "object" &&
     Number.isFinite((value as { x?: unknown }).x) &&
@@ -104,6 +114,8 @@ export class GameSession {
   private outcomes: ActionOutcome[] = [];
   private pendingActions: ActionRequest[] = [];
   private pendingWrites: WriteIntent[] = [];
+  private pendingCreates: EntityRecord[] = [];
+  private pendingRemoves: EntityId[] = [];
   private pendingImpacts: Impact[] = [];
   private impactHighWater = 0;
   private cues: CueSnapshot = { sequence: 0, recent: [] };
@@ -143,6 +155,8 @@ export class GameSession {
     this.outcomes = [];
     this.pendingActions = [];
     this.pendingWrites = [];
+    this.pendingCreates = [];
+    this.pendingRemoves = [];
     this.pendingImpacts = [];
     this.impactHighWater = 0;
     this.cues = { sequence: 0, recent: [] };
@@ -226,17 +240,23 @@ export class GameSession {
               throw new Error(`command ${name} cannot read ${component.id}`);
           return this.queryOverlay(spec, this.pendingWrites);
         },
+        createAuthoredEntity: () => { throw new Error("command authored creation must be returned"); },
+        removeAuthoredEntity: () => { throw new Error("command authored removal must be returned"); },
       },
       structuredClone(input),
     );
     if (
       !result ||
       !Array.isArray(result.actions) ||
-      !Array.isArray(result.writes)
+      !Array.isArray(result.writes) ||
+      (result.creates !== undefined && !Array.isArray(result.creates)) ||
+      (result.removes !== undefined && !Array.isArray(result.removes))
     )
       throw new Error("invalid command result");
     const actions = result.actions.map(checkedAction);
     const writes = this.validateWrites(result.writes, handler.writes);
+    const creates = this.validateAuthoredCreates(result.creates ?? [], handler.writes);
+    const removes = (result.removes ?? []).map(checkedAuthoredId);
     const merged = [...this.pendingWrites];
     for (const write of writes) {
       const index = merged.findIndex(
@@ -249,11 +269,32 @@ export class GameSession {
     }
     if (
       this.pendingActions.length + actions.length > 128 ||
-      merged.length > 128
+      merged.length > 128 || this.pendingCreates.length + creates.length > MAX_AUTHORED_RECORDS ||
+      this.pendingRemoves.length + removes.length > MAX_AUTHORED_REMOVES
     )
       throw new Error("pending action limit reached");
     this.pendingActions.push(...actions);
     this.pendingWrites = merged;
+    this.pendingCreates.push(...creates);
+    this.pendingRemoves.push(...removes);
+  }
+  private validateAuthoredCreates(records: readonly EntityRecord[], allowed: readonly import("../contracts").ComponentDefinition<any>[]): EntityRecord[] {
+    if (records.length > MAX_AUTHORED_RECORDS) throw new Error("authored creation limit reached");
+    const permitted = new Set(allowed.map((component) => component.id));
+    const seen = new Set<string>();
+    return records.map((record) => {
+      const id = checkedAuthoredId(record?.id);
+      if (seen.has(id) || this.pendingCreates.some((item) => item.id === id) || this.pendingRemoves.includes(id)) throw new Error("duplicate authored entity id");
+      seen.add(id);
+      if (!record.components || typeof record.components !== "object" || Array.isArray(record.components) || Object.keys(record.components).length === 0 || Object.keys(record.components).length > 32) throw new Error("invalid authored components");
+      const components: Record<string, unknown> = {};
+      for (const [id, value] of Object.entries(record.components)) {
+        const definition = this.pack.components.find((component) => component.id === id);
+        if (!definition || !permitted.has(id) || isReservedComponent(id) || !definition.validate(value)) throw new Error(`invalid authored component ${id}`);
+        components[id] = structuredClone(value);
+      }
+      return { id, components };
+    });
   }
   private validateWrites(
     writes: readonly WriteIntent[],
@@ -334,8 +375,15 @@ export class GameSession {
   private queryOverlay<T extends object>(
     spec: QuerySpec<T>,
     pending: readonly WriteIntent[],
+    creates: readonly EntityRecord[] = this.pendingCreates,
+    removes: readonly EntityId[] = this.pendingRemoves,
   ): readonly QueryRow<T>[] {
-    return this.port.query(spec).map((row) => ({
+    const rows = this.port.query(spec).filter((row) => !removes.includes(row.id));
+    const createdRows = creates.filter((record) => spec.components.every((component) => Object.hasOwn(record.components, component.id))).map((record) => ({
+      id: record.id,
+      get: <V extends object>(definition: import("../contracts").ComponentDefinition<V>) => structuredClone(record.components[definition.id]) as V,
+    }));
+    return [...rows, ...createdRows].map((row) => ({
       id: row.id,
       get: <V extends object>(
         definition: import("../contracts").ComponentDefinition<V>,
@@ -397,6 +445,10 @@ export class GameSession {
       });
       const queuedWrites = structuredClone(this.pendingWrites);
       this.pendingWrites = [];
+      const queuedCreates = structuredClone(this.pendingCreates);
+      this.pendingCreates = [];
+      const queuedRemoves = structuredClone(this.pendingRemoves);
+      this.pendingRemoves = [];
       const writes: WriteIntent[] = [...queuedWrites];
       const actions: ActionRequest[] = this.pendingActions.splice(0);
       const nextFrontiers = new Map(this.impactFrontiers);
@@ -410,7 +462,7 @@ export class GameSession {
         assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
         outcomes: structuredClone(this.outcomes),
-        query: (spec) => this.queryOverlay(spec, queuedWrites),
+        query: (spec) => this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves),
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });
         },
@@ -418,6 +470,15 @@ export class GameSession {
           if (++systemActionCount > 128)
             throw new Error("game systems exceeded 128 actions per step");
           actions.push(checkedAction(action));
+        },
+        createAuthoredEntity: (record) => {
+          const checked = this.validateAuthoredCreates([record], this.pack.components);
+          queuedCreates.push(...checked);
+        },
+        removeAuthoredEntity: (id) => {
+          const checked = checkedAuthoredId(id);
+          if (queuedRemoves.includes(checked) || queuedCreates.some((record) => record.id === checked)) throw new Error("duplicate authored removal");
+          queuedRemoves.push(checked);
         },
       };
       for (const definition of this.pack.systems) {
@@ -447,7 +508,7 @@ export class GameSession {
           ),
         );
       }
-      const advanced: AdvanceResult = this.port.advance(delta, writes, actions);
+      const advanced: AdvanceResult = this.port.advance(delta, writes, actions, { creates: queuedCreates, removes: queuedRemoves });
       if (advanced.results.length !== actions.length)
         throw new Error("kernel result count mismatch");
       const incoming = advanced.impacts.map(checkedImpact);
@@ -488,7 +549,7 @@ export class GameSession {
     this.ensureLive();
     return {
       format: "hive-session",
-      version: 7,
+      version: 8,
       cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
@@ -500,6 +561,8 @@ export class GameSession {
       random: this.random.state(),
       pendingActions: structuredClone(this.pendingActions),
       pendingWrites: structuredClone(this.pendingWrites),
+      pendingCreates: structuredClone(this.pendingCreates),
+      pendingRemoves: structuredClone(this.pendingRemoves),
       pendingImpacts: structuredClone(this.pendingImpacts),
       impactHighWater: this.impactHighWater,
       impactFrontiers: [...this.impactFrontiers.entries()].map(([system, sequence]) => ({ system, sequence })),
@@ -513,7 +576,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 7 ||
+      snapshot.version !== 8 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||
@@ -533,6 +596,8 @@ export class GameSession {
       snapshot.pendingActions.length > 128 ||
       !Array.isArray(snapshot.pendingWrites) ||
       snapshot.pendingWrites.length > 128 ||
+      !Array.isArray(snapshot.pendingCreates) || snapshot.pendingCreates.length > MAX_AUTHORED_RECORDS ||
+      !Array.isArray(snapshot.pendingRemoves) || snapshot.pendingRemoves.length > MAX_AUTHORED_REMOVES ||
       !Array.isArray(snapshot.pendingImpacts) ||
       snapshot.pendingImpacts.length > MAX_PENDING_IMPACTS ||
       !Array.isArray(snapshot.impactFrontiers) ||
@@ -574,6 +639,10 @@ export class GameSession {
       incomingTargets,
       incomingMembership,
     );
+    const authoredDefinitions = [...Object.values(this.pack.commands ?? {}).flatMap((command) => command.writes), ...this.pack.systems.flatMap((system) => system.writes)];
+    const pendingCreates = this.validateAuthoredCreates(snapshot.pendingCreates, authoredDefinitions);
+    const pendingRemoves = snapshot.pendingRemoves.map(checkedAuthoredId);
+    if (new Set(pendingRemoves).size !== pendingRemoves.length || pendingCreates.some((record) => pendingRemoves.includes(record.id))) throw new Error("invalid authored queue");
     const pendingImpacts = snapshot.pendingImpacts.map(checkedImpact);
     const impactIds = new Set<string>();
     const impactSequences = new Set<number>();
@@ -661,6 +730,8 @@ export class GameSession {
     this.random.restore(snapshot.random);
     this.pendingActions = pending;
     this.pendingWrites = pendingWrites;
+    this.pendingCreates = pendingCreates;
+    this.pendingRemoves = pendingRemoves;
     this.pendingImpacts = pendingImpacts;
     this.impactHighWater = snapshot.impactHighWater;
     this.impactFrontiers = frontiers;

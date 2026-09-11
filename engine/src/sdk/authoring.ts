@@ -5,6 +5,7 @@ import type {
   QuerySpec,
   SystemDefinition,
   WriteContext,
+  EntityRecord,
   GameCommandDefinition,
 } from "../contracts";
 
@@ -93,6 +94,15 @@ export function system(options: SystemOptions): SystemDefinition {
         },
         action(request) {
           context.action(request);
+        },
+        createAuthoredEntity(record: EntityRecord) {
+          if (writes.length >= 256) throw new Error(`System ${options.id} exceeded authored creation budget`);
+          for (const component of Object.keys(record.components))
+            if (!permitted.has(component)) throw new Error(`System ${options.id} cannot create ${component}`);
+          context.createAuthoredEntity(record);
+        },
+        removeAuthoredEntity(entity) {
+          context.removeAuthoredEntity(entity);
         },
       };
       run(checked);
