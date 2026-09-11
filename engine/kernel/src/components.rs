@@ -157,7 +157,26 @@ pub struct Snapshot {
     pub next_impact: u64,
     pub scene: Scene,
     pub routes: Vec<RouteSnapshot>,
+    pub direct: Vec<DirectSnapshot>,
 }
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DirectInput {
+    pub sequence: u64,
+    pub x: f64,
+    pub z: f64,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DirectState {
+    pub entity: String,
+    pub stream: String,
+    pub last_queued: u64,
+    pub last_processed: u64,
+    pub queue: Vec<DirectInput>,
+    pub remainder: f64,
+}
+pub type DirectSnapshot = DirectState;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RouteSnapshot {
@@ -201,6 +220,8 @@ pub enum Action {
         destination: Point,
         facing: Option<f64>,
     },
+    BeginDirect { entity: String, stream: String },
+    DirectInput { entity: String, stream: String, inputs: Vec<DirectInput> },
     Transfer {
         lot: String,
         from: String,

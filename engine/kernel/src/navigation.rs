@@ -11,6 +11,74 @@ pub struct Bounds {
     pub min_z: f64,
     pub max_z: f64,
 }
+pub const DIRECT_STEP_SECONDS: f64 = 0.020;
+pub const MAX_DIRECT_INPUTS: usize = 50;
+
+/// Advance one fixed direct-control sample. This is deliberately independent
+/// of the ECS so the WASM prediction entrypoint and the authoritative owner
+/// execute the same bounded movement and wall-slide rule.
+pub fn direct_step(
+    mut position: Position,
+    x: f64,
+    z: f64,
+    speed: f64,
+    blocked: &BTreeSet<Cell>,
+    bounds: Option<Bounds>,
+) -> Result<Position> {
+    if [position.x, position.y, position.z, position.facing, x, z, speed]
+        .iter().any(|value| !value.is_finite()) || speed < 0.0 || x.abs() > 1.0 || z.abs() > 1.0 {
+        return Err("invalid direct motion".into());
+    }
+    if let Some(bounds) = bounds {
+        if ![bounds.min_x, bounds.max_x, bounds.min_z, bounds.max_z].iter().all(|value| value.is_finite())
+            || bounds.min_x > bounds.max_x || bounds.min_z > bounds.max_z {
+            return Err("invalid direct motion bounds".into());
+        }
+    }
+    let length = (x * x + z * z).sqrt();
+    if length <= f64::EPSILON {
+        return Ok(position);
+    }
+    let scale = speed * DIRECT_STEP_SECONDS / length;
+    let dx = x * scale;
+    let dz = z * scale;
+    let attempt = |ax: f64, az: f64| -> bool {
+        let end = Point { x: position.x + ax, y: position.y, z: position.z + az, frame: None };
+        bounds.is_none_or(|b| end.x >= b.min_x && end.x <= b.max_x && end.z >= b.min_z && end.z <= b.max_z)
+            && !blocked.iter().any(|cell| segment_intersects_cell(&point(position), &end, *cell))
+    };
+    let (move_x, move_z) = if attempt(dx, dz) { (dx, dz) }
+        else if attempt(dx, 0.0) { (dx, 0.0) }
+        else if attempt(0.0, dz) { (0.0, dz) }
+        else { (0.0, 0.0) };
+    position.x += move_x;
+    position.z += move_z;
+    if move_x.abs() > f64::EPSILON || move_z.abs() > f64::EPSILON {
+        position.facing = (move_x.atan2(-move_z) / std::f64::consts::FRAC_PI_2 + 4.0) % 4.0;
+    }
+    Ok(position)
+}
+
+fn segment_intersects_cell(start: &Point, end: &Point, cell: Cell) -> bool {
+    let bounds = [(cell.0 as f64 - 0.5, cell.0 as f64 + 0.5), (cell.2 as f64 - 0.5, cell.2 as f64 + 0.5)];
+    let coordinates = [(start.x, end.x), (start.z, end.z)];
+    let mut minimum: f64 = 0.0;
+    let mut maximum: f64 = 1.0;
+    for (axis, (from, to)) in coordinates.into_iter().enumerate() {
+        let delta = to - from;
+        if delta.abs() <= f64::EPSILON {
+            if from < bounds[axis].0 || from > bounds[axis].1 { return false; }
+            continue;
+        }
+        let mut entry = (bounds[axis].0 - from) / delta;
+        let mut exit = (bounds[axis].1 - from) / delta;
+        if entry > exit { std::mem::swap(&mut entry, &mut exit); }
+        minimum = minimum.max(entry);
+        maximum = maximum.min(exit);
+        if minimum > maximum { return false; }
+    }
+    true
+}
 pub fn cell(p: Point) -> Cell {
     (p.x.round() as i32, p.y.round() as i32, p.z.round() as i32)
 }
@@ -190,6 +258,38 @@ pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: 
             position.z = moved.z;
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod direct_tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    fn start() -> Position { Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 } }
+
+    #[test]
+    fn direct_diagonal_is_fixed_clock_and_normalized() {
+        let moved = direct_step(start(), 1.0, 1.0, 2.0, &BTreeSet::new(), None).unwrap();
+        assert!((moved.x * moved.x + moved.z * moved.z).sqrt() <= 0.040000001);
+        assert!((moved.x - moved.z).abs() < 1e-12);
+    }
+
+    #[test]
+    fn direct_swept_wall_slides_deterministically() {
+        let mut blocked = BTreeSet::new();
+        blocked.insert((1, 0, 0));
+        let moved = direct_step(Position { x: 0.49, ..start() }, 1.0, 1.0, 2.0, &blocked, None).unwrap();
+        assert!((moved.x - 0.49).abs() < 1e-12);
+        assert!(moved.z > 0.0);
+    }
+
+    #[test]
+    fn direct_idle_keeps_facing_and_zero_delta_is_not_advanced() {
+        let position = Position { facing: 3.0, ..start() };
+        let moved = direct_step(position, 0.0, 0.0, 2.0, &BTreeSet::new(), None).unwrap();
+        assert_eq!(moved.x, position.x);
+        assert_eq!(moved.facing, 3.0);
     }
 }
 

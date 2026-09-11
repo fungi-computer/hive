@@ -60,6 +60,7 @@ pub struct Kernel {
     contents: BTreeMap<String, BTreeSet<Entity>>,
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     routes: BTreeMap<Entity, VecDeque<Point>>,
+    direct: BTreeMap<Entity, DirectState>,
     game: String,
     revision: u64,
     time: f64,
@@ -85,6 +86,7 @@ impl Kernel {
             contents: BTreeMap::new(),
             blocked_by_frame: BTreeMap::new(),
             routes: BTreeMap::new(),
+            direct: BTreeMap::new(),
             game: String::new(),
             revision: 0,
             time: 0.0,
@@ -183,6 +185,7 @@ impl Kernel {
                 }
             }
         }
+        weight += serde_json::to_vec(&self.direct.values().collect::<Vec<_>>()).map_or(0, |bytes| bytes.len());
         self.state_weight = weight;
     }
     fn surface(&self, id: &str) -> Result<Surface> {
@@ -539,9 +542,15 @@ impl Kernel {
         if self.state_weight.saturating_add(route_bytes) > STATE_BYTES {
             return Err("route state exceeds canonical capacity".into());
         }
+        let mut direct: Vec<DirectSnapshot> = self.direct.values().cloned().collect();
+        direct.sort_by(|a, b| a.entity.cmp(&b.entity));
+        let direct_bytes = serde_json::to_vec(&direct).map_err(|e| e.to_string())?.len();
+        if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes) > STATE_BYTES {
+            return Err("direct state exceeds canonical capacity".into());
+        }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 3,
+            version: 4,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -555,6 +564,7 @@ impl Kernel {
                 initial,
             },
             routes,
+            direct,
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -564,7 +574,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 3
+            || state.version != 4
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -584,6 +594,24 @@ impl Kernel {
             return Err("route state exceeds canonical capacity".into());
         }
         candidate.restore_routes(state.routes)?;
+        let mut direct = BTreeMap::new();
+        if state.direct.len() > 16384 { return Err("too many direct streams".into()); }
+        for saved in state.direct {
+            let entity = candidate.entity(&saved.entity)?;
+            if candidate.ecs.get::<Body>(entity).is_none() || candidate.ecs.get::<Position>(entity).is_none()
+                || candidate.ecs.get::<Support>(entity).is_some() || !valid_id(&saved.stream)
+                || saved.stream.len() > 64 || saved.queue.len() > navigation::MAX_DIRECT_INPUTS
+                || saved.last_processed > saved.last_queued || !saved.remainder.is_finite()
+                || saved.last_queued > 9_007_199_254_740_991
+                || saved.remainder < 0.0 || saved.remainder >= navigation::DIRECT_STEP_SECONDS
+                || (saved.queue.is_empty() && saved.remainder != 0.0)
+                || (saved.queue.is_empty() && saved.last_processed != saved.last_queued)
+                || saved.queue.iter().enumerate().any(|(i, input)| input.sequence != saved.last_processed.checked_add(i as u64 + 1).unwrap_or(0)
+                    || !input.x.is_finite() || !input.z.is_finite() || input.x.abs() > 1.0 || input.z.abs() > 1.0)
+            { return Err("invalid direct stream snapshot".into()); }
+            if direct.insert(entity, saved).is_some() { return Err("duplicate direct stream".into()); }
+        }
+        candidate.direct = direct;
         candidate.revision = state.revision;
         candidate.time = state.time;
         candidate.next_lot = state.next_lot;
@@ -622,7 +650,15 @@ impl Kernel {
                 "support":self.support_id(*e),
                 "surface":self.ecs.get::<Surface>(*e),
                 "visual":visual.map(|v|&v.sprite),
-                "label":visual.map(|v|&v.label)
+                "label":visual.map(|v|&v.label),
+                "direct": self.direct.get(e).map(|state| json!({
+                    "stream": state.stream,
+                    "lastQueued": state.last_queued,
+                    "lastProcessed": state.last_processed,
+                    "speed": self.ecs.get::<Body>(*e).map(|body| body.speed),
+                    "blocked": self.blocked_by_frame.get(&None).into_iter().flatten().map(|(x,y,z)| json!([x,y,z])).collect::<Vec<_>>(),
+                    "bounds": self.frame_bounds(None).ok().flatten().map(|b| json!({"min_x":b.min_x,"max_x":b.max_x,"min_z":b.min_z,"max_z":b.max_z})),
+                }))
             }));
         }
         serde_json::to_string(&facts).map_err(|e| e.to_string())
@@ -657,7 +693,8 @@ impl Kernel {
         let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
         let needs_staging = self.projectile_count > 0
             || batch.actions.iter().any(|action| {
-                matches!(action, Action::Launch { .. } | Action::Displace { .. })
+                matches!(action, Action::Launch { .. } | Action::Displace { .. }
+                    | Action::BeginDirect { .. } | Action::DirectInput { .. })
             });
         if needs_staging {
             let before = self.snapshot_json()?;
@@ -731,6 +768,9 @@ impl Kernel {
             })
             .collect::<Vec<_>>();
         let impacts = self.advance_projectiles(batch.delta)?;
+        self.advance_direct(batch.delta)?;
+        self.refresh_state_weight();
+        if self.state_weight > STATE_BYTES { return Err("region canonical state capacity".into()); }
         self.advance_movement(batch.delta);
         self.time += batch.delta;
         serde_json::to_string(&json!({"revision":self.revision,"results":results,"impacts":impacts}))
@@ -804,9 +844,39 @@ impl Kernel {
                 if self.state_weight + extra > STATE_BYTES {
                     return Err("region canonical state capacity".into());
                 }
+                self.direct.remove(&e);
                 self.ecs.entity_mut(e).insert(target);
                 self.state_weight += extra;
                 self.routes.insert(e, path);
+                Ok(None)
+            }
+            Action::BeginDirect { entity, stream } => {
+                if !valid_id(&stream) || stream.len() > 64 { return Err("invalid direct stream".into()); }
+                let e = self.entity(&entity)?;
+                if self.ecs.get::<Body>(e).is_none() || self.ecs.get::<Position>(e).is_none() {
+                    return Err("direct control requires body and position".into());
+                }
+                if self.ecs.get::<Support>(e).is_some() { return Err("direct control does not support boarded actors".into()); }
+                if let Some(existing) = self.direct.get(&e) {
+                    if existing.stream == stream { return Ok(None); }
+                }
+                self.clear_destination(e);
+                self.direct.insert(e, DirectState { entity, stream, last_queued: 0, last_processed: 0, queue: Vec::new(), remainder: 0.0 });
+                Ok(None)
+            }
+            Action::DirectInput { entity, stream, inputs } => {
+                if inputs.is_empty() || inputs.len() > 5 { return Err("invalid direct input batch".into()); }
+                let e = self.entity(&entity)?;
+                let state = self.direct.get_mut(&e).ok_or("direct stream is not active")?;
+                if state.stream != stream || state.queue.len() + inputs.len() > navigation::MAX_DIRECT_INPUTS { return Err("direct input stream is unavailable".into()); }
+                for (index, input) in inputs.iter().enumerate() {
+                    let expected = state.last_queued.checked_add(index as u64 + 1).ok_or("direct input sequence exhausted")?;
+                    if input.sequence != expected || !input.x.is_finite() || !input.z.is_finite() || input.x.abs() > 1.0 || input.z.abs() > 1.0 {
+                        return Err("direct input sequence or axis is invalid".into());
+                    }
+                }
+                state.last_queued = inputs.last().unwrap().sequence;
+                state.queue.extend(inputs);
                 Ok(None)
             }
             Action::Transfer {
@@ -845,6 +915,14 @@ impl Kernel {
                 self.displace(&entity, delta)?;
                 Ok(None)
             }
+        }
+    }
+    fn clear_destination(&mut self, entity: Entity) {
+        self.direct.remove(&entity);
+        if let Some(destination) = self.ecs.get::<Destination>(entity).cloned() {
+            self.state_weight = self.state_weight.saturating_sub(self.registry.weight("hive.destination", &record(&destination)));
+            self.ecs.entity_mut(entity).remove::<Destination>();
+            self.routes.remove(&entity);
         }
     }
     fn projectile_ids(&self) -> Vec<String> {
@@ -1301,6 +1379,33 @@ impl Kernel {
             }
         });
     }
+
+    fn advance_direct(&mut self, delta: f64) -> Result<()> {
+        if delta == 0.0 { return Ok(()); }
+        let entities: Vec<Entity> = self.direct.keys().copied().collect();
+        for entity in entities {
+            let Some(mut state) = self.direct.remove(&entity) else { continue };
+            let credit = state.remainder + delta;
+            let mut steps = (credit / navigation::DIRECT_STEP_SECONDS).floor() as usize;
+            steps = steps.min(state.queue.len());
+            let remainder = if state.queue.is_empty() || steps == state.queue.len() { 0.0 }
+                else { credit - steps as f64 * navigation::DIRECT_STEP_SECONDS };
+            let position = *self.ecs.get::<Position>(entity).ok_or("direct stream lost position")?;
+            let body = *self.ecs.get::<Body>(entity).ok_or("direct stream lost body")?;
+            let blocked = self.blocked_by_frame.get(&None).cloned().unwrap_or_default();
+            let bounds = self.frame_bounds(None)?;
+            let mut next = position;
+            for input in state.queue.iter().take(steps) {
+                next = navigation::direct_step(next, input.x, input.z, body.speed, &blocked, bounds)?;
+                state.last_processed = input.sequence;
+            }
+            state.queue.drain(..steps);
+            state.remainder = remainder;
+            self.ecs.entity_mut(entity).insert(next);
+            self.direct.insert(entity, state);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1520,5 +1625,50 @@ mod combat_tests {
             .expect("route render JSON");
         let mover = facts.as_array().unwrap().iter().find(|fact| fact["id"] == "mover").unwrap();
         assert!((mover["local"]["position"]["x"].as_f64().unwrap() - 3.2).abs() < 1e-9);
+    }
+}
+
+#[cfg(test)]
+mod direct_tests {
+    use super::Kernel;
+    use serde_json::json;
+
+    fn scene() -> String {
+        serde_json::to_string(&json!({
+            "format":"hive-game", "version":1, "game":"survival",
+            "components":[], "initial":[{"id":"survivor","components":{
+                "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
+                "hive.body":{"speed":2.0}
+            }}]
+        })).unwrap()
+    }
+    fn batch(delta: f64, actions: serde_json::Value) -> String {
+        serde_json::to_string(&json!({"delta":delta,"writes":[],"actions":actions})).unwrap()
+    }
+
+    #[test]
+    fn direct_stream_uses_fixed_clock_and_survives_restore() {
+        let mut kernel = Kernel::new();
+        kernel.load(&scene()).unwrap();
+        kernel.advance_json(&batch(0.0, json!([{"kind":"begin-direct","entity":"survivor","stream":"keyboard"}]))).unwrap();
+        kernel.advance_json(&batch(0.019, json!([{"kind":"direct-input","entity":"survivor","stream":"keyboard","inputs":[{"sequence":1,"x":1.0,"z":0.0}]}]))).unwrap();
+        let before = kernel.render_json().unwrap();
+        kernel.advance_json(&batch(0.001, json!([]))).unwrap();
+        let after = kernel.render_json().unwrap();
+        assert_ne!(before, after);
+        let snapshot = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&snapshot).unwrap();
+        assert_eq!(restored.snapshot_json().unwrap(), snapshot);
+    }
+
+    #[test]
+    fn rejected_direct_gap_does_not_mutate_stream() {
+        let mut kernel = Kernel::new();
+        kernel.load(&scene()).unwrap();
+        kernel.advance_json(&batch(0.0, json!([{"kind":"begin-direct","entity":"survivor","stream":"keyboard"}]))).unwrap();
+        let before = kernel.snapshot_json().unwrap();
+        assert!(kernel.advance_json(&batch(0.0, json!([{"kind":"direct-input","entity":"survivor","stream":"keyboard","inputs":[{"sequence":2,"x":1.0,"z":0.0}]}]))).is_err());
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
     }
 }
