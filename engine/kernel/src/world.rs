@@ -759,7 +759,7 @@ impl Kernel {
             Ok((placement.entity.clone(), position, self.ecs.get::<Traversal>(entity).copied(), placement.column))
         }).collect::<Result<Vec<_>>>()?;
         let environment = self.environment.as_mut().ok_or("initial placement needs environment")?;
-        let columns: Vec<_> = entities.iter().map(|(_, _, _, column)| *column).collect();
+        let columns: Vec<_> = entities.iter().map(|(_, _, _, column)| (column[0], column[1])).collect();
         let mut surfaces = Vec::with_capacity(columns.len());
         for batch in columns.chunks(64) { surfaces.extend(environment.world.surface_cells(batch)?); }
         if surfaces.len() != entities.len() { return Err("initial placement surface count mismatch".into()); }
