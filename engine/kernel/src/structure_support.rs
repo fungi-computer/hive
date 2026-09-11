@@ -121,6 +121,14 @@ pub fn resolve(
         if support_at(base)? {
             terrain_anchors.insert(base);
         }
+        if let StaticInstance::Floor { support, .. } = instance {
+            for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let neighbor = cardinal_neighbor(*support, dx, dz)?;
+                if support_at(neighbor)? {
+                    terrain_anchors.insert(neighbor);
+                }
+            }
+        }
     }
 
     let mut floor_by_cell = BTreeMap::<Cell, Vec<&StaticInstance>>::new();
@@ -151,7 +159,7 @@ pub fn resolve(
         let mut queue = VecDeque::new();
         for anchor in &span_anchors {
             charge(&mut work, policy)?;
-            if floor_by_cell.contains_key(anchor) {
+            if floor_by_cell.contains_key(anchor) && distances.get(anchor).is_none_or(|distance| *distance > 0) {
                 distances.insert(*anchor, 0);
                 queue.push_back(*anchor);
             }
@@ -173,11 +181,14 @@ pub fn resolve(
             for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
                 charge(&mut work, policy)?;
                 let next = cardinal_neighbor(cell, dx, dz)?;
-                if !floor_by_cell.contains_key(&next) || distances.contains_key(&next) {
+                if !floor_by_cell.contains_key(&next) {
                     continue;
                 }
                 let next_distance = distance.checked_add(1).ok_or("structure support distance overflow")?;
                 if next_distance > policy.max_span_steps {
+                    continue;
+                }
+                if distances.get(&next).is_some_and(|prior| *prior <= next_distance) {
                     continue;
                 }
                 distances.insert(next, next_distance);
@@ -237,7 +248,7 @@ mod tests {
         Bounds { min_x: -32, max_x: 32, min_y: -32, max_y: 32, min_z: -32, max_z: 32 }
     }
     fn policy(max_span_steps: u32) -> SupportPolicy {
-        SupportPolicy { max_span_steps, max_instances: 32, max_work: 64 }
+        SupportPolicy { max_span_steps, max_instances: 32, max_work: 512 }
     }
     fn terrain(anchors: &[Cell]) -> impl FnMut(Cell) -> Result<bool, String> + '_ {
         let anchors = anchors.iter().copied().collect::<BTreeSet<_>>();
@@ -259,6 +270,42 @@ mod tests {
         let mut query = terrain(&[]);
         let result = resolve(&geometry, policy(4), &mut query).unwrap();
         assert_eq!(result.unsupported, vec!["floating"]);
+    }
+
+    #[test]
+    fn nearby_terrain_anchor_roots_floor_without_anchor_structure() {
+        let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Floor {
+            id: "nearby".into(),
+            support: Cell { x: 1, y: 0, z: 0 },
+        }]).unwrap();
+        let mut query = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let result = resolve(&geometry, policy(1), &mut query).unwrap();
+        assert!(result.unsupported.is_empty());
+    }
+
+    #[test]
+    fn multi_anchor_bfs_uses_shortest_distance() {
+        let geometry = StaticGeometry::new(bounds(), vec![
+            StaticInstance::Floor { id: "left".into(), support: Cell { x: 1, y: 0, z: 0 } },
+            StaticInstance::Floor { id: "middle".into(), support: Cell { x: 2, y: 0, z: 0 } },
+            StaticInstance::Floor { id: "right".into(), support: Cell { x: 3, y: 0, z: 0 } },
+        ]).unwrap();
+        let mut query = terrain(&[Cell { x: 0, y: 0, z: 0 }, Cell { x: 4, y: 0, z: 0 }]);
+        let result = resolve(&geometry, policy(1), &mut query).unwrap();
+        assert_eq!(result.unsupported, vec!["middle"]);
+        assert!(result.supported.contains("left"));
+        assert!(result.supported.contains("right"));
+    }
+
+    #[test]
+    fn tiny_support_budget_rejects_before_unbounded_work() {
+        let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Floor {
+            id: "budget".into(),
+            support: Cell { x: 1, y: 0, z: 0 },
+        }]).unwrap();
+        let mut query = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let policy = SupportPolicy { max_span_steps: 1, max_instances: 8, max_work: 2 };
+        assert!(resolve(&geometry, policy, &mut query).is_err());
     }
 
     #[test]
