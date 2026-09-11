@@ -465,7 +465,8 @@ mod tests {
     fn hash_reference_vectors_include_utf16() {
         assert_eq!(hash_string("a", 2166136261), 3826002220);
         assert_eq!(hash_string("é", 2166136261), 1812687940);
-        assert_eq!(hash_string("𐐷", 2166136261), 865687542);
+        // Retained JS hashString, UTF-16 units [55297, 56375], u5391.
+        assert_eq!(hash_string("𐐷", 2166136261), 1059832673);
     }
     #[test]
     fn seeds_change_world_and_negative_seams_match_brick() {
