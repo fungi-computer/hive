@@ -234,6 +234,7 @@ export class GameSession {
     );
     const result: GameCommandResult = handler.run(
       {
+        physicalContacts: cells => this.port.physicalContacts(cells),
         query: (spec) => {
           for (const component of spec.components)
             if (!reads.has(component.id))

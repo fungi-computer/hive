@@ -42,7 +42,7 @@ function context(overrides: Partial<Fixture> = {}) {
     [DeliveryTask.id, fixture.tasks],
     [ExcavationWork.id, fixture.work],
   ]);
-  return { query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
+  return { physicalContacts: () => { throw new Error("unexpected physical contact query"); }, query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
 }
 
 test("Colony dig emits one native excavation request for an admitted target", () => {

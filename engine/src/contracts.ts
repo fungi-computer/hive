@@ -319,7 +319,7 @@ export interface GameCommandDefinition {
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
   readonly run: (
-    context: Pick<ReadContext, "query">,
+    context: Pick<ReadContext, "query" | "physicalContacts">,
     input: unknown,
   ) => GameCommandResult;
 }
