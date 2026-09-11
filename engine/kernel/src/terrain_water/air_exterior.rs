@@ -249,7 +249,7 @@ mod tests {
             .unwrap()
             .unwrap();
         world.apply_structures(token).unwrap();
-        let result = world.air_exterior(&[start], 40).unwrap();
+        let result = world.air_exterior(&[support], 40).unwrap();
         assert_eq!(
             result[0].status,
             AirExteriorStatus::Blocked {
