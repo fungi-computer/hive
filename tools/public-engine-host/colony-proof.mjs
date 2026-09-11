@@ -88,14 +88,10 @@ async function send(body) {
 }
 let sequence = 0;
 async function admit(command, label) {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const current = await observe();
-    const body = { id: `colony-${label}-${++sequence}`, expectedRevision: current.revision, command };
-    const receipt = await send(body);
-    if (receipt.status === "applied") return { body, receipt };
-    assert.equal(receipt.result?.reason, "stale-revision", `${label} was rejected: ${JSON.stringify(receipt)}`);
-  }
-  throw new Error(`${label} remained stale after five attempts`);
+  const body = { id: `colony-${label}-${++sequence}`, command };
+  const receipt = await send(body);
+  assert.equal(receipt.status, "applied", `${label} was rejected: ${JSON.stringify(receipt)}`);
+  return { body, receipt };
 }
 async function waitFor(predicate, label, timeout = 25_000) {
   const deadline = Date.now() + timeout;
