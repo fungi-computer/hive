@@ -66,7 +66,7 @@ impl CompiledAtmosphere {
             for member in &volume.members {
                 if member.cell_id.is_empty()
                     || member.cell_id.len() > MAX_ID_BYTES
-                    || member_index.insert(member.cell_id.clone(), index).is_some()
+                    || member_index.insert(member.cell_id.clone(), MemberLocation { volume: index, volume_m3: member.volume_m3 }).is_some()
                     || !member.volume_m3.is_finite()
                     || member.volume_m3 <= 0.0
                     || !member.elevation_m.is_finite()
@@ -95,6 +95,7 @@ impl CompiledAtmosphere {
         }
         let mut openings = Vec::with_capacity(definition.openings.len());
         let mut ids = BTreeSet::new();
+        let mut incident_openings = vec![Vec::new(); definition.volumes.len()];
         for opening in &definition.openings {
             if opening.id.is_empty()
                 || opening.id.len() > MAX_ID_BYTES
@@ -120,12 +121,12 @@ impl CompiledAtmosphere {
                 None => None,
             };
             if to == Some(from)
-                || member_index.get(&opening.from_cell_id) != Some(&from)
+                || member_index.get(&opening.from_cell_id).map(|member| member.volume) != Some(from)
                 || (to.is_some() != opening.to_cell_id.is_some())
                 || to
                     .zip(opening.to_cell_id.as_ref())
                     .is_some_and(|(index, cell)| {
-                        member_index.get(cell) != Some(&index)
+                        member_index.get(cell).map(|member| member.volume) != Some(index)
                     })
             {
                 return Err("atmosphere opening endpoint membership mismatch".into());
@@ -141,6 +142,9 @@ impl CompiledAtmosphere {
             {
                 return Err("invalid atmosphere opening metric".into());
             }
+            let opening_index = openings.len();
+            incident_openings[from].push(opening_index);
+            if let Some(to) = to { incident_openings[to].push(opening_index); }
             openings.push(OpeningIndex {
                 from,
                 to,
@@ -181,6 +185,7 @@ impl CompiledAtmosphere {
             openings,
             volume_index,
             member_index,
+            incident_openings,
             volume_m3,
             elevation_m,
             ambient_carrier_density,
@@ -195,7 +200,7 @@ impl CompiledAtmosphere {
     /// Derived lookup rebuilt with geometry, never a persisted second location.
     pub fn volume_for_cell(&self, cell_id: &str) -> Option<&str> {
         self.member_index.get(cell_id)
-            .map(|index| self.definition.volumes[*index].id.as_str())
+            .map(|member| self.definition.volumes[member.volume].id.as_str())
     }
     pub fn identity(&self) -> &str {
         &self.identity

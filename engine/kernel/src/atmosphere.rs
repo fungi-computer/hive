@@ -172,6 +172,9 @@ enum Quantity {
     Heat,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct MemberLocation { volume: usize, volume_m3: f64 }
+
 #[derive(Clone, Debug)]
 pub struct CompiledAtmosphere {
     definition: AtmosphereDefinition,
@@ -179,7 +182,8 @@ pub struct CompiledAtmosphere {
     content_digest: [u8; 32],
     openings: Vec<OpeningIndex>,
     volume_index: BTreeMap<String, usize>,
-    member_index: BTreeMap<String, usize>,
+    member_index: BTreeMap<String, MemberLocation>,
+    incident_openings: Vec<Vec<usize>>,
     volume_m3: Vec<f64>,
     elevation_m: Vec<f64>,
     ambient_carrier_density: f64,
@@ -235,6 +239,7 @@ fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
 }
 
 mod geometry;
+pub(crate) use geometry::{MixingTile, FaceEndpoint, connect_face, geometry_identity};
 pub use geometry::{project as project_geometry, AirAtmosphereGeometry, UnmodeledWaterPolicy};
 mod definition;
 mod rebind;
@@ -265,7 +270,8 @@ impl CompiledAtmosphere {
         if !Arc::ptr_eq(&self.owner, &state.owner) {
             return Err("atmosphere observation belongs to another geometry".into());
         }
-        Ok(cells.iter().map(|cell| self.member_index.get(cell).map(|&index| {
+        Ok(cells.iter().map(|cell| self.member_index.get(cell).map(|member| {
+            let index = member.volume;
             let parcel = &state.parcels[index];
             AtmosphereSample {
                 volume_id: parcel.volume_id.clone(),

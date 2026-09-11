@@ -6,11 +6,30 @@
 
 use super::{AtmosphereMember, AtmosphereOpeningDefinition, AtmosphereVolumeDefinition};
 use crate::generation::Cell;
-use crate::structure_geometry::FaceAxis;
+use crate::structure_geometry::{Face, FaceAxis};
 use crate::terrain_water::{AirGeometryFaceKind, AirGeometrySnapshot, AirWaterCoverage};
 use std::collections::{BTreeMap, BTreeSet};
 
-const MIXING_BIN_METRES: f64 = 8.0;
+const MIXING_BIN_CELLS: i64 = 8;
+
+/// A bounded simulation partition, independent of the rendering metric.
+/// A component never joins across one of these boundaries; exchange does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct MixingTile(pub i64, pub i32, pub i64);
+impl MixingTile {
+    pub(crate) fn at(cell: Cell) -> Self {
+        Self(cell.x.div_euclid(MIXING_BIN_CELLS), cell.y, cell.z.div_euclid(MIXING_BIN_CELLS))
+    }
+    pub(crate) fn bounds(self, region: crate::terrain_water::AirGeometryBounds) -> crate::terrain_water::AirGeometryBounds {
+        let x = self.0 * MIXING_BIN_CELLS;
+        let z = self.2 * MIXING_BIN_CELLS;
+        crate::terrain_water::AirGeometryBounds {
+            min: Cell { x: x.max(region.min.x), y: self.1, z: z.max(region.min.z) },
+            max: Cell { x: x.saturating_add(MIXING_BIN_CELLS).min(region.max.x),
+                y: self.1.saturating_add(1).min(region.max.y), z: z.saturating_add(MIXING_BIN_CELLS).min(region.max.z) },
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnmodeledWaterPolicy {
@@ -131,7 +150,7 @@ pub fn project(
         let (Some(left), Some(right)) = (positions.get(a), positions.get(b)) else {
             continue;
         };
-        if same_bin(*a, *b, spacing_m)? {
+        if MixingTile::at(*a) == MixingTile::at(*b) {
             union(&mut parent, *left, *right);
         }
     }
@@ -187,34 +206,15 @@ pub fn project(
         let to = volume_by_cell
             .get(b)
             .ok_or("air volume missing face endpoint")?;
-        if from == to {
-            continue;
-        }
-        let axis = axis_index(face.face.axis);
-        let area = face_area(face.face.axis, *a, *b, &air, spacing_m)?;
-        if area <= 0.0 {
-            continue;
-        }
-        let id = face_id(face.face.axis, face.face.cell);
-        if !opening_ids.insert(id.clone()) {
+        let left = &air[a];
+        let right = &air[b];
+        let Some(opening) = connect_face(face.face,
+            FaceEndpoint { volume: from, free: left.free, liquid: left.liquid },
+            FaceEndpoint { volume: to, free: right.free, liquid: right.liquid }, spacing_m)? else { continue; };
+        if !opening_ids.insert(opening.id.clone()) {
             return Err("duplicate atmosphere opening".into());
         }
-        let elevation_m = (f64::from(a.y) + f64::from(b.y) + 1.0) * spacing_m[1] * 0.5;
-        let distance_m = spacing_m[axis];
-        if !elevation_m.is_finite() || !distance_m.is_finite() || !area.is_finite() {
-            return Err("atmosphere geometry opening metric is invalid".into());
-        }
-        openings.push(AtmosphereOpeningDefinition {
-            id,
-            from: from.clone(),
-            from_cell_id: cell_id(*a),
-            to: Some(to.clone()),
-            to_cell_id: Some(cell_id(*b)),
-            area_m2: area,
-            distance_m,
-            elevation_m,
-            permeability: 1.0,
-        });
+        openings.push(opening);
     }
     openings.sort_by(|left, right| left.id.cmp(&right.id));
     if volumes.len() > super::MAX_VOLUMES || openings.len() > super::MAX_OPENINGS {
@@ -222,8 +222,8 @@ pub fn project(
     }
 
     Ok(AirAtmosphereGeometry {
-        identity: identity(
-            snapshot,
+        identity: geometry_identity(
+            snapshot.physical_revision,
             spacing_m,
             water_policy,
             cells.len(),
@@ -275,34 +275,17 @@ fn axis_index(axis: FaceAxis) -> usize {
     }
 }
 
-fn floor_bin(value: f64) -> Result<i64, String> {
-    let value = (value / MIXING_BIN_METRES).floor();
-    if !value.is_finite() || value < i64::MIN as f64 || value > i64::MAX as f64 {
-        return Err("atmosphere mixing bin overflow".into());
-    }
-    Ok(value as i64)
+pub(crate) struct FaceEndpoint<'a> {
+    pub(crate) volume: &'a str,
+    pub(crate) free: f64,
+    pub(crate) liquid: f64,
 }
 
-fn same_bin(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<bool, String> {
-    if a.y != b.y {
-        return Ok(false);
-    }
-    Ok(
-        floor_bin((a.x as f64) * spacing[0])? == floor_bin((b.x as f64) * spacing[0])?
-            && floor_bin((a.z as f64) * spacing[2])? == floor_bin((b.z as f64) * spacing[2])?,
-    )
-}
-
-fn face_area(
-    axis: FaceAxis,
-    a: Cell,
-    b: Cell,
-    air: &BTreeMap<Cell, AirMetric>,
-    spacing: [f64; 3],
-) -> Result<f64, String> {
-    let left = air.get(&a).ok_or("missing air face endpoint")?;
-    let right = air.get(&b).ok_or("missing air face endpoint")?;
-    let area = match axis {
+/// Shared metric law for the full reference and incremental projection.
+pub(crate) fn connect_face(face: Face, left: FaceEndpoint<'_>, right: FaceEndpoint<'_>, spacing: [f64; 3])
+    -> Result<Option<AtmosphereOpeningDefinition>, String> {
+    if left.volume == right.volume { return Ok(None); }
+    let area = match face.axis {
         FaceAxis::Y => {
             if right.liquid > 0.0 {
                 0.0
@@ -314,16 +297,25 @@ fn face_area(
             let dry_left = left.free / (spacing[0] * spacing[2]);
             let dry_right = right.free / (spacing[0] * spacing[2]);
             dry_left.min(dry_right)
-                * if axis == FaceAxis::X {
+                * if face.axis == FaceAxis::X {
                     spacing[2]
                 } else {
                     spacing[0]
                 }
         }
     };
-    area.is_finite()
-        .then_some(area)
-        .ok_or_else(|| "atmosphere face area is invalid".into())
+    let b = face.neighbor()?;
+    let elevation_m = (f64::from(face.cell.y) + f64::from(b.y) + 1.0) * spacing[1] * 0.5;
+    let distance_m = spacing[axis_index(face.axis)];
+    if !area.is_finite() || !elevation_m.is_finite() || !distance_m.is_finite() {
+        return Err("atmosphere geometry opening metric is invalid".into());
+    }
+    if area <= 0.0 { return Ok(None); }
+    Ok(Some(AtmosphereOpeningDefinition {
+        id: face_id(face.axis, face.cell), from: left.volume.to_owned(), from_cell_id: cell_id(face.cell),
+        to: Some(right.volume.to_owned()), to_cell_id: Some(cell_id(b)), area_m2: area,
+        distance_m, elevation_m, permeability: 1.0,
+    }))
 }
 
 fn find(parent: &mut [usize], value: usize) -> usize {
@@ -353,8 +345,8 @@ fn union(parent: &mut [usize], left: usize, right: usize) {
     }
 }
 
-fn identity(
-    snapshot: &AirGeometrySnapshot,
+pub(crate) fn geometry_identity(
+    physical_revision: u64,
     spacing: [f64; 3],
     policy: UnmodeledWaterPolicy,
     cells: usize,
@@ -364,8 +356,8 @@ fn identity(
     // owner retains canonical definition equality when accepting a definition.
     // A process-local epoch resets after restore and cannot identify saved geometry.
     format!(
-        "air-geometry:v1:{}:{:?}:{:?}:{cells}:{openings}",
-        snapshot.physical_revision, spacing, policy
+        "air-geometry:v2:{}:{:?}:{:?}:{cells}:{openings}",
+        physical_revision, spacing, policy
     )
 }
 

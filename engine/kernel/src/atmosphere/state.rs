@@ -55,10 +55,8 @@ impl CompiledAtmosphere {
         {
             return Err("atmosphere state binding mismatch".into());
         }
-        let mut seen = BTreeSet::new();
         for (index, parcel) in state.parcels.iter().enumerate() {
             if parcel.volume_id != self.definition.volumes[index].id
-                || !seen.insert(parcel.volume_id.clone())
                 || !parcel.carrier_kg.is_finite()
                 || parcel.carrier_kg < 0.0
                 || !parcel.smoke_kg.is_finite()

@@ -1,16 +1,23 @@
 //! Canonical terrain/water to connected-volume atmosphere composition.
 use crate::atmosphere::{
-    project_geometry, rebind_geometry, AirAtmosphereGeometry, AtmosphereAmbient,
+    rebind_geometry, AtmosphereAmbient,
     AtmosphereDefinition, AtmosphereModel, AtmosphereRebindReceipt, AtmosphereRebindResult,
-    AtmosphereSource, AtmosphereState, CompiledAtmosphere, UnmodeledWaterPolicy,
+    AtmosphereSource, AtmosphereState, CompiledAtmosphere,
 };
+#[cfg(test)]
+use crate::atmosphere::{project_geometry, AirAtmosphereGeometry, UnmodeledWaterPolicy};
+#[cfg(test)]
+use crate::terrain_water::{AirGeometryFaceKind, AirGeometryFrontier};
 use crate::generation::Cell;
 use crate::terrain_water::{
-    AirGeometryBounds, AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot, TerrainWater,
+    AirGeometryBounds, AirGeometrySnapshot, TerrainWater,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-const RECORD_VERSION: u16 = 2;
+#[path = "terrain_atmosphere_cache.rs"]
+mod cache;
+use cache::AirGeometryCache;
+const RECORD_VERSION: u16 = 3;
 const MAX_CONFIG_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -49,6 +56,7 @@ pub struct TerrainAtmosphere {
     config: TerrainAtmosphereConfig,
     compiled: CompiledAtmosphere,
     state: AtmosphereState,
+    geometry: AirGeometryCache,
     geometry_revision: u64,
     source_physical_revision: u64,
     source_epoch: u64,
@@ -58,6 +66,7 @@ pub struct TerrainAtmosphere {
 }
 pub(crate) enum PreparedAtmosphereRebind {
     Unchanged {
+        geometry: Option<AirGeometryCache>,
         source_physical_revision: u64,
         source_epoch: u64,
         owner: Arc<()>,
@@ -65,6 +74,7 @@ pub(crate) enum PreparedAtmosphereRebind {
         receipt: AtmosphereRebindReceipt,
     },
     Changed {
+        geometry: AirGeometryCache,
         compiled: CompiledAtmosphere,
         state: AtmosphereState,
         geometry_revision: u64,
@@ -83,9 +93,12 @@ impl TerrainAtmosphere {
     ) -> Result<Self, String> {
         validate_config(world, &config)?;
         let snapshot = world.air_geometry(config.bounds())?;
-        let (compiled, state) = compile_snapshot(world, &config, &snapshot)?;
+        let geometry = AirGeometryCache::from_snapshot(&snapshot, &config, world.cell_spacing_m())?;
+        let compiled = CompiledAtmosphere::compile(geometry.definition(&config, world.cell_spacing_m(), snapshot.physical_revision))?;
+        let state = compiled.initial();
         Ok(Self {
             config,
+            geometry,
             compiled,
             state,
             geometry_revision: snapshot.physical_revision,
@@ -157,8 +170,8 @@ impl TerrainAtmosphere {
             return Err("atmosphere config exceeds record budget".into());
         }
         let snapshot = world.air_geometry(records.config.bounds())?;
-        let (mut current_definition, _) =
-            definition_from_snapshot(&records.config, &snapshot, world.cell_spacing_m())?;
+        let geometry = AirGeometryCache::from_snapshot(&snapshot, &records.config, world.cell_spacing_m())?;
+        let mut current_definition = geometry.definition(&records.config, world.cell_spacing_m(), snapshot.physical_revision);
         // Physical content is rebuilt, not trusted from a second saved geometry.
         // Keep the gas owner's original labels through unrelated world edits;
         // decode_state verifies a SHA-256 binding of the full physical content.
@@ -169,6 +182,7 @@ impl TerrainAtmosphere {
         let geometry_revision = compiled.definition().revision;
         Ok(Self {
             config: records.config.clone(),
+            geometry,
             compiled,
             state,
             geometry_revision,
@@ -179,34 +193,55 @@ impl TerrainAtmosphere {
             epoch: 0,
         })
     }
-    pub(crate) fn prepare_rebind(
+    pub(crate) fn prepare_world_change(
         &self,
-        snapshot: &AirGeometrySnapshot,
+        world: &mut TerrainWater,
+        edit: crate::terrain_water::AirGeometryEdit<'_>,
     ) -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
-        if snapshot.physical_revision < self.source_physical_revision
-            || snapshot.epoch <= self.source_epoch
-            || snapshot.bounds.min != self.config.min
-            || snapshot.bounds.max != self.config.max
-        {
+        let changes = world.air_geometry_changes(edit)?;
+        self.validate_frontier(changes.physical_revision, changes.epoch)?;
+        let tiles: std::collections::BTreeSet<_> = changes.cells.into_iter()
+            .filter(|cell| cache::contains(self.config.bounds(), *cell))
+            .map(crate::atmosphere::MixingTile::at).collect();
+        if tiles.is_empty() {
+            return Ok(Ok(self.unchanged(None, changes.physical_revision, changes.epoch)));
+        }
+        let patches = tiles.into_iter().map(|tile| world.changed_air_geometry(edit, tile.bounds(self.config.bounds())))
+            .collect::<Result<Vec<_>, _>>()?;
+        let geometry = self.geometry.with_patches(&patches, &self.config, self.spacing)?;
+        self.prepare_geometry(geometry, changes.physical_revision, changes.epoch)
+    }
+    fn validate_frontier(&self, physical_revision: u64, epoch: u64) -> Result<(), String> {
+        if physical_revision < self.source_physical_revision || epoch <= self.source_epoch {
             return Err("atmosphere rebind candidate is stale or mismatched".into());
         }
-        let (mut candidate_definition, _) = match definition_from_snapshot(&self.config, snapshot, self.spacing) {
-            Ok(definition) => definition,
-            Err(_error) if snapshot_has_no_free_air(snapshot) => {
-                return Ok(Err(AtmosphereRebindResult::Blocked(
-                    crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved,
-                )))
-            }
-            Err(error) => return Err(error),
-        };
+        Ok(())
+    }
+    fn unchanged(&self, geometry: Option<AirGeometryCache>, physical_revision: u64, epoch: u64) -> PreparedAtmosphereRebind {
+        PreparedAtmosphereRebind::Unchanged {
+            geometry, source_physical_revision: physical_revision, source_epoch: epoch,
+            owner: self.owner.clone(), epoch: self.epoch, receipt: unchanged_receipt(&self.compiled),
+        }
+    }
+    #[cfg(test)]
+    pub(crate) fn prepare_rebind(
+        &self, snapshot: &AirGeometrySnapshot,
+    ) -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
+        self.validate_frontier(snapshot.physical_revision, snapshot.epoch)?;
+        if snapshot.bounds != self.config.bounds() {
+            return Err("atmosphere rebind candidate is stale or mismatched".into());
+        }
+        let geometry = AirGeometryCache::from_snapshot(snapshot, &self.config, self.spacing)?;
+        self.prepare_geometry(geometry, snapshot.physical_revision, snapshot.epoch)
+    }
+    fn prepare_geometry(&self, geometry: AirGeometryCache, physical_revision: u64, epoch: u64)
+        -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
+        let mut candidate_definition = geometry.definition(&self.config, self.spacing, physical_revision);
+        if candidate_definition.volumes.is_empty() {
+            return Ok(Err(AtmosphereRebindResult::Blocked(crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved)));
+        }
         if same_physical_definition(&candidate_definition, self.compiled.definition()) {
-            return Ok(Ok(PreparedAtmosphereRebind::Unchanged {
-                source_physical_revision: snapshot.physical_revision,
-                source_epoch: snapshot.epoch,
-                owner: self.owner.clone(),
-                epoch: self.epoch,
-                receipt: unchanged_receipt(&self.compiled),
-            }));
+            return Ok(Ok(self.unchanged(Some(geometry), physical_revision, epoch)));
         }
         let next_revision = self
             .geometry_revision
@@ -224,9 +259,10 @@ impl TerrainAtmosphere {
                 Ok(Ok(PreparedAtmosphereRebind::Changed {
                     compiled,
                     state,
+                    geometry,
                     geometry_revision: next_revision,
-                    source_physical_revision: snapshot.physical_revision,
-                    source_epoch: snapshot.epoch,
+                    source_physical_revision: physical_revision,
+                    source_epoch: epoch,
                     owner: self.owner.clone(),
                     epoch: self.epoch,
                     receipt,
@@ -251,17 +287,20 @@ impl TerrainAtmosphere {
             .ok_or("atmosphere owner epoch exhausted")?;
         match prepared {
             PreparedAtmosphereRebind::Unchanged {
+                geometry,
                 source_physical_revision,
                 source_epoch,
                 receipt,
                 ..
             } => {
+                if let Some(geometry) = geometry { self.geometry = geometry; }
                 self.source_physical_revision = source_physical_revision;
                 self.source_epoch = source_epoch;
                 self.epoch = epoch;
                 Ok(receipt)
             }
             PreparedAtmosphereRebind::Changed {
+                geometry,
                 compiled,
                 state,
                 geometry_revision,
@@ -270,6 +309,7 @@ impl TerrainAtmosphere {
                 receipt,
                 ..
             } => {
+                self.geometry = geometry;
                 self.compiled = compiled;
                 self.state = state;
                 self.geometry_revision = geometry_revision;
@@ -282,28 +322,6 @@ impl TerrainAtmosphere {
     }
 }
 
-fn snapshot_has_no_free_air(snapshot: &AirGeometrySnapshot) -> bool {
-    snapshot.cells.iter().all(|cell| match &cell.water {
-        crate::terrain_water::AirWaterCoverage::Admitted { liquid_volume_m3 } => {
-            liquid_volume_m3.is_finite()
-                && cell.voxel_volume_m3.is_finite()
-                && *liquid_volume_m3 >= cell.voxel_volume_m3
-        }
-        crate::terrain_water::AirWaterCoverage::Unmodeled => false,
-    })
-}
-
-fn compile_snapshot(
-    world: &mut TerrainWater,
-    config: &TerrainAtmosphereConfig,
-    snapshot: &AirGeometrySnapshot,
-) -> Result<(CompiledAtmosphere, AtmosphereState), String> {
-    validate_config(world, config)?;
-    let (definition, _) = definition_from_snapshot(config, snapshot, world.cell_spacing_m())?;
-    let compiled = CompiledAtmosphere::compile(definition)?;
-    let state = compiled.initial();
-    Ok((compiled, state))
-}
 fn validate_config(world: &TerrainWater, config: &TerrainAtmosphereConfig) -> Result<(), String> {
     if config.region_id.is_empty() {
         return Err("atmosphere region id is empty".into());
@@ -352,7 +370,8 @@ fn unchanged_receipt(compiled: &CompiledAtmosphere) -> AtmosphereRebindReceipt {
         routed_parcels: Vec::new(),
     }
 }
-fn definition_from_snapshot(
+#[cfg(test)]
+pub(crate) fn definition_from_snapshot(
     config: &TerrainAtmosphereConfig,
     snapshot: &AirGeometrySnapshot,
     spacing: [f64; 3],
@@ -370,7 +389,6 @@ fn definition_from_snapshot(
                 volume_by_cell.insert(member.cell_id.as_str(), volume.id.as_str());
             }
         }
-        let mut next_id = 0usize;
         for face in &snapshot.faces {
             let AirGeometryFaceKind::Frontier {
                 neighbor: AirGeometryFrontier::OutsideQuery,
@@ -392,7 +410,7 @@ fn definition_from_snapshot(
                 continue;
             };
             openings.push(crate::atmosphere::AtmosphereOpeningDefinition {
-                id: format!("sky:{next_id}"),
+                id: format!("sky:{},{},{}", face.face.cell.x, face.face.cell.y, face.face.cell.z),
                 from: (*volume_id).to_owned(),
                 from_cell_id: cell_id,
                 to: None,
@@ -402,9 +420,9 @@ fn definition_from_snapshot(
                 elevation_m: (f64::from(face.face.cell.y) + 1.0) * spacing[1],
                 permeability: 1.0,
             });
-            next_id += 1;
         }
     }
+    openings.sort_by(|a, b| a.to.is_none().cmp(&b.to.is_none()).then_with(|| a.id.cmp(&b.id)));
     let identity = format!("{}:exterior:{:?}", projected.identity, config.exterior);
     let definition = AtmosphereDefinition {
         version: "connected-atmosphere-definition-v1".into(),

@@ -49,10 +49,11 @@ numerical timings do not prove that by themselves.
 * Rust terrain/structure/water owners remain the canonical physical geometry.
 * The gas owner keeps a derived cell-to-parcel map, parcel membership, free volume
   and incident openings. It owns gas amounts and source/boundary ledgers.
-* The existing horizontal 8-metre bins and single-voxel height bands already limit
-  Colony mixing groups to 8×8×1 cells. A large room is several connected groups,
-  not an unbounded flood-fill every tick. Different world metrics must have an
-  explicit validated cells-per-bin bound before claiming the same work limit.
+* Mixing groups are now bounded to 8×8×1 cells, independent of the world metric.
+  Colony already used one-metre horizontal cells, so its partition is unchanged.
+  Non-unit horizontal metrics intentionally use the cell bound instead of the old
+  eight-metre bound. The new geometry identity and terrain-air record version 3
+  reject superseded bindings; there is no old-format migration.
 * Dense numeric arrays and local adjacency belong inside this field owner. Bevy
   holds entities such as people, structures and emitters; there is no reason to
   create an entity per gas molecule, opening or empty voxel.
@@ -74,9 +75,10 @@ numerical timings do not prove that by themselves.
 Never use `any water mass changed` as a reason to scan all 18,432 covered
 positions. Derive changed liquid-volume facts from the prepared water owner;
 soil moisture and dissolved contaminants do not by themselves change air space.
-Validate proposal ownership/epoch before using this shortcut. A skipped air update
-does not pretend to advance the gas geometry frontier; the next real proposal
-must still be newer than the last accepted one.
+Validate proposal ownership/epoch before using this shortcut. The current typed preparation validates even an irrelevant edit. Its accepted
+no-change receipt advances only the inspected physical frontier; compiled geometry
+and its saved content binding remain unchanged. The next proposal must be newer
+than that accepted frontier. No cache update acknowledges an uncommitted edit.
 
 The first repair separates the soil-only case and eliminates duplicate projection
 of a real rebind. The next source chunk replaces real-change whole-box projection
@@ -239,3 +241,28 @@ save/restore/next-step equality and ordinary hearth fuel delivery, wood debit,
 smoke production and restoration. The numerical constants, simulation cadence,
 water stocks and smoke model were not reduced. No new browser/DO/deployment or
 capacity proof was performed for this first repair.
+
+
+### Local geometry and indexed remap — second repair
+
+Implemented bounded tile queries for actual water, excavation and structure
+proposals. Derived tiles are shared until affected; old/new incident faces are
+rebuilt from physical queries, including a removed tile's boundary. Only the real
+world ceiling can connect to ambient. Compiled state still uses the existing
+conservative stock remap and detached publication. Restore rebuilds the cache.
+
+Water's coordinate index now answers admitted liquid volume directly; each tile
+no longer projects the whole water field. Gas remap reuses its canonical member
+index and per-volume opening index instead of rebuilding member maps or surveying
+all unrelated openings. No source rate, transfer rule or clock cadence changed.
+
+The same full Colony digging fixture now measures 16.22 ms p95 and 172.46 ms
+maximum (local WASM, 160 steps). Both digs finish and exact next-step recovery
+passes. **The remaining maximum is still too large to call the hitch solved.**
+Definition assembly/validation/content hashing and stock remap still visit the
+whole admitted gas graph. Observation also resamples terrain columns after edits.
+The second repair is not a claim of complete change-local execution.
+
+See [the second repair receipt](../docs/performance/local-gas-repair-20260911.md).
+Client chunk baking/picking and poisoned-resident cleanup are separately joined
+source; their client/host acceptance is not inferred from these Rust measurements.

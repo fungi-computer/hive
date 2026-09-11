@@ -94,8 +94,7 @@ impl KernelEnvironment {
 
     pub(super) fn apply_excavation(&mut self, prepared: PreparedExcavation) -> Result<bool, String> {
         let air = if let Some(air) = &self.atmosphere {
-            let snapshot = self.world.prepared_excavation_air_geometry(&prepared, air.config().bounds())?;
-            match air.prepare_rebind(&snapshot)? {
+            match air.prepare_world_change(&mut self.world, crate::terrain_water::AirGeometryEdit::Excavation(&prepared))? {
                 Ok(candidate) => Some(candidate),
                 Err(AtmosphereRebindResult::Blocked(_)) => return Ok(false),
                 Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
@@ -107,8 +106,7 @@ impl KernelEnvironment {
     }
     pub(super) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<bool, String> {
         let air = if let Some(air) = &self.atmosphere {
-            let snapshot = self.world.prepared_structure_air_geometry(&prepared, air.config().bounds())?;
-            match air.prepare_rebind(&snapshot)? {
+            match air.prepare_world_change(&mut self.world, crate::terrain_water::AirGeometryEdit::Structures(&prepared))? {
                 Ok(candidate) => Some(candidate),
                 Err(AtmosphereRebindResult::Blocked(_)) => return Ok(false),
                 Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
@@ -161,9 +159,7 @@ impl KernelEnvironment {
         if seconds == 0.0 { return Ok(EnvironmentStep { water: WaterStep::Paused, air: None }); }
         let prepared = self.world.prepare_water_advance(seconds)?;
         let air = if let Some(air) = &self.atmosphere {
-            if self.world.prepared_water_changes_air_space(&prepared, air.config().bounds())? {
-            let snapshot = self.world.prepared_water_air_geometry(&prepared, air.config().bounds())?;
-            match air.prepare_rebind(&snapshot)? {
+            match air.prepare_world_change(&mut self.world, crate::terrain_water::AirGeometryEdit::Water(&prepared))? {
                 Ok(candidate) => Some(candidate),
                 Err(AtmosphereRebindResult::Blocked(reason)) => {
                     let receipt = self.advance_emissions(seconds, revision)?;
@@ -171,7 +167,6 @@ impl KernelEnvironment {
                 }
                 Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
             }
-            } else { None }
         } else { None };
         let water = self.world.apply_water_advance(prepared)?;
         if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }

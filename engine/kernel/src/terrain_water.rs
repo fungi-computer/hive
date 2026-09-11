@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 mod air_geometry;
 pub use air_geometry::{AirGeometryBounds, AirGeometryCell, AirGeometryFace, AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot, AirWaterCoverage};
+pub(crate) use air_geometry::{AirGeometryEdit, AirGeometryChanges};
 mod air_exterior;
 pub use air_exterior::{AirExteriorBlocker, AirExteriorResult, AirExteriorStatus};
 
@@ -313,6 +314,12 @@ impl TerrainWater {
     pub fn air_geometry(&mut self, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query(self, bounds)
     }
+    pub(crate) fn air_geometry_changes(&self, edit: AirGeometryEdit<'_>) -> Result<AirGeometryChanges, String> {
+        air_geometry::changes(self, edit)
+    }
+    pub(crate) fn changed_air_geometry(&mut self, edit: AirGeometryEdit<'_>, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+        air_geometry::query_edit(self, edit, bounds)
+    }
     pub(crate) fn prepared_structure_air_geometry(&mut self, prepared: &PreparedStructureChange, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query_structure(self, prepared, bounds)
     }
@@ -338,23 +345,6 @@ impl TerrainWater {
         let next = self.graph.advance(&self.state, seconds, &mut self.scratch)?;
         Ok(PreparedWaterAdvance { state: next.state, work: next.work,
             owner: self.owner.clone(), epoch: self.epoch })
-    }
-    /// Only changed open-water stocks inside this gas owner displace air. Pore
-    /// water remains inside solid soil. Inspect the admitted water graph (not
-    /// the whole terrain/air box), preserving exact changes without a tolerance.
-    pub(crate) fn prepared_water_changes_air_space(&self, prepared: &PreparedWaterAdvance, bounds: AirGeometryBounds) -> Result<bool, String> {
-        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
-            return Err("prepared water advance is stale or foreign".into());
-        }
-        Ok(self.graph.definition().cells.iter()
-            .zip(self.state.masses().iter().zip(prepared.state.masses()))
-            .any(|(cell, (before, after))| {
-                let [x, y, z] = cell.at;
-                before != after && cell.kind == WaterCellKind::Void
-                    && i64::from(x) >= bounds.min.x && i64::from(x) < bounds.max.x
-                    && y >= bounds.min.y && y < bounds.max.y
-                    && i64::from(z) >= bounds.min.z && i64::from(z) < bounds.max.z
-            }))
     }
     pub(crate) fn prepared_water_air_geometry(&mut self, prepared: &PreparedWaterAdvance, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query_water(self, prepared, bounds)
@@ -568,17 +558,15 @@ mod tests {
         let before_flow = restored.air_geometry(air_bounds).unwrap();
         let stale = restored.prepare_water_advance(1.0).unwrap();
         let flowing = restored.prepare_water_advance(1.0).unwrap();
-        assert!(restored.prepared_water_changes_air_space(&flowing, air_bounds).unwrap());
-        assert!(!restored.prepared_water_changes_air_space(&flowing, AirGeometryBounds {
-            min: Cell { x: 2, y: 30, z: 2 }, max: Cell { x: 3, y: 32, z: 3 },
-        }).unwrap());
+        assert!(!restored.air_geometry_changes(AirGeometryEdit::Water(&flowing)).unwrap().cells.is_empty());
+        assert!(restored.air_geometry_changes(AirGeometryEdit::Water(&flowing)).unwrap().cells.iter().all(|cell| cell.x != 2));
         let proposed_flow = restored.prepared_water_air_geometry(&flowing, air_bounds).unwrap();
         assert_eq!(restored.air_geometry(air_bounds).unwrap(), before_flow);
         assert_ne!(proposed_flow.cells, before_flow.cells);
         restored.apply_water_advance(flowing).unwrap();
         assert_eq!(restored.air_geometry(air_bounds).unwrap(), proposed_flow);
         assert!(restored.prepared_water_air_geometry(&stale, air_bounds).is_err());
-        assert!(restored.prepared_water_changes_air_space(&stale, air_bounds).is_err());
+        assert!(restored.air_geometry_changes(AirGeometryEdit::Water(&stale)).is_err());
         assert!(restored.apply_water_advance(stale).is_err());
         let facts = restored.facts().unwrap();
         assert_eq!(facts.total_kg, 100.0);
@@ -630,11 +618,9 @@ mod tests {
         let mut water = TerrainWater::fresh(geometry.clone(), terrain,
             &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
               WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();
-        let air_bounds = AirGeometryBounds { min: below,
-            max: Cell { x: at.x + 1, y: at.y + 1, z: at.z + 1 } };
         let pore_step = water.prepare_water_advance(0.2).unwrap();
         assert_ne!(pore_step.state.masses(), water.state.masses(), "fixture must move pore water");
-        assert!(!water.prepared_water_changes_air_space(&pore_step, air_bounds).unwrap());
+        assert!(water.air_geometry_changes(AirGeometryEdit::Water(&pore_step)).unwrap().cells.is_empty());
         // Discard the detached probe, preserving the excavation's original stock.
         let before = water.facts().unwrap();
         let ExcavationResult::Prepared(stale) = water.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };

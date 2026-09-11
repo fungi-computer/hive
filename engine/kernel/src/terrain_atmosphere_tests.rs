@@ -23,7 +23,8 @@ fn model() -> AtmosphereModel {
         max_smoke_mass_fraction: 0.01,
     }
 }
-fn world() -> TerrainWater {
+fn world() -> TerrainWater { world_with_stock(0.0) }
+fn world_with_stock(mass_kg: f64) -> TerrainWater {
     let bounds = Bounds {
         min_x: -2,
         max_x: 2,
@@ -73,7 +74,7 @@ fn world() -> TerrainWater {
     .unwrap();
     let geometry = TerrainWaterGeometry::new(
         "terrain-atmosphere-water".into(),
-        vec![Cell { x: 0, y: 39, z: 0 }],
+        vec![Cell { x: 0, y: 39, z: 0 }, Cell { x: 0, y: 38, z: 0 }],
         BTreeMap::from([
             (0, MaterialWater::Open),
             (1, MaterialWater::Closed),
@@ -86,7 +87,7 @@ fn world() -> TerrainWater {
         6,
     )
     .unwrap();
-    TerrainWater::fresh(geometry, terrain, &[super::water::WaterStock { id: "cell:0,39,0".into(), mass_kg: 0.0 }]).unwrap()
+    TerrainWater::fresh(geometry, terrain, &[super::water::WaterStock { id: "cell:0,39,0".into(), mass_kg }, super::water::WaterStock { id: "cell:0,38,0".into(), mass_kg: 0.0 }]).unwrap()
 }
 fn config(exterior: ExteriorPolicy) -> TerrainAtmosphereConfig {
     TerrainAtmosphereConfig {
@@ -311,4 +312,67 @@ fn fully_flooded_rebind_is_typed_blocked_and_keeps_air_unchanged() {
     ));
     assert_eq!(air.geometry_revision(), before_revision);
     assert_eq!(air.state().parcels(), before_state.as_slice());
+}
+
+
+fn assert_local_matches_full(water: &mut TerrainWater, air: &TerrainAtmosphere) {
+    let snapshot = water.air_geometry(air.config().bounds()).unwrap();
+    let (full, _) = super::terrain_atmosphere::definition_from_snapshot(air.config(), &snapshot, water.cell_spacing_m()).unwrap();
+    assert_eq!(air.compiled().definition().volumes, full.volumes);
+    assert_eq!(air.compiled().definition().openings, full.openings);
+    let restored = TerrainAtmosphere::restore(water, &air.save().unwrap()).unwrap();
+    assert_eq!(restored.compiled().definition(), air.compiled().definition());
+    assert_eq!(restored.state().parcels(), air.state().parcels());
+}
+
+#[test]
+fn local_geometry_matches_full_after_boundary_wall_removal_and_dig() {
+    use super::terrain_water::{AirGeometryEdit, ExcavationResult};
+    let mut water = world();
+    let support = (-31..38).map(|y| Cell { x: 0, y, z: 0 })
+        .find(|cell| water.material(*cell).unwrap() != 0 && water.material(Cell { y: cell.y + 1, ..*cell }).unwrap() == 0).unwrap();
+    let mut cfg = config(ExteriorPolicy::WorldTop);
+    cfg.min.y = support.y;
+    let mut air = TerrainAtmosphere::fresh(&mut water, cfg).unwrap();
+    assert_local_matches_full(&mut water, &air);
+    let source = air.compiled().definition().volumes[0].id.clone();
+    air.advance(0.1, &[super::atmosphere::AtmosphereSource { volume_id: source, smoke_kg_s: 0.001, heat_j_s: 10.0 }]).unwrap();
+    // Zero is a bin edge in both horizontal axes. Its anchor and all adjacent
+    // openings must update when the wall appears, and again when removed.
+    for instances in [vec![StaticInstance::Wall { id: "edge-wall".into(), base: Cell { y: support.y + 1, ..support }, height: 1 }], vec![]] {
+        let change = water.prepare_structures(instances).unwrap().unwrap();
+        let full_snapshot = water.prepared_structure_air_geometry(&change, air.config().bounds()).unwrap();
+        let mut reference = TerrainAtmosphere::restore(&mut water, &air.save().unwrap()).unwrap();
+        let reference_change = reference.prepare_rebind(&full_snapshot).unwrap().unwrap();
+        let candidate = air.prepare_world_change(&mut water, AirGeometryEdit::Structures(&change)).unwrap().unwrap();
+        water.apply_structures(change).unwrap();
+        air.apply_rebind(candidate).unwrap();
+        reference.apply_rebind(reference_change).unwrap();
+        assert_eq!(air.state().parcels(), reference.state().parcels());
+        assert_local_matches_full(&mut water, &air);
+    }
+    let material = water.material(support).unwrap();
+    let ExcavationResult::Prepared(change) = water.prepare_excavation(support, material, 0).unwrap() else { panic!("dry dig must prepare"); };
+    let candidate = air.prepare_world_change(&mut water, AirGeometryEdit::Excavation(&change)).unwrap().unwrap();
+    water.apply_excavation(change).unwrap();
+    air.apply_rebind(candidate).unwrap();
+    assert_local_matches_full(&mut water, &air);
+}
+
+#[test]
+fn local_water_geometry_matches_full_and_rejects_foreign_proposals() {
+    use super::terrain_water::AirGeometryEdit;
+    let mut water = world_with_stock(100.0);
+    let mut other = world();
+    let mut air = TerrainAtmosphere::fresh(&mut water, config(ExteriorPolicy::WorldTop)).unwrap();
+    let foreign = other.prepare_water_advance(0.1).unwrap();
+    assert!(air.prepare_world_change(&mut water, AirGeometryEdit::Water(&foreign)).is_err());
+    for _ in 0..3 {
+        let change = water.prepare_water_advance(0.1).unwrap();
+        assert!(!water.air_geometry_changes(AirGeometryEdit::Water(&change)).unwrap().cells.is_empty());
+        let candidate = air.prepare_world_change(&mut water, AirGeometryEdit::Water(&change)).unwrap().unwrap();
+        water.apply_water_advance(change).unwrap();
+        air.apply_rebind(candidate).unwrap();
+        assert_local_matches_full(&mut water, &air);
+    }
 }

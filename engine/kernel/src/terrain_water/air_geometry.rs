@@ -7,6 +7,49 @@ const MAX_CELLS: usize = 40_000;
 // Bound intermediate geometry as well as the downstream atmosphere graph.
 const MAX_FACES: usize = 56_000;
 
+#[derive(Clone, Copy)]
+pub(crate) enum AirGeometryEdit<'a> {
+    Water(&'a super::PreparedWaterAdvance),
+    Excavation(&'a super::PreparedExcavation),
+    Structures(&'a super::PreparedStructureChange),
+}
+
+pub(crate) struct AirGeometryChanges {
+    pub(crate) cells: Vec<Cell>,
+    pub(crate) physical_revision: u64,
+    pub(crate) epoch: u64,
+}
+
+pub(super) fn changes(world: &TerrainWater, edit: AirGeometryEdit<'_>) -> Result<AirGeometryChanges, String> {
+    let (owner, epoch, physical_edit) = match edit {
+        AirGeometryEdit::Water(p) => (&p.owner, p.epoch, false),
+        AirGeometryEdit::Excavation(p) => (&p.owner, p.epoch, true),
+        AirGeometryEdit::Structures(p) => (&p.owner, p.epoch, true),
+    };
+    if !std::sync::Arc::ptr_eq(&world.owner, owner) || world.epoch != epoch {
+        return Err("prepared air geometry edit is stale or foreign".into());
+    }
+    let cells = match edit {
+        AirGeometryEdit::Water(p) => world.graph.definition().cells.iter().zip(world.state.masses().iter().zip(p.state.masses()))
+            .filter(|(cell, (before, after))| cell.kind == crate::water::WaterCellKind::Void && before != after)
+            .map(|(cell, _)| Cell { x: i64::from(cell.at[0]), y: cell.at[1], z: i64::from(cell.at[2]) }).collect(),
+        AirGeometryEdit::Excavation(p) => vec![world.prepared_excavation_replacement(p).0],
+        AirGeometryEdit::Structures(p) => world.structure_projection.changed_air_cells(&p.projection)?.into_iter().collect(),
+    };
+    Ok(AirGeometryChanges {
+        cells, epoch: epoch.checked_add(1).ok_or("air query epoch exhausted")?,
+        physical_revision: world.physical_revision.checked_add(u64::from(physical_edit)).ok_or("physical revision exhausted")?,
+    })
+}
+
+pub(super) fn query_edit(world: &mut TerrainWater, edit: AirGeometryEdit<'_>, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+    match edit {
+        AirGeometryEdit::Water(p) => query_water(world, p, bounds),
+        AirGeometryEdit::Excavation(p) => query_excavation(world, p, bounds),
+        AirGeometryEdit::Structures(p) => query_structure(world, p, bounds),
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AirGeometryBounds {
     /// Minimum inclusive coordinate.
@@ -159,16 +202,6 @@ fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGe
         return Err("air geometry voxel volume is invalid".into());
     }
 
-    // Read the admitted water state once. Missing coordinates remain explicitly
-    // unmodeled; this query never creates water stocks for dry geometry.
-    let facts = view.graph.facts(view.state)?;
-    let water = facts.cells.into_iter().map(|fact| {
-        if !fact.liquid_volume_m3.is_finite() || fact.liquid_volume_m3 < 0.0 || fact.liquid_volume_m3 > voxel_volume_m3 {
-            return Err("water fact exceeds air voxel volume".into());
-        }
-        Ok((fact.at, fact.liquid_volume_m3))
-    }).collect::<Result<BTreeMap<[i32; 3], f64>, String>>()?;
-
     let mut cells = Vec::new();
     let mut index = BTreeMap::new();
     for x in bounds.min.x..bounds.max.x {
@@ -183,7 +216,7 @@ fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGe
                     continue;
                 }
                 let coverage = match (i32::try_from(x), i32::try_from(y), i32::try_from(z)) {
-                    (Ok(x), Ok(y), Ok(z)) => water.get(&[x, y, z]).copied()
+                    (Ok(x), Ok(y), Ok(z)) => view.graph.liquid_volume_at(view.state, [x, y, z])?
                         .map_or(AirWaterCoverage::Unmodeled, |liquid_volume_m3| AirWaterCoverage::Admitted { liquid_volume_m3 }),
                     _ => AirWaterCoverage::Unmodeled,
                 };

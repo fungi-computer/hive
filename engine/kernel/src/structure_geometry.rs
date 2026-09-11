@@ -51,6 +51,15 @@ pub struct Face {
 }
 
 impl Face {
+    pub(crate) fn neighbor(self) -> Result<Cell, String> {
+        let mut cell = self.cell;
+        match self.axis {
+            FaceAxis::X => cell.x = cell.x.checked_add(1).ok_or("face x overflow")?,
+            FaceAxis::Y => cell.y = cell.y.checked_add(1).ok_or("face y overflow")?,
+            FaceAxis::Z => cell.z = cell.z.checked_add(1).ok_or("face z overflow")?,
+        }
+        Ok(cell)
+    }
     pub const fn upward(cell: Cell) -> Self {
         Self { cell, axis: FaceAxis::Y }
     }
@@ -271,6 +280,16 @@ pub struct GeometryProjection {
 }
 
 impl GeometryProjection {
+    /// Physical cells adjacent to a changed bulk or explicit face. The gas
+    /// partition owner chooses its own bounded query tiles from these facts.
+    pub(crate) fn changed_air_cells(&self, other: &Self) -> Result<BTreeSet<Cell>, String> {
+        let mut cells: BTreeSet<_> = self.solids.symmetric_difference(&other.solids).copied().collect();
+        for face in self.explicit_faces.symmetric_difference(&other.explicit_faces) {
+            cells.insert(face.cell);
+            cells.insert(face.neighbor()?);
+        }
+        Ok(cells)
+    }
     pub fn is_bulk_solid(&self, cell: Cell) -> bool { self.solids.contains(&cell) }
     /// A face is sealed when explicitly authored (floor/stair top) or when it
     /// touches a bulk structure cell. The latter keeps walls and stair bodies
@@ -278,7 +297,7 @@ impl GeometryProjection {
     pub fn is_face_sealed(&self, face: Face) -> bool {
         self.explicit_faces.contains(&face)
             || self.solids.contains(&face.cell)
-            || face.neighbor().is_some_and(|neighbor| self.solids.contains(&neighbor))
+            || face.neighbor().is_ok_and(|neighbor| self.solids.contains(&neighbor))
     }
     pub fn supports(&self, cell: Cell) -> bool {
         self.solids.contains(&cell) || self.explicit_faces.contains(&Face::upward(cell))
@@ -301,18 +320,6 @@ impl GeometryProjection {
         }
         for cell in &self.solids { add(*cell); }
         surfaces.into_iter().map(|(column, cells)| (column, cells.into_iter().collect())).collect()
-    }
-}
-
-impl Face {
-    fn neighbor(self) -> Option<Cell> {
-        let mut cell = self.cell;
-        match self.axis {
-            FaceAxis::X => cell.x = cell.x.checked_add(1)?,
-            FaceAxis::Y => cell.y = cell.y.checked_add(1)?,
-            FaceAxis::Z => cell.z = cell.z.checked_add(1)?,
-        }
-        Some(cell)
     }
 }
 

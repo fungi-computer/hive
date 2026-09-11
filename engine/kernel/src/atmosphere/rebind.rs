@@ -48,30 +48,15 @@ fn add_stock_to(target: &mut Stock, amount: Stock) -> Result<(), String> {
     Ok(())
 }
 
-fn member_volumes(compiled: &CompiledAtmosphere) -> BTreeMap<String, (usize, f64)> {
-    compiled
-        .definition
-        .volumes
-        .iter()
-        .enumerate()
-        .flat_map(|(index, volume)| {
-            volume
-                .members
-                .iter()
-                .map(move |member| (member.cell_id.clone(), (index, member.volume_m3)))
-        })
-        .collect()
-}
-
 fn overlaps(old: &CompiledAtmosphere, next: &CompiledAtmosphere) -> Vec<BTreeMap<usize, f64>> {
-    let old_members = member_volumes(old);
-    let next_members = member_volumes(next);
+    // Canonical member order is unchanged. Reuse the owner's admitted index
+    // instead of cloning and sorting every cell twice for each local edit.
     let mut result = vec![BTreeMap::new(); old.definition.volumes.len()];
-    for (cell, (old_index, old_amount)) in old_members {
-        if let Some((next_index, next_amount)) = next_members.get(&cell) {
-            let retained = old_amount.min(*next_amount);
+    for (cell, old_member) in &old.member_index {
+        if let Some(next_member) = next.member_index.get(cell) {
+            let retained = old_member.volume_m3.min(next_member.volume_m3);
             if retained > 0.0 {
-                *result[old_index].entry(*next_index).or_default() += retained;
+                *result[old_member.volume].entry(next_member.volume).or_default() += retained;
             }
         }
     }
@@ -124,20 +109,20 @@ fn direct_displacement_route(
     old_index: usize,
     retained: &BTreeSet<usize>,
 ) -> Option<Option<usize>> {
-    let next_members = member_volumes(next);
     let old_volume = &old.definition.volumes[old_index];
     let contracted: BTreeSet<_> = old_volume
         .members
         .iter()
         .filter(|member| {
-            next_members
+            next.member_index
                 .get(&member.cell_id)
-                .map(|(_, amount)| *amount < member.volume_m3)
+                .map(|next_member| next_member.volume_m3 < member.volume_m3)
                 .unwrap_or(true)
         })
         .map(|member| member.cell_id.as_str())
         .collect();
-    for opening in &old.definition.openings {
+    for &opening_index in &old.incident_openings[old_index] {
+        let opening = &old.definition.openings[opening_index];
         let from = old.volume_index[&opening.from];
         let to = opening.to.as_ref().map(|id| old.volume_index[id]);
         if opening.permeability == 0.0 {
@@ -160,9 +145,9 @@ fn direct_displacement_route(
         let Some(other_cell) = other_cell else {
             return Some(None);
         };
-        if let Some((target, _)) = next_members.get(other_cell) {
-            if !retained.contains(target) {
-                return Some(Some(*target));
+        if let Some(target) = next.member_index.get(other_cell) {
+            if !retained.contains(&target.volume) {
+                return Some(Some(target.volume));
             }
         }
     }
