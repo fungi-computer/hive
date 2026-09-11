@@ -147,12 +147,17 @@ mod tests {
 
     #[test]
     fn catalog_rejects_duplicates_unknown_fields_and_excess_entries() {
+        let canonical =
+            EmissionCatalog::from_definitions(vec![definition("canonical", "wood")]).unwrap();
+        assert_eq!(canonical.len(), 1);
+        assert!(canonical.get("canonical").is_some());
         let duplicate = serde_json::to_string(&vec![
             definition("same", "wood"),
             definition("same", "wood"),
         ])
         .unwrap();
         assert!(EmissionCatalog::from_json(&duplicate).is_err());
+        assert!(EmissionCatalog::from_json(&"x".repeat(64 * 1024 + 1)).is_err());
         assert!(EmissionCatalog::from_json(r#"[{"id":"x","materialKind":"wood","quantity":1,"durationS":1,"smokeKg":1,"heatJ":0,"extra":1}]"#).is_err());
         let many = serde_json::to_string(
             &(0..65)
