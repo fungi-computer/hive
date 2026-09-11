@@ -170,6 +170,7 @@ pub struct CompiledWorld {
     coast_phase: f64,
     ridge_phase: f64,
     canyon_phase: f64,
+    binding: String,
 }
 
 impl<'a> WorldSpec<'a> {
@@ -231,11 +232,26 @@ impl<'a> WorldSpec<'a> {
             coast_phase: noise2(height_prefix, 0.0, 0.0, "coast-phase") * PI * 2.0,
             ridge_phase: noise2(height_prefix, 0.0, 0.0, "ridge-phase") * PI * 2.0,
             canyon_phase: noise2(height_prefix, 0.0, 0.0, "canyon-phase") * PI * 2.0,
+            binding: format!(
+                "{}|bounds:{:?}|metric:{:.17}|slots:{:?}",
+                full, self.bounds, self.vertical_metres, self.slots
+            ),
         })
     }
 }
 
 impl CompiledWorld {
+    pub fn identity_binding(&self) -> &str {
+        &self.binding
+    }
+    pub fn contains_cell(&self, cell: Cell) -> bool {
+        cell.x >= self.bounds.min_x
+            && cell.x < self.bounds.max_x
+            && cell.y >= self.bounds.min_y
+            && cell.y < self.bounds.max_y
+            && cell.z >= self.bounds.min_z
+            && cell.z < self.bounds.max_z
+    }
     pub fn vertical_metres(&self) -> f64 {
         self.vertical_metres
     }
