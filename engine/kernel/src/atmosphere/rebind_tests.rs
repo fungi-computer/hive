@@ -84,6 +84,13 @@ fn split_and_merge_preserve_carrier_without_minting_ambient_air() {
         vec![opening("door", "left", "a", Some("right"), Some("b"))],
     ))
     .unwrap();
+    assert_eq!(old.volume_for_cell("b"), Some("room"));
+    assert_eq!(split.volume_for_cell("a"), Some("left"));
+    assert_eq!(split.volume_for_cell("b"), Some("right"));
+    assert_eq!(split.volume_for_cell("unknown"), None);
+    let mut wrong_endpoint = split.definition().clone();
+    wrong_endpoint.openings[0].from_cell_id = "b".into();
+    assert!(CompiledAtmosphere::compile(wrong_endpoint).is_err());
     let applied = rebind(&old, &state, &split).unwrap();
     let AtmosphereRebindResult::Applied {
         state: split_state, ..

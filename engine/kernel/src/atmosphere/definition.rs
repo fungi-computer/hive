@@ -52,7 +52,7 @@ impl CompiledAtmosphere {
         let mut volume_index = BTreeMap::new();
         let mut volume_m3 = Vec::with_capacity(definition.volumes.len());
         let mut elevation_m = Vec::with_capacity(definition.volumes.len());
-        let mut member_ids = BTreeSet::new();
+        let mut member_index = BTreeMap::new();
         let mut members = 0usize;
         for (index, volume) in definition.volumes.iter().enumerate() {
             if volume.id.is_empty()
@@ -65,7 +65,7 @@ impl CompiledAtmosphere {
             for member in &volume.members {
                 if member.cell_id.is_empty()
                     || member.cell_id.len() > MAX_ID_BYTES
-                    || !member_ids.insert(member.cell_id.clone())
+                    || member_index.insert(member.cell_id.clone(), index).is_some()
                     || !member.volume_m3.is_finite()
                     || member.volume_m3 <= 0.0
                     || !member.elevation_m.is_finite()
@@ -119,18 +119,12 @@ impl CompiledAtmosphere {
                 None => None,
             };
             if to == Some(from)
-                || !definition.volumes[from]
-                    .members
-                    .iter()
-                    .any(|member| member.cell_id == opening.from_cell_id)
+                || member_index.get(&opening.from_cell_id) != Some(&from)
                 || (to.is_some() != opening.to_cell_id.is_some())
                 || to
                     .zip(opening.to_cell_id.as_ref())
                     .is_some_and(|(index, cell)| {
-                        !definition.volumes[index]
-                            .members
-                            .iter()
-                            .any(|member| member.cell_id == *cell)
+                        member_index.get(cell) != Some(&index)
                     })
             {
                 return Err("atmosphere opening endpoint membership mismatch".into());
@@ -176,6 +170,7 @@ impl CompiledAtmosphere {
             definition,
             openings,
             volume_index,
+            member_index,
             volume_m3,
             elevation_m,
             ambient_carrier_density,
@@ -186,6 +181,11 @@ impl CompiledAtmosphere {
 
     pub fn definition(&self) -> &AtmosphereDefinition {
         &self.definition
+    }
+    /// Derived lookup rebuilt with geometry, never a persisted second location.
+    pub fn volume_for_cell(&self, cell_id: &str) -> Option<&str> {
+        self.member_index.get(cell_id)
+            .map(|index| self.definition.volumes[*index].id.as_str())
     }
     pub fn identity(&self) -> &str {
         &self.identity

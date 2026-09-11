@@ -177,6 +177,7 @@ pub struct CompiledAtmosphere {
     definition: AtmosphereDefinition,
     openings: Vec<OpeningIndex>,
     volume_index: BTreeMap<String, usize>,
+    member_index: BTreeMap<String, usize>,
     volume_m3: Vec<f64>,
     elevation_m: Vec<f64>,
     ambient_carrier_density: f64,
