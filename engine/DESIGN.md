@@ -39,6 +39,18 @@ shared rendering hotpath is the next correction. No prediction, high-population
 capacity, narrow-screen or shared-player lobby claim. Prior dist and receipts
 remain in `.botanical/online-play-release`.
 
+### Shared render follow-up
+
+Client `201ac97` is published as `4552162c-58c8-4b08-8ae1-76e366c5b63f`;
+server remains `5bb4ebe5`. Static selection geometry and drag overlays are reused,
+and incoming frames no longer duplicate ticker drawing/HUD work. u5218 confirms
+four hosted survival direction commands, no page errors or observation polling;
+all14 changed served files match (u5221). Software-rendered survival still measured
+median116.6ms/p95533.3ms frame intervals. This does not close the rendering-performance
+issue or establish smooth hardware play. Current API response times43–48ms in
+that check isolate a successful network correction from an unresolved render result.
+No further browser matrix or physics replay was performed.
+
 ## Current playable interim — September 10
 
 The four demos are live at
