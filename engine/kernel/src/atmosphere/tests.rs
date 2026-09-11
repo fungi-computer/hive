@@ -331,3 +331,42 @@ fn exchange_aggregation_keeps_height_distance_and_permeability_distinct() {
     let compiled = CompiledAtmosphere::compile(definition).unwrap();
     assert_eq!(compiled.exchange_openings.len(), 4);
 }
+
+#[test]
+fn shared_geometry_preserves_owned_codec_and_fresh_state_authority() {
+    use sha2::{Digest, Sha256};
+    let owned = definition();
+    let bytes = postcard::to_allocvec(&(
+        &owned.version, &owned.region_id, &owned.ambient, &owned.model,
+        &owned.volumes, &owned.openings,
+    )).unwrap();
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    let shared: SharedAtmosphereDefinition = owned.clone().into();
+    let first = CompiledAtmosphere::compile_shared(shared.clone()).unwrap();
+    let second = CompiledAtmosphere::compile_shared(shared.clone()).unwrap();
+    assert!(Arc::ptr_eq(&first.definition.volumes[0], &shared.volumes[0]));
+    assert!(Arc::ptr_eq(&first.definition.openings[0], &shared.openings[0]));
+    let state = first.initial();
+    assert!(second.advance(&state, 0.1, &[]).is_err());
+    let expected = postcard::to_allocvec(&(STATE_VERSION, digest, &state)).unwrap();
+    assert_eq!(first.encode_state(&state).unwrap(), expected);
+    first.sample_cells(&state, &["cell:0,0,0".into()]).unwrap();
+    assert!(first.exported_definition.get().is_none());
+    assert_eq!(first.definition(), &owned);
+}
+
+#[test]
+fn numeric_members_keep_generic_id_lookup_and_reject_cross_volume_duplicates() {
+    let mut owned = definition();
+    owned.volumes[0].members[0].cell_id = "z/custom:10".into();
+    owned.volumes[1].members[0].cell_id = "a/custom:2".into();
+    owned.openings[0].from_cell_id = "z/custom:10".into();
+    owned.openings[0].to_cell_id = Some("a/custom:2".into());
+    let compiled = CompiledAtmosphere::compile(owned.clone()).unwrap();
+    assert_eq!(compiled.volume_for_cell("z/custom:10"), Some("lower"));
+    assert_eq!(compiled.volume_for_cell("a/custom:2"), Some("upper"));
+    assert_eq!(compiled.volume_for_cell("unknown"), None);
+    assert_eq!(compiled.member_index.iter().map(|m| compiled.member_id(m)).collect::<Vec<_>>(), vec!["a/custom:2", "z/custom:10"]);
+    owned.volumes[1].members[0].cell_id = "z/custom:10".into();
+    assert!(CompiledAtmosphere::compile(owned).is_err());
+}

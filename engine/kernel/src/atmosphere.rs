@@ -173,18 +173,19 @@ enum Quantity {
 }
 
 #[derive(Clone, Copy, Debug)]
-struct MemberLocation { volume: usize, volume_m3: f64 }
+struct MemberLocation { volume: usize, member: usize, volume_m3: f64 }
 
 #[derive(Clone, Debug)]
 pub struct CompiledAtmosphere {
-    definition: AtmosphereDefinition,
+    definition: SharedAtmosphereDefinition,
+    exported_definition: std::sync::OnceLock<AtmosphereDefinition>,
     /// Complete physical definition binding, computed only when geometry is compiled.
     content_digest: [u8; 32],
     openings: Vec<OpeningIndex>,
     /// Equivalent face conductances for exchange; physical openings remain for remap.
     exchange_openings: Vec<OpeningIndex>,
     volume_index: BTreeMap<String, usize>,
-    member_index: BTreeMap<String, MemberLocation>,
+    member_index: Vec<MemberLocation>,
     incident_openings: Vec<Vec<usize>>,
     volume_m3: Vec<f64>,
     elevation_m: Vec<f64>,
@@ -226,7 +227,7 @@ fn changed_quantity(before: f64, delta: f64) -> Result<f64, String> {
         .ok_or_else(|| "atmosphere source is below representable quantity resolution".into())
 }
 
-fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
+fn identity(definition: &SharedAtmosphereDefinition) -> Result<String, String> {
     if definition.geometry_identity.len() > MAX_ID_BYTES {
         return Err("atmosphere geometry identity exceeds bound".into());
     }
@@ -243,6 +244,8 @@ fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
 mod geometry;
 pub(crate) use geometry::{MixingTile, FaceEndpoint, connect_face, geometry_identity};
 pub use geometry::{project as project_geometry, AirAtmosphereGeometry, UnmodeledWaterPolicy};
+mod shared_definition;
+pub(crate) use shared_definition::SharedAtmosphereDefinition;
 mod definition;
 mod rebind;
 pub use rebind::{rebind as rebind_geometry, AtmosphereRebindReceipt, AtmosphereRebindResult, RebindBlockReason};
@@ -272,7 +275,7 @@ impl CompiledAtmosphere {
         if !Arc::ptr_eq(&self.owner, &state.owner) {
             return Err("atmosphere observation belongs to another geometry".into());
         }
-        Ok(cells.iter().map(|cell| self.member_index.get(cell).map(|member| {
+        Ok(cells.iter().map(|cell| self.member_location(cell).map(|member| {
             let index = member.volume;
             let parcel = &state.parcels[index];
             AtmosphereSample {

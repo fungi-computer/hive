@@ -1,16 +1,16 @@
 //! Canonical terrain/water to connected-volume atmosphere composition.
 use crate::atmosphere::{
     rebind_geometry, AtmosphereAmbient,
-    AtmosphereDefinition, AtmosphereModel, AtmosphereRebindReceipt, AtmosphereRebindResult,
+    AtmosphereModel, AtmosphereRebindReceipt, AtmosphereRebindResult,
     AtmosphereSource, AtmosphereState, CompiledAtmosphere,
 };
 #[cfg(test)]
-use crate::atmosphere::{project_geometry, AirAtmosphereGeometry, UnmodeledWaterPolicy};
+use crate::atmosphere::{project_geometry, AirAtmosphereGeometry, AtmosphereDefinition, UnmodeledWaterPolicy};
 #[cfg(test)]
-use crate::terrain_water::{AirGeometryFaceKind, AirGeometryFrontier};
+use crate::terrain_water::{AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot};
 use crate::generation::Cell;
 use crate::terrain_water::{
-    AirGeometryBounds, AirGeometrySnapshot, TerrainWater,
+    AirGeometryBounds, TerrainWater,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -94,7 +94,7 @@ impl TerrainAtmosphere {
         validate_config(world, &config)?;
         let snapshot = world.air_geometry(config.bounds())?;
         let geometry = AirGeometryCache::from_snapshot(&snapshot, &config, world.cell_spacing_m())?;
-        let compiled = CompiledAtmosphere::compile(geometry.definition(&config, world.cell_spacing_m(), snapshot.physical_revision))?;
+        let compiled = CompiledAtmosphere::compile_shared(geometry.definition(&config, world.cell_spacing_m(), snapshot.physical_revision))?;
         let state = compiled.initial();
         Ok(Self {
             config,
@@ -148,8 +148,8 @@ impl TerrainAtmosphere {
         Ok(TerrainAtmosphereRecords {
             version: RECORD_VERSION,
             config: self.config.clone(),
-            geometry_revision: self.compiled.definition().revision,
-            geometry_identity: self.compiled.definition().geometry_identity.clone(),
+            geometry_revision: self.compiled.shared_definition().revision,
+            geometry_identity: self.compiled.shared_definition().geometry_identity.clone(),
             state,
         })
     }
@@ -177,9 +177,9 @@ impl TerrainAtmosphere {
         // decode_state verifies a SHA-256 binding of the full physical content.
         current_definition.revision = records.geometry_revision;
         current_definition.geometry_identity = records.geometry_identity.clone();
-        let compiled = CompiledAtmosphere::compile(current_definition)?;
+        let compiled = CompiledAtmosphere::compile_shared(current_definition)?;
         let state = compiled.decode_state(&records.state)?;
-        let geometry_revision = compiled.definition().revision;
+        let geometry_revision = compiled.shared_definition().revision;
         Ok(Self {
             config: records.config.clone(),
             geometry,
@@ -240,7 +240,7 @@ impl TerrainAtmosphere {
         if candidate_definition.volumes.is_empty() {
             return Ok(Err(AtmosphereRebindResult::Blocked(crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved)));
         }
-        if same_physical_definition(&candidate_definition, self.compiled.definition()) {
+        if candidate_definition.same_physical(self.compiled.shared_definition()) {
             return Ok(Ok(self.unchanged(Some(geometry), physical_revision, epoch)));
         }
         let next_revision = self
@@ -250,7 +250,7 @@ impl TerrainAtmosphere {
         // The exact candidate was already projected above. Do not scan and
         // partition the entire air domain a second time for the same edit.
         candidate_definition.revision = next_revision;
-        let compiled = CompiledAtmosphere::compile(candidate_definition)?;
+        let compiled = CompiledAtmosphere::compile_shared(candidate_definition)?;
         match rebind_geometry(&self.compiled, &self.state, &compiled)? {
             AtmosphereRebindResult::Blocked(reason) => {
                 Ok(Err(AtmosphereRebindResult::Blocked(reason)))
@@ -344,16 +344,9 @@ fn validate_config(world: &TerrainWater, config: &TerrainAtmosphereConfig) -> Re
     }
     Ok(())
 }
-fn same_physical_definition(left: &AtmosphereDefinition, right: &AtmosphereDefinition) -> bool {
-    left.region_id == right.region_id
-        && left.ambient == right.ambient
-        && left.model == right.model
-        && left.volumes == right.volumes
-        && left.openings == right.openings
-}
 fn unchanged_receipt(compiled: &CompiledAtmosphere) -> AtmosphereRebindReceipt {
     let volume_m3 = compiled
-        .definition()
+        .shared_definition()
         .volumes
         .iter()
         .flat_map(|volume| volume.members.iter())

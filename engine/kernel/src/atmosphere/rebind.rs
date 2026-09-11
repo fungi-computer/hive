@@ -52,8 +52,8 @@ fn overlaps(old: &CompiledAtmosphere, next: &CompiledAtmosphere) -> Vec<BTreeMap
     // Canonical member order is unchanged. Reuse the owner's admitted index
     // instead of cloning and sorting every cell twice for each local edit.
     let mut result = vec![BTreeMap::new(); old.definition.volumes.len()];
-    for (cell, old_member) in &old.member_index {
-        if let Some(next_member) = next.member_index.get(cell) {
+    for old_member in &old.member_index {
+        if let Some(next_member) = next.member_location(old.member_id(old_member)) {
             let retained = old_member.volume_m3.min(next_member.volume_m3);
             if retained > 0.0 {
                 *result[old_member.volume].entry(next_member.volume).or_default() += retained;
@@ -114,8 +114,7 @@ fn direct_displacement_route(
         .members
         .iter()
         .filter(|member| {
-            next.member_index
-                .get(&member.cell_id)
+            next.member_location(&member.cell_id)
                 .map(|next_member| next_member.volume_m3 < member.volume_m3)
                 .unwrap_or(true)
         })
@@ -145,7 +144,7 @@ fn direct_displacement_route(
         let Some(other_cell) = other_cell else {
             return Some(None);
         };
-        if let Some(target) = next.member_index.get(other_cell) {
+        if let Some(target) = next.member_location(other_cell) {
             if !retained.contains(&target.volume) {
                 return Some(Some(target.volume));
             }

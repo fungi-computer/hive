@@ -2,7 +2,7 @@
 //! Preparation shares untouched tiles; publication replaces the detached cache.
 use super::{ExteriorPolicy, TerrainAtmosphereConfig};
 use crate::atmosphere::{
-    self, AtmosphereDefinition, AtmosphereOpeningDefinition, AtmosphereVolumeDefinition,
+    self, SharedAtmosphereDefinition, AtmosphereOpeningDefinition, AtmosphereVolumeDefinition,
     FaceEndpoint, MixingTile, UnmodeledWaterPolicy,
 };
 use crate::generation::Cell;
@@ -18,7 +18,7 @@ use std::sync::Arc;
 struct Tile {
     cells: BTreeMap<Cell, AirGeometryCell>,
     faces: BTreeMap<Face, bool>,
-    volumes: Vec<(Cell, AtmosphereVolumeDefinition)>,
+    volumes: Vec<(Cell, Arc<AtmosphereVolumeDefinition>)>,
     membership: BTreeMap<Cell, (String, f64, f64)>,
 }
 
@@ -89,7 +89,7 @@ impl Tile {
                     (volume.id.clone(), member.volume_m3, liquid(&cells[&at])),
                 );
             }
-            volumes.push((first, volume));
+            volumes.push((first, Arc::new(volume)));
         }
         Ok(Self {
             cells,
@@ -275,7 +275,7 @@ impl AirGeometryCache {
         config: &TerrainAtmosphereConfig,
         spacing: [f64; 3],
         physical_revision: u64,
-    ) -> AtmosphereDefinition {
+    ) -> SharedAtmosphereDefinition {
         let mut volumes: Vec<_> = self
             .tiles
             .values()
@@ -290,7 +290,7 @@ impl AirGeometryCache {
         let mut openings: Vec<_> = self
             .openings
             .values()
-            .map(|opening| (**opening).clone())
+            .cloned()
             .collect();
         openings.sort_by(|a, b| {
             a.to.is_none()
@@ -309,7 +309,7 @@ impl AirGeometryCache {
             cells,
             internal,
         );
-        AtmosphereDefinition {
+        SharedAtmosphereDefinition {
             version: "connected-atmosphere-definition-v1".into(),
             region_id: config.region_id.clone(),
             geometry_identity: format!("{identity}:exterior:{:?}", config.exterior),

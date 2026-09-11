@@ -393,3 +393,34 @@ the accepted published 9d08a8e baseline; the added exterior opening regression
 and these findings remain. Existing generated WASM is a build artifact from the
 experiment and must be rebuilt from current source before any next release.
 This is deliberate removal of unproven complexity, not a completed repair.
+
+### Shared immutable geometry representation
+
+The next source cut changes the representation rather than retaining the previous
+speculative activity/order caches. Terrain partitions and the compiled atmosphere
+share immutable volume/opening definitions. A compiled member index contains
+numeric `(volume, member)` references ordered by the original arbitrary cell-ID
+string. It no longer owns another copy of every cell-name string. Generic authored
+atmospheres enter the same representation through the existing owned definition
+API; this does not assume terrain-shaped IDs.
+
+The public owned definition is materialized only on explicit read, lazily. Actual
+production save/restore metadata, no-op comparison, remap, exchange and sampling
+use shared geometry directly. Shared data cannot share state mutation authority:
+each compile still creates a fresh owner token. All validation, numeric order and
+content digest bytes remain unchanged. No saved format or physics rule changes.
+This still compiles numeric indices and hashes the full graph; it is not yet
+complete local compilation. Measure the actual edit workload before accepting it.
+
+Source/type check passed. Focused law execution initially stopped at compiler
+output because the root filesystem filled; no law pass is inferred from that
+attempt. Only owned obsolete Hive native build outputs were removed (inventory
+retained), and the same atmosphere laws now use `cargo test --lib` to avoid
+building unused cdylib/integration targets. Source, saves and prior evidence are
+preserved. Results will follow below.
+
+The corrected native qualification passes all 36 atmosphere/terrain laws. New
+laws verify identical owned-format content binding/save bytes, fresh state-owner
+identity despite shared geometry, generic non-terrain member IDs and duplicate
+rejection. Independent source review found no semantic blocker; Rust check also
+passed. The current WASM dig/build comparison is still required for speed claims.
