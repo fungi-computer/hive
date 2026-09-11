@@ -11,6 +11,7 @@ export function terrainColumnContent(surface) {
 }
 
 export function terrainColumnMap(surfaces) {
+  if (surfaces instanceof Map) return surfaces;
   const columns = new Map();
   for (const surface of surfaces) {
     const key = terrainColumnKey(surface);
@@ -95,8 +96,12 @@ export function terrainFaceBounds(surfaces, affected, verticalMetres, project) {
 }
 
 /** Shared visible exterior faces for the terrain bake and pointer picking. */
-export function* terrainFaces(surfaces, verticalMetres) {
-  const columns = terrainColumnMap(surfaces);
+export function* terrainFaces(
+  surfaces,
+  verticalMetres,
+  columnIndex = undefined,
+) {
+  const columns = columnIndex ?? terrainColumnMap(surfaces);
   for (const surface of surfaces) {
     const {
       cell: [x, y, z],
