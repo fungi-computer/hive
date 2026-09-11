@@ -50,10 +50,10 @@ export type RegionReceipt = {
 const identity = z.string().min(1).max(160);
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const inputSchema = z
-  .object({ id: identity, expectedRevision: integer, command: z.unknown() })
+  .object({ id: identity, expectedRevision: integer.optional(), command: z.unknown() })
   .strict();
 const occurrenceSchema = z
-  .object({ sequence: integer, request: inputSchema })
+  .object({ sequence: integer, request: inputSchema.extend({ expectedRevision: integer }) })
   .strict();
 const limitsSchema = z
   .object({
@@ -381,7 +381,7 @@ export function openRegion<State, Command>(options: {
     let receipt: RegionReceipt;
     let candidateWire = current.state_json;
     let eventWires: readonly { sequence: number; wire: string }[] = [];
-    if (input.expectedRevision !== current.revision) {
+    if (input.expectedRevision !== undefined && input.expectedRevision !== current.revision) {
       receipt = {
         ...base,
         status: "rejected",
