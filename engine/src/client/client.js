@@ -713,6 +713,7 @@ export function createHiveClient({
         // old stream must never clear the new interpolation timeline.
         if (frameEpoch !== undefined && event.epoch < frameEpoch) return;
         if (frameEpoch !== undefined && event.epoch > frameEpoch) {
+          directControl?.reset();
           interpolation.reset(event.epoch);
           animationClock.reset();
           intendedDestinations.clear();
