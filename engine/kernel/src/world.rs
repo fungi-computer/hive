@@ -1036,12 +1036,12 @@ impl Kernel {
         if coordinates.is_empty() || coordinates.len() > 64 { return Err("physical contact query exceeds cell budget".into()); }
         let cells: Vec<_> = coordinates.into_iter().map(|[x, y, z]| {
             Ok(crate::generation::Cell { x, y: i32::try_from(y).map_err(|_| "physical contact y coordinate out of range")?, z })
-        }).collect::<Result<Vec<_>, String>>()?;
+        }).collect::<Result<Vec<_>>>()?;
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         let facts: Vec<_> = cells.into_iter().map(|cell| {
             let material = environment.world.traversal_material(cell)?;
             Ok(json!({"solid": material.solid, "sealedTop": material.sealed_top, "outside": material.outside}))
-        }).collect::<Result<_, String>>()?;
+        }).collect::<Result<_>>()?;
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
     /// Bounded read-only route costs. Preparation uses the same route owner as
