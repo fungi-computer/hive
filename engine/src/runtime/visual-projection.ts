@@ -39,6 +39,6 @@ export function appendVisualProjections(
   }
   if (physical.length + projections.filter(item => !existing.has(item.id)).length > limit) throw new Error("combined visual projection exceeds bound");
   for (const item of projections) existing.set(item.id, { ...existing.get(item.id), id: item.id, visual: item.visual, label: item.label,
-    pose: { position: { ...item.pose.position }, facing: item.pose.facing } });
+    pose: { position: { ...item.pose.position }, facing: item.pose.facing }, view: { pickable: false } });
   return [...existing.values()];
 }

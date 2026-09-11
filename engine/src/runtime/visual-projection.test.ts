@@ -9,6 +9,7 @@ test("static entity display keeps identity and contact without a second entity",
   const facts = [{ id, pose: contact, local: contact, visual: null }];
   const result = appendVisualProjections(facts, [art], () => [true], 512);
   assert.equal(result.length, 1);
+  assert.deepEqual(result[0].view, { pickable: false });
   assert.deepEqual(result[0].pose, art.pose);
   assert.deepEqual(result[0].local, contact);
   assert.deepEqual(facts[0].pose, contact);

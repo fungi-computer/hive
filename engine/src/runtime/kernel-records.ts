@@ -47,6 +47,7 @@ const ENVIRONMENT_KEYS = [
   "kernel/environment/header",
   "kernel/environment/terrain",
   "kernel/environment/water",
+  "kernel/environment/structures",
 ] as const;
 
 function isSafeRevision(value: unknown): value is number {

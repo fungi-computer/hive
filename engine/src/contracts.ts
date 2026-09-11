@@ -229,6 +229,7 @@ export interface CollisionFact {
   readonly material: { readonly response: "stop" | "pierce" | "ground"; readonly resistance: number; readonly restitution: number; readonly friction: number; readonly embedSpeed: number };
 }
 export interface RenderFact {
+  readonly view?: { readonly pickable?: boolean };
   readonly aim?: ProjectileAim | null;
   readonly collision?: CollisionFact | null;
   readonly projectile?: { readonly velocity: Vec3; readonly gravity: number; readonly state: "flying" | "rolling" | "resting" | "embedded"; readonly embedDepth: number; readonly rollNormal: Vec3; readonly penetration: number } | null;
