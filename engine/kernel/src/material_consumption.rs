@@ -45,6 +45,8 @@ struct Witness {
     after: Lot,
     before_water: Option<LotWater>,
     after_water: Option<LotWater>,
+    container_entity: Entity,
+    container_before: Container,
     consumed_water_kg: f64,
 }
 
@@ -53,6 +55,7 @@ pub(super) struct PreparedConsumption {
     revision: u64,
     witnesses: Vec<Witness>,
     result: ConsumedMaterial,
+    before_state_weight: usize,
     state_weight: usize,
 }
 
@@ -161,9 +164,11 @@ pub(super) fn prepare(
             before.quantity,
             portion.quantity,
         )?;
-        total_water = total_water
-            .checked_add(consumed_water_kg)
-            .ok_or("material consumption water total is not finite")?;
+        let next_total_water = total_water + consumed_water_kg;
+        if !next_total_water.is_finite() {
+            return Err("material consumption water total is not finite".into());
+        }
+        total_water = next_total_water;
         let mut after = before.clone();
         after.quantity -= portion.quantity;
         let old_weight = registry.weight("hive.lot", &record(&before));
@@ -192,10 +197,14 @@ pub(super) fn prepare(
             after,
             before_water,
             after_water,
+            container_entity,
+            container_before: *ecs
+                .get::<Container>(container_entity)
+                .ok_or("material lot owner is not a container")?,
             consumed_water_kg,
         });
     }
-    if next_weight > 8 * 1024 * 1024 || !total_water.is_finite() {
+    if next_weight > super::STATE_BYTES || !total_water.is_finite() {
         return Err("material consumption canonical state capacity".into());
     }
     Ok(PreparedConsumption {
@@ -206,6 +215,7 @@ pub(super) fn prepare(
             portions: result,
             water_kg: total_water,
         },
+        before_state_weight: state_weight,
         state_weight: next_weight,
     })
 }
@@ -223,14 +233,24 @@ pub(super) fn publish(
     if prepared.revision != revision {
         return Err("material consumption revision is stale".into());
     }
+    if *state_weight != prepared.before_state_weight {
+        return Err("material consumption state witness is stale".into());
+    }
     for witness in &prepared.witnesses {
         let current = ecs
             .get::<Lot>(witness.entity)
             .ok_or("material lot disappeared")?;
+        let container = ecs
+            .get::<Container>(witness.container_entity)
+            .ok_or("material lot owner disappeared")?;
         if !same_lot(current, &witness.before)
             || current.quantity < witness.result_quantity()
             || current.container != witness.before.container
             || !same_water(ecs.get::<LotWater>(witness.entity), witness.before_water)
+            || container.capacity != witness.container_before.capacity
+            || ecs
+                .get::<crate::components::SealedContainer>(witness.container_entity)
+                .is_some()
         {
             return Err(format!("material lot witness is stale: {}", witness.lot_id));
         }
@@ -276,12 +296,10 @@ mod tests {
         }
     }
     fn lot_rows(kernel: &mut Kernel) -> Value {
-        serde_json::from_str(
-            &kernel
-                .query_json("[\"hive.lot\",\"hive.lot-water\"]")
-                .unwrap(),
-        )
-        .unwrap()
+        serde_json::from_str(&kernel.query_json("[\"hive.lot\"]").unwrap()).unwrap()
+    }
+    fn water_rows(kernel: &mut Kernel) -> Value {
+        serde_json::from_str(&kernel.query_json("[\"hive.lot-water\"]").unwrap()).unwrap()
     }
 
     #[test]
@@ -295,7 +313,7 @@ mod tests {
         let prepared = wet.prepare_material_consumption(&[portion(2)]).unwrap();
         let consumed = wet.publish_material_consumption(prepared).unwrap();
         assert_eq!(consumed.water_kg, 4.0);
-        assert!(lot_rows(&mut wet).to_string().contains("waterKg"));
+        assert_eq!(water_rows(&mut wet).as_array().unwrap().len(), 1);
     }
 
     #[test]
@@ -323,6 +341,45 @@ mod tests {
         let mut foreign = kernel(None, 4);
         let token = foreign.prepare_material_consumption(&[portion(1)]).unwrap();
         assert!(kernel.publish_material_consumption(token).is_err());
+    }
+
+    #[test]
+    fn restore_invalidates_prepared_token_and_zero_water_survives_reload() {
+        let mut kernel = kernel(Some(8.0), 1);
+        let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert!(restored.publish_material_consumption(prepared).is_err());
+        let prepared = restored
+            .prepare_material_consumption(&[portion(1)])
+            .unwrap();
+        restored.publish_material_consumption(prepared).unwrap();
+        let saved = restored.save_records().unwrap();
+        let mut resumed = Kernel::new();
+        resumed.restore_records(&saved).unwrap();
+        assert_eq!(water_rows(&mut resumed).as_array().unwrap().len(), 1);
+        assert_eq!(
+            water_rows(&mut resumed)[0]["components"]["hive.lot-water"]["waterKg"],
+            0.0
+        );
+    }
+
+    #[test]
+    fn stale_container_and_disjoint_weight_change_reject_without_mutation() {
+        let mut kernel = kernel(None, 4);
+        let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
+        let store = kernel.entity("store").unwrap();
+        kernel
+            .ecs
+            .entity_mut(store)
+            .insert(Container { capacity: 21 });
+        let before = lot_rows(&mut kernel);
+        assert!(kernel.publish_material_consumption(prepared).is_err());
+        assert_eq!(lot_rows(&mut kernel), before);
+        let prepared = kernel.prepare_material_consumption(&[portion(1)]).unwrap();
+        kernel.state_weight += 1;
+        assert!(kernel.publish_material_consumption(prepared).is_err());
     }
 
     #[test]
