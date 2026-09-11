@@ -94,5 +94,5 @@ export function readRecordPage(owner: RecordSqlOwner, expectedRevision: number, 
   });
   const pageLimit = Math.min(limit, 128);
   const hasMore = admitted.length < metadata.length || metadata.length === pageLimit;
-  return { revision: expectedRevision, records, nextKey: hasMore ? admitted.at(-1)?.key : undefined };
+  return { revision: expectedRevision, records, nextKey: hasMore ? admitted.at(-1)?.record_key : undefined };
 }

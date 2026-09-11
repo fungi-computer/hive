@@ -13,7 +13,7 @@ function fixture(t, limits, program = createQuarryRegionProgram) {
   const owner = sqliteTestOwner(db, (statement) => {
     if (failReceipt && statement.startsWith("INSERT INTO hive_region_receipts"))
       throw new Error("injected-storage-failure");
-    if (failRecord && statement.startsWith("INSERT INTO hive_region_records"))
+    if (failRecord && statement.startsWith("INSERT OR REPLACE INTO hive_region_records"))
       throw new Error("injected-record-failure");
   });
   const open = (policy = limits, clockPrincipal) =>
