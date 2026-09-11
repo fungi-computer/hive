@@ -339,6 +339,22 @@ mod tests {
     }
 
     #[test]
+    fn horizontal_surfaces_cover_all_stair_orientations() {
+        for (orientation, expected) in [
+            (Cardinal::North, Cell { x: 0, y: 1, z: -2 }),
+            (Cardinal::East, Cell { x: 2, y: 1, z: 0 }),
+            (Cardinal::South, Cell { x: 0, y: 1, z: 2 }),
+            (Cardinal::West, Cell { x: -2, y: 1, z: 0 }),
+        ] {
+            let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
+                id: "stair-surface".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation, run: 2, rise: 1,
+            }]).unwrap();
+            let columns = [(expected.x, expected.z)].into_iter().collect();
+            assert_eq!(geometry.projection().unwrap().horizontal_surfaces(&columns)[&(expected.x, expected.z)], vec![expected]);
+        }
+    }
+
+    #[test]
     fn negative_deep_coordinates_are_valid_and_outside_is_rejected() {
         let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
             id: "deep-wall".into(),
