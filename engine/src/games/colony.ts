@@ -257,7 +257,7 @@ function depositActions(context: CommandContext, input: unknown) {
       carriedQuantity > pantry.capacity - pantryQuantity)
     throw new Error("pantry lacks capacity");
   return carried
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     .map((lot) => transfer(lot.id, worker, pantryId, lot.quantity));
 }
 
