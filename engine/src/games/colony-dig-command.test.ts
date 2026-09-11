@@ -17,14 +17,27 @@ function row(id: ReturnType<typeof entity>, definition: { id: string }, value: o
   return { id, get(requested: { id: string }) { assert.equal(requested.id, definition.id); return value; } };
 }
 
-function context({ lots = [], tasks = [], work = [] } = {}) {
+type FixtureRow = ReturnType<typeof row>;
+type Fixture = {
+  readonly lots: readonly FixtureRow[];
+  readonly tasks: readonly FixtureRow[];
+  readonly work: readonly FixtureRow[];
+};
+
+function context(overrides: Partial<Fixture> = {}) {
+  const fixture: Fixture = {
+    lots: [],
+    tasks: [],
+    work: [],
+    ...overrides,
+  };
   const values = new Map<string, readonly unknown[]>([
     ["colony.worker", [row(worker, { id: "colony.worker" }, { guest: false })]],
     [Body.id, [row(worker, Body, { speed: 2 })]],
     [Container.id, [row(worker, Container, { capacity: 3 })]],
-    [MaterialLot.id, lots],
-    [DeliveryTask.id, tasks],
-    [ExcavationWork.id, work],
+    [MaterialLot.id, fixture.lots],
+    [DeliveryTask.id, fixture.tasks],
+    [ExcavationWork.id, fixture.work],
   ]);
   return { query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
 }

@@ -17,7 +17,7 @@ function makeSession() {
 function adjacentTarget(port: ReturnType<typeof wasmKernelPort>) {
   const surface = port.terrainSurfaces([[1, 0]])[0];
   assert.ok(surface, "native terrain must publish the adjacent surface");
-  const cell = [1, surface.cell[1], 0] as const;
+  const cell: [number, number, number] = [1, surface.cell[1], 0];
   const material = port.terrainMaterials([cell])[0];
   assert.equal(material, 1, "adjacent surface must be diggable Colony soil");
   return { cell, material };
@@ -67,7 +67,7 @@ test("Colony native excavation rejects a target occupied by the worker", () => {
     session.start();
     const surface = port.terrainSurfaces([[0, 0]])[0];
     assert.ok(surface);
-    const cell = [0, surface.cell[1], 0] as const;
+    const cell: [number, number, number] = [0, surface.cell[1], 0];
     const material = port.terrainMaterials([cell])[0];
     session.command("dig", { entities: [worker], target: { cell, material } });
     const result = session.step(0);
