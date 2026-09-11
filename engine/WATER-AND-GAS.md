@@ -46,6 +46,42 @@ unattended stages use the fixed clock without holding a worker. Finite fuel
 transformation and resulting emissions commit together. A blocked output retains
 progress and custody rather than consuming again on retry.
 
+## Native air join checkpoint — September 11
+
+The connected-volume Rust owner, geometry projection, physical sky query and
+prepared construction/excavation queries now exist on the native-atmosphere
+branch. They remain outside the live Kernel clock. Native tests establish the
+bounded primitives; they do not establish fueled smoke in Colony.
+
+The next runtime join uses the existing `KernelEnvironment` and
+`KernelRecords.environment` authority. Do not create an independent room timer,
+save store, inventory or simulation host. The admitted game definition selects
+bounded air coverage, model parameters and exterior policy. Derived membership
+and face indexes are rebuilt from canonical terrain/structures; air stock,
+source obligations and accepted progress remain canonical saved state.
+
+For a physical completion, inspect its **prepared** terrain/water/structure
+candidate through the same query as the live world, prepare the next atmosphere
+owner and rebind existing stock, then admit material debit/credit. Publish only
+when all candidates fit. Expected trapped-air or pressure rejection leaves that
+job waiting with its earned progress; it must not abort unrelated completed work.
+The current candidate queries cover structures and excavation. Ordinary moving
+water still needs a paired water/air candidate before this join is complete.
+
+Exterior policy must distinguish a query ceiling from the world's explicit
+ambient boundary. A clear partial ray does not authorize ambient import/export.
+Physical sky clearance alone also does not prove an open gas path through water:
+the actual admitted liquid occupancy still controls face area. Do not close this
+remaining caller decision by inventing an open boundary at an arbitrary room box.
+
+Fuel consumes real material through the existing lot owner and installs a finite
+emission obligation in the same completion. The retained pure finite-release
+calculation supplies bounded amounts for elapsed intervals; it owns no payment,
+clock or mutable cursor. The runtime owns the saved obligation and advances its
+cursor only with the matching accepted air-source change. New obligations do not
+earn time retroactively in their admission tick. Generic recipe stages remain
+TypeScript definitions over these mechanisms, not a hardcoded Rust brewing enum.
+
 ## The decision
 
 Use **finite voxel water and connected-volume gas**, implemented in the existing
