@@ -1,3 +1,5 @@
+import { createLocalSaveOwner } from "./local-save.js";
+
 const TOKEN_BYTES = 32;
 
 function tokenKey(mode) {
@@ -112,9 +114,14 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
   };
 }
 
-function localConnection({ mode, storage, connectLocal }) {
+function localConnection({ mode, connectLocal, saveOwner }) {
   const runtime = connectLocal();
-  const saveKey = `hive-fresh-browser/${mode}`;
+  const owner = saveOwner ?? createLocalSaveOwner({ mode });
+  const disposeRuntime = runtime.dispose?.bind(runtime);
+  runtime.dispose = () => {
+    disposeRuntime?.();
+    void Promise.resolve(owner.close?.()).catch(() => {});
+  };
   return {
     runtime,
     persistence: {
@@ -126,14 +133,12 @@ function localConnection({ mode, storage, connectLocal }) {
       save() {
         runtime.send({ type: "save" });
       },
-      continue() {
-        const saved = storage.getItem(saveKey);
-        if (!saved) throw new Error("No saved world yet");
-        runtime.send({ type: "restore", snapshot: JSON.parse(saved) });
+      async continue() {
+        const saved = await owner.read();
+        if (saved === undefined) throw new Error("No saved world yet");
+        runtime.send({ type: "restore", snapshot: saved });
       },
-      onSaved(snapshot) {
-        storage.setItem(saveKey, JSON.stringify(snapshot));
-      },
+      onSaved(snapshot) { return owner.write(snapshot); },
       newWorld(onReplaced) {
         onReplaced?.(false);
         runtime.send({ type: "reset" });
@@ -151,12 +156,13 @@ export function createConnectionChoice({
   fetchImpl = globalThis.fetch,
   connectLocal,
   connectRemote,
+  saveOwner,
 } = {}) {
   if (typeof mode !== "string" || mode.length === 0)
     throw new Error("Connection choice requires a game mode");
   if (typeof connectLocal !== "function" || typeof connectRemote !== "function")
     throw new Error("Connection choice requires runtime factories");
-  if (runtime === "local") return localConnection({ mode, storage, connectLocal });
+  if (runtime === "local") return localConnection({ mode, connectLocal, saveOwner });
   return remoteConnection({ mode, host: publicHost, storage, cryptoSource, fetchImpl, connectRemote });
 }
 
