@@ -1,3 +1,5 @@
+#[path = "fuel_emission.rs"]
+mod fuel_emission;
 #[path = "environment_runtime.rs"]
 mod environment_runtime;
 use crate::{collision, combat, components::*, navigation, registry::Registry};
@@ -1547,6 +1549,10 @@ impl Kernel {
             }
             Action::PlanConstruction { catalog, site, x, y, z, orientation, contact } => {
                 self.plan_construction(catalog, site, x, y, z, orientation, contact)?;
+                Ok(None)
+            }
+            Action::BeginEmission { worker, station } => {
+                self.begin_emission(&worker, &station)?;
                 Ok(None)
             }
             Action::AttendConstruction { worker, site } => {
