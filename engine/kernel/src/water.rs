@@ -100,8 +100,12 @@ impl WaterState {
 /// Detached field debit. The enclosing material operation must admit its
 /// matching credit before publishing this candidate. This is not a sink.
 pub struct WaterWithdrawal {
-    pub state: WaterState,
-    pub mass_kg: f64,
+    state: WaterState,
+    mass_kg: f64,
+}
+impl WaterWithdrawal {
+    pub fn mass_kg(&self) -> f64 { self.mass_kg }
+    pub fn into_parts(self) -> (WaterState, f64) { (self.state, self.mass_kg) }
 }
 
 impl PartialEq for WaterState {
@@ -566,7 +570,8 @@ impl CompiledWater {
         if removed <= 0.0 { return Err(fail("water withdrawal is below representable quantity")); }
         let mut candidate = state.clone();
         candidate.mass_kg[index] = remaining;
-        candidate.boundary_kg -= removed;
+        candidate.boundary_kg = resolve_quantity_change(state.boundary_kg, -removed)?
+            .ok_or_else(|| fail("water withdrawal cannot be represented in boundary ledger"))?;
         self.validate_state(&candidate)?;
         Ok(WaterWithdrawal { state: candidate, mass_kg: removed })
     }
