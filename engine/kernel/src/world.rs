@@ -5,6 +5,8 @@ mod material_output;
 mod excavation_work;
 #[path = "initial_placement.rs"]
 mod initial_placement;
+#[path = "route_query.rs"]
+mod route_query;
 #[cfg(test)]
 #[path = "terrain_movement_tests.rs"]
 mod terrain_movement_tests;
@@ -832,6 +834,11 @@ impl Kernel {
         }).collect();
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         serde_json::to_string(&environment.world.materials(&cells)?).map_err(|error| error.to_string())
+    }
+    /// Bounded read-only route costs. Preparation uses the same route owner as
+    /// movement but never installs a destination or mutates canonical state.
+    pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
+        route_query::execute(self, input)
     }
     pub fn environment_facts_json(&self) -> Result<String> {
         self.ensure_ready()?;
