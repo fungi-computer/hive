@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createWorldView, projectWorldFact, setWorldViewLevel, toggleWorldCutaway } from "./world-view.js";
-import { selectionFromSubjects, surfaceSubjectAt } from "./controls.js";
+import { eligibleSelectedIds, selectionFromSubjects, surfaceSubjectAt } from "./controls.js";
 
 test("world view honors its supplied signed range", () => {
   const view = createWorldView({ range: { min: -2, max: 3 }, level: 0 });
@@ -26,4 +26,6 @@ test("projected unpickable subjects are excluded from point, box, and surface pa
   const box = { left: 10, right: 10, top: 10, bottom: 10 };
   assert.deepEqual(selectionFromSubjects(subjects, box), ["open"]);
   assert.equal(surfaceSubjectAt(subjects, { x: 2, y: 3 }, () => true)?.id, "open");
+  assert.deepEqual(eligibleSelectedIds(subjects, ["hidden", "open"]), ["open"]);
+  assert.deepEqual(eligibleSelectedIds(subjects, ["hidden"]), []);
 });

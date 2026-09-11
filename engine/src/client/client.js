@@ -21,6 +21,7 @@ import {
   aimGestureMachine,
   WORLD_VIEW_CONTROLS,
   surfaceSubjectAt,
+  eligibleSelectedIds,
 } from "./controls.js";
 import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact } from "./world-view.js";
 import { createActor } from "xstate";
@@ -143,6 +144,7 @@ export function createHiveClient({
     state.view = toggleWorldCutaway(state.view, value);
     gesture.send({ type: "CANCEL" });
     exitAim();
+    state.dragging = null;
     state.hoverId = null;
     draw();
     renderHud();
@@ -764,7 +766,9 @@ export function createHiveClient({
     }
     if (directControl) return;
     const at = point(event);
-    const selected = state.subjects.filter((subject) => subject.pickable !== false && state.selectedIds.includes(subject.id));
+    const eligibleIds = eligibleSelectedIds(state.subjects, state.selectedIds);
+    if (eligibleIds.length === 0) return;
+    const selected = state.subjects.filter((subject) => eligibleIds.includes(subject.id));
     const frames = new Set(selected.map((subject) => subject.support ?? null));
     if (frames.size > 1) {
       state.message = "Select people on the same surface to move together";
@@ -784,15 +788,14 @@ export function createHiveClient({
       return;
     }
     if (orderCommand) {
-      if (state.selectedIds.length)
-        runtime.send({
-          type: "command",
-          name: orderCommand,
-          input: { entities: state.selectedIds, destination: world },
-        });
+      runtime.send({
+        type: "command",
+        name: orderCommand,
+        input: { entities: eligibleIds, destination: world },
+      });
       return;
     }
-    for (const id of state.selectedIds)
+    for (const id of eligibleIds)
       emit({
         kind: "action",
         action: { kind: "move", entity: id, destination: world, facing: 0 },
