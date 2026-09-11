@@ -301,3 +301,44 @@ The repair goal stays active: global gas definition assembly/remap and quiet/act
 exchange remain incomplete, as do broader population and multi-region proofs.
 Details and exact limits are in the linked performance receipt. This is a playable
 correction, not a claim that every item in this plan is implemented.
+
+### Exact quiet-exchange implementation
+
+The next chunk implements exact activity caching, without the speculative sleep
+threshold or cadence change above. Cache the pre-transfer parcel quantities and
+raw opening flows. A source or changed neighbor invalidates incident aggregate
+openings; changed geometry or timestep rebuilds the cache. An unchanged opening
+can skip transfer application only when its transfer is exactly zero. Its raw
+flow still participates in shared donor/receiver budgets, so another opening
+cannot consume extra capacity simply because this opening is quiet.
+
+The cache is immutable candidate-owned, excluded from saved physical state, and
+rebuilt after restore. Failed candidates cannot mutate the accepted cache.
+Non-finite flows remain on the checked path rather than being hidden by sleep.
+The current implementation still scans parcel signatures and, when work is active,
+all raw flow budgets. It is not a claim that all gas work is sparse.
+
+Qualification: 39 native atmosphere laws passed in u6067, including exact dense
+reference comparison, source wake/neighbor propagation, quiet cache reuse,
+current-format restore, failed-candidate isolation and geometry invalidation.
+Independent read-only review found no correctness blocker. The next qualification
+compares identical current Colony JavaScript against old and new WASM with an
+unlit and fueled hearth, exact saved-state hashes, step/save timings and the
+existing hearth consumer laws. Native laws alone do not establish a speedup.
+
+Actual WASM comparison u6069 passed with identical saved-state hashes for both
+120-step unlit and burning Colony sequences. The ordinary earned-fuel/hearth
+consumer also passed. However this chunk did **not** demonstrate a meaningful
+whole-game performance improvement: unlit step p95 5.08 → 5.27 ms; burning step
+p95 7.21 → 7.51 ms. Burning median 3.41 → 3.13 ms is insufficient to claim a
+robust gain from one run. WASM memory remained 25,952,256 bytes. This is a tested
+source experiment, **not a new deployed optimization**. Do not attribute the
+previous published speedup to this cache. No browser/server capacity claim follows.
+
+Keep the current live release unchanged. Before accepting this additional cache
+complexity for release, demonstrate a named consumer benefit or remove it from
+the release candidate. The next meaningful performance target remains broad
+compiled-definition assembly/validation/hashing and stock remapping on actual
+geometry changes; repeated timing runs of this quiet-hearth fixture are not a
+substitute. Exact baseline/candidate measurements are retained in
+[gas-activity-20260911.json](../docs/performance/gas-activity-20260911.json).

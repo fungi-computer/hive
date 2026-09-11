@@ -105,9 +105,12 @@ impl AtmosphereParcel {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AtmosphereState {
+    /// Rebuildable exchange work, excluded from saves and physical equality.
+    #[serde(skip)]
+    exchange_cache: Option<Arc<activity::ExchangeCache>>,
     #[serde(skip)]
     owner: Arc<()>,
     version: String,
@@ -183,6 +186,7 @@ pub struct CompiledAtmosphere {
     openings: Vec<OpeningIndex>,
     /// Equivalent face conductances for exchange; physical openings remain for remap.
     exchange_openings: Vec<OpeningIndex>,
+    exchange_incident: Vec<Vec<usize>>,
     volume_index: BTreeMap<String, usize>,
     member_index: BTreeMap<String, MemberLocation>,
     incident_openings: Vec<Vec<usize>>,
@@ -249,6 +253,9 @@ pub use rebind::{rebind as rebind_geometry, AtmosphereRebindReceipt, AtmosphereR
 #[cfg(test)]
 mod rebind_tests;
 mod exchange;
+mod activity;
+#[cfg(test)]
+mod activity_tests;
 mod state;
 #[cfg(test)]
 mod tests;

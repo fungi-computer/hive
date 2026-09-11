@@ -333,6 +333,7 @@ pub fn rebind(
         ));
     }
     let candidate = AtmosphereState {
+        exchange_cache: None,
         owner: next.owner.clone(),
         version: state.version.clone(),
         identity: next.identity.clone(),

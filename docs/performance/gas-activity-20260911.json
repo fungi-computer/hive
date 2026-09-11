@@ -1,0 +1,104 @@
+{
+  "status": "tested experiment; not deployed; no meaningful whole-game speedup established",
+  "native": {
+    "scope": "run-u6067.scope",
+    "laws": 39,
+    "exit": 0
+  },
+  "wasm": {
+    "scope": "run-u6069.scope",
+    "invocation": "a09be3bc913b4003a229dddf56e08ac6",
+    "exit": 0,
+    "cleanup": "inactive/dead/empty ControlGroup",
+    "hearthConsumerLaws": 1,
+    "exactSnapshotsEqual": true
+  },
+  "baseline": {
+    "label": "baseline",
+    "kind": "same actual Colony JS plus selected WASM; no DO/browser",
+    "samples": {
+      "unlit": {
+        "step": {
+          "n": 120,
+          "p50": 2.965298999999959,
+          "p95": 5.081466999999975,
+          "max": 9.115836999999829,
+          "total": 313.5530039999994
+        },
+        "save": {
+          "n": 120,
+          "p50": 0.29701799999998,
+          "p95": 2.78779099999997,
+          "max": 5.79645400000004,
+          "total": 88.29221899999948
+        }
+      },
+      "burning": {
+        "step": {
+          "n": 120,
+          "p50": 3.4090869999999995,
+          "p95": 7.214402000000064,
+          "max": 7.6349450000002435,
+          "total": 428.9811819999986
+        },
+        "save": {
+          "n": 120,
+          "p50": 0.319231999999829,
+          "p95": 4.384015999999974,
+          "max": 5.376060999999936,
+          "total": 97.3069030000006
+        }
+      }
+    },
+    "snapshots": {
+      "unlit": "c77c3fb68517b67f7d9b3f6353b76f96a1b13300d76ed4df96476ee68a1de13f",
+      "burning": "363d242da8cfb8d19cfbbea6d4226d83c35e266a03fa9cd30ff46095620a8a40"
+    },
+    "memoryBytes": 25952256,
+    "status": "passed"
+  },
+  "candidate": {
+    "label": "candidate",
+    "kind": "same actual Colony JS plus selected WASM; no DO/browser",
+    "samples": {
+      "unlit": {
+        "step": {
+          "n": 120,
+          "p50": 2.850685999999996,
+          "p95": 5.270412999999962,
+          "max": 9.34105599999998,
+          "total": 306.66340299999933
+        },
+        "save": {
+          "n": 120,
+          "p50": 0.2888660000000982,
+          "p95": 4.313390000000027,
+          "max": 4.470416000000114,
+          "total": 104.8714289999989
+        }
+      },
+      "burning": {
+        "step": {
+          "n": 120,
+          "p50": 3.1310269999999036,
+          "p95": 7.509105999999974,
+          "max": 9.262186999999813,
+          "total": 408.2831140000003
+        },
+        "save": {
+          "n": 120,
+          "p50": 0.31655700000010256,
+          "p95": 3.0949040000000423,
+          "max": 6.436018000000331,
+          "total": 86.76773400000229
+        }
+      }
+    },
+    "snapshots": {
+      "unlit": "c77c3fb68517b67f7d9b3f6353b76f96a1b13300d76ed4df96476ee68a1de13f",
+      "burning": "363d242da8cfb8d19cfbbea6d4226d83c35e266a03fa9cd30ff46095620a8a40"
+    },
+    "memoryBytes": 25952256,
+    "status": "passed"
+  }
+}

@@ -171,6 +171,7 @@ impl CompiledAtmosphere {
             }
         }
         let exchange_openings = aggregate_exchange_openings(&openings)?;
+        let exchange_incident = index_exchange_openings(&exchange_openings, volume_m3.len());
         let identity = identity(&definition)?;
         // Revision labels are not topology authority. Bind all physical content,
         // including same-count opening changes, model and ambient. A no-op world
@@ -185,6 +186,7 @@ impl CompiledAtmosphere {
             content_digest,
             openings,
             exchange_openings,
+            exchange_incident,
             volume_index,
             member_index,
             incident_openings,
@@ -230,4 +232,13 @@ fn aggregate_exchange_openings(openings: &[OpeningIndex]) -> Result<Vec<OpeningI
         }
     }
     Ok(result)
+}
+
+pub(super) fn index_exchange_openings(openings: &[OpeningIndex], volumes: usize) -> Vec<Vec<usize>> {
+    let mut incident = vec![Vec::new(); volumes];
+    for (index, opening) in openings.iter().enumerate() {
+        incident[opening.from].push(index);
+        if let Some(to) = opening.to { incident[to].push(index); }
+    }
+    incident
 }
