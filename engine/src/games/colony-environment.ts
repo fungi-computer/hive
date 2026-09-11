@@ -24,6 +24,7 @@ export const colonyEnvironment: EnvironmentDefinition = {
     seaLevel: 12,
     verticalMetres: 0.54,
   },
+  structures: { maxSpanSteps: 6 },
   materials: [
     {
       slot: 0,

@@ -66,6 +66,11 @@ export interface EnvironmentWater {
   readonly spreadMPerS: number;
 }
 
+/** Structural policy shared by terrain placement and support admission. */
+export interface EnvironmentStructures {
+  readonly maxSpanSteps: number;
+}
+
 export interface InitialSurfacePlacement {
   readonly entity: string;
   readonly column: readonly [number, number];
@@ -75,13 +80,28 @@ export interface EnvironmentDefinition {
   readonly world: EnvironmentWorld;
   readonly materials: readonly EnvironmentMaterial[];
   readonly water: EnvironmentWater;
+  readonly structures: EnvironmentStructures;
   /** Optional fresh-world placement; native restore never reapplies it. */
   readonly initialPlacements?: readonly InitialSurfacePlacement[];
+}
+
+export function validateEnvironmentDefinition(
+  definition: EnvironmentDefinition,
+): void {
+  const maxSpanSteps = definition?.structures?.maxSpanSteps;
+  if (
+    !Number.isSafeInteger(maxSpanSteps) ||
+    maxSpanSteps < 1 ||
+    maxSpanSteps > 64
+  ) {
+    throw new Error("structures.maxSpanSteps must be an integer from 1 through 64");
+  }
 }
 
 /** Encode the exact JSON payload consumed by Kernel::load_environment. */
 export function encodeEnvironmentDefinition(
   definition: EnvironmentDefinition,
 ): Uint8Array {
+  validateEnvironmentDefinition(definition);
   return new TextEncoder().encode(JSON.stringify(definition));
 }

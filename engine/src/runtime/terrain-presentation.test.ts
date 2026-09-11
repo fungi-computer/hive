@@ -13,6 +13,7 @@ const definition: EnvironmentDefinition = {
     seaLevel: 2,
     verticalMetres: 0.5,
   },
+  structures: { maxSpanSteps: 6 },
   materials: [],
   water: { id: "water", cells: [], fallMPerS: 0, spreadMPerS: 0 },
 };
