@@ -1,6 +1,7 @@
 import { appendPresentationCues, checkedCueSnapshot, type CueSnapshot } from "./presentation-cues";
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
+import { readKernelEntities } from "./kernel-records";
 import { Position, Support, Surface } from "../sdk/common";
 import type {
   ActionRequest,
@@ -47,7 +48,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 6;
+  readonly version: 7;
   readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
@@ -130,6 +131,8 @@ export class GameSession {
   }
   start(): void {
     this.port.load(this.pack.definition);
+    if (this.pack.environmentDefinition)
+      this.port.loadEnvironment(this.pack.environmentDefinition);
     if (this.pack.initialActions)
       this.pendingActions.push(...this.pack.initialActions);
   }
@@ -280,7 +283,7 @@ export class GameSession {
           const targets =
             knownTargets ??
             new Set<EntityId>(
-              JSON.parse(this.port.snapshot().json).scene.initial.map(
+            readKernelEntities(this.port.snapshot()).scene.initial.map(
                 (row: { id: EntityId }) => row.id,
               ),
             );
@@ -459,7 +462,7 @@ export class GameSession {
   save(): SessionSnapshot {
     return {
       format: "hive-session",
-      version: 6,
+      version: 7,
       cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
@@ -484,7 +487,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 6 ||
+      snapshot.version !== 7 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||
@@ -513,11 +516,8 @@ export class GameSession {
     const cues = checkedCueSnapshot(snapshot.cues, snapshot.now);
     const pending = snapshot.pendingActions.map(checkedAction);
     let canonical: any;
-    try {
-      canonical = JSON.parse(snapshot.kernel.json);
-    } catch {
-      throw new Error("invalid session snapshot");
-    }
+    try { canonical = readKernelEntities(snapshot.kernel); }
+    catch { throw new Error("invalid session snapshot"); }
     const initialEntities = canonical.scene?.initial;
     if (!Array.isArray(initialEntities))
       throw new Error("invalid session entities");

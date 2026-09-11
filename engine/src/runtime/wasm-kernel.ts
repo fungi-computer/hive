@@ -6,7 +6,6 @@ import type {
   ComponentDefinition,
   EntityId,
   KernelPort,
-  KernelSnapshot,
   QueryRow,
   QuerySpec,
   RenderFact,
@@ -14,14 +13,20 @@ import type {
   WriteIntent,
 } from "../contracts";
 import { checkedAssignments } from "../sdk/assignment";
+import { WasmKernelRecords } from "../../generated/hive_kernel.js";
+import {
+  captureKernelRecords,
+  restoreKernelRecords,
+  type NativeRecordBinding,
+} from "./kernel-records";
 
-export interface WasmKernelBinding {
+export interface WasmKernelBinding extends NativeRecordBinding {
   free(): void;
   load(json: string): void;
+  load_environment(json: string): void;
+  environment_facts(): string;
   query(json: string): string;
   advance(json: string): string;
-  snapshot(): string;
-  restore(json: string): void;
   render_facts(): string;
   world_pose(json: string): string;
   assign(json: string): string;
@@ -35,6 +40,12 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     },
     load(definition) {
       binding.load(new TextDecoder().decode(definition));
+    },
+    loadEnvironment(definition) {
+      binding.load_environment(new TextDecoder().decode(definition));
+    },
+    environmentFacts() {
+      return JSON.parse(binding.environment_facts()) as unknown;
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);
@@ -64,22 +75,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       return result;
     },
     snapshot() {
-      const json = binding.snapshot();
-      const parsed = JSON.parse(json) as Omit<KernelSnapshot, "json">;
-      if (parsed.format !== "hive-kernel" || parsed.version !== 5)
-        throw new Error("unsupported kernel snapshot");
-      return {
-        format: parsed.format,
-        version: parsed.version,
-        revision: parsed.revision,
-        time: parsed.time,
-        json,
-      };
+      return captureKernelRecords(binding);
     },
     restore(snapshot) {
-      if (snapshot.format !== "hive-kernel" || snapshot.version !== 5)
-        throw new Error("unsupported kernel snapshot");
-      binding.restore(snapshot.json);
+      restoreKernelRecords(binding, () => new WasmKernelRecords(), snapshot);
     },
     renderFacts(limit = 512) {
       return (JSON.parse(binding.render_facts()) as RenderFact[]).slice(
