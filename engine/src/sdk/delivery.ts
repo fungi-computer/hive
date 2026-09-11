@@ -168,8 +168,8 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
             task: taskRow.id,
             actorPosition: actorPosition.world,
             sourcePosition: sourcePosition.world,
-            sourceTarget: { ...sourcePosition.local, frame: sourcePosition.support },
-            destinationTarget: { ...destinationPosition.local, frame: destinationPosition.support },
+            sourceTarget: { x: sourcePosition.local.x, y: sourcePosition.local.y, z: sourcePosition.local.z, frame: sourcePosition.support },
+            destinationTarget: { x: destinationPosition.local.x, y: destinationPosition.local.y, z: destinationPosition.local.z, frame: destinationPosition.support },
           },
         ];
       });
