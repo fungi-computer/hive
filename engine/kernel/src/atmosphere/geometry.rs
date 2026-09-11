@@ -530,6 +530,19 @@ mod tests {
     }
 
     #[test]
+    fn restored_process_epoch_does_not_change_canonical_geometry_identity() {
+        let mut input = snapshot(
+            &[(Cell { x: 0, y: 0, z: 0 }, AirWaterCoverage::Unmodeled)], &[]);
+        let before = project(&input).unwrap();
+        input.epoch = 0;
+        let restored = project(&input).unwrap();
+        assert_eq!(before.identity, restored.identity);
+        assert_eq!(before.volumes, restored.volumes);
+        assert_eq!(before.openings, restored.openings);
+        assert_ne!(before.epoch, restored.epoch);
+    }
+
+    #[test]
     fn face_order_does_not_change_projection() {
         let a = Cell { x: 0, y: 0, z: 0 };
         let b = Cell { x: 1, y: 0, z: 0 };
