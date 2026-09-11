@@ -2,6 +2,22 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## September 11 release correction — active
+
+Levi's sustained play contradicts the earlier practical playability acceptance:
+colony/formations report failed fetch, survival/raft feel slow and janky. Individual
+physical-action and durability receipts remain valid within their scope. The live
+release is not accepted as satisfactory online play. Priority is shared reliable
+loading, committed WebSocket observations, responsive input and coherent movement.
+See NETWORK-PLAY.md and NETWORK-LIBRARY-QUALIFICATION.md.
+
+King owns integration/dependencies/release. Luna SDK owns online-transport isolated
+worktree (host/protocol/remote client/connection choice); Luna kernel owns
+online-motion (shared client/interpolation/animation). No other game features are
+added in this correction. Runtime source changes require affected native socket
+and sustained visual evidence before claiming improvement. Root prepare identity
+now excludes client/tests so future UI-only edits cannot invalidate worlds.
+
 ## Current playable interim — September 10
 
 The four demos are live at
