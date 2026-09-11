@@ -14,7 +14,14 @@ one-shot every retained system or let presentation polish substitute for play.
 [King's Rust water/gas design](WATER-AND-GAS.md) now owns the detailed proposed
 shape, including native generation and layered groundwater. Levi asked to discuss
 it before more implementation. Source checkpoints stay preserved; no new writer
-scope, qualification or deployment follows from the draft.
+scope, qualification or deployment follows from the draft. The subsequent
+[implementation decisions](ENVIRONMENT-IMPLEMENTATION.md) resolve the difficult
+ownership/coupling choices and give a concrete order: resident host, generated
+wet colony, multi-level ventilation, common effects/vessels, ecology/care.
+Native destructible materials reuse the same physical-change owner; a cannon
+breach and excavation must affect the same collision/water/air geometry. Roof
+collapse remains later. Bounded memory/residency is an acceptance requirement,
+not an already-proved large-world capability.
 
 ## First shared slice published
 

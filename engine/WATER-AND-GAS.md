@@ -2,7 +2,7 @@
 
 King Bolete · personally authored September 11, 2026
 
-Status: discussion draft, not a performance or deployment receipt. Levi asked
+Status: design, not a performance or deployment receipt. Levi asked
 to talk through world generation and groundwater before further implementation;
 existing source checkpoints are preserved and no new runtime work follows merely
 from this document. This is
@@ -10,6 +10,13 @@ part of [DESIGN.md](DESIGN.md) and [DEMO-ROADMAP.md](DEMO-ROADMAP.md), not a new
 project. It supersedes the roadmap's former allowance for keeping environmental
 hot loops in TypeScript. Native draft `86bc35e` supplies reviewed-in-progress
 local transport code; it is not the completed design below.
+
+The subsequent personally authored [implementation decisions](ENVIRONMENT-IMPLEMENTATION.md)
+settle the hard runtime, generator, groundwater, coupling and shared-presentation
+choices. They supersede the earlier full-clone/full-field-checkpoint sketches.
+Implementers use that companion for the exact owner lifecycle and failure rules;
+this document retains the model, scope and frozen workload. Runtime work remains
+held under the discussion-before-code direction.
 
 ## The decision
 
@@ -28,12 +35,17 @@ physics detail exists to support these decisions.
 | Surface water and groundwater | One finite water stock per participating voxel; soil has finite pore capacity and retention | A ditch drains connected wet ground; a well can run down; soil stops absorbing when full |
 | Air, smoke and room heat | Small connected, well-mixed volumes with explicit openings and height bands | Smoke spreads through openings; closed rooms retain it; upper rooms and shafts matter |
 | Terrain/buildings | One signed integer voxel geometry owner | Digging, floors, doors and stairs change the same geometry used by navigation, water, gas and picking |
+| Destruction | Sparse native integrity and the same compound physical change | A cannon breach changes the real wall/openings and finite debris; roof collapse is later |
 | Work/materials | Existing jobs, lots, containers and physical completion | Digging produces wet spoil; moving water changes actual custody; burning spends fuel |
 | TypeScript authoring | Material/species/process definitions and bounded game rules | Another soil, crop, waste recipe or building adds content rather than another solver |
 | Runtime | Same headless Rust/WASM owner in browser Worker or DO | Rendering cannot settle water or fuel; multiplayer acknowledgment follows durable commit |
 
 Deep caves, several storeys and large worlds remain supported design directions.
 A small test clearing is a workload, not a hard-coded vertical or digging limit.
+The [bounded residency contract](ENVIRONMENT-IMPLEMENTATION.md#2a-large-worlds-must-not-become-large-resident-arrays)
+separates world extent, durable changes, resident pages and active work, and sets
+initial memory targets. Large-world streaming and cross-DO transfer remain
+unimplemented; a small observation packet alone does not prove either.
 Celld's low-cost DO hosting remains the accepted premise. This plan does not
 reopen tick pricing or require multithreaded WASM to work.
 
@@ -76,7 +88,7 @@ assigns water only to original porous soil, and starts voids dry. That explains
 why the result behaves mostly like wet topsoil. It is not yet layered geology
 with deep aquifers, even though its addressing bounds extend underground.
 
-**Proposed correction for discussion:** put deterministic world generation in
+**Selected design:** put deterministic world generation in
 Rust alongside the common physical query, before connecting the new environmental
 owner to colony terrain. Port the useful height/sea/cave recipe rather than start
 another visual-generator study. Keep the model version and seed in the world
@@ -395,12 +407,12 @@ is not subtracted again from navigable air. Rising water changes free volume and
 face openings; it cannot erase the stock of air in a trapped pocket.
 
 For ordinary flow, prepare changed water cells and their affected gas metrics
-as one environmental candidate. Account for gas compression or displacement
-through actual open faces. If the model cannot admit the proposed flooded state,
-reduce/defer the affected connected flow proposal and leave its water at source.
-Use bounded local retry (initial proposal plus one conservative reduced attempt),
-not iterative coupling to convergence. Leave an explicit deferred activity to wake
-when pressure/geometry changes. Do not block unrelated room exchange or actor work.
+as one environmental candidate. Account for gas back-pressure and displacement
+through actual open faces. The [bounded coupling rule](ENVIRONMENT-IMPLEMENTATION.md#5-bound-the-waterair-join-do-not-iterate-a-coupled-solver-to-convergence)
+specifies compression capacity, topology remap, complete mixture transfer and
+dependency-closed rejection. It permits one conservative recomputation, not an
+unspecified search for a smaller timestep. Blocked work wakes on relevant changes;
+unrelated room exchange and actor work can continue.
 
 For a construction/dig completion:
 
@@ -431,63 +443,25 @@ for "soil cannot be dug here" across otherwise legal terrain.
 
 Separate three things that are currently conflated:
 
-1. A **native trial** is provisional physical work in memory, with cheap abort.
+1. A **native attempt** is exclusive provisional physical work in memory.
 2. A **committed active view** is a cache of one exact durable revision.
 3. A **save/export** is the complete versioned state needed after process loss.
 
-For environment trials, use page-level copy-on-write or touched-page before-images;
-immutable geometry and compiled coefficients are shared. Reuse scratch between
-trials, resetting its touched ranges on abort. A first bounded ECS checkpoint may
-copy typed native records/maps; it must not serialize/parse the world through JSON.
-Do not promise zero copying or silently leave RNG, routes, direct-input queues,
-claims, component insertion/removal or impact sequence outside rollback.
+The [selected runtime and record boundary](ENVIRONMENT-IMPLEMENTATION.md#1-keep-a-live-world-recover-failures-from-committed-state)
+removes whole-world JSON copies and per-operation reconstruction. An active host
+owns one exclusive resident candidate. Expected local rejection uses prepared
+physical deltas; unexpected/outer-commit failure discards the Kernel and Session
+together and reloads committed state. No universal ECS undo or clone is required.
+An observation cannot inspect the candidate during a storage await.
 
-The DO retains a committed Rust instance while resident. It checks the durable
-revision/implementation identity before using that cache. On an unknown failure
-or revision mismatch it discards/reloads. Observation reads the committed cache;
-a provisional trial cannot be exposed through another request or WebSocket.
-
-Extend the existing Region owner with an opaque state-codec/prepared-state
-boundary; change the actual fresh Session/Region callers together. Region retains
-principal checks, command identity/conflict, ordered occurrence frontier, event
-retention and atomic SQLite commitment. Rust owns interpreting native bytes.
-An authored TypeScript game gets no SQL/storage hook or commit capability.
-This is a needed clean replacement of the current JSON-only state path, not a
-compatibility wrapper around two authoritative simulations.
-
-First durable format: one bounded native binary payload plus the small versioned
-Session control record, committed under the same Region transaction as its result.
-Use a maintained serde-compatible binary codec, selected/qualified when this
-boundary is implemented; do not invent a general serialization format. No Base64
-or numeric-JSON expansion of the binary payload. Fields have explicit version,
-length and finite-value checks. A full durable export is allowed once per commit;
-measure its cost rather than claiming that native simulation eliminates writes.
-Dirty-page SQL persistence is the follow-up if this full bounded payload misses
-the frozen storage/commit budget. It preserves the same owner and revision, not
-another database or event-sourcing replay system.
-
-```ts
-// Proposed owner flow. All mutation/publication uses the EXISTING Region and
-// DO outer transaction; these method names are a design, not current exports.
-const prepared = await host.inTransaction(async tx => {
-  const prior = region.findReceipt(tx, principal, commandId, canonicalInput);
-  if (prior) return { replay: prior }; // never execute a committed effect again
-  const base = region.readRevision(tx);
-  const trial = native.beginAt(base); // committed cache match or restore
-  try {
-    session.stage(trial, admittedCommand); // includes bounded TS rules + RNG
-    const next = trial.prepareCommit();
-    region.writeStateResultAndEvents(tx, next);
-    await host.armEarliestRequiredWake(tx, next);
-    return { trial, next };
-  } catch (error) { trial.abort(); throw error; }
-});
-// Only after OUTERMOST transaction success may this revision be published.
-// If transaction exit fails after callback return: invalidate/abort the trial.
-if ('replay' in prepared) return prepared.replay;
-native.acceptCommitted(prepared.trial, prepared.next.revision);
-publishObservation(prepared.next.revision);
-```
+The same Region transaction commits opaque native records, small Session control,
+receipt, events and clock frontier. Environmental stock pages are persisted only
+when changed; the bounded entity record is still exported once per commit and
+must be measured. Postcard is selected for typed native records, pending actual
+WASM qualification. The companion specifies world-local component registration,
+wire types, record bounds, retries and outermost-commit promotion. Game code gets
+no independent storage/commit capability. Current JSON-only callers change
+together; no compatibility adapter or parallel owner remains.
 
 The actual worker nests Region's synchronous transactions inside
 `state.storage.transaction()`, including alarm work. An inner callback returning
@@ -500,7 +474,7 @@ an async host operation; never pass a live mutable WASM view as a durable snapsh
 Crash before commit leaves no acknowledged effect. Crash after commit but before
 response returns the prior receipt on retry. Reopening loads the committed bytes,
 not the last browser frame. A failed SQL transaction does not undo Rust memory.
-Native trials, Region rollback, outer alarm rollback and lost response each need
+Local prepared operations, Region rollback, outer alarm rollback and lost response each need
 one focused witness. Reuse current restart/receipt harnesses rather than building
 another server. Browser-authoritative play uses the same native trial/format and
 its local save owner, without pretending local RAM is a durable server.
@@ -599,7 +573,7 @@ just to demonstrate the fields.
 
 | Chunk | Bounded outcome | Acceptance / playable value |
 | --- | --- | --- |
-| 1. Native owner and cheap trials | Correct/qualify current water module; port gas parcel exchange; native rollback; resident committed host cache and binary state boundary | Matched retained numeric cases plus existing DO retry/restart laws; no claim of colony completion from a microbenchmark |
+| 1. Native owner and host lifecycle | Correct/qualify current water module; port gas parcel exchange; local prepared operations; resident host and native record boundary | Matched retained numeric cases plus existing DO retry/restart laws; no claim of colony completion from a microbenchmark |
 | 2. Wet ground in the existing colony | Shared generated integer terrain/query; reachable excavation; finite water/pressure; wet-spoil settlement; changed-cell projection and retained controls | Dig a ditch and see neighboring wet ground fill it; water remains after reopening; no duplicate pore stock |
 | 3. Build and ventilate | Common material-funded walls/floors/doors/stairs; three above-ground storeys and two underground rooms; gas geometry/metric join; finite hearth emissions | Light the hearth, observe smoke in actual rooms, open a door/chimney; edit blockage affects one job rather than freezing everyone |
 | 4. Ecology and hygiene loop | Common pail delivery, planting, crop water use, contaminant transport and a finite waste-to-treatment process | Water a crop and handle dirty water through the same storage/work owners; no bespoke thirsty-customer simulation |

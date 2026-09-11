@@ -6,9 +6,16 @@ King Bolete · September 10, 2026 · implementation guiding packet
 
 King personally authored [the Rust water/gas plan](WATER-AND-GAS.md), including
 actual Session/Region rebuild costs, native world generation, layered groundwater
-and the checked Shiitake live-progress/durable-result pattern. It is a discussion
-draft: Levi asked to talk before further implementation. Existing native water
-source remains preserved and unqualified; no new runtime release is implied.
+and the checked Shiitake live-progress/durable-result pattern. Levi asked to talk
+before further implementation. The subsequent
+[hard implementation decisions](ENVIRONMENT-IMPLEMENTATION.md) select the resident
+host/commit lifecycle, native records, layered groundwater, finite mixture and
+trapped-air rules, and shared effects across the four existing demos.
+The same decisions include native destructible geometry/material integrity and
+explicit bounded residency; neither a whole deep world in one DO nor unlimited
+co-resident kernels is allowed. Large-world paging/handoffs remain unproved.
+Existing native water source remains preserved and unqualified; no runtime release or
+implementation restart is implied by this planning checkpoint.
 
 ## Latest shared presentation release
 
