@@ -25,6 +25,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   load(json: string): void;
   load_environment(json: string): void;
   environment_facts(): string;
+  terrain_materials(json: string): string;
   query(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -47,6 +48,39 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     },
     environmentFacts() {
       return JSON.parse(binding.environment_facts()) as unknown;
+    },
+    terrainMaterials(cells) {
+      if (
+        cells.length === 0 ||
+        cells.length > 256 ||
+        cells.some(
+          (cell) =>
+            !Array.isArray(cell) ||
+            cell.length !== 3 ||
+            cell.some(
+              (coordinate) =>
+                !Number.isInteger(coordinate) ||
+                coordinate < -2147483648 ||
+                coordinate > 2147483647,
+            ),
+        )
+      )
+        throw new Error(
+          "terrain material query must contain between 1 and 256 signed integer cells",
+        );
+      const result = JSON.parse(
+        binding.terrain_materials(JSON.stringify(cells)),
+      ) as unknown;
+      if (
+        !Array.isArray(result) ||
+        result.length !== cells.length ||
+        !result.every(
+          (material) =>
+            Number.isInteger(material) && material >= 0 && material <= 65535,
+        )
+      )
+        throw new Error("invalid terrain material query result");
+      return result;
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);
