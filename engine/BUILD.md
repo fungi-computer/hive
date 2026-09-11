@@ -562,3 +562,23 @@ page boundary with five250000-byte records, no loss across continuation; the
 clock test injects an actual record-write failure and proves retry/frontier
 rollback. No DO crash, browser, WASM or old-study full-runtime qualification
 is implied. Changed retained worker/field initializer callers are source-reviewed.
+
+### Generated terrain and water composition
+
+Root4197572 introduced one composed TerrainWater owner: it owns TerrainOwner,
+compiled water geometry, stocks and rebuildable scratch. All passage queries use
+material facts from that same terrain; excavation prepares water rebinding before
+publishing terrain. Dry coordinates outside water admission remain editable.
+Metric mismatch rejects construction. Material behavior is authored by slot.
+
+Native u5410 passed the first single-cell compound law. u5411 unintentionally
+repeated that unchanged law after a wrong-working-directory edit failed; it adds
+no evidence. Corrected source081e577 and u5412 passed the extended actual
+generated two-cell test: excavate, retain200kg, reject stale repeated dig, permit
+a distant dry dig, then move water downward into its neighbor while conserving
+the total within1e-9kg. All commands terminal0/scopes inactive/dead/empty.
+
+This is source composition, not the complete Kernel consumer: finite spoil
+admission, native record restore, initial groundwater admission, active-page
+changes, actual Colony actions and hosted behavior remain pending. No large-world
+performance or all-dry hydraulic-region acceptance claim.
