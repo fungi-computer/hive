@@ -2,6 +2,17 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## September 11 connected-world sprint proposal
+
+The [current demo sprint](DEMO-ROADMAP.md#next-sprint-a-living-world-worth-traveling-through)
+owns the next delivery order: useful wet Colony, two-region Survival travel,
+then multi-storey ventilation. Retain all four existing pages; the RTS becomes
+the crowded-region breach/capture workload and Pirates the supported ship/crew/
+cargo transfer consumer. Stable world identity must be independent of DO placement
+so a busy region can later move to a larger host with exclusive durable ownership.
+Neither automatic migration nor cross-region fluids are implied by actor travel.
+This is a planning recut, not an implementation restart or performance claim.
+
 ## September 11 environmental planning discussion
 
 King personally authored [the Rust water/gas plan](WATER-AND-GAS.md), including

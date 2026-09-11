@@ -19,10 +19,14 @@ art. The [fresh-engine guiding packet](../../engine/DESIGN.md) now owns the new
 implementation sequence and acceptance criteria. It retains DO/browser authority,
 durability, many-faces AI participation, deep worlds and game-scale physics.
 The isolated integration root is `hive-worktrees/fresh-engine`. The initial three
-browser/Worker examples are deployed at `/engine/` (source `3478538`); the
-current local Rust, authoring, DO recovery and shared-client work is tracked in
-`engine/BUILD.md`. That initial publication is not the latest local source and
-is not a hosted DO game. Existing game/source/art remain preserved.
+browser/Worker publication was source `3478538`; it is historical. Current four
+public DO demos are recorded in the [demo roadmap](../../engine/DEMO-ROADMAP.md#first-shared-slice-published)
+at `c5138fc`. The [connected-world sprint](../../engine/DEMO-ROADMAP.md#next-sprint-a-living-world-worth-traveling-through)
+owns the next proposed sequence: wet Colony and two-region Survival, followed by
+multi-storey smoke/ventilation, RTS fort combat and loaded-ship travel. Native
+environment, paging, cross-region handoff and alternate container hosting remain
+unfinished. Local Rust/host evidence is retained in `engine/BUILD.md`; this source
+planning update neither restarts held writers nor publishes a new runtime.
 Older JavaScript repair queues below are historical context, not parallel fresh
 assignments. Native porting is a build/API test, not a claimed lag cure.
 

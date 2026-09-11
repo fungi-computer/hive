@@ -824,6 +824,13 @@ broken-wood effect or the existing sailing demo.
 
 ## 9. Complete bounded chunks; judge them in the game
 
+The later [connected-world demo sprint](DEMO-ROADMAP.md#next-sprint-a-living-world-worth-traveling-through)
+owns player-facing delivery order. The rows below remain technical dependency
+outcomes, not a competing queue or a requirement to finish all environment work
+before the first useful journey. Host-independent records also preserve the
+option to move one busy region to a larger host; that requires exclusive-owner
+handoff and is not proved by local snapshot/restore or actor travel.
+
 No implementation is launched by this design checkpoint. When resumed, give each
 writer an entire outcome through corrections and relevant proof; root reviews
 the decisions above and changed art. Do not split these into dozens of permission

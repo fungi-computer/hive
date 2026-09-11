@@ -9,7 +9,232 @@ shared hauling/storage, useful crafting and eventually hospitality. Keep the
 existing four URLs. Restore a playable loop in successive releases; do not
 one-shot every retained system or let presentation polish substitute for play.
 
-## Current planning discussion
+## Next sprint: a living world worth traveling through
+
+September 11 recut after Levi's larger-world and busy-region hosting discussion.
+Personally checked against fresh source `38ca137`. This is the proposed delivery
+sequence, replacing the order of upcoming work below while preserving accepted
+gameplay and environmental ownership laws. It is planning: the preserved water
+writer is not restarted by this document.
+
+**Two headline outcomes: a useful wet colony and a Survival journey across two
+real region owners.** Indoor smoke is the next colony checkpoint on the same
+geometry. Fort combat and loaded-ship travel follow through those shared
+mechanisms. Keep all four existing pages on the same playable site. The distinct
+packs are contrasting consumers, not automatically one cross-game universe.
+
+### What the four demos actually contribute
+
+| Existing page | Current playable loop | Next meaningful destination |
+| --- | --- | --- |
+| Colony | Two workers deliver finite food through common lots, containers, assignment and carrying poses | Dig/direct water, supply a planted bed, then build and ventilate a multi-storey home |
+| Survival | Continuous predicted movement, finite food, hunger, wellbeing and fatigue | Carry supplies between camps across a region boundary and meet another player |
+| Formations | Group orders, finite cannon rounds, native flight/contact, piercing hits, roll/embed and accepted cannon effects | Breach a fort and capture its supply point using formations, cover and finite ammunition |
+| Pirates | Moving selectable ship, support-relative crew, mixed cargo delivery and original hull/sail/wake | Deliver cargo between harbors with ship, crew and contents crossing together |
+
+Read `src/games/{colony,survival,formations,pirates}.ts`, `src/sdk/delivery.ts`,
+`src/client/direct-control.js`, shared motion/effects/audio and `kernel/src/world.rs`.
+Public source remains `c5138fc`. Native environment, paging, cross-region custody
+and container hosting are not current runtime capabilities.
+
+### Checkpoint 1 — a ditch that matters, in the existing Colony
+
+Ship one generated integer-height clearing with a reachable wet cut. The player
+marks excavation through shared selection; workers perform paid work and produce
+real spoil; finite water enters the cut or drains into drier soil. Existing food
+delivery stays playable. Show the physical result through the original terrain/
+art pipeline, not numerical charts or another lab page.
+
+Necessary engine work: resident Session/Region lifecycle, bounded native records,
+one Rust generator/geometry query and native finite water. Integrate the held
+water draft through that owner; do not commission another solver. Geometry,
+stock, yield, routes and receipts share the compound completion. A drained
+reservoir stays drained after reopen. Qualify local flow before claiming pressure,
+pollution or gas. Keep signed vertical coordinates and material properties;
+do not hard-code one lower/upper level or native Colony content IDs.
+
+The full three-storey building and ecology loop do not block showing the first
+useful excavation. Survival can consume the same terrain while travel work
+proceeds. **Exit:** Levi can dig and change where finite water goes; the effect
+survives the actual host lifecycle. Measure the frozen environmental workload
+and full commit/projection cost, not just the Rust function.
+
+### Checkpoint 2 — a journey across two real owners
+
+Use Survival: take supplies at camp A, walk to camp B, leave goods there, then
+return. One versioned seed/world coordinate system produces consistent adjacent
+terrain; two DOs own neighboring simulation regions in that Survival world.
+Render chunks and region ownership are different: a DO may own several chunks,
+and viewing distant terrain creates no stock or permanently ticking object.
+
+Allow two independently controlled travelers to meet and see the same changes.
+Extend current anonymous demo admission to world/body-scoped player grants;
+sharing today's owner token between tabs is not independent-player proof. Keep
+world administration and host-clock powers separate. This needs no new account
+database and does not claim the future Fungi customer-authority join.
+
+Persist an opaque grant ID, stable world/principal/body IDs, granted operations
+and revocation/version state under the world admission owner. Authenticate its
+bearer secret through the existing host transport and retain only its checked
+identity in socket attachment state. Both HTTP and socket commands recheck the
+grant and actual subject/resource ownership; a string action whitelist is not
+enough. Trusted pack commands receive the admitted controller/body context instead
+of always targeting `survival.survivor.1`. Pause, reset and clock operations are
+not automatically available to another admitted traveler. Player/body identity
+and scope survive region movement without becoming a second account system.
+
+Today `tools/public-engine-host/worker.ts` derives one DO from `pack:tokenHash`;
+`src/runtime/remote-client.ts` targets one endpoint. Separate stable world,
+region, player/body and transfer identities from a versioned placement record.
+Namespace newly minted entity/lot IDs by stable origin, so regional counters
+cannot collide. Both regions load compatible content/schema versions.
+
+Transfer a checked actor bundle: authored state, finite contents, controller/input
+frontier and relevant receipts. No Bevy handles. Existing typed entity fields
+identify references, but membership in the transferable closure must be explicit.
+Local jobs/claims settle or release through their owner, never become dangling
+pointers. The first traveler has no external support or running local job.
+Include all physically contained lots and required internal references; inspect
+both outgoing and remaining region state for invalid references. Do not follow
+an arbitrary relationship graph and accidentally transfer the village. Unsupported
+external physical references block admission explicitly. Public entity/lot IDs
+stay unchanged; the destination rebuilds its own Bevy handles and resolves the
+stable references against its checked local entity set. That local handle remap
+is not a rewrite of public IDs or saved authored references.
+
+```text
+A commits a frozen outgoing bundle at a known input/tick frontier
+B reserves a valid arrival and durably stages that bundle, still inactive
+A commits an irrevocable departure decision for this transfer ID
+B verifies the decision and activates the bundle exactly once
+A retains retry receipts/tombstones and retires the outgoing copy
+```
+
+Only one region can move, consume or spend it. Every stage is input-bound and
+recoverable. Before departure, rejection leaves the actor recoverable at A;
+after departure, recovery finishes activation at B. Cancellation before the
+decision must resolve durably against delayed messages. An arrival reservation
+cannot independently expire while departure is uncertain. Pending work owns
+durable wake/retry; browser reconnect is not its repair mechanism. This allows
+a waiting state and does not pretend two SQL databases share one transaction.
+Previously admitted target commands either settle before the frozen frontier or
+travel as explicitly owned pending work; an admission receipt alone is not a
+completed physical effect. Later target commands follow the transfer decision
+with their original retry IDs, rather than executing at both owners.
+
+The common client follows committed ownership and preloads discovered adjacent
+terrain. Preserve global displayed position, facing, input sequence and processed
+frontier; replay only valid unacknowledged inputs. Namespaced stream epochs reject
+late old-owner frames. Keep prediction/buffering bounded and show waiting if a
+handoff stalls; no promise of uninterrupted movement during an outage. Neighbor
+observations are knowledge-scoped, read-only views, not authority to hit a stale
+remote actor. Preserve the sustained-input improvement Levi already accepted.
+
+The committed handoff message identifies world, actor, transfer, destination
+address and ownership epoch. Destination authentication returns a baseline with
+that identity, region-local revision/time, stable direct stream, last processed
+input and the pose/geometry used for replay. Accept it only for the expected
+transfer; late source frames cannot reset it. Region clocks and revisions remain
+local, with explicit presentation anchors rather than a global tick sequence.
+Carry elapsed/remaining durations and rebase supported actor timing against the
+destination clock; do not copy a source-local future timestamp and interpret it
+as destination time. Transfer itself grants no free movement, food or needs tick.
+
+**Exit:** two actual DOs, two distinct player grants, a useful round trip, lasting
+changes and the same finite goods. Lost acknowledgment/restart during transfer
+must not lose or duplicate actors, lots or effects. Repeated travel retires cold
+working state and restores edited data without regenerating free supplies.
+Report resident pages, WASM high-water memory, queue size, update/commit time,
+sent bytes and input-to-visible delay on that fixture. A long coordinate range
+alone does not establish large-world capacity.
+
+### Checkpoint 3 — upstairs, fire and a reason to ventilate
+
+Restore earned construction and rooted floor spans on the same geometry. Show
+three usable levels, four-way stairs and shared layer/picking controls. Fuel a
+hearth in an enclosure, watch smoke accumulate, open a door/upper vent and clear
+it. A wet cut can affect a lower passage. Removal/build completion changes
+collision, free space, water and air together. Use coarse native parcels and
+actual openings, not a CFD or generated-room viewer substituted for play.
+
+This follows checkpoint 1 and may proceed independently of checkpoint 2's
+network work once geometry is pinned. Publish the wet clearing before the whole
+building is ready. Crop care/needs/waste subsequently deepen that same home.
+Automatic roof collapse remains deferred; direct-wall-only floor support does
+not return. The sprint does not promise all future ecology at once.
+
+### Follow-on gameplay: breach the fort, then sail a loaded ship
+
+The RTS grows on the existing Formations page. March, supply the cannon from
+finite stock, break a defended wall and move through to capture a supply point.
+Cannon and digging use the same native integrity/removal operation; cover,
+routes and environmental geometry see the same breach. Keep a close battle
+under one physical commitment initially. Add an actual opposing force/objective;
+deeper morale, cavalry, campaign logistics and tower defense follow as consumers.
+
+This is the crowded-region test: freeze moving troops, changing orders/routes,
+firing and impacts, then increase the workload in recorded steps. Separate
+native, TypeScript, commitment, networking and client costs. A huge battle can
+be created by two players, so crowding is not automatically evidence of many
+customers. Deterministic assignment/routes remain eligible for workers/threads;
+qualify one split if it benefits this workload after transport and stale-work
+costs. Do not build automatic parallel placement before measuring a need.
+
+Pirates reuses traveler transfer with a larger explicit closure: ship, supported
+crew, owned containers/lots and controlled inputs. Deck-local poses and stable
+IDs survive arrival; hull and sailors cannot transfer as unrelated free walkers.
+Deliver a finite cargo order between two harbors. Wakes remain presentation
+until buoyancy/current forces are explicitly implemented. Ship cannon combat
+then consumes the same projectile/material rules.
+
+### Seam scope and moving a busy region to a larger host
+
+Actor/cargo transfer does not prove every cross-region interaction. Keep the
+first wet catchment/enclosure and close battle inside their owners. Before a
+river or projectile crosses ownership, qualify bounded edge exchange with
+durable receipts. Pressure, heat and contacts are not inferred from the actor
+protocol. Never silently turn a seam into an infinite sink or an invisible
+wall and call physics complete. Keep any unqualified test boundary explicit.
+
+Levi's escape hatch is sound: **one logical region can later run on a larger
+container/native host.** World identity, content and engine operations must not
+depend on its DO address. The first alternate host should run the same Rust/WASM
+and TypeScript pack and import canonical records, pending work, receipts, clocks
+and RNG. It need not simultaneously introduce native threads or different rules.
+
+Begin with operator-directed pause/checkpoint/stage/cutover/resume. Drain admitted
+work, durably fence the old owner, publish a new ownership epoch and activate the
+prepared target. A higher integer alone is not fencing: restarted DOs, alarms
+and outstanding worker proposals must be unable to commit after relinquishment.
+If that cannot be established, do not start a competing owner. Retry identity
+survives and clients reconnect to the same world. Same-owner crash recovery,
+actor transfer and whole-region relocation share record contracts but remain
+distinct operations. Container qualification remains unfinished and outside this
+sprint; automatic migration is not needed to ship a two-owner world.
+
+No global tick barrier, universal scheduler, per-cell RPC or DO-per-art-chunk
+scheme follows. Celld remains the accepted cheap target; use actual workloads
+to decide placement and limits rather than reopening tick-price research.
+
+### Work and feedback discipline
+
+On resumption, at most three bounded native helper outcomes: one coupled native
+geometry/environment writer, one shared host/travel owner, one game/presentation
+consumer owner away from those files. King owns public contracts, hard coupling
+decisions, numerical/source acceptance, original art and serial integration.
+Mechanical implementation uses Luna. Explicitly sequence shared `world.rs`,
+contracts, remote input and client files; different game names do not create
+independent source ownership. Keep the held water source and current Sessions.
+
+Each owner delivers a complete chunk through corrections; review pinned first
+shapes while independent work continues. Reuse the client gestures, Caps,
+original bake/atlas, effects and audio. Every playable checkpoint returns its
+page/action, durable evidence, measured workload and next missing behavior.
+Use affected laws and one bounded changed-consumer check, retain existing useful
+demos, and get Levi's playtest before expanding the next chunk. No honest date
+or million-player capacity claim follows from a source plan.
+
+## Environmental implementation reference
 
 [King's Rust water/gas design](WATER-AND-GAS.md) now owns the detailed proposed
 shape, including native generation and layered groundwater. Levi asked to discuss
@@ -191,9 +416,10 @@ This proposal adds no new host, timer service, inheritance tree or game loop.
 
 ## Sound recipes, not hard-coded sound branches
 
-Current `client/audio.js` synthesizes two oscillator envelopes directly using
-Web Audio. Keep the cannon timbre Levi likes. The next sound outcome is a small
-named recipe API at that existing owner: reusable envelopes, tone/noise sources,
+The published `client/audio.js` uses the original cannon oscillator envelopes.
+The local named recipe owner with ZzFX is qualified at `072e1d5`, as recorded in
+the source checkpoint below; it is not yet the public audio release. Preserve
+the cannon timbre Levi likes: reusable envelopes, tone/noise sources,
 bounded voice count, gain/mute, user-gesture unlock and disposal. Game effects
 choose recipe names; audio cannot issue commands or charge resources.
 
@@ -211,9 +437,9 @@ Checked upstream options on September 11:
 [ZzFX](https://github.com/KilledByAPixel/ZzFX) is an MIT game-sound generator and
 is the smaller candidate for richer procedural effects;
 [Tone.js](https://tonejs.github.io/) targets interactive music and offers synths
-and scheduling. Levi approved ZzFX on September 11. Adoption is now assigned in the isolated
-`zzfx-audio` worktree; this is not yet an installed/qualified runtime claim. Compare the retained sound against a tiny real consumer using the
-candidate generator under our existing audio lifecycle. Do not install a full
+and scheduling. Levi approved ZzFX on September 11. Its isolated source outcome
+is integrated and the actual package sample/lifecycle tests passed; the original
+tone recipes remain. Do not install a full
 music framework merely to play footsteps, and do not invent a new DSP project.
 Use named parameters around any positional generator interface. Music, ambient
 loops, recording/export and an audio editor are later needs.
@@ -224,9 +450,10 @@ King owns original art, numerical/module design and integration. Native helpers
 own bounded shared-source outcomes in isolated worktrees; independent review
 reads the exact pinned source. First-shape corrections are normal, not permission
 gates. Shared motion, custody presentation and the original art pass are published.
-Current work is the native finite-water port plus independent approved ZzFX
-adoption. King owns the native integration and colony consumer; the water helper
-owns the isolated compiled stock/face module. Environmental work is not hidden
+ZzFX is locally integrated; the native finite-water draft is held during the
+current design discussion. The sprint at the top owns the next proposed work.
+King retains native integration and colony acceptance; preserve the water
+helper's isolated compiled stock/face module. Environmental work is not hidden
 inside a cosmetic commit.
 
 For every release: name the action the player can perform, the common owner it
@@ -287,9 +514,10 @@ deployment or listening acceptance is implied. Ordinary npm install encountered
 the existing optional React/keymap peer conflict; the retained legacy-peer install
 added only ZzFX and did not change the joined lockfile.
 
-Native water draft `8ce39e7` is preserved in `native-water`, not yet integrated or
-qualified. Root returned concrete admission, representability, compact identity,
-scratch reuse and test corrections to the same writer. All-face scanning remains
+Native water corrected draft `86bc35e` is preserved in `native-water`, not yet
+integrated, compiled or qualified. The same writer addressed root's admission,
+representability, compact identity, scratch reuse and test corrections; the
+planning hold preserves that checkpoint. All-face scanning remains
 explicit; active-frontier performance is not yet implemented. The gas source
 trace is retained in `.botanical/native-environment/gas-port-readiness.md`.
 The next acceptance is the corrected native water owner followed by the shared
