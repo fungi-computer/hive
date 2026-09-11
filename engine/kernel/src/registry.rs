@@ -279,7 +279,7 @@ impl Registry {
             }
             "hive.lot-water" => {
                 let water: LotWater = decode(value)?;
-                if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > 1.0e12 {
+                if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
                     return Err("invalid carried water mass".into());
                 }
             }

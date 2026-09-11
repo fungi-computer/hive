@@ -446,7 +446,8 @@ impl Kernel {
                 if self.ecs.get::<Lot>(*entity).is_none()
                     || !water.water_kg.is_finite()
                     || water.water_kg < 0.0
-                    || water.water_kg > 1.0e12
+                    || water.water_kg > MAX_CARRIED_WATER_KG
+                    || (self.ecs.get::<Lot>(*entity).is_some_and(|lot| lot.quantity == 0) && water.water_kg > 0.0)
                 {
                     return Err("carried water requires a finite nonnegative material lot".into());
                 }
@@ -1439,7 +1440,23 @@ impl Kernel {
         }
         self.contact(source, dest)?;
         let current_water = self.ecs.get::<LotWater>(e).map(|water| water.water_kg);
-        let moved_water = current_water.map(|water| water * f64::from(quantity) / f64::from(stock.quantity));
+        let moved_water = current_water.map(|water| {
+            if quantity == stock.quantity { water } else { water * f64::from(quantity) / f64::from(stock.quantity) }
+        });
+        let remainder_water = if quantity < stock.quantity {
+            current_water.map(|water| water - moved_water.expect("split water"))
+        } else { None };
+        if let Some(water) = current_water {
+            let moved = moved_water.unwrap_or(0.0);
+            let remainder = remainder_water.unwrap_or(0.0);
+            if !water.is_finite() || water < 0.0 || water > MAX_CARRIED_WATER_KG
+                || (quantity < stock.quantity && (!moved.is_finite() || !remainder.is_finite()
+                    || moved < 0.0 || remainder < 0.0
+                    || (water > 0.0 && (moved <= 0.0 || remainder <= 0.0))))
+            {
+                return Err("carried water split is not representable".into());
+            }
+        }
         // Split identity is selected before mutation. The moved lot retains its
         // ID so the actor's delivery plan continues to refer to the same object.
         if stock.quantity > quantity {
@@ -1459,7 +1476,7 @@ impl Kernel {
                 quantity: stock.quantity - quantity,
                 container: from.into(),
             };
-            let extra_water = moved_water.map(|moved| LotWater { water_kg: current_water.expect("water amount") - moved });
+            let extra_water = remainder_water.map(|water| LotWater { water_kg: water });
             let extra = id.len() + 128 + self.registry.weight("hive.lot", &record(&extra_lot))
                 + extra_water.as_ref().map(|water| self.registry.weight("hive.lot-water", &record(water))).unwrap_or(0);
             if self.state_weight + extra > STATE_BYTES {
@@ -1594,16 +1611,17 @@ mod lot_water_tests {
         values.sort_by(|a, b| a.partial_cmp(b).unwrap());
         assert_eq!(values, vec![4.0, 4.0]);
         let mut whole = Kernel::new();
-        whole.load(&scene(Some(json!({"waterKg":8.0})), 10)).unwrap();
+        whole.load(&scene(Some(json!({"waterKg":10.3})), 10)).unwrap();
         assert_eq!(transfer(&mut whole, 4)["results"][0]["accepted"], true);
         assert_eq!(rows(&mut whole, "hive.lot-water").as_array().unwrap().len(), 1);
-        assert_eq!(rows(&mut whole, "hive.lot-water")[0]["components"]["hive.lot-water"]["waterKg"], 8.0);
+        assert_eq!(rows(&mut whole, "hive.lot-water")[0]["components"]["hive.lot-water"]["waterKg"], 10.3);
     }
 
     #[test]
     fn invalid_water_reference_and_mass_are_rejected_on_load_and_restore() {
         assert!(Kernel::new().load(&scene(None, 10).replace("\"hive.lot\"", "\"hive.lot-water\"" )).is_err());
         assert!(Kernel::new().load(&scene(Some(json!({"waterKg":-1.0})), 10)).is_err());
+        assert!(Kernel::new().load(&scene(Some(json!({"waterKg":8.0})), 10).replace("\"quantity\":4", "\"quantity\":0")).is_err());
         let mut kernel = Kernel::new();
         kernel.load(&scene(Some(json!({"waterKg":8.0})), 10)).unwrap();
         let forged = kernel.snapshot_json().unwrap().replace("\"waterKg\":8.0", "\"waterKg\":-1.0");
@@ -1627,6 +1645,10 @@ mod lot_water_tests {
         wet.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#).unwrap();
         assert_eq!(rows(&mut wet, "hive.lot"), before_wet_lot);
         assert_eq!(rows(&mut wet, "hive.lot-water"), before_wet_water);
+        let mut tiny = Kernel::new(); tiny.load(&scene(Some(json!({"waterKg":5e-324})), 10)).unwrap();
+        let tiny_before = rows(&mut tiny, "hive.lot-water");
+        assert_eq!(transfer(&mut tiny, 1)["results"][0]["accepted"], false);
+        assert_eq!(rows(&mut tiny, "hive.lot-water"), tiny_before);
         let mut dry = Kernel::new(); dry.load(&scene(None, 10)).unwrap();
         let dry_result = dry.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#).unwrap();
         assert_eq!(dry_result["results"][0]["accepted"], true);

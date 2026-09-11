@@ -4,6 +4,9 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 pub type Record = BTreeMap<String, Value>;
 pub type Result<T> = std::result::Result<T, String>;
+/// Safety bound for one carried-water field; canonical state capacity remains
+/// the aggregate storage bound.
+pub const MAX_CARRIED_WATER_KG: f64 = 1.0e12;
 
 #[derive(Component, Clone)]
 pub struct ExternalId(pub String);
