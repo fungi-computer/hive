@@ -11,7 +11,7 @@ No fifth demo, physics rewrite, or new gameplay prerequisite.
 
 | Demo | First visible payoff | Shared mechanism it proves |
 | --- | --- | --- |
-| Formations | Cannon barrel kicks, a brief muzzle flash becomes rolling smoke, a low boom lands with the shot, and an actual hit throws a directional burst of dirt or chips. Soldiers march with restrained dust and readable team colors. | Committed one-shot cues, layered effects, spatial sound, visual attachments, group effect budgets. |
+| Formations | Cannon barrel kicks, a brief muzzle flash becomes rolling smoke, a low boom lands with the shot, and an actual hit bowls a soldier over with a directional tumble, floppy limbs and a dusty landing. Soldiers march with restrained dust and readable team colors. | Committed one-shot cues, layered effects, spatial sound, visual attachments, group effect budgets. |
 | Survival | Grounded walking with small foot-contact dust, clear hover/interaction feedback, a distinct survivor silhouette, and visible pickup/eating poses. No return of vertical walking bob or idle-facing snaps. | Distance-based motion cues, action clips, item attachment projection, immediate local feedback versus committed completion. |
 | Colony | Workers visibly carry the actual bread parcel between a pantry and receiving basket. Pickup, delivery and eating have a small sound/pose payoff. Workers have varied clothing and unsynchronized idle motion. | The same motion, attachment and action presentation, driven by actual material custody and outcomes. |
 | Pirates | A readable timber boat leaves a speed-dependent wake and bow ripples; deck footsteps sound wooden; a pennant or sail has restrained movement. The chest looks like a chest, and selecting the boat is visually obvious. | Moving-support coordinates, surface-specific effects/sound, persistent state-driven emitters, shared hover/selection feedback. |
@@ -145,6 +145,32 @@ These are proposed shapes, not existing exports or permission to add a generic
 event bus/plugin language. First callers are the cannon plus a completed parcel
 transfer, so the mechanism must serve both before being called reusable.
 
+### Cannon ragdoll effect — direct Levi amendment
+
+Levi explicitly wants a ragdoll effect on cannon hits. Make this part of the
+cannon payoff, not a separate demo. First scope is an authored ragdoll-like
+reaction through the existing sprite pipeline: directional impact, tumbling/floppy
+limb poses, landing dust and recovery. Reuse the original figure rig to bake a
+small set of directional clips; do not just spin the entire flat sprite like a
+cardboard cutout. Physical knockback owns root displacement and contact. The
+presentation follows that committed motion and uses impact direction/strength
+for the clip; it does not invent another trajectory or decide collision/damage.
+
+Compose impact reaction from the same committed cue, animation and effects owners.
+The same mechanism can later serve explosions, falls and charging animals once
+those games supply their physical events. A reaction has explicit priority and
+interrupt rules against locomotion, carry and eating clips. Do not delay controls
+or simulation to finish an animation. Show permanent collapse only when game-owned
+incapacity/death actually exists; do not fabricate death from a dramatic hit.
+A carried item remains in its canonical owner's custody unless a physical rule
+explicitly drops it. Repeated impact packets cannot launch a second tumble.
+
+Full articulated ragdoll physics is a separate later decision, not what this first
+pass promises. If actual limbs must collide with terrain, use one explicit native
+physical owner and qualify its WASM/cost/recovery boundary; do not smuggle a second
+physics world into the renderer. The first visible target is a convincing cannon
+reaction with the current engine and original art, reviewed in motion at game scale.
+
 ### 4. Sound and restrained camera response
 
 One client audio owner handles user-gesture unlock, master mute/volume, distance
@@ -187,7 +213,7 @@ character style or model detail that disappears at the game's real scale.
    feedback. Survival is the sustained-motion acceptance case; a sailor standing
    on a moving deck is the counterexample. Deliver on the existing pages.
 2. **Cannon payoff plus colony completion.** Identified committed cues, recoil,
-   muzzle smoke/boom, actual impact bursts, and pickup/delivery confirmation through
+   muzzle smoke/boom, directional ragdoll-like tumbles and landing bursts, and pickup/delivery confirmation through
    the same owner. Preserve finite ammo, exact retry and physical knockback.
 3. **Character and prop pass, across all four.** Shared roles, retained carry/eat
    clips and honest carried-item display; distinct crates/baskets/chest. Same
