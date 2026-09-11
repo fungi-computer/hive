@@ -9,6 +9,9 @@ use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+mod air_geometry;
+pub use air_geometry::{AirGeometryBounds, AirGeometryCell, AirGeometryFace, AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot, AirWaterCoverage};
+
 #[derive(Clone, Debug, serde::Serialize)]
 pub enum MaterialWater {
     Closed,
@@ -296,6 +299,9 @@ impl TerrainWater {
     }
     pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, String> {
         Ok(self.terrain.surface_cells(columns)?)
+    }
+    pub fn air_geometry(&mut self, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
+        air_geometry::query(self, bounds)
     }
     pub fn terrain_revision(&self) -> u64 { self.physical_revision }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
