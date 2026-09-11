@@ -409,16 +409,7 @@ impl Kernel {
                     start_cell = previous.path[cell_index];
                     origin = previous.origin.clone();
                 }
-                let mut query = |cell| match environment.world.material(cell) {
-                    Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial {
-                        solid: !environment.world.is_open_material(material),
-                        outside: false, sealed_top: false,
-                    }),
-                    Err(error) if error == "cell outside world bounds" => {
-                        Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true, sealed_top: false })
-                    }
-                    Err(error) => Err(error),
-                };
+                let mut query = |cell| environment.world.traversal_material(cell);
                 let obstacle = |cell: crate::generation::Cell| {
                     i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x, z)| {
                         let y = ((f64::from(cell.y) + 0.5) * spacing[1]).round() as i32;
@@ -786,11 +777,7 @@ impl Kernel {
             for batch in columns.chunks(64) { surfaces.extend(environment.world.surface_cells(batch)?); }
             if surfaces.len() != entities.len() { return Err("initial placement surface count mismatch".into()); }
             let spacing = environment.world.cell_spacing_m();
-            let mut query = |cell| match environment.world.material(cell) {
-                Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false, sealed_top: false }),
-                Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true, sealed_top: false }),
-                Err(error) => Err(error),
-            };
+            let mut query = |cell| environment.world.traversal_material(cell);
             let requests = entities.into_iter().zip(surfaces).map(|((entity, position, traversal, _), surface)| {
                 Ok(initial_placement::Request { entity, position, traversal, surface: surface.ok_or("initial placement column has no solid surface")? })
             }).collect::<Result<Vec<_>>>()?;
@@ -1933,11 +1920,7 @@ impl Kernel {
                 invalid.push(entity);
                 continue;
             }
-            let mut query = |cell| match environment.world.material(cell) {
-                Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false, sealed_top: false }),
-                Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true, sealed_top: false }),
-                Err(error) => Err(error),
-            };
+            let mut query = |cell| environment.world.traversal_material(cell);
             let active = crate::terrain_route::active_support_index(&path, offset.ok_or("missing route progress")?)?;
             let valid = crate::terrain_traversal::path_supported(&path[active..], config, &mut query)?;
             if !valid { invalid.push(entity); }

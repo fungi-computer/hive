@@ -191,6 +191,21 @@ impl TerrainWater {
     pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
     pub fn cell_spacing_m(&self) -> [f64; 3] { self.terrain.cell_spacing_m() }
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
+    /// Shared physical contact query for placement, route admission and retained
+    /// route validation. These callers must not reconstruct geometry separately.
+    pub fn traversal_material(&mut self, at: Cell) -> Result<crate::terrain_traversal::TraversalMaterial, String> {
+        use crate::terrain_traversal::TraversalMaterial;
+        match self.terrain.query(at) {
+            Ok(material) => Ok(TraversalMaterial {
+                solid: !self.terrain.is_open_material(material), outside: false, sealed_top: false,
+            }),
+            Err("cell outside world bounds") => Ok(TraversalMaterial {
+                solid: false, outside: true, sealed_top: false,
+            }),
+            Err(error) => Err(error.into()),
+        }
+    }
+
     /// Query current terrain material through the composed owner, preserving
     /// input order and rejecting the complete batch before sampling.
     pub fn materials(&mut self, cells: &[Cell]) -> Result<Vec<u16>, String> {
