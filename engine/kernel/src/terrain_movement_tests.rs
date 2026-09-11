@@ -75,3 +75,15 @@ fn terrain_kernel_waiting_retains_route_and_pose_after_recovery() {
     let after = recovered.ecs.get::<Position>(actor).unwrap();
     assert_eq!((after.x,after.y,after.z),(pose.x,pose.y,pose.z));
 }
+
+#[test]
+fn terrain_kernel_same_position_move_has_no_pending_route() {
+    let (mut kernel,_) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    let pose = *kernel.ecs.get::<Position>(actor).unwrap();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":{"x":pose.x,"y":pose.y,"z":pose.z,"frame":null}}]}).to_string()).unwrap();
+    assert!(!kernel.routes.contains_key(&actor));
+    assert!(!kernel.terrain_routes.contains_key(&actor));
+    assert!(kernel.ecs.get::<Destination>(actor).is_none());
+    Kernel::new().restore_records(&kernel.save_records().unwrap()).unwrap();
+}
