@@ -1,4 +1,5 @@
 import { component, query, system } from "./authoring";
+import { allocateWork } from "./work-allocation";
 import {
   MaterialLot,
   Position,
@@ -74,12 +75,6 @@ export const deliverySystem = system({
     const poses = new Map(poseRows.map((pose) => [pose.id, pose]));
     const sameFrame = (a: EntityId, b: EntityId) =>
       poses.get(a)?.support === poses.get(b)?.support;
-    const occupiedActors = new Set(
-      tasks
-        .map((row) => row.get(DeliveryTask))
-        .filter((task) => task.actor !== null)
-        .map((task) => task.actor as EntityId),
-    );
     const idleTasks = tasks.filter((row) => {
       const task = row.get(DeliveryTask);
       const lot = lots
@@ -93,7 +88,7 @@ export const deliverySystem = system({
     });
     const candidates = controls.flatMap((controlRow) => {
       const control = controlRow.get(DeliveryControl);
-      if (!control.enabled || occupiedActors.has(controlRow.id)) return [];
+      if (!control.enabled) return [];
       const actorPosition = poses.get(controlRow.id);
       if (!actorPosition) return [];
       return idleTasks.flatMap((taskRow) => {
@@ -116,7 +111,11 @@ export const deliverySystem = system({
         ];
       });
     });
-    const assignments = candidates.length ? ctx.assign(candidates) : [];
+    const assignments = allocateWork(
+      tasks.map(row => ({ task: row.id, actor: row.get(DeliveryTask).actor })),
+      candidates,
+      eligible => ctx.assign(eligible),
+    );
     const assigned = new Set(assignments.map((assignment) => assignment.task));
     for (const assignment of assignments) {
       const taskRow = idleTasks.find((row) => row.id === assignment.task);
@@ -131,7 +130,6 @@ export const deliverySystem = system({
         quantity: control.quantity,
         phase: "to-source",
       });
-      occupiedActors.add(assignment.worker);
     }
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
