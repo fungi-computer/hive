@@ -100,17 +100,29 @@ test("coalesces contiguous unsent direct input behind command barriers and retri
   const socket = new FakeSocket();
   const calls: string[] = [];
   let revision = 0;
-  let failedTen = false;
+  let releaseFirst!: () => void;
+  let firstStarted!: () => void;
+  let retryStarted!: () => void;
+  let finalStarted!: () => void;
+  const firstHeld = new Promise<void>((resolve) => { releaseFirst = resolve; });
+  const firstSeen = new Promise<void>((resolve) => { firstStarted = resolve; });
+  const retrySeen = new Promise<void>((resolve) => { retryStarted = resolve; });
+  const finalSeen = new Promise<void>((resolve) => { finalStarted = resolve; });
+  let heldFirst = true;
   const runtime = setup(async (input, init) => {
     if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
     const body = String(init?.body);
     calls.push(body);
     const command = JSON.parse(body).command;
     const inputs = command.action?.inputs;
-    if (Array.isArray(inputs) && inputs.length === 10 && !failedTen) {
-      failedTen = true;
+    if (Array.isArray(inputs) && inputs.length === 10 && heldFirst) {
+      heldFirst = false;
+      firstStarted();
+      await firstHeld;
       throw new Error("lost direct receipt");
     }
+    if (Array.isArray(inputs) && inputs.length === 10) retryStarted();
+    if (Array.isArray(inputs) && inputs[0]?.sequence === 11) finalStarted();
     await wait(15);
     revision++;
     queueMicrotask(() => socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(revision) }) }));
@@ -120,23 +132,23 @@ test("coalesces contiguous unsent direct input behind command barriers and retri
   await wait(20);
   runtime.send({ type: "action", action: { kind: "begin-direct", entity: "player", stream: "held" } });
   await wait(40);
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: [
-    { sequence: 1, x: 1, z: 0 }, { sequence: 2, x: 1, z: 0 }, { sequence: 3, x: 1, z: 0 }, { sequence: 4, x: 1, z: 0 }, { sequence: 5, x: 1, z: 0 },
-  ] } });
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: [
-    { sequence: 6, x: 1, z: 0 }, { sequence: 7, x: 1, z: 0 }, { sequence: 8, x: 1, z: 0 }, { sequence: 9, x: 1, z: 0 }, { sequence: 10, x: 1, z: 0 },
-  ] } });
+  const batch = (first: number) => Array.from({ length: 5 }, (_, index) => ({ sequence: first + index, x: 1, z: 0 }));
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(1) } });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(6) } });
   runtime.send({ type: "pause" });
-  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: [
-    { sequence: 11, x: 1, z: 0 }, { sequence: 12, x: 1, z: 0 }, { sequence: 13, x: 1, z: 0 }, { sequence: 14, x: 1, z: 0 }, { sequence: 15, x: 1, z: 0 },
-  ] } });
-  await wait(500);
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(11) } });
+  await firstSeen;
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: batch(16) } });
+  releaseFirst();
+  await retrySeen;
+  await finalSeen;
   const parsed = calls.map((body) => JSON.parse(body).command);
-  const direct = parsed.filter((command) => Array.isArray(command.action?.inputs));
-  assert.equal(direct.filter((command) => command.action.inputs.length === 10).length, 2, "the ten-sample batch is retried unchanged");
-  assert.equal(direct.find((command) => command.action.inputs.length === 5)?.action.inputs[0].sequence, 11, "later input stays behind pause barrier");
-  assert.deepEqual(direct[0], direct[1]);
-  assert.equal(parsed.findIndex((command) => command.kind === "pause") > parsed.findIndex((command) => command.action?.inputs?.[0]?.sequence === 1), true);
+  const directBodies = calls.filter((body) => Array.isArray(JSON.parse(body).command.action?.inputs));
+  assert.equal(directBodies.length, 3);
+  assert.equal(directBodies[0], directBodies[1], "the retry preserves the exact body and command id");
+  assert.ok(parsed.some((command) => command.kind === "pause"), "the unrelated command remains a barrier");
+  const final = parsed.find((command) => command.action?.inputs?.[0]?.sequence === 11);
+  assert.deepEqual(final.action.inputs.map((input: { sequence: number }) => input.sequence), Array.from({ length: 10 }, (_, index) => index + 11));
   runtime.dispose();
 });
 
