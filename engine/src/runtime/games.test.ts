@@ -5,6 +5,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { wasmKernelPort } from "./wasm-kernel";
 import { GameSession } from "./session";
 import { WorkerRuntime } from "./worker";
+import { readKernelEntities } from "./kernel-records";
 import type { WorkerEvent } from "./protocol";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition, Fatigue } from "../games/survival";
@@ -45,6 +46,28 @@ test("display frames identify time and reset discontinuities", () => {
   } finally {
     runtime.dispose();
   }
+});
+
+test("worker factory failure leaves no disposed handle as live state", () => {
+  let allocations = 0;
+  let disposals = 0;
+  let failFactory = false;
+  const runtime = new WorkerRuntime(
+    () => {
+      allocations++;
+      if (failFactory) throw new Error("factory failed");
+      const inner = wasmKernelPort(new WasmKernel());
+      return { ...inner, dispose: () => { disposals++; inner.dispose(); } };
+    },
+    { survival: survivalPack },
+    () => undefined,
+  );
+  runtime.command({ type: "start", game: "survival" });
+  failFactory = true;
+  runtime.command({ type: "step", delta: 2 });
+  assert.equal(allocations, 2);
+  assert.equal(disposals, 1);
+  runtime.dispose();
 });
 
 test("native assignment chooses joint pairs without mutating the world", () => {
@@ -500,8 +523,14 @@ test("authored intents survive pause restore and rollback with committed-only re
     worker.command({ type: "step", delta: 0.1 });
     fail = false;
     worker.command({ type: "step", delta: 0.1 });
+    worker.command({ type: "save" });
     assert.equal(workerEvents.filter(event => event.type === "error").length, 1);
     assert.equal(workerEvents.filter(event => event.type === "results").length, 1);
+    const savedWorker = workerEvents.filter(event => event.type === "saved").at(-1);
+    assert.ok(savedWorker && savedWorker.type === "saved");
+    const workerEntities = readKernelEntities(savedWorker.snapshot.kernel);
+    const savedSetting = (workerEntities.scene.initial[0] as { components: Record<string, { value: number }> }).components[Setting.id];
+    assert.equal(savedSetting.value, 3);
     worker.dispose();
   } finally {
     a.dispose();
