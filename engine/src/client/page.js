@@ -22,7 +22,9 @@ const configs = {
   colony: {
     title: "Colony",
     subtitle:
-      "Choose a one- or two-piece food delivery. Pause the worker mid-trip, inspect the carried food, then resume.",
+      "Dig the generated ground beside a worker, uncover groundwater, or carry food to your guest.",
+    selectionShortcuts: [{ id: "colony.worker.1", label: "Select worker 1" }, { id: "colony.worker.2", label: "Select worker 2" }],
+    controlHelp: "Select one worker · Dig then click nearby ground · Escape exits Dig · right-click to walk · each dig fills the worker’s three-unit carrying capacity",
     source: "./source/colony.ts",
   },
   survival: {
