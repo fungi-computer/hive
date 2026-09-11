@@ -262,6 +262,7 @@ export const colonyConstructionSupplySystem = system({
     const active = Array.from({ length: Math.min(4, sites.length) }, (_, offset) => sites[(start + offset) % sites.length]);
     planSiteSupplies(ctx, {
       sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
+      batchQuantity: 3,
       requirements: active.flatMap(row => {
         const site = row.get(ConstructionSite);
         const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
