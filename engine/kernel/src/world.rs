@@ -1619,7 +1619,11 @@ mod lot_water_tests {
 
     #[test]
     fn invalid_water_reference_and_mass_are_rejected_on_load_and_restore() {
-        assert!(Kernel::new().load(&scene(None, 10).replace("\"hive.lot\"", "\"hive.lot-water\"" )).is_err());
+        let orphan = scene(None, 10).replace(
+            "\"hive.lot\":{\"kind\":\"water-lot\",\"quantity\":4,\"container\":\"source\"}",
+            "\"hive.lot-water\":{\"waterKg\":1.0}",
+        );
+        assert!(Kernel::new().load(&orphan).is_err());
         assert!(Kernel::new().load(&scene(Some(json!({"waterKg":-1.0})), 10)).is_err());
         assert!(Kernel::new().load(&scene(Some(json!({"waterKg":8.0})), 10).replace("\"quantity\":4", "\"quantity\":0")).is_err());
         let mut kernel = Kernel::new();
@@ -1650,7 +1654,7 @@ mod lot_water_tests {
         assert_eq!(transfer(&mut tiny, 1)["results"][0]["accepted"], false);
         assert_eq!(rows(&mut tiny, "hive.lot-water"), tiny_before);
         let mut dry = Kernel::new(); dry.load(&scene(None, 10)).unwrap();
-        let dry_result = dry.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#).unwrap();
+        let dry_result: Value = serde_json::from_str(&dry.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"lot","quantity":1}]}"#).unwrap()).unwrap();
         assert_eq!(dry_result["results"][0]["accepted"], true);
         assert_eq!(rows(&mut dry, "hive.lot")[0]["components"]["hive.lot"]["quantity"], 3);
     }
