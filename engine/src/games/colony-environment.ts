@@ -90,9 +90,4 @@ export const colonyEnvironmentDefinition =
   encodeEnvironmentDefinition({
     ...colonyEnvironment,
     initialPlacements: colonyInitialPlacements,
-  } as EnvironmentDefinition & {
-    readonly initialPlacements: readonly {
-      readonly entity: string;
-      readonly column: readonly [number, number];
-    }[];
   });
