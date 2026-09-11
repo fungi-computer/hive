@@ -13,6 +13,8 @@ const MAX_OPENINGS: usize = 56_000;
 const MAX_MEMBERS: usize = 40_000;
 const MAX_INTERVAL_S: f64 = 6.0;
 const MAX_STEPS: usize = 64;
+const MAX_ID_BYTES: usize = 16_384;
+const MAX_STATE_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -154,16 +156,13 @@ fn finite_nonnegative(value: f64, name: &str) -> Result<(), String> {
 }
 
 fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
-    let bytes = postcard::to_allocvec(definition).map_err(|_| "atmosphere identity encoding failed")?;
-    let mut value = String::with_capacity(bytes.len() * 2 + 12);
-    value.push_str("atmosphere:");
-    for byte in bytes { value.push_str(&format!("{byte:02x}")); }
-    Ok(value)
+    if definition.geometry_identity.len() > MAX_ID_BYTES { return Err("atmosphere geometry identity exceeds bound".into()); }
+    Ok(format!("atmosphere:{}:{}", definition.geometry_identity, definition.revision))
 }
 
 impl CompiledAtmosphere {
     pub fn compile(definition: AtmosphereDefinition) -> Result<Self, String> {
-        if definition.version != "connected-atmosphere-definition-v1" || definition.region_id.is_empty() || definition.geometry_identity.is_empty() {
+        if definition.version != "connected-atmosphere-definition-v1" || definition.region_id.is_empty() || definition.geometry_identity.is_empty() || definition.region_id.len() > MAX_ID_BYTES || definition.geometry_identity.len() > MAX_ID_BYTES {
             return Err("invalid atmosphere definition identity".into());
         }
         if definition.volumes.is_empty() || definition.volumes.len() > MAX_VOLUMES || definition.openings.len() > MAX_OPENINGS {
@@ -188,11 +187,12 @@ impl CompiledAtmosphere {
         let mut volume_index = BTreeMap::new();
         let mut volume_m3 = Vec::with_capacity(definition.volumes.len());
         let mut elevation_m = Vec::with_capacity(definition.volumes.len());
+        let mut member_ids = BTreeSet::new();
         let mut members = 0usize;
         for (index, volume) in definition.volumes.iter().enumerate() {
-            if volume.id.is_empty() || volume.members.is_empty() || volume_index.insert(volume.id.clone(), index).is_some() { return Err("invalid atmosphere volume identity".into()); }
+            if volume.id.is_empty() || volume.id.len() > MAX_ID_BYTES || volume.members.is_empty() || volume_index.insert(volume.id.clone(), index).is_some() { return Err("invalid atmosphere volume identity".into()); }
             for member in &volume.members {
-                if member.cell_id.is_empty() || !member.volume_m3.is_finite() || member.volume_m3 <= 0.0 || !member.elevation_m.is_finite() { return Err("invalid atmosphere member".into()); }
+                if member.cell_id.is_empty() || member.cell_id.len() > MAX_ID_BYTES || !member_ids.insert(member.cell_id.clone()) || !member.volume_m3.is_finite() || member.volume_m3 <= 0.0 || !member.elevation_m.is_finite() { return Err("invalid atmosphere member".into()); }
                 members = members.checked_add(1).ok_or("atmosphere member budget overflow")?;
                 if members > MAX_MEMBERS { return Err("atmosphere member budget exceeded".into()); }
             }
@@ -205,9 +205,10 @@ impl CompiledAtmosphere {
         let mut openings = Vec::with_capacity(definition.openings.len());
         let mut ids = BTreeSet::new();
         for opening in &definition.openings {
-            if opening.id.is_empty() || !ids.insert(opening.id.clone()) || opening.from_cell_id.is_empty() || opening.to_cell_id.as_ref().is_some_and(String::is_empty) { return Err("invalid atmosphere opening identity".into()); }
+            if opening.id.is_empty() || opening.id.len() > MAX_ID_BYTES || !ids.insert(opening.id.clone()) || opening.from_cell_id.is_empty() || opening.from_cell_id.len() > MAX_ID_BYTES || opening.to_cell_id.as_ref().is_some_and(|id| id.is_empty() || id.len() > MAX_ID_BYTES) { return Err("invalid atmosphere opening identity".into()); }
             let from = *volume_index.get(&opening.from).ok_or("atmosphere opening source volume missing")?;
-            let to = opening.to.as_ref().map(|id| volume_index.get(id).copied()).transpose()?.ok_or_else(|| "atmosphere opening destination volume missing".to_string()).or_else(|error| if opening.to.is_none() { Ok(None) } else { Err(error) })?;
+            let to = match opening.to.as_ref() { Some(id) => Some(*volume_index.get(id).ok_or("atmosphere opening destination volume missing")?), None => None };
+            if to == Some(from) || !definition.volumes[from].members.iter().any(|member| member.cell_id == opening.from_cell_id) || (to.is_some() != opening.to_cell_id.is_some()) || to.zip(opening.to_cell_id.as_ref()).is_some_and(|(index, cell)| !definition.volumes[index].members.iter().any(|member| member.cell_id == *cell)) { return Err("atmosphere opening endpoint membership mismatch".into()); }
             if !opening.area_m2.is_finite() || opening.area_m2 <= 0.0 || !opening.distance_m.is_finite() || opening.distance_m <= 0.0 || !opening.elevation_m.is_finite() || !opening.permeability.is_finite() || opening.permeability < 0.0 { return Err("invalid atmosphere opening metric".into()); }
             openings.push(OpeningIndex { from, to, area_m2: opening.area_m2, distance_m: opening.distance_m, permeability: opening.permeability });
         }
@@ -232,10 +233,17 @@ impl CompiledAtmosphere {
     fn validate_state(&self, state: &AtmosphereState) -> Result<(), String> {
         if state.version != "connected-atmosphere-state-v1" || state.identity != self.identity || state.parcels.len() != self.definition.volumes.len() { return Err("atmosphere state binding mismatch".into()); }
         let mut seen = BTreeSet::new();
-        for parcel in &state.parcels {
-            if !seen.insert(parcel.volume_id.clone()) || !self.volume_index.contains_key(&parcel.volume_id) || !parcel.carrier_kg.is_finite() || parcel.carrier_kg < 0.0 || !parcel.smoke_kg.is_finite() || parcel.smoke_kg < 0.0 || !parcel.heat_j.is_finite() { return Err("invalid atmosphere parcel".into()); }
+        for (index, parcel) in state.parcels.iter().enumerate() {
+            if parcel.volume_id != self.definition.volumes[index].id || !seen.insert(parcel.volume_id.clone()) || !parcel.carrier_kg.is_finite() || parcel.carrier_kg < 0.0 || !parcel.smoke_kg.is_finite() || parcel.smoke_kg < 0.0 || !parcel.heat_j.is_finite() { return Err("invalid atmosphere parcel".into()); }
+            let temperature = self.temperature(index, parcel);
+            let pressure = self.pressure(index, parcel);
+            if !temperature.is_finite() || (temperature - self.definition.ambient.temperature_k).abs() > self.definition.model.max_temperature_delta_k || !pressure.is_finite() || pressure > self.definition.ambient.pressure_pa * self.definition.model.max_pressure_ratio || parcel.smoke_kg > parcel.carrier_kg * self.definition.model.max_smoke_mass_fraction { return Err("atmosphere parcel exceeds physical envelope".into()); }
         }
         for value in [state.initial_carrier_kg, state.initial_smoke_kg, state.initial_heat_j, state.smoke_source_kg, state.heat_source_j, state.carrier_boundary_kg, state.smoke_boundary_kg, state.heat_boundary_j] { if !value.is_finite() { return Err("invalid atmosphere ledger".into()); } }
+        let carrier = state.parcels.iter().map(|parcel| parcel.carrier_kg).sum::<f64>() + state.carrier_boundary_kg;
+        let smoke = state.parcels.iter().map(|parcel| parcel.smoke_kg).sum::<f64>() + state.smoke_boundary_kg;
+        let heat = state.parcels.iter().map(|parcel| parcel.heat_j).sum::<f64>() + state.heat_boundary_j;
+        if (carrier - state.initial_carrier_kg).abs() > 1e-8 * state.initial_carrier_kg.max(1.0) || (smoke - state.initial_smoke_kg - state.smoke_source_kg).abs() > 1e-8 * (state.initial_smoke_kg + state.smoke_source_kg).abs().max(1.0) || (heat - state.initial_heat_j - state.heat_source_j).abs() > 1e-8 * (state.initial_heat_j + state.heat_source_j).abs().max(1.0) { return Err("atmosphere ledger is not conserved".into()); }
         Ok(())
     }
 
@@ -313,9 +321,9 @@ impl CompiledAtmosphere {
     fn pressure(&self, index: usize, parcel: &AtmosphereParcel) -> f64 { parcel.carrier_kg * self.definition.model.specific_gas_constant_jkg_k * self.temperature(index, parcel) / self.volume_m3[index] }
     fn apply_pair(&self, state: &mut AtmosphereState, flow: &Flow, quantity: Quantity, delta_left: f64) -> Result<(), String> {
         let current_left = match quantity { Quantity::Carrier => state.parcels[flow.left].carrier_kg, Quantity::Smoke => state.parcels[flow.left].smoke_kg, Quantity::Heat => state.parcels[flow.left].heat_j };
-        let current_right = flow.right.map(|i| { let parcel = &state.parcels[i]; match quantity { Quantity::Carrier => parcel.carrier_kg, Quantity::Smoke => parcel.smoke_kg, Quantity::Heat => parcel.heat_j } }).unwrap_or(match quantity { Quantity::Carrier => 0.0, Quantity::Smoke => state.smoke_boundary_kg, Quantity::Heat => state.heat_boundary_j });
+        let current_right = flow.right.map(|i| { let parcel = &state.parcels[i]; match quantity { Quantity::Carrier => parcel.carrier_kg, Quantity::Smoke => parcel.smoke_kg, Quantity::Heat => parcel.heat_j } }).unwrap_or(match quantity { Quantity::Carrier => state.carrier_boundary_kg, Quantity::Smoke => state.smoke_boundary_kg, Quantity::Heat => state.heat_boundary_j });
         let next_left = current_left + delta_left; let next_right = current_right - delta_left;
-        if !next_left.is_finite() || !next_right.is_finite() || (quantity != Quantity::Heat && (next_left < 0.0 || (flow.right.is_some() && next_right < 0.0))) { return Ok(()); }
+        if !next_left.is_finite() || !next_right.is_finite() || (quantity != Quantity::Heat && (next_left < 0.0 || (flow.right.is_some() && next_right < 0.0))) { return Err("atmosphere paired exchange is not representable".into()); }
         let left = &mut state.parcels[flow.left];
         match quantity { Quantity::Carrier => left.carrier_kg = next_left, Quantity::Smoke => left.smoke_kg = next_left, Quantity::Heat => left.heat_j = next_left }
         if let Some(index) = flow.right { let parcel = &mut state.parcels[index]; match quantity { Quantity::Carrier => parcel.carrier_kg = next_right, Quantity::Smoke => parcel.smoke_kg = next_right, Quantity::Heat => parcel.heat_j = next_right } } else { match quantity { Quantity::Carrier => state.carrier_boundary_kg = next_right, Quantity::Smoke => state.smoke_boundary_kg = next_right, Quantity::Heat => state.heat_boundary_j = next_right } }
@@ -326,10 +334,13 @@ impl CompiledAtmosphere {
 
     pub fn encode_state(&self, state: &AtmosphereState) -> Result<Vec<u8>, String> {
         self.validate_state(state)?;
-        postcard::to_allocvec(&(STATE_VERSION, state)).map_err(|_| "atmosphere state encoding failed".into())
+        let bytes = postcard::to_allocvec(&(STATE_VERSION, state)).map_err(|_| "atmosphere state encoding failed")?;
+        if bytes.len() > MAX_STATE_BYTES { return Err("atmosphere state exceeds byte bound".into()); }
+        Ok(bytes)
     }
 
     pub fn decode_state(&self, bytes: &[u8]) -> Result<AtmosphereState, String> {
+        if bytes.len() > MAX_STATE_BYTES { return Err("atmosphere state exceeds byte bound".into()); }
         let (version, state): (u16, AtmosphereState) = postcard::from_bytes(bytes).map_err(|_| "invalid atmosphere state")?;
         if version != STATE_VERSION { return Err("unsupported atmosphere state version".into()); }
         self.validate_state(&state)?;
@@ -368,7 +379,7 @@ mod tests {
         let atmosphere = CompiledAtmosphere::compile(definition).unwrap();
         let state = atmosphere.initial();
         let (next, _) = atmosphere.advance(&state, 1.0, &[AtmosphereSource { volume_id: "upper".into(), smoke_kg_s: 0.001, heat_j_s: 0.0 }]).unwrap();
-        assert!(next.smoke_boundary_kg <= 0.0);
+        assert!(next.smoke_boundary_kg >= 0.0);
         assert_eq!(state.smoke_source_kg, 0.0);
     }
 
@@ -379,6 +390,7 @@ mod tests {
         let atmosphere = CompiledAtmosphere::compile(definition).unwrap();
         let mut state = atmosphere.initial();
         state.parcels[0].smoke_kg = 0.01;
+        state.initial_smoke_kg = 0.01;
         let total_before = state.parcels.iter().map(|parcel| parcel.smoke_kg).sum::<f64>() + state.smoke_boundary_kg;
         let (next, _) = atmosphere.advance(&state, 0.2, &[]).unwrap();
         let total_after = next.parcels.iter().map(|parcel| parcel.smoke_kg).sum::<f64>() + next.smoke_boundary_kg;
@@ -391,10 +403,12 @@ mod tests {
         let atmosphere = CompiledAtmosphere::compile(definition()).unwrap();
         let mut pressure = atmosphere.initial();
         pressure.parcels[0].carrier_kg *= 1.1;
+        pressure.initial_carrier_kg += atmosphere.volume_m3[0] * atmosphere.ambient_carrier_density * 0.1;
         let (after_pressure, _) = atmosphere.advance(&pressure, 0.2, &[]).unwrap();
         assert!(after_pressure.parcels[0].carrier_kg < pressure.parcels[0].carrier_kg);
         let mut warm = atmosphere.initial();
         warm.parcels[0].heat_j = 10_000.0;
+        warm.initial_heat_j = 10_000.0;
         let (after_warm, _) = atmosphere.advance(&warm, 0.2, &[]).unwrap();
         assert!(after_warm.parcels[1].carrier_kg > warm.parcels[1].carrier_kg || after_warm.parcels[0].carrier_kg < warm.parcels[0].carrier_kg);
     }
