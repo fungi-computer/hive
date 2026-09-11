@@ -178,3 +178,44 @@ function row<T extends object>(id: ReturnType<typeof entity>, definition: { id: 
     },
   };
 }
+
+test("sealed custody waits without losing cargo and still acknowledges a completed deposit", () => {
+  const worker = entity("worker");
+  const source = entity("source");
+  const destination = entity("destination");
+  const lot = entity("lot");
+  const task = entity("delivery");
+  for (const scenario of ["blocked", "deposited", "departed-source"] as const) {
+    const state = { actor: worker, sourceLot: lot, source, destination,
+      material: "wood", quantity: 1, phase: "to-destination" };
+    const values = new Map<string, readonly unknown[]>([
+      [DeliveryTask.id, [row(task, DeliveryTask, state)]],
+      [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 1 })]],
+      [Body.id, [row(worker, Body, { speed: 1 })]],
+      [Container.id, [worker, source, destination].map(id => row(id, Container, { capacity: 4 }))],
+      [Position.id, [worker, source, destination].map(id => row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }))],
+      [MaterialLot.id, [row(lot, MaterialLot, { kind: "wood", quantity: 1,
+        container: scenario === "deposited" ? destination : worker })]],
+      [SealedContainer.id, [row(scenario === "departed-source" ? source : destination, SealedContainer, {})]],
+    ]);
+    const writes: unknown[][] = [];
+    const actions: unknown[] = [];
+    deliverySystem.run({
+      clock: { now: 1, delta: 0.1, tick: 10 }, outcomes: [], impacts: [], random: { next: () => 0 },
+      query: spec => (values.get(spec.components[0].id) ?? []) as never,
+      worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 },
+        world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
+      routeCosts: () => { throw new Error("claimed delivery must not search a new route"); },
+      assign: () => { throw new Error("claimed delivery must not be reassigned"); },
+      terrainMaterials: () => [], terrainSurfaces: () => [],
+      createAuthoredEntity: () => { throw new Error("no new task"); },
+      removeAuthoredEntity: () => { throw new Error("no task removal"); },
+      write: (...args) => writes.push(args), action: request => actions.push(request),
+    });
+    assert.deepEqual(writes, scenario === "deposited"
+      ? [[DeliveryTask, task, { ...state, actor: null, phase: "complete" }]] : []);
+    assert.deepEqual(actions, scenario === "departed-source"
+      ? [{ kind: "transfer", lot, from: worker, to: destination, quantity: 1 }] : []);
+    assert.equal(state.actor, worker, "queried committed data was not mutated in place");
+  }
+});
