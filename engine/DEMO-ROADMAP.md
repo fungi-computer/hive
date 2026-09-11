@@ -75,9 +75,12 @@ Reference owners to read before each port:
 
 Retained source supplies proven rules and assets; its old Clearing object is not
 another live simulator to embed. Rust remains the owner of physical geometry,
-location and transfer. TypeScript may retain bounded pure environment algorithms
-where they fit the current session contract; decide from measured real consumers,
-not a requirement to translate every line. Environmental quantities must live
+location and transfer. Levi reaffirmed on September 11 that making water and gas
+performant is a central reason for the Rust rewrite. Port the retained simplified
+finite-water and room/opening atmosphere mechanisms into the native owner;
+TypeScript supplies content parameters, rules and presentation, not a second
+environmental tick. Do not revive the abandoned Richards/Newton or CFD work.
+Environmental quantities must live
 in the committed session, never in a render projection or module-global map.
 Rebuildable indexes are allowed. Every new mutation must survive retry and DO
 restart through the existing region commitment, not a parallel database.
@@ -194,8 +197,8 @@ Checked upstream options on September 11:
 [ZzFX](https://github.com/KilledByAPixel/ZzFX) is an MIT game-sound generator and
 is the smaller candidate for richer procedural effects;
 [Tone.js](https://tonejs.github.io/) targets interactive music and offers synths
-and scheduling. These are research candidates, not installed/qualified runtime
-claims. First compare the retained sound against a tiny real consumer using the
+and scheduling. Levi approved ZzFX on September 11. Adoption is now assigned in the isolated
+`zzfx-audio` worktree; this is not yet an installed/qualified runtime claim. Compare the retained sound against a tiny real consumer using the
 candidate generator under our existing audio lifecycle. Do not install a full
 music framework merely to play footsteps, and do not invent a new DSP project.
 Use named parameters around any positional generator interface. Music, ambient
@@ -206,9 +209,11 @@ loops, recording/export and an audio editor are later needs.
 King owns original art, numerical/module design and integration. Native helpers
 own bounded shared-source outcomes in isolated worktrees; independent review
 reads the exact pinned source. First-shape corrections are normal, not permission
-gates. Current work is shared motion effects, actual custody projection and
-King's art pass. Terrain/environment porting starts as the next coherent source
-chunk after reviewing this matrix; it is not hidden inside a cosmetic commit.
+gates. Shared motion, custody presentation and the original art pass are published.
+Current work is the native finite-water port plus independent approved ZzFX
+adoption. King owns the native integration and colony consumer; the water helper
+owns the isolated compiled stock/face module. Environmental work is not hidden
+inside a cosmetic commit.
 
 For every release: name the action the player can perform, the common owner it
 uses, and the remaining gap. Use affected laws plus one short changed-game input
@@ -216,3 +221,29 @@ and personal art inspection. Preserve the fast feedback loop; do not repeat old
 physics/browser matrices. No general capacity or port-complete claim follows
 from a pretty model or headless test. Keep source privately recoverable and use
 existing demo hosts for accepted runnable slices.
+
+## Current native colony port — September 11
+
+The first source chunk compiles finite cell capacities, soil retention and actual
+neighbor faces once, then advances dense Rust stocks conservatively. It must not
+reparse definitions, rebuild a graph or traverse all game entities each water
+step. Canonical stocks and the source/sink ledger belong in the existing kernel
+snapshot and committed Region result; compiled indexes are disposable caches.
+
+The first playable join remains the existing colony page: real integer terrain,
+a finite wet area and reachable excavation that changes its physical geometry.
+An isolated native module is a source checkpoint, not completion of this consumer.
+Transport parity is qualified explicitly: local infiltration/gravity/spreading
+first; communicating-vessel pressure paths and edit displacement cannot be
+claimed until their retained laws and real geometry callers join. No painted
+water layer may stand in for those physical effects.
+
+Gas follows the retained `environment/atmosphere` parcel/opening model, with
+finite smoke and heat from paid burning, rather than a fluid velocity solver.
+Generated construction geometry is its input. Multi-storey rooms, caves and
+vertical openings remain part of the contract, not a Ground/Upper special case.
+
+Acceptance compares a named busy native field against the same retained workload
+and separately measures session/serialization cost. Rust alone is no speedup
+claim. The useful outcome is responsive digging/building with water and smoke
+in the colony, using the same browser/DO physical owner.
