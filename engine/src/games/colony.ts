@@ -1,3 +1,4 @@
+import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
 import { command, component, entity, query } from "../sdk/authoring";
@@ -325,6 +326,15 @@ export const colonyPack: GamePack = {
     }),
   },
   presentation: {
+    visuals: context => context.query(query(ConstructionSite)).map(row => {
+      const site = row.get(ConstructionSite);
+      const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
+      if (!definition) throw new Error("Missing construction visual definition");
+      const stage = site.phase === "finished" ? "finished" : site.seconds > 0 ? "frame" : "stakes";
+      const facing = { south: 0, east: 1, north: 2, west: 3 }[site.orientation];
+      return { id: row.id, visual: `colony.${definition.shape.kind}.${stage}`, label: `${site.catalog} · ${site.phase}`,
+        pose: { position: { x: site.x, y: (site.y + (definition.shape.kind === "wall" ? -0.5 : 0.5)) * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
+    }),
     terrainMarks: context => context.query(query(ColonyDigOrder)).filter(row => row.get(ColonyDigOrder).phase !== "carrying").map(row => {
       const order = row.get(ColonyDigOrder);
       return { id: row.id, cell: [order.cellX, order.cellY, order.cellZ] as const,

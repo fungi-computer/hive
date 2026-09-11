@@ -1,3 +1,4 @@
+import { appendVisualProjections } from "./visual-projection";
 import { TerrainPresentationOwner } from "./terrain-presentation";
 import type { EnvironmentDefinition } from "../sdk/environment";
 import { appendPresentationCues, checkedCueSnapshot, type CueSnapshot } from "./presentation-cues";
@@ -836,6 +837,10 @@ export class GameSession {
   }
   renderFacts(limit = 512) {
     this.ensureLive();
-    return this.port.renderFacts(limit);
+    const physical = this.port.renderFacts(limit);
+    const project = this.pack.presentation?.visuals;
+    if (!project) return physical;
+    return appendVisualProjections(physical, project({ query: spec => this.query(spec) }),
+      ids => this.port.entityMembership(ids), limit);
   }
 }
