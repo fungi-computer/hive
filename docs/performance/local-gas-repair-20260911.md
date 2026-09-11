@@ -86,3 +86,34 @@ commit recovery and cleanup-error handling retain their explicit laws.
 The changed-column observer implementation is committed separately as daa114f
 and awaits source review and affected qualification. It is not accepted by these
 results. No new public deployment or two-client playability is claimed here.
+
+## Equivalent-face exchange and changed-column projection
+
+The third native repair retains every physical face for geometry/remap, but sums
+areas for ordinary exchange only when source/destination, distance, elevation
+and permeability are identical. This changes neither field cadence nor stocks.
+A heated/smoke source and ambient fixture compares 80 physical faces with two
+aggregate exchange entries over 30 steps, using relative/absolute tolerance
+1e-10. Distinct metrics stay distinct. Full state conservation/restore checks
+remain active. u6035 passed all 33 affected atmosphere laws.
+
+The same retained 160-step Colony caller with the new WASM measured 9.67 ms p95,
+127.37 ms maximum and 0.37 ms median save. Both digs completed and exact next-state
+recovery matched. That comparison deliberately retains the earlier TypeScript
+observer; its 104.54 ms maximum observation is not the new observer's timing.
+It is still local shared-host evidence, not a hosted capacity promise.
+
+The actual current terrain presentation now samples only changed physical columns,
+retains unchanged entries, and resets fully if bounded history cannot answer.
+Water-only revisions do not invalidate physical columns. The Rust owner retains
+at most 64 revision entries of at most 4096 columns; a query union over 4096
+returns full-reset. Its derived index is not saved authority. u6036 passed four
+terrain-water laws, the maintained WASM build, three presentation tests and actual
+Colony dig/hearth recovery. Strict types then caught readonly tuple disagreement;
+the boundary now copies only requested coordinates. u6039 passed strict types and
+the retained comparison, without replaying already-passing laws/build. All three
+owned scopes are inactive/dead and empty. The original failed type output remains.
+
+Source inventories, raw third measurements and logs are retained under
+`.botanical/gas-local/v3`. Public host/command recovery and actual two-client
+qualification are the next joined consumer, not yet established by these results.

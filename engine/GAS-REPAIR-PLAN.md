@@ -186,8 +186,14 @@ all 4,096 map columns and rescan a 2304×1536 texture. This separate client repa
 required for playability even after native gas is fast. The retained terrain patch
 bake is a reference, not permission to copy old game state into this engine.
 
-Bound host catch-up work by elapsed cost as well as tick count. Do not acknowledge
-uncommitted steps to keep a connection alive. A post-commit publication failure
+Bound host catch-up to one due occurrence per durable transaction/alarm, retaining
+its exact scheduled deadline and occurrence identity. Rearm remaining overdue work;
+never skip physical time or concatenate five expensive ticks before input can run.
+This supersedes the earlier proposed elapsed-cost timer: Cloudflare timers freeze
+during CPU-only execution, so an in-process `performance.now()` guard would not
+prove that budget. See [Workers timer semantics](https://developers.cloudflare.com/workers/runtime-apis/performance/).
+External/native profiling remains useful; elapsed I/O time is not CPU time. Do not
+acknowledge uncommitted steps to keep a connection alive. A post-commit publication failure
 must not erase the successful command receipt. A native panic detaches the poisoned
 resident; a throwing destructor must not hide the original crash. No retry of an
 already committed physical effect.

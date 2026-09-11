@@ -61,10 +61,12 @@ test("physical column changes patch terrain and structures in canonical order", 
   let revision = 1;
   let surfaceCalls = 0;
   let structureCalls = 0;
+  const queried: (readonly [number, number])[][] = [];
   const port = fakePort(
     () => ({ terrainRevision: revision, cells: [] }),
     columns => {
       surfaceCalls++;
+      queried.push([...columns]);
       return columns.map(([x, z]) => ({ cell: [x, x === 0 ? revision : 7, z] as const, material: x + 1 }));
     },
     columns => {
@@ -79,6 +81,9 @@ test("physical column changes patch terrain and structures in canonical order", 
   const changed = owner.read();
   assert.equal(surfaceCalls, 2);
   assert.equal(structureCalls, 2);
+  assert.deepEqual(queried, [[[0, 0], [1, 0]], [[0, 0]]]);
+  assert.equal(changed.surfaces[1], first.surfaces[1]);
+  assert.equal(changed.structureSurfaces[1], first.structureSurfaces[1]);
   assert.deepEqual(changed.surfaces.map(surface => surface.cell), [[0, 2, 0], [1, 7, 0]]);
   assert.deepEqual(changed.structureSurfaces.map(surface => surface.cell), [[0, 12, 0], [1, 20, 0]]);
   assert.deepEqual(first.surfaces.map(surface => surface.cell), [[0, 1, 0], [1, 7, 0]]);

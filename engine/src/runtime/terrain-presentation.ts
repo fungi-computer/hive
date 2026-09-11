@@ -154,7 +154,7 @@ export class TerrainPresentationOwner {
       if (!this.inBounds(column) || seen.has(key)) throw new Error("invalid terrain changed column");
       seen.add(key);
     }
-    const sampled = this.sampleColumns(changes.columns);
+    const sampled = this.sampleColumns(changes.columns.map(([x, z]): [number, number] => [x, z]));
     const byColumn = new Map(cached.byColumn);
     const structuresByColumn = new Map(cached.structuresByColumn);
     for (const column of changes.columns) {
