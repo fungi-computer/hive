@@ -362,9 +362,10 @@ fn identity(
 ) -> String {
     // This bounded revision tag is not topology authority. The atmosphere
     // owner retains canonical definition equality when accepting a definition.
+    // A process-local epoch resets after restore and cannot identify saved geometry.
     format!(
-        "air-geometry:v1:{}:{}:{:?}:{:?}:{cells}:{openings}",
-        snapshot.physical_revision, snapshot.epoch, spacing, policy
+        "air-geometry:v1:{}:{:?}:{:?}:{cells}:{openings}",
+        snapshot.physical_revision, spacing, policy
     )
 }
 
