@@ -23,6 +23,7 @@ export interface SessionObservation {
   readonly presentationFacts: ReturnType<typeof projectPresentation>["facts"];
   readonly presentationControls: readonly PresentationControl[];
   readonly terrainMarks: ReturnType<typeof projectPresentation>["terrainMarks"];
+  readonly environmentVisuals: ReturnType<typeof projectPresentation>["environmentVisuals"];
 }
 
 export function buildObservation(
@@ -40,7 +41,8 @@ export function buildObservation(
     );
   if (!Number.isFinite(session.simulationTime) || session.simulationTime < 0)
     throw new Error("observation time must be finite and nonnegative");
-  const context: Pick<ReadContext, "query" | "atmosphereSamples"> = {
+  const context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts"> = {
+    environmentFacts: () => session.environmentFacts(),
     atmosphereSamples: cells => session.atmosphereSamples(cells),
     query: (spec) => session.query(spec),
   };
@@ -57,5 +59,6 @@ export function buildObservation(
     presentationFacts: projected.facts,
     presentationControls: projected.controls,
     terrainMarks: projected.terrainMarks,
+    environmentVisuals: projected.environmentVisuals,
   });
 }

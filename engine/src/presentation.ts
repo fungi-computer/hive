@@ -102,6 +102,12 @@ export interface PresentationFact {
   readonly label: string;
   readonly value: string | number | boolean;
 }
+export interface EnvironmentVisual {
+  readonly id: string;
+  readonly position: { readonly x: number; readonly y: number; readonly z: number };
+  readonly kind: "smoke" | "fire";
+  readonly intensity: number;
+}
 export type TerrainMark = {
   readonly id: string;
   readonly cell: readonly [number, number, number];
@@ -118,6 +124,9 @@ export interface GamePresentation {
   readonly terrainMarks?: (
     context: Pick<ReadContext, "query" | "atmosphereSamples">,
   ) => readonly TerrainMark[];
+  readonly environmentVisuals?: (
+    context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts">,
+  ) => readonly EnvironmentVisual[];
 }
 function controlInput(value: unknown): unknown {
   const wire = JSON.stringify(value, (_key, item) => {
@@ -140,14 +149,15 @@ const boundedText = (value: unknown, name: string, max: number) => {
 /** Pure, bounded projection used by the client. No presentation value is physical state. */
 export function projectPresentation(
   pack: GamePack,
-  context: Pick<ReadContext, "query" | "atmosphereSamples">,
+  context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts">,
 ): {
   readonly facts: readonly PresentationFact[];
   readonly controls: readonly PresentationControl[];
   readonly terrainMarks: readonly TerrainMark[];
+  readonly environmentVisuals: readonly EnvironmentVisual[];
 } {
   const presentation = pack.presentation;
-  if (!presentation) return { facts: [], controls: [], terrainMarks: [] };
+  if (!presentation) return { facts: [], controls: [], terrainMarks: [], environmentVisuals: [] };
   if (presentation.controls.length > 16)
     throw new Error("presentation control limit exceeded");
   const commandNames = new Set(Object.keys(pack.commands ?? {}));
@@ -209,9 +219,25 @@ export function projectPresentation(
     return Object.freeze({ id: mark.id, cell: [mark.cell[0], mark.cell[1], mark.cell[2]] as [number, number, number], status: mark.status });
   });
   if (terrainMarks.length > 256) throw new Error("terrain presentation mark limit exceeded");
+  const environmentVisuals = (presentation.environmentVisuals?.(context) ?? []).map((visual) => {
+    if (!visual || typeof visual.id !== "string" || visual.id.length === 0 || visual.id.length > 128 ||
+        !visual.position || typeof visual.position !== "object" || Array.isArray(visual.position) ||
+        !Number.isFinite(visual.position.x) || !Number.isFinite(visual.position.y) ||
+        !Number.isFinite(visual.position.z) || visual.kind !== "smoke" && visual.kind !== "fire" ||
+        !Number.isFinite(visual.intensity) || visual.intensity < 0 || visual.intensity > 1)
+      throw new Error("invalid environment presentation visual");
+    return Object.freeze({ id: visual.id, position: { x: visual.position.x, y: visual.position.y, z: visual.position.z }, kind: visual.kind, intensity: visual.intensity });
+  });
+  if (environmentVisuals.length > 64) throw new Error("environment visual limit exceeded");
+  const visualIds = new Set<string>();
+  for (const visual of environmentVisuals) {
+    if (visualIds.has(visual.id)) throw new Error("duplicate environment visual id");
+    visualIds.add(visual.id);
+  }
   return Object.freeze({
     facts: Object.freeze(structuredClone(facts)),
     controls: Object.freeze(structuredClone(controls)),
     terrainMarks: Object.freeze(structuredClone(terrainMarks)),
+    environmentVisuals: Object.freeze(structuredClone(environmentVisuals)),
   });
 }
