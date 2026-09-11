@@ -1,5 +1,5 @@
 import { command, component, entity, query } from "../sdk/authoring";
-import { Destination, MaterialLot, Position, encodeDefinition } from "../sdk/common";
+import { Body, Container, Destination, MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
 import type { EntityId, GamePack } from "../contracts";
 
@@ -145,6 +145,8 @@ function deliveryWrites(
 
 const colonyComponents = [
   Position,
+  Body,
+  Container,
   MaterialLot,
   Destination,
   Worker,

@@ -70,19 +70,19 @@ export const deliverySystem = system({
     const lotsById = new Map(lots.map((row) => [row.id, row.get(MaterialLot)]));
     const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
     const containers = new Map(ctx.query(query(Container)).map((row) => [row.id, row.get(Container)]));
-    const lotsByContainer = new Map<EntityId, { quantity: number; kind: string }[]>();
+    const quantityByContainer = new Map<EntityId, number>();
     const invalidLotContainers = new Set<EntityId>();
     for (const row of lots) {
       const lot = row.get(MaterialLot);
-      if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 0)
+      if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 0 || lot.quantity > 0xffffffff)
         invalidLotContainers.add(lot.container);
-      const existing = lotsByContainer.get(lot.container) ?? [];
-      existing.push({ quantity: lot.quantity, kind: lot.kind });
-      lotsByContainer.set(lot.container, existing);
+      const quantity = (quantityByContainer.get(lot.container) ?? 0) + lot.quantity;
+      if (!Number.isSafeInteger(quantity)) invalidLotContainers.add(lot.container);
+      quantityByContainer.set(lot.container, quantity);
     }
     const quantityIn = (container: EntityId) => {
       if (invalidLotContainers.has(container)) return null;
-      return (lotsByContainer.get(container) ?? []).reduce((sum, lot) => sum + lot.quantity, 0);
+      return quantityByContainer.get(container) ?? 0;
     };
     const hasCapacity = (container: EntityId, additional: number) => {
       const capacity = containers.get(container)?.capacity;
@@ -91,6 +91,7 @@ export const deliverySystem = system({
         typeof capacity === "number" &&
         Number.isSafeInteger(capacity) &&
         capacity >= 0 &&
+        capacity <= 0xffffffff &&
         quantity !== null &&
         Number.isSafeInteger(quantity + additional) &&
         quantity + additional <= capacity
@@ -128,6 +129,7 @@ export const deliverySystem = system({
       if (
         !Number.isSafeInteger(control.quantity) ||
         control.quantity <= 0 ||
+        control.quantity > 0xffffffff ||
         !bodies.has(controlRow.id) ||
         !Number.isFinite(bodies.get(controlRow.id)?.speed) ||
         (bodies.get(controlRow.id)?.speed ?? 0) <= 0
@@ -151,6 +153,7 @@ export const deliverySystem = system({
           lot.container !== task.source ||
           lot.kind !== task.material ||
           !Number.isSafeInteger(lot.quantity) ||
+          lot.quantity > 0xffffffff ||
           lot.quantity < control.quantity ||
           !hasCapacity(controlRow.id, control.quantity) ||
           !hasCapacity(task.destination, control.quantity)
