@@ -4,6 +4,7 @@ import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import type { PresentationControl } from "../presentation";
+import { parseTerrainFrame, type TerrainWireFrame } from "./terrain-wire";
 import { WebSocket as PartySocket } from "partysocket";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -31,6 +32,7 @@ type ObservationWire = {
     readonly epoch: number;
     readonly sequence: number;
     readonly facts: readonly RenderFact[];
+    readonly terrain?: TerrainWireFrame;
     readonly cues: readonly PresentationCue[];
     readonly presentationFacts: readonly {
       readonly id: string;
@@ -240,6 +242,7 @@ function parseObservation(value: unknown): ObservationWire {
       epoch: observation.epoch,
       sequence: observation.sequence,
       facts: facts as RenderFact[],
+      terrain: parseTerrainFrame(observation.terrain),
       cues: checkedCueList(observation.cues, observation.time),
       presentationFacts: presentationFacts as ObservationWire["observation"]["presentationFacts"],
       presentationControls: presentationControls as PresentationControl[],
@@ -316,7 +319,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     const pauseChanged = lastPaused === undefined || lastPaused !== candidate.observation.paused;
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
-    emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, cues: candidate.observation.cues });
+    emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, ...(candidate.observation.terrain === undefined ? {} : { terrain: candidate.observation.terrain }), cues: candidate.observation.cues });
     emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls });
     return true;
   };
