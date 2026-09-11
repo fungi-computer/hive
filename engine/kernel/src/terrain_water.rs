@@ -15,6 +15,7 @@ pub enum MaterialWater {
 }
 
 /// Content selects material behavior; the current terrain owner selects location.
+#[derive(Clone)]
 pub struct TerrainWaterGeometry {
     id: String,
     cells: BTreeSet<Cell>,
@@ -216,15 +217,18 @@ mod tests {
 
     #[test]
     fn actual_generated_excavation_preserves_water_and_allows_dry_world_edits() {
+        let terrain_factory = || {
         let generator = WorldSpec { seed: "wet-excavation", identity: "colony",
             bounds: Bounds { min_x: -32, max_x: 32, min_y: -32, max_y: 40, min_z: -32, max_z: 32 },
             slots: MaterialSlots { air: 0, soil: 1, stone: 2 }, sea_level: 12,
             vertical_metres: 1.0, max_samples: 4096 }.compile().unwrap();
-        let mut terrain = TerrainOwner::new(generator, [
+        TerrainOwner::new(generator, [
             MaterialProperty { slot: 0, solid: false, diggable: false },
             MaterialProperty { slot: 1, solid: true, diggable: true },
             MaterialProperty { slot: 2, solid: true, diggable: true },
-        ], 4, 128, 32768).unwrap();
+        ], 4, 128, 32768).unwrap()
+        };
+        let mut terrain = terrain_factory();
         let at = (-20..0).map(|y| Cell { x: 0, y, z: 0 })
             .find(|at| terrain.query(*at).unwrap() != 0).unwrap();
         let expected = terrain.query(at).unwrap();
@@ -234,7 +238,7 @@ mod tests {
         let geometry = TerrainWaterGeometry::new("colony-water".into(), vec![at, below],
             BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Porous(rule.clone())),
                 (2, MaterialWater::Porous(rule))]), [1.0; 3], 1.0, 0.1, WaterLimits::default()).unwrap();
-        let mut water = TerrainWater::fresh(geometry, terrain,
+        let mut water = TerrainWater::fresh(geometry.clone(), terrain,
             &[WaterStock { id: format!("cell:0,{},0", at.y), mass_kg: 200.0 },
               WaterStock { id: format!("cell:0,{},0", below.y), mass_kg: 0.0 }]).unwrap();
         assert!(matches!(water.excavate(at, expected, 0).unwrap(), ExcavationResult::Applied(_)));
@@ -255,5 +259,17 @@ mod tests {
         let moved = water.facts().unwrap();
         assert!((moved.total_kg - 200.0).abs() < 1e-9);
         assert!(moved.cells.iter().find(|fact| fact.at == [0, below.y, 0]).unwrap().mass_kg > 0.0);
+        let records = water.save_records().unwrap();
+        let mut restored = TerrainWater::restore_records(geometry.clone(), terrain_factory(), &records).unwrap();
+        assert_eq!(restored.facts().unwrap(), moved);
+        assert_eq!(restored.material(at).unwrap(), 0);
+        assert_eq!(restored.material(dry).unwrap(), 0);
+        restored.advance(0.2).unwrap();
+        water.advance(0.2).unwrap();
+        assert_eq!(restored.facts().unwrap(), water.facts().unwrap());
+        let mut changed_rules = geometry;
+        changed_rules.spread += 0.1;
+        assert!(TerrainWater::restore_records(changed_rules, terrain_factory(), &records).is_err());
+
     }
 }
