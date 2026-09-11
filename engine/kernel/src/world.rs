@@ -1010,7 +1010,7 @@ impl Kernel {
     fn complete_excavation(&mut self, excavation: crate::terrain_water::PreparedExcavation,
         container: String, kind: String, quantity: u32) -> Result<String> {
         let output = self.prepare_material_output(MaterialOutputSpec {
-            container, kind, quantity, water_kg: Some(excavation.water_kg()),
+            container, kind, quantity, water_kg: (excavation.water_kg() > 0.0).then_some(excavation.water_kg()),
         })?;
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.world.apply_excavation(excavation)?;
