@@ -44,7 +44,6 @@ export function createHiveClient({
   visualBindings = DEFAULT_VISUAL_BINDINGS,
   environment = "clearing",
   aiming = null,
-  sound,
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
@@ -183,7 +182,7 @@ export function createHiveClient({
   }
   function selectedLauncher() {
     if (!aiming?.launcherId) return null;
-    return state.subjects.find((subject) => subject.id === aiming.launcherId && state.selectedIds.includes(subject.id));
+    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id));
   }
   function toggleAim() {
     if (isAiming()) {
@@ -205,10 +204,12 @@ export function createHiveClient({
     const launcher = selectedLauncher();
     if (!launcher) return;
     const profile = launcher.aim;
-    if (!profile?.origin || !profile.radius || !profile.gravity || !profile.penetration || !profile.maxRange || !profile.maxLifetime)
+    if (!profile?.origin || !Number.isFinite(profile.radius) || profile.radius <= 0 ||
+      !Number.isFinite(profile.gravity) || !Number.isFinite(profile.penetration) || profile.penetration < 0 ||
+      !Number.isFinite(profile.maxRange) || profile.maxRange <= 0 || !Number.isFinite(profile.maxLifetime) || profile.maxLifetime <= 0)
       throw new Error("launcher preview profile unavailable");
     const velocity = fireInput({ launcherId: launcher.id, origin: profile.origin, target: state.aim.target, elevation: state.aim.elevation, speed: profile.speed ?? 8 }).velocity;
-    const request = { origin: profile.origin, velocity: { x: velocity.x + (profile.inheritedVelocity?.x ?? 0), y: velocity.y + (profile.inheritedVelocity?.y ?? 0), z: velocity.z + (profile.inheritedVelocity?.z ?? 0) }, radius: profile.radius, gravity: profile.gravity, penetration: profile.penetration, maxRange: profile.maxRange, maxLifetime: profile.maxLifetime, colliders: latestFacts.filter((fact) => fact.collider).map((fact) => ({ id: fact.id, ...fact.collider })) };
+    const request = { origin: profile.origin, velocity: { x: velocity.x + (profile.inheritedVelocity?.x ?? 0), y: velocity.y + (profile.inheritedVelocity?.y ?? 0), z: velocity.z + (profile.inheritedVelocity?.z ?? 0) }, radius: profile.radius, gravity: profile.gravity, penetration: profile.penetration, maxRange: profile.maxRange, maxLifetime: profile.maxLifetime, colliders: latestFacts.filter((fact) => fact.id !== launcher.id && fact.collision).map((fact) => ({ id: fact.id, ...fact.collision })) };
     state.aim.velocity = velocity;
     state.aim.preview = previewCache.get(request, { force });
   }
@@ -434,6 +435,7 @@ export function createHiveClient({
         local: fact.local,
         support: fact.support,
         surface: fact.surface,
+        projectile: fact.projectile,
         pose: fact.pose,
         screen: { x: 0, y: 0 },
       }));
@@ -539,10 +541,12 @@ export function createHiveClient({
           ));
       const physicalFacing = ((Math.round(subject.facing ?? 0) % 4) + 4) % 4;
       const staticVisual = isStatic
-        ? resolveStaticVisual(art, binding, physicalFacing)
+        ? (subject.projectile?.state === "embedded" && art.projectiles?.cannonballEmbedded
+          ? { texture: art.projectiles.cannonballEmbedded, anchor: art.propAnchor }
+          : resolveStaticVisual(art, binding, physicalFacing))
         : undefined;
       const texture = reactionFrames?.length
-        ? reactionFrames[Math.floor((performance.now() - reaction.started) / 45) % reactionFrames.length]
+        ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((performance.now() - reaction.started) / 45))]
         : isStatic
         ? staticVisual?.texture
         : frames[(animation?.frame ?? 0) % Math.max(1, frames.length)];
@@ -614,7 +618,7 @@ export function createHiveClient({
     if (isAiming()) {
       state.aim.point = at;
       try { state.aim.target = aimGroundPoint(at, camera); updateAimPreview(); } catch { state.aim.target = null; }
-      sound?.unlock?.(); fireAim(); return;
+      fireAim(); return;
     }
     gesture.send({ type: "BEGIN", point: at, additive: event.shiftKey });
     app.canvas.setPointerCapture?.(event.pointerId);
@@ -731,8 +735,10 @@ export function createHiveClient({
   function releaseDirect() { directControl?.release(); }
   function playCue(cue) {
     if (!art || !effectOwner || !cue?.kind) return;
-    const direction = ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
-    const subject = state.subjects.find((item) => item.id === cue.subject);
+    const subject = latestFacts.find((item) => item.id === cue.subject);
+    const direction = cue.kind === "launch" && Number.isFinite(subject?.pose?.facing)
+      ? ((Math.round(subject.pose.facing) % 4) + 4) % 4
+      : ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
     const authored = cue.kind === "launch"
       ? art.props?.cannonRecoil?.[direction]
       : art.figures?.goblin?.hit?.[direction];
@@ -748,7 +754,6 @@ export function createHiveClient({
       const smokeFrames = Array.isArray(smoke) ? smoke : [smoke];
       effectOwner.play({ texture: smokeFrames[0], frames: smokeFrames, lifetime: 900, sprites: 1 }, cue);
     }
-    sound?.play?.(cue.kind, cue);
   }
   async function start() {
     if (directControlId || aiming) {
@@ -780,7 +785,7 @@ export function createHiveClient({
         sprite.__frames = definition.frames;
         const at = cue.at ?? { x: 0, y: 0, z: 0 };
         const projected = project(at.x, at.y, at.z);
-        sprite.anchor.set(0.5, 1);
+        sprite.anchor.set(art.propAnchor?.x ?? 0.5, art.propAnchor?.y ?? 1);
         sprite.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
         sprite.scale.set(camera.zoom);
         transientLayer.addChild(sprite);
