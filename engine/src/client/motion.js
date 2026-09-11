@@ -1,33 +1,38 @@
 const EPSILON = 1e-6;
+const MAX_CUES_PER_SAMPLE = 16;
+function finite(value, name) { if (!Number.isFinite(value)) throw new Error(`${name} must be finite`); return value; }
+function offsetWorld(position, offset = { x: 0, y: 0, z: 0 }) { return { x: position.x + (offset.x ?? 0), y: position.y + (offset.y ?? 0), z: position.z + (offset.z ?? 0) }; }
 
-/**
- * Disposable presentation motion owner. Distances are measured in presented
- * local coordinates, so a moving support does not make its crew walk. A new
- * entity, support change, sequence gap, teleport, pause, or reset establishes
- * a baseline and emits no contact.
- */
-export function createMotionCueOwner({ stride = 0.85, teleport = 2.5, wakeStride = 1.6 } = {}) {
+/** Presented distance contacts. Without an explicit correction signal, jumps
+ * above teleport are conservatively muted rather than presented as footsteps. */
+export function createMotionCueOwner({ teleport = 2.5, maxCues = MAX_CUES_PER_SAMPLE } = {}) {
   const history = new Map();
-  if (!(stride > 0) || !(teleport > stride) || !(wakeStride > 0)) throw new Error("invalid motion cue distances");
+  if (!(teleport > 0) || !Number.isSafeInteger(maxCues) || maxCues < 1) throw new Error("invalid motion cue limits");
   function reset() { history.clear(); }
   return {
-    sample(subjects, { now = 0, paused = false, reset: clear = false, sequence } = {}) {
+    sample(subjects, { now = 0, paused = false, reset: clear = false } = {}) {
       if (clear || paused) { reset(); return []; }
       const live = new Set(subjects.map(subject => subject.id));
       for (const id of history.keys()) if (!live.has(id)) history.delete(id);
       const cues = [];
       for (const subject of subjects) {
-        const local = subject.local?.position ?? subject.pose?.position ?? subject;
+        const motion = subject.motion, world = subject.pose?.position ?? subject;
+        const local = subject.local?.position ?? world, support = subject.support ?? null;
         const previous = history.get(subject.id);
-        history.set(subject.id, { x: local.x, z: local.z, support: subject.support ?? null, sequence });
-        if (!previous || previous.support !== (subject.support ?? null) ||
-          (Number.isSafeInteger(sequence) && Number.isSafeInteger(previous.sequence) && sequence !== previous.sequence + 1)) continue;
-        const dx = local.x - previous.x, dz = local.z - previous.z;
-        const distance = Math.hypot(dx, dz);
+        const record = { x: local.x, z: local.z, support, residual: previous?.residual ?? 0 };
+        history.set(subject.id, record);
+        if (!motion || !previous || previous.support !== support || subject.correction) continue;
+        const dx = local.x - previous.x, dz = local.z - previous.z, distance = Math.hypot(dx, dz);
         if (!(distance > EPSILON) || distance > teleport) continue;
-        const steps = Math.min(4, Math.floor(distance / stride));
-        for (let index = 0; index < steps; index++) cues.push({ kind: "foot", subject: subject.id, at: { x: local.x - dx * (steps - index - 1) / steps, y: local.y ?? 0, z: local.z - dz * (steps - index - 1) / steps }, direction: { x: dx / distance, y: 0, z: dz / distance }, time: now });
-        if (subject.visual === "pirate.ship" && distance >= wakeStride) cues.push({ kind: "wake", subject: subject.id, at: { x: local.x, y: local.y ?? 0, z: local.z }, direction: { x: dx / distance, y: 0, z: dz / distance }, time: now });
+        const direction = { x: dx / distance, y: 0, z: dz / distance };
+        record.residual += distance;
+        const stride = finite(motion.stride, "motion stride");
+        if (stride <= 0) throw new Error("motion stride must be positive");
+        while (record.residual >= stride && cues.length < maxCues) {
+          record.residual -= stride;
+          const offset = motion.kind === "wake" ? motion.localOffset ?? { x: -direction.x * stride, y: 0, z: -direction.z * stride } : motion.localOffset;
+          cues.push({ kind: motion.kind, subject: subject.id, at: offsetWorld(world, offset), direction, time: now });
+        }
       }
       return cues;
     },
