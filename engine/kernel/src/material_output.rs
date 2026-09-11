@@ -3,24 +3,24 @@
 
 use crate::components::{valid_id, Lot, LotWater, MAX_CARRIED_WATER_KG};
 
-pub(crate) struct MaterialOutputSpec {
+pub(super) struct MaterialOutputSpec {
     pub container: String,
     pub kind: String,
     pub quantity: u32,
     pub water_kg: Option<f64>,
 }
 
-struct PreparedMaterialOutput {
-    pub(crate) revision: u64,
-    pub(crate) container: String,
-    pub(crate) lot_id: String,
-    pub(crate) lot: Lot,
-    pub(crate) water: Option<LotWater>,
-    pub(crate) next_lot: u64,
-    pub(crate) state_weight: usize,
+pub(super) struct PreparedMaterialOutput {
+    pub(super) revision: u64,
+    pub(super) container: String,
+    pub(super) lot_id: String,
+    pub(super) lot: Lot,
+    pub(super) water: Option<LotWater>,
+    pub(super) next_lot: u64,
+    pub(super) state_weight: usize,
 }
 
-pub(crate) fn allocate_lot_id(next_lot: u64, known: impl Fn(&str) -> bool) -> Result<(String, u64), String> {
+pub(super) fn allocate_lot_id(next_lot: u64, known: impl Fn(&str) -> bool) -> Result<(String, u64), String> {
     if next_lot == 0 { return Err("lot identity exhausted".into()); }
     let mut sequence = next_lot;
     let lot_id = loop {
@@ -31,7 +31,7 @@ pub(crate) fn allocate_lot_id(next_lot: u64, known: impl Fn(&str) -> bool) -> Re
     Ok((lot_id, sequence))
 }
 
-pub(crate) fn prepare(
+pub(super) fn prepare(
     spec: MaterialOutputSpec,
     revision: u64,
     next_lot: u64,

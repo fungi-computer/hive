@@ -1,4 +1,7 @@
 use crate::{collision, combat, components::*, material_output::MaterialOutputSpec, navigation, registry::Registry};
+#[path = "material_output.rs"]
+mod material_output;
+use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
 use bevy_ecs::{
     prelude::{Entity, World},
     query::{QueryBuilder, QueryState},
@@ -958,7 +961,7 @@ impl Kernel {
             .copied()
             .ok_or_else(|| format!("unknown entity {id}"))
     }
-    pub(crate) fn complete_material_output(&mut self, spec: MaterialOutputSpec) -> Result<String> {
+    fn prepare_material_output(&self, spec: MaterialOutputSpec) -> Result<PreparedMaterialOutput> {
         self.ensure_ready()?;
         if self.ids.len() >= 16384 { return Err("region entity capacity".into()); }
         let container = self.entity(&spec.container)?;
@@ -969,7 +972,7 @@ impl Kernel {
         let added_weight = 128
             + self.registry.weight("hive.lot", &record(&lot))
             + water.as_ref().map(|value| self.registry.weight("hive.lot-water", &record(value))).unwrap_or(0);
-        let prepared = crate::material_output::prepare(
+        let prepared = material_output::prepare(
             spec,
             self.revision,
             self.next_lot,
@@ -980,6 +983,11 @@ impl Kernel {
             added_weight,
             STATE_BYTES,
         )?;
+        Ok(prepared)
+    }
+    // Private tokens are prepared and consumed within one synchronous Kernel
+    // completion. No public caller can retain them across another mutation.
+    fn publish_material_output(&mut self, prepared: PreparedMaterialOutput) -> String {
         let entity = if let Some(water) = prepared.water {
             self.ecs.spawn((ExternalId(prepared.lot_id.clone()), prepared.lot, water)).id()
         } else {
@@ -990,7 +998,25 @@ impl Kernel {
         self.ids.insert(prepared.lot_id.clone(), entity);
         self.known.insert(prepared.lot_id.clone());
         self.contents.entry(prepared.container).or_default().insert(entity);
-        Ok(prepared.lot_id)
+        prepared.lot_id
+    }
+    #[cfg(test)]
+    fn complete_material_output(&mut self, spec: MaterialOutputSpec) -> Result<String> {
+        let prepared = self.prepare_material_output(spec)?;
+        Ok(self.publish_material_output(prepared))
+    }
+    // Work/reach and the material definition are admitted by the native work
+    // caller. Water credit is always derived from the opaque geometry token.
+    fn complete_excavation(&mut self, excavation: crate::terrain_water::PreparedExcavation,
+        container: String, kind: String, quantity: u32) -> Result<String> {
+        let output = self.prepare_material_output(MaterialOutputSpec {
+            container, kind, quantity, water_kg: Some(excavation.water_kg()),
+        })?;
+        let environment = self.environment.as_mut().ok_or("world has no environment")?;
+        environment.world.apply_excavation(excavation)?;
+        // All material admission precedes the terrain commit. There is no
+        // fallible material operation between this point and publication.
+        Ok(self.publish_material_output(output))
     }
     fn quantity(&self, id: &str) -> u64 {
         self.contents
@@ -1497,7 +1523,7 @@ impl Kernel {
             if self.ids.len() >= 16384 {
                 return Err("region entity capacity".into());
             }
-            let (id, next) = crate::material_output::allocate_lot_id(self.next_lot, |candidate| self.known.contains(candidate))?;
+            let (id, next) = material_output::allocate_lot_id(self.next_lot, |candidate| self.known.contains(candidate))?;
             let extra_lot = Lot {
                 kind: stock.kind.clone(),
                 quantity: stock.quantity - quantity,
