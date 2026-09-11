@@ -236,11 +236,12 @@ export function createTerrainPicker() {
     )
       return true;
     reset();
+    const nextState = makePickerState(terrain);
     surfaces = terrain.surfaces;
     structureSurfaces = terrain.structureSurfaces;
     verticalMetres = terrain.verticalMetres;
     epoch = nextEpoch;
-    state = makePickerState(terrain);
+    state = nextState;
     return true;
   }
   function hitTerrain(x, y, terrain, nextEpoch) {
@@ -258,14 +259,4 @@ export function createTerrainPicker() {
     reset,
     dispose: reset,
   };
-}
-
-/** Nearest published face. Side faces identify a displayed column, not hidden material. */
-export function terrainHit(x, y, terrain) {
-  return createTerrainPicker().hit(x, y, terrain);
-}
-
-/** Movement consumes standing surfaces; inspection can consume the complete hit. */
-export function terrainPoint(x, y, terrain) {
-  return createTerrainPicker().point(x, y, terrain);
 }

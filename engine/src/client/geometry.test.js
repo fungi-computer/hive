@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { project, groundPoint, surfacePoint, terrainPoint, terrainHit } from './geometry.js';
-import { createTerrainPicker } from './geometry.js';
+import { project, groundPoint, surfacePoint, createTerrainPicker } from './geometry.js';
 import { terrainFaces } from '../../../src/art/terrain-faces.js';
 import { camera } from '../../../src/art/prop-camera.js';
 import { Ray, Vector3 } from 'three';
+const picker = createTerrainPicker();
+const pickPoint = (x, y, terrain) => picker.point(x, y, terrain, 'geometry-test');
+const pickHit = (x, y, terrain) => picker.hit(x, y, terrain, 'geometry-test');
 test('ground picking inverts the actual retained projection across the clearing', () => {
   for (let x=-7;x<=7;x++) for(let z=-7;z<=7;z++) {
     const point=project(x,0,z);
@@ -33,11 +35,11 @@ test('terrain picking uses signed voxel elevation and rejects unpublished ground
   for (const cell of [[4,13,-3],[-12,-8,9]]) {
     const terrain={structureSurfaces: [], verticalMetres:0.54,surfaces:[{cell,material:1}]};
     const screen=project(cell[0],(cell[1]+0.5)*0.54,cell[2]);
-    assert.deepEqual(terrainPoint(screen.x,screen.y,terrain),{
+    assert.deepEqual(pickPoint(screen.x,screen.y,terrain),{
       cell,point:{x:cell[0],y:(cell[1]+0.5)*0.54,z:cell[2],frame:null}
     });
     const outside=project(cell[0]+2,(cell[1]+0.5)*0.54,cell[2]);
-    assert.equal(terrainPoint(outside.x,outside.y,terrain),null);
+    assert.equal(pickPoint(outside.x,outside.y,terrain),null);
   }
 });
 
@@ -46,9 +48,9 @@ test('visible cliff faces block selection of a lower top behind them', () => {
     {cell:[0,3,0],material:1},{cell:[-1,0,-2],material:1}
   ]};
   const side=project(0.5,1.55,0);
-  assert.deepEqual(terrainPoint(side.x,side.y,{...terrain,surfaces:[terrain.surfaces[1]]})?.cell,[-1,0,-2]);
-  assert.equal(terrainPoint(side.x,side.y,terrain),null);
-  const hit=terrainHit(side.x,side.y,terrain);
+  assert.deepEqual(pickPoint(side.x,side.y,{...terrain,surfaces:[terrain.surfaces[1]]})?.cell,[-1,0,-2]);
+  assert.equal(pickPoint(side.x,side.y,terrain),null);
+  const hit=pickHit(side.x,side.y,terrain);
   assert.equal(hit.kind,"terrain-side");
   assert.equal(hit.standingPoint,null);
   assert.deepEqual(hit.column,[0,3,0]);
@@ -58,7 +60,7 @@ test('world camera can pick the near edge of the full generated map', () => {
   const cell=[31,13,31];
   const terrain={structureSurfaces: [], verticalMetres:0.54,surfaces:[{cell,material:1}]};
   const screen=project(31,13.5*0.54,31);
-  assert.deepEqual(terrainPoint(screen.x,screen.y,terrain)?.cell,cell);
+  assert.deepEqual(pickPoint(screen.x,screen.y,terrain)?.cell,cell);
 });
 
 
@@ -67,12 +69,12 @@ test('authored upper floors are pickable faces without invented earth skirts', (
     { cell: [0, 4, 0] }, { cell: [0, 8, 0] },
   ] };
   const top = project(0, 8.5 * 0.54, 0);
-  const hit = terrainHit(top.x, top.y, frame);
+  const hit = pickHit(top.x, top.y, frame);
   assert.equal(hit.kind, "structure-top");
   assert.deepEqual(hit.column, [0, 8, 0]);
   assert.equal(hit.standingPoint.frame, null);
   const below = project(0, 2, 0);
-  assert.equal(terrainHit(below.x, below.y, frame), null);
+  assert.equal(pickHit(below.x, below.y, frame), null);
 });
 
 function exhaustiveHit(x, y, terrain) {
@@ -138,5 +140,24 @@ test('cached picker matches exhaustive face ownership at triangle boundaries and
       assert.ok(Math.abs(actual.position.z - expected.position.z) < 1e-9);
     }
   }
+  picker.dispose();
+});
+
+test('picker rebuilds when an epoch changes reused projection references and retries failed builds', () => {
+  const picker = createTerrainPicker();
+  const surfaces = [{ cell: [0, 0, 0], material: 1 }];
+  const structures = [];
+  const terrain = { verticalMetres: 1, surfaces, structureSurfaces: structures };
+  const first = project(0, .5, 0);
+  assert.equal(picker.hit(first.x, first.y, terrain, 1).kind, 'terrain-top');
+  surfaces[0].cell[1] = 2;
+  const raised = project(0, 2.5, 0);
+  assert.equal(picker.hit(raised.x, raised.y, terrain, 2).kind, 'terrain-top');
+
+  structures.push(null);
+  assert.throws(() => picker.hit(first.x, first.y, terrain, 3));
+  structures[0] = { cell: [0, 4, 0] };
+  const repaired = project(0, 4.5, 0);
+  assert.equal(picker.hit(repaired.x, repaired.y, terrain, 3).kind, 'structure-top');
   picker.dispose();
 });
