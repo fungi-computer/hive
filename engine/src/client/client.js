@@ -857,7 +857,7 @@ export function createHiveClient({
       app.canvas.releasePointerCapture?.(event.pointerId);
       if (control?.target === "terrain-area") {
         runtime?.send(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
-        state.message = "Digging area submitted";
+        state.message = `${control.label} submitted`;
       }
       renderHud(); draw(); return;
     }

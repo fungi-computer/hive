@@ -237,6 +237,7 @@ function digArea(context: CommandContext, input: unknown) {
       actor: null, phase: "queued", reason: "", approachX: 0, approachY: 0, approachZ: 0,
     }}});
   }
+  if (existing.size + creates.length > 256) throw new Error("Finish or cancel existing dig orders before adding more than 256");
   return creates;
 }
 
@@ -305,13 +306,18 @@ export const colonyPack: GamePack = {
     }),
   },
   presentation: {
+    terrainMarks: context => context.query(query(ColonyDigOrder)).filter(row => row.get(ColonyDigOrder).phase !== "carrying").map(row => {
+      const order = row.get(ColonyDigOrder);
+      return { id: row.id, cell: [order.cellX, order.cellY, order.cellZ] as const,
+        status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
+    }),
     controls: [
       { id: "deliver", label: "Deliver 1", command: "deliver", input: { quantity: 1 }, selection: "entities" },
       { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
       { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
       { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
       { id: "dig", label: "Dig area", command: "dig", target: "terrain-area" },
-      { id: "cancel-dig", label: "Cancel digging", command: "cancelDig", selection: "entities" },
+      { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area" },
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities" },
     ],
     inspect: (context) => {

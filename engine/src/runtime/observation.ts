@@ -22,6 +22,7 @@ export interface SessionObservation {
   readonly cues: readonly PresentationCue[];
   readonly presentationFacts: ReturnType<typeof projectPresentation>["facts"];
   readonly presentationControls: readonly PresentationControl[];
+  readonly terrainMarks: ReturnType<typeof projectPresentation>["terrainMarks"];
 }
 
 export function buildObservation(
@@ -54,5 +55,6 @@ export function buildObservation(
     cues: session.presentationCues(),
     presentationFacts: projected.facts,
     presentationControls: projected.controls,
+    terrainMarks: projected.terrainMarks,
   });
 }
