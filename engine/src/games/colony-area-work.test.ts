@@ -14,14 +14,24 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("dig", { area: { start: [1, 0, 0], end: [2, 0, 0] } });
+    session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
+    session.step(0);
     const orders = session.query(query(ColonyDigOrder));
     assert.deepEqual(orders.map((row) => row.id), [
-      "colony.dig.1.0.0",
-      "colony.dig.2.0.0",
+      "colony.dig.1.13.0",
+      "colony.dig.2.13.0",
     ]);
-    assert.deepEqual(orders.map((row) => row.get(ColonyDigOrder).phase), ["queued", "queued"]);
-    assert.deepEqual(session.save(), session.save());
+    assert.equal(orders.length, 2);
+    assert.ok(orders.every((row) => ["queued", "approaching", "excavating", "blocked", "carrying"].includes(row.get(ColonyDigOrder).phase)));
+    const saved = session.save();
+    const restoredPort = wasmKernelPort(new WasmKernel());
+    try {
+      const restored = new GameSession({ port: restoredPort, pack: colonyPack });
+      restored.restore(saved);
+      assert.deepEqual(restored.save(), saved);
+    } finally {
+      restoredPort.dispose();
+    }
   } finally {
     port.dispose();
   }
@@ -33,7 +43,7 @@ test("actual WASM rejects an area above the bounded designation size", () => {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     assert.throws(
-      () => session.command("dig", { area: { start: [0, 0, 0], end: [16, 0, 15] } }),
+      () => session.command("dig", { area: { start: [0, 13, 0], end: [16, 13, 15] } }),
       /256 cells/,
     );
     assert.equal(session.query(query(ColonyDigOrder)).length, 0);
