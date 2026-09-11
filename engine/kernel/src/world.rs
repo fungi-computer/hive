@@ -37,6 +37,74 @@ struct ImpactEvent {
     velocity: Vector3,
 }
 
+#[cfg(test)]
+mod construction_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn world() -> (Kernel, crate::generation::Cell, Point) {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"construction",
+            "components":[], "initial":[
+                {"id":"worker-1","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
+                {"id":"worker-2","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
+                {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":10}}},
+                {"id":"lot.1","components":{"hive.lot":{"kind":"stone-spoil","quantity":1,"container":"source"}}}
+            ]
+        }).to_string().as_str()).unwrap();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
+        let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap().into_iter().next().flatten().unwrap().cell;
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let contact = Point { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], frame: None };
+        for id in ["worker-1", "worker-2", "source"] {
+            let entity = kernel.entity(id).unwrap();
+            kernel.ecs.entity_mut(entity).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+        }
+        kernel.rebuild_physical_indexes(true).unwrap();
+        (kernel, surface, contact)
+    }
+
+    fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
+        let batch = json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-1"}
+        ]});
+        kernel.advance_json(&batch.to_string()).unwrap();
+    }
+
+    #[test]
+    fn staged_materials_and_worker_replacement_finish_once_and_restore() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"cancel-work","entity":"worker-1"},{"kind":"attend-construction","worker":"worker-2","site":"site-1"}]}"#).unwrap();
+        kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+        let finished = kernel.query_json(r#"["hive.construction-site","hive.sealed-container"]"#).unwrap();
+        assert!(finished.contains("finished"));
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        let before = restored.save_records().unwrap().entities;
+        restored.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, before);
+    }
+
+    #[test]
+    fn construction_waits_without_staged_material_and_repeated_attend_is_idempotent() {
+        let (mut kernel, surface, contact) = world();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-1"},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-1"}
+        ]}).to_string()).unwrap();
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let state = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
+        assert!(state.contains("\"seconds\":0.0"));
+    }
+}
+
 fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -> bool {
     let bounds = [
         (cell.0 as f64 - 0.5, cell.0 as f64 + 0.5),
