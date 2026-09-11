@@ -57,6 +57,12 @@ pub struct AppliedChange {
     pub cell_volume_m3: f64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SurfaceCell {
+    pub cell: Cell,
+    pub material: u16,
+}
+
 #[derive(Serialize, Deserialize)]
 struct TerrainSave {
     version: u16,
@@ -124,6 +130,8 @@ pub struct TerrainOwner {
 }
 
 impl TerrainOwner {
+    const SURFACE_COLUMNS: usize = 64;
+    const SURFACE_SAMPLES: usize = 4096;
     fn edit_entry_bytes(cell: Cell, slot: u16) -> Result<usize, &'static str> {
         postcard::experimental::serialized_size(&(cell.x, cell.y, cell.z, slot))
             .map_err(|_| "terrain entry size failed")
@@ -293,6 +301,46 @@ impl TerrainOwner {
             return Err("cell outside world bounds");
         }
         cells.iter().map(|cell| self.query(*cell)).collect()
+    }
+    /// Find the highest current solid cell at each exterior x/z column. The
+    /// generator bed is the first air row, so the search starts at bed - 1;
+    /// sparse solid edits may raise that start. The search never enters a
+    /// cave from below the exterior surface and has one shared sample budget.
+    pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, &'static str> {
+        if columns.is_empty() || columns.len() > Self::SURFACE_COLUMNS {
+            return Err("surface query batch exceeds bound");
+        }
+        let mut starts = Vec::with_capacity(columns.len());
+        for &(x, z) in columns {
+            let bed = self.generator.bed_level(x, z)?;
+            let mut start = bed.checked_sub(1).ok_or("surface coordinate underflow")?;
+            for (cell, slot) in &self.edits {
+                if cell.x == x && cell.z == z && self.properties.get(slot).is_some_and(|property| property.solid) {
+                    start = start.max(cell.y);
+                }
+            }
+            starts.push((x, z, start));
+        }
+        let mut samples = 0usize;
+        let mut result = Vec::with_capacity(columns.len());
+        for (x, z, mut y) in starts {
+            let mut found = None;
+            while self.generator.contains_cell(Cell { x, y, z }) {
+                if samples == Self::SURFACE_SAMPLES {
+                    return Err("surface query sample budget exhausted");
+                }
+                let cell = Cell { x, y, z };
+                let material = self.query(cell)?;
+                samples += 1;
+                if self.properties.get(&material).is_some_and(|property| property.solid) {
+                    found = Some(SurfaceCell { cell, material });
+                    break;
+                }
+                y = y.checked_sub(1).ok_or("surface coordinate underflow")?;
+            }
+            result.push(found);
+        }
+        Ok(result)
     }
     pub fn page_projection(&mut self, origin: Cell) -> Result<Box<[u16; 4096]>, &'static str> {
         if origin.x.rem_euclid(16) != 0
@@ -747,6 +795,30 @@ mod tests {
         let too_many = vec![valid; 257];
         assert!(terrain.query_cells(&too_many).is_err());
         assert!(terrain.query_cells(&[valid, Cell { x: i64::MAX, y: i32::MAX, z: i64::MAX }]).is_err());
+    }
+
+    #[test]
+    fn surface_query_finds_generated_surface_and_sparse_excavation_lowers_it() {
+        let mut terrain = owner();
+        let column = (0, 0);
+        let bed = terrain.generator.bed_level(column.0, column.1).unwrap();
+        let surface = Cell { x: column.0, y: bed - 1, z: column.1 };
+        let original = terrain.surface_cells(&[column]).unwrap()[0].unwrap();
+        assert_eq!(original.cell, surface);
+        let prepared = match terrain.prepare_excavation(surface, original.material, 0).unwrap() {
+            PrepareResult::Prepared(value) => value,
+            blocked => panic!("unexpected {blocked:?}"),
+        };
+        terrain.apply(prepared).unwrap();
+        let lowered = terrain.surface_cells(&[column]).unwrap()[0].unwrap();
+        assert_eq!(lowered.cell.y, surface.y - 1);
+    }
+
+    #[test]
+    fn surface_query_rejects_bad_count_and_column_bounds() {
+        let mut terrain = owner();
+        assert!(terrain.surface_cells(&vec![(0, 0); 65]).is_err());
+        assert!(terrain.surface_cells(&[(i64::MAX, 0)]).is_err());
     }
     #[test]
     fn encoded_size_matches_export_for_empty_and_negative_edits() {

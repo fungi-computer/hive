@@ -1,7 +1,7 @@
 //! Physical terrain-to-water composition. No independent material grid is kept.
 //! The admitted coordinates bound transport work, not the generated world size.
 use crate::generation::Cell;
-use crate::terrain::{AppliedChange, BlockReason, PrepareResult, TerrainOwner};
+use crate::terrain::{AppliedChange, BlockReason, PrepareResult, SurfaceCell, TerrainOwner};
 use crate::water::{CellDefinition, CompiledWater, FaceDefinition, SoilRule,
     WaterCellKind, WaterDefinition, WaterLimits, WaterRebind, WaterRebindBlock,
     WaterState, WaterStock, WaterWorkspace, WaterFacts, WaterWork};
@@ -195,6 +195,9 @@ impl TerrainWater {
     /// input order and rejecting the complete batch before sampling.
     pub fn materials(&mut self, cells: &[Cell]) -> Result<Vec<u16>, String> {
         Ok(self.terrain.query_cells(cells)?)
+    }
+    pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, String> {
+        Ok(self.terrain.surface_cells(columns)?)
     }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.graph.facts(&self.state) }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
