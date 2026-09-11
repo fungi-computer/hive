@@ -4,7 +4,8 @@ import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { entity, MaterialLot, query, transfer } from "../sdk/common";
+import { MaterialLot, transfer } from "../sdk/common";
+import { entity, query } from "../sdk/authoring";
 import { colonyLumberId, colonyPack } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
