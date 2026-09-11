@@ -8,6 +8,7 @@ mod registry;
 mod world;
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 pub use world::Kernel;
 
 const ASSIGNMENT_MAX_BYTES: usize = 4096;
@@ -42,6 +43,21 @@ struct AssignmentWire {
 
 #[wasm_bindgen]
 pub struct WasmKernel(Kernel);
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DirectPredictionRequest {
+    position: components::Position,
+    speed: f64,
+    blocked: Vec<[i32; 3]>,
+    bounds: Option<DirectBounds>,
+    inputs: Vec<components::DirectInput>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DirectBounds { min_x: f64, max_x: f64, min_z: f64, max_z: f64 }
+#[derive(Serialize)]
+struct DirectPredictionResponse { position: components::Position }
 fn js_error(error: String) -> JsValue {
     JsValue::from_str(&error)
 }
@@ -83,6 +99,26 @@ impl WasmKernel {
     }
     pub fn world_pose(&self, json: &str) -> Result<String, JsValue> {
         self.0.world_pose_json(json).map_err(js_error)
+    }
+    pub fn predict_direct(&self, json: &str) -> Result<String, JsValue> {
+        if json.len() > 64 * 1024 { return Err(js_error("direct prediction request too large".into())); }
+        let request: DirectPredictionRequest = serde_json::from_str(json).map_err(|e| js_error(e.to_string()))?;
+        if request.inputs.len() > navigation::MAX_DIRECT_INPUTS || request.blocked.len() > 4096 {
+            return Err(js_error("direct prediction input exceeds bounds".into()));
+        }
+        let mut blocked = BTreeSet::new();
+        for cell in request.blocked {
+            if !blocked.insert((cell[0], cell[1], cell[2])) { return Err(js_error("duplicate blocked cell".into())); }
+        }
+        let bounds = request.bounds.map(|b| navigation::Bounds { min_x: b.min_x, max_x: b.max_x, min_z: b.min_z, max_z: b.max_z });
+        let mut position = request.position;
+        let mut expected = None;
+        for input in request.inputs {
+            if input.sequence == 0 || expected.is_some_and(|value| input.sequence != value + 1) { return Err(js_error("direct prediction sequence gap".into())); }
+            expected = Some(input.sequence);
+            position = navigation::direct_step(position, input.x, input.z, request.speed, &blocked, bounds).map_err(js_error)?;
+        }
+        serde_json::to_string(&DirectPredictionResponse { position }).map_err(|e| js_error(e.to_string()))
     }
 
     /// Run the native bounded joint assignment owner through a JSON wire
