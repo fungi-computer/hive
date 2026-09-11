@@ -107,6 +107,8 @@ export function createHiveClient({
   const overlay = new Container();
   const actorLayer = new Container();
   const transientLayer = new Container();
+  const dragGraphic = new Graphics();
+  transientLayer.addChild(dragGraphic);
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
@@ -364,8 +366,8 @@ export function createHiveClient({
       groundSprite.anchor?.set?.(0.5);
       overlay.addChild(groundSprite, actorLayer, transientLayer);
     }
-    for (const child of transientLayer.removeChildren())
-      child.destroy?.({ children: true, texture: false, textureSource: false });
+    dragGraphic.clear();
+    dragGraphic.visible = false;
     groundSprite.position.set(
       320 * camera.zoom + camera.x,
       200 * camera.zoom + camera.y,
@@ -415,7 +417,9 @@ export function createHiveClient({
       if (!entry) {
         entry = {
           container: new Container(),
-          marker: new Graphics(),
+          marker: new Graphics()
+            .ellipse(0, 0, 18, 9)
+            .stroke({ color: 0xe8c779, width: 2 }),
           pawn: new Sprite(),
           label: new Text({
             style: {
@@ -431,13 +435,6 @@ export function createHiveClient({
         actorCache.set(subject.id, entry);
       }
       const animation = animationById.get(subject.id);
-      entry.marker
-        .clear()
-        .ellipse(0, 0, 18, 9)
-        .stroke({
-          color: state.selectedIds.includes(subject.id) ? 0xe8c779 : 0x5f8f7c,
-          width: 2,
-        });
       entry.marker.visible = state.selectedIds.includes(subject.id);
       const figure = art?.figures?.[binding.key];
       const frames = isStatic
@@ -476,17 +473,20 @@ export function createHiveClient({
       drag.start &&
       drag.current
     )
-      transientLayer.addChild(
-        new Graphics()
-          .rect(
-            Math.min(drag.start.x, drag.current.x),
-            Math.min(drag.start.y, drag.current.y),
-            Math.abs(drag.current.x - drag.start.x),
-            Math.abs(drag.current.y - drag.start.y),
-          )
-          .fill({ color: 0xe8c779, alpha: 0.12 })
-          .stroke({ color: 0xe8c779, width: 1 }),
-      );
+      dragGraphic
+        .rect(
+          Math.min(drag.start.x, drag.current.x),
+          Math.min(drag.start.y, drag.current.y),
+          Math.abs(drag.current.x - drag.start.x),
+          Math.abs(drag.current.y - drag.start.y),
+        )
+        .fill({ color: 0xe8c779, alpha: 0.12 })
+        .stroke({ color: 0xe8c779, width: 1 });
+    dragGraphic.visible = Boolean(
+      gesture.getSnapshot().value === "dragging" &&
+      drag.start &&
+      drag.current,
+    );
   }
   function point(event) {
     const rect = app.canvas.getBoundingClientRect();
@@ -750,8 +750,6 @@ export function createHiveClient({
               Math.hypot(position.x - destination.x, position.z - destination.z) < 0.05)
               intendedDestinations.delete(id);
           }
-          draw();
-          renderHud();
         }
       }
       if (event.type === "presentation") {
