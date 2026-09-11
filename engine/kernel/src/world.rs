@@ -2041,7 +2041,7 @@ mod entity_membership_tests {
 
 #[cfg(test)]
 mod lot_water_tests {
-    use super::Kernel;
+    use super::{Kernel, MaterialOutputSpec};
     use serde_json::{json, Value};
 
     fn scene(water: Option<Value>, dest_capacity: u32) -> String {
