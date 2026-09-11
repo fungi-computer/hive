@@ -178,6 +178,9 @@ impl WasmKernel {
     pub fn query(&mut self, json: &str) -> Result<String, JsValue> {
         self.0.query_json(json).map_err(js_error)
     }
+    pub fn entity_membership(&self, json: &str) -> Result<String, JsValue> {
+        self.0.entity_membership_json(json).map_err(js_error)
+    }
     pub fn advance(&mut self, json: &str) -> Result<String, JsValue> {
         self.0.advance_json(json).map_err(js_error)
     }

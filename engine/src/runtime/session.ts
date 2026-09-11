@@ -245,6 +245,28 @@ export class GameSession {
       this.pack.components.map((component) => [component.id, component]),
     );
     const permitted = new Set(allowed.map((component) => component.id));
+    const referenced = new Set<EntityId>();
+    if (!knownTargets) {
+      for (const write of writes) {
+        const definition = definitions.get(write.component);
+        if (!definition || typeof write.value !== "object" || write.value === null) continue;
+        for (const [field, kind] of Object.entries(definition.fields)) {
+          const value = (write.value as Record<string, unknown>)[field];
+          if ((kind === "entity" || kind === "nullable-entity") && value !== null) {
+            if (typeof value !== "string") throw new Error(`unknown entity reference ${field}`);
+            referenced.add(value as EntityId);
+          }
+        }
+      }
+      if (referenced.size > 128) throw new Error("entity reference batch limit reached");
+    }
+    const referencedIds = [...referenced];
+    const membership = knownTargets || referencedIds.length === 0
+      ? undefined
+      : this.port.entityMembership(referencedIds);
+    const referenceMembership = membership
+      ? new Map<EntityId, boolean>(referencedIds.map((id, index) => [id, membership[index] ?? false]))
+      : undefined;
     return writes.map((write) => {
       if (
         !permitted.has(write.component) ||
@@ -280,14 +302,10 @@ export class GameSession {
           (kind === "entity" || kind === "nullable-entity") &&
           value !== null
         ) {
-          const targets =
-            knownTargets ??
-            new Set<EntityId>(
-            readKernelEntities(this.port.snapshot()).scene.initial.map(
-                (row) => (row as { id: EntityId }).id,
-              ),
-            );
-          if (typeof value !== "string" || !targets.has(value as EntityId))
+          const targetKnown = knownTargets
+            ? knownTargets.has(value as EntityId)
+            : referenceMembership?.get(value as EntityId) === true;
+          if (typeof value !== "string" || !targetKnown)
             throw new Error(`unknown entity reference ${field}`);
         }
       }

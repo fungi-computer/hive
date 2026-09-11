@@ -53,3 +53,16 @@ test("actual WASM captures opaque water records and restores atomically", () => 
     assert.deepEqual(capture(recovered), before);
   } finally { first.free(); recovered.free(); }
 });
+
+test("actual WASM entity membership is positional and bounded", () => {
+  const kernel = new WasmKernel();
+  try {
+    kernel.load(JSON.stringify({
+      format: "hive-game", version: 1, game: "membership", components: [],
+      initial: [{ id: "actor", components: {} }],
+    }));
+    assert.deepEqual(JSON.parse(kernel.entity_membership(JSON.stringify(["actor", "missing"]))), [true, false]);
+    assert.throws(() => kernel.entity_membership(JSON.stringify(["bad id"])));
+    assert.throws(() => kernel.entity_membership(JSON.stringify(Array.from({ length: 129 }, (_, i) => `id-${i}`))));
+  } finally { kernel.free(); }
+});

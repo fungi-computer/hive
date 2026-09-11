@@ -26,6 +26,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   load_environment(json: string): void;
   environment_facts(): string;
   query(json: string): string;
+  entity_membership(json: string): string;
   advance(json: string): string;
   render_facts(): string;
   world_pose(json: string): string;
@@ -60,6 +61,15 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
           return value as V;
         },
       }));
+    },
+    entityMembership(ids) {
+      if (ids.length === 0 || ids.length > 128)
+        throw new Error("entity membership query must contain between 1 and 128 entities");
+      const result = JSON.parse(binding.entity_membership(JSON.stringify(ids))) as unknown;
+      if (!Array.isArray(result) || result.length !== ids.length ||
+          !result.every((value) => typeof value === "boolean"))
+        throw new Error("invalid entity membership result");
+      return result;
     },
     advance(
       delta: number,

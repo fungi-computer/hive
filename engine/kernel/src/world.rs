@@ -548,6 +548,21 @@ impl Kernel {
             .collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
+    pub fn entity_membership_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 16 * 1024 {
+            return Err("entity membership query too large".into());
+        }
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|e| e.to_string())?;
+        if ids.is_empty() || ids.len() > 128 {
+            return Err("invalid entity membership query size".into());
+        }
+        if ids.iter().any(|id| !components::valid_id(id)) {
+            return Err("invalid entity membership ID".into());
+        }
+        let membership = ids.iter().map(|id| self.ids.contains_key(id)).collect::<Vec<_>>();
+        serde_json::to_string(&membership).map_err(|e| e.to_string())
+    }
     pub fn load_environment(&mut self, definition: &str) -> Result<()> {
         self.ensure_ready()?;
         if self.revision != 0 || self.environment.is_some() {
@@ -1498,6 +1513,25 @@ impl Kernel {
             self.direct.insert(entity, state);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod entity_membership_tests {
+    use super::Kernel;
+    use serde_json::json;
+
+    #[test]
+    fn membership_is_authoritative_bounded_and_rejects_invalid_batches() {
+        let mut kernel = Kernel::new();
+        kernel.load(&serde_json::to_string(&json!({
+            "format":"hive-game", "version":1, "game":"membership",
+            "components":[], "initial":[{"id":"actor","components":[]}]
+        })).unwrap()).unwrap();
+        assert_eq!(kernel.entity_membership_json(r#"["actor","missing"]"#).unwrap(), "[true,false]");
+        assert!(kernel.entity_membership_json(r#"["bad id"]"#).is_err());
+        let too_many = serde_json::to_string(&(0..129).map(|i| format!("entity-{i}")).collect::<Vec<_>>()).unwrap();
+        assert!(kernel.entity_membership_json(&too_many).is_err());
     }
 }
 

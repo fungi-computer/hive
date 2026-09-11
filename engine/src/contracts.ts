@@ -241,6 +241,7 @@ export interface KernelPort {
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];
+  readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
   readonly advance: (
     delta: number,
     writes: readonly WriteIntent[],

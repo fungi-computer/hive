@@ -73,8 +73,11 @@ class TestPort implements KernelPort {
   }
   loadEnvironment(_definition: Uint8Array): void {}
   environmentFacts(): unknown { return null; }
+  entityMembership(ids: readonly import("../contracts").EntityId[]): readonly boolean[] {
+    return ids.map((id) => id === "actor");
+  }
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] {
-    return _spec.components.some((component) => component.id === morale.id)
+    return _spec.components.length > 0
       ? [{
           id: entity("actor"),
           get: <V extends object>(_definition: ComponentDefinition<V>) => ({ value: 0 } as V),
@@ -206,6 +209,38 @@ test("a rejected action returns its result while the simulation step advances", 
   assert.equal(value.save().now, 0.25);
   assert.equal(value.save().tick, 1);
   assert.equal(port.snapshot().revision, 1);
+});
+
+test("authored entity references use the bounded native membership batch", () => {
+  const Link = {
+    id: "test.link",
+    version: 1,
+    fields: { target: "entity" },
+    validate: (value: unknown): value is { target: string } =>
+      Boolean(value) && typeof (value as { target?: unknown }).target === "string",
+  } as ComponentDefinition<{ target: string }>;
+  const actor = entity("actor");
+  const port = new TestPort();
+  let calls = 0;
+  const membership = port.entityMembership.bind(port);
+  port.entityMembership = (ids) => { calls++; return membership(ids); };
+  const value = new GameSession({
+    port,
+    pack: {
+      ...pack(port, undefined),
+      components: [morale, Link],
+      systems: [{
+        id: "test.link-system",
+        version: 1,
+        reads: [],
+        writes: [Link],
+        run(context) { context.write(Link, actor, { target: "actor" }); },
+      }],
+    },
+  });
+  value.start();
+  value.step(0.1);
+  assert.equal(calls, 1);
 });
 
 const impact: Impact = {
