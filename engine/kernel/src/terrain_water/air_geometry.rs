@@ -64,6 +64,7 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
         structures: &world.structure_projection,
         graph: &world.graph,
         state: &world.state,
+        replacement: None,
         physical_revision: world.physical_revision,
         epoch: world.epoch,
     }, bounds)
@@ -76,6 +77,7 @@ struct AirQueryView<'a> {
     structures: &'a crate::structure_geometry::GeometryProjection,
     graph: &'a crate::water::CompiledWater,
     state: &'a crate::water::WaterState,
+    replacement: Option<(Cell, u16)>,
     physical_revision: u64,
     epoch: u64,
 }
@@ -95,6 +97,32 @@ pub(super) fn query_structure(
         structures: &prepared.projection,
         graph: &prepared.graph,
         state: &prepared.state,
+        replacement: None,
+        physical_revision,
+        epoch,
+    }, bounds)
+}
+
+pub(super) fn query_excavation(
+    world: &mut TerrainWater,
+    prepared: &super::PreparedExcavation,
+    bounds: AirGeometryBounds,
+) -> Result<AirGeometrySnapshot, String> {
+    if !std::sync::Arc::ptr_eq(&world.owner, &prepared.owner) || world.epoch != prepared.epoch {
+        return Err("prepared excavation is stale or foreign".into());
+    }
+    let physical_revision = world.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
+    let epoch = world.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+    let replacement = Some(world.prepared_excavation_replacement(prepared));
+    let (graph, state) = prepared.water.as_ref()
+        .map(|(graph, state, _)| (graph, state))
+        .unwrap_or((&world.graph, &world.state));
+    query_view(AirQueryView {
+        terrain: &mut world.terrain,
+        structures: &world.structure_projection,
+        graph,
+        state,
+        replacement,
         physical_revision,
         epoch,
     }, bounds)
@@ -127,7 +155,10 @@ fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGe
         for y in bounds.min.y..bounds.max.y {
             for z in bounds.min.z..bounds.max.z {
                 let at = Cell { x, y, z };
-                let material = view.terrain.query(at)?;
+                let material = match view.replacement {
+                    Some((replacement_cell, replacement)) if replacement_cell == at => replacement,
+                    _ => view.terrain.query(at)?,
+                };
                 if !view.terrain.is_open_material(material) || view.structures.is_bulk_solid(at) {
                     continue;
                 }

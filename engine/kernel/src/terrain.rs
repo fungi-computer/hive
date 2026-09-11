@@ -598,6 +598,9 @@ impl TerrainOwner {
     pub fn prepared_removed(&self, prepared: &PreparedChange) -> u16 {
         prepared.removed
     }
+    pub fn prepared_replacement(&self, prepared: &PreparedChange) -> u16 {
+        prepared.replacement
+    }
     pub fn prepared_volume_m3(&self, prepared: &PreparedChange) -> f64 {
         prepared.cell_volume_m3
     }
