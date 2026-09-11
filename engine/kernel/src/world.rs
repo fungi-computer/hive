@@ -215,6 +215,7 @@ mod construction_tests {
         assert_eq!(facts[0], json!({"solid":false,"sealedTop":true,"outside":false}));
         assert_eq!(facts[1], json!({"solid":true,"sealedTop":false,"outside":false}));
         assert_eq!(facts[2], json!({"solid":false,"sealedTop":false,"outside":true}));
+        assert!(kernel.physical_contacts_json(&json!([[surface.x, i64::from(i32::MAX) + 1, surface.z]]).to_string()).is_err());
     }
 }
 
@@ -1033,7 +1034,9 @@ impl Kernel {
         if input.len() > 16 * 1024 { return Err("physical contact query exceeds input budget".into()); }
         let coordinates: Vec<[i64; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
         if coordinates.is_empty() || coordinates.len() > 64 { return Err("physical contact query exceeds cell budget".into()); }
-        let cells: Vec<_> = coordinates.into_iter().map(|[x, y, z]| crate::generation::Cell { x, y: i32::try_from(y).map_err(|_| "physical contact y coordinate out of range")?, z }).collect();
+        let cells: Vec<_> = coordinates.into_iter().map(|[x, y, z]| {
+            Ok(crate::generation::Cell { x, y: i32::try_from(y).map_err(|_| "physical contact y coordinate out of range")?, z })
+        }).collect::<Result<Vec<_>, String>>()?;
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         let facts: Vec<_> = cells.into_iter().map(|cell| {
             let material = environment.world.traversal_material(cell)?;
