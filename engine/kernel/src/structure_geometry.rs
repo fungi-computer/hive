@@ -6,7 +6,7 @@
 //! projection; this module does not maintain a second material grid.
 
 use crate::generation::{Bounds, Cell};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 const MAX_INSTANCES: usize = 4096;
@@ -253,6 +253,23 @@ impl GeometryProjection {
     }
     pub fn solid_cells(&self) -> impl Iterator<Item = &Cell> { self.solids.iter() }
     pub fn explicit_faces(&self) -> impl Iterator<Item = &Face> { self.explicit_faces.iter() }
+    /// Return exposed authored horizontal support faces for requested columns.
+    /// The projection is the only derived structure index; callers receive a
+    /// bounded rebuilt view and no terrain material is inferred here.
+    pub fn horizontal_surfaces(&self, columns: &BTreeSet<(i64, i64)>) -> BTreeMap<(i64, i64), Vec<Cell>> {
+        let mut surfaces: BTreeMap<_, BTreeSet<_>> = columns.iter().copied().map(|column| (column, BTreeSet::new())).collect();
+        let mut add = |cell: Cell| {
+            if let Some(column) = surfaces.get_mut(&(cell.x, cell.z)) {
+                let above = cell.y.checked_add(1).map(|y| Cell { y, ..cell });
+                if above.is_none_or(|neighbor| !self.solids.contains(&neighbor)) { column.insert(cell); }
+            }
+        };
+        for face in &self.explicit_faces {
+            if face.axis == FaceAxis::Y { add(face.cell); }
+        }
+        for cell in &self.solids { add(*cell); }
+        surfaces.into_iter().map(|(column, cells)| (column, cells.into_iter().collect())).collect()
+    }
 }
 
 impl Face {
@@ -344,6 +361,21 @@ mod tests {
             StaticInstance::Wall { id: "wall-a".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
             StaticInstance::Wall { id: "wall-b".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
         ]).is_err());
+    }
+
+    #[test]
+    fn horizontal_surfaces_keep_distinct_levels_and_stair_tops() {
+        let geometry = StaticGeometry::new(bounds(), vec![
+            StaticInstance::Floor { id: "low".into(), support: Cell { x: 0, y: 0, z: 0 } },
+            StaticInstance::Wall { id: "middle".into(), base: Cell { x: 0, y: 1, z: 0 }, height: 1 },
+            StaticInstance::Floor { id: "high".into(), support: Cell { x: 0, y: 2, z: 0 } },
+            StaticInstance::Stair { id: "stairs".into(), origin: Cell { x: 2, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 },
+        ]).unwrap();
+        let projection = geometry.projection().unwrap();
+        let columns = [(0, 0), (3, 0)].into_iter().collect();
+        let surfaces = projection.horizontal_surfaces(&columns);
+        assert_eq!(surfaces[&(0, 0)], vec![Cell { x: 0, y: 1, z: 0 }, Cell { x: 0, y: 2, z: 0 }]);
+        assert_eq!(surfaces[&(3, 0)], vec![Cell { x: 3, y: 1, z: 0 }]);
     }
 
     #[test]

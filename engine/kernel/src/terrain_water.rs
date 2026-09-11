@@ -259,6 +259,20 @@ impl TerrainWater {
     pub(crate) fn structure_instances(&self) -> Vec<StaticInstance> {
         self.structures.instances().to_vec()
     }
+    pub fn structure_surfaces(&self, columns: &[(i64, i64)]) -> Result<Vec<Vec<Cell>>, String> {
+        if columns.is_empty() || columns.len() > 64 { return Err("structure surface query exceeds column budget".into()); }
+        let bounds = self.terrain.bounds();
+        let mut requested = BTreeSet::new();
+        for &(x, z) in columns {
+            if x < bounds.min_x || x > bounds.max_x || z < bounds.min_z || z > bounds.max_z {
+                return Err("structure surface column is outside generated bounds".into());
+            }
+            requested.insert((x, z));
+        }
+        let projection = self.structures.projection()?;
+        let indexed = projection.horizontal_surfaces(&requested);
+        Ok(columns.iter().map(|column| indexed.get(column).cloned().unwrap_or_default()).collect())
+    }
 
     /// Query current terrain material through the composed owner, preserving
     /// input order and rejecting the complete batch before sampling.
