@@ -231,6 +231,9 @@ fn identity(definition: &AtmosphereDefinition) -> Result<String, String> {
 }
 
 mod definition;
+mod rebind;
+#[cfg(test)]
+mod rebind_tests;
 mod exchange;
 mod state;
 #[cfg(test)]
