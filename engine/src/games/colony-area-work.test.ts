@@ -14,7 +14,7 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("dig", { area: { start: [1, 0], end: [2, 0], fixedY: 0 } });
+    session.command("dig", { area: { start: [1, 0, 0], end: [2, 0, 0] } });
     const orders = session.query(query(ColonyDigOrder));
     assert.deepEqual(orders.map((row) => row.id), [
       "colony.dig.1.0.0",
@@ -33,7 +33,7 @@ test("actual WASM rejects an area above the bounded designation size", () => {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     assert.throws(
-      () => session.command("dig", { area: { start: [0, 0], end: [16, 15], fixedY: 0 } }),
+      () => session.command("dig", { area: { start: [0, 0, 0], end: [16, 0, 15] } }),
       /256 cells/,
     );
     assert.equal(session.query(query(ColonyDigOrder)).length, 0);
