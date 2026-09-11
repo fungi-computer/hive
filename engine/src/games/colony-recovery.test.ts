@@ -5,7 +5,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { colonyPack } from "./colony";
-import { entity, MaterialLot, query } from "../sdk/index";
+import { entity, MaterialLot, Destination, query } from "../sdk/index";
 import { DeliveryTask } from "../sdk/delivery";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -48,5 +48,28 @@ test("colony delivery retains cargo and completes with restore between every hos
     const saved = session.save();
     session.restore(saved);
     assert.deepEqual(session.save(), saved);
+  } finally { port.dispose(); }
+});
+
+
+test("colony delivery keeps its native route instead of admitting it every tick", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({ port, pack: colonyPack });
+  const worker = entity("colony.worker.1");
+  try {
+    session.start();
+    session.command("deliver", { entities: [worker], quantity: 1 });
+    let checked = false;
+    for (let tick = 0; tick < 100; tick++) {
+      const before = session.query(query(Destination)).find(row => row.id === worker)?.get(Destination);
+      session.step(0.05);
+      const after = session.query(query(Destination)).find(row => row.id === worker)?.get(Destination);
+      if (before && after && before.x === after.x && before.y === after.y && before.z === after.z && before.frame === after.frame) {
+        assert.equal(session.save().outcomes.filter(outcome => outcome.action.kind === "move" && outcome.action.entity === worker).length, 0);
+        checked = true;
+        break;
+      }
+    }
+    assert.equal(checked, true, "observed a continuing native route");
   } finally { port.dispose(); }
 });
