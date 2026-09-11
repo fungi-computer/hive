@@ -87,3 +87,17 @@ fn terrain_kernel_same_position_move_has_no_pending_route() {
     assert!(kernel.ecs.get::<Destination>(actor).is_none());
     Kernel::new().restore_records(&kernel.save_records().unwrap()).unwrap();
 }
+
+#[test]
+fn terrain_kernel_long_tick_cannot_cross_blocked_second_segment() {
+    let (mut kernel,target) = climbing_world();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let actor = kernel.entity("walker").unwrap();
+    let before = *kernel.ecs.get::<Position>(actor).unwrap();
+    kernel.blocked_by_frame.get_mut(&None).unwrap().insert((target.x.round() as i32,target.y.round() as i32,target.z.round() as i32));
+    kernel.advance_movement(2.0).unwrap();
+    let after = kernel.ecs.get::<Position>(actor).unwrap();
+    assert_eq!((after.x,after.y,after.z),(before.x,before.y,before.z));
+    assert!(kernel.terrain_routes[&actor].waiting);
+    assert!(kernel.ecs.get::<Destination>(actor).is_some());
+}

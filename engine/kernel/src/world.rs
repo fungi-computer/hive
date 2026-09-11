@@ -59,6 +59,31 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
     true
 }
 
+/// Check only the segments this movement budget could consume. This avoids
+/// both tunnelling through a later corner and scanning an entire future route.
+fn terrain_motion_blocked(position: Position, path: &VecDeque<Point>, mut budget: f64,
+    blocked: &BTreeSet<navigation::Cell>) -> bool {
+    let mut from = navigation::point(position);
+    for target in path {
+        if budget <= 0.0 { break; }
+        let distance = ((target.x-from.x).powi(2)+(target.y-from.y).powi(2)+(target.z-from.z).powi(2)).sqrt();
+        let fraction = if distance == 0.0 { 1.0 } else { (budget/distance).min(1.0) };
+        let end = Point { x:from.x+(target.x-from.x)*fraction, y:from.y+(target.y-from.y)*fraction,
+            z:from.z+(target.z-from.z)*fraction, frame:None };
+        let ranges = [(from.x,end.x),(from.y,end.y),(from.z,end.z)].map(|(a,b)| (a.min(b).round() as i32,a.max(b).round() as i32));
+        for x in ranges[0].0..=ranges[0].1 {
+            for y in ranges[1].0..=ranges[1].1 {
+                for z in ranges[2].0..=ranges[2].1 {
+                    if blocked.contains(&(x,y,z)) && segment_intersects_cell(&from,&end,(x,y,z)) { return true; }
+                }
+            }
+        }
+        budget = (budget-distance).max(0.0);
+        from = target.clone();
+    }
+    false
+}
+
 pub struct KernelRecords {
     pub entities: String,
     pub environment: Option<(String, crate::terrain_water::TerrainWaterRecords)>,
@@ -1865,6 +1890,13 @@ impl Kernel {
                 return true;
             }
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");
+            if self.terrain_routes.contains_key(entity) {
+                let blocked = self.blocked_by_frame.get(&None).expect("terrain obstacle index");
+                if terrain_motion_blocked(p, path, speed * delta, blocked) {
+                    self.terrain_routes.get_mut(entity).expect("terrain route").waiting = true;
+                    return true;
+                }
+            }
             let last_reached = navigation::advance(&mut p, path, speed * delta);
             if let Some(state) = self.terrain_routes.get_mut(entity) {
                 if let Some(point) = last_reached { state.origin = point; }
