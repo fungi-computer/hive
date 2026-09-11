@@ -72,6 +72,23 @@ doors/vents need shared physical definitions before they can change ventilation.
 The retained `goblin-environment/gas-geometry.ts` supplies the comparison for
 water-displaced free volume and actual exterior classification.
 
+### Routing trap correction
+
+The full-Chrome comparison u5874 stayed inspectable but stopped at 12 simulated
+seconds with a secondary runtime-not-started error. The first-error observer
+u5882 captured `unreachable`. Exact bundled Worker code reproduced that failure
+without graphics in u5886; stack-only diagnostic u5888 identified Rust
+`slice_index_fail` inside `Kernel::route_for`.
+
+`06d03af` selects the next support endpoint by actual waypoint progress rather
+than the first historical visit to that cell. The repeated mid-edge retarget and
+save/restore law passed u5889. Rebuilt WASM u5893 then passed the same old-JS
+Worker reproduction for 1,100 steps / 36.3 simulated seconds in u5895. This is a
+specific reproduced trap correction, not proof of every earlier browser crash.
+`a9bbdba` also preserves fatal Worker errors and supports explicit fresh reset;
+its focused fault-injection law and strict types passed u5897. The changed game
+build u5899 passed; actual multi-level input qualification remains pending.
+
 ### Retained production is the restoration reference
 
 Levi reaffirmed that construction alone does not restore Colony. Read actual
