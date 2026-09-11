@@ -12,6 +12,7 @@ import type {
   TerrainSurface,
   WorldPose,
   WriteIntent,
+  EntityRecord,
 } from "../contracts";
 import { checkedAssignments } from "../sdk/assignment";
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
@@ -165,10 +166,11 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     advance(
       delta: number,
       writes: readonly WriteIntent[],
-      actions: readonly ActionRequest[],
+    actions: readonly ActionRequest[],
+    options?: { readonly creates?: readonly EntityRecord[]; readonly removes?: readonly EntityId[] },
     ): AdvanceResult {
       const result = JSON.parse(
-        binding.advance(JSON.stringify({ delta, writes, actions })),
+        binding.advance(JSON.stringify({ delta, writes, actions, creates: options?.creates ?? [], removes: options?.removes ?? [] })),
       ) as AdvanceResult;
       if (!Number.isSafeInteger(result.revision) || result.revision < 0 ||
           !Array.isArray(result.results) || !Array.isArray(result.impacts))

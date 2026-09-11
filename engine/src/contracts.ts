@@ -175,6 +175,8 @@ export interface WriteContext extends ReadContext {
     value: T,
   ): void;
   action(request: ActionRequest): void;
+  createAuthoredEntity(record: EntityRecord): void;
+  removeAuthoredEntity(id: EntityId): void;
 }
 export interface SystemDefinition {
   readonly id: ComponentId;
@@ -261,6 +263,7 @@ export interface KernelPort {
     delta: number,
     writes: readonly WriteIntent[],
     actions: readonly ActionRequest[],
+    options?: { readonly creates?: readonly EntityRecord[]; readonly removes?: readonly EntityId[] },
   ) => AdvanceResult;
   readonly snapshot: () => KernelSnapshot;
   readonly restore: (snapshot: KernelSnapshot) => void;
@@ -285,12 +288,14 @@ export interface GamePack {
 export interface GameCommandResult {
   readonly actions: readonly ActionRequest[];
   readonly writes: readonly WriteIntent[];
+  readonly creates?: readonly EntityRecord[];
+  readonly removes?: readonly EntityId[];
 }
 export interface GameCommandDefinition {
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
   readonly run: (
-    context: Pick<ReadContext, "query">,
+    context: Pick<WriteContext, "query" | "createAuthoredEntity" | "removeAuthoredEntity">,
     input: unknown,
   ) => GameCommandResult;
 }
