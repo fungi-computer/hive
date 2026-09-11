@@ -323,7 +323,7 @@ fn face_area(
     };
     area.is_finite()
         .then_some(area)
-        .ok_or("atmosphere face area is invalid")
+        .ok_or_else(|| "atmosphere face area is invalid".into())
 }
 
 fn find(parent: &mut [usize], value: usize) -> usize {
