@@ -25,6 +25,9 @@ export type SiteSupplyOptions = {
 function validQuantity(value: number): boolean {
   return Number.isSafeInteger(value) && value > 0 && value <= MAX_QUANTITY;
 }
+function validLotQuantity(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0 && value <= MAX_QUANTITY;
+}
 
 function validMaterial(value: string): boolean {
   return value.length > 0 && value.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(value);
@@ -35,11 +38,15 @@ function compareId(left: EntityId, right: EntityId): number {
 }
 
 function compareRequirement(left: SiteSupplyRequirement, right: SiteSupplyRequirement): number {
-  return compareId(left.destination, right.destination) || left.material.localeCompare(right.material);
+  const destination = compareId(left.destination, right.destination);
+  if (destination !== 0) return destination;
+  return left.material < right.material ? -1 : left.material > right.material ? 1 : 0;
 }
 
 function taskId(destination: EntityId, material: string): EntityId {
-  return entity(`${TASK_PREFIX}${destination}.${material}`);
+  const id = `${TASK_PREFIX}${destination.length}:${destination}${material.length}:${material}`;
+  if (id.length > 128) throw new Error("site supply task identity exceeds bound");
+  return entity(id);
 }
 
 function addChecked(map: Map<string, number>, key: string, quantity: number): void {
@@ -65,14 +72,19 @@ export function planSiteSupplies(
   const batchQuantity = options.batchQuantity ?? 1;
   if (!validQuantity(batchQuantity)) throw new Error("invalid site supply batch quantity");
 
-  const requirements = [...options.requirements].sort(compareRequirement);
-  const seenRequirements = new Set<string>();
-  for (const requirement of requirements) {
+  for (const requirement of options.requirements) {
+    if (!requirement || typeof requirement !== "object") throw new Error("invalid site supply requirement");
     entity(requirement.destination);
     if (!validMaterial(requirement.material) || !validQuantity(requirement.quantity))
       throw new Error("invalid site supply requirement");
+  }
+  const requirements = [...options.requirements].sort(compareRequirement);
+  const seenRequirements = new Set<string>();
+  for (const requirement of requirements) {
     const key = `${requirement.destination}\0${requirement.material}`;
-    if (!seenRequirements.add(key)) throw new Error("duplicate site supply requirement");
+    if (seenRequirements.has(key)) throw new Error("duplicate site supply requirement");
+    seenRequirements.add(key);
+    taskId(requirement.destination, requirement.material);
   }
   const sourceIds = [...new Set(options.sourceContainers)].sort(compareId);
   for (const source of sourceIds) entity(source);
@@ -87,10 +99,11 @@ export function planSiteSupplies(
   const quantityByDestinationMaterial = new Map<string, number>();
   for (const row of lots) {
     const lot = row.get(MaterialLot);
-    if (!validQuantity(lot.quantity)) {
+    if (!validLotQuantity(lot.quantity)) {
       invalidContainers.add(lot.container);
       continue;
     }
+    if (lot.quantity === 0) continue;
     const total = (quantityByContainer.get(lot.container) ?? 0) + lot.quantity;
     if (!Number.isSafeInteger(total) || total > MAX_QUANTITY) invalidContainers.add(lot.container);
     else quantityByContainer.set(lot.container, total);
@@ -100,19 +113,14 @@ export function planSiteSupplies(
     else quantityByDestinationMaterial.set(key, materialTotal);
   }
 
-  const claimedByLot = new Map<EntityId, number>();
+  const claimedLots = new Set<EntityId>();
   const promisedByDestinationMaterial = new Map<string, number>();
   const activeDestination = new Set<EntityId>();
-  const completedOwned = new Set<EntityId>();
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
-    if (task.phase === "complete") {
-      const lot = lotById.get(task.sourceLot);
-      if (row.id.startsWith(TASK_PREFIX) && lot?.container === task.destination) completedOwned.add(row.id);
-      continue;
-    }
+    if (task.phase === "complete") continue;
     activeDestination.add(task.destination);
-    if (validQuantity(task.quantity)) addChecked(claimedByLot, task.sourceLot, task.quantity);
+    claimedLots.add(task.sourceLot);
     if (validQuantity(task.quantity) && validMaterial(task.material))
       addChecked(promisedByDestinationMaterial, `${task.destination}\0${task.material}`, task.quantity);
   }
@@ -126,6 +134,17 @@ export function planSiteSupplies(
     .sort((left, right) => compareId(left.id, right.id));
   const created: EntityId[] = [];
   for (const requirement of requirements) {
+    const id = taskId(requirement.destination, requirement.material);
+    const existing = tasks.find((row) => row.id === id);
+    if (existing) {
+      const state = existing.get(DeliveryTask);
+      const lot = lotById.get(state.sourceLot);
+      if (state.phase === "complete" && lot?.container === state.destination &&
+          taskId(state.destination, state.material) === existing.id) {
+        context.removeAuthoredEntity(id);
+      }
+      continue;
+    }
     const destinationContainer = containers.get(requirement.destination);
     if (
       !destinationContainer ||
@@ -142,21 +161,12 @@ export function planSiteSupplies(
     const promised = promisedByDestinationMaterial.get(key) ?? 0;
     const remaining = requirement.quantity - stocked - promised;
     if (remaining < 1) continue;
-    const id = taskId(requirement.destination, requirement.material);
-    const existing = tasks.find((row) => row.id === id);
-    if (existing) {
-      const state = existing.get(DeliveryTask);
-      if (!(state.phase === "complete" && completedOwned.has(id))) continue;
-      context.removeAuthoredEntity(id);
-      continue;
-    }
     const source = sourceLots.find(({ lot, id: lotId }) => {
-      if (lot.kind !== requirement.material || invalidContainers.has(lot.container)) return false;
-      const available = lot.quantity - (claimedByLot.get(lotId) ?? 0);
-      return available > 0;
+      if (lot.kind !== requirement.material || invalidContainers.has(lot.container) || lot.container === requirement.destination) return false;
+      return !claimedLots.has(lotId) && lot.quantity > 0;
     });
     if (!source) continue;
-    const available = source.lot.quantity - (claimedByLot.get(source.id) ?? 0);
+    const available = source.lot.quantity;
     const quantity = Math.min(batchQuantity, remaining, freeCapacity, available);
     if (!validQuantity(quantity)) continue;
     const record: EntityRecord = {
@@ -168,6 +178,8 @@ export function planSiteSupplies(
           source: source.lot.container,
           destination: requirement.destination,
           material: requirement.material,
+          // This is a finite planning cap. The delivery provider must preserve
+          // it when applying a worker's DeliveryControl quantity.
           quantity,
           phase: "idle",
         },
@@ -176,7 +188,7 @@ export function planSiteSupplies(
     context.createAuthoredEntity(record);
     created.push(id);
     activeDestination.add(requirement.destination);
-    addChecked(claimedByLot, source.id, quantity);
+    claimedLots.add(source.id);
   }
   return created;
 }
