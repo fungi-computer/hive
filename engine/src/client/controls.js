@@ -63,7 +63,7 @@ export const terrainTargetMachine = createMachine({
     } },
   },
 }, { actions: {
-  arm: assign(({ event }) => ({ control: event.control })),
+      arm: assign(({ event }) => ({ control: event.control, anchor: null, hover: null })),
       clear: assign({ control: null, anchor: null, hover: null }),
       anchor: assign(({ event }) => ({ anchor: event.anchor, hover: null })),
       hover: assign(({ event }) => ({ hover: event.cell ?? null })),
