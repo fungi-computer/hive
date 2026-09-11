@@ -1,34 +1,103 @@
 const MAX_FRAMES = 32;
 const MAX_FACTS = 512;
+const DEFAULT_LOCAL_DELAY_MS = 66;
+const DEFAULT_ONLINE_SAMPLE_MS = 250;
 
+function copyPoint(point) {
+  return point ? { x: point.x, y: point.y, z: point.z } : point;
+}
 function copyFact(fact) {
   return {
     ...fact,
     pose: fact.pose
-      ? { ...fact.pose, position: { ...fact.pose.position } }
+      ? { ...fact.pose, position: copyPoint(fact.pose.position) }
       : undefined,
+    local: fact.local
+      ? { ...fact.local, position: copyPoint(fact.local.position) }
+      : undefined,
+    surface: fact.surface ? { ...fact.surface } : fact.surface,
   };
 }
 function copyFacts(facts) {
   return facts.map(copyFact);
 }
-function interpolate(a, b, amount) {
-  if (!a.pose?.position || !b.pose?.position)
-    return copyFact(amount < 0.5 ? a : b);
+function interpolatePose(a, b, amount) {
+  if (!a?.position || !b?.position) return amount < 0.5 ? a : b;
   return {
-    ...copyFact(a),
-    pose: {
-      ...b.pose,
-      position: {
-        x: a.pose.position.x + (b.pose.position.x - a.pose.position.x) * amount,
-        y: a.pose.position.y + (b.pose.position.y - a.pose.position.y) * amount,
-        z: a.pose.position.z + (b.pose.position.z - a.pose.position.z) * amount,
-      },
+    position: {
+      x: a.position.x + (b.position.x - a.position.x) * amount,
+      y: a.position.y + (b.position.y - a.position.y) * amount,
+      z: a.position.z + (b.position.z - a.position.z) * amount,
     },
+    facing: a.facing + (b.facing - a.facing) * amount,
   };
 }
+function interpolateFact(a, b, amount) {
+  if (!a || !b) return copyFact(a ?? b);
+  const next = copyFact(a);
+  next.pose = interpolatePose(a.pose, b.pose, amount);
+  if (a.local || b.local)
+    next.local = {
+      ...(amount < 0.5 ? a.local : b.local),
+      ...interpolatePose(a.local, b.local, amount),
+    };
+  next.support = amount < 0.5 ? a.support : b.support;
+  return next;
+}
+function composeSupported(
+  fact,
+  facts,
+  cache = new Map(),
+  visiting = new Set(),
+) {
+  if (!fact?.support || !fact.local?.position) return copyFact(fact);
+  if (cache.has(fact.id)) return cache.get(fact.id);
+  if (visiting.has(fact.id)) return copyFact(fact);
+  visiting.add(fact.id);
+  const parent = facts.get(fact.support);
+  const composedParent = parent
+    ? composeSupported(parent, facts, cache, visiting)
+    : undefined;
+  const result = copyFact(fact);
+  if (composedParent?.pose?.position) {
+    const angle = ((composedParent.pose.facing ?? 0) * Math.PI) / 2;
+    const { x, y, z } = fact.local.position;
+    const cos = Math.cos(angle),
+      sin = Math.sin(angle);
+    result.pose = {
+      ...result.pose,
+      position: {
+        x: composedParent.pose.position.x + cos * x - sin * z,
+        y: composedParent.pose.position.y + y,
+        z: composedParent.pose.position.z + sin * x + cos * z,
+      },
+      facing: (composedParent.pose.facing ?? 0) + (fact.local.facing ?? 0),
+    };
+  }
+  visiting.delete(fact.id);
+  cache.set(fact.id, result);
+  return result;
+}
+function composeFacts(facts) {
+  const byId = new Map(facts.map((fact) => [fact.id, fact]));
+  const cache = new Map();
+  return facts.map((fact) => composeSupported(fact, byId, cache));
+}
 
-export function createInterpolationBuffer({ delayMs = 66 } = {}) {
+/**
+ * Server-time snapshot interpolation. Online playback buffers two 250ms
+ * publications by default; local Worker playback retains its 66ms delay.
+ * The buffer never extrapolates and reanchors only after a committed sample.
+ */
+export function createInterpolationBuffer({
+  cadence = "local",
+  sampleIntervalMs = DEFAULT_ONLINE_SAMPLE_MS,
+  delayMs = cadence === "online"
+    ? sampleIntervalMs * 2
+    : DEFAULT_LOCAL_DELAY_MS,
+} = {}) {
+  if (cadence !== "local" && cadence !== "online")
+    throw new Error("unknown interpolation cadence");
   const frames = [];
   let epoch;
   let latestSequence = -1;
@@ -40,7 +109,6 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
   let frozen;
   let displayed = [];
   let displayedTime = -Infinity;
-
   function reset(nextEpoch) {
     frames.length = 0;
     epoch = nextEpoch;
@@ -54,7 +122,6 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     displayed = [];
     displayedTime = -Infinity;
   }
-
   function push(frame, receivedAt = performance.now()) {
     if (
       !Number.isInteger(frame.sequence) ||
@@ -77,27 +144,25 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
       facts: copyFacts(frame.facts),
     });
     if (frames.length > MAX_FRAMES) frames.shift();
-
     if (
       !paused &&
       Number.isFinite(receivedAt) &&
       (anchor === undefined || starved || awaitingAnchor)
     ) {
+      // `anchor` maps the server clock onto the local receipt clock.  Keep
+      // presentation delay in render(), otherwise it would cancel itself
+      // when a new sample reanchors the timeline.
       anchor = receivedAt - frame.time * 1000;
       awaitingAnchor = false;
       starved = false;
       frozen = undefined;
-    } else if (paused) {
-      awaitingAnchor = true;
-    }
+    } else if (paused) awaitingAnchor = true;
     return true;
   }
-
   function publish(facts) {
-    displayed = copyFacts(facts);
+    displayed = composeFacts(copyFacts(facts));
     return copyFacts(displayed);
   }
-
   function render(
     now = performance.now(),
     { paused: nextPaused = paused } = {},
@@ -117,20 +182,20 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
       awaitingAnchor = true;
     }
     if (awaitingAnchor) return copyFacts(frozen ?? displayed ?? latest.facts);
-
     anchor ??= now - latest.time * 1000;
-    const target = Math.min(latest.time, Math.max(displayedTime, (now - anchor - delayMs) / 1000));
+    const target = Math.min(
+      latest.time,
+      Math.max(displayedTime, (now - anchor - delayMs) / 1000),
+    );
     displayedTime = target;
-    const first = frames[0];
-    if (target <= first.time) return publish(first.facts);
     if (target >= latest.time) {
       starved = true;
-      anchor = now - latest.time * 1000 - delayMs;
       return publish(latest.facts);
     }
-
-    let before = first;
-    let after = latest;
+    const first = frames[0];
+    if (target <= first.time) return publish(first.facts);
+    let before = first,
+      after = latest;
     for (let index = 1; index < frames.length; index++) {
       if (frames[index].time >= target) {
         after = frames[index];
@@ -141,20 +206,15 @@ export function createInterpolationBuffer({ delayMs = 66 } = {}) {
     }
     if (after.time === target || after.time <= before.time)
       return publish(after.facts);
-
     const amount = Math.max(
       0,
       Math.min(1, (target - before.time) / (after.time - before.time)),
     );
-    const next = new Map(after.facts.map((fact) => [fact.id, fact]));
-    return publish(
-      before.facts.map((fact) =>
-        next.has(fact.id)
-          ? interpolate(fact, next.get(fact.id), amount)
-          : copyFact(fact),
-      ),
-    );
+    const afterById = new Map(after.facts.map((fact) => [fact.id, fact]));
+    const sampled = before.facts
+      .filter((fact) => afterById.has(fact.id))
+      .map((fact) => interpolateFact(fact, afterById.get(fact.id), amount));
+    return publish(sampled);
   }
-
-  return { push, render, reset, size: () => frames.length };
+  return { push, render, reset, size: () => frames.length, cadence, delayMs };
 }

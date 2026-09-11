@@ -110,7 +110,12 @@ export function createHiveClient({
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
-  const interpolation = createInterpolationBuffer();
+  // Remote observations arrive at the server's fixed publication cadence;
+  // local Worker frames can stay responsive with the shorter local delay.
+  const interpolation = createInterpolationBuffer({
+    cadence: persistence.online ? "online" : "local",
+  });
+  const intendedDestinations = new Map();
   let frameSequence = 0;
   let frameEpoch;
   let awaitingEpochTransition = false;
@@ -127,6 +132,7 @@ export function createHiveClient({
     state.presentationFacts = [];
     state.presentationControls = [];
     state.dragging = null;
+    intendedDestinations.clear();
     gesture.send({ type: "CANCEL" });
     frameEpoch = undefined;
     frameSequence = 0;
@@ -140,6 +146,7 @@ export function createHiveClient({
   }
 
   function selectEntities(ids) {
+    intendedDestinations.clear();
     state.selectedIds = ids;
     emit({ kind: "select", entities: ids });
     renderHud();
@@ -595,7 +602,8 @@ export function createHiveClient({
         ].includes(key) &&
         actor
       ) {
-        const local = actor.local?.position ?? actor;
+        event.preventDefault();
+        const local = intendedDestinations.get(id) ?? actor.local?.position ?? actor;
         const destination = {
           frame: actor.support ?? null,
           x:
@@ -614,6 +622,9 @@ export function createHiveClient({
                 ? 1
                 : 0),
         };
+        // Key repeat continues from the last requested local cell while the
+        // server catches up; this is an input convenience, not prediction.
+        intendedDestinations.set(id, destination);
         emit({
           kind: "action",
           action: { kind: "move", entity: id, destination },
@@ -716,15 +727,18 @@ export function createHiveClient({
     unsubscribeRuntime = runtime?.subscribe?.((event) => {
       if (event.type === "state" && typeof event.paused === "boolean") {
         state.paused = event.paused;
+        if (state.paused) intendedDestinations.clear();
         renderHud();
       }
       if (event.type === "frame") {
-        if (
-          awaitingEpochTransition &&
-          frameEpoch !== undefined &&
-          event.epoch > frameEpoch
-        )
+        // A reset/restore publishes a higher epoch. Stale frames from the
+        // old stream must never clear the new interpolation timeline.
+        if (frameEpoch !== undefined && event.epoch < frameEpoch) return;
+        if (frameEpoch !== undefined && event.epoch > frameEpoch) {
           interpolation.reset(event.epoch);
+          animationClock.reset();
+          intendedDestinations.clear();
+        }
         if (interpolation.push(event, performance.now())) {
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             animationClock.reset();
@@ -732,6 +746,13 @@ export function createHiveClient({
           }
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
+          for (const [id, destination] of intendedDestinations) {
+            const subject = event.facts.find((fact) => fact.id === id);
+            const position = subject?.local?.position;
+            if (!position || (subject.support ?? null) !== destination.frame ||
+              Math.hypot(position.x - destination.x, position.z - destination.z) < 0.05)
+              intendedDestinations.delete(id);
+          }
           draw();
           renderHud();
         }
@@ -764,6 +785,7 @@ export function createHiveClient({
       if (event.type === "error") {
         state.pendingSave = false;
         state.pendingRestore = false;
+        intendedDestinations.clear();
         state.message = event.message;
         renderHud();
       }
