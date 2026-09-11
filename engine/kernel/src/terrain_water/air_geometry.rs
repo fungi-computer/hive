@@ -203,8 +203,10 @@ mod tests {
                 for y in bounds.min_y..bounds.max_y - 1 {
                     let lower = Cell { x, y, z };
                     let upper = Cell { y: y + 1, ..lower };
-                    if terrain.is_open_material(terrain.query(lower).unwrap())
-                        && terrain.is_open_material(terrain.query(upper).unwrap()) {
+                    let lower_material = terrain.query(lower).unwrap();
+                    let upper_material = terrain.query(upper).unwrap();
+                    if terrain.is_open_material(lower_material)
+                        && terrain.is_open_material(upper_material) {
                         pair = Some(lower);
                         break 'search;
                     }
