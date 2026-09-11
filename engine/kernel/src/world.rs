@@ -1755,6 +1755,12 @@ impl Kernel {
                 clearance_cells: capability.clearance_cells,
                 max_step_cells: capability.max_step_cells,
             };
+            let expected_points = crate::terrain_route::waypoints(&path, config)?;
+            let remaining: Vec<_> = self.routes.get(&entity).map(|route| route.iter().cloned().collect()).unwrap_or_default();
+            if expected_points.len() < 2 || remaining != expected_points[1..] {
+                invalid.push(entity);
+                continue;
+            }
             let mut query = |cell| match environment.world.material(cell) {
                 Ok(material) => Ok(crate::terrain_traversal::TraversalMaterial { solid: !environment.world.is_open_material(material), outside: false }),
                 Err(error) if error == "cell outside world bounds" => Ok(crate::terrain_traversal::TraversalMaterial { solid: false, outside: true }),
@@ -1794,6 +1800,9 @@ impl Kernel {
                 .get::<Destination>(*entity)
                 .expect("route destination")
                 .clone();
+            if path.is_empty() && self.terrain_routes.get(entity).is_some_and(|state| state.waiting) {
+                return true;
+            }
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");
             navigation::advance(&mut p, path, speed * delta);
             p.facing = target.facing;
@@ -1808,6 +1817,20 @@ impl Kernel {
         });
         let finished: Vec<_> = self.terrain_routes.keys().filter(|entity| !self.routes.contains_key(entity)).copied().collect();
         for entity in finished { self.terrain_routes.remove(&entity); }
+        if let Some(environment) = self.environment.as_ref() {
+            let spacing = environment.world.cell_spacing_m();
+            for (entity, state) in self.terrain_routes.iter_mut().filter(|(_, state)| !state.waiting) {
+                let Some(position) = self.ecs.get::<Position>(*entity) else { continue };
+                let current = crate::generation::Cell {
+                    x: (position.x / spacing[0]).round() as i64,
+                    y: (position.y / spacing[1] - 0.5).round() as i32,
+                    z: (position.z / spacing[2]).round() as i64,
+                };
+                if let Some(index) = state.path.iter().position(|cell| *cell == current) {
+                    if index > 0 { state.path.drain(..index); }
+                }
+            }
+        }
         for (entity, prior) in prior_targets {
             if let Some(state) = self.terrain_routes.get_mut(&entity) {
                 let next = self.routes.get(&entity).and_then(|path| path.front().cloned());

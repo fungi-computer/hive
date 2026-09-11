@@ -146,4 +146,19 @@ mod tests {
         let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
         assert!(search(Cell{x:0,y:0,z:0},Cell{x:1,y:2,z:0},config,&mut query).is_err());
     }
+
+    #[test]
+    fn weighted_cost_charges_rise_and_cross_geometry() {
+        let config = TraversalConfig { spacing:[1.0,0.5,1.0],clearance_cells:1,max_step_cells:1 };
+        let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing);
+        let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing);
+        assert!(climb > flat);
+    }
+
+    #[test]
+    fn outside_material_blocks_support_and_ceiling() {
+        let config = TraversalConfig { spacing:[1.0,1.0,1.0],clearance_cells:1,max_step_cells:1 };
+        let mut query = |cell: Cell| Ok(TraversalMaterial { solid: cell.y == 0, outside: cell.x < 0 });
+        assert!(terrain_traversal::node(Cell{x:-1,y:0,z:0}, config, &mut query).unwrap().is_none());
+    }
 }
