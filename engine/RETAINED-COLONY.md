@@ -87,3 +87,21 @@ not another hauling implementation or a `brew` branch in generic persistence.
 
 Two-region Survival remains a parallel goal outcome. Neither this construction
 sequence nor the deferred vision port redefines completion of that objective.
+
+### Area-order restart evidence, September 11
+
+The corrected actual local DO witness passed at integration `d3b2429` using the
+unchanged deployed runtime. `run-u5742.scope`, invocation
+`deda62bb85b3448caac5835aa0d7fc2d`, command terminal 35854, exit 0. Exactly two
+owned Wrangler starts reopened the same SQLite store: admit area while paused,
+stop/reopen, replay the exact command and receipt, then resume. Both selected
+cells were excavated; exactly six spoil units reached the pantry, both workers
+were empty and no dig marks remained. Final state was paused. Scope is
+inactive/dead with empty ControlGroup and port 8789 is free.
+
+Evidence is retained at
+`/mnt/fungi-data/botanical-work/hive-area-recovery-20260911/`, including source
+hashes, area/replay observations and final physical observations. This qualifies
+queued area-command recovery in a local native DO host. It does not establish
+abrupt mid-commit crash behavior, cross-region handoff, hosted restart or new
+performance capacity. No runtime source or deployment changed for this witness.
