@@ -1,3 +1,29 @@
+## Actual terrain Colony consumer and browser — September 11
+
+At source `d74cbed`, the format7 WASM SHA256 is
+`5346c28fc5f77600186352f9dd44a8729e9cef273195b3561a422fac666785d7`.
+Rust build u5622 exited0. Actual WASM Colony u5624 passed all5 behavior tests:
+delivery pause/cargo/restore, generated placement, finite spoil, midway digging
+restore and occupied-support rejection. Its following strict type stage failed
+only new test fixture types; correction33f740c followed by strict-only u5628
+exited0. No behavior replay was needed for those type-only changes.
+
+Default repository build u5626 exposed four retained study imports still using
+the old bake location; d74cbed fixes the actual callers. Default build u5630
+passed. Browser u5632 failed before load because that default build omits engine
+pages. Maintained engine config build u5635 exited0. These setup/build failures
+are preserved, not physical simulation failures.
+
+Root bounded browser u5637 invocation441651921ada4400961f699eac18d966,
+exec82666 exited0 over the exact engine dist using browser-local Worker mode:
+4096 published surface columns, actual Select worker1/Dig/canvas click removed
+observed cell[1,13,0]; errors[]. Root personally viewed
+`.botanical/colony-terrain-browser/colony-terrain.png`: original figures, generated
+cliffs, a cut cell and3carried spoil. Water is not visibly established by this
+capture. No hosted DO/restart, narrow-screen, multi-level exploration or general
+performance claim follows. All listed proof scopes terminal/inactive/dead;
+u5637 ControlGroup empty. No deployment from this packet yet.
+
 ## Terrain Colony delivery regression and correction — September 11
 
 Generated Colony consumer u5610 failed its real restore-between-steps delivery:
