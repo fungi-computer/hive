@@ -116,7 +116,7 @@ mod construction_tests {
     }
 
     #[test]
-    fn blocked_geometry_preserves_progress_material_and_existing_structure() {
+    fn standing_wall_obstruction_preserves_progress_and_material() {
         let (mut kernel, surface, contact) = world();
         kernel.environment.as_mut().unwrap().structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
@@ -127,15 +127,18 @@ mod construction_tests {
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1},
             {"kind":"attend-construction","worker":"worker-1","site":"site-wall"}
         ]}).to_string()).unwrap()).unwrap();
+        assert_eq!(response["results"].as_array().unwrap().len(), 3);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
 
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
         let lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
+        let sealed = kernel.query_json(r#"["hive.sealed-container"]"#).unwrap();
         assert!(site.contains("\"seconds\":1.0"));
         assert!(site.contains("\"phase\":\"working\""));
         assert!(lots.contains("\"container\":\"site-wall\""));
-        assert!(!site.contains("hive.sealed-container"));
+        assert!(lots.contains("\"quantity\":1"));
+        assert_eq!(sealed, "[]");
         assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
     }
 
