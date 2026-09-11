@@ -2,6 +2,16 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+## September 11 player feedback and next proposal
+
+Levi playtested the sustained-input release: "This feels WAY better." He also
+loves the RTS cannon. This is actual positive player feedback, not a population
+or cross-network guarantee. Preserve the movement/cannon gains.
+
+The [four-demo juice proposal](JUICE-PROPOSAL.md) plans reusable client effects,
+confirmed feedback, better original models and scene polish on all four existing
+pages. It is a proposal, not a new implementation assignment or deployed feature.
+
 ## September 11 Survival sustained-input correction — published
 
 Source cf172bf is published on the existing four demo URLs; frontend360491d5-ff47-4051-b489-358e22a0624f and backendf1fc42e5-caf5-4046-a7db-352a6a106dfd.
