@@ -732,3 +732,34 @@ TypeScript definitions and shared operations should express supported targets
 and tools; reuse original asset geometry instead of writing separate coordinate
 formulas for every new object. Keep work on the playable terrain connection
 moving while this boundary is deepened through those real consumers.
+
+### Restore route-aware joint work assignment — September 11
+
+Levi reaffirmed retained A* with climbing costs and asked whether joint work
+assignment still consumes those costs. Source audit found a real gap:
+`engine/src/sdk/delivery.ts` supplies straight-line actor-to-source distance to
+`allocateWork`, although the Rust matcher already accepts costs and preserves
+maximum-cardinality/minimum-cost assignment. The Rust implementation is an
+augmenting-path matcher, not a literal Hungarian implementation. This does not
+excuse discarding the retained movement-cost behavior.
+
+The current native route preparation must return cost without publishing a
+route. A bounded cost query uses that same preparation, geometry revision,
+actor capability and support frame. It must distinguish unreachable from budget
+exhaustion/internal errors. Exclude unreachable pairs; defer uncomputed work
+when the bounded query budget is exhausted. Never substitute straight-line
+costs for failed route queries or run an unbounded worker-by-job route matrix.
+Narrow by capability, claim, material and capacity before routing. Existing
+claims, including carried lots and paused work, retain ownership.
+
+Delivery must account for its actual source approach and delivery leg using the
+same reachable interaction positions it later visits. Travel cost must reflect
+actor speed and admitted vertical motion; do not supply voxel steps to a matcher
+while movement measures metres. Authored priority/work duration may modify the
+final candidate score using the existing cost policy, without inventing a second
+pathfinder. Route estimates grant no resource claim or perpetual permission.
+
+Acceptance includes a worker who is geometrically nearer but has a costly
+obstacle/climb route losing to the actually faster worker, an unreachable pair
+being omitted, and a claimed worker remaining assigned. This remains a required
+caller correction, not a completed feature or new deployed behavior.
