@@ -4,6 +4,9 @@ pub mod collision;
 pub mod generation;
 pub mod terrain;
 pub mod terrain_water;
+pub mod terrain_atmosphere;
+#[cfg(test)]
+mod terrain_atmosphere_tests;
 pub mod terrain_traversal;
 pub mod structure_geometry;
 pub mod structure_support;
