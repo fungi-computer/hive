@@ -15,11 +15,11 @@ import { command, component, entity, query, system } from "../sdk/authoring";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 test("display frames identify time and reset discontinuities", () => {
-  const port = wasmKernelPort(new WasmKernel());
+  let runtime!: WorkerRuntime;
   try {
     const events: WorkerEvent[] = [];
-    const runtime = new WorkerRuntime(
-      port,
+    runtime = new WorkerRuntime(
+      () => wasmKernelPort(new WasmKernel()),
       { survival: survivalPack },
       (event) => events.push(event),
     );
@@ -43,7 +43,7 @@ test("display frames identify time and reset discontinuities", () => {
       ],
     );
   } finally {
-    port.dispose();
+    runtime.dispose();
   }
 });
 
@@ -478,12 +478,31 @@ test("authored intents survive pause restore and rollback with committed-only re
     const beforeFailure = restored.save();
     fail = true;
     assert.throws(() => restored.step(0.1), /injected/);
-    assert.deepEqual(restored.save(), beforeFailure);
+    assert.throws(() => restored.save(), /session-poisoned/);
     fail = false;
+    restored.restore(beforeFailure);
     restored.step(0.1);
     assert.equal(restored.query(query(Seen))[0].get(Seen).value, 3);
     assert.equal(restored.query(query(Setting))[0].get(Setting).value, 3);
     assert.equal(restored.save().pendingWrites.length, 0);
+
+    const workerEvents: WorkerEvent[] = [];
+    const worker = new WorkerRuntime(
+      () => wasmKernelPort(new WasmKernel()),
+      { intents: pack },
+      event => workerEvents.push(event),
+    );
+    worker.command({ type: "start", game: "intents" });
+    worker.command({ type: "pause" });
+    worker.command({ type: "command", name: "set", input: { value: 3, link: id } });
+    worker.command({ type: "resume" });
+    fail = true;
+    worker.command({ type: "step", delta: 0.1 });
+    fail = false;
+    worker.command({ type: "step", delta: 0.1 });
+    assert.equal(workerEvents.filter(event => event.type === "error").length, 1);
+    assert.equal(workerEvents.filter(event => event.type === "results").length, 1);
+    worker.dispose();
   } finally {
     a.dispose();
     b.dispose();

@@ -6,11 +6,45 @@ import type { WorkerCommand, WorkerEvent } from "./protocol";
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
 export class WorkerRuntime {
   private session?: GameSession;
+  private port?: KernelPort;
+  private accepted?: import("./session").SessionSnapshot;
+  private seed = 1;
   constructor(
-    private readonly kernel: KernelPort,
+    private readonly createKernel: () => KernelPort,
     private readonly packs: Readonly<Record<string, GamePack>>,
     private readonly emit: (event: WorkerEvent) => void,
   ) {}
+  private replaceSession(pack: GamePack, seed?: number, snapshot?: import("./session").SessionSnapshot): GameSession {
+    this.port?.dispose();
+    const port = this.createKernel();
+    try {
+      const session = new GameSession({ port, pack, seed });
+      if (snapshot) session.restore(snapshot); else session.start();
+      this.port = port;
+      this.session = session;
+      return session;
+    } catch (error) {
+      port.dispose(); this.port = undefined; this.session = undefined; throw error;
+    }
+  }
+  private captureAccepted(): void {
+    if (!this.session) throw new Error("runtime has not started");
+    this.accepted = this.session.save();
+  }
+  private recover(): void {
+    if (!this.accepted) {
+      this.port?.dispose(); this.port = undefined; this.session = undefined; return;
+    }
+    const pack = this.packs[this.accepted.game];
+    if (!pack) throw new Error("accepted game is unavailable");
+    this.replaceSession(pack, this.seed, this.accepted);
+  }
+  dispose(): void {
+    this.port?.dispose();
+    this.port = undefined;
+    this.session = undefined;
+    this.accepted = undefined;
+  }
   private frameEpoch = 0;
   private frameSequence = 0;
   private emitObservation(
@@ -48,14 +82,11 @@ export class WorkerRuntime {
         const pack = this.packs[command.game];
         if (!pack || !Object.hasOwn(this.packs, command.game))
           throw new Error(`unknown game ${command.game}`);
-        this.session = new GameSession({
-          port: this.kernel,
-          pack,
-          seed: command.seed,
-        });
-        this.session.start();
+        const started = this.replaceSession(pack, command.seed);
+        this.seed = command.seed ?? 1;
+        this.captureAccepted();
         this.emit({ type: "ready", game: pack.id });
-        this.emit({ type: "state", paused: this.session.isPaused });
+        this.emit({ type: "state", paused: started.isPaused });
         this.emitObservation(true);
         return;
       }
@@ -63,30 +94,40 @@ export class WorkerRuntime {
       if (!session) throw new Error("runtime has not started");
       if (command.type === "pause") {
         session.pause();
+        this.captureAccepted();
         this.emitObservation(false, true);
       } else if (command.type === "resume") {
         session.resume();
+        this.captureAccepted();
         this.emitObservation(false, true);
       } else if (command.type === "reset") {
         session.reset();
+        this.captureAccepted();
         this.emitObservation(true);
         this.emit({ type: "state", paused: session.isPaused });
-      } else if (command.type === "action") session.request(command.action);
-      else if (command.type === "command")
+      } else if (command.type === "action") {
+        session.request(command.action);
+        this.captureAccepted();
+      } else if (command.type === "command") {
         session.command(command.name, command.input);
+        this.captureAccepted();
+      }
       else if (command.type === "save")
         this.emit({ type: "saved", snapshot: session.save() });
       else if (command.type === "restore") {
         session.restore(command.snapshot);
+        this.captureAccepted();
         this.emit({ type: "restored" });
         this.emitObservation(true);
         this.emit({ type: "state", paused: session.isPaused });
       } else if (command.type === "step") {
         const results = session.step(command.delta);
+        this.captureAccepted();
         this.emit({ type: "results", results });
         this.emitObservation();
       }
     } catch (error) {
+      try { this.recover(); } catch { this.port?.dispose(); this.port = undefined; this.session = undefined; }
       this.emit({
         type: "error",
         message: error instanceof Error ? error.message : String(error),

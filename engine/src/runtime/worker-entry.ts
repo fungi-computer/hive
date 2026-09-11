@@ -14,10 +14,10 @@ export function installWorkerRuntime(
     onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
     postMessage(message: WorkerEvent): void;
   },
-  kernel: KernelPort,
+  createKernel: () => KernelPort,
   packs: Readonly<Record<string, GamePack>>,
 ): WorkerRuntime {
-  const runtime = new WorkerRuntime(kernel, packs, (event) =>
+  const runtime = new WorkerRuntime(createKernel, packs, (event) =>
     scope.postMessage(event),
   );
   scope.onmessage = (event) => runtime.command(event.data);
@@ -32,8 +32,9 @@ export async function bootGeneratedWorker(
   },
   binding: WasmKernelBinding,
 ): Promise<WorkerRuntime> {
-  const kernel = wasmKernelPort(binding);
-  return installWorkerRuntime(scope, kernel, {
+  const Binding = binding.constructor as new () => WasmKernelBinding;
+  binding.free();
+  return installWorkerRuntime(scope, () => wasmKernelPort(new Binding()), {
     pirates: piratesPack,
     colony: colonyPack,
     survival: survivalPack,

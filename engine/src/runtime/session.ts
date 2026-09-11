@@ -106,6 +106,7 @@ export class GameSession {
   private impactHighWater = 0;
   private cues: CueSnapshot = { sequence: 0, recent: [] };
   private impactFrontiers = new Map<string, number | null>();
+  private poisoned = false;
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
@@ -135,20 +136,29 @@ export class GameSession {
       this.port.loadEnvironment(this.pack.environmentDefinition);
     if (this.pack.initialActions)
       this.pendingActions.push(...this.pack.initialActions);
+    this.poisoned = false;
+  }
+  private ensureLive(): void {
+    if (this.poisoned) throw new Error("session-poisoned");
   }
   pause(): void {
+    this.ensureLive();
     this.paused = true;
   }
   resume(): void {
+    this.ensureLive();
     this.paused = false;
   }
   get isPaused(): boolean {
+    this.ensureLive();
     return this.paused;
   }
   get simulationTime(): number {
+    this.ensureLive();
     return this.now;
   }
   reset(): void {
+    this.poisoned = true;
     this.random.restore(this.seed);
     this.paused = false;
     this.now = 0;
@@ -163,12 +173,14 @@ export class GameSession {
     this.start();
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
+    this.ensureLive();
     return this.port.query(spec);
   }
   assign(
     candidates: readonly import("../contracts").AssignmentCandidate[],
     maxEdges = 128,
   ) {
+    this.ensureLive();
     return this.port.assign(candidates, maxEdges);
   }
   private worldPoses(
@@ -187,11 +199,13 @@ export class GameSession {
     return this.port.worldPoses(entities);
   }
   request(action: ActionRequest): void {
+    this.ensureLive();
     if (this.pendingActions.length >= 128)
       throw new Error("pending action limit reached");
     this.pendingActions.push(checkedAction(action));
   }
   command(name: string, input: unknown): void {
+    this.ensureLive();
     const handler = this.pack.commands?.[name];
     if (!handler || !Object.hasOwn(this.pack.commands ?? {}, name))
       throw new Error("unknown game command");
@@ -366,8 +380,8 @@ export class GameSession {
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta))
       throw new Error("delta must be finite and between zero and one second");
+    this.ensureLive();
     if (this.paused) return [];
-    const before = this.save();
     try {
       this.compactImpacts();
       const clock: SimulationClock = Object.freeze({
@@ -460,23 +474,12 @@ export class GameSession {
       this.tick++;
       return advanced.results;
     } catch (error) {
-      this.port.restore(before.kernel);
-      this.now = before.now;
-      this.tick = before.tick;
-      this.random.restore(before.random);
-      this.pendingActions = [...before.pendingActions];
-      this.pendingWrites = [...before.pendingWrites];
-      this.pendingImpacts = [...structuredClone(before.pendingImpacts)];
-      this.impactHighWater = before.impactHighWater;
-      this.impactFrontiers = new Map(
-        before.impactFrontiers.map((frontier) => [frontier.system, frontier.sequence]),
-      );
-      this.outcomes = structuredClone([...before.outcomes]);
-      this.cues = before.cues;
+      this.poisoned = true;
       throw error;
     }
   }
   save(): SessionSnapshot {
+    this.ensureLive();
     return {
       format: "hive-session",
       version: 7,
@@ -658,11 +661,14 @@ export class GameSession {
     this.outcomes = outcomes;
     this.cues = cues;
     this.paused = snapshot.paused;
+    this.poisoned = false;
   }
   presentationCues() {
+    this.ensureLive();
     return structuredClone(this.cues.recent);
   }
   renderFacts(limit = 512) {
+    this.ensureLive();
     return this.port.renderFacts(limit);
   }
 }

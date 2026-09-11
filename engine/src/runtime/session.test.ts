@@ -347,8 +347,9 @@ test("pending impacts survive save and a failed consumer step", () => {
   const saved = first.value.save();
   fail = true;
   assert.throws(() => first.value.step(0.1), /consumer failed/);
-  assert.deepEqual(first.value.save().pendingImpacts, saved.pendingImpacts);
+  assert.throws(() => first.value.save(), /session-poisoned/);
   fail = false;
+  first.value.restore(saved);
   first.value.step(0.1);
   assert.deepEqual(observed, [[], ["impact.1"], ["impact.1"]]);
 
@@ -377,8 +378,11 @@ test("native advance failure preserves the queued physical impact for retry", ()
   port.impacts = [impact];
   port.failAdvance = true;
   const { value } = session(port, system);
+  const saved = value.save();
   assert.throws(() => value.step(0.1), /native advance failed/);
   port.failAdvance = false;
+  assert.throws(() => value.step(0.1), /session-poisoned/);
+  value.restore(saved);
   value.step(0.1);
   value.step(0.1);
   assert.deepEqual(observed, [[], [], [1]]);
@@ -403,10 +407,12 @@ test("consumer failure rolls back authored writes and retries the impact once", 
   port.impacts = [impact];
   const { value } = session(port, system);
   value.step(0.1);
+  const saved = value.save();
   fail = true;
   assert.throws(() => value.step(0.1), /authored consumer failed/);
   assert.equal(port.committedWrites.length, 0);
   fail = false;
+  value.restore(saved);
   value.step(0.1);
   assert.deepEqual(port.committedWrites, [
     { component: morale.id, entity: "actor", value: { value: 9 } },
@@ -439,7 +445,10 @@ test("a replayed sequence is rejected after its event was compacted", () => {
   value.step(0.1);
   assert.equal(value.save().impactHighWater, 1);
   port.impacts = [impact];
+  const beforeFailure = value.save();
   assert.throws(() => value.step(0.1), /duplicate physical impact sequence/);
+  assert.throws(() => value.save(), /session-poisoned/);
+  value.restore(beforeFailure);
   assert.equal(value.save().impactHighWater, 1);
 });
 
@@ -484,10 +493,11 @@ test("an unconsumed impact backlog rejects the whole step at its bound", () => {
   const before = value.save();
   port.impacts = [{ ...impact, id: "impact.1025", sequence: 1025, time: 102.5 }];
   assert.throws(() => value.step(0.1), /physical impact backlog limit reached/);
-  const after = value.save();
-  assert.deepEqual(after.pendingImpacts, before.pendingImpacts);
-  assert.equal(after.impactHighWater, before.impactHighWater);
-  assert.equal(after.tick, before.tick);
+  assert.throws(() => value.save(), /session-poisoned/);
+  value.restore(before);
+  assert.deepEqual(value.save().pendingImpacts, before.pendingImpacts);
+  assert.equal(value.save().impactHighWater, before.impactHighWater);
+  assert.equal(value.save().tick, before.tick);
 });
 
 test("different impact cadences retain one event until both consumers acknowledge", () => {
