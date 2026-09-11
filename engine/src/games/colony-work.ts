@@ -2,7 +2,7 @@ import { component, entity, query } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import {
-  Body, Container, Destination, ExcavationWork, MaterialLot, Position, Traversal,
+  Body, Container, Destination, ExcavationWork, MaterialLot, Position, Support, Surface, Traversal,
   excavate, move, cancelWork,
 } from "../sdk/common";
 import type { EntityId, TerrainSurface, Vec3, WriteContext } from "../contracts";
@@ -32,7 +32,7 @@ type DigCandidate = {
   readonly order: EntityId;
   readonly cell: { readonly x: number; readonly y: number; readonly z: number };
   readonly expected: number;
-  readonly approach: Vec3 & { readonly frame: null };
+  readonly approaches: readonly (Vec3 & { readonly frame: null })[];
   readonly cost: number;
 };
 
@@ -116,7 +116,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
         requests.push({ actor: worker, target: approach, candidate: {
           worker, task: row.id, order: row.id,
           cell: { x: state.cellX, y: state.cellY, z: state.cellZ }, expected,
-          approach, cost: Number.POSITIVE_INFINITY,
+          approaches: [approach], cost: Number.POSITIVE_INFINITY,
         }});
       }
     }
@@ -124,45 +124,51 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const rotated = requests.slice((ctx.clock.tick * 32) % Math.max(1, requests.length)).concat(requests.slice(0, (ctx.clock.tick * 32) % Math.max(1, requests.length))).slice(0, 128);
   const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
   const routable = rotated.filter(({ actor, candidate }) => !occupied.has(actor) && claimByTask.get(candidate.task) === null);
-  const best = new Map<string, { candidate: DigCandidate; cost: number }>();
-  let costsReady = false;
-  const ensureCosts = () => {
-    if (costsReady) return;
-    costsReady = true;
-    for (let offset = 0; offset < routable.length; offset += 32) {
-      const batch = routable.slice(offset, offset + 32);
-      const results = ctx.routeCosts(batch.map(({ actor, target }) => ({ actor, target })));
+  const grouped = new Map<string, DigCandidate>();
+  for (const { candidate } of routable) {
+    const key = `${candidate.worker}\0${candidate.task}`;
+    const prior = grouped.get(key);
+    if (prior) grouped.set(key, { ...prior, approaches: [...prior.approaches, ...candidate.approaches] });
+    else grouped.set(key, candidate);
+  }
+  const prepared = [...grouped.values()];
+  const best = new Map<string, { approach: Vec3 & { readonly frame: null }; cost: number }>();
+  const evaluated = new Set<string>();
+  const ensureCosts = (candidate: DigCandidate) => {
+    const key = `${candidate.worker}\0${candidate.task}`;
+    if (evaluated.has(key)) return;
+    evaluated.add(key);
+    for (let offset = 0; offset < candidate.approaches.length; offset += 32) {
+      const batch = candidate.approaches.slice(offset, offset + 32).map((target) => ({ actor: candidate.worker, target }));
+      const results = ctx.routeCosts(batch);
       for (let index = 0; index < batch.length; index++) {
         const result = results[index];
         if (result?.status !== "reachable" || !Number.isFinite(result.cost)) continue;
-        const candidate = batch[index].candidate;
-        const key = `${candidate.worker}\0${candidate.task}`;
         const prior = best.get(key);
-        if (!prior || result.cost < prior.cost) best.set(key, { candidate, cost: result.cost });
+        if (!prior || result.cost < prior.cost) best.set(key, { approach: batch[index].target, cost: result.cost });
       }
     }
   };
-  const prepared = rotated.map(({ candidate }) => candidate);
   let assigned = new Set<EntityId>();
   return {
     claims,
     candidates: prepared,
     occupiedActors: [...occupied],
     estimate: (candidate) => {
-      ensureCosts();
-      const selected = best.get(`${candidate.worker}\0${candidate.task}`);
-      return selected?.candidate === candidate ? selected.cost : null;
+      ensureCosts(candidate);
+      return best.get(`${candidate.worker}\0${candidate.task}`)?.cost ?? null;
     },
     apply(assignments) {
       assigned = new Set(assignments.map((assignment) => assignment.task));
       for (const assignment of assignments) {
-        ensureCosts();
-        const candidate = best.get(`${assignment.worker}\0${assignment.task}`)?.candidate;
-        if (!candidate) continue;
+        const candidate = prepared.find((item) => item.worker === assignment.worker && item.task === assignment.task);
+        if (candidate) ensureCosts(candidate);
+        const approach = best.get(`${assignment.worker}\0${assignment.task}`)?.approach;
+        if (!candidate || !approach) continue;
         const state = orders.find((row) => row.id === candidate.order)?.get(ColonyDigOrder);
         if (!state) continue;
-        ctx.write(ColonyDigOrder, candidate.order, { ...state, expected: candidate.expected, actor: candidate.worker, phase: "approaching", reason: "", approachX: candidate.approach.x, approachY: candidate.approach.y, approachZ: candidate.approach.z });
-        ctx.action(move(candidate.worker, candidate.approach));
+        ctx.write(ColonyDigOrder, candidate.order, { ...state, expected: candidate.expected, actor: candidate.worker, phase: "approaching", reason: "", approachX: approach.x, approachY: approach.y, approachZ: approach.z });
+        ctx.action(move(candidate.worker, approach));
       }
     },
     progress() {
@@ -222,7 +228,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, Destination, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [ColonyDigOrder, DeliveryTask],
   providers: [deliveryProvider, digProvider],
 });
