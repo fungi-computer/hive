@@ -39,7 +39,7 @@ export function authoringContractProof(): void {
     assign: () => [],
     routeCosts: () => { throw new Error("unexpected route query"); },
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
-    terrainSurfaces: () => [],
+    terrainSurfaces: () => [], structureSurfaces: () => [],
     worldPoses: () => [],
     write: (...args) => writes.push(args),
     createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },

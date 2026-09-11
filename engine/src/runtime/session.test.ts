@@ -79,6 +79,7 @@ class TestPort implements KernelPort {
   physicalContacts(): never { throw new Error("unexpected physical contact query in session fixture"); }
   terrainMaterials(_cells: readonly [number, number, number][]): readonly number[] { return []; }
   terrainSurfaces(_columns: readonly [number, number][]): readonly null[] { return []; }
+  structureSurfaces(_columns: readonly [number, number][]): readonly (readonly [])[] { return []; }
   entityMembership(ids: readonly import("../contracts").EntityId[]): readonly boolean[] {
     return ids.map((id) => id === "actor");
   }

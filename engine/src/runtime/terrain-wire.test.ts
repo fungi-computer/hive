@@ -9,12 +9,14 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
     revision: 4,
     verticalMetres: 0.54,
     surfaces: [{ cell: [2, 8, -3], material: 1, ignored: { unbounded: true } }],
+    structureSurfaces: [[{ cell: [2, 9, -3] }]],
     water: [{ at: [2, 9, -3], massKg: 2, liquidVolumeM3: 0.002, extra: [1, 2, 3] }],
   });
   assert.deepEqual(frame, {
     revision: 4,
     verticalMetres: 0.54,
     surfaces: [{ cell: [2, 8, -3], material: 1 }],
+    structureSurfaces: [[{ cell: [2, 9, -3] }]],
     water: [{ at: [2, 9, -3], massKg: 2, liquidVolumeM3: 0.002 }],
   });
   assert.equal(parseTerrainFrame(undefined), undefined);
@@ -24,6 +26,10 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
   assert.throws(() => parseTerrainFrame({
     revision: 0, verticalMetres: 1, surfaces: [], water: [{ at: [0, 0, 0], massKg: Infinity, liquidVolumeM3: 0 }],
   }), /invalid terrain observation/);
+  assert.throws(() => parseTerrainFrame({
+    revision: 1, verticalMetres: 1, surfaces: [],
+    structureSurfaces: [[{ cell: [1, 2, 3] }, { cell: [1, 2, 3] }]], water: [],
+  }), /invalid terrain observation/);
 });
 
 test("terrain surface references retain only a connection's baseline surfaces", () => {
@@ -31,6 +37,7 @@ test("terrain surface references retain only a connection's baseline surfaces", 
     revision: 7,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    structureSurfaces: [[{ cell: [1, 4, 3] }]],
     water: [],
   });
   assert(baseline);
@@ -39,6 +46,7 @@ test("terrain surface references retain only a connection's baseline surfaces", 
     revision: 7,
     verticalMetres: 0.5,
     surfacesRevision: 7,
+    structureSurfacesRevision: 7,
     water: [],
   });
   assert.deepEqual(parseTerrainObservation({
@@ -48,6 +56,7 @@ test("terrain surface references retain only a connection's baseline surfaces", 
     revision: 7,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    structureSurfaces: [[{ cell: [1, 4, 3] }]],
     water: [{ at: [1, 3, 3], massKg: 1, liquidVolumeM3: 0.001 }],
   });
   assert.throws(() => parseTerrainObservation(wire, undefined), /surface reference is unavailable/);
@@ -78,18 +87,18 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 0, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [], ignored: true },
+      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], structureSurfaces: [[{ cell: [1, 4, 3] }]], water: [], ignored: true },
     },
   }) });
   const frame = events.find((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame");
-  assert.deepEqual(frame?.terrain, { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [] });
+  assert.deepEqual(frame?.terrain, { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], structureSurfaces: [[{ cell: [1, 4, 3] }]], water: [] });
   socket.emit("message", { data: JSON.stringify({
     type: "observation",
     revision: 2,
     observation: {
       time: 1, paused: false, epoch: 0, sequence: 2, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [
+      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, structureSurfacesRevision: 2, water: [
         { at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 },
       ] },
     },
@@ -99,6 +108,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 2,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    structureSurfaces: [[{ cell: [1, 4, 3] }]],
     water: [{ at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 }],
   });
   // Reconnect receives a complete baseline at the same committed revision.
@@ -110,7 +120,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 1, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [],
-      terrain: { revision: 1, verticalMetres: 0.5, surfaces: [{ cell: [9, 9, 9], material: 9 }], water: [] },
+      terrain: { revision: 1, verticalMetres: 0.5, surfaces: [{ cell: [9, 9, 9], material: 9 }], structureSurfaces: [[{ cell: [9, 10, 9] }]], water: [] },
     },
   }) });
   socket.emit("message", { data: JSON.stringify({
@@ -119,7 +129,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [],
-      terrain: { revision: 1, verticalMetres: 0.5, surfacesRevision: 1, water: [] },
+      terrain: { revision: 1, verticalMetres: 0.5, surfacesRevision: 1, structureSurfacesRevision: 1, water: [] },
     },
   }) });
   assert.equal(socket.reconnectCalls, 1);
@@ -129,7 +139,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 2, paused: false, epoch: 0, sequence: 3, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], water: [] },
+      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4 }], structureSurfaces: [[{ cell: [1, 4, 3] }]], water: [] },
     },
   }) });
   socket.emit("message", { data: JSON.stringify({
@@ -138,7 +148,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
+      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, structureSurfacesRevision: 2, water: [] },
     },
   }) });
   const afterReconnect = events.filter((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame").at(-1);
@@ -146,6 +156,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     revision: 2,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4 }],
+    structureSurfaces: [[{ cell: [1, 4, 3] }]],
     water: [],
   });
   socket.emit("message", { data: JSON.stringify({
