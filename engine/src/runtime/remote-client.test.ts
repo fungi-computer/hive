@@ -96,6 +96,50 @@ test("lost HTTP receipt retries the identical command body and identity", async 
   runtime.dispose();
 });
 
+test("coalesces contiguous unsent direct input behind command barriers and retries immutable batches", async () => {
+  const socket = new FakeSocket();
+  const calls: string[] = [];
+  let revision = 0;
+  let failedTen = false;
+  const runtime = setup(async (input, init) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    const body = String(init?.body);
+    calls.push(body);
+    const command = JSON.parse(body).command;
+    const inputs = command.action?.inputs;
+    if (Array.isArray(inputs) && inputs.length === 10 && !failedTen) {
+      failedTen = true;
+      throw new Error("lost direct receipt");
+    }
+    await wait(15);
+    revision++;
+    queueMicrotask(() => socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(revision) }) }));
+    return Response.json({ commandId: JSON.parse(body).id, status: "applied", revision, result: { results: [] } });
+  }, socket);
+  runtime.send({ type: "start", game: "survival" });
+  await wait(20);
+  runtime.send({ type: "action", action: { kind: "begin-direct", entity: "player", stream: "held" } });
+  await wait(40);
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: [
+    { sequence: 1, x: 1, z: 0 }, { sequence: 2, x: 1, z: 0 }, { sequence: 3, x: 1, z: 0 }, { sequence: 4, x: 1, z: 0 }, { sequence: 5, x: 1, z: 0 },
+  ] } });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: [
+    { sequence: 6, x: 1, z: 0 }, { sequence: 7, x: 1, z: 0 }, { sequence: 8, x: 1, z: 0 }, { sequence: 9, x: 1, z: 0 }, { sequence: 10, x: 1, z: 0 },
+  ] } });
+  runtime.send({ type: "pause" });
+  runtime.send({ type: "action", action: { kind: "direct-input", entity: "player", stream: "held", inputs: [
+    { sequence: 11, x: 1, z: 0 }, { sequence: 12, x: 1, z: 0 }, { sequence: 13, x: 1, z: 0 }, { sequence: 14, x: 1, z: 0 }, { sequence: 15, x: 1, z: 0 },
+  ] } });
+  await wait(500);
+  const parsed = calls.map((body) => JSON.parse(body).command);
+  const direct = parsed.filter((command) => Array.isArray(command.action?.inputs));
+  assert.equal(direct.filter((command) => command.action.inputs.length === 10).length, 2, "the ten-sample batch is retried unchanged");
+  assert.equal(direct.find((command) => command.action.inputs.length === 5)?.action.inputs[0].sequence, 11, "later input stays behind pause barrier");
+  assert.deepEqual(direct[0], direct[1]);
+  assert.equal(parsed.findIndex((command) => command.kind === "pause") > parsed.findIndex((command) => command.action?.inputs?.[0]?.sequence === 1), true);
+  runtime.dispose();
+});
+
 
 test("transient handle admission recovers without a new world", async () => {
   let attempts = 0;
