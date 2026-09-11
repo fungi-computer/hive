@@ -31,8 +31,8 @@ identical light-command replay and resumed air time. Paused physical facts and
 smoke/fire projection remained equal; replay did not debit fuel or add effects.
 Two owned host starts, exit 0, scope empty/dead and port 8789 free. This is one
 local abrupt-restart witness, not population capacity, cross-region transfer or
-an arbitrary crash-point matrix. The new runtime is being published separately;
-read the release receipt before claiming hosted availability.
+an arbitrary crash-point matrix. The runtime is now published on the existing demo host; see BUILD.md for exact
+deployments, 158-file parity and the preserved hosted-test correction.
 
 The retained [brewing restoration map](RETAINED-BREWING-RESTORATION.md) remains
 the behavior reference. Its native recipe binding and staged-process API are

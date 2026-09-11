@@ -1,3 +1,31 @@
+## September 11 — live native hearth and smoke checkpoint
+
+Runtime/client source `109957b`; actual WASM native source `40528bc` plus earlier
+native commits; publication docs and hosted witness correction do not change the
+runtime. Existing preview: https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/
+
+- Frontend deployment `168a85e0-f2d5-4ff2-966a-05a3c4095981`;
+  immutable https://168a85e0-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html
+- Existing DO host https://hive-public-engine-demo.levi-fe0.workers.dev,
+  version `18266198-e20d-4c84-81b8-22ab52796f9d`.
+- Implementation hash `06db5deef0ecac7cc9d7c4e056560764d5a552e5cb20ac0cd60cec0fe0a76b3c`.
+- Publication u5989 exit 0; 158/158 file HTTP parity, including 120 retained
+  non-engine files. Prior construction release `79ff4792` is retained rollback.
+- Local real controls: ordinary wood delivery, select worker, Light hearth,
+  native fuel debit and visible smoke/fire. u5982 exit 0; personally viewed.
+- Local actual DO u5986 exit 0: paid fire/air survives abrupt owned runtime kill,
+  same-SQLite reopening, identical command replay and resume. Two starts.
+- Hosted runtime u5990 preserved exit 1: Survival/Pirates passed, Colony pause
+  exhausted a stale-revision test condition. The actual client submits ordered
+  pause/resume intent without that observation condition. Corrected witness
+  `1a6151e` ran only Colony/Formations in u5992, exit 0. All owned scopes closed.
+
+Use Reset world if an older saved demo reports an unsupported implementation.
+This is an outdoor fueled hearth, not a completed enclosed room, door/vent system,
+full brewing chain, whole-map air, multiplayer region journey, or capacity claim.
+Air is bounded to the village and water remains bounded to its modeled cells.
+See WATER-AND-GAS.md and RETAINED-BREWING-RESTORATION.md for remaining work.
+
 ## Published generated Colony, wet excavation and exterior cutaway — September 11
 
 Runtime/client source a13fc44 is deployed on the existing four-demo preview.
