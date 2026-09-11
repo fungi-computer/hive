@@ -3,13 +3,10 @@ import {
   type EnvironmentDefinition,
 } from "../sdk/environment";
 
-/**
- * Authored terrain envelope for the future Colony environment join.
- *
- * The three water coordinates are the admitted cells from the native
- * environment fixture (environment_definition.rs and runtime/fixtures). They
- * remain provisional until a generated Colony-world proof confirms their
- * material and initial stock behavior under this larger bound.
+/** Generated 64×64 Colony with a bounded near-surface water domain.
+ * The actual native sample for this seed places the central surface at y=13.
+ * Admit five connected layers including air above it, so removing soil can
+ * expose groundwater without teleporting stock from the deep cave fixture.
  */
 export const colonyEnvironment: EnvironmentDefinition = {
   world: {
@@ -58,7 +55,11 @@ export const colonyEnvironment: EnvironmentDefinition = {
       slot: 2,
       solid: true,
       diggable: true,
-      water: { kind: "closed" },
+      // Fractured stone stores groundwater too; soil is not the only reservoir.
+      water: { kind: "porous", rule: {
+        id: "fractured-stone", porosity: 0.05, retention: 0.01,
+        absorbMPerS: 0.01, seepMPerS: 0.01,
+      } },
       excavation: {
         workSeconds: 4,
         outputKind: "stone-spoil",
@@ -68,7 +69,11 @@ export const colonyEnvironment: EnvironmentDefinition = {
   ],
   water: {
     id: "colony-water-v1",
-    cells: [[0, -7, 0], [0, -6, 0], [0, 39, 0]],
+    cells: Array.from({ length: 5 }, (_, x) => x - 2).flatMap(x =>
+      Array.from({ length: 5 }, (_, z) => z - 2).flatMap(z =>
+        Array.from({ length: 5 }, (_, y) => [x, y + 10, z] as const),
+      ),
+    ),
     fallMPerS: 0.1,
     spreadMPerS: 0.1,
   },

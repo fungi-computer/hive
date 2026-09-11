@@ -773,3 +773,15 @@ types. `46001d7` joins native work occupancy to delivery; `u5488` passed its foc
 caller law and strict types. `e99c8f6`/`a972cb0` add bounded trusted terrain queries;
 `u5490` passed two sparse-edit/budget laws. Player visibility is not granted by
 that host query. None of these receipts claims browser or hosted playability.
+
+### Actual WASM Colony terrain sampling
+
+`u5492` rebuilt the maintained wasm-bindgen runtime successfully (release compile
+1m43s); existing prepared-output warning remains. `u5496` sampled the authored
+seed and found central terrain at y=13, while old fixture water was in deep cave
+cells. `u5497` found zero stock in a connected near-surface domain because stone
+was configured closed. Colony now authors fractured stone using the existing
+porous rule. `u5498` loaded that definition through actual WASM and measured 125
+admitted cells, 50 wet porous cells and 877.5 kg initial total, derived from the
+Rust groundwater proposal. Receipts are in `.botanical/colony-world/`. These are
+initialization/query observations, not a transport benchmark or rendered demo.
