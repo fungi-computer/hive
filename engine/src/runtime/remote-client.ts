@@ -4,7 +4,7 @@ import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import type { PresentationControl } from "../presentation";
-import { parseTerrainFrame, type TerrainWireFrame } from "./terrain-wire";
+import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { WebSocket as PartySocket } from "partysocket";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -32,6 +32,7 @@ type ObservationWire = {
     readonly epoch: number;
     readonly sequence: number;
     readonly facts: readonly RenderFact[];
+    /** The parser hydrates references before this internal value is emitted. */
     readonly terrain?: TerrainWireFrame;
     readonly cues: readonly PresentationCue[];
     readonly presentationFacts: readonly {
@@ -221,7 +222,7 @@ async function requestJson(
     parent.removeEventListener("abort", onAbort);
   }
 }
-function parseObservation(value: unknown): ObservationWire {
+function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | undefined): ObservationWire {
   if (!isRecord(value) || !safeNonnegativeInteger(value.revision)) throw new Error("invalid remote observation revision");
   const observation = value.observation;
   if (!isRecord(observation)) throw new Error("missing remote observation");
@@ -242,7 +243,7 @@ function parseObservation(value: unknown): ObservationWire {
       epoch: observation.epoch,
       sequence: observation.sequence,
       facts: facts as RenderFact[],
-      terrain: parseTerrainFrame(observation.terrain),
+      terrain: parseTerrainObservation(observation.terrain, cachedTerrain),
       cues: checkedCueList(observation.cues, observation.time),
       presentationFacts: presentationFacts as ObservationWire["observation"]["presentationFacts"],
       presentationControls: presentationControls as PresentationControl[],
@@ -300,6 +301,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let lastPaused: boolean | undefined;
   let lastSequence: number | undefined;
   let lastTime: number | undefined;
+  let cachedTerrain: TerrainWireFrame | undefined;
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
   let pumpRunning = false;
   let blocked = false;
@@ -316,6 +318,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (awaitRevision !== undefined && candidate.revision >= awaitRevision) awaitRevision = undefined;
     lastSequence = candidate.observation.sequence;
     lastTime = candidate.observation.time;
+    cachedTerrain = candidate.observation.terrain;
     const pauseChanged = lastPaused === undefined || lastPaused !== candidate.observation.paused;
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
@@ -364,13 +367,16 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
       if (value.type !== "observation") return;
       try {
-        const accepted = acceptObservation(parseObservation(value));
+        const accepted = acceptObservation(parseObservation(value, cachedTerrain));
         if (accepted && !blocked && pending.length > 0 && !pumpRunning) schedulePump();
       } catch (error) { emit({ type: "error", message: error instanceof Error ? error.message : String(error) }); }
     });
     socket.addEventListener("error", () => { if (!disposed) emit({ type: "error", message: "remote socket failed; reconnecting" }); });
     socket.addEventListener("close", () => { if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" }); });
     socket.addEventListener("open", () => {
+      // A websocket reconnect has a fresh server-side attachment, so its surface
+      // reference must begin with no baseline even when the world revision matches.
+      cachedTerrain = undefined;
       socket?.send(JSON.stringify({ type: "authenticate", token: options.token }));
       if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
       heartbeatTimer = setInterval(() => { if (!disposed && socket) socket.send(JSON.stringify({ type: "heartbeat" })); }, 5_000);

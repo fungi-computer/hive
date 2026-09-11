@@ -6,6 +6,7 @@ import {
 import { createSessionRegionRuntime, type SessionResident } from "../../engine/src/runtime/region-program";
 import type { SessionRegionState } from "../../engine/src/runtime/region-program";
 import { buildObservation } from "../../engine/src/runtime/observation";
+import { terrainWireForRevision, type TerrainWireFrame } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import { colonyPack } from "../../engine/src/games/colony";
@@ -45,7 +46,24 @@ type HostRow = {
   due_request_json: string | null;
   due_deadline_ms: number | null;
 };
-type SocketAttachment = { readonly pack: PublicPack; readonly tokenHash: string; readonly authenticated: boolean; readonly authDeadline: number | null; readonly retired?: boolean };
+type SocketAttachment = {
+  readonly pack: PublicPack;
+  readonly tokenHash: string;
+  readonly authenticated: boolean;
+  readonly authDeadline: number | null;
+  readonly retired?: boolean;
+  /** The complete terrain baseline successfully sent on this connection. */
+  readonly terrainRevision?: number;
+};
+type PublicObservationPayload = {
+  readonly revision: number;
+  readonly observation: {
+    readonly terrain?: TerrainWireFrame;
+    readonly [key: string]: unknown;
+  };
+  readonly [key: string]: unknown;
+};
+const MAX_OBSERVATION_BYTES = 1024 * 1024;
 
 function packFor(pack: PublicPack) {
   switch (pack) {
@@ -436,13 +454,42 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return this.serial(() => this.observationPayload());
   }
 
+  private sendObservation(
+    socket: WebSocket,
+    payload: PublicObservationPayload,
+    attachment: SocketAttachment,
+    forceComplete = false,
+  ): boolean {
+    const terrain = payload.observation.terrain;
+    const wireTerrain = terrain && !forceComplete
+      ? terrainWireForRevision(terrain, attachment.terrainRevision)
+      : terrain;
+    const wirePayload = wireTerrain === terrain
+      ? payload
+      : { ...payload, observation: { ...payload.observation, terrain: wireTerrain } };
+    const encoded = JSON.stringify({ type: "observation", ...wirePayload });
+    if (new TextEncoder().encode(encoded).byteLength > MAX_OBSERVATION_BYTES) {
+      try { socket.close(1009, "observation too large"); } catch {}
+      return false;
+    }
+    try {
+      socket.send(encoded);
+    } catch {
+      return false;
+    }
+    if (terrain && (forceComplete || attachment.terrainRevision !== terrain.revision)) {
+      socket.serializeAttachment({ ...attachment, terrainRevision: terrain.revision });
+    }
+    return true;
+  }
+
   private publishObservation(): Promise<void> {
     return this.serial(() => {
-      const payload = JSON.stringify({ type: "observation", ...this.observationPayload() });
+      const payload = this.observationPayload() as PublicObservationPayload;
       for (const socket of this.state.getWebSockets()) {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
         if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
-        try { socket.send(payload); } catch { /* lifecycle removes failed sockets */ }
+        this.sendObservation(socket, payload, attachment);
       }
     });
   }
@@ -627,7 +674,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.observe(Date.now());
-          socket.send(JSON.stringify({ type: "observation", ...(await this.queuedObservationPayload()) }));
+          const payload = await this.queuedObservationPayload() as PublicObservationPayload;
+          this.sendObservation(socket, payload, attachment, true);
           return;
         }
       } catch { /* malformed heartbeat is rejected below */ }
@@ -642,7 +690,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       socket.serializeAttachment({ pack: attachment.pack, tokenHash, authenticated: true, authDeadline: null } satisfies SocketAttachment);
       await this.observe(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
-      socket.send(JSON.stringify({ type: "observation", ...(await this.queuedObservationPayload()) }));
+      const authenticated = socket.deserializeAttachment() as SocketAttachment;
+      const payload = await this.queuedObservationPayload() as PublicObservationPayload;
+      this.sendObservation(socket, payload, authenticated, true);
     } catch (error) {
       try { socket.send(JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "public-socket-auth-failed" })); } catch {}
       socket.close(1008, "authentication failed");
