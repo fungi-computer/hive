@@ -55,6 +55,7 @@ pub fn search_with_blocked(
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
                         Ok(Some(next)) if !blocked(next.support) => neighbors.push((key(next.support), edge_cost(cell(*current), next.support, config.spacing))),
+                        Ok(Some(_)) => {},
                         Ok(None) => {},
                         Err(error) => { failure = Some(error); return Vec::new(); }
                     }
@@ -66,7 +67,7 @@ pub fn search_with_blocked(
         |current| *current == key(destination),
     );
     if let Some(error) = failure { return Err(error); }
-    path.map(|path| path.into_iter().map(cell).collect())
+    path.map(|(path, _cost)| path.into_iter().map(cell).collect())
         .ok_or_else(|| "no supported terrain route".into())
 }
 

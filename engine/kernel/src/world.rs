@@ -363,6 +363,7 @@ impl Kernel {
                 };
                 let path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
                 let mut points = crate::terrain_route::waypoints(&path, config)?;
+                if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
                 if let Some(first) = points.first_mut() { *first = start_point; }
                 let terrain_revision = environment.world.terrain_revision();
                 self.terrain_routes.insert(entity, TerrainRouteState {
@@ -429,8 +430,13 @@ impl Kernel {
                 if self.ecs.get::<Support>(entity).is_some()
                     || self.ecs.get::<Traversal>(entity).is_none()
                     || path.is_empty() || path.len() > 4097
+                    || (!route.terrain_waiting && route.path.is_empty())
+                    || route.terrain_origin.is_none() || route.terrain_target.is_none()
                 {
                     return Err("invalid saved terrain route capability".into());
+                }
+                if !route.terrain_waiting && route.terrain_target.as_ref() != route.path.first() {
+                    return Err("saved terrain route target witness mismatch".into());
                 }
                 self.terrain_routes.insert(entity, TerrainRouteState {
                     path,
@@ -1199,6 +1205,7 @@ impl Kernel {
                     && existing.z == destination.z
                     && existing.frame == destination.frame
                     && self.routes.contains_key(&e)
+                    && !self.terrain_routes.get(&e).is_some_and(|state| state.waiting)
                 {
                     self.ecs.entity_mut(e).insert(Destination {
                         x: existing.x,
@@ -1720,6 +1727,25 @@ impl Kernel {
                 })
             }));
             if active_blocked { invalid.push(entity); continue; }
+            if let Some(state) = self.terrain_routes.get(&entity) {
+                if let Some(target) = &state.target {
+                    let position = *self.ecs.get::<Position>(entity).ok_or("terrain route actor lost position")?;
+                    let current = navigation::point(position);
+                    let delta = [target.x - state.origin.x, target.y - state.origin.y, target.z - state.origin.z];
+                    let length2 = delta.iter().map(|value| value * value).sum::<f64>();
+                    let along = if length2 <= f64::EPSILON { 0.0 } else {
+                        ((current.x - state.origin.x) * delta[0] + (current.y - state.origin.y) * delta[1]
+                            + (current.z - state.origin.z) * delta[2]) / length2
+                    };
+                    let along = along.clamp(0.0, 1.0);
+                    let expected = [state.origin.x + delta[0] * along, state.origin.y + delta[1] * along, state.origin.z + delta[2] * along];
+                    let error = ((current.x - expected[0]).powi(2) + (current.y - expected[1]).powi(2) + (current.z - expected[2]).powi(2)).sqrt();
+                    if !error.is_finite() || error > 1e-7 || along < -1e-9 || along > 1.0 + 1e-9 {
+                        invalid.push(entity);
+                        continue;
+                    }
+                }
+            }
             let current_revision = environment_view.world.terrain_revision();
             if self.terrain_routes.get(&entity).and_then(|state| state.revision) == Some(current_revision) { continue; }
             let path = self.terrain_routes.get(&entity).map(|state| state.path.clone()).ok_or("terrain route witness missing")?;
@@ -1780,6 +1806,8 @@ impl Kernel {
                 true
             }
         });
+        let finished: Vec<_> = self.terrain_routes.keys().filter(|entity| !self.routes.contains_key(entity)).copied().collect();
+        for entity in finished { self.terrain_routes.remove(&entity); }
         for (entity, prior) in prior_targets {
             if let Some(state) = self.terrain_routes.get_mut(&entity) {
                 let next = self.routes.get(&entity).and_then(|path| path.front().cloned());
