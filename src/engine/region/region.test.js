@@ -9,9 +9,12 @@ function fixture(t, limits, program = createQuarryRegionProgram) {
   const db = new DatabaseSync(":memory:");
   t.after(() => db.close());
   let failReceipt = false;
+  let failRecord = false;
   const owner = sqliteTestOwner(db, (statement) => {
     if (failReceipt && statement.startsWith("INSERT INTO hive_region_receipts"))
       throw new Error("injected-storage-failure");
+    if (failRecord && statement.startsWith("INSERT INTO hive_region_records"))
+      throw new Error("injected-record-failure");
   });
   const open = (policy = limits, clockPrincipal) =>
     openRegion({
@@ -26,6 +29,9 @@ function fixture(t, limits, program = createQuarryRegionProgram) {
     db,
     failReceipt(value) {
       failReceipt = value;
+    },
+    failRecord(value) {
+      failRecord = value;
     },
   };
 }
@@ -370,4 +376,135 @@ test("clock frontier storage overflow rolls back state, events, and occurrence i
       .get().next_sequence,
     0,
   );
+});
+
+test("opaque records initialize, replace, remove, and account bytes without rewriting replay", (t) => {
+  let retainedReader;
+  const f = fixture(t, { records: 4, changedRecords: 3 }, () => {
+    const base = createQuarryRegionProgram();
+    return {
+      ...base,
+      id: "quarry-records-v1",
+      initial: () => ({ state: base.initial().state, records: [{ key: "water/page/0", bytes: new Uint8Array([1, 2]) }] }),
+      execute(state, command, reader) {
+        retainedReader = reader;
+        const transition = base.execute(state, command, reader);
+        if (transition.status !== "applied") return transition;
+        return state.excavated === 1
+          ? { ...transition, records: { puts: [{ key: "water/page/0", bytes: new Uint8Array([3, 4, 5]).buffer }], removes: [] } }
+          : { ...transition, records: { puts: [{ key: "water/page/1", bytes: new Uint8Array([9]) }], removes: ["water/page/0"] } };
+      },
+    };
+  });
+  const region = f.open();
+  const initial = region.readRecords(0);
+  assert.deepEqual([...initial.records[0].bytes], [1, 2]);
+  const first = region.dispatch(principal, dig("record-1"));
+  assert.throws(() => retainedReader.read("water/page/0"), /region-record-reader-closed/);
+  const afterFirst = region.readRecords(first.revision);
+  assert.deepEqual([...afterFirst.records[0].bytes], [3, 4, 5]);
+  const replay = region.dispatch(principal, dig("record-1"));
+  assert.deepEqual(replay, first);
+  const second = region.dispatch(principal, dig("record-2", first.revision, 1));
+  const afterSecond = region.readRecords(second.revision);
+  assert.deepEqual(afterSecond.records.map(({ key }) => key), ["water/page/1"]);
+  assert.equal(f.db.prepare("SELECT record_count FROM hive_region WHERE singleton=1").get().record_count, 1);
+});
+
+test("record writes roll back with a failed receipt and leave the frontier reusable", (t) => {
+  const f = fixture(t, { records: 2 }, () => {
+    const base = createQuarryRegionProgram();
+    return {
+      ...base,
+      id: "quarry-record-failure-v1",
+      execute(state, command, reader) {
+        const transition = base.execute(state, command, reader);
+        return transition.status === "applied"
+          ? { ...transition, records: { puts: [{ key: "water/page/0", bytes: new Uint8Array([7]) }], removes: [] } }
+          : transition;
+      },
+    };
+  });
+  const region = f.open();
+  const before = region.readCommitted();
+  f.failReceipt(true);
+  assert.throws(() => region.dispatch(principal, dig("record-fail")), /injected-storage-failure/);
+  assert.deepEqual(region.readCommitted(), before);
+  assert.deepEqual(region.readRecords(0).records, []);
+  f.failReceipt(false);
+  assert.equal(region.dispatch(principal, dig("record-fail")).status, "applied");
+  assert.deepEqual(region.readRecords(1).records.map(({ key }) => key), ["water/page/0"]);
+});
+
+test("record duplicate keys and changed-byte caps reject without changing state", (t) => {
+  const f = fixture(t, { changedRecords: 3 }, () => {
+    const base = createQuarryRegionProgram();
+    return { ...base, id: "quarry-record-conflict-v1", execute(state, command, reader) {
+      const transition = base.execute(state, command, reader);
+      return transition.status === "applied"
+        ? { ...transition, records: { puts: [{ key: "same", bytes: new Uint8Array([1]) }, { key: "same", bytes: new Uint8Array([2]) }], removes: [] } }
+        : transition;
+    } };
+  });
+  const region = f.open(), before = region.readCommitted();
+  assert.throws(() => region.dispatch(principal, dig("duplicate")), /region-record-key-conflict/);
+  assert.deepEqual(region.readCommitted(), before);
+  const capped = fixture(t, { changedRecords: 5 }, () => {
+    const base = createQuarryRegionProgram();
+    return { ...base, id: "quarry-record-cap-v1", execute(state, command, reader) {
+      const transition = base.execute(state, command, reader);
+      return transition.status === "applied"
+        ? { ...transition, records: { puts: Array.from({ length: 5 }, (_, index) => ({ key: `too-many/${index}`, bytes: new Uint8Array(250_000) })), removes: [] } }
+        : transition;
+    } };
+  });
+  assert.throws(() => capped.open().dispatch(principal, dig("cap")), /region-record-change-bytes/);
+});
+
+test("record pages cap returned bytes and continue by key", (t) => {
+  const f = fixture(t, {}, () => {
+    const base = createQuarryRegionProgram();
+    return { ...base, id: "quarry-record-page-v1", initial: () => ({ state: base.initial().state, records: Array.from({ length: 5 }, (_, index) => ({ key: `page/${index}`, bytes: new Uint8Array(250_000) })) }) };
+  });
+  const region = f.open();
+  const first = region.readRecords(0, "", 128);
+  assert.ok(first.records.length < 5);
+  assert.ok(first.records.reduce((sum, record) => sum + record.bytes.byteLength, 0) <= 1024 * 1024);
+  assert.ok(first.nextKey);
+  const second = region.readRecords(0, first.nextKey, 128);
+  assert.equal(first.records.length + second.records.length, 5);
+  assert.equal(second.nextKey, undefined);
+});
+
+test("failed occurrence record write preserves frontier and retries once", (t) => {
+  const clockPrincipal = "quarry-clock";
+  const f = fixture(t, undefined, () => {
+    const base = createQuarryRegionProgram();
+    return { ...base, id: "quarry-record-clock-v1", authorize: (who, command, state) => who === clockPrincipal ? base.authorize(principal, command, state) : base.authorize(who, command, state), execute(state, command, reader) {
+      const transition = base.execute(state, command, reader);
+      return transition.status === "applied" ? { ...transition, records: { puts: [{ key: "clock/page", bytes: new Uint8Array([4]) }], removes: [] } } : transition;
+    } };
+  });
+  const region = f.open(undefined, clockPrincipal), occurrence = { sequence: 0, request: dig("clock-record", 0) };
+  f.failRecord(true);
+  assert.throws(() => region.dispatchOccurrence(clockPrincipal, occurrence), /injected-record-failure/);
+  assert.equal(region.readCommitted().revision, 0);
+  f.failRecord(false);
+  const applied = region.dispatchOccurrence(clockPrincipal, occurrence);
+  assert.equal(applied.status, "applied");
+  assert.deepEqual(region.dispatchOccurrence(clockPrincipal, occurrence), applied);
+});
+
+test("reopen rejects orphan and unsupported record storage formats", (t) => {
+  const orphan = fixture(t), region = orphan.open();
+  region.readCommitted();
+  orphan.db.exec("DROP TABLE hive_region_records");
+  assert.throws(() => orphan.open(), /region-storage-format/);
+  const unsupported = fixture(t, {}, () => {
+    const base = createQuarryRegionProgram();
+    return { ...base, id: "quarry-record-format-v1", initial: () => ({ state: base.initial().state, records: [{ key: "format", bytes: new Uint8Array([1]) }] }) };
+  });
+  unsupported.open();
+  unsupported.db.exec("UPDATE hive_region_records SET format_version=2");
+  assert.throws(() => unsupported.open(), /region-storage-format/);
 });

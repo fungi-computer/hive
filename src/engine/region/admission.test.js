@@ -7,7 +7,7 @@ function setup(t) {
  const db=new DatabaseSync(':memory:'); t.after(()=>db.close());
  let fail=false;
  const owner=sqliteTestOwner(db,sql=>{if(fail&&sql.startsWith('INSERT INTO hive_region_receipts')) throw Error('failed receipt');});
- const program={id:'admission-v1',initial:()=>({goods:3,ticks:0}),parseState:s=>structuredClone(s),parseCommand:c=>{if(!['tick','take'].includes(c.kind))throw Error('command');return c;},authorize:p=>p==='player',execute(s,c){if(c.kind==='tick')s.ticks++;else if(s.goods>0)s.goods--;else return {status:'rejected',result:{reason:'empty'}};return {status:'applied',result:{goods:s.goods},events:[]};}};
+ const program={id:'admission-v1',initial:()=>({state:{goods:3,ticks:0},records:[]}),parseState:s=>structuredClone(s),parseCommand:c=>{if(!['tick','take'].includes(c.kind))throw Error('command');return c;},authorize:p=>p==='player',execute(s,c){if(c.kind==='tick')s.ticks++;else if(s.goods>0)s.goods--;else return {status:'rejected',result:{reason:'empty'}};return {status:'applied',result:{goods:s.goods},events:[]};}};
  return {open:()=>openRegion({owner,region:'admission',program}),fail:value=>{fail=value;}};
 }
 test('unconditional intent follows advancing world and replays once while conditional revision remains enforced',t=>{

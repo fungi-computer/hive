@@ -23,7 +23,7 @@ export function createWetRegionProgram(): RegionProgram<State, Command> {
   }
   return {
     id: "generated-wet-clearing-v7",
-    initial: () => parseState({ environment: recipe.input }),
+    initial: () => ({ state: parseState({ environment: recipe.input }), records: [] }),
     parseState,
     parseCommand: value => commandSchema.parse(value),
     authorize: (principal, command) => command.kind === "advance"

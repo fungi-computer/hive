@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { decode, encode, type Json } from "./codec.ts";
+import { RECORD_FORMAT_VERSION, applyRecords, checkedChange, checkedInitial, createRecordReader, existingRecordSize, readRecordPage, recordSize } from "./records.ts";
 
 export type { Json } from "./codec.ts";
 type SqlValue = string | number | null | ArrayBuffer | Uint8Array;
@@ -10,6 +11,14 @@ export type RegionOccurrence = {
     readonly expectedRevision?: number;
     readonly command: unknown;
   };
+};
+export type RegionStateRecord = { readonly key: string; readonly bytes: Uint8Array | ArrayBuffer };
+export type RegionRecordReader = {
+  readonly read: (key: string) => Uint8Array | undefined;
+};
+export type RegionInitial<State> = {
+  readonly state: State;
+  readonly records: readonly RegionStateRecord[];
 };
 /** Native host capability, structurally compatible with the DO and Watchdog owner. */
 export type RegionSqliteOwner = {
@@ -22,14 +31,18 @@ export type RegionSqliteOwner = {
   transactionSync<A>(operation: () => A): A;
 };
 export type RegionTransition =
-  | { status: "applied"; result: Json; events: readonly Json[] }
+  | { status: "applied"; result: Json; events: readonly Json[]; records?: RegionRecordChange }
   | { status: "rejected"; result: Json };
+export type RegionRecordChange = {
+  readonly puts: readonly RegionStateRecord[];
+  readonly removes: readonly string[];
+};
 /** Registered trusted code. Change id whenever state/command meaning changes.
  * Parsers are pure; callbacks must not mutate other owners or perform external I/O.
  */
 export type RegionProgram<State, Command> = {
   id: string;
-  initial(): State;
+  initial(): RegionInitial<State>;
   parseState(value: unknown): State;
   parseCommand(value: unknown): Command;
   authorize(
@@ -37,7 +50,7 @@ export type RegionProgram<State, Command> = {
     command: Readonly<Command>,
     state: Readonly<State>,
   ): boolean;
-  execute(candidate: State, command: Command): RegionTransition;
+  execute(candidate: State, command: Command, records: RegionRecordReader): RegionTransition;
 };
 export type RegionReceipt = {
   region: string;
@@ -83,6 +96,9 @@ const limitsSchema = z
       .default(8192),
     receipts: z.number().int().min(1).max(65_536).default(4096),
     events: z.number().int().min(1).max(65_536).default(4096),
+    recordBytes: z.number().int().min(1).max(256 * 1024).default(256 * 1024),
+    records: z.number().int().min(1).max(65_536).default(4096),
+    changedRecords: z.number().int().min(1).max(128).default(128),
     storageBytes: z
       .number()
       .int()
@@ -103,6 +119,8 @@ type RegionRow = {
   state_bytes: number;
   receipt_bytes: number;
   event_bytes: number;
+  record_count: number;
+  record_bytes: number;
 };
 type ClockRow = {
   singleton: number;
@@ -206,10 +224,13 @@ export function openRegion<State, Command>(options: {
       found.state_bytes,
       found.receipt_bytes,
       found.event_bytes,
+      found.record_count,
+      found.record_bytes,
     ])
       integer.parse(value);
     if (
       found.event_count > found.event_sequence ||
+      found.record_count > limits.records ||
       found.state_bytes !== bytes(found.state_json)
     )
       throw new Error("region-storage-metadata");
@@ -222,6 +243,7 @@ export function openRegion<State, Command>(options: {
       found.state_bytes +
         found.receipt_bytes +
         found.event_bytes +
+        found.record_bytes +
         clock.frontier_bytes >
       limits.storageBytes
     )
@@ -241,19 +263,41 @@ export function openRegion<State, Command>(options: {
           "SELECT name FROM sqlite_master WHERE type='table' AND name='hive_region_clock'",
         )
         .toArray().length > 0;
+    const hasRecords = owner.sql
+      .exec(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='hive_region_records'",
+      )
+      .toArray().length > 0;
     if (hasRegion && !hasClock) throw new Error("region-storage-format");
+    if (hasRegion && !hasRecords) throw new Error("region-storage-format");
+    if (!hasRegion && hasRecords) throw new Error("region-storage-format");
+    if (hasRegion) {
+      const columns = new Set(owner.sql.exec<{ name: string }>("PRAGMA table_info(hive_region)").toArray().map(({ name }) => name));
+      if (!columns.has("record_count") || !columns.has("record_bytes"))
+        throw new Error("region-storage-format");
+    }
+    if (hasRecords) {
+      const columns = new Set(owner.sql.exec<{ name: string }>("PRAGMA table_info(hive_region_records)").toArray().map(({ name }) => name));
+      if (!columns.has("format_version") || !columns.has("record_key") || !columns.has("record_bytes"))
+        throw new Error("region-storage-format");
+      const unsupported = owner.sql.exec<{ n: number }>("SELECT COUNT(*) AS n FROM hive_region_records WHERE format_version<>?", RECORD_FORMAT_VERSION).toArray()[0]?.n ?? 0;
+      if (unsupported) throw new Error("region-storage-format");
+    }
     owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_region (
       singleton INTEGER PRIMARY KEY CHECK(singleton=1), region_id TEXT NOT NULL,
       program_id TEXT NOT NULL, limits_json TEXT NOT NULL,
       revision INTEGER NOT NULL, state_json TEXT NOT NULL,
       receipt_count INTEGER NOT NULL, event_count INTEGER NOT NULL,
       event_sequence INTEGER NOT NULL, state_bytes INTEGER NOT NULL,
-      receipt_bytes INTEGER NOT NULL, event_bytes INTEGER NOT NULL);
+      receipt_bytes INTEGER NOT NULL, event_bytes INTEGER NOT NULL,
+      record_count INTEGER NOT NULL, record_bytes INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS hive_region_receipts (
       principal TEXT NOT NULL, command_id TEXT NOT NULL, input_json TEXT NOT NULL,
       receipt_json TEXT NOT NULL, PRIMARY KEY(principal,command_id));
       CREATE TABLE IF NOT EXISTS hive_region_events (
       sequence INTEGER PRIMARY KEY, event_json TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS hive_region_records (
+      format_version INTEGER NOT NULL, record_key TEXT PRIMARY KEY, record_bytes BLOB NOT NULL);
       CREATE TABLE IF NOT EXISTS hive_region_clock (
       singleton INTEGER PRIMARY KEY CHECK(singleton=1), format_version INTEGER NOT NULL,
       region_id TEXT NOT NULL,
@@ -264,15 +308,22 @@ export function openRegion<State, Command>(options: {
         .exec("SELECT singleton FROM hive_region WHERE singleton=1")
         .toArray().length
     ) {
-      const initial = stateWire(program.initial());
+      const initial = checkedInitial(program.initial(), limits);
+      const initialWire = stateWire(initial.state);
+      const initialBytes = initial.records.reduce((sum, record) => sum + recordSize(record.key, record.bytes), 0);
+      if (bytes(initialWire) + initialBytes > limits.storageBytes) throw new Error("region-storage-budget");
       owner.sql.exec(
-        "INSERT INTO hive_region VALUES (1,?,?,?,0,?,0,0,0,?,0,0)",
+        "INSERT INTO hive_region VALUES (1,?,?,?,0,?,0,0,0,?,0,0,?,?)",
         region,
         programId,
         policy,
-        initial,
-        bytes(initial),
+        initialWire,
+        bytes(initialWire),
+        initial.records.length,
+        initialBytes,
       );
+      for (const record of initial.records)
+        owner.sql.exec("INSERT INTO hive_region_records VALUES (?,?,?)", RECORD_FORMAT_VERSION, record.key, record.bytes);
     }
     const clockRows = owner.sql
       .exec<ClockRow>("SELECT * FROM hive_region_clock WHERE singleton=1")
@@ -296,6 +347,12 @@ export function openRegion<State, Command>(options: {
       .toArray()[0];
     if (!clock) throw new Error("region-clock-frontier");
     validateClock(clock, current.revision);
+    const recordMeta = owner.sql.exec<{ count: number; bytes: number }>(
+      "SELECT COUNT(*) AS count,COALESCE(SUM(length(CAST(record_key AS BLOB))+length(record_bytes)+16),0) AS bytes FROM hive_region_records WHERE format_version=?",
+      RECORD_FORMAT_VERSION,
+    ).toArray()[0];
+    if (!recordMeta || recordMeta.count !== current.record_count || recordMeta.bytes !== current.record_bytes)
+      throw new Error("region-storage-metadata");
     stateFrom(current.state_json);
     if (
       current.receipt_count > limits.receipts ||
@@ -327,6 +384,7 @@ export function openRegion<State, Command>(options: {
       current.state_bytes +
         current.receipt_bytes +
         current.event_bytes +
+        current.record_bytes +
         clock.frontier_bytes +
         addedBytes >
       limits.storageBytes
@@ -381,6 +439,7 @@ export function openRegion<State, Command>(options: {
     let receipt: RegionReceipt;
     let candidateWire = current.state_json;
     let eventWires: readonly { sequence: number; wire: string }[] = [];
+    let recordChange: RegionRecordChange = { puts: [], removes: [] };
     if (input.expectedRevision !== undefined && input.expectedRevision !== current.revision) {
       receipt = {
         ...base,
@@ -389,10 +448,17 @@ export function openRegion<State, Command>(options: {
       };
     } else {
       const candidate = stateFrom(current.state_json);
-      const transition = program.execute(candidate, checkedCommand());
+      const reader = createRecordReader(owner, limits.recordBytes);
+      let transition: RegionTransition;
+      try {
+        transition = program.execute(candidate, checkedCommand(), reader);
+      } finally {
+        reader.close();
+      }
       if (transition.status === "rejected") {
         receipt = { ...base, status: "rejected", result: transition.result };
       } else {
+        recordChange = checkedChange(transition.records, limits);
         const revision = integer.parse(current.revision + 1);
         if (
           transition.events.length > 32 ||
@@ -433,6 +499,19 @@ export function openRegion<State, Command>(options: {
       (sum, event) => sum + bytes(event.wire),
       0,
     );
+    const oldRecords = new Map<string, number>();
+    for (const change of [...recordChange.puts.map(({ key }) => key), ...recordChange.removes]) {
+      const prior = existingRecordSize(owner, change);
+      if (prior.exists) oldRecords.set(change, prior.size);
+    }
+    const nextRecordCount = current.record_count - recordChange.removes.filter((key) => oldRecords.has(key)).length +
+      recordChange.puts.filter(({ key }) => !oldRecords.has(key)).length;
+    if (nextRecordCount < 0 || nextRecordCount > limits.records)
+      throw new Error("region-record-capacity");
+    const nextRecordBytes = current.record_bytes - [...oldRecords.values()].reduce((sum, value) => sum + value, 0) +
+      recordChange.puts.reduce((sum, record) => sum + recordSize(record.key, record.bytes), 0);
+    if (nextRecordBytes < 0 || nextStateBytes + current.receipt_bytes + current.event_bytes + eventBytes + nextRecordBytes + nextFrontierBytes > limits.storageBytes)
+      throw new Error("region-storage-budget");
     if (
       nextStateBytes +
         current.receipt_bytes +
@@ -444,13 +523,15 @@ export function openRegion<State, Command>(options: {
       throw new Error("region-storage-budget");
     if (receipt.status === "applied") {
       owner.sql.exec(
-        "UPDATE hive_region SET revision=?,state_json=?,state_bytes=?,event_count=?,event_sequence=?,event_bytes=? WHERE singleton=1 AND revision=?",
+        "UPDATE hive_region SET revision=?,state_json=?,state_bytes=?,event_count=?,event_sequence=?,event_bytes=?,record_count=?,record_bytes=? WHERE singleton=1 AND revision=?",
         receipt.revision,
         candidateWire,
         nextStateBytes,
         current.event_count + eventWires.length,
         current.event_sequence + eventWires.length,
         current.event_bytes + eventBytes,
+        nextRecordCount,
+        nextRecordBytes,
         current.revision,
       );
       for (const event of eventWires)
@@ -459,6 +540,7 @@ export function openRegion<State, Command>(options: {
           event.sequence,
           event.wire,
         );
+      applyRecords(owner, recordChange);
     }
     if (nextClock) {
       owner.sql.exec(
@@ -545,6 +627,19 @@ export function openRegion<State, Command>(options: {
         revision: current.revision,
         state: stateFrom(current.state_json),
       };
+    },
+    readRecords(expectedRevision: number, afterKey = "", limit = 128) {
+      integer.parse(expectedRevision);
+      if (afterKey.includes("\0") || afterKey.length > 160)
+        throw new Error("region-record-key");
+      if (!Number.isInteger(limit) || limit < 1 || limit > 128)
+        throw new Error("region-record-page-budget");
+      return owner.transactionSync(() => {
+        const current = row();
+        if (current.revision !== expectedRevision)
+          throw new Error("region-record-revision-conflict");
+        return readRecordPage(owner, expectedRevision, afterKey, limit, limits.recordBytes);
+      });
     },
     /** Trusted host cursor; caller applies knowledge/grants before exposing events. */
     readEvents(after: number, limit = 32) {

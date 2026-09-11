@@ -59,7 +59,7 @@ export function createGoblinRegionProgram(
     initial() {
       const clearing = createClearing();
       clearing.paused = true;
-      return { clearing: serializeClearing(clearing) };
+      return { state: { clearing: serializeClearing(clearing) }, records: [] };
     },
     parseState: (value) => stateSchema.parse(value),
     parseCommand: (value) => inputSchema.parse(value),

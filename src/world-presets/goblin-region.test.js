@@ -15,7 +15,7 @@ const dig = {
   command: { kind: "dig", party: "home", actors: null, voxel: [0, 14, 128] },
 };
 test("player and host grants differ; paused/no-change actions produce no false events", () => {
-  const s = p.initial();
+  const s = p.initial().state;
   assert(p.authorize("goblin-player", dig, s));
   assert(!p.authorize("goblin-host", dig, s));
   assert(!p.authorize("goblin-player", { kind: "advance", ticks: 1 }, s));
@@ -38,7 +38,7 @@ test("player and host grants differ; paused/no-change actions produce no false e
   assert(!Object.hasOwn(s.clearing, "commands"));
 });
 test("paused admitted dig becomes real pawn work; reconstruction preserves running work and one soil result", () => {
-  const s = p.initial();
+  const s = p.initial().state;
   const admitted = p.execute(s, dig);
   assert.equal(admitted.status, "applied");
   assert.deepEqual(
