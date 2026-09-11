@@ -1,3 +1,28 @@
+## Mouse-driven deep excavation frontier — September 11
+
+u5658 failed after first excavation: Escape cleared selection without exiting
+Dig. Shared client correction6204ec6 preserves selected actor when exiting the
+armed tool and cancels the pointer stroke. Engine client build u5661 exited0;
+WASM and server program identity unchanged. u5663 then completed the first
+cut/deposit/return but the test aimed at a hidden centre point. Saved-frame
+ray queries showed a visible corner for the second cut; the corrected driver
+uses the real picking function to choose an actually displayed top face.
+
+u5666 reached three cuts/deposits and stopped on its erroneous soil-only
+assertion when material2 (stone) was encountered. u5669 (exec35378,
+invocation b36b0e2ac0564e33a782a655debe4fb8) removed that assertion but
+correctly stopped before the final cut: [1,11,0] has no visible top from this
+camera. No physical bug inferred and no through-wall test click admitted.
+All owned browser scopes closed. Receipts/images remain under
+.botanical/colony-wet-browser, including separate v2/v3/v4 outputs.
+
+The necessary next client join is exterior-only layer/cutaway rendering and
+picking through one projection of already published surfaces. This does not
+qualify scoped exploration or reveal hidden material. Native DO four-cut
+restart proof remains valid; a player-visible wet checkpoint is not yet proved
+or deployed. Private source6204ec6 was remotely verified at the existing
+recovery/hive-public-do-20260910T1533Z ref.
+
 ## Actual local DO wet excavation and restart — September 11
 
 Root u5656 (invocation bebfaa68e2c74480bcb82738ca5376e4, exec3244)
