@@ -39,9 +39,10 @@ export interface KernelRecordSnapshot {
 const RECORD_BYTES = 256 * 1024;
 const ENTITY_BYTES = 8 * 1024 * 1024;
 const TOTAL_BYTES = 9 * 1024 * 1024;
-const MAX_RECORDS = 40;
+const MAX_RECORDS = 48;
 const MAX_KEY_BYTES = 80;
 const ENTITY_PREFIX = "kernel/entities/";
+const ATMOSPHERE_PREFIX = "kernel/atmosphere/";
 const ENVIRONMENT_KEYS = [
   "kernel/environment/definition",
   "kernel/environment/header",
@@ -62,6 +63,10 @@ function keyAllowed(key: string): boolean {
     const suffix = key.slice(ENTITY_PREFIX.length);
     return /^\d{4}$/.test(suffix) && Number(suffix) < 32;
   }
+  if (key.startsWith(ATMOSPHERE_PREFIX)) {
+    const suffix = key.slice(ATMOSPHERE_PREFIX.length);
+    return /^\d{4}$/.test(suffix) && Number(suffix) < 9;
+  }
   return key === "kernel/header" || (ENVIRONMENT_KEYS as readonly string[]).includes(key);
 }
 function validateKeyList(keys: readonly unknown[]): asserts keys is readonly string[] {
@@ -74,6 +79,9 @@ function validateKeyList(keys: readonly unknown[]): asserts keys is readonly str
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
+  const airKeys = keys.filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
+  if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
+    throw new Error("atmosphere record set is incomplete");
 }
 function decodeEntities(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): { text: string; parsed: KernelEntitySnapshot } {
   const chunks = records.filter(({ key }) => key.startsWith(ENTITY_PREFIX)).sort((a, b) => Number(a.key.slice(-4)) - Number(b.key.slice(-4)));
@@ -104,6 +112,9 @@ function preflightRecords(records: readonly { readonly key: string; readonly byt
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
+  const airKeys = keys.filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
+  if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
+    throw new Error("atmosphere record set is incomplete");
   const definition = records.find(record => record.key === ENVIRONMENT_KEYS[0]);
   if (definition) new TextDecoder("utf-8", { fatal: true }).decode(definition.bytes);
   const entities = decodeEntities(records);
