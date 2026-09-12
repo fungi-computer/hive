@@ -14,6 +14,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Slider } from "@fungi.computer/caps/components/slider";
+import { Input } from "@fungi.computer/caps/components/input";
 import { Card, CardContent } from "@fungi.computer/caps/components/card";
 import { loadStaticArtPack } from "../../../src/art/static-pack.js";
 import {
@@ -76,6 +77,9 @@ export function createHiveClient({
     subjects: [],
     pendingSave: false,
     pendingRestore: false,
+    invitationOpen: false,
+    invitationUrl: null,
+    invitationCopied: false,
     presentationFacts: [],
     presentationControls: [],
     terrainMarks: [],
@@ -413,6 +417,15 @@ export function createHiveClient({
               { onClick: () => act("reset"), size: "sm", variant: "secondary" },
               persistence.newWorldLabel,
             ),
+            persistence.invitation ? React.createElement(
+              Button,
+              { size: "sm", variant: "outline", onClick: () => {
+                try { state.invitationUrl = persistence.invitation.url(); state.invitationOpen = true; state.invitationCopied = false; state.message = "Invite link ready"; }
+                catch (error) { state.message = error instanceof Error ? error.message : String(error); }
+                renderHud();
+              } },
+              "Invite a friend",
+            ) : null,
             persistence.saveLabel ? React.createElement(
               Button,
               {
@@ -441,6 +454,22 @@ export function createHiveClient({
                   ? "Recovering connection…" : "Connection unavailable",
             ),
           ),
+          state.invitationOpen && state.invitationUrl ? React.createElement("div", { className: "hive-invitation" },
+            React.createElement("p", null, "Anyone with this link can build and give orders here."),
+            React.createElement(Input, { value: state.invitationUrl, readOnly: true, "aria-label": "Friend invitation link", onFocus: event => event.currentTarget.select() }),
+            React.createElement(Button, { size: "sm", onClick: async () => {
+              try {
+                if (!globalThis.navigator?.clipboard?.writeText) throw new Error("Clipboard access unavailable");
+                await globalThis.navigator.clipboard.writeText(state.invitationUrl);
+                if (state.disposed) return;
+                state.invitationCopied = true; state.message = "Invite link copied";
+              } catch (error) {
+                if (state.disposed) return;
+                state.invitationCopied = false; state.message = `Could not copy invite link: ${error instanceof Error ? error.message : String(error)}`;
+              }
+              renderHud();
+            } }, state.invitationCopied ? "Copied" : "Copy link"),
+          ) : null,
           React.createElement(
             "div",
             { className: "hive-selection" },

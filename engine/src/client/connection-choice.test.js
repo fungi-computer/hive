@@ -143,3 +143,36 @@ test("recovery forwards to the current remote owner and refuses after disposal",
   choice.runtime.dispose();
   assert.throws(() => choice.runtime.recovery.retry(), /connection choice disposed/);
 });
+
+test("an invitation joins the supplied world without replacing the recipient private token", () => {
+  const calls = [];
+  const saved = storage();
+  const privateToken = "1".repeat(64);
+  const invitedToken = "a".repeat(64);
+  saved.setItem("hive-private-demo/survival", privateToken);
+  const choice = createConnectionChoice({
+    mode: "survival", publicHost: "https://demo.example.test", storage: saved, cryptoSource: cryptoSource(),
+    locationSource: { href: `https://demo.example.test/play?game=survival#world=${invitedToken}`, hash: `#world=${invitedToken}` },
+    historySource: { replaceState() {} }, connectLocal: () => ({}), connectRemote: runtimeFactory(calls),
+  });
+  assert.equal(calls[0].options.token, invitedToken);
+  assert.equal(saved.getItem("hive-private-demo/survival"), privateToken);
+  assert.match(choice.persistence.invitation.url(), new RegExp(`#world=${invitedToken}$`));
+  choice.runtime.dispose();
+});
+
+test("invalid invitation tokens are refused visibly and new worlds clear the invite fragment", () => {
+  const base = {
+    mode: "survival", publicHost: "https://demo.example.test", storage: storage(), cryptoSource: cryptoSource(),
+    connectLocal: () => ({}), connectRemote: runtimeFactory([]),
+  };
+  assert.throws(() => createConnectionChoice({ ...base, locationSource: { href: "https://demo.example.test/#world=bad", hash: "#world=bad" } }), /invalid world token/);
+  const calls = [];
+  let cleared = "";
+  const token = "b".repeat(64);
+  const choice = createConnectionChoice({ ...base, connectRemote: runtimeFactory(calls), locationSource: { href: `https://demo.example.test/?game=survival#world=${token}`, hash: `#world=${token}` }, historySource: { replaceState(_state, _title, value) { cleared = value; } } });
+  choice.persistence.newWorld();
+  assert.equal(cleared, "/?game=survival");
+  assert.notEqual(calls[1].options.token, token);
+  choice.runtime.dispose();
+});
