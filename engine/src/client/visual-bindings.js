@@ -8,7 +8,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,
   soil: Object.freeze({ kind: "static", path: ["soil", 3], facing: false, anchor: "propAnchor" }),
   stone: Object.freeze({ kind: "static", path: ["stone", 3], facing: false, anchor: "propAnchor" }),
-  "colony.hearth": Object.freeze({
+  "colony.brew-station": Object.freeze({
     kind: "static", path: ["buildings", "brew-station", "finished", 0],
     facing: false, anchor: "propAnchor",
   }),

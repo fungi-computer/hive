@@ -174,6 +174,16 @@ engine types and touched Fallow pass. Fallow reports0 introduced findings, with
 The completed full-world smoke/point-query/cutaway changes are in the same release
 candidate. Full sustained two-client performance and Levi's playtest remain open.
 
+## Retained brew station clean break — September 12
+
+The temporary standalone `colony.hearth` entity and its procedural rectangle/
+ellipse fire and smoke presentation are retired. The initial Colony station is
+now `colony.brew-station`, bound to the retained original brew-station asset and
+therefore remains the physical, selectable station. The native finite
+`wood-hearth` emission definition, worker assignment, fuel transfer, paid debit,
+and atmosphere owner remain in place; this change does not claim that the full
+retained brewing recipe loop has been migrated.
+
 ## Current interaction restoration — September 12
 
 Levi explicitly requests the retained station-first gameplay: click the hearth,
