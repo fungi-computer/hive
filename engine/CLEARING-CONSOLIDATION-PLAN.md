@@ -225,6 +225,60 @@ move the supported rule once, delete the superseded special case, and exercise i
 through the real station, worker, material and save callers before starting the
 next step.
 
+### Complete retained-to-native migration ledger
+
+This ledger is the required starting point for further Colony work. It prevents
+isolated feature ports from repeatedly rediscovering the same job, material,
+geometry and presentation seams.
+
+| Play concern | Retained behavioral source | Current native/SDK owner | Current disposition |
+| --- | --- | --- | --- |
+| People and party | `actors.ts`, `clearing.ts`, `orders.ts` | authored entities, `Body`, `Traversal`, `WorkParticipation`, command admission | Rowan and Sedge exist with original visuals and manual takeover. Party membership, recruitment and the cat are missing. |
+| Selection and tools | `ui-actions.ts`, `main.js`, `view.js` | shared client controls, contextual presentation, area selection, layer/cutaway view | Selection, Go, rectangle Dig and layers exist. Restore the retained contextual site/tree/herb/lot actions through the shared catalog rather than adding Colony-only pointer branches. |
+| Movement and assignment | `movement.ts`, `matching.ts`, `jobs.ts` | Rust A*, traversal costs and libcolony assignment through the shared work system | Keep the native owners. Finish route invalidation/retry and useful waiting reasons; never port retained pathfinding or assignment as a second truth. |
+| Physical goods | `materials.ts`, `item-containers.ts` | Rust `Lot`/`Container`, transfer, carried water, output preparation and indexes | Native custody is stronger. Add missing Goblin material/endpoint definitions; do not port the retained material store. |
+| Trees and wood | `world.js`, `orders.ts`, `jobs.ts`, `activity.ts` | generated/content entities, generic finite work, native material output and delivery | Missing. Restore fell/chop/output/haul as the first scenery-backed resource loop, including retained poses and finite wood. |
+| Storage | retained lot/container and storage jobs | native containers, delivery tasks and future data-defined stockpile filters | Crates work; floor stock is only a fallback. Restore ordinary stockpile designation/filtering before adding automation. |
+| Construction | `construction.js`, `physical-completion.ts`, `construction-view.js` | native construction work, physical geometry, material embedding, support query | Floor, wall and four-facing stairs exist. Restore the retained catalog, site interactions, deconstruction/salvage, bed/shelf/station endpoints and presentation without replacing native completion. |
+| Terrain and excavation | retained terrain/digging controls | Rust generator, A*, excavation, material yield, discrete field water | Current implementation supersedes retained physics. Preserve rectangle tools and visual quality; do not port old terrain or water state. |
+| Water and vessels | `field-water*`, `water-supply.ts`, `water-delivery.ts`, pail art | Rust discrete field water, `LotWater`, native transfer and containers | Groundwater is live. Restore pail draw/carry/pour and station supply as consumers of the current finite owner. |
+| Herbs | `herbs.ts`, herb commands/jobs/activity, art | generic finite work, material output, authored growth/process facts | Missing. Restore sow/grow/water/harvest as data and shared work, producing a real mugwort lot. |
+| Brewing | `recipes.ts`, `brewing.ts`, brew jobs/activity | native lots/containers/emissions plus the missing generic staged-process owner | Station and paid fire exist; recipe production does not. Implement one general process owner, then express herbal ale as definitions. |
+| Needs and routine | `needs.ts`, `routine.ts`, care jobs/activity | shared component/system/query composition; native material/contact mutations | Missing; the current `Guest { hungry }` placeholder must be deleted when this lands. Residents and guests share hydration, nourishment and rest. |
+| Presentation and juice | `art/clearing.js`, `art/figures.js`, `view.js` | shared original asset pack, visual projection, interpolation, cues/effects | Work poses exist; trees/path/cat and pickup/drop transitions are missing. Presentation reads physical facts and never advances work. |
+| Environment | retained paid environment and presentation | current sparse gas, discrete water, structure faces and native transaction | Keep the current owners. Brewing, buildings and visuals consume them; no renewed solver experiment. |
+| Save, retry and multiplayer | retained snapshots provide semantic examples only | Region transaction/receipts, DO alarm, complete baseline plus changed observations | Current implementation supersedes retained hosting. Every restored loop must survive current-format reload/retry and two-client use. |
+
+### Playable migration slices
+
+Move the ledger in four vertical slices. Each slice includes commands, automatic
+work, physical state, visuals, persistence and two-client observation. A source
+module without its playable caller is not a completed port.
+
+1. **Working clearing:** real trees can be designated, felled, cut into finite
+   wood and hauled to a designated stockpile. Restore the path, trees, rocks,
+   mushrooms, cat, pickup/carry/drop cues and contextual object actions at the
+   same time. This proves one complete retained resource loop over the new engine.
+2. **A home worth using:** restore the retained building catalog and interaction
+   flow over native construction: supported floors/roofs, walls, stairs, bed,
+   shelf, brew station, deconstruction and salvage. A goblin can build, traverse,
+   use and dismantle the result without stranded work or duplicated material.
+3. **One complete brew:** restore pail draw/carry/pour, mugwort
+   sow/water/grow/harvest, ingredient storage, staged herbal-ale production,
+   fermentation, kegging, serving and spent-grain output. Fire, water and smoke
+   remain the current native environmental owners. This is one joined evening of
+   play, not separate herb, pail and brewery demos.
+4. **People who live there:** replace the hungry-guest placeholder with shared
+   hydration, nourishment, rest and comfort; connect bed, food, water and ale;
+   then add guest preference/payment and retained routine behavior. Skills,
+   traits and relationships follow as definitions over actual work/care/social
+   events rather than a second actor simulation.
+
+The first slice starts only after the deployed route correction has been tried in
+ordinary play. Subsequent slices may prepare independent assets or definitions in
+parallel, but no second writer changes the shared work/material/Colony seam. King
+reviews the complete behavior against the retained game before integration.
+
 ## Current interaction restoration — September 12
 
 Levi explicitly requests the retained station-first gameplay: click the hearth,
