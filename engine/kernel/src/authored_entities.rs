@@ -155,6 +155,11 @@ impl Kernel {
     }
 
     pub(super) fn publish_authored_entities(&mut self, prepared: PreparedAuthoredEntities) {
+        let writes_can_release_reference = prepared.writes.iter().any(|write| {
+            self.registry.schemas.get(&write.component).is_some_and(|schema|
+                schema.fields.values().any(|kind| matches!(kind, FieldType::Entity | FieldType::NullableEntity)))
+        });
+        if !prepared.removes.is_empty() || writes_can_release_reference { self.ground_stock_cleanup_pending = true; }
         for id in prepared.removes {
             let entity = self.ids.remove(&id).expect("prepared authored removal");
             self.known.remove(&id);
