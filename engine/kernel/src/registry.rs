@@ -61,6 +61,7 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
+            ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.construction-site", vec![
@@ -182,6 +183,7 @@ impl Registry {
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
+                "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
                 "hive.finite-resource" => world.register_component::<FiniteResource>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.construction-site" => world.register_component::<ConstructionSite>(),
@@ -227,6 +229,7 @@ impl Registry {
                 | "hive.ground-stock"
                 | "hive.lot"
                 | "hive.lot-water"
+                | "hive.stockpile-cell"
                 | "hive.finite-resource"
                 | "hive.excavation-work"
                 | "hive.construction-site"
@@ -330,6 +333,10 @@ impl Registry {
                 if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
                     return Err("invalid carried water mass".into());
                 }
+            }
+            "hive.stockpile-cell" => {
+                let cell: StockpileCell = decode(value)?;
+                if !valid_id(&cell.zone) || !valid_id(&cell.filter_profile) { return Err("invalid stockpile cell".into()); }
             }
             "hive.finite-resource" => {
                 let resource: FiniteResource = decode(value)?;
@@ -490,6 +497,7 @@ impl Registry {
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
+            "hive.stockpile-cell" => { world.entity_mut(entity).insert(decode::<StockpileCell>(value)?); }
             "hive.finite-resource" => {
                 world.entity_mut(entity).insert(decode::<FiniteResource>(value)?);
             }
@@ -547,6 +555,7 @@ impl Registry {
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
+            "hive.stockpile-cell" => world.get::<StockpileCell>(entity).map(record),
             "hive.finite-resource" => world.get::<FiniteResource>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
             "hive.construction-site" => world.get::<ConstructionSite>(entity).map(record),

@@ -144,6 +144,44 @@ mod construction_tests {
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
     }
 
+    #[test]
+    fn native_stockpile_designation_creates_surface_cell_and_rejects_mixed_batch() {
+        let (mut kernel, surface, _) = world();
+        let action = json!({"delta":0.0,"writes":[],"actions":[{"kind":"designate-stockpile","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&action.to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true);
+        assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap().contains("zone-a"), true);
+        let before = kernel.query_json("[\"hive.stockpile-cell\"]").unwrap();
+        let bad = json!({"delta":0.0,"writes":[],"actions":[{"kind":"designate-stockpile","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}]});
+        let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&bad.to_string()).unwrap()).unwrap();
+        assert_eq!(rejected["results"][0]["accepted"], false);
+        assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap(), before);
+    }
+
+    #[test]
+    fn native_stockpile_floor_update_storeys_capacity_and_restore_are_atomic() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[]}).to_string()).unwrap();
+        let columns = [(i64::from(surface.x), i64::from(surface.z))];
+        let upper = kernel.environment.as_mut().unwrap().world.structure_surfaces(&columns).unwrap().into_iter().flatten().next().expect("finished floor surface");
+        let designation = |zone: &str, cell: crate::generation::Cell, capacity: u32| json!({"delta":0.0,"writes":[],"actions":[{"kind":"designate-stockpile","zone":zone,"cells":[{"x":cell.x,"y":cell.y,"z":cell.z,"priority":2,"filterProfile":"materials","capacity":capacity}]}]});
+        let ground = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", surface, 3).to_string()).unwrap()).unwrap();
+        assert_eq!(ground["results"][0]["accepted"], true);
+        let upper_result = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", upper, 3).to_string()).unwrap()).unwrap();
+        assert_eq!(upper_result["results"][0]["accepted"], true);
+        let before = kernel.query_json("[\"hive.stockpile-cell\"]").unwrap();
+        let mixed = json!({"delta":0.0,"writes":[],"actions":[{"kind":"designate-stockpile","zone":"ground-zone","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3},{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3}]}]});
+        let rejected = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&mixed.to_string()).unwrap()).unwrap();
+        assert_eq!(rejected["results"][0]["accepted"], false);
+        assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap(), before);
+        let same_storey = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("other-zone", upper, 3).to_string()).unwrap()).unwrap();
+        assert_eq!(same_storey["results"][0]["accepted"], false);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.query_json("[\"hive.stockpile-cell\"]").unwrap(), kernel.query_json("[\"hive.stockpile-cell\"]").unwrap());
+    }
+
     fn wall_catalog(kernel: &mut Kernel) {
         kernel.environment.as_mut().unwrap().structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
@@ -1545,7 +1583,7 @@ impl Kernel {
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
-                    | Action::ExtractResource { .. })
+                    | Action::ExtractResource { .. } | Action::DesignateStockpile { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -1767,8 +1805,40 @@ impl Kernel {
         Ok(self.publish_material_output(prepared))
     }
 
+    fn designate_stockpile(&mut self, zone: String, cells: Vec<StockpileDesignation>) -> Result<String> {
+        if !valid_id(&zone) || cells.is_empty() || cells.len() > 256 { return Err("invalid stockpile designation".into()); }
+        let environment = self.environment.as_mut().ok_or("stockpile designation requires generated terrain")?;
+        let spacing = environment.world.cell_spacing_m();
+        let mut seen = BTreeSet::new();
+        let mut prepared = Vec::with_capacity(cells.len());
+        for cell in cells {
+            if !valid_id(&cell.filter_profile) || cell.capacity == 0 || !seen.insert((cell.x, cell.y, cell.z)) { return Err("invalid or duplicate stockpile cell".into()); }
+            let generated = environment.world.surface_cells(&[(i64::from(cell.x), i64::from(cell.z))])?.into_iter().next().flatten();
+            let generated_ok = generated.is_some_and(|surface| surface.cell.y == cell.y);
+            let structural_ok = !generated_ok && environment.world.structure_surfaces(&[(i64::from(cell.x), i64::from(cell.z))])?.into_iter().flatten().any(|surface| surface.x == i64::from(cell.x) && surface.y == cell.y && surface.z == i64::from(cell.z));
+            if !generated_ok && !structural_ok { return Err("stockpile cell is not an authoritative walkable surface".into()); }
+            let id = format!("stockpile.{}:{}.{x}.{y}.{z}", zone.len(), zone, x=cell.x, y=cell.y, z=cell.z);
+            if !valid_id(&id) { return Err("stockpile identity exceeds bound".into()); }
+            for other in self.ids.values() { if let Some(pos) = self.ecs.get::<Position>(*other) { if (pos.x - f64::from(cell.x)*spacing[0]).abs() < 1e-9 && (pos.y - (f64::from(cell.y)+0.5)*spacing[1]).abs() < 1e-9 && (pos.z - f64::from(cell.z)*spacing[2]).abs() < 1e-9 && self.ecs.get::<StockpileCell>(*other).is_some_and(|p| p.zone != zone) { return Err("stockpile cell claimed by another zone".into()); } } }
+            prepared.push((id, cell));
+        }
+        for (id, cell) in &prepared {
+            if let Some(entity) = self.ids.get(id).copied() {
+                if self.quantity(id) > u64::from(cell.capacity) { return Err("stockpile capacity is below contained lots".into()); }
+                if self.ecs.get::<StockpileCell>(entity).is_some_and(|old| old.zone != zone) { return Err("stockpile identity belongs to another zone".into()); }
+            }
+            let position = Position { x: f64::from(cell.x)*spacing[0], y: (f64::from(cell.y)+0.5)*spacing[1], z: f64::from(cell.z)*spacing[2], facing: 0.0 };
+            let policy = StockpileCell { zone: zone.clone(), priority: cell.priority, filter_profile: cell.filter_profile.clone() };
+            if let Some(entity) = self.ids.get(id).copied() { self.ecs.entity_mut(entity).insert((position, Container { capacity: cell.capacity }, policy)); }
+            else { let entity = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity: cell.capacity }, policy)).id(); self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.contents.entry(id.clone()).or_default(); }
+        }
+        self.refresh_state_weight();
+        Ok(prepared[0].0.clone())
+    }
+
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
+            Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::Excavate { entity, x, y, z, expected, replacement } => {
                 self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
                 Ok(ActionEffect::None)
