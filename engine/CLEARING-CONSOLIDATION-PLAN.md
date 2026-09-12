@@ -897,20 +897,19 @@ landing to `z = 4`. The current native catalog independently declares
 `timber-stair` as `run: 4, rise: 4`, and the native geometry tests and three-level
 route fixture rely on that span.
 
-Do not restore the short visual source while leaving the native four-cell route:
-that would make the sprite and traversal disagree. The exact retained-art
-restore is therefore a joined change: either retain the current four-voxel
-physical span and commission a reviewed four-voxel art bake from the original
-builder, or change the native stair contract and every route/support/picking
-caller to the retained two-cell run with its four-voxel rise. The latter also
-requires removing the current `rise <= run` validation law and revisiting the
-three-level fixture; it is a gameplay decision, not an art-only fix.
+The accepted restore is the retained contract: `run: 2, rise: 4`. These are
+voxel indices, not metres. Colony's one-metre horizontal cell and 0.54-metre
+vertical cell make this a 2 m run and 2.16 m rise. Environment admission checks
+the resulting metric grade against its bounded stair policy; native geometry
+still bounds both counts and never applies a voxel-count slope test. Route,
+support, landing and picking callers use the same endpoint cells.
 
 The required visual acceptance is four cardinal orientations resolved through
 the existing `buildings.stair.<stage>[facing]` binding and the original stair
 builder. No substitute stair asset, second binding, or one-off rotation path is
 allowed. The current v2 static bank remains the unrebuilt proof boundary until
-the physical choice is accepted and the corresponding pack is regenerated.
+the restored source is baked; source acceptance does not claim the hosted bank
+has already changed.
 
 ### Water, smoke and building must work together
 

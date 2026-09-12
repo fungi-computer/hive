@@ -2,7 +2,7 @@
 const constructionBindings = Object.fromEntries(["floor", "wall", "stair"].flatMap(type =>
   ["stakes", "frame", "finished"].map(stage => [`colony.${type}.${stage}`, Object.freeze({
     kind: "static", path: type === "stair" ? ["buildings", type, stage] : ["buildings", type, stage, 0],
-    facing: type === "stair", anchor: type === "stair" ? "vehicleAnchor" : "propAnchor",
+    facing: type === "stair", anchor: "propAnchor",
   })])));
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,

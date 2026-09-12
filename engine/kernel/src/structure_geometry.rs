@@ -25,7 +25,7 @@ pub enum Cardinal {
 }
 
 impl Cardinal {
-    fn delta(self) -> (i64, i64) {
+    pub(crate) fn delta(self) -> (i64, i64) {
         match self {
             Self::North => (0, -1),
             Self::East => (1, 0),
@@ -33,6 +33,18 @@ impl Cardinal {
             Self::West => (-1, 0),
         }
     }
+}
+
+/// A traversal connection owned by a committed stair.  This is derived from
+/// the canonical instance and is never saved as a second physical fact.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StairEdge {
+    pub id: String,
+    pub entrance: Cell,
+    pub landing: Cell,
+    pub orientation: Cardinal,
+    pub run: u8,
+    pub rise: u8,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -144,7 +156,7 @@ impl StaticInstance {
             }
             Self::Stair { id, origin, orientation, run, rise } => {
                 let _ = orientation.delta();
-                if !crate::components::valid_id(id) || *run == 0 || *run > MAX_STAIR_RUN || *rise == 0 || *rise > MAX_STAIR_RISE || *rise > *run {
+                if !crate::components::valid_id(id) || *run == 0 || *run > MAX_STAIR_RUN || *rise == 0 || *rise > MAX_STAIR_RISE {
                     return Err("invalid bounded structure stair".into());
                 }
                 if !contains(bounds, *origin) {
@@ -269,7 +281,20 @@ impl StaticGeometry {
             instance.bound(self.bounds)?;
             instance.derive(&mut solids, &mut faces)?;
         }
-        Ok(GeometryProjection { solids, explicit_faces: faces })
+        let mut stair_edges = Vec::new();
+        for instance in &self.instances {
+            if let StaticInstance::Stair { id, origin, orientation, run, rise } = instance {
+                let (dx, dz) = orientation.delta();
+                let landing = Cell {
+                    x: origin.x.checked_add(dx.checked_mul(i64::from(*run)).ok_or("structure stair coordinate overflow")?).ok_or("structure stair coordinate overflow")?,
+                    y: origin.y.checked_add(i32::from(*rise)).ok_or("structure stair coordinate overflow")?,
+                    z: origin.z.checked_add(dz.checked_mul(i64::from(*run)).ok_or("structure stair coordinate overflow")?).ok_or("structure stair coordinate overflow")?,
+                };
+                stair_edges.push(StairEdge { id: id.clone(), entrance: *origin, landing, orientation: *orientation, run: *run, rise: *rise });
+            }
+        }
+        stair_edges.sort();
+        Ok(GeometryProjection { solids, explicit_faces: faces, stair_edges })
     }
 }
 
@@ -277,6 +302,7 @@ impl StaticGeometry {
 pub struct GeometryProjection {
     solids: BTreeSet<Cell>,
     explicit_faces: BTreeSet<Face>,
+    stair_edges: Vec<StairEdge>,
 }
 
 impl GeometryProjection {
@@ -304,6 +330,7 @@ impl GeometryProjection {
     }
     pub fn solid_cells(&self) -> impl Iterator<Item = &Cell> { self.solids.iter() }
     pub fn explicit_faces(&self) -> impl Iterator<Item = &Face> { self.explicit_faces.iter() }
+    pub fn stair_edges(&self) -> &[StairEdge] { &self.stair_edges }
     /// Return exposed authored horizontal support faces for requested columns.
     /// The projection is the only derived structure index; callers receive a
     /// bounded rebuilt view and no terrain material is inferred here.
@@ -378,6 +405,36 @@ mod tests {
     }
 
     #[test]
+    fn retained_stair_contract_all_cardinals_reaches_four_voxel_landing() {
+        for (orientation, expected) in [
+            (Cardinal::North, Cell { x: 0, y: 4, z: -2 }),
+            (Cardinal::East, Cell { x: 2, y: 4, z: 0 }),
+            (Cardinal::South, Cell { x: 0, y: 4, z: 2 }),
+            (Cardinal::West, Cell { x: -2, y: 4, z: 0 }),
+        ] {
+            let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
+                id: format!("stair-{orientation:?}"),
+                origin: Cell { x: 0, y: 0, z: 0 },
+                orientation,
+                run: 2,
+                rise: 4,
+            }]).unwrap();
+            assert!(geometry.projection().unwrap().is_bulk_solid(expected));
+        }
+    }
+
+    #[test]
+    fn projection_derives_one_edge_per_committed_stair_and_removal_removes_it() {
+        let stair = StaticInstance::Stair { id:"stair-a".into(), origin:Cell{x:0,y:0,z:0}, orientation:Cardinal::East, run:2, rise:4 };
+        let with_stair = StaticGeometry::new(bounds(), vec![stair]).unwrap().projection().unwrap();
+        assert_eq!(with_stair.stair_edges().len(), 1);
+        assert_eq!(with_stair.stair_edges()[0].entrance, Cell{x:0,y:0,z:0});
+        assert_eq!(with_stair.stair_edges()[0].landing, Cell{x:2,y:4,z:0});
+        let without_stair = StaticGeometry::new(bounds(), vec![]).unwrap().projection().unwrap();
+        assert!(without_stair.stair_edges().is_empty());
+    }
+
+    #[test]
     fn horizontal_surfaces_cover_all_stair_orientations() {
         for (orientation, expected) in [
             (Cardinal::North, Cell { x: 0, y: 1, z: -2 }),
@@ -440,7 +497,7 @@ mod tests {
             id: "overflow".into(), origin: Cell { x: i64::MAX, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 1,
         }]).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
-            id: "too-steep".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 3,
+            id: "zero-run".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 0, rise: 4,
         }]).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
             id: "".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1,

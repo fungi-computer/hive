@@ -682,6 +682,7 @@ impl Kernel {
             if let Some(capability) = self.ecs.get::<Traversal>(entity).copied() {
                 let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
                 let spacing = environment.world.cell_spacing_m();
+                let stairs = environment.world.stair_edges().to_vec();
                 let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
                     let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
                     if !values.iter().all(|value| value.is_finite() && *value >= f64::from(i32::MIN) && *value <= f64::from(i32::MAX)) {
@@ -705,14 +706,14 @@ impl Kernel {
                 if start_point != centered(start_cell) {
                     let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
                     let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
-                    let previous_points = crate::terrain_route::waypoints(&previous.path, config)?;
+                    let previous_points = crate::terrain_route::waypoints_with_stairs(&previous.path, config, &stairs)?;
                     let next = previous_points.len().checked_sub(remaining.len()).ok_or("invalid retained route progress")?;
                     if next == 0 || next >= previous_points.len()
                         || !remaining.iter().eq(previous_points[next..].iter())
                     {
                         return Err("invalid retained route progress".into());
                     }
-                    contact_start = crate::terrain_route::active_support_index(&previous.path, next)?;
+                    contact_start = crate::terrain_route::active_support_index_with_stairs(&previous.path, next, &stairs)?;
                     // A route may revisit a support cell. The retained deque's
                     // cursor identifies the active waypoint; searching by
                     // coordinate can select an earlier visit in path history.
@@ -721,7 +722,8 @@ impl Kernel {
                     let mut waypoint_end = 0usize;
                     let mut join = None;
                     for (index, pair) in previous.path.windows(2).enumerate() {
-                        let emitted = if pair[0].y == pair[1].y { 1 } else { 2 };
+                        let stair_edge = stairs.iter().any(|stair| (stair.entrance == pair[0] && stair.landing == pair[1]) || (stair.entrance == pair[1] && stair.landing == pair[0]));
+                        let emitted = if stair_edge || pair[0].y == pair[1].y { 1 } else { 2 };
                         waypoint_end = waypoint_end.checked_add(emitted).ok_or("terrain route progress overflow")?;
                         if next <= waypoint_end {
                             let point_index = waypoint_end.checked_sub(next).ok_or("invalid terrain route progress")?;
@@ -746,12 +748,12 @@ impl Kernel {
                         blocked.contains(&(x, y, z))
                     })
                 };
-                if !history.is_empty() && (!crate::terrain_traversal::path_supported(&history[contact_start..], config, &mut query)?
+                if !history.is_empty() && (!crate::terrain_traversal::path_supported_with_stairs(&history[contact_start..], config, &mut query, &stairs)?
                     || history[contact_start..].iter().copied().any(&obstacle)) {
                     return Err("retained terrain contact is no longer traversable".into());
                 }
-                let mut path = crate::terrain_route::search_with_blocked(start_cell, destination_cell, config, &mut query, &obstacle)?;
-                let mut points = crate::terrain_route::waypoints(&path, config)?;
+                let mut path = crate::terrain_route::search_with_blocked_and_stairs(start_cell, destination_cell, config, &mut query, &obstacle, &stairs)?;
+                let mut points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
                 if points.len() > 1 || !prefix.is_empty() { points.remove(0); }
                 if !history.is_empty() {
@@ -760,7 +762,7 @@ impl Kernel {
                     prefix.extend(points);
                     points = prefix;
                 }
-                if points.len() > 4096 || crate::terrain_route::waypoints(&path,config)?.len() > 4096 {
+                if points.len() > 4096 || crate::terrain_route::waypoints_with_stairs(&path,config, &stairs)?.len() > 4096 {
                     return Err("terrain route waypoint budget exceeded".into());
                 }
                 let terrain_revision = environment.world.terrain_revision();
@@ -2433,9 +2435,10 @@ impl Kernel {
         let route = self.routes.get(&entity).ok_or("missing terrain route")?;
         let capability = self.ecs.get::<Traversal>(entity).ok_or("missing terrain capability")?;
         let spacing = self.environment.as_ref().ok_or("missing terrain environment")?.world.cell_spacing_m();
-        let points = crate::terrain_route::waypoints(&state.path, crate::terrain_traversal::TraversalConfig {
+        let stairs = self.environment.as_ref().ok_or("missing terrain environment")?.world.stair_edges().to_vec();
+        let points = crate::terrain_route::waypoints_with_stairs(&state.path, crate::terrain_traversal::TraversalConfig {
             spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells,
-        })?;
+        }, &stairs)?;
         if points.len() > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
         let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
             .ok_or("invalid terrain route progress")?;
@@ -2501,7 +2504,8 @@ impl Kernel {
                 clearance_cells: capability.clearance_cells,
                 max_step_cells: capability.max_step_cells,
             };
-            let expected_points = crate::terrain_route::waypoints(&path, config)?;
+            let stairs = environment.world.stair_edges().to_vec();
+            let expected_points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
             let remaining: Vec<_> = self.routes.get(&entity).map(|route| route.iter().cloned().collect()).unwrap_or_default();
             let offset = expected_points.len().checked_sub(remaining.len());
             let correspondence = offset.filter(|offset| *offset > 0).is_some_and(|offset| {
@@ -2518,8 +2522,8 @@ impl Kernel {
                 continue;
             }
             let mut query = |cell| environment.world.traversal_material(cell);
-            let active = crate::terrain_route::active_support_index(&path, offset.ok_or("missing route progress")?)?;
-            let valid = crate::terrain_traversal::path_supported(&path[active..], config, &mut query)?;
+            let active = crate::terrain_route::active_support_index_with_stairs(&path, offset.ok_or("missing route progress")?, &stairs)?;
+            let valid = crate::terrain_traversal::path_supported_with_stairs(&path[active..], config, &mut query, &stairs)?;
             if !valid { invalid.push(entity); }
             else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
         }

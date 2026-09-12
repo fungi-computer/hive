@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveStaticVisual } from "./visual-resolver.js";
-import { CANNON_VISUAL_BINDINGS } from "./visual-bindings.js";
+import { CANNON_VISUAL_BINDINGS, DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 
 const texture = (name) => ({ name });
 const art = {
@@ -37,6 +37,24 @@ test("static resolver handles fixed and facing paths through one checked helper"
   }
   const cannonball = resolveStaticVisual(art, CANNON_VISUAL_BINDINGS["formation.cannonball"]);
   assert.equal(cannonball.texture.name, "cannonball");
+});
+
+test("stair binding resolves the four authored cardinal frames without a special path", () => {
+  const stairs = [0, 1, 2, 3].map((facing) => texture(`stair-${facing}`));
+  const stairArt = {
+    ...art,
+    buildings: { ...art.buildings, stair: { finished: stairs } },
+  };
+  for (let facing = 0; facing < 4; facing += 1) {
+    const resolved = resolveStaticVisual(
+      stairArt,
+      DEFAULT_VISUAL_BINDINGS["colony.stair.finished"],
+      facing,
+    );
+    assert.equal(resolved.texture, stairs[facing]);
+    assert.deepEqual(resolved.path, ["buildings", "stair", "finished", facing]);
+    assert.equal(resolved.anchor, stairArt.propAnchor);
+  }
 });
 
 test("static resolver rejects malformed bindings and never walks inherited keys", () => {

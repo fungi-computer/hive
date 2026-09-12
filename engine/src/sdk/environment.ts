@@ -134,6 +134,7 @@ export interface EnvironmentDefinition {
 export function validateEnvironmentDefinition(
   definition: EnvironmentDefinition,
 ): void {
+  const maxStairGrade = 1.5;
   const maxSpanSteps = definition?.structures?.maxSpanSteps;
   if (
     !Number.isSafeInteger(maxSpanSteps) ||
@@ -158,7 +159,9 @@ export function validateEnvironmentDefinition(
     if (!shape || (shape.kind !== "floor" && shape.kind !== "wall" && shape.kind !== "stair")
       || shape.kind === "wall" && (!Number.isSafeInteger(shape.height) || shape.height < 1 || shape.height > 64)
       || shape.kind === "stair" && (!Number.isSafeInteger(shape.run) || !Number.isSafeInteger(shape.rise)
-        || shape.run < 1 || shape.run > 64 || shape.rise < 1 || shape.rise > shape.run)) {
+        || shape.run < 1 || shape.run > 64 || shape.rise < 1 || shape.rise > 64
+        || !Number.isFinite(definition.world.verticalMetres)
+        || shape.rise * definition.world.verticalMetres / shape.run > maxStairGrade)) {
       throw new Error("invalid structure catalog shape");
     }
     const kinds = new Set<string>();
