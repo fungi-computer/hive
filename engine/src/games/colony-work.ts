@@ -67,6 +67,11 @@ function progressClaimedDig(ctx: WriteContext, id: EntityId, state: DigOrder, po
     if (distance(position, orderPoint(state)) <= 0.05) {
       ctx.write(ColonyDigOrder, id, { ...state, phase: "excavating", reason: "" });
       ctx.action(excavate(state.actor, { x: state.cellX, y: state.cellY, z: state.cellZ }, state.expected, air));
+    } else {
+      // Move owns route repair.  Reissuing the same destination is idempotent
+      // while its route is healthy, and asks the native owner to rebuild when
+      // topology invalidation left the retained terrain route waiting.
+      ctx.action(move(state.actor, orderPoint(state)));
     }
   } else if (state.phase === "excavating") {
     if (ctx.query(query(ExcavationWork)).some(item => item.id === state.actor)) return;
