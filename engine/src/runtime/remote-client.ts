@@ -3,7 +3,7 @@ import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
-import type { EnvironmentVisual, PresentationControl, TerrainMark } from "../presentation";
+import { presentationControlSchema, presentationFactSchema, type EnvironmentVisual, type PresentationControl, type TerrainMark } from "../presentation";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { workActivitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
@@ -149,15 +149,10 @@ function renderFact(value: unknown): value is RenderFact {
   return value.selected === undefined || typeof value.selected === "boolean";
 }
 function presentationFact(value: unknown): value is ObservationWire["observation"]["presentationFacts"][number] {
-  return isRecord(value) && typeof value.id === "string" && value.id.length > 0 && value.id.length <= 128 &&
-    typeof value.label === "string" && value.label.length <= 128 &&
-    (typeof value.value === "string" || typeof value.value === "boolean" || (typeof value.value === "number" && Number.isFinite(value.value)));
+  return presentationFactSchema.safeParse(value).success;
 }
 function presentationControl(value: unknown): value is PresentationControl {
-  return isRecord(value) && typeof value.id === "string" && value.id.length > 0 && value.id.length <= 128 &&
-    typeof value.label === "string" && value.label.length <= 128 && typeof value.command === "string" &&
-    value.command.length > 0 && value.command.length <= 128 &&
-    (value.selection === undefined || value.selection === "entities");
+  return presentationControlSchema.safeParse(value).success;
 }
 function terrainMark(value: unknown): value is TerrainMark {
   return isRecord(value) && typeof value.id === "string" && value.id.length > 0 && value.id.length <= 128 &&

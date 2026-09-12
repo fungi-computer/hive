@@ -1,4 +1,26 @@
 import type { GamePack, ReadContext } from "./contracts";
+import { z } from "zod";
+
+export const presentationSubjectsSchema = z.array(z.string().min(1).max(128))
+  .min(1).max(128)
+  .refine((subjects) => new Set(subjects).size === subjects.length, "subjects must be unique");
+
+export const presentationControlSchema = z.object({
+  id: z.string().min(1).max(128),
+  label: z.string().min(1).max(128),
+  command: z.string().min(1).max(128),
+  input: z.unknown().optional(),
+  selection: z.literal("entities").optional(),
+  target: z.enum(["terrain-cell", "terrain-area", "world-surface"]).optional(),
+  subjects: presentationSubjectsSchema.optional(),
+}).strict();
+
+export const presentationFactSchema = z.object({
+  id: z.string().min(1).max(128),
+  label: z.string().min(1).max(128),
+  value: z.union([z.string().max(512), z.number().finite(), z.boolean()]),
+  subjects: presentationSubjectsSchema.optional(),
+}).strict();
 
 export interface PresentationControl {
   readonly id: string;
@@ -9,6 +31,8 @@ export interface PresentationControl {
   readonly selection?: "entities";
   /** Arm a shared world-target gesture; admission remains game-owned. */
   readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
+  /** Display/selection binding metadata only; command authority remains game-owned. */
+  readonly subjects?: readonly string[];
 }
 export function presentationCommand(
   control: PresentationControl,
@@ -25,6 +49,9 @@ export function presentationCommand(
     selected.some((id) => typeof id !== "string" || !id || id.length > 128)
   )
     throw new Error("invalid command selection");
+  const scopedSelected = control.subjects === undefined
+    ? selected
+    : selected.filter((id) => control.subjects?.includes(id));
   const input = control.input;
   if (
     input !== undefined &&
@@ -39,7 +66,7 @@ export function presentationCommand(
     name: control.command,
     input: controlInput({
       ...(input as object),
-      entities: [...new Set(selected)],
+      entities: [...new Set(scopedSelected)],
     }),
   };
 }
@@ -101,6 +128,8 @@ export interface PresentationFact {
   readonly id: string;
   readonly label: string;
   readonly value: string | number | boolean;
+  /** Display scope only; facts without subjects are world-wide. */
+  readonly subjects?: readonly string[];
 }
 export interface EnvironmentVisual {
   readonly id: string;
@@ -177,7 +206,7 @@ export function projectPresentation(
     if (control.selection) presentationCommand(control, []);
     if (control.target === "terrain-cell" || control.target === "world-surface") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
     if (control.target === "terrain-area") terrainAreaPresentationCommand(control, [], { start: [0, 0, 0], end: [0, 0, 0] });
-    return Object.freeze({
+    return Object.freeze(presentationControlSchema.parse({
       id,
       label,
       command,
@@ -186,7 +215,8 @@ export function projectPresentation(
       ...(control.input === undefined
         ? {}
         : { input: controlInput(control.input) }),
-    });
+      ...(control.subjects === undefined ? {} : { subjects: [...control.subjects] }),
+    }));
   });
   const inspected = presentation.inspect(context);
   if (inspected.length > 32)
@@ -207,7 +237,10 @@ export function projectPresentation(
       throw new Error(`invalid presentation value for ${id}`);
     if (typeof value === "string" && value.length > 512)
       throw new Error("presentation value too long");
-    return Object.freeze({ id, label, value });
+    return Object.freeze(presentationFactSchema.parse({
+      id, label, value,
+      ...(fact.subjects === undefined ? {} : { subjects: [...fact.subjects] }),
+    }));
   });
   const markIds = new Set<string>();
   const terrainMarks = (presentation.terrainMarks?.(context) ?? []).map((mark) => {

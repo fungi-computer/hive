@@ -149,10 +149,18 @@ export function selectionFromSubjects(
         distance: Math.hypot(subject.screen.x - left, subject.screen.y - top),
         rank: Number.isFinite(subject.renderRank) ? subject.renderRank : index,
       }))
-      .filter(({ subject, distance }) => subject.pickable !== false && distance <= (subject.radius ?? 20))
+      .filter(({ subject, distance }) => {
+        if (subject.pickable === false) return false;
+        if (subject.hitArea) {
+          const zoom = Number.isFinite(subject.hitZoom) && subject.hitZoom > 0 ? subject.hitZoom : 1;
+          return subject.hitArea.contains((left - subject.screen.x) / zoom, (top - subject.screen.y) / zoom);
+        }
+        if (subject.visual) return false;
+        return distance <= (subject.radius ?? 20);
+      })
       .sort(
         (a, b) =>
-          a.distance - b.distance || b.rank - a.rank || b.index - a.index,
+          b.rank - a.rank || a.distance - b.distance || b.index - a.index,
       );
     const nearest = hits[0]?.subject;
     if (!nearest) return additive ? [...previous] : [];

@@ -42,6 +42,8 @@ import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js
 
 import { rectangleCells, visibleTerrainAreaPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
+import { projectContextualPresentation } from "./contextual-presentation.js";
+import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -337,6 +339,39 @@ export function createHiveClient({
     exitAim();
   }
   function renderHud() {
+    const contextualPresentation = projectContextualPresentation({
+      facts: state.presentationFacts,
+      controls: state.presentationControls,
+      selectedIds: state.selectedIds,
+      latestFacts,
+      currentIds: latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, state.view).pickable).map((fact) => fact.id),
+    });
+    const renderPresentationGroup = (heading, group) => group.facts.length || group.controls.length
+      ? React.createElement("div", { className: "hive-presentation" },
+          React.createElement("strong", null, heading),
+          group.facts.map((fact) => React.createElement("div", { key: fact.id },
+            `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`)),
+          group.controls.map((control) => React.createElement(Button, {
+            key: control.id,
+            size: "sm",
+            disabled: !state.ready,
+            onClick: () => {
+              if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
+                exitAim();
+                gesture.send({ type: "CANCEL" });
+                terrainArea.send({ type: "CANCEL" });
+                terrainTarget.send({ type: "ARM", control });
+                state.message = control.target === "terrain-area"
+                  ? `${control.label}: drag a rectangle; Escape exits`
+                  : `${control.label}: choose a visible ${control.target === "world-surface" ? "ground or building surface (blue neighbors preview locations; native support is checked on submit)" : "terrain top"}; Escape exits`;
+                renderHud();
+                return;
+              }
+              if (aiming) audio.unlock();
+              return state.ready && submit(presentationCommand(control, state.selectedIds));
+            },
+          }, control.label)),
+        ) : null;
     const act = (kind) => {
       if (kind === "reset") {
         state.selectedIds = [];
@@ -483,7 +518,7 @@ export function createHiveClient({
             React.createElement(
               "span",
               null,
-              state.selectedIds.length ? state.selectedIds.join(", ") : "none",
+              state.selectedIds.length ? contextualPresentation.selection.label : "none",
             ),
           ),
           isAiming()
@@ -503,45 +538,8 @@ export function createHiveClient({
               ? "Select survivor · WASD / arrows move · E take bread · F eat"
               : "Click selects · Shift adds · drag selects a group · right click orders"),
           ),
-          state.presentationFacts.length || state.presentationControls.length
-            ? React.createElement(
-                "div",
-                { className: "hive-presentation" },
-                state.presentationFacts.map((fact) =>
-                  React.createElement(
-                    "div",
-                    { key: fact.id },
-                    `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`,
-                  ),
-                ),
-                state.presentationControls.map((control) =>
-                  React.createElement(
-                    Button,
-                    {
-                      key: control.id,
-                      size: "sm",
-                      disabled: !state.ready,
-                      onClick: () => {
-                        if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
-                          exitAim();
-                          gesture.send({ type: "CANCEL" });
-                          terrainArea.send({ type: "CANCEL" });
-                          terrainTarget.send({ type: "ARM", control });
-                          state.message = control.target === "terrain-area"
-                            ? `${control.label}: drag a rectangle; Escape exits`
-                            : `${control.label}: choose a visible ${control.target === "world-surface" ? "ground or building surface (blue neighbors preview locations; native support is checked on submit)" : "terrain top"}; Escape exits`;
-                          renderHud();
-                          return;
-                        }
-                        if (aiming) audio.unlock();
-                        return state.ready && submit(presentationCommand(control, state.selectedIds));
-                      },
-                    },
-                    control.label,
-                  ),
-                ),
-              )
-            : null,
+          renderPresentationGroup("World actions", contextualPresentation.world),
+          renderPresentationGroup(contextualPresentation.selection.label, contextualPresentation.selection),
           React.createElement(
             "a",
             { className: "hive-source", href: source },
@@ -637,6 +635,7 @@ export function createHiveClient({
         activity: fact.activity,
         pose: fact.pose,
         screen: { x: 0, y: 0 },
+        hitZoom: camera.zoom,
         pickable: projectWorldFact(fact, state.view).pickable,
       }));
     for (const cue of motionCues.sample(state.subjects, { now: presentedTime, paused: state.paused, sequence: frameSequence })) playMotionCue(cue);
@@ -777,6 +776,9 @@ export function createHiveClient({
         0.5,
         isStatic ? staticVisual?.anchor?.y : art?.pawnAnchor?.y,
       );
+      subject.hitArea = texture
+        ? visibleHitAreaFor(texture, { x: entry.pawn.anchor.x, y: entry.pawn.anchor.y })
+        : undefined;
       entry.pawn.scale.set(camera.zoom);
       entry.label.text = subject.name;
       entry.label.anchor.set(0.5, 1);

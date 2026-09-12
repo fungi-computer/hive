@@ -43,6 +43,10 @@ test("selection controls capture current IDs without granting game authority", (
     quantity: 2,
     entities: [],
   });
+  assert.deepEqual(presentationCommand({ ...control, subjects: ["worker.1"] }, ["worker.1", "guest.1"]).input, {
+    quantity: 2,
+    entities: ["worker.1"],
+  });
   assert.throws(() =>
     presentationCommand({ ...control, input: { entities: ["forged"] } }, []),
   );
@@ -69,6 +73,23 @@ test("projects bounded facts and cloned command input", () => {
   input.amount = 9;
   assert.equal(result.facts[0].value, 0.5);
   assert.deepEqual(result.controls[0].input, { amount: 2 });
+});
+
+test("projects and validates bounded presentation subjects", () => {
+  const result = projectPresentation(pack({
+    controls: [{ id: "greet", label: "Greet", command: "greet", subjects: ["worker-1"] }],
+    inspect: () => [{ id: "mood", label: "Mood", value: 1, subjects: ["worker-1"] }],
+  }), context);
+  assert.deepEqual(result.controls[0].subjects, ["worker-1"]);
+  assert.deepEqual(result.facts[0].subjects, ["worker-1"]);
+  assert.throws(() => projectPresentation(pack({
+    controls: [{ id: "greet", label: "Greet", command: "greet", subjects: ["worker-1", "worker-1"] }],
+    inspect: () => [],
+  }), context));
+  assert.throws(() => projectPresentation(pack({
+    controls: [{ id: "greet", label: "Greet", command: "greet", subjects: [] }],
+    inspect: () => [],
+  }), context));
 });
 
 test("projects bounded committed terrain marks", () => {
