@@ -97,7 +97,7 @@ test("capacity limits the planned partial quantity and equal priority is not a r
   const source = entity("ground.capacity");
   const rows = [
     row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 3 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
-    row(sourceCell.id, StockpileCell, sourceCell.components[StockpileCell.id]), row(sourceCell.id, Container, { capacity: 5 }), row(sourceCell.id, Position, { x: 1, y: 1.89, z: 0, facing: 0 }),
+    row(sourceCell.id, StockpileCell, sourceCell.components[StockpileCell.id]), row(sourceCell.id, Container, { capacity: 2 }), row(sourceCell.id, Position, { x: 1, y: 1.89, z: 0, facing: 0 }),
     row(entity("lot.in-cell"), MaterialLot, { kind: "wood", quantity: 2, container: sourceCell.id }),
     row(source, GroundStock, {}), row(source, Container, { capacity: 5 }), row(entity("lot.ground"), MaterialLot, { kind: "wood", quantity: 4, container: source }),
     row(entity("lot.already"), MaterialLot, { kind: "wood", quantity: 2, container: destination.id }),
@@ -107,5 +107,5 @@ test("capacity limits the planned partial quantity and equal priority is not a r
   assert.equal(result.length, 1);
   const task = rows.find(r => r.id === result[0])!.values.get(DeliveryTask.id) as { quantity: number; sourceLot: EntityId };
   assert.equal(task.quantity, 1);
-  assert.equal(task.sourceLot, source === source ? entity("lot.ground") : entity("never"));
+  assert.equal(task.sourceLot, entity("lot.ground"));
 });
