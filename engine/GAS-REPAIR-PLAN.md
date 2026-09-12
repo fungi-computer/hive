@@ -7,6 +7,93 @@ implementation failed to follow that direction in its geometry and persistence
 paths. It is not a new physics project or a new demo. Status and measured results
 must be appended below; this plan alone is not an accepted implementation.
 
+## September 12 acceptance contract — supersedes the repair sequence below
+
+The current goal is the complete playable Colony repair requested in Levi's
+pasted goal, not incremental optimization of the old air compiler. Historical
+measurements below remain evidence. In particular, **do not continue the proposed
+whole-graph fingerprint optimization**: the cell/physical-face gas representation
+it would optimize is being replaced for the real Colony consumer.
+
+### Fixed playable workload and budgets
+
+Use the current generated `colony-world-v1` 64×64 clearing, its full −32..39
+vertical range, two ordinary workers and the existing guest. Two independent
+browser connections share one authorized world. This proves two simultaneous
+players' interactions, not a new account or identity service. Keep finite goods,
+normal movement/work durations, and actual terrain/material/air rules enabled.
+
+Run one sustained 20-minute scenario, pausing only at explicitly recorded save
+checkpoints, and keep both connections active:
+
+1. Queue a contiguous 4×4 dig rectangle, then a second cut through those columns
+   where supported/reachable: 32 earned cuts, not direct terrain writes. Inspect
+   inaccessible targets explicitly rather than counting rejected cuts as done.
+2. Allow spoil to fill the existing pantry. Remaining spoil stays visible on the
+   ground. Workers continue eligible work. Exercise a destination filling after
+   pickup and verify put-down/release; then make space with ordinary transfers
+   and verify automatic hauling resumes. Account for every spoil unit and its
+   carried water through a current-format recovery.
+3. Build an enclosed lower room and two accessible upper levels using ordinary
+   construction, support, stairs and finite supplied goods. Use the current
+   original assets. Missing acquisition/building capabilities are incomplete
+   gameplay to implement, not grounds to grant free materials inside the proof.
+4. Dig through the current admitted groundwater area while the other client
+   issues ordinary orders. Water enters the cut and soil retains a finite amount.
+   Track field + soil + spoil water; no infinite absorption or invented sources.
+5. Burn paid fuel indoors, observe smoke accumulation, open a real ventilation
+   path, and observe smoke clearing. Include a cellar/vertical shaft connection.
+   Distinguish carrier air, smoke and actual breathable-air rules; a smoke graphic
+   is not evidence of oxygen depletion. Outdoor digging must not rebuild indoor
+   air that it does not affect.
+6. Reconnect one client during active work and perform one owner restart/lost-ack
+   check using the maintained host proof. No duplicated cuts, goods, fuel or
+   acknowledgements. The other client remains usable.
+
+Budgets are targets, not current results: warmed local full simulation steps
+p95 ≤15 ms, p99 ≤30 ms, maximum ≤50 ms during these actions; report field,
+geometry, assignment, save and observer costs separately. Hosted command receipt
+p95 ≤250 ms and maximum ≤1 s, excluding only explicitly logged transport failure
+(which still fails reliability). Foreground browser frame gaps p95 ≤25 ms,
+p99 ≤50 ms, no unexplained ≥250 ms stall. No unexplained ≥1 s committed-world
+stall. Memory must plateau under repeated cleared work, with live entity/ground
+stock/task counts returning to the appropriate occupied baseline. Initial load
+and cold recovery are reported separately, never removed from usability review.
+Do not change these budgets after a failure to claim completion.
+
+This is bounded active-region acceptance, not an all-world capacity claim.
+Generated distant terrain remains queryable without resident air/water allocation.
+Multiple-region transport is not a prerequisite for this two-player clearing.
+Retain browser and DO hosts over one kernel. Final acceptance includes Levi's
+playtest; a scripted run alone is insufficient.
+
+### Required structural change
+
+The current `AirGeometryCache` stores cells, physical faces, per-cell membership
+strings and one-layer mixing bins; `prepare_geometry` still gathers/compiles and
+binds the whole admitted graph on edits. Those are the concrete superseded costs.
+
+Replace the Colony air producer with coarse connected room/cave sections and
+aggregated portals. Retain bounded rebuildable spatial classification for queries
+and edit discovery; **do not serialize/hash cell membership as gas state or keep
+one gas opening for every exposed voxel face**. Outdoors is an explicit ambient
+boundary, not a stack of simulated sky cells. Roofed spaces must remain modeled
+when a door opens to outdoors; opening a door must not discard their smoke.
+Room split/merge retains stock through deterministic volume overlap. Breaches and
+vents are bounded exchange edges; local fluid occupancy changes free capacity.
+Tall shafts use a small configured number of bands, not one parcel per voxel
+height. Finite smoke/heat sources and boundary ledgers remain authoritative.
+
+Keep physical terrain/structure admission and gas amount ownership separate.
+Edits update affected classification and room/portal records; unrelated outside
+cuts cannot rebuild, serialize or fingerprint all gas. A topology job that exceeds
+its bounded allowance waits while independent work advances; it cannot publish
+partial geometry or drop stock. No second browser-side physical simulation.
+
+Before shipping, remove superseded Colony gas compilation/caches and their dead
+callers. Preserve a generic authored room exchange owner only if it is an actual
+shared consumer, not an adapter keeping the rejected terrain graph alive.
+
 ## What the player should get
 
 Build several floors, dig a cellar, light a fueled hearth, and see smoke and heat
