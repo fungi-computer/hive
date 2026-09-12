@@ -7,6 +7,7 @@ function storage() {
   return {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
   };
 }
 
@@ -174,5 +175,27 @@ test("invalid invitation tokens are refused visibly and new worlds clear the inv
   choice.persistence.newWorld();
   assert.equal(cleared, "/?game=survival");
   assert.notEqual(calls[1].options.token, token);
+  choice.runtime.dispose();
+});
+
+test("failed invited new-world replacement restores the recipient private token and invite URL", () => {
+  const saved = storage();
+  const privateToken = "1".repeat(64);
+  const invitedToken = "a".repeat(64);
+  saved.setItem("hive-private-demo/survival", privateToken);
+  let historyValue = "#world=" + invitedToken;
+  let calls = 0;
+  const locationSource = { get href() { return `https://demo.example.test/?game=survival${historyValue}`; }, hash: `#world=${invitedToken}` };
+  const choice = createConnectionChoice({
+    mode: "survival", publicHost: "https://demo.example.test", storage: saved, cryptoSource: cryptoSource(), locationSource,
+    historySource: { state: { marker: 1 }, replaceState(_state, _title, value) { historyValue = value; } },
+    connectLocal: () => ({}), connectRemote: options => {
+      if (++calls === 2) throw new Error("replacement failed");
+      return runtimeFactory([])(options);
+    },
+  });
+  assert.throws(() => choice.persistence.newWorld(), /replacement failed/);
+  assert.equal(saved.getItem("hive-private-demo/survival"), privateToken);
+  assert.equal(historyValue, `/?game=survival#world=${invitedToken}`);
   choice.runtime.dispose();
 });

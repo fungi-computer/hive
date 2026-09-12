@@ -34,7 +34,11 @@ function invitationToken(locationSource) {
 }
 
 function invitationUrl(locationSource, mode, token) {
-  const url = new URL(locationSource?.href ?? locationSource?.toString?.() ?? "", "http://localhost");
+  if (typeof locationSource?.href !== "string" || locationSource.href.length === 0)
+    throw new Error("Invitation links require the current page URL");
+  let url;
+  try { url = new URL(locationSource.href); }
+  catch { throw new Error("Invitation links require a valid page URL"); }
   const params = new URLSearchParams(url.search);
   params.set("game", mode);
   params.delete("runtime");
@@ -74,6 +78,7 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
   let unsubscribe = () => {};
   const invitedToken = invitationToken(locationSource);
   let token = invitedToken ?? readToken(storage, mode, cryptoSource);
+  const storageKey = tokenKey(mode);
 
   function replace(nextToken) {
     const next = connectRemote({
@@ -94,6 +99,12 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
     previous?.dispose();
   }
   replace(token);
+  const invitation = typeof locationSource?.href === "string"
+    ? { url: () => {
+      if (disposed) throw new Error("connection choice disposed");
+      return invitationUrl(locationSource, mode, token);
+    } }
+    : undefined;
   const runtime = {
     send(command) {
       if (disposed) throw new Error("connection choice disposed");
@@ -133,27 +144,36 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       newWorld(onReplaced) {
         if (disposed) throw new Error("connection choice disposed");
         const next = randomToken(cryptoSource);
-        const previous = token;
+        const previousStored = storage.getItem(storageKey);
+        const previousUrl = typeof locationSource?.href === "string" ? locationSource.href : undefined;
+        const previousHistoryState = historySource?.state;
+        let historyChanged = false;
         try {
-          storage.setItem(tokenKey(mode), next);
+          if (invitedToken !== undefined && historySource?.replaceState) {
+            if (previousUrl === undefined) throw new Error("Invitation link page URL unavailable");
+            const clean = new URL(previousUrl);
+            clean.hash = "";
+            historySource.replaceState(previousHistoryState, "", `${clean.pathname}${clean.search}`);
+            historyChanged = true;
+          }
+          storage.setItem(storageKey, next);
           replace(next);
         } catch (error) {
-          try { storage.setItem(tokenKey(mode), previous); } catch {}
+          try {
+            if (previousStored === null || previousStored === undefined) storage.removeItem(storageKey);
+            else storage.setItem(storageKey, previousStored);
+          } catch {}
+          if (historyChanged && previousUrl !== undefined && historySource?.replaceState) {
+            try {
+              const prior = new URL(previousUrl);
+              historySource.replaceState(previousHistoryState, "", `${prior.pathname}${prior.search}${prior.hash}`);
+            } catch {}
+          }
           throw error;
-        }
-        if (invitedToken !== undefined && historySource?.replaceState) {
-          const clean = new URL(locationSource?.href ?? locationSource?.toString?.() ?? endpoint.toString());
-          clean.hash = "";
-          historySource.replaceState(null, "", `${clean.pathname}${clean.search}`);
         }
         onReplaced?.(true);
       },
-      invitation: {
-        url() {
-          if (disposed) throw new Error("connection choice disposed");
-          return invitationUrl(locationSource, mode, token);
-        },
-      },
+      ...(invitation ? { invitation } : {}),
     },
   };
 }
