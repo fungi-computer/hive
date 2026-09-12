@@ -24,13 +24,14 @@ class FakeSocket {
 }
 const wait = (ms = 0) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 function setup(fetcher: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>, socket = new FakeSocket()) {
+  let commandNumber = 0;
   return connectRemoteRuntime({
     endpoint: "https://hive.test/v1/survival",
     game: "survival",
     token,
     fetch: fetcher,
     createSocket: () => { queueMicrotask(() => socket.emit("open", {})); return socket; },
-    createCommandId: () => "stable-command",
+    createCommandId: () => `stable-command-${++commandNumber}`,
   });
 }
 
@@ -70,6 +71,7 @@ test("an applied receipt releases the next FIFO command without waiting for its 
     runtime.send({ type: "resume" });
     await wait(20);
     assert.equal(commandBodies.length, 2, "the second command is independent of observation delivery");
+    assert.notEqual(JSON.parse(commandBodies[0]).id, JSON.parse(commandBodies[1]).id);
   } finally { runtime.dispose(); }
 });
 
@@ -182,11 +184,15 @@ test("socket recovery has a bounded per-command budget", async () => {
   let socket!: FakeSocket;
   socket = new FakeSocket(observation(0), () => queueMicrotask(() => socket.emit("open", {})));
   let attempts = 0;
+  const bodies: string[] = [];
   const events: WorkerEvent[] = [];
-  const runtime = setup(async (input) => {
+  const runtime = setup(async (input, init) => {
     if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    bodies.push(String(init?.body));
     attempts++;
-    throw new Error("permanent command transport failure");
+    if (attempts <= 16) throw new Error("permanent command transport failure");
+    const body = JSON.parse(String(init?.body));
+    return Response.json({ commandId: body.id, status: "applied", revision: attempts, result: { results: [] } });
   }, socket);
   runtime.subscribe((event) => events.push(event));
   try {
@@ -197,7 +203,16 @@ test("socket recovery has a bounded per-command budget", async () => {
     assert.equal(attempts, 16);
     assert.ok(events.some((event) => event.type === "error" && event.message.includes("recovery limit exceeded")));
     assert.throws(() => runtime.send({ type: "resume" }), /remote runtime unavailable/);
+    assert.equal(new Set(bodies).size, 1, "exhaustion retains the exact original ID and body");
+    runtime.recovery?.retry();
+    await wait(100);
+    assert.equal(attempts, 17);
+    assert.equal(bodies[16], bodies[0], "explicit recovery retries the retained ID and body");
+    runtime.send({ type: "resume" });
+    await wait(100);
+    assert.equal(attempts, 18, "the next intent is admitted after recovery succeeds");
   } finally { runtime.dispose(); }
+  assert.throws(() => runtime.recovery?.retry(), /runtime connection disposed/);
 });
 
 test("coalesces contiguous unsent direct input behind command barriers and retries immutable batches", async () => {

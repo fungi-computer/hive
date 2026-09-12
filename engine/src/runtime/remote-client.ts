@@ -57,7 +57,7 @@ type PendingIntent = {
 
 const MAX_PENDING = 16;
 const MAX_RETRIES = 3;
-const MAX_SOCKET_RECOVERIES = 3;
+const MAX_COMMAND_RECOVERIES = 3;
 const REQUEST_TIMEOUT_MS = 5000;
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
 const MAX_RECEIPT_BYTES = 64 * 1024;
@@ -328,7 +328,6 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
   let pumpRunning = false;
   let blocked = false;
-  let socketOpen = false;
   let reconnectRequested = false;
   let socket: SocketLike | undefined;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -402,7 +401,6 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (value.type === "ready") {
         readyEmitted = true;
         emit({ type: "ready", game: options.game });
-        if (!blocked) emitConnection("online");
         return;
       }
       if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
@@ -420,12 +418,10 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     connectedSocket.addEventListener("error", () => { if (socket !== connectedSocket || disposed) return; emit({ type: "error", message: "remote socket failed; reconnecting" }); });
     connectedSocket.addEventListener("close", () => {
       if (socket !== connectedSocket) return;
-      socketOpen = false;
       if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" });
     });
     connectedSocket.addEventListener("open", () => {
       if (socket !== connectedSocket) return;
-      socketOpen = true;
       reconnectRequested = false;
       // A websocket reconnect has a fresh server-side attachment, so its surface
       // reference must begin with no baseline even when the world revision matches.
@@ -452,7 +448,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const blockForRecovery = (item: PendingIntent, message: string) => {
     blocked = true;
     emit({ type: "error", message });
-    if (item.recoveries >= MAX_SOCKET_RECOVERIES) {
+    if (item.recoveries >= MAX_COMMAND_RECOVERIES) {
       blocked = true;
       emit({ type: "error", message: `remote command recovery limit exceeded for ${item.id}` });
       emitConnection("unavailable");
@@ -488,7 +484,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           const response = responseData.response;
           if (response.status >= 500 || response.status === 408) {
             if (item.retries++ < MAX_RETRIES) { await retryDelay(item.retries); continue; }
-            blockForRecovery(item, `remote command waiting for socket recovery for ${item.id}`);
+            blockForRecovery(item, `remote command recovery pending for ${item.id}`);
             return;
           }
           if (response.status === 409) {
