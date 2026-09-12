@@ -1225,6 +1225,12 @@ export function createHiveClient({
       if (state.disposed) return;
       if (event.type === "connection") {
         state.connection = { status: event.status, pending: event.pending };
+        if (event.status === "unavailable")
+          state.message = `Connection unavailable · ${event.pending} order${event.pending === 1 ? "" : "s"} retained`;
+        else if (event.status === "recovering")
+          state.message = `Reconnecting · ${event.pending} order${event.pending === 1 ? "" : "s"} retained`;
+        else if (state.message.startsWith("Connection unavailable") || state.message.startsWith("Reconnecting"))
+          state.message = persistence.statusLabel;
         renderHud();
       }
       if (event.type === "state" && typeof event.paused === "boolean") {
@@ -1331,7 +1337,7 @@ export function createHiveClient({
       }
       if (event.type === "ready") {
         state.ready = true;
-        state.message = persistence.statusLabel;
+        if (state.connection.status === "online") state.message = persistence.statusLabel;
         renderHud();
       }
       if (event.type === "restored" && state.pendingRestore) {
@@ -1344,7 +1350,7 @@ export function createHiveClient({
         state.pendingRestore = false;
         intendedDestinations.clear();
         directControl?.reset();
-        state.message = event.message;
+        if (state.connection.status === "online") state.message = event.message;
         renderHud();
       }
     });
