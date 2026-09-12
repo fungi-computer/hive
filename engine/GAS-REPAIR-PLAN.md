@@ -708,3 +708,31 @@ remaining whole-active-state clone/validation and cache cold costs must be
 measured on the same Colony workload. Do not reintroduce the deleted pressure
 solver or room discovery to address them. Existing source errors/limits remain
 retained under .botanical/loose-stock; no new deployment is claimed.
+
+## September 12 actual Colony local-smoke feedback
+
+80f4eeb WASM release build/strict engine TS passed u6128. Actual current Colony
+session u6129 completed two earned cuts (terrain revision 2) and a wall (revision
+1), with exact next-step recovery in both scenarios. Dig steps p95 9.81 ms,
+maximum 78.32 ms (first step); wall steps p95 7.69 ms, maximum 16.77 ms. Both runs
+used 2 MiB WASM linear memory; this excludes Node heap, host/storage/client and
+larger active smoke workloads. Empty atmosphere record was 151 bytes. This is
+early feedback, NOT the 32-cut/multi-level/20-minute/two-client acceptance.
+Actual Colony shared fuel delivery, paid hearth emission and observer recovery
+passed u6131 (one existing WASM hearth test). No new deployment.
+
+First-step diagnostic u6135, same built kernel, reproduced 74.99 ms: native
+advance calls 31.12 ms, routeCosts 16.57 ms, worldPoses 5.13 ms, query 3.75 ms,
+assignment 3.62 ms; approximately 14.40 ms outside port calls. No active fire.
+These timings locate the first-step work/movement cost; they do not establish
+JIT/GC versus algorithmic cause. Prior first-step red is retained, not excluded
+from the user-facing report.
+
+Read-only review verified existing public Kernel discard/restore and Session/
+Region commitment prevent failed candidates being acknowledged. Do not add a
+second gas transaction wrapper. Its concrete water-blind-sky finding is corrected
+through local smoke contacts: fully flooded cells block outdoor clearance;
+nonfinite observations are rejected. New water-cap law passed u6132. That later
+source correction still needs inclusion in the next WASM/publication candidate.
+All listed command terminals were collected and owned scopes are inactive/dead.
+Private recovery/hive-loose-stock-20260912 was verified remotely at 80f4eeb.

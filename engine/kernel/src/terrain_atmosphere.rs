@@ -1,6 +1,6 @@
 //! Sparse local smoke/heat gameplay. No carrier air, pressure or room graph.
 use crate::generation::Cell;
-use crate::terrain_water::{AirExteriorStatus, LocalAir, TerrainWater};
+use crate::terrain_water::{LocalAir, TerrainWater};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -131,10 +131,7 @@ impl TerrainAtmosphere {
         physical.neighbors.retain(|c| self.config.contains(*c));
         let outdoor = physical.volume_m3 > 0.0
             && self.config.exterior == ExteriorPolicy::WorldTop
-            && matches!(
-                world.air_exterior(&[cell], self.config.max.y)?[0].status,
-                AirExteriorStatus::ClearToWorldTop
-            );
+            && world.smoke_outdoors(cell, self.config.max.y)?;
         let contact = Contact { physical, outdoor };
         // Disposable cache only; evicting does not drop pending gas or time.
         if self.contacts.len() >= MAX_ACTIVE * 2 {
@@ -188,12 +185,16 @@ impl TerrainAtmosphere {
                 continue;
             }
             let amount = self.state.stocks.get(&cell).copied().unwrap_or_default();
+            let temperature_c = self.config.ambient_temperature_c
+                + amount.heat / (contact.physical.volume_m3 * self.config.heat_capacity_j_per_m3_k);
+            let smoke_kg_m3 = amount.smoke / contact.physical.volume_m3;
+            if !temperature_c.is_finite() || !smoke_kg_m3.is_finite() {
+                return Err("unrepresentable smoke observation".into());
+            }
             result.push(Some(SmokeSample {
                 volume_id: format!("cell:{},{},{}", cell.x, cell.y, cell.z),
-                temperature_c: self.config.ambient_temperature_c
-                    + amount.heat
-                        / (contact.physical.volume_m3 * self.config.heat_capacity_j_per_m3_k),
-                smoke_kg_m3: amount.smoke / contact.physical.volume_m3,
+                temperature_c,
+                smoke_kg_m3,
             }));
         }
         Ok(result)

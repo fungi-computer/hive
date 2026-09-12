@@ -175,3 +175,23 @@ fn outdoors_accounts_for_dispersal_and_invalid_sources_publish_nothing() {
     assert_eq!(paused.processed_cells, 0);
     assert_eq!(postcard::to_allocvec(&air.save().unwrap()).unwrap(), before);
 }
+
+#[test]
+fn water_above_smoke_blocks_outdoor_dispersal() {
+    let mut world = world_with_stock(540.0); // one 0.54 m³ voxel of water at y39
+    let mut air = TerrainAtmosphere::fresh(&mut world, config(ExteriorPolicy::WorldTop)).unwrap();
+    let cell = Cell { x: 0, y: 38, z: 0 };
+    let receipt = air
+        .advance(
+            &mut world,
+            0.25,
+            &[SmokeSource {
+                cell,
+                smoke_kg: 0.01,
+                heat_j: 1.0,
+            }],
+        )
+        .unwrap();
+    assert_eq!(receipt.escaped_smoke_kg, 0.0);
+    TerrainAtmosphere::restore(&mut world, &air.save().unwrap()).unwrap();
+}

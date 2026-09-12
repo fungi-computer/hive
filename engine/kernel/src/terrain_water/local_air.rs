@@ -39,7 +39,11 @@ fn volume(world: &mut TerrainWater, cell: Cell) -> Result<f64, String> {
             .unwrap_or(0.0),
         _ => 0.0,
     };
-    Ok((world.cell_spacing_m().iter().product::<f64>() - liquid).max(0.0))
+    let capacity = world.cell_spacing_m().iter().product::<f64>();
+    if !liquid.is_finite() || liquid < 0.0 || liquid > capacity + 1e-9 * capacity {
+        return Err("invalid liquid occupancy for smoke contact".into());
+    }
+    Ok((capacity - liquid).max(0.0))
 }
 pub(super) fn query(world: &mut TerrainWater, cell: Cell) -> Result<LocalAir, String> {
     let volume_m3 = volume(world, cell)?;
@@ -71,4 +75,27 @@ pub(super) fn query(world: &mut TerrainWater, cell: Cell) -> Result<LocalAir, St
         volume_m3,
         neighbors,
     })
+}
+
+/// Smoke's outdoor path additionally respects fully flooded cells. The retained
+/// general terrain-clearance query deliberately does not own this water rule.
+pub(super) fn outdoors(world: &mut TerrainWater, cell: Cell, ceiling: i32) -> Result<bool, String> {
+    if ceiling != world.bounds().max_y {
+        return Ok(false);
+    }
+    if i64::from(ceiling) - i64::from(cell.y) > 4096 {
+        return Err("smoke sky query exceeds vertical budget".into());
+    }
+    for y in cell.y..ceiling {
+        let at = Cell { y, ..cell };
+        if volume(world, at)? <= 0.0
+            || world.structure_projection.is_face_sealed(Face {
+                cell: at,
+                axis: FaceAxis::Y,
+            })
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }

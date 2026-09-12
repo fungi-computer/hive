@@ -389,6 +389,9 @@ impl TerrainWater {
     pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, String> {
         Ok(self.terrain.surface_cells(columns)?)
     }
+    pub(crate) fn smoke_outdoors(&mut self,cell:Cell,ceiling:i32)->Result<bool,String> {
+        local_air::outdoors(self,cell,ceiling)
+    }
     pub(crate) fn local_air(&mut self, cell: Cell) -> Result<LocalAir, String> {
         local_air::query(self, cell)
     }
