@@ -340,6 +340,17 @@ returns. Receiving a descriptor is not permission to invoke it. Whistle supplies
 the semantic snapshot but owns no network connection, broadcast loop or world
 subscription.
 
+Capability availability must not collapse player intent into current worker
+eligibility. **Dig**, fell, build and haul-policy commands remain available when
+their target and authorization are valid even if no worker is currently free or
+can presently reach the work. Admission records the durable designation. The
+shared work owner later assigns an eligible worker; otherwise the job remains
+unclaimed with an understandable waiting reason and retries only when relevant
+facts change. Reachability, skill, tools and current worker availability belong
+to job eligibility/status, not to whether the player may designate future work.
+Keep player-owned desired policy separate from scheduler-owned claim and progress
+state so neither becomes a competing writer of the other.
+
 Client-only commands such as camera motion, opening a panel or cancelling an
 unfinished target gesture may contribute to the same local Whistle runtime. They
 are visibly client-owned and never appear as server world capabilities. Entity-
