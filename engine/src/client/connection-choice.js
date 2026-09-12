@@ -87,9 +87,15 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       fetch: authorizedFetch(fetchImpl, nextToken),
       token: nextToken,
     });
-    const nextUnsubscribe = next.subscribe((event) => {
-      for (const listener of listeners) listener(event);
-    });
+    let nextUnsubscribe;
+    try {
+      nextUnsubscribe = next.subscribe((event) => {
+        for (const listener of listeners) listener(event);
+      });
+    } catch (error) {
+      next.dispose?.();
+      throw error;
+    }
     const previous = current;
     const previousUnsubscribe = unsubscribe;
     current = next;
@@ -149,7 +155,8 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
         const previousHistoryState = historySource?.state;
         let historyChanged = false;
         try {
-          if (invitedToken !== undefined && historySource?.replaceState) {
+          if (invitedToken !== undefined) {
+            if (!historySource?.replaceState) throw new Error("Cannot start a new world while an invitation link is active");
             if (previousUrl === undefined) throw new Error("Invitation link page URL unavailable");
             const clean = new URL(previousUrl);
             clean.hash = "";

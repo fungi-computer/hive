@@ -243,6 +243,9 @@ export function createHiveClient({
     if (remote) state.ready = false;
     state.pendingSave = false;
     state.pendingRestore = false;
+    state.invitationOpen = false;
+    state.invitationUrl = null;
+    state.invitationCopied = false;
     state.subjects = [];
     latestFacts = [];
     state.presentationFacts = [];
@@ -458,10 +461,11 @@ export function createHiveClient({
             React.createElement("p", null, "Anyone with this link can build and give orders here."),
             React.createElement(Input, { value: state.invitationUrl, readOnly: true, "aria-label": "Friend invitation link", onFocus: event => event.currentTarget.select() }),
             React.createElement(Button, { size: "sm", onClick: async () => {
+              const copiedUrl = state.invitationUrl;
               try {
                 if (!globalThis.navigator?.clipboard?.writeText) throw new Error("Clipboard access unavailable");
-                await globalThis.navigator.clipboard.writeText(state.invitationUrl);
-                if (state.disposed) return;
+                await globalThis.navigator.clipboard.writeText(copiedUrl);
+                if (state.disposed || state.invitationUrl !== copiedUrl) return;
                 state.invitationCopied = true; state.message = "Invite link copied";
               } catch (error) {
                 if (state.disposed) return;
