@@ -113,7 +113,30 @@ Root evidence in .botanical/clearing-context-release:
 
 ## Starting point: actual state, not aspirations
 
-### September 12 current live interim — fd7937b
+### September 12 current live interim — aa12aa7
+
+The contextual station update is live at the existing Colony URL:
+https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html
+Frontend deployment cc7dbc87-c033-4cf0-997d-2e491d3ae284; Worker version
+65a67106-1598-4ff3-a510-afaab3cd4277, implementation
+c7bcc73215650532c0d6f17bdb4985ece2146178eda0754d28f9ea75dccdfa77.
+u6273 publication exit0; u6275 HTTP readback matches all158 files. The local
+actual native-browser result is u6270 above; no new hosted browser run is claimed.
+Previous fd7937b158-file frontend retained as clearing-context-release/
+previous-dist.tar.gz with checked manifest; previous Worker b79549b6 remains
+available. Unsupported old implementation worlds are preserved and require an
+explicit New world; no migration or silent reset. All owned commands terminal;
+browser closed, no owned listener/server. Runtime remains DO-hosted publicly.
+
+Try selecting the visible hearth bowl, then Light hearth. Available workers use
+shared delivery/assignment and native fuel/fire. Select a worker for Resume work
+or Deposit; global world tools remain separate. Full recipe brewing, stronger
+scenery, cellar/cave shape and groundwater coverage are unfinished. In particular,
+the water domain is still only5x5x5 and the starting cavern is oversized; this
+release does not claim either defect fixed. The old universal groundwater subtitle
+is removed. The goal remains active.
+
+### September 12 earlier ground/invitation interim — fd7937b
 
 The same Colony URL now serves generated ground cover and an explicit **Invite a
 friend** action. Frontend deployment `a1bddd9f-0834-4aa4-b803-191fb6bb31d5`;
