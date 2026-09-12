@@ -11,5 +11,5 @@ export const colonyStockpileSystem = system({
   version: 1,
   reads: [StockpileCell, GroundStock, MaterialLot, DeliveryTask, Container, Position, SealedContainer],
   writes: [DeliveryTask],
-  run(context) { planStockpileDeliveries(context); },
+  run(context) { planStockpileDeliveries(context, { filterProfiles: {} }); },
 });
