@@ -67,7 +67,7 @@ mod ground_stock_cleanup_tests {
                 {"id":"ground.1","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":3},"hive.ground-stock":{}}},
                 {"id":"haul.1","components":{"game.delivery":{"source":"ground.1"}}}
             ]
-        }).unwrap();
+        }).to_string()).unwrap();
         kernel.ground_stock_cleanup_pending = true;
         kernel.cleanup_empty_ground_stock();
         assert!(kernel.known.contains("ground.1"));
@@ -86,7 +86,7 @@ mod ground_stock_cleanup_tests {
                 {"id":"actor","components":{"hive.position":{"x":2.0,"y":1.0,"z":2.0,"facing":1.0},"hive.support":{"entity":"platform"},"hive.body":{"speed":1.0},"hive.container":{"capacity":3}}},
                 {"id":"lot.1","components":{"hive.lot":{"kind":"soil-spoil","quantity":2,"container":"actor"}}}
             ]
-        }).unwrap();
+        }).to_string()).unwrap();
         kernel.advance_json(&json!({"delta":0.0,"creates":[],"removes":[],"writes":[],"actions":[{"kind":"drop-lot","entity":"actor","lot":"lot.1"}]}).to_string()).unwrap();
         let ground = kernel.known.iter().find(|id| id.starts_with("ground.")).cloned().expect("drop creates ground stock");
         let lot = kernel.ecs.get::<Lot>(kernel.entity("lot.1").unwrap()).unwrap();
@@ -1720,11 +1720,11 @@ impl Kernel {
         }).collect();
         if candidates.is_empty() { return; }
         let mut referenced = BTreeSet::new();
-        for (id, entity) in &self.ids {
+        for entity in self.ids.values() {
             for (name, schema) in &self.registry.schemas {
                 let Some(value) = self.registry.read(&self.ecs, *entity, name) else { continue; };
                 for (field, kind) in &schema.fields {
-                    if matches!(kind, crate::registry::FieldType::Entity | crate::registry::FieldType::NullableEntity)
+                    if matches!(kind, crate::components::FieldType::Entity | crate::components::FieldType::NullableEntity)
                         && value.get(field).and_then(|item| item.as_str()).is_some_and(|target| candidates.contains(target)) {
                         referenced.insert(value.get(field).and_then(|item| item.as_str()).unwrap().to_owned());
                     }
