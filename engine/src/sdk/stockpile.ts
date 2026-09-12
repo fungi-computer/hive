@@ -13,7 +13,7 @@ const MAX_QUANTITY = 0xffffffff;
 export const StockpileCell = component<{
   zone: string;
   priority: number;
-  filter: string;
+  filterProfile: string;
   capacity: number;
 }>("hive.stockpile-cell", {
   version: 1,
@@ -24,7 +24,7 @@ export type StockpileCellSpec = {
   readonly zone: EntityId;
   readonly cell: readonly [number, number, number];
   readonly priority: number;
-  readonly filter: string;
+  readonly filterProfile: string;
   readonly capacity: number;
 };
 
@@ -56,7 +56,7 @@ export function stockpileCellRecords(specs: readonly StockpileCellSpec[]): reado
     if (!Array.isArray(spec.cell) || spec.cell.length !== 3 || !spec.cell.every(Number.isSafeInteger))
       throw new Error("invalid stockpile cell");
     entity(spec.zone);
-    if (!validText(spec.zone) || !validText(spec.filter) || !validInt(spec.priority) || !validInt(spec.capacity) || spec.capacity <= 0)
+    if (!validText(spec.zone) || !validText(spec.filterProfile) || !validInt(spec.priority) || !validInt(spec.capacity) || spec.capacity <= 0)
       throw new Error("invalid stockpile policy");
     const key = `${spec.zone}\0${cellKey(spec.cell)}`;
     if (seen.has(key)) throw new Error("duplicate stockpile cell");
@@ -65,13 +65,22 @@ export function stockpileCellRecords(specs: readonly StockpileCellSpec[]): reado
     return {
       id,
       components: {
-        [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filter: spec.filter, capacity: spec.capacity },
+        [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filterProfile: spec.filterProfile, capacity: spec.capacity },
         [Container.id]: { capacity: spec.capacity },
         [Position.id]: { x: spec.cell[0], y: spec.cell[1], z: spec.cell[2], facing: 0 },
       },
     };
   });
 }
+
+export type StockpileFilterProfile = {
+  readonly materials: readonly string[];
+};
+
+export type StockpilePlanningOptions = {
+  /** Content-owned profile IDs; the planner never branches on item names. */
+  readonly filterProfiles: Readonly<Record<string, StockpileFilterProfile>>;
+};
 
 function taskId(cell: EntityId, lot: EntityId): EntityId {
   const id = `stockpile.delivery.${cell.length}:${cell}.${lot.length}:${lot}`;
@@ -80,7 +89,7 @@ function taskId(cell: EntityId, lot: EntityId): EntityId {
 }
 
 /** Create ordinary DeliveryTask claims for eligible ground lots. */
-export function planStockpileDeliveries(context: WriteContext): readonly EntityId[] {
+export function planStockpileDeliveries(context: WriteContext, options: StockpilePlanningOptions): readonly EntityId[] {
   const cells = context.query(query(StockpileCell));
   if (cells.length > MAX_CELLS) throw new Error("stockpile cell bound exceeded");
   const cellIds = new Set(cells.map(row => row.id));
@@ -90,6 +99,7 @@ export function planStockpileDeliveries(context: WriteContext): readonly EntityI
   const ground = new Set(context.query(query(GroundStock)).map(row => row.id));
   const lots = context.query(query(MaterialLot));
   const tasks = context.query(query(DeliveryTask));
+  const sourceCell = new Map(cells.map(cell => [cell.id, cell.get(StockpileCell)]));
   const lotById = new Map(lots.map(row => [row.id, row.get(MaterialLot)]));
   const quantities = new Map<EntityId, number>();
   for (const row of lots) {
@@ -112,16 +122,24 @@ export function planStockpileDeliveries(context: WriteContext): readonly EntityI
   });
   const created: EntityId[] = [];
   const sourceLots = lots.map(row => ({ id: row.id, lot: row.get(MaterialLot) }))
-    .filter(({ id, lot }) => ground.has(lot.container) && !claimedLots.has(id) && lot.quantity > 0 && validInt(lot.quantity))
+    .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container)) && !claimedLots.has(id) && lot.quantity > 0 && validInt(lot.quantity))
     .sort((a, b) => compareId(a.id, b.id));
   for (const row of orderedCells) {
     if (claimedCells.has(row.id) || sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
     const policy = row.get(StockpileCell);
-    if (!validText(policy.filter) || !validInt(policy.capacity) || policy.capacity <= 0) continue;
+    const profile = options.filterProfiles[policy.filterProfile];
+    if (!profile || !Array.isArray(profile.materials) || profile.materials.length === 0 || profile.materials.length > 64 || !validText(policy.filterProfile) || !validInt(policy.capacity) || policy.capacity <= 0) continue;
+    const allowed = new Set(profile.materials.filter(validText));
+    if (allowed.size !== profile.materials.length) continue;
     const used = quantities.get(row.id) ?? 0;
     const free = policy.capacity - used;
     if (free <= 0) continue;
-    const source = sourceLots.find(({ lot }) => lot.kind === policy.filter && !sealed.has(lot.container) && lot.container !== row.id && (quantities.get(lot.container) ?? 0) <= MAX_QUANTITY);
+    const source = sourceLots.find(({ lot }) => {
+      if (!allowed.has(lot.kind) || sealed.has(lot.container) || lot.container === row.id || (quantities.get(lot.container) ?? 0) > MAX_QUANTITY) return false;
+      const prior = sourceCell.get(lot.container);
+      // Re-hauling is only useful toward a strictly better priority cell.
+      return !prior || policy.priority > prior.priority;
+    });
     if (!source) continue;
     const sourceContainer = source.lot.container;
     if (!containers.has(sourceContainer)) continue;
