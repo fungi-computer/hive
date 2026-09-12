@@ -249,6 +249,62 @@ geometry and presentation seams.
 | Environment | retained paid environment and presentation | current sparse gas, discrete water, structure faces and native transaction | Keep the current owners. Brewing, buildings and visuals consume them; no renewed solver experiment. |
 | Save, retry and multiplayer | retained snapshots provide semantic examples only | Region transaction/receipts, DO alarm, complete baseline plus changed observations | Current implementation supersedes retained hosting. Every restored loop must survive current-format reload/retry and two-client use. |
 
+### Shared spatial designation and connected-world presentation
+
+Do not restore wall drawing as a wall-only pointer branch. The retained Clearing
+proves several real consumers of one spatial interaction mechanism:
+
+- point placement for furniture, stairs, stations and single plants;
+- dominant-axis lines for walls, doors, paths and other narrow runs;
+- same-level rectangles for Dig, backfill, floors, roofs and stockpile zones; and
+- entity brushes/sets for tree and harvest designations.
+
+Extend the existing XState gesture owner and `terrain-area-selection.js` into one
+small deterministic spatial-selection module with those four closed shapes. A
+tool binding selects a shape, cell bound and semantic argument field. It does not
+implement the job, construction, storage or terrain mutation. Screen-space
+pointer state, cancellation and provisional preview stay in the client; the
+committed value is a compact point/line/rectangle/entity-set supplied to the one
+semantic command. Headless controllers supply that same value without a browser.
+
+The authoritative command expands the compact shape with the same pure ordered
+cell rules and revalidates current visibility, bounds, terrain and domain policy.
+Never trust a client-expanded list as admission. Dig creates durable dig intent;
+stockpile designation calls the native stockpile owner; construction calls one
+native bounded batch-plan operation. Each batch validates every member before
+publishing any member, so a rejected corner cannot leave half a wall or half a
+zone. Current worker availability is not part of designation admission.
+
+Structure placement behavior is data on the supported catalog definition:
+`point`, `line` or `rectangle`, plus `fixed`, `free-cardinal` or `stroke-axis`
+orientation where the physical shape needs it. Timber walls select line plus
+stroke-axis, so dragging a horizontal or vertical run derives orientation without
+making the player rotate each segment. Stairs and directional furniture retain
+explicit four-facing choice. Adding another supported line or area structure is
+a definition change over the same gesture and batch owner.
+
+Connected appearance is a separate pure projection from committed neighboring
+facts. A definition may name a connection group; the projection derives a stable
+north/east/south/west mask and resolves the corresponding original-art joint.
+Wall and door adjacency consume it first. This projection may later serve paths
+or fences, but it never creates collision, support or construction state. Native
+geometry remains authoritative; preview and art masks are rebuildable views.
+
+The retained behavior at `src/construction-view.js:46-90,280-329` and
+`src/main.js:675-742` is the behavioral baseline: continuous row preview, valid
+and invalid cells, release-to-order, persistent armed tool and automatic neighbor
+joints. The current one-click path at `engine/src/client/client.js:859-938` and
+single-site command in `engine/src/games/colony-building.ts` are incomplete until
+they consume the shared spatial mechanism. Do not retain separate orientation
+buttons as the primary wall workflow.
+
+Acceptance is one ordinary interaction sequence in the real Colony: drag a wall
+run, drag a floor/roof area, drag a Dig area, paint a stockpile, and brush-select
+trees; Escape/right-click cancels each without submitting; changing levels
+clears only the active stroke; one release creates one durable command receipt;
+invalid members reject the whole batch; the work remains queued with zero free
+workers; and two clients observe the same accepted plans and connected previews.
+
 ### Playable migration slices
 
 Move the ledger in four vertical slices. Each slice includes commands, automatic
