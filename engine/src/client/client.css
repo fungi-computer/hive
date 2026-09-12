@@ -78,6 +78,16 @@ body {
   padding: 10px 0;
   border-top: 1px solid var(--color-base-300);
 }
+.hive-invitation {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-base-300);
+}
+.hive-invitation input {
+  width: 100%;
+  font-size: 0.78rem;
+}
 .hive-selection span,
 .hive-actions {
   color: var(--color-base-content);

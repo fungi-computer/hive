@@ -1,6 +1,8 @@
 import { createLocalSaveOwner } from "./local-save.js";
+import { z } from "zod";
 
 const TOKEN_BYTES = 32;
+const tokenSchema = z.string().regex(/^[0-9a-f]{64}$/);
 
 function tokenKey(mode) {
   return `hive-private-demo/${mode}`;
@@ -15,10 +17,30 @@ function randomToken(cryptoSource) {
 function readToken(storage, mode, cryptoSource) {
   const key = tokenKey(mode);
   const current = storage.getItem(key);
-  if (current && /^[0-9a-f]{64}$/.test(current)) return current;
+  if (current && tokenSchema.safeParse(current).success) return current;
   const token = randomToken(cryptoSource);
   storage.setItem(key, token);
   return token;
+}
+
+function invitationToken(locationSource) {
+  const hash = typeof locationSource?.hash === "string" ? locationSource.hash : "";
+  const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+  const supplied = params.get("world");
+  if (supplied === null) return undefined;
+  const parsed = tokenSchema.safeParse(supplied);
+  if (!parsed.success) throw new Error("This invitation link has an invalid world token");
+  return parsed.data;
+}
+
+function invitationUrl(locationSource, mode, token) {
+  const url = new URL(locationSource?.href ?? locationSource?.toString?.() ?? "", "http://localhost");
+  const params = new URLSearchParams(url.search);
+  params.set("game", mode);
+  params.delete("runtime");
+  url.search = params.toString();
+  url.hash = `world=${token}`;
+  return url.toString();
 }
 
 function publicEndpoint(host, mode) {
@@ -44,13 +66,14 @@ function authorizedFetch(fetchImpl, token) {
   };
 }
 
-function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connectRemote }) {
+function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connectRemote, locationSource, historySource }) {
   const endpoint = publicEndpoint(host, mode);
   const listeners = new Set();
   let disposed = false;
   let current;
   let unsubscribe = () => {};
-  let token = readToken(storage, mode, cryptoSource);
+  const invitedToken = invitationToken(locationSource);
+  let token = invitedToken ?? readToken(storage, mode, cryptoSource);
 
   function replace(nextToken) {
     const next = connectRemote({
@@ -118,7 +141,18 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
           try { storage.setItem(tokenKey(mode), previous); } catch {}
           throw error;
         }
+        if (invitedToken !== undefined && historySource?.replaceState) {
+          const clean = new URL(locationSource?.href ?? locationSource?.toString?.() ?? endpoint.toString());
+          clean.hash = "";
+          historySource.replaceState(null, "", `${clean.pathname}${clean.search}`);
+        }
         onReplaced?.(true);
+      },
+      invitation: {
+        url() {
+          if (disposed) throw new Error("connection choice disposed");
+          return invitationUrl(locationSource, mode, token);
+        },
       },
     },
   };
@@ -180,13 +214,15 @@ export function createConnectionChoice({
   connectLocal,
   connectRemote,
   saveOwner,
+  locationSource = globalThis.location,
+  historySource = globalThis.history,
 } = {}) {
   if (typeof mode !== "string" || mode.length === 0)
     throw new Error("Connection choice requires a game mode");
   if (typeof connectLocal !== "function" || typeof connectRemote !== "function")
     throw new Error("Connection choice requires runtime factories");
   if (runtime === "local") return localConnection({ mode, connectLocal, saveOwner });
-  return remoteConnection({ mode, host: publicHost, storage, cryptoSource, fetchImpl, connectRemote });
+  return remoteConnection({ mode, host: publicHost, storage, cryptoSource, fetchImpl, connectRemote, locationSource, historySource });
 }
 
 export { TOKEN_BYTES, tokenKey };
