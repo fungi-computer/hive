@@ -281,7 +281,7 @@ available. Unsupported old implementation worlds are preserved and require an
 explicit New world; no migration or silent reset. All owned commands terminal;
 browser closed, no owned listener/server. Runtime remains DO-hosted publicly.
 
-Try selecting the visible hearth bowl, then Light hearth. Available workers use
+Try selecting the visible brew station, then Light fire. Available workers use
 shared delivery/assignment and native fuel/fire. Select a worker for Resume work
 or Deposit; global world tools remain separate. Full recipe brewing, stronger
 scenery, cellar/cave shape and groundwater coverage are unfinished. In particular,

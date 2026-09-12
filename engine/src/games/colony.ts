@@ -440,7 +440,7 @@ export const colonyPack: GamePack = {
         status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
     }),
     controls: [
-      { id: "light-hearth", label: "Light hearth", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
+      { id: "light-hearth", label: "Light fire", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
       ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, orientation: "north" }, target: "world-surface" as const })),
