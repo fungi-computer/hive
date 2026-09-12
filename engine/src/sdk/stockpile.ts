@@ -17,7 +17,7 @@ export const StockpileCell = component<{
   capacity: number;
 }>("hive.stockpile-cell", {
   version: 1,
-  fields: { zone: "string", priority: "number", filter: "string", capacity: "number" },
+  fields: { zone: "string", priority: "number", filterProfile: "string", capacity: "number" },
 });
 
 export type StockpileCellSpec = {
