@@ -87,3 +87,18 @@ test("manual takeover releases ignition attendance without taking back the playe
   for (let i = 0; i < 4; i++) session.step(0.25);
   assert.equal(work(session).actor, null);
 }));
+
+test("refused repeat ignition releases its worker and cannot debit an already burning station", () => fixture((session) => {
+  const before = wood(session);
+  session.command("lightHearth", stationInput);
+  until(session, () => work(session).phase === "complete", "first ignition must finish");
+  session.command("lightHearth", stationInput);
+  until(session, () => work(session).phase === "blocked", "native active-burn refusal must settle the job");
+  assert.match(work(session).reason, /already has a paid emission/);
+  assert.equal(work(session).actor, null);
+  assert.equal(wood(session), before - 2);
+  session.command("cancelIgnition", stationInput);
+  session.step(0);
+  assert.equal(work(session).phase, "idle");
+  assert.equal(wood(session), before - 2, "cancelled intent does not refund burned fuel");
+}));

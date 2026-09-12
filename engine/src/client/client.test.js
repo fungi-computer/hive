@@ -18,7 +18,7 @@ test("shared selection chooses subjects inside a screen box", () => {
   );
 });
 
-test("point selection chooses the nearest visible foot and shift toggles it", () => {
+test("point selection chooses the topmost eligible subject and shift toggles it", () => {
   const subjects = [
     { id: "crew-1", screen: { x: 10, y: 20 }, renderRank: 1 },
     { id: "crew-2", screen: { x: 12, y: 20 }, renderRank: 2 },

@@ -41,7 +41,7 @@ const workerVisuals = [
 ] as const;
 const guestId = entity("colony.guest.1");
 const pantryId = entity("colony.pantry");
-export const colonyLumberId = entity("colony.lumber");
+const colonyLumberId = entity("colony.lumber");
 const lotOne = entity("colony.food.1");
 const lotTwo = entity("colony.food.2");
 const taskOne = entity("colony.delivery.1");
@@ -292,7 +292,7 @@ function digArea(context: CommandContext, input: unknown) {
 
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 3,
+  version: 4,
   components: colonyComponents,
   systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem],
   environmentDefinition: colonyEnvironmentDefinition,

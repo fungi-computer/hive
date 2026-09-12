@@ -1,7 +1,7 @@
 import type { GamePack, ReadContext } from "./contracts";
 import { z } from "zod";
 
-export const presentationSubjectsSchema = z.array(z.string().min(1).max(128))
+const presentationSubjectsSchema = z.array(z.string().min(1).max(128))
   .min(1).max(128)
   .refine((subjects) => new Set(subjects).size === subjects.length, "subjects must be unique");
 
@@ -169,12 +169,6 @@ function controlInput(value: unknown): unknown {
     throw new Error("presentation input too large");
   return JSON.parse(wire);
 }
-const boundedText = (value: unknown, name: string, max: number) => {
-  if (typeof value !== "string" || value.length === 0 || value.length > max)
-    throw new Error(`invalid presentation ${name}`);
-  return value;
-};
-
 /** Pure, bounded projection used by the client. No presentation value is physical state. */
 export function projectPresentation(
   pack: GamePack,
@@ -191,56 +185,27 @@ export function projectPresentation(
     throw new Error("presentation control limit exceeded");
   const commandNames = new Set(Object.keys(pack.commands ?? {}));
   const ids = new Set<string>();
-  const controls = presentation.controls.map((control) => {
-    const id = boundedText(control.id, "control id", 128);
-    if (ids.has(id)) throw new Error(`duplicate presentation id ${id}`);
-    ids.add(id);
-    const label = boundedText(control.label, "control label", 128);
-    const command = boundedText(control.command, "control command", 128);
-    if (!commandNames.has(command))
-      throw new Error(`unknown presentation command ${command}`);
-    if (control.selection !== undefined && control.selection !== "entities")
-      throw new Error("invalid presentation selection binding");
-    if (control.target !== undefined && control.target !== "terrain-cell" && control.target !== "terrain-area" && control.target !== "world-surface")
-      throw new Error("invalid presentation target binding");
+  const controls = presentation.controls.map((raw) => {
+    const control = presentationControlSchema.parse(raw);
+    if (ids.has(control.id)) throw new Error(`duplicate presentation id ${control.id}`);
+    ids.add(control.id);
+    if (!commandNames.has(control.command))
+      throw new Error(`unknown presentation command ${control.command}`);
     if (control.selection) presentationCommand(control, []);
     if (control.target === "terrain-cell" || control.target === "world-surface") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
     if (control.target === "terrain-area") terrainAreaPresentationCommand(control, [], { start: [0, 0, 0], end: [0, 0, 0] });
-    return Object.freeze(presentationControlSchema.parse({
-      id,
-      label,
-      command,
-      ...(control.target ? { target: control.target } : {}),
-      ...(control.selection ? { selection: control.selection } : {}),
-      ...(control.input === undefined
-        ? {}
-        : { input: controlInput(control.input) }),
-      ...(control.subjects === undefined ? {} : { subjects: [...control.subjects] }),
-    }));
+    return Object.freeze({ ...control,
+      ...(control.input === undefined ? {} : { input: controlInput(control.input) }),
+    });
   });
   const inspected = presentation.inspect(context);
   if (inspected.length > 32)
     throw new Error("presentation fact limit exceeded");
-  const facts = inspected.map((fact) => {
-    const id = boundedText(fact.id, "fact id", 128);
-    if (ids.has(id)) throw new Error(`duplicate presentation id ${id}`);
-    ids.add(id);
-    const label = boundedText(fact.label, "fact label", 128);
-    const value = fact.value;
-    if (typeof value === "number" && !Number.isFinite(value))
-      throw new Error("presentation value must be finite");
-    if (
-      typeof value !== "string" &&
-      typeof value !== "number" &&
-      typeof value !== "boolean"
-    )
-      throw new Error(`invalid presentation value for ${id}`);
-    if (typeof value === "string" && value.length > 512)
-      throw new Error("presentation value too long");
-    return Object.freeze(presentationFactSchema.parse({
-      id, label, value,
-      ...(fact.subjects === undefined ? {} : { subjects: [...fact.subjects] }),
-    }));
+  const facts = inspected.map((raw) => {
+    const fact = presentationFactSchema.parse(raw);
+    if (ids.has(fact.id)) throw new Error(`duplicate presentation id ${fact.id}`);
+    ids.add(fact.id);
+    return Object.freeze(fact);
   });
   const markIds = new Set<string>();
   const terrainMarks = (presentation.terrainMarks?.(context) ?? []).map((mark) => {

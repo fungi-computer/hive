@@ -22,7 +22,7 @@ export const EmissionWork = Object.freeze({ ...definition,
   validate: (value: unknown): value is EmissionWorkState => stateSchema.safeParse(value).success,
 });
 export const idleEmissionWork: EmissionWorkState = Object.freeze({ request: 0, phase: "idle", actor: null, reason: "" });
-export const queuedEmissionWork: EmissionWorkState = Object.freeze({ request: 0, phase: "queued", actor: null, reason: "" });
+const queuedEmissionWork: EmissionWorkState = Object.freeze({ request: 0, phase: "queued", actor: null, reason: "" });
 
 /** Player-owned request and system-owned progress have distinct mutation owners. */
 const orderSchema = z.object({ revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), enabled: z.boolean() }).strict();
