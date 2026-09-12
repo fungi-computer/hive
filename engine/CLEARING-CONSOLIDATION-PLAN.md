@@ -313,7 +313,57 @@ Levi explicitly requests the retained station-first gameplay: click the hearth,
 request its job there, and let available workers carry it out. The flat list of
 worker-dependent demo buttons is not the intended loop.
 
-- Shared presentation publishes bounded entity scopes for facts/actions. The
+### Whistle is the game client's semantic action runtime
+
+Levi's September 12 clean-break direction is that the Hive client should consume
+Botanical's real Whistle package. Hive currently has one authoritative operation
+table in `GamePack.commands` and a second UI-only command description in
+`GamePresentation.controls`. The latter is temporary and must be removed when
+the joined Whistle consumer lands. Do not preserve it with an adapter or add a
+third interaction registry.
+
+Each actual game command contributes one Whistle action description. The browser
+binds its handler to the existing durable game-command submission path; human
+menus, hotkeys and contextual actions and Shiitake's controller projection use
+that same identity, argument schema and result schema. Whistle completion means
+the handler returned. Hive remains the owner of command admission, authorization,
+durable receipts and events, job progress and every physical mutation.
+
+Selection and targeting remain client/engine mechanisms. Clicking **Dig** arms
+the existing rectangle gesture; its completed same-level area is the argument to
+the single `colony:dig` action. Build uses the existing visible surface picker.
+A stockpile action combines ordinary profile, priority and capacity fields with
+an area acquired visually by a human or supplied structurally by a controller.
+Hive-owned JSON schemas describe entity IDs, cells, areas and optional opaque
+client annotations. Whistle copies those descriptions without learning terrain,
+stockpile or Goblin rules. Preview and cancelling an unfinished gesture do not
+become world commands.
+
+The current Whistle candidate at
+`/mnt/fungi-extra/botanical-work/Botanical-agent-control-host` already carries
+JSON input/output schemas, typed arguments/results and action/choice/form/
+confirmation hints. It is candidate source, not a published package contract.
+Its runtime still lacks the ADR's context-driven availability and unavailable
+reason, and its local `Error` outcome is not a portable remote failure. The first
+Hive join therefore requires:
+
+- one validation/schema source for each game command; no handwritten Whistle
+  schema beside a different Zod admission schema;
+- discoverable enabled/disabled state with a reason, supplied by Hive and
+  rechecked by Hive during admission; filtering or repeatedly unregistering a
+  command does not satisfy this;
+- a transport-safe failure and typed command-result shape that distinguishes
+  rejected intent, accepted intent and completed physical work; and
+- preservation of opaque JSON-schema annotations used by the Hive client for
+  entity and world targeting.
+
+The Whistle ADR and current Botanical client boundary remain Botanical-owned.
+Hive owns the first real game consumer and its domain schemas. Whistle does not
+become the event log, policy store, gesture state, renderer, job engine or
+authority system.
+
+- Until that clean replacement is joined, shared presentation publishes bounded
+  entity scopes for facts/actions. The
   client derives a contextual inspector from accepted selection and facts; it
   does not know Colony IDs or grant command authority. World digging/building
   tools remain globally reachable. Preserve current Caps and gesture owners.
