@@ -17,16 +17,19 @@ fn world_with_stock(mass_kg: f64) -> TerrainWater {
         min_z: -2,
         max_z: 2,
     };
+    world_with_bounds(mass_kg, bounds, "terrain-atmosphere", "terrain-atmosphere", 1)
+}
+fn world_with_bounds(mass_kg: f64, bounds: Bounds, seed: &str, identity: &str, sea_level: i32) -> TerrainWater {
     let generator = WorldSpec {
-        seed: "terrain-atmosphere",
-        identity: "terrain-atmosphere",
+        seed,
+        identity,
         bounds,
         slots: MaterialSlots {
             air: 0,
             soil: 1,
             stone: 2,
         },
-        sea_level: 1,
+        sea_level,
         vertical_metres: 0.54,
         max_samples: 4096,
     }
@@ -194,4 +197,47 @@ fn water_above_smoke_blocks_outdoor_dispersal() {
         .unwrap();
     assert_eq!(receipt.escaped_smoke_kg, 0.0);
     TerrainAtmosphere::restore(&mut world, &air.save().unwrap()).unwrap();
+}
+
+
+#[test]
+fn smoke_covers_the_clearing_and_deep_caves_without_ticking_empty_volume() {
+    let bounds = Bounds { min_x: -32, max_x: 32, min_y: -32, max_y: 40,
+        min_z: -32, max_z: 32 };
+    let mut world = world_with_bounds(0.0, bounds, "colony-world-v1", "colony", 12);
+    let mut definition = config(ExteriorPolicy::WorldTop);
+    definition.min = Cell { x: bounds.min_x, y: bounds.min_y, z: bounds.min_z };
+    definition.max = Cell { x: bounds.max_x, y: bounds.max_y, z: bounds.max_z };
+    let mut air = TerrainAtmosphere::fresh(&mut world, definition).unwrap();
+    let empty = air.advance(&mut world, 1.0, &[]).unwrap();
+    assert_eq!((empty.processed_cells, empty.active_cells), (0, 0));
+    let columns = [(-31, -31), (30, -31), (-31, 30), (30, 30)];
+    let mut locations: Vec<_> = world.surface_cells(&columns).unwrap().into_iter()
+        .map(|surface| { let mut cell = surface.unwrap().cell; cell.y += 1; cell })
+        .collect();
+    // The actual generated starting cave, below the surface and old water box.
+    let cave = Cell { x: 0, y: 0, z: 0 };
+    let cave_material = world.material(cave).unwrap();
+    assert!(world.is_open_material(cave_material));
+    locations.push(cave);
+    let sources: Vec<_> = locations.iter().map(|&cell| SmokeSource {
+        cell, smoke_kg: 0.01, heat_j: 12.0,
+    }).collect();
+    let work = air.advance(&mut world, 0.25, &sources).unwrap();
+    assert_eq!(work.source_smoke_kg, 0.05);
+    assert!(work.active_cells > locations.len());
+    let samples = serde_json::to_value(air.sample(&mut world, &locations).unwrap()).unwrap();
+    for sample in samples.as_array().unwrap() {
+        assert!(sample["smokeKgM3"].as_f64().unwrap() > 0.0);
+    }
+    for _ in 0..80 {
+        let work = air.advance(&mut world, 0.25, &[]).unwrap();
+        assert!(work.processed_cells <= 256);
+    }
+    let saved = air.save().unwrap();
+    let mut restored = TerrainAtmosphere::restore(&mut world, &saved).unwrap();
+    air.advance(&mut world, 0.25, &[]).unwrap();
+    restored.advance(&mut world, 0.25, &[]).unwrap();
+    assert_eq!(postcard::to_allocvec(&air.save().unwrap()).unwrap(),
+        postcard::to_allocvec(&restored.save().unwrap()).unwrap());
 }
