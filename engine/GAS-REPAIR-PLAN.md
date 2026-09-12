@@ -7,6 +7,39 @@ implementation failed to follow that direction in its geometry and persistence
 paths. It is not a new physics project or a new demo. Status and measured results
 must be appended below; this plan alone is not an accepted implementation.
 
+## Latest Levi correction: cheap local gas replaces pressure/room simulation
+
+September 12, after the coarse-room join 9cf5954. This section supersedes the
+connected-room implementation requirements below, but preserves the complete
+playable workload, water/ecology requirements, durability and performance budgets.
+
+Levi explicitly rejected further connected-cave complexity. The previous plan
+was recorded, but it retained carrier mass, pressure envelopes and physical
+room-volume remapping. Implementation changed geometry without removing that
+solver. Calling that the requested completed simplification was incorrect.
+
+The intended gameplay model is sparse, coarse local smoke/hazard amounts with
+cheap neighbor spreading, upward and wind bias, walls/openings, and explicit
+outdoor dispersal. Clean inactive spaces do not tick. Work per update is bounded;
+remaining active work stays pending rather than being discarded. Client smoke
+animation is cosmetic. Preserve emitted/transported/dispersed amounts and actual
+save/recovery, but do not simulate the mass or pressure of ordinary clean air.
+
+Do not implement connected-cave discovery, pressure equalization, gas compression,
+or exact room-volume redistribution as prerequisites for digging or building.
+Physical edits update local connectivity. They must not wait because ordinary air
+cannot be compressed into a numerical envelope. Displaced smoke needs a simple,
+explicit gameplay rule at the existing owner, not a pressure solver. Room labels
+may later aid UI but cannot determine simulation cost or require whole-cave walks.
+Heat/hazard gameplay may share bounded local transport; oxygen chemistry is not
+silently claimed. Water retains finite groundwater, saturation, currents and
+contamination; this correction does not remove those requirements.
+
+Current status: 9cf5954 is an unreleased coarse-room geometry join over the old
+pressure/carrier solver. The interrupted local-room patch is unaccepted. Neither
+is the local sparse gas replacement described here. Pause that room-patch path;
+replace the actual gas behavior and callers before claiming simplification.
+
 ## September 12 acceptance contract — supersedes the repair sequence below
 
 The current goal is the complete playable Colony repair requested in Levi's
