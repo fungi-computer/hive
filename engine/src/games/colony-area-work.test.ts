@@ -23,7 +23,7 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
       "colony.dig.2.13.0",
     ]);
     assert.equal(orders.length, 2);
-    assert.ok(orders.every((row) => ["queued", "approaching", "excavating", "blocked", "carrying"].includes(row.get(ColonyDigOrder).phase)));
+    assert.ok(orders.every((row) => ["queued", "approaching", "excavating", "blocked"].includes(row.get(ColonyDigOrder).phase)));
     const saved = session.save();
     const restoredPort = wasmKernelPort(new WasmKernel());
     try {

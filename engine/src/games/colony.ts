@@ -18,11 +18,12 @@ import {
   transfer,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
+import { GroundStock } from "../sdk/ground-stock";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, Worker, colonyWorkSystem, colonySupplySystem } from "./colony-work";
+import { ColonyDigOrder, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
 import type { EntityId, GamePack } from "../contracts";
 
-export { Worker, ColonyDigOrder, colonyWorkSystem } from "./colony-work";
+export { Worker, ColonyDigOrder, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -275,7 +276,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 3,
   components: colonyComponents,
-  systems: [colonySupplySystem, colonyWorkSystem],
+  systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
@@ -353,7 +354,8 @@ export const colonyPack: GamePack = {
   },
   presentation: {
     environmentVisuals: colonyAtmosphereVisuals,
-    visuals: context => context.query(query(ConstructionSite)).map(row => {
+    visuals: context => [
+      ...context.query(query(ConstructionSite)).map(row => {
       const site = row.get(ConstructionSite);
       const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
       if (!definition) throw new Error("Missing construction visual definition");
@@ -362,8 +364,25 @@ export const colonyPack: GamePack = {
       const cutawayTop = site.y + (definition.shape.kind === "stair" ? definition.shape.rise : definition.shape.kind === "wall" ? definition.shape.height - 1 : 0);
       return { id: row.id, cutawayTop, visual: `colony.${definition.shape.kind}.${stage}`, label: `${site.catalog} · ${site.phase}`,
         pose: { position: { x: site.x, y: (site.y + (definition.shape.kind === "wall" ? -0.5 : 0.5)) * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
-    }),
-    terrainMarks: context => context.query(query(ColonyDigOrder)).filter(row => row.get(ColonyDigOrder).phase !== "carrying").map(row => {
+      }),
+      ...(() => {
+        const lotsByContainer = new Map<string, { kind: string; quantity: number }>();
+        for (const row of context.query(query(MaterialLot))) {
+          const lot = row.get(MaterialLot);
+          if (lot.quantity > 0 && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil"))
+            lotsByContainer.set(lot.container, lot);
+        }
+        return context.query(query(GroundStock, Position)).flatMap(row => {
+          const position = row.get(Position);
+          const lot = lotsByContainer.get(row.id);
+          if (!lot) return [];
+          const visual = lot.kind === "soil-spoil" ? "soil" : "stone";
+          return [{ id: row.id, visual, label: `${lot.kind} · ${lot.quantity}`,
+            pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } }];
+        });
+      })(),
+    ],
+    terrainMarks: context => context.query(query(ColonyDigOrder)).map(row => {
       const order = row.get(ColonyDigOrder);
       return { id: row.id, cell: [order.cellX, order.cellY, order.cellZ] as const,
         status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
@@ -404,6 +423,13 @@ export const colonyPack: GamePack = {
           value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
         })),
         { id: "spoil-carried", label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
+        { id: "spoil-ground", label: "Loose spoil", value: (() => {
+          const stockContainers = new Set(context.query(query(GroundStock)).map(row => row.id));
+          return context.query(query(MaterialLot)).reduce((sum, row) => {
+            const lot = row.get(MaterialLot);
+            return sum + (stockContainers.has(lot.container) && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil") ? lot.quantity : 0);
+          }, 0);
+        })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
         ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
