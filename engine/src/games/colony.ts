@@ -120,7 +120,6 @@ const colonyInitial = [
   })),
 ];
 
-type DeliveryInput = { readonly quantity?: unknown; readonly entities?: unknown };
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
 
 const goInput = z.object({
@@ -133,21 +132,16 @@ const goInput = z.object({
 const workerSelectionInput = z.object({
   entities: z.array(z.string()).min(1).max(workers.length),
 }).strict();
+const deliveryInput = z.object({
+  entities: z.array(z.string()).min(1).max(workers.length),
+  quantity: z.number().optional(),
+}).strict();
 
-function inputOf(input: unknown): DeliveryInput {
-  if (!input || typeof input !== "object" || Array.isArray(input))
-    throw new Error("delivery command requires selected workers");
-  return input as DeliveryInput;
-}
-
-function selectedWorkers(context: CommandContext, input: unknown): readonly EntityId[] {
-  const raw = inputOf(input).entities;
-  if (!Array.isArray(raw) || raw.length === 0 || raw.length > workers.length)
-    throw new Error("select at least one worker");
+function selectedWorkers(context: CommandContext, raw: readonly string[]): readonly EntityId[] {
   const selected = [...new Set(raw)];
   if (
     selected.length !== raw.length ||
-    selected.some((id) => typeof id !== "string" || !(workers as readonly EntityId[]).includes(id as EntityId))
+    selected.some((id) => !(workers as readonly EntityId[]).includes(id as EntityId))
   )
     throw new Error("selection must contain distinct colony workers");
   const rows = context.query(query(Worker));
@@ -171,8 +165,8 @@ function deliveryWrites(
   enabled: boolean,
   preserveCurrentQuantity = false,
 ) {
-  const parsed = inputOf(input);
-  const selected = selectedWorkers(context, input);
+  const parsed = deliveryInput.parse(input);
+  const selected = selectedWorkers(context, parsed.entities);
   const quantity = parsed.quantity;
   if (enabled && !preserveCurrentQuantity && quantity !== 1 && quantity !== 2)
     throw new Error("delivery quantity must be one or two");
@@ -300,7 +294,7 @@ export const colonyPack: GamePack = {
       reads: [Worker, Emitter, Destination, ExcavationWork, ConstructionSite, DeliveryTask],
       writes: [],
       run(context, input) {
-        const selected = selectedWorkers(context, input);
+        const selected = selectedWorkers(context, workerSelectionInput.parse(input).entities);
         if (selected.length !== 1) throw new Error("Select one worker beside the hearth");
         const worker = selected[0];
         const busy = context.query(query(Destination)).some(row => row.id === worker)
@@ -331,7 +325,7 @@ export const colonyPack: GamePack = {
       writes: [WorkParticipation],
       run: (context, input) => {
         const parsed = goInput.parse(input);
-        const selected = selectedWorkers(context, parsed);
+        const selected = selectedWorkers(context, parsed.entities);
         const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
         const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
         const building = new Set(context.query(query(ConstructionSite)).flatMap(row => {
@@ -353,7 +347,7 @@ export const colonyPack: GamePack = {
       reads: [Worker, WorkParticipation],
       writes: [WorkParticipation],
       run: (context, input) => {
-        const selected = selectedWorkers(context, workerSelectionInput.parse(input));
+        const selected = selectedWorkers(context, workerSelectionInput.parse(input).entities);
         return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
       },
     }),
