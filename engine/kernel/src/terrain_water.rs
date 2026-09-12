@@ -6,7 +6,7 @@ mod field_tests;
 mod local_air;
 pub(crate) use local_air::LocalAir;
 use crate::generation::Cell;
-use crate::structure_geometry::{StaticGeometry, StaticInstance, GeometryProjection};
+use crate::structure_geometry::{StaticGeometry, StaticInstance, GeometryProjection, StairEdge};
 use crate::terrain::{AppliedChange, BlockReason, PrepareResult, SurfaceCell, TerrainOwner};
 use crate::water::{SoilRule, WaterLimits, WaterRebindBlock,
     WaterStock, WaterFacts, WaterWork};
@@ -284,6 +284,7 @@ impl TerrainWater {
     pub fn is_open_material(&self, slot: u16) -> bool { self.terrain.is_open_material(slot) }
     pub fn bounds(&self) -> crate::generation::Bounds { self.terrain.bounds() }
     pub fn cell_spacing_m(&self) -> [f64; 3] { self.terrain.cell_spacing_m() }
+    pub fn stair_edges(&self) -> &[StairEdge] { self.structure_projection.stair_edges() }
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     /// Shared physical contact query for placement, route admission and retained
     /// route validation. These callers must not reconstruct geometry separately.

@@ -963,6 +963,31 @@ the same surface-wear owner. With no landmark provider, no old trail is generate
   Reuse current shared effects and approved audio; cosmetic feedback settles no
   inventory and never advances simulation time.
 
+#### Stair art parity checkpoint
+
+The Sept 11 stair change was a real source change, not merely a new camera: it
+changed `src/art/stair.js` from the retained Clearing's two-cell run to a
+four-cell run, and changed the bake from the 112x112 prop frame to the 192x160
+vehicle frame. The retained source at `e4510b2` is the cleated timber ramp with
+the upper landing at local `z = 2`; the later `d181421` source moves that
+landing to `z = 4`. The current native catalog independently declares
+`timber-stair` as `run: 4, rise: 4`, and the native geometry tests and three-level
+route fixture rely on that span.
+
+The accepted restore is the retained contract: `run: 2, rise: 4`. These are
+voxel indices, not metres. Colony's one-metre horizontal cell and 0.54-metre
+vertical cell make this a 2 m run and 2.16 m rise. Environment admission checks
+the resulting metric grade against its bounded stair policy; native geometry
+still bounds both counts and never applies a voxel-count slope test. Route,
+support, landing and picking callers use the same endpoint cells.
+
+The required visual acceptance is four cardinal orientations resolved through
+the existing `buildings.stair.<stage>[facing]` binding and the original stair
+builder. No substitute stair asset, second binding, or one-off rotation path is
+allowed. The current v2 static bank remains the unrebuilt proof boundary until
+the restored source is baked; source acceptance does not claim the hosted bank
+has already changed.
+
 ### Water, smoke and building must work together
 
 Keep the current finite-water and sparse local-smoke owners. Do not reopen pressure

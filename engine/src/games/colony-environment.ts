@@ -48,7 +48,7 @@ export const colonyEnvironment: EnvironmentDefinition = {
     catalog: [
       { id: "timber-floor", shape: { kind: "floor" }, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 2 },
       { id: "timber-wall", shape: { kind: "wall", height: 4 }, materials: [{ kind: "wood", quantity: 4 }], workSeconds: 4 },
-      { id: "timber-stair", shape: { kind: "stair", run: 4, rise: 4 }, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 6 },
+      { id: "timber-stair", shape: { kind: "stair", run: 2, rise: 4 }, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 6 },
     ],
   },
   materials: [

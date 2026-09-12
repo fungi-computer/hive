@@ -2,6 +2,7 @@
 //! The supplied query reads canonical terrain; this module stores no material grid.
 use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
+use crate::structure_geometry::StairEdge;
 use pathfinding::prelude::astar;
 
 fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<u64, String> {
@@ -32,6 +33,17 @@ pub fn search_with_blocked(
     config: TraversalConfig,
     query: &mut MaterialQuery<'_>,
     blocked: &dyn Fn(Cell) -> bool,
+) -> Result<Vec<Cell>, String> {
+    search_with_blocked_and_stairs(start, destination, config, query, blocked, &[])
+}
+
+pub fn search_with_blocked_and_stairs(
+    start: Cell,
+    destination: Cell,
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+    stairs: &[StairEdge],
 ) -> Result<Vec<Cell>, String> {
     if terrain_traversal::node(start, config, query)?.is_none()
         || terrain_traversal::node(destination, config, query)?.is_none()
@@ -70,6 +82,18 @@ pub fn search_with_blocked(
                     }
                 }
             }
+            for stair in stairs {
+                let target = if stair.entrance == cell(*current) { stair.landing }
+                    else if stair.landing == cell(*current) { stair.entrance }
+                    else { continue };
+                if blocked(target) { continue; }
+                if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
+                    match edge_cost(cell(*current), next.support, config.spacing) {
+                        Ok(cost) => neighbors.push((key(next.support), cost)),
+                        Err(error) => { failure = Some(error); return Vec::new(); }
+                    }
+                }
+            }
             neighbors
         },
         |_| 0u64,
@@ -84,6 +108,10 @@ pub fn search_with_blocked(
 /// higher voxel; cross before descending. Straight diagonal interpolation would
 /// put the actor's feet inside the high voxel's side face.
 pub fn waypoints(path: &[Cell], config: TraversalConfig) -> Result<Vec<crate::components::Point>, String> {
+    waypoints_with_stairs(path, config, &[])
+}
+
+pub fn waypoints_with_stairs(path: &[Cell], config: TraversalConfig, stairs: &[StairEdge]) -> Result<Vec<crate::components::Point>, String> {
     use crate::components::Point;
     let pose = |cell: Cell| -> Result<Point, String> {
         let point = Point {
@@ -107,11 +135,19 @@ pub fn waypoints(path: &[Cell], config: TraversalConfig) -> Result<Vec<crate::co
         let dx = i128::from(b.x) - i128::from(a.x);
         let dz = i128::from(b.z) - i128::from(a.z);
         let dy = i64::from(b.y) - i64::from(a.y);
-        if dx.abs() + dz.abs() != 1 || !(-1..=1).contains(&dy) {
+        let stair_edge = stairs.iter().any(|stair| stair.entrance == a && stair.landing == b || stair.entrance == b && stair.landing == a);
+        if (!stair_edge && (dx.abs() + dz.abs() != 1 || !(-1..=1).contains(&dy))) || (stair_edge && (dx.abs() + dz.abs() == 0 || dy == 0)) {
             return Err("invalid terrain route edge".into());
         }
         let from = pose(a)?;
         let to = pose(b)?;
+        if stair_edge {
+            // A stair is a single authored ramp edge. The movement integrator
+            // interpolates between supports; do not synthesize a teleport-like
+            // vertical waypoint that cuts through the stair body.
+            points.push(to);
+            continue;
+        }
         if dy > 0 { points.push(Point { y: to.y, ..from }); }
         if dy < 0 { points.push(Point { y: from.y, ..to.clone() }); }
         points.push(to);
@@ -122,10 +158,15 @@ pub fn waypoints(path: &[Cell], config: TraversalConfig) -> Result<Vec<crate::co
 /// Support edge containing the next movement waypoint. Earlier cells are history,
 /// not terrain that the actor still needs in order to finish the route.
 pub fn active_support_index(path: &[Cell], next_waypoint: usize) -> Result<usize, String> {
+    active_support_index_with_stairs(path, next_waypoint, &[])
+}
+
+pub fn active_support_index_with_stairs(path: &[Cell], next_waypoint: usize, stairs: &[StairEdge]) -> Result<usize, String> {
     if next_waypoint == 0 { return Err("invalid terrain waypoint progress".into()); }
     let mut end = 0usize;
     for (index, pair) in path.windows(2).enumerate() {
-        end += if pair[0].y == pair[1].y { 1 } else { 2 };
+        let stair_edge = stairs.iter().any(|stair| stair.entrance == pair[0] && stair.landing == pair[1] || stair.entrance == pair[1] && stair.landing == pair[0]);
+        end += if stair_edge || pair[0].y == pair[1].y { 1 } else { 2 };
         if next_waypoint <= end { return Ok(index); }
     }
     Err("terrain waypoint progress exceeds route".into())
@@ -169,11 +210,47 @@ mod tests {
     }
 
     #[test]
+    fn committed_stair_is_the_only_four_way_four_voxel_route_edge() {
+        let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
+        let origin = Cell{x:0,y:0,z:0};
+        for (index, orientation) in [
+            crate::structure_geometry::Cardinal::North,
+            crate::structure_geometry::Cardinal::East,
+            crate::structure_geometry::Cardinal::South,
+            crate::structure_geometry::Cardinal::West,
+        ].into_iter().enumerate() {
+            let (dx, dz) = orientation.delta();
+            let entrance = origin;
+            let landing = Cell { x: origin.x + dx * 2, y: 4, z: origin.z + dz * 2 };
+            let solid: BTreeSet<_> = [entrance, landing].into_iter().collect();
+            let stair = StairEdge { id:format!("stair-{index}"), entrance, landing, orientation, run:2, rise:4 };
+            let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
+            assert!(search(entrance, landing, config, &mut query).is_err());
+            let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
+            let up = search_with_blocked_and_stairs(entrance, landing, config, &mut query, &|_| false, std::slice::from_ref(&stair)).unwrap();
+            assert_eq!(up, vec![entrance, landing]);
+            let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
+            assert!(terrain_traversal::path_supported_with_stairs(&up, config, &mut query, std::slice::from_ref(&stair)).unwrap());
+            assert_eq!(waypoints_with_stairs(&up, config, std::slice::from_ref(&stair)).unwrap().len(), 2);
+            let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
+            let down = search_with_blocked_and_stairs(landing, entrance, config, &mut query, &|_| false, std::slice::from_ref(&stair)).unwrap();
+            assert_eq!(down, vec![landing, entrance]);
+            let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
+            assert!(terrain_traversal::path_supported_with_stairs(&down, config, &mut query, std::slice::from_ref(&stair)).unwrap());
+            assert_eq!(waypoints_with_stairs(&down, config, std::slice::from_ref(&stair)).unwrap().len(), 2);
+            let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
+            assert!(search_with_blocked_and_stairs(entrance, landing, config, &mut query, &|_| false, &[]).is_err());
+        }
+    }
+
+    #[test]
     fn weighted_cost_charges_rise_and_cross_geometry() {
-        let config = TraversalConfig { spacing:[1.0,0.5,1.0],clearance_cells:1,max_step_cells:1 };
+        let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
         let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing).unwrap();
         let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing).unwrap();
         assert!(climb > flat);
+        let stair = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:2,y:4,z:0}, config.spacing).unwrap();
+        assert_eq!(stair, 4_160_000);
     }
 
     #[test]

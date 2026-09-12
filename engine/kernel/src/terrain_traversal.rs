@@ -1,6 +1,7 @@
 //! Pure voxel traversal geometry. Material ownership stays with the caller.
 
 use crate::generation::Cell;
+use crate::structure_geometry::StairEdge;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TraversalConfig {
@@ -129,6 +130,24 @@ pub fn step(
     Ok(Some(TraversalNode { support: target }))
 }
 
+/// Admit a transition supplied by a committed stair.  Multi-cell rise is
+/// legal only through this explicit geometry fact; ordinary terrain keeps the
+/// one-voxel step rule above.
+pub fn stair_step(
+    from: TraversalNode,
+    target: Cell,
+    stair: &StairEdge,
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+) -> Result<Option<TraversalNode>, String> {
+    validate_config(config)?;
+    let forward = from.support == stair.entrance && target == stair.landing;
+    let reverse = from.support == stair.landing && target == stair.entrance;
+    if !forward && !reverse { return Ok(None); }
+    if node(target, config, query)?.is_none() || node(from.support, config, query)?.is_none() { return Ok(None); }
+    Ok(Some(TraversalNode { support: target }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,13 +231,20 @@ mod tests {
 
 /// Revalidate an existing support path using the same node/step law as search.
 pub fn path_supported(path: &[Cell], config: TraversalConfig, query: &mut MaterialQuery<'_>) -> Result<bool, String> {
+    path_supported_with_stairs(path, config, query, &[])
+}
+
+pub fn path_supported_with_stairs(path: &[Cell], config: TraversalConfig, query: &mut MaterialQuery<'_>, stairs: &[StairEdge]) -> Result<bool, String> {
     for cell in path { if node(*cell, config, query)?.is_none() { return Ok(false); } }
     for pair in path.windows(2) {
         let Some(from) = node(pair[0], config, query)? else { return Ok(false); };
         let dx = i32::try_from(i128::from(pair[1].x)-i128::from(pair[0].x)).unwrap_or(2);
         let dy = i32::try_from(i64::from(pair[1].y)-i64::from(pair[0].y)).unwrap_or(2);
         let dz = i32::try_from(i128::from(pair[1].z)-i128::from(pair[0].z)).unwrap_or(2);
-        if step(from, dx, dy, dz, config, query)?.is_none() { return Ok(false); }
+        let stair = stairs.iter().find(|stair| (stair.entrance == pair[0] && stair.landing == pair[1]) || (stair.entrance == pair[1] && stair.landing == pair[0]));
+        if let Some(stair) = stair {
+            if stair_step(from, pair[1], stair, config, query)?.is_none() { return Ok(false); }
+        } else if step(from, dx, dy, dz, config, query)?.is_none() { return Ok(false); }
     }
     Ok(true)
 }

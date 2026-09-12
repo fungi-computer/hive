@@ -14,6 +14,16 @@ const MAX_JSON_BYTES: usize = 128 * 1024;
 const MAX_MATERIALS: usize = 64;
 const MAX_CELLS: usize = 2048;
 const MAX_INITIAL_PLACEMENTS: usize = 128;
+// Stair dimensions are voxel counts, while slope is checked in world metres.
+// One horizontal cell is one metre in the generated world contract.
+const MAX_STAIR_GRADE: f64 = 1.5;
+
+fn valid_stair_shape(run: u8, rise: u8, vertical_metres: f64) -> bool {
+    (1..=64).contains(&run)
+        && (1..=64).contains(&rise)
+        && vertical_metres.is_finite()
+        && (f64::from(rise) * vertical_metres) / f64::from(run) <= MAX_STAIR_GRADE
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -209,7 +219,7 @@ fn prepare_definition_mode(
             StructureShapeInput::Floor => StructureShape::Floor,
             StructureShapeInput::Wall { height } if (1..=64).contains(&height) => StructureShape::Wall { height },
             StructureShapeInput::Aperture { height, opening_bottom, opening_height } if (1..=64).contains(&height) && opening_height > 0 && u16::from(opening_bottom) + u16::from(opening_height) < u16::from(height) => StructureShape::Aperture { height, opening_bottom, opening_height },
-            StructureShapeInput::Stair { run, rise } if (1..=64).contains(&run) && (1..=64).contains(&rise) && rise <= run => StructureShape::Stair { run, rise },
+            StructureShapeInput::Stair { run, rise } if valid_stair_shape(run, rise, definition.world.vertical_metres) => StructureShape::Stair { run, rise },
             _ => return Err("invalid structure catalog shape".into()),
         };
         let mut materials = BTreeMap::new();
@@ -468,7 +478,10 @@ pub(crate) mod tests {
         assert!(prepare_definition(&input.to_string()).is_err());
         input["structures"]["catalog"][0]["materials"] = json!([{"kind":"stone-spoil","quantity":0}]);
         assert!(prepare_definition(&input.to_string()).is_err());
-        input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":2,"rise":3});
+        input["structures"]["catalog"][0]["materials"] = json!([{"kind":"stone-spoil","quantity":1}]);
+        input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":2,"rise":4});
+        assert!(prepare_definition(&input.to_string()).is_ok());
+        input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":1,"rise":4});
         assert!(prepare_definition(&input.to_string()).is_err());
     }
     #[test]
