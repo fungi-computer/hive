@@ -239,7 +239,7 @@ geometry and presentation seams.
 | Physical goods | `materials.ts`, `item-containers.ts` | Rust `Lot`/`Container`, transfer, carried water, output preparation and indexes | Native custody is stronger. Add missing Goblin material/endpoint definitions; do not port the retained material store. |
 | Trees and wood | `world.js`, `orders.ts`, `jobs.ts`, `activity.ts` | generated/content entities, generic finite work, native material output and delivery | Missing. Restore fell/chop/output/haul as the first scenery-backed resource loop, including retained poses and finite wood. |
 | Storage | retained lot/container and storage jobs | native containers, delivery tasks and future data-defined stockpile filters | Crates work; floor stock is only a fallback. Restore ordinary stockpile designation/filtering before adding automation. |
-| Construction | `construction.js`, `physical-completion.ts`, `construction-view.js` | native construction work, physical geometry, material embedding, support query | Floor, wall and four-facing stairs exist. Restore the retained catalog, site interactions, deconstruction/salvage, bed/shelf/station endpoints and presentation without replacing native completion. |
+| Construction | `construction.js`, `physical-completion.ts`, `construction-view.js` | native construction work, physical geometry, material embedding, support query | Floor and wall mechanisms exist. The current stair bake improperly stretches the retained two-cell ramp to a four-cell vehicle-sized visual; restore the exact retained stair contract and rotate it for four facings before treating stair parity as complete. Restore the retained catalog, site interactions, deconstruction/salvage, bed/shelf/station endpoints and presentation without replacing native completion. |
 | Terrain and excavation | retained terrain/digging controls | Rust generator, A*, excavation, material yield, discrete field water | Current implementation supersedes retained physics. Preserve rectangle tools and visual quality; do not port old terrain or water state. |
 | Water and vessels | `field-water*`, `water-supply.ts`, `water-delivery.ts`, pail art | Rust discrete field water, `LotWater`, native transfer and containers | Groundwater is live. Restore pail draw/carry/pour and station supply as consumers of the current finite owner. |
 | Herbs | `herbs.ts`, herb commands/jobs/activity, art | generic finite work, material output, authored growth/process facts | Missing. Restore sow/grow/water/harvest as data and shared work, producing a real mugwort lot. |
@@ -304,6 +304,29 @@ trees; Escape/right-click cancels each without submitting; changing levels
 clears only the active stroke; one release creates one durable command receipt;
 invalid members reject the whole batch; the work remains queued with zero free
 workers; and two clients observe the same accepted plans and connected previews.
+
+### Parallel supply is demand plus independent haul legs
+
+A construction site, process input or stockpile policy declares material demand;
+it does not own a single worker-sized delivery. The current `planSiteSupplies`
+violates that split by deriving one task identity per destination/material and
+rejecting every other active delivery to the destination. That forces workers to
+alternate even when several unclaimed wood lots can satisfy one staircase together.
+
+The shared planner expands one demand into deterministic finite haul legs. Each
+leg claims one distinct source lot, quantity and destination, so ordinary assignment
+can give different legs to different workers concurrently. Active legs count as
+promised incoming quantity before another leg is admitted. Their combined quantity
+cannot exceed outstanding demand or destination capacity, and one source lot cannot
+appear in two live legs. Completion, cancellation and reload rebuild the same
+accounting from canonical demand, material lots and live delivery tasks. A completed
+physical transfer remains the native material owner's mutation; the planner never
+fabricates or copies stock.
+
+The first implementation uses one haul leg per distinct source lot. Parallel slices
+from one large lot require a demonstrated native quantity-reservation owner and are
+outside this correction. Construction, stockpiles and brewing consume the same
+planner; no stair, recipe or container gets a private delivery loop.
 
 ### Playable migration slices
 
@@ -866,6 +889,16 @@ an interim release, not the full sustained-goal or public launch acceptance.
 Use the original Three → low-resolution bake → Pixi owner. Reuse src/art/clearing.js,
 figures.js, art.js and the activity/presentation rules in src/view.js. No new visual
 style, unrelated purchased pack, art-bank explosion or client-side physics.
+
+Retained visual provenance is an acceptance gate. For every migrated object, record
+the retained source and the live bake/binding that consumes it. Do not call a modified
+model "original," stretch it to fit a newly chosen physical footprint, substitute a
+procedural placeholder, or silently move it to a different bake frame. Four-facing
+objects rotate the retained model unless an orientation truly needs distinct retained
+art. A missing visual state is reported as missing and any new art requires King's
+direct review. Specifically, the September 11 four-cell stair stretch is superseded:
+the compact September 7 timber ramp is the visual baseline, and traversal/footprint
+must be reconciled to that asset rather than changing the asset to hide the mismatch.
 
 - Replace plain terrain treatment with authored grass tops, exposed soil/stone
   sides, edge details and stable variation. Reuse face/tile art where appropriate;
