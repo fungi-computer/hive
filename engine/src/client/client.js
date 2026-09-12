@@ -347,13 +347,14 @@ export function createHiveClient({
       currentIds: latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, state.view).pickable).map((fact) => fact.id),
     });
     const renderPresentationGroup = (heading, group) => group.facts.length || group.controls.length
-      ? React.createElement("div", { className: "hive-presentation" },
+      ? React.createElement("section", { className: "hive-presentation", "aria-label": heading },
           React.createElement("strong", null, heading),
           group.facts.map((fact) => React.createElement("div", { key: fact.id },
             `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`)),
           group.controls.map((control) => React.createElement(Button, {
             key: control.id,
             size: "sm",
+            variant: "outline",
             disabled: !state.ready,
             onClick: () => {
               if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
@@ -387,7 +388,7 @@ export function createHiveClient({
         { variant: "outline", className: "hive-card" },
         React.createElement(
           CardContent,
-          null,
+          { className: "hive-card-content" },
           React.createElement(
             "div",
             { className: "hive-kicker" },
@@ -511,16 +512,9 @@ export function createHiveClient({
               renderHud();
             } }, state.invitationCopied ? "Copied" : "Copy link"),
           ) : null,
-          React.createElement(
-            "div",
-            { className: "hive-selection" },
-            React.createElement("strong", null, "Selected"),
-            React.createElement(
-              "span",
-              null,
-              state.selectedIds.length ? contextualPresentation.selection.label : "none",
-            ),
-          ),
+          renderPresentationGroup(contextualPresentation.selection.label, contextualPresentation.selection)
+            ?? React.createElement("div", { className: "hive-selection" },
+              state.selectedIds.length ? contextualPresentation.selection.label : "Select a person or object to see its actions"),
           isAiming()
             ? React.createElement("div", { className: "hive-actions" },
                 React.createElement("label", null, `Elevation ${Math.round(state.aim.elevation * 180 / Math.PI)}°`),
@@ -539,7 +533,6 @@ export function createHiveClient({
               : "Click selects · Shift adds · drag selects a group · right click orders"),
           ),
           renderPresentationGroup("World actions", contextualPresentation.world),
-          renderPresentationGroup(contextualPresentation.selection.label, contextualPresentation.selection),
           React.createElement(
             "a",
             { className: "hive-source", href: source },

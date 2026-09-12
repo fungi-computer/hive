@@ -62,8 +62,54 @@ worker-dependent demo buttons is not the intended loop.
   queued-ignition/current-save law plus contextual/picking laws. This is not a
   claim that the retained full brewing recipe has already been restored.
 
-Trees remain in the scenery/resource restoration queue; station interactions
-are the current directly requested next playable improvement.
+Trees remain in the scenery/resource restoration queue. Levi's subsequent
+playtest reports a void-like hole after a few layers and no discoverable water.
+Root source plus u6268 sampled four starting columns: surface y13; two soil
+and three stone cells, followed by a very tall generated cave (27+ empty levels
+before stone resumes). Bounds [-32,40) describe 72 vertical coordinates, not
+72 earth layers. Current water activation remains only x/z[-2,2], y[10,14].
+This is an unfinished playable-world join, not sufficient water coverage.
+Remove the blanket "dig deeper to uncover groundwater" instruction now. Next
+terrain/water correction must give useful cellar depth and ordinary discoverable
+groundwater without silently expanding all active physics work. The read-only
+note .botanical/clearing-context-release/deep-hole-readiness.md also identifies
+cutaway filtering that drops otherwise-published water in an open/null-surface
+column. Fix through the existing projection owner; do not invent a solid floor
+or duplicate water. User's exact world/hole has not been inspected.
+
+### Contextual station source and local proof checkpoint
+
+Root integrated Luna 94dced5 as 0ca3c55 and root station 248b0e8 as e29c0b8;
+720c0b2 consolidates presentation parsing and qualifies refusal. The subsequent
+compact inspector places selected-object actions before the help/world section,
+uses existing Caps and real baked silhouettes, and removes the misleading
+universal groundwater instruction. Current Colony definition version is 4.
+
+Root evidence in .botanical/clearing-context-release:
+- u6249 caught command/system component write overlap before any simulation;
+  root corrected it with distinct request/progress ownership, preserving failure.
+- u6252 and joined u6262: three actual native Colony laws pass (shared supply/
+  assignment/ignition, pending-result reload without duplicate debit, cancel,
+  manual takeover). u6262 strict types pass; Fallow failed with findings retained.
+- u6263: new actual already-burning refusal law and all ten affected presentation
+  laws plus strict types pass. Removed three real unnecessary exports and the
+  duplicate manual presentation parser. Fallow remains exit1 for one new
+  **moderate estimated-coverage advisory**, progressAttendance (27 lines,
+  CC13/cognitive12); root reviewed its local state transitions and accepts this
+  advisory explicitly. No new dead exports/clones. Inherited findings retained.
+- Luna reports two contextual, two scoped-binding/schema and one remote JSON
+  law pass. New silhouette law passed within a client command that remained red
+  for an inherited static-binding expectation. Its terminal reports are retained
+  in the Session, not separate log files; its unrelated Fallow JSON was not used
+  as qualification. Root's actual joined audit above owns source review.
+- u6265 browser failed before clicking: the proof selected a transparent atlas
+  row. Errors[]; root viewed and retained failure.png. Corrected proof chooses
+  actual registered opaque bowl pixels outside the obsolete foot-radius.
+- u6270 browser passes actual sprite selection, station-specific action, automatic
+  supply/ignition and emitted fire, then worker-specific action visibility. Root
+  personally viewed hearth-selected.png and hearth-burning.png. Browser closed,
+  no owned server. This is desktop local native gameplay, not hosted or sustained
+  two-client acceptance and not full brewing restoration.
 
 ## Starting point: actual state, not aspirations
 

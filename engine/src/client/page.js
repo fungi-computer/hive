@@ -23,7 +23,7 @@ const configs = {
     title: "The Clearing",
     visualBindings: COLONY_VISUAL_BINDINGS,
     subtitle:
-      "Mark an area for workers to dig and haul away the soil. Dig deeper to uncover groundwater.",
+      "Build and dig your clearing. Select the hearth to request a fire, or a worker to give orders.",
     orderCommand: "go",
     selectionShortcuts: [{ id: "colony.worker.1", label: "Select Rowan" }, { id: "colony.worker.2", label: "Select Sedge" }],
     controlHelp: "Dig area, then drag across the ground · Select a worker and right-click to take control · Resume work returns them to automatic orders · Escape cancels a drag",
