@@ -33,7 +33,30 @@ forecast is **not a gate before the next playable repair**.
 
 ## Starting point: actual state, not aspirations
 
-### September 12 repair interim — live 34f7c20
+### September 12 current live interim — ddc1728
+
+The existing Colony URL now serves manual Go/Resume work, original Rowan/Sedge
+dig/build/carry poses and closer desktop framing. Frontend deployment
+`2aac14d5-1bc2-4640-8095-a27cae9a68b6`; Worker version
+`91603a99-4b07-4977-aed3-c01b9b84c90b`; implementation
+`c0859c71255f3316e021b154c9c32439e6ffa58f1af2acd8949577e44ddee43b`.
+`u6205` publication and `u6206` all-158-file HTTP readback pass. `u6207` connects
+two actual hosted clients, verifies manual Go and exact receipt replay, reaches
+and holds the destination, resumes work, observes native digging activity on the
+original cast and matches both clients at the paused revision. Five commands max
+132 ms; short observation gaps max 213 ms. These are transport measurements,
+not browser frame times or sustained workload acceptance. Both sockets close,
+no server is launched, and all owned scopes are inactive/dead/empty.
+
+The inspected build is copied byte-identically from `clearing-work-animation`;
+both source trees match. `.botanical/clearing-work-release/` retains source
+inventory, manifest, publication/readback/hosted receipts and the exact previous
+34f7c20 dist archive. No automatic old-world migration/reset was introduced;
+an unsupported earlier world remains preserved and needs explicit New world.
+Scenery/terrain richness, pickup/drop transitions, full multilevel play and the
+fixed sustained two-browser workload remain open. The goal is not complete.
+
+### September 12 earlier repair interim — 34f7c20
 
 The source below supersedes the earlier 4414a57 availability facts. This is a
 useful repair interim, **not completion of Release A or the goal**.
@@ -67,11 +90,11 @@ useful repair interim, **not completion of Release A or the goal**.
   sustained deep digging/building, original art/activity restoration and actual
   two-browser playtest. No new rendered/UI-browser evidence is claimed here.
 
-### September 12 next candidate — manual control and original work poses
+### September 12 source qualification — manual control and original work poses
 
 The reviewed manual-control source (`ebe337a`, `e7bf55f`, `e79dab2`) is joined
-with King's original-cast/activity work. It is not yet a hosted availability
-claim. One shared automatic-work capability prevents delivery, digging and
+with King's original-cast/activity work, published above as ddc1728. One shared
+automatic-work capability prevents delivery, digging and
 construction providers from taking a manually controlled actor back. Go preserves
 facing and cargo, cancels native attendance and moves; Resume work restores the
 existing claim. Current-format restore preserves that intent. Boundary parsing
@@ -186,6 +209,19 @@ Delivery's separate quantity/haul preference remains a delivery policy. Rust
 continues to own movement, traversal, work cancellation and resource custody.
 The new capability must qualify manual movement during carrying/digging, explicit
 resume and current-format restore before becoming a live gameplay claim.
+
+The next independent human-client slice uses the existing demo's shared-world
+authority: `remoteConnection` owns its bearer token, and the public host names a
+region from game pack plus token hash. Invite a friend exposes an explicit
+shared-control URL with the token only in the fragment. Opening it must preserve
+the recipient's private saved token; refresh keeps the joined world. Invalid
+invites refuse visibly. Explicit New world rotates the private token and removes
+the invitation after successful replacement. The connection owner supplies an
+optional invitation capability; local mode has none. Caps shows a selectable
+read-only URL and copy feedback only after clipboard success, with a plain
+shared-control explanation. This is not accounts, individual player grants or a
+new backend. Luna owns the isolated `clearing-friend-link` client seam; King owns
+the authority decision, review and eventual two-browser acceptance.
 
 ### Client admission and gesture owner
 
