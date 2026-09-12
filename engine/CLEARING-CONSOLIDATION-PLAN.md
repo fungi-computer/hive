@@ -137,6 +137,18 @@ kernel/src/world.rs before editing.
   retry conditions. Independent work continues. Adding a valid route can make
   waiting work eligible; cancellation does not erase cargo or earned effects.
 
+The next takeover correction uses one shared `WorkParticipation { automatic:
+boolean }` capability, interpreted by the shared work owner before allocation.
+Providers receive the same suspended-actor set and do not advance that actor's
+automatic work. Colony's ordinary Go command takes control, cancels native work
+attendance and submits native movement; explicit Resume work returns the actor
+to automatic work. Existing task claims and carried goods remain paused, not
+deleted or reassigned behind the player's back. Other actors keep working.
+Delivery's separate quantity/haul preference remains a delivery policy. Rust
+continues to own movement, traversal, work cancellation and resource custody.
+The new capability must qualify manual movement during carrying/digging, explicit
+resume and current-format restore before becoming a live gameplay claim.
+
 ### Client admission and gesture owner
 
 Read retained src/ui-actions.ts, digging-controls.test.js and main.js against
