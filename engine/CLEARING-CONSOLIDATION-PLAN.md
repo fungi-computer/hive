@@ -361,6 +361,25 @@ Root evidence in .botanical/clearing-context-release:
 
 ## Starting point: actual state, not aspirations
 
+### September 12 station/route and online-host correction
+
+Runtime source `efa71ec` retires the standalone hearth presentation, names the
+retained brew-station object, and reissues a claimed dig approach so native A*
+can repair a route invalidated by changed terrain. Strict engine types and eight
+focused station/terrain/work laws pass. The complete retained brewing process is
+not present yet.
+
+The first frontend publication accidentally omitted `VITE_HIVE_PUBLIC_HOST` and
+therefore displayed **World unavailable** on the normal URL. That package was
+superseded, not accepted. Frontend deployment
+`da67815c-9d7f-4ca5-921e-a5fb085c509a` embeds the existing public DO host;
+157/157 HTTP files match after propagation. A fresh browser opened the normal
+Colony URL without `?runtime=local`, connected, and exposed enabled Rowan
+selection with no page errors (`run-u6342`). Public DO Worker version
+`566624b3-71ef-49cb-814a-5e74a9151c9c` remains the matching runtime owner.
+This proves online startup, not an ordinary route-repair or long two-player
+playtest.
+
 ### September 12 current live interim — aa12aa7
 
 The contextual station update is live at the existing Colony URL:
