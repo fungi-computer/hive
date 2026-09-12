@@ -4,126 +4,59 @@ import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
-import { ExcavationWork, MaterialLot, LotWater, Destination, query, entity } from "../sdk/index";
-import { colonyPack } from "./colony";
+import { MaterialLot, LotWater, query } from "../sdk/index";
+import { colonyPack, ColonyDigOrder } from "./colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
-function makeSession() {
+// Exercise the current area-designation API and its real autonomous workers.
+// The former worker-target Dig command was removed when area orders landed.
+for (const x of [1, 9]) test(`Colony area digging earns finite groundwater at x=${x} across reload`, () => {
   const port = wasmKernelPort(new WasmKernel());
-  return { port, session: new GameSession({ port, pack: colonyPack }) };
-}
-
-function adjacentTarget(port: ReturnType<typeof wasmKernelPort>) {
-  const surface = port.terrainSurfaces([[1, 0]])[0];
-  assert.ok(surface, "native terrain must publish the adjacent surface");
-  const cell: [number, number, number] = [1, surface.cell[1], 0];
-  const material = port.terrainMaterials([cell])[0];
-  assert.equal(material, 1, "adjacent surface must be diggable Colony soil");
-  return { cell, material };
-}
-
-function quantities(session: GameSession, worker: string) {
-  const lots = session.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
-  return {
-    total: lots.reduce((sum, lot) => sum + lot.quantity, 0),
-    bread: lots.filter((lot) => lot.kind === "bread").reduce((sum, lot) => sum + lot.quantity, 0),
-    spoil: lots.filter((lot) => lot.container === worker && lot.kind === "soil-spoil").reduce((sum, lot) => sum + lot.quantity, 0),
+  const session = new GameSession({ port, pack: colonyPack });
+  const tick = () => {
+    for (const result of session.step(0.25)) {
+      // Another cut may invalidate a hauling approach; the shared work owner
+      // receives that ordinary rejection and re-plans without freezing Dig.
+      if (!result.accepted) assert.match(result.reason ?? "", /route endpoint lacks support or clearance|destination is occupied/);
+    }
   };
-}
-
-test("Colony native excavation earns three spoil units across a midway restore", () => {
-  const { port, session } = makeSession();
-  const worker = entity("colony.worker.1");
-  try {
-    session.start();
-    const target = adjacentTarget(port);
-    const before = quantities(session, worker);
-    assert.equal(before.total, 6);
-    session.command("dig", { entities: [worker], target });
-    const first = session.step(1);
-    assert.equal(first[0]?.accepted, true);
-    const mid = session.save();
-    assert.equal(session.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds, 1);
-    session.restore(mid);
-    assert.equal(session.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds, 1);
-    session.step(1);
-    assert.equal(port.terrainMaterials([target.cell])[0], 0);
-    assert.equal(session.query(query(ExcavationWork)).some((row) => row.id === worker), false);
-    assert.deepEqual(quantities(session, worker), { total: 9, bread: 6, spoil: 3 });
-    const completed = session.save();
-    session.restore(completed);
-    assert.deepEqual(session.save(), completed);
-    assert.deepEqual(quantities(session, worker), { total: 9, bread: 6, spoil: 3 });
-  } finally {
-    port.dispose();
-  }
-});
-
-test("Colony native excavation rejects a target occupied by the worker", () => {
-  const { port, session } = makeSession();
-  const worker = entity("colony.worker.1");
-  try {
-    session.start();
-    const surface = port.terrainSurfaces([[0, 0]])[0];
-    assert.ok(surface);
-    const cell: [number, number, number] = [0, surface.cell[1], 0];
-    const material = port.terrainMaterials([cell])[0];
-    session.command("dig", { entities: [worker], target: { cell, material } });
-    const result = session.step(0);
-    assert.equal(result[0]?.accepted, false);
-    assert.match(result[0]?.reason ?? "", /support|standing|occupied/);
-  } finally {
-    port.dispose();
-  }
-});
-
-
-test("Colony deposits spoil and exposes finite groundwater through a stepped excavation", () => {
-  const { port, session } = makeSession();
-  const worker = entity("colony.worker.1");
-  const tick = () => { for (const result of session.step(0.25)) assert.equal(result.accepted, true, result.reason ?? undefined); };
-  const walk = (x: number, z: number) => {
-    const surface = port.terrainSurfaces([[x, z]])[0];
-    assert.ok(surface);
-    session.request({ kind: "move", entity: worker, destination: { x, y: (surface.cell[1] + 0.5) * 0.54, z, frame: null }, facing: 0 });
-    tick();
-    for (let step = 0; step < 100 && session.query(query(Destination)).some(row => row.id === worker); step++) tick();
-    assert.equal(session.query(query(Destination)).some(row => row.id === worker), false, "walk reaches the generated standing surface");
-  };
-  const dig = (x: number, z: number) => {
-    const surface = port.terrainSurfaces([[x, z]])[0];
-    assert.ok(surface);
-    session.command("dig", { entities: [worker], target: { cell: surface.cell, material: surface.material } });
-    tick();
-    for (let step = 0; step < 24 && session.query(query(ExcavationWork)).some(row => row.id === worker); step++) tick();
-    assert.equal(session.query(query(ExcavationWork)).some(row => row.id === worker), false, "dig completes using native work");
-    assert.equal(port.terrainMaterials([[...surface.cell]])[0], 0);
-  };
-  const deposit = () => {
-    walk(-2, 0);
-    session.command("deposit", { entities: [worker] });
-    tick();
-    assert.equal(session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === worker), false);
+  const dig = (columnX: number) => {
+    const surface = port.terrainSurfaces([[columnX, 0]])[0];
+    assert.ok(surface, "the next cut comes from the actual generated surface");
+    session.command("dig", { area: { start: surface.cell, end: surface.cell } });
+    let completed = false;
+    for (let step = 0; step < 240; step++) {
+      tick();
+      if (port.terrainMaterials([[...surface.cell]])[0] === 0) { completed = true; break; }
+    }
+    assert.ok(completed, JSON.stringify(session.query(query(ColonyDigOrder)).map(row => row.get(ColonyDigOrder))));
+    return surface.cell;
   };
   try {
     session.start();
-    dig(1, 0); deposit(); walk(0, 0);
-    dig(1, 0); deposit(); walk(2, 1);
-    dig(2, 0); deposit(); walk(2, 0);
-    dig(1, 0);
-    for (let step = 0; step < 40; step++) tick();
-    const visible = session.terrainView()!.water.find(cell => cell.at[0] === 1 && cell.at[1] === 11 && cell.at[2] === 0);
-    assert.ok(visible && visible.liquidVolumeM3 > 0, "groundwater seeps into the exposed deeper cut");
+    const initialGoods = session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
+    dig(x);
+    // Restore with real worker/hauling state, not just an isolated water array.
+    const midway = session.save();
+    session.restore(midway);
+    assert.deepEqual(session.save(), midway);
+    dig(x);
+    dig(x + 1);
+    const exposed = dig(x);
+    for (let step = 0; step < 16; step++) tick();
+    const visible = session.terrainView()!.water.filter(cell =>
+      Math.abs(cell.at[0] - x) <= 1 && Math.abs(cell.at[2]) <= 1 && cell.at[1] <= exposed[1] && cell.liquidVolumeM3 > 0);
+    assert.ok(visible.length > 0, "finite groundwater reaches the open cut and connected cave");
     const facts = port.environmentFacts() as { totalKg: number; initialTotalKg: number; boundaryKg: number };
-    const carriedWater = session.query(query(LotWater)).reduce((sum, row) => sum + row.get(LotWater).waterKg, 0);
-    assert.ok(carriedWater > 0, "wet spoil retains water removed from the field");
-    assert.ok(Math.abs(facts.totalKg + carriedWater - facts.initialTotalKg) < 1e-8, "field plus physical spoil water is conserved");
-    const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
-    assert.equal(lots.reduce((sum, lot) => sum + lot.quantity, 0), 18);
-    assert.equal(lots.filter(lot => lot.container === "colony.pantry").reduce((sum, lot) => sum + lot.quantity, 0), 15);
+    const spoilWater = session.query(query(LotWater)).reduce((sum, row) => sum + row.get(LotWater).waterKg, 0);
+    assert.ok(spoilWater > 0, "wet spoil retains the removed pore water");
+    assert.ok(Math.abs(facts.totalKg + spoilWater - facts.initialTotalKg) < 1e-8, "field plus physical goods conserve water");
+    assert.equal(session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), initialGoods + 12);
     const saved = session.save();
+    const waterBefore = port.environmentFacts();
     session.restore(saved);
     assert.deepEqual(session.save(), saved);
+    assert.deepEqual(port.environmentFacts(), waterBefore);
   } finally { port.dispose(); }
 });

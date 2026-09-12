@@ -38,7 +38,12 @@ export interface Vec3 {
 export interface MoveDestination extends Vec3 {
   readonly frame: EntityId | null;
 }
-export interface RouteCostRequest { readonly actor: EntityId; readonly target: MoveDestination; }
+export interface RouteCostRequest {
+  readonly actor: EntityId;
+  readonly target: MoveDestination;
+  /** Native excavation contact must be possible from the proposed approach. */
+  readonly excavationTarget?: readonly [number, number, number];
+}
 export type RouteCostResult =
   | { readonly actor: EntityId; readonly status: "reachable"; readonly cost: number }
   | { readonly actor: EntityId; readonly status: "unavailable"; readonly reason: string };

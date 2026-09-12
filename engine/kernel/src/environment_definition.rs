@@ -331,10 +331,10 @@ fn prepare_definition_mode(
                 } else {
                     None
                 };
-                if head.is_some_and(|head| {
-                    (generated.bed_level <= generated.cell.y
-                        && generated.cell.y < definition.world.sea_level)
-                        || (generated.cave_void && generated.cell.y < head)
+                if head.is_some_and(|_| {
+                    generated.bed_level <= generated.cell.y
+                        && generated.cell.y < definition.world.sea_level
+
                 }) {
                     1_000.0 * vertical
                 } else {
@@ -386,7 +386,7 @@ fn prepare_definition_mode(
         water.spread_m_per_s,
         limits,
         definition.structures.max_span_steps,
-    )?;
+    )?.with_generated_groundwater();
     Ok(PreparedDefinition {
         terrain,
         geometry,
@@ -472,7 +472,7 @@ pub(crate) mod tests {
         assert!(prepare_definition(&input.to_string()).is_err());
     }
     #[test]
-    fn fresh_proposes_finite_stocks_once_and_restore_shape_is_dry() {
+    fn natural_caves_start_dry_and_restore_does_not_propose_stock() {
         let input = fixture("seed-a");
         let prepared = prepare_definition(&input).unwrap();
         assert!(prepared.stocks.is_empty());
@@ -487,7 +487,7 @@ pub(crate) mod tests {
         let built = build_from_json(&input).unwrap().world;
         assert!(built.facts().unwrap().total_kg.is_finite());
         let other = prepare_definition_mode(&fixture("seed-b"), true).unwrap();
-        assert!(admitted.stocks.iter().any(|stock| stock.mass_kg > 0.0));
+        assert!(admitted.stocks.iter().all(|stock| stock.mass_kg == 0.0), "a cave below groundwater head is not automatically a flooded lake");
         assert!(admitted.stocks.iter().any(|stock| stock.mass_kg == 0.0));
         assert_ne!(admitted.terrain.export().unwrap(), other.terrain.export().unwrap());
     }
@@ -499,8 +499,8 @@ pub(crate) mod tests {
         let before = kernel.environment_facts_json().unwrap();
         let step = r#"{"delta":0.2,"writes":[],"actions":[]}"#;
         let output: serde_json::Value = serde_json::from_str(&kernel.advance_json(step).unwrap()).unwrap();
-        assert!(output["environmentWork"]["work"]["faces"].as_u64().unwrap() > 0);
-        // These two submerged cave cells are full: clock work must not invent flow.
+        assert_eq!(output["environmentWork"]["work"]["faces"].as_u64().unwrap(), 0);
+        // These natural caves start dry: the clock must not invent water or tick an empty volume.
         let moved = kernel.environment_facts_json().unwrap();
         assert_eq!(moved, before);
         assert!(kernel.snapshot_json().is_err());

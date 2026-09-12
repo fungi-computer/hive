@@ -30,9 +30,7 @@ pub(super) fn changes(world: &TerrainWater, edit: AirGeometryEdit<'_>) -> Result
         return Err("prepared air geometry edit is stale or foreign".into());
     }
     let cells = match edit {
-        AirGeometryEdit::Water(p) => world.graph.definition().cells.iter().zip(world.state.masses().iter().zip(p.state.masses()))
-            .filter(|(cell, (before, after))| cell.kind == crate::water::WaterCellKind::Void && before != after)
-            .map(|(cell, _)| Cell { x: i64::from(cell.at[0]), y: cell.at[1], z: i64::from(cell.at[2]) }).collect(),
+        AirGeometryEdit::Water(p) => world.field.changed_liquid(&p.field),
         AirGeometryEdit::Excavation(p) => vec![world.prepared_excavation_replacement(p).0],
         AirGeometryEdit::Structures(p) => world.structure_projection.changed_air_cells(&p.projection)?.into_iter().collect(),
     };
@@ -105,8 +103,7 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
     query_view(AirQueryView {
         terrain: &mut world.terrain,
         structures: &world.structure_projection,
-        graph: &world.graph,
-        state: &world.state,
+        field: &world.field,
         replacement: None,
         physical_revision: world.physical_revision,
         epoch: world.epoch,
@@ -118,8 +115,7 @@ pub(super) fn query(world: &mut TerrainWater, bounds: AirGeometryBounds) -> Resu
 struct AirQueryView<'a> {
     terrain: &'a mut crate::terrain::TerrainOwner,
     structures: &'a crate::structure_geometry::GeometryProjection,
-    graph: &'a crate::water::CompiledWater,
-    state: &'a crate::water::WaterState,
+    field: &'a super::field::Field,
     replacement: Option<(Cell, u16)>,
     physical_revision: u64,
     epoch: u64,
@@ -138,8 +134,7 @@ pub(super) fn query_structure(
     query_view(AirQueryView {
         terrain: &mut world.terrain,
         structures: &prepared.projection,
-        graph: &prepared.graph,
-        state: &prepared.state,
+        field: &prepared.field,
         replacement: None,
         physical_revision,
         epoch,
@@ -157,14 +152,10 @@ pub(super) fn query_excavation(
     let physical_revision = world.physical_revision.checked_add(1).ok_or("physical geometry revision exhausted")?;
     let epoch = world.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
     let replacement = Some(world.prepared_excavation_replacement(prepared));
-    let (graph, state) = prepared.water.as_ref()
-        .map(|(graph, state, _)| (graph, state))
-        .unwrap_or((&world.graph, &world.state));
     query_view(AirQueryView {
         terrain: &mut world.terrain,
         structures: &world.structure_projection,
-        graph,
-        state,
+        field: &prepared.field,
         replacement,
         physical_revision,
         epoch,
@@ -183,8 +174,7 @@ pub(super) fn query_water(
     query_view(AirQueryView {
         terrain: &mut world.terrain,
         structures: &world.structure_projection,
-        graph: &world.graph,
-        state: &prepared.state,
+        field: &prepared.field,
         replacement: None,
         physical_revision: world.physical_revision,
         epoch,
@@ -216,7 +206,7 @@ fn query_view(view: AirQueryView<'_>, bounds: AirGeometryBounds) -> Result<AirGe
                     continue;
                 }
                 let coverage = match (i32::try_from(x), i32::try_from(y), i32::try_from(z)) {
-                    (Ok(x), Ok(y), Ok(z)) => view.graph.liquid_volume_at(view.state, [x, y, z])?
+                    (Ok(x), Ok(y), Ok(z)) => view.field.liquid_volume(Cell { x: i64::from(x), y, z: i64::from(z) })
                         .map_or(AirWaterCoverage::Unmodeled, |liquid_volume_m3| AirWaterCoverage::Admitted { liquid_volume_m3 }),
                     _ => AirWaterCoverage::Unmodeled,
                 };

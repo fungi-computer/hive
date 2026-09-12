@@ -61,6 +61,7 @@ export type WaterCell = readonly [number, number, number];
 
 export interface EnvironmentWater {
   readonly id: string;
+  /** Initial finite-stock observations; transport wakes across the full world. */
   readonly cells: readonly WaterCell[];
   readonly fallMPerS: number;
   readonly spreadMPerS: number;

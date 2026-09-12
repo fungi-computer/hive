@@ -17,6 +17,8 @@ const MAX_COST_METRES: f64 = 1.0e9;
 struct Request {
     actor: String,
     target: Point,
+    #[serde(default, rename = "excavationTarget")]
+    excavation_target: Option<[i32; 3]>,
 }
 
 #[derive(Serialize)]
@@ -114,6 +116,17 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
         if request.target.frame.as_ref() != support.as_ref() {
             prepared.push(Prepared::Immediate(Result::Unavailable { actor: request.actor, reason: "destination frame does not match actor support".into() }));
             continue;
+        }
+        if let Some([x, y, z]) = request.excavation_target {
+            let reachable_work = request.target.frame.is_none() && kernel.environment.as_ref().is_some_and(|environment| {
+                super::excavation_work::within_reach([request.target.x, request.target.y, request.target.z],
+                    crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, environment.world.cell_spacing_m())
+            });
+            if !reachable_work {
+                prepared.push(Prepared::Immediate(Result::Unavailable { actor: request.actor,
+                    reason: "approach is outside excavation reach".into() }));
+                continue;
+            }
         }
         prepared.push(Prepared::Search { actor: request.actor, entity, start, target: request.target });
     }

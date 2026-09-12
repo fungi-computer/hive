@@ -290,6 +290,7 @@ impl CompiledWorld {
         self.vertical_metres
     }
     pub fn bounds(&self) -> Bounds { self.bounds }
+    pub(crate) fn sea_level(&self) -> i32 { self.sea_level }
     pub fn vertical_bounds(&self) -> (i32, i32) {
         (self.bounds.min_y, self.bounds.max_y)
     }

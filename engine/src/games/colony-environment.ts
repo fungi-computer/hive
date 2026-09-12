@@ -12,10 +12,9 @@ const colonyWorldBounds = Object.freeze({
   maxZ: 32,
 });
 
-/** Generated 64×64 Colony with a bounded near-surface water domain.
- * The actual native sample for this seed places the central surface at y=13.
- * Admit five connected layers including air above it, so removing soil can
- * expose groundwater without teleporting stock from the deep cave fixture.
+/** Generated 64×64 Colony. Initial water observations surround the arrival;
+ * finite groundwater awakens wherever players dig, throughout the world bounds.
+ * Undisturbed groundwater is generated from geology once, never a refill rate.
  */
 export const colonyEnvironment: EnvironmentDefinition = {
   world: {

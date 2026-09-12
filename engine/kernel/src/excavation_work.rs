@@ -8,6 +8,11 @@ fn cell(work: ExcavationWork) -> Cell {
 fn same_target(a: ExcavationWork, b: ExcavationWork) -> bool {
     a.x == b.x && a.y == b.y && a.z == b.z && a.expected == b.expected && a.replacement == b.replacement
 }
+/// The same contact rule filters prospective approaches and earns native work.
+pub(super) fn within_reach(position: [f64; 3], target: Cell, spacing: [f64; 3]) -> bool {
+    let at = [target.x as f64 * spacing[0], f64::from(target.y) * spacing[1], target.z as f64 * spacing[2]];
+    position.into_iter().zip(at).map(|(a, b)| (a - b).powi(2)).sum::<f64>() <= 1.5_f64.powi(2)
+}
 impl Kernel {
     fn terrain_support_occupied(&mut self, target: Cell) -> Result<bool> {
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
@@ -88,10 +93,7 @@ impl Kernel {
             let rule = environment.excavation_rules.get(&work.expected).ok_or("saved work has no material rule")?;
             let required = rule.work_seconds;
             let spacing = environment.world.cell_spacing_m();
-            let distance = ((pose.x - f64::from(work.x) * spacing[0]).powi(2)
-                + (pose.y - f64::from(work.y) * spacing[1]).powi(2)
-                + (pose.z - f64::from(work.z) * spacing[2]).powi(2)).sqrt();
-            if distance > 1.5 || self.ecs.get::<Support>(actor).is_some() { continue; }
+            if !within_reach([pose.x, pose.y, pose.z], cell(work), spacing) || self.ecs.get::<Support>(actor).is_some() { continue; }
             work.seconds = super::earned_work_seconds(work.seconds, delta, required)?;
             self.ecs.entity_mut(actor).insert(work);
             if work.seconds < required { continue; }
