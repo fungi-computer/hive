@@ -184,6 +184,47 @@ therefore remains the physical, selectable station. The native finite
 and atmosphere owner remain in place; this change does not claim that the full
 retained brewing recipe loop has been migrated.
 
+## Retained-system restoration order — September 12
+
+The groundwater playtest is responsive enough to resume feature restoration, but
+the foundation is not called finished yet. The claimed-dig route repair above is
+source-qualified and still needs one ordinary deployed playtest. A sustained
+two-person session and the remaining pickup/drop presentation are also open.
+These are bounded closure work; they do not justify another engine rewrite or
+another environmental study.
+
+Restore retained behavior in this order:
+
+1. **Brew at the station.** Use the existing station selection and shared
+   delivery/work allocation. Recipe definitions remain authored data. A generic
+   staged-process owner binds exact material lots and station endpoints, advances
+   attended preparation, advances unattended fermentation, and settles kegged
+   output through the existing Rust material transaction. Full output waits;
+   cancellation, retry and reload cannot consume ingredients twice. The concrete
+   first consumer is herbal ale, but neither the process owner nor persistence
+   branches on ale, herbs or this station. The detailed owner/caller plan is in
+   `RETAINED-BREWING-RESTORATION.md`.
+2. **Restore the living clearing.** Bring back the original trees, worn path,
+   rocks, mushrooms, cat and pickup/carry/drop transients through the shared asset
+   and presentation owners. Decorative scenery stays click-through. A tree only
+   becomes selectable/choppable when it has a finite resource and navigation
+   definition; visuals cannot invent physical rules.
+3. **Make hospitality depend on ordinary needs.** Residents and guests share
+   hunger, thirst, rest and comfort mechanisms. Serving food or ale satisfies the
+   same need operations used by the player character; there is no one-off
+   thirsty-customer state machine. Guest preferences and payment remain Goblin
+   definitions over those mechanisms.
+4. **Deepen people after the work facts exist.** Skills modify typed work costs
+   and outcomes; traits modify declared preferences/needs; relationships consume
+   actual shared events. These do not become a second job scheduler or a universal
+   entity full of optional flags.
+
+Each step lands as one playable addition in the same Colony. Do not port retained
+files wholesale. Read the retained behavior, identify its current Rust/SDK owner,
+move the supported rule once, delete the superseded special case, and exercise it
+through the real station, worker, material and save callers before starting the
+next step.
+
 ## Current interaction restoration — September 12
 
 Levi explicitly requests the retained station-first gameplay: click the hearth,
@@ -697,8 +738,8 @@ continues in isolated writing roots with reviewed contracts and actual caller pr
 
 ## Off the sprint's critical path
 
-Full brewing/needs/social restoration remains in RETAINED-BREWING-RESTORATION.md
-and the retained game plans. AI players/storytellers and many-faces authority stay
+Needs/social restoration remains after the first real brewing loop as ordered
+above. AI players/storytellers and many-faces authority stay
 engine requirements, but an AI demonstration is not a condition for the human
 Clearing release. RTS/pirate/survival expansion, multi-region handoff, editor/MCP
 work, new accounts and historical world replay are deferred. Preserve those
