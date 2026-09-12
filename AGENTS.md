@@ -2,6 +2,13 @@
 
 ## Current fresh-engine direction
 
+**September 12 delivery priority:** [Bring the Clearing back to life](engine/CLEARING-CONSOLIDATION-PLAN.md)
+owns current implementation order. Restore the retained human Clearing experience
+over Rust/DOs: dependable work/controls, original art/animations, water, building
+and two-person co-op. Older demo/extraction sequences are context, not parallel
+work. Preserve the shared client, existing consumers and current durability;
+do not add a full event-sourcing rewrite as a release prerequisite.
+
 Levi authorized a fresh Rust/WASM engine with TypeScript game authoring on
 September 10. Follow [the guiding packet](engine/DESIGN.md) for the new engine,
 three playable examples, shared controls/client/art, and Luna implementation

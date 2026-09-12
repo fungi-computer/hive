@@ -1,294 +1,249 @@
-# Clearing consolidation: one dependable colony, many actors in one world
+# Sprint: bring the Clearing back to life
 
-Status: implementation plan, September 12. Root owns architecture, review and
-integration. This is the next repair sequence under the existing playable-Colony
-goal, not a new rewrite or replacement goal. Source baseline d629eb3. The latest
-local smoke implementation remains; do not reopen pressure/connected-cave work.
+King Bolete · September 12, 2026 · **active Colony delivery plan**
 
-## Product and finish line
+## The outcome
 
-Levi and a friend build and maintain a cozy multi-storey goblin home in a generated
-world. Humans, ordinary NPCs, saved scripts and Shiitake can participate through
-scoped observations and the same authoritative command owner. Controllers differ;
-physical rules, goods, permissions and consequences do not. AI storyteller powers
-are separate explicit grants, never an unrestricted player mutation door.
+**Levi and a friend play together in a beautiful little goblin clearing. They
+select people, designate digging, build a home and cellar, move real supplies,
+encounter groundwater, and see people visibly doing their work.** The result is
+an enjoyable public demo and a genuine 30–60 second clip with a playable link.
 
-The next public story is a reliable colony, not a claim that Hive already solves
-all web games. The broader engine earns its credibility through this consumer and
-the existing RTS/survival/pirate consumers. Keep those working; do not add another
-demo or widen their gameplay while Colony's basic loop is broken.
+The engine supports that experience. Its abstractions, benchmarks, saved records
+and other demos are not the product finish line. Restore the retained Clearing's
+quality over the Rust/DO implementation; do not start another game or rewrite.
+The two screenshots Levi supplied on September 12 are the direct visual comparison:
+the original clearing with varied grass, paths, trees, Rowan, Sedge and the cat
+versus the current sparse Colony with generic actors and flat-colored terrain.
 
-Keep the full acceptance workload and fixed performance budgets in
-[GAS-REPAIR-PLAN](GAS-REPAIR-PLAN.md). Twenty minutes with two actual browser clients,
-32 earned cuts across two depths, full storage/ground spoil/hauling recovery,
-multiple building levels, seepage, indoor smoke, reconnect and committed replay
-remain required. A milestone below is not whole-goal completion.
+This document supersedes the active sequencing in DESIGN.md, DEMO-ROADMAP.md and
+the architecture-proof sprint. Those retain technical contracts and historical
+receipts. MULTIPLAYER-STREAM-CONSOLIDATION.md supplies supporting connection detail;
+this document owns priority. Earlier versions of this file preserve the two-day
+velocity assessment and wider forecast in Git at b508d6e. The 5–8 day feature
+forecast is **not a gate before the next playable repair**.
 
-## What consolidation means
+## Starting point: actual state, not aspirations
 
-Preserve the retained Clearing's useful interaction and gameplay laws. Reuse
-working controls and original art where their contracts fit; translate their
-semantic rules where the Rust/DO owner changed. Remove replaced decision paths
-when real callers move. Do not run the retained JS simulation alongside Rust,
-copy obsolete save models, or manufacture compatibility adapters.
+- Live Colony: [existing demo](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html),
+  runtime source 4414a57. Rust/WASM simulation runs in the public DO host. The
+  shared client renders observations; ordinary commands receive durable receipts.
+- Current implemented pieces include Rust terrain, finite water, simplified local
+  smoke/heat, excavation, supplied construction, lots/containers and shared work.
+- Excess spoil can remain on the ground. A native 4x4 excavation law completes
+  after an occupied guest moves. These are real improvements, not full acceptance.
+- The latest hosted combined check connects two clients, digs twice, replays a
+  receipt and completes a wall, then times out on hearth supply. Sustained play,
+  usable multi-level construction and indoor smoke in this joined sequence remain
+  unaccepted. The reported queue lock also remains unresolved.
+- The retained Clearing has better complete controls, art composition and activity
+  animations. The new client reuses only part of that work.
+- Two connected demo clients currently share demo authority. Distinct accounts,
+  revocable individual player grants and an account invitation service are not
+  implemented by that evidence.
 
-Ownership remains:
+## What a stranger should experience
 
-- Rust: authoritative movement/path queries, assignment solver, materials,
-  physical work, generated geometry, bounded water and local smoke/heat.
-- TypeScript game definitions: content, recipes, work policy and presentation
-  composed over those operations. No private game pathfinder or parallel cargo.
-- Region/DO host: principal/scope admission, accepted command identity,
-  committed revision/results and durable recovery/wake.
-- Shared client: gestures, selected view and rendering; display runtime admission
-  and work facts. Prediction never settles work or inventory.
-- Controller integration: the existing public Mycelium capability path over game
-  admission. No second scheduler or model call inside physical ticks.
+Open the page and immediately see a small, inviting clearing with recognizable
+people, trees, a path and useful supplies. The camera starts close enough to read
+faces and tools. A short instruction offers an actual first action, not an engine
+feature list: **select a person, drag a dig area, or start building your home**.
 
-Watchdog is the reference for opaque jobs, private claims, exact settlement and
-cancellation intent. Read its current implementation before adopting a host use;
-it does not replace the native physical job owner or automatically supply game
-atomicity, route recovery, UI admission, or undo committed material effects.
+A rectangle visibly marks the intended cells. Workers walk to safe positions,
+perform recognizable digging, leave the spoil, and haul it when storage permits.
+Full storage or an unreachable deep cell explains what is waiting; other workers
+keep doing useful work. Ordinary orders let the player intervene.
 
-## Source findings to repair, not redesign around
+The player creates a cellar and stairs and adds supported upper floors. Water can
+enter an earned cut; saturated ground and standing water look different. A fueled
+hearth produces visible smoke, and a real opening helps clear it. The environment
+creates understandable choices without dominating the simulation budget.
 
-Retained src/digging-controls.test.js and ui-actions.ts specify armed tools,
-one-release strokes, cancellation, slice changes and Escape. src/main.js keeps
-command metadata and reports batch results. src/orders.ts rejects duplicate
-voxels and unsafe excavation positions. src/jobs.ts returns explicit candidate
-absence/reasons and plans carrying travel from the source arrival. Movement and
-cancellation preserve paid edges and custody. These are the behavioral baseline.
+A friend joins the same clearing and can help. Both see the same completed cuts,
+structures and goods. One person's reconnect does not freeze the other person's
+work. The first co-op release may use explicitly shared-colony demo access; it
+must not claim separate account/player permissions that do not exist.
 
-Current concrete gaps:
+The first short challenge is **make your little home usable**: a reachable cellar,
+an accessible upper floor, supplies that workers can actually deliver, and a
+ventilated hearth. Progress reads actual completed world facts. No fake rewards,
+scripted water injection disguised as groundwater, or demo-only automatic builds.
+Brew-and-serve hospitality follows this working foundation; it is not a new
+prerequisite for handing Levi this repair.
 
-1. engine/src/sdk/delivery.ts and construction-work.ts suppress same-target Move
-   solely because Destination exists. Rust world.rs retains Destination when a
-   terrain edit invalidates a route and marks it waiting. The native same-target
-   Move is its repair door; both callers suppress it. Reproduced after digging.
-2. Delivery checks both legs from the worker's original position and prices only
-   the source leg. It does not establish source-arrival-to-destination travel.
-3. Colony route failure leaves an unassigned dig with no useful stable reason.
-   Budget/deferred search and genuinely unreachable terrain must remain distinct.
-4. remote-client.ts can accumulate16 inputs behind blocked recovery or a missing
-   observation revision. The UI has no explicit admission/recovery projection.
-5. client.js can overwrite a synchronous enqueue error with '<tool> submitted'.
-   A rectangle is one command; user deep-dig/queue-full cause is not established.
-6. Scattered gesture/view/result state has weaker integration than Clearing's
-   completed flow. State-machine libraries alone do not establish deterministic UI.
+## Release A — dependable human controls and work
 
-Root personally read these callers. Supporting read-only audit notes are under
-.botanical/consolidation-audit; the tracked decisions here remain the authority.
+Ship the joined correction as soon as it is usable; do not wait for Release B.
 
-## Delivery sequence
+### Work and movement owner
 
-### 1. Restore a dependable command-to-completion loop
+Read retained src/orders.ts, src/jobs.ts, src/movement.ts and cancellation callers
+against engine/src/sdk/delivery.ts, construction-work.ts, games/colony-work.ts and
+kernel/src/world.rs before editing.
 
-One coupled movement/work outcome fixes both delivery and construction callers.
-Reuse the native healthy-route fast path and waiting-route repair. If polling a
-same-target Move proves expensive, expose a narrow native readiness fact; do not
-invent provider-local retry geometry. Correct carrying-leg admission/cost at the
-native query seam. Unreachable work remains unclaimed or explicitly waiting with
-finite cargo and a stated next condition. Independent area cells may progress out
-of order; personal orders retain explicit priority. A blocked voxel must not stop
-unrelated jobs. No teleporting, skipping paid travel, or increasing hop height to
-make a test pass.
+- Repair the concrete Destination/waiting mismatch in both current work providers.
+  Native terrain edits retain the destination but invalidate a route; the TS
+  providers currently suppress the same-target Move that can repair it.
+- Preserve native A*, traversal costs, paid movement and assignment ownership.
+  Correct delivery's carrying-leg reachability/cost from source arrival, rather
+  than checking both legs from the worker's starting position.
+- Keep digging separate from hauling. Full storage cannot imprison a worker with
+  spoil; put-down/release retains exact material and carried-water custody.
+- Unreachable, occupied and temporarily deferred targets have useful reasons and
+  retry conditions. Independent work continues. Adding a valid route can make
+  waiting work eligible; cancellation does not erase cargo or earned effects.
 
-In parallel, one isolated client/transport outcome owns admission through display.
-Follow [the Townies/Shiitake/Woodstock source comparison](MULTIPLAYER-STREAM-CONSOLIDATION.md).
-Keep Region's current persistence and coalescing publisher. Remove the blanket
-receipt-to-observation command barrier; a delayed view must not block an already
-known result. Command recovery and observation recovery have separate owners.
-A local send returns accepted-to-queue or a typed refusal. Queued, awaiting result,
-recovering, and unavailable have defined display
-and input policy. Stop accepting world mutations when recovery has no capacity;
-keep camera/view controls available. Preserve an uncertain command's ID and bytes;
-retry does not become a new action. Cancelling an unsent input and requesting
-cancellation of accepted work are different operations. Never clear unknown work
-as if it failed. Do not increase MAX_PENDING or add an independent UI queue.
+### Client admission and gesture owner
 
-First-shape root review checks ownership and deletions in parallel with writing.
-The joined acceptance is the actual sequence: rectangle -> workers cross its edge
-while hauling -> deeper target lacks a route -> unrelated work completes -> add a
-legal route -> waiting work resumes -> cancel during travel -> reconnect. Include
-lost acknowledgements and queue refusal without false 'submitted' feedback.
-Native/transport focused laws precede one actual DO/client scenario. No repeated
-historical browser matrix. Ship the coherent correction, not isolated unrelated
-patches accompanied by a claim the loop is fixed.
+Read retained src/ui-actions.ts, digging-controls.test.js and main.js against
+engine/src/client/controls.js, terrain-area-selection.js, client.js and
+runtime/remote-client.ts.
 
-### 2. Make Colony the retained Clearing successor
+- One visible rectangle, one release, one submitted command. Preserve screen
+  endpoints, current level, pointer cancellation, Escape and right-click behavior.
+- Show pending, applied and rejected results accurately. Do not overwrite refusal
+  with a submitted message. The UI derives connection/work facts from their owners.
+- Remove the blanket wait for a displayed revision after a known command receipt.
+  Independent next commands must not depend on the display socket catching up.
+- Unknown outcomes retry the same command ID and bytes. Recovery exhaustion is
+  visible and stops further mutation admission; it is not an invisible queue trap.
+  Keep camera, selection and view controls usable. Never enlarge the queue as a fix.
+- Preserve current shared direct-input reconciliation/interpolation for the other
+  demos. Colony uses deliberate orders and ordinary worker execution.
 
-Consolidate the command catalog and gesture transitions: visible designation,
-current slice, ghost/preview, applied/rejected feedback, Escape, right-click,
-pointer loss, level changes and reconnect. Reuse Caps, original sprites, carrying
-and pick-up/drop-off animation and existing bake pipeline. Keep gameplay truth
-separate from animation. Every blocked job exposes a useful reason and remedy.
+**Release A exit:** ordinary rectangle digging, hauling past full storage, an
+unreachable lower target while other work progresses, route repair and reconnect
+work together in the actual Colony. Levi gets the coherent build to try. This is
+an interim release, not the full sustained-goal or public launch acceptance.
 
-Restore the small home loop through shared owners: safe-rim digging, stairs and
-upper floors, floor support spans, ground stock/storage zones and hauling, useful
-water/seepage and local smoke/fire. Account for guest and worker needs through
-shared needs/interaction capabilities, not a one-off thirsty-customer branch.
-Port the retained brewery as a definition-driven staged process, following
-RETAINED-BREWING-RESTORATION.md: supply -> attended preparation -> unattended
-fermentation -> attended finishing -> serving. A player assigns production intent;
-workers perform available stages. Use existing materials and work allocation.
-Do not implement special-purpose hauling, a separate brew allocator or duplicated
-fuel/output settlement. Restore this in coherent playable chunks after stage1,
-not as a prerequisite that delays its release.
+## Release B — the Clearing looks and plays like the Clearing
 
-The full fixed Colony acceptance workload is the exit for stabilization. User
-feedback remains required; a simulated client or one green unit does not replace
-human play. Exposed UI/performance failures reopen this same slice.
+### King owns art and animation acceptance
 
-### 3. Demonstrate many actors, one authority
+Use the original Three → low-resolution bake → Pixi owner. Reuse src/art/clearing.js,
+figures.js, art.js and the activity/presentation rules in src/view.js. No new visual
+style, unrelated purchased pack, art-bank explosion or client-side physics.
 
-Once the human loop works, bind one scripted helper and then Shiitake to the
-same observed colony. Concrete demonstration: Levi builds, a friend digs, the
-helper supplies the station; Levi can revoke its control. Duplicate/retried
-requests cannot create goods or bypass actor/resource reservations. Restrict each
-controller to its allowed people/actions; storyteller interventions use separately
-named authority. Keep ordinary colony work independent of model availability.
+- Replace plain terrain treatment with authored grass tops, exposed soil/stone
+  sides, edge details and stable variation. Reuse face/tile art where appropriate;
+  draw only relevant surfaces and cache changed patches. Rust still owns geometry.
+- Restore paths, roots, rocks, mushrooms, ground cover and trees with the original
+  visual vocabulary. Decorative details are click-through and cannot create
+  physical blockers. Harvestable/obstructing scenery must use actual world rules.
+- Restore the named cast and cat as their existing supported capabilities allow.
+  Rowan and the witch already have dig/build/chop/pickup/deliver/carry/sleep poses;
+  the current goblin-worker bank does not have equivalent activity coverage.
+- Project real activity and custody into shared animation choices: walking,
+  digging, building, pickup, carry and drop-off. Hold facing between observations;
+  interpolate motion. No generic bouncing as a substitute for work animation.
+- Restore actor names, understandable progress, clear selection and useful camera
+  framing. Inspect terrain-edge artifacts against physical geometry; do not hide
+  wrong geometry with scenery. Use Caps for the compact human interface.
+- Keep dust, splash and sound restrained and tied to actual movement/work/cues.
+  Reuse current shared effects and approved audio; cosmetic feedback settles no
+  inventory and never advances simulation time.
 
-Reuse existing Mycelium execute/operation integration and Region command receipts.
-Prove the actual shared world effect and revocation, not a successful model run.
-The first publishable clip shows those participants doing useful work together in
-one unchanged game. Wider-world handoff and sleeping-region behavior remain in
-the engine direction; they do not postpone this small-colony finish line.
+### Water, smoke and building must work together
 
-## How we move faster without lowering standards
+Keep the current finite-water and sparse local-smoke owners. Do not reopen pressure
+simulation, whole-cave room reconstruction or CFD studies. Read the latest
+GAS-REPAIR-PLAN.md correction before historical solver sections.
 
-Root owns the coupled design and actual acceptance. Luna implementers own complete
-bounded outcomes in isolated worktrees; reviewers read pinned source. Two writing
-lanes at most for stage1: movement/work and client/transport, with explicit shared
-contract custody. No code scattering across a roster and no new management layer.
-Every chunk states the player-visible before/after, owner, obsolete code removed,
-and evidence. A failure triggers the smallest discriminating observation; preserve
-actual failure state and stop rerunning scenarios that cannot explain it.
+- Supply and complete walls, floors and four-facing stairs through ordinary work.
+  Support spans must make usable rooms; do not regress to a wall beneath every
+  floor tile. Collapse remains later. Retain deeper digging and multiple storeys.
+- Confirm groundwater enters reachable excavations and soil storage is finite.
+  Water and spoil transfers retain their quantities; wet ground is not an infinite
+  sink. Preserve current contamination/current capability without adding chemistry.
+- Correct the actual combined-play hearth supply failure. Consumed fuel produces
+  smoke/heat; opening ventilation changes the real hazard and its visible feedback.
+- The first scenario uses the Rust generator with a deliberate inviting starting
+  clearing and nearby discoverable water. Initial composition may be authored;
+  player edits and environmental behavior are genuine simulation.
 
-No new gas research, engine rewrite, editor expansion or speculative framework on
-this critical path. The current local-gas/fixed-water design is changed only for a
-demonstrated gameplay or conservation failure. Measure full active work, commit,
-projection and client responsiveness against the already fixed budgets.
+### Shared world and efficient observation
 
-## Townies comparison, bounded source research
+Keep Region's transaction, latest-world records, receipts, native rollback/reload
+and durable alarm ownership. **Do not convert all persistence to event sourcing.**
+Selected durable gameplay facts can serve real observers later; a complete world
+history is not required for this sprint's multiplayer or crash recovery.
 
-Public repository found: https://github.com/Brayden/townies . README and
-https://github.com/Brayden/townies/blob/main/docs/architecture.md describe one
-SQLite-backed DO per town, authenticated WebSockets, server gameplay authority,
-client movement prediction and device movement ownership. Its source is public;
-code/project-owned non-brand assets declare Apache-2.0 with asset/brand exceptions.
-This is not a measured50-player capacity result from our review.
+- Two independent browser sessions must join one actual world through a usable
+  human flow. Reuse current host access where sufficient. Clearly label shared
+  cooperative control; do not invent an account backend or borrow Hub cookies.
+- Resolve simultaneous orders deterministically in the authoritative owner and
+  show their actual results. Neither client advances its own online simulation.
+- Send a complete baseline on join/recovery, then bounded changed information.
+  Reuse existing terrain changed-column facts; avoid resending complete geometry
+  after each cut and unchanged presentation definitions on every update.
+- Keep a single projection/replication owner with explicit additions, updates and
+  removals. Coalesce replaceable poses/water visuals. A missing baseline resets
+  the view; it does not cancel accepted gameplay or create another world.
+- Preserve existing finite bounds and evaluate actual projection/byte costs. Do
+  not add a generic patch language, replay service or broker to solve this slice.
 
-Read shared/town-wire.ts and server/towns/realtime.ts as well. They separate
-public/private projections, carry revisions and close lagging peers for recovery.
-Their connection-local request sequence is not proof of Hive's required durable
-cross-reconnect command receipt. Learn from the concrete usable product and small
-world owner; do not copy its wire protocol or downgrade our replay guarantees.
-No conclusion about overall code quality follows from a tweet, screenshots, or
-these few files. No competitor source/art was imported.
+**Release B exit:** the same actual clearing has the restored visual quality,
+readable work animations, multi-level play, useful water/smoke and working two-person
+co-op. It passes the fixed workload below and Levi's human playtest. Then capture
+an honest short clip, add concise controls/goal copy and publish the ordinary page.
 
-## Two-day velocity and publishable-demo estimate — September 12
+## Acceptance and feedback cadence
 
-Latest Levi correction: the retained Clearing was nearly playable after roughly
-one day. The broader 5–8 day forecast below must not become the wait for the next
-useful build. First deliver the joined movement/recovery/retained-control repair.
-The visual baseline below belongs to that restoration, not a new design project.
+Keep the September 12 fixed workload and numerical budgets in
+[GAS-REPAIR-PLAN.md](GAS-REPAIR-PLAN.md#fixed-playable-workload-and-budgets).
+Do not silently lower them or call Release A complete-goal acceptance.
 
-### Retained visual baseline, personally compared September 12
+- 20 minutes with two actual browser clients; 32 earned cuts across two depths;
+  full storage/ground spoil/autohaul recovery; an enclosed lower room and two
+  accessible upper levels; groundwater; paid indoor smoke and ventilation.
+- Reconnect one client, exercise lost acknowledgement and owner restart using the
+  existing bounded harness. No duplicated cuts, goods or fuel; the other remains
+  usable. Current-format save and paused intent remain correct.
+- Preserve warm-step p95 ≤15 ms, p99 ≤30 ms, max ≤50 ms; command p95 ≤250 ms,
+  max ≤1 s; browser gaps p95 ≤25 ms, p99 ≤50 ms, no unexplained ≥250 ms hitch
+  or ≥1 s world stall. Report cold load separately, not as an exclusion from play.
+- Require readable normal and narrow UI, correct clicks, and actual activity
+  animation. Use Levi's supplied screenshots as the visual comparison. Static
+  screenshots cannot prove timing, picking, multiplayer or fun.
 
-Levi supplied two screenshots: the detailed Clearing with Rowan/Sedge/cat, trees,
-grass patches, path and wet excavation; and the sparse current Colony with crates,
-hearth, generic goblins, flat grass and conspicuous terrain edges. This is a real
-presentation regression, not a request for a new art direction.
+Run focused checks for the changed mechanism, then one joined scenario. Preserve
+valid evidence; repeat only invalidated portions or failures that need a specific
+answer. No historical matrix, expensive editor trace or hours of unchanged proofs.
+At the first coherent usable fix, deliver a build for Levi. Do not wait to collect
+an entire sprint's worth of polish. Human feedback can reopen this same outcome.
 
-Source comparison finds:
+Track progress by these exits: reliable actions; restored appearance/animation;
+joined environmental play; two-person continuity; sustained acceptance and Levi's
+playtest. Commits and source-only tests are supporting evidence, not velocity units.
+A useful update says what can now be played, what still fails and what is live.
 
-- `src/art/clearing.js` authors irregular ground patches, worn paths, ferns,
-  mushrooms, roots and rocks. Current `src/art/terrain-columns.js` builds terrain
-  faces using three material colors; it does not compose those retained details.
-- `engine/src/games/colony.ts` initializes generic workers/guest, crates and hearth;
-  it does not restore the retained settlement's trees or named cast.
-- `src/art.js` provides Rowan/witch-runner work poses including chop, build, dig,
-  pickup, deliver, sleep and material/pail carrying. Its goblin-worker bank has
-  only idle/walk/carry/carry-ration. The current Colony binds goblin-worker.
-- `src/view.js` selects retained poses from actual activity and carried goods,
-  and projects actor labels, progress and routes. The shared animation clock
-  already preserves facing and walk timing; do not replace working interpolation
-  or invent cosmetic bobbing as a substitute for activity animation.
+## Ownership and current handoff
 
-Restore ground variation/scenery with the original art over authoritative generated
-terrain, a useful initial camera framing, original character identities and the
-existing work poses driven by committed activity/custody. Cosmetic plants must not
-create invisible physical blockers; harvestable trees need the actual resource
-owner. Keep scenery cached and keep animation client-side. Investigate the current
-stair-step edge appearance against actual geometry before claiming its cause.
-No new assets or visual performance claims follow from this source-only review.
+King owns architecture, original art, integration and release. Luna handles bounded
+mechanical implementation in isolated worktrees. At most two implementation lanes:
+work/movement, and client/controls/replication. One writer per coupled seam. Shared
+contracts are agreed before edits; King joins and reviews actual callers.
 
-Measured history window: September 10 15:43:15 UTC through September 12 15:43:15
-UTC, integrated source through d93f723. `git log --first-parent` filtered by commit
-timestamp contains 524 commits: 48 on September 10, 460 on September 11, and 16 on
-September 12. These include helper integrations, fixes, documentation and work
-subsequently replaced. They are NOT 524 independent outcomes or measured labor
-hours. Active model time and exclusive working time were not reconstructed.
+Prepared at b508d6e, **not yet activated or source-changed** at this doc checkpoint:
 
-Outcome accounting:
+- `/mnt/fungi-data/botanical-work/clearing-work-recovery`, branch
+  `fix/clearing-work-recovery-20260912`: movement/work correction.
+- `/mnt/fungi-data/botanical-work/clearing-client-recovery`, branch
+  `fix/clearing-client-recovery-20260912`: admission/controls correction.
 
-| Work | Evidence at this checkpoint | Counts toward a dependable Colony? |
-| --- | --- | --- |
-| Existing cannon and other foundation consumers | September 10 live cannon/recovery and delivery/survival records, 16e842e, e9bfce1, 7423f79 | Reusable working foundation and an existing enjoyable demo; not Colony acceptance |
-| Colony environment and performance | September 11 paid hearth/observation/recovery work and a short hosted dig/build/smoke trial; subsequent human stalls | Useful partial result, reopened by actual play |
-| Gas direction | Pressure/room work followed by its removal in fdcb35b | Necessary simplification; much prior effort is rework, not accumulated progress |
-| Digging and ground spoil | 4414a57 published; actual native 4x4 law completes after occupied guest moves; finite stock preserved | Real improvement, not sustained two-depth acceptance |
-| Current hosted combined scenario | Two sockets, two cuts, receipt replay and wall pass; hearth supply times out | Still blocked; live paid fire in this joined scenario unaccepted |
-| Client/job consolidation | Actual caller gaps documented; fixes not yet implemented | Readiness to repair, not shipped gameplay |
+Integration remains `/mnt/fungi-data/botanical-work/native-atmosphere`. Art changes
+that overlap the client lane wait for explicit file release; independent art
+preparation can proceed. Current goal is retained unfinished; this document does
+not replace it or claim any implementation has begun in the prepared lanes.
 
-Net assessment: high implementation throughput, low reliable-gameplay throughput.
-No completed sustained Colony acceptance run in this window. The public game has
-improved, but commit count cannot justify a confident overnight completion date.
-The estimate below is engineering judgment based on remaining coupled outcomes,
-not a statistically fitted delivery rate from two days of churn.
+## Off the sprint's critical path
 
-### Smallest demo worth sharing
+Full brewing/needs/social restoration remains in RETAINED-BREWING-RESTORATION.md
+and the retained game plans. AI players/storytellers and many-faces authority stay
+engine requirements, but an AI demonstration is not a condition for the human
+Clearing release. RTS/pirate/survival expansion, multi-region handoff, editor/MCP
+work, new accounts and historical world replay are deferred. Preserve those
+working consumers and their gains without expanding their features here.
 
-A stranger quickly understands how to designate work. Two people can share the
-small colony using the existing demo access model, build a modest home and cellar,
-handle the dirt and supplies, encounter visible seepage and hearth smoke, and
-complete one short production/guest-serving loop. Original goblins and carrying
-animations make the work legible. The 30–60 second clip shows actual normal play;
-the link must support continued play, not just a staged showcase.
-
-This is a better *specific hook* than generic chores: build a cozy goblin home,
-dig into trouble, then make it hospitable. It is not a claim of better overall
-quality or 50-player capacity than Townies. Shared demo access is not completed
-individual player/account grants. Account-based invitations remain a separate
-public App/customer dependency and must not be advertised as implemented.
-
-### Forecast, not a promised deadline
-
-Target **5–8 focused working days** for that shareable Colony slice, with the first
-credible private playtest after **1–2 days**. These are elapsed working-day estimates
-for root review plus at most two bounded native implementation lanes, not a claim
-about 24-hour unattended throughput or parallelism eliminating integration time.
-
-| Sequence | Estimated effort | Observable exit |
-| --- | --- | --- |
-| Movement/work and command recovery | 1–2 days | Digging, full storage and reconnect stop stranding workers or locking input |
-| Restore coherent retained controls and joined environment play | 1–2 days | Visible rectangle/level selection, useful blocked reasons, earned cellar/building and supplied hearth/seepage |
-| One short goal/reward loop | 2–3 days | Definition-driven first recipe over shared material/work ownership; supply, preparation, wait, output and guest interaction |
-| Joined acceptance and presentation | About 1 day | Fixed sustained two-client scenario passes, Levi plays it, concise onboarding and genuine shareable clip |
-
-The day ranges total 5–8. Some source work may overlap, but acceptance dependencies
-remain serial. Full retained brewing, deep social systems, generalized account
-multiplayer, region transfers and AI autoplay do not fit this estimate. A wholly
-new event-sourced persistence model is explicitly excluded: retain transactional
-state/receipts, simplify replication, add selected durable facts when consumed.
-
-Largest uncertainty is another shared movement/custody failure under combined
-play. Recipe composition also remains actual missing implementation, not a copy
-operation. If the initial stabilization exit is still red after two focused days,
-revise this forecast against the concrete failure rather than rolling the same
-promise forward. Do not add another architecture rewrite to hide the missed exit.
-
-Track future progress in this existing section by accepted player-visible exits,
-regressions and scope changes. Record private playtest readiness before polish;
-update the estimate when evidence changes. Keep the existing complete goal and
-fixed performance workload as the acceptance authority.
+The success statement is simple: **Levi and a friend enjoyed building and digging
+in the actual clearing, it looked alive, water mattered, and it stayed responsive.**

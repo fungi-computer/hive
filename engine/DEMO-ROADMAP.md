@@ -2,6 +2,12 @@
 
 King Bolete · September 11, 2026 · Levi's active product amendment
 
+**Active delivery, September 12:** follow [Bring the Clearing back to life](CLEARING-CONSOLIDATION-PLAN.md).
+The next releases repair the actual Colony and restore its retained visual and
+gameplay quality for Levi and a friend. Broader demo expansion below is deferred.
+Latest live Colony source is 4414a57; its combined hosted hearth-supply failure
+remains open. Earlier successful trials below do not supersede that current limit.
+
 The fresh examples are the beginning of real games, not permanently tiny API
 exhibits. Colony should regain the retained Goblin Clearing's ambition: deep
 excavation, multiple storeys, finite water and saturated soil, growing crops,

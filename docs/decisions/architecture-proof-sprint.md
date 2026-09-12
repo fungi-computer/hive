@@ -1,5 +1,12 @@
 # Current plan: extract Hive and prove it in the tiny clearing
 
+**September 12 active sprint:** [Bring the Clearing back to life](../../engine/CLEARING-CONSOLIDATION-PLAN.md)
+is the single current delivery sequence: human controls and dependable work,
+retained Clearing art/animations, genuine water/building and two-person co-op.
+Historical extraction/connected-world queues below are not active assignments.
+Keep the existing Rust/DO transaction owner; no further rewrite or whole-world
+event-sourcing project precedes the playable repair.
+
 Game CTO decision, 2026-09-09. Personally authored after reading production at
 `bf12e99362845c16cd055f5bf877085f2425c460`, the current sprint and retained
 system/game-study decisions, lab callers and numerical handoffs. Three bounded

@@ -2,6 +2,12 @@
 
 King Bolete · September 10, 2026 · implementation guiding packet
 
+**Active delivery, September 12:** [Bring the Clearing back to life](CLEARING-CONSOLIDATION-PLAN.md)
+owns the consolidated human-playable Colony sprint. Restore retained appearance,
+work animations, controls, digging/building, water and two-person co-op over the
+existing Rust/DO owners. Sequences below are retained architecture/history, not
+competing assignments. No new engine rewrite or full event-sourcing conversion.
+
 ## September 11 connected-world sprint proposal
 
 The [current demo sprint](DEMO-ROADMAP.md#next-sprint-a-living-world-worth-traveling-through)
