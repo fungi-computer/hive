@@ -1,3 +1,4 @@
+import { EmissionOrder, EmissionWork, idleEmissionWork, nextEmissionOrder } from "../sdk/emission-work";
 import { colonyAtmosphereVisuals } from "./colony-atmosphere";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
@@ -5,7 +6,6 @@ import { ConstructionApproach } from "../sdk/construction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
   Emitter,
-  beginEmission,
   Body,
   Container,
   Destination,
@@ -54,6 +54,8 @@ const colonyInitial = [
     "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
     "hive.container": { capacity: 4 },
     "hive.emitter": { catalog: "wood-hearth" },
+    [EmissionWork.id]: idleEmissionWork,
+    [EmissionOrder.id]: { revision: 0, enabled: false },
     "hive.visual": { sprite: "colony.hearth", label: "Wood hearth" },
   } },
   ...workers.map((id, index) => ({
@@ -133,6 +135,7 @@ const goInput = z.object({
     frame: z.string().transform(entity).nullable(),
   }).strict(),
 }).strict();
+const stationInput = z.object({ station: z.string().min(1).max(128).transform(entity) }).strict();
 const workerSelectionInput = z.object({
   entities: z.array(z.string()).min(1).max(workers.length),
 }).strict();
@@ -242,6 +245,7 @@ function depositActions(context: CommandContext, input: unknown) {
 }
 
 const colonyComponents = [
+  EmissionOrder, EmissionWork,
   Position,
   Emitter,
   Body,
@@ -295,18 +299,23 @@ export const colonyPack: GamePack = {
   commands: {
     build: colonyBuildCommand,
     lightHearth: command({
-      reads: [Worker, Emitter, Destination, ExcavationWork, ConstructionSite, DeliveryTask],
-      writes: [],
+      reads: [Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
-        const selected = selectedWorkers(context, workerSelectionInput.parse(input).entities);
-        if (selected.length !== 1) throw new Error("Select one worker beside the hearth");
-        const worker = selected[0];
-        const busy = context.query(query(Destination)).some(row => row.id === worker)
-          || context.query(query(ExcavationWork)).some(row => row.id === worker)
-          || context.query(query(ConstructionSite)).some(row => row.get(ConstructionSite).worker === worker)
-          || context.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).actor === worker);
-        if (busy) throw new Error("Worker must finish current work before lighting the hearth");
-        return { actions: [beginEmission(worker, hearthId)], writes: [] };
+        const { station } = stationInput.parse(input);
+        const row = context.query(query(Emitter, EmissionOrder, EmissionWork)).find(row => row.id === station);
+        if (!row) throw new Error("This station cannot be lit");
+        const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), true);
+        return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
+      },
+    }),
+    cancelIgnition: command({
+      reads: [EmissionOrder, EmissionWork], writes: [EmissionOrder],
+      run(context, input) {
+        const { station } = stationInput.parse(input);
+        const row = context.query(query(EmissionOrder, EmissionWork)).find(row => row.id === station);
+        if (!row) throw new Error("Station work unavailable");
+        const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), false);
+        return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
       },
     }),
     deliver: command({
@@ -433,22 +442,20 @@ export const colonyPack: GamePack = {
         status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
     }),
     controls: [
-      { id: "light-hearth", label: "Light hearth", command: "lightHearth", selection: "entities" },
-      { id: "deliver", label: "Deliver 1", command: "deliver", input: { quantity: 1 }, selection: "entities" },
-      { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
-      { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
-      { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
-      { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities" },
+      { id: "light-hearth", label: "Light hearth", command: "lightHearth", input: { station: hearthId }, subjects: [hearthId] },
+      { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: hearthId }, subjects: [hearthId] },
+      { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
       ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, orientation: "north" }, target: "world-surface" as const })),
       ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const })),
       { id: "dig", label: "Dig area", command: "dig", target: "terrain-area" },
       { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area" },
-      { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities" },
+      { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
       const total = (container: EntityId) => lots.filter((lot) => lot.container === container).reduce((sum, lot) => sum + lot.quantity, 0);
       const taskRows = context.query(query(DeliveryTask));
+      const ignition = context.query(query(EmissionWork)).find(row => row.id === hearthId)?.get(EmissionWork);
       const hearth = context.query(query(Position)).find(row => row.id === hearthId)?.get(Position);
       const hearthAir = hearth ? context.atmosphereSamples([[
         Math.floor(hearth.x + 0.5),
@@ -456,24 +463,25 @@ export const colonyPack: GamePack = {
         Math.floor(hearth.z + 0.5),
       ]]).samples[0] : null;
       return [
-        { id: "hearth-air-temperature", label: "Hearth air", value: hearthAir ? `${hearthAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
-        { id: "hearth-air-smoke", label: "Hearth smoke", value: hearthAir ? `${(hearthAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
-        { id: "pantry-quantity", label: "Pantry", value: total(pantryId) },
-        { id: "lumber-quantity", label: "Starter lumber", value: total(colonyLumberId) },
-        { id: "hearth-fuel", label: "Hearth wood", value: total(hearthId) },
-        { id: "worker-carried", label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
+        { id: "hearth-air-temperature", subjects: [hearthId], label: "Hearth air", value: hearthAir ? `${hearthAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
+        { id: "hearth-air-smoke", subjects: [hearthId], label: "Hearth smoke", value: hearthAir ? `${(hearthAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
+        { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
+        { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
+        { id: "hearth-fuel", subjects: [hearthId], label: "Hearth wood", value: total(hearthId) },
+        { id: "ignition", label: "Lighting order", subjects: [hearthId], value: ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]) },
+        { id: "worker-carried", subjects: workers, label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         ...workers.map((worker, index) => ({
-          id: `worker-${index + 1}-control`,
+          id: `worker-${index + 1}-control`, subjects: [worker],
           label: workerVisuals[index].label,
           value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
         })),
-        { id: "guest-quantity", label: "Guest meal", value: total(guestId) },
+        { id: "guest-quantity", subjects: [guestId], label: "Guest meal", value: total(guestId) },
         ...workers.map((worker, index) => ({
-          id: `dig-progress-${index + 1}`,
+          id: `dig-progress-${index + 1}`, subjects: [worker],
           label: `Worker ${index + 1} digging`,
           value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
         })),
-        { id: "spoil-carried", label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
+        { id: "spoil-carried", subjects: workers, label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
         { id: "spoil-ground", label: "Loose spoil", value: (() => {
           const stockContainers = new Set(context.query(query(GroundStock)).map(row => row.id));
           return context.query(query(MaterialLot)).reduce((sum, row) => {
@@ -483,7 +491,7 @@ export const colonyPack: GamePack = {
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
-        ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
+        ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [guestId], label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
       ];
     },
   },
