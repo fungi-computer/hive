@@ -87,6 +87,7 @@ export class WorkerRuntime {
       facts: observation.presentationFacts,
       controls: observation.presentationControls,
       terrainMarks: observation.terrainMarks,
+      zoneMarks: observation.zoneMarks,
       environmentVisuals: observation.environmentVisuals,
     });
   }

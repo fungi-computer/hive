@@ -10,6 +10,7 @@ import { figureFrame, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import React from "react";
+import { atom, createStore } from "jotai/vanilla";
 import { createRoot } from "react-dom/client";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Slider } from "@fungi.computer/caps/components/slider";
@@ -84,6 +85,7 @@ export function createHiveClient({
     presentationFacts: [],
     presentationControls: [],
     terrainMarks: [],
+    zoneMarks: [],
     environmentVisuals: [],
     view: createWorldView(worldView),
     aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
@@ -91,6 +93,8 @@ export function createHiveClient({
       ? "Connecting to the world…"
       : "Runtime pending — waiting for the browser Worker.",
   };
+  const uiStore = createStore();
+  const presentationValuesAtom = atom({});
   const gesture = createActor(pointerGestureMachine).start();
   const aimGesture = createActor(aimGestureMachine).start();
   const terrainTarget = createActor(terrainTargetMachine).start();
@@ -252,6 +256,7 @@ export function createHiveClient({
     state.presentationFacts = [];
     state.presentationControls = [];
     state.terrainMarks = [];
+    state.zoneMarks = [];
     state.environmentVisuals = [];
     terrainFrame = undefined;
     terrainProjection.update(undefined, state.view, undefined);
@@ -350,12 +355,22 @@ export function createHiveClient({
           React.createElement("strong", null, heading),
           group.facts.map((fact) => React.createElement("div", { key: fact.id },
             `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`)),
-          group.controls.map((control) => React.createElement(Button, {
-            key: control.id,
-            size: "sm",
-            variant: "outline",
-            disabled: !state.ready,
-            onClick: () => {
+          group.controls.map((control) => {
+            const values = uiStore.get(presentationValuesAtom)[control.id] ?? {};
+            const setValue = (id, value) => {
+              const current = uiStore.get(presentationValuesAtom);
+              uiStore.set(presentationValuesAtom, { ...current, [control.id]: { ...current[control.id], [id]: value } });
+              renderHud();
+            };
+            const parameters = (control.parameters ?? []).map((parameter) => {
+              const value = values[parameter.id] ?? parameter.default;
+              if (parameter.type === "enum") return React.createElement("label", { key: parameter.id, className: "hive-parameter" }, parameter.label, React.createElement("select", { value: value ?? "", onChange: event => setValue(parameter.id, event.target.value) }, parameter.options.map(option => React.createElement("option", { key: option.value, value: option.value }, option.label))));
+              if (parameter.type === "boolean") return React.createElement("label", { key: parameter.id, className: "hive-parameter" }, React.createElement("input", { type: "checkbox", checked: value ?? false, onChange: event => setValue(parameter.id, event.target.checked) }), parameter.label);
+              return React.createElement("label", { key: parameter.id, className: "hive-parameter" }, parameter.label, React.createElement(Input, { type: "number", min: parameter.min, max: parameter.max, step: parameter.step ?? (parameter.type === "integer" ? 1 : undefined), value: value ?? "", onChange: event => setValue(parameter.id, parameter.type === "integer" ? Number.parseInt(event.target.value, 10) : Number(event.target.value)) }));
+            });
+            return React.createElement("div", { key: control.id, className: "hive-presentation-control" }, parameters, React.createElement(Button, {
+              size: "sm", variant: "outline", disabled: !state.ready,
+              onClick: () => {
               if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
                 exitAim();
                 gesture.send({ type: "CANCEL" });
@@ -368,9 +383,10 @@ export function createHiveClient({
                 return;
               }
               if (aiming) audio.unlock();
-              return state.ready && submit(presentationCommand(control, state.selectedIds));
+              return state.ready && submit(presentationCommand(control, state.selectedIds, values));
             },
-          }, control.label)),
+          }, control.label));
+          }),
         ) : null;
     const act = (kind) => {
       if (kind === "reset") {
@@ -663,12 +679,12 @@ export function createHiveClient({
     // Emission facts remain native state and are shown in the station's
     // retained authored visual. No procedural fire/smoke shapes are drawn.
     environmentGraphic.clear();
-    if (state.terrainMarks.length > 0 && displayedTerrain) {
+    if ((state.terrainMarks.length > 0 || state.zoneMarks.length > 0) && displayedTerrain) {
       if (markSurfaceSource !== displayedTerrain.surfaces) {
         markSurfaceSource = displayedTerrain.surfaces;
         markSurfaces = new Map(displayedTerrain.surfaces.map((surface) => [surface.cell.join(","), surface]));
       }
-      for (const mark of state.terrainMarks) {
+      for (const mark of [...state.terrainMarks, ...state.zoneMarks]) {
         const surface = markSurfaces.get(mark.cell.join(","));
         if (!surface) continue;
         const [x, y, z] = surface.cell;
@@ -676,7 +692,7 @@ export function createHiveClient({
           const projected = project(a, (y + 0.5) * displayedTerrain.verticalMetres, b);
           return [projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y];
         });
-        const color = mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : 0xe8c779;
+        const color = mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : mark.status === "misplaced" ? 0xb56bbd : 0xe8c779;
         terrainMarksGraphic.poly(corners).stroke({ color, width: 2, alpha: 0.85 });
       }
     }
@@ -1325,6 +1341,7 @@ export function createHiveClient({
         state.presentationFacts = event.facts;
         state.presentationControls = event.controls;
         state.terrainMarks = event.terrainMarks;
+        state.zoneMarks = event.zoneMarks ?? [];
         state.environmentVisuals = event.environmentVisuals;
         renderHud();
       }

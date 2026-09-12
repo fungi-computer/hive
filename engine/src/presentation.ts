@@ -13,6 +13,11 @@ export const presentationControlSchema = z.object({
   selection: z.literal("entities").optional(),
   target: z.enum(["terrain-cell", "terrain-area", "world-surface"]).optional(),
   subjects: presentationSubjectsSchema.optional(),
+  parameters: z.array(z.discriminatedUnion("type", [
+    z.object({ type: z.literal("enum"), id: z.string().min(1).max(64), label: z.string().min(1).max(128), options: z.array(z.object({ value: z.string().min(1).max(64), label: z.string().min(1).max(128) }).strict()).min(1).max(32), default: z.string().min(1).max(64).optional() }).strict(),
+    z.object({ type: z.literal("boolean"), id: z.string().min(1).max(64), label: z.string().min(1).max(128), default: z.boolean().optional() }).strict(),
+    z.object({ type: z.enum(["integer", "number"]), id: z.string().min(1).max(64), label: z.string().min(1).max(128), min: z.number().finite().optional(), max: z.number().finite().optional(), step: z.number().finite().positive().optional(), default: z.number().finite().optional() }).strict(),
+  ])).max(8).optional(),
 }).strict();
 
 export const presentationFactSchema = z.object({
@@ -33,17 +38,57 @@ export interface PresentationControl {
   readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
   /** Display/selection binding metadata only; command authority remains game-owned. */
   readonly subjects?: readonly string[];
+  readonly parameters?: readonly PresentationParameter[];
+}
+export type PresentationParameter =
+  | { readonly type: "enum"; readonly id: string; readonly label: string; readonly options: readonly { readonly value: string; readonly label: string }[]; readonly default?: string }
+  | { readonly type: "boolean"; readonly id: string; readonly label: string; readonly default?: boolean }
+  | { readonly type: "integer" | "number"; readonly id: string; readonly label: string; readonly min?: number; readonly max?: number; readonly step?: number; readonly default?: number };
+
+function parameterValues(control: PresentationControl, values: unknown): Record<string, unknown> {
+  const parameters = control.parameters ?? [];
+  if (parameters.length > 8) throw new Error("presentation parameter limit exceeded");
+  const provided = values === undefined ? {} : values;
+  if (provided === null || typeof provided !== "object" || Array.isArray(provided)) throw new Error("presentation parameters must be an object");
+  const source = provided as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  const ids = new Set<string>();
+  for (const parameter of parameters) {
+    if ((parameter.type === "integer" || parameter.type === "number") && parameter.min !== undefined && parameter.max !== undefined && parameter.min > parameter.max) throw new Error(`invalid bounds for ${parameter.id}`);
+    if (ids.has(parameter.id) || parameter.id === "entities" || parameter.id === "target" || parameter.id === "area") throw new Error("invalid presentation parameter id");
+    ids.add(parameter.id);
+    const value = Object.prototype.hasOwnProperty.call(source, parameter.id) ? source[parameter.id] : parameter.default;
+    if (value === undefined) continue;
+    if (parameter.type === "enum") {
+      if (typeof value !== "string" || !parameter.options.some(option => option.value === value)) throw new Error(`invalid value for ${parameter.id}`);
+    } else if (parameter.type === "boolean") {
+      if (typeof value !== "boolean") throw new Error(`invalid value for ${parameter.id}`);
+    } else {
+      if (typeof value !== "number" || !Number.isFinite(value) || (parameter.type === "integer" && !Number.isSafeInteger(value)) || (parameter.min !== undefined && value < parameter.min) || (parameter.max !== undefined && value > parameter.max)) throw new Error(`invalid value for ${parameter.id}`);
+    }
+    result[parameter.id] = value;
+  }
+  if (Object.keys(source).some(id => !ids.has(id))) throw new Error("unknown presentation parameter");
+  return result;
 }
 export function presentationCommand(
   control: PresentationControl,
   selected: readonly string[],
+  values?: unknown,
 ) {
-  if (control.selection !== "entities")
+  const parameters = parameterValues(control, values);
+  if (control.selection !== "entities") {
+    if (control.parameters?.length) {
+      const input = control.input;
+      if (input !== undefined && (input === null || typeof input !== "object" || Array.isArray(input))) throw new Error("parameter control requires object input");
+      return { type: "command" as const, name: control.command, input: controlInput({ ...(input as object ?? {}), ...parameters }) };
+    }
     return {
       type: "command" as const,
       name: control.command,
       input: control.input,
     };
+  }
   if (
     selected.length > 128 ||
     selected.some((id) => typeof id !== "string" || !id || id.length > 128)
@@ -66,6 +111,7 @@ export function presentationCommand(
     name: control.command,
     input: controlInput({
       ...(input as object),
+      ...parameters,
       entities: [...new Set(scopedSelected)],
     }),
   };
@@ -142,6 +188,14 @@ export type TerrainMark = {
   readonly cell: readonly [number, number, number];
   readonly status: "queued" | "working" | "blocked";
 };
+export type ZoneMark = {
+  readonly id: string;
+  readonly zone: string;
+  readonly cell: readonly [number, number, number];
+  readonly status: "queued" | "working" | "blocked" | "misplaced";
+  readonly priority: number;
+  readonly occupancy: { readonly used: number; readonly capacity: number; readonly incoming?: number };
+};
 export interface GamePresentation {
   readonly visuals?: (context: Pick<ReadContext, "query">) => readonly import("./runtime/visual-projection").EntityVisualProjection[];
   /** Opt into committed physical feedback; no simulation behavior is granted. */
@@ -153,6 +207,7 @@ export interface GamePresentation {
   readonly terrainMarks?: (
     context: Pick<ReadContext, "query" | "atmosphereSamples">,
   ) => readonly TerrainMark[];
+  readonly zoneMarks?: (context: Pick<ReadContext, "query" | "atmosphereSamples">) => readonly ZoneMark[];
   readonly environmentVisuals?: (
     context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts">,
   ) => readonly EnvironmentVisual[];
@@ -177,10 +232,11 @@ export function projectPresentation(
   readonly facts: readonly PresentationFact[];
   readonly controls: readonly PresentationControl[];
   readonly terrainMarks: readonly TerrainMark[];
+  readonly zoneMarks: readonly ZoneMark[];
   readonly environmentVisuals: readonly EnvironmentVisual[];
 } {
   const presentation = pack.presentation;
-  if (!presentation) return { facts: [], controls: [], terrainMarks: [], environmentVisuals: [] };
+  if (!presentation) return { facts: [], controls: [], terrainMarks: [], zoneMarks: [], environmentVisuals: [] };
   if (presentation.controls.length > 16)
     throw new Error("presentation control limit exceeded");
   const commandNames = new Set(Object.keys(pack.commands ?? {}));
@@ -192,6 +248,7 @@ export function projectPresentation(
     if (!commandNames.has(control.command))
       throw new Error(`unknown presentation command ${control.command}`);
     if (control.selection) presentationCommand(control, []);
+    if (control.parameters) presentationCommand(control, []);
     if (control.target === "terrain-cell" || control.target === "world-surface") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
     if (control.target === "terrain-area") terrainAreaPresentationCommand(control, [], { start: [0, 0, 0], end: [0, 0, 0] });
     return Object.freeze({ ...control,
@@ -217,6 +274,13 @@ export function projectPresentation(
     return Object.freeze({ id: mark.id, cell: [mark.cell[0], mark.cell[1], mark.cell[2]] as [number, number, number], status: mark.status });
   });
   if (terrainMarks.length > 256) throw new Error("terrain presentation mark limit exceeded");
+  const zoneIds = new Set<string>();
+  const zoneMarks = (presentation.zoneMarks?.(context) ?? []).map((mark) => {
+    if (!mark || typeof mark.id !== "string" || !mark.id || mark.id.length > 128 || zoneIds.has(mark.id) || typeof mark.zone !== "string" || !mark.zone || mark.zone.length > 128 || !Array.isArray(mark.cell) || mark.cell.length !== 3 || !mark.cell.every(Number.isSafeInteger) || !["queued", "working", "blocked", "misplaced"].includes(mark.status) || !Number.isSafeInteger(mark.priority) || mark.priority < 0 || !mark.occupancy || !Number.isSafeInteger(mark.occupancy.used) || mark.occupancy.used < 0 || !Number.isSafeInteger(mark.occupancy.capacity) || mark.occupancy.capacity <= 0 || (mark.occupancy.incoming !== undefined && (!Number.isSafeInteger(mark.occupancy.incoming) || mark.occupancy.incoming < 0))) throw new Error("invalid zone presentation mark");
+    zoneIds.add(mark.id);
+    return Object.freeze({ ...mark, cell: [mark.cell[0], mark.cell[1], mark.cell[2]] as [number, number, number], occupancy: { ...mark.occupancy } });
+  });
+  if (zoneMarks.length > 256) throw new Error("zone presentation mark limit exceeded");
   const environmentVisuals = (presentation.environmentVisuals?.(context) ?? []).map((visual) => {
     if (!visual || typeof visual.id !== "string" || visual.id.length === 0 || visual.id.length > 128 ||
         !visual.position || typeof visual.position !== "object" || Array.isArray(visual.position) ||
@@ -236,6 +300,7 @@ export function projectPresentation(
     facts: Object.freeze(structuredClone(facts)),
     controls: Object.freeze(structuredClone(controls)),
     terrainMarks: Object.freeze(structuredClone(terrainMarks)),
+    zoneMarks: Object.freeze(structuredClone(zoneMarks)),
     environmentVisuals: Object.freeze(structuredClone(environmentVisuals)),
   });
 }

@@ -59,6 +59,7 @@ test("unconfigured packs project empty output", () =>
     facts: [],
     controls: [],
     terrainMarks: [],
+    zoneMarks: [],
     environmentVisuals: [],
   }));
 test("projects bounded facts and cloned command input", () => {
@@ -106,6 +107,19 @@ test("projects bounded committed terrain marks", () => {
     { id: "order-2", cell: [2, 4, -2], status: "working" },
   ]);
   assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], terrainMarks: () => Array.from({ length: 257 }, (_, index) => ({ id: `mark-${index}`, cell: [0, 0, 0], status: "queued" })) }), context));
+});
+test("composes bounded declarative parameters and zone policy marks", () => {
+  const control = { id: "zone", label: "Zone", command: "greet", input: { zone: "wood" }, parameters: [
+    { type: "enum" as const, id: "profile", label: "Profile", options: [{ value: "wood", label: "Wood" }, { value: "food", label: "Food" }], default: "wood" },
+    { type: "boolean" as const, id: "enabled", label: "Enabled", default: true },
+    { type: "integer" as const, id: "priority", label: "Priority", min: 0, max: 4, default: 2 },
+  ] };
+  assert.deepEqual(presentationCommand(control, [], { profile: "food", priority: 4 }).input, { zone: "wood", profile: "food", enabled: true, priority: 4 });
+  assert.throws(() => presentationCommand(control, [], { profile: "metal" }));
+  assert.throws(() => presentationCommand(control, [], { priority: 5 }));
+  const result = projectPresentation(pack({ controls: [control], inspect: () => [], zoneMarks: () => [{ id: "zone-cell", zone: "zone", cell: [1, 2, 3], status: "misplaced", priority: 2, occupancy: { used: 3, capacity: 4, incoming: 1 } }] }), context);
+  assert.deepEqual(result.zoneMarks[0], { id: "zone-cell", zone: "zone", cell: [1, 2, 3], status: "misplaced", priority: 2, occupancy: { used: 3, capacity: 4, incoming: 1 } });
+  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], zoneMarks: () => Array.from({ length: 257 }, (_, index) => ({ id: `zone-${index}`, zone: "zone", cell: [0, 0, 0], status: "queued", priority: 1, occupancy: { used: 0, capacity: 1 } })) }), context));
 });
 test("rejects unknown commands, duplicate IDs, and nonfinite values", () => {
   assert.throws(() =>
