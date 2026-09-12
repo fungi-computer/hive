@@ -74,7 +74,11 @@ export function stockpileCellRecords(specs: readonly StockpileCellSpec[]): reado
 }
 
 export type StockpileFilterProfile = {
-  readonly materials: readonly string[];
+  /** Content-owned category for each supported material kind. */
+  readonly materialCategories: Readonly<Record<string, string>>;
+  readonly allowedCategories: readonly string[];
+  readonly allowedMaterials?: readonly string[];
+  readonly deniedMaterials?: readonly string[];
 };
 
 export type StockpilePlanningOptions = {
@@ -128,14 +132,19 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     if (claimedCells.has(row.id) || sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
     const policy = row.get(StockpileCell);
     const profile = options.filterProfiles[policy.filterProfile];
-    if (!profile || !Array.isArray(profile.materials) || profile.materials.length === 0 || profile.materials.length > 64 || !validText(policy.filterProfile) || !validInt(policy.capacity) || policy.capacity <= 0) continue;
-    const allowed = new Set(profile.materials.filter(validText));
-    if (allowed.size !== profile.materials.length) continue;
+    if (!profile || typeof profile !== "object" || !profile.materialCategories || typeof profile.materialCategories !== "object" || !Array.isArray(profile.allowedCategories) || profile.allowedCategories.length > 64 || (profile.allowedMaterials !== undefined && !Array.isArray(profile.allowedMaterials)) || (profile.deniedMaterials !== undefined && !Array.isArray(profile.deniedMaterials)) || !validText(policy.filterProfile) || !validInt(policy.capacity) || policy.capacity <= 0) continue;
+    const categories = new Set(profile.allowedCategories.filter(validText));
+    const allowedMaterials = new Set((profile.allowedMaterials ?? []).filter(validText));
+    const deniedMaterials = new Set((profile.deniedMaterials ?? []).filter(validText));
+    if (categories.size !== profile.allowedCategories.length || allowedMaterials.size !== (profile.allowedMaterials ?? []).length || deniedMaterials.size !== (profile.deniedMaterials ?? []).length) continue;
+    if (!Object.entries(profile.materialCategories).every(([material, category]) => validText(material) && validText(category))) continue;
+    const accepts = (material: string) => !deniedMaterials.has(material) &&
+      (allowedMaterials.has(material) || (typeof profile.materialCategories?.[material] === "string" && categories.has(profile.materialCategories[material])));
     const used = quantities.get(row.id) ?? 0;
     const free = policy.capacity - used;
     if (free <= 0) continue;
     const source = sourceLots.find(({ lot }) => {
-      if (!allowed.has(lot.kind) || sealed.has(lot.container) || lot.container === row.id || (quantities.get(lot.container) ?? 0) > MAX_QUANTITY) return false;
+      if (!accepts(lot.kind) || sealed.has(lot.container) || lot.container === row.id || (quantities.get(lot.container) ?? 0) > MAX_QUANTITY) return false;
       const prior = sourceCell.get(lot.container);
       // Re-hauling is only useful toward a strictly better priority cell.
       return !prior || policy.priority > prior.priority;
