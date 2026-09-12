@@ -188,6 +188,41 @@ these few files. No competitor source/art was imported.
 
 ## Two-day velocity and publishable-demo estimate — September 12
 
+Latest Levi correction: the retained Clearing was nearly playable after roughly
+one day. The broader 5–8 day forecast below must not become the wait for the next
+useful build. First deliver the joined movement/recovery/retained-control repair.
+The visual baseline below belongs to that restoration, not a new design project.
+
+### Retained visual baseline, personally compared September 12
+
+Levi supplied two screenshots: the detailed Clearing with Rowan/Sedge/cat, trees,
+grass patches, path and wet excavation; and the sparse current Colony with crates,
+hearth, generic goblins, flat grass and conspicuous terrain edges. This is a real
+presentation regression, not a request for a new art direction.
+
+Source comparison finds:
+
+- `src/art/clearing.js` authors irregular ground patches, worn paths, ferns,
+  mushrooms, roots and rocks. Current `src/art/terrain-columns.js` builds terrain
+  faces using three material colors; it does not compose those retained details.
+- `engine/src/games/colony.ts` initializes generic workers/guest, crates and hearth;
+  it does not restore the retained settlement's trees or named cast.
+- `src/art.js` provides Rowan/witch-runner work poses including chop, build, dig,
+  pickup, deliver, sleep and material/pail carrying. Its goblin-worker bank has
+  only idle/walk/carry/carry-ration. The current Colony binds goblin-worker.
+- `src/view.js` selects retained poses from actual activity and carried goods,
+  and projects actor labels, progress and routes. The shared animation clock
+  already preserves facing and walk timing; do not replace working interpolation
+  or invent cosmetic bobbing as a substitute for activity animation.
+
+Restore ground variation/scenery with the original art over authoritative generated
+terrain, a useful initial camera framing, original character identities and the
+existing work poses driven by committed activity/custody. Cosmetic plants must not
+create invisible physical blockers; harvestable trees need the actual resource
+owner. Keep scenery cached and keep animation client-side. Investigate the current
+stair-step edge appearance against actual geometry before claiming its cause.
+No new assets or visual performance claims follow from this source-only review.
+
 Measured history window: September 10 15:43:15 UTC through September 12 15:43:15
 UTC, integrated source through d93f723. `git log --first-parent` filtered by commit
 timestamp contains 524 commits: 48 on September 10, 460 on September 11, and 16 on
