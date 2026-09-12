@@ -7,7 +7,7 @@ export function terrainColumnKey(cellOrSurface) {
 export function terrainColumnContent(surface) {
   return surface === null || surface === undefined
     ? null
-    : `${surface.cell[1]}:${surface.material}`;
+    : `${surface.cell[1]}:${surface.material}:${surface.generatedTop}`;
 }
 
 export function terrainColumnMap(surfaces) {

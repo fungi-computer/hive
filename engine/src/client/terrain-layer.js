@@ -2,7 +2,7 @@ import { WebGLRenderer, Vector3 } from "three";
 import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { renderBakeCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
-import { createTerrainSceneCache } from "../../../src/art/terrain-columns.js";
+import { createTerrainSceneCache, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
 import {
   terrainChunkKey,
   terrainFaceBounds,
@@ -18,12 +18,12 @@ function projectedPoint(camera, x, y, z) {
   return { x: ((point.x + 1) * WIDTH) / 2, y: ((1 - point.y) * HEIGHT) / 2 };
 }
 
-function clippedBounds(bounds) {
+function clippedBounds(bounds, padding) {
   if (!bounds) return null;
-  const left = Math.max(0, Math.floor(bounds.left) - 2);
-  const top = Math.max(0, Math.floor(bounds.top) - 2);
-  const right = Math.min(WIDTH, Math.ceil(bounds.right) + 3);
-  const bottom = Math.min(HEIGHT, Math.ceil(bounds.bottom) + 3);
+  const left = Math.max(0, Math.floor(bounds.left) - padding);
+  const top = Math.max(0, Math.floor(bounds.top) - padding);
+  const right = Math.min(WIDTH, Math.ceil(bounds.right) + padding);
+  const bottom = Math.min(HEIGHT, Math.ceil(bounds.bottom) + padding);
   return right > left && bottom > top
     ? { left, top, width: right - left, height: bottom - top }
     : null;
@@ -69,7 +69,8 @@ function regionForChunk(
       newBounds?.bottom ?? -Infinity,
     ),
   };
-  return clippedBounds(bounds);
+  const detailPixels = Math.abs(projectedPoint(camera, 0, TERRAIN_DETAIL_HEIGHT, 0).y - projectedPoint(camera, 0, 0, 0).y);
+  return clippedBounds(bounds, Math.ceil(detailPixels) + 3);
 }
 
 /** Client-only cached image of the host's exterior projection. */

@@ -1,4 +1,5 @@
 import type { StructureSurface, TerrainSurface } from "../contracts";
+import { terrainSurfaceSchema } from "./terrain-surface";
 
 export interface TerrainWireWater {
   readonly id?: string;
@@ -66,13 +67,8 @@ function boundedString(value: unknown, max: number): value is string {
 }
 
 function parseSurface(value: unknown): TerrainSurface | undefined {
-  if (!record(value) || !cell(value.cell) || !Number.isInteger(value.material) ||
-    (value.material as number) < 0 || (value.material as number) > 65535)
-    return undefined;
-  return Object.freeze({
-    cell: Object.freeze([value.cell[0], value.cell[1], value.cell[2]]) as TerrainSurface["cell"],
-    material: value.material as number,
-  });
+  const result = terrainSurfaceSchema.safeParse(value);
+  return result.success ? result.data : undefined;
 }
 
 function parseStructureSurfaces(value: unknown): readonly StructureSurface[] | undefined {

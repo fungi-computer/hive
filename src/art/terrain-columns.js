@@ -12,7 +12,9 @@ import { scene, mesh } from "./geometry.js";
 
 // Original clearing palette, shared by generated terrain and asset authoring.
 const colours = { grass: "#758947", soil: "#9a744f", stone: "#777b68" };
+const greens = ["#758947", "#8f9e53", "#a7ad60", "#627b46"];
 const DEFAULT_CHUNK_SIZE = 8;
+export const TERRAIN_DETAIL_HEIGHT = 0.25;
 
 function validateSurfaces(surfaces) {
   if (!Array.isArray(surfaces) || surfaces.length > 4096)
@@ -24,7 +26,8 @@ function validateSurfaces(surfaces) {
       !Array.isArray(surface.cell) ||
       surface.cell.length !== 3 ||
       !surface.cell.every(Number.isSafeInteger) ||
-      !Number.isInteger(surface.material)
+      !Number.isInteger(surface.material) ||
+      !Number.isSafeInteger(surface.generatedTop)
     )
       throw new Error("invalid terrain art surface");
     const key = terrainColumnKey(surface);
@@ -51,17 +54,20 @@ function chunkIndex(columnIndex, chunkSize) {
 
 function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex) {
   const buckets = new Map();
-  function quad(colour, vertices) {
+  function polygon(colour, vertices) {
     let points = buckets.get(colour);
     if (!points) buckets.set(colour, (points = []));
-    for (const index of [0, 1, 2, 0, 2, 3]) points.push(...vertices[index]);
+    for (let index = 1; index < vertices.length - 1; index++)
+      points.push(...vertices[0], ...vertices[index], ...vertices[index + 1]);
   }
   for (const face of terrainFaces(surfaces, verticalMetres, columnIndex)) {
     const soil = face.surface.material === soilMaterial;
-    quad(
-      soil ? (face.top ? colours.grass : colours.soil) : colours.stone,
+    const intact = soil && face.surface.cell[1] === face.surface.generatedTop;
+    polygon(
+      soil ? (face.top ? intact ? colours.grass : "#806143" : colours.soil) : colours.stone,
       face.vertices,
     );
+    if (face.top && intact) groundCover(face.surface, face.vertices[0][1], polygon);
   }
   const result = new THREE.Group();
   for (const [colour, points] of buckets) {
@@ -74,6 +80,33 @@ function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex) {
     mesh(result, geometry, colour, 0, 0, 0);
   }
   return result;
+}
+
+/** Original palette and low-poly detail on the real surface, batched with its chunk.
+ * This is cosmetic paint, not another world generator or plant inventory. */
+function groundCover(surface, height, polygon) {
+  const [x, , z] = surface.cell;
+  let seed = (Math.imul(x, 73856093) ^ Math.imul(z, 19349663)) >>> 0;
+  seed = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b) >>> 0;
+  seed = (seed ^ (seed >>> 16)) >>> 0;
+  const y = height + 0.003;
+  const cx = x + (((seed >>> 5) & 7) - 3) * 0.018;
+  const cz = z + (((seed >>> 9) & 7) - 3) * 0.018;
+  const vertices = Array.from({ length: 7 }, (_, index) => {
+    const angle = -index * Math.PI * 2 / 7 + (seed % 13) * 0.1;
+    const radius = 0.58 + ((seed >>> (index * 3)) & 7) * 0.024;
+    // Keep paint on its own physical top; neighboring holes stay bare.
+    return [Math.max(x - 0.5, Math.min(x + 0.5, cx + Math.cos(angle) * radius)), y,
+      Math.max(z - 0.5, Math.min(z + 0.5, cz + Math.sin(angle) * radius))];
+  });
+  polygon(greens[seed % greens.length], vertices);
+  if (seed % 3 !== 0) return;
+  const tx = x + (((seed >>> 3) & 7) - 3) * 0.1;
+  const tz = z + (((seed >>> 7) & 7) - 3) * 0.1;
+  const tip = [tx + 0.045, y + 0.17 + (seed % 4) * 0.025, tz];
+  const base = [[tx - 0.065, y, tz - 0.04], [tx + 0.065, y, tz - 0.04], [tx, y, tz + 0.075]];
+  for (let index = 0; index < 3; index++)
+    polygon(greens[(seed + index) % greens.length], [base[(index + 1) % 3], base[index], tip]);
 }
 
 function disposeObject(object) {
@@ -147,6 +180,7 @@ export function createTerrainSceneCache({
     validateScale(nextVerticalMetres);
     validateSurfaces(nextSurfaces);
     const previous = surfaces;
+    const previousIndex = columnIndex;
     const nextIndex = terrainColumnMap(nextSurfaces);
     const nextChunks = chunkIndex(nextIndex, chunkSize);
     const sameScale = nextVerticalMetres === retainedVerticalMetres;
@@ -183,7 +217,7 @@ export function createTerrainSceneCache({
     return {
       initial,
       previous,
-      previousIndex: columnIndex,
+      previousIndex,
       surfaces: nextSurfaces,
       columnIndex: nextIndex,
       changedColumns,

@@ -61,6 +61,13 @@ pub struct AppliedChange {
 pub struct SurfaceCell {
     pub cell: Cell,
     pub material: u16,
+    /// Original solid surface, derived from the generator, never separately saved.
+    pub generated_top: i32,
+}
+
+struct SurfaceSearch {
+    generated_top: i32,
+    start: i32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -311,21 +318,22 @@ impl TerrainOwner {
             return Err("surface query batch exceeds bound");
         }
         let (min_y, max_y) = self.generator.vertical_bounds();
-        let mut requested: BTreeMap<(i64, i64), i32> = BTreeMap::new();
+        let mut requested: BTreeMap<(i64, i64), SurfaceSearch> = BTreeMap::new();
         for &(x, z) in columns {
             let bed = self.generator.bed_level(x, z)?;
             let start = bed.checked_sub(1).ok_or("surface coordinate underflow")?.clamp(min_y, max_y - 1);
-            requested.entry((x, z)).and_modify(|value| *value = (*value).max(start)).or_insert(start);
+            requested.entry((x, z)).or_insert(SurfaceSearch { generated_top: bed - 1, start });
         }
         for (cell, slot) in &self.edits {
             if requested.contains_key(&(cell.x, cell.z)) && self.properties.get(slot).is_some_and(|property| property.solid) {
-                requested.entry((cell.x, cell.z)).and_modify(|value| *value = (*value).max(cell.y));
+                requested.entry((cell.x, cell.z)).and_modify(|value| value.start = value.start.max(cell.y));
             }
         }
         let mut samples = 0usize;
         let mut result = Vec::with_capacity(columns.len());
         for &(x, z) in columns {
-            let mut y = *requested.get(&(x, z)).expect("validated surface column");
+            let search = requested.get(&(x, z)).expect("validated surface column");
+            let mut y = search.start;
             let mut found = None;
             while self.generator.contains_cell(Cell { x, y, z }) {
                 if samples == Self::SURFACE_SAMPLES {
@@ -335,7 +343,7 @@ impl TerrainOwner {
                 let material = self.query(cell)?;
                 samples += 1;
                 if self.properties.get(&material).is_some_and(|property| property.solid) {
-                    found = Some(SurfaceCell { cell, material });
+                    found = Some(SurfaceCell { cell, material, generated_top: search.generated_top });
                     break;
                 }
                 y = y.checked_sub(1).ok_or("surface coordinate underflow")?;
@@ -811,6 +819,7 @@ mod tests {
         let surface = Cell { x: column.0, y: bed - 1, z: column.1 };
         let original = terrain.surface_cells(&[column]).unwrap()[0].unwrap();
         assert_eq!(original.cell, surface);
+        assert_eq!(original.generated_top, surface.y);
         let prepared = match terrain.prepare_excavation(surface, original.material, 0).unwrap() {
             PrepareResult::Prepared(value) => value,
             blocked => panic!("unexpected {blocked:?}"),
@@ -818,6 +827,7 @@ mod tests {
         terrain.apply(prepared).unwrap();
         let lowered = terrain.surface_cells(&[column]).unwrap()[0].unwrap();
         assert_eq!(lowered.cell.y, surface.y - 1);
+        assert_eq!(lowered.generated_top, original.generated_top);
     }
 
     #[test]

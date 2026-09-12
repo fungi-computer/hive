@@ -201,6 +201,7 @@ export class TerrainPresentationOwner {
           byColumn.set(columnKey(column[0], column[1]), Object.freeze({
             cell: Object.freeze([cell[0], cell[1], cell[2]]) as TerrainSurface["cell"],
             material: surface.material,
+            generatedTop: surface.generatedTop,
           }));
         } else byColumn.set(columnKey(column[0], column[1]), null);
         const parsed: StructureSurface[] = [];

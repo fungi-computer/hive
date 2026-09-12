@@ -18,7 +18,7 @@ const frame = (epoch: number, terrain?: unknown): WorkerTransportEvent => ({
 });
 const baseline = {
   revision: 4, verticalMetres: 0.5,
-  surfaces: [{ cell: [0, 2, 0], material: 1 }],
+  surfaces: [{ cell: [0, 2, 0], material: 1, generatedTop: 2 }],
   structureSurfaces: [{ cell: [0, 4, 0] }], water: [],
 };
 

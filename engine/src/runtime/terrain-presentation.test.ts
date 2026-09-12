@@ -33,7 +33,7 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
   }), (columns) => {
     surfaceCalls++;
     return columns.map(([x]) => x === 0
-      ? { cell: [x, surfaceY, 0] as const, material: 1 }
+      ? { cell: [x, surfaceY, 0] as const, material: 1, generatedTop: 0 }
       : null);
   }, columns => { structureCalls++; return columns.map(([x, z]) => [{ cell: [x, 2, z] as const }]); },
   () => ({ kind: "full-reset", revision, reason: "history" }));
@@ -67,7 +67,7 @@ test("physical column changes patch terrain and structures in canonical order", 
     columns => {
       surfaceCalls++;
       queried.push([...columns]);
-      return columns.map(([x, z]) => ({ cell: [x, x === 0 ? revision : 7, z] as const, material: x + 1 }));
+      return columns.map(([x, z]) => ({ cell: [x, x === 0 ? revision : 7, z] as const, material: x + 1, generatedTop: 7 }));
     },
     columns => {
       structureCalls++;
@@ -92,7 +92,7 @@ test("physical column changes patch terrain and structures in canonical order", 
 test("structure projection preserves multiple authored heights and rejects duplicates", () => {
   const port = fakePort(
     () => ({ terrainRevision: 1, cells: [] }),
-    columns => columns.map(([x, z]) => ({ cell: [x, 0, z] as const, material: 1 })),
+    columns => columns.map(([x, z]) => ({ cell: [x, 0, z] as const, material: 1, generatedTop: 0 })),
     columns => columns.map(([x, z]) => [
       { cell: [x, 2, z] as const },
       { cell: [x, 5, z] as const },
@@ -102,7 +102,7 @@ test("structure projection preserves multiple authored heights and rejects dupli
   assert.deepEqual(frame.structureSurfaces.map(surface => surface.cell), [[0, 2, 0], [0, 5, 0], [1, 2, 0], [1, 5, 0]]);
   const bad = fakePort(
     () => ({ terrainRevision: 1, cells: [] }),
-    columns => columns.map(([x, z]) => ({ cell: [x, 0, z] as const, material: 1 })),
+    columns => columns.map(([x, z]) => ({ cell: [x, 0, z] as const, material: 1, generatedTop: 0 })),
     columns => columns.map(([x, z]) => [{ cell: [x, 2, z] as const }, { cell: [x, 2, z] as const }]),
   );
   assert.throws(() => new TerrainPresentationOwner(bad, definition).read(), /duplicate structure surface/);
