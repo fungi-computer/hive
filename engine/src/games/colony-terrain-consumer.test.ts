@@ -24,3 +24,19 @@ test("Colony excavation output remains finite and carryable", () => {
   assert.deepEqual(soil?.excavation, { workSeconds: 2, outputKind: "soil-spoil", unitsPerCell: 3 });
   assert.equal(colonyEnvironment.materials.find(({ slot }) => slot === colonyEnvironment.world.slots.stone)?.excavation?.unitsPerCell, 3);
 });
+
+test("Colony atmosphere covers exactly the native world bounds", () => {
+  const { bounds } = colonyEnvironment.world;
+  const atmosphere = colonyEnvironment.atmosphere;
+  assert.ok(atmosphere);
+  assert.deepEqual(atmosphere.min, {
+    x: bounds.minX,
+    y: bounds.minY,
+    z: bounds.minZ,
+  });
+  assert.deepEqual(atmosphere.max, {
+    x: bounds.maxX,
+    y: bounds.maxY,
+    z: bounds.maxZ,
+  });
+});

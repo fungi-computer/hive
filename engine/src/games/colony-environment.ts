@@ -3,6 +3,15 @@ import {
   type EnvironmentDefinition,
 } from "../sdk/environment";
 
+const colonyWorldBounds = Object.freeze({
+  minX: -32,
+  maxX: 32,
+  minY: -32,
+  maxY: 40,
+  minZ: -32,
+  maxZ: 32,
+});
+
 /** Generated 64×64 Colony with a bounded near-surface water domain.
  * The actual native sample for this seed places the central surface at y=13.
  * Admit five connected layers including air above it, so removing soil can
@@ -13,23 +22,18 @@ export const colonyEnvironment: EnvironmentDefinition = {
     seed: "colony-world-v1",
     identity: "colony",
     bounds: {
-      minX: -32,
-      maxX: 32,
-      minY: -32,
-      maxY: 40,
-      minZ: -32,
-      maxZ: 32,
+      ...colonyWorldBounds,
     },
     slots: { air: 0, soil: 1, stone: 2 },
     seaLevel: 12,
     verticalMetres: 0.54,
   },
-  // The village's 16×16 active air domain includes deep cells and the real sky
-  // boundary. Outside it is unmodeled, never reported as smoke-free air.
+  // Smoke samples use the same full world bounds as terrain and water. Outside
+  // this domain is unmodeled, never reported as smoke-free air.
   atmosphere: {
     regionId: "colony-village-air",
-    min: { x: -8, y: -32, z: -8 },
-    max: { x: 8, y: 40, z: 8 },
+    min: { x: colonyWorldBounds.minX, y: colonyWorldBounds.minY, z: colonyWorldBounds.minZ },
+    max: { x: colonyWorldBounds.maxX, y: colonyWorldBounds.maxY, z: colonyWorldBounds.maxZ },
     exterior: "WorldTop",
     ambientTemperatureC: 20,
     spreadPerSecond: 1,
