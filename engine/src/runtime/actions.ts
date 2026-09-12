@@ -100,6 +100,10 @@ export function checkedAction(value: unknown): ActionRequest {
         (action.facing === undefined || coordinate(action.facing));
       break;
     }
+    case "drop-lot":
+      keys = ["kind", "entity", "lot"];
+      valid = id(action.entity) && id(action.lot);
+      break;
     case "transfer":
       keys = ["kind", "lot", "from", "to", "quantity"];
       valid =

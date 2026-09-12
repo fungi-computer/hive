@@ -232,7 +232,7 @@ function planGroundStockDeliveries(ctx: WriteContext) {
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  reads: [GroundStock, ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [ColonyDigOrder, DeliveryTask, ConstructionApproach],
   providers: [deliveryProvider, digProvider, ctx => constructionWorkProvider(ctx, {
     workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),

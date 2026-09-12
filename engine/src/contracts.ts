@@ -9,6 +9,7 @@ export const RESERVED_COMPONENTS = [
   "hive.traversal",
   "hive.container",
   "hive.sealed-container",
+  "hive.ground-stock",
   "hive.construction-site",
   "hive.lot",
   "hive.lot-water",
@@ -112,6 +113,11 @@ export type ActionRequest =
       readonly entity: EntityId;
       readonly destination: MoveDestination;
       readonly facing?: number;
+    }
+  | {
+      readonly kind: "drop-lot";
+      readonly entity: EntityId;
+      readonly lot: EntityId;
     }
   | {
       readonly kind: "transfer";

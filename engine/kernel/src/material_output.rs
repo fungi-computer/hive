@@ -3,6 +3,11 @@
 
 use crate::components::{valid_id, Lot, LotWater, MAX_CARRIED_WATER_KG};
 
+pub(super) enum MaterialOutputLocation {
+    Container(String),
+    Ground(crate::components::Position),
+}
+
 pub(super) struct MaterialOutputSpec {
     pub container: String,
     pub kind: String,
@@ -10,7 +15,14 @@ pub(super) struct MaterialOutputSpec {
     pub water_kg: Option<f64>,
 }
 
+pub(super) struct PreparedGroundStock {
+    pub id: String,
+    pub position: crate::components::Position,
+    pub capacity: u32,
+}
+
 pub(super) struct PreparedMaterialOutput {
+    pub(super) ground: Option<PreparedGroundStock>,
     pub(super) revision: u64,
     pub(super) container: String,
     pub(super) lot_id: String,
@@ -64,6 +76,7 @@ pub(super) fn prepare(
     }
     let lot = Lot { kind: spec.kind, quantity: spec.quantity, container: spec.container.clone() };
     Ok(PreparedMaterialOutput {
+        ground: None,
         revision,
         container: spec.container,
         lot_id,
@@ -165,6 +178,28 @@ mod tests {
         assert_eq!(restored.environment.as_ref().unwrap().world.facts().unwrap().total_kg, remaining);
     }
 
+    #[test]
+    fn dropping_held_stock_preserves_lot_water_and_rejects_duplicate_drop() {
+        let mut kernel = kernel();
+        let actor = kernel.entity("bin").unwrap();
+        kernel.ecs.entity_mut(actor).insert(crate::components::Body { speed: 1.0 });
+        let lot = kernel.complete_material_output(spec(Some(1.25))).unwrap();
+        kernel.drop_lot("bin", &lot).unwrap();
+        assert_eq!(kernel.quantity("bin"), 0);
+        let entity = kernel.entity(&lot).unwrap();
+        let stock = kernel.ecs.get::<Lot>(entity).unwrap();
+        let pile = stock.container.clone();
+        assert_eq!(stock.quantity, 3);
+        assert!(kernel.ecs.get::<crate::components::GroundStock>(kernel.entity(&pile).unwrap()).is_some());
+        assert_eq!(kernel.ecs.get::<LotWater>(entity).unwrap().water_kg, 1.25);
+        let saved = kernel.save_records().unwrap();
+        assert!(kernel.drop_lot("bin", &lot).is_err());
+        let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.quantity(&pile), 3);
+        assert_eq!(restored.ecs.get::<LotWater>(restored.entity(&lot).unwrap()).unwrap().water_kg, 1.25);
+        restored.transfer(&lot, &pile, "bin", 3).unwrap();
+        assert_eq!(restored.quantity("bin"), 3);
+    }
     #[test]
     fn kernel_publication_consumes_prepared_token_and_preserves_preparation_snapshot() {
         let mut kernel = kernel();

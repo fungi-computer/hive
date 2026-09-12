@@ -111,6 +111,7 @@ export const move = (
   },
   facing,
 });
+export const dropLot = (entity: EntityId, lot: EntityId): ActionRequest => ({ kind: "drop-lot", entity, lot });
 export const transfer = (
   lot: EntityId,
   from: EntityId,

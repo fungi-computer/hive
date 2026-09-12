@@ -1,4 +1,5 @@
 import { component, query } from "./authoring";
+import { GroundStock } from "./ground-stock";
 import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
@@ -12,11 +13,12 @@ import {
   Surface,
   move,
   transfer,
+  dropLot,
 } from "./common";
 import type { EntityId, Vec3, WorldPose, WriteContext, MoveDestination } from "../contracts";
 
 export type DeliveryPhase =
-  "idle" | "to-source" | "carrying" | "to-destination" | "complete";
+  "idle" | "to-source" | "carrying" | "to-destination" | "putting-down" | "complete";
 export const DeliveryControl = component<{
   enabled: boolean;
   quantity: number;
@@ -58,6 +60,7 @@ type DeliveryCandidate = {
 /** Provider for the shared work owner; delivery claims remain task.actor. */
 export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<DeliveryCandidate> {
     const tasks = ctx.query(query(DeliveryTask));
+    const groundStocks = new Set(ctx.query(query(GroundStock)).map(row => row.id));
     const sealed = new Set(ctx.query(query(SealedContainer)).map(row => row.id));
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
@@ -264,6 +267,25 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
       )) continue;
       const actorLot = lotState?.container === state.actor ? lot : undefined;
       const actorLotState = actorLot ? lotState : undefined;
+      if (state.phase === "putting-down") {
+        // Observe the native committed custody change before releasing the claim.
+        if (lotState && groundStocks.has(lotState.container) && lotState.container !== state.actor && lotState.container !== state.destination) {
+          ctx.write(DeliveryTask, task.id, { ...state, source: lotState.container, actor: null, phase: "idle" });
+        } else if (actorLotState) ctx.action(dropLot(state.actor, state.sourceLot));
+        continue;
+      }
+      if (actorLotState && !hasCapacity(state.destination, state.quantity)) {
+        ctx.write(DeliveryTask, task.id, { ...state, phase: "putting-down" });
+        requestMove(state.actor, { ...actor.get(Position), frame: actorPose.support });
+        ctx.action(dropLot(state.actor, state.sourceLot));
+        continue;
+      }
+      if (state.phase === "to-source" && !actorLotState && !hasCapacity(state.destination, state.quantity)) {
+        ctx.write(DeliveryTask, task.id, { ...state, actor: null, phase: "idle" });
+        requestMove(state.actor, { ...actor.get(Position), frame: actorPose.support });
+        continue;
+      }
+
       if (!control?.enabled) {
         if (state.phase !== "idle" && state.phase !== "complete")
           requestMove(state.actor, {
@@ -351,6 +373,7 @@ export const deliverySystem = createWorkSystem({
   version: 1,
   reads: [
     DeliveryTask,
+    GroundStock,
     Position,
     Body,
     Container,

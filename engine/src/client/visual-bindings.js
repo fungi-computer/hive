@@ -6,6 +6,8 @@ const constructionBindings = Object.fromEntries(["floor", "wall", "stair"].flatM
   })])));
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,
+  soil: Object.freeze({ kind: "static", path: ["soil", 3], facing: false, anchor: "propAnchor" }),
+  stone: Object.freeze({ kind: "static", path: ["stone", 3], facing: false, anchor: "propAnchor" }),
   "colony.hearth": Object.freeze({
     kind: "static", path: ["buildings", "brew-station", "finished", 0],
     facing: false, anchor: "propAnchor",
@@ -16,7 +18,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
     facing: false,
     anchor: "propAnchor",
   }),
-  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", motion: {kind:"foot",stride:0.65}, carryPoses: { bread: "carry-ration", wood: "carry" } }),
+  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", motion: {kind:"foot",stride:0.65}, carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone" } }),
   "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
   "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin-traveler", motion: {kind:"foot",stride:0.7}, carryPoses: { bread: "carry-ration" } }),
   "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin", motion:{kind:"foot",stride:0.7} }),

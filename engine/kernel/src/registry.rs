@@ -51,6 +51,7 @@ impl Registry {
             ("hive.traversal", vec![("clearanceCells", FieldType::Number), ("maxStepCells", FieldType::Number)]),
             ("hive.container", vec![("capacity", FieldType::Number)]),
             ("hive.sealed-container", vec![]),
+            ("hive.ground-stock", vec![]),
             (
                 "hive.lot",
                 vec![
@@ -177,6 +178,7 @@ impl Registry {
                 "hive.traversal" => world.register_component::<Traversal>(),
                 "hive.container" => world.register_component::<Container>(),
                 "hive.sealed-container" => world.register_component::<SealedContainer>(),
+                "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
@@ -220,6 +222,7 @@ impl Registry {
                 | "hive.traversal"
                 | "hive.container"
                 | "hive.sealed-container"
+                | "hive.ground-stock"
                 | "hive.lot"
                 | "hive.lot-water"
                 | "hive.excavation-work"
@@ -296,6 +299,7 @@ impl Registry {
             "hive.container" => {
                 let _: Container = decode(value)?;
             }
+            "hive.ground-stock" => { let _: GroundStock = decode(value)?; }
             "hive.sealed-container" => {
                 let _: SealedContainer = decode(value)?;
             }
@@ -461,6 +465,7 @@ impl Registry {
             "hive.container" => {
                 world.entity_mut(entity).insert(decode::<Container>(value)?);
             }
+            "hive.ground-stock" => { world.entity_mut(entity).insert(decode::<GroundStock>(value)?); }
             "hive.sealed-container" => {
                 world.entity_mut(entity).insert(decode::<SealedContainer>(value)?);
             }
@@ -527,6 +532,7 @@ impl Registry {
             "hive.traversal" => world.get::<Traversal>(entity).map(record),
             "hive.container" => world.get::<Container>(entity).map(record),
             "hive.sealed-container" => world.get::<SealedContainer>(entity).map(record),
+            "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),

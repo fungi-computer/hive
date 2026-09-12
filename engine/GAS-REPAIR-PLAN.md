@@ -481,3 +481,33 @@ Distinguish browser unresponsiveness from stalled simulation with responsive
 camera, capture the actual last committed revision/error where available, and
 exercise a larger ordinary dig queue on a separate test world. Do not erase the
 player world, skip failed physical work, or claim a cause from slow-tick timings.
+
+### Corrected diagnosis and retained loose-stock rule — September 12
+
+Levi clarified that actors still obey manual movement and then return to storage.
+This is not a demonstrated server freeze. Source shows the pantry is finite (20
+units), each cut creates 3 spoil units, and the mandatory dig-to-delivery claim
+waits indefinitely when the pantry fills. Retained `src/terrain-yields.ts` and
+physical completion allow ordinary ground/hand/container custody. Restore that
+behavior instead of raising the pantry limit.
+
+Current source: native timed excavation outputs a finite positioned GroundStock
+container and ordinary lot, atomically with terrain/water completion. It does not
+require actor carrying capacity. Colony retires completed excavation independently
+and creates unclaimed ordinary haul requests for loose spoil. Full destinations
+are ineligible. When space disappears after pickup, generic drop-lot reparents
+the same held lot/water to grounded stock; the delivery releases its actor only
+after observing the committed GroundStock custody change. Existing terrain and
+supported-frame positions remain native authority. No lost goods, fake completed
+delivery, infinite pantry, or bespoke soil transfer loop.
+
+Source evidence: native excavation four laws passed (u6095); native drop preserves
+lot/water/recovery and rejects duplicate drop (u6097). Six delivery laws and strict
+engine TypeScript pass in the corrected join; first native test fixture used an
+unsupported two-second single step and was corrected to two ordinary steps. The
+first TypeScript check found a fixture returning the wrong air query shape;
+corrected. New support-frame drop source follows the native build and still needs
+its focused native check. Colony first source commit 868378d is joined; no latest
+WASM/gameplay/browser/deployment acceptance yet. Original soil/stone and carrying
+art bindings are reused, not regenerated. Empty stock container/task cleanup and
+actual sustained multi-dig completion remain part of the joined acceptance.

@@ -912,6 +912,11 @@ impl Kernel {
             if self.ecs.get::<Container>(*entity).is_some() {
                 self.contents.entry(id.clone()).or_default();
             }
+            if self.ecs.get::<GroundStock>(*entity).is_some()
+                && (self.ecs.get::<Container>(*entity).is_none() || position.is_none()
+                    || self.ecs.get::<Body>(*entity).is_some()) {
+                return Err("ground stock requires a positioned non-actor container".into());
+            }
             if self.ecs.get::<SealedContainer>(*entity).is_some()
                 && self.ecs.get::<Container>(*entity).is_none()
             {
@@ -1569,9 +1574,37 @@ impl Kernel {
         )?;
         Ok(prepared)
     }
+    fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>) -> Result<PreparedMaterialOutput> {
+        self.ensure_ready()?;
+        if self.ids.len() + 2 > 16384 { return Err("region entity capacity".into()); }
+        if ![position.x, position.y, position.z, position.facing].iter().all(|v| v.is_finite()) {
+            return Err("invalid ground stock position".into());
+        }
+        let (lot_id, _) = material_output::allocate_lot_id(self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")))?;
+        let ground_id = format!("ground.{lot_id}");
+        let lot = Lot { kind: kind.clone(), quantity, container: ground_id.clone() };
+        let water = water_kg.map(|water_kg| LotWater { water_kg });
+        let added = 256 + ground_id.len()
+            + self.registry.weight("hive.position", &record(&position))
+            + self.registry.weight("hive.container", &record(&Container { capacity: quantity }))
+            + self.registry.weight("hive.ground-stock", &record(&GroundStock {}))
+            + self.registry.weight("hive.lot", &record(&lot))
+            + water.as_ref().map(|v| self.registry.weight("hive.lot-water", &record(v))).unwrap_or(0);
+        let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
+            self.revision, self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")),
+            quantity, 0, self.state_weight, added, STATE_BYTES)?;
+        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity });
+        Ok(output)
+    }
     // Private tokens are prepared and consumed within one synchronous Kernel
     // completion. No public caller can retain them across another mutation.
     fn publish_material_output(&mut self, prepared: PreparedMaterialOutput) -> String {
+        if let Some(ground) = prepared.ground {
+            let entity = self.ecs.spawn((ExternalId(ground.id.clone()), ground.position, Container { capacity: ground.capacity }, GroundStock {})).id();
+            self.ids.insert(ground.id.clone(), entity);
+            self.known.insert(ground.id.clone());
+            self.contents.entry(ground.id).or_default();
+        }
         let entity = if let Some(water) = prepared.water {
             self.ecs.spawn((ExternalId(prepared.lot_id.clone()), prepared.lot, water)).id()
         } else {
@@ -1591,13 +1624,20 @@ impl Kernel {
     }
     // Work/reach and the material definition are admitted by the native work
     // caller. Water credit is always derived from the opaque geometry token.
+    #[cfg(test)]
     fn complete_excavation(&mut self, excavation: crate::terrain_water::PreparedExcavation,
         container: String) -> Result<Option<String>> {
+        self.complete_excavation_at(excavation, material_output::MaterialOutputLocation::Container(container))
+    }
+    fn complete_excavation_at(&mut self, excavation: crate::terrain_water::PreparedExcavation,
+        location: material_output::MaterialOutputLocation) -> Result<Option<String>> {
         let rule = self.environment.as_ref().ok_or("world has no environment")?
             .excavation_rules.get(&excavation.removed()).ok_or("material has no excavation yield")?;
-        let output = self.prepare_material_output(MaterialOutputSpec {
-            container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg: (excavation.water_kg() > 0.0).then_some(excavation.water_kg()),
-        })?;
+        let water_kg = (excavation.water_kg() > 0.0).then_some(excavation.water_kg());
+        let output = match location {
+            material_output::MaterialOutputLocation::Container(container) => self.prepare_material_output(MaterialOutputSpec { container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg })?,
+            material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg)?,
+        };
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         if !environment.apply_excavation(excavation)? { return Ok(None); }
         // All material admission precedes the terrain commit. There is no
@@ -1759,6 +1799,7 @@ impl Kernel {
                 state.queue.extend(inputs);
                 Ok(None)
             }
+            Action::DropLot { entity, lot } => self.drop_lot(&entity, &lot).map(|()| None),
             Action::Transfer {
                 lot,
                 from,
@@ -2149,6 +2190,42 @@ impl Kernel {
         )
     }
 
+    fn drop_lot(&mut self, actor_id: &str, lot_id: &str) -> Result<()> {
+        let actor = self.entity(actor_id)?;
+        if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<SealedContainer>(actor).is_some() {
+            return Err("drop requires an unsealed actor".into());
+        }
+        let support = self.ecs.get::<Support>(actor).cloned();
+        let lot_entity = self.entity(lot_id)?;
+        let mut lot = self.ecs.get::<Lot>(lot_entity).cloned().ok_or("not a material lot")?;
+        if lot.container != actor_id || lot.quantity == 0 { return Err("lot is not held by actor".into()); }
+        let position = *self.ecs.get::<Position>(actor).ok_or("actor has no position")?;
+        let (identity, next_lot) = material_output::allocate_lot_id(self.next_lot, |id| self.known.contains(&format!("ground.{id}")))?;
+        let id = format!("ground.{identity}");
+        if self.ids.len() >= 16384 { return Err("region entity capacity".into()); }
+        let capacity = lot.quantity;
+        let old_weight = self.registry.weight("hive.lot", &record(&lot));
+        lot.container = id.clone();
+        let weight = self.state_weight.saturating_sub(old_weight)
+            + support.as_ref().map(|v| self.registry.weight("hive.support", &record(v))).unwrap_or(0)
+            + 128 + id.len() + self.registry.weight("hive.lot", &record(&lot))
+            + self.registry.weight("hive.position", &record(&position))
+            + self.registry.weight("hive.container", &record(&Container { capacity }))
+            + self.registry.weight("hive.ground-stock", &record(&GroundStock {}));
+        if weight > STATE_BYTES { return Err("region canonical state capacity".into()); }
+        // Admission above is complete. Move the same lot and its water, never
+        // create a replacement lot or consume a delivery's stock.
+        let ground = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity }, GroundStock {})).id();
+        if let Some(support) = support { self.ecs.entity_mut(ground).insert(support); }
+        self.ids.insert(id.clone(), ground);
+        self.known.insert(id.clone());
+        self.contents.entry(actor_id.into()).or_default().remove(&lot_entity);
+        self.contents.entry(id).or_default().insert(lot_entity);
+        self.ecs.entity_mut(lot_entity).insert(lot);
+        self.next_lot = next_lot;
+        self.state_weight = weight;
+        Ok(())
+    }
     fn transfer(&mut self, lot: &str, from: &str, to: &str, quantity: u32) -> Result<()> {
         if quantity == 0 || from == to {
             return Err("invalid transfer".into());

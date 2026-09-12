@@ -40,6 +40,11 @@ pub struct Container {
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SealedContainer {}
+
+/// Finite stock resting at a physical position, not carried by an actor.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GroundStock {}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Lot {
@@ -328,6 +333,7 @@ pub enum Action {
     BeginEmission { worker: String, station: String },
     SetStructureOpen { worker: String, site: String, open: bool },
     DirectInput { entity: String, stream: String, inputs: Vec<DirectInput> },
+    DropLot { entity: String, lot: String },
     Transfer {
         lot: String,
         from: String,

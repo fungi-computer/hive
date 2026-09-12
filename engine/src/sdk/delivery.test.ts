@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
+import { GroundStock } from "./ground-stock";
 import { ConstructionSite, SealedContainer } from "./construction";
 import {
   ExcavationWork,
@@ -259,4 +260,50 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     write: (...args) => writes.push(args), action: () => { throw new Error("assignment earns no transfer"); },
   });
   assert.deepEqual(writes, [[DeliveryTask, task, { ...state, actor: worker, quantity: 1, phase: "to-source" }]]);
+});
+
+test("full destination puts held goods down before releasing the worker", () => {
+  const worker = entity("worker"), source = entity("source"), destination = entity("destination"), ground = entity("ground");
+  const task = entity("task"), lot = entity("lot");
+  let state = { actor: worker as typeof worker | null, sourceLot: lot, source, destination, material: "soil", quantity: 3, phase: "to-destination" };
+  let holder = worker;
+  const actions: unknown[] = [];
+  const step = () => {
+    const values = new Map<string, readonly unknown[]>([
+      [DeliveryTask.id, [row(task, DeliveryTask, state)]],
+      [GroundStock.id, [row(ground, GroundStock, {})]],
+      [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 3 })]],
+      [Body.id, [row(worker, Body, { speed: 1 })]],
+      [Container.id, [worker, source, destination, ground].map(id => row(id, Container, { capacity: id === destination ? 0 : 3 }))],
+      [Position.id, [worker, source, destination, ground].map(id => row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }))],
+      [MaterialLot.id, [row(lot, MaterialLot, { kind: "soil", quantity: 3, container: holder })]],
+    ]);
+    deliverySystem.run({
+      clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: [], impacts: [], random: { next: () => 0 },
+      query: spec => (values.get(spec.components[0].id) ?? []) as never,
+      worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
+      routeCosts: () => { throw new Error("full storage cannot request a path"); },
+      assign: () => { throw new Error("full storage cannot claim a worker"); },
+      environmentFacts: () => { throw new Error("no environment query"); },
+      atmosphereSamples: () => { throw new Error("no air query"); }, physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
+      createAuthoredEntity: () => { throw new Error("native drop owns physical creation"); }, removeAuthoredEntity: () => { throw new Error("no deletion"); },
+      write: (component, id, value) => { assert.equal(component, DeliveryTask); assert.equal(id, task); state = value as typeof state; },
+      action: action => actions.push(action),
+    });
+  };
+  step();
+  assert.equal(state.actor, worker, "claim remains until the physical drop commits");
+  assert.equal(state.phase, "putting-down");
+  assert(actions.some(action => (action as { kind: string }).kind === "drop-lot"));
+  actions.length = 0;
+  step();
+  assert.equal(state.actor, worker, "failed or uncommitted drop cannot lose custody");
+  holder = ground;
+  step();
+  assert.equal(state.actor, null);
+  assert.equal(state.source, ground);
+  assert.equal(state.phase, "idle");
+  actions.length = 0;
+  step();
+  assert.equal(actions.length, 0, "waiting ground goods do not repeatedly move a worker");
 });

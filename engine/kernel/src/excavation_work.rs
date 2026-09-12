@@ -24,8 +24,8 @@ impl Kernel {
 
     pub(super) fn request_excavation(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
         let actor = self.entity(id)?;
-        if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<Container>(actor).is_none() {
-            return Err("excavation needs a worker with carrying capacity".into());
+        if self.ecs.get::<Body>(actor).is_none() {
+            return Err("excavation needs a worker body".into());
         }
         if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor)
             || self.ecs.query::<&ConstructionSite>().iter(&self.ecs).any(|site| site.worker.as_deref() == Some(id)) {
@@ -53,7 +53,7 @@ impl Kernel {
         let mut query = self.ecs.query::<(Entity, &ExcavationWork)>();
         let saved: Vec<_> = query.iter(&self.ecs).map(|(entity, work)| (entity, *work)).collect();
         for (actor, work) in saved {
-            if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<Container>(actor).is_none() {
+            if self.ecs.get::<Body>(actor).is_none() {
                 return Err("saved excavation lacks worker capabilities".into());
             }
             let environment = self.environment.as_mut().ok_or("saved excavation lacks environment")?;
@@ -100,7 +100,7 @@ impl Kernel {
                 ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) | ExcavationResult::StructuresBlocked(_) => continue,
             };
             // Capacity/geometry admission failure leaves earned work available for retry.
-            match self.complete_excavation(prepared, id) {
+            match self.complete_excavation_at(prepared, material_output::MaterialOutputLocation::Ground(Position { x: pose.x, y: pose.y, z: pose.z, facing: pose.facing })) {
                 Ok(Some(_)) => {
                     self.ecs.entity_mut(actor).remove::<ExcavationWork>();
                     self.refresh_state_weight();
@@ -146,10 +146,35 @@ mod tests {
         let mut recovered=Kernel::new(); recovered.restore_records(&records).unwrap();
         recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         assert_eq!(recovered.environment.as_mut().unwrap().world.material(cell(work)).unwrap(),0);
-        assert_eq!(recovered.quantity("worker"),3);
+        assert_eq!(recovered.quantity("worker"),0);
+        let ground = recovered.ecs.query::<(&GroundStock, &ExternalId)>().iter(&recovered.ecs).map(|(_, id)| id.0.clone()).collect::<Vec<_>>();
+        assert_eq!(ground.len(), 1);
+        assert_eq!(recovered.quantity(&ground[0]), 3);
         assert!(recovered.ecs.get::<ExcavationWork>(recovered.entity("worker").unwrap()).is_none());
         recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
-        assert_eq!(recovered.quantity("worker"),3);
+        assert_eq!(recovered.quantity("worker"),0);
+        let ground = recovered.ecs.query::<(&GroundStock, &ExternalId)>().iter(&recovered.ecs).map(|(_, id)| id.0.clone()).collect::<Vec<_>>();
+        assert_eq!(ground.len(), 1);
+        assert_eq!(recovered.quantity(&ground[0]), 3);
+    }
+    #[test]
+    fn full_worker_digs_to_ground_and_ground_stock_recovers() {
+        let (mut kernel, work) = fixture();
+        let actor = kernel.entity("worker").unwrap();
+        kernel.ecs.get_mut::<Container>(actor).unwrap().capacity = 0;
+        kernel.request_excavation("worker", work).unwrap();
+        for _ in 0..2 { kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap(); }
+        assert!(kernel.ecs.get::<ExcavationWork>(actor).is_none());
+        assert_eq!(kernel.quantity("worker"), 0);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        let piles = restored.ecs.query::<(&GroundStock, &ExternalId, &Position)>().iter(&restored.ecs).map(|(_, id, p)| (id.0.clone(), *p)).collect::<Vec<_>>();
+        assert_eq!(piles.len(), 1);
+        assert_eq!(restored.quantity(&piles[0].0), 3);
+        assert_eq!(piles[0].1.x, kernel.ecs.get::<Position>(actor).unwrap().x);
+        for _ in 0..2 { restored.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap(); }
+        assert_eq!(restored.quantity(&piles[0].0), 3);
     }
     #[test]
     fn work_blocks_direct_control_and_cancel_preserves_material() {
