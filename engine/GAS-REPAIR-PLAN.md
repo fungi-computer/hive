@@ -598,3 +598,23 @@ its focused native check. Colony first source commit 868378d is joined; no lates
 WASM/gameplay/browser/deployment acceptance yet. Original soil/stone and carrying
 art bindings are reused, not regenerated. Empty stock container/task cleanup and
 actual sustained multi-dig completion remain part of the joined acceptance.
+
+### Coarse replacement source checkpoint
+
+`room_topology.rs` now classifies roofed connected spaces separately from directly
+skylit cells, with configurable coarse vertical bands. It outputs aggregate room
+metrics and room-to-room/ambient conductances; outdoor-only input produces zero
+gas sections. An open door does not flood-fill the room into outdoors. Two focused
+classification laws pass in u6101 (native exit0). This is **not integrated or a
+performance/playability result**: current TerrainAtmosphere still runs the old
+producer. Next work replaces its receiver/remap/stock join and local invalidation,
+then removes the superseded cell-level gas geometry. The new classifier currently
+consumes a full bounded snapshot for initial construction; local updates must not
+repeat it across the entire active world. No new WASM/deployment from this pin.
+
+Production callers identified: TerrainAtmosphere fresh/restore/rebind/save;
+environment_runtime paid emitter advance; fuel_emission admission; world
+atmosphere sampling. Keep ambient portals without outdoor gas parcels. Outdoor
+fire still needs explicit paid source/boundary accounting, not a fake indoor
+room or a discarded fuel result. Empty room sets and roof removal must conserve
+existing smoke/heat via an actual new ambient opening, not silently erase stock.

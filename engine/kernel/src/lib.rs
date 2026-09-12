@@ -5,6 +5,7 @@ pub mod generation;
 pub mod terrain;
 pub mod terrain_water;
 pub mod terrain_atmosphere;
+mod room_topology;
 #[cfg(test)]
 mod terrain_atmosphere_tests;
 pub mod terrain_traversal;
