@@ -50,7 +50,6 @@ type ObservationWire = {
 type PendingIntent = {
   command: unknown;
   retries: number;
-  staleRetries: number;
   recoveries: number;
   id?: string;
   body?: string;
@@ -59,7 +58,6 @@ type PendingIntent = {
 const MAX_PENDING = 16;
 const MAX_RETRIES = 3;
 const MAX_SOCKET_RECOVERIES = 3;
-const MAX_STALE_RESUBMISSIONS = 3;
 const REQUEST_TIMEOUT_MS = 5000;
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
 const MAX_RECEIPT_BYTES = 64 * 1024;
@@ -323,7 +321,6 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let started = false;
   let readyEmitted = false;
   let revision: number | undefined;
-  let awaitRevision: number | undefined;
   let lastPaused: boolean | undefined;
   let lastSequence: number | undefined;
   let lastTime: number | undefined;
@@ -333,12 +330,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let blocked = false;
   let socketOpen = false;
   let reconnectRequested = false;
-  let recoveryReadyPending = false;
   let socket: SocketLike | undefined;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let admissionAttempts = 0;
 
   const emit = (event: WorkerEvent) => { if (!disposed) for (const listener of listeners) listener(event); };
+  const emitConnection = (status: "online" | "recovering" | "unavailable") =>
+    emit({ type: "connection", status, pending: pending.length });
   const acceptObservation = (candidate: ObservationWire): boolean => {
     // A reconnect can replay the same committed revision. Install its complete
     // baseline before stale-frame filtering, while still suppressing duplicate UI frames.
@@ -355,7 +353,6 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (lastSequence !== undefined && (candidate.observation.sequence < lastSequence ||
       (candidate.observation.sequence === lastSequence && candidate.observation.time < (lastTime ?? 0)))) return false;
     revision = candidate.revision;
-    if (awaitRevision !== undefined && candidate.revision >= awaitRevision) awaitRevision = undefined;
     lastSequence = candidate.observation.sequence;
     lastTime = candidate.observation.time;
     cachedTerrain = candidate.observation.terrain;
@@ -405,14 +402,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (value.type === "ready") {
         readyEmitted = true;
         emit({ type: "ready", game: options.game });
-        if (recoveryReadyPending) {
-          recoveryReadyPending = false;
-          if (blocked) {
-            blocked = false;
-            if (pending[0]) pending[0].retries = 0;
-            schedulePump();
-          }
-        }
+        if (!blocked) emitConnection("online");
         return;
       }
       if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
@@ -435,10 +425,8 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     });
     connectedSocket.addEventListener("open", () => {
       if (socket !== connectedSocket) return;
-      const reconnect = socketOpen || reconnectRequested;
       socketOpen = true;
       reconnectRequested = false;
-      recoveryReadyPending = reconnect;
       // A websocket reconnect has a fresh server-side attachment, so its surface
       // reference must begin with no baseline even when the world revision matches.
       cachedTerrain = undefined;
@@ -465,17 +453,26 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     blocked = true;
     emit({ type: "error", message });
     if (item.recoveries >= MAX_SOCKET_RECOVERIES) {
+      blocked = true;
       emit({ type: "error", message: `remote command recovery limit exceeded for ${item.id}` });
+      emitConnection("unavailable");
       return;
     }
-    if (reconnectRequested || !socket) return;
     item.recoveries++;
-    reconnectRequested = true;
-    try { socket.reconnect(); } catch { reconnectRequested = false; }
+    emitConnection("recovering");
+    // HTTP receipts are authoritative and can be recovered independently of
+    // observation delivery. Reconnect is only a best-effort view repair; it
+    // must not gate retrying the exact command body and ID.
+    if (!reconnectRequested && socket) {
+      reconnectRequested = true;
+      try { socket.reconnect(); } catch { reconnectRequested = false; }
+    }
+    blocked = false;
+    item.retries = 0;
   };
   const pump = async () => {
     if (disposed || blocked || pumpRunning || pending.length === 0) return;
-    if (revision === undefined || awaitRevision !== undefined) return;
+    if (revision === undefined) return;
     pumpRunning = true;
     const item = pending[0];
     try {
@@ -503,35 +500,19 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           const receipt = responseData.value as Record<string, unknown>;
           if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
-            const rejectedRevision = receipt.revision;
-            const staleResult = receipt.result;
-            const stale = safeNonnegativeInteger(rejectedRevision) && isRecord(staleResult) &&
-              staleResult.reason === "stale-revision";
-            if (stale) {
-              if (item.staleRetries >= MAX_STALE_RESUBMISSIONS) {
-                pending.shift();
-                emit({ type: "error", message: `remote stale revision retry limit exceeded for ${item.id}` });
-                return;
-              }
-              item.staleRetries++;
-              item.retries = 0;
-              if (revision === undefined || revision < rejectedRevision)
-                awaitRevision = rejectedRevision;
-              return;
-            }
             pending.shift();
             emit({ type: "error", message: "remote command rejected" });
             return;
           }
           if (receipt.status !== "applied" || !safeNonnegativeInteger(receipt.revision))
             throw new Error("invalid remote command receipt");
-          if (receipt.revision > (revision ?? -1)) awaitRevision = receipt.revision;
           const payload = receipt.result;
           if (isRecord(payload) && payload.results !== undefined) {
             if (!Array.isArray(payload.results) || payload.results.length > 256 || payload.results.some((item) => !actionResult(item)))
               throw new Error("invalid remote action results");
           }
           pending.shift();
+          emitConnection("online");
           if (isRecord(payload) && Array.isArray(payload.results))
             emit({ type: "results", results: payload.results });
           return;
@@ -544,13 +525,22 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       }
     } finally {
       pumpRunning = false;
-      if (!disposed && !blocked && pending.length > 0 && !awaitRevision) schedulePump();
+      if (!disposed && !blocked && pending.length > 0) schedulePump();
     }
   };
   function schedulePump() {
-    if (disposed || blocked || pumpRunning || pending.length === 0 || awaitRevision !== undefined) return;
+    if (disposed || blocked || pumpRunning || pending.length === 0) return;
     queueMicrotask(() => void pump());
   }
+  const retryRecovery = () => {
+    if (disposed) throw new Error("runtime connection disposed");
+    if (!blocked || pending.length === 0) return;
+    blocked = false;
+    pending[0].retries = 0;
+    pending[0].recoveries = 0;
+    emitConnection("recovering");
+    schedulePump();
+  };
   const send = (command: WorkerCommand) => {
     if (disposed) throw new Error("runtime connection disposed");
     if (command.type === "start") {
@@ -566,11 +556,11 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     const commandValue = command.type === "action" ? { kind: "action", action: command.action } :
       command.type === "command" ? { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) } :
       { kind: command.type };
-    const next: PendingIntent = { command: structuredClone(commandValue), retries: 0, staleRetries: 0, recoveries: 0 };
+    if (blocked) throw new Error("remote runtime unavailable; command recovery is exhausted");
+    const next: PendingIntent = { command: structuredClone(commandValue), retries: 0, recoveries: 0 };
     const previous = pending.at(-1);
     if (previous && coalesceDirectInput(previous, next)) { schedulePump(); return; }
-    if (pending.length >= MAX_PENDING) { if (command.type === "action" && (command.action.kind === "direct-input" || command.action.kind === "begin-direct")) throw new Error("remote command queue full");
-      emit({ type: "error", message: "remote command queue full" }); return; }
+    if (pending.length >= MAX_PENDING) throw new Error("remote command queue full");
     pending.push(next);
     schedulePump();
   };
@@ -590,5 +580,5 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     pending.length = 0;
     listeners.clear();
   };
-  return { send, subscribe, dispose };
+  return { send, subscribe, dispose, recovery: { retry: retryRecovery } };
 }
