@@ -24,6 +24,17 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin", motion:{kind:"foot",stride:0.7} }),
 });
 
+const clearingWorker = Object.freeze({
+  kind: "figure",
+  motion: { kind: "foot", stride: 0.65 },
+  workPoses: { dig: "dig", build: "build" },
+  carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone" },
+});
+export const COLONY_VISUAL_BINDINGS = Object.freeze({
+  "colony.rowan": Object.freeze({ ...clearingWorker, key: "rowan" }),
+  "colony.sedge": Object.freeze({ ...clearingWorker, key: "witch-runner" }),
+});
+
 export const PIRATE_VISUAL_BINDINGS = Object.freeze({
   "pirate.ship": Object.freeze({
     kind: "static",

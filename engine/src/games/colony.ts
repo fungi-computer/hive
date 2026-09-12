@@ -35,6 +35,10 @@ export const Guest = component<{ hungry: boolean }>("colony.guest", {
 const workerOne = entity("colony.worker.1");
 const workerTwo = entity("colony.worker.2");
 const workers = [workerOne, workerTwo] as const;
+const workerVisuals = [
+  { sprite: "colony.rowan", label: "Rowan" },
+  { sprite: "colony.sedge", label: "Sedge" },
+] as const;
 const guestId = entity("colony.guest.1");
 const pantryId = entity("colony.pantry");
 export const colonyLumberId = entity("colony.lumber");
@@ -59,7 +63,7 @@ const colonyInitial = [
       "hive.body": { speed: 2 },
       "hive.container": { capacity: 3 },
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
-      "hive.visual": { sprite: "goblin.worker", label: `Worker ${index + 1}` },
+      "hive.visual": workerVisuals[index],
       "colony.worker": { guest: false },
       "hive.work-participation": { automatic: true },
       "hive.delivery-control": { enabled: true, quantity: 1 },
@@ -126,7 +130,7 @@ const goInput = z.object({
   entities: z.array(z.string()).min(1).max(workers.length),
   destination: z.object({
     x: z.number().finite(), y: z.number().finite(), z: z.number().finite(),
-    frame: z.string().nullable(),
+    frame: z.string().transform(entity).nullable(),
   }).strict(),
 }).strict();
 const workerSelectionInput = z.object({
@@ -460,7 +464,7 @@ export const colonyPack: GamePack = {
         { id: "worker-carried", label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         ...workers.map((worker, index) => ({
           id: `worker-${index + 1}-control`,
-          label: `Worker ${index + 1}`,
+          label: workerVisuals[index].label,
           value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
         })),
         { id: "guest-quantity", label: "Guest meal", value: total(guestId) },

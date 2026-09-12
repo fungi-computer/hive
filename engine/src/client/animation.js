@@ -57,12 +57,18 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
         const facingChanged = previous && Math.abs((subject.facing ?? 0) - previous.facing) > EPSILON;
         const lastMotion = moved ? now : previous?.lastMotion;
         const walking = moved || Boolean(sameSupport && prior?.walking && lastMotion !== undefined && now - lastMotion < 120);
-        const direction = moved ? directionFromVector(dx, dz, subject.facing)
+        let direction = moved ? directionFromVector(dx, dz, subject.facing)
           : sameSupport && prior && !facingChanged ? prior.direction
           : directionFromVector(0, 0, subject.facing);
+        if (subject.activity) {
+          const [targetX, targetZ] = subject.activity.target;
+          const workDx = targetX - subject.x, workDz = targetZ - subject.z;
+          if (Math.abs(workDx) > EPSILON || Math.abs(workDz) > EPSILON)
+            direction = directionFromVector(workDx, workDz, subject.facing);
+        }
         const state = {
           id: subject.id, walking, direction,
-          frame: Math.floor(phase / (walking ? frameMs : frameMs * 4)),
+          frame: Math.floor(phase / (walking || subject.activity ? frameMs : frameMs * 4)),
         };
         sampled.push(state);
         history.set(subject.id, { x: local.x, y: local.y, z: local.z, support: subject.support, sequence, facing: subject.facing ?? 0, lastMotion });
@@ -84,4 +90,17 @@ export function animationFrames(figure, direction, walking) {
   const idle = figure.idle?.[direction] ?? figure.idle?.[0] ?? [];
   const walk = figure.walk?.[direction] ?? figure.walk?.[0] ?? [];
   return walking && walk.length ? walk : idle;
+}
+
+/** Content chooses pose names; this owner resolves work, custody and locomotion. */
+export function figureFrame(figure, binding, subject, animation) {
+  const direction = animation?.direction ?? 0;
+  const workPose = subject.activity && binding.workPoses?.[subject.activity.kind];
+  const work = workPose && figure?.[workPose]?.[direction];
+  const held = subject.inventory?.items.find(item => item.quantity > 0 && binding.carryPoses?.[item.kind]);
+  const carryPose = held && binding.carryPoses[held.kind];
+  const carry = carryPose && figure?.[carryPose]?.[direction];
+  const frames = work || carry || animationFrames(figure, direction, animation?.walking ?? false);
+  const frame = !work && carry && !animation?.walking ? 0 : animation?.frame ?? 0;
+  return frames[frame % Math.max(1, frames.length)];
 }

@@ -6,6 +6,7 @@ import {
 } from "../presentation";
 import type { GameSession } from "./session";
 import { decorateInventoryFacts } from "./inventory-presentation";
+import { decorateWorkActivity } from "./work-activity";
 
 /**
  * The bounded, committed view shared by browser and host readers.
@@ -47,7 +48,7 @@ export function buildObservation(
     query: (spec) => session.query(spec),
   };
   const projected = projectPresentation(session.pack, context);
-  const facts = decorateInventoryFacts(structuredClone(session.renderFacts(512)), context);
+  const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(512)), context), context);
   return Object.freeze({
     time: session.simulationTime,
     paused: session.isPaused,

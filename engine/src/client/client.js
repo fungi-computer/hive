@@ -7,7 +7,7 @@ import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
 import { createAudioOwner } from "./audio.js";
 import { presentationCommand, terrainPresentationCommand, terrainAreaPresentationCommand } from "../presentation.ts";
-import { animationFrames, createAnimationClock } from "./animation.js";
+import { figureFrame, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import React from "react";
@@ -533,7 +533,7 @@ export function createHiveClient({
   const camera = {
     x: 0,
     y: 0,
-    zoom: canvasHost.clientWidth >= 900 ? 2 : 1,
+    zoom: canvasHost.clientWidth >= 600 ? 2 : 1,
     pan(dx, dy) {
       this.x -= dx;
       this.y -= dy;
@@ -553,7 +553,7 @@ export function createHiveClient({
       draw();
     },
     reset() {
-      this.zoom = canvasHost.clientWidth >= 900 ? 2 : 1;
+      this.zoom = canvasHost.clientWidth >= 600 ? 2 : 1;
       this.x = (canvasHost.clientWidth - 640 * this.zoom) / 2;
       this.y = (canvasHost.clientHeight - 400 * this.zoom) / 2;
       draw();
@@ -599,6 +599,7 @@ export function createHiveClient({
         surface: fact.surface,
         projectile: fact.projectile,
         inventory: fact.inventory,
+        activity: fact.activity,
         pose: fact.pose,
         screen: { x: 0, y: 0 },
         pickable: projectWorldFact(fact, state.view).pickable,
@@ -722,16 +723,6 @@ export function createHiveClient({
       const reactionFrames = reaction && reaction.until > effectClock()
         ? reaction.frames : null;
       if (reaction && !reactionFrames) subjectReactions.delete(subject.id);
-      const heldKind = subject.inventory?.items.find(item => item.quantity > 0 && binding.carryPoses?.[item.kind])?.kind;
-      const carryPose = heldKind && binding.carryPoses[heldKind];
-      const carryFrames = carryPose && figure?.[carryPose]?.[animation?.direction ?? 0];
-      const frames = reactionFrames ?? carryFrames ?? (isStatic
-        ? []
-        : animationFrames(
-            figure,
-            animation?.direction ?? 0,
-            animation?.walking ?? false,
-          ));
       const physicalFacing = ((Math.round(subject.facing ?? 0) % 4) + 4) % 4;
       const staticVisual = isStatic
         ? (subject.projectile?.state === "embedded" && art.projectiles?.cannonballEmbedded
@@ -742,7 +733,7 @@ export function createHiveClient({
         ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((effectClock() - reaction.started) / 45))]
         : isStatic
         ? staticVisual?.texture
-        : frames[(carryFrames && !animation?.walking ? 0 : animation?.frame ?? 0) % Math.max(1, frames.length)];
+        : figureFrame(figure, binding, subject, animation);
       if (art && !texture)
         throw new Error(`visual asset unavailable for ${subject.visual}`);
       if (texture) entry.pawn.texture = texture;

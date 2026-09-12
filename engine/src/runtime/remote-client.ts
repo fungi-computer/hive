@@ -5,6 +5,7 @@ import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import type { EnvironmentVisual, PresentationControl, TerrainMark } from "../presentation";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
+import { workActivitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -99,6 +100,7 @@ function surface(value: unknown): value is SupportSurface {
 function renderFact(value: unknown): value is RenderFact {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)
     return false;
+  if (value.activity !== undefined && !workActivitySchema.safeParse(value.activity).success) return false;
   if (value.view !== undefined && (!isRecord(value.view) || (value.view.pickable !== undefined && typeof value.view.pickable !== "boolean") || (value.view.cutawayTop !== undefined && !Number.isSafeInteger(value.view.cutawayTop)))) return false;
   if (value.pose !== undefined && !pose(value.pose)) return false;
   if (value.local !== undefined && !pose(value.local)) return false;

@@ -87,6 +87,26 @@ test("socket observations reject older committed revisions", async () => {
   runtime.dispose();
 });
 
+test("work activity crosses the real JSON frame boundary and rejects unsupported poses", async () => {
+  const socket = new FakeSocket();
+  const runtime = setup(async () => Response.json({ handle: "opaque" }), socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    const next = observation(1);
+    socket.emit("message", { data: JSON.stringify({ type: "observation", ...next,
+      observation: { ...next.observation, facts: [{ id: "worker", activity: { kind: "dig", target: [1, 2] } }] } }) });
+    const frames = events.filter(event => event.type === "frame");
+    assert.deepEqual(frames.at(-1)?.facts[0]?.activity, { kind: "dig", target: [1, 2] });
+    const bad = observation(2);
+    socket.emit("message", { data: JSON.stringify({ type: "observation", ...bad,
+      observation: { ...bad.observation, facts: [{ id: "worker", activity: { kind: "invented", target: [1, 2] } }] } }) });
+    assert.equal(events.filter(event => event.type === "frame").length, frames.length);
+  } finally { runtime.dispose(); }
+});
+
 test("disposing during socket handle admission aborts the request", async () => {
   let aborted = false;
   const runtime = setup((_input, init) => new Promise((_resolve, reject) => {

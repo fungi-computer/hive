@@ -35,7 +35,7 @@ export function createWorkSystem(options: WorkSystemOptions) {
   return system({
     id: options.id,
     version: options.version,
-    reads: [...new Set([...options.reads, WorkParticipation])],
+    reads: [...new Set([...(options.reads ?? []), WorkParticipation])],
     writes: options.writes,
     every: options.every,
     consumesImpacts: options.consumesImpacts,
