@@ -247,7 +247,15 @@ export const colonyGroundStockSystem = system({
   id: "colony.ground-stock", version: 1,
   reads: [GroundStock, MaterialLot, DeliveryTask],
   writes: [DeliveryTask],
-  run: planGroundStockDeliveries,
+  run(ctx) {
+    const stockContainers = new Set(ctx.query(query(GroundStock)).map(row => row.id));
+    for (const row of ctx.query(query(DeliveryTask))) {
+      const task = row.get(DeliveryTask);
+      if (task.phase === "complete" && stockContainers.has(task.source))
+        ctx.removeAuthoredEntity(row.id);
+    }
+    planGroundStockDeliveries(ctx);
+  },
 });
 
 export function digOrderId(x: number, y: number, z: number): EntityId {

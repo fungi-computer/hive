@@ -54,6 +54,58 @@ struct ImpactEvent {
 }
 
 #[cfg(test)]
+mod ground_stock_cleanup_tests {
+    use super::*;
+
+    #[test]
+    fn authored_reference_retains_ground_stock_until_removal_then_cleanup_releases_it() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"ground-cleanup",
+            "components":[{"id":"game.delivery","version":1,"fields":{"source":"entity"}}],
+            "initial":[
+                {"id":"ground.1","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":3},"hive.ground-stock":{}}},
+                {"id":"haul.1","components":{"game.delivery":{"source":"ground.1"}}}
+            ]
+        }).unwrap();
+        kernel.ground_stock_cleanup_pending = true;
+        kernel.cleanup_empty_ground_stock();
+        assert!(kernel.known.contains("ground.1"));
+        kernel.advance_json(&json!({"delta":0.0,"creates":[],"removes":["haul.1"],"writes":[],"actions":[]}).to_string()).unwrap();
+        assert!(!kernel.known.contains("ground.1"));
+    }
+
+    #[test]
+    fn actor_drop_keeps_lot_at_supported_pose_across_recovery() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"ground-drop",
+            "components":[],
+            "initial":[
+                {"id":"platform","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.surface":{"minX":0.0,"maxX":4.0,"minZ":0.0,"maxZ":4.0,"height":1.0}}},
+                {"id":"actor","components":{"hive.position":{"x":2.0,"y":1.0,"z":2.0,"facing":1.0},"hive.support":{"entity":"platform"},"hive.body":{"speed":1.0},"hive.container":{"capacity":3}}},
+                {"id":"lot.1","components":{"hive.lot":{"kind":"soil-spoil","quantity":2,"container":"actor"}}}
+            ]
+        }).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"creates":[],"removes":[],"writes":[],"actions":[{"kind":"drop-lot","entity":"actor","lot":"lot.1"}]}).to_string()).unwrap();
+        let ground = kernel.known.iter().find(|id| id.starts_with("ground.")).cloned().expect("drop creates ground stock");
+        let lot = kernel.ecs.get::<Lot>(kernel.entity("lot.1").unwrap()).unwrap();
+        assert_eq!(lot.container, ground);
+        let position = kernel.ecs.get::<Position>(kernel.entity(&ground).unwrap()).unwrap();
+        assert_eq!((position.x, position.y, position.z, position.facing), (2.0, 1.0, 2.0, 1.0));
+        assert_eq!(kernel.ecs.get::<Support>(kernel.entity(&ground).unwrap()).unwrap().entity, "platform");
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&saved).unwrap();
+        assert_eq!(restored.snapshot_json().unwrap(), saved);
+        assert!(restored.known.contains(&ground));
+        let restored_position = restored.ecs.get::<Position>(restored.entity(&ground).unwrap()).unwrap();
+        assert_eq!((restored_position.x, restored_position.y, restored_position.z), (2.0, 1.0, 2.0));
+        assert_eq!(restored.ecs.get::<Support>(restored.entity(&ground).unwrap()).unwrap().entity, "platform");
+    }
+}
+
+#[cfg(test)]
 mod construction_tests {
     use super::*;
     use serde_json::json;
@@ -383,6 +435,7 @@ pub struct Kernel {
     collider_ids: BTreeSet<String>,
     state_weight: usize,
     material_consumption_owner: Arc<()>,
+    ground_stock_cleanup_pending: bool,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -422,6 +475,7 @@ impl Kernel {
             collider_ids: BTreeSet::new(),
             state_weight: 0,
             material_consumption_owner: Arc::new(()),
+            ground_stock_cleanup_pending: false,
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -1217,6 +1271,7 @@ impl Kernel {
             return Err("saved terrain route witness is stale".into());
         }
         candidate.validate_excavation_work()?;
+        candidate.ground_stock_cleanup_pending = true;
         *self = candidate;
         Ok(())
     }
@@ -1380,6 +1435,7 @@ impl Kernel {
             }
         }
         candidate.projectile_count = candidate.ids.values().filter(|entity| candidate.ecs.get::<Projectile>(**entity).is_some_and(|p| p.state == "flying" || p.state == "rolling")).count();
+        candidate.ground_stock_cleanup_pending = true;
         *self = candidate;
         Ok(())
     }
@@ -1537,6 +1593,7 @@ impl Kernel {
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
+        self.cleanup_empty_ground_stock();
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
         if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work.water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(work.air).map_err(|e| e.to_string())?; }
@@ -1652,6 +1709,35 @@ impl Kernel {
             .flatten()
             .map(|e| u64::from(self.ecs.get::<Lot>(*e).expect("indexed lot").quantity))
             .sum()
+    }
+    fn cleanup_empty_ground_stock(&mut self) {
+        if !self.ground_stock_cleanup_pending { return; }
+        self.ground_stock_cleanup_pending = false;
+        let candidates: BTreeSet<String> = self.contents.keys().filter_map(|id| {
+            let entity = self.ids.get(id)?;
+            (self.ecs.get::<GroundStock>(*entity).is_some()
+                && self.contents.get(id).is_some_and(BTreeSet::is_empty)).then_some(id.clone())
+        }).collect();
+        if candidates.is_empty() { return; }
+        let mut referenced = BTreeSet::new();
+        for (id, entity) in &self.ids {
+            for (name, schema) in &self.registry.schemas {
+                let Some(value) = self.registry.read(&self.ecs, *entity, name) else { continue; };
+                for (field, kind) in &schema.fields {
+                    if matches!(kind, crate::registry::FieldType::Entity | crate::registry::FieldType::NullableEntity)
+                        && value.get(field).and_then(|item| item.as_str()).is_some_and(|target| candidates.contains(target)) {
+                        referenced.insert(value.get(field).and_then(|item| item.as_str()).unwrap().to_owned());
+                    }
+                }
+            }
+        }
+        for id in candidates.difference(&referenced) {
+            let entity = self.ids.remove(id).expect("ground stock candidate");
+            self.known.remove(id);
+            self.contents.remove(id);
+            self.ecs.despawn(entity);
+        }
+        self.refresh_state_weight();
     }
     fn contact(&self, a: Entity, b: Entity) -> Result<()> {
         let a = self.world_pose_entity(a, 0)?;
@@ -2223,6 +2309,7 @@ impl Kernel {
         self.contents.entry(actor_id.into()).or_default().remove(&lot_entity);
         self.contents.entry(id).or_default().insert(lot_entity);
         self.ecs.entity_mut(lot_entity).insert(lot);
+        self.ground_stock_cleanup_pending = true;
         self.next_lot = next_lot;
         self.state_weight = weight;
         Ok(())
@@ -2233,6 +2320,7 @@ impl Kernel {
         }
         let source = self.entity(from)?;
         let dest = self.entity(to)?;
+        let source_is_ground_stock = self.ecs.get::<GroundStock>(source).is_some();
         if self.ecs.get::<SealedContainer>(source).is_some()
             || self.ecs.get::<SealedContainer>(dest).is_some()
         {
@@ -2314,6 +2402,7 @@ impl Kernel {
         }
         self.contents.entry(from.into()).or_default().remove(&e);
         self.contents.entry(to.into()).or_default().insert(e);
+        if source_is_ground_stock { self.ground_stock_cleanup_pending = true; }
         Ok(())
     }
     /// Validate saved geometry even when work is waiting on a changed world.
