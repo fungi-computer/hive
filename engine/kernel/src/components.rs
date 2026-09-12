@@ -57,6 +57,13 @@ pub struct Lot {
 pub struct LotWater {
     pub water_kg: f64,
 }
+/// Finite authored stock whose kind and remaining quantity are native-owned.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FiniteResource {
+    pub kind: String,
+    pub quantity: u32,
+}
 /// Native earned work; authored systems may request work, never write progress.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -345,6 +352,7 @@ pub enum Action {
         lot: String,
         quantity: u32,
     },
+    ExtractResource { worker: String, source: String },
     Launch {
         launcher: String,
         ammunition: String,
@@ -375,6 +383,8 @@ pub struct ActionResult {
     pub projectile_id: Option<String>,
     #[serde(rename = "launchPoint", skip_serializing_if = "Option::is_none")]
     pub launch_point: Option<Vector3>,
+    #[serde(rename = "entityId", skip_serializing_if = "Option::is_none")]
+    pub entity_id: Option<String>,
 }
 pub fn valid_id(s: &str) -> bool {
     !s.is_empty()

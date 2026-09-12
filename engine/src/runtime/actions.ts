@@ -116,6 +116,10 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "entity", "lot", "quantity"];
       valid = id(action.entity) && id(action.lot) && quantity(action.quantity);
       break;
+    case "extract-resource":
+      keys = ["kind", "worker", "source"];
+      valid = id(action.worker) && id(action.source);
+      break;
     default:
       throw new Error("unsupported action kind");
   }

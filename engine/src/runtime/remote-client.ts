@@ -279,7 +279,8 @@ function safeId(create?: () => string): string {
 function actionResult(value: unknown): value is ActionResult {
   return isRecord(value) && typeof value.accepted === "boolean" &&
     safeNonnegativeInteger(value.revision) &&
-    (value.reason === undefined || (typeof value.reason === "string" && value.reason.length <= 256));
+    (value.reason === undefined || (typeof value.reason === "string" && value.reason.length <= 256)) &&
+    (value.entityId === undefined || (typeof value.entityId === "string" && value.entityId.length > 0 && value.entityId.length <= 128));
 }
 function directInputBatch(value: unknown) {
   if (!isRecord(value) || value.kind !== "action") return undefined;

@@ -80,6 +80,10 @@ export const LotWater = component<{ waterKg: number }>("hive.lot-water", {
   version: 1,
   fields: { waterKg: "number" },
 });
+export const FiniteResource = component<{ kind: string; quantity: number }>("hive.finite-resource", {
+  version: 1,
+  fields: { kind: "string", quantity: "number" },
+});
 export const Destination = component<{
   x: number;
   y: number;
@@ -123,6 +127,9 @@ export const consume = (
   lot: EntityId,
   quantity: number,
 ): ActionRequest => ({ kind: "consume", entity, lot, quantity });
+export const extractResource = (worker: EntityId, source: EntityId): ActionRequest => ({
+  kind: "extract-resource", worker, source,
+});
 
 export interface SceneEntity {
   readonly id: EntityId;
