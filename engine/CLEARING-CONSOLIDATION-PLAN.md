@@ -921,12 +921,13 @@ terrain and wear facts to retained grass/path variants and decorative edge detai
 it does not invent path state, persist pixels or randomize independently.
 
 Actual foot traffic creates bounded sparse wear through one native surface-wear
-operation. Wear is a `u8` intensity from `0` through `255`, initially `0`, and increases only on
-cells a committed route actually crossed. Movement batches one bounded set per
+operation. Wear is an integer level from `0` through `7`, initially `0`, and
+increases only on cells a committed route actually crossed. Movement batches one bounded set per
 completed route or coarse interval rather than emitting a durable event per footstep.
 Disuse and suitable ecology may lower wear slowly. Low levels bend and thin grass;
-higher levels expose dirt. A small set of named visual bands maps that intensity to
-retained grass/path art; the simulation is not quantized to the number of sprites.
+higher levels expose dirt. Levels have path-specific meaning: `0` is untouched,
+`1–2` pressed grass, `3–4` thinning grass, `5–6` worn earth and `7` an established
+path. The renderer may share art within adjacent levels without owning the value.
 Any movement-cost or fatigue benefit begins only when the
 authoritative wear level changes, so presentation cannot grant traversal. Each region
 stores only changed cells, and a route crossing a DO boundary submits its local
