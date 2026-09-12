@@ -69,7 +69,7 @@ test("content visual bindings keep pirate art out of the renderer defaults", () 
   assert.equal(DEFAULT_VISUAL_BINDINGS["pirate.ship"], undefined);
   assert.deepEqual(PIRATE_VISUAL_BINDINGS["pirate.deck-obstacle"], {
     kind: "static",
-    path: ["buildings", "shelf", "finished", 0],
+    path: ["props", "barrel"],
     facing: false,
     anchor: "propAnchor",
   });
