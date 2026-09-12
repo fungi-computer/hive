@@ -443,6 +443,12 @@ A stockpile action combines ordinary profile, priority and capacity fields with
 an area acquired visually by a human or supplied structurally by a controller.
 Hive-owned JSON schemas describe entity IDs, cells and areas. An opaque
 schema annotation is not part of the first join: no current consumer needs one.
+The browser composes its argument-field, gesture, persistent-tool, preview and
+cancel binding into Whistle's local `presentation: { type: "custom", data }` slot
+before contributing that same semantic command. Whistle copies the opaque JSON
+but implements no Hive gesture. Human menu/palette projections may carry it;
+server and agent snapshots omit presentation. Do not place this binding inside
+the semantic JSON Schema or expose it as a second command definition.
 The client binds each known action and field identity to its existing map
 acquisition gesture, while a headless controller supplies the same standard
 schema value directly. Add a domain-owned annotation later only when a concrete
