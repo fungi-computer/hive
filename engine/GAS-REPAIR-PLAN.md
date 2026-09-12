@@ -618,3 +618,28 @@ atmosphere sampling. Keep ambient portals without outdoor gas parcels. Outdoor
 fire still needs explicit paid source/boundary accounting, not a fake indoor
 room or a discarded fuel result. Empty room sets and roof removal must conserve
 existing smoke/heat via an actual new ambient opening, not silently erase stock.
+
+
+## September 12 coarse production join — local, not released
+
+The actual TerrainAtmosphere owner now compiles one gas volume per connected
+room section and aggregate portals, with four-voxel vertical bands. Spatial
+membership remains rebuildable lookup data; it is not encoded as gas members.
+Outdoor-only terrain has no gas parcels. Paid outdoor emissions use the existing
+detached gas owner to record equal finite source and boundary amounts; no outdoor
+cloud grid is allocated. Current terrain-air records are version 4 and reject
+older formats. Room split/merge and roof transitions use spatial volume overlap.
+
+Focused native `room_topology` qualification u6113 (invocation
+bc721c450a524a72ae728711e3350904) passed 5 laws and diff check. The earlier u6112
+compile failure was a test accessing a private field; it is retained separately.
+These checks cover room retention through an open door, empty outdoor geometry,
+roof creation/removal with conserved ledgers, split and trapped-stock rejection,
+and finite outdoor emission with recovery/invalid-source rejection.
+
+This is NOT performance or hosted acceptance. Relevant edits currently still
+query and classify the full bounded region. Local invalidation must replace that
+path before acceptance. Existing voxel-specific caller tests also need their
+assertions recut to actual room semantics. No new WASM or deployment is claimed.
+Side query frontiers are not automatically outdoors: they may border another
+unmodeled region. Only explicitly known sky exposure is an ambient boundary.

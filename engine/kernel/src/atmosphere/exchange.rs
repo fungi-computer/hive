@@ -78,6 +78,29 @@ impl CompiledAtmosphere {
         Ok((next, receipt))
     }
 
+    /// Emissions released directly outdoors have no resident parcel. Record both
+    /// their finite source and outward boundary in the same detached candidate.
+    pub(crate) fn advance_with_boundary(
+        &self, state: &AtmosphereState, seconds: f64,
+        sources: &[AtmosphereSource], outdoor: (f64, f64),
+    ) -> Result<(AtmosphereState, AtmosphereReceipt), String> {
+        finite_nonnegative(outdoor.0, "outdoor smoke rate")?;
+        if !outdoor.1.is_finite() { return Err("invalid outdoor heat rate".into()); }
+        let (mut next, mut receipt) = self.advance(state, seconds, sources)?;
+        let smoke = outdoor.0 * seconds;
+        let heat = outdoor.1 * seconds;
+        next.smoke_source_kg = changed_quantity(next.smoke_source_kg, smoke)?;
+        next.smoke_boundary_kg = changed_quantity(next.smoke_boundary_kg, smoke)?;
+        next.heat_source_j = changed_quantity(next.heat_source_j, heat)?;
+        next.heat_boundary_j = changed_quantity(next.heat_boundary_j, heat)?;
+        self.validate_state(&next)?;
+        receipt.source_smoke_kg = next.smoke_source_kg - state.smoke_source_kg;
+        receipt.source_heat_j = next.heat_source_j - state.heat_source_j;
+        receipt.smoke_boundary_kg = next.smoke_boundary_kg - state.smoke_boundary_kg;
+        receipt.heat_boundary_j = next.heat_boundary_j - state.heat_boundary_j;
+        Ok((next, receipt))
+    }
+
     fn exchange_step(&self, state: &mut AtmosphereState, dt: f64) -> Result<usize, String> {
         let snapshot = state.parcels.clone();
         let flows = self.bounded_flows(self.opening_flows(&snapshot, dt));

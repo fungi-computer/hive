@@ -119,25 +119,26 @@ impl KernelEnvironment {
     fn advance_emissions(&mut self, seconds: f64, revision: u64) -> Result<Option<AirStep>, String> {
         let Some(air) = self.atmosphere.as_mut() else { return Ok(None); };
         let mut grouped: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+        let mut outdoor = (0.0, 0.0);
         let mut progress = Vec::new();
         let mut waiting = Vec::new();
         for (id, source) in &self.paid_emissions {
             // An action admitted this tick does not earn an entire prior tick.
             if source.admitted_revision >= revision { continue; }
-            let cell_id = format!("cell:{},{},{}", source.cell.x, source.cell.y, source.cell.z);
-            let Some(volume) = air.compiled().volume_for_cell(&cell_id) else { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::NoAirReceiver }); continue; };
+            let volume = air.receiver(source.cell);
+            if volume.is_none() && !air.is_outdoor(source.cell) { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::NoAirReceiver }); continue; }
             let definition = self.emissions.get(&source.catalog).ok_or("paid emission catalog missing")?;
             let end = (source.elapsed_s + seconds).min(definition.definition().duration_s);
             if !end.is_finite() || end <= source.elapsed_s { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::UnrepresentableInterval }); continue; }
             let released = definition.release().released_between(Some(0.0), source.elapsed_s, end)?;
-            let target = grouped.entry(volume.to_owned()).or_default();
+            let target = match volume { Some(volume) => grouped.entry(volume.to_owned()).or_default(), None => &mut outdoor };
             target.0 += released["smokeKg"] / seconds;
             target.1 += released["heatJ"] / seconds;
             if !target.0.is_finite() || !target.1.is_finite() { return Err("paid emission aggregate overflow".into()); }
             progress.push((id.clone(), end, definition.definition().duration_s));
         }
         let sources: Vec<_> = grouped.into_iter().map(|(volume_id, (smoke_kg_s, heat_j_s))| crate::atmosphere::AtmosphereSource { volume_id, smoke_kg_s, heat_j_s }).collect();
-        let receipt = match air.advance(seconds, &sources) {
+        let receipt = match air.advance_emissions(seconds, &sources, outdoor) {
             Ok(receipt) => receipt,
             // The owner computes detached state: failed source admission has
             // published neither gas nor progress. Vent existing air and retain

@@ -362,3 +362,53 @@ pub fn rebind(
         },
     })
 }
+
+/// Coarse stock remap uses disposable spatial overlap, never compiled voxel
+/// members or one opening per face. Outdoor transitions have explicit ledgers.
+pub(crate) fn rebind_rooms(old: &CompiledAtmosphere, state: &AtmosphereState, next: &CompiledAtmosphere,
+    before: &crate::room_topology::RoomTopology, after: &crate::room_topology::RoomTopology) -> Result<AtmosphereRebindResult,String> {
+    old.validate_state(state)?;
+    if !compatible(old,next) { return Err("atmosphere rebind requires newer compatible geometry".into()); }
+    let mut overlap=vec![BTreeMap::new();before.sections.len()];
+    let mut exposed=vec![0.0;before.sections.len()];
+    let mut incoming=vec![0.0;after.sections.len()];
+    for (cell,&i) in &before.membership {
+        if let Some(&j)=after.membership.get(cell) {
+            *overlap[i].entry(j).or_default() += before.free[cell].min(after.free[cell]);
+        } else if after.outdoors.contains(cell) { exposed[i] += before.free[cell]; }
+    }
+    for (cell,&j) in &after.membership {
+        if before.outdoors.contains(cell) { incoming[j] += after.free[cell].min(before.free[cell]); }
+    }
+    let receivers:BTreeSet<_>=overlap.iter().enumerate().filter(|(_,v)|!v.is_empty()).map(|(i,_)|i).collect();
+    let (neighbors,mut ambient)=topology(old);
+    for (i,&volume) in exposed.iter().enumerate() { if volume>0.0 { ambient.insert(i); } }
+    let mut stocks=vec![Stock::default();after.sections.len()];
+    let mut boundary=Stock::default();
+    for (i,parcel) in state.parcels.iter().enumerate() {
+        let stock=Stock{carrier:parcel.carrier_kg,smoke:parcel.smoke_kg,heat:parcel.heat_j};
+        if !overlap[i].is_empty() {
+            let fraction=(exposed[i]/old.volume_m3[i]).clamp(0.0,1.0);
+            let lost=Stock{carrier:stock.carrier*fraction,smoke:stock.smoke*fraction,heat:stock.heat*fraction};
+            add_stock_to(&mut boundary,lost)?;
+            allocate(&mut stocks,&overlap[i],Stock{carrier:stock.carrier-lost.carrier,smoke:stock.smoke-lost.smoke,heat:stock.heat-lost.heat})?;
+        } else if stock.carrier!=0.0 || stock.smoke!=0.0 || stock.heat!=0.0 {
+            match forced_route(&neighbors,&ambient,i,&receivers) {
+                Some(Some(target))=>allocate(&mut stocks,&overlap[target],stock)?,
+                Some(None)=>add_stock_to(&mut boundary,stock)?,
+                None=>return Ok(AtmosphereRebindResult::Blocked(RebindBlockReason::TrappedVolumeRemoved)),
+            }
+        }
+    }
+    for (i,volume) in incoming.into_iter().enumerate() {
+        let carrier=volume*next.ambient_carrier_density;
+        stocks[i].carrier=add_stock(stocks[i].carrier,carrier)?;
+        boundary.carrier=add_stock(boundary.carrier,-carrier)?;
+    }
+    let parcels:Vec<_>=stocks.into_iter().enumerate().map(|(i,s)|AtmosphereParcel{volume_id:next.definition.volumes[i].id.clone(),carrier_kg:s.carrier,smoke_kg:s.smoke,heat_j:s.heat}).collect();
+    if envelope_blocked(next,&parcels) { return Ok(AtmosphereRebindResult::Blocked(RebindBlockReason::PressureEnvelope)); }
+    let candidate=AtmosphereState{owner:next.owner.clone(),identity:next.identity.clone(),parcels,
+        carrier_boundary_kg:add_stock(state.carrier_boundary_kg,boundary.carrier)?,smoke_boundary_kg:add_stock(state.smoke_boundary_kg,boundary.smoke)?,heat_boundary_j:add_stock(state.heat_boundary_j,boundary.heat)?,..state.clone()};
+    next.validate_state(&candidate)?;
+    Ok(AtmosphereRebindResult::Applied{state:candidate,receipt:AtmosphereRebindReceipt{old_identity:old.identity.clone(),new_identity:next.identity.clone(),old_volume_m3:old.volume_m3.iter().sum(),new_volume_m3:next.volume_m3.iter().sum(),carrier_boundary_kg:boundary.carrier,smoke_boundary_kg:boundary.smoke,heat_boundary_j:boundary.heat,routed_parcels:vec![]}})
+}

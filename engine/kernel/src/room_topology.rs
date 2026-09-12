@@ -26,9 +26,20 @@ pub(crate) struct RoomTopology {
     /// Spatial lookup/rebind aid only. Never encode this as gas stocks/binding.
     pub membership: BTreeMap<Cell, usize>,
     pub outdoors: BTreeSet<Cell>,
+    pub free: BTreeMap<Cell, f64>,
 }
 
 impl RoomTopology {
+    pub fn definition(&self, config: &crate::terrain_atmosphere::TerrainAtmosphereConfig, revision: u64) -> crate::atmosphere::SharedAtmosphereDefinition {
+        use crate::atmosphere::{AtmosphereDefinition,AtmosphereVolumeDefinition,AtmosphereMember,AtmosphereOpeningDefinition};
+        let ids:Vec<_> = self.sections.iter().map(|s|format!("room:{},{},{}",s.anchor.x,s.anchor.y,s.anchor.z)).collect();
+        AtmosphereDefinition {
+            version:"connected-atmosphere-definition-v1".into(),region_id:config.region_id.clone(),
+            geometry_identity:"coarse-rooms-v1".into(),revision,ambient:config.ambient.clone(),model:config.model.clone(),
+            volumes:self.sections.iter().enumerate().map(|(i,s)|AtmosphereVolumeDefinition{id:ids[i].clone(),members:vec![AtmosphereMember{cell_id:ids[i].clone(),volume_m3:s.volume_m3,elevation_m:s.elevation_m}]}).collect(),
+            openings:self.portals.iter().enumerate().map(|(i,p)|AtmosphereOpeningDefinition{id:format!("portal:{i}"),from:ids[p.from].clone(),from_cell_id:ids[p.from].clone(),to:p.to.map(|j|ids[j].clone()),to_cell_id:p.to.map(|j|ids[j].clone()),area_m2:p.conductance_m,distance_m:1.0,elevation_m:p.elevation_m,permeability:1.0}).collect(),
+        }.into()
+    }
     pub fn classify(snapshot: &AirGeometrySnapshot, spacing: [f64; 3], sky_boundary: bool, band_height: i32) -> Result<Self, String> {
         if band_height <= 0 || snapshot.cells.len() > 40_000 || snapshot.faces.len() > 56_000
             || !spacing.iter().all(|v| v.is_finite() && *v > 0.0) {
@@ -117,7 +128,7 @@ impl RoomTopology {
         let portals = edges.into_iter().map(|((from,to),(conductance,height))| RoomPortal {
             from,to,conductance_m:conductance,elevation_m:height/conductance,
         }).collect();
-        Ok(Self { sections, portals, membership, outdoors })
+        Ok(Self { sections, portals, membership, outdoors, free })
     }
 }
 
@@ -146,6 +157,66 @@ mod tests {
             }
         }
         AirGeometrySnapshot{physical_revision:0,epoch:0,bounds:AirGeometryBounds{min:Cell{x:0,y:0,z:0},max:Cell{x:2,y:4,z:1}},cells,faces}
+    }
+    fn config() -> crate::terrain_atmosphere::TerrainAtmosphereConfig {
+        serde_json::from_value(serde_json::json!({
+            "regionId":"room-test","min":{"x":0,"y":0,"z":0},"max":{"x":2,"y":4,"z":1},"exterior":"WorldTop",
+            "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
+            "model":{"specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,"mixingVelocityMps":1.0,"buoyancyVelocityMpsK":0.1,"pressureVelocityMpsPa":0.001,"maxStepS":0.2,"maxExchangeFraction":0.5,"maxPressureRatio":4.0,"maxTemperatureDeltaK":100.0,"maxSmokeMassFraction":0.01}
+        })).unwrap()
+    }
+    #[test]
+    fn outdoor_fire_has_no_parcel_and_records_finite_source_and_exit() {
+        use crate::atmosphere::CompiledAtmosphere;
+        let outside = RoomTopology::classify(&room(false,true), [1.0;3], true, 4).unwrap();
+        let air = CompiledAtmosphere::compile_shared(outside.definition(&config(),0)).unwrap();
+        let original = air.initial();
+        let (state, receipt) = air.advance_with_boundary(&original, 0.5, &[], (0.02, 100.0)).unwrap();
+        assert!(state.parcels().is_empty());
+        assert_eq!(receipt.source_smoke_kg, 0.01);
+        assert_eq!(receipt.smoke_boundary_kg, 0.01);
+        assert_eq!(receipt.source_heat_j, 50.0);
+        assert_eq!(receipt.heat_boundary_j, 50.0);
+        let bytes = air.encode_state(&state).unwrap();
+        air.decode_state(&bytes).unwrap();
+        assert!(air.advance_with_boundary(&state, 0.5, &[], (f64::INFINITY, 0.0)).is_err());
+        assert_eq!(air.encode_state(&state).unwrap(), bytes);
+        let (_, paused) = air.advance_with_boundary(&state, 0.0, &[], (0.02, 100.0)).unwrap();
+        assert_eq!(paused.source_smoke_kg, 0.0);
+    }
+    #[test]
+    fn roof_creation_and_removal_conserve_room_stock_through_ambient() {
+        use crate::atmosphere::{CompiledAtmosphere,AtmosphereRebindResult,AtmosphereSource,rebind_rooms};
+        let outside=RoomTopology::classify(&room(false,true),[1.0;3],true,4).unwrap();
+        let roofed=RoomTopology::classify(&room(true,false),[1.0;3],true,4).unwrap();
+        let a=CompiledAtmosphere::compile_shared(outside.definition(&config(),0)).unwrap();
+        let b=CompiledAtmosphere::compile_shared(roofed.definition(&config(),1)).unwrap();
+        let AtmosphereRebindResult::Applied{state,receipt}=rebind_rooms(&a,&a.initial(),&b,&outside,&roofed).unwrap() else {panic!("new room");};
+        assert!(receipt.carrier_boundary_kg<0.0);
+        let (state,_)=b.advance(&state,0.1,&[AtmosphereSource{volume_id:b.definition().volumes[0].id.clone(),smoke_kg_s:0.001,heat_j_s:1.0}]).unwrap();
+        let c=CompiledAtmosphere::compile_shared(outside.definition(&config(),2)).unwrap();
+        let AtmosphereRebindResult::Applied{state:empty,receipt}=rebind_rooms(&b,&state,&c,&roofed,&outside).unwrap() else {panic!("roof breach");};
+        assert!(receipt.smoke_boundary_kg>0.0);
+        c.decode_state(&c.encode_state(&empty).unwrap()).unwrap();
+    }
+    #[test]
+    fn coarse_band_split_preserves_stock_and_solid_removal_cannot_erase_it() {
+        use crate::atmosphere::{CompiledAtmosphere,AtmosphereRebindResult,rebind_rooms};
+        let snapshot=room(true,false);
+        let room=RoomTopology::classify(&snapshot,[1.0;3],true,4).unwrap();
+        let split=RoomTopology::classify(&snapshot,[1.0;3],true,2).unwrap();
+        let a=CompiledAtmosphere::compile_shared(room.definition(&config(),0)).unwrap();
+        let b=CompiledAtmosphere::compile_shared(split.definition(&config(),1)).unwrap();
+        let state=a.initial();
+        let AtmosphereRebindResult::Applied{state:split_state,receipt}=rebind_rooms(&a,&state,&b,&room,&split).unwrap() else {panic!("split");};
+        assert_eq!(receipt.carrier_boundary_kg,0.0);
+        b.decode_state(&b.encode_state(&split_state).unwrap()).unwrap();
+        let mut flooded=snapshot;
+        for c in &mut flooded.cells { if c.at.x==1 {c.water=AirWaterCoverage::Admitted{liquid_volume_m3:1.0};} }
+        let gone=RoomTopology::classify(&flooded,[1.0;3],true,4).unwrap();
+        let c=CompiledAtmosphere::compile_shared(gone.definition(&config(),2)).unwrap();
+        assert!(matches!(rebind_rooms(&a,&state,&c,&room,&gone).unwrap(),AtmosphereRebindResult::Blocked(_)));
+        a.decode_state(&a.encode_state(&state).unwrap()).unwrap();
     }
     #[test]
     fn open_door_retains_roofed_room_with_one_ambient_portal() {

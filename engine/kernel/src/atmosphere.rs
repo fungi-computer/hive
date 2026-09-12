@@ -249,6 +249,7 @@ mod shared_definition;
 pub(crate) use shared_definition::SharedAtmosphereDefinition;
 mod definition;
 mod rebind;
+pub(crate) use rebind::rebind_rooms;
 pub use rebind::{rebind as rebind_geometry, AtmosphereRebindReceipt, AtmosphereRebindResult, RebindBlockReason};
 #[cfg(test)]
 mod rebind_tests;

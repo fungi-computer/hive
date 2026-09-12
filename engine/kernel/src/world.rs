@@ -1165,8 +1165,8 @@ impl Kernel {
         if cells.len() > 64 { return Err("atmosphere query exceeds cell budget".into()); }
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         let air = environment.atmosphere.as_ref().ok_or("world has no atmosphere")?;
-        let keys: Vec<_> = cells.iter().map(|[x,y,z]| format!("cell:{x},{y},{z}")).collect();
-        let samples = air.compiled().sample_cells(air.state(), &keys)?;
+        let cells: Vec<_> = cells.into_iter().map(|[x,y,z]| Ok(crate::generation::Cell { x, y:i32::try_from(y).map_err(|_| "air cell height out of range")?, z })).collect::<Result<_>>()?;
+        let samples = air.sample(&cells)?;
         serde_json::to_string(&json!({"revision":self.revision,"geometryRevision":air.geometry_revision(),"samples":samples})).map_err(|error| error.to_string())
     }
     pub fn environment_facts_json(&self) -> Result<String> {

@@ -26,8 +26,7 @@ impl CompiledAtmosphere {
         {
             return Err("invalid atmosphere definition identity".into());
         }
-        if definition.volumes.is_empty()
-            || definition.volumes.len() > MAX_VOLUMES
+        if definition.volumes.len() > MAX_VOLUMES
             || definition.openings.len() > MAX_OPENINGS
         {
             return Err("atmosphere definition exceeds bounds".into());

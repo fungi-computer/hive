@@ -1,6 +1,6 @@
 //! Canonical terrain/water to connected-volume atmosphere composition.
 use crate::atmosphere::{
-    rebind_geometry, AtmosphereAmbient,
+    rebind_rooms, AtmosphereAmbient,
     AtmosphereModel, AtmosphereRebindReceipt, AtmosphereRebindResult,
     AtmosphereSource, AtmosphereState, CompiledAtmosphere,
 };
@@ -14,10 +14,8 @@ use crate::terrain_water::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-#[path = "terrain_atmosphere_cache.rs"]
-mod cache;
-use cache::AirGeometryCache;
-const RECORD_VERSION: u16 = 3;
+use crate::room_topology::RoomTopology;
+const RECORD_VERSION: u16 = 4;
 const MAX_CONFIG_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -56,7 +54,7 @@ pub struct TerrainAtmosphere {
     config: TerrainAtmosphereConfig,
     compiled: CompiledAtmosphere,
     state: AtmosphereState,
-    geometry: AirGeometryCache,
+    geometry: RoomTopology,
     geometry_revision: u64,
     source_physical_revision: u64,
     source_epoch: u64,
@@ -66,7 +64,7 @@ pub struct TerrainAtmosphere {
 }
 pub(crate) enum PreparedAtmosphereRebind {
     Unchanged {
-        geometry: Option<AirGeometryCache>,
+        geometry: Option<RoomTopology>,
         source_physical_revision: u64,
         source_epoch: u64,
         owner: Arc<()>,
@@ -74,7 +72,7 @@ pub(crate) enum PreparedAtmosphereRebind {
         receipt: AtmosphereRebindReceipt,
     },
     Changed {
-        geometry: AirGeometryCache,
+        geometry: RoomTopology,
         compiled: CompiledAtmosphere,
         state: AtmosphereState,
         geometry_revision: u64,
@@ -93,8 +91,8 @@ impl TerrainAtmosphere {
     ) -> Result<Self, String> {
         validate_config(world, &config)?;
         let snapshot = world.air_geometry(config.bounds())?;
-        let geometry = AirGeometryCache::from_snapshot(&snapshot, &config, world.cell_spacing_m())?;
-        let compiled = CompiledAtmosphere::compile_shared(geometry.definition(&config, world.cell_spacing_m(), snapshot.physical_revision))?;
+        let geometry = RoomTopology::classify(&snapshot, world.cell_spacing_m(), config.exterior == ExteriorPolicy::WorldTop, 4)?;
+        let compiled = CompiledAtmosphere::compile_shared(geometry.definition(&config, snapshot.physical_revision))?;
         let state = compiled.initial();
         Ok(Self {
             config,
@@ -115,6 +113,16 @@ impl TerrainAtmosphere {
     pub fn compiled(&self) -> &CompiledAtmosphere {
         &self.compiled
     }
+    pub(crate) fn receiver(&self, cell: Cell) -> Option<&str> {
+        self.geometry.membership.get(&cell).map(|&i| self.compiled.shared_definition().volumes[i].id.as_str())
+    }
+    pub(crate) fn is_outdoor(&self, cell: Cell) -> bool {
+        self.geometry.outdoors.contains(&cell)
+    }
+    pub(crate) fn sample(&self, cells: &[Cell]) -> Result<Vec<Option<crate::atmosphere::AtmosphereSample>>, String> {
+        let keys: Vec<_> = cells.iter().map(|&cell| self.receiver(cell).unwrap_or("unmodeled").to_owned()).collect();
+        self.compiled.sample_cells(&self.state, &keys)
+    }
     pub fn state(&self) -> &AtmosphereState {
         &self.state
     }
@@ -129,11 +137,16 @@ impl TerrainAtmosphere {
         seconds: f64,
         sources: &[AtmosphereSource],
     ) -> Result<crate::atmosphere::AtmosphereReceipt, String> {
+        self.advance_emissions(seconds, sources, (0.0, 0.0))
+    }
+    pub(crate) fn advance_emissions(
+        &mut self, seconds: f64, sources: &[AtmosphereSource], outdoor: (f64, f64),
+    ) -> Result<crate::atmosphere::AtmosphereReceipt, String> {
         let epoch = self
             .epoch
             .checked_add(1)
             .ok_or("atmosphere owner epoch exhausted")?;
-        let (state, receipt) = self.compiled.advance(&self.state, seconds, sources)?;
+        let (state, receipt) = self.compiled.advance_with_boundary(&self.state, seconds, sources, outdoor)?;
         self.state = state;
         self.epoch = epoch;
         Ok(receipt)
@@ -170,8 +183,8 @@ impl TerrainAtmosphere {
             return Err("atmosphere config exceeds record budget".into());
         }
         let snapshot = world.air_geometry(records.config.bounds())?;
-        let geometry = AirGeometryCache::from_snapshot(&snapshot, &records.config, world.cell_spacing_m())?;
-        let mut current_definition = geometry.definition(&records.config, world.cell_spacing_m(), snapshot.physical_revision);
+        let geometry = RoomTopology::classify(&snapshot, world.cell_spacing_m(), records.config.exterior == ExteriorPolicy::WorldTop, 4)?;
+        let mut current_definition = geometry.definition(&records.config, snapshot.physical_revision);
         // Physical content is rebuilt, not trusted from a second saved geometry.
         // Keep the gas owner's original labels through unrelated world edits;
         // decode_state verifies a SHA-256 binding of the full physical content.
@@ -200,15 +213,13 @@ impl TerrainAtmosphere {
     ) -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
         let changes = world.air_geometry_changes(edit)?;
         self.validate_frontier(changes.physical_revision, changes.epoch)?;
-        let tiles: std::collections::BTreeSet<_> = changes.cells.into_iter()
-            .filter(|cell| cache::contains(self.config.bounds(), *cell))
-            .map(crate::atmosphere::MixingTile::at).collect();
-        if tiles.is_empty() {
-            return Ok(Ok(self.unchanged(None, changes.physical_revision, changes.epoch)));
-        }
-        let patches = tiles.into_iter().map(|tile| world.changed_air_geometry(edit, tile.bounds(self.config.bounds())))
-            .collect::<Result<Vec<_>, _>>()?;
-        let geometry = self.geometry.with_patches(&patches, &self.config, self.spacing)?;
+        let bounds = self.config.bounds();
+        let relevant = changes.cells.iter().any(|c| c.x>=bounds.min.x && c.x<bounds.max.x && c.y>=bounds.min.y && c.y<bounds.max.y && c.z>=bounds.min.z && c.z<bounds.max.z);
+        if !relevant { return Ok(Ok(self.unchanged(None, changes.physical_revision, changes.epoch))); }
+        // Initial coarse producer join. Replace this full bounded classification
+        // with affected-room updates before performance acceptance.
+        let snapshot = world.changed_air_geometry(edit, bounds)?;
+        let geometry = RoomTopology::classify(&snapshot, self.spacing, self.config.exterior == ExteriorPolicy::WorldTop, 4)?;
         self.prepare_geometry(geometry, changes.physical_revision, changes.epoch)
     }
     fn validate_frontier(&self, physical_revision: u64, epoch: u64) -> Result<(), String> {
@@ -217,7 +228,7 @@ impl TerrainAtmosphere {
         }
         Ok(())
     }
-    fn unchanged(&self, geometry: Option<AirGeometryCache>, physical_revision: u64, epoch: u64) -> PreparedAtmosphereRebind {
+    fn unchanged(&self, geometry: Option<RoomTopology>, physical_revision: u64, epoch: u64) -> PreparedAtmosphereRebind {
         PreparedAtmosphereRebind::Unchanged {
             geometry, source_physical_revision: physical_revision, source_epoch: epoch,
             owner: self.owner.clone(), epoch: self.epoch, receipt: unchanged_receipt(&self.compiled),
@@ -231,15 +242,12 @@ impl TerrainAtmosphere {
         if snapshot.bounds != self.config.bounds() {
             return Err("atmosphere rebind candidate is stale or mismatched".into());
         }
-        let geometry = AirGeometryCache::from_snapshot(snapshot, &self.config, self.spacing)?;
+        let geometry = RoomTopology::classify(snapshot, self.spacing, self.config.exterior == ExteriorPolicy::WorldTop, 4)?;
         self.prepare_geometry(geometry, snapshot.physical_revision, snapshot.epoch)
     }
-    fn prepare_geometry(&self, geometry: AirGeometryCache, physical_revision: u64, epoch: u64)
+    fn prepare_geometry(&self, geometry: RoomTopology, physical_revision: u64, epoch: u64)
         -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
-        let mut candidate_definition = geometry.definition(&self.config, self.spacing, physical_revision);
-        if candidate_definition.volumes.is_empty() {
-            return Ok(Err(AtmosphereRebindResult::Blocked(crate::atmosphere::RebindBlockReason::TrappedVolumeRemoved)));
-        }
+        let mut candidate_definition = geometry.definition(&self.config, physical_revision);
         if candidate_definition.same_physical(self.compiled.shared_definition()) {
             return Ok(Ok(self.unchanged(Some(geometry), physical_revision, epoch)));
         }
@@ -251,7 +259,7 @@ impl TerrainAtmosphere {
         // partition the entire air domain a second time for the same edit.
         candidate_definition.revision = next_revision;
         let compiled = self.compiled.recompile_shared(candidate_definition)?;
-        match rebind_geometry(&self.compiled, &self.state, &compiled)? {
+        match rebind_rooms(&self.compiled, &self.state, &compiled, &self.geometry, &geometry)? {
             AtmosphereRebindResult::Blocked(reason) => {
                 Ok(Err(AtmosphereRebindResult::Blocked(reason)))
             }
