@@ -405,7 +405,9 @@ export function createHiveClient({
             ...selectionShortcuts.map(({ id, label }) => React.createElement(
               Button,
               { key: id, size: "sm", variant: "outline",
-                disabled: !state.subjects.some((subject) => subject.id === id),
+                // Eligibility follows the accepted world, even before the next drawing frame.
+                disabled: !latestFacts.some((fact) => fact.id === id && fact.pose?.position &&
+                  fact.visual && projectWorldFact(fact, state.view).pickable),
                 onClick: () => selectEntities([id]) },
               label,
             )),
