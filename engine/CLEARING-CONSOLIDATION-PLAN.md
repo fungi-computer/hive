@@ -31,6 +31,79 @@ this document owns priority. Earlier versions of this file preserve the two-day
 velocity assessment and wider forecast in Git at b508d6e. The 5–8 day feature
 forecast is **not a gate before the next playable repair**.
 
+## Whole-clearing environment requirement — Levi, September 12
+
+This is the current required outcome, not an optional future extension. Levi has
+repeatedly asked for ordinary play throughout the actual 64×64 clearing, across
+its complete [-32,40) vertical range. The central5×5 water box and central16×16
+smoke box are incomplete fixture configuration, not acceptable gameplay borders.
+Do not call environment work complete because a small isolated fixture passes.
+
+- Keep the generated large caves. Levi explicitly rejected shrinking or removing
+  caves to conceal presentation failures. Improve the actual opening's rock edges,
+  depth shading and layer information; do not invent a floor. Lighting/discovery
+  must not reveal hidden creatures or claim exploration from a cosmetic effect.
+- Smoke uses the already-landed sparse local smoke/heat owner throughout the
+  clearing. Derive its spatial extent from the same authored world bounds. Keep
+  bounded local spreading and explicit accounting; do not restore pressure,
+  whole-cave discovery or mandatory processing of empty space.
+- Water must exist outside the starter box and at deep excavations. Keep finite
+  groundwater, finite soil capacity, saturation, seepage and carried-water custody.
+  Untouched generated ground is a cheap initial stock proposal, not a continuously
+  running water solver and never a refill command. Once admitted or depleted, its
+  persisted stock takes precedence, including zero after reload.
+- Separate supported world extent from active environmental work. Work queues may
+  defer spreading without deleting water/smoke or blocking unrelated people. They
+  must not impose a secret spatial boundary where the same action stops working.
+- Root personally owns the groundwater admission/storage/activation change and
+  conservation review. Luna implements only specified mechanical callers in an
+  isolated root. Keep the native terrain, water and compound completion owners;
+  no new game engine, parallel water owner or different research demo.
+
+The next joined proof must perform earned digging outside x/z[-2,2], encounter
+real water, and exercise smoke outside x/z[-8,8] plus a below-ground opening. It
+must retain water through current-format reload and show the same behavior in the
+actual Colony. Run cost evidence against the existing fixed workload/budgets, not
+only the old starter patch. Whole-clearing source, native proof, actual gameplay,
+public deployment and sustained two-client acceptance remain distinct claims.
+
+Implementation facts at46ba067: finite water compiles a fixed authored list and
+scans its faces on each update; multiplying that list over the whole volume is
+not the chosen repair. Gas is already sparse but still clones/validates its active
+stock map. That cost remains measurable work, not covered by the256-cell spread
+budget. No capacity promise is established by widening configuration alone.
+
+### Actual whole-clearing source checkpoint
+
+The current native correction makes point queries sample one generated cell on a
+cold miss, with a bounded8192-entry FIFO cache of immutable samples. Explicit page
+projection still owns full-page generation. Sparse edits remain the first lookup;
+caches are unsaved and cleared on restore. This removes4096-cell page generation
+from a single uncached gas-contact query without changing generated terrain.
+
+The native full-extent smoke law uses the actual Colony seed, identity, sea level,
+metric and bounds: sources near four corners plus the generated central cave,
+zero processed gas cells while clean, the256-cell update bound,20 simulated
+seconds and exact next-step restore. Root's first two runs u6286/u6287 failed the
+cave precondition because the test inherited a different sea level/identity; both
+logs remain. Corrected precondition u6288 progressed but was still CPU-active after
+one minute; root stopped only that owned scope with exit143. Source inspection
+found whole-page work on each point cache miss. After the query correction,
+u6291 passes this law in1.27s in the debug native runner, plus cold-point/edit/
+restore and existing point/page parity laws. All scopes are inactive/dead/empty.
+This is not a WASM/DO/browser capacity result or a full gameplay workload claim.
+
+Luna's9b95dbb/559cee0 repairs cutaway water visibility for already-published open
+columns (9world-view laws, actual touched Fallow pass; inherited findings retained).
+Luna d90ebfb derives the Colony smoke bounds from the single world-bounds definition
+(new consumer law, strict types and actual touched Fallow pass). Root reviewed
+both callers. Joined u6294 passes all3 authored Colony consumer laws and strict
+engine types after correcting the stale expected hearth/lumber placement list.
+The joined touched Fallow audit u6293 passes with zero introduced findings;
+8 inherited dead-code and1 inherited client-cache complexity finding remain.
+Fallow does not establish Rust performance or replace the native laws. The source
+is not yet deployed. Water coverage is still unfinished.
+
 ## Current interaction restoration — September 12
 
 Levi explicitly requests the retained station-first gameplay: click the hearth,
@@ -132,8 +205,8 @@ Try selecting the visible hearth bowl, then Light hearth. Available workers use
 shared delivery/assignment and native fuel/fire. Select a worker for Resume work
 or Deposit; global world tools remain separate. Full recipe brewing, stronger
 scenery, cellar/cave shape and groundwater coverage are unfinished. In particular,
-the water domain is still only5x5x5 and the starting cavern is oversized; this
-release does not claim either defect fixed. The old universal groundwater subtitle
+the water domain is still only5x5x5 and the starting cavern reads as missing
+terrain. Levi wants the large caves retained; their presentation is unfinished. The old universal groundwater subtitle
 is removed. The goal remains active.
 
 ### September 12 earlier ground/invitation interim — fd7937b

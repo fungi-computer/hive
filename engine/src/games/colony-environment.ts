@@ -21,14 +21,12 @@ export const colonyEnvironment: EnvironmentDefinition = {
   world: {
     seed: "colony-world-v1",
     identity: "colony",
-    bounds: {
-      ...colonyWorldBounds,
-    },
+    bounds: colonyWorldBounds,
     slots: { air: 0, soil: 1, stone: 2 },
     seaLevel: 12,
     verticalMetres: 0.54,
   },
-  // Smoke samples use the same full world bounds as terrain and water. Outside
+  // Smoke samples use the same full world bounds as terrain. Outside
   // this domain is unmodeled, never reported as smoke-free air.
   atmosphere: {
     regionId: "colony-village-air",

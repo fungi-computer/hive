@@ -6,10 +6,11 @@
 use crate::generation::{BRICK_SIDE, Cell, CompiledWorld, GENERATOR_VERSION};
 use serde::de::{SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 pub const TERRAIN_STATE_VERSION: u16 = 2;
+const POINT_CACHE_LIMIT: usize = 8192;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterialProperty {
@@ -129,6 +130,8 @@ pub struct TerrainOwner {
     properties: BTreeMap<u16, MaterialProperty>,
     cache: BTreeMap<Page, Box<[u16; 4096]>>,
     max_pages: usize,
+    point_samples: BTreeMap<Cell, u16>,
+    point_order: VecDeque<Cell>,
     edits: BTreeMap<Cell, u16>,
     max_edits: usize,
     max_bytes: usize,
@@ -220,6 +223,8 @@ impl TerrainOwner {
             properties: map,
             cache: BTreeMap::new(),
             max_pages,
+            point_samples: BTreeMap::new(),
+            point_order: VecDeque::new(),
             edits: BTreeMap::new(),
             max_edits,
             max_bytes,
@@ -282,11 +287,20 @@ impl TerrainOwner {
     }
     fn base_query(&mut self, cell: Cell) -> Result<u16, &'static str> {
         let page = Self::page_of(cell).ok_or("invalid page coordinate")?;
-        let values = self.page_values(page)?;
-        Ok(
-            values[((cell.y.rem_euclid(16) as usize * 16 + cell.z.rem_euclid(16) as usize) * 16)
-                + cell.x.rem_euclid(16) as usize],
-        )
+        if let Some(values) = self.cache.get(&page) {
+            return Ok(values[((cell.y.rem_euclid(16) as usize * 16
+                + cell.z.rem_euclid(16) as usize) * 16) + cell.x.rem_euclid(16) as usize]);
+        }
+        if let Some(material) = self.point_samples.get(&cell) { return Ok(*material); }
+        // A local query must not generate 4096 unrelated cells. Full pages are
+        // admitted by page_projection; both paths use the same immutable source.
+        let material = self.generator.sample(cell)?.material;
+        if self.point_samples.len() == POINT_CACHE_LIMIT {
+            if let Some(oldest) = self.point_order.pop_front() { self.point_samples.remove(&oldest); }
+        }
+        self.point_samples.insert(cell, material);
+        self.point_order.push_back(cell);
+        Ok(material)
     }
     pub fn query(&mut self, cell: Cell) -> Result<u16, &'static str> {
         if !self.generator.contains_cell(cell) {
@@ -585,6 +599,8 @@ impl TerrainOwner {
         self.edit_bytes = checked_bytes;
         self.revision = save.revision;
         self.cache.clear();
+        self.point_samples.clear();
+        self.point_order.clear();
         Ok(())
     }
     pub fn is_open_material(&self, slot: u16) -> bool {
@@ -666,6 +682,33 @@ mod tests {
         )
         .unwrap()
     }
+    #[test]
+    fn sparse_point_queries_do_not_generate_unrequested_pages() {
+        let mut terrain = owner();
+        let cells = [Cell { x: -31, y: -7, z: -31 }, Cell { x: 30, y: 0, z: 30 },
+            Cell { x: -1, y: 15, z: 0 }];
+        let before = terrain.export().unwrap();
+        for cell in cells {
+            assert_eq!(terrain.query(cell).unwrap(), terrain.generator.sample(cell).unwrap().material);
+            assert_eq!(terrain.query(cell).unwrap(), terrain.generator.sample(cell).unwrap().material);
+        }
+        assert!(terrain.cache.is_empty());
+        assert_eq!(terrain.point_samples.len(), cells.len());
+        assert_eq!(terrain.point_order.len(), cells.len());
+        assert_eq!(terrain.export().unwrap(), before);
+        let cell = cells[0];
+        let original = terrain.query(cell).unwrap();
+        let replacement = if original == 0 { 1 } else { 0 };
+        let PrepareResult::Prepared(edit) = terrain.prepare_replacement(cell, original, replacement).unwrap() else { panic!("valid edit") };
+        terrain.apply(edit).unwrap();
+        assert_eq!(terrain.query(cell).unwrap(), replacement);
+        let saved = terrain.export().unwrap();
+        terrain.restore(&saved).unwrap();
+        assert!(terrain.point_samples.is_empty());
+        assert!(terrain.point_order.is_empty());
+        assert_eq!(terrain.query(cell).unwrap(), replacement);
+    }
+
     #[test]
     fn point_and_negative_page_queries_agree() {
         let mut terrain = owner();
