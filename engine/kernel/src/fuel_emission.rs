@@ -34,8 +34,9 @@ impl Kernel {
             return Err("emitter lies outside physical world".into());
         }
         let cell = crate::generation::Cell { x: coordinates[0] as i64, y: coordinates[1] as i32, z: coordinates[2] as i64 };
-        let air = environment.atmosphere.as_ref().ok_or("emitter requires atmosphere")?;
-        if air.receiver(cell).is_none() && !air.is_outdoor(cell) {
+        let environment = self.environment.as_mut().unwrap();
+        let air = environment.atmosphere.as_mut().ok_or("emitter requires atmosphere")?;
+        if !air.can_emit(&mut environment.world, cell)? {
             return Err("emitter has no admitted air receiver".into());
         }
         let mut lots: Vec<_> = self.contents.get(station).into_iter().flatten().filter_map(|entity| {

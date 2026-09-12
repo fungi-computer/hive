@@ -95,7 +95,7 @@ export interface InitialSurfacePlacement {
   readonly column: readonly [number, number];
 }
 
-/** Voxel-game air: connected volumes use the same generated/build geometry. */
+/** Sparse smoke/heat with local physical contacts; no ordinary-air pressure simulation. */
 export interface EnvironmentAtmosphere {
   readonly regionId: string;
   readonly min: { readonly x: number; readonly y: number; readonly z: number };

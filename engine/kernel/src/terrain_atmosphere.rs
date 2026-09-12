@@ -1,23 +1,15 @@
-//! Canonical terrain/water to connected-volume atmosphere composition.
-use crate::atmosphere::{
-    rebind_rooms, AtmosphereAmbient,
-    AtmosphereModel, AtmosphereRebindReceipt, AtmosphereRebindResult,
-    AtmosphereSource, AtmosphereState, CompiledAtmosphere,
-};
-#[cfg(test)]
-use crate::atmosphere::{project_geometry, AirAtmosphereGeometry, AtmosphereDefinition, UnmodeledWaterPolicy};
-#[cfg(test)]
-use crate::terrain_water::{AirGeometryFaceKind, AirGeometryFrontier, AirGeometrySnapshot};
+//! Sparse local smoke/heat gameplay. No carrier air, pressure or room graph.
 use crate::generation::Cell;
-use crate::terrain_water::{
-    AirGeometryBounds, TerrainWater,
-};
+use crate::terrain_water::{AirExteriorStatus, LocalAir, TerrainWater};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use crate::room_topology::RoomTopology;
-const RECORD_VERSION: u16 = 4;
-const MAX_CONFIG_BYTES: usize = 64 * 1024;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+const VERSION: u16 = 5;
+const MAX_ACTIVE: usize = 4096;
+const WORK_PER_UPDATE: usize = 256;
+const INTERVAL: f64 = 0.25;
+const TRACE_SMOKE: f64 = 1e-9;
+const TRACE_HEAT: f64 = 0.01;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ExteriorPolicy {
     Closed,
@@ -29,412 +21,432 @@ pub struct TerrainAtmosphereConfig {
     pub region_id: String,
     pub min: Cell,
     pub max: Cell,
-    pub ambient: AtmosphereAmbient,
-    pub model: AtmosphereModel,
     pub exterior: ExteriorPolicy,
+    pub ambient_temperature_c: f64,
+    pub spread_per_second: f64,
+    pub rise_bias: f64,
+    pub wind: [f64; 3],
+    pub outdoor_loss_per_second: f64,
+    pub heat_capacity_j_per_m3_k: f64,
 }
 impl TerrainAtmosphereConfig {
-    pub(crate) fn bounds(&self) -> AirGeometryBounds {
-        AirGeometryBounds {
-            min: self.min,
-            max: self.max,
-        }
+    fn contains(&self, c: Cell) -> bool {
+        c.x >= self.min.x
+            && c.x < self.max.x
+            && c.y >= self.min.y
+            && c.y < self.max.y
+            && c.z >= self.min.z
+            && c.z < self.max.z
     }
 }
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+struct Amount {
+    smoke: f64,
+    heat: f64,
+    updated: f64,
+}
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+struct SmokeState {
+    clock: f64,
+    stocks: BTreeMap<Cell, Amount>,
+    queue: VecDeque<Cell>,
+    smoke_emitted: f64,
+    heat_emitted: f64,
+    smoke_out: f64,
+    heat_out: f64,
+    smoke_deposited: f64,
+    heat_deposited: f64,
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct TerrainAtmosphereRecords {
     version: u16,
     config: TerrainAtmosphereConfig,
-    geometry_revision: u64,
-    geometry_identity: String,
-    state: Vec<u8>,
+    state: SmokeState,
+}
+#[derive(Clone, Debug)]
+struct Contact {
+    physical: LocalAir,
+    outdoor: bool,
 }
 pub struct TerrainAtmosphere {
     config: TerrainAtmosphereConfig,
-    compiled: CompiledAtmosphere,
-    state: AtmosphereState,
-    geometry: RoomTopology,
+    state: SmokeState,
+    contacts: BTreeMap<Cell, Contact>,
     geometry_revision: u64,
-    source_physical_revision: u64,
-    source_epoch: u64,
-    spacing: [f64; 3],
-    owner: Arc<()>,
-    epoch: u64,
 }
-pub(crate) enum PreparedAtmosphereRebind {
-    Unchanged {
-        geometry: Option<RoomTopology>,
-        source_physical_revision: u64,
-        source_epoch: u64,
-        owner: Arc<()>,
-        epoch: u64,
-        receipt: AtmosphereRebindReceipt,
-    },
-    Changed {
-        geometry: RoomTopology,
-        compiled: CompiledAtmosphere,
-        state: AtmosphereState,
-        geometry_revision: u64,
-        source_physical_revision: u64,
-        source_epoch: u64,
-        owner: Arc<()>,
-        epoch: u64,
-        receipt: AtmosphereRebindReceipt,
-    },
+pub(crate) struct SmokeSource {
+    pub cell: Cell,
+    pub smoke_kg: f64,
+    pub heat_j: f64,
 }
-
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SmokeReceipt {
+    pub processed_cells: usize,
+    pub pending_cells: usize,
+    pub active_cells: usize,
+    pub source_smoke_kg: f64,
+    pub source_heat_j: f64,
+    pub escaped_smoke_kg: f64,
+    pub escaped_heat_j: f64,
+    pub deposited_smoke_kg: f64,
+    pub deposited_heat_j: f64,
+}
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SmokeSample {
+    volume_id: String,
+    temperature_c: f64,
+    smoke_kg_m3: f64,
+}
 impl TerrainAtmosphere {
     pub fn fresh(
         world: &mut TerrainWater,
         config: TerrainAtmosphereConfig,
     ) -> Result<Self, String> {
         validate_config(world, &config)?;
-        let snapshot = world.air_geometry(config.bounds())?;
-        let geometry = RoomTopology::classify(&snapshot, world.cell_spacing_m(), config.exterior == ExteriorPolicy::WorldTop, 4)?;
-        let compiled = CompiledAtmosphere::compile_shared(geometry.definition(&config, snapshot.physical_revision))?;
-        let state = compiled.initial();
         Ok(Self {
             config,
-            geometry,
-            compiled,
-            state,
-            geometry_revision: snapshot.physical_revision,
-            source_physical_revision: snapshot.physical_revision,
-            source_epoch: snapshot.epoch,
-            spacing: world.cell_spacing_m(),
-            owner: Arc::new(()),
-            epoch: 0,
+            state: SmokeState::default(),
+            contacts: BTreeMap::new(),
+            geometry_revision: world.terrain_revision(),
         })
+    }
+    #[cfg(test)]
+    pub(crate) fn emitted(&self) -> (f64, f64) {
+        (self.state.smoke_emitted, self.state.heat_emitted)
     }
     pub fn config(&self) -> &TerrainAtmosphereConfig {
         &self.config
     }
-    pub fn compiled(&self) -> &CompiledAtmosphere {
-        &self.compiled
-    }
-    pub(crate) fn receiver(&self, cell: Cell) -> Option<&str> {
-        self.geometry.membership.get(&cell).map(|&i| self.compiled.shared_definition().volumes[i].id.as_str())
-    }
-    pub(crate) fn is_outdoor(&self, cell: Cell) -> bool {
-        self.geometry.outdoors.contains(&cell)
-    }
-    pub(crate) fn sample(&self, cells: &[Cell]) -> Result<Vec<Option<crate::atmosphere::AtmosphereSample>>, String> {
-        let keys: Vec<_> = cells.iter().map(|&cell| self.receiver(cell).unwrap_or("unmodeled").to_owned()).collect();
-        self.compiled.sample_cells(&self.state, &keys)
-    }
-    pub fn state(&self) -> &AtmosphereState {
-        &self.state
-    }
     pub fn geometry_revision(&self) -> u64 {
         self.geometry_revision
     }
-    pub fn source_epoch(&self) -> u64 {
-        self.source_epoch
+    fn contact(&mut self, world: &mut TerrainWater, cell: Cell) -> Result<Contact, String> {
+        if let Some(contact) = self.contacts.get(&cell) {
+            return Ok(contact.clone());
+        }
+        let mut physical = world.local_air(cell)?;
+        physical.neighbors.retain(|c| self.config.contains(*c));
+        let outdoor = physical.volume_m3 > 0.0
+            && self.config.exterior == ExteriorPolicy::WorldTop
+            && matches!(
+                world.air_exterior(&[cell], self.config.max.y)?[0].status,
+                AirExteriorStatus::ClearToWorldTop
+            );
+        let contact = Contact { physical, outdoor };
+        // Disposable cache only; evicting does not drop pending gas or time.
+        if self.contacts.len() >= MAX_ACTIVE * 2 {
+            self.contacts.clear();
+        }
+        self.contacts.insert(cell, contact.clone());
+        Ok(contact)
     }
-    pub fn advance(
+    pub(crate) fn can_emit(
         &mut self,
-        seconds: f64,
-        sources: &[AtmosphereSource],
-    ) -> Result<crate::atmosphere::AtmosphereReceipt, String> {
-        self.advance_emissions(seconds, sources, (0.0, 0.0))
+        world: &mut TerrainWater,
+        cell: Cell,
+    ) -> Result<bool, String> {
+        Ok(self.config.contains(cell) && self.contact(world, cell)?.physical.volume_m3 > 0.0)
     }
-    pub(crate) fn advance_emissions(
-        &mut self, seconds: f64, sources: &[AtmosphereSource], outdoor: (f64, f64),
-    ) -> Result<crate::atmosphere::AtmosphereReceipt, String> {
-        let epoch = self
-            .epoch
-            .checked_add(1)
-            .ok_or("atmosphere owner epoch exhausted")?;
-        let (state, receipt) = self.compiled.advance_with_boundary(&self.state, seconds, sources, outdoor)?;
-        self.state = state;
-        self.epoch = epoch;
-        Ok(receipt)
+    /// Physical publication never waits for gas pressure. Rebuild only affected
+    /// contacts lazily; a roof can change outdoor status below it in its column.
+    pub(crate) fn invalidate(&mut self, cells: &[Cell], revision: u64) {
+        if cells.is_empty() {
+            return;
+        }
+        let columns: BTreeSet<_> = cells.iter().map(|c| (c.x, c.z)).collect();
+        self.contacts.retain(|c, _| {
+            ![(0_i64, 0_i64), (1, 0), (-1, 0), (0, 1), (0, -1)]
+                .into_iter()
+                .any(|(dx, dz)| {
+                    c.x.checked_add(dx)
+                        .zip(c.z.checked_add(dz))
+                        .is_some_and(|column| columns.contains(&column))
+                })
+        });
+        self.geometry_revision = revision;
+    }
+    pub(crate) fn sample(
+        &mut self,
+        world: &mut TerrainWater,
+        cells: &[Cell],
+    ) -> Result<Vec<Option<SmokeSample>>, String> {
+        if cells.len() > 64 {
+            return Err("smoke observation budget".into());
+        }
+        let mut result = Vec::with_capacity(cells.len());
+        for &cell in cells {
+            if !self.config.contains(cell) {
+                result.push(None);
+                continue;
+            }
+            let contact = self.contact(world, cell)?;
+            if contact.physical.volume_m3 <= 0.0 {
+                result.push(None);
+                continue;
+            }
+            let amount = self.state.stocks.get(&cell).copied().unwrap_or_default();
+            result.push(Some(SmokeSample {
+                volume_id: format!("cell:{},{},{}", cell.x, cell.y, cell.z),
+                temperature_c: self.config.ambient_temperature_c
+                    + amount.heat
+                        / (contact.physical.volume_m3 * self.config.heat_capacity_j_per_m3_k),
+                smoke_kg_m3: amount.smoke / contact.physical.volume_m3,
+            }));
+        }
+        Ok(result)
     }
     pub fn save(&self) -> Result<TerrainAtmosphereRecords, String> {
-        let state = self.compiled.encode_state(&self.state)?;
-        let config_bytes =
-            postcard::to_allocvec(&self.config).map_err(|_| "atmosphere config encoding failed")?;
-        if config_bytes.len() > MAX_CONFIG_BYTES {
-            return Err("atmosphere config exceeds record budget".into());
-        }
         Ok(TerrainAtmosphereRecords {
-            version: RECORD_VERSION,
+            version: VERSION,
             config: self.config.clone(),
-            geometry_revision: self.compiled.shared_definition().revision,
-            geometry_identity: self.compiled.shared_definition().geometry_identity.clone(),
-            state,
+            state: self.state.clone(),
         })
     }
     pub fn restore(
         world: &mut TerrainWater,
         records: &TerrainAtmosphereRecords,
     ) -> Result<Self, String> {
-        if records.version != RECORD_VERSION {
-            return Err("unsupported terrain atmosphere record version".into());
+        if records.version != VERSION {
+            return Err("unsupported local smoke records".into());
         }
-        validate_config(world, &records.config)?;
-        if records.state.len() > 2 * 1024 * 1024 {
-            return Err("atmosphere state exceeds record budget".into());
-        }
-        let config_bytes = postcard::to_allocvec(&records.config)
-            .map_err(|_| "atmosphere config encoding failed")?;
-        if config_bytes.len() > MAX_CONFIG_BYTES {
-            return Err("atmosphere config exceeds record budget".into());
-        }
-        let snapshot = world.air_geometry(records.config.bounds())?;
-        let geometry = RoomTopology::classify(&snapshot, world.cell_spacing_m(), records.config.exterior == ExteriorPolicy::WorldTop, 4)?;
-        let mut current_definition = geometry.definition(&records.config, snapshot.physical_revision);
-        // Physical content is rebuilt, not trusted from a second saved geometry.
-        // Keep the gas owner's original labels through unrelated world edits;
-        // decode_state verifies a SHA-256 binding of the full physical content.
-        current_definition.revision = records.geometry_revision;
-        current_definition.geometry_identity = records.geometry_identity.clone();
-        let compiled = CompiledAtmosphere::compile_shared(current_definition)?;
-        let state = compiled.decode_state(&records.state)?;
-        let geometry_revision = compiled.shared_definition().revision;
-        Ok(Self {
-            config: records.config.clone(),
-            geometry,
-            compiled,
-            state,
-            geometry_revision,
-            source_physical_revision: snapshot.physical_revision,
-            source_epoch: snapshot.epoch,
-            spacing: world.cell_spacing_m(),
-            owner: Arc::new(()),
-            epoch: 0,
-        })
+        let mut air = Self::fresh(world, records.config.clone())?;
+        validate_state(&records.state, &air.config)?;
+        air.state = records.state.clone();
+        Ok(air)
     }
-    pub(crate) fn prepare_world_change(
-        &self,
-        world: &mut TerrainWater,
-        edit: crate::terrain_water::AirGeometryEdit<'_>,
-    ) -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
-        let changes = world.air_geometry_changes(edit)?;
-        self.validate_frontier(changes.physical_revision, changes.epoch)?;
-        let bounds = self.config.bounds();
-        let relevant = changes.cells.iter().any(|c| c.x>=bounds.min.x && c.x<bounds.max.x && c.y>=bounds.min.y && c.y<bounds.max.y && c.z>=bounds.min.z && c.z<bounds.max.z);
-        if !relevant { return Ok(Ok(self.unchanged(None, changes.physical_revision, changes.epoch))); }
-        // Initial coarse producer join. Replace this full bounded classification
-        // with affected-room updates before performance acceptance.
-        let snapshot = world.changed_air_geometry(edit, bounds)?;
-        let geometry = RoomTopology::classify(&snapshot, self.spacing, self.config.exterior == ExteriorPolicy::WorldTop, 4)?;
-        self.prepare_geometry(geometry, changes.physical_revision, changes.epoch)
-    }
-    fn validate_frontier(&self, physical_revision: u64, epoch: u64) -> Result<(), String> {
-        if physical_revision < self.source_physical_revision || epoch <= self.source_epoch {
-            return Err("atmosphere rebind candidate is stale or mismatched".into());
-        }
-        Ok(())
-    }
-    fn unchanged(&self, geometry: Option<RoomTopology>, physical_revision: u64, epoch: u64) -> PreparedAtmosphereRebind {
-        PreparedAtmosphereRebind::Unchanged {
-            geometry, source_physical_revision: physical_revision, source_epoch: epoch,
-            owner: self.owner.clone(), epoch: self.epoch, receipt: unchanged_receipt(&self.compiled),
-        }
-    }
-    #[cfg(test)]
-    pub(crate) fn prepare_rebind(
-        &self, snapshot: &AirGeometrySnapshot,
-    ) -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
-        self.validate_frontier(snapshot.physical_revision, snapshot.epoch)?;
-        if snapshot.bounds != self.config.bounds() {
-            return Err("atmosphere rebind candidate is stale or mismatched".into());
-        }
-        let geometry = RoomTopology::classify(snapshot, self.spacing, self.config.exterior == ExteriorPolicy::WorldTop, 4)?;
-        self.prepare_geometry(geometry, snapshot.physical_revision, snapshot.epoch)
-    }
-    fn prepare_geometry(&self, geometry: RoomTopology, physical_revision: u64, epoch: u64)
-        -> Result<Result<PreparedAtmosphereRebind, AtmosphereRebindResult>, String> {
-        let mut candidate_definition = geometry.definition(&self.config, physical_revision);
-        if candidate_definition.same_physical(self.compiled.shared_definition()) {
-            return Ok(Ok(self.unchanged(Some(geometry), physical_revision, epoch)));
-        }
-        let next_revision = self
-            .geometry_revision
-            .checked_add(1)
-            .ok_or("atmosphere geometry revision exhausted")?;
-        // The exact candidate was already projected above. Do not scan and
-        // partition the entire air domain a second time for the same edit.
-        candidate_definition.revision = next_revision;
-        let compiled = self.compiled.recompile_shared(candidate_definition)?;
-        match rebind_rooms(&self.compiled, &self.state, &compiled, &self.geometry, &geometry)? {
-            AtmosphereRebindResult::Blocked(reason) => {
-                Ok(Err(AtmosphereRebindResult::Blocked(reason)))
-            }
-            AtmosphereRebindResult::Applied { state, receipt } => {
-                Ok(Ok(PreparedAtmosphereRebind::Changed {
-                    compiled,
-                    state,
-                    geometry,
-                    geometry_revision: next_revision,
-                    source_physical_revision: physical_revision,
-                    source_epoch: epoch,
-                    owner: self.owner.clone(),
-                    epoch: self.epoch,
-                    receipt,
-                }))
-            }
-        }
-    }
-    pub(crate) fn apply_rebind(
+    /// Sources and bounded spreading publish together; rejected admission leaves
+    /// paid fuel progress and all smoke amounts unchanged.
+    pub(crate) fn advance(
         &mut self,
-        prepared: PreparedAtmosphereRebind,
-    ) -> Result<AtmosphereRebindReceipt, String> {
-        let (owner, prepared_epoch) = match &prepared {
-            PreparedAtmosphereRebind::Unchanged { owner, epoch, .. }
-            | PreparedAtmosphereRebind::Changed { owner, epoch, .. } => (owner, *epoch),
+        world: &mut TerrainWater,
+        seconds: f64,
+        sources: &[SmokeSource],
+    ) -> Result<SmokeReceipt, String> {
+        if !seconds.is_finite() || !(0.0..=6.0).contains(&seconds) || sources.len() > 64 {
+            return Err("invalid smoke interval or sources".into());
+        }
+        if seconds == 0.0 && !sources.is_empty() {
+            return Err("paused smoke cannot emit".into());
+        }
+        for s in sources {
+            if !s.smoke_kg.is_finite()
+                || s.smoke_kg < 0.0
+                || !s.heat_j.is_finite()
+                || s.heat_j < 0.0
+                || !self.can_emit(world, s.cell)?
+            {
+                return Err("invalid smoke source".into());
+            }
+        }
+        let mut next = self.state.clone();
+        next.clock += seconds;
+        if !next.clock.is_finite() {
+            return Err("smoke clock overflow".into());
+        }
+        for s in sources {
+            add(&mut next, s.cell, s.smoke_kg, s.heat_j, self.state.clock)?;
+            next.smoke_emitted += s.smoke_kg;
+            next.heat_emitted += s.heat_j;
+        }
+        let count = if seconds > 0.0 {
+            next.queue.len().min(WORK_PER_UPDATE)
+        } else {
+            0
         };
-        if !Arc::ptr_eq(&self.owner, owner) || self.epoch != prepared_epoch {
-            return Err("prepared atmosphere rebind is stale or foreign".into());
-        }
-        let epoch = self
-            .epoch
-            .checked_add(1)
-            .ok_or("atmosphere owner epoch exhausted")?;
-        match prepared {
-            PreparedAtmosphereRebind::Unchanged {
-                geometry,
-                source_physical_revision,
-                source_epoch,
-                receipt,
-                ..
-            } => {
-                if let Some(geometry) = geometry { self.geometry = geometry; }
-                self.source_physical_revision = source_physical_revision;
-                self.source_epoch = source_epoch;
-                self.epoch = epoch;
-                Ok(receipt)
+        let mut processed = 0;
+        for _ in 0..count {
+            let cell = next.queue.pop_front().ok_or("smoke queue mismatch")?;
+            let amount = *next.stocks.get(&cell).ok_or("smoke stock missing")?;
+            let dt = (next.clock - amount.updated).min(INTERVAL);
+            if dt < INTERVAL {
+                next.queue.push_back(cell);
+                continue;
             }
-            PreparedAtmosphereRebind::Changed {
-                geometry,
-                compiled,
-                state,
-                geometry_revision,
-                source_physical_revision,
-                source_epoch,
-                receipt,
-                ..
-            } => {
-                self.geometry = geometry;
-                self.compiled = compiled;
-                self.state = state;
-                self.geometry_revision = geometry_revision;
-                self.source_physical_revision = source_physical_revision;
-                self.source_epoch = source_epoch;
-                self.epoch = epoch;
-                Ok(receipt)
+            let contact = self.contact(world, cell)?;
+            let mut remaining = amount;
+            remaining.updated += dt;
+            processed += 1;
+            // Construction/water occupying a cell deposits its trace pollution
+            // locally. This explicit gameplay sink cannot block physical work.
+            if contact.physical.volume_m3 <= 0.0 {
+                next.smoke_deposited += remaining.smoke;
+                next.heat_deposited += remaining.heat;
+                next.stocks.remove(&cell);
+                continue;
+            }
+            if contact.outdoor {
+                let fraction = (self.config.outdoor_loss_per_second * dt).min(1.0);
+                let smoke = remaining.smoke * fraction;
+                let heat = remaining.heat * fraction;
+                remaining.smoke -= smoke;
+                remaining.heat -= heat;
+                next.smoke_out += smoke;
+                next.heat_out += heat;
+            }
+            let targets: Vec<_> = contact
+                .physical
+                .neighbors
+                .iter()
+                .filter(|c| next.stocks.contains_key(c) || next.stocks.len() < MAX_ACTIVE)
+                .map(|&c| {
+                    let direction = [
+                        (c.x - cell.x) as f64,
+                        f64::from(c.y - cell.y),
+                        (c.z - cell.z) as f64,
+                    ];
+                    let wind = direction
+                        .iter()
+                        .zip(self.config.wind)
+                        .map(|(a, b)| a * b)
+                        .sum::<f64>();
+                    let weight = (1.0
+                        + wind
+                        + if c.y > cell.y {
+                            self.config.rise_bias
+                        } else {
+                            0.0
+                        })
+                    .max(0.0);
+                    (c, weight)
+                })
+                .collect();
+            let weights: f64 = targets.iter().map(|(_, w)| w).sum();
+            let fraction = (self.config.spread_per_second * dt).min(0.5);
+            if weights > 0.0 {
+                let (smoke, heat) = (remaining.smoke * fraction, remaining.heat * fraction);
+                for (target, weight) in targets {
+                    let share = weight / weights;
+                    if share == 0.0
+                        || (!next.stocks.contains_key(&target) && next.stocks.len() >= MAX_ACTIVE)
+                    {
+                        continue;
+                    }
+                    let (s, h) = (smoke * share, heat * share);
+                    add(&mut next, target, s, h, self.state.clock)?;
+                    remaining.smoke -= s;
+                    remaining.heat -= h;
+                }
+            }
+            if remaining.smoke <= TRACE_SMOKE && remaining.heat <= TRACE_HEAT {
+                next.smoke_deposited += remaining.smoke;
+                next.heat_deposited += remaining.heat;
+                next.stocks.remove(&cell);
+            } else {
+                next.stocks.insert(cell, remaining);
+                next.queue.push_back(cell);
             }
         }
+        validate_state(&next, &self.config)?;
+        let receipt = SmokeReceipt {
+            processed_cells: processed,
+            pending_cells: next.queue.len(),
+            active_cells: next.stocks.len(),
+            source_smoke_kg: next.smoke_emitted - self.state.smoke_emitted,
+            source_heat_j: next.heat_emitted - self.state.heat_emitted,
+            escaped_smoke_kg: next.smoke_out - self.state.smoke_out,
+            escaped_heat_j: next.heat_out - self.state.heat_out,
+            deposited_smoke_kg: next.smoke_deposited - self.state.smoke_deposited,
+            deposited_heat_j: next.heat_deposited - self.state.heat_deposited,
+        };
+        self.state = next;
+        Ok(receipt)
     }
 }
-
-fn validate_config(world: &TerrainWater, config: &TerrainAtmosphereConfig) -> Result<(), String> {
-    if config.region_id.is_empty() {
-        return Err("atmosphere region id is empty".into());
+fn add(state: &mut SmokeState, cell: Cell, smoke: f64, heat: f64, time: f64) -> Result<(), String> {
+    if smoke == 0.0 && heat == 0.0 {
+        return Ok(());
     }
+    if !state.stocks.contains_key(&cell) {
+        if state.stocks.len() >= MAX_ACTIVE {
+            return Err("active smoke budget reached".into());
+        }
+        state.stocks.insert(
+            cell,
+            Amount {
+                updated: time,
+                ..Amount::default()
+            },
+        );
+        state.queue.push_back(cell);
+    }
+    let amount = state.stocks.get_mut(&cell).unwrap();
+    amount.smoke += smoke;
+    amount.heat += heat;
+    Ok(())
+}
+fn validate_config(world: &TerrainWater, c: &TerrainAtmosphereConfig) -> Result<(), String> {
     let b = world.bounds();
-    if config.min.x >= config.max.x
-        || config.min.y >= config.max.y
-        || config.min.z >= config.max.z
-        || config.min.x < b.min_x
-        || config.max.x > b.max_x
-        || config.min.y < b.min_y
-        || config.max.y > b.max_y
-        || config.min.z < b.min_z
-        || config.max.z > b.max_z
+    if c.region_id.is_empty()
+        || c.region_id.len() > 128
+        || c.min.x >= c.max.x
+        || c.min.y >= c.max.y
+        || c.min.z >= c.max.z
+        || c.min.x < b.min_x
+        || c.max.x > b.max_x
+        || c.min.y < b.min_y
+        || c.max.y > b.max_y
+        || c.min.z < b.min_z
+        || c.max.z > b.max_z
+        || (c.exterior == ExteriorPolicy::WorldTop && c.max.y != b.max_y)
     {
-        return Err("atmosphere bounds outside generated world".into());
+        return Err("invalid smoke bounds".into());
     }
-    if config.exterior == ExteriorPolicy::WorldTop && config.max.y != b.max_y {
-        return Err("world-top atmosphere requires the world upper bound".into());
+    if !c.ambient_temperature_c.is_finite()
+        || !c.heat_capacity_j_per_m3_k.is_finite()
+        || c.heat_capacity_j_per_m3_k <= 0.0
+        || ![c.spread_per_second, c.rise_bias, c.outdoor_loss_per_second]
+            .iter()
+            .all(|v| v.is_finite() && *v >= 0.0 && *v <= 100.0)
+        || !c.wind.iter().all(|v| v.is_finite() && v.abs() <= 100.0)
+    {
+        return Err("invalid local smoke model".into());
     }
     Ok(())
 }
-fn unchanged_receipt(compiled: &CompiledAtmosphere) -> AtmosphereRebindReceipt {
-    let volume_m3 = compiled
-        .shared_definition()
-        .volumes
-        .iter()
-        .flat_map(|volume| volume.members.iter())
-        .map(|member| member.volume_m3)
-        .sum();
-    AtmosphereRebindReceipt {
-        old_identity: compiled.identity().to_owned(),
-        new_identity: compiled.identity().to_owned(),
-        old_volume_m3: volume_m3,
-        new_volume_m3: volume_m3,
-        carrier_boundary_kg: 0.0,
-        smoke_boundary_kg: 0.0,
-        heat_boundary_j: 0.0,
-        routed_parcels: Vec::new(),
+fn validate_state(s: &SmokeState, c: &TerrainAtmosphereConfig) -> Result<(), String> {
+    if !s.clock.is_finite()
+        || s.clock < 0.0
+        || s.stocks.len() > MAX_ACTIVE
+        || s.queue.len() != s.stocks.len()
+        || s.queue.iter().copied().collect::<BTreeSet<_>>() != s.stocks.keys().copied().collect()
+    {
+        return Err("invalid smoke queue".into());
     }
-}
-#[cfg(test)]
-pub(crate) fn definition_from_snapshot(
-    config: &TerrainAtmosphereConfig,
-    snapshot: &AirGeometrySnapshot,
-    spacing: [f64; 3],
-) -> Result<(AtmosphereDefinition, AirAtmosphereGeometry), String> {
-    let mut projected = project_geometry(
-        snapshot,
-        spacing,
-        UnmodeledWaterPolicy::AssumeNoAdmittedWater,
-    )?;
-    let mut openings = projected.openings.clone();
-    if config.exterior == ExteriorPolicy::WorldTop {
-        let mut volume_by_cell = std::collections::BTreeMap::new();
-        for volume in &projected.volumes {
-            for member in &volume.members {
-                volume_by_cell.insert(member.cell_id.as_str(), volume.id.as_str());
-            }
-        }
-        for face in &snapshot.faces {
-            let AirGeometryFaceKind::Frontier {
-                neighbor: AirGeometryFrontier::OutsideQuery,
-                sealed: false,
-            } = &face.kind
-            else {
-                continue;
-            };
-            if !matches!(face.face.axis, crate::structure_geometry::FaceAxis::Y)
-                || face.face.cell.y != config.max.y.saturating_sub(1)
-            {
-                continue;
-            }
-            let cell_id = format!(
-                "cell:{},{},{}",
-                face.face.cell.x, face.face.cell.y, face.face.cell.z
-            );
-            let Some(volume_id) = volume_by_cell.get(cell_id.as_str()) else {
-                continue;
-            };
-            openings.push(crate::atmosphere::AtmosphereOpeningDefinition {
-                id: format!("sky:{},{},{}", face.face.cell.x, face.face.cell.y, face.face.cell.z),
-                from: (*volume_id).to_owned(),
-                from_cell_id: cell_id,
-                to: None,
-                to_cell_id: None,
-                area_m2: spacing[0] * spacing[2],
-                distance_m: spacing[1],
-                elevation_m: (f64::from(face.face.cell.y) + 1.0) * spacing[1],
-                permeability: 1.0,
-            });
-        }
+    if ![
+        s.smoke_emitted,
+        s.heat_emitted,
+        s.smoke_out,
+        s.heat_out,
+        s.smoke_deposited,
+        s.heat_deposited,
+    ]
+    .iter()
+    .all(|v| v.is_finite() && *v >= 0.0)
+    {
+        return Err("invalid smoke ledger".into());
     }
-    openings.sort_by(|a, b| a.to.is_none().cmp(&b.to.is_none()).then_with(|| a.id.cmp(&b.id)));
-    let identity = format!("{}:exterior:{:?}", projected.identity, config.exterior);
-    let definition = AtmosphereDefinition {
-        version: "connected-atmosphere-definition-v1".into(),
-        region_id: config.region_id.clone(),
-        geometry_identity: identity,
-        revision: snapshot.physical_revision,
-        ambient: config.ambient.clone(),
-        model: config.model.clone(),
-        volumes: projected.volumes.clone(),
-        openings,
-    };
-    projected.openings = definition.openings.clone();
-    Ok((definition, projected))
+    let (mut smoke, mut heat) = (0.0, 0.0);
+    for (cell, a) in &s.stocks {
+        if !c.contains(*cell)
+            || ![a.smoke, a.heat, a.updated]
+                .iter()
+                .all(|v| v.is_finite() && *v >= 0.0)
+            || a.updated > s.clock
+        {
+            return Err("invalid smoke amount".into());
+        }
+        smoke += a.smoke;
+        heat += a.heat;
+    }
+    if (smoke + s.smoke_out + s.smoke_deposited - s.smoke_emitted).abs()
+        > 1e-8 * s.smoke_emitted.max(1.0)
+        || (heat + s.heat_out + s.heat_deposited - s.heat_emitted).abs()
+            > 1e-8 * s.heat_emitted.max(1.0)
+    {
+        return Err("smoke amount conservation".into());
+    }
+    Ok(())
 }

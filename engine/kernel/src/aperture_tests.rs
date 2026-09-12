@@ -112,21 +112,16 @@ fn native_open_aperture_record_restores_and_corrupt_shape_is_rejected() {
 }
 
 #[test]
-fn closing_air_filled_aperture_rejects_without_publishing_any_physical_owner() {
+fn closing_aperture_is_not_blocked_by_ordinary_air() {
     let (mut kernel, support, _) = constructed_aperture();
     assert_eq!(aperture_action(&mut kernel, true)["results"][0]["accepted"], true);
-    // A one-cell modeled closed pocket in the opening has nowhere to send
-    // its air if the aperture is closed. Water is deliberately elsewhere:
-    // this must exercise the actual air rejection, not a water/body blocker.
+    // Ordinary clean air is not a physical obstruction.
     let cell = Cell { y: support.y + 1, ..support };
     let config_value = serde_json::json!({
         "regionId":"sealed-aperture-pocket",
         "min":cell,"max":{"x":cell.x+1,"y":cell.y+1,"z":cell.z+1},
-        "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
-        "model":{"specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,
-          "mixingVelocityMps":1.0,"buoyancyVelocityMpsK":0.1,"pressureVelocityMpsPa":0.001,
-          "maxStepS":0.2,"maxExchangeFraction":0.5,"maxPressureRatio":4.0,
-          "maxTemperatureDeltaK":100.0,"maxSmokeMassFraction":0.01},
+        "ambientTemperatureC":20.0,"spreadPerSecond":1.0,"riseBias":2.0,"wind":[0.0,0.0,0.0],
+        "outdoorLossPerSecond":2.0,"heatCapacityJPerM3K":1200.0,
         "exterior":"Closed"
     });
     let config = serde_json::from_value(config_value.clone()).unwrap();
@@ -135,16 +130,8 @@ fn closing_air_filled_aperture_rejects_without_publishing_any_physical_owner() {
     let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
     definition["atmosphere"] = config_value;
     environment.definition = definition.to_string();
-    let before = kernel.save_records().unwrap();
     let result = aperture_action(&mut kernel, false);
-    assert_eq!(result["results"][0]["accepted"], false);
-    assert_eq!(result["results"][0]["reason"], "aperture change is blocked by atmosphere");
-    let after = kernel.save_records().unwrap();
-    assert_eq!(before.atmosphere, after.atmosphere);
-    let left = before.environment.unwrap().1;
-    let right = after.environment.unwrap().1;
-    assert_eq!(left.header, right.header);
-    assert_eq!(left.terrain, right.terrain);
-    assert_eq!(left.water, right.water);
-    assert_eq!(left.structures, right.structures);
+    assert_eq!(result["results"][0]["accepted"], true);
+    let records=kernel.save_records().unwrap();
+    Kernel::new().restore_records(&records).unwrap();
 }

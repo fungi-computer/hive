@@ -174,9 +174,7 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(site_entity).is_some() { return Ok(false); }
         let marker_weight = self.registry.weight("hive.sealed-container", &record(&SealedContainer {}));
         if self.state_weight.saturating_add(marker_weight) > STATE_BYTES { return Ok(false); }
-        if !self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)? {
-            return Ok(false);
-        }
+        self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
         finished.worker = None;
@@ -215,9 +213,7 @@ impl Kernel {
             match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("aperture change is blocked".into()) }
         };
         if self.structure_contact_problem(&prepared)?.is_some() { return Err("aperture change would obstruct an actor".into()); }
-        if !self.environment.as_mut().ok_or("structure needs environment")?.apply_structures(prepared)? {
-            return Err("aperture change is blocked by atmosphere".into());
-        }
+        self.environment.as_mut().ok_or("structure needs environment")?.apply_structures(prepared)?;
         Ok(())
     }
 

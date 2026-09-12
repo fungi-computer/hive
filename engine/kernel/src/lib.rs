@@ -5,7 +5,6 @@ pub mod generation;
 pub mod terrain;
 pub mod terrain_water;
 pub mod terrain_atmosphere;
-mod room_topology;
 #[cfg(test)]
 mod terrain_atmosphere_tests;
 pub mod terrain_traversal;
@@ -222,7 +221,7 @@ impl WasmKernel {
     pub fn route_costs(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.route_costs_json(input).map_err(js_error)
     }
-    pub fn atmosphere_samples(&self, input: &str) -> Result<String, JsValue> {
+    pub fn atmosphere_samples(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.atmosphere_samples_json(input).map_err(js_error)
     }
     pub fn environment_facts(&self) -> Result<String, JsValue> {
@@ -381,6 +380,3 @@ impl Default for WasmKernel {
         Self::new()
     }
 }
-
-// Shared native atmosphere owner; game content supplies its bounded definition.
-pub mod atmosphere;

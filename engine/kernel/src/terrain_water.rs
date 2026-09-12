@@ -1,5 +1,7 @@
 //! Physical terrain-to-water composition. No independent material grid is kept.
 //! The admitted coordinates bound transport work, not the generated world size.
+mod local_air;
+pub(crate) use local_air::LocalAir;
 use crate::generation::Cell;
 use crate::structure_geometry::{StaticGeometry, StaticInstance, GeometryProjection, Face, FaceAxis};
 use crate::terrain::{AppliedChange, BlockReason, PrepareResult, SurfaceCell, TerrainOwner};
@@ -386,6 +388,9 @@ impl TerrainWater {
     }
     pub fn surface_cells(&mut self, columns: &[(i64, i64)]) -> Result<Vec<Option<SurfaceCell>>, String> {
         Ok(self.terrain.surface_cells(columns)?)
+    }
+    pub(crate) fn local_air(&mut self, cell: Cell) -> Result<LocalAir, String> {
+        local_air::query(self, cell)
     }
     pub fn air_geometry(&mut self, bounds: AirGeometryBounds) -> Result<AirGeometrySnapshot, String> {
         air_geometry::query(self, bounds)

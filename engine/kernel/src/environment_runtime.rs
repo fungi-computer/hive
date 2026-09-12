@@ -1,6 +1,6 @@
 //! Coupled physical publication inside the existing Kernel environment owner.
 use super::KernelEnvironment;
-use crate::atmosphere::{AtmosphereReceipt, AtmosphereRebindResult};
+use crate::terrain_atmosphere::{SmokeReceipt, SmokeSource};
 use crate::terrain_water::{PreparedExcavation, PreparedStructureChange};
 use crate::water::WaterWork;
 use serde::{Serialize, Deserialize};
@@ -11,7 +11,6 @@ use std::collections::BTreeMap;
 pub(super) enum WaterStep {
     Paused,
     Applied { work: WaterWork },
-    Blocked { reason: crate::atmosphere::RebindBlockReason },
 }
 pub(super) struct EnvironmentStep {
     pub water: WaterStep,
@@ -22,7 +21,7 @@ pub(super) struct EnvironmentStep {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct AirStep {
-    pub receipt: AtmosphereReceipt,
+    pub receipt: SmokeReceipt,
     pub waiting: Vec<EmissionWait>,
 }
 #[derive(Serialize)]
@@ -33,7 +32,7 @@ pub(super) struct EmissionWait {
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-enum EmissionWaitReason { NoAirReceiver, PhysicalEnvelope, UnrepresentableInterval }
+enum EmissionWaitReason { NoAirReceiver, Capacity, UnrepresentableInterval }
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -92,60 +91,42 @@ impl KernelEnvironment {
         Ok(())
     }
 
-    pub(super) fn apply_excavation(&mut self, prepared: PreparedExcavation) -> Result<bool, String> {
-        let air = if let Some(air) = &self.atmosphere {
-            match air.prepare_world_change(&mut self.world, crate::terrain_water::AirGeometryEdit::Excavation(&prepared))? {
-                Ok(candidate) => Some(candidate),
-                Err(AtmosphereRebindResult::Blocked(_)) => return Ok(false),
-                Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
-            }
-        } else { None };
+    pub(super) fn apply_excavation(&mut self, prepared: PreparedExcavation) -> Result<(), String> {
+        let changes = self.world.air_geometry_changes(crate::terrain_water::AirGeometryEdit::Excavation(&prepared))?;
         self.world.apply_excavation(prepared)?;
-        if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }
-        Ok(true)
+        if let Some(air) = self.atmosphere.as_mut() { air.invalidate(&changes.cells, changes.physical_revision); }
+        Ok(())
     }
-    pub(super) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<bool, String> {
-        let air = if let Some(air) = &self.atmosphere {
-            match air.prepare_world_change(&mut self.world, crate::terrain_water::AirGeometryEdit::Structures(&prepared))? {
-                Ok(candidate) => Some(candidate),
-                Err(AtmosphereRebindResult::Blocked(_)) => return Ok(false),
-                Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
-            }
-        } else { None };
+    pub(super) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<(), String> {
+        let changes = self.world.air_geometry_changes(crate::terrain_water::AirGeometryEdit::Structures(&prepared))?;
         self.world.apply_structures(prepared)?;
-        if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }
-        Ok(true)
+        if let Some(air) = self.atmosphere.as_mut() { air.invalidate(&changes.cells, changes.physical_revision); }
+        Ok(())
     }
     fn advance_emissions(&mut self, seconds: f64, revision: u64) -> Result<Option<AirStep>, String> {
         let Some(air) = self.atmosphere.as_mut() else { return Ok(None); };
-        let mut grouped: BTreeMap<String, (f64, f64)> = BTreeMap::new();
-        let mut outdoor = (0.0, 0.0);
+        let mut sources = Vec::new();
         let mut progress = Vec::new();
         let mut waiting = Vec::new();
         for (id, source) in &self.paid_emissions {
             // An action admitted this tick does not earn an entire prior tick.
             if source.admitted_revision >= revision { continue; }
-            let volume = air.receiver(source.cell);
-            if volume.is_none() && !air.is_outdoor(source.cell) { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::NoAirReceiver }); continue; }
+            if !air.can_emit(&mut self.world, source.cell)? { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::NoAirReceiver }); continue; }
             let definition = self.emissions.get(&source.catalog).ok_or("paid emission catalog missing")?;
             let end = (source.elapsed_s + seconds).min(definition.definition().duration_s);
             if !end.is_finite() || end <= source.elapsed_s { waiting.push(EmissionWait { source: id.clone(), reason: EmissionWaitReason::UnrepresentableInterval }); continue; }
             let released = definition.release().released_between(Some(0.0), source.elapsed_s, end)?;
-            let target = match volume { Some(volume) => grouped.entry(volume.to_owned()).or_default(), None => &mut outdoor };
-            target.0 += released["smokeKg"] / seconds;
-            target.1 += released["heatJ"] / seconds;
-            if !target.0.is_finite() || !target.1.is_finite() { return Err("paid emission aggregate overflow".into()); }
+            sources.push(SmokeSource { cell: source.cell, smoke_kg: released["smokeKg"], heat_j: released["heatJ"] });
             progress.push((id.clone(), end, definition.definition().duration_s));
         }
-        let sources: Vec<_> = grouped.into_iter().map(|(volume_id, (smoke_kg_s, heat_j_s))| crate::atmosphere::AtmosphereSource { volume_id, smoke_kg_s, heat_j_s }).collect();
-        let receipt = match air.advance_emissions(seconds, &sources, outdoor) {
+        let receipt = match air.advance(&mut self.world, seconds, &sources) {
             Ok(receipt) => receipt,
             // The owner computes detached state: failed source admission has
             // published neither gas nor progress. Vent existing air and retain
             // the paid obligation for a later admissible step.
-            Err(reason) if reason == "atmosphere parcel exceeds physical envelope" => {
-                waiting.extend(progress.iter().map(|(id, _, _)| EmissionWait { source: id.clone(), reason: EmissionWaitReason::PhysicalEnvelope }));
-                let receipt = air.advance(seconds, &[])?;
+            Err(reason) if reason == "active smoke budget reached" => {
+                waiting.extend(progress.iter().map(|(id, _, _)| EmissionWait { source: id.clone(), reason: EmissionWaitReason::Capacity }));
+                let receipt = air.advance(&mut self.world, seconds, &[])?;
                 return Ok(Some(AirStep { receipt, waiting }));
             }
             Err(reason) => return Err(reason),
@@ -159,18 +140,9 @@ impl KernelEnvironment {
     pub(super) fn advance(&mut self, seconds: f64, revision: u64) -> Result<EnvironmentStep, String> {
         if seconds == 0.0 { return Ok(EnvironmentStep { water: WaterStep::Paused, air: None }); }
         let prepared = self.world.prepare_water_advance(seconds)?;
-        let air = if let Some(air) = &self.atmosphere {
-            match air.prepare_world_change(&mut self.world, crate::terrain_water::AirGeometryEdit::Water(&prepared))? {
-                Ok(candidate) => Some(candidate),
-                Err(AtmosphereRebindResult::Blocked(reason)) => {
-                    let receipt = self.advance_emissions(seconds, revision)?;
-                    return Ok(EnvironmentStep { water: WaterStep::Blocked { reason }, air: receipt });
-                }
-                Err(AtmosphereRebindResult::Applied { .. }) => return Err("invalid air admission result".into()),
-            }
-        } else { None };
+        let changes = self.world.air_geometry_changes(crate::terrain_water::AirGeometryEdit::Water(&prepared))?;
         let water = self.world.apply_water_advance(prepared)?;
-        if let Some(candidate) = air { self.atmosphere.as_mut().unwrap().apply_rebind(candidate)?; }
+        if let Some(air) = self.atmosphere.as_mut() { air.invalidate(&changes.cells, changes.physical_revision); }
         let receipt = self.advance_emissions(seconds, revision)?;
         Ok(EnvironmentStep { water: WaterStep::Applied { work: water }, air: receipt })
     }

@@ -11,14 +11,8 @@ fn environment_definition() -> String {
         "regionId":"fire-region",
         "min":{"x":-2,"y":-8,"z":-2},
         "max":{"x":2,"y":40,"z":2},
-        "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
-        "model":{
-            "specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,
-            "mixingVelocityMps":1.0,"buoyancyVelocityMpsK":0.1,
-            "pressureVelocityMpsPa":0.001,"maxStepS":0.2,
-            "maxExchangeFraction":0.5,"maxPressureRatio":4.0,
-            "maxTemperatureDeltaK":100.0,"maxSmokeMassFraction":0.01
-        },
+        "ambientTemperatureC":20.0,"spreadPerSecond":1.0,"riseBias":2.0,"wind":[0.0,0.0,0.0],
+        "outdoorLossPerSecond":2.0,"heatCapacityJPerM3K":1200.0,
         "exterior":"WorldTop"
     });
     definition["emissions"] = json!([{
@@ -212,8 +206,8 @@ fn release_save_restore_has_same_next_step_and_completes_once() {
         .atmosphere
         .as_ref()
         .unwrap();
-    assert!((atmosphere.state().smoke_source_kg() - 0.01).abs() < 1e-12);
-    assert!((atmosphere.state().heat_source_j() - 1.0).abs() < 1e-9);
+    assert!((atmosphere.emitted().0 - 0.01).abs() < 1e-12);
+    assert!((atmosphere.emitted().1 - 1.0).abs() < 1e-9);
     assert_eq!(lot_quantity(&mut kernel), 0);
     kernel
         .advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#)

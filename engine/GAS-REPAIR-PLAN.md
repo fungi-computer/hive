@@ -676,3 +676,35 @@ path before acceptance. Existing voxel-specific caller tests also need their
 assertions recut to actual room semantics. No new WASM or deployment is claimed.
 Side query frontiers are not automatically outdoors: they may border another
 unmodeled region. Only explicitly known sky exposure is an ambient boundary.
+
+## September 12 local replacement implementation
+
+The actual TerrainAtmosphere owner now contains sparse local smoke and heat,
+not CompiledAtmosphere or room topology. The old pressure/carrier solver, room
+classifier and gas geometry cache have been removed from source. Physical
+construction, aperture and water callers no longer perform gas-pressure admission
+or gas-volume remapping. Local contact caches invalidate on physical changes;
+clean space has no stored gas and processes zero gas cells. The TypeScript game
+config and native observer no longer contain pressure fields.
+
+Current first implementation uses one scalar smoke/heat amount per active voxel,
+a 0.25-second local transport interval and at most 256 queued cells per update.
+It retains deferred time and amounts when work/capacity is unavailable. Upward
+and wind weights are gameplay rates. Known outdoors disperses amounts through
+explicit counters; traces or smoke covered by solid/water settle into explicit
+deposition counters. Those counters are accounting, not a new deposited-material
+entity or water contamination implementation. Finite groundwater is unchanged.
+
+Actual local evidence: u6117 passed three sparse-gas laws (empty clean region,
+spreading/recovery, outdoor dispersal/invalid-source atomicity). u6119 passed five
+finite-fuel laws and closing an aperture, then failed the wall fixture because
+its actors occupied the proposed wall. Corrected adjacent-contact fixture passed
+u6121. All commands collected, owned scopes closed. Library compilation passed;
+the first full check reported trailing whitespace, subsequently corrected.
+
+Not yet accepted: actual WASM/game workload, performance budgets, sustained
+multiplayer, hosted publication, and independent first-shape correction. The
+remaining whole-active-state clone/validation and cache cold costs must be
+measured on the same Colony workload. Do not reintroduce the deleted pressure
+solver or room discovery to address them. Existing source errors/limits remain
+retained under .botanical/loose-stock; no new deployment is claimed.

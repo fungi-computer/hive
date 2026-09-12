@@ -161,19 +161,23 @@ mod construction_tests {
     }
 
     #[test]
-    fn trapped_air_blocks_wall_completion_and_preserves_work_material() {
-        let (mut kernel, surface, contact) = world();
+    fn ordinary_air_does_not_block_wall_completion() {
+        let (mut kernel, surface, mut contact) = world();
+        // Keep workers beside the future wall, not inside its occupied cell.
+        contact.x -= kernel.environment.as_ref().unwrap().world.cell_spacing_m()[0];
+        for id in ["worker-1", "worker-2", "source"] {
+            let entity=kernel.entity(id).unwrap();
+            kernel.ecs.entity_mut(entity).insert(Position{x:contact.x,y:contact.y,z:contact.z,facing:0.0});
+        }
+        kernel.rebuild_physical_indexes(true).unwrap();
         wall_catalog(&mut kernel);
         let cell = crate::generation::Cell { y: surface.y + 1, ..surface };
         let config_value = json!({
             "regionId":"construction-trapped-air",
             "min":cell,"max":{"x":cell.x+1,"y":cell.y+1,"z":cell.z+1},
-            "ambient":{"pressurePa":101325.0,"temperatureK":293.15},
-            "model":{"specificGasConstantJkgK":287.05,"heatCapacityJkgK":1005.0,
-              "mixingVelocityMps":1.0,"buoyancyVelocityMpsK":0.1,"pressureVelocityMpsPa":0.001,
-              "maxStepS":0.2,"maxExchangeFraction":0.5,"maxPressureRatio":4.0,
-              "maxTemperatureDeltaK":100.0,"maxSmokeMassFraction":0.01},
-            "exterior":"Closed"
+        "ambientTemperatureC":20.0,"spreadPerSecond":1.0,"riseBias":2.0,"wind":[0.0,0.0,0.0],
+        "outdoorLossPerSecond":2.0,"heatCapacityJPerM3K":1200.0,
+        "exterior":"Closed"
         });
         let config = serde_json::from_value(config_value.clone()).unwrap();
         let environment = kernel.environment.as_mut().unwrap();
@@ -193,13 +197,10 @@ mod construction_tests {
         let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
         let lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
         let sealed = kernel.query_json(r#"["hive.sealed-container"]"#).unwrap();
-        assert!(site.contains("\"seconds\":1.0"));
-        assert!(site.contains("\"phase\":\"working\""));
-        assert!(site.contains("\"worker\":\"worker-1\""));
+        assert!(site.contains("\"phase\":\"finished\""));
         assert!(lots.contains("\"container\":\"site-air-wall\""));
-        assert!(lots.contains("\"quantity\":1"));
-        assert_eq!(sealed, "[]");
-        assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
+        assert!(sealed.contains("site-air-wall"));
+        assert!(!kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
     }
 
     #[test]
@@ -1157,16 +1158,16 @@ impl Kernel {
     pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
         route_query::execute(self, input)
     }
-    /// Bounded indexed observation. No world scan, solver step, or cache mutation.
-    pub fn atmosphere_samples_json(&self, input: &str) -> Result<String> {
+    /// Bounded local observation. May warm disposable physical contacts; never advances smoke.
+    pub fn atmosphere_samples_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 16 * 1024 { return Err("atmosphere query exceeds input budget".into()); }
         let cells: Vec<[i64; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
         if cells.len() > 64 { return Err("atmosphere query exceeds cell budget".into()); }
-        let environment = self.environment.as_ref().ok_or("world has no environment")?;
-        let air = environment.atmosphere.as_ref().ok_or("world has no atmosphere")?;
+        let environment = self.environment.as_mut().ok_or("world has no environment")?;
+        let air = environment.atmosphere.as_mut().ok_or("world has no atmosphere")?;
         let cells: Vec<_> = cells.into_iter().map(|[x,y,z]| Ok(crate::generation::Cell { x, y:i32::try_from(y).map_err(|_| "air cell height out of range")?, z })).collect::<Result<_>>()?;
-        let samples = air.sample(&cells)?;
+        let samples = air.sample(&mut environment.world, &cells)?;
         serde_json::to_string(&json!({"revision":self.revision,"geometryRevision":air.geometry_revision(),"samples":samples})).map_err(|error| error.to_string())
     }
     pub fn environment_facts_json(&self) -> Result<String> {
@@ -1639,7 +1640,7 @@ impl Kernel {
             material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg)?,
         };
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
-        if !environment.apply_excavation(excavation)? { return Ok(None); }
+        environment.apply_excavation(excavation)?;
         // All material admission precedes the terrain commit. There is no
         // fallible material operation between this point and publication.
         Ok(Some(self.publish_material_output(output)))
