@@ -334,12 +334,14 @@ the existing rectangle gesture; its completed same-level area is the argument to
 the single `colony:dig` action. Build uses the existing visible surface picker.
 A stockpile action combines ordinary profile, priority and capacity fields with
 an area acquired visually by a human or supplied structurally by a controller.
-Hive-owned JSON schemas describe entity IDs, cells, areas and optional opaque
-client annotations. Whistle copies those descriptions without learning terrain,
+Hive-owned JSON schemas describe entity IDs, cells and areas. An opaque
+`x-hive-control` annotation describes visual target acquisition without
+repurposing JSON Schema `format`, which remains value semantics. Whistle copies
+those descriptions without learning terrain,
 stockpile or Goblin rules. Preview and cancelling an unfinished gesture do not
 become world commands.
 
-The current Whistle candidate at
+The current Whistle candidate at `7a3013d` in
 `/mnt/fungi-extra/botanical-work/Botanical-agent-control-host` already carries
 JSON input/output schemas, typed arguments/results and action/choice/form/
 confirmation hints. It is candidate source, not a published package contract.
@@ -354,8 +356,8 @@ Hive join therefore requires:
   command does not satisfy this;
 - a transport-safe failure and typed command-result shape that distinguishes
   rejected intent, accepted intent and completed physical work; and
-- preservation of opaque JSON-schema annotations used by the Hive client for
-  entity and world targeting.
+- consumer proof that opaque JSON-schema annotations already preserved by
+  Whistle reach the Hive client for entity and world targeting.
 
 The Whistle ADR and current Botanical client boundary remain Botanical-owned.
 Hive owns the first real game consumer and its domain schemas. Whistle does not
