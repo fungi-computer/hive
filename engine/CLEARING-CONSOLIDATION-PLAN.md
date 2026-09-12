@@ -33,6 +33,42 @@ forecast is **not a gate before the next playable repair**.
 
 ## Starting point: actual state, not aspirations
 
+### September 12 repair interim — live 34f7c20
+
+The source below supersedes the earlier 4414a57 availability facts. This is a
+useful repair interim, **not completion of Release A or the goal**.
+
+- Removed delivery/construction's duplicate same-destination veto; Rust owns
+  healthy-route reuse and invalidated-route recovery. The actual Colony regression
+  digs two cells, builds a supplied wall and completes both original deliveries.
+  Exact old providers strand `colony.delivery.1` in `to-destination`; the corrected
+  providers pass. Spoil remains conserved. Root replaced the initial helper test,
+  which passed both versions and therefore did not demonstrate the bug.
+- Known command receipts release FIFO independently of delayed observations.
+  Unknown results retain immutable command bytes/identity through bounded retry.
+  Exhaustion refuses new orders and exposes explicit recovery. Ordinary UI
+  submissions report refusal synchronously and retain tools/aim on failure.
+- Source qualification: 12 transport laws, 16 work/UI laws, one actual WASM joined
+  regression and strict engine types passed. Fallow audit at the real repository
+  root against fc26a78 passes its new-findings gate; inherited debt remains,
+  including large client draw/render, delivery progress and manual wire parsing.
+  This is not a claim that existing code already meets every Field Guide rule.
+- Hosted 34f7c20: frontend deployment `3a3c5d7b-e033-4364-9536-cb44f40cbafc`,
+  Worker version `ef52f932-d69e-4dce-b6d3-3d6b5af2222e`; all 158 served files match.
+  The existing two-WebSocket-client scenario now completes two cuts, replay of the
+  dig receipt, supplied wall, ordinary hearth supply, consumed fuel, visible smoke
+  facts and shared paused state. Six commands max 123 ms, observation gaps max
+  263 ms. These are short hosted transport measurements, not browser frame times
+  or sustained budget acceptance. Both clients closed; no owned server was opened.
+- Evidence remains in `.botanical/clearing-repair/`: initial import failure,
+  corrected actual-world old/new regression, joined gate, Fallow and release
+  receipts. The prior 4414a57 hosted hearth failure remains intact.
+- Still open: deliberate worker takeover/resume, carrying-leg route costs,
+  sustained deep digging/building, original art/activity restoration and actual
+  two-browser playtest. No new rendered/UI-browser evidence is claimed here.
+
+### Earlier baseline, retained for comparison
+
 - Live Colony: [existing demo](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html),
   runtime source 4414a57. Rust/WASM simulation runs in the public DO host. The
   shared client renders observations; ordinary commands receive durable receipts.
@@ -232,17 +268,18 @@ mechanical implementation in isolated worktrees. At most two implementation lane
 work/movement, and client/controls/replication. One writer per coupled seam. Shared
 contracts are agreed before edits; King joins and reviews actual callers.
 
-Prepared at b508d6e, **not yet activated or source-changed** at this doc checkpoint:
+Both original repair lanes completed source and released custody to King:
 
 - `/mnt/fungi-data/botanical-work/clearing-work-recovery`, branch
-  `fix/clearing-work-recovery-20260912`: movement/work correction.
+  `fix/clearing-work-recovery-20260912`: movement/work correction; root corrected
+  and qualified the actual joined regression before publication.
 - `/mnt/fungi-data/botanical-work/clearing-client-recovery`, branch
-  `fix/clearing-client-recovery-20260912`: admission/controls correction.
+  `fix/clearing-client-recovery-20260912`: admission/recovery/UI correction.
 
 Integration remains `/mnt/fungi-data/botanical-work/native-atmosphere`. Art changes
 that overlap the client lane wait for explicit file release; independent art
-preparation can proceed. Current goal is retained unfinished; this document does
-not replace it or claim any implementation has begun in the prepared lanes.
+preparation can proceed. Current goal remains unfinished. Subsequent bounded work
+continues in isolated writing roots with reviewed contracts and actual caller proof.
 
 ## Off the sprint's critical path
 
