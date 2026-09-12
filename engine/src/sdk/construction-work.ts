@@ -141,8 +141,6 @@ export function constructionWorkProvider(
   for (let offset = 0; offset < relevant.length; offset += 128) {
     for (const pose of ctx.worldPoses(relevant.slice(offset, offset + 128))) poses.set(pose.id, pose);
   }
-  const destinationRows = ctx.query(query(Destination));
-  const destinationsById = new Map(destinationRows.map((row) => [row.id, row.get(Destination)]));
   const targetFor = (site: EntityId): MoveDestination | null => {
     const pose = poses.get(site);
     const position = positions.get(site);
@@ -175,8 +173,6 @@ export function constructionWorkProvider(
   });
   const assigned = new Set<EntityId>();
   const requestMove = (worker: EntityId, target: MoveDestination) => {
-    const current = destinationsById.get(worker);
-    if (current && current.x === target.x && current.y === target.y && current.z === target.z && current.frame === target.frame) return;
     ctx.action(move(worker, target));
   };
   return {
@@ -230,7 +226,7 @@ export function constructionWorkProvider(
         }
         const sitePose = poses.get(row.id);
         if (!sitePose) continue;
-        if (!destinationsById.has(approach.state.worker) && distance(workerPose.world, sitePose.world) <= 1e-7)
+        if (!destinations.has(approach.state.worker) && distance(workerPose.world, sitePose.world) <= 1e-7)
           ctx.action(attendConstruction(approach.state.worker, row.id));
         else requestMove(approach.state.worker, target);
       }

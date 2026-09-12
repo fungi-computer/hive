@@ -7,7 +7,6 @@ import {
   Body,
   Container,
   ExcavationWork,
-  Destination,
   Position,
   Support,
   Surface,
@@ -65,10 +64,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
-    const destinations = new Map(ctx.query(query(Destination)).map(row => [row.id, row.get(Destination)]));
     const requestMove = (actor: EntityId, target: MoveDestination) => {
-      const current = destinations.get(actor);
-      if (current && current.x === target.x && current.y === target.y && current.z === target.z && current.frame === target.frame) return;
       ctx.action(move(actor, target));
     };
     const lots = ctx.query(query(MaterialLot));
