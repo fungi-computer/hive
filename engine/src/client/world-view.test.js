@@ -50,6 +50,20 @@ test("cutaway displays only published exterior columns at or below the selected 
   assert.deepEqual(displayedTerrain(frame, view).surfaces, frame.surfaces);
 });
 
+test("cutaway keeps published water in open columns without terrain", () => {
+  const frame = {
+    revision: 5,
+    structureSurfaces: [],
+    surfaces: [{ cell: [0, 3, 0], material: 1 }],
+    water: [
+      { at: [0, 1, 0], liquidVolumeM3: 0.1, massKg: 100 },
+      { at: [1, 1, 0], liquidVolumeM3: 0.1, massKg: 100 },
+    ],
+  };
+  const view = toggleWorldCutaway(createWorldView({ range: { min: 0, max: 3 }, level: 1 }), true);
+  assert.deepEqual(displayedTerrain(frame, view).water.map(({ at }) => at), [[1, 1, 0]]);
+});
+
 test("terrain projection cache reuses surfaces while accepting newer water", () => {
   const frame = { revision: 2, structureSurfaces: [], verticalMetres: 0.5, surfaces: [{ cell: [0, 1, 0], material: 1 }], water: [] };
   const cache = createTerrainProjectionCache();
@@ -63,6 +77,16 @@ test("terrain projection cache reuses surfaces while accepting newer water", () 
   const changed = cache.update({ ...frame, revision: 3 }, view, 3);
   assert.notStrictEqual(changed.surfaces, first.surfaces);
   assert.equal(cache.update(undefined, view, 4), undefined);
+});
+
+test("terrain projection cache accepts arriving water in an open column", () => {
+  const frame = { revision: 2, structureSurfaces: [], verticalMetres: 0.5, surfaces: [], water: [] };
+  const cache = createTerrainProjectionCache();
+  const view = toggleWorldCutaway(createWorldView({ range: { min: 0, max: 1 }, level: 1 }), true);
+  const first = cache.update(frame, view, 3);
+  const next = cache.update({ ...frame, water: [{ at: [2, 1, 0], liquidVolumeM3: 0.1, massKg: 100 }] }, view, 3);
+  assert.strictEqual(next.surfaces, first.surfaces);
+  assert.deepEqual(next.water.map(({ at }) => at), [[2, 1, 0]]);
 });
 
 
