@@ -7,8 +7,10 @@ that proves every unique source, receipt, visual and recovery byte is preserved.
 
 ## What the audit found
 
-Across the main checkout and registered Hive worktrees, 237 `.botanical`
-directories currently contain about **4.60 GB in 57,637 files**. The two largest
+Across the main checkout, registered Hive worktrees and embedded Hive evidence
+checkouts, 240 `.botanical` roots contained about **4.61 GB in 57,645 regular
+files** at the full hash checkpoint. Thirteen non-Hive roots discovered under
+the shared mounted parent were explicitly excluded. The two largest
 owners are the main checkout at about 3.07 GB and `fresh-engine` at about 1.05 GB.
 The integration worktree contains about 213 MB.
 
@@ -35,9 +37,11 @@ reproducible material.
 
 The machine-readable worktree and content inventories live in
 `.botanical/disk-audit-20260912/worktrees.json` and
-`.botanical/disk-audit-20260912/content-summary.json` in the integration
-worktree. They record the roots, heads, branches, dirty previews and byte counts
-used for this audit.
+`.botanical/disk-audit-20260912/content-summary.json`; the full SHA-256 inventory,
+duplicate groups and corrected Hive-only summary are `inventory.jsonl`,
+`duplicate-groups.json` and `summary.json` in the same integration-worktree
+directory. They record the roots, heads, branches, dirty previews, hashes and
+byte counts used for this audit.
 
 ## Distilled record 1: engineering findings
 
@@ -141,3 +145,24 @@ are reproducible.
 This converts `.botanical` from an accidental archive into evidence with a
 searchable index. It deliberately avoids preserving every experiment as active
 architecture or discarding failures that explain current laws.
+
+## First cleanup checkpoint
+
+The first cleanup on 2026-09-12 removed **1,282,061,948 bytes** from five exact
+Hive-owned paths under `/home/levi/src/hive/.botanical`:
+
+- the old Emscripten 3.1.46 installation used by the libcolony rebuild study;
+- the `caps-probe` and `xstate-probe` dependency installations;
+- the kettle-water and brewer-contact Vite caches.
+
+The Emscripten setup script, version, README, build log and produced study
+evidence remain. Both dependency lockfiles and all study source remain. The
+full pre-deletion SHA inventory and exact path/byte/reason record are retained
+in `inventory.jsonl` and `deletion-v1.json`. The deletion guard resolved the
+owning Git common directory to `/home/levi/src/hive/.git`; no Botanical-next or
+other non-Hive path was changed.
+
+The active Rust 1.98.1/wasm-bindgen toolchain remains because current engine
+build scripts consume it. Test databases, media, art, recovery source and
+ambiguous duplicate artifacts also remain pending the later evidence-selection
+pass.
