@@ -1,12 +1,11 @@
-import { component, entity, query } from "./authoring";
+import { component, query } from "./authoring";
 import { DeliveryTask } from "./delivery";
 import { GroundStock } from "./ground-stock";
 import { SealedContainer } from "./construction";
 import { Container, MaterialLot, Position } from "./common";
-import type { EntityId, EntityRecord, WriteContext } from "../contracts";
+import type { EntityId, WriteContext } from "../contracts";
 
 const MAX_CELLS = 256;
-const MAX_ID_LENGTH = 128;
 const MAX_QUANTITY = 0xffffffff;
 
 /** Policy attached to one physical, positioned floor stockpile cell. */
@@ -14,20 +13,10 @@ export const StockpileCell = component<{
   zone: string;
   priority: number;
   filterProfile: string;
-  capacity: number;
 }>("hive.stockpile-cell", {
   version: 1,
-  fields: { zone: "string", priority: "number", filterProfile: "string", capacity: "number" },
+  fields: { zone: "string", priority: "number", filterProfile: "string" },
 });
-
-export type StockpileCellSpec = {
-  readonly zone: EntityId;
-  readonly cell: readonly [number, number, number];
-  readonly priority: number;
-  readonly filterProfile: string;
-  readonly capacity: number;
-  readonly verticalMetres: number;
-};
 
 function validText(value: string): boolean {
   return value.length > 0 && value.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(value);
@@ -36,43 +25,9 @@ function validInt(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0 && value <= MAX_QUANTITY;
 }
 function compareId(a: EntityId, b: EntityId): number { return a < b ? -1 : a > b ? 1 : 0; }
-function compareCell(a: readonly [number, number, number], b: readonly [number, number, number]): number {
-  return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
-}
-function cellKey(cell: readonly [number, number, number]): string { return `${cell[0]},${cell[1]},${cell[2]}`; }
-
-export function stockpileCellId(zone: EntityId, cell: readonly [number, number, number]): EntityId {
-  const id = `stockpile.${zone.length}:${zone}.${cell[0]}.${cell[1]}.${cell[2]}`;
-  if (id.length > MAX_ID_LENGTH) throw new Error("stockpile cell identity exceeds bound");
-  return entity(id);
-}
-
-/** Build the bounded authored records for a designated set of floor cells. */
-export function stockpileCellRecords(specs: readonly StockpileCellSpec[]): readonly EntityRecord[] {
-  if (!Array.isArray(specs) || specs.length === 0 || specs.length > MAX_CELLS)
-    throw new Error("stockpile cell bound exceeded");
-  const seen = new Set<string>();
-  const records = [...specs].sort((a, b) => compareId(a.zone, b.zone) || compareCell(a.cell, b.cell));
-  return records.map((spec) => {
-    if (!Array.isArray(spec.cell) || spec.cell.length !== 3 || !spec.cell.every(Number.isSafeInteger))
-      throw new Error("invalid stockpile cell");
-    entity(spec.zone);
-    if (!validText(spec.zone) || !validText(spec.filterProfile) || !validInt(spec.priority) || !validInt(spec.capacity) || spec.capacity <= 0 || !Number.isFinite(spec.verticalMetres) || spec.verticalMetres <= 0)
-      throw new Error("invalid stockpile policy");
-    const key = `${spec.zone}\0${cellKey(spec.cell)}`;
-    if (seen.has(key)) throw new Error("duplicate stockpile cell");
-    seen.add(key);
-    const id = stockpileCellId(spec.zone, spec.cell);
-    return {
-      id,
-      components: {
-        [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filterProfile: spec.filterProfile, capacity: spec.capacity },
-        [Container.id]: { capacity: spec.capacity },
-        [Position.id]: { x: spec.cell[0], y: (spec.cell[1] + 0.5) * spec.verticalMetres, z: spec.cell[2], facing: 0 },
-      },
-    };
-  });
-}
+export const designateStockpile = (zone: EntityId, cells: readonly { x: number; y: number; z: number; priority: number; filterProfile: string; capacity: number }[]) => ({
+  kind: "designate-stockpile" as const, zone, cells: cells.map(cell => ({ ...cell, filterProfile: cell.filterProfile })),
+});
 
 export type StockpileFilterProfile = {
   /** Content-owned category for each supported material kind. */
@@ -133,7 +88,8 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     if (claimedCells.has(row.id) || sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
     const policy = row.get(StockpileCell);
     const profile = options.filterProfiles[policy.filterProfile];
-    if (!profile || typeof profile !== "object" || !profile.materialCategories || typeof profile.materialCategories !== "object" || !Array.isArray(profile.allowedCategories) || profile.allowedCategories.length > 64 || (profile.allowedMaterials !== undefined && !Array.isArray(profile.allowedMaterials)) || (profile.deniedMaterials !== undefined && !Array.isArray(profile.deniedMaterials)) || !validText(policy.filterProfile) || !validInt(policy.capacity) || policy.capacity <= 0) continue;
+    const container = containers.get(row.id);
+    if (!container || !profile || typeof profile !== "object" || !profile.materialCategories || typeof profile.materialCategories !== "object" || !Array.isArray(profile.allowedCategories) || profile.allowedCategories.length > 64 || (profile.allowedMaterials !== undefined && !Array.isArray(profile.allowedMaterials)) || (profile.deniedMaterials !== undefined && !Array.isArray(profile.deniedMaterials)) || !validText(policy.filterProfile) || !validInt(container.capacity) || container.capacity <= 0) continue;
     const categories = new Set(profile.allowedCategories.filter(validText));
     const allowedMaterials = new Set((profile.allowedMaterials ?? []).filter(validText));
     const deniedMaterials = new Set((profile.deniedMaterials ?? []).filter(validText));
@@ -142,7 +98,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     const accepts = (material: string) => !deniedMaterials.has(material) &&
       (allowedMaterials.has(material) || (typeof profile.materialCategories?.[material] === "string" && categories.has(profile.materialCategories[material])));
     const used = quantities.get(row.id) ?? 0;
-    const free = policy.capacity - used;
+    const free = container.capacity - used;
     if (free <= 0) continue;
     const source = sourceLots.find(({ lot }) => {
       if (!accepts(lot.kind) || sealed.has(lot.container) || lot.container === row.id || (quantities.get(lot.container) ?? 0) > MAX_QUANTITY) return false;
