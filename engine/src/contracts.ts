@@ -6,6 +6,7 @@ export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
 export type GameId = string;
 export const RESERVED_COMPONENTS = [
+  "hive.stockpile-cell",
   "hive.position",
   "hive.body",
   "hive.traversal",
@@ -101,6 +102,7 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
+  | { readonly kind: "designate-stockpile"; readonly zone: EntityId; readonly cells: readonly { readonly x: number; readonly y: number; readonly z: number; readonly priority: number; readonly filterProfile: string; readonly capacity: number }[] }
   | { readonly kind: "set-structure-open"; readonly worker: EntityId; readonly site: EntityId; readonly open: boolean }
   | { readonly kind: "plan-construction"; readonly catalog: string; readonly site: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly orientation: CardinalOrientation; readonly contact: Vec3 & { readonly frame: null } }
   | { readonly kind: "attend-construction"; readonly worker: EntityId; readonly site: EntityId }

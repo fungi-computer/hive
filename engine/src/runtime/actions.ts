@@ -30,6 +30,16 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "designate-stockpile": {
+      keys = ["kind", "zone", "cells"];
+      const cells = action.cells;
+      valid = id(action.zone) && Array.isArray(cells) && cells.length > 0 && cells.length <= 256 && cells.every(cell => {
+        if (!cell || typeof cell !== "object" || Array.isArray(cell)) return false;
+        const value = cell as Record<string, unknown>;
+        return Object.keys(value).length === 6 && [value.x, value.y, value.z].every(item => typeof item === "number" && Number.isSafeInteger(item)) && quantity(value.priority) && quantity(value.capacity) && stream(value.filterProfile);
+      });
+      break;
+    }
     case "plan-construction": {
       keys = ["kind", "catalog", "site", "x", "y", "z", "orientation", "contact"];
       const contact = action.contact as Record<string, unknown> | null;

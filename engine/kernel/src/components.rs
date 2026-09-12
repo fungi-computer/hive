@@ -57,6 +57,16 @@ pub struct Lot {
 pub struct LotWater {
     pub water_kg: f64,
 }
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct StockpileCell {
+    pub zone: String,
+    pub priority: u32,
+    pub filter_profile: String,
+}
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct StockpileDesignation { pub x: i32, pub y: i32, pub z: i32, pub priority: u32, pub filter_profile: String, pub capacity: u32 }
 /// Finite authored stock whose kind and remaining quantity are native-owned.
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -319,6 +329,7 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
     Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },
     CancelWork { entity: String },
     PlanConstruction {

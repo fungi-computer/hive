@@ -4,10 +4,12 @@ import { entity } from "./authoring";
 import { Container, MaterialLot, Position } from "./common";
 import { DeliveryTask } from "./delivery";
 import { GroundStock } from "./ground-stock";
-import { StockpileCell, planStockpileDeliveries, stockpileCellRecords } from "./stockpile";
+import { StockpileCell, planStockpileDeliveries } from "./stockpile";
 import type { EntityId, WriteContext } from "../contracts";
 
 type Row = { id: EntityId; values: Map<string, unknown> };
+type PlannerCell = { zone: EntityId; cell: readonly [number, number, number]; priority: number; filterProfile: string; capacity: number; verticalMetres: number };
+function plannerCellFixtures(specs: readonly PlannerCell[]) { return specs.map(spec => ({ id: `stockpile.${spec.zone.length}:${spec.zone}.${spec.cell.join(".")}` as EntityId, components: { [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filterProfile: spec.filterProfile }, [Container.id]: { capacity: spec.capacity }, [Position.id]: { x: spec.cell[0], y: (spec.cell[1] + 0.5) * spec.verticalMetres, z: spec.cell[2], facing: 0 } } })); }
 const row = (id: EntityId, definition: { id: string }, value: unknown): Row => ({ id, values: new Map([[definition.id, value]]) });
 function fake(rows: Row[]) {
   const created: EntityId[] = [];
@@ -24,14 +26,14 @@ function fake(rows: Row[]) {
 }
 
 test("stockpile records are deterministic, bounded, positioned finite containers", () => {
-  const records = stockpileCellRecords([
+  const records = plannerCellFixtures([
     { zone: entity("zone"), cell: [1, 3, 2], priority: 4, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 },
     { zone: entity("zone"), cell: [0, 3, 2], priority: 4, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 },
   ]);
   assert.deepEqual(records.map(r => r.id), [entity("stockpile.4:zone.0.3.2"), entity("stockpile.4:zone.1.3.2")]);
   assert.equal((records[0].components[Container.id] as { capacity: number }).capacity, 3);
   assert.deepEqual(records[0].components[Position.id], { x: 0, y: 1.8900000000000001, z: 2, facing: 0 });
-  assert.throws(() => stockpileCellRecords([{ zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1, verticalMetres: 0.54 }, { zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1, verticalMetres: 0.54 }]));
+  assert.throws(() => plannerCellFixtures([{ zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1, verticalMetres: 0.54 }, { zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1, verticalMetres: 0.54 }]));
 });
 
 test("planner claims one lot and cell, respects existing capacity and reloadable task state", () => {
@@ -39,7 +41,7 @@ test("planner claims one lot and cell, respects existing capacity and reloadable
   const destination = entity("stockpile.4:zone.0.3.2");
   const source = entity("ground.wood");
   const lot = entity("lot.wood");
-  const records = stockpileCellRecords([{ zone, cell: [0, 3, 2], priority: 2, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 }]);
+  const records = plannerCellFixtures([{ zone, cell: [0, 3, 2], priority: 2, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 }]);
   const rows = [
     row(destination, StockpileCell, records[0].components[StockpileCell.id]),
     row(destination, Container, { capacity: 3 }), row(destination, Position, { x: 0, y: 1.8900000000000001, z: 2, facing: 0 }),
@@ -54,9 +56,9 @@ test("planner claims one lot and cell, respects existing capacity and reloadable
 
 test("rehauled stock only moves to a strictly better cell, with capacity and claim bounds", () => {
   const zone = entity("zone");
-  const low = stockpileCellRecords([{ zone, cell: [0, 3, 0], priority: 1, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
-  const high = stockpileCellRecords([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
-  const equal = stockpileCellRecords([{ zone, cell: [2, 3, 0], priority: 1, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
+  const low = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 1, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
+  const high = plannerCellFixtures([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
+  const equal = plannerCellFixtures([{ zone, cell: [2, 3, 0], priority: 1, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
   const source = entity("ground.source");
   const lowerLot = entity("lot.lower");
   const looseLot = entity("lot.loose");
@@ -80,7 +82,7 @@ test("rehauled stock only moves to a strictly better cell, with capacity and cla
 
 test("profile deny and malformed profile leave physical lots untouched", () => {
   const zone = entity("zone");
-  const record = stockpileCellRecords([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "food", capacity: 3, verticalMetres: 0.54 }])[0];
+  const record = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "food", capacity: 3, verticalMetres: 0.54 }])[0];
   const source = entity("ground.source.deny");
   const lot = entity("lot.stone.deny");
   const rows = [row(record.id, StockpileCell, record.components[StockpileCell.id]), row(record.id, Container, { capacity: 3 }), row(record.id, Position, { x: 0, y: 3, z: 0, facing: 0 }), row(source, GroundStock, {}), row(source, Container, { capacity: 3 }), row(lot, MaterialLot, { kind: "stone", quantity: 2, container: source })];
@@ -92,8 +94,8 @@ test("profile deny and malformed profile leave physical lots untouched", () => {
 
 test("capacity limits the planned partial quantity and equal priority is not a rehaul", () => {
   const zone = entity("zone.capacity");
-  const destination = stockpileCellRecords([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
-  const sourceCell = stockpileCellRecords([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 2, verticalMetres: 0.54 }])[0];
+  const destination = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
+  const sourceCell = plannerCellFixtures([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 2, verticalMetres: 0.54 }])[0];
   const source = entity("ground.capacity");
   const rows = [
     row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 3 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
