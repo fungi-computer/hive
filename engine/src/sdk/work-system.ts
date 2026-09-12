@@ -1,5 +1,6 @@
 import { system, type SystemOptions } from "./authoring";
 import { allocateWork, type WorkClaim } from "./work-allocation";
+import { WorkParticipation } from "./work-control";
 import type { AssignmentPair, AssignmentCandidate, EntityId, WriteContext } from "../contracts";
 
 export type WorkCandidate = Pick<AssignmentCandidate, "worker" | "task">;
@@ -17,7 +18,7 @@ export type PreparedWorkProvider<Candidate extends WorkCandidate = WorkCandidate
 };
 
 export type WorkProvider<Candidate extends WorkCandidate = WorkCandidate> =
-  (context: WriteContext) => PreparedWorkProvider<Candidate>;
+  (context: WriteContext, suspendedActors: ReadonlySet<EntityId>) => PreparedWorkProvider<Candidate>;
 
 export type WorkSystemOptions = Omit<SystemOptions, "run"> & {
   /** Providers have distinct private candidate payloads; the shared owner only
@@ -34,12 +35,17 @@ export function createWorkSystem(options: WorkSystemOptions) {
   return system({
     id: options.id,
     version: options.version,
-    reads: options.reads,
+    reads: [...new Set([...options.reads, WorkParticipation])],
     writes: options.writes,
     every: options.every,
     consumesImpacts: options.consumesImpacts,
     run(context) {
-      const prepared = options.providers.map((provider) => provider(context));
+      const suspendedActors = new Set(
+        context.query({ components: [WorkParticipation] }).flatMap((row) =>
+          row.get(WorkParticipation).automatic ? [] : [row.id],
+        ),
+      );
+      const prepared = options.providers.map((provider) => provider(context, suspendedActors));
       const claims = prepared.flatMap((provider) => provider.claims);
       const occupiedActors = new Set(prepared.flatMap((provider) => provider.occupiedActors ?? []));
       const candidates: TaggedCandidate[] = prepared.flatMap((provider, providerIndex) =>
@@ -58,7 +64,9 @@ export function createWorkSystem(options: WorkSystemOptions) {
       for (const candidate of candidates)
         if (taskProviders.get(candidate.task) !== candidate.providerIndex)
           throw new Error("work candidate task belongs to another provider");
-      const available = candidates.filter((candidate) => !occupiedActors.has(candidate.worker));
+      const available = candidates.filter((candidate) =>
+        !occupiedActors.has(candidate.worker) && !suspendedActors.has(candidate.worker),
+      );
       const assignments = allocateWork(
         claims,
         available,

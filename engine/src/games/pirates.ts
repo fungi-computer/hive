@@ -12,6 +12,7 @@ import {
   move,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
+import { WorkParticipation } from "../sdk/work-control";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
 
 export const PirateCrew = component<{ controlled: boolean }>("pirates.crew", {
@@ -57,6 +58,7 @@ const piratesInitial = [
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.crew", label },
       "pirates.crew": { controlled: true },
+      "hive.work-participation": { automatic: true },
       "hive.delivery-control": { enabled: false, quantity: 1 },
     },
   })),
@@ -141,6 +143,7 @@ const pirateComponents = [
   PirateShip,
   DeliveryTask,
   DeliveryControl,
+  WorkParticipation,
 ] as const;
 
 const moveInput = z
