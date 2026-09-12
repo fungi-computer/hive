@@ -22,6 +22,7 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
+import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { z } from "zod";
 import type { EntityId, GamePack } from "../contracts";
 
@@ -46,9 +47,18 @@ const lotTwo = entity("colony.food.2");
 const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
 const tasks = [taskOne, taskTwo] as const;
+const catId = entity("colony.cat.1");
 
 const brewStationId = entity("colony.brew-station");
+const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
+  {
+    ...catRecord,
+    components: {
+      ...catRecord.components,
+      "hive.visual": { sprite: "colony.cat", label: "Mallow" },
+    },
+  },
   { id: brewStationId, components: {
     "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
     "hive.container": { capacity: 4 },
@@ -258,6 +268,7 @@ const colonyComponents = [
   DeliveryTask,
   DeliveryControl,
   ColonyDigOrder,
+  Cat,
   ConstructionApproach,
   WorkParticipation,
 ] as const;
@@ -293,7 +304,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 4,
   components: colonyComponents,
-  systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem],
+  systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
