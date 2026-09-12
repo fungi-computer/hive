@@ -75,3 +75,19 @@ test("content visual bindings keep pirate art out of the renderer defaults", () 
   });
   assert.deepEqual(PIRATE_VISUAL_BINDINGS["pirate.ship"].path, ["vehicles", "ship"]);
 });
+
+test("clearing retains scenery and cat bindings without granting physical identity", () => {
+  assert.deepEqual(DEFAULT_VISUAL_BINDINGS["colony.tree"], {
+    kind: "static",
+    path: ["tree", "standing"],
+    facing: false,
+    anchor: "propAnchor",
+  });
+  assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.notched"].path[1], "notched");
+  assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.stump"].path[1], "stump");
+  assert.deepEqual(DEFAULT_VISUAL_BINDINGS["colony.cat"], {
+    kind: "figure",
+    key: "cat",
+    motion: { kind: "foot", stride: 0.42 },
+  });
+});
