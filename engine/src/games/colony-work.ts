@@ -1,3 +1,4 @@
+import { EmissionOrder, EmissionWork, emissionWorkProvider } from "../sdk/emission-work";
 import { ConstructionApproach, constructionWorkProvider } from "../sdk/construction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
@@ -250,17 +251,21 @@ function planGroundStockDeliveries(ctx: WriteContext) {
   }
 }
 
+const emissionRequirements = new Map((colonyEnvironment.emissions ?? []).map(definition => [definition.id, definition]));
+
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [GroundStock, ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
-  writes: [ColonyDigOrder, DeliveryTask, ConstructionApproach],
+  reads: [EmissionOrder, EmissionWork, Emitter, GroundStock, ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  writes: [EmissionWork, ColonyDigOrder, DeliveryTask, ConstructionApproach],
   providers: [deliveryProvider, digProvider, (ctx, suspendedActors) => constructionWorkProvider(ctx, {
     workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
     catalogMaterials: Object.fromEntries(colonyEnvironment.structures.catalog.map(definition => [
       definition.id, definition.materials.map(({ kind: material, quantity }) => ({ material, quantity })),
     ])),
-  }, suspendedActors)],
+  }, suspendedActors), (ctx, suspendedActors) => emissionWorkProvider(ctx,
+    ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
+    emissionRequirements, suspendedActors)],
 });
 
 /** Turns native excavation piles into ordinary shared delivery work. */

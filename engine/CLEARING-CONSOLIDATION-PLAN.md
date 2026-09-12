@@ -31,6 +31,40 @@ this document owns priority. Earlier versions of this file preserve the two-day
 velocity assessment and wider forecast in Git at b508d6e. The 5–8 day feature
 forecast is **not a gate before the next playable repair**.
 
+## Current interaction restoration — September 12
+
+Levi explicitly requests the retained station-first gameplay: click the hearth,
+request its job there, and let available workers carry it out. The flat list of
+worker-dependent demo buttons is not the intended loop.
+
+- Shared presentation publishes bounded entity scopes for facts/actions. The
+  client derives a contextual inspector from accepted selection and facts; it
+  does not know Colony IDs or grant command authority. World digging/building
+  tools remain globally reachable. Preserve current Caps and gesture owners.
+- Reuse the retained baked alpha silhouette for object picking, with the actual
+  rendered anchor, zoom and front-to-back order. No new pixel-read loop or
+  arbitrary hearth click radius.
+- Requesting ignition records a command-owned EmissionOrder revision; the
+  system alone owns EmissionWork progress. Current Session explicitly rejects
+  shared command/system component writers. This is a station intent, not an
+  immediately selected worker action. An emission-work provider composes with the existing shared
+  Hungarian assignment owner. Existing site supplies deliver the fuel. The
+  existing Rust begin-emission operation remains sole owner of fuel debit and
+  paid smoke/fire. No separate hauling, inventory or fire clock.
+- No-fuel work waits without claiming a worker. Manual takeover releases ignition
+  attendance; cancellation stops unperformed intent and cannot refund an already
+  committed burn. Match the previous native action outcome before completing a
+  submitted ignition; that outcome is already included in the current saved
+  Session. Refused work releases its worker and exposes its actual reason.
+- Root owns this work design and Colony callers in clearing-station-work; Luna
+  owns presentation/transport/client and picking in clearing-context-ui, both
+  from 23f1885. Root joins the two, reviews exact callers and one focused actual
+  queued-ignition/current-save law plus contextual/picking laws. This is not a
+  claim that the retained full brewing recipe has already been restored.
+
+Trees remain in the scenery/resource restoration queue; station interactions
+are the current directly requested next playable improvement.
+
 ## Starting point: actual state, not aspirations
 
 ### September 12 current live interim — fd7937b
