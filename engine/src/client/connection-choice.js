@@ -70,6 +70,43 @@ function authorizedFetch(fetchImpl, token) {
   };
 }
 
+function prepareRemoteNewWorld({ invited, nextToken, locationSource, historySource, storage, storageKey, replace }) {
+  const previousStored = storage.getItem(storageKey);
+  const previousUrl = typeof locationSource?.href === "string" ? locationSource.href : undefined;
+  const previousHistoryState = historySource?.state;
+  let historyChanged = false;
+  try {
+    if (invited) {
+      if (!historySource?.replaceState) throw new Error("Cannot start a new world while an invitation link is active");
+      if (previousUrl === undefined) throw new Error("Invitation link page URL unavailable");
+      const clean = new URL(previousUrl);
+      clean.hash = "";
+      historySource.replaceState(previousHistoryState, "", `${clean.pathname}${clean.search}`);
+      historyChanged = true;
+    }
+    storage.setItem(storageKey, nextToken);
+    replace(nextToken);
+  } catch (error) {
+    let rollbackError;
+    try {
+      if (previousStored === null || previousStored === undefined) storage.removeItem(storageKey);
+      else storage.setItem(storageKey, previousStored);
+    } catch (restoreError) { rollbackError = restoreError; }
+    if (historyChanged && previousUrl !== undefined && historySource?.replaceState) {
+      try {
+        const prior = new URL(previousUrl);
+        historySource.replaceState(previousHistoryState, "", `${prior.pathname}${prior.search}${prior.hash}`);
+      } catch (restoreError) { rollbackError ??= restoreError; }
+    }
+    if (rollbackError) {
+      const original = error instanceof Error ? error.message : String(error);
+      const recovery = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+      throw new Error(`New world failed: ${original}; rollback failed: ${recovery}`, { cause: error });
+    }
+    throw error;
+  }
+}
+
 function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connectRemote, locationSource, historySource }) {
   const endpoint = publicEndpoint(host, mode);
   const listeners = new Set();
@@ -150,34 +187,7 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       newWorld(onReplaced) {
         if (disposed) throw new Error("connection choice disposed");
         const next = randomToken(cryptoSource);
-        const previousStored = storage.getItem(storageKey);
-        const previousUrl = typeof locationSource?.href === "string" ? locationSource.href : undefined;
-        const previousHistoryState = historySource?.state;
-        let historyChanged = false;
-        try {
-          if (invitedToken !== undefined) {
-            if (!historySource?.replaceState) throw new Error("Cannot start a new world while an invitation link is active");
-            if (previousUrl === undefined) throw new Error("Invitation link page URL unavailable");
-            const clean = new URL(previousUrl);
-            clean.hash = "";
-            historySource.replaceState(previousHistoryState, "", `${clean.pathname}${clean.search}`);
-            historyChanged = true;
-          }
-          storage.setItem(storageKey, next);
-          replace(next);
-        } catch (error) {
-          try {
-            if (previousStored === null || previousStored === undefined) storage.removeItem(storageKey);
-            else storage.setItem(storageKey, previousStored);
-          } catch {}
-          if (historyChanged && previousUrl !== undefined && historySource?.replaceState) {
-            try {
-              const prior = new URL(previousUrl);
-              historySource.replaceState(previousHistoryState, "", `${prior.pathname}${prior.search}${prior.hash}`);
-            } catch {}
-          }
-          throw error;
-        }
+        prepareRemoteNewWorld({ invited: invitedToken !== undefined, nextToken: next, locationSource, historySource, storage, storageKey, replace });
         onReplaced?.(true);
       },
       ...(invitation ? { invitation } : {}),
