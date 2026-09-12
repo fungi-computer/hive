@@ -16,17 +16,18 @@ import {
   move as moveAction,
   encodeDefinition,
   transfer,
+  FiniteResource,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
-import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
+import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
 import { z } from "zod";
 import type { EntityId, GamePack } from "../contracts";
 
-export { Worker, ColonyDigOrder, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
+export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -48,17 +49,16 @@ const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
 const tasks = [taskOne, taskTwo] as const;
 const catId = entity("colony.cat.1");
+const trees = [
+  { id: entity("colony.tree.oak"), x: 2, z: 2 },
+  { id: entity("colony.tree.pine"), x: -5, z: 4 },
+  { id: entity("colony.tree.willow"), x: 4, z: -5 },
+] as const;
 
 const brewStationId = entity("colony.brew-station");
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
-  {
-    ...catRecord,
-    components: {
-      ...catRecord.components,
-      "hive.visual": { sprite: "colony.cat", label: "Mallow" },
-    },
-  },
+  { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
   { id: brewStationId, components: {
     "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
     "hive.container": { capacity: 4 },
@@ -133,6 +133,15 @@ const colonyInitial = [
       },
     },
   })),
+  ...trees.flatMap(({ id, x, z }) => [{ id, components: {
+    "hive.position": { x, y: 0, z, facing: 0 },
+    "hive.container": { capacity: 6 },
+    "colony.tree": { phase: "standing" },
+    [FiniteResource.id]: { kind: "wood", quantity: 6 },
+    "colony.tree-policy": { designated: false },
+  } }, { id: entity(`${id}.order`), components: {
+    "colony.tree-order": { tree: id, actor: null, phase: "blocked", stage: "fell", seconds: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "Not designated" },
+  } }]),
 ];
 
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
@@ -268,6 +277,9 @@ const colonyComponents = [
   DeliveryTask,
   DeliveryControl,
   ColonyDigOrder,
+  ColonyTree, ColonyTreeOrder,
+  ColonyTreePolicy,
+  FiniteResource,
   Cat,
   ConstructionApproach,
   WorkParticipation,
@@ -380,6 +392,29 @@ export const colonyPack: GamePack = {
       lifecycle: [ColonyDigOrder],
       run: (context, input) => ({ actions: [], writes: [], creates: digArea(context, input) }),
     }),
+    designateTrees: command({
+      reads: [ColonyTree], writes: [ColonyTreePolicy],
+      run(context, input) {
+        const raw = input && typeof input === "object" && !Array.isArray(input) ? input as { entities?: unknown } : {};
+        if (!Array.isArray(raw.entities) || raw.entities.length < 1 || raw.entities.length > 32 || raw.entities.some(id => typeof id !== "string")) throw new Error("tree designation requires one to 32 trees");
+        const selected = new Set(raw.entities as string[]);
+        const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
+        const writes = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing").map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }));
+        if (!writes.length) throw new Error("no standing trees selected");
+        return { actions: [], writes };
+      },
+    }),
+    cancelTrees: command({
+      reads: [ColonyTree], writes: [ColonyTreePolicy],
+      run(context, input) {
+        const raw = input && typeof input === "object" && !Array.isArray(input) ? input as { entities?: unknown } : {};
+        if (!Array.isArray(raw.entities) || raw.entities.length < 1 || raw.entities.length > 32 || raw.entities.some(id => typeof id !== "string")) throw new Error("tree cancellation requires one to 32 tree ids");
+        const selected = new Set(raw.entities as string[]);
+        const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
+        if (!rows.length) throw new Error("no matching tree");
+        return { actions: [], writes: rows.map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: false } })) };
+      },
+    }),
     cancelDig: command({
       reads: [ColonyDigOrder, ExcavationWork],
       writes: [],
@@ -418,6 +453,11 @@ export const colonyPack: GamePack = {
   },
   presentation: {
     visuals: context => [
+      ...context.query(query(ColonyTree, Position)).map(row => {
+        const tree = row.get(ColonyTree), position = row.get(Position);
+        const visual = tree.phase === "standing" ? "colony.tree" : tree.phase === "felled" ? "colony.tree.felled" : "colony.tree.stump";
+        return { id: row.id, visual, label: `Tree · ${tree.phase}`, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
+      }),
       ...context.query(query(ConstructionSite)).map(row => {
       const site = row.get(ConstructionSite);
       const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
@@ -459,6 +499,8 @@ export const colonyPack: GamePack = {
       { id: "dig", label: "Dig area", command: "dig", target: "terrain-area" },
       { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area" },
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
+      { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
+      { id: "cancel-trees", label: "Cancel tree work", command: "cancelTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
@@ -472,6 +514,13 @@ export const colonyPack: GamePack = {
         Math.floor(station.z + 0.5),
       ]]).samples[0] : null;
       return [
+        ...(() => {
+          const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
+          return context.query(query(ColonyTreeOrder)).flatMap(row => {
+            const order = row.get(ColonyTreeOrder), tree = trees.get(order.tree);
+            return tree ? [{ id: `tree-${order.tree}`, subjects: [order.tree], label: "Tree work", value: `${tree.phase} · ${order.stage} · ${order.phase}` }] : [];
+          });
+        })(),
         { id: "station-air-temperature", subjects: [brewStationId], label: "Station air", value: stationAir ? `${stationAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
         { id: "station-air-smoke", subjects: [brewStationId], label: "Station smoke", value: stationAir ? `${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
         { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
