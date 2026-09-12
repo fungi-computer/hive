@@ -185,3 +185,75 @@ cross-reconnect command receipt. Learn from the concrete usable product and smal
 world owner; do not copy its wire protocol or downgrade our replay guarantees.
 No conclusion about overall code quality follows from a tweet, screenshots, or
 these few files. No competitor source/art was imported.
+
+## Two-day velocity and publishable-demo estimate — September 12
+
+Measured history window: September 10 15:43:15 UTC through September 12 15:43:15
+UTC, integrated source through d93f723. `git log --first-parent` filtered by commit
+timestamp contains 524 commits: 48 on September 10, 460 on September 11, and 16 on
+September 12. These include helper integrations, fixes, documentation and work
+subsequently replaced. They are NOT 524 independent outcomes or measured labor
+hours. Active model time and exclusive working time were not reconstructed.
+
+Outcome accounting:
+
+| Work | Evidence at this checkpoint | Counts toward a dependable Colony? |
+| --- | --- | --- |
+| Existing cannon and other foundation consumers | September 10 live cannon/recovery and delivery/survival records, 16e842e, e9bfce1, 7423f79 | Reusable working foundation and an existing enjoyable demo; not Colony acceptance |
+| Colony environment and performance | September 11 paid hearth/observation/recovery work and a short hosted dig/build/smoke trial; subsequent human stalls | Useful partial result, reopened by actual play |
+| Gas direction | Pressure/room work followed by its removal in fdcb35b | Necessary simplification; much prior effort is rework, not accumulated progress |
+| Digging and ground spoil | 4414a57 published; actual native 4x4 law completes after occupied guest moves; finite stock preserved | Real improvement, not sustained two-depth acceptance |
+| Current hosted combined scenario | Two sockets, two cuts, receipt replay and wall pass; hearth supply times out | Still blocked; live paid fire in this joined scenario unaccepted |
+| Client/job consolidation | Actual caller gaps documented; fixes not yet implemented | Readiness to repair, not shipped gameplay |
+
+Net assessment: high implementation throughput, low reliable-gameplay throughput.
+No completed sustained Colony acceptance run in this window. The public game has
+improved, but commit count cannot justify a confident overnight completion date.
+The estimate below is engineering judgment based on remaining coupled outcomes,
+not a statistically fitted delivery rate from two days of churn.
+
+### Smallest demo worth sharing
+
+A stranger quickly understands how to designate work. Two people can share the
+small colony using the existing demo access model, build a modest home and cellar,
+handle the dirt and supplies, encounter visible seepage and hearth smoke, and
+complete one short production/guest-serving loop. Original goblins and carrying
+animations make the work legible. The 30–60 second clip shows actual normal play;
+the link must support continued play, not just a staged showcase.
+
+This is a better *specific hook* than generic chores: build a cozy goblin home,
+dig into trouble, then make it hospitable. It is not a claim of better overall
+quality or 50-player capacity than Townies. Shared demo access is not completed
+individual player/account grants. Account-based invitations remain a separate
+public App/customer dependency and must not be advertised as implemented.
+
+### Forecast, not a promised deadline
+
+Target **5–8 focused working days** for that shareable Colony slice, with the first
+credible private playtest after **1–2 days**. These are elapsed working-day estimates
+for root review plus at most two bounded native implementation lanes, not a claim
+about 24-hour unattended throughput or parallelism eliminating integration time.
+
+| Sequence | Estimated effort | Observable exit |
+| --- | --- | --- |
+| Movement/work and command recovery | 1–2 days | Digging, full storage and reconnect stop stranding workers or locking input |
+| Restore coherent retained controls and joined environment play | 1–2 days | Visible rectangle/level selection, useful blocked reasons, earned cellar/building and supplied hearth/seepage |
+| One short goal/reward loop | 2–3 days | Definition-driven first recipe over shared material/work ownership; supply, preparation, wait, output and guest interaction |
+| Joined acceptance and presentation | About 1 day | Fixed sustained two-client scenario passes, Levi plays it, concise onboarding and genuine shareable clip |
+
+The day ranges total 5–8. Some source work may overlap, but acceptance dependencies
+remain serial. Full retained brewing, deep social systems, generalized account
+multiplayer, region transfers and AI autoplay do not fit this estimate. A wholly
+new event-sourced persistence model is explicitly excluded: retain transactional
+state/receipts, simplify replication, add selected durable facts when consumed.
+
+Largest uncertainty is another shared movement/custody failure under combined
+play. Recipe composition also remains actual missing implementation, not a copy
+operation. If the initial stabilization exit is still red after two focused days,
+revise this forecast against the concrete failure rather than rolling the same
+promise forward. Do not add another architecture rewrite to hide the missed exit.
+
+Track future progress in this existing section by accepted player-visible exits,
+regressions and scope changes. Record private playtest readiness before polish;
+update the estimate when evidence changes. Keep the existing complete goal and
+fixed performance workload as the acceptance authority.
