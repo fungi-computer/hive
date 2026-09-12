@@ -436,7 +436,9 @@ export function createHiveClient({
             React.createElement(
               "span",
               { className: "hive-status" },
-              state.ready ? persistence.statusLabel : "Connecting…",
+              !state.ready ? "Connecting…" : state.connection.status === "online"
+                ? persistence.statusLabel : state.connection.status === "recovering"
+                  ? "Recovering connection…" : "Connection unavailable",
             ),
           ),
           React.createElement(
@@ -1224,13 +1226,10 @@ export function createHiveClient({
     unsubscribeRuntime = runtime?.subscribe?.((event) => {
       if (state.disposed) return;
       if (event.type === "connection") {
+        const previousStatus = state.connection.status;
         state.connection = { status: event.status, pending: event.pending };
-        if (event.status === "unavailable")
-          state.message = `Connection unavailable · ${event.pending} order${event.pending === 1 ? "" : "s"} retained`;
-        else if (event.status === "recovering")
-          state.message = `Reconnecting · ${event.pending} order${event.pending === 1 ? "" : "s"} retained`;
-        else if (state.message.startsWith("Connection unavailable") || state.message.startsWith("Reconnecting"))
-          state.message = persistence.statusLabel;
+        if (event.status === "online" && previousStatus !== "online")
+          state.message = "Connection restored";
         renderHud();
       }
       if (event.type === "state" && typeof event.paused === "boolean") {

@@ -379,7 +379,6 @@ export const deliverySystem = createWorkSystem({
     Surface,
     MaterialLot,
     ExcavationWork,
-  Destination,
     DeliveryControl,
   ],
   writes: [DeliveryTask],

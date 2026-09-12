@@ -12,6 +12,14 @@ an enjoyable public demo and a genuine 30–60 second clip with a playable link.
 The engine supports that experience. Its abstractions, benchmarks, saved records
 and other demos are not the product finish line. Restore the retained Clearing's
 quality over the Rust/DO implementation; do not start another game or rewrite.
+Engineering quality follows the **current Botanical-next Field Guide and current
+Botanical implementations**, not the original Clearing's internal code. The
+Clearing supplies gameplay, control and art references. Before accepting a changed
+seam, apply Botanical's software-shape, ownership-and-seams, testing-and-gates and
+anti-slop rules from `/home/levi/src/Botanical-next/wiki/3-resources/field-guide/`:
+one decision owner, typed boundary outcomes, maintained parsing primitives,
+bounded recovery, removal of superseded mechanisms and proof through real callers.
+King personally owns that comparison and every nonmechanical design decision.
 The two screenshots Levi supplied on September 12 are the direct visual comparison:
 the original clearing with varied grass, paths, trees, Rowan, Sedge and the cat
 versus the current sparse Colony with generic actors and flat-colored terrain.

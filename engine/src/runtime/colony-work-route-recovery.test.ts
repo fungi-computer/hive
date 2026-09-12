@@ -4,58 +4,41 @@ import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { entity, query } from "../sdk/authoring";
+import { query } from "../sdk/authoring";
 import { DeliveryTask } from "../sdk/delivery";
-import { Destination, excavate } from "../sdk/common";
-import { colonyPack } from "../games/colony";
+import { MaterialLot } from "../sdk/common";
+import { ConstructionSite } from "../sdk/construction";
+import { colonyPack, ColonyDigOrder } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
-test("Colony delivery repairs a native route after a topology change", () => {
+test("Colony digging then supplied building does not strand an existing delivery", () => {
   const port = wasmKernelPort(new WasmKernel());
-  const session = new GameSession({ port, pack: colonyPack });
-  const worker = entity("colony.worker.1");
-  const secondWorker = entity("colony.worker.2");
   try {
+    const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("pauseDelivery", { entities: [secondWorker] });
-    session.command("deliver", { entities: [worker], quantity: 1 });
-
-    let deliveryTaskId: string | undefined;
-    for (let tick = 0; tick < 80; tick++) {
-      session.step(0.1);
-      const deliveryTask = session.query(query(DeliveryTask)).find((row) => {
-        const task = row.get(DeliveryTask);
-        return task.actor === worker && task.phase === "to-destination";
-      });
-      if (deliveryTask && session.query(query(Destination)).some((row) => row.id === worker)) {
-        deliveryTaskId = deliveryTask.id;
-        break;
-      }
+    session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
+    const rejected: string[] = [];
+    const step = () => {
+      for (const result of session.step(0.1)) if (!result.accepted) rejected.push(result.reason ?? "rejected");
+    };
+    for (let tick = 0; tick < 240 && (tick === 0 || session.query(query(ColonyDigOrder)).length); tick++) step();
+    assert.equal(session.query(query(ColonyDigOrder)).length, 0, "both designated cuts must complete");
+    assert.deepEqual(port.terrainMaterials([[1,13,0],[2,13,0]]), [0,0]);
+    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: [2,13,2], material: 1 } });
+    for (let tick = 0; tick < 700; tick++) step();
+    assert.deepEqual(rejected, [], "ordinary joined work must not repeatedly submit impossible actions");
+    const sites = session.query(query(ConstructionSite));
+    assert.equal(sites.length, 1);
+    assert.equal(sites[0].get(ConstructionSite).phase, "finished", "supplied wall must finish");
+    for (const id of ["colony.delivery.1", "colony.delivery.2"]) {
+      const task = session.query(query(DeliveryTask)).find(row => row.id === id)?.get(DeliveryTask);
+      assert(task, `existing delivery ${id} must remain observable`);
+      assert.equal(task.phase, "complete", `${id} must finish after terrain changes`);
+      assert.equal(task.actor, null, `${id} must release its worker`);
     }
-    assert(deliveryTaskId, "worker must have an active carrying delivery route");
-
-    const surface = port.terrainSurfaces([[1, 2]])[0];
-    assert(surface, "native terrain must expose a nearby diggable surface");
-    assert.notEqual(surface.material, 0, "route repair target must still be solid");
-    session.request(excavate(secondWorker, { x: surface.cell[0], y: surface.cell[1], z: surface.cell[2] }, surface.material, 0));
-    const excavationAdmission = session.step(0).find(({ action }) => action.kind === "excavate");
-    assert.equal(excavationAdmission?.accepted, true, "native terrain edit must be accepted");
-    for (let tick = 0; tick < 40; tick++) session.step(0.1);
-    assert.equal(port.terrainMaterials([[surface.cell[0], surface.cell[1], surface.cell[2]]])[0], 0, "native terrain edit must commit");
-
-    let completed = false;
-    for (let tick = 0; tick < 180; tick++) {
-      session.step(0.1);
-      completed ||= session.query(query(DeliveryTask)).some((row) => {
-        if (row.id !== deliveryTaskId) return false;
-        const task = row.get(DeliveryTask);
-        return task.actor === null && task.phase === "complete";
-      });
-      if (completed) break;
-    }
-    assert.equal(completed, true, "delivery must resume after terrain invalidates its route");
-  } finally {
-    port.dispose();
-  }
+    const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
+    assert.equal(lots.filter(lot => lot.kind === "soil-spoil").reduce((sum, lot) => sum + lot.quantity, 0), 6);
+    assert(!lots.some(lot => lot.kind === "bread" && lot.quantity > 0 && lot.container.startsWith("colony.worker.")), "no worker remains trapped carrying a ration");
+  } finally { port.dispose(); }
 });
