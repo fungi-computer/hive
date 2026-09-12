@@ -1,4 +1,3 @@
-import { drawEnvironmentEffects } from "./environment-effects.js";
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
@@ -661,10 +660,9 @@ export function createHiveClient({
     terrainLayer.position(camera);
     terrainMarksGraphic.clear();
     const displayedTerrain = displayedTerrainFrame();
-    drawEnvironmentEffects(environmentGraphic, state.environmentVisuals, {
-      project, camera, now,
-      maxY: state.view.cutaway ? (state.view.level + 1.5) * (displayedTerrain?.verticalMetres ?? 1) : Infinity,
-    });
+    // Emission facts remain native state and are shown in the station's
+    // retained authored visual. No procedural fire/smoke shapes are drawn.
+    environmentGraphic.clear();
     if (state.terrainMarks.length > 0 && displayedTerrain) {
       if (markSurfaceSource !== displayedTerrain.surfaces) {
         markSurfaceSource = displayedTerrain.surfaces;

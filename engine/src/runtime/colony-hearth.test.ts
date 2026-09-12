@@ -11,7 +11,7 @@ import { WorkParticipation } from "../sdk/work-control";
 import { colonyPack } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
-const hearth = entity("colony.hearth");
+const hearth = entity("colony.brew-station");
 const workers = [entity("colony.worker.1"), entity("colony.worker.2")];
 const stationInput = { station: hearth };
 function work(session: GameSession) {

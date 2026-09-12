@@ -1,5 +1,4 @@
 import { EmissionOrder, EmissionWork, idleEmissionWork, nextEmissionOrder } from "../sdk/emission-work";
-import { colonyAtmosphereVisuals } from "./colony-atmosphere";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
@@ -48,15 +47,15 @@ const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
 const tasks = [taskOne, taskTwo] as const;
 
-const hearthId = entity("colony.hearth");
+const brewStationId = entity("colony.brew-station");
 const colonyInitial = [
-  { id: hearthId, components: {
+  { id: brewStationId, components: {
     "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
     "hive.container": { capacity: 4 },
     "hive.emitter": { catalog: "wood-hearth" },
     [EmissionWork.id]: idleEmissionWork,
     [EmissionOrder.id]: { revision: 0, enabled: false },
-    "hive.visual": { sprite: "colony.hearth", label: "Wood hearth" },
+    "hive.visual": { sprite: "colony.brew-station", label: "Brew station" },
   } },
   ...workers.map((id, index) => ({
     id,
@@ -407,7 +406,6 @@ export const colonyPack: GamePack = {
     }),
   },
   presentation: {
-    environmentVisuals: colonyAtmosphereVisuals,
     visuals: context => [
       ...context.query(query(ConstructionSite)).map(row => {
       const site = row.get(ConstructionSite);
@@ -442,8 +440,8 @@ export const colonyPack: GamePack = {
         status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
     }),
     controls: [
-      { id: "light-hearth", label: "Light hearth", command: "lightHearth", input: { station: hearthId }, subjects: [hearthId] },
-      { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: hearthId }, subjects: [hearthId] },
+      { id: "light-hearth", label: "Light hearth", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
+      { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
       ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, orientation: "north" }, target: "world-surface" as const })),
       ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const })),
@@ -455,20 +453,20 @@ export const colonyPack: GamePack = {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
       const total = (container: EntityId) => lots.filter((lot) => lot.container === container).reduce((sum, lot) => sum + lot.quantity, 0);
       const taskRows = context.query(query(DeliveryTask));
-      const ignition = context.query(query(EmissionWork)).find(row => row.id === hearthId)?.get(EmissionWork);
-      const hearth = context.query(query(Position)).find(row => row.id === hearthId)?.get(Position);
-      const hearthAir = hearth ? context.atmosphereSamples([[
-        Math.floor(hearth.x + 0.5),
-        Math.floor(hearth.y / colonyEnvironment.world.verticalMetres + 0.5),
-        Math.floor(hearth.z + 0.5),
+      const ignition = context.query(query(EmissionWork)).find(row => row.id === brewStationId)?.get(EmissionWork);
+      const station = context.query(query(Position)).find(row => row.id === brewStationId)?.get(Position);
+      const stationAir = station ? context.atmosphereSamples([[
+        Math.floor(station.x + 0.5),
+        Math.floor(station.y / colonyEnvironment.world.verticalMetres + 0.5),
+        Math.floor(station.z + 0.5),
       ]]).samples[0] : null;
       return [
-        { id: "hearth-air-temperature", subjects: [hearthId], label: "Hearth air", value: hearthAir ? `${hearthAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
-        { id: "hearth-air-smoke", subjects: [hearthId], label: "Hearth smoke", value: hearthAir ? `${(hearthAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
+        { id: "station-air-temperature", subjects: [brewStationId], label: "Station air", value: stationAir ? `${stationAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
+        { id: "station-air-smoke", subjects: [brewStationId], label: "Station smoke", value: stationAir ? `${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
         { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
         { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
-        { id: "hearth-fuel", subjects: [hearthId], label: "Hearth wood", value: total(hearthId) },
-        { id: "ignition", label: "Lighting order", subjects: [hearthId], value: ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]) },
+        { id: "station-fuel", subjects: [brewStationId], label: "Station wood", value: total(brewStationId) },
+        { id: "ignition", label: "Lighting order", subjects: [brewStationId], value: ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]) },
         { id: "worker-carried", subjects: workers, label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         ...workers.map((worker, index) => ({
           id: `worker-${index + 1}-control`, subjects: [worker],
