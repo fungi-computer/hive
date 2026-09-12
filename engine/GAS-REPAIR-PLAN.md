@@ -758,3 +758,24 @@ attempts, unclaimed occupied tile, then an ordinary guest move allowing the last
 cut. Exactly 48 spoil units remain. Strict types and diff passed in that same
 command; scope is inactive/dead/empty. Source and test are not deployed yet.
 This is not the sustained two-player or second-depth acceptance result.
+
+### September 12: local-gas Colony interim published
+
+Source 4414a57 is now on the existing feature preview. Frontend deployment
+`d2e18326-3cac-4bbc-8d72-90e2f8d637d6`; public engine Worker version
+`17a3bf93-5049-475d-b236-2dc6b43ef4c0`, implementation
+`07f523ca138833f8d39bf010ab4f8d4554f63c21614ac5e7dc55ac47b3ca5170`.
+The maintained engine-only build preserves every non-engine file and original
+art bank. Rollback dist and inventory are in `.botanical/local-smoke-release`.
+158 served files match: initial readback had four stale/missing responses;
+readback-propagation.json verifies those four subsequently matched exactly.
+
+The bounded live two-client check u6149 connected both clients, completed two
+earned digs, replayed the dig receipt and completed a supplied timber wall.
+It then timed out waiting for ordinary hearth supply. Live smoke and final
+responsiveness assertions therefore did NOT pass. The test pauses its own world
+and closes both sockets; no local server was launched. This release is an
+explicit gameplay interim, not full gas/fire/multiplayer acceptance. Local
+hearth fuel/smoke evidence remains separate. Next action is inspect actual supply
+state in the combined hosted scenario rather than infer gas failure or rerun
+old solver checks. Private recovery ref is verified at 4414a57.
