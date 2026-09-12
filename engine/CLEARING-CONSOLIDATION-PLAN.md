@@ -102,9 +102,20 @@ engine types after correcting the stale expected hearth/lumber placement list.
 The joined touched Fallow audit u6293 passes with zero introduced findings;
 8 inherited dead-code and1 inherited client-cache complexity finding remain.
 Fallow does not establish Rust performance or replace the native laws. The source
-is not yet deployed. Water coverage is still unfinished.
+was not deployed at that checkpoint; the groundwater landing below supersedes that availability.
 
 ## Groundwater landing — September 12
+
+**Live:** [Colony](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html).
+Accepted runtime integration75da7f0 (writerbcf211d); frontend deployment
+7c24ec1a-ac91-4f37-a873-92ebfb87eaa4; DO Worker version
+3c7bd847-e064-47e7-a95b-b3ebce79ba31. The ordinary publication u6308 passed,
+and u6309 matched all158 served files to the accepted build. Package u6306
+passed; the actual area-dig WASM witnesses at x=1 and x=9 each completed in
+about1.2seconds of local test wall time, not a server capacity estimate.
+No new browser or sustained two-client proof is claimed. Prior live158-file
+archive and Worker65a67106 remain preserved for rollback. Private backup
+`recovery/hive-clearing-repair-20260912` was verified at75da7f0 before this receipt.
 
 The game now uses `terrain_water/field.rs` as its finite local water owner instead
 of the fixed-coordinate compiled graph. Original geology supplies virgin porous
