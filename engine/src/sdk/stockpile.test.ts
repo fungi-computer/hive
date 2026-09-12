@@ -93,7 +93,7 @@ test("profile deny and malformed profile leave physical lots untouched", () => {
 test("capacity limits the planned partial quantity and equal priority is not a rehaul", () => {
   const zone = entity("zone.capacity");
   const destination = stockpileCellRecords([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
-  const sourceCell = stockpileCellRecords([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 5, verticalMetres: 0.54 }])[0];
+  const sourceCell = stockpileCellRecords([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 2, verticalMetres: 0.54 }])[0];
   const source = entity("ground.capacity");
   const rows = [
     row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 3 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
