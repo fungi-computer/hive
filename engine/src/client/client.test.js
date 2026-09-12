@@ -84,6 +84,7 @@ test("clearing retains scenery and cat bindings without granting physical identi
     anchor: "propAnchor",
   });
   assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.notched"].path[1], "notched");
+  assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.felled"].path[1], "felled");
   assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.stump"].path[1], "stump");
   assert.deepEqual(DEFAULT_VISUAL_BINDINGS["colony.cat"], {
     kind: "figure",

@@ -446,7 +446,7 @@ export async function bakeArt(onProgress = () => {}) {
     }
     detail = "Drawing trees and plants";
     report();
-    for (const stage of ["standing", "notched", "stump"])
+    for (const stage of ["standing", "notched", "felled", "stump"])
       art.tree[stage] = bakeStartup(renderer, tree(stage), prop, 112, 112);
     for (const stage of MUGWORT_STAGES)
       art.herbs.mugwort[stage] = bakeStartup(
