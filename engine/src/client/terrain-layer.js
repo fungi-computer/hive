@@ -198,9 +198,8 @@ export function createTerrainLayer() {
       for (const cell of frame.water) {
         if (cell.liquidVolumeM3 <= 0) continue;
         const [x, y, z] = cell.at;
-        const top =
-          (y - 0.5) * frame.verticalMetres +
-          Math.min(frame.verticalMetres, cell.liquidVolumeM3);
+        const top = (y - 0.5) * frame.verticalMetres +
+          (cell.level / 7) * frame.verticalMetres;
         const corners = [
           [x - 0.5, z - 0.5],
           [x + 0.5, z - 0.5],

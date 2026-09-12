@@ -26,9 +26,9 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
   const port = fakePort(() => ({
     terrainRevision: revision,
     cells: [
-      { at: [0, 4, 0], massKg: 1, liquidVolumeM3: 0.001 },
-      { at: [0, 5, 0], massKg: 2, liquidVolumeM3: 0.002 },
-      { at: [1, -4, 0], massKg: 3, liquidVolumeM3: 0.003 },
+      { at: [0, 4, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 },
+      { at: [0, 5, 0], level: 2, massKg: 2, liquidVolumeM3: 0.002 },
+      { at: [1, -4, 0], level: 3, massKg: 3, liquidVolumeM3: 0.003 },
     ],
   }), (columns) => {
     surfaceCalls++;

@@ -10,21 +10,21 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
     verticalMetres: 0.54,
     surfaces: [{ cell: [2, 8, -3], material: 1, generatedTop: 8, ignored: { unbounded: true } }],
     structureSurfaces: [{ cell: [2, 9, -3] }],
-    water: [{ at: [2, 9, -3], massKg: 2, liquidVolumeM3: 0.002, extra: [1, 2, 3] }],
+    water: [{ at: [2, 9, -3], level: 1, massKg: 2, liquidVolumeM3: 0.002, extra: [1, 2, 3] }],
   });
   assert.deepEqual(frame, {
     revision: 4,
     verticalMetres: 0.54,
     surfaces: [{ cell: [2, 8, -3], material: 1, generatedTop: 8 }],
     structureSurfaces: [{ cell: [2, 9, -3] }],
-    water: [{ at: [2, 9, -3], massKg: 2, liquidVolumeM3: 0.002 }],
+    water: [{ at: [2, 9, -3], level: 1, massKg: 2, liquidVolumeM3: 0.002 }],
   });
   assert.equal(parseTerrainFrame(undefined), undefined);
   assert.throws(() => parseTerrainFrame({
     revision: 0, verticalMetres: 1, surfaces: Array.from({ length: 4097 }, () => null), water: [],
   }), /invalid terrain observation/);
   assert.throws(() => parseTerrainFrame({
-    revision: 0, verticalMetres: 1, surfaces: [], water: [{ at: [0, 0, 0], massKg: Infinity, liquidVolumeM3: 0 }],
+    revision: 0, verticalMetres: 1, surfaces: [], water: [{ at: [0, 0, 0], level: 1, massKg: Infinity, liquidVolumeM3: 0 }],
   }), /invalid terrain observation/);
   assert.throws(() => parseTerrainFrame({
     revision: 1, verticalMetres: 1, surfaces: [],
@@ -50,13 +50,13 @@ test("terrain surface references retain only a connection's baseline surfaces", 
   });
   assert.deepEqual(parseTerrainObservation({
     ...wire,
-    water: [{ at: [1, 3, 3], massKg: 1, liquidVolumeM3: 0.001 }],
+    water: [{ at: [1, 3, 3], level: 1, massKg: 1, liquidVolumeM3: 0.001 }],
   }, baseline), {
     revision: 7,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }],
     structureSurfaces: [{ cell: [1, 4, 3] }],
-    water: [{ at: [1, 3, 3], massKg: 1, liquidVolumeM3: 0.001 }],
+    water: [{ at: [1, 3, 3], level: 1, massKg: 1, liquidVolumeM3: 0.001 }],
   });
   assert.throws(() => parseTerrainObservation(wire, undefined), /surface reference is unavailable/);
   assert.throws(() => parseTerrainObservation({ ...wire, surfacesRevision: 8 }, baseline), /surface reference is unavailable/);
@@ -98,7 +98,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
       time: 1, paused: false, epoch: 0, sequence: 2, facts: [], cues: [],
       presentationFacts: [], presentationControls: [], terrainMarks: [], environmentVisuals: [],
       terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [
-        { at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 },
+        { at: [0, 1, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 },
       ] },
     },
   }) });
@@ -108,7 +108,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }],
     structureSurfaces: [{ cell: [1, 4, 3] }],
-    water: [{ at: [0, 1, 0], massKg: 1, liquidVolumeM3: 0.001 }],
+    water: [{ at: [0, 1, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 }],
   });
   // Reconnect receives a complete baseline at the same committed revision.
   // It is stale for presentation, but must repopulate the new connection cache.

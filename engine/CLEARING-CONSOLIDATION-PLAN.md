@@ -60,6 +60,18 @@ Do not call environment work complete because a small isolated fixture passes.
   isolated root. Keep the native terrain, water and compound completion owners;
   no new game engine, parallel water owner or different research demo.
 
+### Discrete open-water contract — September 12
+
+The authoritative terrain field stores open water as an integer depth level from
+0 through 7. Open mass and liquid volume are derived from `level * cellCapacity /
+7`; porous moisture remains finite and fractional. Each local step gives an
+open interface one whole level at most, with downward transfer processed before
+lateral spreading; a successful downward move suppresses lateral moves from
+that source for the step. Open/porous exchange also moves only one conserved
+open-level quantum. Current terrain-water records use format 2 and reject the
+former fractional format, while explicit drained level-0 records remain dry
+after reload.
+
 The next joined proof must perform earned digging outside x/z[-2,2], encounter
 real water, and exercise smoke outside x/z[-8,8] plus a below-ground opening. It
 must retain water through current-format reload and show the same behavior in the

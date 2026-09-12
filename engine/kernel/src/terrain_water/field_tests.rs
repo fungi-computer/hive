@@ -41,7 +41,7 @@ fn off_center_groundwater_seepage_is_finite_bounded_and_restart_exact() {
         assert!(work.faces <= 128 * 6, "local work bounded independently of world extent");
     }
     let facts = world.facts().unwrap();
-    assert!(facts.cells.iter().any(|c| c.at[0] > 2 && c.liquid_volume_m3 > 0.0), "actual off-center cuts receive finite seepage: {facts:?}");
+    assert!(facts.cells.iter().any(|c| c.at[0] > 2 && c.level > 0), "fractured groundwater collectively reaches the open cut: {facts:?}");
     assert!((facts.total_kg + spoil_water - facts.initial_total_kg).abs() < 1e-8);
     let saved = world.save_records().unwrap();
     let mut restored = TerrainWater::restore_records(geometry(), terrain(), &saved).unwrap();
