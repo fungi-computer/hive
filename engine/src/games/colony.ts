@@ -14,13 +14,16 @@ import {
   Position,
   Traversal,
   cancelWork,
+  move as moveAction,
   encodeDefinition,
   transfer,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { GroundStock } from "../sdk/ground-stock";
+import { WorkParticipation } from "../sdk/work-control";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
+import { z } from "zod";
 import type { EntityId, GamePack } from "../contracts";
 
 export { Worker, ColonyDigOrder, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
@@ -58,6 +61,7 @@ const colonyInitial = [
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: "goblin.worker", label: `Worker ${index + 1}` },
       "colony.worker": { guest: false },
+      "hive.work-participation": { automatic: true },
       "hive.delivery-control": { enabled: true, quantity: 1 },
     },
   })),
@@ -118,6 +122,20 @@ const colonyInitial = [
 
 type DeliveryInput = { readonly quantity?: unknown; readonly entities?: unknown };
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
+
+const goMove = (worker: EntityId, destination: { x: number; y: number; z: number; frame: EntityId | null }) =>
+  moveAction(worker, destination, 0);
+
+const goInput = z.object({
+  entities: z.array(z.string()).min(1).max(workers.length),
+  destination: z.object({
+    x: z.number().finite(), y: z.number().finite(), z: z.number().finite(),
+    frame: z.string().nullable(),
+  }).strict(),
+}).strict();
+const workerSelectionInput = z.object({
+  entities: z.array(z.string()).min(1).max(workers.length),
+}).strict();
 
 function inputOf(input: unknown): DeliveryInput {
   if (!input || typeof input !== "object" || Array.isArray(input))
@@ -243,6 +261,7 @@ const colonyComponents = [
   DeliveryControl,
   ColonyDigOrder,
   ConstructionApproach,
+  WorkParticipation,
 ] as const;
 
 function areaPoint(value: unknown): [number, number, number] {
@@ -309,6 +328,32 @@ export const colonyPack: GamePack = {
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
+    }),
+    go: command({
+      reads: [Worker, Position, WorkParticipation, ExcavationWork, ConstructionSite],
+      writes: [WorkParticipation],
+      run: (context, input) => {
+        const parsed = goInput.parse(input);
+        const selected = selectedWorkers(context, parsed);
+        const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
+        const building = new Set(context.query(query(ConstructionSite)).flatMap(row => {
+          const worker = row.get(ConstructionSite).worker;
+          return worker === null ? [] : [worker];
+        }));
+        return {
+          actions: selected.flatMap(worker => (excavating.has(worker) || building.has(worker)) ? [cancelWork(worker)] : [])
+            .concat(selected.map(worker => goMove(worker, parsed.destination))),
+          writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })),
+        };
+      },
+    }),
+    resumeWork: command({
+      reads: [Worker, WorkParticipation],
+      writes: [WorkParticipation],
+      run: (context, input) => {
+        const selected = selectedWorkers(context, workerSelectionInput.parse(input));
+        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
+      },
     }),
     dig: command({
       reads: [ColonyDigOrder],
@@ -393,6 +438,7 @@ export const colonyPack: GamePack = {
       { id: "deliver-two", label: "Deliver 2", command: "deliver", input: { quantity: 2 }, selection: "entities" },
       { id: "pause", label: "Pause delivery", command: "pauseDelivery", selection: "entities" },
       { id: "resume", label: "Resume delivery", command: "resumeDelivery", selection: "entities" },
+      { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities" },
       ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, orientation: "north" }, target: "world-surface" as const })),
       ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const })),
       { id: "dig", label: "Dig area", command: "dig", target: "terrain-area" },
@@ -416,6 +462,11 @@ export const colonyPack: GamePack = {
         { id: "lumber-quantity", label: "Starter lumber", value: total(colonyLumberId) },
         { id: "hearth-fuel", label: "Hearth wood", value: total(hearthId) },
         { id: "worker-carried", label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
+        ...workers.map((worker, index) => ({
+          id: `worker-${index + 1}-control`,
+          label: `Worker ${index + 1}`,
+          value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
+        })),
         { id: "guest-quantity", label: "Guest meal", value: total(guestId) },
         ...workers.map((worker, index) => ({
           id: `dig-progress-${index + 1}`,

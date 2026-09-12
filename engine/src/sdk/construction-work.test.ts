@@ -86,7 +86,7 @@ const options = {
 
 test("construction eligibility filters missing material before route costs", () => {
   const fake = context({ includeMaterial: false });
-  const prepared = constructionWorkProvider(fake.base, options);
+  const prepared = constructionWorkProvider(fake.base, options, new Set());
   assert.equal(prepared.candidates.length, 0);
   assert.equal(fake.routes.length, 0);
 });
@@ -100,7 +100,7 @@ test("construction system joins a fresh site through the shared matcher", () => 
 
 test("construction assignment persists an approach claim and native attendance releases it", () => {
   const fake = context({ includeMaterial: true });
-  const prepared = constructionWorkProvider(fake.base, options);
+  const prepared = constructionWorkProvider(fake.base, options, new Set());
   assert.equal(prepared.candidates.length, 1);
   prepared.apply([{ worker, task: site, cost: 3 }]);
   assert.deepEqual(fake.created, [{
@@ -118,7 +118,7 @@ test("construction assignment persists an approach claim and native attendance r
     if (spec.components.some((definition) => definition.id === ConstructionApproach.id)) return [approach];
     return originalQuery(spec);
   }) as WriteContext["query"];
-  const next = constructionWorkProvider(arrived.base, options);
+  const next = constructionWorkProvider(arrived.base, options, new Set());
   next.progress();
   assert.deepEqual(arrived.actions, [{ kind: "attend-construction", worker, site }]);
 
@@ -128,7 +128,7 @@ test("construction assignment persists an approach claim and native attendance r
     if (spec.components.some((definition) => definition.id === ConstructionApproach.id)) return [approach];
     return attendedQuery(spec);
   }) as WriteContext["query"];
-  constructionWorkProvider(attended.base, options).progress();
+  constructionWorkProvider(attended.base, options, new Set()).progress();
   assert.deepEqual(attended.removed, [approach.id]);
 });
 
@@ -148,7 +148,7 @@ test("approach releases removed workers but ignores rejected moves to another ta
     if (spec.components.some((definition) => definition.id === ConstructionApproach.id)) return [approach];
     return originalQuery(spec);
   }) as WriteContext["query"];
-  constructionWorkProvider(foreign.base, options).progress();
+  constructionWorkProvider(foreign.base, options, new Set()).progress();
   assert.deepEqual(foreign.removed, []);
 
   const revoked = context({ includeMaterial: true });
@@ -157,6 +157,6 @@ test("approach releases removed workers but ignores rejected moves to another ta
     if (spec.components.some((definition) => definition.id === ConstructionApproach.id)) return [approach];
     return revokedQuery(spec);
   }) as WriteContext["query"];
-  constructionWorkProvider(revoked.base, { ...options, workers: [] }).progress();
+  constructionWorkProvider(revoked.base, { ...options, workers: [] }, new Set()).progress();
   assert.deepEqual(revoked.removed, [approach.id]);
 });

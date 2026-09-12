@@ -5,6 +5,7 @@ import { component, entity, query, system } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { GroundStock } from "../sdk/ground-stock";
+import { WorkParticipation } from "../sdk/work-control";
 import {
   Emitter, Body, Container, Destination, ExcavationWork, MaterialLot, LotWater, Position, Support, Surface, Traversal,
   excavate, move, cancelWork,
@@ -49,7 +50,7 @@ function orderPoint(order: { approachX: number; approachY: number; approachZ: nu
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
 }
 
-function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
+function digProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
   const workers = new Set(ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id));
   const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
@@ -180,6 +181,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
     progress() {
       for (const row of activeOrders) {
         const state = row.get(ColonyDigOrder);
+        if (state.actor !== null && suspendedActors.has(state.actor)) continue;
         if (obstructed(state)) {
           if (state.actor && excavating.has(state.actor)) ctx.action(cancelWork(state.actor));
           if (state.actor !== null || state.phase !== "blocked" || state.reason !== "Someone is standing on this tile") {
@@ -247,14 +249,14 @@ function planGroundStockDeliveries(ctx: WriteContext) {
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [GroundStock, ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  reads: [GroundStock, ColonyDigOrder, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl, WorkParticipation],
   writes: [ColonyDigOrder, DeliveryTask, ConstructionApproach],
-  providers: [deliveryProvider, digProvider, ctx => constructionWorkProvider(ctx, {
+  providers: [deliveryProvider, digProvider, (ctx, suspendedActors) => constructionWorkProvider(ctx, {
     workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
     catalogMaterials: Object.fromEntries(colonyEnvironment.structures.catalog.map(definition => [
       definition.id, definition.materials.map(({ kind: material, quantity }) => ({ material, quantity })),
     ])),
-  })],
+  }, suspendedActors)],
 });
 
 /** Turns native excavation piles into ordinary shared delivery work. */

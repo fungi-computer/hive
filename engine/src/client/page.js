@@ -23,8 +23,9 @@ const configs = {
     title: "Colony",
     subtitle:
       "Mark an area for workers to dig and haul away the soil. Dig deeper to uncover groundwater.",
+    orderCommand: "go",
     selectionShortcuts: [{ id: "colony.worker.1", label: "Select worker 1" }, { id: "colony.worker.2", label: "Select worker 2" }],
-    controlHelp: "Dig area, then drag across the ground · Workers dig and unload automatically · Cancel dig area removes orders · Escape cancels a drag · Select a worker and right-click to walk",
+    controlHelp: "Dig area, then drag across the ground · Select a worker and right-click to take control · Resume work returns them to automatic orders · Escape cancels a drag",
     source: "./source/colony.ts",
   },
   survival: {

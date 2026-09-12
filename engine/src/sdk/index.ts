@@ -1,6 +1,7 @@
 export * from "./authoring";
 export * from "./common";
 export * from "./construction";
+export * from "./work-control";
 export * from "./combat";
 export * from "../contracts";
 export { colonyPack } from "../games/colony";

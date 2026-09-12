@@ -2,6 +2,7 @@ import { component, query } from "./authoring";
 import { GroundStock } from "./ground-stock";
 import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
+import { WorkParticipation } from "./work-control";
 import {
   MaterialLot,
   Body,
@@ -57,7 +58,7 @@ type DeliveryCandidate = {
 };
 
 /** Provider for the shared work owner; delivery claims remain task.actor. */
-export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<DeliveryCandidate> {
+export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<DeliveryCandidate> {
     const tasks = ctx.query(query(DeliveryTask));
     const groundStocks = new Set(ctx.query(query(GroundStock)).map(row => row.id));
     const sealed = new Set(ctx.query(query(SealedContainer)).map(row => row.id));
@@ -228,6 +229,7 @@ export function deliveryProvider(ctx: WriteContext): PreparedWorkProvider<Delive
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
       if (state.actor === null || assigned.has(task.id)) continue;
+      if (suspendedActors.has(state.actor)) continue;
       if (occupiedActors.has(state.actor)) continue;
       const control = controls
         .find((row) => row.id === state.actor)
@@ -380,6 +382,7 @@ export const deliverySystem = createWorkSystem({
     MaterialLot,
     ExcavationWork,
     DeliveryControl,
+    WorkParticipation,
   ],
   writes: [DeliveryTask],
   providers: [deliveryProvider],

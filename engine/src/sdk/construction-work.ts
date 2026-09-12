@@ -1,6 +1,7 @@
 import { component, entity, query } from "./authoring";
 import { ConstructionSite, SealedContainer, attendConstruction } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
+import { WorkParticipation } from "./work-control";
 import {
   Body,
   Container,
@@ -87,6 +88,7 @@ function approachIdFor(site: EntityId): EntityId {
 export function constructionWorkProvider(
   ctx: WriteContext,
   options: ConstructionWorkOptions,
+  suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<ConstructionCandidate> {
   validateOptions(options);
   const workers = [...new Set(options.workers)];
@@ -200,6 +202,7 @@ export function constructionWorkProvider(
         const state = row.get(ConstructionSite);
         const approach = approaches.get(row.id);
         if (!approach) continue;
+        if (suspendedActors.has(approach.state.worker)) continue;
         if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || !ready(row.id, state.catalog)) {
           ctx.removeAuthoredEntity(approach.id);
           continue;
@@ -241,8 +244,9 @@ export function constructionWorkSystem(options: ConstructionWorkOptions) {
     reads: [
       ConstructionSite, ConstructionApproach, SealedContainer, Body, Container,
       Traversal, Position, Destination, Support, ExcavationWork, MaterialLot, LotWater,
+      WorkParticipation,
     ],
     writes: [ConstructionApproach],
-    providers: [(ctx) => constructionWorkProvider(ctx, options)],
+    providers: [(ctx, suspendedActors) => constructionWorkProvider(ctx, options, suspendedActors)],
   });
 }
