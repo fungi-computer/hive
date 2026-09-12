@@ -913,23 +913,35 @@ hardcodes four deterministic grass colors, a diagonal dirt band, a worn central
 rectangle and patterned edge plants into one baked background. Preserve that art
 vocabulary while moving the semantic path and surface-style decision into terrain.
 
-The Clearing game definition supplies a small meaningful route graph between its
-arrival, central work area, brew station and initial home site. The Rust world
-generator rasterizes distance from those authored segments with seeded width and
-edge variation, producing a deterministic initial wear/style value for queried
-surface cells. Noise may vary grass and soften the path edge; noise alone does not
-decide where a useful path goes. The client maps terrain material, moisture and wear
-to retained grass/path tile variants and decorative edge details. It does not invent
-the path, persist pixels or randomize independently.
+The world starts mostly empty. Terrain generation supplies attractive reproducible
+grass/soil variation from material, moisture, fertility and seeded low-frequency
+noise; it does not route paths between default furniture, stations or buildings.
+The retained diagonal is an art reference, not spawned world truth. The client maps
+terrain and wear facts to retained grass/path variants and decorative edge details;
+it does not invent path state, persist pixels or randomize independently.
 
-Actual foot traffic may later add bounded sparse wear edits through one native
-surface-wear operation. The generated baseline remains reproducible, while only
-changed cells are durable. Paths affect movement cost only when the authoritative
-terrain rule says so; the art cannot grant traversal. For generated regions beyond
-the Clearing, region-level settlement/crossing/resource links and deterministic
-edge anchors produce continuous trails across DO boundaries without a global path
-bitmap. The first slice is the authored Clearing graph plus the retained visual
-palette; dynamic wear and cross-region roads follow after that consumer is playable.
+Actual foot traffic creates bounded sparse wear through one native surface-wear
+operation. Wear is a `u8` intensity from `0` through `255`, initially `0`, and increases only on
+cells a committed route actually crossed. Movement batches one bounded set per
+completed route or coarse interval rather than emitting a durable event per footstep.
+Disuse and suitable ecology may lower wear slowly. Low levels bend and thin grass;
+higher levels expose dirt. A small set of named visual bands maps that intensity to
+retained grass/path art; the simulation is not quantized to the number of sprites.
+Any movement-cost or fatigue benefit begins only when the
+authoritative wear level changes, so presentation cannot grant traversal. Each region
+stores only changed cells, and a route crossing a DO boundary submits its local
+segment to each existing region owner. The first slice is traffic wear plus the
+retained visual palette; generated regional roads wait for a demonstrated settlement
+or travel consumer.
+
+When Goblin later generates encampments, ruins, crossings or other real landmarks,
+its content definition may supply those deterministic nodes to the engine's route
+proposal. The engine connects compatible nearby nodes and derives old-trail wear;
+the game decides which landmark kinds exist and may connect. Shared world seed,
+region coordinates and deterministic boundary anchors make adjacent region owners
+derive the same crossings without storing or broadcasting a global road bitmap.
+Traffic then reinforces, abandons or diverges from those generated trails through
+the same surface-wear owner. With no landmark provider, no old trail is generated.
 
 - Replace plain terrain treatment with authored grass tops, exposed soil/stone
   sides, edge details and stable variation. Reuse face/tile art where appropriate;
