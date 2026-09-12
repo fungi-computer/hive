@@ -270,7 +270,6 @@ export type KernelSnapshot = KernelRecordSnapshot;
 export interface AtmosphereSample {
   readonly volumeId: string;
   readonly temperatureC: number;
-  readonly pressurePa: number;
   readonly smokeKgM3: number;
 }
 export interface AtmosphereSamples {

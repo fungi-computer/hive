@@ -119,8 +119,6 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
           entry.volumeId.length === 0 ||
           entry.volumeId.length > 128 ||
           !Number.isFinite(entry.temperatureC) ||
-          !Number.isFinite(entry.pressurePa) ||
-          (entry.pressurePa as number) < 0 ||
           !Number.isFinite(entry.smokeKgM3) ||
           (entry.smokeKgM3 as number) < 0
         )
@@ -128,7 +126,6 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         return {
           volumeId: entry.volumeId,
           temperatureC: entry.temperatureC as number,
-          pressurePa: entry.pressurePa as number,
           smokeKgM3: entry.smokeKgM3 as number,
         };
       });

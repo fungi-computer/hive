@@ -18,7 +18,7 @@ test("atmosphere read context preserves modeled samples and unmodeled null", () 
     revision: 7,
     geometryRevision: 3,
     samples: [
-      { volumeId: "hearth", temperatureC: 21.5, pressurePa: 101325, smokeKgM3: 0.01 },
+      { volumeId: "local.0.0.0", temperatureC: 21.5, smokeKgM3: 0.01 },
       null,
     ],
   }, calls));
@@ -26,7 +26,7 @@ test("atmosphere read context preserves modeled samples and unmodeled null", () 
     revision: 7,
     geometryRevision: 3,
     samples: [
-      { volumeId: "hearth", temperatureC: 21.5, pressurePa: 101325, smokeKgM3: 0.01 },
+      { volumeId: "local.0.0.0", temperatureC: 21.5, smokeKgM3: 0.01 },
       null,
     ],
   });
