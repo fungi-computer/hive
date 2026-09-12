@@ -906,6 +906,31 @@ direct review. Specifically, the September 11 four-cell stair stretch is superse
 the compact September 7 timber ramp is the visual baseline, and traversal/footprint
 must be reconciled to that asset rather than changing the asset to hide the mismatch.
 
+### Generated living surface and paths
+
+The retained `src/art/clearing.js` is the visual baseline, not the world owner. It
+hardcodes four deterministic grass colors, a diagonal dirt band, a worn central
+rectangle and patterned edge plants into one baked background. Preserve that art
+vocabulary while moving the semantic path and surface-style decision into terrain.
+
+The Clearing game definition supplies a small meaningful route graph between its
+arrival, central work area, brew station and initial home site. The Rust world
+generator rasterizes distance from those authored segments with seeded width and
+edge variation, producing a deterministic initial wear/style value for queried
+surface cells. Noise may vary grass and soften the path edge; noise alone does not
+decide where a useful path goes. The client maps terrain material, moisture and wear
+to retained grass/path tile variants and decorative edge details. It does not invent
+the path, persist pixels or randomize independently.
+
+Actual foot traffic may later add bounded sparse wear edits through one native
+surface-wear operation. The generated baseline remains reproducible, while only
+changed cells are durable. Paths affect movement cost only when the authoritative
+terrain rule says so; the art cannot grant traversal. For generated regions beyond
+the Clearing, region-level settlement/crossing/resource links and deterministic
+edge anchors produce continuous trails across DO boundaries without a global path
+bitmap. The first slice is the authored Clearing graph plus the retained visual
+palette; dynamic wear and cross-region roads follow after that consumer is playable.
+
 - Replace plain terrain treatment with authored grass tops, exposed soil/stone
   sides, edge details and stable variation. Reuse face/tile art where appropriate;
   draw only relevant surfaces and cache changed patches. Rust still owns geometry.
