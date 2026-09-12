@@ -70,6 +70,41 @@ function authorizedFetch(fetchImpl, token) {
   };
 }
 
+/** Browser selection is prepared separately from runtime publication. */
+function preparePrivateSelection({ invited, nextToken, locationSource, historySource, storage, storageKey }) {
+  const previousToken = storage.getItem(storageKey);
+  const previousUrl = invited ? new URL(locationSource.href) : null;
+  if (invited && !historySource?.replaceState)
+    throw new Error("Cannot start a new world while an invitation link is active");
+  const previousState = historySource?.state;
+  let historyChanged = false;
+  let tokenChanged = false;
+  return {
+    apply() {
+      if (previousUrl) {
+        historySource.replaceState(previousState, "", `${previousUrl.pathname}${previousUrl.search}`);
+        historyChanged = true;
+      }
+      storage.setItem(storageKey, nextToken);
+      tokenChanged = true;
+    },
+    rollback() {
+      const failures = [];
+      if (tokenChanged) {
+        try {
+          if (previousToken === null) storage.removeItem(storageKey);
+          else storage.setItem(storageKey, previousToken);
+        } catch (error) { failures.push(error); }
+      }
+      if (historyChanged) {
+        try { historySource.replaceState(previousState, "", `${previousUrl.pathname}${previousUrl.search}${previousUrl.hash}`); }
+        catch (error) { failures.push(error); }
+      }
+      return failures;
+    },
+  };
+}
+
 function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connectRemote, locationSource, historySource }) {
   const endpoint = publicEndpoint(host, mode);
   const listeners = new Set();
@@ -150,32 +185,17 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       newWorld(onReplaced) {
         if (disposed) throw new Error("connection choice disposed");
         const next = randomToken(cryptoSource);
-        const previousStored = storage.getItem(storageKey);
-        const previousUrl = typeof locationSource?.href === "string" ? locationSource.href : undefined;
-        const previousHistoryState = historySource?.state;
-        let historyChanged = false;
+        const selection = preparePrivateSelection({
+          invited: invitedToken !== undefined, nextToken: next,
+          locationSource, historySource, storage, storageKey,
+        });
         try {
-          if (invitedToken !== undefined) {
-            if (!historySource?.replaceState) throw new Error("Cannot start a new world while an invitation link is active");
-            if (previousUrl === undefined) throw new Error("Invitation link page URL unavailable");
-            const clean = new URL(previousUrl);
-            clean.hash = "";
-            historySource.replaceState(previousHistoryState, "", `${clean.pathname}${clean.search}`);
-            historyChanged = true;
-          }
-          storage.setItem(storageKey, next);
+          selection.apply();
           replace(next);
         } catch (error) {
-          try {
-            if (previousStored === null || previousStored === undefined) storage.removeItem(storageKey);
-            else storage.setItem(storageKey, previousStored);
-          } catch {}
-          if (historyChanged && previousUrl !== undefined && historySource?.replaceState) {
-            try {
-              const prior = new URL(previousUrl);
-              historySource.replaceState(previousHistoryState, "", `${prior.pathname}${prior.search}${prior.hash}`);
-            } catch {}
-          }
+          const failures = selection.rollback();
+          if (failures.length)
+            throw new AggregateError([error, ...failures], "New world failed and the previous browser selection could not be restored", { cause: error });
           throw error;
         }
         onReplaced?.(true);
