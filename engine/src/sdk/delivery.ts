@@ -2,7 +2,6 @@ import { component, query } from "./authoring";
 import { GroundStock } from "./ground-stock";
 import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
-import { WorkParticipation } from "./work-control";
 import {
   MaterialLot,
   Body,
@@ -382,7 +381,6 @@ export const deliverySystem = createWorkSystem({
     MaterialLot,
     ExcavationWork,
     DeliveryControl,
-    WorkParticipation,
   ],
   writes: [DeliveryTask],
   providers: [deliveryProvider],

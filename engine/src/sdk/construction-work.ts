@@ -1,7 +1,6 @@
 import { component, entity, query } from "./authoring";
 import { ConstructionSite, SealedContainer, attendConstruction } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
-import { WorkParticipation } from "./work-control";
 import {
   Body,
   Container,
@@ -244,7 +243,6 @@ export function constructionWorkSystem(options: ConstructionWorkOptions) {
     reads: [
       ConstructionSite, ConstructionApproach, SealedContainer, Body, Container,
       Traversal, Position, Destination, Support, ExcavationWork, MaterialLot, LotWater,
-      WorkParticipation,
     ],
     writes: [ConstructionApproach],
     providers: [(ctx, suspendedActors) => constructionWorkProvider(ctx, options, suspendedActors)],
