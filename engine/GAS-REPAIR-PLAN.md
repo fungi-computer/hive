@@ -465,3 +465,19 @@ remained lower: 41,222,144 → 33,292,288 bytes. This supports retaining the
 shared compiler reuse, but does not establish playable hosted latency or finish
 the repair. Whole-content hashing and full-graph preparation remain; follow the
 actual profile before further changes. No new deployment or browser claim.
+
+### Live freeze report — September 12
+
+Levi could complete some digging in the currently published demo, then it froze.
+Cause and queue size are unknown. This contradicts any claim of sustained
+playability; earlier two-dig hosted proof does not cover this session. The latest
+shared compiler changes are not deployed and cannot explain or fix this report
+by assumption. Pause the next binding optimization while investigating.
+
+Read current host alarm/transaction/publication and client receive/recovery
+callers. A failed due occurrence discards resident RAM and rethrows; publication
+errors are reported separately. Neither source fact identifies this incident.
+Distinguish browser unresponsiveness from stalled simulation with responsive
+camera, capture the actual last committed revision/error where available, and
+exercise a larger ordinary dig queue on a separate test world. Do not erase the
+player world, skip failed physical work, or claim a cause from slow-tick timings.
