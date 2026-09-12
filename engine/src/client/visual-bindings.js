@@ -27,6 +27,12 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
     facing: false,
     anchor: "propAnchor",
   }),
+  "colony.tree.felled": Object.freeze({
+    kind: "static",
+    path: ["tree", "felled"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
   "colony.tree.stump": Object.freeze({
     kind: "static",
     path: ["tree", "stump"],

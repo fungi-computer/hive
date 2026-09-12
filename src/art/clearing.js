@@ -118,6 +118,45 @@ export function tree(stage) {
     );
     root.rotation.y = -a + Math.PI / 2;
   }
+  if (stage === "felled") {
+    // The rooted stump stays where the tree stood while its trunk and crown
+    // occupy the ground beside it. Pale cut faces keep the state readable in
+    // the low-resolution bake.
+    cylinder(s, "#765237", 0, 0.2, 0, 0.17, 0.27, 0.4, 8);
+    cylinder(s, "#d0a76a", 0, 0.409, 0, 0.172, 0.172, 0.018, 8);
+    cylinder(s, "#ad8050", 0, 0.421, 0, 0.11, 0.11, 0.012, 8);
+
+    const trunk = cylinder(s, "#765237", 0.9, 0.29, 0, 0.18, 0.27, 1.8, 8);
+    trunk.rotation.z = Math.PI / 2;
+    const cut = cylinder(s, "#d0a76a", 0.01, 0.29, 0, 0.182, 0.182, 0.02, 8);
+    cut.rotation.z = Math.PI / 2;
+    const ring = cylinder(s, "#ad8050", -0.002, 0.29, 0, 0.11, 0.11, 0.024, 8);
+    ring.rotation.z = Math.PI / 2;
+
+    for (const [x, y, z, r, shade] of [
+      [1.58, 0.52, 0, 0.67, 0],
+      [1.91, 0.62, -0.28, 0.72, 1],
+      [2.12, 0.46, 0.32, 0.61, 2],
+      [1.7, 0.31, 0.48, 0.55, 1],
+      [2.3, 0.32, -0.06, 0.48, 0],
+    ])
+      ball(s, greens[shade], x, y, z, r, r * 0.58, r * 0.82);
+    for (const [x, z, yaw] of [
+      [1.22, -0.27, -0.72],
+      [1.45, 0.34, 0.78],
+      [1.83, -0.42, -0.88],
+    ]) {
+      const branch = cylinder(s, "#765237", x, 0.34, z, 0.065, 0.11, 0.72, 7);
+      branch.rotation.z = Math.PI / 2;
+      branch.rotation.y = yaw;
+    }
+    for (let i = 0; i < 5; i++) {
+      const chip = box(s, "#c79d62", 0.14 + i * 0.075, 0.035, (i - 2) * 0.075, 0.12, 0.045, 0.055);
+      chip.rotation.y = i * 0.7;
+    }
+    mushroom(s, -0.34, 0.03, 0.17, 0.65);
+    return s;
+  }
   cylinder(
     s,
     "#765237",
