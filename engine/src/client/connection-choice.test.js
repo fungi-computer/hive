@@ -90,6 +90,7 @@ test("local mode is explicit and keeps save ownership in its capability", () => 
   });
   choice.persistence.save();
   assert.deepEqual(sent, [{ type: "save" }]);
+  assert.equal(choice.runtime.recovery, undefined);
 });
 
 test("public endpoints reject insecure non-local hosts and credentials", () => {

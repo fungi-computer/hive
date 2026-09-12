@@ -88,11 +88,15 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       current.dispose();
       listeners.clear();
     },
-    recovery: {
-      retry() {
-        if (disposed) throw new Error("connection choice disposed");
-        current.recovery?.retry();
-      },
+    get recovery() {
+      if (disposed) throw new Error("connection choice disposed");
+      if (!current.recovery) return undefined;
+      return {
+        retry() {
+          if (disposed) throw new Error("connection choice disposed");
+          current.recovery.retry();
+        },
+      };
     },
   };
   return {
