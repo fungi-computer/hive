@@ -764,7 +764,7 @@ export function createHiveClient({
       if (texture) entry.pawn.texture = texture;
       entry.pawn.visible = Boolean(texture);
       entry.pawn.anchor.set(
-        0.5,
+        isStatic ? staticVisual?.anchor?.x : art?.pawnAnchor?.x,
         isStatic ? staticVisual?.anchor?.y : art?.pawnAnchor?.y,
       );
       subject.hitArea = texture

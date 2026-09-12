@@ -12,6 +12,32 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
     kind: "static", path: ["buildings", "brew-station", "finished", 0],
     facing: false, anchor: "propAnchor",
   }),
+  // These bindings prepare the retained clearing scenery for native facts.
+  // They are inert until Colony publishes a physical entity with this visual;
+  // art never creates a tree, resource, or pick target by itself.
+  "colony.tree": Object.freeze({
+    kind: "static",
+    path: ["tree", "standing"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "colony.tree.notched": Object.freeze({
+    kind: "static",
+    path: ["tree", "notched"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "colony.tree.stump": Object.freeze({
+    kind: "static",
+    path: ["tree", "stump"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "colony.cat": Object.freeze({
+    kind: "figure",
+    key: "cat",
+    motion: { kind: "foot", stride: 0.42 },
+  }),
   crate: Object.freeze({
     kind: "static",
     path: ["props", "crate"],
