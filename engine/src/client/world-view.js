@@ -37,15 +37,19 @@ function filterTerrain(frame, view) {
   if (!frame) return frame;
   if (!view.cutaway) return frame;
   const surfaces = frame.surfaces.filter(({ cell }) => cell[1] <= view.level);
-  const blockedColumns = new Set(frame.surfaces
-    .filter(({ cell }) => cell[1] > view.level)
-    .map(({ cell }) => `${cell[0]},${cell[2]}`));
+  const blockedColumns = blockedTerrainColumns(frame, view.level);
   return {
     ...frame,
     surfaces,
     structureSurfaces: frame.structureSurfaces.filter(({ cell }) => cell[1] <= view.level),
     water: frame.water.filter(({ at }) => at[1] <= view.level && !blockedColumns.has(`${at[0]},${at[2]}`)),
   };
+}
+
+function blockedTerrainColumns(frame, level) {
+  return new Set(frame.surfaces
+    .filter(({ cell }) => cell[1] > level)
+    .map(({ cell }) => `${cell[0]},${cell[2]}`));
 }
 
 export function displayedTerrain(frame, view) { return filterTerrain(frame, view); }
@@ -87,9 +91,7 @@ export function createTerrainProjectionCache() {
       const filtered = filterTerrain(frame, view);
       surfaces = filtered.surfaces;
       structureSurfaces = filtered.structureSurfaces;
-      blockedColumns = new Set(frame.surfaces
-        .filter(({ cell }) => cell[1] > view.level)
-        .map(({ cell }) => `${cell[0]},${cell[2]}`));
+      blockedColumns = blockedTerrainColumns(frame, view.level);
       lastFrame = frame;
       result = filtered;
       return result;
