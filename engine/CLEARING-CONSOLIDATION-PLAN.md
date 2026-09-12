@@ -94,8 +94,12 @@ unrelated jobs. No teleporting, skipping paid travel, or increasing hop height t
 make a test pass.
 
 In parallel, one isolated client/transport outcome owns admission through display.
+Follow [the Townies/Shiitake/Woodstock source comparison](MULTIPLAYER-STREAM-CONSOLIDATION.md).
+Keep Region's current persistence and coalescing publisher. Remove the blanket
+receipt-to-observation command barrier; a delayed view must not block an already
+known result. Command recovery and observation recovery have separate owners.
 A local send returns accepted-to-queue or a typed refusal. Queued, awaiting result,
-awaiting committed observation, recovering, and unavailable have defined display
+recovering, and unavailable have defined display
 and input policy. Stop accepting world mutations when recovery has no capacity;
 keep camera/view controls available. Preserve an uncertain command's ID and bytes;
 retry does not become a new action. Cancelling an unsent input and requesting
