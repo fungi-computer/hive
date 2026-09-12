@@ -279,6 +279,34 @@ ordinary play. Subsequent slices may prepare independent assets or definitions i
 parallel, but no second writer changes the shared work/material/Colony seam. King
 reviews the complete behavior against the retained game before integration.
 
+### Storage policy target
+
+RimWorld's useful model is a painted storage policy, not a one-time haul target.
+The references reviewed September 12 are its [stockpile](https://www.rimworldwiki.com/wiki/Stockpile),
+[zone/settings](https://rimworldwiki.com/wiki/Area) and
+[shelf](https://rimworldwiki.com/wiki/Shelf) documentation. Preserve these
+behaviors in Hive's own data-driven form:
+
+- paint, expand and shrink bounded floor cells; zones do not overlap;
+- choose a stable priority and move an eligible lot from loose/lower-priority
+  storage only when the destination is strictly better;
+- use content-owned category filters with per-kind allow/deny rules; later
+  property constraints compose quality, condition, freshness/rot,
+  contamination, ownership and temperature facts without changing hauling;
+- changing a filter or deleting a zone never deletes physical stock; an
+  ineligible lot remains visible and becomes ordinary misplaced work;
+- floor cells and shelves consume the same settings owner. Shelves vary capacity,
+  access and protection, and may link/copy a policy; they do not get a second
+  storage language;
+- a named policy may become a production output preference, while the physical
+  material owner still decides actual custody and capacity.
+
+The first playable increment implements painted cells, material/category rules,
+priority and better-storage re-hauling. Do not fabricate quality or freshness
+components before a real item consumer needs them. The policy representation must
+have a typed extension seam for those facts and must never store an arbitrary
+predicate or callback.
+
 ## Current interaction restoration — September 12
 
 Levi explicitly requests the retained station-first gameplay: click the hearth,
