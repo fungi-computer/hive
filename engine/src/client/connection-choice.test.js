@@ -183,12 +183,13 @@ test("failed invited new-world replacement restores the recipient private token 
   const privateToken = "1".repeat(64);
   const invitedToken = "a".repeat(64);
   saved.setItem("hive-private-demo/survival", privateToken);
-  let historyValue = "#world=" + invitedToken;
+  const page = new URL(`https://demo.example.test/?game=survival#world=${invitedToken}`);
   let calls = 0;
-  const locationSource = { get href() { return `https://demo.example.test/?game=survival${historyValue}`; }, hash: `#world=${invitedToken}` };
+  let historyState = { marker: 1 };
+  const locationSource = { get href() { return page.toString(); }, get hash() { return page.hash; } };
   const choice = createConnectionChoice({
     mode: "survival", publicHost: "https://demo.example.test", storage: saved, cryptoSource: cryptoSource(), locationSource,
-    historySource: { state: { marker: 1 }, replaceState(_state, _title, value) { historyValue = value; } },
+    historySource: { get state() { return historyState; }, replaceState(state, _title, value) { historyState = state; page.href = new URL(value, page).toString(); } },
     connectLocal: () => ({}), connectRemote: options => {
       if (++calls === 2) throw new Error("replacement failed");
       return runtimeFactory([])(options);
@@ -196,6 +197,22 @@ test("failed invited new-world replacement restores the recipient private token 
   });
   assert.throws(() => choice.persistence.newWorld(), /replacement failed/);
   assert.equal(saved.getItem("hive-private-demo/survival"), privateToken);
-  assert.equal(historyValue, `/?game=survival#world=${invitedToken}`);
+  assert.equal(page.hash, `#world=${invitedToken}`);
+  assert.deepEqual(historyState, { marker: 1 });
+  choice.runtime.dispose();
+});
+
+test("invited new-world refuses without history and preserves an absent private token", () => {
+  const values = storage();
+  const invitedToken = "c".repeat(64);
+  let created = 0;
+  const choice = createConnectionChoice({
+    mode: "survival", publicHost: "https://demo.example.test", storage: values, cryptoSource: cryptoSource(),
+    locationSource: { href: `https://demo.example.test/?game=survival#world=${invitedToken}`, hash: `#world=${invitedToken}` },
+    connectLocal: () => ({}), connectRemote: options => { created++; return runtimeFactory([])(options); },
+  });
+  assert.throws(() => choice.persistence.newWorld(), /history|invitation link/);
+  assert.equal(created, 1);
+  assert.equal(values.getItem("hive-private-demo/survival"), null);
   choice.runtime.dispose();
 });
