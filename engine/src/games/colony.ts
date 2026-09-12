@@ -123,9 +123,6 @@ const colonyInitial = [
 type DeliveryInput = { readonly quantity?: unknown; readonly entities?: unknown };
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
 
-const goMove = (worker: EntityId, destination: { x: number; y: number; z: number; frame: EntityId | null }) =>
-  moveAction(worker, destination, 0);
-
 const goInput = z.object({
   entities: z.array(z.string()).min(1).max(workers.length),
   destination: z.object({
@@ -335,6 +332,7 @@ export const colonyPack: GamePack = {
       run: (context, input) => {
         const parsed = goInput.parse(input);
         const selected = selectedWorkers(context, parsed);
+        const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
         const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
         const building = new Set(context.query(query(ConstructionSite)).flatMap(row => {
           const worker = row.get(ConstructionSite).worker;
@@ -342,7 +340,11 @@ export const colonyPack: GamePack = {
         }));
         return {
           actions: selected.flatMap(worker => (excavating.has(worker) || building.has(worker)) ? [cancelWork(worker)] : [])
-            .concat(selected.map(worker => goMove(worker, parsed.destination))),
+            .concat(selected.map(worker => {
+              const position = positions.get(worker);
+              if (!position) throw new Error("selected worker position is unavailable");
+              return moveAction(worker, parsed.destination, position.facing);
+            })),
           writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })),
         };
       },
