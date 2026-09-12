@@ -31,7 +31,7 @@ test("stockpile records are deterministic, bounded, positioned finite containers
   assert.deepEqual(records.map(r => r.id), [entity("stockpile.4:zone.0.3.2"), entity("stockpile.4:zone.1.3.2")]);
   assert.equal(records[0].components[Container.id].capacity, 3);
   assert.deepEqual(records[0].components[Position.id], { x: 0, y: 3, z: 2, facing: 0 });
-  assert.throws(() => stockpileCellRecords([{ zone: entity("zone"), cell: [1, 3, 2], priority: 1, filter: "wood", capacity: 1 }, { zone: entity("zone"), cell: [1, 3, 2], priority: 1, filter: "wood", capacity: 1 }]));
+  assert.throws(() => stockpileCellRecords([{ zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1 }, { zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1 }]));
 });
 
 test("planner claims one lot and cell, respects existing capacity and reloadable task state", () => {
