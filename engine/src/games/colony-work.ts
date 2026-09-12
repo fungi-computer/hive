@@ -177,7 +177,7 @@ function digProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>):
     if (evaluated.has(key)) return;
     evaluated.add(key);
     for (let offset = 0; offset < candidate.approaches.length; offset += 32) {
-      const batch = candidate.approaches.slice(offset, offset + 32).map((target) => ({ actor: candidate.worker, target }));
+      const batch = candidate.approaches.slice(offset, offset + 32).map((target) => ({ actor: candidate.worker, target, excavationTarget: [candidate.cell.x, candidate.cell.y, candidate.cell.z] as const }));
       const results = ctx.routeCosts(batch);
       for (let index = 0; index < batch.length; index++) {
         const result = results[index];

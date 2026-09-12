@@ -32,13 +32,7 @@ fn volume(world: &mut TerrainWater, cell: Cell) -> Result<f64, String> {
     if !world.terrain.is_open_material(material) || world.structure_projection.is_bulk_solid(cell) {
         return Ok(0.0);
     }
-    let liquid = match (i32::try_from(cell.x), i32::try_from(cell.z)) {
-        (Ok(x), Ok(z)) => world
-            .graph
-            .liquid_volume_at(&world.state, [x, cell.y, z])?
-            .unwrap_or(0.0),
-        _ => 0.0,
-    };
+    let liquid = world.field.liquid_volume(cell).unwrap_or(0.0);
     let capacity = world.cell_spacing_m().iter().product::<f64>();
     if !liquid.is_finite() || liquid < 0.0 || liquid > capacity + 1e-9 * capacity {
         return Err("invalid liquid occupancy for smoke contact".into());

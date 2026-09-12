@@ -226,6 +226,7 @@ pub enum WaterRebind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum WaterRebindBlock {
+    RecordCapacity { limit: usize },
     WetCellRemoved { at: [i32; 3], mass_kg: f64 },
     CapacityExceeded { at: [i32; 3], mass_kg: f64, capacity_kg: f64 },
 }
@@ -315,7 +316,6 @@ pub struct CompiledWater {
     nodes: Vec<CompiledNode>,
     faces: Vec<CompiledFace>,
     index: BTreeMap<String, usize>,
-    coordinates: BTreeMap<[i32; 3], usize>,
     limits: WaterLimits,
     owner: Arc<()>,
 }
@@ -471,8 +471,7 @@ impl CompiledWater {
         definition.cells = nodes.iter().map(|node| CellDefinition { at: node.at, kind: node.kind, soil_id: node.soil.as_ref().map(|soil| soil.id.clone()) }).collect();
         definition.faces = faces.iter().map(|face| FaceDefinition { a: nodes[face.a].at, b: nodes[face.b].at, open_fraction: face.area_m2 * definition.spacing_m[face.axis] / volume_m3 }).collect();
         let binding = WaterBinding { id: Arc::from(definition.id.as_str()), revision: definition.revision };
-        let coordinates = nodes.iter().enumerate().map(|(index, node)| (node.at, index)).collect();
-        Ok(Self { definition: Arc::new(definition), binding, nodes, faces, index, coordinates, limits, owner: Arc::new(()) })
+        Ok(Self { definition: Arc::new(definition), binding, nodes, faces, index, limits, owner: Arc::new(()) })
     }
 
     pub fn definition(&self) -> &WaterDefinition { &self.definition }
@@ -598,17 +597,6 @@ impl CompiledWater {
         let state = WaterState { version: wire.version, binding: wire.binding, mass_kg: wire.mass_kg, initial_total_kg: wire.initial_total_kg, boundary_kg: wire.boundary_kg, owner: self.owner.clone() };
         self.validate_state_contents(&state)?;
         Ok(state)
-    }
-
-    /// Bounded geometry lookup over an admitted state. No observation vector,
-    /// stock copy or whole-field conservation scan is needed for one coordinate.
-    pub(crate) fn liquid_volume_at(&self, state: &WaterState, at: [i32; 3]) -> WaterResult<Option<f64>> {
-        if !Arc::ptr_eq(&state.owner, &self.owner) || state.version != WaterStateVersion::V1 || state.binding != self.binding || state.mass_kg.len() != self.nodes.len() {
-            return Err(fail("water state is not an admitted compiled state"));
-        }
-        Ok(self.coordinates.get(&at).map(|&index| {
-            if self.nodes[index].kind == WaterCellKind::Void { state.mass_kg[index] / WATER_DENSITY_KG_PER_M3 } else { 0.0 }
-        }))
     }
 
     pub fn facts(&self, state: &WaterState) -> WaterResult<WaterFacts> {

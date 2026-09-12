@@ -104,6 +104,53 @@ The joined touched Fallow audit u6293 passes with zero introduced findings;
 Fallow does not establish Rust performance or replace the native laws. The source
 is not yet deployed. Water coverage is still unfinished.
 
+## Groundwater landing — September 12
+
+The game now uses `terrain_water/field.rs` as its finite local water owner instead
+of the fixed-coordinate compiled graph. Original geology supplies virgin porous
+stock once, throughout the authored world bounds; changed and exhausted cells
+retain explicit saved values. Natural caves start dry and receive seepage through
+physical neighbors rather than becoming full lakes merely from being below a head.
+Water falls, spreads, saturates porous material and leaves retained moisture.
+Porous-to-porous regional pressure equilibration is intentionally absent. This is
+voxel gameplay water, not an aquifer or fluid-dynamics research solver.
+
+Only awake stock records exchange over real unsealed faces. The queue has at most
+8192 entries, tied to at most8192 durable stock records. Each quarter-second step
+processes at most128 cells; a call runs at most4 steps. Copy-on-write8-cell pages
+keep a detached candidate from copying all historical stock records on a tick.
+Stable cells sleep without deleting their remaining mass. Reaching the stock
+record ceiling leaves a new excavation waiting through the existing typed water
+admission result; it cannot throw the entire game tick. The256KiB water record
+limit remains enforced. These are declared limits, not a measured player-capacity
+claim. The64×64×72 generated extent is separate from active water work.
+
+Excavation credits its exact removed pore water to physical spoil. Terrain,
+structure and water candidates still publish through the existing compound native
+completion and Region transaction. Environment header3 rejects unsupported old
+records; no migration or silent reset was added. Restore validates current geometry,
+capacity, pending work, generated initial stock and the water ledger, including
+zero. An existing pre-change world requires explicit **New world**; its stored
+bytes remain preserved.
+
+Actual Colony proof exposed a pre-existing work-planning defect: A* could reach an
+approach that was too far above the voxel to earn excavation effort. The existing
+route-cost operation now accepts an excavation target and filters it before path
+search using the same native reach predicate as earned work. No second TypeScript
+reach radius or pathfinder was introduced. The obsolete worker-target Dig fixture
+was replaced with the actual area-designation API and autonomous workers.
+
+Qualification in `.botanical/whole-clearing` and `.botanical/groundwater-release`
+retains all intermediate failures. Off-center native seepage/zero/restart laws,
+physical floor/rebind laws, current definition/clock and six wet-material laws
+pass. The final WASM consumer passes actual stepped area digging at x=1 and x=9,
+mid-work restore, finite spoil/water conservation and exact full restore. Strict
+engine types and touched Fallow pass. Fallow reports0 introduced findings, with
+14 inherited dead-code and4 inherited complexity findings (including existing
+`digProvider` and environment definition validation); no suppressions were added.
+The completed full-world smoke/point-query/cutaway changes are in the same release
+candidate. Full sustained two-client performance and Levi's playtest remain open.
+
 ## Current interaction restoration — September 12
 
 Levi explicitly requests the retained station-first gameplay: click the hearth,

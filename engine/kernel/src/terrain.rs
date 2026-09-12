@@ -609,6 +609,11 @@ impl TerrainOwner {
     pub fn cell_spacing_m(&self) -> [f64; 3] {
         [1.0, self.generator.vertical_metres(), 1.0]
     }
+    /// Immutable geology for first admission of finite groundwater. This never
+    /// reads edited air as a new source or mutates the generated terrain.
+    pub(crate) fn original_water_source(&self, cell: Cell) -> Result<(crate::generation::GeneratedCell, crate::generation::GroundwaterProposal, i32), &'static str> {
+        Ok((self.generator.sample(cell)?, self.generator.groundwater(cell.x, cell.z)?, self.generator.sea_level()))
+    }
     pub fn bounds(&self) -> crate::generation::Bounds { self.generator.bounds() }
     pub fn revision(&self) -> u64 {
         self.revision
