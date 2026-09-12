@@ -329,6 +329,23 @@ that same identity, argument schema and result schema. Whistle completion means
 the handler returned. Hive remains the owner of command admission, authorization,
 durable receipts and events, job progress and every physical mutation.
 
+The authoritative region publishes its current Whistle world-action snapshot
+through the existing authorized connection and world-observation lifetime.
+Humans and headless Shiitake controllers receive the same descriptions, schemas,
+availability and unavailable reasons. Initial connection supplies the current
+snapshot; later state changes use the existing server publication path rather
+than a capability poll, browser-only table or second socket. Hive decides which
+principal receives which projection and rechecks fresh admission when an action
+returns. Receiving a descriptor is not permission to invoke it. Whistle supplies
+the semantic snapshot but owns no network connection, broadcast loop or world
+subscription.
+
+Client-only commands such as camera motion, opening a panel or cancelling an
+unfinished target gesture may contribute to the same local Whistle runtime. They
+are visibly client-owned and never appear as server world capabilities. Entity-
+or selection-specific hints stay client-side unless the authorized server
+projection actually supplies that context.
+
 Selection and targeting remain client/engine mechanisms. Clicking **Dig** arms
 the existing rectangle gesture; its completed same-level area is the argument to
 the single `colony:dig` action. Build uses the existing visible surface picker.
