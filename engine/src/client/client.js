@@ -40,6 +40,7 @@ import { terrainCameraFocus } from "./camera-focus.js";
 import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js";
 
 import { rectangleCells, visibleTerrainAreaPreview } from "./terrain-area-selection.js";
+import { submitCommand } from "./command-submission.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -66,6 +67,7 @@ export function createHiveClient({
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   const state = {
     ready: false,
+    connection: { status: "online", pending: 0 },
     paused: false,
     selectedIds: [],
     hoverId: null,
@@ -99,9 +101,9 @@ export function createHiveClient({
       return;
     }
     if (runtime && action.kind === "action")
-      runtime.send({ type: "action", action: action.action });
+      submit({ type: "action", action: action.action });
     else if (runtime && action.kind === "pause")
-      runtime.send({ type: state.paused ? "resume" : "pause" });
+      submit({ type: state.paused ? "resume" : "pause" });
     else if (runtime && action.kind === "save") {
       state.pendingSave = true;
       state.message = "Save requested…";
@@ -141,6 +143,12 @@ export function createHiveClient({
     }
     notify();
   };
+  function submit(command, successMessage = "Order queued") {
+    if (!runtime) return false;
+    const accepted = submitCommand(runtime, command, message => { state.message = message; }, successMessage);
+    renderHud();
+    return accepted;
+  }
   function changeViewLevel(level) {
     terrainArea.send({ type: "CANCEL" });
     clearPlacement();
@@ -317,7 +325,7 @@ export function createHiveClient({
     const velocity = state.aim.velocity;
     if (!velocity) throw new Error("aim preview velocity unavailable");
     audio.unlock();
-    runtime?.send({ type: "command", name: aiming.command, input: { velocity } });
+    if (!submit({ type: "command", name: aiming.command, input: { velocity } })) return;
     aimGesture.send({ type: "FIRE" });
     exitAim();
   }
@@ -346,6 +354,18 @@ export function createHiveClient({
           React.createElement("h1", null, title),
           React.createElement("p", null, subtitle),
           React.createElement("p", { className: "hive-status" }, state.message),
+          state.connection.status !== "online"
+            ? React.createElement("p", { className: "hive-status" }, state.connection.status === "unavailable"
+              ? `Connection unavailable · ${state.connection.pending} order${state.connection.pending === 1 ? "" : "s"} retained`
+              : `Reconnecting · ${state.connection.pending} order${state.connection.pending === 1 ? "" : "s"} retained`)
+            : null,
+          state.connection.status === "unavailable" && runtime?.recovery
+            ? React.createElement(Button, { size: "sm", variant: "secondary", onClick: () => {
+                try { runtime.recovery.retry(); state.message = "Retrying connection…"; }
+                catch (error) { state.message = error instanceof Error ? error.message : String(error); }
+                renderHud();
+              } }, "Retry connection")
+            : null,
           React.createElement(
             "div",
             { className: "hive-controls" },
@@ -477,9 +497,7 @@ export function createHiveClient({
                           return;
                         }
                         if (aiming) audio.unlock();
-                        return state.ready && runtime?.send(
-                          presentationCommand(control, state.selectedIds),
-                        );
+                        return state.ready && submit(presentationCommand(control, state.selectedIds));
                       },
                     },
                     control.label,
@@ -829,8 +847,7 @@ export function createHiveClient({
       if (displayed && targetControl.target === "world-surface" && terrainTarget.getSnapshot().context.anchor) {
           const candidate = placementCache.at(localPoint, displayed, terrainTarget.getSnapshot().context.anchor);
         if (candidate) {
-          runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }));
-          clearPlacement();
+          if (submit(terrainPresentationCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }))) clearPlacement();
           return;
         }
       }
@@ -851,7 +868,7 @@ export function createHiveClient({
       if (targetControl.target === "world-surface" && structure) {
         terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       }
-      runtime?.send(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }));
+      submit(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }));
       return;
     }
     if (isAiming()) {
@@ -922,8 +939,7 @@ export function createHiveClient({
       terrainArea.send({ type: "END" });
       app.canvas.releasePointerCapture?.(event.pointerId);
       if (control?.target === "terrain-area") {
-        runtime?.send(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
-        state.message = `${control.label} submitted`;
+        submit(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
       }
       renderHud(); draw(); return;
     }
@@ -997,7 +1013,7 @@ export function createHiveClient({
       return;
     }
     if (orderCommand) {
-      runtime.send({
+      submit({
         type: "command",
         name: orderCommand,
         input: { entities: eligibleIds, destination: world },
@@ -1023,7 +1039,7 @@ export function createHiveClient({
     if (mode === "survival") {
       if (key === "e" || key === "f") {
         event.preventDefault();
-        runtime.send({
+        submit({
           type: "command",
           name: key === "e" ? "takeFood" : "eatFood",
         });
@@ -1207,6 +1223,10 @@ export function createHiveClient({
     keymap.on("state", renderHud);
     unsubscribeRuntime = runtime?.subscribe?.((event) => {
       if (state.disposed) return;
+      if (event.type === "connection") {
+        state.connection = { status: event.status, pending: event.pending };
+        renderHud();
+      }
       if (event.type === "state" && typeof event.paused === "boolean") {
         if (state.paused !== event.paused) directControl?.reset();
         state.paused = event.paused;
@@ -1284,9 +1304,15 @@ export function createHiveClient({
         state.environmentVisuals = event.environmentVisuals;
         renderHud();
       }
-      if (event.type === "results" && event.results.some((result) =>
-        result && typeof result === "object" && result.accepted === false))
-        intendedDestinations.clear();
+      if (event.type === "results") {
+        const rejected = event.results.find((result) => result && typeof result === "object" && result.accepted === false);
+        if (rejected) {
+          intendedDestinations.clear();
+          const reason = typeof rejected.reason === "string" && rejected.reason.length > 0 ? `: ${rejected.reason}` : "";
+          state.message = `Order rejected${reason}`;
+          renderHud();
+        }
+      }
       if (event.type === "saved") {
         void Promise.resolve().then(() => {
           if (state.disposed) return;
