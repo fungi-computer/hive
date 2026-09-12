@@ -32,6 +32,7 @@ function runtimeFactory(calls) {
         return () => listeners.delete(listener);
       },
       dispose: () => {},
+      recovery: { retry: () => sent.push({ type: "recovery.retry" }) },
     };
     calls.push({ options, runtime });
     return runtime;
@@ -125,4 +126,19 @@ test("failed new-world construction retains the current remote connection", () =
   choice.runtime.send({ type: "start", game: "formations" });
   assert.deepEqual(calls[0].runtime.sent, [{ type: "start", game: "formations" }]);
   choice.runtime.dispose();
+});
+
+test("recovery forwards to the current remote owner and refuses after disposal", () => {
+  const calls = [];
+  const choice = createConnectionChoice({
+    mode: "survival", publicHost: "https://demo.example.test", storage: storage(), cryptoSource: cryptoSource(),
+    connectLocal: () => ({}), connectRemote: runtimeFactory(calls),
+  });
+  choice.runtime.recovery.retry();
+  assert.deepEqual(calls[0].runtime.sent, [{ type: "recovery.retry" }]);
+  choice.persistence.newWorld();
+  choice.runtime.recovery.retry();
+  assert.deepEqual(calls[1].runtime.sent, [{ type: "recovery.retry" }]);
+  choice.runtime.dispose();
+  assert.throws(() => choice.runtime.recovery.retry(), /connection choice disposed/);
 });
