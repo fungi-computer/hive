@@ -4,6 +4,7 @@ import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query, system } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
+import { GroundStock } from "../sdk/ground-stock";
 import {
   Emitter, Body, Container, Destination, ExcavationWork, MaterialLot, LotWater, Position, Support, Surface, Traversal,
   excavate, move, cancelWork,
@@ -15,7 +16,7 @@ export const Worker = component<{ guest: boolean }>("colony.worker", {
   fields: { guest: "boolean" },
 });
 
-export type ColonyDigPhase = "queued" | "approaching" | "excavating" | "blocked" | "carrying";
+export type ColonyDigPhase = "queued" | "approaching" | "excavating" | "blocked";
 export const ColonyDigOrder = component<{
   cellX: number; cellY: number; cellZ: number; expected: number;
   actor: EntityId | null; phase: string; reason: string;
@@ -48,18 +49,11 @@ function orderPoint(order: { approachX: number; approachY: number; approachZ: nu
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
 }
 
-function carriedLots(ctx: WriteContext, actor: EntityId) {
-  return ctx.query(query(MaterialLot)).map((row) => ({ id: row.id, ...row.get(MaterialLot) }))
-    .filter((lot) => lot.container === actor && spoilKinds.has(lot.kind) && lot.quantity > 0);
-}
-
 function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
   const workers = new Set(ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id));
   const positions = new Map(ctx.worldPoses([...workers]).map(pose => [pose.id, pose]));
   const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
-  const containers = new Map(ctx.query(query(Container)).map((row) => [row.id, row.get(Container)]));
-  const lots = ctx.query(query(MaterialLot)).map((row) => ({ id: row.id, ...row.get(MaterialLot) }));
   const excavating = new Set(ctx.query(query(ExcavationWork)).map((row) => row.id));
   const deliveries = ctx.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask));
   const occupied = new Set<EntityId>([
@@ -100,7 +94,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const requests: { actor: EntityId; target: Vec3 & { frame: null }; candidate: DigCandidate }[] = [];
   for (const row of activeOrders) {
     const state = row.get(ColonyDigOrder);
-    if (state.actor !== null || state.phase === "carrying") continue;
+    if (state.actor !== null) continue;
     const materialSlot = currentMaterial.get(row.id);
     if (materialSlot === undefined || materialSlot === air) continue;
     const expected = state.expected >= 0 ? state.expected : materialSlot;
@@ -108,10 +102,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
     const targetSurface = surfaceByColumn.get(`${state.cellX},${state.cellZ}`);
     if (!targetSurface || targetSurface.cell[0] !== state.cellX || targetSurface.cell[1] !== state.cellY || targetSurface.cell[2] !== state.cellZ) continue;
     for (const worker of workers) {
-      if (occupied.has(worker) || !positions.has(worker) || !bodies.has(worker) || !containers.has(worker)) continue;
-      const carried = lots.filter((lot) => lot.container === worker).reduce((sum, lot) => sum + lot.quantity, 0);
-      const material = colonyEnvironment.materials.find((entry) => entry.slot === expected);
-      if (!material?.excavation || !Number.isSafeInteger(carried) || carried + material.excavation.unitsPerCell > (containers.get(worker)?.capacity ?? -1)) continue;
+      if (occupied.has(worker) || !positions.has(worker) || !bodies.has(worker)) continue;
       const adjacent: [number, number][] = [
         [state.cellX - 1, state.cellZ], [state.cellX + 1, state.cellZ],
         [state.cellX, state.cellZ - 1], [state.cellX, state.cellZ + 1],
@@ -182,11 +173,6 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
       for (const row of activeOrders) {
         const state = row.get(ColonyDigOrder);
         if (assigned.has(row.id)) continue;
-        if (state.phase === "carrying") {
-          const delivery = ctx.query(query(DeliveryTask)).find((task) => task.id === `${row.id}.delivery`)?.get(DeliveryTask);
-          if (delivery?.phase === "complete") ctx.removeAuthoredEntity(row.id);
-          continue;
-        }
         if (!state.actor) continue;
         const pose = positions.get(state.actor);
         if (!pose) continue;
@@ -213,23 +199,34 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
             ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "blocked", reason: failed?.result.reason ?? "excavation did not complete" });
             continue;
           }
-          const cargo = carriedLots(ctx, state.actor);
-          if (!cargo.length) continue;
-          const lot = cargo[0];
-          const deliveryId = entity(`${row.id}.delivery`);
-          if (!ctx.query(query(DeliveryTask)).some((task) => task.id === deliveryId)) {
-            ctx.createAuthoredEntity({ id: deliveryId, components: { [DeliveryTask.id]: {
-              actor: state.actor, sourceLot: lot.id, source: state.actor, destination: "colony.pantry", material: lot.kind, quantity: lot.quantity, phase: "carrying",
-            }}});
-          }
-          // The delivery task owns the worker from this point; releasing the
-          // dig claim prevents the shared allocator from treating one actor as
-          // claimed by two kinds of work.
-          ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "carrying", reason: "" });
+          // Native completion has already released a finite ground pile. The
+          // pile is independently haulable, so the digger is immediately free.
+          ctx.removeAuthoredEntity(row.id);
         }
       }
     },
   };
+}
+
+function planGroundStockDeliveries(ctx: WriteContext) {
+  const pantry = entity("colony.pantry");
+  const stockContainers = new Set(ctx.query(query(GroundStock)).map(row => row.id));
+  const tasks = ctx.query(query(DeliveryTask));
+  const existing = new Set(tasks.map(row => row.get(DeliveryTask).sourceLot));
+  const taskIds = new Set(tasks.map(row => row.id));
+  for (const row of ctx.query(query(MaterialLot))) {
+    const lot = row.get(MaterialLot);
+    if (!stockContainers.has(lot.container) || !spoilKinds.has(lot.kind) || lot.quantity <= 0 || existing.has(row.id)) continue;
+    const source = lot.container;
+    const taskId = entity(`${row.id}.delivery`);
+    if (taskIds.has(taskId)) continue;
+    ctx.createAuthoredEntity({ id: taskId, components: { [DeliveryTask.id]: {
+      actor: null, sourceLot: row.id, source, destination: pantry,
+      material: lot.kind, quantity: lot.quantity, phase: "idle",
+    }}});
+    existing.add(row.id);
+    taskIds.add(taskId);
+  }
 }
 
 export const colonyWorkSystem = createWorkSystem({
@@ -243,6 +240,14 @@ export const colonyWorkSystem = createWorkSystem({
       definition.id, definition.materials.map(({ kind: material, quantity }) => ({ material, quantity })),
     ])),
   })],
+});
+
+/** Turns native excavation piles into ordinary shared delivery work. */
+export const colonyGroundStockSystem = system({
+  id: "colony.ground-stock", version: 1,
+  reads: [GroundStock, MaterialLot, DeliveryTask],
+  writes: [DeliveryTask],
+  run: planGroundStockDeliveries,
 });
 
 export function digOrderId(x: number, y: number, z: number): EntityId {

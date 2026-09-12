@@ -8,6 +8,8 @@ import {
   MaterialLot,
 } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
+import { colonyGroundStockSystem } from "./colony-work";
+import { GroundStock } from "../sdk/ground-stock";
 import { colonyPack } from "./colony";
 
 const worker = entity("colony.worker.1");
@@ -62,7 +64,32 @@ test("Colony dig emits one native excavation request for an admitted target", ()
   }]);
 });
 
-test("Colony dig rejects invalid material, active delivery, and full spoil cargo", () => {
+test("Colony ground stock schedules one ordinary pantry delivery and preserves existing claims", () => {
+  const pile = entity("hive.lot.17");
+  const source = entity("hive.ground-stock.17");
+  const created: unknown[] = [];
+  const sourceRow = { id: source, get() { return {}; } };
+  const pileRow = { id: pile, get(definition: { id: string }) {
+    if (definition.id === MaterialLot.id) return { quantity: 3, kind: "soil-spoil", container: source };
+    return {};
+  }};
+  const context = {
+    query(spec: { components: readonly { id: string }[] }) {
+      if (spec.components[0].id === GroundStock.id) return [sourceRow];
+      if (spec.components[0].id === MaterialLot.id) return [pileRow];
+      if (spec.components[0].id === DeliveryTask.id) return [];
+      throw new Error(`unexpected query ${spec.components[0].id}`);
+    },
+    createAuthoredEntity(record: unknown) { created.push(record); },
+  };
+  colonyGroundStockSystem.run(context as never);
+  assert.deepEqual(created, [{ id: `${pile}.delivery`, components: { [DeliveryTask.id]: {
+    actor: null, sourceLot: pile, source, destination: "colony.pantry",
+    material: "soil-spoil", quantity: 3, phase: "idle",
+  }}}]);
+});
+
+test("Colony dig rejects invalid material and active delivery, while full spoil cargo stays eligible", () => {
   assert.throws(() => colonyPack.commands!.dig.run(context(), {
     entities: [worker], target: { cell: [0, 12, 0], material: 0 },
   }), /not excavatable/);
@@ -76,9 +103,9 @@ test("Colony dig rejects invalid material, active delivery, and full spoil cargo
   const lot = row(entity("colony.spoil.1"), MaterialLot, {
     quantity: 3, kind: "soil-spoil", container: worker,
   });
-  assert.throws(() => colonyPack.commands!.dig.run(context({ lots: [lot] }), {
+  assert.doesNotThrow(() => colonyPack.commands!.dig.run(context({ lots: [lot] }), {
     entities: [worker], target: { cell: [0, 12, 0], material: 1 },
-  }), /capacity/);
+  }));
 });
 
 test("Colony cancelDig emits native cancel-work only for active excavation", () => {
