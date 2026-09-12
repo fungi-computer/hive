@@ -1,8 +1,27 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createAnimationClock, animationFrames } from "./animation.js";
+import { createAnimationClock, animationFrames, figureFrame } from "./animation.js";
 
 const actor = (id, x, z, facing = 0) => ({ id, x, y: 0, z, facing });
+test("real work faces its target and animates without pretending the actor walks", () => {
+  const clock = createAnimationClock();
+  const working = { ...actor("a", 0, 0), activity: { kind: "dig", target: [1, 0] } };
+  clock.sample([working], { now: 0 });
+  const work = clock.sample([working], { now: 250 })[0];
+  assert.deepEqual(work, { id: "a", walking: false, direction: 1, frame: 2 });
+  assert.deepEqual(clock.sample([working], { now: 500, paused: true })[0], work);
+  assert.equal(clock.sample([actor("a", 0, 0)], { now: 600 })[0].direction, 1);
+});
+test("actual work chooses its authored pose; held stock returns to carrying when work ends", () => {
+  const figure = { dig: [["dig-0", "dig-1"]], carry: [["carry-0", "carry-1"]], idle: [["idle"]] };
+  const binding = { workPoses: { dig: "dig" }, carryPoses: { soil: "carry" } };
+  const carrying = { inventory: { items: [{ kind: "soil", quantity: 1 }] } };
+  const animation = { direction: 0, frame: 1, walking: false };
+  assert.equal(figureFrame(figure, binding, { ...carrying, activity: { kind: "dig" } }, animation), "dig-1");
+  assert.equal(figureFrame(figure, binding, carrying, animation), "carry-0");
+  assert.equal(figureFrame(figure, binding, carrying, { ...animation, walking: true }), "carry-1");
+  assert.equal(figureFrame(figure, binding, {}, animation), "idle");
+});
 test("brief stationary samples retain walking and facing, then settle without turning", () => {
   const clock = createAnimationClock();
   clock.sample([actor("a", 0, 0)], { now: 0, sequence: 1 });

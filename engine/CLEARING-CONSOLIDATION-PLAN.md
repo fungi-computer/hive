@@ -67,6 +67,44 @@ useful repair interim, **not completion of Release A or the goal**.
   sustained deep digging/building, original art/activity restoration and actual
   two-browser playtest. No new rendered/UI-browser evidence is claimed here.
 
+### September 12 next candidate — manual control and original work poses
+
+The reviewed manual-control source (`ebe337a`, `e7bf55f`, `e79dab2`) is joined
+with King's original-cast/activity work. It is not yet a hosted availability
+claim. One shared automatic-work capability prevents delivery, digging and
+construction providers from taking a manually controlled actor back. Go preserves
+facing and cargo, cancels native attendance and moves; Resume work restores the
+existing claim. Current-format restore preserves that intent. Boundary parsing
+uses Zod; the superseded delivery/worker structural parser is removed.
+
+The shared observation reads actual native digging/construction attendance. The
+client selects the original Rowan/Sedge work/carry poses, without moving actors
+or completing work in the renderer. Desktop initial framing is closer. The
+retained static atlas is unchanged. Original scenery, ground detail and transient
+pickup/drop animations remain unfinished; this is not visual parity with Clearing.
+
+Evidence in the `clearing-work-animation` lane's `.botanical/work-animation/`:
+- `u6190`: nine animation/native-attendance laws and the focused JSON activity
+  boundary law pass. Native attendance projection leaves saved state unchanged.
+- `u6197`: three joined actual-WASM laws pass; explicit engine types fail. The
+  helper's earlier `npm --prefix engine exec tsc` checked the legacy root project,
+  so it is **not** engine type evidence. Root corrected the branded frame value
+  and the optional shared-system read list.
+- `u6199`: the same three affected laws and explicit strict engine types pass.
+  Go reaches and holds its destination, cargo/claims survive restore, another
+  worker completes delivery, and explicit Resume finishes the original work.
+- Fallow remains exit 1: two moderate estimated-coverage advisories in the joined
+  gameplay test and `progressClaimedDig`; no introduced dead-code/duplication
+  finding. Root separated claimed native-work reconciliation from provider
+  eligibility instead of suppressing the new production hotspot. Inherited
+  renderer/decoder/delivery debt remains and valid entrypoints are retained.
+- `u6200`: ordinary client build passes (8.13 s), existing large-chunk advisory.
+- `u6201`: bounded local browser uses the actual original bank and public
+  rectangular Dig input; four orders are authored and Rowan's native digging
+  activity is rendered. Root viewed `clearing.png` and `digging.png`; errors are
+  empty. Browser closes normally; no server/listener was opened. This is local
+  visual/input evidence, not hosted or sustained two-client acceptance.
+
 ### Earlier baseline, retained for comparison
 
 - Live Colony: [existing demo](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html),

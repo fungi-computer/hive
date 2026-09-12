@@ -1,5 +1,5 @@
 import "./client.css";
-import { PIRATE_VISUAL_BINDINGS, CANNON_VISUAL_BINDINGS } from "./visual-bindings.js";
+import { PIRATE_VISUAL_BINDINGS, CANNON_VISUAL_BINDINGS, COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import "@fungi.computer/caps/styles.css";
 import "@fungi.computer/stipe/fonts.css";
 import { createHiveClient } from "./client.js";
@@ -20,11 +20,12 @@ const configs = {
     source: "./source/pirates.ts",
   },
   colony: {
-    title: "Colony",
+    title: "The Clearing",
+    visualBindings: COLONY_VISUAL_BINDINGS,
     subtitle:
       "Mark an area for workers to dig and haul away the soil. Dig deeper to uncover groundwater.",
     orderCommand: "go",
-    selectionShortcuts: [{ id: "colony.worker.1", label: "Select worker 1" }, { id: "colony.worker.2", label: "Select worker 2" }],
+    selectionShortcuts: [{ id: "colony.worker.1", label: "Select Rowan" }, { id: "colony.worker.2", label: "Select Sedge" }],
     controlHelp: "Dig area, then drag across the ground · Select a worker and right-click to take control · Resume work returns them to automatic orders · Escape cancels a drag",
     source: "./source/colony.ts",
   },

@@ -241,6 +241,7 @@ export interface CollisionFact {
   readonly material: { readonly response: "stop" | "pierce" | "ground"; readonly resistance: number; readonly restitution: number; readonly friction: number; readonly embedSpeed: number };
 }
 export interface RenderFact {
+  readonly activity?: import("./runtime/work-activity").WorkActivity;
   readonly view?: { readonly pickable?: boolean; readonly cutawayTop?: number };
   readonly aim?: ProjectileAim | null;
   readonly collision?: CollisionFact | null;

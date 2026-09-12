@@ -17,11 +17,12 @@ export const Worker = component<{ guest: boolean }>("colony.worker", {
 });
 
 export type ColonyDigPhase = "queued" | "approaching" | "excavating" | "blocked";
-export const ColonyDigOrder = component<{
+type DigOrder = {
   cellX: number; cellY: number; cellZ: number; expected: number;
   actor: EntityId | null; phase: string; reason: string;
   approachX: number; approachY: number; approachZ: number;
-}>("colony.dig-order", {
+};
+export const ColonyDigOrder = component<DigOrder>("colony.dig-order", {
   version: 1,
   fields: {
     cellX: "number", cellY: "number", cellZ: "number", expected: "number",
@@ -47,6 +48,36 @@ const distance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.
 
 function orderPoint(order: { approachX: number; approachY: number; approachZ: number }) {
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
+}
+
+/** Reconcile one claimed order with native movement/work; never settle cargo. */
+function progressClaimedDig(ctx: WriteContext, id: EntityId, state: DigOrder, position: Vec3) {
+  if (state.actor === null) return;
+  if (state.phase === "approaching") {
+    const failedMove = ctx.outcomes.find((outcome) => {
+      if (outcome.action.kind !== "move" || outcome.action.entity !== state.actor || outcome.result.accepted) return false;
+      const destination = outcome.action.destination;
+      return destination.x === state.approachX && destination.y === state.approachY && destination.z === state.approachZ;
+    });
+    if (failedMove) {
+      ctx.write(ColonyDigOrder, id, { ...state, actor: null, phase: "blocked", reason: failedMove.result.reason ?? "movement did not complete" });
+      return;
+    }
+    if (distance(position, orderPoint(state)) <= 0.05) {
+      ctx.write(ColonyDigOrder, id, { ...state, phase: "excavating", reason: "" });
+      ctx.action(excavate(state.actor, { x: state.cellX, y: state.cellY, z: state.cellZ }, state.expected, air));
+    }
+  } else if (state.phase === "excavating") {
+    if (ctx.query(query(ExcavationWork)).some(item => item.id === state.actor)) return;
+    const material = ctx.terrainMaterials([[state.cellX, state.cellY, state.cellZ]])[0];
+    if (material !== air) {
+      const failed = ctx.outcomes.find((outcome) => outcome.action.kind === "excavate" && outcome.action.entity === state.actor && outcome.action.x === state.cellX && outcome.action.y === state.cellY && outcome.action.z === state.cellZ && !outcome.result.accepted);
+      ctx.write(ColonyDigOrder, id, { ...state, actor: null, phase: "blocked", reason: failed?.result.reason ?? "excavation did not complete" });
+      return;
+    }
+    // Rust already released the finite ground pile. Hauling is independent.
+    ctx.removeAuthoredEntity(id);
+  }
 }
 
 function digProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<DigCandidate> {
@@ -192,33 +223,7 @@ function digProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>):
         if (!state.actor) continue;
         const pose = positions.get(state.actor);
         if (!pose) continue;
-        if (state.phase === "approaching") {
-          const failedMove = ctx.outcomes.find((outcome) => {
-            if (outcome.action.kind !== "move" || outcome.action.entity !== state.actor || outcome.result.accepted) return false;
-            const destination = outcome.action.destination;
-            return destination.x === state.approachX && destination.y === state.approachY && destination.z === state.approachZ;
-          });
-          if (failedMove) {
-            ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "blocked", reason: failedMove.result.reason ?? "movement did not complete" });
-            continue;
-          }
-          if (distance(pose.world, orderPoint(state)) <= 0.05) {
-            ctx.write(ColonyDigOrder, row.id, { ...state, phase: "excavating", reason: "" });
-            ctx.action(excavate(state.actor, { x: state.cellX, y: state.cellY, z: state.cellZ }, state.expected, air));
-          }
-        } else if (state.phase === "excavating") {
-          const work = ctx.query(query(ExcavationWork)).some((item) => item.id === state.actor);
-          const material = ctx.terrainMaterials([[state.cellX, state.cellY, state.cellZ]])[0];
-          if (work) continue;
-          if (material !== air) {
-            const failed = ctx.outcomes.find((outcome) => outcome.action.kind === "excavate" && outcome.action.entity === state.actor && outcome.action.x === state.cellX && outcome.action.y === state.cellY && outcome.action.z === state.cellZ && !outcome.result.accepted);
-            ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "blocked", reason: failed?.result.reason ?? "excavation did not complete" });
-            continue;
-          }
-          // Native completion has already released a finite ground pile. The
-          // pile is independently haulable, so the digger is immediately free.
-          ctx.removeAuthoredEntity(row.id);
-        }
+        progressClaimedDig(ctx, row.id, state, pose.world);
       }
     },
   };
