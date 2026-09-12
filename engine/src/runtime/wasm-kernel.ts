@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { terrainSurfaceSchema } from "./terrain-surface";
 import { physicalContactQuery } from "./physical-contact-query";
 import type {
   AssignmentCandidate,
@@ -11,7 +13,6 @@ import type {
   QueryRow,
   QuerySpec,
   RenderFact,
-  TerrainSurface,
   StructureSurface,
   TerrainChangeSet,
   RouteCostResult,
@@ -47,6 +48,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   assign(json: string): string;
 }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
+const surfaceResultsSchema = z.array(terrainSurfaceSchema.nullable()).max(64);
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
@@ -190,41 +192,13 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         throw new Error(
           "terrain surface query must contain between 1 and 64 signed integer columns",
         );
-      const result = JSON.parse(
-        binding.terrain_surfaces(JSON.stringify(columns)),
-      ) as unknown;
-      if (
-        !Array.isArray(result) ||
-        result.length !== columns.length ||
-        !result.every((surface, index) => {
-          if (surface === null) return true;
-          if (!surface || typeof surface !== "object" || Array.isArray(surface))
-            return false;
-          const value = surface as {
-            readonly cell?: unknown;
-            readonly material?: unknown;
-          };
-          const cell = value.cell;
-          const column = columns[index];
-          return (
-            Array.isArray(cell) &&
-            cell.length === 3 &&
-            cell.every(
-              (coordinate) =>
-                Number.isInteger(coordinate) &&
-                coordinate >= -2147483648 &&
-                coordinate <= 2147483647,
-            ) &&
-            cell[0] === column[0] &&
-            cell[2] === column[1] &&
-            Number.isInteger(value.material) &&
-            (value.material as number) >= 0 &&
-            (value.material as number) <= 65535
-          );
-        })
-      )
-        throw new Error("invalid terrain surface query result");
-      return result as (TerrainSurface | null)[];
+      const result = surfaceResultsSchema.parse(
+        JSON.parse(binding.terrain_surfaces(JSON.stringify(columns))),
+      );
+      if (result.length !== columns.length || result.some((surface, index) => surface !== null &&
+        (surface.cell[0] !== columns[index][0] || surface.cell[2] !== columns[index][1])))
+        throw new Error("terrain surface result does not match requested columns");
+      return result;
     },
     structureSurfaces(columns) {
       if (columns.length === 0 || columns.length > 64 || columns.some(column =>

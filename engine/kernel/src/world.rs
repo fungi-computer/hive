@@ -1155,6 +1155,7 @@ impl Kernel {
         let surfaces = environment.world.surface_cells(&columns)?;
         let facts: Vec<_> = surfaces.into_iter().map(|surface| surface.map(|surface| json!({
             "cell": [surface.cell.x, surface.cell.y, surface.cell.z], "material": surface.material,
+            "generatedTop": surface.generated_top,
         }))).collect();
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createTerrainSceneCache } from "./terrain-columns.js";
+import { createTerrainSceneCache, TERRAIN_DETAIL_HEIGHT } from "./terrain-columns.js";
 
-const surface = (x, y, z, material = 1) => ({ cell: [x, y, z], material });
+const surface = (x, y, z, material = 1) => ({ cell: [x, y, z], material, generatedTop: y });
 
 test("terrain scene cache retains unaffected chunks and rebuilds neighbor chunks", () => {
   const cache = createTerrainSceneCache({ verticalMetres: 1 });
@@ -18,6 +18,8 @@ test("terrain scene cache retains unaffected chunks and rebuilds neighbor chunks
   );
   const second = cache.update(changed);
   assert.deepEqual(second.changedColumns, [{ x: 7, z: 0 }]);
+  assert.equal(second.previousIndex.get("7,0").cell[1], 1);
+  assert.equal(second.columnIndex.get("7,0").cell[1], 3);
   assert.deepEqual(second.affectedColumns, [
     { x: 6, z: 0 },
     { x: 7, z: -1 },
@@ -48,5 +50,20 @@ test("identical projection content does not rebuild a chunk", () => {
     [...cache.scene.children].find((child) => child.isGroup),
     group,
   );
+  cache.dispose();
+});
+
+
+test("ground cover belongs to the generated surface and disappears from an excavated top", () => {
+  const cache = createTerrainSceneCache({ verticalMetres: 1 });
+  const original = surface(0, 1, 0);
+  cache.update([original]);
+  const meshes = () => cache.scene.children.filter(child => child.isGroup).flatMap(group => group.children);
+  const originalPositions = meshes().flatMap(mesh => Array.from(mesh.geometry.attributes.position.array));
+  assert(originalPositions.some((value, index) => index % 3 === 1 && value > 1.5), "original top has visible ground detail");
+  assert(originalPositions.every((value, index) => index % 3 !== 1 || value <= 1.5 + TERRAIN_DETAIL_HEIGHT), "detail stays inside its declared bake bounds");
+  cache.update([{ ...original, cell: [0, 0, 0] }]);
+  const cutPositions = meshes().flatMap(mesh => Array.from(mesh.geometry.attributes.position.array));
+  assert(cutPositions.every((value, index) => index % 3 !== 1 || value <= 0.5), "excavated soil has no phantom grass");
   cache.dispose();
 });

@@ -46,7 +46,7 @@ mod tests {
             entity: "actor".into(),
             position: Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 },
             traversal: Some(Traversal { clearance_cells: 1, max_step_cells: 2 }),
-            surface: SurfaceCell { cell: crate::generation::Cell { x: 0, y: 0, z: 0 }, material: 1 },
+            surface: SurfaceCell { cell: crate::generation::Cell { x: 0, y: 0, z: 0 }, material: 1, generated_top: 0 },
         };
         let mut query = |_cell: crate::generation::Cell| Ok(crate::terrain_traversal::TraversalMaterial { solid: true, outside: false, sealed_top: false });
         assert!(resolve([request], [1.0, 0.54, 1.0], &mut query).is_err());

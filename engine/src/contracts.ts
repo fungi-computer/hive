@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { terrainSurfaceSchema } from "./runtime/terrain-surface";
 import type { KernelRecordSnapshot } from "./runtime/kernel-records";
 /** Public boundary between authored TypeScript and the authoritative kernel. */
 export type EntityId = string & { readonly __entityId: unique symbol };
@@ -284,10 +286,7 @@ export type PhysicalContact = {
   readonly outside: boolean;
 };
 
-export type TerrainSurface = {
-  readonly cell: readonly [number, number, number];
-  readonly material: number;
-};
+export type TerrainSurface = z.infer<typeof terrainSurfaceSchema>;
 export type StructureSurface = {
   readonly cell: readonly [number, number, number];
 };

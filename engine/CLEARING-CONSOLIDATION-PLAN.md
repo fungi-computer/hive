@@ -223,6 +223,35 @@ shared-control explanation. This is not accounts, individual player grants or a
 new backend. Luna owns the isolated `clearing-friend-link` client seam; King owns
 the authority decision, review and eventual two-browser acceptance.
 
+### Generated ground cover checkpoint — September 12
+
+Rust surface queries now expose the original generated top alongside the current
+solid top. The observation is derived and unsaved; digging lowers the current top
+without growing new grass on exposed soil. The native binding and network parser
+share one Zod surface schema. Original grass colors and low-poly detail are batched
+into existing terrain chunks; no per-frame grass simulation or inventory is added.
+The art owner keeps old and new column indexes separately and expands dirty bake
+bounds for the declared grass height, so terrain edits remove old detail correctly.
+
+Root proof in `clearing-ground-cover/.botanical/ground-cover`: u6211 passed the
+native generated/excavated surface law, release WASM and explicit strict types;
+u6216 passed 12 affected native-observation/wire/cache/art laws and strict types,
+then failed Fallow on a duplicate type export. One public inferred type replaced
+that duplication. u6218 passed the built local public rectangular Dig interaction,
+observed an actual lowered surface and captured exposed soil; browser closed.
+Root rejected the first polka-dot grass appearance. The larger irregular patch
+recut passed three affected art laws, strict types, Fallow and build, followed by
+an initial-view-only browser capture in `art-recut.log`/`clearing-v2.png`. No new
+physics, server capacity or sustained multiplayer claim follows from those checks.
+Fallow's new-only verdict passes; 14 inherited dead-code, 13 complexity and two
+clone-group findings remain. Valid runtime entrypoints are retained.
+
+This is an interim ground treatment, not full scenery acceptance. Trees, worn
+paths, decorative plants and pickup/drop transients remain outstanding. Tree art
+must join a real finite resource and navigation owner before it is presented as
+choppable content. The live deployment remains the prior work-animation release
+until this source is integrated with the invitation client and separately published.
+
 ### Client admission and gesture owner
 
 Read retained src/ui-actions.ts, digging-controls.test.js and main.js against
