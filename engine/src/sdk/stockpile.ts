@@ -26,6 +26,7 @@ export type StockpileCellSpec = {
   readonly priority: number;
   readonly filterProfile: string;
   readonly capacity: number;
+  readonly verticalMetres: number;
 };
 
 function validText(value: string): boolean {
@@ -56,7 +57,7 @@ export function stockpileCellRecords(specs: readonly StockpileCellSpec[]): reado
     if (!Array.isArray(spec.cell) || spec.cell.length !== 3 || !spec.cell.every(Number.isSafeInteger))
       throw new Error("invalid stockpile cell");
     entity(spec.zone);
-    if (!validText(spec.zone) || !validText(spec.filterProfile) || !validInt(spec.priority) || !validInt(spec.capacity) || spec.capacity <= 0)
+    if (!validText(spec.zone) || !validText(spec.filterProfile) || !validInt(spec.priority) || !validInt(spec.capacity) || spec.capacity <= 0 || !Number.isFinite(spec.verticalMetres) || spec.verticalMetres <= 0)
       throw new Error("invalid stockpile policy");
     const key = `${spec.zone}\0${cellKey(spec.cell)}`;
     if (seen.has(key)) throw new Error("duplicate stockpile cell");
@@ -67,7 +68,7 @@ export function stockpileCellRecords(specs: readonly StockpileCellSpec[]): reado
       components: {
         [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filterProfile: spec.filterProfile, capacity: spec.capacity },
         [Container.id]: { capacity: spec.capacity },
-        [Position.id]: { x: spec.cell[0], y: spec.cell[1], z: spec.cell[2], facing: 0 },
+        [Position.id]: { x: spec.cell[0], y: (spec.cell[1] + 0.5) * spec.verticalMetres, z: spec.cell[2], facing: 0 },
       },
     };
   });
