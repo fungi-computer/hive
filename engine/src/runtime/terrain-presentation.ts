@@ -7,6 +7,7 @@ export interface TerrainWaterFact {
   readonly id?: string;
   readonly at: Coordinate;
   readonly kind?: string;
+  readonly level: number;
   readonly massKg: number;
   readonly capacityKg?: number;
   readonly mobileKg?: number;
@@ -64,6 +65,7 @@ function parseFacts(value: unknown): {
       !Array.isArray(at) ||
       at.length !== 3 ||
       !at.every(signedInteger) ||
+      !Number.isInteger(cell.level) || (cell.level as number) < 0 || (cell.level as number) > 7 ||
       typeof cell.massKg !== "number" ||
       !Number.isFinite(cell.massKg) || cell.massKg < 0 ||
       typeof cell.liquidVolumeM3 !== "number" ||

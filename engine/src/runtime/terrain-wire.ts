@@ -5,6 +5,7 @@ export interface TerrainWireWater {
   readonly id?: string;
   readonly at: readonly [number, number, number];
   readonly kind?: string;
+  readonly level: number;
   readonly massKg: number;
   readonly capacityKg?: number;
   readonly mobileKg?: number;
@@ -87,7 +88,7 @@ function parseStructureSurfaces(value: unknown): readonly StructureSurface[] | u
 }
 
 function parseWater(value: unknown): TerrainWireWater | undefined {
-  if (!record(value) || !cell(value.at) || !finite(value.massKg) || value.massKg < 0 || !finite(value.liquidVolumeM3) || value.liquidVolumeM3 < 0)
+  if (!record(value) || !cell(value.at) || !Number.isInteger(value.level) || (value.level as number) < 0 || (value.level as number) > 7 || !finite(value.massKg) || value.massKg < 0 || !finite(value.liquidVolumeM3) || value.liquidVolumeM3 < 0)
     return undefined;
   for (const field of ["capacityKg", "mobileKg", "moisture"])
     if (field in value && !finite(value[field])) return undefined;
@@ -96,6 +97,7 @@ function parseWater(value: unknown): TerrainWireWater | undefined {
   const parsed: TerrainWireWater = {
     at: Object.freeze([value.at[0], value.at[1], value.at[2]]) as TerrainWireWater["at"],
     massKg: value.massKg,
+    level: value.level as number,
     liquidVolumeM3: value.liquidVolumeM3,
     ...(value.id === undefined ? {} : { id: value.id }),
     ...(value.kind === undefined ? {} : { kind: value.kind }),

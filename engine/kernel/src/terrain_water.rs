@@ -241,7 +241,7 @@ impl TerrainWater {
         Ok(Self { terrain, structures, structure_projection, physical_revision: 0, geometry, identity, field, owner: Arc::new(()), epoch: 0, change_index: TerrainChangeIndex::fresh() })
     }
     pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
-        let header = postcard::to_allocvec(&(3u16, self.identity.as_slice(),
+        let header = postcard::to_allocvec(&(4u16, self.identity.as_slice(),
             self.terrain.revision(), self.physical_revision))
             .map_err(|_| "environment header encoding failed")?;
         let terrain = self.terrain.export()?;
@@ -263,7 +263,7 @@ impl TerrainWater {
             ((u16, &[u8], u64, u64), _) = postcard::take_from_bytes(&records.header)
             .map_err(|_| "invalid environment header")?;
         let identity = geometry.identity()?;
-        if version != 3 || physical_revision < terrain_revision || !remainder.is_empty() || saved_identity != identity.as_slice()
+        if version != 4 || physical_revision < terrain_revision || !remainder.is_empty() || saved_identity != identity.as_slice()
             || geometry.spacing != terrain.cell_spacing_m() {
             return Err("environment record binding mismatch".into());
         }
@@ -542,6 +542,35 @@ mod tests {
     use crate::terrain::MaterialProperty;
 
     #[test]
+    fn discrete_flow_advances_one_level_down_and_preserves_lateral_priority() {
+        let high = Cell { x: 0, y: 30, z: 0 };
+        let low = Cell { x: 0, y: 29, z: 0 };
+        let side = Cell { x: 1, y: 30, z: 0 };
+        let geometry = TerrainWaterGeometry::new("discrete-laws".into(), vec![high, low, side],
+            BTreeMap::from([(0, MaterialWater::Open), (1, MaterialWater::Closed), (2, MaterialWater::Closed)]),
+            [1.0, 0.54, 1.0], 1.0, 0.1, WaterLimits::default(), 6).unwrap();
+        let stock = |c: Cell, level: u8| WaterStock { id: format!("cell:{},{},{}", c.x, c.y, c.z), mass_kg: 540.0 * f64::from(level) / 7.0 };
+        let mut world = TerrainWater::fresh(geometry.clone(), super::field_tests::terrain(), &[stock(high, 7), stock(low, 0), stock(side, 0)]).unwrap();
+        world.advance(0.25).unwrap();
+        let facts = world.facts().unwrap();
+        let fact = |c: Cell| facts.cells.iter().find(|f| f.at == [c.x as i32, c.y as i32, c.z as i32]).unwrap();
+        assert_eq!(fact(high).level, 6);
+        assert_eq!(fact(low).level, 1);
+        assert_eq!(fact(side).level, 0, "a downward move suppresses lateral spreading from the source");
+        for f in &facts.cells { if f.kind == WaterCellKind::Void && f.level > 0 { assert!((f.mass_kg - f.capacity_kg * f64::from(f.level) / 7.0).abs() < 1e-9); } }
+        let records = world.save_records().unwrap();
+        let mut restored = TerrainWater::restore_records(geometry.clone(), super::field_tests::terrain(), &records).unwrap();
+        assert_eq!(restored.facts().unwrap(), facts);
+        let mut old = records;
+        old.header[0] = 3;
+        assert!(TerrainWater::restore_records(geometry.clone(), super::field_tests::terrain(), &old).is_err());
+        restored.advance(0.25).unwrap();
+        world.advance(0.25).unwrap();
+        assert_eq!(restored.facts().unwrap(), world.facts().unwrap());
+
+    }
+
+    #[test]
     fn terrain_change_index_is_bounded_and_marks_restore_and_stale() {
         let mut index = TerrainChangeIndex::fresh();
         index.record(1, BTreeSet::from([(2, 3)]));
@@ -597,7 +626,7 @@ mod tests {
             [1.0; 3], 1.0, 0.1, WaterLimits::default(), 6).unwrap();
         let mut world = TerrainWater::fresh(geometry.clone(), terrain(), &[
             WaterStock { id: "cell:0,30,0".into(), mass_kg: 0.0 },
-            WaterStock { id: "cell:0,31,0".into(), mass_kg: 100.0 },
+            WaterStock { id: "cell:0,31,0".into(), mass_kg: 1000.0 },
         ]).unwrap();
         let anchor = world.terrain.surface_cells(&[(1, 0)]).unwrap()[0].unwrap().cell;
         let floor = || vec![
@@ -634,7 +663,7 @@ mod tests {
         // Later water can legitimately go around this single-tile floor.
         world.advance(0.25).unwrap();
         let facts = world.facts().unwrap();
-        assert!((facts.total_kg - 100.0).abs() < 1e-10);
+        assert!((facts.total_kg - 1000.0).abs() < 1e-10);
         assert_eq!(facts.cells.iter().find(|cell| cell.at == [0,30,0]).unwrap().mass_kg, 0.0);
         assert!(world.traversal_material(low).unwrap().sealed_top);
         assert!(!world.traversal_material(low).unwrap().solid);
@@ -660,7 +689,7 @@ mod tests {
         assert!(restored.air_geometry_changes(AirGeometryEdit::Water(&stale)).is_err());
         assert!(restored.apply_water_advance(stale).is_err());
         let facts = restored.facts().unwrap();
-        assert!((facts.total_kg - 100.0).abs() < 1e-10);
+        assert!((facts.total_kg - 1000.0).abs() < 1e-10);
         assert!(facts.cells.iter().any(|cell| cell.at[1] <= 30 && cell.mass_kg > 0.0), "finite water falls below the opened floor");
     }
 
