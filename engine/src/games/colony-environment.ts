@@ -113,6 +113,9 @@ const colonyInitialPlacements = [
   { entity: "colony.guest.1", column: [3, 1] },
   { entity: "colony.pantry", column: [-2, 0] },
   { entity: "colony.lumber", column: [-3, 1] },
+  { entity: "colony.tree.oak", column: [2, 2] },
+  { entity: "colony.tree.pine", column: [-5, 4] },
+  { entity: "colony.tree.willow", column: [4, -5] },
 ] as const;
 
 export const colonyEnvironmentDefinition =
