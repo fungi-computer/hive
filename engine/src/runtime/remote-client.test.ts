@@ -97,9 +97,14 @@ test("work activity crosses the real JSON frame boundary and rejects unsupported
     await wait();
     const next = observation(1);
     socket.emit("message", { data: JSON.stringify({ type: "observation", ...next,
-      observation: { ...next.observation, facts: [{ id: "worker", activity: { kind: "dig", target: [1, 2] } }] } }) });
+      observation: { ...next.observation, facts: [{ id: "worker", activity: { kind: "dig", target: [1, 2] } }],
+        presentationFacts: [{ id: "worker.work", label: "Work", value: "digging", subjects: ["worker"] }],
+        presentationControls: [{ id: "worker.order", label: "Order", command: "order", subjects: ["worker"] }] } }) });
     const frames = events.filter(event => event.type === "frame");
     assert.deepEqual(frames.at(-1)?.facts[0]?.activity, { kind: "dig", target: [1, 2] });
+    const presentation = events.filter(event => event.type === "presentation").at(-1);
+    assert.deepEqual(presentation && presentation.type === "presentation" ? (presentation.facts[0] as { subjects?: readonly string[] }).subjects : undefined, ["worker"]);
+    assert.deepEqual(presentation && presentation.type === "presentation" ? presentation.controls[0].subjects : undefined, ["worker"]);
     const bad = observation(2);
     socket.emit("message", { data: JSON.stringify({ type: "observation", ...bad,
       observation: { ...bad.observation, facts: [{ id: "worker", activity: { kind: "invented", target: [1, 2] } }] } }) });
