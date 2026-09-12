@@ -55,6 +55,24 @@ test("socket admission emits only authenticated observations and command omits i
   runtime.dispose();
 });
 
+test("an applied receipt releases the next FIFO command without waiting for its observation", async () => {
+  const commandBodies: string[] = [];
+  const runtime = setup(async (input, init) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    commandBodies.push(String(init?.body));
+    const body = JSON.parse(String(init?.body));
+    return Response.json({ commandId: body.id, status: "applied", revision: commandBodies.length, result: { results: [] } });
+  });
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    runtime.send({ type: "pause" });
+    runtime.send({ type: "resume" });
+    await wait(20);
+    assert.equal(commandBodies.length, 2, "the second command is independent of observation delivery");
+  } finally { runtime.dispose(); }
+});
+
 test("socket observations reject older committed revisions", async () => {
   const socket = new FakeSocket(observation(2));
   const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
@@ -121,24 +139,43 @@ test("healthy socket recovery resumes the same pending command body", async () =
   } finally { runtime.dispose(); }
 });
 
-test("an ordinary observation does not unblock a command awaiting socket recovery", async () => {
+test("HTTP recovery does not wait for an ordinary observation", async () => {
   const socket = new FakeSocket();
   let attempts = 0;
-  const runtime = setup(async (input) => {
+  const runtime = setup(async (input, init) => {
     if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
     attempts++;
-    throw new Error("temporary command transport failure");
+    if (attempts < 5) throw new Error("temporary command transport failure");
+    const body = JSON.parse(String(init?.body));
+    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   }, socket);
   try {
     runtime.send({ type: "start", game: "survival" });
     await wait();
     runtime.send({ type: "pause" });
-    await wait(1_600);
-    const exhaustedRetries = attempts;
-    socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(2) }) });
-    await wait(50);
-    assert.equal(attempts, exhaustedRetries);
+    await wait(2_000);
+    assert.equal(attempts, 5, "HTTP recovery succeeds without waiting for observation delivery");
   } finally { runtime.dispose(); }
+});
+
+test("ordinary commands synchronously refuse admission when the queue is full", async () => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const runtime = setup(async (input, init) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    await held;
+    const body = JSON.parse(String(init?.body));
+    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+  });
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    for (let index = 0; index < 16; index++) runtime.send({ type: "pause" });
+    assert.throws(() => runtime.send({ type: "resume" }), /remote command queue full/);
+  } finally {
+    release();
+    runtime.dispose();
+  }
 });
 
 test("socket recovery has a bounded per-command budget", async () => {
@@ -159,6 +196,7 @@ test("socket recovery has a bounded per-command budget", async () => {
     await wait(6_200);
     assert.equal(attempts, 16);
     assert.ok(events.some((event) => event.type === "error" && event.message.includes("recovery limit exceeded")));
+    assert.throws(() => runtime.send({ type: "resume" }), /remote runtime unavailable/);
   } finally { runtime.dispose(); }
 });
 

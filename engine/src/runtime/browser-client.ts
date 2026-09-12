@@ -6,6 +6,8 @@ export interface RuntimeConnection {
   send(command: WorkerCommand): void;
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   dispose(): void;
+  /** Optional recovery control for transports that retain uncertain commands. */
+  recovery?: { retry(): void };
 }
 export interface BrowserConnectionOptions {
   readonly worker?: Worker;
