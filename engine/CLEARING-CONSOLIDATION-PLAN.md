@@ -33,7 +33,50 @@ forecast is **not a gate before the next playable repair**.
 
 ## Starting point: actual state, not aspirations
 
-### September 12 current live interim — ddc1728
+### September 12 current live interim — fd7937b
+
+The same Colony URL now serves generated ground cover and an explicit **Invite a
+friend** action. Frontend deployment `a1bddd9f-0834-4aa4-b803-191fb6bb31d5`;
+Worker version `b79549b6-d86d-4d64-9500-d80eea2eacb0`, implementation
+`1a0ac648f34c5ba104278f179e8bebfb507277f3c40306e6d6d2ecf19a17f03d`.
+The worker/native change derives original surface height from Rust; exposed soil
+loses grass. Original Rowan/Sedge work poses and manual takeover remain present.
+Current source is integrated through `fd7937b`; the helper's later `f4086f1`
+wrapper-only recut was reviewed and not integrated. Root instead made browser
+selection own its prepared apply/rollback while the existing connection retains
+runtime replacement, in `6426cac`.
+
+Evidence under integration `.botanical/clearing-ground-release/`:
+- u6227 passed nine connection laws, explicit strict types, new-only Fallow and
+  joined build/Worker preparation. Full inherited advisories remain in the JSON.
+- u6229 published `6426cac`; u6230 matched all 158 served files. The first actual
+  friend browser run u6231 failed after receipt of a paused world, with no page
+  error. It is retained, not called a pass.
+- Root found the actual button dependency on the prior drawing frame. `fd7937b`
+  derives shortcut eligibility from accepted facts and current view instead.
+  u6235 syntax/diff checks passed; Fallow reports one moderate estimated-coverage
+  finding on that inline predicate. The predicate checks the actual ID, pose,
+  visual and pickability; it was retained after source review, not suppressed.
+  The separate changed-client build passed; its frontend-only publication is the
+  current deployment above. No second Worker deployment or native law replay.
+- u6239 passed **two real hosted browser clients**, including 390px: host creates
+  an invite, friend joins the paused world without replacing its private token,
+  friend resumes, host pauses, and both report identical committed time/facts.
+  Root viewed both captures; invitation values are masked. Both contexts closed,
+  no owned server was started. This is shared-control acceptance, not separate
+  accounts/grants, a sustained load test, or a clipboard/refresh/New-world browser
+  matrix. Source/unit evidence covers invitation parsing and replacement rules.
+- `readback-paused.json` records exact final 158-file hosted parity. The exact
+  previous ddc1728 frontend is preserved in `previous-dist.tar.gz`; the original
+  generated WASM is separately preserved. All prior failure receipts remain.
+
+Use **New world** if the server explicitly rejects an older engine world. Old
+stores remain retained; there is no hidden migration or reset. Trees, paths,
+pickup/drop transients, earned multi-level construction with water/smoke, the
+fixed sustained two-client workload and Levi's playtest remain required. This
+interim is not completion of the goal.
+
+### September 12 earlier work-animation interim — ddc1728
 
 The existing Colony URL now serves manual Go/Resume work, original Rowan/Sedge
 dig/build/carry poses and closer desktop framing. Frontend deployment
@@ -249,8 +292,8 @@ clone-group findings remain. Valid runtime entrypoints are retained.
 This is an interim ground treatment, not full scenery acceptance. Trees, worn
 paths, decorative plants and pickup/drop transients remain outstanding. Tree art
 must join a real finite resource and navigation owner before it is presented as
-choppable content. The live deployment remains the prior work-animation release
-until this source is integrated with the invitation client and separately published.
+choppable content. This checkpoint is now integrated and published with the invitation client, as
+recorded in the current-live section. Full scenery acceptance remains open.
 
 ### Client admission and gesture owner
 
