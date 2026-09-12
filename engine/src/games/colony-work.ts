@@ -52,8 +52,16 @@ function orderPoint(order: { approachX: number; approachY: number; approachZ: nu
 function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
   const workers = new Set(ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id));
-  const positions = new Map(ctx.worldPoses([...workers]).map(pose => [pose.id, pose]));
   const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
+  const positions = new Map(ctx.worldPoses([...bodies.keys()]).map(pose => [pose.id, pose]));
+  const supported = new Set(ctx.query(query(Support)).map(row => row.id));
+  // Scheduling eligibility only: the native excavation owner still checks
+  // occupied support at admission and completion, including movement races.
+  const standingCells = new Set([...positions.values()]
+    .filter(pose => !supported.has(pose.id))
+    .map(pose => `${Math.round(pose.world.x)},${Math.round(pose.world.y / verticalMetres - 0.5)},${Math.round(pose.world.z)}`));
+  const obstructed = (state: { cellX: number; cellY: number; cellZ: number }) =>
+    standingCells.has(`${state.cellX},${state.cellY},${state.cellZ}`);
   const excavating = new Set(ctx.query(query(ExcavationWork)).map((row) => row.id));
   const deliveries = ctx.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask));
   const occupied = new Set<EntityId>([
@@ -94,7 +102,7 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
   const requests: { actor: EntityId; target: Vec3 & { frame: null }; candidate: DigCandidate }[] = [];
   for (const row of activeOrders) {
     const state = row.get(ColonyDigOrder);
-    if (state.actor !== null) continue;
+    if (state.actor !== null || obstructed(state)) continue;
     const materialSlot = currentMaterial.get(row.id);
     if (materialSlot === undefined || materialSlot === air) continue;
     const expected = state.expected >= 0 ? state.expected : materialSlot;
@@ -172,6 +180,13 @@ function digProvider(ctx: WriteContext): PreparedWorkProvider<DigCandidate> {
     progress() {
       for (const row of activeOrders) {
         const state = row.get(ColonyDigOrder);
+        if (obstructed(state)) {
+          if (state.actor && excavating.has(state.actor)) ctx.action(cancelWork(state.actor));
+          if (state.actor !== null || state.phase !== "blocked" || state.reason !== "Someone is standing on this tile") {
+            ctx.write(ColonyDigOrder, row.id, { ...state, actor: null, phase: "blocked", reason: "Someone is standing on this tile" });
+          }
+          continue;
+        }
         if (assigned.has(row.id)) continue;
         if (!state.actor) continue;
         const pose = positions.get(state.actor);

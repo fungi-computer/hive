@@ -736,3 +736,25 @@ nonfinite observations are rejected. New water-cap law passed u6132. That later
 source correction still needs inclusion in the next WASM/publication candidate.
 All listed command terminals were collected and owned scopes are inactive/dead.
 Private recovery/hive-loose-stock-20260912 was verified remotely at 80f4eeb.
+
+### September 12: actual rectangular digging obstruction corrected
+
+The rebuilt local-gas WASM at fd0b317 passed strict engine types (u6137).
+An actual 4×4 Colony excavation completed fifteen tiles but repeatedly requested
+excavation beneath the stationary guest. That was a gameplay scheduling failure,
+not gas cost. The original trace remains in
+`.botanical/local-smoke/rectangle-colony.log`; the actor diagnostic identified
+`colony.guest.1` on the remaining [3,13,1] support. The diagnostic JSON supersedes
+the first trace's JSON; neither is a completed rectangle acceptance receipt.
+
+The work provider now excludes occupied support before route evaluation and
+releases a blocked dig claim with an explicit reason. This is scheduling advice;
+native admission and completion retain the authoritative standing-actor check.
+No guest is forcibly moved and unrelated orders are not cancelled.
+
+Actual WASM law u6143 (8a45fc4d88d34745a6d46a3996d9bff0) passed:
+fifteen cuts, excess ground spoil with bounded pantry, no rejected excavation
+attempts, unclaimed occupied tile, then an ordinary guest move allowing the last
+cut. Exactly 48 spoil units remain. Strict types and diff passed in that same
+command; scope is inactive/dead/empty. Source and test are not deployed yet.
+This is not the sustained two-player or second-depth acceptance result.
