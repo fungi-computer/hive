@@ -52,6 +52,7 @@ struct ImpactEvent {
     normal: Vector3,
     velocity: Vector3,
 }
+enum ActionEffect { None, Entity(String), Projectile(String, Vector3) }
 
 #[cfg(test)]
 mod ground_stock_cleanup_tests {
@@ -1543,7 +1544,8 @@ impl Kernel {
             || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
-                    | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. })
+                    | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
+                    | Action::ExtractResource { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -1578,8 +1580,9 @@ impl Kernel {
                 let result = self.apply_action(action, batch.delta);
                 ActionResult {
                     accepted: result.is_ok(),
-                    projectile_id: result.as_ref().ok().and_then(|id| id.as_ref().map(|value| value.0.clone())),
-                    launch_point: result.as_ref().ok().and_then(|id| id.as_ref().map(|value| value.1)),
+                    projectile_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(id, _) => Some(id.clone()), _ => None }),
+                    launch_point: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(_, point) => Some(*point), _ => None }),
+                    entity_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Entity(id) | ActionEffect::Projectile(id, _) => Some(id.clone()), ActionEffect::None => None }),
                     reason: result.err(),
                     revision: self.revision,
                 }
@@ -1748,11 +1751,27 @@ impl Kernel {
         }
         Ok(())
     }
-    fn apply_action(&mut self, action: Action, delta: f64) -> Result<Option<(String, Vector3)>> {
+    fn extract_resource(&mut self, worker_id: &str, source_id: &str) -> Result<String> {
+        let worker = self.entity(worker_id)?;
+        let source = self.entity(source_id)?;
+        self.contact(worker, source)?;
+        if self.ecs.get::<Body>(worker).is_none() { return Err("resource extraction requires a worker body".into()); }
+        let resource = self.ecs.get::<FiniteResource>(source).cloned().ok_or("not a finite resource")?;
+        if resource.quantity == 0 { return Err("finite resource is exhausted".into()); }
+        if self.ecs.get::<SealedContainer>(source).is_some() { return Err("sealed resource cannot receive output".into()); }
+        if self.ecs.get::<Container>(source).is_none() { return Err("finite resource source is not a container".into()); }
+        let prepared = self.prepare_material_output(MaterialOutputSpec {
+            container: source_id.to_owned(), kind: resource.kind, quantity: resource.quantity, water_kg: None,
+        })?;
+        self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
+        Ok(self.publish_material_output(prepared))
+    }
+
+    fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
             Action::Excavate { entity, x, y, z, expected, replacement } => {
                 self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::CancelWork { entity } => {
                 let actor = self.entity(&entity)?;
@@ -1769,23 +1788,23 @@ impl Kernel {
                     }
                 }
                 self.refresh_state_weight();
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::PlanConstruction { catalog, site, x, y, z, orientation, contact } => {
                 self.plan_construction(catalog, site, x, y, z, orientation, contact)?;
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::BeginEmission { worker, station } => {
                 self.begin_emission(&worker, &station)?;
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::SetStructureOpen { worker, site, open } => {
                 self.set_structure_open(&worker, &site, open)?;
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::AttendConstruction { worker, site } => {
                 self.attend_construction(&worker, &site)?;
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::Move {
                 entity,
@@ -1814,13 +1833,13 @@ impl Kernel {
                         facing,
                         frame: existing.frame,
                     });
-                    return Ok(None);
+                    return Ok(ActionEffect::None);
                 }
                 if p.x == destination.x && p.y == destination.y && p.z == destination.z
                     && destination.frame == self.support_id(e) {
                     self.clear_destination(e);
                     self.ecs.entity_mut(e).insert(Position { facing, ..p });
-                    return Ok(None);
+                    return Ok(ActionEffect::None);
                 }
                 let target = Destination {
                     x: destination.x,
@@ -1842,7 +1861,7 @@ impl Kernel {
                 self.ecs.entity_mut(e).insert(target);
                 self.state_weight += extra;
                 self.install_route(e, path);
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::BeginDirect { entity, stream } => {
                 if !valid_id(&stream) || stream.len() > 64 { return Err("invalid direct stream".into()); }
@@ -1854,7 +1873,7 @@ impl Kernel {
                 if self.ecs.get::<Traversal>(e).is_some() { return Err("terrain walkers require routed movement".into()); }
                 if self.ecs.get::<ExcavationWork>(e).is_some() { return Err("cancel work before taking direct control".into()); }
                 if let Some(existing) = self.direct.get(&e) {
-                    if existing.stream == stream { return Ok(None); }
+                    if existing.stream == stream { return Ok(ActionEffect::None); }
                 }
                 let replacement = DirectState { entity: entity.clone(), stream, last_queued: 0, last_processed: 0, queue: Vec::new(), remainder: 0.0 };
                 let old_weight = self.direct.get(&e).map(Self::direct_weight).unwrap_or(0);
@@ -1862,7 +1881,7 @@ impl Kernel {
                 if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()).saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
                 self.clear_destination(e);
                 self.direct.insert(e, replacement);
-                Ok(None)
+                Ok(ActionEffect::None)
             }
             Action::DirectInput { entity, stream, inputs } => {
                 if inputs.is_empty() || inputs.len() > navigation::MAX_DIRECT_INPUTS { return Err("invalid direct input batch".into()); }
@@ -1885,9 +1904,9 @@ impl Kernel {
                 if self.state_weight.saturating_add(direct_bytes).saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
                 state.last_queued = inputs.last().unwrap().sequence;
                 state.queue.extend(inputs);
-                Ok(None)
+                Ok(ActionEffect::None)
             }
-            Action::DropLot { entity, lot } => self.drop_lot(&entity, &lot).map(|()| None),
+            Action::DropLot { entity, lot } => self.drop_lot(&entity, &lot).map(|()| ActionEffect::None),
             Action::Transfer {
                 lot,
                 from,
@@ -1895,7 +1914,7 @@ impl Kernel {
                 quantity,
             } => self
                 .transfer(&lot, &from, &to, quantity)
-                .map(|()| None),
+                .map(|()| ActionEffect::None),
             Action::Consume {
                 entity,
                 lot,
@@ -1919,16 +1938,17 @@ impl Kernel {
                 }
                 stock.quantity -= quantity;
                 self.ecs.entity_mut(e).insert(stock);
-                Ok(None)
+                Ok(ActionEffect::None)
             }
+            Action::ExtractResource { worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
             Action::Launch {
                 launcher,
                 ammunition,
                 velocity,
-            } => self.launch(&launcher, &ammunition, velocity, delta),
+            } => self.launch(&launcher, &ammunition, velocity, delta).map(|value| match value { Some((id, point)) => ActionEffect::Projectile(id, point), None => ActionEffect::None }),
             Action::Displace { entity, delta } => {
                 self.displace(&entity, delta)?;
-                Ok(None)
+                Ok(ActionEffect::None)
             }
         }
     }
@@ -3085,5 +3105,83 @@ mod direct_tests {
         let snapshot = kernel.snapshot_json().unwrap().replace("\"last_queued\":50", "\"last_queued\":51");
         let mut restored = Kernel::new();
         assert!(restored.restore_json(&snapshot).is_err());
+    }
+}
+
+#[cfg(test)]
+mod finite_resource_tests {
+    use super::Kernel;
+    use serde_json::json;
+
+    fn kernel() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"finite","components":[],"initial":[
+            {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
+            {"id":"tree","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.finite-resource":{"kind":"wood","quantity":4}}}
+        ]}).to_string()).unwrap();
+        kernel
+    }
+
+    #[test]
+    fn extraction_conserves_kind_quantity_and_recovers_after_restore() {
+        let mut kernel = kernel();
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true);
+        let lot = result["results"][0]["entityId"].as_str().unwrap().to_owned();
+        let lots: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.lot\"]").unwrap()).unwrap();
+        assert_eq!(lots[0]["components"]["hive.lot"]["kind"], "wood");
+        assert_eq!(lots[0]["components"]["hive.lot"]["quantity"], 4);
+        assert_eq!(lots[0]["components"]["hive.lot"]["container"], "tree");
+        let resources: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.finite-resource\"]").unwrap()).unwrap();
+        assert_eq!(resources[0]["components"]["hive.finite-resource"]["quantity"], 0);
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap();
+        assert_eq!(restored.query_json("[\"hive.finite-resource\"]").unwrap(), kernel.query_json("[\"hive.finite-resource\"]").unwrap());
+        assert_eq!(restored.query_json("[\"hive.lot\"]").unwrap(), kernel.query_json("[\"hive.lot\"]").unwrap());
+        let retry: serde_json::Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(retry["results"][0]["accepted"], false);
+        assert!(restored.entity(&lot).is_ok());
+    }
+
+    fn action(kernel: &mut Kernel) -> serde_json::Value {
+        serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn capacity_failure_leaves_source_output_and_identity_unchanged() {
+        let mut kernel = kernel();
+        let tree = kernel.entity("tree").unwrap();
+        kernel.ecs.get_mut::<super::Container>(tree).unwrap().capacity = 3;
+        let before_lots = kernel.query_json("[\"hive.lot\"]").unwrap();
+        let before_resource = kernel.query_json("[\"hive.finite-resource\"]").unwrap();
+        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
+        assert_eq!(kernel.query_json("[\"hive.lot\"]").unwrap(), before_lots);
+        assert_eq!(kernel.query_json("[\"hive.finite-resource\"]").unwrap(), before_resource);
+        let snapshot: serde_json::Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+        assert_eq!(snapshot["next_lot"], 1);
+        kernel.ecs.get_mut::<super::Container>(tree).unwrap().capacity = 8;
+        assert_eq!(action(&mut kernel)["results"][0]["entityId"], "lot.1");
+    }
+
+    #[test]
+    fn contact_body_and_source_capability_fail_without_mutation() {
+        let mut kernel = kernel();
+        let worker = kernel.entity("worker").unwrap();
+        kernel.ecs.entity_mut(worker).remove::<super::Body>();
+        let before_lots = kernel.query_json("[\"hive.lot\"]").unwrap();
+        let before_resource = kernel.query_json("[\"hive.finite-resource\"]").unwrap();
+        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
+        assert_eq!(kernel.query_json("[\"hive.lot\"]").unwrap(), before_lots);
+        assert_eq!(kernel.query_json("[\"hive.finite-resource\"]").unwrap(), before_resource);
+        kernel.ecs.entity_mut(worker).insert(super::Body { speed: 1.0 });
+        kernel.ecs.entity_mut(worker).insert(super::Position { x: 10.0, y: 0.0, z: 0.0, facing: 0.0 });
+        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
+        kernel.ecs.entity_mut(worker).insert(super::Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 });
+        let tree = kernel.entity("tree").unwrap();
+        kernel.ecs.entity_mut(tree).remove::<super::Container>();
+        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
+        kernel.ecs.entity_mut(tree).insert(super::Container { capacity: 8 });
+        kernel.ecs.entity_mut(tree).insert(super::SealedContainer {});
+        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
     }
 }

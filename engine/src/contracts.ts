@@ -15,6 +15,7 @@ export const RESERVED_COMPONENTS = [
   "hive.construction-site",
   "hive.lot",
   "hive.lot-water",
+  "hive.finite-resource",
   "hive.excavation-work",
   "hive.destination",
   "hive.support",
@@ -138,12 +139,14 @@ export type ActionRequest =
       readonly entity: EntityId;
       readonly lot: EntityId;
       readonly quantity: number;
-    };
+    }
+  | { readonly kind: "extract-resource"; readonly worker: EntityId; readonly source: EntityId };
 export interface ActionResult {
   readonly accepted: boolean;
   readonly reason?: string | null;
   readonly projectileId?: EntityId;
   readonly launchPoint?: Vec3;
+  readonly entityId?: EntityId;
   readonly revision: number;
 }
 export interface Impact {

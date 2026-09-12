@@ -61,6 +61,7 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
+            ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.construction-site", vec![
                 ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
@@ -181,6 +182,7 @@ impl Registry {
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
+                "hive.finite-resource" => world.register_component::<FiniteResource>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.construction-site" => world.register_component::<ConstructionSite>(),
                 "hive.destination" => world.register_component::<Destination>(),
@@ -225,6 +227,7 @@ impl Registry {
                 | "hive.ground-stock"
                 | "hive.lot"
                 | "hive.lot-water"
+                | "hive.finite-resource"
                 | "hive.excavation-work"
                 | "hive.construction-site"
                 | "hive.destination"
@@ -326,6 +329,12 @@ impl Registry {
                 let water: LotWater = decode(value)?;
                 if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
                     return Err("invalid carried water mass".into());
+                }
+            }
+            "hive.finite-resource" => {
+                let resource: FiniteResource = decode(value)?;
+                if !valid_id(&resource.kind) {
+                    return Err("invalid finite resource".into());
                 }
             }
             "hive.collider" => {
@@ -481,6 +490,9 @@ impl Registry {
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
+            "hive.finite-resource" => {
+                world.entity_mut(entity).insert(decode::<FiniteResource>(value)?);
+            }
             "hive.destination" => {
                 world
                     .entity_mut(entity)
@@ -535,6 +547,7 @@ impl Registry {
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
+            "hive.finite-resource" => world.get::<FiniteResource>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
             "hive.construction-site" => world.get::<ConstructionSite>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),
