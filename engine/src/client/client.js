@@ -468,7 +468,7 @@ export function createHiveClient({
                 if (state.disposed || state.invitationUrl !== copiedUrl) return;
                 state.invitationCopied = true; state.message = "Invite link copied";
               } catch (error) {
-                if (state.disposed) return;
+                if (state.disposed || state.invitationUrl !== copiedUrl) return;
                 state.invitationCopied = false; state.message = `Could not copy invite link: ${error instanceof Error ? error.message : String(error)}`;
               }
               renderHud();
