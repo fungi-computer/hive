@@ -10,6 +10,7 @@ export type WorkerCommand =
   | { readonly type: "pause" | "resume" | "reset" }
   | { readonly type: "step"; readonly delta: number }
   | { readonly type: "action"; readonly action: ActionRequest }
+  | { readonly type: "terrain-interest"; readonly center: readonly [number, number] }
   | { readonly type: "save" }
   | { readonly type: "restore"; readonly snapshot: SessionSnapshot };
 

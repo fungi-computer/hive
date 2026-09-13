@@ -181,6 +181,7 @@ export class GameSession {
   private impactFrontiers = new Map<string, number | null>();
   private poisoned = true;
   private terrainPresentation: TerrainPresentationOwner | undefined;
+  private terrainPresentationInterest?: readonly [number, number];
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
@@ -217,6 +218,7 @@ export class GameSession {
   }
   start(): void {
     this.terrainPresentation = undefined;
+    this.terrainPresentationInterest = undefined;
     this.poisoned = true;
     this.random.restore(this.seed);
     this.paused = false;
@@ -1103,11 +1105,14 @@ export class GameSession {
     this.cues = cues;
     this.paused = snapshot.paused;
     this.terrainPresentation = undefined;
+    this.terrainPresentationInterest = undefined;
     this.poisoned = false;
   }
-  terrainView() {
+  terrainView(interest?: readonly [number, number]) {
     this.ensureLive();
     if (!this.pack.environmentDefinition) return undefined;
+    const changedInterest = interest !== undefined && (this.terrainPresentationInterest?.[0] !== interest[0] || this.terrainPresentationInterest?.[1] !== interest[1]);
+    if (changedInterest) this.terrainPresentation = undefined;
     if (!this.terrainPresentation) {
       const definition = JSON.parse(
         new TextDecoder().decode(this.pack.environmentDefinition),
@@ -1115,8 +1120,9 @@ export class GameSession {
       this.terrainPresentation = new TerrainPresentationOwner(
         this.port,
         definition,
-        this.pack.presentationWindow,
+        interest === undefined ? this.pack.presentationWindow : { minX: Math.max(definition.world.bounds.minX, interest[0] - 32), maxX: Math.min(definition.world.bounds.maxX, interest[0] + 32), minZ: Math.max(definition.world.bounds.minZ, interest[1] - 32), maxZ: Math.min(definition.world.bounds.maxZ, interest[1] + 32) },
       );
+      this.terrainPresentationInterest = interest === undefined ? undefined : [interest[0], interest[1]];
     }
     return this.terrainPresentation.read();
   }

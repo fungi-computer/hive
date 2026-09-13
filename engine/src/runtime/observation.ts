@@ -29,7 +29,7 @@ export interface SessionObservation {
 
 export function buildObservation(
   session: GameSession,
-  metadata: Readonly<{ epoch: number; sequence: number }>,
+  metadata: Readonly<{ epoch: number; sequence: number; terrainInterest?: readonly [number, number] }>,
 ): SessionObservation {
   if (
     !Number.isSafeInteger(metadata.epoch) ||
@@ -55,7 +55,7 @@ export function buildObservation(
     epoch: metadata.epoch,
     sequence: metadata.sequence,
     facts: Object.freeze(facts),
-    terrain: session.terrainView(),
+    terrain: session.terrainView(metadata.terrainInterest),
     cues: session.presentationCues(),
     presentationFacts: projected.facts,
     presentationControls: projected.controls,

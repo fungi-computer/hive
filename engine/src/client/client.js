@@ -562,6 +562,7 @@ export function createHiveClient({
     pan(dx, dy) {
       this.x -= dx;
       this.y -= dy;
+      updateTerrainInterest();
       draw();
     },
     zoomBy(
@@ -575,12 +576,14 @@ export function createHiveClient({
       this.zoom = Math.max(1, Math.min(4, this.zoom + delta));
       this.x = point.x - before.x * this.zoom;
       this.y = point.y - before.y * this.zoom;
+      updateTerrainInterest();
       draw();
     },
     reset() {
       this.zoom = canvasHost.clientWidth >= 600 ? 2 : 1;
       this.x = (canvasHost.clientWidth - 640 * this.zoom) / 2;
       this.y = (canvasHost.clientHeight - 400 * this.zoom) / 2;
+      updateTerrainInterest();
       draw();
     },
     focus(target) {
@@ -588,8 +591,17 @@ export function createHiveClient({
       const projected = project(target.x, target.y, target.z);
       this.x = canvasHost.clientWidth / 2 - projected.x * this.zoom;
       this.y = canvasHost.clientHeight / 2 - projected.y * this.zoom;
+      updateTerrainInterest();
     },
   };
+  let lastTerrainInterest;
+  function updateTerrainInterest() {
+    if (!runtime) return;
+    const center = [Math.floor((320 - camera.x / camera.zoom) / 16), Math.floor((200 - camera.y / camera.zoom) / 16)];
+    if (center[0] === lastTerrainInterest?.[0] && center[1] === lastTerrainInterest?.[1]) return;
+    lastTerrainInterest = center;
+    runtime.send({ type: "terrain-interest", center });
+  }
   function screenPoint(subject) {
     const projected = project(subject.x, subject.y, subject.z);
     return {
@@ -1241,6 +1253,7 @@ export function createHiveClient({
           run: () => {
             camera.x += x;
             camera.y += y;
+            updateTerrainInterest();
             draw();
           },
         })),

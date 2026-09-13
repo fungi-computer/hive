@@ -56,6 +56,7 @@ export class WorkerRuntime {
   private frameEpoch = 0;
   private frameSequence = 0;
   private terrainRevision?: number;
+  private terrainInterest?: readonly [number, number];
   private emitObservation(
     discontinuity = false,
     stateOnly = false,
@@ -69,6 +70,7 @@ export class WorkerRuntime {
     const observation = buildObservation(this.session, {
       epoch: this.frameEpoch,
       sequence: this.frameSequence + 1,
+      terrainInterest: this.terrainInterest,
     });
     this.frameSequence = observation.sequence;
     const terrain = observation.terrain === undefined ? undefined : terrainWireForRevision(observation.terrain, this.terrainRevision);
@@ -94,6 +96,7 @@ export class WorkerRuntime {
   command(command: WorkerCommand): void {
     try {
       if (command.type === "start") {
+        this.terrainInterest = undefined;
         const pack = this.packs[command.game];
         if (!pack || !Object.hasOwn(this.packs, command.game))
           throw new Error(`unknown game ${command.game}`);
@@ -116,6 +119,7 @@ export class WorkerRuntime {
         this.captureAccepted();
         this.emitObservation(false, true);
       } else if (command.type === "reset") {
+        this.terrainInterest = undefined;
         session.reset();
         this.captureAccepted();
         this.emitObservation(true);
@@ -123,6 +127,11 @@ export class WorkerRuntime {
       } else if (command.type === "action") {
         session.request(command.action);
         this.captureAccepted();
+      } else if (command.type === "terrain-interest") {
+        if (!command.center.every(Number.isSafeInteger)) throw new Error("invalid terrain interest");
+        this.terrainInterest = [command.center[0], command.center[1]];
+        this.terrainRevision = undefined;
+        this.emitObservation();
       } else if (command.type === "command") {
         session.command(command.name, command.input);
         this.captureAccepted();

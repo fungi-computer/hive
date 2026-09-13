@@ -31,7 +31,7 @@ function panel(hud) {
     <label>Workers <span id="perf-workers-slider"></span><output>${workers}</output></label>
     <div class="perf-links">${sizes.map(value => `<a href="?size=${value}&workers=${workers}">${value}×${value}</a>`).join("")}</div>
     <dl><dt>Simulation step CPU</dt><dd id="perf-step">Unavailable</dd><dt>Assignment cost</dt><dd id="perf-assignment">Unavailable</dd><dt>Route requests</dt><dd id="perf-routes">Unavailable</dd><dt>Wood output</dt><dd id="perf-jobs">0</dd><dt>Active water workload</dt><dd id="perf-water">Unavailable</dd><dt>Active gas workload</dt><dd id="perf-gas">Unavailable</dd><dt>Snapshot bytes</dt><dd id="perf-snapshot">Unavailable</dd><dt>Wire / observation bytes</dt><dd id="perf-wire">0 B</dd></dl>
-    <p class="perf-boundary">Resident projection: 64×64 columns for every preset. Larger bounds stay generated and authoritative in the kernel; the client never requests the whole surface.</p>`;
+    <p class="perf-boundary">Resident projection: a moving 16×16 chunk neighborhood (64×64 columns). Larger bounds stay generated and authoritative in the kernel; the client never requests the whole surface.</p>`;
   hud.prepend(wrap);
   wrap.querySelector("#perf-size").addEventListener("change", event => setPreset(Number(event.target.value), workers));
   const output = wrap.querySelector("output");
