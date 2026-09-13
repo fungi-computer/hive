@@ -1207,13 +1207,16 @@ export function createHiveClient({
   function playCue(cue) {
     if (!art || !effectOwner || !cue?.kind) return;
     const subject = latestFacts.find((item) => item.id === cue.subject);
-    const direction = cue.kind === "launch" && Number.isFinite(subject?.pose?.facing)
+    const direction = ["launch", "pickup", "drop"].includes(cue.kind) && Number.isFinite(subject?.pose?.facing)
       ? ((Math.round(subject.pose.facing) % 4) + 4) % 4
       : ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
-    const reaction = bindings[subject?.visual]?.reactions?.[cue.kind];
-    const authored = reaction?.path.reduce((value, key) => value?.[key], art)?.[direction];
+    const binding = bindings[subject?.visual];
+    const reaction = binding?.reactions?.[cue.kind];
+    const fallbackPose = cue.kind === "pickup" ? "pickup" : cue.kind === "drop" ? "deliver" : null;
+    const authored = reaction?.path.reduce((value, key) => value?.[key], art)?.[direction]
+      ?? (fallbackPose && binding?.kind === "figure" ? art.figures?.[binding.key]?.[fallbackPose]?.[direction] : undefined);
     if (subject && Array.isArray(authored)) subjectReactions.set(subject.id, {
-      frames: authored, started: effectClock(), until: effectClock() + reaction.duration, direction,
+      frames: authored, started: effectClock(), until: effectClock() + (reaction?.duration ?? 360), direction,
     });
     const bank = cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];

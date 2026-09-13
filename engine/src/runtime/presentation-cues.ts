@@ -4,10 +4,11 @@ import type { ActionOutcome, EntityId, Impact, Vec3 } from "../contracts";
 export interface PresentationCue {
   readonly sequence: number;
   readonly time: number;
-  readonly kind: "launch" | "impact";
+  readonly kind: "launch" | "impact" | "pickup" | "drop";
   readonly subject: EntityId;
   readonly source: EntityId;
-  readonly at: Vec3;
+  /** Spatial effects provide a point; actor reactions may use the subject pose. */
+  readonly at?: Vec3;
   readonly direction: Vec3;
 }
 export interface CueSnapshot {
@@ -28,8 +29,8 @@ export function isPresentationCue(value: unknown): value is PresentationCue {
   const cue = value as PresentationCue;
   return Number.isSafeInteger(cue.sequence) && cue.sequence > 0 &&
     Number.isFinite(cue.time) && cue.time >= 0 &&
-    (cue.kind === "launch" || cue.kind === "impact") &&
-    identity(cue.subject) && identity(cue.source) && vector(cue.at) && vector(cue.direction);
+    (cue.kind === "launch" || cue.kind === "impact" || cue.kind === "pickup" || cue.kind === "drop") &&
+    identity(cue.subject) && identity(cue.source) && (cue.at === undefined || vector(cue.at)) && vector(cue.direction);
 }
 export function checkedCueSnapshot(value: CueSnapshot, now: number): CueSnapshot {
   if (!value || !Number.isSafeInteger(value.sequence) || value.sequence < 0 ||
@@ -69,6 +70,19 @@ export function appendPresentationCues(
     if (!vector(result.launchPoint)) throw new Error("accepted launch lacks launch point");
     append({ kind: "launch", time: now, subject: action.launcher, source: action.launcher,
       at: result.launchPoint, direction: action.velocity });
+    continue;
+  }
+  for (const { action, result } of outcomes) {
+    if (!result.accepted) continue;
+    if (action.kind === "drop-lot") {
+      append({ kind: "drop", time: now, subject: action.entity, source: action.entity,
+        direction: { x: 0, y: 0, z: 0 } });
+    } else if (action.kind === "transfer") {
+      append({ kind: "pickup", time: now, subject: action.to, source: action.from,
+        direction: { x: 0, y: 0, z: 0 } });
+      append({ kind: "drop", time: now, subject: action.from, source: action.to,
+        direction: { x: 0, y: 0, z: 0 } });
+    }
   }
   for (const impact of impacts)
     append({ kind: "impact", time: impact.time, subject: impact.targetId, source: impact.sourceId,

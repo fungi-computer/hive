@@ -34,3 +34,21 @@ test('wire rejects repeated, reversed, future and expired cues', () => {
   assert.throws(()=>checkedCueList(one.recent,5));
   assert.throws(()=>appendPresentationCues(one,1,[],[impact(3,2)]));
 });
+
+test('material transfer outcomes emit pickup/drop cues only after commitment', () => {
+  const from = entity('stockpile');
+  const actor = entity('rowan');
+  const lot = entity('wood.1');
+  const accepted = appendPresentationCues({ sequence: 0, recent: [] }, 2, [
+    { action: { kind: 'transfer', lot, from, to: actor, quantity: 1 }, result: { accepted: true, revision: 1 } },
+    { action: { kind: 'drop-lot', entity: actor, lot }, result: { accepted: true, revision: 2 } },
+  ], []);
+  assert.deepEqual(accepted.recent.map(cue => [cue.kind, cue.subject, cue.source]), [
+    ['pickup', actor, from], ['drop', from, actor], ['drop', actor, actor],
+  ]);
+  const rejected = appendPresentationCues({ sequence: 0, recent: [] }, 2, [
+    { action: { kind: 'transfer', lot, from, to: actor, quantity: 1 }, result: { accepted: false, reason: 'capacity', revision: 3 } },
+    { action: { kind: 'drop-lot', entity: actor, lot }, result: { accepted: false, reason: 'illegal-drop', revision: 4 } },
+  ], []);
+  assert.deepEqual(rejected.recent, []);
+});
