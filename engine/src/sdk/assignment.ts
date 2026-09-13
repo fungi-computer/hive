@@ -1,5 +1,9 @@
 import type { AssignmentCandidate, AssignmentPair, EntityId } from "../contracts";
 
+/** One resident-region planning pass: 64 workers against 256 pending jobs. */
+export const ASSIGNMENT_MAX_EDGES = 64 * 256;
+export const ASSIGNMENT_MAX_BYTES = 8 * 1024 * 1024;
+
 const validId = (value: unknown): value is EntityId =>
   typeof value === "string" &&
   value.length > 0 &&
@@ -8,14 +12,14 @@ const validId = (value: unknown): value is EntityId =>
 
 export function checkedAssignments(
   candidates: unknown,
-  maxEdges = 128,
+  maxEdges = ASSIGNMENT_MAX_EDGES,
 ): readonly AssignmentCandidate[] {
   if (
     !Array.isArray(candidates) ||
     !Number.isSafeInteger(maxEdges) ||
     maxEdges < 1 ||
-    maxEdges > 128 ||
-    candidates.length > 128
+    maxEdges > ASSIGNMENT_MAX_EDGES ||
+    candidates.length > ASSIGNMENT_MAX_EDGES
   ) {
     throw new Error("invalid assignment batch");
   }
@@ -50,7 +54,7 @@ export function checkedAssignments(
   const bytes = new TextEncoder().encode(
     JSON.stringify({ candidates: detached, max_edges: maxEdges }),
   ).byteLength;
-  if (bytes > 4096) throw new Error("assignment batch too large");
+  if (bytes > ASSIGNMENT_MAX_BYTES) throw new Error("assignment batch too large");
   return detached;
 }
 
@@ -62,7 +66,7 @@ export function assign(
     ): readonly AssignmentPair[];
   },
   candidates: readonly AssignmentCandidate[],
-  maxEdges = 128,
+  maxEdges = ASSIGNMENT_MAX_EDGES,
 ): readonly AssignmentPair[] {
   return port.assign(candidates, maxEdges);
 }

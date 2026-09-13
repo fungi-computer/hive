@@ -1,6 +1,6 @@
 # Pathfinding and assignment repair
 
-King Bolete · September 13, 2026 · implementation plan, runtime repair not yet delivered
+King Bolete · September 13, 2026 · active implementation and measured repair
 
 ## 1. Outcome and authority
 
@@ -22,7 +22,27 @@ substituting another algorithm was not. Restore that requirement and correct old
 descriptions calling the current endpoint libcolony. King owns difficult design,
 algorithm qualification, source acceptance and integration. Luna implementers get
 bounded mechanical outcomes in isolated worktrees after their contracts are settled.
-This plan does not start a build, benchmark, browser session or deployment.
+
+### Current implementation checkpoint
+
+The native owner now uses `pathfinding`'s Hungarian implementation with a sparse
+wrapper qualified against exhaustive small assignments. Search and execution use
+one admitted movement-edge metric. The shared work allocator now proposes over
+cheap optimistic costs, resolves routes only for selected worker/job pairs, removes
+unreachable selections, and repeats until the chosen assignment is exact. Tree,
+dig, construction, delivery and emission all consume that one refinement owner.
+
+The assignment wire now admits the declared resident-region workload of 64 workers
+against 256 pending jobs (16,384 candidate edges). This is a bounded planning set,
+not permission to run 16,384 route searches.
+
+Local Node/WASM measurement on a 64×64 world with eight workers and fifty designated
+trees reduced the former roughly 891 ms median pathological tick to a 75.62 ms
+assignment tick. That tick performed 40 route requests; following movement ticks
+were 5.11–9.64 ms. The first measured tick was 48.81 ms with ten route requests.
+This proves a large causal reduction in the retained fixture, not browser/DO capacity
+or final performance. Multi-destination native search, a guided A* heuristic and
+full delivery itinerary pricing remain open improvements.
 
 ## 2. What is actually wrong
 

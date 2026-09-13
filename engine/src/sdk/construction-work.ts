@@ -180,6 +180,10 @@ export function constructionWorkProvider(
     claims: activeClaims,
     occupiedActors,
     candidates,
+    lowerBound: (candidate) => {
+      const actor = poses.get(candidate.worker)?.local;
+      return actor ? distance(actor, candidate.target) : 0;
+    },
     estimate: (candidate) => {
       const result = ctx.routeCosts([{ actor: candidate.worker, target: candidate.target }])[0];
       return result.status === "reachable" ? result.cost : null;

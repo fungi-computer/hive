@@ -27,8 +27,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 pub use world::Kernel;
 
-const ASSIGNMENT_MAX_BYTES: usize = 4096;
-const ASSIGNMENT_MAX_EDGES: usize = 128;
+// One resident-region planning pass: 64 workers against 256 pending jobs.
+const ASSIGNMENT_MAX_BYTES: usize = 8 * 1024 * 1024;
+const ASSIGNMENT_MAX_EDGES: usize = 64 * 256;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -249,15 +250,15 @@ impl WasmKernel {
     /// malformed host request cannot cause unbounded candidate allocation.
     pub fn assign(&self, json: &str) -> Result<String, JsValue> {
         if json.len() > ASSIGNMENT_MAX_BYTES {
-            return Err(assignment_error("request exceeds 4096 bytes"));
+            return Err(assignment_error("request exceeds 8388608 bytes"));
         }
         let request: AssignmentRequest =
             serde_json::from_str(json).map_err(|error| assignment_error(error))?;
         if request.max_edges == 0 || request.max_edges > ASSIGNMENT_MAX_EDGES {
-            return Err(assignment_error("max_edges must be between 1 and 128"));
+            return Err(assignment_error("max_edges must be between 1 and 16384"));
         }
         if request.candidates.len() > ASSIGNMENT_MAX_EDGES {
-            return Err(assignment_error("candidate edge count exceeds 128"));
+            return Err(assignment_error("candidate edge count exceeds 16384"));
         }
 
         let mut candidates = Vec::with_capacity(request.candidates.len());

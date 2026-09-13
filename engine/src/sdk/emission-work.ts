@@ -107,7 +107,7 @@ export function emissionWorkProvider(ctx: WriteContext, workers: readonly Entity
     return row.get(EmissionOrder).revision !== state.request || state.phase === "queued"
       || state.phase === "approaching" || state.phase === "submitting";
   });
-  if (!rows.length) return { claims: [], candidates: [], estimate: () => null, apply() {}, progress() {} };
+  if (!rows.length) return { claims: [], candidates: [], lowerBound: () => 0, estimate: () => null, apply() {}, progress() {} };
   const supplied = suppliedStations(ctx, requirements);
   const supports = new Set(ctx.query(query(Support)).map(row => row.id));
   const positions = new Map<EntityId, MoveDestination>(ctx.query(query(Position)).filter(row => !supports.has(row.id)).map(row => {
@@ -134,6 +134,10 @@ export function emissionWorkProvider(ctx: WriteContext, workers: readonly Entity
   const assigned = new Set<EntityId>();
   return {
     claims, candidates,
+    lowerBound(candidate) {
+      const actor = positions.get(candidate.worker);
+      return actor ? Math.hypot(actor.x - candidate.target.x, actor.y - candidate.target.y, actor.z - candidate.target.z) : 0;
+    },
     estimate(candidate) {
       const route = ctx.routeCosts([{ actor: candidate.worker, target: candidate.target }])[0];
       return route.status === "reachable" ? route.cost : null;

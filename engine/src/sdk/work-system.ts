@@ -12,6 +12,9 @@ export type PreparedWorkProvider<Candidate extends WorkCandidate = WorkCandidate
   readonly candidates: readonly Candidate[];
   /** Actors occupied by native or another authoritative work owner this tick. */
   readonly occupiedActors?: readonly EntityId[];
+  /** Cheap optimistic cost used to propose a joint assignment. */
+  readonly lowerBound: (candidate: Candidate) => number;
+  /** Exact authoritative cost; expensive route work happens only on proposals. */
   readonly estimate: (candidate: Candidate) => number | null;
   readonly apply: (assignments: readonly AssignmentPair[]) => void;
   readonly progress: () => void;
@@ -73,6 +76,7 @@ export function createWorkSystem(options: WorkSystemOptions) {
       const assignments = allocateWork(
         claims,
         available,
+        (candidate) => prepared[candidate.providerIndex].lowerBound(candidate),
         (candidate) => prepared[candidate.providerIndex].estimate(candidate),
         (eligible) => {
           const matched = context.assign(eligible.map(({ worker, task, cost }) => ({ worker, task, cost })));

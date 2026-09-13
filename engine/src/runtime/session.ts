@@ -6,6 +6,7 @@ import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
 import { readKernelEntities } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
+import { ASSIGNMENT_MAX_EDGES } from "../sdk/assignment";
 import type {
   ActionRequest,
   AdvanceResult,
@@ -226,7 +227,7 @@ export class GameSession {
   }
   assign(
     candidates: readonly AssignmentCandidate[],
-    maxEdges = 128,
+    maxEdges = ASSIGNMENT_MAX_EDGES,
   ) {
     this.ensureLive();
     return this.port.assign(candidates, maxEdges);

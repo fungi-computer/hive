@@ -201,6 +201,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       claims: deliveryClaims,
       occupiedActors: [...occupiedActors],
       candidates,
+      lowerBound: (candidate) => distance(candidate.actorPosition, candidate.sourcePosition),
       estimate: (candidate) => {
         const [source, destination] = ctx.routeCosts([
           { actor: candidate.worker, target: candidate.sourceTarget },

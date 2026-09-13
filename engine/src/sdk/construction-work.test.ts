@@ -67,7 +67,7 @@ function context(options: {
     },
     routeCosts(requests: readonly unknown[]) {
       routes.push(requests);
-      return requests.map(() => ({ status: "reachable", cost: 3 }));
+      return requests.map(() => ({ status: "reachable", cost: 6 }));
     },
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,

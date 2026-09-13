@@ -112,6 +112,10 @@ const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<Entity
     claims: claimed,
     occupiedActors,
     candidates,
+    lowerBound: candidate => {
+      const actor = poses.get(candidate.worker)?.local;
+      return actor ? Math.min(...candidate.approaches.map(target => distance(actor, target))) : 0;
+    },
     estimate: candidate => {
       const results = ctx.routeCosts(candidate.approaches.map(target => ({ actor: candidate.worker, target })));
       let best: { target: TreeCandidate["target"]; cost: number } | null = null;
@@ -331,6 +335,10 @@ function digProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>):
     claims,
     candidates: prepared,
     occupiedActors: [...occupied],
+    lowerBound: candidate => {
+      const actor = positions.get(candidate.worker)?.world;
+      return actor ? Math.min(...candidate.approaches.map(approach => distance(actor, approach))) : 0;
+    },
     estimate: (candidate) => {
       ensureCosts(candidate);
       return best.get(`${candidate.worker}\0${candidate.task}`)?.cost ?? null;

@@ -40,6 +40,7 @@ test("shared work system calls one matcher and preserves claims across providers
       () => ({
         claims: [{ task: heldTask, actor: heldWorker }, { task: delivery, actor: null }],
         candidates: [{ worker, task: delivery }],
+        lowerBound: () => 11,
         estimate: () => 11,
         apply: (assignments) => applied.push(`delivery:${assignments.length}`),
         progress: () => progressed.push("delivery"),
@@ -47,6 +48,7 @@ test("shared work system calls one matcher and preserves claims across providers
       () => ({
         claims: [{ task: dig, actor: null }],
         candidates: [{ worker, task: dig }],
+        lowerBound: () => 13,
         estimate: () => 13,
         apply: (assignments) => applied.push(`dig:${assignments.length}`),
         progress: () => progressed.push("dig"),
@@ -75,7 +77,7 @@ test("planning phases run before providers and expose their overlay writes", () 
     phases: [ctx => ctx.write(Marker, marker, { value: 7 })],
     providers: [ctx => {
       assert.equal(ctx.query({ components: [Marker] })[0]?.get(Marker).value, 7);
-      return { claims: [], candidates: [], estimate: () => null, apply: () => {}, progress: () => {} };
+      return { claims: [], candidates: [], lowerBound: () => 0, estimate: () => null, apply: () => {}, progress: () => {} };
     }],
   });
   phaseSystem.run({ ...base, assign: () => [], query: (spec) => (spec.components[0]?.id === "test.marker" ? [{ id: marker, get: (() => ({ value })) as never }] : []) as never, write: (_definition, _entity, next) => { value = (next as { value: number }).value; } });

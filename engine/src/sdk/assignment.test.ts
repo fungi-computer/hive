@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import type { AssignmentCandidate } from "../contracts";
-import { assign, checkedAssignments } from "./assignment";
+import { ASSIGNMENT_MAX_EDGES, assign, checkedAssignments } from "./assignment";
 
 test("assignment caller validates bounded candidates before the kernel", () => {
   let called = false;
@@ -10,7 +10,8 @@ test("assignment caller validates bounded candidates before the kernel", () => {
   assert.equal(called, true);
   assert.throws(() => checkedAssignments([{ worker: "", task: "task:1" as never, cost: 1 }]), /invalid assignment/);
   assert.throws(() => checkedAssignments([{ worker: "worker:1" as never, task: "task:1" as never, cost: Number.NaN }]), /invalid assignment/);
-  assert.throws(() => checkedAssignments(Array.from({ length: 129 }, (_, index) => ({ worker: `w${index}` as never, task: `t${index}` as never, cost: 1 }))), /invalid assignment/);
+  assert.equal(checkedAssignments(Array.from({ length: 400 }, (_, index) => ({ worker: `w${index % 8}` as never, task: `t${index}` as never, cost: 1 }))).length, 400);
+  assert.throws(() => checkedAssignments(Array.from({ length: ASSIGNMENT_MAX_EDGES + 1 }, (_, index) => ({ worker: `w${index}` as never, task: `t${index}` as never, cost: 1 }))), /invalid assignment/);
 });
 
 test("assignment admission rejects null and unknown fields before serialization", () => {

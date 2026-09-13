@@ -21,7 +21,7 @@ import type {
   WriteIntent,
   EntityRecord,
 } from "../contracts";
-import { checkedAssignments } from "../sdk/assignment";
+import { ASSIGNMENT_MAX_EDGES, checkedAssignments } from "../sdk/assignment";
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
 import {
   captureKernelRecords,
@@ -338,7 +338,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     },
     assign(
       candidates: readonly AssignmentCandidate[],
-      maxEdges = 128,
+      maxEdges = ASSIGNMENT_MAX_EDGES,
     ): readonly AssignmentPair[] {
       const checked = checkedAssignments(candidates, maxEdges);
       const result = JSON.parse(
