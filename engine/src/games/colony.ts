@@ -486,7 +486,7 @@ export const colonyPack: GamePack = {
       });
       const excavation = context.query(query(ExcavationWork)).flatMap(row => {
         const work = row.get(ExcavationWork);
-        const definition = colonyEnvironment.terrain.slots.find(slot => slot.slot === work.expected)?.excavation;
+        const definition = colonyEnvironment.materials.find(slot => slot.slot === work.expected)?.excavation;
         return definition ? [{ actor: row.id, kind: "dig" as const, target: [work.x, work.z] as const, progress: Math.max(0, Math.min(1, work.seconds / definition.workSeconds)) }] : [];
       });
       const construction = context.query(query(ConstructionSite)).flatMap(row => {

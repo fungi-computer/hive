@@ -11,7 +11,7 @@ import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { ColonyTreeOrder } from "../games/colony-work";
 import { decorateWorkActivity } from "./work-activity";
-import type { ReadContext } from "../contracts";
+import type { EntityId, ReadContext, RenderFact } from "../contracts";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 test("actual Colony attendance projects work poses only while native work exists", () => {
@@ -85,14 +85,18 @@ test("activity projection rejects competing native and game attendance", () => {
 
 test("committed delivery phases project pickup, carrying and drop-off poses without mutation", () => {
   const actor = entity("delivery.worker"), source = entity("delivery.source"), destination = entity("delivery.destination");
-  const values = new Map([
-    [Position.id, new Map([[actor, { x: 0, y: 0, z: 0, facing: 0 }], [source, { x: 0, y: 0, z: 0, facing: 0 }], [destination, { x: 3, y: 0, z: 0, facing: 0 }]])],
-    [DeliveryTask.id, new Map([[entity("delivery.task"), { actor, sourceLot: entity("delivery.lot"), source, destination, material: "wood", quantity: 1, phase: "to-source" }]])],
+  const values = new Map<string, Map<EntityId, unknown>>([
+    [Position.id, new Map<EntityId, unknown>([[actor, { x: 0, y: 0, z: 0, facing: 0 }], [source, { x: 0, y: 0, z: 0, facing: 0 }], [destination, { x: 3, y: 0, z: 0, facing: 0 }]])],
+    [DeliveryTask.id, new Map<EntityId, unknown>([[entity("delivery.task"), { actor, sourceLot: entity("delivery.lot"), source, destination, material: "wood", quantity: 1, phase: "to-source" }]])],
   ]);
-  const context = { query: ((spec: { id: string }) => [...(values.get(spec.id)?.entries() ?? [])].map(([id, value]) => ({ id, get: () => value }))) as unknown as ReadContext["query"] };
+  const context = { query: ((spec: { components: readonly { id: string }[] }) => {
+    const groups = spec.components.map(component => values.get(component.id) ?? new Map<EntityId, unknown>());
+    const ids = [...(groups[0]?.keys() ?? [])].filter(id => groups.every(group => group.has(id)));
+    return ids.map(id => ({ id, get: (component: { id: string }) => values.get(component.id)?.get(id) }));
+  }) as unknown as ReadContext["query"] };
   const facts = [{ id: actor, pose: { position: { x: 0, y: 0, z: 0 }, facing: 0 } }] as unknown as RenderFact[];
   assert.deepEqual(decorateWorkActivity(facts, context)[0].activity, { kind: "delivery", phase: "pickup", material: "wood", target: [0, 0] });
-  values.get(DeliveryTask)?.set(entity("delivery.task"), { actor, sourceLot: entity("delivery.lot"), source, destination, material: "wood", quantity: 1, phase: "to-destination" });
-  values.get(Position)?.set(actor, { x: 2, y: 0, z: 0, facing: 0 });
+  values.get(DeliveryTask.id)?.set(entity("delivery.task"), { actor, sourceLot: entity("delivery.lot"), source, destination, material: "wood", quantity: 1, phase: "to-destination" });
+  values.get(Position.id)?.set(actor, { x: 2, y: 0, z: 0, facing: 0 });
   assert.deepEqual(decorateWorkActivity(facts, context)[0].activity, { kind: "delivery", phase: "to-destination", material: "wood", target: [3, 0] });
 });
