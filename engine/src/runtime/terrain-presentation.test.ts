@@ -225,6 +225,7 @@ function fakePort(
       geometryRevision: 0,
       samples: cells.map(() => null),
     }),
+    constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" })),
     terrainMaterials: () => [],
     terrainSurfaces: surfaces,
     structureSurfaces: structures,

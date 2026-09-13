@@ -311,6 +311,9 @@ export interface ReadContext {
   atmosphereSamples(
     cells: readonly [number, number, number][],
   ): AtmosphereSamples;
+  constructionReadiness(
+    sites: readonly EntityId[],
+  ): readonly ConstructionReadiness[];
   terrainMaterials(
     cells: readonly [number, number, number][],
   ): readonly number[];
