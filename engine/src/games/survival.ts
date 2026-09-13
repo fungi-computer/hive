@@ -8,6 +8,9 @@ import {
   transfer,
 } from "../sdk/common";
 import type { GamePack } from "../contracts";
+import { z } from "zod";
+const emptyInput = z.union([z.undefined(), z.object({}).strict()]);
+const mealRuleInput = z.object({ recovery: z.union([z.literal(10), z.literal(25)]) }).strict();
 
 export const Survivor = component<{ controlled: boolean }>(
   "survival.survivor",
@@ -153,6 +156,7 @@ export const survivalPack: GamePack = {
   systems: [survival, fatigue],
   commands: {
     takeFood: command({
+      input: emptyInput,
       reads: [MaterialLot],
       writes: [],
       run(context) {
@@ -172,6 +176,7 @@ export const survivalPack: GamePack = {
       },
     }),
     eatFood: command({
+      input: emptyInput,
       reads: [MaterialLot],
       writes: [],
       run(context) {
@@ -188,11 +193,9 @@ export const survivalPack: GamePack = {
       },
     }),
     setMealRule: command({
+      input: mealRuleInput,
       writes: [MealRule],
-      run: (_context, input) => {
-        const recovery = (input as { recovery?: unknown } | null)?.recovery;
-        if (recovery !== 10 && recovery !== 25)
-          throw new Error("meal recovery must be ten or twenty-five");
+      run: (_context, { recovery }) => {
         return {
           actions: [],
           writes: [

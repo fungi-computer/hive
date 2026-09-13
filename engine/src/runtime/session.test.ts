@@ -4,6 +4,8 @@ import { GameSession } from "./session";
 import { command, entity } from "../sdk/authoring";
 import { Position, Support, Surface } from "../sdk/common";
 import { checkedAction } from "./actions";
+import { z } from "zod";
+const emptyInput = z.object({}).strict();
 import type {
   AssignmentCandidate,
   ActionRequest,
@@ -209,6 +211,41 @@ function session(
   return { value, port };
 }
 
+test("game command inputs are cloned and parsed once before the handler", () => {
+  const port = new TestPort();
+  let parses = 0;
+  let handled: { value: number } | undefined;
+  const input = z.preprocess(
+    value => { parses++; return value; },
+    z.object({ value: z.number().int().min(0).max(10) }).strict(),
+  );
+  const value = new GameSession({
+    port,
+    pack: {
+      ...pack(port, undefined),
+      commands: {
+        probe: command({
+          input,
+          writes: [],
+          run: (_context, parsed) => {
+            handled = parsed;
+            parsed.value = 9;
+            return { actions: [], writes: [] };
+          },
+        }),
+      },
+    },
+  });
+  value.start();
+  const request = { value: 3 };
+  value.command("probe", request);
+  assert.equal(parses, 1);
+  assert.deepEqual(request, { value: 3 });
+  assert.deepEqual(handled, { value: 9 });
+  assert.throws(() => value.command("probe", { value: 3, extra: true }));
+  assert.equal(parses, 2);
+});
+
 test("a rejected action returns its result while the simulation step advances", () => {
   const action = {
     kind: "consume",
@@ -247,6 +284,7 @@ test("authored entity references use native membership without snapshot capture"
       systems: [],
       commands: {
         setLink: {
+          input: z.object({ target: z.string().min(1) }).strict(),
           reads: [],
           writes: [Link],
           run: (_context, input) => ({
@@ -255,6 +293,7 @@ test("authored entity references use native membership without snapshot capture"
           }),
         },
         setMorale: {
+          input: z.object({ value: z.number() }).strict(),
           reads: [],
           writes: [morale],
           run: (_context, input) => ({
@@ -289,7 +328,7 @@ test("authored references span bounded membership calls without a new total limi
   port.entityMembership = ids => { batches.push(ids.length); return ids.map(() => true); };
   const session = new GameSession({ port, pack: {
     ...pack(port, undefined), components: [morale, Link], systems: [],
-    commands: { links: { reads: [], writes: [Link], run: () => ({ actions: [],
+    commands: { links: { input: emptyInput, reads: [], writes: [Link], run: () => ({ actions: [],
       writes: Array.from({ length: 65 }, (_, index) => ({
         entity: entity("actor"), component: Link.id,
         value: { target: `target-${index}`, peer: `peer-${index}` },
@@ -298,7 +337,7 @@ test("authored references span bounded membership calls without a new total limi
   } });
   session.start();
   port.throwOnSnapshot = true;
-  session.command("links", null);
+  session.command("links", {});
   assert.deepEqual(batches, [128, 2]);
   assert.equal(port.snapshotCalls, 0);
 });
@@ -654,6 +693,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
       ...pack(port, undefined),
       commands: {
         bad: command({
+          input: emptyInput,
           writes: [morale],
           run: () => ({
             actions: [],
@@ -672,7 +712,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   });
   value.start();
   const before = value.save();
-  assert.throws(() => value.command("bad", null));
+  assert.throws(() => value.command("bad", {}));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
   assert.equal(value.save().version, 7);
@@ -788,10 +828,10 @@ test("authored orders are visible to paused commands and survive pending reload"
   const authoredPack: GamePack = {
     ...pack(port, undefined),
     commands: {
-      designate: command({ writes: [], lifecycle: [morale], run: () => ({actions:[],writes:[],creates:[{
+      designate: command({ input: emptyInput, writes: [], lifecycle: [morale], run: () => ({actions:[],writes:[],creates:[{
         id:entity("order.1"),components:{"test.morale":{value:1}},
       }]}) }),
-      revise: command({reads:[morale],writes:[morale],run: context => {
+      revise: command({input: emptyInput, reads:[morale],writes:[morale],run: context => {
         const row = context.query({components:[morale]}).find(row => row.id === "order.1");
         assert.ok(row);
         return {actions:[],writes:[{entity:row.id,component:morale.id,value:{value:row.get(morale).value+1}}]};
@@ -815,8 +855,8 @@ test("authored orders are visible to paused commands and survive pending reload"
 test("authored orders reject unowned removals and conflicting pending writes", () => {
   const port = new TestPort();
   const value = new GameSession({port,pack:{...pack(port,undefined),commands:{
-    remove:command({writes:[],run:()=>({actions:[],writes:[],removes:[entity("actor")]})}),
-    conflict:command({writes:[morale],lifecycle:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:1}}],removes:[entity("actor")]})}),
+    remove:command({input: emptyInput,writes:[],run:()=>({actions:[],writes:[],removes:[entity("actor")]})}),
+    conflict:command({input: emptyInput,writes:[morale],lifecycle:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:1}}],removes:[entity("actor")]})}),
   }}});
   value.start(); value.pause();
   const before = value.save();
@@ -829,7 +869,7 @@ test("authored orders reject unowned removals and conflicting pending writes", (
 test("authored lifecycle permission does not grant progress writes", () => {
   const port = new TestPort();
   const value = new GameSession({port,pack:{...pack(port,undefined),commands:{
-    illicit:command({writes:[],lifecycle:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:9}}]})}),
+    illicit:command({input: emptyInput,writes:[],lifecycle:[morale],run:()=>({actions:[],writes:[{entity:entity("actor"),component:morale.id,value:{value:9}}]})}),
   }}});
   value.start();
   const before = value.save();

@@ -7,6 +7,8 @@ import { encodeDefinition } from "../sdk/common";
 import type { GamePack } from "../contracts";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
+import { z } from "zod";
+const emptyInput = z.object({}).strict();
 
 initSync({module:readFileSync("engine/generated/hive_kernel_bg.wasm")});
 const Order = component<{stage:string}>("example.order",{version:1,fields:{stage:"string"}});
@@ -15,8 +17,8 @@ const pack: GamePack = {
   id:"authored-orders",version:1,components:[Order],systems:[],
   definition:encodeDefinition("authored-orders",[Order]),
   commands:{
-    designate:command({writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],creates:[{id,components:{[Order.id]:{stage:"queued"}}}]})}),
-    cancel:command({writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],removes:[id]})}),
+    designate:command({input:emptyInput,writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],creates:[{id,components:{[Order.id]:{stage:"queued"}}}]})}),
+    cancel:command({input:emptyInput,writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],removes:[id]})}),
   },
 };
 

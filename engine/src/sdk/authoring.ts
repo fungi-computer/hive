@@ -8,6 +8,7 @@ import type {
   EntityRecord,
   GameCommandDefinition,
 } from "../contracts";
+import type { z } from "zod";
 
 type Shape = Record<
   string,
@@ -109,12 +110,23 @@ export function system(options: SystemOptions): SystemDefinition {
   });
 }
 
-export function command(options: GameCommandDefinition): GameCommandDefinition {
+export function command<TInput>(
+  options: Omit<GameCommandDefinition, "input" | "execute"> & {
+    input: z.ZodType<TInput>;
+    run: (
+      context: Pick<import("../contracts").ReadContext, "query" | "physicalContacts">,
+      input: TInput,
+    ) => import("../contracts").GameCommandResult;
+  },
+): GameCommandDefinition {
   return Object.freeze({
+    input: options.input,
     lifecycle: Object.freeze([...(options.lifecycle ?? [])]),
     reads: Object.freeze([...(options.reads ?? [])]),
     writes: Object.freeze([...options.writes]),
-    run: options.run,
+    execute(context: Pick<import("../contracts").ReadContext, "query" | "physicalContacts">, raw: unknown) {
+      return options.run(context, options.input.parse(raw));
+    },
   });
 }
 

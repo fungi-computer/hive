@@ -148,25 +148,25 @@ const pirateComponents = [
 
 const moveInput = z
   .object({
-    entities: z.array(z.string()).min(1).max(2),
+    entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(2),
     destination: z
       .object({
         x: z.number().finite().min(-1_000_000).max(1_000_000),
         y: z.number().finite().min(-1_000_000).max(1_000_000),
         z: z.number().finite().min(-1_000_000).max(1_000_000),
-        frame: z.string().nullable(),
+        frame: z.string().min(1).max(128).transform(entity).nullable(),
       })
       .strict(),
   })
   .strict();
 const selectionInput = z
-  .object({ entities: z.array(z.string()).min(1).max(2) })
+  .object({ entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(2) })
   .strict();
+const turnInput = z.object({ facing: z.number().int().min(0).max(3) }).strict();
 
-function selectedEntities(input: unknown): EntityId[] {
-  const parsed = selectionInput.parse(input);
-  const selected = [...new Set(parsed.entities)] as EntityId[];
-  if (selected.length !== parsed.entities.length)
+function selectedEntities(input: z.infer<typeof selectionInput>): EntityId[] {
+  const selected = [...new Set(input.entities)];
+  if (selected.length !== input.entities.length)
     throw new Error("selection must contain distinct entities");
   return selected;
 }
@@ -200,10 +200,11 @@ export const piratesPack: GamePack = {
   systems: [deliverySystem],
   commands: {
     move: command({
+      input: moveInput,
       reads: [PirateCrew, PirateShip, Support],
       writes: [],
       run(context, input) {
-        const parsed = moveInput.parse(input);
+        const parsed = input;
         const selected = selectedEntities({ entities: parsed.entities });
         const crewRows = context.query(query(PirateCrew));
         const shipRows = context.query(query(PirateShip));
@@ -219,7 +220,7 @@ export const piratesPack: GamePack = {
             throw new Error("crew destinations must name the ship frame");
           const destination = {
             ...parsed.destination,
-            frame: parsed.destination.frame as EntityId | null,
+            frame: parsed.destination.frame,
           };
           return {
             actions: crew.map((id) => move(id, destination, 0)),
@@ -234,7 +235,7 @@ export const piratesPack: GamePack = {
               selected[0],
               {
                 ...parsed.destination,
-                frame: parsed.destination.frame as EntityId | null,
+                frame: parsed.destination.frame,
               },
               0,
             ),
@@ -244,16 +245,11 @@ export const piratesPack: GamePack = {
       },
     }),
     turnShip: command({
+      input: turnInput,
       reads: [PirateShip, Position],
       writes: [],
       run(context, input) {
-        const facing = (input as { facing?: unknown } | null)?.facing;
-        if (
-          !Number.isInteger(facing) ||
-          (facing as number) < 0 ||
-          (facing as number) > 3
-        )
-          throw new Error("ship facing must be 0..3");
+        const { facing } = input;
         if (!context.query(query(PirateShip)).some((row) => row.id === shipId && row.get(PirateShip).controlled))
           throw new Error("ship capability is unavailable");
         const position = context
@@ -263,13 +259,14 @@ export const piratesPack: GamePack = {
         if (!position) throw new Error("ship position is unavailable");
         return {
           actions: [
-            move(shipId, { ...position, frame: null }, facing as number),
+            move(shipId, { ...position, frame: null }, facing),
           ],
           writes: [],
         };
       },
     }),
     loadCargo: command({
+      input: selectionInput,
       reads: [PirateCrew, Support],
       writes: [DeliveryControl],
       run(context, input) {

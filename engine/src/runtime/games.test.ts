@@ -12,6 +12,8 @@ import { survivalPack, Condition, Fatigue } from "../games/survival";
 import { formationsPack, FormationMember } from "../games/formations";
 import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
+import { z } from "zod";
+const emptyInput = z.object({}).strict();
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -215,9 +217,9 @@ test("survival can take and eat successive split lots, including after restore",
     });
     for (let i = 0; i < 15; i++) session.step(0.1);
     for (let meal = 0; meal < 2; meal++) {
-      session.command("takeFood", null);
+      session.command("takeFood", {});
       assert.equal(session.step(0.1)[0].accepted, true);
-      session.command("eatFood", null);
+      session.command("eatFood", {});
       assert.equal(session.step(0.1)[0].accepted, true);
       session.restore(session.save());
       session.step(0.1);
@@ -305,9 +307,9 @@ test("authored meal recovery changes the physical consumption outcome", () => {
       destination: { x: 2, y: 0, z: 0, frame: null },
     });
     for (let i = 0; i < 15; i++) session.step(0.1);
-    session.command("takeFood", null);
+    session.command("takeFood", {});
     assert.equal(session.step(0.1)[0].accepted, true);
-    session.command("eatFood", null);
+    session.command("eatFood", {});
     assert.equal(session.step(0.1)[0].accepted, true);
     const before = session.query(query(Condition))[0].get(Condition).hunger;
     session.step(0.1);
@@ -432,6 +434,7 @@ test("authored intents survive pause restore and rollback with committed-only re
     ),
     commands: {
       set: command({
+        input: z.object({ value: z.number(), link: z.string().nullable() }).strict(),
         reads: [],
         writes: [Setting],
         run: (_ctx, input) => ({
@@ -440,6 +443,7 @@ test("authored intents survive pause restore and rollback with committed-only re
         }),
       }),
       mutate: command({
+        input: emptyInput,
         reads: [Setting],
         writes: [],
         run: (ctx) => {
@@ -474,7 +478,7 @@ test("authored intents survive pause restore and rollback with committed-only re
     assert.equal(first.save().pendingWrites.length, 1);
     assert.equal(first.query(query(Setting))[0].get(Setting).value, 1);
     const saved = first.save();
-    assert.throws(() => first.command("mutate", null), /stop/);
+    assert.throws(() => first.command("mutate", {}), /stop/);
     assert.deepEqual(first.save(), saved);
     assert.throws(
       () => first.command("set", { value: 4, link: "missing" }),
