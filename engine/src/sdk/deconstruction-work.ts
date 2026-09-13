@@ -69,7 +69,6 @@ export const DeconstructionApproach = component<DeconstructionApproachState>(
     version: 2,
     fields: {
       order: "entity",
-      site: "entity",
       worker: "entity",
       contactX: "number",
       contactY: "number",
