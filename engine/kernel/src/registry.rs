@@ -61,6 +61,8 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
+            ("hive.staged-process", vec![("definition", FieldType::String), ("definitionVersion", FieldType::Number), ("binding", FieldType::String), ("station", FieldType::Entity), ("stage", FieldType::Number), ("progress", FieldType::Number), ("enteredTick", FieldType::Number), ("status", FieldType::String)]),
+            ("hive.process-binding", vec![("process", FieldType::Entity), ("role", FieldType::String), ("lot", FieldType::Entity), ("quantity", FieldType::Number)]),
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
@@ -183,6 +185,8 @@ impl Registry {
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
+                "hive.staged-process" => world.register_component::<crate::staged_process::StagedProcess>(),
+                "hive.process-binding" => world.register_component::<crate::staged_process::ProcessBinding>(),
                 "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
                 "hive.finite-resource" => world.register_component::<FiniteResource>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
@@ -229,6 +233,8 @@ impl Registry {
                 | "hive.ground-stock"
                 | "hive.lot"
                 | "hive.lot-water"
+                | "hive.staged-process"
+                | "hive.process-binding"
                 | "hive.stockpile-cell"
                 | "hive.finite-resource"
                 | "hive.excavation-work"
@@ -333,6 +339,8 @@ impl Registry {
                     return Err("invalid carried water mass".into());
                 }
             }
+            "hive.staged-process" => { let process: crate::staged_process::StagedProcess = decode(value)?; crate::staged_process::validate_definition(&crate::staged_process::ProcessDefinition { id: process.definition.clone(), version: process.definition_version, stages: vec![] }).err(); }
+            "hive.process-binding" => { let binding: crate::staged_process::ProcessBinding = decode(value)?; if binding.id.is_empty() || binding.station.is_empty() { return Err("invalid process binding record".into()); } }
             "hive.stockpile-cell" => {
                 let cell: StockpileCell = decode(value)?;
                 if !valid_id(&cell.zone) || !valid_id(&cell.filter_profile) { return Err("invalid stockpile cell".into()); }
@@ -496,6 +504,8 @@ impl Registry {
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
+            "hive.staged-process" => { world.entity_mut(entity).insert(decode::<crate::staged_process::StagedProcess>(value)?); }
+            "hive.process-binding" => { world.entity_mut(entity).insert(decode::<crate::staged_process::ProcessBinding>(value)?); }
             "hive.stockpile-cell" => { world.entity_mut(entity).insert(decode::<StockpileCell>(value)?); }
             "hive.finite-resource" => {
                 world.entity_mut(entity).insert(decode::<FiniteResource>(value)?);
@@ -554,6 +564,8 @@ impl Registry {
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
+            "hive.staged-process" => world.get::<crate::staged_process::StagedProcess>(entity).map(record),
+            "hive.process-binding" => world.get::<crate::staged_process::ProcessBinding>(entity).map(record),
             "hive.stockpile-cell" => world.get::<StockpileCell>(entity).map(record),
             "hive.finite-resource" => world.get::<FiniteResource>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
