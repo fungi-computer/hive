@@ -38,3 +38,21 @@ earned seconds and staged lots. The presentation layer may project
 The implementation will reuse `structure_support::resolve` for the committed
 projection and its existing candidate contacts. No second support solver,
 water clone, material owner, or transport registry is introduced.
+
+## Structural law used by every catalog
+
+Structural legality is an engine query over completed physical geometry. Solid
+terrain, rooted walls or columns, and stair landings are anchors. Completed
+floors carry support laterally up to the environment's bounded `maxSpanSteps`;
+the current Clearing definition uses six cells. A support chain does not require
+a wall directly below every floor cell.
+
+Plans do not support other plans. A player may submit a wall and an upper floor
+in either order, but the upper floor remains `waitingForSupport`, with no worker
+claim, until the wall is physically complete. The same structural query runs at
+admission, work eligibility, and physical completion, so action order cannot
+produce geometry that the final world would reject.
+
+This law belongs to the engine. Goblin catalog data selects shapes, materials,
+work duration, and bounded work reach. Roofs, bridges, beams, and later collapse
+must consume the same support projection rather than add named special cases.
