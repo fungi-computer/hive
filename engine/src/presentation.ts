@@ -143,6 +143,7 @@ export type TerrainMark = {
   readonly status: "queued" | "working" | "blocked";
 };
 export interface GamePresentation {
+  readonly activities?: (context: Pick<ReadContext, "query">) => readonly import("./contracts").ActivityBinding[];
   readonly visuals?: (context: Pick<ReadContext, "query">) => readonly import("./runtime/visual-projection").EntityVisualProjection[];
   /** Opt into committed physical feedback; no simulation behavior is granted. */
   readonly feedback?: boolean;

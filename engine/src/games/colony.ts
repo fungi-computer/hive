@@ -452,6 +452,13 @@ export const colonyPack: GamePack = {
     }),
   },
   presentation: {
+    activities: context => {
+      const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
+      return context.query(query(ColonyTreeOrder)).flatMap(row => {
+        const order = row.get(ColonyTreeOrder), position = positions.get(order.tree);
+        return order.phase === "working" && order.actor !== null && position ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const }] : [];
+      });
+    },
     visuals: context => [
       ...context.query(query(ColonyTree, Position)).map(row => {
         const tree = row.get(ColonyTree), position = row.get(Position);

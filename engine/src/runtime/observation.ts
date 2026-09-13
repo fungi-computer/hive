@@ -48,7 +48,7 @@ export function buildObservation(
     query: (spec) => session.query(spec),
   };
   const projected = projectPresentation(session.pack, context);
-  const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(512)), context), context);
+  const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(512)), context), context, session.pack.presentation?.activities?.(context));
   return Object.freeze({
     time: session.simulationTime,
     paused: session.isPaused,

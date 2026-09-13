@@ -277,6 +277,8 @@ export interface RenderFact {
     readonly bounds: null | { readonly min_x: number; readonly max_x: number; readonly min_z: number; readonly max_z: number };
   } | null;
 }
+export type ActivityKind = "dig" | "build" | "chop";
+export interface ActivityBinding { readonly actor: EntityId; readonly kind: ActivityKind; readonly target: readonly [number, number] }
 export type KernelSnapshot = KernelRecordSnapshot;
 export interface AtmosphereSample {
   readonly volumeId: string;
