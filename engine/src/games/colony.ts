@@ -27,14 +27,14 @@ import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
-import { WaterSupplyOrder, WaterSupplyWork, colonyWaterWorkSystem } from "./colony-water-work";
+import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } from "../contracts";
 
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
-export { WaterSupplyOrder, WaterSupplyWork, colonyWaterWorkSystem } from "./colony-water-work";
+export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -362,7 +362,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 5,
   components: colonyComponents,
-  systems: [colonyWorkSystem, colonyWaterWorkSystem, colonyCatSystem],
+  systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,

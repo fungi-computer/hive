@@ -1,6 +1,6 @@
 import { component, query } from "../sdk/authoring";
 import { Body, Container, Destination, MaterialLot, Position, Support, Surface, exchangeFieldWater, move } from "../sdk/common";
-import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
+import type { PreparedWorkProvider } from "../sdk/work-system";
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
 import { Worker } from "./colony-work";
 
@@ -92,5 +92,3 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`; if (state.phase === "submitting" && state.actor && state.vessel) { const outcome = ctx.outcomes.find(({ action }) => action.kind === "exchange-field-water" && action.operation === operation); ctx.write(WaterSupplyWork, row.id, { ...state, phase: outcome?.result.accepted ? "complete" : "queued", actor: null, vessel: null, reason: outcome?.result.reason ?? (outcome ? "Water exchange rejected" : "Missing saved water exchange outcome") }); continue; } if (state.phase !== "approaching" || !state.actor || !state.vessel) continue; const pose = poses.get(state.actor); const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; const failedMove = ctx.outcomes.find(outcome => outcome.action.kind === "move" && outcome.action.entity === state.actor && !outcome.result.accepted && outcome.action.destination.x === approach.x && outcome.action.destination.y === approach.y && outcome.action.destination.z === approach.z); if (failedMove) { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "queued", actor: null, vessel: null, reason: failedMove.result.reason ?? "Water approach unreachable" }); continue; } if (!pose || moving.has(state.actor) || distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } },
   };
 }
-
-export const colonyWaterWorkSystem = createWorkSystem({ id: "colony.water-work", version: 1, reads: [WaterSupplyWork, WaterSupplyOrder, Worker, Body, Position, Container, Destination, Support, Surface, MaterialLot], writes: [WaterSupplyWork], providers: [(ctx, suspended) => waterSupplyProvider(ctx, suspended)] });
