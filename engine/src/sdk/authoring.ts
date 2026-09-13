@@ -7,6 +7,8 @@ import type {
   WriteContext,
   EntityRecord,
   GameCommandDefinition,
+  GameCommandResult,
+  ReadContext,
 } from "../contracts";
 import type { z } from "zod";
 
@@ -111,12 +113,12 @@ export function system(options: SystemOptions): SystemDefinition {
 }
 
 export function command<TInput>(
-  options: Omit<GameCommandDefinition, "input" | "execute"> & {
+  options: Omit<GameCommandDefinition, "input" | "invoke"> & {
     input: z.ZodType<TInput>;
     run: (
-      context: Pick<import("../contracts").ReadContext, "query" | "physicalContacts">,
+      context: Pick<ReadContext, "query" | "physicalContacts">,
       input: TInput,
-    ) => import("../contracts").GameCommandResult;
+    ) => GameCommandResult;
   },
 ): GameCommandDefinition {
   return Object.freeze({
@@ -124,8 +126,8 @@ export function command<TInput>(
     lifecycle: Object.freeze([...(options.lifecycle ?? [])]),
     reads: Object.freeze([...(options.reads ?? [])]),
     writes: Object.freeze([...options.writes]),
-    execute(context: Pick<import("../contracts").ReadContext, "query" | "physicalContacts">, raw: unknown) {
-      return options.run(context, options.input.parse(raw));
+    invoke(context: Pick<ReadContext, "query" | "physicalContacts">, input: unknown) {
+      return options.run(context, options.input.parse(input));
     },
   });
 }

@@ -283,7 +283,7 @@ test("authored entity references use native membership without snapshot capture"
       components: [morale, Link],
       systems: [],
       commands: {
-        setLink: {
+        setLink: command({
           input: z.object({ target: z.string().min(1) }).strict(),
           reads: [],
           writes: [Link],
@@ -291,8 +291,8 @@ test("authored entity references use native membership without snapshot capture"
             actions: [],
             writes: [{ component: Link.id, entity: actor, value: input }],
           }),
-        },
-        setMorale: {
+        }),
+        setMorale: command({
           input: z.object({ value: z.number() }).strict(),
           reads: [],
           writes: [morale],
@@ -300,7 +300,7 @@ test("authored entity references use native membership without snapshot capture"
             actions: [],
             writes: [{ component: morale.id, entity: actor, value: input }],
           }),
-        },
+        }),
       },
     },
   });
@@ -328,12 +328,12 @@ test("authored references span bounded membership calls without a new total limi
   port.entityMembership = ids => { batches.push(ids.length); return ids.map(() => true); };
   const session = new GameSession({ port, pack: {
     ...pack(port, undefined), components: [morale, Link], systems: [],
-    commands: { links: { input: emptyInput, reads: [], writes: [Link], run: () => ({ actions: [],
+    commands: { links: command({ input: emptyInput, reads: [], writes: [Link], run: () => ({ actions: [],
       writes: Array.from({ length: 65 }, (_, index) => ({
         entity: entity("actor"), component: Link.id,
         value: { target: `target-${index}`, peer: `peer-${index}` },
       })),
-    }) } },
+    }) }) },
   } });
   session.start();
   port.throwOnSnapshot = true;

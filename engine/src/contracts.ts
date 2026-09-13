@@ -368,9 +368,9 @@ export interface GameCommandDefinition {
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
   /** Erased invocation closes over the parsed handler input in the authoring factory. */
-  readonly execute: (
+  readonly invoke: (
     context: Pick<ReadContext, "query" | "physicalContacts">,
-    raw: unknown,
+    input: unknown,
   ) => GameCommandResult;
 }
 export interface GamePackTransport {

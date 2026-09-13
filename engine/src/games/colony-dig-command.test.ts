@@ -48,7 +48,7 @@ function context(overrides: Partial<Fixture> = {}) {
 }
 
 test("Colony dig emits one native excavation request for an admitted target", () => {
-  const result = colonyPack.commands!.dig.execute(context(), {
+  const result = colonyPack.commands!.dig.invoke(context(), {
     entities: [worker],
     target: { cell: [0, 12, 0], material: 1 },
   });
@@ -90,20 +90,20 @@ test("Colony ground stock schedules one ordinary pantry delivery and preserves e
 });
 
 test("Colony dig rejects invalid material and active delivery, while full spoil cargo stays eligible", () => {
-  assert.throws(() => colonyPack.commands!.dig.execute(context(), {
+  assert.throws(() => colonyPack.commands!.dig.invoke(context(), {
     entities: [worker], target: { cell: [0, 12, 0], material: 0 },
   }), /not excavatable/);
   const task = row(entity("colony.delivery.1"), DeliveryTask, {
     actor: worker, sourceLot: entity("colony.food.1"), source,
     destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "idle",
   });
-  assert.throws(() => colonyPack.commands!.dig.execute(context({ tasks: [task] }), {
+  assert.throws(() => colonyPack.commands!.dig.invoke(context({ tasks: [task] }), {
     entities: [worker], target: { cell: [0, 12, 0], material: 1 },
   }), /carrying out a delivery/);
   const lot = row(entity("colony.spoil.1"), MaterialLot, {
     quantity: 3, kind: "soil-spoil", container: worker,
   });
-  assert.doesNotThrow(() => colonyPack.commands!.dig.execute(context({ lots: [lot] }), {
+  assert.doesNotThrow(() => colonyPack.commands!.dig.invoke(context({ lots: [lot] }), {
     entities: [worker], target: { cell: [0, 12, 0], material: 1 },
   }));
 });
@@ -112,7 +112,7 @@ test("Colony cancelDig emits native cancel-work only for active excavation", () 
   const work = row(worker, ExcavationWork, {
     x: 0, y: 12, z: 0, expected: 1, replacement: 0, seconds: 0,
   });
-  const result = colonyPack.commands!.cancelDig.execute(context({ work: [work] }), { entities: [worker] });
+  const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work] }), { entities: [worker] });
   assert.deepEqual(result, {
     actions: [{ kind: "cancel-work", entity: worker }],
     writes: [],
@@ -122,10 +122,10 @@ test("Colony cancelDig emits native cancel-work only for active excavation", () 
     destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "idle",
   });
   assert.deepEqual(
-    colonyPack.commands!.cancelDig.execute(context({ work: [work], tasks: [activeDelivery] }), { entities: [worker] }),
+    colonyPack.commands!.cancelDig.invoke(context({ work: [work], tasks: [activeDelivery] }), { entities: [worker] }),
     { actions: [{ kind: "cancel-work", entity: worker }], writes: [] },
   );
-  assert.throws(() => colonyPack.commands!.cancelDig.execute(context(), { entities: [worker] }), /no excavation work/);
+  assert.throws(() => colonyPack.commands!.cancelDig.invoke(context(), { entities: [worker] }), /no excavation work/);
 });
 
 test("Colony deposit emits stable whole-lot transfers for unreserved cargo", () => {
@@ -135,7 +135,7 @@ test("Colony deposit emits stable whole-lot transfers for unreserved cargo", () 
   const second = row(entity("colony.spoil.a"), MaterialLot, {
     quantity: 1, kind: "soil-spoil", container: worker,
   });
-  const result = colonyPack.commands!.deposit.execute(context({ lots: [first, second] }), { entities: [worker] });
+  const result = colonyPack.commands!.deposit.invoke(context({ lots: [first, second] }), { entities: [worker] });
   assert.deepEqual(result, {
     writes: [],
     actions: [
@@ -154,7 +154,7 @@ test("Colony deposit rejects reserved cargo and aggregate pantry overflow", () =
     destination: entity("colony.guest.1"), material: "soil-spoil", quantity: 1, phase: "idle",
   });
   assert.throws(
-    () => colonyPack.commands!.deposit.execute(context({ lots: [reserved], tasks: [claim] }), { entities: [worker] }),
+    () => colonyPack.commands!.deposit.invoke(context({ lots: [reserved], tasks: [claim] }), { entities: [worker] }),
     /reserved/,
   );
   const pantryStock = row(entity("colony.pantry.stock"), MaterialLot, {
@@ -164,7 +164,7 @@ test("Colony deposit rejects reserved cargo and aggregate pantry overflow", () =
     quantity: 2, kind: "soil-spoil", container: worker,
   });
   assert.throws(
-    () => colonyPack.commands!.deposit.execute(context({ lots: [pantryStock, carried] }), { entities: [worker] }),
+    () => colonyPack.commands!.deposit.invoke(context({ lots: [pantryStock, carried] }), { entities: [worker] }),
     /capacity/,
   );
 });

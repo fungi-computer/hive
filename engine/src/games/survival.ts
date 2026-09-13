@@ -9,7 +9,7 @@ import {
 } from "../sdk/common";
 import type { GamePack } from "../contracts";
 import { z } from "zod";
-const emptyInput = z.union([z.undefined(), z.object({}).strict()]);
+const emptyInput = z.null();
 const mealRuleInput = z.object({ recovery: z.union([z.literal(10), z.literal(25)]) }).strict();
 
 export const Survivor = component<{ controlled: boolean }>(
@@ -208,8 +208,8 @@ export const survivalPack: GamePack = {
   definition: encodeDefinition("survival", survivalComponents, survivalInitial),
   presentation: {
     controls: [
-      { id: "take", label: "Take bread", command: "takeFood" },
-      { id: "eat", label: "Eat bread", command: "eatFood" },
+      { id: "take", label: "Take bread", command: "takeFood", input: null },
+      { id: "eat", label: "Eat bread", command: "eatFood", input: null },
       {
         id: "recovery-10",
         label: "Meal recovery 10",
