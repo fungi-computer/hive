@@ -52,6 +52,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       sites: session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite)),
       deliveries: session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)),
     }));
+    assert.equal(session.renderFacts().find(fact => fact.id === station.id)?.visual, "colony.brew-station.profile.empty");
 
     session.command("requestBrew", { station: station.id });
     session.step(0);
@@ -63,8 +64,11 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     let sawAttendance = false;
     let sawElapsedWithoutAttendance = false;
     let sawLaterAttendance = false;
+    const stationVisuals = new Set<string>();
     for (let tick = 0; tick < 2_000; tick++) {
       session.step(0.25);
+      const stationVisual = session.renderFacts().find(fact => fact.id === station.id)?.visual;
+      if (stationVisual) stationVisuals.add(stationVisual);
       const state = session.query(query(StagedProcess))[0]?.get(StagedProcess);
       const attendance = session.query(query(ProcessAttendanceWork));
       if (attendance.length) sawAttendance = true;
@@ -91,6 +95,10 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
     assert.equal(lots.filter(lot => lot.kind === "ale" && lot.container === "brew.keg").reduce((sum, lot) => sum + lot.quantity, 0), 4);
     assert.equal(lots.filter(lot => lot.kind === "spent-grain" && lot.container === `${station.id}:tray`).reduce((sum, lot) => sum + lot.quantity, 0), 1);
+    assert(stationVisuals.has("colony.brew-station.profile.prepare-attended"));
+    assert([...stationVisuals].some(visual => visual === "colony.brew-station.profile.ferment" || visual === "colony.brew-station.profile.ferment-burning"));
+    assert(stationVisuals.has("colony.brew-station.profile.keg"));
+    assert.equal(session.renderFacts().find(fact => fact.id === station.id)?.visual, "colony.brew-station.profile.settled");
   } finally {
     port.dispose();
   }

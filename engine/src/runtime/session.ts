@@ -1156,7 +1156,7 @@ export class GameSession {
     if (!project) return physical;
     return appendVisualProjections(
       physical,
-      project({ query: (spec) => this.query(spec) }),
+      project({ query: (spec) => this.query(spec), environmentFacts: () => this.port.environmentFacts() }),
       (ids) => this.port.entityMembership(ids),
       limit,
     );

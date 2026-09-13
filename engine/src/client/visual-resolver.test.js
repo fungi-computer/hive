@@ -66,3 +66,11 @@ test("static resolver rejects malformed bindings and never walks inherited keys"
     kind: "static", path: ["missing"], facing: false, anchor: "propAnchor",
   }), undefined);
 });
+
+test("static resolver selects an animation frame without changing the visual identity", () => {
+  const frames = [texture("zero"), texture("one")];
+  const animatedArt = { propAnchor: art.propAnchor, station: { frames } };
+  const binding = { kind: "static", path: ["station", "frames"], frames: true, facing: false, anchor: "propAnchor" };
+  assert.equal(resolveStaticVisual(animatedArt, binding, 0, 0)?.texture, frames[0]);
+  assert.equal(resolveStaticVisual(animatedArt, binding, 0, 3)?.texture, frames[1]);
+});

@@ -1,4 +1,5 @@
 import { colonyConstructionVisuals } from "./colony-construction-visuals";
+import { colonyBrewStationProfiles } from "./colony-brewing-presentation";
 import { EmissionOrder, EmissionWork, nextEmissionOrder } from "../sdk/emission-work";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
@@ -611,13 +612,18 @@ export const colonyPack: GamePack = {
       });
       return [...trees, ...excavation, ...construction];
     },
-    visuals: context => [
+    visuals: context => {
+      const stationProfiles = colonyBrewStationProfiles(context);
+      return [
       ...context.query(query(ColonyTree, Position)).map(row => {
         const tree = row.get(ColonyTree), position = row.get(Position);
         const visual = tree.phase === "standing" ? "colony.tree" : tree.phase === "felled" ? "colony.tree.felled" : "colony.tree.stump";
         return { id: row.id, visual, label: `Tree · ${tree.phase}`, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
       }),
-      ...colonyConstructionVisuals(context),
+      ...colonyConstructionVisuals(context).map(visual => {
+        const profile = stationProfiles.get(visual.id);
+        return profile ? { ...visual, visual: `colony.brew-station.profile.${profile}` } : visual;
+      }),
       ...(() => {
         const lotsByContainer = new Map<string, { kind: string; quantity: number }>();
         for (const row of context.query(query(MaterialLot))) {
@@ -634,7 +640,8 @@ export const colonyPack: GamePack = {
             pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } }];
         });
       })(),
-    ],
+      ];
+    },
     terrainMarks: context => [
       ...context.query(query(ColonyDigOrder)).map(row => {
       const order = row.get(ColonyDigOrder);

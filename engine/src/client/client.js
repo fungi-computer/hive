@@ -828,7 +828,7 @@ export function createHiveClient({
       const staticVisual = isStatic
         ? (subject.projectile?.state === "embedded" && art.projectiles?.cannonballEmbedded
           ? { texture: art.projectiles.cannonballEmbedded, anchor: art.propAnchor }
-          : resolveStaticVisual(art, binding, physicalFacing))
+          : resolveStaticVisual(art, binding, physicalFacing, animation?.frame ?? 0))
         : undefined;
       const texture = reactionFrames?.length
         ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((effectClock() - reaction.started) / 45))]
