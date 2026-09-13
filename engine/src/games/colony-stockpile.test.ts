@@ -5,6 +5,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { Container, MaterialLot, Position, query } from "../sdk";
+import { entity } from "../sdk/authoring";
 import { StockpileCell } from "../sdk/stockpile";
 import { colonyPack } from "./colony";
 import { terrainAreaPresentationCommand } from "../presentation";
@@ -65,7 +66,7 @@ test("Colony command leaves a conflicting native zone untouched", () => {
     const surface = session.terrainSurfaces([[2, 2]])[0];
     assert.ok(surface);
     const [x, y, z] = surface.cell;
-    session.request({ kind: "designate-stockpile", zone: "foreign.zone", cells: [{ x, y, z, priority: 1, filterProfile: "wood", capacity: 6 }] });
+    session.request({ kind: "designate-stockpile", zone: entity("foreign.zone"), cells: [{ x, y, z, priority: 1, filterProfile: "wood", capacity: 6 }] });
     session.step(0);
     session.command("designateStockpile", { area: { start: [x, y, z], end: [x, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);

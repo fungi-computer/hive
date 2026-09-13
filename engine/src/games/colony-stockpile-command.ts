@@ -1,4 +1,4 @@
-import { command } from "../sdk/authoring";
+import { command, entity } from "../sdk/authoring";
 import { designateStockpile } from "../sdk/stockpile";
 import { z } from "zod";
 
@@ -27,12 +27,12 @@ function cellsFor(areaValue: z.infer<typeof area>): readonly { x: number; y: num
   if (cells.length > 256) throw new Error("Stockpile area exceeds 256 cells");
   return cells;
 }
-function zoneFor(areaValue: z.infer<typeof area>): string {
+function zoneFor(areaValue: z.infer<typeof area>) {
   const x0 = Math.min(areaValue.start[0], areaValue.end[0]);
   const x1 = Math.max(areaValue.start[0], areaValue.end[0]);
   const z0 = Math.min(areaValue.start[2], areaValue.end[2]);
   const z1 = Math.max(areaValue.start[2], areaValue.end[2]);
-  return `colony.stockpile.${x0}.${areaValue.start[1]}.${z0}.${x1}.${z1}`;
+  return entity(`colony.stockpile.${x0}.${areaValue.start[1]}.${z0}.${x1}.${z1}`);
 }
 
 /** Colony chooses the bounded profile; native stockpile admission owns floor/conflict atomicity. */

@@ -7,6 +7,7 @@ import {
   type GamePresentation,
 } from "./presentation";
 import type { GamePack } from "./contracts";
+import { command } from "./sdk/authoring";
 import { z } from "zod";
 const pack = (presentation?: GamePresentation): GamePack =>
   ({
@@ -16,15 +17,15 @@ const pack = (presentation?: GamePresentation): GamePack =>
     components: [],
     systems: [],
     commands: {
-      greet: {
+      greet: command({
         input: z.object({}).strict(),
         reads: [],
         writes: [],
         run: () => ({ actions: [], writes: [] }),
-      },
+      }),
     },
     ...(presentation ? { presentation } : {}),
-  }) as GamePack;
+  });
 const context = { query: () => [], environmentFacts: () => ({}), atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); } };
 test("selection controls capture current IDs without granting game authority", () => {
   const control = {

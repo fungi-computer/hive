@@ -38,7 +38,7 @@ function panel(hud) {
   createRoot(wrap.querySelector("#perf-workers-slider")).render(React.createElement(Slider, {
     type: "range", min: 0, max: 4, step: 1, defaultValue: workerCounts.indexOf(workers),
     onChange: event => { output.value = workerCounts[Number(event.target.value)]; },
-    onMouseUp: event => setPreset(size, workerCounts[Number(event.currentTarget.value)]),
+    onPointerUp: event => setPreset(size, workerCounts[Number(event.currentTarget.value)]),
     onKeyUp: event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) setPreset(size, workerCounts[Number(event.currentTarget.value)]); },
   }));
   return wrap;
@@ -47,7 +47,7 @@ function update(wrap) {
   wrap.querySelector("#perf-step").textContent = format(metrics.stepCpuMs, " ms");
   wrap.querySelector("#perf-assignment").textContent = format(metrics.assignmentCost);
   wrap.querySelector("#perf-routes").textContent = format(metrics.routeRequests);
-  wrap.querySelector("#perf-jobs").textContent = `wood output / ${woodOutput}`;
+  wrap.querySelector("#perf-jobs").textContent = String(woodOutput);
   wrap.querySelector("#perf-water").textContent = format(metrics.activeWaterWork);
   wrap.querySelector("#perf-gas").textContent = format(metrics.activeGasWork);
   wrap.querySelector("#perf-snapshot").textContent = format(metrics.snapshotBytes, " B");

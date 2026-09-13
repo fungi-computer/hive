@@ -865,7 +865,7 @@ export class GameSession {
     if (!this.pack.environmentDefinition) return undefined;
     if (!this.terrainPresentation) {
       const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
-    this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
+      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
     }
     return this.terrainPresentation.read();
   }
