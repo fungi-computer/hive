@@ -1084,6 +1084,9 @@ impl Kernel {
                 || process.stage_index as usize >= definition.stages.len()
                 || !process.progress_seconds.is_finite()
                 || process.progress_seconds < 0.0
+                || process.worker.as_deref().is_some_and(|worker| !self.ids.contains_key(worker))
+                || (process.phase == ProcessPhase::Working) != process.worker.is_some()
+                || (process.phase == ProcessPhase::Blocked && process.worker.is_some())
                 || (process.phase == ProcessPhase::Blocked) != !process.blocked_reason.is_empty()
                 || (process.phase != ProcessPhase::Blocked) && !process.blocked_reason.is_empty()
             { return Err("saved process fact is invalid".into()); }
@@ -1092,6 +1095,7 @@ impl Kernel {
             if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
             if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
             let bindings = bindings_by_process.remove(id).unwrap_or_default();
+            if process.phase != ProcessPhase::Waiting && bindings.is_empty() { return Err("active process has no bindings".into()); }
             if !bindings.is_empty() {
                 crate::staged_process::validate_bindings(
                     definition, id, &process.station, &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
@@ -2381,7 +2385,7 @@ impl Kernel {
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
-                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. })
+                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::AttendProcess { .. } | Action::ExchangeFieldWater { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -2433,6 +2437,7 @@ impl Kernel {
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
+        self.advance_staged_processes(batch.delta)?;
         self.cleanup_empty_ground_stock();
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
@@ -2549,6 +2554,9 @@ impl Kernel {
             .flatten()
             .map(|e| u64::from(self.ecs.get::<Lot>(*e).expect("indexed lot").quantity))
             .sum()
+    }
+    fn process_bindings_for_lot(&self, lot: &str) -> bool {
+        self.ids.values().any(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).is_some_and(|binding| binding.lot == lot))
     }
     fn cleanup_empty_ground_stock(&mut self) {
         if !self.ground_stock_cleanup_pending { return; }
@@ -2757,6 +2765,7 @@ impl Kernel {
                 entered_tick: self.revision,
                 phase: ProcessPhase::Waiting,
                 blocked_reason: String::new(),
+                worker: None,
             });
             self.refresh_state_weight();
             return Ok(process_id);
@@ -2766,6 +2775,7 @@ impl Kernel {
             definition: definition.id.clone(), definition_version: definition.version,
             station: station_id.into(), stage_index: 0, progress_seconds: 0.0,
             entered_tick: self.revision, phase: ProcessPhase::Waiting, blocked_reason: String::new(),
+            worker: None,
         })).id();
         self.ids.insert(process_id.clone(), entity);
         self.known.insert(process_id.clone());
@@ -2813,6 +2823,63 @@ impl Kernel {
         Ok(process_id.into())
     }
 
+    fn process_bindings(&self, process: &str) -> Vec<crate::staged_process::ProcessBinding> {
+        self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity)
+            .filter(|binding| binding.process == process).cloned()).collect()
+    }
+
+    fn attend_process(&mut self, worker_id: &str, process_id: &str, delta: f64) -> Result<()> {
+        if !delta.is_finite() || delta < 0.0 { return Err("invalid process attendance delta".into()); }
+        let worker = self.entity(worker_id)?;
+        let process_entity = self.entity(process_id)?;
+        let mut state = self.ecs.get::<StagedProcess>(process_entity).cloned().ok_or("process is missing staged state")?;
+        if state.phase == ProcessPhase::Complete { return Err("process is complete".into()); }
+        let definition = self.environment.as_ref().ok_or("process attendance needs environment")?.processes.get(&state.definition).ok_or("unknown process definition")?.definition().clone();
+        let stage = definition.stages.get(state.stage_index as usize).ok_or("process stage is missing")?;
+        if stage.mode != crate::staged_process::StageMode::Attended { return Err("process stage is elapsed".into()); }
+        if self.process_bindings(process_id).is_empty() { return Err("process has not been admitted".into()); }
+        if let Some(existing) = state.worker.as_deref() && existing != worker_id { return Err("process already has an attending worker".into()); }
+        if self.ecs.get::<Body>(worker).is_none() || self.ecs.get::<Container>(worker).is_none() || self.ecs.get::<Traversal>(worker).is_none() || self.ecs.get::<Support>(worker).is_some() || self.direct.contains_key(&worker) || self.ecs.get::<Destination>(worker).is_some() || self.ecs.get::<ExcavationWork>(worker).is_some() { return Err("worker cannot attend process from current state".into()); }
+        for (other, entity) in &self.ids { if other != process_id && self.ecs.get::<StagedProcess>(*entity).is_some_and(|candidate| candidate.worker.as_deref() == Some(worker_id)) { return Err("worker already attends process".into()); } }
+        self.contact(worker, self.entity(&state.station)?)?;
+        state.worker = Some(worker_id.into()); state.phase = ProcessPhase::Working; state.blocked_reason.clear();
+        if delta > 0.0 { state.progress_seconds = crate::world::earned_work_seconds(state.progress_seconds, delta, stage.duration_seconds)?; }
+        self.finish_process_stage(process_id, state, &definition)
+    }
+
+    fn finish_process_stage(&mut self, process_id: &str, mut state: StagedProcess, definition: &crate::staged_process::ProcessDefinition) -> Result<()> {
+        let stage = definition.stages.get(state.stage_index as usize).ok_or("process stage is missing")?;
+        if state.progress_seconds < stage.duration_seconds { self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(()); }
+        let transition = &stage.transition;
+        if !transition.consume_roles.is_empty() || transition.emission.is_some() || !transition.outputs.is_empty() {
+            state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = "transition-unimplemented".into();
+            self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(());
+        }
+        if usize::from(state.stage_index + 1) >= definition.stages.len() { state.phase = ProcessPhase::Complete; state.worker = None; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; state.worker = None; }
+        self.ecs.entity_mut(self.entity(process_id)?).insert(state); Ok(())
+    }
+
+    fn advance_staged_processes(&mut self, delta: f64) -> Result<()> {
+        if delta == 0.0 { return Ok(()); }
+        let ids: Vec<String> = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<StagedProcess>(*entity).map(|_| id.clone())).collect();
+        for id in ids {
+            let entity = self.entity(&id)?; let Some(mut state) = self.ecs.get::<StagedProcess>(entity).cloned() else { continue; };
+            if state.phase == ProcessPhase::Complete { continue; }
+            if state.phase == ProcessPhase::Working {
+                let Some(worker_id) = state.worker.clone() else { state.phase = ProcessPhase::Waiting; self.ecs.entity_mut(entity).insert(state); continue; };
+                let valid = self.entity(&worker_id).ok().and_then(|worker| self.entity(&state.station).ok().map(|station| self.contact(worker, station).is_ok())).unwrap_or(false);
+                if !valid { state.worker = None; state.phase = ProcessPhase::Waiting; self.ecs.entity_mut(entity).insert(state); }
+                continue;
+            }
+            let definition = self.environment.as_ref().ok_or("process advance needs environment")?.processes.get(&state.definition).ok_or("unknown process definition")?.definition().clone();
+            let stage = definition.stages.get(state.stage_index as usize).ok_or("process stage is missing")?;
+            if stage.mode != crate::staged_process::StageMode::Elapsed || state.entered_tick >= self.revision { continue; }
+            state.progress_seconds = crate::world::earned_work_seconds(state.progress_seconds, delta, stage.duration_seconds)?;
+            self.finish_process_stage(&id, state, &definition)?;
+        }
+        self.refresh_state_weight(); Ok(())
+    }
+
     pub fn process_requirements_json(&self, input: &str) -> Result<String> {
         if input.len() > 16 * 1024 { return Err("process requirements query exceeds input budget".into()); }
         #[derive(serde::Deserialize)]
@@ -2839,6 +2906,7 @@ impl Kernel {
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station).map(ActionEffect::Entity),
             Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
+            Action::AttendProcess { worker, process } => { self.attend_process(&worker, &process, delta)?; Ok(ActionEffect::None) },
             Action::Excavate { entity, x, y, z, expected, replacement } => {
                 self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
                 Ok(ActionEffect::None)
@@ -3003,6 +3071,7 @@ impl Kernel {
                     return Err("sealed container cannot consume".into());
                 }
                 let e = self.entity(&lot)?;
+                if self.process_bindings_for_lot(&lot) { return Err("process-bound lot cannot be consumed".into()); }
                 let mut stock = self
                     .ecs
                     .get::<Lot>(e)
@@ -3356,6 +3425,7 @@ impl Kernel {
         Ok(impacts)
     }
     pub(super) fn prepare_material_consumption(&self, portions: &[MaterialPortion]) -> Result<PreparedConsumption> {
+        if portions.iter().any(|portion| self.process_bindings_for_lot(&portion.lot)) { return Err("process-bound lot cannot be consumed".into()); }
         material_consumption::prepare(
             &self.material_consumption_owner,
             self.revision,
@@ -3377,6 +3447,7 @@ impl Kernel {
     }
 
     fn drop_lot(&mut self, actor_id: &str, lot_id: &str) -> Result<()> {
+        if self.process_bindings_for_lot(lot_id) { return Err("process-bound lot cannot be moved".into()); }
         let actor = self.entity(actor_id)?;
         if self.ecs.get::<Body>(actor).is_none() || self.ecs.get::<SealedContainer>(actor).is_some() {
             return Err("drop requires an unsealed actor".into());
@@ -3426,6 +3497,7 @@ impl Kernel {
             return Err("sealed container cannot transfer".into());
         }
         let e = self.entity(lot)?;
+        if self.process_bindings_for_lot(lot) { return Err("process-bound lot cannot be moved".into()); }
         let mut stock = self
             .ecs
             .get::<Lot>(e)
