@@ -234,6 +234,44 @@ of existing finite-water, material and work capabilities. Their outputs become
 ordinary recipe lots. They do not enter the process kernel as brewing special
 cases.
 
+### Discrete field-water and vessel contract
+
+The current Rust field deliberately stores exposed water as an integer depth
+from zero through seven. Pails must compose with that representation rather
+than reopen the discarded continuous per-cell simulation. For this restoration,
+one authored `water` material portion equals one exposed-cell depth quantum:
+`voxelMassKg / 7`. A two-portion pail therefore removes exactly two depth levels
+from exposed water and carries a `Lot { kind: "water", quantity: 2 }` whose
+`LotWater.waterKg` records the exact physical mass. UI and game rules call these
+water portions; they do not present the mass as a realistic two-litre bucket.
+This supersedes the older one-portion-equals-one-litre proposal in
+`docs/decisions/field-water-and-vessel-work.md` for the current Rust game.
+
+Drawing is allowed only from a realized open-water cell reachable from a dry
+adjacent worker contact. Pore water must first seep into an excavated open cell;
+the pail does not directly drain arbitrary hidden aquifer cells. The native
+field owner prepares a level debit without mutation. The material owner then
+prepares the exact credit into the held pail. The Kernel publishes both inside
+one synchronous command: field debit first, followed by the already-infallible
+prepared material publication. A stale owner token, insufficient level, full or
+wrong vessel, lost contact, state-capacity refusal, or unrepresentable mass
+changes neither side.
+
+The pail is one entity with both `Lot { kind: "pail" }` and `Container`; its lot
+custody names the worker while water lots name the pail as their container.
+Filling an empty or partial pail may create another exact water lot; presentation
+keeps same-kind portable vessels distinct and aggregates only their observed
+contents. Later delivery consumes or transfers a deterministic bounded set of
+water portions. It never merges identities merely to make the recipe simpler.
+
+The field's fixed initial mass and signed boundary accounting remain canonical.
+A draw subtracts the exact quantum mass from both current field stock and its
+boundary balance while adding the same mass to `LotWater`; a return performs the
+inverse. Internal falling, spreading and seepage do not touch the boundary.
+Save/reload preserves field levels, pail custody, contained water identities and
+mass exactly. Replaying the same durable command returns its stored receipt and
+cannot debit another level.
+
 ### Delivery sequence
 
 1. Land the compiler, reserved process/binding facts and native admission/contact/
