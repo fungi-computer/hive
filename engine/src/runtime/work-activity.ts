@@ -11,14 +11,16 @@ export const workActivitySchema = z.object({
   target: z.tuple([z.number().finite(), z.number().finite()]),
   progress: z.number().min(0).max(1).optional(),
 }).strict();
-const deliveryActivitySchema = z.object({
+export const deliveryActivitySchema = z.object({
   kind: z.literal("delivery"),
   phase: z.enum(["pickup", "carrying", "to-destination", "putting-down"]),
   material: z.string().min(1).max(128),
   target: z.tuple([z.number().finite(), z.number().finite()]),
   progress: z.number().min(0).max(1).optional(),
 }).strict();
-export type WorkActivity = z.infer<typeof workActivitySchema> | z.infer<typeof deliveryActivitySchema>;
+/** Complete activity shape shared by observation producers and consumers. */
+export const activitySchema = z.union([workActivitySchema, deliveryActivitySchema]);
+export type WorkActivity = z.infer<typeof activitySchema>;
 const boundedProgress = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : undefined;
 
 const deliveryPhase = (phase: string, atSource: boolean): DeliveryActivityPhase | null => {
