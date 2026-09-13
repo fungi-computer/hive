@@ -24,6 +24,7 @@ import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
+import { colonyStockpileCommand } from "./colony-stockpile-command";
 import { z } from "zod";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
 
@@ -324,6 +325,7 @@ export const colonyPack: GamePack = {
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
+    designateStockpile: colonyStockpileCommand,
     lightHearth: command({
       input: stationInput,
       reads: [Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
@@ -519,6 +521,7 @@ export const colonyPack: GamePack = {
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
       { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
       { id: "cancel-trees", label: "Cancel tree work", command: "cancelTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
+      { id: "designate-stockpile", label: "Designate stockpile", command: "designateStockpile", target: "terrain-area", designation: ["rectangle"] as const },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
