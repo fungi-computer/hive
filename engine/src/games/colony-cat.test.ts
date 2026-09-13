@@ -118,3 +118,49 @@ test("rejected native routes back off without owning pathfinding", () => {
   assert.equal(written.blockedUntil, 1);
   assert.equal(written.nextAt, 1);
 });
+
+test("rejected move is consumed during wander cooldown and retries deterministically", () => {
+  const initial = catInitial(cat, home, { x: 0, y: 0, z: 0 }, 9);
+  const target = { x: 3, y: 0.5, z: -2, frame: null };
+  const values = [
+    row(cat, [
+      [Cat, { ...initial.components[Cat.id], nextAt: 7 }],
+      [Position, initial.components[Position.id]],
+      [Body, initial.components[Body.id]],
+      [Traversal, initial.components[Traversal.id]],
+      [Destination, target],
+    ]),
+    row(home, [[Position, { x: 0, y: 0, z: 0, facing: 0 }]]),
+  ];
+  const ctx = context(values, [
+    { action: { kind: "move", entity: cat, destination: target, facing: 0 }, result: { accepted: false, reason: "blocked", revision: 1 } },
+  ], 2);
+  colonyCatSystem.run(ctx);
+  assert.equal(ctx.actions.length, 0);
+  assert.deepEqual(ctx.writes[0][2], {
+    ...initial.components[Cat.id],
+    nextAt: 3,
+    blockedUntil: 3,
+    seed: (Math.imul(9, 1664525) + 1013904223) >>> 0,
+  });
+});
+
+test("rejected move for another native destination does not consume the cat cooldown", () => {
+  const initial = catInitial(cat, home, { x: 0, y: 0, z: 0 });
+  const values = [
+    row(cat, [
+      [Cat, { ...initial.components[Cat.id], nextAt: 7 }],
+      [Position, initial.components[Position.id]],
+      [Body, initial.components[Body.id]],
+      [Traversal, initial.components[Traversal.id]],
+      [Destination, { x: 3, y: 0.5, z: -2, frame: null }],
+    ]),
+    row(home, [[Position, { x: 0, y: 0, z: 0, facing: 0 }]]),
+  ];
+  const ctx = context(values, [
+    { action: { kind: "move", entity: cat, destination: { x: 4, y: 0.5, z: -2, frame: null }, facing: 0 }, result: { accepted: false, revision: 1 } },
+  ], 2);
+  colonyCatSystem.run(ctx);
+  assert.equal(ctx.actions.length, 0);
+  assert.equal(ctx.writes.length, 0);
+});

@@ -58,6 +58,13 @@ function catRows(context: WriteContext) {
   return context.query(query(Cat, Position, Body, Traversal));
 }
 
+function sameDestination(
+  left: { readonly x: number; readonly y: number; readonly z: number; readonly frame: EntityId | null },
+  right: { readonly x: number; readonly y: number; readonly z: number; readonly frame: EntityId | null },
+): boolean {
+  return left.x === right.x && left.y === right.y && left.z === right.z && left.frame === right.frame;
+}
+
 /**
  * Small authored behavior for later composition into Colony. It only submits
  * ordinary native moves, keeps its schedule in Cat, and backs off after a
@@ -76,18 +83,22 @@ export const colonyCatSystem = system({
     );
     for (const row of catRows(context)) {
       const cat = row.get(Cat);
-      if (now < cat.nextAt || now < cat.blockedUntil) continue;
-
-      const position = row.get(Position);
-      const home = context
-        .query(query(Position))
-        .find((candidate) => candidate.id === cat.home)
-        ?.get(Position);
-      const seed = nextSeed(cat.seed);
-      const previous = context.outcomes.find(
-        ({ action }) => action.kind === "move" && action.entity === row.id,
+      const destination = context
+        .query(query(Destination))
+        .find((candidate) => candidate.id === row.id)
+        ?.get(Destination);
+      const rejected = context.outcomes.find(
+        ({ action, result }) =>
+          !result.accepted &&
+          action.kind === "move" &&
+          action.entity === row.id &&
+          (!destination || sameDestination(action.destination, destination)),
       );
-      if (previous && !previous.result.accepted) {
+      // Outcomes describe the move submitted by the immediately prior step.
+      // Consume a rejection before the schedule gate, or a long wander
+      // interval can hide it and leave the cat waiting on a failed route.
+      if (rejected) {
+        const seed = nextSeed(cat.seed);
         context.write(Cat, row.id, {
           ...cat,
           seed,
@@ -96,6 +107,14 @@ export const colonyCatSystem = system({
         });
         continue;
       }
+      if (now < cat.nextAt || now < cat.blockedUntil) continue;
+
+      const position = row.get(Position);
+      const home = context
+        .query(query(Position))
+        .find((candidate) => candidate.id === cat.home)
+        ?.get(Position);
+      const seed = nextSeed(cat.seed);
       if (!home || destinations.has(row.id)) {
         context.write(Cat, row.id, {
           ...cat,
