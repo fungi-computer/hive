@@ -130,6 +130,7 @@ for (const occupation of ["excavation", "construction"] as const) {
       },
       constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       constructionAccess: () => [],
+      deconstructionAccess: () => [],
       atmosphereSamples: () => {
         throw new Error("unexpected atmosphere query in this fixture");
       },
@@ -311,6 +312,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       },
       constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       constructionAccess: () => [],
+      deconstructionAccess: () => [],
       atmosphereSamples: () => {
         throw new Error("unexpected atmosphere query in this fixture");
       },
@@ -465,6 +467,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
       },
       constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       constructionAccess: () => [],
+      deconstructionAccess: () => [],
       atmosphereSamples: () => {
         throw new Error("unexpected atmosphere query in this fixture");
       },
@@ -585,6 +588,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     },
     constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
     constructionAccess: () => [],
+    deconstructionAccess: () => [],
     atmosphereSamples: () => {
       throw new Error("unexpected atmosphere query in this fixture");
     },
@@ -692,6 +696,7 @@ test("full destination puts held goods down before releasing the worker", () => 
       },
       constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       constructionAccess: () => [],
+      deconstructionAccess: () => [],
       atmosphereSamples: () => {
         throw new Error("no air query");
       },

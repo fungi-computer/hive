@@ -28,6 +28,16 @@ struct ConstructionAccessRow {
     contacts: Vec<ConstructionAccessContact>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeconstructionAccessRow {
+    site: String,
+    removal: &'static str,
+    salvage_quantity: u32,
+    work_seconds: f64,
+    contacts: Vec<ConstructionAccessContact>,
+}
+
 fn construction_status(
     kernel: &mut Kernel,
     ids: &[String],
@@ -65,27 +75,37 @@ fn construction_status(
 impl Kernel {
     /// Low-level completion primitive. A shared work owner must approach the
     /// site, spend its teardown work, then invoke this synchronously; Colony
-    /// controls do not call it directly.
-    pub(super) fn deconstruct_construction(&mut self, site_id: &str, target_id: &str) -> Result<()> {
+    /// controls do not call it directly. Custody is always the attending
+    /// worker's real container, never a caller-selected destination.
+    pub(super) fn deconstruct_construction(&mut self, worker_id: &str, site_id: &str) -> Result<()> {
         let site_entity = self.entity(site_id)?;
         let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
         if state.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(site_entity).is_none() { return Err("deconstruction requires a finished site".into()); }
+        let worker = self.entity(worker_id)?;
+        if self.ecs.get::<Body>(worker).is_none() || self.ecs.get::<Container>(worker).is_none()
+            || self.ecs.get::<Destination>(worker).is_some() || self.ecs.get::<Support>(worker).is_some()
+            || self.ecs.get::<ExcavationWork>(worker).is_some() || self.direct.contains_key(&worker) {
+            return Err("worker cannot deconstruct while busy".into());
+        }
+        let worker_position = self.world_pose(worker_id)?;
         let definition = self.environment.as_ref().ok_or("deconstruction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
+        let spacing = self.environment.as_ref().ok_or("construction needs environment")?.world.cell_spacing_m();
+        if !self.contact_is_valid(&state, &definition, [worker_position.x, worker_position.y, worker_position.z], spacing)? {
+            return Err("worker is not at construction contact".into());
+        }
         let port_ids: Vec<String> = definition.on_complete.ports.iter().map(|port| format!("{site_id}:{}", port.key)).collect();
         for port_id in &port_ids {
             self.entity(port_id)?;
             let key = port_id.strip_prefix(site_id).and_then(|value| value.strip_prefix(':')).ok_or("invalid created port identity")?;
             if definition.on_remove.empty_ports.contains(key) && self.quantity(port_id) != 0 { return Err("required empty port contains live contents".into()); }
         }
-        if port_ids.iter().any(|id| id == target_id) || target_id == site_id { return Err("salvage target cannot be removed structure".into()); }
-        let target = self.entity(target_id)?;
-        if self.ecs.get::<Container>(target).is_none() || self.ecs.get::<SealedContainer>(target).is_some() { return Err("salvage target is not an open container".into()); }
+        let target = worker;
         if self.ids.values().any(|entity| self.ecs.get::<Support>(*entity).is_some_and(|support| support.entity == site_id)) { return Err("supported dependent prevents deconstruction".into()); }
         let salvage_total: u32 = definition.on_remove.salvage.values().try_fold(0u32, |sum, q| sum.checked_add(*q)).ok_or("salvage quantity overflow")?;
-        if self.quantity(target_id).saturating_add(u64::from(salvage_total)) > u64::from(self.ecs.get::<Container>(target).unwrap().capacity) { return Err("salvage target lacks capacity".into()); }
+        if self.quantity(worker_id).saturating_add(u64::from(salvage_total)) > u64::from(self.ecs.get::<Container>(target).unwrap().capacity) { return Err("worker lacks salvage capacity".into()); }
         let instances: Vec<_> = self.environment.as_ref().unwrap().world.structure_instances().into_iter().filter(|instance| match instance { crate::structure_geometry::StaticInstance::Floor { id, .. } | crate::structure_geometry::StaticInstance::Cover { id, .. } | crate::structure_geometry::StaticInstance::Fixture { id, .. } | crate::structure_geometry::StaticInstance::Wall { id, .. } | crate::structure_geometry::StaticInstance::ApertureWall { id, .. } | crate::structure_geometry::StaticInstance::Stair { id, .. } => id != site_id }).collect();
         let prepared = { let environment = self.environment.as_mut().unwrap(); match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("deconstruction geometry is invalid".into()) } };
-        let salvage: Vec<_> = definition.on_remove.salvage.iter().map(|(kind, quantity)| self.prepare_material_output(MaterialOutputSpec { container: target_id.to_owned(), kind: kind.clone(), quantity: *quantity, water_kg: None })).collect::<Result<Vec<_>>>()?;
+        let salvage: Vec<_> = definition.on_remove.salvage.iter().map(|(kind, quantity)| self.prepare_material_output(MaterialOutputSpec { container: worker_id.to_owned(), kind: kind.clone(), quantity: *quantity, water_kg: None })).collect::<Result<Vec<_>>>()?;
         self.environment.as_mut().unwrap().apply_structures(prepared)?;
         for output in salvage { self.publish_material_output(output); }
         for port_id in port_ids {
@@ -109,6 +129,62 @@ impl Kernel {
         Ok(())
     }
     pub(super) fn construction_access(&mut self, input: &str) -> Result<String> {
+        self.construction_access_inner(input)
+    }
+    pub(super) fn deconstruction_access(&mut self, input: &str) -> Result<String> {
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid deconstruction access request")?;
+        self.ensure_ready()?;
+        if ids.is_empty() || ids.len() > 128 || ids.iter().any(|id| !crate::components::valid_id(id)) {
+            return Err("deconstruction access needs 1..128 valid site ids".into());
+        }
+        let mut unique = BTreeSet::new();
+        if ids.iter().any(|id| !unique.insert(id.clone())) { return Err("duplicate deconstruction access site".into()); }
+        let spacing = self.environment.as_ref().ok_or("deconstruction needs environment")?.world.cell_spacing_m();
+        let mut rows = Vec::with_capacity(ids.len());
+        for site in ids {
+            let Some(entity) = self.ids.get(&site).copied() else {
+                rows.push(DeconstructionAccessRow { site, removal: "invalidGeometry", salvage_quantity: 0, work_seconds: 0.0, contacts: Vec::new() });
+                continue;
+            };
+            let Some(state) = self.ecs.get::<ConstructionSite>(entity).cloned() else {
+                rows.push(DeconstructionAccessRow { site, removal: "invalidGeometry", salvage_quantity: 0, work_seconds: 0.0, contacts: Vec::new() });
+                continue;
+            };
+            let Some(definition) = self.environment.as_ref().and_then(|environment| environment.structures.get(&state.catalog)).cloned() else {
+                rows.push(DeconstructionAccessRow { site, removal: "invalidGeometry", salvage_quantity: 0, work_seconds: 0.0, contacts: Vec::new() });
+                continue;
+            };
+            // Access is bounded to 128 requested sites; each structural check
+            // is intentionally local to the requested removal and never runs
+            // construction support or material readiness work.
+            let contacts = self.current_contact_candidate_rows(&state, &definition, spacing)?
+                .into_iter()
+                .map(|(point, kind)| ConstructionAccessContact { x: point[0], y: point[1], z: point[2], frame: None, kind })
+                .collect();
+            let blocked_port = definition.on_remove.empty_ports.iter().any(|key| self.quantity(&format!("{site}:{key}")) != 0);
+            let dependent = self.ids.values().any(|candidate| self.ecs.get::<Support>(*candidate).is_some_and(|support| support.entity == site));
+            let geometry_ready = self.environment.as_mut().and_then(|environment| {
+                let remaining = environment.world.structure_instances().into_iter().filter(|instance| match instance {
+                    crate::structure_geometry::StaticInstance::Floor { id, .. }
+                    | crate::structure_geometry::StaticInstance::Cover { id, .. }
+                    | crate::structure_geometry::StaticInstance::Fixture { id, .. }
+                    | crate::structure_geometry::StaticInstance::Wall { id, .. }
+                    | crate::structure_geometry::StaticInstance::ApertureWall { id, .. }
+                    | crate::structure_geometry::StaticInstance::Stair { id, .. } => id != &site,
+                }).collect();
+                Some(matches!(environment.world.prepare_structures(remaining), Ok(Ok(_))))
+            }).unwrap_or(false);
+            let valid_state = state.phase == ConstructionPhase::Finished && self.ecs.get::<SealedContainer>(entity).is_some();
+            let removal = if blocked_port { "occupiedPort" }
+                else if dependent { "structuralDependency" }
+                else if !valid_state || !geometry_ready { "invalidGeometry" }
+                else { "ready" };
+            let salvage_quantity = definition.on_remove.salvage.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("salvage quantity overflow")?;
+            rows.push(DeconstructionAccessRow { site, removal, salvage_quantity, work_seconds: definition.work_seconds, contacts });
+        }
+        serde_json::to_string(&rows).map_err(|_| "deconstruction access encoding failed".into())
+    }
+    fn construction_access_inner(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid construction access request")?;
         if ids.is_empty() || ids.len() > 256 || ids.iter().any(|id| !crate::components::valid_id(id)) {

@@ -49,6 +49,7 @@ export function authoringContractProof(): void {
     },
     constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
     constructionAccess: () => [],
+    deconstructionAccess: () => [],
     atmosphereSamples: () => {
       throw new Error("unexpected atmosphere query in this fixture");
     },

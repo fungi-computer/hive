@@ -7,6 +7,7 @@ import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { ConstructionApproach } from "../sdk/construction-work";
+import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
 import { MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { EmissionOrder } from "../sdk/emission-work";
@@ -101,6 +102,31 @@ test("actual Colony workers supply and finish a player floor with finite lumber"
     session.restore(session.save());
     assert.deepEqual(port.structureSurfaces([[1, 0]]), [[{ cell: [1, 13, 0] }]]);
     assert.equal(session.query(query(ConstructionSite))[0].get(ConstructionSite).phase, "finished");
+  } finally { port.dispose(); }
+});
+
+test("actual Colony queues, performs, reloads, and conserves a floor deconstruction", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    const initialWood = session.query(query(MaterialLot)).reduce((sum, row) => sum + (row.get(MaterialLot).kind === "wood" ? row.get(MaterialLot).quantity : 0), 0);
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 13, 0] } });
+    for (let tick = 0; tick < 240 && !session.query(query(SealedContainer)).length; tick++) session.step(0.25);
+    const site = session.query(query(ConstructionSite))[0];
+    assert(site && site.get(ConstructionSite).phase === "finished");
+    session.command("deconstruct", { site: site.id });
+    for (let tick = 0; tick < 240 && session.query(query(ConstructionSite)).some((row) => row.id === site.id); tick++) session.step(0.25);
+
+    assert.equal(session.query(query(ConstructionSite)).some((row) => row.id === site.id), false);
+    session.step(0.01); // retire the authored order after the native receipt removed its site
+    assert.equal(session.query(query(DeconstructionOrder)).length, 0);
+    assert.equal(session.query(query(DeconstructionApproach)).length, 0);
+    assert.equal(session.query(query(MaterialLot)).reduce((sum, row) => sum + (row.get(MaterialLot).kind === "wood" ? row.get(MaterialLot).quantity : 0), 0), initialWood);
+    const saved = session.save();
+    session.restore(saved);
+    assert.equal(session.query(query(ConstructionSite)).some((row) => row.id === site.id), false);
+    assert.equal(session.query(query(MaterialLot)).reduce((sum, row) => sum + (row.get(MaterialLot).kind === "wood" ? row.get(MaterialLot).quantity : 0), 0), initialWood);
   } finally { port.dispose(); }
 });
 
