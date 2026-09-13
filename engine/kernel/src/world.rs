@@ -436,9 +436,8 @@ mod construction_tests {
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
         let contacts = rows[0]["contacts"].as_array().unwrap();
-        assert_eq!(contacts.len(), 8);
-        assert!(contacts[..4].iter().all(|row| row["kind"] == "origin" && row["y"] == (f64::from(surface.y) + 0.5) * kernel.environment.as_ref().unwrap().world.cell_spacing_m()[1]));
-        assert!(contacts[4..].iter().all(|row| row["kind"] == "landing" && row["y"] == (f64::from(surface.y + 2) + 0.5) * kernel.environment.as_ref().unwrap().world.cell_spacing_m()[1]));
+        assert_eq!(contacts.len(), 4);
+        assert!(contacts.iter().all(|row| row["kind"] == "origin" && row["y"] == (f64::from(surface.y) + 0.5) * kernel.environment.as_ref().unwrap().world.cell_spacing_m()[1]));
     }
 
     #[test]
