@@ -350,6 +350,7 @@ pub struct StagedProcess {
     pub entered_tick: u64,
     pub phase: ProcessPhase,
     pub blocked_reason: String,
+    pub worker: Option<String>,
 }
 
 #[derive(Component, Clone, Debug, Deserialize, Serialize, PartialEq)]
