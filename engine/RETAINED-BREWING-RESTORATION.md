@@ -84,3 +84,166 @@ This boundary can express a second recipe by authored definitions and typed tran
 - Completion is idempotent: a repeated tick or restored command cannot settle the same binding twice, reseal a vessel twice, or duplicate output. Exact binding IDs and transformation receipts enforce this.
 - A transfer supplies only the process binding’s missing requirement. No process path may clone a lot, reserve it outside the material owner, or create a brew-specific haul/cargo record.
 - Save/reload validates definition identity/version, stage/progress bounds, binding existence, retained lot identity/quantity, environmental obligation linkage, and output destination/capacity relations before reattaching owner state.
+
+## Accepted native implementation contract — September 13
+
+The current Rust engine has enough physical owners to implement this without a
+parallel material model. The remaining work is one native staged-process
+capability and its actual Colony consumer. This section replaces any implication
+above that recipe bindings should remain an authored TypeScript state machine.
+TypeScript authors definitions and schedules work; Rust owns process identity,
+bindings, progress and physical transitions.
+
+### Content boundary
+
+Extend the existing encoded environment definition with a bounded `processes`
+catalog. A definition has:
+
+```ts
+type ProcessDefinition = {
+  id: string;
+  stationCatalog: string;
+  inputs: readonly {
+    role: string;
+    port: string;
+    material: string;
+    quantity: number;
+    policy: "portion" | "whole-lot";
+    disposition: "consume" | "retain" | "emission-source";
+  }[];
+  stages: readonly {
+    id: string;
+    mode: "attended" | "elapsed";
+    durationSeconds: number;
+    transition: {
+      consumeRoles?: readonly string[];
+      emission?: { role: string; catalog: string };
+      outputs?: readonly {
+        role: string;
+        material: string;
+        quantity: number;
+        destination:
+          | { kind: "station-port"; port: string }
+          | { kind: "retained-container"; role: string };
+      }[];
+    };
+  }[];
+};
+```
+
+The compiler validates all IDs, finite bounds, unique roles/stages, referenced
+ports, retained-container capability, transition role coverage, output capacity
+shape and matching emission material/quantity. It rejects unknown fields. It does
+not store callbacks, execute arbitrary code or infer game policy. A process uses
+the compiled definition by ID; callers never submit transition quantities or
+output identities.
+
+`HERBAL_ALE_V1` is the first real consumer:
+
+- consumed at prepare: 2 malt, 2 water and 1 whole mugwort in `kettle`;
+- emission source at prepare: the exact 2 wood required by `wood-hearth` in
+  `hearth`;
+- retained: 1 whole barm in `barm` and one portable keg lot/container in `keg`;
+- stages: attended prepare, elapsed ferment, attended keg;
+- keg transition outputs 4 ale inside the bound keg and 1 spent-grain in `tray`.
+
+The portable keg is one entity with native `Lot { kind: "keg" }` custody and a
+native `Container`. Ale is transferred into that entity. There is no station-only
+fictional keg inventory and no duplicate item for presentation.
+
+### Native state and operations
+
+Use native ECS facts, saved in the ordinary entity snapshot:
+
+```text
+StagedProcess {
+  definition, station, stageIndex, progressSeconds,
+  enteredTick, phase: waiting | working | blocked | complete
+}
+ProcessBinding { process, role, lot, quantity }
+```
+
+Bindings are separate entities because a recipe has several exact lots. This
+keeps references queryable and validates them with the existing registry rather
+than storing an opaque JSON bag. Both component types are reserved physical
+facts. The process owner alone creates, mutates and removes them.
+
+The public native operations are deliberately narrow:
+
+```text
+admit-process(processId, definitionId, stationId)
+attend-process(workerId, processId)
+cancel-process(processId)
+consume-process-output(processId, outputRole, quantity)
+```
+
+`admit-process` resolves exact lots from the definition's station ports, creates
+bindings, and refuses missing or ambiguous custody. It never allocates a worker.
+The SDK readiness query may report the first missing requirement so ordinary
+site-supply/delivery can fill it before admission.
+
+`attend-process` contains no duration or amount. Rust validates worker/station
+contact and advances by the authoritative step delta. Elapsed stages advance in
+the native environment tick only after `enteredTick`, so entering fermentation
+does not also earn a fermentation tick. A worker may leave, be reassigned or be
+replaced without losing process progress.
+
+At a stage boundary Rust prepares every effect before publishing any:
+
+```text
+prepare exact material consumption
+prepare exact emission admission when configured
+prepare all output lots and destination capacities when configured
+validate current process/bindings and next stage
+publish consumption + emission + outputs + process transition atomically
+```
+
+A refusal publishes none of those effects. The process becomes blocked with a
+stable reason and the worker is released; it retries only after relevant
+material, capacity, contact or environment facts change. Replayed attendance or
+a lost command response cannot cross the same stage twice because the committed
+stage index and binding identities are part of admission.
+
+Cancellation before the first consuming transition removes only the process and
+bindings; supplied lots remain in their real ports. After consumption,
+`cancel-process` follows an explicit definition policy and must not recreate
+inputs, erase paid emissions or discard produced outputs. Herbal ale initially
+allows cancellation only before prepare completes.
+
+### Scheduling and game composition
+
+The shared TypeScript process work provider reads native readiness, process and
+contact facts. It contributes supply obligations to the existing delivery owner
+and attendance candidates to the existing bounded Hungarian assignment owner.
+It does not create a brew-specific haul task or reserve a worker while supplies,
+a route, output capacity or station contact are unavailable.
+
+Goblin contributes the herbal-ale definition, starter/test material sources,
+station action labels and original art bindings. Selecting a station issues one
+Whistle semantic command to request or cancel a batch. Human and Shiitake clients
+use the same command and receive the same readiness/rejection facts. The browser
+owns targeting and animation only.
+
+Pail filling, field watering, herb growth and harvesting remain separate consumers
+of existing finite-water, material and work capabilities. Their outputs become
+ordinary recipe lots. They do not enter the process kernel as brewing special
+cases.
+
+### Delivery sequence
+
+1. Land the compiler, reserved process/binding facts and native admission/contact/
+   save validation with an actual herbal-ale fixture.
+2. Land atomic prepare, elapsed fermentation and keg/output transitions by
+   composing the existing detached material, emission and output owners.
+3. Land the shared supply/attendance provider and one Colony request/cancel action.
+4. Add finite starter inputs only to the focused fixture; the playable world gets
+   them through pail/herb/growth work, not magic replenishment.
+5. Bind retained station/process/pail/herb animations and compact readiness facts.
+6. Prove current-format save/restart at every stage, blocked output capacity,
+   cancellation, lost response/replay, conservation and two connected clients.
+
+The first checkpoint is not accepted if it only serializes a process component.
+It must run one herbal-ale definition through the same generic API. The final
+slice is not accepted until the playable world obtains finite water and mugwort
+through world actions and serves four conserved ale portions without a worker
+remaining task-locked.
