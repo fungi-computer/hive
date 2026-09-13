@@ -49,6 +49,8 @@ export const colonyEnvironment: EnvironmentDefinition = {
       { id: "timber-floor", shape: { kind: "floor" }, workReachBelowCells: 4, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 2 },
       { id: "timber-wall", shape: { kind: "wall", height: 4 }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 4 }], workSeconds: 4 },
       { id: "timber-stair", shape: { kind: "stair", run: 2, rise: 4 }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 6 },
+      { id: "timber-roof", shape: { kind: "cover" }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 3 },
+      { id: "timber-bed", shape: { kind: "fixture", footprint: [[0, 0], [0, 1]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 3 },
     ],
   },
   materials: [

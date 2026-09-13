@@ -57,6 +57,8 @@ struct StructureInput {
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
 enum StructureShapeInput {
     Floor,
+    Cover,
+    Fixture { footprint: Vec<[i8; 2]> },
     Wall { height: u8 },
     Aperture { height: u8, #[serde(rename = "openingBottom")] opening_bottom: u8, #[serde(rename = "openingHeight")] opening_height: u8 },
     Stair { run: u8, rise: u8 },
@@ -70,6 +72,8 @@ struct StructureMaterialInput {
 #[derive(Clone, Debug)]
 pub enum StructureShape {
     Floor,
+    Cover,
+    Fixture { footprint: Vec<[i8; 2]> },
     Wall { height: u8 },
     Aperture {
         height: u8,
@@ -225,6 +229,8 @@ fn prepare_definition_mode(
         }
         let shape = match entry.shape {
             StructureShapeInput::Floor => StructureShape::Floor,
+            StructureShapeInput::Cover => StructureShape::Cover,
+            StructureShapeInput::Fixture { footprint } if !footprint.is_empty() && footprint.len() <= 16 && footprint.iter().all(|[x,z]| i8::abs(*x) <= 8 && i8::abs(*z) <= 8) && footprint.windows(2).all(|pair| pair[0] != pair[1]) => StructureShape::Fixture { footprint },
             StructureShapeInput::Wall { height } if (1..=64).contains(&height) => StructureShape::Wall { height },
             StructureShapeInput::Aperture { height, opening_bottom, opening_height } if (1..=64).contains(&height) && opening_height > 0 && u16::from(opening_bottom) + u16::from(opening_height) < u16::from(height) => StructureShape::Aperture { height, opening_bottom, opening_height },
             StructureShapeInput::Stair { run, rise } if valid_stair_shape(run, rise, definition.world.vertical_metres) => StructureShape::Stair { run, rise },

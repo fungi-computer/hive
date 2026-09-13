@@ -33,6 +33,8 @@ pub struct SupportResult {
 fn instance_id(instance: &StaticInstance) -> &str {
     match instance {
         StaticInstance::Floor { id, .. }
+        | StaticInstance::Cover { id, .. }
+        | StaticInstance::Fixture { id, .. }
         | StaticInstance::Wall { id, .. }
         | StaticInstance::ApertureWall { id, .. }
         | StaticInstance::Stair { id, .. } => id,
@@ -46,6 +48,9 @@ fn cardinal_delta(direction: Cardinal) -> (i64, i64) {
         Cardinal::South => (0, 1),
         Cardinal::West => (-1, 0),
     }
+}
+fn fixture_cells(origin: Cell, orientation: Cardinal, footprint: &[[i8; 2]]) -> Result<Vec<Cell>, String> {
+    footprint.iter().map(|[x,z]| { let (dx,dz) = match orientation { Cardinal::North => (i64::from(*x),i64::from(*z)), Cardinal::East => (-i64::from(*z),i64::from(*x)), Cardinal::South => (-i64::from(*x),-i64::from(*z)), Cardinal::West => (i64::from(*z),-i64::from(*x)) }; Ok(Cell { x: origin.x.checked_add(dx).ok_or("structure fixture coordinate overflow")?, y: origin.y, z: origin.z.checked_add(dz).ok_or("structure fixture coordinate overflow")? }) }).collect()
 }
 
 fn wall_top(base: Cell, height: u8) -> Result<Cell, String> {
@@ -120,13 +125,16 @@ pub fn resolve(
     let mut terrain_anchors = BTreeSet::new();
     for instance in instances {
         let base = match instance {
-            StaticInstance::Floor { support, .. } => *support,
+            StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support,
+            StaticInstance::Fixture { origin, .. } => Cell { y: origin.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*origin },
             StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
             StaticInstance::Stair { origin, .. } => *origin,
         };
         if support_at(base)? {
             terrain_anchors.insert(base);
         }
+        // Fixtures are body occupancy only. Their support is checked below at
+        // admission; they never become structural anchors for later objects.
         if let StaticInstance::Floor { support, .. } = instance {
             for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
                 let neighbor = cardinal_neighbor(*support, dx, dz)?;
@@ -149,6 +157,7 @@ pub fn resolve(
     let mut rooted_walls = BTreeSet::<String>::new();
     let mut rooted_stairs = BTreeSet::<String>::new();
     let mut rooted_floors = BTreeSet::<String>::new();
+    let mut rooted_covers = BTreeSet::<String>::new();
     let mut column_tops = BTreeSet::new();
     let mut stair_landings = BTreeSet::new();
     let mut floor_surfaces = BTreeSet::new();
@@ -232,6 +241,23 @@ pub fn resolve(
                     stair_landings.insert(stair_landing(*origin, *orientation, *run, *rise)?);
                     changed = true;
                 }
+                StaticInstance::Fixture { id, origin, orientation, footprint } if !rooted.contains(id) => {
+                    let cells = fixture_cells(*origin, *orientation, footprint)?;
+                    let supported = cells.iter().all(|cell| {
+                        let below = Cell { y: cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*cell };
+                        Ok::<bool, String>(load_contacts.contains(&below) || terrain_support(below)?)
+                    })?;
+                    if supported { rooted.insert(id.clone()); changed = true; }
+                }
+                StaticInstance::Cover { id, support } if !rooted.contains(id) => {
+                    let rooted_cover_support = instances.iter().filter_map(|candidate| match candidate {
+                        StaticInstance::Cover { id: other, support: other_support } if rooted_covers.contains(other) => Some(*other_support),
+                        _ => None,
+                    });
+                    let anchored = load_contacts.iter().any(|anchor| anchor.y == support.y && anchor.x.abs_diff(support.x) + anchor.z.abs_diff(support.z) <= u64::from(policy.max_span_steps));
+                    let chained = rooted_cover_support.into_iter().any(|other| other.y == support.y && other.x.abs_diff(support.x) + other.z.abs_diff(support.z) <= u64::from(policy.max_span_steps));
+                    if anchored || chained { rooted_covers.insert(id.clone()); rooted.insert(id.clone()); changed = true; }
+                }
                 _ => {}
             }
         }
@@ -266,11 +292,18 @@ pub fn candidate_supported(
 ) -> Result<bool, String> {
     if max_span_steps == 0 { return Err("invalid structure support policy".into()); }
     let support = match instance {
-        StaticInstance::Floor { support, .. } => *support,
+        StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support,
+        StaticInstance::Fixture { origin, .. } => Cell { y: origin.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*origin },
         StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
         StaticInstance::Stair { origin, .. } => *origin,
     };
+    if let StaticInstance::Fixture { origin, orientation, footprint, .. } = instance {
+        return Ok(fixture_cells(*origin, *orientation, footprint)?.iter().all(|cell| terrain_support(Cell { y: cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*cell })?));
+    }
     if terrain_support(support)? { return Ok(true); }
+    if matches!(instance, StaticInstance::Cover { .. }) {
+        return Ok(base.structural_anchors.iter().any(|anchor| anchor.y == support.y && anchor.x.abs_diff(support.x) + anchor.z.abs_diff(support.z) <= u64::from(max_span_steps)));
+    }
     if matches!(instance, StaticInstance::Floor { .. }) {
         for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
             if terrain_support(cardinal_neighbor(support, dx, dz)?)? { return Ok(true); }

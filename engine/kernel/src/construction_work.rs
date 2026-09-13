@@ -124,6 +124,8 @@ impl Kernel {
         use crate::structure_geometry::StaticInstance;
         match &definition.shape {
             StructureShape::Floor => StaticInstance::Floor { id: site.into(), support: crate::generation::Cell { x, y, z } },
+            StructureShape::Cover => StaticInstance::Cover { id: site.into(), support: crate::generation::Cell { x, y, z } },
+            StructureShape::Fixture { footprint } => StaticInstance::Fixture { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, footprint: footprint.clone() },
             StructureShape::Wall { height } => StaticInstance::Wall { id: site.into(), base: crate::generation::Cell { x, y, z }, height: *height },
             StructureShape::Aperture { height, opening_bottom, opening_height } => StaticInstance::ApertureWall { id: site.into(), base: crate::generation::Cell { x, y, z }, height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false },
             StructureShape::Stair { run, rise } => StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise },
@@ -146,6 +148,7 @@ impl Kernel {
         let walking_y = match definition.shape {
             crate::environment_definition::StructureShape::Wall { .. }
             | crate::environment_definition::StructureShape::Aperture { .. } => site.y.checked_sub(1),
+            crate::environment_definition::StructureShape::Cover | crate::environment_definition::StructureShape::Fixture { .. } => site.y.checked_sub(1),
             _ => Some(site.y),
         };
         let Some(walking_y) = walking_y else { return Vec::new(); };
@@ -186,6 +189,8 @@ impl Kernel {
         let geometry_instances = environment.world.structure_instances();
         let geometry_ids: BTreeSet<String> = geometry_instances.iter().map(|instance| match instance {
             crate::structure_geometry::StaticInstance::Floor { id, .. }
+            | crate::structure_geometry::StaticInstance::Cover { id, .. }
+            | crate::structure_geometry::StaticInstance::Fixture { id, .. }
             | crate::structure_geometry::StaticInstance::Wall { id, .. }
             | crate::structure_geometry::StaticInstance::ApertureWall { id, .. }
             | crate::structure_geometry::StaticInstance::Stair { id, .. } => id.clone(),

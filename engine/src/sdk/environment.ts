@@ -75,6 +75,8 @@ export interface EnvironmentStructures {
 
 export type EnvironmentStructureShape =
   | { readonly kind: "floor" }
+  | { readonly kind: "cover" }
+  | { readonly kind: "fixture"; readonly footprint: readonly (readonly [number, number])[] }
   | { readonly kind: "wall"; readonly height: number }
   | { readonly kind: "aperture"; readonly height: number; readonly openingBottom: number; readonly openingHeight: number }
   | { readonly kind: "stair"; readonly run: number; readonly rise: number };
@@ -158,14 +160,18 @@ export function validateEnvironmentDefinition(
     }
     ids.add(entry.id);
     const shape = entry.shape;
-    if (!shape || (shape.kind !== "floor" && shape.kind !== "wall" && shape.kind !== "stair")
+    if (!shape || (shape.kind !== "floor" && shape.kind !== "cover" && shape.kind !== "fixture" && shape.kind !== "wall" && shape.kind !== "aperture" && shape.kind !== "stair")
+      || shape.kind === "fixture" && (!Array.isArray(shape.footprint) || shape.footprint.length < 1 || shape.footprint.length > 16 || shape.footprint.some(([x, z]) => !Number.isSafeInteger(x) || !Number.isSafeInteger(z) || Math.abs(x) > 8 || Math.abs(z) > 8))
       || shape.kind === "wall" && (!Number.isSafeInteger(shape.height) || shape.height < 1 || shape.height > 64)
+      || shape.kind === "aperture" && (!Number.isSafeInteger(shape.height) || shape.height < 1 || shape.height > 64 || !Number.isSafeInteger(shape.openingBottom) || !Number.isSafeInteger(shape.openingHeight) || shape.openingHeight < 1 || shape.openingBottom < 0 || shape.openingBottom + shape.openingHeight >= shape.height)
       || shape.kind === "stair" && (!Number.isSafeInteger(shape.run) || !Number.isSafeInteger(shape.rise)
         || shape.run < 1 || shape.run > 64 || shape.rise < 1 || shape.rise > 64
         || !Number.isFinite(definition.world.verticalMetres)
         || shape.rise * definition.world.verticalMetres / shape.run > maxStairGrade)) {
       throw new Error("invalid structure catalog shape");
     }
+    if (shape.kind === "fixture" && new Set(shape.footprint.map(([x, z]) => `${x},${z}`)).size !== shape.footprint.length)
+      throw new Error("invalid structure fixture footprint");
     const endpointCount = shape.kind === "stair" ? 2 : 1;
     if (endpointCount * (4 + entry.workReachBelowCells * 5) > 32) {
       throw new Error("structure catalog entry exceeds 32 construction access contacts");

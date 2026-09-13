@@ -92,6 +92,8 @@ impl Face {
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum StaticInstance {
     Floor { id: String, support: Cell },
+    Cover { id: String, support: Cell },
+    Fixture { id: String, origin: Cell, orientation: Cardinal, footprint: Vec<[i8; 2]> },
     Wall { id: String, base: Cell, height: u8 },
     ApertureWall {
         id: String,
@@ -115,7 +117,7 @@ pub enum StaticInstance {
 impl StaticInstance {
     fn id(&self) -> &str {
         match self {
-            Self::Floor { id, .. } | Self::Wall { id, .. } | Self::ApertureWall { id, .. } | Self::Stair { id, .. } => id.as_str(),
+            Self::Floor { id, .. } | Self::Cover { id, .. } | Self::Fixture { id, .. } | Self::Wall { id, .. } | Self::ApertureWall { id, .. } | Self::Stair { id, .. } => id.as_str(),
         }
     }
 
@@ -126,6 +128,16 @@ impl StaticInstance {
                     return Err("structure floor is outside generated bounds".into());
                 }
                 Ok(1)
+            }
+            Self::Cover { id, support } => {
+                if !crate::components::valid_id(id) || !contains(bounds, *support) { return Err("structure cover is outside generated bounds".into()); }
+                Ok(1)
+            }
+            Self::Fixture { id, origin, orientation, footprint } => {
+                if !crate::components::valid_id(id) || footprint.is_empty() || footprint.len() > 16 { return Err("invalid bounded structure fixture".into()); }
+                let mut cells = BTreeSet::new();
+                for [x, z] in footprint { let (dx, dz) = match orientation { Cardinal::North => (i64::from(*x), i64::from(*z)), Cardinal::East => (-i64::from(*z), i64::from(*x)), Cardinal::South => (-i64::from(*x), -i64::from(*z)), Cardinal::West => (i64::from(*z), -i64::from(*x)) }; let cell = Cell { x: origin.x.checked_add(dx).ok_or("structure fixture coordinate overflow")?, y: origin.y, z: origin.z.checked_add(dz).ok_or("structure fixture coordinate overflow")? }; if !contains(bounds, cell) || !cells.insert(cell) { return Err("invalid structure fixture footprint".into()); } }
+                Ok(footprint.len())
             }
             Self::Wall { id, base, height } => {
                 if !crate::components::valid_id(id) || *height == 0 || *height > MAX_WALL_HEIGHT {
@@ -182,11 +194,13 @@ impl StaticInstance {
         }
     }
 
-    fn derive(&self, solids: &mut BTreeSet<Cell>, faces: &mut BTreeSet<Face>) -> Result<(), String> {
+    fn derive(&self, solids: &mut BTreeSet<Cell>, faces: &mut BTreeSet<Face>, supports: &mut BTreeSet<Face>) -> Result<(), String> {
         match self {
             Self::Floor { support, .. } => {
-                faces.insert(Face::upward(*support));
+                if !faces.insert(Face::upward(*support)) || !supports.insert(Face::upward(*support)) { return Err("duplicate structure horizontal face".into()); }
             }
+            Self::Cover { support, .. } => { if !faces.insert(Face::upward(*support)) { return Err("duplicate structure horizontal face".into()); } }
+            Self::Fixture { .. } => {}
             Self::Wall { base, height, .. } => {
                 for offset in 0..u32::from(*height) {
                     let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure wall coordinate overflow")?)
@@ -277,9 +291,10 @@ impl StaticGeometry {
     pub fn projection(&self) -> Result<GeometryProjection, String> {
         let mut solids = BTreeSet::new();
         let mut faces = BTreeSet::new();
+        let mut supports = BTreeSet::new();
         for instance in &self.instances {
             instance.bound(self.bounds)?;
-            instance.derive(&mut solids, &mut faces)?;
+            instance.derive(&mut solids, &mut faces, &mut supports)?;
         }
         let mut stair_edges = Vec::new();
         for instance in &self.instances {
@@ -294,7 +309,17 @@ impl StaticGeometry {
             }
         }
         stair_edges.sort();
-        Ok(GeometryProjection { solids, explicit_faces: faces, stair_edges })
+        let mut fixture_cells = BTreeSet::new();
+        for instance in &self.instances {
+            if let StaticInstance::Fixture { origin, orientation, footprint, .. } = instance {
+                for [x, z] in footprint {
+                    let (dx, dz) = match orientation { Cardinal::North => (i64::from(*x), i64::from(*z)), Cardinal::East => (-i64::from(*z), i64::from(*x)), Cardinal::South => (-i64::from(*x), -i64::from(*z)), Cardinal::West => (i64::from(*z), -i64::from(*x)) };
+                    let cell = Cell { x: origin.x + dx, y: origin.y, z: origin.z + dz };
+                    if solids.contains(&cell) || !fixture_cells.insert(cell) { return Err("duplicate structure fixture occupancy".into()); }
+                }
+            }
+        }
+        Ok(GeometryProjection { solids, explicit_faces: faces, support_faces: supports, stair_edges, fixture_cells })
     }
 }
 
@@ -302,7 +327,9 @@ impl StaticGeometry {
 pub struct GeometryProjection {
     solids: BTreeSet<Cell>,
     explicit_faces: BTreeSet<Face>,
+    support_faces: BTreeSet<Face>,
     stair_edges: Vec<StairEdge>,
+    fixture_cells: BTreeSet<Cell>,
 }
 
 impl GeometryProjection {
@@ -317,6 +344,8 @@ impl GeometryProjection {
         Ok(cells)
     }
     pub fn is_bulk_solid(&self, cell: Cell) -> bool { self.solids.contains(&cell) }
+    pub fn is_fixture(&self, cell: Cell) -> bool { self.fixture_cells.contains(&cell) }
+    pub fn blocks_traversal(&self, cell: Cell) -> bool { self.is_bulk_solid(cell) || self.is_fixture(cell) }
     /// A face is sealed when explicitly authored (floor/stair top) or when it
     /// touches a bulk structure cell. The latter keeps walls and stair bodies
     /// consistent without materializing six faces per solid cell.
@@ -326,7 +355,7 @@ impl GeometryProjection {
             || face.neighbor().is_ok_and(|neighbor| self.solids.contains(&neighbor))
     }
     pub fn supports(&self, cell: Cell) -> bool {
-        self.solids.contains(&cell) || self.explicit_faces.contains(&Face::upward(cell))
+        self.solids.contains(&cell) || self.support_faces.contains(&Face::upward(cell))
     }
     pub fn solid_cells(&self) -> impl Iterator<Item = &Cell> { self.solids.iter() }
     pub fn explicit_faces(&self) -> impl Iterator<Item = &Face> { self.explicit_faces.iter() }
@@ -342,7 +371,7 @@ impl GeometryProjection {
                 if above.is_none_or(|neighbor| !self.solids.contains(&neighbor)) { column.insert(cell); }
             }
         };
-        for face in &self.explicit_faces {
+        for face in &self.support_faces {
             if face.axis == FaceAxis::Y { add(face.cell); }
         }
         for cell in &self.solids { add(*cell); }
@@ -383,6 +412,26 @@ mod tests {
         assert!(projection.is_face_sealed(Face::upward(support)));
         assert!(projection.supports(support));
         assert_eq!(Face::upward(support).metric_height(0.54).unwrap(), (-6.5) * 0.54);
+    }
+
+    #[test]
+    fn cover_seals_without_bulk_or_standing_support() {
+        let support = Cell { x: 2, y: 0, z: 2 };
+        let projection = StaticGeometry::new(bounds(), vec![StaticInstance::Cover { id: "roof".into(), support }]).unwrap().projection().unwrap();
+        assert!(!projection.is_bulk_solid(support));
+        assert!(projection.is_face_sealed(Face::upward(support)));
+        assert!(!projection.supports(support));
+    }
+
+    #[test]
+    fn fixture_rotates_blocks_traversal_and_stays_permeable() {
+        let origin = Cell { x: 2, y: 0, z: 2 };
+        let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Fixture { id: "bed".into(), origin, orientation: Cardinal::East, footprint: vec![[0, 0], [0, 1]] }]).unwrap();
+        let projection = geometry.projection().unwrap();
+        assert!(projection.blocks_traversal(Cell { x: 2, y: 0, z: 2 }));
+        assert!(projection.blocks_traversal(Cell { x: 1, y: 0, z: 2 }));
+        assert!(!projection.is_bulk_solid(Cell { x: 1, y: 0, z: 2 }));
+        assert!(!projection.is_face_sealed(Face::upward(Cell { x: 1, y: 0, z: 2 })));
     }
 
     #[test]
