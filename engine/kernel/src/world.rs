@@ -223,12 +223,12 @@ mod construction_tests {
         let environment = kernel.environment.as_mut().unwrap();
         environment.structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
-            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0,
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0,
         });
         let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
         definition["structures"]["catalog"].as_array_mut().unwrap().push(json!({
             "id":"wall", "shape":{"kind":"wall","height":1},
-            "materials":[{"kind":"stone-spoil","quantity":1}], "workSeconds":1
+            "materials":[{"kind":"stone-spoil","quantity":1}], "workSeconds":1, "workReachBelowCells":0
         }));
         environment.definition = serde_json::to_string(&definition).unwrap();
     }
@@ -459,7 +459,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("stair".into(), crate::environment_definition::StructureDefinition {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
-            materials: BTreeMap::new(), work_seconds: 1.0,
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();

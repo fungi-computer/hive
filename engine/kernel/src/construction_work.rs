@@ -154,31 +154,20 @@ impl Kernel {
             let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| site.z.checked_add(offset)) else { return Vec::new(); };
             endpoints.push((x, y, z, "landing"));
         }
-        endpoints.into_iter().flat_map(|(ex, y, ez, kind)| [(0_i64, -1_i64), (1, 0), (0, 1), (-1, 0)].into_iter().filter_map(move |(x, z)| {
-            Some((crate::generation::Cell { x: ex.checked_add(x)?, y, z: ez.checked_add(z)? }, [(ex.checked_add(x)? as f64) * spacing[0], (f64::from(y) + 0.5) * spacing[1], (ez.checked_add(z)? as f64) * spacing[2]], kind))
-        })).collect()
+        endpoints.into_iter().flat_map(|(ex, endpoint_y, ez, kind)| {
+            let cardinal = [(0_i64, -1_i64), (1, 0), (0, 1), (-1, 0)];
+            let center_and_cardinals = move |y: i32, include_center: bool| {
+                include_center.then(|| (crate::generation::Cell { x: ex, y, z: ez }, [ex as f64 * spacing[0], (f64::from(y) + 0.5) * spacing[1], ez as f64 * spacing[2]], kind)).into_iter().chain(cardinal.into_iter().filter_map(move |(x, z)| {
+                    Some((crate::generation::Cell { x: ex.checked_add(x)?, y, z: ez.checked_add(z)? }, [(ex.checked_add(x)? as f64) * spacing[0], (f64::from(y) + 0.5) * spacing[1], (ez.checked_add(z)? as f64) * spacing[2]], kind))
+                }))
+            };
+            let depth0 = center_and_cardinals(endpoint_y, false);
+            let lower = (1..=definition.work_reach_below_cells).filter_map(move |depth| endpoint_y.checked_sub(i32::try_from(depth).ok()?)).flat_map(move |y| center_and_cardinals(y, true));
+            depth0.chain(lower)
+        }).collect()
     }
     fn contact_candidate_rows(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Vec<([f64; 3], &'static str)> {
-        let walking_y = match definition.shape {
-            crate::environment_definition::StructureShape::Wall { .. }
-            | crate::environment_definition::StructureShape::Aperture { .. } => site.y.checked_sub(1),
-            _ => Some(site.y),
-        };
-        let Some(walking_y) = walking_y else { return Vec::new(); };
-        let mut endpoints = vec![(site.x, walking_y, site.z, "origin")];
-        if let crate::environment_definition::StructureShape::Stair { run, rise } = &definition.shape {
-            let (dx, dz) = match site.orientation {
-                crate::structure_geometry::Cardinal::North => (0, -1),
-                crate::structure_geometry::Cardinal::East => (1, 0),
-                crate::structure_geometry::Cardinal::South => (0, 1),
-                crate::structure_geometry::Cardinal::West => (-1, 0),
-            };
-            let Some(x) = i64::from(dx).checked_mul(i64::from(*run)).and_then(|offset| site.x.checked_add(offset)) else { return Vec::new(); };
-            let Some(y) = walking_y.checked_add(i32::from(*rise)) else { return Vec::new(); };
-            let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| site.z.checked_add(offset)) else { return Vec::new(); };
-            endpoints.push((x, y, z, "landing"));
-        }
-        endpoints.into_iter().flat_map(|(ex, y, ez, kind)| [(0_i64, -1_i64), (1, 0), (0, 1), (-1, 0)].into_iter().filter_map(move |(x, z)| Some(([(ex.checked_add(x)? as f64) * spacing[0], (f64::from(y) + 0.5) * spacing[1], (ez.checked_add(z)? as f64) * spacing[2]], kind)))).collect()
+        self.contact_candidate_cells(site, definition, spacing).into_iter().map(|(_, point, kind)| (point, kind)).collect()
     }
     fn contact_is_valid(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, position: [f64; 3], spacing: [f64; 3]) -> Result<bool> {
         Ok(self.current_contact_candidate_rows(site, definition, spacing)?.into_iter().any(|(candidate, _)| {
