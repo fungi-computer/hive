@@ -218,6 +218,11 @@ const cancelDigInput = z.object({
 }).strict().refine(value => value.entities !== undefined || value.area !== undefined, "cancel dig requires workers or an area");
 const depositInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).length(1) }).strict();
 
+const mugwortTargetInput = z.object({
+  cell: pointInput,
+  material: z.number().int().min(0).max(65535),
+}).strict();
+
 function selectedWorkers(context: CommandContext, raw: readonly EntityId[]): readonly EntityId[] {
   const selected = [...new Set(raw)];
   if (
@@ -413,9 +418,35 @@ export const colonyPack: GamePack = {
     sowMugwort: command({
       title: "Sow mugwort", category: "Colony", description: "Designate a reachable soil cell for tended mugwort.",
       localPresentation: { bindings: [{ id: "sow-mugwort", label: "Sow mugwort", target: "terrain-cell", designation: ["point"] as const }] },
-      input: z.object({ target: z.object({ cell: z.tuple([z.number().int(), z.number().int(), z.number().int()]) }).strict() }).strict(),
-      reads: [ColonyResourceOrder], writes: [], lifecycle: [ColonyResourceOrder],
-      run: (_context, input) => { const [x, y, z] = input.target.cell; const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`); return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] }; },
+      input: z.object({ target: mugwortTargetInput }).strict(),
+      reads: [ColonyResourceOrder, ResourceSite, ConstructionSite], writes: [], lifecycle: [ColonyResourceOrder],
+      run: (context, input) => {
+        const [x, y, z] = input.target.cell;
+        const { minX, maxX, minY, maxY, minZ, maxZ } = colonyEnvironment.world.bounds;
+        if (x < minX || x >= maxX || y < minY || y >= maxY || z < minZ || z >= maxZ)
+          throw new Error("mugwort target is outside the colony world");
+        const surface = context.terrainSurfaces([[x, z]])[0];
+        if (!surface || surface.cell[1] !== y)
+          throw new Error("mugwort requires a generated ground surface");
+        const actualMaterial = context.terrainMaterials([input.target.cell])[0];
+        if (input.target.material !== actualMaterial)
+          throw new Error("mugwort target terrain changed");
+        if (actualMaterial !== colonyEnvironment.world.slots.soil)
+          throw new Error("mugwort requires soil");
+        const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`);
+        const occupiedOrder = context.query(query(ColonyResourceOrder)).some(row => {
+          const order = row.get(ColonyResourceOrder);
+          return order.cellX === x && order.cellY === y && order.cellZ === z && order.phase !== "complete";
+        });
+        const occupiedResource = context.query(query(ResourceSite)).some(row => row.id === id);
+        const occupiedStructure = context.query(query(ConstructionSite)).some(row => {
+          const site = row.get(ConstructionSite);
+          return site.x === x && site.y === y && site.z === z;
+        });
+        if (occupiedOrder || occupiedResource || occupiedStructure)
+          throw new Error("mugwort cell already has an active designation");
+        return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] };
+      },
     }),
     requestBrew: command({
       title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",

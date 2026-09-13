@@ -107,7 +107,7 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
       for (let tick = 0; tick < 240 && port.terrainMaterials([surface.cell])[0] !== 0; tick++) session.step(0.25);
       assert.equal(port.terrainMaterials([surface.cell])[0], 0, "groundwater exposure must finish");
     }
-    session.command("sowMugwort", { target: { cell: [0, 13, 0] } });
+    session.command("sowMugwort", { target: { cell: [0, 13, 0], material: 1 } });
     session.step(0);
     const intent = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
     assert(intent, "sow command must create a workerless resource intent");

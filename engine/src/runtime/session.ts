@@ -343,6 +343,8 @@ export class GameSession {
     const result: GameCommandResult = handler.invoke(
       {
         physicalContacts: (cells) => this.port.physicalContacts(cells),
+        terrainMaterials: (cells) => this.port.terrainMaterials(cells),
+        terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         query: (spec) => {
           for (const component of spec.components)
             if (!reads.has(component.id))
