@@ -2705,9 +2705,6 @@ impl Kernel {
                         return Err("container custody cycle".into());
                     }
                     seen.push(current);
-                    if self.ecs.get::<Container>(current).is_none() {
-                        return Err("no position".into());
-                    }
                     let lot = self.ecs.get::<Lot>(current).ok_or("no position")?;
                     current = self.entity(&lot.container)?;
                 }

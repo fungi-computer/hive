@@ -84,7 +84,6 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
     };
     const lots = materialFacts.lots;
     const lotsById = new Map(lots.map(lot => [lot.id, lot]));
-    const containers = new Map(materialFacts.containers.map(container => [container.id, container]));
     // A portable container is a real container carried by its holder, so its
     // interior source has no independent position. Resolve that source's
     // contact through the authoritative pail lot custody.
@@ -95,13 +94,14 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         if (positionIds.has(current)) return current;
         if (seen.has(current)) return null;
         seen.add(current);
-        const lot = lotsById.get(current);
-        if (!lot || !containers.has(current)) return null;
+        const lot = lots.find(candidate => candidate.id === current);
+        if (!lot || !materialFacts.containers.some(container => container.id === current)) return null;
         current = lot.container;
       }
       return null;
     };
     const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
+    const containers = new Map(materialFacts.containers.map(container => [container.id, container]));
     const quantityByContainer = new Map<EntityId, number>();
     const invalidLotContainers = new Set<EntityId>();
     for (const lot of lots) {
@@ -210,7 +210,6 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
           !sourcePosition ||
           !destinationPosition ||
           !sourceId ||
-          (sourceId !== task.source && bodies.has(sourceId) && sourceId !== controlRow.id) ||
           !sameFrame(controlRow.id, sourceId) ||
           !sameFrame(controlRow.id, task.destination)
         )
@@ -293,9 +292,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       )
         continue;
       if (
-        !sourceId ||
-        (sourceId !== state.source && bodies.has(sourceId) && sourceId !== state.actor) ||
-        !sameFrame(state.actor, sourceId) ||
+        !sameFrame(state.actor, state.source) ||
         !sameFrame(state.actor, state.destination)
       )
         continue;
