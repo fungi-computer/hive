@@ -3290,7 +3290,7 @@ impl Kernel {
                 self.ecs.entity_mut(e).insert(stock);
                 Ok(ActionEffect::None)
             }
-            Action::ExtractResource { worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
+            Action::ExtractResource { operation: _, worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
             Action::EstablishResourceSite { operation, worker, site, definition, x, y, z } => self.establish_resource_site(&operation, &worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
             Action::TendResourceSite { operation, worker, site, vessel } => self.tend_resource_site(&operation, &worker, &site, &vessel).map(|()| ActionEffect::None),
             Action::Launch {
@@ -4513,7 +4513,7 @@ mod finite_resource_tests {
     #[test]
     fn extraction_conserves_kind_quantity_and_recovers_after_restore() {
         let mut kernel = kernel();
-        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:1","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true);
         let lot = result["results"][0]["entityId"].as_str().unwrap().to_owned();
         let lots: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.lot\"]").unwrap()).unwrap();
@@ -4526,13 +4526,13 @@ mod finite_resource_tests {
         let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap();
         assert_eq!(restored.query_json("[\"hive.finite-resource\"]").unwrap(), kernel.query_json("[\"hive.finite-resource\"]").unwrap());
         assert_eq!(restored.query_json("[\"hive.lot\"]").unwrap(), kernel.query_json("[\"hive.lot\"]").unwrap());
-        let retry: serde_json::Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
+        let retry: serde_json::Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:2","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
         assert_eq!(retry["results"][0]["accepted"], false);
         assert!(restored.entity(&lot).is_ok());
     }
 
     fn action(kernel: &mut Kernel) -> serde_json::Value {
-        serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap()
+        serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:capacity","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap()
     }
 
     #[test]

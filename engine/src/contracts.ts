@@ -265,6 +265,7 @@ export type ActionRequest =
     }
   | {
       readonly kind: "extract-resource";
+      readonly operation: string;
       readonly worker: EntityId;
       readonly source: EntityId;
     };

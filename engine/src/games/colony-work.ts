@@ -111,7 +111,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       const work = state.workSeconds + ctx.clock.delta;
       if (state.phase === "sow" && work >= definition.sowSeconds) { const operation = `${row.id}:sow:${state.attempt + 1}`; ctx.action(establishResourceSite(operation, worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, phase: "submitting-sow", workSeconds: work, reason: "", attempt: state.attempt + 1 }); }
       else if (state.phase === "tend" && work >= definition.tendSeconds && (state.vessel ?? candidates.find(candidate => candidate.worker === worker && candidate.task === row.id)?.vessel)) { const vessel = state.vessel ?? candidates.find(candidate => candidate.worker === worker && candidate.task === row.id)?.vessel!; const operation = `${row.id}:tend:${state.attempt + 1}`; ctx.action(tendResourceSite(operation, worker, state.site, vessel)); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, vessel, phase: "submitting-tend", workSeconds: work, reason: "", attempt: state.attempt + 1 }); }
-      else if (state.phase === "harvest" && work >= definition.harvestSeconds) { ctx.action(extractResource(worker, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "submitting-harvest", workSeconds: work, reason: "" }); }
+      else if (state.phase === "harvest" && work >= definition.harvestSeconds) { const operation = `${row.id}:harvest:${state.attempt + 1}`; ctx.action(extractResource(operation, worker, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, phase: "submitting-harvest", workSeconds: work, reason: "", attempt: state.attempt + 1 }); }
       else ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, workSeconds: work });
       void site;
     }
@@ -125,7 +125,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       const work = state.workSeconds + ctx.clock.delta;
       if (state.phase === "sow" && work >= definition.sowSeconds) { const operation = `${row.id}:sow:${state.attempt + 1}`; ctx.action(establishResourceSite(operation, state.actor, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, phase: "submitting-sow", workSeconds: work, attempt: state.attempt + 1 }); }
       else if (state.phase === "tend" && work >= definition.tendSeconds && state.vessel) { const operation = `${row.id}:tend:${state.attempt + 1}`; ctx.action(tendResourceSite(operation, state.actor, state.site, state.vessel)); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, phase: "submitting-tend", workSeconds: work, attempt: state.attempt + 1 }); }
-      else if (state.phase === "harvest" && work >= definition.harvestSeconds) { ctx.action(extractResource(state.actor, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, phase: "submitting-harvest", workSeconds: work, attempt: state.attempt + 1 }); }
+      else if (state.phase === "harvest" && work >= definition.harvestSeconds) { const operation = `${row.id}:harvest:${state.attempt + 1}`; ctx.action(extractResource(operation, state.actor, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, phase: "submitting-harvest", workSeconds: work, attempt: state.attempt + 1 }); }
       else ctx.write(ColonyResourceOrder, row.id, { ...state, workSeconds: work });
     }
   } };
@@ -472,7 +472,7 @@ const treeWorkProvider = (
         if (order.phase === "blocked" && order.reason === "Extracting") {
           const accepted = ctx.outcomes.find(
             (outcome) =>
-              outcome.action.kind === "extract-resource" &&
+              outcome.action.kind === "extract-resource" && outcome.action.operation === `colony.tree:${row.id}:${order.stage}` &&
               outcome.action.source === order.tree,
           );
           if (
@@ -563,7 +563,7 @@ const treeWorkProvider = (
           });
           continue;
         }
-        ctx.action(extractResource(order.actor, treeRow.id));
+        ctx.action(extractResource(`colony.tree:${row.id}:${order.stage}`, order.actor, treeRow.id));
         ctx.write(ColonyTreeOrder, row.id, {
           ...order,
           phase: "blocked",

@@ -374,7 +374,7 @@ pub enum Action {
         lot: String,
         quantity: u32,
     },
-    ExtractResource { worker: String, source: String },
+    ExtractResource { operation: String, worker: String, source: String },
     EstablishResourceSite { operation: String, worker: String, site: String, definition: String, x: i32, y: i32, z: i32 },
     TendResourceSite { operation: String, worker: String, site: String, vessel: String },
     Launch {
