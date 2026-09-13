@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import type { GamePack } from "../contracts";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
@@ -12,22 +11,9 @@ import { ProcessAttendanceWork } from "../sdk/process-attendance";
 import { StagedProcess } from "../sdk/process-supply";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
-import { WaterSupplyOrder } from "./colony-water-work";
+import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
-
-function suppliedPack(): GamePack {
-  const definition = JSON.parse(new TextDecoder().decode(colonyPack.definition)) as {
-    initial: { id: string; components: Record<string, unknown> }[];
-  };
-  definition.initial.push(
-    { id: "brew.malt", components: { "hive.lot": { kind: "malt", quantity: 4, container: "colony.pantry" } } },
-    { id: "brew.mugwort", components: { "hive.lot": { kind: "mugwort", quantity: 1, container: "colony.pantry" } } },
-    { id: "brew.barm", components: { "hive.lot": { kind: "barm", quantity: 1, container: "colony.pantry" }, "hive.container": { capacity: 1 } } },
-    { id: "brew.keg", components: { "hive.lot": { kind: "keg", quantity: 1, container: "colony.pantry" }, "hive.container": { capacity: 4 } } },
-  );
-  return { ...colonyPack, definition: new TextEncoder().encode(JSON.stringify(definition)) };
-}
 
 function finishedStation(session: GameSession) {
   return session.query(query(ConstructionSite)).find(row => {
@@ -41,7 +27,7 @@ function finishedStation(session: GameSession) {
 test("one brew request travels, ferments unattended, reassigns, and settles exact outputs", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
-    const session = new GameSession({ port, pack: suppliedPack() });
+    const session = new GameSession({ port, pack: colonyPack });
     session.start();
     session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
     for (let tick = 0; tick < 400 && !finishedStation(session); tick++) session.step(0.25);
@@ -51,6 +37,17 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       deliveries: session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)),
     }));
     assert.equal(session.renderFacts().find(fact => fact.id === station.id)?.visual, "colony.brew-station.profile.empty");
+
+    // The real clearing starts with groundwater below solid terrain. Expose a
+    // finite source through the public area-dig command before asking the
+    // brewing work owner to fetch it.
+    for (const [depth, columnX] of [9, 9, 10, 9].entries()) {
+      const surface = port.terrainSurfaces([[columnX, 0]])[0];
+      assert(surface, "generated column must have another diggable surface");
+      session.command("dig", { area: { start: surface.cell, end: surface.cell } });
+      for (let tick = 0; tick < 240 && port.terrainMaterials([surface.cell])[0] !== 0; tick++) session.step(0.25);
+      assert.equal(port.terrainMaterials([surface.cell])[0], 0, `groundwater cut ${depth + 1} must finish`);
+    }
 
     session.command("requestBrew", { station: station.id });
     session.step(0);
@@ -70,10 +67,11 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       if (stationVisual) stationVisuals.add(stationVisual);
       const state = session.query(query(StagedProcess))[0]?.get(StagedProcess);
       const processWaterDemands = session.query(query(WaterSupplyOrder)).filter(row => row.get(WaterSupplyOrder).process === process.id);
+      const activeProcessWaterDemands = processWaterDemands.filter(order => session.query(query(WaterSupplyWork)).some(work => work.id === order.id && ["approaching", "submitting"].includes(work.get(WaterSupplyWork).phase)));
       assert(processWaterDemands.length <= 1, "one active process must have at most one water demand");
       const kettleWater = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === `${station.id}:kettle` && row.get(MaterialLot).kind === "water").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
       const waterDelivery = session.query(query(DeliveryTask)).filter(row => { const task = row.get(DeliveryTask); return task.phase !== "complete" && task.destination === `${station.id}:kettle` && task.material === "water"; }).reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);
-      assert(kettleWater + waterDelivery < 2 || processWaterDemands.length === 0, "in-flight kettle water must suppress another field demand");
+      assert(kettleWater + waterDelivery < 2 || activeProcessWaterDemands.length === 0, "sufficient staged and in-flight water must prevent another fetch from starting");
       if (processWaterDemands.length) sawProcessWaterDemand = true;
       const attendance = session.query(query(ProcessAttendanceWork));
       if (attendance.length) sawAttendance = true;
@@ -99,7 +97,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     session.step(0);
     assert.equal(session.query(query(ProcessAttendanceWork)).length, 0);
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
-    assert.equal(lots.filter(lot => lot.kind === "ale" && lot.container === "brew.keg").reduce((sum, lot) => sum + lot.quantity, 0), 4);
+    assert.equal(lots.filter(lot => lot.kind === "ale" && lot.container === "colony.brew.keg").reduce((sum, lot) => sum + lot.quantity, 0), 4);
     assert.equal(lots.filter(lot => lot.kind === "spent-grain" && lot.container === `${station.id}:tray`).reduce((sum, lot) => sum + lot.quantity, 0), 1);
     assert(stationVisuals.has("colony.brew-station.profile.prepare-attended"));
     assert([...stationVisuals].some(visual => visual === "colony.brew-station.profile.ferment" || visual === "colony.brew-station.profile.ferment-burning"));

@@ -22,6 +22,7 @@ test("water provider interleaves two queued demands across held pails", () => {
   const pails = ["pail-a", "pail-b"].map((name, index) => ({ id: id(name), kind: "pail", quantity: 1, container: id(`worker-${index === 0 ? "a" : "b"}`) }));
   const demands = ["demand-a", "demand-b"].map((name, index) => row(name, new Map([[WaterSupplyOrder, { revision: index + 1, process: null }], [WaterSupplyWork, { request: index + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" }]])));
   const writes: unknown[] = [];
+  let routeTargetCount = 0;
   const context = {
     query(spec: { components: readonly object[] }) {
       if (spec.components.includes(Worker)) return workers;
@@ -31,8 +32,11 @@ test("water provider interleaves two queued demands across held pails", () => {
     },
     workMaterialFacts: () => ({ version: 1, containers: pails.map(pail => ({ id: id(pail.id), capacity: 7, sealed: false })), lots: pails }),
     worldPoses: (entities: readonly string[]) => entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: entity.endsWith("a") ? 0 : 2, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
-    waterContacts: () => [{ at: [0, 1, 0], approaches: [{ x: 0, y: 1, z: 0, frame: null }] }],
-    routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }),
+    waterContacts: () => [
+      { at: [0, 1, 0], approaches: [{ x: 0, y: 1, z: 0, frame: null }] },
+      { at: [1, 1, 0], approaches: [{ x: 1, y: 1, z: 0, frame: null }] },
+    ],
+    routeToAny: (request: { targets: readonly unknown[] }) => { routeTargetCount = request.targets.length; return { status: "reachable", targetIndex: 0, cost: 1 }; },
     routeCosts: () => [], action: () => {}, write: (_definition: object, entity: string, value: unknown) => writes.push([entity, value]),
     outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [],
   } as any;
@@ -47,6 +51,8 @@ test("water provider interleaves two queued demands across held pails", () => {
   assert.equal(new Set(selected.map(candidate => candidate.task)).size, 2);
   assert.equal(new Set(selected.map(candidate => candidate.worker)).size, 2);
   assert.equal(new Set(selected.map(candidate => candidate.vessel)).size, 2);
+  assert.equal(new Set(prepared.candidates.map(candidate => `${candidate.worker}:${candidate.task}`)).size, prepared.candidates.length);
+  assert.equal(routeTargetCount, 2, "one worker/task route query considers both nearby water contacts");
   prepared.apply([
     { task: id("demand-a"), worker: id("worker-a"), cost: 1 },
     { task: id("demand-b"), worker: id("worker-b"), cost: 1 },

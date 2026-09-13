@@ -56,32 +56,46 @@ import {
 function colonyProcessWaterPhase(ctx: WriteContext): void {
   const facts = ctx.workMaterialFacts();
   const lots = facts.lots;
-  const orders = ctx.query(query(WaterSupplyOrder));
-  const occupied = new Set(orders.map(row => row.get(WaterSupplyOrder).process).filter((id): id is EntityId => !!id));
+  const orders = ctx.query(query(WaterSupplyOrder, WaterSupplyWork));
+  const deliveries = ctx.query(query(DeliveryTask)).map(row => row.get(DeliveryTask));
+  const ordersByProcess = new Map<EntityId, typeof orders>();
+  for (const order of orders) {
+    const process = order.get(WaterSupplyOrder).process;
+    if (process) ordersByProcess.set(process, [...(ordersByProcess.get(process) ?? []), order]);
+  }
   const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0);
   const processes = ctx.query(query(StagedProcess)).slice().sort((a, b) => a.id.localeCompare(b.id));
   let nextRevision = revision;
   for (const row of processes) {
     const process = row.get(StagedProcess);
-    if (process.phase !== "waiting" || occupied.has(row.id)) continue;
+    if (process.phase !== "waiting") continue;
     const requirements = ctx.processRequirements(process.definition, process.station);
     const water = requirements.inputs.find(input => input.material === "water");
     if (!water) continue;
     const destination = `${process.station}:${water.port}`;
     const quantity = lots.filter(lot => lot.container === destination && lot.kind === "water" && lot.quantity > 0)
       .reduce((sum, lot) => sum + lot.quantity, 0);
-    const inFlight = ctx.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)).filter(task =>
+    const inFlight = deliveries.filter(task =>
       task.phase !== "complete" && task.destination === destination && task.material === "water"
     ).reduce((sum, task) => sum + task.quantity, 0);
-    if (quantity + inFlight >= water.quantity) continue;
+    const existing = ordersByProcess.get(row.id) ?? [];
+    if (quantity + inFlight >= water.quantity) {
+      for (const order of existing)
+        if (order.get(WaterSupplyWork).phase === "queued") ctx.removeAuthoredEntity(order.id);
+      continue;
+    }
+    if (existing.length) continue;
     if (orders.length >= 256 || nextRevision >= 0xffffffff) throw new Error("water demand capacity exhausted");
     nextRevision += 1;
-    const id = entity(`colony.water-process.${row.id}`);
+    // The supplied/in-flight amount is part of the durable demand identity.
+    // A multi-portion requirement therefore cannot reuse the first fetch's
+    // accepted operation receipt for a later portion.
+    const id = entity(`colony.water-process.${row.id}.${quantity + inFlight}`);
     ctx.createAuthoredEntity({ id, components: {
       [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
       [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
     } });
-    occupied.add(row.id);
+    ordersByProcess.set(row.id, []);
   }
 }
 export type ColonyTreePhase = "standing" | "felled" | "chopped";
@@ -994,12 +1008,13 @@ export const colonyWorkSystem = createWorkSystem({
     ConstructionApproach,
     DeconstructionApproach,
     DeconstructionOrder,
+    WaterSupplyOrder,
     WaterSupplyWork,
     ProcessAttendanceWork,
   ],
   phases: [
-    colonyProcessWaterPhase,
     processSupplyPhase,
+    colonyProcessWaterPhase,
     colonySiteSuppliesPhase,
     colonyGroundStockPhase,
     (ctx) =>
