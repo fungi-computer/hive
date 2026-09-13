@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
-import { Container, MaterialLot, Position } from "./common";
+import { Container, FiniteResource, MaterialLot, Position } from "./common";
 import { DeliveryTask } from "./delivery";
 import { GroundStock } from "./ground-stock";
 import { StockpileCell, planStockpileDeliveries } from "./stockpile";
@@ -25,15 +25,43 @@ function fake(rows: Row[]) {
   };
 }
 
-test("stockpile records are deterministic, bounded, positioned finite containers", () => {
+test("stockpile planner fixtures are deterministic, bounded, positioned finite containers", () => {
   const records = plannerCellFixtures([
     { zone: entity("zone"), cell: [1, 3, 2], priority: 4, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 },
     { zone: entity("zone"), cell: [0, 3, 2], priority: 4, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 },
   ]);
-  assert.deepEqual(records.map(r => r.id), [entity("stockpile.4:zone.0.3.2"), entity("stockpile.4:zone.1.3.2")]);
+  assert.deepEqual(records.map(r => r.id), [entity("stockpile.4:zone.1.3.2"), entity("stockpile.4:zone.0.3.2")]);
   assert.equal((records[0].components[Container.id] as { capacity: number }).capacity, 3);
-  assert.deepEqual(records[0].components[Position.id], { x: 0, y: 1.8900000000000001, z: 2, facing: 0 });
-  assert.throws(() => plannerCellFixtures([{ zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1, verticalMetres: 0.54 }, { zone: entity("zone"), cell: [1, 3, 2], priority: 1, filterProfile: "wood", capacity: 1, verticalMetres: 0.54 }]));
+  assert.deepEqual(records[0].components[Position.id], { x: 1, y: 1.8900000000000001, z: 2, facing: 0 });
+});
+
+test("planner accepts lots in native finite-resource source containers", () => {
+  const zone = entity("tree-zone");
+  const destination = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 5, filterProfile: "wood", capacity: 6, verticalMetres: 0.54 }])[0];
+  const tree = entity("tree");
+  const lot = entity("tree-wood");
+  const rows = [
+    row(destination.id, StockpileCell, destination.components[StockpileCell.id]),
+    row(destination.id, Container, { capacity: 6 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    row(tree, Container, { capacity: 6 }), row(tree, FiniteResource, { kind: "wood", quantity: 0 }),
+    row(lot, MaterialLot, { kind: "wood", quantity: 6, container: tree }),
+  ];
+  const state = fake(rows);
+  const result = planStockpileDeliveries(state.context, { filterProfiles: { wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } });
+  assert.equal(result.length, 1);
+  const task = rows.find(r => r.id === result[0])!.values.get(DeliveryTask.id) as { sourceLot: EntityId; destination: EntityId; quantity: number };
+  assert.deepEqual({ sourceLot: task.sourceLot, destination: task.destination, quantity: task.quantity }, { sourceLot: lot, destination: destination.id, quantity: 6 });
+});
+
+test("planner does not haul a non-exhausted finite source", () => {
+  const zone = entity("standing-tree-zone");
+  const destination = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 5, filterProfile: "wood", capacity: 6, verticalMetres: 0.54 }])[0];
+  const tree = entity("standing-tree");
+  const rows = [
+    row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 6 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    row(tree, Container, { capacity: 6 }), row(tree, FiniteResource, { kind: "wood", quantity: 6 }), row(entity("premature-wood"), MaterialLot, { kind: "wood", quantity: 1, container: tree }),
+  ];
+  assert.deepEqual(planStockpileDeliveries(fake(rows).context, { filterProfiles: { wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } }), []);
 });
 
 test("planner claims one lot and cell, respects existing capacity and reloadable task state", () => {

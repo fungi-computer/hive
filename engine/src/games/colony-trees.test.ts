@@ -6,13 +6,16 @@ import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { ColonyTree, ColonyTreeOrder, ColonyTreePolicy } from "./colony-work";
 import { colonyPack } from "./colony";
-import { Destination, FiniteResource, MaterialLot, query } from "../sdk/index";
+import { Container, Destination, FiniteResource, MaterialLot, Position, query } from "../sdk/index";
 import { DeliveryTask } from "../sdk/delivery";
+import { StockpileCell } from "../sdk/stockpile";
+import { entity } from "../sdk/authoring";
+import { createColonyStockpileSystem } from "./colony-stockpile";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 test("tree work reaches chop, extracts one native wood lot, and survives reload", () => {
-  const port = wasmKernelPort(new WasmKernel()), session = new GameSession({ port, pack: colonyPack });
+  const port = wasmKernelPort(new WasmKernel()), session = new GameSession({ port, pack: { ...colonyPack, systems: [...colonyPack.systems, createColonyStockpileSystem({ wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } })] } });
   try {
     session.start();
     const tree = "colony.tree.oak";
@@ -48,11 +51,22 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
     assert.equal(woodLots.length, 1);
     assert.equal(woodLots[0].get(MaterialLot).quantity, 6);
     assert.equal(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).source === tree), false);
+    const surface = session.terrainSurfaces([[2, 2]])[0];
+    assert.ok(surface);
+    session.request({ kind: "designate-stockpile", zone: entity("tree-output"), cells: [{ x: 2, y: surface.cell[1], z: 2, priority: 9, filterProfile: "wood", capacity: 6 }] });
+    const designationResults = session.step(0);
+    const stockpile = session.query(query(StockpileCell, Container, Position)).find(row => row.get(StockpileCell).zone === entity("tree-output"));
+    assert.ok(stockpile, `native stockpile designation was not accepted: ${JSON.stringify(designationResults)}`);
+    session.command("resumeDelivery", { entities: ["colony.worker.1", "colony.worker.2"] });
+    for (let i = 0; i < 160 && session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood" && row.get(MaterialLot).container === stockpile!.id).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0) < 6; i++) session.step(0.25);
+    const delivered = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood" && row.get(MaterialLot).container === stockpile!.id);
+    assert.equal(delivered.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 6, JSON.stringify(session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask))));
+    assert.equal(session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 54);
     const saved = session.save();
     session.restore(saved);
     session.step(0.25);
-    const reloaded = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === tree && row.get(MaterialLot).kind === "wood");
-    assert.equal(reloaded.length, 1);
-    assert.deepEqual({ id: reloaded[0].id, ...reloaded[0].get(MaterialLot) }, { id: woodLots[0].id, ...woodLots[0].get(MaterialLot) });
+    const restored = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood");
+    assert.equal(restored.filter(row => row.get(MaterialLot).container === stockpile!.id).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 6);
+    assert.equal(restored.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 54);
   } finally { port.dispose(); }
 });

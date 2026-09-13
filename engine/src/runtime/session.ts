@@ -201,6 +201,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.environmentFacts();
   }
+  terrainSurfaces(columns: readonly [number, number][]) {
+    this.ensureLive();
+    return this.port.terrainSurfaces(columns);
+  }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
     return this.port.query(spec);
