@@ -5,10 +5,10 @@ import { bindingCommand, buildPlacementCommand, terrainAreaCommand, terrainCellC
 
 const buildControl = (id) => GAME_BINDINGS.colony.find((control) => control.id === id);
 
-test("local build binding turns a rectangle into one durable command input", () => {
-  const control = { commandId: "colony:build", preset: { catalog: "timber-wall" }, target: "world-surface", designation: ["point", "line", "rectangle"] };
+test("local floor binding turns a rectangle into one durable command input", () => {
+  const control = buildControl("timber-floor");
   assert.deepEqual(terrainAreaCommand(control, [], { start: [0, 13, 0], end: [1, 13, 1] }).input, {
-    catalog: "timber-wall", target: { area: { start: [0, 13, 0], end: [1, 13, 1] } },
+    catalog: "timber-floor", orientation: "north", target: { area: { start: [0, 13, 0], end: [1, 13, 1] } },
   });
 });
 
