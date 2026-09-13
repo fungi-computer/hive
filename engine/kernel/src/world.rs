@@ -393,6 +393,55 @@ mod construction_tests {
     }
 
     #[test]
+    fn construction_access_wall_is_ordered_and_binding_is_stable() {
+        let (mut kernel, surface, contact) = world();
+        wall_catalog(&mut kernel);
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"wall","site":"access-wall","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"north"}
+        ]}).to_string()).unwrap();
+        let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-wall\"]").unwrap()).unwrap();
+        assert_eq!(rows[0]["support"], "ready");
+        assert_eq!(rows[0]["contacts"].as_array().unwrap().len(), 4);
+        assert!(rows[0]["contacts"].as_array().unwrap().iter().all(|row| row["kind"] == "origin" && row["y"] == contact.y));
+        let bad = Point { x: contact.x + 0.25, ..contact.clone() };
+        assert!(kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":bad}]}).to_string()).unwrap().contains("accepted\":false"));
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":contact}]}).to_string()).unwrap();
+        assert!(kernel.ecs.get::<Position>(kernel.entity("access-wall").unwrap()).is_some());
+        assert!(kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":contact}]}).to_string()).unwrap().contains("accepted\":false"));
+    }
+
+    #[test]
+    fn construction_access_attendance_can_choose_other_contact() {
+        let (mut kernel, surface, contact) = world();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"floor","site":"access-floor","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"access-floor","contact":contact}
+        ]}).to_string()).unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let selected = Point { x: (surface.x as f64 - 1.0) * spacing[0], ..contact.clone() };
+        let worker = kernel.entity("worker-1").unwrap();
+        kernel.ecs.entity_mut(worker).insert(Position { x:selected.x, y:selected.y, z:selected.z, facing:0.0 });
+        kernel.rebuild_physical_indexes(true).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-1","site":"access-floor","contact":selected}]}).to_string()).unwrap();
+        assert_eq!(kernel.ecs.get::<Position>(kernel.entity("access-floor").unwrap()).unwrap().x, contact.x);
+    }
+
+    #[test]
+    fn construction_access_stair_groups_origin_and_landing() {
+        let (mut kernel, surface, _) = world();
+        kernel.environment.as_mut().unwrap().structures.insert("stair".into(), crate::environment_definition::StructureDefinition {
+            id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
+            materials: BTreeMap::new(), work_seconds: 1.0,
+        });
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
+        let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
+        let contacts = rows[0]["contacts"].as_array().unwrap();
+        assert_eq!(contacts.len(), 8);
+        assert!(contacts[..4].iter().all(|row| row["kind"] == "origin" && row["y"] == (f64::from(surface.y) + 0.5) * kernel.environment.as_ref().unwrap().world.cell_spacing_m()[1]));
+        assert!(contacts[4..].iter().all(|row| row["kind"] == "landing" && row["y"] == (f64::from(surface.y + 2) + 0.5) * kernel.environment.as_ref().unwrap().world.cell_spacing_m()[1]));
+    }
+
+    #[test]
     fn physical_contacts_compose_floor_seal_wall_bulk_and_outside() {
         let (mut kernel, surface, _) = world();
         let structures = vec![
