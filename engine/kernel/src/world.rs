@@ -6,6 +6,7 @@ mod fuel_emission;
 #[path = "environment_runtime.rs"]
 mod environment_runtime;
 use crate::{collision, combat, components::*, navigation, registry::Registry};
+use crate::staged_process::{ProcessPhase, StagedProcess};
 #[path = "material_output.rs"]
 mod material_output;
 #[path = "material_consumption.rs"]
@@ -923,6 +924,27 @@ impl Kernel {
         }
         Ok(())
     }
+    fn validate_process_records(&self) -> Result<()> {
+        let Some(environment) = &self.environment else { return Ok(()); };
+        for (id, entity) in &self.ids {
+            let Some(process) = self.ecs.get::<StagedProcess>(*entity) else { continue; };
+            let definition = environment.processes.get(&process.definition).ok_or("saved process definition is unknown")?.definition();
+            if process.version != crate::staged_process::CURRENT_VERSION
+                || process.definition_version != definition.version
+                || process.station.is_empty()
+                || process.stage_index as usize >= definition.stages.len()
+                || !process.progress_seconds.is_finite()
+                || process.progress_seconds < 0.0
+                || (process.phase == ProcessPhase::Blocked) != !process.blocked_reason.is_empty()
+                || (process.phase != ProcessPhase::Blocked) && !process.blocked_reason.is_empty()
+            { return Err("saved process fact is invalid".into()); }
+            let station = self.entity(&process.station)?;
+            let site = self.ecs.get::<ConstructionSite>(station).ok_or("saved process station is missing")?;
+            if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_some() { return Err("saved process station binding is invalid".into()); }
+            if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
+        }
+        Ok(())
+    }
     pub fn new() -> Self {
         let mut ecs = World::new();
         let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
@@ -1775,6 +1797,7 @@ impl Kernel {
         candidate.restore_json(&entities)?;
         candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_structure_recipes()?;
+        candidate.validate_process_records()?;
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
@@ -1915,6 +1938,7 @@ impl Kernel {
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
             candidate.validate_structure_recipes()?;
+            candidate.validate_process_records()?;
             candidate.validate_construction_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
@@ -2199,7 +2223,8 @@ impl Kernel {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
-                    | Action::UpdateStockpile { .. } | Action::Deconstruct { .. })
+                    | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
+                    | Action::RequestProcess { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -2466,10 +2491,63 @@ impl Kernel {
         Ok(zone)
     }
 
+    fn request_process(&mut self, definition_id: &str, station_id: &str) -> Result<String> {
+        if !crate::components::valid_id(definition_id) || !crate::components::valid_id(station_id) {
+            return Err("invalid process request identity".into());
+        }
+        let environment = self.environment.as_ref().ok_or("process request needs environment")?;
+        let definition = environment.processes.get(definition_id).ok_or("unknown process definition")?.definition().clone();
+        let station = self.entity(station_id)?;
+        let site = self.ecs.get::<ConstructionSite>(station).ok_or("process station is not a construction site")?;
+        if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog {
+            return Err("process station is not a completed matching catalog".into());
+        }
+        if self.ecs.get::<SealedContainer>(station).is_some() {
+            return Err("process station is sealed".into());
+        }
+        let process_id = format!("process:{station_id}:{definition_id}");
+        if !crate::components::valid_id(&process_id) || self.ids.len() >= 16_384 {
+            return Err("process identity or state capacity exceeded".into());
+        }
+        if let Some(existing) = self.ids.get(&process_id).copied() {
+            if self.ecs.get::<StagedProcess>(existing).is_some_and(|process| process.phase != ProcessPhase::Complete) {
+                return Ok(process_id);
+            }
+            return Err("process identity already exists".into());
+        }
+        let entity = self.ecs.spawn((ExternalId(process_id.clone()), StagedProcess {
+            version: crate::staged_process::CURRENT_VERSION,
+            definition: definition.id.clone(), definition_version: definition.version,
+            station: station_id.into(), stage_index: 0, progress_seconds: 0.0,
+            entered_tick: self.revision, phase: ProcessPhase::Waiting, blocked_reason: String::new(),
+        })).id();
+        self.ids.insert(process_id.clone(), entity);
+        self.known.insert(process_id.clone());
+        self.refresh_state_weight();
+        Ok(process_id)
+    }
+
+    pub fn process_requirements_json(&self, input: &str) -> Result<String> {
+        if input.len() > 16 * 1024 { return Err("process requirements query exceeds input budget".into()); }
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase", deny_unknown_fields)]
+        struct Request { definition: String, station: String }
+        let request: Request = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        let environment = self.environment.as_ref().ok_or("process requirements need environment")?;
+        let process = self.ids.values().find_map(|entity| {
+            let state = self.ecs.get::<StagedProcess>(*entity)?;
+            (state.definition == request.definition && state.station == request.station).then_some(state.phase)
+        }).unwrap_or(ProcessPhase::Waiting);
+        let requirements = environment.processes.requirements(&request.definition, process).ok_or("unknown process definition")?;
+        if requirements.station_catalog != self.ecs.get::<ConstructionSite>(self.entity(&request.station)?).ok_or("unknown process station")?.catalog { return Err("process station catalog mismatch".into()); }
+        serde_json::to_string(&requirements).map_err(|error| error.to_string())
+    }
+
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
+            Action::RequestProcess { definition, station } => self.request_process(&definition, &station).map(ActionEffect::Entity),
             Action::Excavate { entity, x, y, z, expected, replacement } => {
                 self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
                 Ok(ActionEffect::None)

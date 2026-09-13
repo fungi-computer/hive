@@ -349,6 +349,7 @@ impl Registry {
                     || !valid_id(&process.definition) || process.definition_version == 0
                     || !valid_id(&process.station) || !process.progress_seconds.is_finite()
                     || process.progress_seconds < 0.0 || (!process.blocked_reason.is_empty() && !valid_id(&process.blocked_reason))
+                    || (process.phase == crate::staged_process::ProcessPhase::Blocked) != !process.blocked_reason.is_empty()
                 { return Err("invalid staged process fact".into()); }
             }
             "hive.process-binding" => {

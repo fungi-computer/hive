@@ -244,6 +244,9 @@ impl WasmKernel {
     pub fn environment_facts(&self) -> Result<String, JsValue> {
         self.0.environment_facts_json().map_err(js_error)
     }
+    pub fn process_requirements(&self, input: &str) -> Result<String, JsValue> {
+        self.0.process_requirements_json(input).map_err(js_error)
+    }
     pub fn capture_records(&self) -> Result<WasmKernelRecords, JsValue> {
         let records = self.0.save_records().map_err(js_error)?;
         record_bundle::RecordBundle::from_records(records).map(WasmKernelRecords).map_err(js_error)
