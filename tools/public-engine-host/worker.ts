@@ -504,7 +504,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       for (const socket of this.state.getWebSockets()) {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
         if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
-        if (!this.sendObservation(socket, payload, attachment)) failed = true;
+        const socketPayload = attachment.terrainInterest === undefined ? payload : this.observationPayload(attachment.terrainInterest);
+        if (!this.sendObservation(socket, socketPayload, attachment)) failed = true;
       }
       if (failed) throw new Error("observation publication failed");
     });
