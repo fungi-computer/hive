@@ -9,7 +9,6 @@ import { colonyPack } from "./colony";
 import { Container, Destination, FiniteResource, MaterialLot, Position, query } from "../sdk/index";
 import { DeliveryTask } from "../sdk/delivery";
 import { StockpileCell } from "../sdk/stockpile";
-import { entity } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -52,10 +51,10 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
     assert.equal(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).source === tree), false);
     const surface = session.terrainSurfaces([[2, 2]])[0];
     assert.ok(surface);
-    session.request({ kind: "designate-stockpile", zone: entity("tree-output"), cells: [{ x: 2, y: surface.cell[1], z: 2, priority: 9, filterProfile: "wood", capacity: 6 }] });
-    const designationResults = session.step(0);
-    const stockpile = session.query(query(StockpileCell, Container, Position)).find(row => row.get(StockpileCell).zone === entity("tree-output"));
-    assert.ok(stockpile, `native stockpile designation was not accepted: ${JSON.stringify(designationResults)}`);
+    session.command("designateStockpile", { area: { start: [...surface.cell], end: [...surface.cell] }, filterProfile: "wood", priority: 9 });
+    session.step(0);
+    const stockpile = session.query(query(StockpileCell, Container, Position)).find(row => row.get(StockpileCell).zone.startsWith("colony.stockpile."));
+    assert.ok(stockpile, "Colony stockpile command was not accepted by native admission");
     session.command("resumeDelivery", { entities: ["colony.worker.1", "colony.worker.2"] });
     for (let i = 0; i < 160 && session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood" && row.get(MaterialLot).container === stockpile!.id).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0) < 6; i++) session.step(0.25);
     const delivered = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood" && row.get(MaterialLot).container === stockpile!.id);
