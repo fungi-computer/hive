@@ -1,5 +1,5 @@
 /** Content-owned visual choices. The renderer only consumes this checked shape. */
-const constructionBindings = Object.fromEntries(["floor", "wall", "stair", "roof", "bed", "shelf"].flatMap(type =>
+const constructionBindings = Object.fromEntries(["floor", "wall", "stair", "roof", "bed", "shelf", "brew-station"].flatMap(type =>
   ["stakes", "frame", "finished"].map(stage => [`colony.${type}.${stage}`, Object.freeze({
     kind: "static", path: type === "stair" || type === "bed" || type === "roof" || type === "shelf" ? ["buildings", type, stage] : ["buildings", type, stage, 0],
     facing: type === "stair" || type === "bed" || type === "roof" || type === "shelf", anchor: "propAnchor",
@@ -13,10 +13,6 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...wallJointBindings,
   soil: Object.freeze({ kind: "static", path: ["soil", 3], facing: false, anchor: "propAnchor" }),
   stone: Object.freeze({ kind: "static", path: ["stone", 3], facing: false, anchor: "propAnchor" }),
-  "colony.brew-station": Object.freeze({
-    kind: "static", path: ["buildings", "brew-station", "finished", 0],
-    facing: false, anchor: "propAnchor",
-  }),
   // These bindings prepare the retained clearing scenery for native facts.
   // They are inert until Colony publishes a physical entity with this visual;
   // art never creates a tree, resource, or pick target by itself.
