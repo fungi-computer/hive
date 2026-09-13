@@ -33,6 +33,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     return { claims: active.map(row => ({ task: row.id, actor: row.get(WaterSupplyWork).actor })), candidates: [], lowerBound: () => 0, estimate: () => null, apply: () => {}, progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); if (state.phase === "complete") { ctx.removeAuthoredEntity(row.id); continue; } if (state.phase !== "approaching" || !state.actor || !state.vessel) continue; const pose = poses.get(state.actor); const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`; if (!pose || moving.has(state.actor) || distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } } };
   }
   const workers = ctx.query(query(Worker, Body, Position, Container)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
+  const workerIds = new Set(workers.map(worker => worker.id));
   const materialFacts = ctx.workMaterialFacts();
   const lots = materialFacts.lots;
   const containers = new Map(materialFacts.containers.map(row => [row.id, row]));
@@ -43,49 +44,39 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     current.invalid ||= lot.kind !== "water";
     contents.set(lot.container, current);
   }
-  const pails = lots.filter(lot => lot.kind === "pail" && lot.quantity === 1 && workers.some(worker => worker.id === lot.container))
+  const pails = lots.filter(lot => lot.kind === "pail" && lot.quantity === 1 && workerIds.has(lot.container))
     .filter(lot => { const capacity = containers.get(lot.id)?.capacity ?? 0, current = contents.get(lot.id) ?? { quantity: 0, invalid: false }; return capacity > 0 && !current.invalid && current.quantity < capacity; });
   pails.sort((left, right) => left.id.localeCompare(right.id));
   const pailWorkers = [...new Set(pails.map(pail => pail.container))].sort().slice(0, 16);
   const poses = new Map(pailWorkers.length ? ctx.worldPoses(pailWorkers).map(pose => [pose.id, pose.world]) : []);
   const eligibleWorkers = pailWorkers.filter(worker => poses.has(worker));
+  const activeActors = [...new Set(rows.flatMap(row => { const state = row.get(WaterSupplyWork); return ["approaching", "submitting"].includes(state.phase) && state.actor ? [state.actor] : []; }))].sort();
+  for (const pose of activeActors.length ? ctx.worldPoses(activeActors) : []) poses.set(pose.id, pose.world);
   const centers = eligibleWorkers.map(worker => { const p = poses.get(worker)!; return [p.x, p.y, p.z] as [number, number, number]; });
   const water = centers.length ? ctx.waterContacts(centers) : [];
   const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
-  const byTask = new Map<EntityId, Candidate[]>();
+  const queuedRows: EntityId[] = [];
   for (const row of rows) {
     const order = row.get(WaterSupplyOrder), prior = row.get(WaterSupplyWork);
     if (order.revision < prior.request) throw new Error("invalid water supply request correspondence");
     if (order.revision !== prior.request) ctx.write(WaterSupplyWork, row.id, empty(order.revision));
     const state = order.revision !== prior.request ? empty(order.revision) : prior;
     if (state.phase !== "queued") continue;
-    for (const cell of water) {
-      const [x, y, z] = cell.at;
-      const approaches = cell.approaches;
-      for (const pail of pails) {
-        const worker = pail.container;
-        if (!eligibleWorkers.includes(worker) || moving.has(worker)) continue;
-        const taskCandidates = byTask.get(row.id) ?? [];
-        taskCandidates.push({ worker, task: row.id, vessel: pail.id, cell: cell.at, approaches });
-        byTask.set(row.id, taskCandidates);
-      }
-    }
+    queuedRows.push(row.id);
   }
   // Bound the shared candidate budget fairly: each queued demand contributes
   // one candidate per round before any demand receives a second. This keeps
   // a water-rich first demand from starving later orders.
   const candidates: Candidate[] = [];
-  const taskQueues = [...byTask.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, queue]) => queue);
-  for (let offset = 0; candidates.length < 128; offset++) {
-    let added = false;
-    for (const queue of taskQueues) {
-      const candidate = queue[offset];
-      if (!candidate) continue;
-      candidates.push(candidate);
-      added = true;
+  const pairs = water.length * pails.length;
+  const rounds = Math.min(Math.ceil(128 / Math.max(1, queuedRows.length)), pairs);
+  for (let round = 0; round < rounds && candidates.length < 128; round++) {
+    const pair = round % pairs, cell = water[Math.floor(pair / pails.length)], pail = pails[pair % pails.length];
+    if (!cell || !pail || !eligibleWorkers.includes(pail.container) || moving.has(pail.container)) continue;
+    for (const task of queuedRows) {
+      candidates.push({ worker: pail.container, task, vessel: pail.id, cell: cell.at, approaches: cell.approaches });
       if (candidates.length === 128) break;
     }
-    if (!added) break;
   }
   const boundedCandidates = candidates;
   const claims = rows.filter(row => {

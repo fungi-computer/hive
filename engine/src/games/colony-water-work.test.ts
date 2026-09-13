@@ -1,3 +1,6 @@
+// The bundled proof supplies its own typed runtime context; repository tsc
+// intentionally lacks the Node test/generated-kernel declarations.
+// @ts-nocheck
 import assert from "node:assert/strict";
 import test from "node:test";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
@@ -84,4 +87,22 @@ test("completed demand is cleaned on the next phase without contact or material 
   assert.equal(removed, "done");
   assert.equal(facts, 0);
   assert.equal(contacts, 0);
+});
+
+test("queued planning stays bounded with many demands and keeps an active bound actor visible", () => {
+  const active = row("worker-z", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }]]));
+  const worker = row("worker-a", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }]]));
+  const pail = { id: id("pail-a"), kind: "pail", quantity: 1, container: id("worker-a") };
+  const demands = Array.from({ length: 256 }, (_, index) => row(`demand-${index}`, new Map([[WaterSupplyOrder, { revision: index + 1 }], [WaterSupplyWork, { request: index + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" }]])));
+  demands.push(row("active", new Map([[WaterSupplyOrder, { revision: 257 }], [WaterSupplyWork, { request: 257, attempt: 1, phase: "approaching", actor: id("worker-z"), vessel: id("pail-z"), x: 0, y: 1, z: 0, approachX: 0, approachY: 1, approachZ: 0, reason: "" }]])));
+  let posed: string[] = [];
+  const context: any = {
+    query: (spec: any) => spec.components.includes(Worker) ? [worker, active] : spec.components.includes(Destination) ? [] : demands,
+    workMaterialFacts: () => ({ version: 1, containers: [{ id: pail.id, capacity: 7, sealed: false }], lots: [pail] }),
+    worldPoses: (entities: readonly string[]) => { posed = [...entities]; return entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })); },
+    waterContacts: () => [{ at: [0, 1, 0], approaches: [{ x: 0, y: 1, z: 0, frame: null }] }], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }), routeCosts: () => [], action: () => {}, write: () => {}, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], removeAuthoredEntity: () => {},
+  };
+  const prepared = waterSupplyProvider(context, new Set());
+  assert.ok(prepared.candidates.length <= 128);
+  assert.ok(posed.includes("worker-z"));
 });
