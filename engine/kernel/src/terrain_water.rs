@@ -467,6 +467,16 @@ impl TerrainWater {
             owner: self.owner.clone(), epoch: self.epoch }))
     }
 
+    /// Resolve support for pending construction against the current geometry
+    /// in one pass. This is a read-only projection: it does not rebind water
+    /// or publish a physical change for each candidate.
+    pub(crate) fn construction_support(&mut self, pending: &[StaticInstance]) -> Result<Vec<String>, String> {
+        let mut instances = self.structures.instances().to_vec();
+        instances.extend_from_slice(pending);
+        let structures = StaticGeometry::new(self.terrain.bounds(), instances)?;
+        unsupported_structures(&mut self.terrain, &structures, self.geometry.max_span_steps, None)
+    }
+
     pub(crate) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<(), String> {
         if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
             return Err("prepared structure change is stale or foreign".into());
@@ -508,7 +518,7 @@ impl TerrainWater {
 
 }
 
-fn unsupported_structures(terrain: &mut TerrainOwner, structures: &StaticGeometry,
+pub(crate) fn unsupported_structures(terrain: &mut TerrainOwner, structures: &StaticGeometry,
     max_span_steps: u32, replacement: Option<(Cell, u16)>) -> Result<Vec<String>, String> {
     if structures.instances().is_empty() { return Ok(Vec::new()); }
     let mut query = |cell: Cell| {

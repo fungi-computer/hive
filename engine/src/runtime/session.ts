@@ -721,6 +721,7 @@ export class GameSession {
         physicalContacts: (cells) => this.port.physicalContacts(cells),
         environmentFacts: () => this.port.environmentFacts(),
         atmosphereSamples: (cells) => this.port.atmosphereSamples(cells),
+        constructionReadiness: (sites) => this.port.constructionReadiness(sites),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         routeCosts: (requests) => {

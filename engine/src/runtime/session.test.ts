@@ -97,6 +97,11 @@ class TestPort implements KernelPort {
       samples: cells.map(() => null),
     };
   }
+  constructionReadiness(
+    sites: readonly import("../contracts").EntityId[],
+  ): readonly import("../contracts").ConstructionReadiness[] {
+    return sites.map((site) => ({ site, status: "ready" }));
+  }
   physicalContacts(): never {
     throw new Error("unexpected physical contact query in session fixture");
   }

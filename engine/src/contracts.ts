@@ -445,6 +445,11 @@ export interface AtmosphereSamples {
   readonly geometryRevision: number;
   readonly samples: readonly (AtmosphereSample | null)[];
 }
+export type ConstructionReadinessStatus = "ready" | "waitingForSupport" | "invalid" | "unknown";
+export interface ConstructionReadiness {
+  readonly site: EntityId;
+  readonly status: ConstructionReadinessStatus;
+}
 export type PhysicalContact = {
   readonly solid: boolean;
   readonly sealedTop: boolean;
@@ -481,6 +486,10 @@ export interface KernelPort {
   readonly atmosphereSamples: (
     cells: readonly [number, number, number][],
   ) => AtmosphereSamples;
+  /** Read-only support projection for pending construction, resolved in one native batch. */
+  readonly constructionReadiness: (
+    sites: readonly EntityId[],
+  ) => readonly ConstructionReadiness[];
   readonly terrainMaterials: (
     cells: readonly [number, number, number][],
   ) => readonly number[];
