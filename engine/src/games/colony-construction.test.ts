@@ -83,6 +83,27 @@ test("brew station teardown waits for occupied retained ports and salvages after
   } finally { port.dispose(); }
 });
 
+test("multiple finished stations use one bounded inspection fact each", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    for (const cell of [[1, 13, -1], [5, 13, -1]] as const) {
+      session.command("build", { catalog: "brew-station", orientation: "north", target: { cell } });
+      for (let tick = 0; tick < 240 && session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).catalog === "brew-station" && row.get(ConstructionSite).phase === "finished").length < (cell[0] === 1 ? 1 : 2); tick++) session.step(0.25);
+    }
+    const facts = colonyPack.presentation?.inspect?.({
+      query: spec => session.query(spec),
+      atmosphereSamples: cells => session.atmosphereSamples(cells),
+      constructionReadiness: sites => session.constructionReadiness(sites),
+    }) ?? [];
+    const stations = facts.filter(fact => fact.label === "Brew station");
+    assert.equal(stations.length, 2);
+    assert(facts.length <= 32, `inspection projection exceeds bound: ${facts.length}`);
+    assert(stations.every(fact => fact.subjects?.length === 1));
+  } finally { port.dispose(); }
+});
+
 test("actual Colony staircase supply splits one shared lumber lot into two lawful haul legs", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
