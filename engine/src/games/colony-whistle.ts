@@ -1,12 +1,13 @@
 import { toJSONSchema } from "zod";
 import { WhistleActionError, createWhistle } from "@fungi.computer/whistle";
+import type { WhistleContribution, WhistleAgentProjection } from "@fungi.computer/whistle";
 import { colonyPack } from "./colony";
 
 const command = colonyPack.commands?.dig;
 if (!command) throw new Error("Colony dig command is unavailable");
 const digCommand = command;
 
-export function colonyDigWhistleContribution(submit: (command: unknown) => Promise<unknown>, availability = () => ({ status: "available" as const })) {
+export function colonyDigWhistleContribution(submit: (command: unknown) => Promise<unknown>, availability = () => ({ status: "available" as const })): WhistleContribution {
   return {
     sourceId: "hive.colony", namespace: "colony",
     commands: [{
@@ -23,9 +24,9 @@ export function colonyDigWhistleContribution(submit: (command: unknown) => Promi
   };
 }
 
-export function colonyDigWhistleDescriptor() {
+export function colonyDigWhistleDescriptor(): WhistleAgentProjection {
   const runtime = createWhistle();
-  runtime.contribute(colonyDigWhistleContribution(async () => undefined) as any);
+  runtime.contribute(colonyDigWhistleContribution(async () => undefined));
   const row = runtime.snapshot().agent.find(item => item.commandId === "colony:dig");
   if (!row) throw new Error("Colony Dig Whistle action unavailable");
   return row;

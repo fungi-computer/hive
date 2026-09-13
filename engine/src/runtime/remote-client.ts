@@ -7,6 +7,7 @@ import { presentationControlSchema, presentationFactSchema, type EnvironmentVisu
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { workActivitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
+import type { WhistleAgentProjection } from "@fungi.computer/whistle";
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type SocketLike = {
@@ -44,7 +45,7 @@ type ObservationWire = {
       readonly value: string | number | boolean;
     }[];
     readonly presentationControls: readonly PresentationControl[];
-    readonly whistleActions?: readonly unknown[];
+    readonly whistleActions?: readonly WhistleAgentProjection[];
     readonly terrainMarks: readonly TerrainMark[];
     readonly environmentVisuals: readonly EnvironmentVisual[];
   };
@@ -169,9 +170,17 @@ function environmentVisual(value: unknown): value is EnvironmentVisual {
   return true;
 }
 function whistleAction(value: unknown): boolean {
+  const schema = isRecord(value) && isRecord(value.action) ? value.action.inputSchema : undefined;
+  const bounded = (node: unknown, depth = 0): boolean => {
+    if (depth > 12) return false;
+    if (node === null || typeof node !== "object") return true;
+    for (const [key, child] of Object.entries(node as Record<string, unknown>))
+      if (key.length > 128 || !bounded(child, depth + 1)) return false;
+    return true;
+  };
   return isRecord(value) && typeof value.commandId === "string" && typeof value.sourceId === "string" &&
     typeof value.title === "string" && typeof value.category === "string" && isRecord(value.action) &&
-    isRecord(value.action.inputSchema) && isRecord(value.availability) &&
+    isRecord(value.action.inputSchema) && bounded(schema) && JSON.stringify(schema).length <= 16384 && isRecord(value.availability) &&
     (value.availability.status === "available" || (value.availability.status === "unavailable" && typeof value.availability.reason === "string"));
 }
 async function requestJson(

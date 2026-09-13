@@ -3,6 +3,7 @@ import type { ActionRequest, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
 import type { EnvironmentVisual, PresentationControl, PresentationFact, TerrainMark } from "../presentation";
 import type { TerrainWireFrame, TerrainWireObservation } from "./terrain-wire";
+import type { WhistleAgentProjection } from "@fungi.computer/whistle";
 
 export type WorkerCommand =
   | { readonly type: "command"; readonly name: string; readonly input?: unknown; readonly invocationId?: string }
@@ -34,7 +35,7 @@ type WorkerEventBase =
       readonly terrainMarks: readonly TerrainMark[];
       readonly environmentVisuals: readonly EnvironmentVisual[];
       /** Bounded semantic capabilities; local presentation is intentionally omitted. */
-      readonly whistleActions?: readonly unknown[];
+      readonly whistleActions?: readonly WhistleAgentProjection[];
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[]; readonly invocationId?: string; readonly metrics?: RuntimeMetrics }
