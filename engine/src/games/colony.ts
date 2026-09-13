@@ -122,7 +122,13 @@ const colonyInitial = [
   {
     id: entity("colony.lumber.initial"),
     components: {
-      "hive.lot": { quantity: 48, kind: "wood", container: colonyLumberId },
+      "hive.lot": { quantity: 3, kind: "wood", container: colonyLumberId },
+    },
+  },
+  {
+    id: entity("colony.lumber.second"),
+    components: {
+      "hive.lot": { quantity: 45, kind: "wood", container: colonyLumberId },
     },
   },
   ...([lotOne, lotTwo] as const).map((id) => ({
