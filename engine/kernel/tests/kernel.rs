@@ -232,6 +232,91 @@ fn consume_then_snapshot_restore_preserves_exhausted_lot() {
     assert_eq!(lot["components"]["hive.lot"]["quantity"], 0);
 }
 
+fn nested_consumption_scene(sealed: bool) -> String {
+    let mut initial = json!([
+            builtins("holder", [0.0, 0.0, 0.0], json!({"hive.container":{"capacity":8}})),
+            builtins("other", [0.0, 0.0, 0.0], json!({"hive.container":{"capacity":8}})),
+            {
+                "id":"pail",
+                "components":{
+                    "hive.container":{"capacity":8},
+                    "hive.lot":{"kind":"pail","quantity":1,"container":"holder"}
+                }
+            },
+            {
+                "id":"water-lot",
+                "components":{
+                    "hive.lot":{"kind":"water","quantity":4,"container":"pail"},
+                    "hive.lot-water":{"waterKg":6.0}
+                }
+            }
+        ]);
+    if sealed {
+        initial.as_array_mut().unwrap()[2]["components"]["hive.sealed-container"] = json!({});
+    }
+    scene(initial, json!([]))
+}
+
+#[test]
+fn nested_wet_consumption_is_proportional_and_survives_restore() {
+    let mut kernel = Kernel::new();
+    kernel.load(&nested_consumption_scene(false)).unwrap();
+    let result: Value = serde_json::from_str(&kernel.advance_json(
+        r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"holder","lot":"water-lot","quantity":2}]}"#,
+    ).unwrap()).unwrap();
+    assert_eq!(result["results"][0]["accepted"], true);
+    let rows = snapshot(&kernel)["scene"]["initial"].as_array().unwrap().clone();
+    let water = rows.iter().find(|row| row["id"] == "water-lot").unwrap();
+    assert_eq!(water["components"]["hive.lot"]["quantity"], 2);
+    assert_eq!(water["components"]["hive.lot-water"]["waterKg"], 3.0);
+    let saved = kernel.snapshot_json().unwrap();
+    kernel.restore_json(&saved).unwrap();
+    assert_eq!(kernel.snapshot_json().unwrap(), saved);
+}
+
+#[test]
+fn nested_dry_consumption_works_for_a_generic_container_item() {
+    let mut kernel = Kernel::new();
+    let mut value: Value = serde_json::from_str(&nested_consumption_scene(false)).unwrap();
+    value["initial"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|row| row["id"] != "water-lot");
+    value["initial"].as_array_mut().unwrap().push(json!({
+        "id":"dry-lot",
+        "components":{"hive.lot":{"kind":"herb","quantity":3,"container":"pail"}}
+    }));
+    kernel.load(&value.to_string()).unwrap();
+    let result: Value = serde_json::from_str(&kernel.advance_json(
+        r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"holder","lot":"dry-lot","quantity":2}]}"#,
+    ).unwrap()).unwrap();
+    assert_eq!(result["results"][0]["accepted"], true);
+    let rows = snapshot(&kernel)["scene"]["initial"].as_array().unwrap().clone();
+    let lot = rows.iter().find(|row| row["id"] == "dry-lot").unwrap();
+    assert_eq!(lot["components"]["hive.lot"]["quantity"], 1);
+}
+
+#[test]
+fn nested_consumption_rejects_wrong_holder_and_sealed_intermediate_without_change() {
+    let mut kernel = Kernel::new();
+    kernel.load(&nested_consumption_scene(false)).unwrap();
+    let before = snapshot(&kernel);
+    let rejected: Value = serde_json::from_str(&kernel.advance_json(
+        r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"other","lot":"water-lot","quantity":1}]}"#,
+    ).unwrap()).unwrap();
+    assert_eq!(rejected["results"][0]["accepted"], false);
+    assert_eq!(snapshot(&kernel)["scene"], before["scene"]);
+
+    let mut sealed = Kernel::new();
+    sealed.load(&nested_consumption_scene(true)).unwrap();
+    let before = snapshot(&sealed);
+    let rejected: Value = serde_json::from_str(&sealed.advance_json(
+        r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"holder","lot":"water-lot","quantity":1}]}"#,
+    ).unwrap()).unwrap();
+    assert_eq!(rejected["results"][0]["accepted"], false);
+    assert_eq!(snapshot(&sealed)["scene"], before["scene"]);
+}
+
 #[test]
 fn out_of_reach_transfer_is_rejected_without_change() {
     let mut kernel = Kernel::new();

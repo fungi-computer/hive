@@ -3279,19 +3279,22 @@ impl Kernel {
                 }
                 let e = self.entity(&lot)?;
                 if self.process_bindings_for_lot(&lot) { return Err("process-bound lot cannot be consumed".into()); }
-                let mut stock = self
-                    .ecs
-                    .get::<Lot>(e)
-                    .cloned()
-                    .ok_or("not a material lot")?;
-                if quantity == 0 || stock.quantity < quantity || stock.container != entity {
+                let stock = self.ecs.get::<Lot>(e).cloned().ok_or("not a material lot")?;
+                let directly_held = stock.container == entity;
+                let nested_in_held_item = if directly_held {
+                    false
+                } else {
+                    let intermediate = self.entity(&stock.container)?;
+                    self.ecs.get::<Container>(intermediate).is_some()
+                        && self.ecs.get::<SealedContainer>(intermediate).is_none()
+                        && self.ecs.get::<Lot>(intermediate)
+                            .is_some_and(|item| item.container == entity)
+                };
+                if quantity == 0 || stock.quantity < quantity || (!directly_held && !nested_in_held_item) {
                     return Err("consumption requires held stock".into());
                 }
-                if self.ecs.get::<LotWater>(e).is_some_and(|water| water.water_kg > 0.0) {
-                    return Err("wet lot consumption is not admitted".into());
-                }
-                stock.quantity -= quantity;
-                self.ecs.entity_mut(e).insert(stock);
+                let prepared = self.prepare_material_consumption(&[MaterialPortion { lot, quantity }])?;
+                self.publish_material_consumption(prepared)?;
                 Ok(ActionEffect::None)
             }
             Action::ExtractResource { operation: _, worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
