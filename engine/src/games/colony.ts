@@ -674,8 +674,8 @@ export const colonyPack: GamePack = {
         const processDetail = process
           ? `${phase} · ${process.progressSeconds.toFixed(1)}s${process.phase === "blocked" && process.blockedReason ? ` · ${process.blockedReason}` : ""}`
           : phase;
-        const containerTotal = (slot: string, kind: string) => total(lots, `${site.id}:${slot}` as EntityId, kind);
-        const ale = lots.filter((lot) => lot.kind === "ale").reduce((sum, lot) => sum + lot.quantity, 0);
+        const containerTotal = (slot: string, kind: string) => lots.reduce((sum, lot) =>
+          sum + (lot.container === `${site.id}:${slot}` && lot.kind === kind ? lot.quantity : 0), 0);
         const air = stationAir
           ? `${stationAir.temperatureC.toFixed(1)} °C · ${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³ smoke`
           : "air not modeled";
@@ -685,7 +685,7 @@ export const colonyPack: GamePack = {
           { id: `station-${site.id}-requirements`, subjects: [site.id], label: "Requirements", value: `${total(hearth)} fuel · ${containerTotal("barm", "barm")} barm · ${containerTotal("keg", "keg")} keg` },
           { id: `station-${site.id}-air`, subjects: [site.id], label: "Air / heat", value: air },
           { id: `station-${site.id}-process`, subjects: [site.id], label: "Process", value: processDetail },
-          { id: `station-${site.id}-output`, subjects: [site.id], label: "Output", value: `${ale} ale · ${containerTotal("tray", "spent-grain")} spent grain` },
+          { id: `station-${site.id}-output`, subjects: [site.id], label: "Output", value: `${containerTotal("tray", "spent-grain")} spent grain in tray` },
         ];
       });
       return [

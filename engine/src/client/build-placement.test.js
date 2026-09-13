@@ -38,5 +38,6 @@ test("placement hint distinguishes a usable preview, waiting admission, and reje
   assert.equal(placementHint(floor, { hover: [1, 0, 1] }), "Preview: 1 cell · click to place");
   assert.equal(placementHint(floor, { area: { value: "dragging" }, cells: 4 }), "Preview: 4 cells · release to place");
   assert.equal(placementHint({ ...floor, availability: { status: "unavailable", reason: "No support" } }), "Waiting: No support");
-  assert.equal(placementHint(floor, { area: { rejection: "Selection exceeds the visible world" } }), "Rejected: Selection exceeds the visible world");
+  assert.equal(placementHint(floor, { area: { value: "dragging", rejection: "Selection exceeds the visible world" } }), "Rejected: Selection exceeds the visible world");
+  assert.equal(placementHint(floor, { area: { value: "dragging", rejection: null } }), "Preview: 0 cells · release to place");
 });
