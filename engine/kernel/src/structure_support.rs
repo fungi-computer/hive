@@ -414,6 +414,34 @@ mod tests {
     }
 
     #[test]
+    fn completed_wall_makes_its_top_a_floor_anchor() {
+        let wall = StaticInstance::Wall {
+            id: "wall".into(),
+            base: Cell { x: 0, y: 1, z: 0 },
+            height: 4,
+        };
+        let floor = StaticInstance::Floor {
+            id: "upper-floor".into(),
+            support: Cell { x: 0, y: 4, z: 0 },
+        };
+        let geometry = StaticGeometry::new(bounds(), vec![wall.clone(), floor.clone()]).unwrap();
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        assert!(resolve(&geometry, policy(6), &mut ground).unwrap().unsupported.is_empty());
+
+        let empty = StaticGeometry::new(bounds(), Vec::new()).unwrap();
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let before_wall = resolve(&empty, policy(6), &mut ground).unwrap();
+        let mut no_terrain = terrain(&[]);
+        assert!(!candidate_supported(&before_wall, &floor, 6, &mut no_terrain).unwrap());
+
+        let wall_geometry = StaticGeometry::new(bounds(), vec![wall]).unwrap();
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let after_wall = resolve(&wall_geometry, policy(6), &mut ground).unwrap();
+        let mut no_terrain = terrain(&[]);
+        assert!(candidate_supported(&after_wall, &floor, 6, &mut no_terrain).unwrap());
+    }
+
+    #[test]
     fn signed_stair_height_roots_and_yields_upper_landing() {
         let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
             id: "stair".into(), origin: Cell { x: -2, y: -8, z: 3 }, orientation: Cardinal::West, run: 2, rise: 1,
