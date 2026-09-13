@@ -1,7 +1,6 @@
 import { placementOrientation } from "../sdk/placement.ts";
 import { evaluateDesignation } from "./spatial-designation.js";
 
-const FACING = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
 
 /** Build the exact cells a placement gesture owns. No admission is inferred. */
 export function placementCells({ area, target, anchor, upperCandidates = [] }) {
@@ -17,7 +16,7 @@ export function placementVisualSpec(control, cells, placementVisuals, area) {
   const catalog = control?.input?.catalog;
   const definition = catalog === undefined ? undefined : placementVisuals?.[catalog];
   const orientation = placementOrientation(definition?.alignment ?? "fixed", area, control?.input?.orientation);
-  return { visual: definition?.visual, facing: FACING[orientation], cells };
+  return { visual: definition?.visual, facing: definition?.facing[orientation] ?? 0, cells };
 }
 
 /** Reuse bounded sprites and destroy only the sprites owned by this pool. */

@@ -33,10 +33,12 @@ test("both wall axes and explicit stair rotation match the shared placement poli
   const { colonyPlacement } = await import("../games/colony-placement.ts");
   const context = { query: () => [], physicalContacts: cells => cells.map((_, i) => ({ solid: i % 2 === 0, sealedTop: false, outside: false })) };
   for (const [catalog, end, orientation, expectedFacing, expectedOrientation] of [
-    ["timber-wall", [0, 13, 2], undefined, 2, "south"],
+    ["timber-wall", [0, 13, 2], undefined, 0, "south"],
     ["timber-wall", [-2, 13, 0], undefined, 1, "east"],
     ["timber-stair", [0, 13, 0], "west", 3, "west"],
-    ["timber-floor", [0, 13, 2], undefined, 0, "north"],
+    ["timber-stair", [0, 13, 0], "north", 2, "north"],
+    ["timber-stair", [0, 13, 0], "south", 0, "south"],
+    ["timber-floor", [0, 13, 2], undefined, 2, "north"],
   ]) {
     const area = { start: [0, 13, 0], end };
     const input = { catalog, ...(orientation ? { orientation } : {}), target: { area } };
