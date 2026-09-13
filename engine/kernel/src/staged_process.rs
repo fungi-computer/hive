@@ -412,8 +412,9 @@ pub fn validate_bindings(
             return Err("process binding lot does not satisfy its input role".into());
         }
         if input.policy == InputPolicy::WholeLot && binding.quantity != source.quantity { return Err("whole-lot process binding is partial".into()); }
-        let total = roles.entry(binding.role.as_str()).or_default().checked_add(binding.quantity).ok_or("process binding quantity overflow")?;
-        if input.policy == InputPolicy::WholeLot && total > input.quantity { return Err("whole-lot process binding is duplicated".into()); }
+        let total = roles.entry(binding.role.as_str()).or_default();
+        *total = total.checked_add(binding.quantity).ok_or("process binding quantity overflow")?;
+        if input.policy == InputPolicy::WholeLot && *total > input.quantity { return Err("whole-lot process binding is duplicated".into()); }
     }
     for input in &definition.inputs {
         if roles.get(input.role.as_str()).copied().unwrap_or(0) != input.quantity { return Err("process bindings do not satisfy every input role".into()); }
