@@ -144,6 +144,8 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
+  | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
+  | { readonly kind: "admit-process"; readonly process: EntityId; readonly definition: string; readonly station: EntityId }
   | {
       readonly kind: "designate-stockpile";
       readonly zone: EntityId;
@@ -291,6 +293,20 @@ export interface SimulationClock {
   readonly delta: number;
   readonly tick: number;
 }
+export type ProcessInputPolicy = "portion" | "whole-lot";
+export type ProcessInputDisposition = "consume" | "retain" | "emission-source";
+export interface ProcessRequirements {
+  readonly definition: string;
+  readonly version: number;
+  readonly stationCatalog: string;
+  readonly inputs: readonly {
+    readonly role: string; readonly port: string; readonly material: string;
+    readonly quantity: number; readonly policy: ProcessInputPolicy;
+    readonly disposition: ProcessInputDisposition;
+  }[];
+  readonly stages: readonly { readonly id: string; readonly mode: "attended" | "elapsed"; readonly durationSeconds: number }[];
+  readonly phase: "waiting" | "running" | "complete" | "blocked";
+}
 export interface RandomSource {
   next(): number;
 }
@@ -302,6 +318,7 @@ export interface ReadContext {
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
   /** One committed physical projection shared by all work phases in a step. */
   workMaterialFacts(): WorkMaterialFacts;
+  readonly processRequirements?: (definition: string, station: EntityId) => ProcessRequirements;
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   routeToAny(request: RouteToAnyRequest): RouteToAnyResult;
@@ -540,6 +557,7 @@ export interface KernelPort {
   ) => readonly QueryRow<T>[];
   /** Compact native owner projection for shared work/material planning. */
   readonly workMaterialFacts: () => WorkMaterialFacts;
+  readonly processRequirements?: (definition: string, station: EntityId) => ProcessRequirements;
   readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
   readonly advance: (
     delta: number,

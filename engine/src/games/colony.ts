@@ -21,6 +21,7 @@ import {
   FiniteResource,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
+import { StagedProcess } from "../sdk/process-supply";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
@@ -310,6 +311,7 @@ const colonyComponents = [
   Container,
   Traversal,
   MaterialLot,
+  StagedProcess,
   ExcavationWork,
   Destination,
   Worker,

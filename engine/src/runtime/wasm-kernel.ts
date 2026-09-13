@@ -23,6 +23,7 @@ import type {
   RouteToAnyResult,
   WorldPose,
   WorkMaterialFacts,
+  ProcessRequirements,
   WriteIntent,
   EntityRecord,
 } from "../contracts";
@@ -50,6 +51,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   terrain_changes(json: string): string;
   query(json: string): string;
   work_material_snapshot(): string;
+  process_requirements(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
   render_facts(): string;
@@ -554,6 +556,27 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         },
       );
       return { version: 1, containers, lots };
+    },
+    processRequirements(definition, station): ProcessRequirements {
+      if (!entityIdWireSchema.safeParse(definition).success || !entityIdWireSchema.safeParse(station).success)
+        throw new Error("invalid process requirements identity");
+      const value: unknown = JSON.parse(binding.process_requirements(JSON.stringify({ definition, station })));
+      if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid process requirements result");
+      const row = value as Record<string, unknown>;
+      if (row.definition !== definition || typeof row.version !== "number" || !Number.isSafeInteger(row.version) || typeof row.stationCatalog !== "string" || !Array.isArray(row.inputs) || !Array.isArray(row.stages) || !["waiting", "running", "complete", "blocked"].includes(row.phase as string)) throw new Error("invalid process requirements result");
+      const inputs = row.inputs.map((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid process requirement input");
+        const input = entry as Record<string, unknown>;
+        if (!["role", "port", "material", "quantity", "policy", "disposition"].every(key => key in input) || Object.keys(input).length !== 6 || ![input.role, input.port, input.material].every(v => typeof v === "string") || !Number.isSafeInteger(input.quantity) || (input.quantity as number) <= 0 || !["portion", "whole-lot"].includes(input.policy as string) || !["consume", "retain", "emission-source"].includes(input.disposition as string)) throw new Error("invalid process requirement input");
+        return input as unknown as ProcessRequirements["inputs"][number];
+      });
+      const stages = row.stages.map((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid process requirement stage");
+        const stage = entry as Record<string, unknown>;
+        if (Object.keys(stage).length !== 3 || typeof stage.id !== "string" || !["attended", "elapsed"].includes(stage.mode as string) || typeof stage.durationSeconds !== "number" || !Number.isFinite(stage.durationSeconds) || stage.durationSeconds <= 0) throw new Error("invalid process requirement stage");
+        return stage as unknown as ProcessRequirements["stages"][number];
+      });
+      return { definition, version: row.version, stationCatalog: row.stationCatalog, inputs, stages, phase: row.phase as ProcessRequirements["phase"] };
     },
     entityMembership(ids) {
       if (ids.length === 0 || ids.length > 128)
