@@ -808,6 +808,30 @@ two-player playtest is claimed. New worlds are required across the clean-break
 program identity. This is a construction checkpoint, not completion of the
 Clearing restoration goal.
 
+### September 13 worker-driven deconstruction checkpoint — e0095cc
+
+Native teardown and the shared work allocator now compose into one recoverable
+deconstruction path. A player designation creates durable intent without claiming
+a worker. The allocator considers only workers with a body, traversal and finite
+container capacity; it uses the native contact and route query, releases an actor
+after a refused route, and does not retry an unchanged blocked order every tick.
+Completion removes the structure through the same prospective geometry/support
+owner used by construction and deposits the catalog's finite salvage into the
+actual worker container. Empty-port requirements, dependent support, quantity
+conservation, cancellation and current-format save/reload remain authoritative.
+
+The joined source passes ten focused provider laws, the actual Colony
+build-to-teardown-to-salvage/reload sequence and strict engine TypeScript. The
+focused native support/deconstruction laws passed before the final TypeScript-only
+provider refactor; the later native rerun failed before compilation because the
+game build-cache volume was full, so it is not additional green evidence. Final
+touched-source Fallow reports no introduced dead code, complexity, duplication or
+style finding. Source is pushed at `e0095cc`; it is not yet player-visible or
+deployed. The next joined client change must expose teardown by selecting any
+finished construction through the same Whistle-backed command catalog. It must
+not require a currently free worker, publish a second command table, or retain the
+temporary `PresentationControl` transport beside Whistle.
+
 ### September 12 station/route and online-host correction
 
 Runtime source `efa71ec` retires the standalone hearth presentation, names the
