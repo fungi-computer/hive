@@ -43,7 +43,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   const centers = eligibleWorkers.map(worker => { const p = poses.get(worker)!; return [p.x, p.y, p.z] as [number, number, number]; });
   const water = centers.length ? ctx.waterContacts(centers) : [];
   const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
-  const candidates: Candidate[] = [];
+  const byTask = new Map<EntityId, Candidate[]>();
   for (const row of rows) {
     const order = row.get(WaterSupplyOrder), prior = row.get(WaterSupplyWork);
     if (order.revision < prior.request) throw new Error("invalid water supply request correspondence");
@@ -56,11 +56,29 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
       for (const pail of pails) {
         const worker = pail.container;
         if (!eligibleWorkers.includes(worker) || moving.has(worker)) continue;
-        candidates.push({ worker, task: row.id, vessel: pail.id, cell: cell.at, approaches });
+        const taskCandidates = byTask.get(row.id) ?? [];
+        taskCandidates.push({ worker, task: row.id, vessel: pail.id, cell: cell.at, approaches });
+        byTask.set(row.id, taskCandidates);
       }
     }
   }
-  const boundedCandidates = candidates.slice(0, 128);
+  // Bound the shared candidate budget fairly: each queued demand contributes
+  // one candidate per round before any demand receives a second. This keeps
+  // a water-rich first demand from starving later orders.
+  const candidates: Candidate[] = [];
+  const taskQueues = [...byTask.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, queue]) => queue);
+  for (let offset = 0; candidates.length < 128; offset++) {
+    let added = false;
+    for (const queue of taskQueues) {
+      const candidate = queue[offset];
+      if (!candidate) continue;
+      candidates.push(candidate);
+      added = true;
+      if (candidates.length === 128) break;
+    }
+    if (!added) break;
+  }
+  const boundedCandidates = candidates;
   const claims = rows.filter(row => {
     const state = row.get(WaterSupplyWork), order = row.get(WaterSupplyOrder);
     return order.revision !== state.request || state.phase === "queued" || state.phase === "approaching" || state.phase === "submitting";
