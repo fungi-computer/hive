@@ -341,6 +341,26 @@ mod construction_tests {
         (kernel, surface, contact)
     }
 
+    #[test]
+    fn water_contacts_are_bounded_three_dimensional_and_stable() {
+        let (kernel, _, _) = world();
+        assert!(kernel.water_contacts_json("[]").is_err());
+        let too_many = serde_json::to_string(&vec![[0.0_f64, 0.0, 0.0]; 17]).unwrap();
+        assert!(kernel.water_contacts_json(&too_many).is_err());
+        let facts = kernel.environment.as_ref().unwrap().world.facts().unwrap();
+        let dry = facts.cells.iter().find(|cell| cell.level == 0).expect("fixture has dry cell");
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let center = |at: [i32; 3]| [at[0] as f64 * spacing[0], (at[1] as f64 + 0.5) * spacing[1], at[2] as f64 * spacing[2]];
+        let dry_center = center(dry.at);
+        let first: serde_json::Value = serde_json::from_str(&kernel.water_contacts_json(&serde_json::to_string(&[dry_center]).unwrap()).unwrap()).unwrap();
+        let second = kernel.water_contacts_json(&serde_json::to_string(&[dry_center]).unwrap()).unwrap();
+        assert_eq!(first.to_string(), serde_json::from_str::<serde_json::Value>(&second).unwrap().to_string());
+        let contacts = first.as_array().unwrap();
+        assert!(contacts.iter().all(|contact| contact["at"] != serde_json::json!(dry.at)));
+        let far = [dry_center[0], dry_center[1] + 100.0, dry_center[2]];
+        assert!(serde_json::from_str::<serde_json::Value>(&kernel.water_contacts_json(&serde_json::to_string(&[far]).unwrap()).unwrap()).unwrap().as_array().unwrap().is_empty());
+    }
+
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
