@@ -534,6 +534,9 @@ impl Registry {
             "hive.finite-resource" => {
                 world.entity_mut(entity).insert(decode::<FiniteResource>(value)?);
             }
+            "hive.resource-site" => {
+                world.entity_mut(entity).insert(decode::<ResourceSite>(value)?);
+            }
             "hive.destination" => {
                 world
                     .entity_mut(entity)
@@ -592,6 +595,7 @@ impl Registry {
             "hive.process-binding" => world.get::<crate::staged_process::ProcessBinding>(entity).map(record),
             "hive.stockpile-cell" => world.get::<StockpileCell>(entity).map(record),
             "hive.finite-resource" => world.get::<FiniteResource>(entity).map(record),
+            "hive.resource-site" => world.get::<ResourceSite>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
             "hive.construction-site" => world.get::<ConstructionSite>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),

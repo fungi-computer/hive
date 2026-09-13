@@ -121,6 +121,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       const state = row.get(ColonyResourceOrder);
       if (!state.actor || !["sow", "tend", "harvest"].includes(state.phase)) continue;
       const definition = definitions.get(state.definition); if (!definition) continue;
+      if (ctx.query(query(Destination)).some(destination => destination.id === state.actor)) continue;
       const pose = ctx.worldPoses([state.actor])[0]?.local;
       if (!pose || Math.hypot(pose.x - state.approachX, pose.z - state.approachZ) > 0.1 || Math.abs(pose.y - state.approachY) > 0.2) continue;
       const work = state.workSeconds + ctx.clock.delta;
