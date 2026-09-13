@@ -27,6 +27,7 @@ import type {
   EntityId,
   WorldPose,
   Impact,
+  WorkMaterialFacts,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -545,6 +546,7 @@ export class GameSession {
       const nextFrontiers = new Map(this.impactFrontiers);
       let systemActionCount = 0;
       let routeRequests = 0;
+      let committedWorkMaterialFacts: WorkMaterialFacts | undefined;
       let activeReads: readonly ComponentDefinition<any>[] =
         [];
       const context: WriteContext = {
@@ -568,6 +570,12 @@ export class GameSession {
         },
         outcomes: structuredClone(this.outcomes),
         query: (spec) => this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves),
+        workMaterialFacts: () => {
+          // Physical material actions commit at the native boundary. Authored
+          // overlays cannot write reserved material components, so this
+          // committed snapshot is valid for every system in this step.
+          return committedWorkMaterialFacts ??= this.port.workMaterialFacts();
+        },
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });
         },

@@ -44,6 +44,7 @@ const definition = new TextEncoder().encode(
 );
 
 class TestPort implements KernelPort {
+  workMaterialFacts(): import("../contracts").WorkMaterialFacts { return { version: 1, containers: [], lots: [] }; }
   routeCosts(): readonly import("../contracts").RouteCostResult[] { throw new Error("unexpected route query"); }
   dispose(): void {}
   private entityJson = JSON.stringify({

@@ -60,22 +60,21 @@ type DeliveryCandidate = {
 export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<DeliveryCandidate> {
     const tasks = ctx.query(query(DeliveryTask));
     const groundStocks = new Set(ctx.query(query(GroundStock)).map(row => row.id));
-    const sealed = new Set(ctx.query(query(SealedContainer)).map(row => row.id));
+    const materialFacts = ctx.workMaterialFacts();
+    const sealed = new Set(materialFacts.containers.filter(row => row.sealed).map(row => row.id));
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
     const requestMove = (actor: EntityId, target: MoveDestination) => {
       ctx.action(move(actor, target));
     };
-    const lots = ctx.query(query(MaterialLot));
-    const lotRowsById = new Map(lots.map((row) => [row.id, row]));
-    const lotsById = new Map(lots.map((row) => [row.id, row.get(MaterialLot)]));
+    const lots = materialFacts.lots;
+    const lotsById = new Map(lots.map(lot => [lot.id, lot]));
     const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
-    const containers = new Map(ctx.query(query(Container)).map((row) => [row.id, row.get(Container)]));
+    const containers = new Map(materialFacts.containers.map(container => [container.id, container]));
     const quantityByContainer = new Map<EntityId, number>();
     const invalidLotContainers = new Set<EntityId>();
-    for (const row of lots) {
-      const lot = row.get(MaterialLot);
+    for (const lot of lots) {
       if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 0 || lot.quantity > 0xffffffff)
         invalidLotContainers.add(lot.container);
       const quantity = (quantityByContainer.get(lot.container) ?? 0) + lot.quantity;
@@ -253,7 +252,6 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         !sameFrame(state.actor, state.destination)
       )
         continue;
-      const lot = lotRowsById.get(state.sourceLot);
       const lotState = lotsById.get(state.sourceLot);
       // A completed deposit must still retire its claim if the destination
       // became sealed in that same committed step. Otherwise keep custody and
@@ -262,8 +260,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         sealed.has(state.actor) || sealed.has(state.destination)
         || (lotState?.container === state.source && sealed.has(state.source))
       )) continue;
-      const actorLot = lotState?.container === state.actor ? lot : undefined;
-      const actorLotState = actorLot ? lotState : undefined;
+      const actorLotState = lotState?.container === state.actor ? lotState : undefined;
       if (state.phase === "putting-down") {
         // Observe the native committed custody change before releasing the claim.
         if (lotState && groundStocks.has(lotState.container) && lotState.container !== state.actor && lotState.container !== state.destination) {
@@ -339,10 +336,10 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         actorLotState &&
         distance(actorPose.world, destinationPose.world) <= 1
       ) {
-        if (actorLotState && actorLot)
+        if (actorLotState)
           ctx.action(
             transfer(
-              actorLot.id,
+              actorLotState.id,
               state.actor,
               state.destination,
               state.quantity,
