@@ -20,8 +20,6 @@ import {
   transfer,
   FiniteResource,
   ResourceSite,
-  establishResourceSite,
-  tendResourceSite,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { StagedProcess, requestProcess } from "../sdk/process-supply";
@@ -30,7 +28,7 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
@@ -412,15 +410,15 @@ export const colonyPack: GamePack = {
     }),
     sowMugwort: command({
       title: "Sow mugwort", category: "Colony", description: "Designate a reachable soil cell for tended mugwort.",
-      input: z.object({ site: z.string().min(1).max(128), x: z.number().int(), y: z.number().int(), z: z.number().int() }).strict(),
-      reads: [Worker], writes: [],
-      run: (_context, input) => ({ actions: [establishResourceSite(workerOne, entity(input.site), "mugwort", input)], writes: [] }),
+      input: z.object({ target: z.object({ cell: z.tuple([z.number().int(), z.number().int(), z.number().int()]) }).strict() }).strict(),
+      reads: [ColonyResourceOrder], writes: [], lifecycle: [ColonyResourceOrder],
+      run: (_context, input) => { const [x, y, z] = input.target.cell; const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`); return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "" } } }] }; },
     }),
     tendMugwort: command({
       title: "Tend mugwort", category: "Colony", description: "Water the next due stage of a tended mugwort site.",
       input: z.object({ site: z.string().min(1).max(128), vessel: z.string().min(1).max(128) }).strict(),
-      reads: [ResourceSite], writes: [],
-      run: (_context, input) => ({ actions: [tendResourceSite(workerOne, entity(input.site), entity(input.vessel))], writes: [] }),
+      reads: [ResourceSite, ColonyResourceOrder], writes: [ColonyResourceOrder],
+      run: (context, input) => ({ actions: [], writes: context.query(query(ColonyResourceOrder)).filter(row => row.get(ColonyResourceOrder).site === input.site).map(row => ({ component: ColonyResourceOrder.id, entity: row.id, value: { ...row.get(ColonyResourceOrder), vessel: entity(input.vessel), phase: "tend", actor: null, reason: "" } })) }),
     }),
     requestBrew: command({
       title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",

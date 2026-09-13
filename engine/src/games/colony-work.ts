@@ -27,6 +27,7 @@ import {
   ExcavationWork,
   MaterialLot,
   FiniteResource,
+  ResourceSite,
   LotWater,
   Position,
   Support,
@@ -34,11 +35,51 @@ import {
   Traversal,
   excavate,
   extractResource,
+  establishResourceSite,
+  tendResourceSite,
   move,
   cancelWork,
 } from "../sdk/common";
 import type { EntityId, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
+
+export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "complete";
+export const ColonyResourceOrder = component<{
+  definition: string; cellX: number; cellY: number; cellZ: number; site: EntityId;
+  actor: EntityId | null; vessel: EntityId | null; phase: ColonyResourcePhase; workSeconds: number; reason: string;
+}>("colony.resource-order", { version: 1, fields: {
+  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", actor: "nullable-entity", vessel: "nullable-entity", phase: "string", workSeconds: "number", reason: "string",
+} });
+
+/** Shared finite tended-resource work owner. It emits only native physical actions. */
+export function resourceWorkProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider {
+  const orders = ctx.query(query(ColonyResourceOrder));
+  const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspendedActors.has(row.id));
+  const sites = new Map(ctx.query(query(ResourceSite)).map(row => [row.id, row.get(ResourceSite)]));
+  const definitions = new Map(colonyEnvironment.resourceSites?.map(definition => [definition.id, definition]) ?? []);
+  for (const row of orders) {
+    const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
+    if (state.phase === "waiting" && site && definition && ctx.clock.now >= site.nextDue) {
+      ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
+    }
+  }
+  const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
+  const candidates = orders.flatMap(row => ["sow", "tend", "harvest"].includes(row.get(ColonyResourceOrder).phase) ? workers.map(worker => ({ worker: worker.id, task: row.id })) : []);
+  const selected = new Map<EntityId, EntityId>();
+  return { claims, candidates, lowerBound: () => 0, estimate: candidate => { selected.set(candidate.task, candidate.worker); return 0; }, apply: assignments => {
+    for (const assignment of assignments) {
+      const row = orders.find(item => item.id === assignment.task); if (!row) continue;
+      const state = row.get(ColonyResourceOrder); const definition = definitions.get(state.definition); if (!definition) continue;
+      const site = sites.get(state.site); const worker = assignment.worker;
+      const work = state.workSeconds + 1;
+      if (state.phase === "sow" && work >= definition.sowSeconds) { ctx.action(establishResourceSite(worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "waiting", workSeconds: 0, reason: "" }); }
+      else if (state.phase === "tend" && work >= definition.tendSeconds) { ctx.action(tendResourceSite(worker, state.site, state.vessel ?? entity("invalid"))); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "waiting", workSeconds: 0, reason: "" }); }
+      else if (state.phase === "harvest" && work >= definition.harvestSeconds) { ctx.action(extractResource(worker, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "complete", workSeconds: work, reason: "" }); }
+      else ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, workSeconds: work });
+      void site;
+    }
+  }, progress: () => undefined };
+}
 import {
   StockpileCell,
   planStockpileDeliveries,
@@ -958,6 +999,7 @@ export const colonyWorkSystem = createWorkSystem({
     MaterialLot,
     StagedProcess,
     ProcessAttendanceWork,
+    ColonyResourceOrder,
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
@@ -976,6 +1018,7 @@ export const colonyWorkSystem = createWorkSystem({
     WaterSupplyOrder,
     WaterSupplyWork,
     ProcessAttendanceWork,
+    ColonyResourceOrder,
   ],
   phases: [
     processSupplyPhase,
@@ -1003,6 +1046,7 @@ export const colonyWorkSystem = createWorkSystem({
     (ctx, suspendedActors) =>
       deconstructionWorkProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
     (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
+    resourceWorkProvider,
     (ctx, suspendedActors) => processAttendanceProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
   ],
 });
