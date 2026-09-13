@@ -425,7 +425,7 @@ export const colonyPack: GamePack = {
     deliver: command({
       title: "Deliver goods", category: "Colony", description: "Enable delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, DeliveryTask, DeliveryControl],
+      reads: [Worker, Container, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
     }),

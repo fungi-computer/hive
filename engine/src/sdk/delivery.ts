@@ -319,7 +319,9 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       const actorLotState = lotState?.container === state.actor ? lotState : undefined;
       if (state.phase === "putting-down") {
         // Observe the native committed custody change before releasing the claim.
-        if (lotState && groundStocks.has(lotState.container) && lotState.container !== state.actor && lotState.container !== state.destination) {
+        if (lotState?.container === state.destination) {
+          ctx.write(DeliveryTask, task.id, { ...state, actor: null, phase: "complete" });
+        } else if (lotState && groundStocks.has(lotState.container) && lotState.container !== state.actor && lotState.container !== state.destination) {
           ctx.write(DeliveryTask, task.id, { ...state, source: lotState.container, actor: null, phase: "idle" });
         } else if (actorLotState) ctx.action(dropLot(state.actor, state.sourceLot));
         continue;
@@ -393,7 +395,11 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         actorLotState &&
         distance(actorPose.world, destinationPose.world) <= 1
       ) {
-        if (actorLotState)
+        if (actorLotState) {
+          // Publish the visual hand-off frontier with the same committed
+          // transfer request. The next step observes destination custody and
+          // retires the task; presentation never needs a client timer.
+          ctx.write(DeliveryTask, task.id, { ...state, phase: "putting-down" });
           ctx.action(
             transfer(
               actorLotState.id,
@@ -402,6 +408,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
               state.quantity,
             ),
           );
+        }
       } else if (state.phase === "to-destination" && actorLotState) {
         requestMove(state.actor, {
             ...destination.get(Position),

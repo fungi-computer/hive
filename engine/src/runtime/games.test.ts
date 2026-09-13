@@ -13,6 +13,8 @@ import { formationsPack, FormationMember } from "../games/formations";
 import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
 import { z } from "zod";
+import { buildObservation } from "./observation";
+import { DeliveryTask } from "../sdk/delivery";
 const emptyInput = z.object({}).strict();
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -141,13 +143,26 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
+    session.command("pauseDelivery", { entities: ["colony.worker.2"] });
     session.command("deliver", { quantity: 1, entities: ["colony.worker.1"] });
     let interrupted = false;
+    const seenPhases = new Set<string>();
+    let puttingDownSave: ReturnType<GameSession["save"]> | undefined;
     for (let i = 0; i < 100; i++) {
       session.step(0.1);
+      const activity = buildObservation(session, { epoch: 0, sequence: i }).facts
+        .find((fact) => fact.id === "colony.worker.1")?.activity;
+      if (activity?.kind === "delivery") {
+        seenPhases.add(activity.phase);
+        if (activity.phase === "putting-down" && !puttingDownSave)
+          puttingDownSave = session.save();
+      }
       const lot = session
         .query(query(MaterialLot))
-        .find((row) => row.get(MaterialLot).container === "colony.worker.1");
+        .find((row) => {
+          const value = row.get(MaterialLot);
+          return value.kind === "bread" && value.container === "colony.worker.1";
+        });
       if (lot) interrupted = true;
       if (lot) {
         session.command("pauseDelivery", { entities: ["colony.worker.1"] });
@@ -180,12 +195,38 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
       true,
       "delivery must reach carried custody before pause",
     );
-    for (let i = 0; i < 100; i++) session.step(0.1);
+    for (let i = 100; i < 200; i++) {
+      session.step(0.1);
+      const activity = buildObservation(session, { epoch: 0, sequence: i }).facts
+        .find((fact) => fact.id === "colony.worker.1")?.activity;
+      if (activity?.kind === "delivery") {
+        seenPhases.add(activity.phase);
+        if (activity.phase === "putting-down" && !puttingDownSave)
+          puttingDownSave = session.save();
+      }
+      const complete = session.query(query(DeliveryTask))
+        .find((row) => row.id === "colony.delivery.1")?.get(DeliveryTask).phase === "complete";
+      if (complete) break;
+    }
+    assert(seenPhases.has("pickup"), "committed source attendance must publish pickup pose");
+    assert(seenPhases.has("carrying"), "committed actor custody must publish carrying pose");
+    assert(seenPhases.has("putting-down"), "committed destination transfer must publish drop pose");
+    if (!puttingDownSave) throw new Error("retain the committed hand-off frontier for reload");
+    session.restore(puttingDownSave);
+    session.restore(puttingDownSave);
+    session.step(0.1);
+    assert.equal(
+      session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === "colony.guest.1")
+        .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0),
+      1,
+      "replaying the committed hand-off cannot duplicate destination custody",
+    );
+    for (let i = 0; i < 10; i++) session.step(0.1);
     const lots = session
       .query(query(MaterialLot))
       .map((row) => row.get(MaterialLot));
     assert.equal(
-      lots.reduce((sum, lot) => sum + lot.quantity, 0),
+      lots.filter((lot) => lot.kind === "bread").reduce((sum, lot) => sum + lot.quantity, 0),
       6,
     );
     assert.equal(
