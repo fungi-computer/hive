@@ -86,6 +86,19 @@ const routeToAnyResultSchema = z.discriminatedUnion("status", [
     })
     .strict(),
 ]);
+const processRequirementsSchema = z.object({
+  definition: entityIdWireSchema,
+  version: z.number().int().positive(),
+  stationCatalog: entityIdWireSchema,
+  inputs: z.array(z.object({
+    role: entityIdWireSchema, port: entityIdWireSchema, material: entityIdWireSchema,
+    quantity: z.number().int().positive().max(0xffffffff),
+    policy: z.enum(["portion", "whole-lot"]),
+    disposition: z.enum(["consume", "retain", "emission-source"]),
+  }).strict()).min(1).max(32),
+  stages: z.array(z.object({ id: entityIdWireSchema, mode: z.enum(["attended", "elapsed"]), durationSeconds: z.number().finite().positive() }).strict()).min(1).max(32),
+  phase: z.enum(["waiting", "working", "complete", "blocked"]),
+}).strict();
 const constructionAccessSchema = z.array(z.object({
   site: entityIdWireSchema,
   support: z.enum(["ready", "waitingForSupport", "unknown"]),
@@ -560,23 +573,9 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     processRequirements(definition, station): ProcessRequirements {
       if (!entityIdWireSchema.safeParse(definition).success || !entityIdWireSchema.safeParse(station).success)
         throw new Error("invalid process requirements identity");
-      const value: unknown = JSON.parse(binding.process_requirements(JSON.stringify({ definition, station })));
-      if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid process requirements result");
-      const row = value as Record<string, unknown>;
-      if (row.definition !== definition || typeof row.version !== "number" || !Number.isSafeInteger(row.version) || typeof row.stationCatalog !== "string" || !Array.isArray(row.inputs) || !Array.isArray(row.stages) || !["waiting", "running", "complete", "blocked"].includes(row.phase as string)) throw new Error("invalid process requirements result");
-      const inputs = row.inputs.map((entry) => {
-        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid process requirement input");
-        const input = entry as Record<string, unknown>;
-        if (!["role", "port", "material", "quantity", "policy", "disposition"].every(key => key in input) || Object.keys(input).length !== 6 || ![input.role, input.port, input.material].every(v => typeof v === "string") || !Number.isSafeInteger(input.quantity) || (input.quantity as number) <= 0 || !["portion", "whole-lot"].includes(input.policy as string) || !["consume", "retain", "emission-source"].includes(input.disposition as string)) throw new Error("invalid process requirement input");
-        return input as unknown as ProcessRequirements["inputs"][number];
-      });
-      const stages = row.stages.map((entry) => {
-        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid process requirement stage");
-        const stage = entry as Record<string, unknown>;
-        if (Object.keys(stage).length !== 3 || typeof stage.id !== "string" || !["attended", "elapsed"].includes(stage.mode as string) || typeof stage.durationSeconds !== "number" || !Number.isFinite(stage.durationSeconds) || stage.durationSeconds <= 0) throw new Error("invalid process requirement stage");
-        return stage as unknown as ProcessRequirements["stages"][number];
-      });
-      return { definition, version: row.version, stationCatalog: row.stationCatalog, inputs, stages, phase: row.phase as ProcessRequirements["phase"] };
+      const row = processRequirementsSchema.parse(JSON.parse(binding.process_requirements(JSON.stringify({ definition, station }))));
+      if (row.definition !== definition) throw new Error("process requirements definition mismatch");
+      return row;
     },
     entityMembership(ids) {
       if (ids.length === 0 || ids.length > 128)

@@ -234,6 +234,7 @@ function fakePort(
     terrainChanges: changes,
     query: () => [],
     workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
+    processRequirements: () => { throw new Error("unexpected process requirements query"); },
     entityMembership: () => [],
     advance: () => ({ revision: 0, results: [], impacts: [] }),
     snapshot: () => ({
