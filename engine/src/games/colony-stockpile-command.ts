@@ -38,6 +38,7 @@ function zoneFor(areaValue: z.infer<typeof area>) {
 
 /** Colony chooses the bounded profile; native stockpile admission owns floor/conflict atomicity. */
 export const colonyStockpileCommand = command({
+  title: "Designate stockpile", category: "Storage", description: "Designate a floor area for physical material storage.",
   input: colonyStockpileInputSchema,
   reads: [],
   writes: [],
@@ -53,6 +54,7 @@ export const colonyStockpileCommand = command({
 });
 
 export const colonyStockpilePolicyCommand = command({
+  title: "Update stockpile", category: "Storage", description: "Change a stockpile's material profile and priority.",
   input: colonyStockpilePolicyInputSchema,
   reads: [], writes: [],
   run: (_context, value) => ({ writes: [], actions: [updateStockpile(entity(value.zone), value.filterProfile, value.priority)] }),

@@ -1,7 +1,9 @@
 import type { PresentationCue } from "./presentation-cues";
 import type { ActionRequest, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
-import type { EnvironmentVisual, PresentationControl, PresentationFact, TerrainMark } from "../presentation";
+import type { EnvironmentVisual, PresentationFact, TerrainMark } from "../presentation";
+import type { WhistleAgentProjection } from "@fungi.computer/whistle";
+import type { WhistleContextualTarget } from "./whistle";
 import type { TerrainWireFrame, TerrainWireObservation } from "./terrain-wire";
 
 export type WorkerCommand =
@@ -30,10 +32,10 @@ type WorkerEventBase =
   | {
       readonly type: "presentation";
       readonly facts: readonly PresentationFact[];
-      readonly controls: readonly PresentationControl[];
       readonly terrainMarks: readonly TerrainMark[];
       readonly environmentVisuals: readonly EnvironmentVisual[];
     }
+  | { readonly type: "whistle"; readonly agent: readonly WhistleAgentProjection[]; readonly targets: readonly WhistleContextualTarget[] }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[]; readonly metrics?: RuntimeMetrics }
   | { readonly type: "error"; readonly message: string };

@@ -574,6 +574,18 @@ export interface GameCommandResult {
 export interface GameCommandDefinition {
   /** The sole parser for input entering this command. */
   readonly input: z.ZodType;
+  /** Semantic metadata shared by human and agent projections. */
+  readonly title: string;
+  readonly category: string;
+  readonly description: string;
+  /** Host-owned discoverability state, evaluated against the committed world. */
+  readonly availability?: (
+    context: Pick<ReadContext, "query">,
+  ) => GameCommandAvailability;
+  /** Stable subjects for contextual UI projection, evaluated from authoritative state. */
+  readonly subjects?: (
+    context: Pick<ReadContext, "query">,
+  ) => readonly EntityId[];
   /** Authored record creation/removal only; does not grant progress writes. */
   readonly lifecycle?: readonly ComponentDefinition<any>[];
   readonly reads?: readonly ComponentDefinition<any>[];
@@ -584,6 +596,9 @@ export interface GameCommandDefinition {
     input: unknown,
   ) => GameCommandResult;
 }
+export type GameCommandAvailability =
+  | { readonly status: "available" }
+  | { readonly status: "unavailable"; readonly reason: string };
 export interface GamePackTransport {
   readonly id: GameId;
   readonly version: number;

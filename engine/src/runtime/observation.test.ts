@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import { projectPresentation } from "../presentation";
 import { survivalPack } from "../games/survival";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
@@ -21,20 +20,13 @@ test("observation matches the session and does not mutate committed state", () =
     session.start();
     const before = session.save();
     const observation = buildObservation(session, { epoch: 4, sequence: 9 });
-    const presentation = projectPresentation(survivalPack, {
-      query: (spec) => session.query(spec),
-      atmosphereSamples: cells => session.atmosphereSamples(cells),
-      environmentFacts: () => session.environmentFacts(),
-      constructionReadiness: sites => session.constructionReadiness(sites),
-    });
-
     assert.equal(observation.time, session.simulationTime);
     assert.equal(observation.paused, session.isPaused);
     assert.equal(observation.epoch, 4);
     assert.equal(observation.sequence, 9);
     assert.deepEqual(observation.facts.map(({inventory,...fact})=>fact), session.renderFacts(512));
-    assert.deepEqual(observation.presentationFacts, presentation.facts);
-    assert.deepEqual(observation.presentationControls, presentation.controls);
+    assert.ok(observation.whistleAgent.length > 0);
+    assert.deepEqual(observation.whistleTargets, []);
     assert.deepEqual(session.save(), before);
   } finally {
     port.dispose();

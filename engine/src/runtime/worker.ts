@@ -29,6 +29,7 @@ export class WorkerRuntime {
       if (snapshot) session.restore(snapshot); else session.start();
       this.port = port;
       this.session = session;
+      this.whistleRevision = undefined;
       return session;
     } catch (error) {
       port?.dispose(); this.port = undefined; this.session = undefined; throw error;
@@ -56,6 +57,7 @@ export class WorkerRuntime {
   private frameEpoch = 0;
   private frameSequence = 0;
   private terrainRevision?: number;
+  private whistleRevision?: number;
   private emitObservation(
     discontinuity = false,
     stateOnly = false,
@@ -86,10 +88,13 @@ export class WorkerRuntime {
     this.emit({
       type: "presentation",
       facts: observation.presentationFacts,
-      controls: observation.presentationControls,
       terrainMarks: observation.terrainMarks,
       environmentVisuals: observation.environmentVisuals,
     });
+    if (this.whistleRevision !== observation.whistleRevision) {
+      this.whistleRevision = observation.whistleRevision;
+      this.emit({ type: "whistle", agent: observation.whistleAgent, targets: observation.whistleTargets });
+    }
   }
   command(command: WorkerCommand): void {
     try {

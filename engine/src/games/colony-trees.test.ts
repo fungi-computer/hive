@@ -17,9 +17,15 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
   try {
     session.start();
     const tree = "colony.tree.oak";
+    const standingProjection = session.whistleObservation({ query: spec => session.query(spec) });
+    const designateTargets = standingProjection.targets.find(target => target.commandId === "colony:designateTrees");
+    assert.deepEqual(designateTargets?.subjects, [tree, "colony.tree.pine", "colony.tree.willow"]);
     session.command("pauseDelivery", { entities: ["colony.worker.1", "colony.worker.2"] });
     session.command("designateTrees", { entities: [tree] });
     session.step(0);
+    const designatedProjection = session.whistleObservation({ query: spec => session.query(spec) });
+    const cancelTargets = designatedProjection.targets.find(target => target.commandId === "colony:cancelTrees");
+    assert.deepEqual(cancelTargets?.subjects, [tree]);
     assert.equal(session.query(query(ColonyTreePolicy)).find(row => row.id === tree)?.get(ColonyTreePolicy).designated, true);
     let sawTravel = false;
     for (let i = 0; i < 80; i++) {

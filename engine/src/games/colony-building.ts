@@ -36,6 +36,7 @@ function areaCells(area: { start: [number, number, number]; end: [number, number
 
 /** Player placement chooses content; native admission owns cost and geometry. */
 export const colonyBuildCommand = command({
+  title: "Build structure", category: "Construction", description: "Place a construction plan on a visible world surface.",
   input: buildInput,
   reads: [ConstructionSite], writes: [],
   run(context, input) {

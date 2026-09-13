@@ -1,30 +1,29 @@
-function matchesSelection(item, selected) {
-  return item.subjects === undefined || item.subjects.some((id) => selected.has(id));
-}
-
-/**
- * Projects presentation metadata for the current display context. Subjects
- * only filter what is shown; command admission remains runtime-owned.
- * `latestFacts` is the most recently accepted world view, so selection labels
- * do not depend on an older rendered/interpolated frame.
- */
-export function projectContextualPresentation({
-  facts,
-  controls,
-  selectedIds,
-  latestFacts,
-  currentIds = latestFacts.map((fact) => fact.id),
-}) {
+/** Join local Whistle binding metadata to canonical server command targets. */
+export function projectContextualPresentation({ facts, controls, targets, selectedIds, latestFacts = [], currentIds = [] }) {
+  const selected = new Set(selectedIds);
   const current = new Set(currentIds);
-  const selected = new Set(selectedIds.filter((id) => current.has(id)));
-  const worldFacts = facts.filter((fact) => fact.subjects === undefined);
-  const worldControls = controls.filter((control) => control.subjects === undefined);
-  const selectionFacts = facts.filter((fact) => fact.subjects !== undefined && matchesSelection(fact, selected));
-  const selectionControls = controls.filter((control) => control.subjects !== undefined && matchesSelection(control, selected));
-  const labels = latestFacts
-    .filter((fact) => selected.has(fact.id) && typeof fact.label === "string" && fact.label.length > 0)
-    .map((fact) => fact.label);
-  const selectionLabel = [...new Set(labels)].join(", ") || "Selected";
+  const targetMap = new Map(targets.map(target => [target.commandId, target.subjects]));
+  const visibleFacts = facts.filter(fact => fact.subjects === undefined || fact.subjects.some(id => selected.has(id)));
+  const selectionFacts = visibleFacts.filter(fact => fact.subjects?.some(id => selected.has(id)));
+  const worldFacts = visibleFacts.filter(fact => fact.subjects === undefined || !fact.subjects.some(id => selected.has(id)));
+  const selectionControls = [];
+  const worldControls = [];
+  for (const control of controls) {
+    const subjects = targetMap.get(control.commandId);
+    if (subjects === undefined) {
+      if (control.selection === "entities") {
+        if (control.availability?.status === "unavailable" && selected.size > 0)
+          selectionControls.push({ ...control, subjects: [] });
+        continue;
+      }
+      worldControls.push(control);
+      continue;
+    }
+    const scoped = subjects.filter(id => current.has(id));
+    if (scoped.some(id => selected.has(id))) selectionControls.push({ ...control, subjects: scoped });
+  }
+  const selectedLabels = selectedIds.map(id => latestFacts.find(fact => fact.id === id)?.label || id).filter(Boolean);
+  const selectionLabel = selectedLabels.length ? selectedLabels.join(", ") : "Selection";
   return {
     world: { facts: worldFacts, controls: worldControls },
     selection: { facts: selectionFacts, controls: selectionControls, label: selectionLabel },

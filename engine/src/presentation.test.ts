@@ -1,218 +1,72 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import {
-  presentationCommand,
-  terrainPresentationCommand,
-  projectPresentation,
-  type GamePresentation,
-} from "./presentation";
-import type { GamePack } from "./contracts";
+import type { GamePack, ReadContext } from "./contracts";
+import { projectPresentation, type GamePresentation } from "./presentation";
 import { command } from "./sdk/authoring";
 import { z } from "zod";
-const pack = (presentation?: GamePresentation): GamePack =>
-  ({
-    id: "colony",
-    version: 1,
-    definition: new Uint8Array(),
-    components: [],
-    systems: [],
-    commands: {
-      greet: command({
-        input: z.object({}).strict(),
-        reads: [],
-        writes: [],
-        run: () => ({ actions: [], writes: [] }),
-      }),
-    },
-    ...(presentation ? { presentation } : {}),
-  });
-const context = {
+
+const pack = (presentation?: GamePresentation): GamePack => ({
+  id: "presentation-test", version: 1, definition: new Uint8Array(), components: [], systems: [],
+  commands: {
+    probe: command({ title: "Probe", category: "Test", description: "Exercise presentation projection.", input: z.object({}).strict(), reads: [], writes: [], run: () => ({ actions: [], writes: [] }) }),
+  },
+  ...(presentation === undefined ? {} : { presentation }),
+});
+const context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts" | "constructionReadiness"> = {
   query: () => [],
   environmentFacts: () => ({}),
-  atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
+  atmosphereSamples: () => { throw new Error("unexpected atmosphere query in fixture"); },
   constructionReadiness: () => [],
 };
-test("selection controls capture current IDs without granting game authority", () => {
-  const control = {
-    id: "order",
-    label: "Order",
-    command: "greet",
-    selection: "entities" as const,
-    input: { quantity: 2 },
-  };
-  const selected = ["worker.1", "worker.1", "guest.1"];
-  const result = presentationCommand(control, selected);
-  selected.length = 0;
-  assert.deepEqual(result.input, {
-    quantity: 2,
-    entities: ["worker.1", "guest.1"],
-  });
-  assert.deepEqual(presentationCommand(control, []).input, {
-    quantity: 2,
-    entities: [],
-  });
-  assert.deepEqual(presentationCommand({ ...control, subjects: ["worker.1"] }, ["worker.1", "guest.1"]).input, {
-    quantity: 2,
-    entities: ["worker.1"],
-  });
-  assert.throws(() =>
-    presentationCommand({ ...control, input: { entities: ["forged"] } }, []),
-  );
-  assert.throws(() =>
-    presentationCommand(control, Array(129).fill("worker.1")),
-  );
-});
-test("unconfigured packs project empty output", () =>
-  assert.deepEqual(projectPresentation(pack(), context), {
-    facts: [],
-    controls: [],
-    terrainMarks: [],
-    environmentVisuals: [],
-  }));
-test("projects bounded facts and cloned command input", () => {
-  const input = { amount: 2 };
-  const result = projectPresentation(
-    pack({
-      controls: [{ id: "greet", label: "Greet", command: "greet", input }],
-      inspect: () => [{ id: "mood", label: "Mood", value: 0.5 }],
-    }),
-    context,
-  );
-  input.amount = 9;
-  assert.equal(result.facts[0].value, 0.5);
-  assert.deepEqual(result.controls[0].input, { amount: 2 });
+
+test("unconfigured packs expose empty retained presentation projections", () => {
+  assert.deepEqual(projectPresentation(pack(), context), { facts: [], terrainMarks: [], environmentVisuals: [] });
 });
 
-test("projects and validates bounded presentation subjects", () => {
+test("presentation facts remain bounded, unique, scoped, and finite", () => {
   const result = projectPresentation(pack({
-    controls: [{ id: "greet", label: "Greet", command: "greet", subjects: ["worker-1"] }],
-    inspect: () => [{ id: "mood", label: "Mood", value: 1, subjects: ["worker-1"] }],
+    inspect: () => [{ id: "mood", label: "Mood", value: 0.5, subjects: ["worker.1"] }],
   }), context);
-  assert.deepEqual(result.controls[0].subjects, ["worker-1"]);
-  assert.deepEqual(result.facts[0].subjects, ["worker-1"]);
-  assert.throws(() => projectPresentation(pack({
-    controls: [{ id: "greet", label: "Greet", command: "greet", subjects: ["worker-1", "worker-1"] }],
-    inspect: () => [],
-  }), context));
-  assert.throws(() => projectPresentation(pack({
-    controls: [{ id: "greet", label: "Greet", command: "greet", subjects: [] }],
-    inspect: () => [],
-  }), context));
+  assert.deepEqual(result.facts, [{ id: "mood", label: "Mood", value: 0.5, subjects: ["worker.1"] }]);
+  assert.throws(() => projectPresentation(pack({ inspect: () => [{ id: "same", label: "A", value: true }, { id: "same", label: "B", value: false }] }), context), /duplicate presentation fact/);
+  assert.throws(() => projectPresentation(pack({ inspect: () => [{ id: "bad", label: "Bad", value: Infinity }] }), context), /Invalid input/);
 });
 
-test("projects bounded committed terrain marks", () => {
+test("terrain marks preserve stockpile style and reject duplicates or excess", () => {
   const result = projectPresentation(pack({
-    controls: [],
     inspect: () => [],
     terrainMarks: () => [
-      { id: "order-1", cell: [1, 4, -2], status: "queued" },
-      { id: "order-2", cell: [2, 4, -2], status: "working" },
+      { id: "work", cell: [1, 4, -2], status: "working" },
+      { id: "stockpile", cell: [2, 4, -2], status: "queued", kind: "stockpile" },
     ],
   }), context);
   assert.deepEqual(result.terrainMarks, [
-    { id: "order-1", cell: [1, 4, -2], status: "queued" },
-    { id: "order-2", cell: [2, 4, -2], status: "working" },
+    { id: "work", cell: [1, 4, -2], status: "working" },
+    { id: "stockpile", cell: [2, 4, -2], status: "queued", kind: "stockpile" },
   ]);
-  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], terrainMarks: () => Array.from({ length: 257 }, (_, index) => ({ id: `mark-${index}`, cell: [0, 0, 0], status: "queued" })) }), context));
+  assert.throws(() => projectPresentation(pack({ inspect: () => [], terrainMarks: () => [
+    { id: "same", cell: [0, 0, 0], status: "queued" }, { id: "same", cell: [1, 0, 0], status: "queued" },
+  ] }), context), /invalid terrain presentation mark/);
+  assert.throws(() => projectPresentation(pack({ inspect: () => [], terrainMarks: () => Array.from({ length: 257 }, (_, i) => ({ id: `mark-${i}`, cell: [0, 0, 0] as [number, number, number], status: "queued" as const })) }), context), /limit exceeded/);
 });
-test("projects a stockpile terrain mark style without changing cell picking", () => {
+
+test("environment visuals remain bounded, unique, and valid", () => {
   const result = projectPresentation(pack({
-    controls: [{ id: "stockpile", label: "Stockpile", command: "greet", target: "terrain-area", designation: ["rectangle"] }],
-    inspect: () => [],
-    terrainMarks: () => [{ id: "stockpile-cell", cell: [2, 13, -1], status: "queued", kind: "stockpile" }],
-  }), context);
-  assert.deepEqual(result.terrainMarks, [{ id: "stockpile-cell", cell: [2, 13, -1], status: "queued", kind: "stockpile" }]);
-});
-test("rejects unknown commands, duplicate IDs, and nonfinite values", () => {
-  assert.throws(() =>
-    projectPresentation(
-      pack({
-        controls: [{ id: "x", label: "X", command: "missing" }],
-        inspect: () => [],
-      }),
-      context,
-    ),
-  );
-  assert.throws(() =>
-    projectPresentation(
-      pack({
-        controls: [{ id: "same", label: "X", command: "greet" }],
-        inspect: () => [{ id: "same", label: "Y", value: true }],
-      }),
-      context,
-    ),
-  );
-  assert.throws(() =>
-    projectPresentation(
-      pack({
-        controls: [],
-        inspect: () => [{ id: "x", label: "X", value: Infinity }],
-      }),
-      context,
-    ),
-  );
-});
-
-test("presentation rejects inputs whose JSON meaning would change", () => {
-  for (const input of [
-    { value: NaN },
-    { value: undefined },
-    { value: () => 1 },
-    { value: "x".repeat(4097) },
-  ]) {
-    assert.throws(() =>
-      projectPresentation(
-        pack({
-          controls: [
-            { id: "control", label: "Control", command: "greet", input },
-          ],
-          inspect: () => [],
-        }),
-        context,
-      ),
-    );
-  }
-});
-
-test("terrain controls bind selected actors and copy the visible cell", () => {
-  const control = { id: "dig", label: "Dig", command: "greet", selection: "entities" as const, target: "terrain-cell" as const };
-  const cell: [number, number, number] = [2, -5, 3];
-  const result = terrainPresentationCommand(control, ["worker"], { cell, material: 2 });
-  cell[0] = 9;
-  assert.deepEqual(result.input, { entities: ["worker"], target: { cell: [2, -5, 3], material: 2 } });
-  assert.equal(projectPresentation(pack({ controls: [control], inspect: () => [] }), context).controls[0].target, "terrain-cell");
-  assert.throws(() => terrainPresentationCommand({ ...control, input: { target: {} } }, [], { cell, material: 2 }));
-  assert.throws(() => terrainPresentationCommand(control, [], { cell: [0, NaN, 0], material: 2 }));
-});
-
-
-test("building surface controls submit coordinates without visual picking metadata", () => {
-  const control = { id: "build", label: "Build", command: "greet", target: "world-surface" as const };
-  const target = { cell: [0, 8, 0] as const, source: "structure" as const };
-  assert.deepEqual(terrainPresentationCommand(control, [], target).input, { target: { cell: target.cell } });
-  assert.throws(() => terrainPresentationCommand({ ...control, target: "terrain-cell" }, [], target), /requires terrain/);
-  assert.equal(projectPresentation(pack({ controls: [control], inspect: () => [] }), context).controls[0].target, "world-surface");
-});
-
-
-test("projects bounded environment visuals and rejects duplicates or invalid intensity", () => {
-  const result = projectPresentation(pack({
-    controls: [],
     inspect: () => [],
     environmentVisuals: () => [
-      { id: "hearth-smoke", position: { x: 1, y: 2, z: -1 }, kind: "smoke", intensity: 0.25 },
-      { id: "hearth-fire", position: { x: 1, y: 1, z: -1 }, kind: "fire", intensity: 1 },
+      { id: "smoke", position: { x: 1, y: 2, z: -1 }, kind: "smoke", intensity: 0.25 },
+      { id: "fire", position: { x: 1, y: 1, z: -1 }, kind: "fire", intensity: 1 },
     ],
   }), context);
   assert.deepEqual(result.environmentVisuals, [
-    { id: "hearth-smoke", position: { x: 1, y: 2, z: -1 }, kind: "smoke", intensity: 0.25 },
-    { id: "hearth-fire", position: { x: 1, y: 1, z: -1 }, kind: "fire", intensity: 1 },
+    { id: "smoke", position: { x: 1, y: 2, z: -1 }, kind: "smoke", intensity: 0.25 },
+    { id: "fire", position: { x: 1, y: 1, z: -1 }, kind: "fire", intensity: 1 },
   ]);
-  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], environmentVisuals: () => [
+  assert.throws(() => projectPresentation(pack({ inspect: () => [], environmentVisuals: () => [
     { id: "same", position: { x: 0, y: 0, z: 0 }, kind: "smoke", intensity: 0 },
     { id: "same", position: { x: 1, y: 0, z: 0 }, kind: "smoke", intensity: 0 },
   ] }), context), /duplicate environment visual/);
-  assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], environmentVisuals: () => [
+  assert.throws(() => projectPresentation(pack({ inspect: () => [], environmentVisuals: () => [
     { id: "bad", position: { x: 0, y: 0, z: 0 }, kind: "fire", intensity: 2 },
   ] }), context), /invalid environment presentation visual/);
 });
