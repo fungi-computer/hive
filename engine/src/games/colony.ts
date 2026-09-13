@@ -4,7 +4,7 @@ import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
-import { command, component, entity, query } from "../sdk/authoring";
+import { command, component, entity, query, system } from "../sdk/authoring";
 import {
   Emitter,
   Body,
@@ -39,9 +39,33 @@ import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } fro
 export { Worker } from "./colony-components";
 export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
-export const Guest = component<{ hungry: boolean }>("colony.guest", {
+/** Colony policy state for Rowan and Sedge; physical lots and contacts remain authoritative. */
+export const ColonyNeeds = component<{ hunger: number; thirst: number; rest: number }>("colony.needs", {
   version: 1,
-  fields: { hungry: "boolean" },
+  fields: { hunger: "number", thirst: "number", rest: "number" },
+});
+const NEED_DECAY = { hunger: 0.01, thirst: 0.016, rest: 0.012 } as const;
+
+export function advanceColonyNeeds(value: { hunger: number; thirst: number; rest: number }, delta: number) {
+  if (!Number.isFinite(delta) || delta < 0) throw new Error("needs delta must be finite and non-negative");
+  return {
+    hunger: Math.max(0, value.hunger - delta * NEED_DECAY.hunger),
+    thirst: Math.max(0, value.thirst - delta * NEED_DECAY.thirst),
+    rest: Math.max(0, value.rest - delta * NEED_DECAY.rest),
+  };
+}
+
+/** One deterministic owner for needs decay. Physical care awaits native owners. */
+export const colonyNeedsSystem = system({
+  id: "colony.needs", version: 1,
+  reads: [Worker, ColonyNeeds],
+  writes: [ColonyNeeds],
+  run(ctx) {
+    for (const row of ctx.query(query(Worker, ColonyNeeds))) {
+      if (row.get(Worker).guest) continue;
+      ctx.write(ColonyNeeds, row.id, advanceColonyNeeds(row.get(ColonyNeeds), ctx.clock.delta));
+    }
+  },
 });
 
 const workerOne = entity("colony.worker.1");
@@ -98,6 +122,7 @@ const colonyInitial = [
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": workerVisuals[index],
       "colony.worker": { guest: false },
+      "colony.needs": { hunger: 100, thirst: 100, rest: 100 },
       "hive.work-participation": { automatic: true },
       "hive.delivery-control": { enabled: true, quantity: 3 },
     },
@@ -115,7 +140,6 @@ const colonyInitial = [
       "hive.container": { capacity: 4 },
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: "goblin.guest", label: "Guest" },
-      "colony.guest": { hungry: true },
     },
   },
   {
@@ -330,7 +354,7 @@ const colonyComponents = [
   ExcavationWork,
   Destination,
   Worker,
-  Guest,
+  ColonyNeeds,
   DeliveryTask,
   DeliveryControl,
   ColonyDigOrder,
@@ -372,7 +396,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 6,
   components: colonyComponents,
-  systems: [colonyWorkSystem, colonyCatSystem],
+  systems: [colonyWorkSystem, colonyNeedsSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
@@ -711,6 +735,10 @@ export const colonyPack: GamePack = {
           label: workerVisuals[index].label,
           value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
         })),
+        ...workers.flatMap((worker, index) => {
+          const needs = context.query(query(ColonyNeeds)).find(row => row.id === worker)?.get(ColonyNeeds);
+          return needs ? [{ id: `worker-${index + 1}-needs`, subjects: [worker], label: `${workerVisuals[index].label} needs`, value: `hunger ${needs.hunger.toFixed(1)} · thirst ${needs.thirst.toFixed(1)} · rest ${needs.rest.toFixed(1)}` }] : [];
+        }),
         { id: "guest-quantity", subjects: [guestId], label: "Guest meal", value: total(guestId) },
         ...workers.map((worker, index) => ({
           id: `dig-progress-${index + 1}`, subjects: [worker],
