@@ -65,6 +65,7 @@ export const colonyStockpilePolicyCommand = command({
     { id: "stockpile-priority-normal", label: "Normal priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 50 } },
     { id: "stockpile-priority-preferred", label: "Preferred priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 75 } },
   ] },
+  input: colonyStockpilePolicyInputSchema,
   subjects: context => context.query(query(StockpileCell)).map(row => row.id),
   reads: [], writes: [],
   run: (context, value) => {
