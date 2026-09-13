@@ -227,6 +227,7 @@ function fakePort(
     }),
     constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" })),
     constructionAccess: () => [],
+    deconstructionAccess: () => [],
     terrainMaterials: () => [],
     terrainSurfaces: surfaces,
     structureSurfaces: structures,

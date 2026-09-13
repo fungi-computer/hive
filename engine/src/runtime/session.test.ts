@@ -107,6 +107,11 @@ class TestPort implements KernelPort {
   ): readonly import("../contracts").ConstructionAccess[] {
     return sites.map((site) => ({ site, support: "ready", materialsReady: true, contacts: [] }));
   }
+  deconstructionAccess(
+    sites: readonly import("../contracts").EntityId[],
+  ): readonly import("../contracts").DeconstructionAccess[] {
+    return sites.map((site) => ({ site, status: "ready", contacts: [], salvageQuantity: 0, workSeconds: 1 }));
+  }
   physicalContacts(): never {
     throw new Error("unexpected physical contact query in session fixture");
   }

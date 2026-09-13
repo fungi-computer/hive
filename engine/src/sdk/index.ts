@@ -1,6 +1,7 @@
 export * from "./authoring";
 export * from "./common";
 export * from "./construction";
+export * from "./deconstruction-work";
 export * from "./work-control";
 export * from "./combat";
 export * from "../contracts";

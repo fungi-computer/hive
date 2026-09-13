@@ -46,6 +46,6 @@ export const setStructureOpen = (worker: EntityId, site: EntityId, open: boolean
   kind: "set-structure-open", worker, site, open,
 });
 
-export const deconstruct = (site: EntityId, container: EntityId): ActionRequest => ({
-  kind: "deconstruct", site, container,
+export const deconstruct = (worker: EntityId, site: EntityId): ActionRequest => ({
+  kind: "deconstruct", worker, site,
 });

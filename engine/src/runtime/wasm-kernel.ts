@@ -9,6 +9,7 @@ import type {
   AtmosphereSamples,
   ConstructionReadiness,
   ConstructionAccess,
+  DeconstructionAccess,
   ComponentDefinition,
   EntityId,
   KernelPort,
@@ -41,6 +42,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   atmosphere_samples(json: string): string;
   construction_readiness(json: string): string;
   construction_access(json: string): string;
+  deconstruction_access(json: string): string;
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
@@ -91,6 +93,7 @@ const constructionAccessSchema = z.array(z.object({
     frame: z.null(), kind: z.enum(["origin", "landing"]),
   }).strict()).max(32),
 }).strict()).max(256);
+const deconstructionAccessSchema = z.array(z.object({ site: entityIdWireSchema, removal: z.enum(["ready", "occupiedPort", "structuralDependency", "invalidGeometry"]), salvageQuantity: z.number().int().nonnegative(), workSeconds: z.number().finite().nonnegative(), contacts: z.array(z.object({ x: z.number().finite(), y: z.number().finite(), z: z.number().finite(), frame: z.null(), kind: z.enum(["origin", "landing"]) }).strict()).max(32) }).strict()).max(128);
 function validateConstructionAccessSites(sites: readonly EntityId[]): void {
   if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
     throw new Error("construction access needs 1..256 sites");
@@ -103,6 +106,12 @@ export function parseConstructionAccess(value: unknown, sites: readonly EntityId
   if (rows.length !== sites.length || rows.some((row, index) => row.site !== sites[index]))
     throw new Error("construction access result order mismatch");
   return rows;
+}
+export function parseDeconstructionAccess(value: unknown, sites: readonly EntityId[]): readonly DeconstructionAccess[] {
+  if (!Array.isArray(sites) || sites.length < 1 || sites.length > 128 || sites.some((site) => !entityIdWireSchema.safeParse(site).success) || new Set(sites).size !== sites.length) throw new Error("deconstruction access needs 1..128 unique valid sites");
+  const rows = deconstructionAccessSchema.parse(value);
+  if (rows.length !== sites.length || rows.some((row, index) => row.site !== sites[index])) throw new Error("deconstruction access result order mismatch");
+  return rows.map(row => ({ site: row.site, status: row.removal, contacts: row.contacts, salvageQuantity: row.salvageQuantity, workSeconds: row.workSeconds }));
 }
 function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]): readonly ConstructionReadiness[] {
   if (!Array.isArray(value) || value.length !== sites.length)
@@ -264,6 +273,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     constructionAccess(sites): readonly ConstructionAccess[] {
       validateConstructionAccessSites(sites);
       return parseConstructionAccess(JSON.parse(binding.construction_access(JSON.stringify(sites))), sites);
+    },
+    deconstructionAccess(sites): readonly DeconstructionAccess[] {
+      const value: unknown = JSON.parse(binding.deconstruction_access(JSON.stringify(sites)));
+      return parseDeconstructionAccess(value, sites);
     },
     physicalContacts(cells) {
       return physicalContactQuery(

@@ -79,6 +79,7 @@ function context(options: {
     routeToAny: (request: { actor: typeof worker; targets: readonly unknown[] }) => { routes.push(request); return { actor: request.actor, status: "reachable" as const, targetIndex: 0, cost: 6 }; },
     constructionReadiness: (sites: readonly ReturnType<typeof entity>[]) => sites.map((site) => ({ site, status: options.constructionStatus ?? "ready" })),
     constructionAccess: (sites: readonly ReturnType<typeof entity>[]) => sites.map((site) => ({ site, support: options.constructionStatus ?? "ready", materialsReady: options.includeMaterial, contacts: [{ x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const }] })),
+    deconstructionAccess: () => [],
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,
     write: () => {},
@@ -142,7 +143,7 @@ test("one worker receives at most one binding across multiple unbound sites", ()
       ? [...originalQuery(spec), extra] : originalQuery(spec)) as WriteContext["query"];
   (fake.base as any).constructionAccess = ((sites: readonly string[]) => [
     ...originalAccess([site]),
-    { site: secondSite, support: "ready", materialsReady: true, contacts: [{ x: 2, y: 0.5, z: 2, frame: null, kind: "origin" as const }] },
+    { site: secondSite, support: "ready", materialsReady: true, contacts: [{ x: 2, y: 0.5, z: 2, frame: null, kind: "origin" as const }], removal: "ready" as const, salvageQuantity: 0, workSeconds: 1 },
   ]) as WriteContext["constructionAccess"];
   (fake.base as any).assign = (candidates: readonly any[]) => candidates.slice(0, 1);
   constructionWorkSystem(options).run(fake.base);
@@ -154,8 +155,8 @@ test("construction access parser validates materials and preserves order", () =>
   const first = entity("site.first");
   const second = entity("site.second");
   const rows = [
-    { site: first, support: "ready", materialsReady: true, contacts: [{ x: 1, y: 0, z: 1, frame: null, kind: "origin" }] },
-    { site: second, support: "ready", materialsReady: false, contacts: [{ x: 2, y: 0, z: 2, frame: null, kind: "landing" }] },
+    { site: first, support: "ready", materialsReady: true, contacts: [{ x: 1, y: 0, z: 1, frame: null, kind: "origin" }], removal: "ready", salvageQuantity: 0, workSeconds: 1 },
+    { site: second, support: "ready", materialsReady: false, contacts: [{ x: 2, y: 0, z: 2, frame: null, kind: "landing" }], removal: "ready", salvageQuantity: 0, workSeconds: 1 },
   ];
   assert.deepEqual(parseConstructionAccess(rows, [first, second]), rows);
   assert.throws(() => parseConstructionAccess([{ ...rows[0], materialsReady: "yes" }], [first]));

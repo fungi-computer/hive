@@ -163,7 +163,7 @@ export type ActionRequest =
       readonly site: EntityId;
       readonly open: boolean;
     }
-  | { readonly kind: "deconstruct"; readonly site: EntityId; readonly container: EntityId }
+  | { readonly kind: "deconstruct"; readonly worker: EntityId; readonly site: EntityId }
   | {
       readonly kind: "plan-construction";
       readonly catalog: string;
@@ -320,6 +320,9 @@ export interface ReadContext {
   constructionAccess(
     sites: readonly EntityId[],
   ): readonly ConstructionAccess[];
+  deconstructionAccess(
+    sites: readonly EntityId[],
+  ): readonly DeconstructionAccess[];
   terrainMaterials(
     cells: readonly [number, number, number][],
   ): readonly number[];
@@ -467,6 +470,7 @@ export interface ConstructionAccess {
   readonly materialsReady: boolean;
   readonly contacts: readonly ConstructionAccessContact[];
 }
+export type DeconstructionAccess = { readonly site: EntityId; readonly status: "ready" | "occupiedPort" | "structuralDependency" | "invalidGeometry"; readonly contacts: readonly ConstructionAccessContact[]; readonly salvageQuantity: number; readonly workSeconds: number };
 export type PhysicalContact = {
   readonly solid: boolean;
   readonly sealedTop: boolean;
@@ -508,6 +512,7 @@ export interface KernelPort {
     sites: readonly EntityId[],
   ) => readonly ConstructionReadiness[];
   readonly constructionAccess: (sites: readonly EntityId[]) => readonly ConstructionAccess[];
+  readonly deconstructionAccess: (sites: readonly EntityId[]) => readonly DeconstructionAccess[];
   readonly terrainMaterials: (
     cells: readonly [number, number, number][],
   ) => readonly number[];

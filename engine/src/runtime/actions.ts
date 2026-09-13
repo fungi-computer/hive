@@ -70,6 +70,10 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "worker", "site", "contact"];
       valid = id(action.worker) && id(action.site) && terrainContact(action.contact);
       break;
+    case "deconstruct":
+      keys = ["kind", "worker", "site"];
+      valid = id(action.worker) && id(action.site);
+      break;
     case "excavate":
       keys = ["kind", "entity", "x", "y", "z", "expected", "replacement"];
       valid = id(action.entity) && [action.x, action.y, action.z].every(value => coordinate(value) && Number.isInteger(value)) &&

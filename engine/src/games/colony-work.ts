@@ -7,6 +7,7 @@ import {
   ConstructionApproach,
   constructionWorkProvider,
 } from "../sdk/construction-work";
+import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
@@ -935,6 +936,8 @@ export const colonyWorkSystem = createWorkSystem({
     SealedContainer,
     ConstructionSite,
     ConstructionApproach,
+    DeconstructionApproach,
+    DeconstructionOrder,
     LotWater,
     Destination,
     Support,
@@ -952,6 +955,8 @@ export const colonyWorkSystem = createWorkSystem({
     MaterialLot,
     DeliveryTask,
     ConstructionApproach,
+    DeconstructionApproach,
+    DeconstructionOrder,
   ],
   phases: [
     colonySiteSuppliesPhase,
@@ -974,6 +979,8 @@ export const colonyWorkSystem = createWorkSystem({
         },
         suspendedActors,
       ),
+    (ctx, suspendedActors) =>
+      deconstructionWorkProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
     (ctx, suspendedActors) =>
       emissionWorkProvider(
         ctx,

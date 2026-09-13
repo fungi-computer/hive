@@ -3,6 +3,7 @@ import { EmissionOrder, EmissionWork, idleEmissionWork, nextEmissionOrder } from
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
+import { DeconstructionApproach, DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
   Emitter,
@@ -319,6 +320,7 @@ const colonyComponents = [
   FiniteResource,
   Cat,
   ConstructionApproach,
+  DeconstructionApproach, DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
 ] as const;
@@ -352,6 +354,15 @@ export const colonyPack: GamePack = {
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
+    deconstruct: command({
+      input: z.object({ site: z.string().min(1).max(128) }).strict(),
+      reads: [ConstructionSite, DeconstructionOrder], writes: [], lifecycle: [DeconstructionOrder],
+      run(context, input) {
+        if (!context.query(query(ConstructionSite)).some((row) => row.id === input.site)) throw new Error("Unknown construction site");
+        if (context.query(query(DeconstructionOrder)).some((row) => row.get(DeconstructionOrder).site === input.site)) return { creates: [], actions: [], writes: [] };
+        return { creates: [queueDeconstruction(entity(input.site))], actions: [], writes: [] };
+      },
+    }),
     designateStockpile: colonyStockpileCommand,
     updateStockpile: colonyStockpilePolicyCommand,
     lightHearth: command({
