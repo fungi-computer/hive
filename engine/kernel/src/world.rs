@@ -295,7 +295,7 @@ mod construction_tests {
     fn ordinary_air_does_not_block_wall_completion() {
         let (mut kernel, surface, mut contact) = world();
         // Keep workers beside the future wall, not inside its occupied cell.
-        contact.x -= kernel.environment.as_ref().unwrap().world.cell_spacing_m()[0];
+        // The shared construction contact is already the adjacent ground cell.
         for id in ["worker-1", "worker-2", "source"] {
             let entity=kernel.entity(id).unwrap();
             kernel.ecs.entity_mut(entity).insert(Position{x:contact.x,y:contact.y,z:contact.z,facing:0.0});
@@ -342,7 +342,7 @@ mod construction_tests {
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x + 1,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-edge","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-edge","quantity":1},
             {"kind":"attend-construction","worker":"worker-1","site":"site-edge","contact":contact},
@@ -366,7 +366,7 @@ mod construction_tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 1,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-future","contact":next_contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1},
             {"kind":"attend-construction","worker":"worker-1","site":"site-future","contact":next_contact},
