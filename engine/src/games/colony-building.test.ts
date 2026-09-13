@@ -3,14 +3,11 @@ import { strict as assert } from "node:assert";
 import { colonyBuildCommand } from "./colony-building";
 import { entity } from "../sdk/authoring";
 
-test("building command uses physical support and preserves four stair directions", () => {
+test("building command preserves four stair directions without selecting a contact", () => {
   for (const orientation of ["north", "east", "south", "west"] as const) {
     const result = colonyBuildCommand.invoke({
       query: () => [],
-      physicalContacts: cells => {
-        assert.equal(cells.length, 24);
-        return cells.map((_, index) => ({ solid: false, sealedTop: index === 0, outside: false }));
-      },
+      physicalContacts: () => [],
     }, { catalog: "timber-stair", orientation, target: { cell: [0, 17, 0] } });
     assert.equal(result.actions.length, 1);
     const action = result.actions[0];
@@ -18,12 +15,11 @@ test("building command uses physical support and preserves four stair directions
     if (action.kind !== "plan-construction") throw new Error("wrong action");
     assert.equal(action.orientation, orientation);
     assert.equal(action.y, 17);
-    assert.deepEqual(action.contact, { x: -1, y: 17.5 * 0.54, z: 0, frame: null });
   }
 });
-test("building without an adjacent working surface rejects without actions", () => {
-  assert.throws(() => colonyBuildCommand.invoke({ query: () => [], physicalContacts: cells => cells.map(() => ({ solid: false, sealedTop: false, outside: false })) },
-    { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }), /No clear working surface/);
+test("building designation leaves support and access to native staging", () => {
+  assert.equal(colonyBuildCommand.invoke({ query: () => [], physicalContacts: () => [] },
+    { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }).actions.length, 1);
 });
 
 test("oversized build area rejects before terrain queries and leaves subsequent orders usable", () => {
@@ -43,7 +39,7 @@ test("oversized build area rejects before terrain queries and leaves subsequent 
   assert.equal(colonyBuildCommand.invoke(context, {
     catalog: "timber-floor", target: { cell: [0, 17, 0] },
   }).actions.length, 1);
-  assert.equal(queries, 1);
+  assert.equal(queries, 0);
 });
 
 test("building expands deterministic point, line and rectangle designations without workers", () => {
@@ -62,17 +58,12 @@ test("building expands deterministic point, line and rectangle designations with
   assert.equal(rectangle.actions.length, 4);
 });
 
-test("building skips an already planned site deterministically and rejects an invalid later cell", () => {
+test("building skips an already planned site deterministically", () => {
   const duplicate = colonyBuildCommand.invoke({
     query: () => [{ id: entity("colony.build.timber-wall.0.18.0.north") }],
     physicalContacts: (cells: readonly unknown[]) => cells.map(() => ({ solid: true, sealedTop: false, outside: false })),
   } as never, { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } });
   assert.deepEqual(duplicate.actions, []);
-  let calls = 0;
-  assert.throws(() => colonyBuildCommand.invoke({ query: () => [], physicalContacts: (cells: readonly unknown[]) => {
-    calls += 1;
-    return cells.map(() => ({ solid: calls === 1, sealedTop: false, outside: false }));
-  } }, { catalog: "timber-floor", orientation: "north", target: { area: { start: [0, 17, 0], end: [1, 17, 0] } } }), /No clear working surface/);
 });
 
 

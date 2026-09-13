@@ -66,7 +66,7 @@ impl Registry {
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.construction-site", vec![
                 ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
-                ("orientation", FieldType::String), ("contactX", FieldType::Number), ("contactY", FieldType::Number), ("contactZ", FieldType::Number),
+                ("orientation", FieldType::String),
                 ("worker", FieldType::NullableEntity), ("seconds", FieldType::Number), ("phase", FieldType::String),
             ]),
             (
@@ -323,8 +323,7 @@ impl Registry {
             }
             "hive.construction-site" => {
                 let site: ConstructionSite = decode(value)?;
-                if !valid_id(&site.catalog) || !site.contact_x.is_finite() || !site.contact_y.is_finite()
-                    || !site.contact_z.is_finite() || !site.seconds.is_finite() || site.seconds < 0.0 {
+                if !valid_id(&site.catalog) || !site.seconds.is_finite() || site.seconds < 0.0 {
                     return Err("invalid construction site".into());
                 }
             }

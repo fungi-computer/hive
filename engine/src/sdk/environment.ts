@@ -89,6 +89,7 @@ export interface EnvironmentStructureDefinition {
   readonly shape: EnvironmentStructureShape;
   readonly materials: readonly EnvironmentStructureMaterial[];
   readonly workSeconds: number;
+  readonly workReachBelowCells: number;
 }
 
 export interface InitialSurfacePlacement {
@@ -151,6 +152,7 @@ export function validateEnvironmentDefinition(
   for (const entry of catalog) {
     if (!entry || typeof entry.id !== "string" || entry.id.length === 0 || entry.id.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(entry.id) || ids.has(entry.id)
       || !Number.isFinite(entry.workSeconds) || entry.workSeconds <= 0 || entry.workSeconds > 86_400
+      || !Number.isSafeInteger(entry.workReachBelowCells) || entry.workReachBelowCells < 0
       || !Array.isArray(entry.materials) || entry.materials.length < 1 || entry.materials.length > 16) {
       throw new Error("invalid structure catalog entry");
     }
@@ -163,6 +165,10 @@ export function validateEnvironmentDefinition(
         || !Number.isFinite(definition.world.verticalMetres)
         || shape.rise * definition.world.verticalMetres / shape.run > maxStairGrade)) {
       throw new Error("invalid structure catalog shape");
+    }
+    const endpointCount = shape.kind === "stair" ? 2 : 1;
+    if (endpointCount * (4 + entry.workReachBelowCells * 5) > 32) {
+      throw new Error("structure catalog entry exceeds 32 construction access contacts");
     }
     const kinds = new Set<string>();
     let totalQuantity = 0;

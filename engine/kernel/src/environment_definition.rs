@@ -51,6 +51,7 @@ struct StructureInput {
     shape: StructureShapeInput,
     materials: Vec<StructureMaterialInput>,
     work_seconds: f64,
+    work_reach_below_cells: u32,
 }
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
@@ -83,6 +84,7 @@ pub struct StructureDefinition {
     pub shape: StructureShape,
     pub materials: BTreeMap<String, u32>,
     pub work_seconds: f64,
+    pub work_reach_below_cells: u32,
 }
 #[derive(Debug, Clone)]
 pub struct InitialSurfacePlacement {
@@ -215,6 +217,12 @@ fn prepare_definition_mode(
             || entry.materials.is_empty() || entry.materials.len() > 16 {
             return Err("invalid structure catalog entry".into());
         }
+        let endpoint_count: usize = if matches!(&entry.shape, StructureShapeInput::Stair { .. }) { 2 } else { 1 };
+        let reach = usize::try_from(entry.work_reach_below_cells).map_err(|_| "construction access contact count overflow")?;
+        let possible_contacts = endpoint_count.checked_mul(4usize.checked_add(reach.checked_mul(5).ok_or("construction access contact count overflow")?).ok_or("construction access contact count overflow")?).ok_or("construction access contact count overflow")?;
+        if possible_contacts > 32 {
+            return Err("structure catalog entry exceeds 32 construction access contacts".into());
+        }
         let shape = match entry.shape {
             StructureShapeInput::Floor => StructureShape::Floor,
             StructureShapeInput::Wall { height } if (1..=64).contains(&height) => StructureShape::Wall { height },
@@ -230,7 +238,7 @@ fn prepare_definition_mode(
                 return Err("invalid structure required material".into());
             }
         }
-        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds });
+        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds, work_reach_below_cells: entry.work_reach_below_cells });
     }
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
         return Err("initial placement count exceeds 512".into());
@@ -414,7 +422,7 @@ pub(crate) mod tests {
     use super::*;
     pub(crate) fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1,"workReachBelowCells":0}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
         )
     }
     #[test]
@@ -482,6 +490,15 @@ pub(crate) mod tests {
         input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":2,"rise":4});
         assert!(prepare_definition(&input.to_string()).is_ok());
         input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":1,"rise":4});
+        assert!(prepare_definition(&input.to_string()).is_err());
+    }
+
+    #[test]
+    fn construction_access_contact_budget_rejects_oversized_stairs() {
+        use serde_json::json;
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("access-budget")).unwrap();
+        input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":2,"rise":2});
+        input["structures"]["catalog"][0]["workReachBelowCells"] = json!(3);
         assert!(prepare_definition(&input.to_string()).is_err());
     }
     #[test]

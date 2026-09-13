@@ -9,6 +9,25 @@ struct ConstructionReadinessRow {
     reason: Option<&'static str>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConstructionAccessContact {
+    x: f64,
+    y: f64,
+    z: f64,
+    frame: Option<String>,
+    kind: &'static str,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConstructionAccessRow {
+    site: String,
+    support: &'static str,
+    materials_ready: bool,
+    contacts: Vec<ConstructionAccessContact>,
+}
+
 fn construction_status(
     kernel: &mut Kernel,
     ids: &[String],
@@ -44,6 +63,38 @@ fn construction_status(
 }
 
 impl Kernel {
+    pub(super) fn construction_access(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid construction access request")?;
+        if ids.is_empty() || ids.len() > 256 || ids.iter().any(|id| !crate::components::valid_id(id)) {
+            return Err("construction access needs 1..256 valid site ids".into());
+        }
+        let mut unique = BTreeSet::new();
+        if ids.iter().any(|id| !unique.insert(id.clone())) { return Err("duplicate construction access site".into()); }
+        let statuses = construction_status(self, &ids)?;
+        let spacing = self.environment.as_ref().ok_or("construction needs environment")?.world.cell_spacing_m();
+        let mut rows = Vec::with_capacity(ids.len());
+        for site in ids {
+            let materials_ready = self.ids.get(&site).and_then(|entity| {
+                let state = self.ecs.get::<ConstructionSite>(*entity)?;
+                let definition = self.environment.as_ref()?.structures.get(&state.catalog)?;
+                Some(self.construction_materials_ready(&site, definition))
+            }).unwrap_or(false);
+            let contacts = if let Some(entity) = self.ids.get(&site).copied() {
+                if let Some(state) = self.ecs.get::<ConstructionSite>(entity).cloned() {
+                    if let Some(definition) = self.environment.as_ref().and_then(|environment| environment.structures.get(&state.catalog)).cloned() {
+                        self.current_contact_candidate_rows(&state, &definition, spacing)?.into_iter().map(|(point, kind)| ConstructionAccessContact {
+                            x: point[0], y: point[1], z: point[2], frame: None, kind,
+                        }).collect()
+                    } else { Vec::new() }
+                } else { Vec::new() }
+            } else { Vec::new() };
+            let support = statuses.get(&site).copied().unwrap_or("unknown");
+            rows.push(ConstructionAccessRow { site, support, materials_ready, contacts });
+        }
+        serde_json::to_string(&rows).map_err(|_| "construction access encoding failed".into())
+    }
+
     pub(super) fn construction_readiness(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid construction readiness request")?;
@@ -78,30 +129,58 @@ impl Kernel {
             StructureShape::Stair { run, rise } => StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise },
         }
     }
-    fn contact_candidates(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Vec<[f64; 3]> {
-        let origin = [site.x as f64 * spacing[0], (f64::from(site.y) + 0.5) * spacing[1], site.z as f64 * spacing[2]];
-        let mut candidates = vec![origin];
+    fn current_contact_candidate_rows(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Result<Vec<([f64; 3], &'static str)>> {
+        let candidates = self.contact_candidate_cells(site, definition, spacing);
+        let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: 1, max_step_cells: 1 };
+        let environment = self.environment.as_mut().ok_or("construction needs environment")?;
+        candidates.into_iter().filter_map(|(cell, point, kind)| {
+            let mut query = |at| environment.world.traversal_material(at);
+            match crate::terrain_traversal::node(cell, config, &mut query) {
+                Ok(Some(_)) => Some(Ok((point, kind))),
+                Ok(None) => None,
+                Err(error) => Some(Err(error.into())),
+            }
+        }).collect()
+    }
+    fn contact_candidate_cells(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Vec<(crate::generation::Cell, [f64; 3], &'static str)> {
+        let walking_y = match definition.shape {
+            crate::environment_definition::StructureShape::Wall { .. }
+            | crate::environment_definition::StructureShape::Aperture { .. } => site.y.checked_sub(1),
+            _ => Some(site.y),
+        };
+        let Some(walking_y) = walking_y else { return Vec::new(); };
+        let mut endpoints = vec![(site.x, walking_y, site.z, "origin")];
         if let crate::environment_definition::StructureShape::Stair { run, rise } = &definition.shape {
             let (dx, dz) = match site.orientation {
-                crate::structure_geometry::Cardinal::North => (0, -1),
-                crate::structure_geometry::Cardinal::East => (1, 0),
-                crate::structure_geometry::Cardinal::South => (0, 1),
-                crate::structure_geometry::Cardinal::West => (-1, 0),
+                crate::structure_geometry::Cardinal::North => (0, -1), crate::structure_geometry::Cardinal::East => (1, 0),
+                crate::structure_geometry::Cardinal::South => (0, 1), crate::structure_geometry::Cardinal::West => (-1, 0),
             };
-            let Some(x) = i64::from(dx).checked_mul(i64::from(*run)).and_then(|offset| site.x.checked_add(offset)) else { return candidates; };
-            let Some(y) = site.y.checked_add(i32::from(*rise)) else { return candidates; };
-            let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| site.z.checked_add(offset)) else { return candidates; };
-            candidates.push([x as f64 * spacing[0], (f64::from(y) + 0.5) * spacing[1], z as f64 * spacing[2]]);
+            let Some(x) = i64::from(dx).checked_mul(i64::from(*run)).and_then(|offset| site.x.checked_add(offset)) else { return Vec::new(); };
+            let Some(y) = walking_y.checked_add(i32::from(*rise)) else { return Vec::new(); };
+            let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| site.z.checked_add(offset)) else { return Vec::new(); };
+            endpoints.push((x, y, z, "landing"));
         }
-        candidates
+        endpoints.into_iter().flat_map(|(ex, endpoint_y, ez, kind)| {
+            let cardinal = [(0_i64, -1_i64), (1, 0), (0, 1), (-1, 0)];
+            let center_and_cardinals = move |y: i32, include_center: bool| {
+                include_center.then(|| (crate::generation::Cell { x: ex, y, z: ez }, [ex as f64 * spacing[0], (f64::from(y) + 0.5) * spacing[1], ez as f64 * spacing[2]], kind)).into_iter().chain(cardinal.into_iter().filter_map(move |(x, z)| {
+                    Some((crate::generation::Cell { x: ex.checked_add(x)?, y, z: ez.checked_add(z)? }, [(ex.checked_add(x)? as f64) * spacing[0], (f64::from(y) + 0.5) * spacing[1], (ez.checked_add(z)? as f64) * spacing[2]], kind))
+                }))
+            };
+            let depth0 = center_and_cardinals(endpoint_y, false);
+            let lower = (1..=definition.work_reach_below_cells).filter_map(move |depth| endpoint_y.checked_sub(i32::try_from(depth).ok()?)).flat_map(move |y| center_and_cardinals(y, true));
+            depth0.chain(lower)
+        }).collect()
     }
-    fn contact_is_valid(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, position: [f64; 3], spacing: [f64; 3]) -> bool {
-        self.contact_candidates(site, definition, spacing).into_iter().any(|candidate| {
-            let distance = ((position[0] - candidate[0]).powi(2) + (position[1] - candidate[1]).powi(2) + (position[2] - candidate[2]).powi(2)).sqrt();
-            distance.is_finite() && distance <= 1.5
-        })
+    fn contact_candidate_rows(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Vec<([f64; 3], &'static str)> {
+        self.contact_candidate_cells(site, definition, spacing).into_iter().map(|(_, point, kind)| (point, kind)).collect()
     }
-    pub(super) fn validate_construction_sites(&self) -> Result<()> {
+    fn contact_is_valid(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, position: [f64; 3], spacing: [f64; 3]) -> Result<bool> {
+        Ok(self.current_contact_candidate_rows(site, definition, spacing)?.into_iter().any(|(candidate, _)| {
+            position == candidate
+        }))
+    }
+    pub(super) fn validate_construction_sites(&mut self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         let mut workers = BTreeSet::new();
         let geometry_instances = environment.world.structure_instances();
@@ -114,15 +193,18 @@ impl Kernel {
         for (id, entity) in &self.ids {
             let Some(site) = self.ecs.get::<ConstructionSite>(*entity) else { continue; };
             let definition = environment.structures.get(&site.catalog).ok_or("construction site catalog binding is missing")?;
-            if self.ecs.get::<Container>(*entity).is_none() || self.ecs.get::<Position>(*entity).is_none()
-                || !site.seconds.is_finite() || site.seconds < 0.0 || site.contact_x.is_nan() || site.contact_y.is_nan() || site.contact_z.is_nan() {
+            if self.ecs.get::<Container>(*entity).is_none()
+                || (site.phase != ConstructionPhase::Planned && self.ecs.get::<Position>(*entity).is_none())
+                || !site.seconds.is_finite() || site.seconds < 0.0 {
                 return Err(format!("invalid construction site {id}"));
             }
             let spacing = environment.world.cell_spacing_m();
             let instance = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
             crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
-            if !self.contact_is_valid(site, definition, [site.contact_x, site.contact_y, site.contact_z], spacing) {
-                return Err(format!("construction site {id} has invalid work contact"));
+            if let Some(position) = self.ecs.get::<Position>(*entity) {
+                if !self.contact_candidate_rows(site, definition, spacing).into_iter().any(|(candidate, _)| [position.x, position.y, position.z] == candidate) {
+                    return Err(format!("construction site {id} has invalid bound contact"));
+                }
             }
             if site.phase != ConstructionPhase::Finished && self.ecs.get::<SealedContainer>(*entity).is_some() {
                 return Err("unfinished construction site cannot be sealed".into());
@@ -147,10 +229,6 @@ impl Kernel {
                 }
             }
             if site.seconds > definition.work_seconds { return Err("construction progress exceeds catalog work".into()); }
-            let position = self.ecs.get::<Position>(*entity).ok_or("construction site lacks position")?;
-            if position.x != site.contact_x || position.y != site.contact_y || position.z != site.contact_z {
-                return Err("construction site position/contact mismatch".into());
-            }
             let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
             if self.ecs.get::<Container>(*entity).is_some_and(|container| container.capacity != capacity) {
                 return Err("construction site capacity mismatch".into());
@@ -161,30 +239,44 @@ impl Kernel {
         }
         Ok(())
     }
-    pub(super) fn plan_construction(&mut self, catalog: String, site: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal, contact: Point) -> Result<()> {
+    pub(super) fn plan_construction(&mut self, catalog: String, site: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal) -> Result<()> {
         if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
-        if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
         let environment = self.environment.as_ref().ok_or("construction needs environment")?;
         let definition = environment.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
         let instance = self.construction_instance(&site, &definition, x, y, z, orientation);
         crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
-        let spacing = environment.world.cell_spacing_m();
-        let staged = ConstructionSite { catalog, x, y, z, orientation, contact_x: contact.x, contact_y: contact.y, contact_z: contact.z, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
-        if !self.contact_is_valid(&staged, &definition, [contact.x, contact.y, contact.z], spacing) { return Err("construction contact is not adjacent to footprint".into()); }
+        let staged = ConstructionSite { catalog, x, y, z, orientation, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
-        let position = Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 };
-        let added = site.len() + 128 + self.registry.weight("hive.position", &record(&position))
-            + self.registry.weight("hive.container", &record(&Container { capacity }))
+        let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
             + self.registry.weight("hive.construction-site", &record(&staged));
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        let entity = self.ecs.spawn((ExternalId(site.clone()), position, Container { capacity }, staged)).id();
+        let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, staged)).id();
         self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site, BTreeSet::new()); self.state_weight += added;
         Ok(())
     }
-    pub(super) fn attend_construction(&mut self, worker: &str, site: &str) -> Result<()> {
+    pub(super) fn bind_construction_stage(&mut self, site: &str, contact: Point) -> Result<()> {
+        if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
+        let site_entity = self.entity(site)?;
+        if self.ecs.get::<Position>(site_entity).is_some() { return Err("construction stage is already bound".into()); }
+        let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
+        if state.phase != ConstructionPhase::Planned || state.worker.is_some() { return Err("construction stage can only bind while planned".into()); }
+        let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
+        let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
+        if !self.contact_is_valid(&state, &definition, [contact.x, contact.y, contact.z], spacing)? { return Err("construction contact is not adjacent to footprint".into()); }
+        let position = Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 };
+        let added = self.registry.weight("hive.position", &record(&position));
+        if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
+        self.ecs.entity_mut(site_entity).insert(position);
+        self.refresh_state_weight();
+        Ok(())
+    }
+
+    pub(super) fn attend_construction(&mut self, worker: &str, site: &str, contact: Point) -> Result<()> {
+        if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
         let worker_entity = self.entity(worker)?;
         let site_entity = self.entity(site)?;
         let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
+        if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction stage is not bound".into()); }
         if self.ecs.get::<SealedContainer>(site_entity).is_some() || state.phase == ConstructionPhase::Finished { return Err("construction site is finished".into()); }
         if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || self.ecs.get::<Traversal>(worker_entity).is_none() || self.ecs.get::<Support>(worker_entity).is_some()
             || self.direct.contains_key(&worker_entity) || self.ecs.get::<Destination>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some() {
@@ -197,7 +289,8 @@ impl Kernel {
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
         let position = self.world_pose(worker)?;
-        if !self.contact_is_valid(&state, &definition, [position.x, position.y, position.z], spacing) { return Err("worker is not at construction contact".into()); }
+        if !self.contact_is_valid(&state, &definition, [contact.x, contact.y, contact.z], spacing)? { return Err("construction contact is not adjacent to footprint".into()); }
+        if [position.x, position.y, position.z] != [contact.x, contact.y, contact.z] { return Err("worker is not at construction contact".into()); }
         state.worker = Some(worker.into()); state.phase = ConstructionPhase::Working;
         let old_weight = self.registry.weight("hive.construction-site", &record(self.ecs.get::<ConstructionSite>(site_entity).ok_or("not a construction site")?));
         let new_weight = self.registry.weight("hive.construction-site", &record(&state));
@@ -263,7 +356,7 @@ impl Kernel {
         if !matches!(definition.shape, crate::environment_definition::StructureShape::Aperture { .. }) { return Err("structure is not an aperture".into()); }
         let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
         let pose = self.world_pose(worker)?;
-        if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing) { return Err("worker is not at aperture contact".into()); }
+        if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing)? { return Err("worker is not at aperture contact".into()); }
         let mut instances = self.environment.as_ref().unwrap().world.structure_instances();
         let mut changed = false;
         for instance in &mut instances {
@@ -306,7 +399,7 @@ impl Kernel {
             let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
             let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
             let pose = self.world_pose(worker_id.as_str())?;
-            if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing) {
+            if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing)? {
                 self.release_construction_worker(&site_id, state)?;
                 continue;
             }

@@ -3,22 +3,24 @@ import test from "node:test";
 import { checkedAction } from "./actions";
 import { entity } from "../sdk/authoring";
 import { encodeDefinition } from "../sdk/common";
-import { planConstruction, attendConstruction, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
+import { planConstruction, attendConstruction, bindConstructionStage, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
 import { isReservedComponent } from "../contracts";
 
 test("construction authoring cannot choose earned effort, cost or embedded custody", () => {
   const site = entity("site.floor.1");
-  const request = planConstruction(site, "timber-floor", { x: -4, y: -12, z: 8 }, "west", { x: -3, y: -6.21, z: 8 });
+  const request = planConstruction(site, "timber-floor", { x: -4, y: -12, z: 8 }, "west");
   assert.deepEqual(checkedAction(request), request);
-  assert.deepEqual(checkedAction(attendConstruction(entity("worker"), site)), {
-    kind: "attend-construction", worker: "worker", site,
+  assert.deepEqual(checkedAction(bindConstructionStage(site, { x: -3, y: -6.21, z: 8 })), {
+    kind: "bind-construction-stage", site, contact: { x: -3, y: -6.21, z: 8, frame: null },
+  });
+  assert.deepEqual(checkedAction(attendConstruction(entity("worker"), site, { x: -3, y: -6.21, z: 8 })), {
+    kind: "attend-construction", worker: "worker", site, contact: { x: -3, y: -6.21, z: 8, frame: null },
   });
   for (const invalid of [
     { ...request, seconds: 100 }, { ...request, materials: [] },
     { ...request, phase: "finished" }, { ...request, x: 0.5 },
     { ...request, x: Number.MAX_SAFE_INTEGER + 1 }, { ...request, y: 2147483648 },
     { ...request, orientation: "diagonal" }, { ...request, contact: { x: 0, y: 0, z: 0, frame: "ship" } },
-    { ...request, contact: { x: 0, y: NaN, z: 0, frame: null } },
   ]) assert.throws(() => checkedAction(invalid), /invalid action/);
 });
 

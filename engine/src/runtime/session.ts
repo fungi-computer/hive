@@ -272,6 +272,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.constructionReadiness(sites);
   }
+  constructionAccess(sites: readonly EntityId[]) {
+    this.ensureLive();
+    return this.port.constructionAccess(sites);
+  }
   environmentFacts() {
     this.ensureLive();
     return this.port.environmentFacts();
@@ -726,6 +730,7 @@ export class GameSession {
         environmentFacts: () => this.port.environmentFacts(),
         atmosphereSamples: (cells) => this.port.atmosphereSamples(cells),
         constructionReadiness: (sites) => this.port.constructionReadiness(sites),
+        constructionAccess: (sites) => this.port.constructionAccess(sites),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         routeCosts: (requests) => {

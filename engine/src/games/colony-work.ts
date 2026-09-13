@@ -971,15 +971,6 @@ export const colonyWorkSystem = createWorkSystem({
             .query(query(Worker))
             .filter((row) => !row.get(Worker).guest)
             .map((row) => row.id),
-          catalogMaterials: Object.fromEntries(
-            colonyEnvironment.structures.catalog.map((definition) => [
-              definition.id,
-              definition.materials.map(({ kind: material, quantity }) => ({
-                material,
-                quantity,
-              })),
-            ]),
-          ),
         },
         suspendedActors,
       ),

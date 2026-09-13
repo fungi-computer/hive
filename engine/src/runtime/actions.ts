@@ -21,6 +21,12 @@ const directSample = (value: unknown): boolean => {
   return Object.keys(sample).length === 3 && typeof sample.sequence === "number" && Number.isSafeInteger(sample.sequence) &&
     sample.sequence > 0 && axis(sample.x) && axis(sample.z);
 };
+const terrainContact = (value: unknown): boolean => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const contact = value as Record<string, unknown>;
+  return Object.keys(contact).length === 4 && contact.frame === null
+    && coordinate(contact.x) && coordinate(contact.y) && coordinate(contact.z);
+};
 
 /** Structural admission only. Native custody, capacity and reach decide availability. */
 export function checkedAction(value: unknown): ActionRequest {
@@ -45,24 +51,24 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
       break;
     case "plan-construction": {
-      keys = ["kind", "catalog", "site", "x", "y", "z", "orientation", "contact"];
-      const contact = action.contact as Record<string, unknown> | null;
+      keys = ["kind", "catalog", "site", "x", "y", "z", "orientation"];
       valid = id(action.catalog) && id(action.site)
         && [action.x, action.z].every(value => typeof value === "number" && Number.isSafeInteger(value))
         && typeof action.y === "number" && Number.isInteger(action.y) && action.y >= -2147483648 && action.y <= 2147483647
-        && ["north", "east", "south", "west"].includes(action.orientation as string)
-        && !!contact && typeof contact === "object" && !Array.isArray(contact)
-        && Object.keys(contact).length === 4 && contact.frame === null
-        && coordinate(contact.x) && coordinate(contact.y) && coordinate(contact.z);
+        && ["north", "east", "south", "west"].includes(action.orientation as string);
       break;
     }
+    case "bind-construction-stage":
+      keys = ["kind", "site", "contact"];
+      valid = id(action.site) && terrainContact(action.contact);
+      break;
     case "set-structure-open":
       keys = ["kind", "worker", "site", "open"];
       valid = id(action.worker) && id(action.site) && typeof action.open === "boolean";
       break;
     case "attend-construction":
-      keys = ["kind", "worker", "site"];
-      valid = id(action.worker) && id(action.site);
+      keys = ["kind", "worker", "site", "contact"];
+      valid = id(action.worker) && id(action.site) && terrainContact(action.contact);
       break;
     case "excavate":
       keys = ["kind", "entity", "x", "y", "z", "expected", "replacement"];

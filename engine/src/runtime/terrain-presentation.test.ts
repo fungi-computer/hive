@@ -18,7 +18,7 @@ const definition: EnvironmentDefinition = {
     seaLevel: 2,
     verticalMetres: 0.5,
   },
-  structures: { maxSpanSteps: 6, catalog: [] },
+  structures: { maxSpanSteps: 6, catalog: [{ id: "fixture-floor", shape: { kind: "floor" }, workReachBelowCells: 0, materials: [{ kind: "stone-spoil", quantity: 1 }], workSeconds: 1 }] },
   materials: [],
   water: { id: "water", cells: [], fallMPerS: 0, spreadMPerS: 0 },
 };

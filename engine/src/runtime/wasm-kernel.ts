@@ -8,6 +8,7 @@ import type {
   AdvanceResult,
   AtmosphereSamples,
   ConstructionReadiness,
+  ConstructionAccess,
   ComponentDefinition,
   EntityId,
   KernelPort,
@@ -39,6 +40,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   environment_facts(): string;
   atmosphere_samples(json: string): string;
   construction_readiness(json: string): string;
+  construction_access(json: string): string;
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
@@ -80,6 +82,28 @@ const routeToAnyResultSchema = z.discriminatedUnion("status", [
     })
     .strict(),
 ]);
+const constructionAccessSchema = z.array(z.object({
+  site: entityIdWireSchema,
+  support: z.enum(["ready", "waitingForSupport", "unknown"]),
+  materialsReady: z.boolean(),
+  contacts: z.array(z.object({
+    x: z.number().finite(), y: z.number().finite(), z: z.number().finite(),
+    frame: z.null(), kind: z.enum(["origin", "landing"]),
+  }).strict()).max(32),
+}).strict()).max(256);
+function validateConstructionAccessSites(sites: readonly EntityId[]): void {
+  if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
+    throw new Error("construction access needs 1..256 sites");
+  if (new Set(sites).size !== sites.length)
+    throw new Error("duplicate construction access site");
+}
+export function parseConstructionAccess(value: unknown, sites: readonly EntityId[]): readonly ConstructionAccess[] {
+  validateConstructionAccessSites(sites);
+  const rows = constructionAccessSchema.parse(value);
+  if (rows.length !== sites.length || rows.some((row, index) => row.site !== sites[index]))
+    throw new Error("construction access result order mismatch");
+  return rows;
+}
 function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]): readonly ConstructionReadiness[] {
   if (!Array.isArray(value) || value.length !== sites.length)
     throw new Error("invalid construction readiness result");
@@ -236,6 +260,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         throw new Error("construction readiness needs 1..256 sites");
       const value: unknown = JSON.parse(binding.construction_readiness(JSON.stringify(sites)));
       return parseConstructionReadiness(value, sites);
+    },
+    constructionAccess(sites): readonly ConstructionAccess[] {
+      validateConstructionAccessSites(sites);
+      return parseConstructionAccess(JSON.parse(binding.construction_access(JSON.stringify(sites))), sites);
     },
     physicalContacts(cells) {
       return physicalContactQuery(
