@@ -2842,7 +2842,7 @@ impl Kernel {
             let entity = self.ecs.spawn(ExternalId(site_id.to_owned())).id();
             self.ids.insert(site_id.to_owned(), entity); self.known.insert(site_id.to_owned()); self.contents.insert(site_id.to_owned(), BTreeSet::new()); entity
         };
-        self.ecs.entity_mut(entity).insert((Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, Container { capacity: definition.output_quantity }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.sow_seconds }));
+        self.ecs.entity_mut(entity).insert((Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, Container { capacity: definition.output_quantity }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.stages[0].delay_seconds }));
         self.refresh_state_weight();
         Ok(site_id.to_owned())
     }

@@ -65,6 +65,10 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   }
   for (const row of orders) {
     const state = row.get(ColonyResourceOrder);
+    if (state.actor && ["sow", "tend", "harvest"].includes(state.phase)) {
+      const failedMove = ctx.outcomes.find(outcome => outcome.action.kind === "move" && outcome.action.entity === state.actor && !outcome.result.accepted && outcome.action.destination.x === state.approachX && outcome.action.destination.y === state.approachY && outcome.action.destination.z === state.approachZ);
+      if (failedMove) { ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, workSeconds: 0, reason: failedMove.result.reason ?? "resource approach rejected" }); continue; }
+    }
     if (!state.phase.startsWith("submitting-")) continue;
     const outcome = ctx.outcomes.find(candidate => candidate.action.kind === (state.phase === "submitting-sow" ? "establish-resource-site" : state.phase === "submitting-tend" ? "tend-resource-site" : "extract-resource") && ((candidate.action.kind === "extract-resource" && candidate.action.source === state.site) || (candidate.action.kind !== "extract-resource" && candidate.action.site === state.site && candidate.action.operation === state.operation)));
     if (!outcome) continue;
