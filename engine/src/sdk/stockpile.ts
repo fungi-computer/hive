@@ -25,6 +25,11 @@ function validText(value: string): boolean {
 function validInt(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0 && value <= MAX_QUANTITY;
 }
+function addChecked(map: Map<string, number>, key: string, quantity: number): void {
+  const total = (map.get(key) ?? 0) + quantity;
+  if (!Number.isSafeInteger(total) || total > MAX_QUANTITY) throw new Error("stockpile source reservation overflow");
+  map.set(key, total);
+}
 function compareId(a: EntityId, b: EntityId): number { return a < b ? -1 : a > b ? 1 : 0; }
 export const designateStockpile = (zone: EntityId, cells: readonly { x: number; y: number; z: number; priority: number; filterProfile: string; capacity: number }[]) => ({
   kind: "designate-stockpile" as const, zone, cells: cells.map(cell => ({ ...cell, filterProfile: cell.filterProfile })),
@@ -83,8 +88,9 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
   const sourceMaterialTotals = new Map<string, number>();
   for (const row of lots) {
     const lot = row.get(MaterialLot);
+    if (!validInt(lot.quantity) || lot.quantity <= 0) continue;
     const key = `${lot.container}\0${lot.kind}`;
-    sourceMaterialTotals.set(key, (sourceMaterialTotals.get(key) ?? 0) + lot.quantity);
+    addChecked(sourceMaterialTotals, key, lot.quantity);
   }
   const nextLegByLot = new Map<string, number>();
   const incomingByCell = new Map<EntityId, number>();

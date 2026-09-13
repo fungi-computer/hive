@@ -11,7 +11,7 @@ import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
-test("actual Colony staircase supply assigns two workers to two independent lumber lots", () => {
+test("actual Colony staircase supply splits one shared lumber lot into two lawful haul legs", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });

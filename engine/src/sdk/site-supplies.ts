@@ -148,8 +148,9 @@ export function planSiteSupplies(
   const reservedBySourceMaterial = new Map<string, number>();
   const sourceMaterialTotals = new Map<string, number>();
   for (const lot of lots) {
+    if (!validLotQuantity(lot.quantity)) continue;
     const key = `${lot.container}\0${lot.kind}`;
-    sourceMaterialTotals.set(key, (sourceMaterialTotals.get(key) ?? 0) + lot.quantity);
+    if (lot.quantity > 0) addChecked(sourceMaterialTotals, key, lot.quantity);
   }
   const nextLegByLot = new Map<string, number>();
   const promisedByDestinationMaterial = new Map<string, number>();
