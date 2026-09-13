@@ -42,7 +42,7 @@ import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrai
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
-import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
+import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { colonyPack } from "../games/colony.ts";
 import { survivalPack } from "../games/survival.ts";
@@ -385,6 +385,17 @@ export function createHiveClient({
     const buildIds = new Set(buildGroups.flatMap((group) => group.controls.map((control) => control.id)));
     const selectedBuild = terrainTarget.getSnapshot().context.control;
     const selectedGroup = buildGroups.find((group) => group.controls.some((control) => control.id === selectedBuild?.id));
+    const placementSnapshot = terrainArea.getSnapshot();
+    const placementPreviewCells = selectedBuild && placementSnapshot.value === "dragging"
+      ? placementCells({ area: placementSnapshot.context, target: null })
+      : [];
+    const placementStatus = selectedBuild
+      ? placementHint(selectedBuild, {
+        area: placementSnapshot,
+        hover: terrainTarget.getSnapshot().context.hover,
+        cells: placementPreviewCells.length,
+      })
+      : null;
     const armTerrainControl = (control) => {
       if (!control || control.availability?.status === "unavailable") return;
       exitAim();
@@ -432,6 +443,7 @@ export function createHiveClient({
         );
       }),
       selectedGroup ? React.createElement(Button, { size: "sm", variant: "primary", onClick: () => { terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" }); state.message = "Selection"; renderHud(); } }, "Done") : null,
+      selectedBuild?.command === "build" ? React.createElement("small", { className: "hive-placement-status", "aria-live": "polite" }, placementStatus) : null,
     ) : null;
     const contextualPresentation = projectContextualPresentation({
       facts: state.presentationFacts,

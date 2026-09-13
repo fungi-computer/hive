@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildControls, defaultBuildMode, nextOrientation, placementMode, selectedBuildControl } from "./build-placement.js";
+import { buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl } from "./build-placement.js";
 
 const controls = [
   { id: "floor", command: "build", target: "world-surface", input: { catalog: "timber-floor" }, designation: ["point", "rectangle"] },
@@ -31,4 +31,12 @@ test("point-only builds stay point placement while rectangular builds select the
   assert.equal(placementMode({ command: "other", target: "world-surface" }), "point");
   assert.equal(placementMode(selectedBuildControl(groups[0]), { shiftKey: true }), "rectangle");
   assert.equal(placementMode(controls.find((control) => control.id === "dig"), { altKey: true }), "point");
+});
+
+test("placement hint distinguishes a usable preview, waiting admission, and rejected stroke", () => {
+  const floor = controls[0];
+  assert.equal(placementHint(floor, { hover: [1, 0, 1] }), "Preview: 1 cell · click to place");
+  assert.equal(placementHint(floor, { area: { value: "dragging" }, cells: 4 }), "Preview: 4 cells · release to place");
+  assert.equal(placementHint({ ...floor, availability: { status: "unavailable", reason: "No support" } }), "Waiting: No support");
+  assert.equal(placementHint(floor, { area: { rejection: "Selection exceeds the visible world" } }), "Rejected: Selection exceeds the visible world");
 });
