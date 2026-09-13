@@ -262,6 +262,16 @@ as data. Preserve the existing deterministic assignment optimizer and stable-ID
 ties. Do not port Colony names, recipe IDs or UI state into Rust, and do not add a
 second scheduler beside the current work owner.
 
+The current Colony composition has a concrete ownership violation to remove:
+`colony.work`, `colony.site-supplies`, `colony.ground-stock` and
+`colony.stockpile` all declare writes to `DeliveryTask`, and their incidental pack
+order supplies the coordination. Recast supply planning, loose-stock cleanup,
+assignment and delivery progress as explicit phases beneath one shared work owner.
+Construction, excavation, tree and stockpile modules contribute definitions and
+bounded candidates to that owner; they do not become competing task stores. Once
+the real packs satisfy this rule, pack validation must reject two independent
+systems that declare the same component write authority.
+
 Acceptance is an actual Colony tick with multiple available jobs and workers:
 one bounded native read/operation per phase, no repeated whole-world JSON query
 for the same facts, impossible work removed before pathfinding, temporarily
