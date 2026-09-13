@@ -1,6 +1,57 @@
 use super::*;
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConstructionReadinessRow {
+    site: String,
+    status: &'static str,
+}
+
+fn construction_status(
+    kernel: &mut Kernel,
+    ids: &[String],
+) -> Result<BTreeMap<String, &'static str>> {
+    let mut result = BTreeMap::new();
+    for site in ids {
+        let Some(entity) = kernel.ids.get(site).copied() else {
+            result.insert(site.clone(), "unknown");
+            continue;
+        };
+        let Some(state) = kernel.ecs.get::<ConstructionSite>(entity).cloned() else {
+            result.insert(site.clone(), "unknown");
+            continue;
+        };
+        if state.phase == ConstructionPhase::Finished {
+            result.insert(site.clone(), "ready");
+            continue;
+        }
+        let definition = kernel.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
+        let instance = kernel.construction_instance(site, &definition, state.x, state.y, state.z, state.orientation);
+        let status = match kernel.environment.as_mut().ok_or("construction needs environment")?.world.construction_support(std::slice::from_ref(&instance)) {
+            Ok(unsupported) if unsupported.iter().any(|id| id == site) => "waitingForSupport",
+            Ok(_) => "ready",
+            Err(_) => "invalid",
+        };
+        result.insert(site.clone(), status);
+    }
+    Ok(result)
+}
+
 impl Kernel {
+    pub(super) fn construction_readiness(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid construction readiness request")?;
+        if ids.is_empty() || ids.len() > 256 || ids.iter().any(|id| !crate::components::valid_id(id)) {
+            return Err("construction readiness needs 1..256 valid site ids".into());
+        }
+        let mut unique = BTreeSet::new();
+        if ids.iter().any(|id| !unique.insert(id.clone())) { return Err("duplicate construction readiness site".into()); }
+        let statuses = construction_status(self, &ids)?;
+        let rows = ids.into_iter().map(|site| ConstructionReadinessRow {
+            status: statuses.get(&site).copied().unwrap_or("unknown"), site,
+        }).collect::<Vec<_>>();
+        serde_json::to_string(&rows).map_err(|_| "construction readiness encoding failed".into())
+    }
     fn construction_instance(
         &self,
         site: &str,
@@ -154,6 +205,13 @@ impl Kernel {
             }).sum::<u64>() >= u64::from(*required)
         })
     }
+    fn release_construction_worker(&mut self, site: &str, mut state: ConstructionSite) -> Result<()> {
+        if state.worker.is_none() && state.phase == ConstructionPhase::Planned { return Ok(()); }
+        state.worker = None;
+        state.phase = ConstructionPhase::Planned;
+        self.ecs.entity_mut(self.entity(site)?).insert(state);
+        Ok(())
+    }
     fn complete_construction(&mut self, site_id: &str, state: &ConstructionSite) -> Result<bool> {
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let instance = self.construction_instance(site_id, &definition, state.x, state.y, state.z, state.orientation);
@@ -222,20 +280,35 @@ impl Kernel {
         let mut query = self.ecs.query::<(&ExternalId, &ConstructionSite)>();
         let mut pending: Vec<_> = query.iter(&self.ecs).map(|(id, site)| (id.0.clone(), site.clone())).collect();
         pending.sort_by(|left, right| left.0.cmp(&right.0));
+        let working_ids: Vec<String> = pending.iter().filter(|(_, state)| state.phase == ConstructionPhase::Working).map(|(id, _)| id.clone()).collect();
+        let readiness = construction_status(self, &working_ids)?;
         for (site_id, mut state) in pending {
             if state.phase != ConstructionPhase::Working { continue; }
             let worker_id = state.worker.clone().ok_or("working construction lacks worker")?;
             let worker = self.entity(&worker_id)?;
+            if readiness.get(&site_id).is_some_and(|status| *status != "ready") {
+                self.release_construction_worker(&site_id, state)?;
+                continue;
+            }
             if self.direct.contains_key(&worker) || self.ecs.get::<Destination>(worker).is_some()
-                || self.ecs.get::<ExcavationWork>(worker).is_some() || self.ecs.get::<Support>(worker).is_some() { continue; }
+                || self.ecs.get::<ExcavationWork>(worker).is_some() || self.ecs.get::<Support>(worker).is_some() {
+                self.release_construction_worker(&site_id, state)?;
+                continue;
+            }
             let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
             let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
             let pose = self.world_pose(worker_id.as_str())?;
-            if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing) || !self.construction_materials_ready(&site_id, &definition) { continue; }
+            if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing) {
+                self.release_construction_worker(&site_id, state)?;
+                continue;
+            }
+            if !self.construction_materials_ready(&site_id, &definition) { continue; }
             state.seconds = earned_work_seconds(state.seconds, delta, definition.work_seconds)?;
             self.ecs.entity_mut(self.entity(&site_id)?).insert(state.clone());
             if state.seconds < definition.work_seconds { continue; }
-            let _ = self.complete_construction(&site_id, &state)?;
+            if !self.complete_construction(&site_id, &state)? {
+                self.release_construction_worker(&site_id, state)?;
+            }
         }
         self.refresh_state_weight();
         Ok(())

@@ -1469,6 +1469,9 @@ impl Kernel {
         let samples = air.sample(&mut environment.world, &cells)?;
         serde_json::to_string(&json!({"revision":self.revision,"geometryRevision":air.geometry_revision(),"samples":samples})).map_err(|error| error.to_string())
     }
+    pub fn construction_readiness_json(&mut self, input: &str) -> Result<String> {
+        self.construction_readiness(input)
+    }
     pub fn environment_facts_json(&self) -> Result<String> {
         self.ensure_ready()?;
         let environment = self.environment.as_ref().ok_or("world has no environment")?;

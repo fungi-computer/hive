@@ -231,6 +231,9 @@ impl WasmKernel {
     pub fn atmosphere_samples(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.atmosphere_samples_json(input).map_err(js_error)
     }
+    pub fn construction_readiness(&mut self, input: &str) -> Result<String, JsValue> {
+        self.0.construction_readiness_json(input).map_err(js_error)
+    }
     pub fn environment_facts(&self) -> Result<String, JsValue> {
         self.0.environment_facts_json().map_err(js_error)
     }

@@ -7,6 +7,7 @@ import type {
   ActionRequest,
   AdvanceResult,
   AtmosphereSamples,
+  ConstructionReadiness,
   ComponentDefinition,
   EntityId,
   KernelPort,
@@ -37,6 +38,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   load_environment(json: string): void;
   environment_facts(): string;
   atmosphere_samples(json: string): string;
+  construction_readiness(json: string): string;
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
@@ -203,6 +205,24 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         geometryRevision: result.geometryRevision as number,
         samples,
       };
+    },
+    constructionReadiness(sites): readonly ConstructionReadiness[] {
+      if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
+        throw new Error("construction readiness needs 1..256 sites");
+      const value: unknown = JSON.parse(binding.construction_readiness(JSON.stringify(sites)));
+      if (!Array.isArray(value) || value.length !== sites.length)
+        throw new Error("invalid construction readiness result");
+      const seen = new Set<string>();
+      return value.map((entry): ConstructionReadiness => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry))
+          throw new Error("invalid construction readiness row");
+        const row = entry as Record<string, unknown>;
+        if (typeof row.site !== "string" || !sites.includes(row.site as EntityId) || seen.has(row.site)
+          || !["ready", "waitingForSupport", "invalid", "unknown"].includes(row.status as string))
+          throw new Error("invalid construction readiness row");
+        seen.add(row.site);
+        return { site: row.site, status: row.status as ConstructionReadiness["status"] };
+      });
     },
     physicalContacts(cells) {
       return physicalContactQuery(

@@ -23,6 +23,7 @@ function context(options: {
   readonly workerAtSite?: boolean;
   readonly attended?: boolean;
   readonly outcomes?: readonly any[];
+  readonly constructionStatus?: "ready" | "waitingForSupport";
 }) {
   const records: QueryRow<any>[] = [
     row(site, {
@@ -69,6 +70,7 @@ function context(options: {
       routes.push(requests);
       return requests.map(() => ({ status: "reachable", cost: 6 }));
     },
+    constructionReadiness: (sites: readonly string[]) => sites.map((site) => ({ site, status: options.constructionStatus ?? "ready" })),
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,
     write: () => {},
@@ -86,6 +88,13 @@ const options = {
 
 test("construction eligibility filters missing material before route costs", () => {
   const fake = context({ includeMaterial: false });
+  const prepared = constructionWorkProvider(fake.base, options, new Set());
+  assert.equal(prepared.candidates.length, 0);
+  assert.equal(fake.routes.length, 0);
+});
+
+test("construction eligibility excludes sites waiting for native support", () => {
+  const fake = context({ includeMaterial: true, constructionStatus: "waitingForSupport" });
   const prepared = constructionWorkProvider(fake.base, options, new Set());
   assert.equal(prepared.candidates.length, 0);
   assert.equal(fake.routes.length, 0);

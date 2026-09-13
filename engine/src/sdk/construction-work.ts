@@ -102,6 +102,7 @@ export function constructionWorkProvider(
     approaches.set(state.site, { id: row.id, state });
   }
   const siteIds = new Set(sites.map((row) => row.id));
+  const readiness = new Map((siteIds.size === 0 ? [] : ctx.constructionReadiness([...siteIds])).map((row) => [row.site, row.status]));
   for (const row of approachRows) {
     if (!siteIds.has(row.get(ConstructionApproach).site)) ctx.removeAuthoredEntity(row.id);
   }
@@ -161,7 +162,7 @@ export function constructionWorkProvider(
   });
   const candidates = sites.flatMap((row) => {
     const state = row.get(ConstructionSite);
-    if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || approaches.has(row.id) || !ready(row.id, state.catalog)) return [];
+    if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || approaches.has(row.id) || readiness.get(row.id) !== "ready" || !ready(row.id, state.catalog)) return [];
     const target = targetFor(row.id);
     if (!target) return [];
     return workers.flatMap((worker) => {
@@ -206,7 +207,7 @@ export function constructionWorkProvider(
         const approach = approaches.get(row.id);
         if (!approach) continue;
         if (suspendedActors.has(approach.state.worker)) continue;
-        if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || !ready(row.id, state.catalog)) {
+        if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || readiness.get(row.id) !== "ready" || !ready(row.id, state.catalog)) {
           ctx.removeAuthoredEntity(approach.id);
           continue;
         }
