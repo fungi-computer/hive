@@ -2608,7 +2608,7 @@ impl Kernel {
                     let environment = self.environment.as_mut().ok_or("water exchange requires terrain")?;
                     environment.world.prepare_water_exchange(at, crate::terrain_water::WaterExchangeDirection::Deposit, portions)?
                 };
-                if (material.water_kg - field.receipt().mass_kg).abs() > 1e-9 * field.receipt().mass_kg.max(1.0) {
+                if (material.water_kg() - field.receipt().mass_kg).abs() > 1e-9 * field.receipt().mass_kg.max(1.0) {
                     return Err("water lot mass does not match field portion mass".into());
                 }
                 (field, PreparedWaterMaterial::Consumption(material))

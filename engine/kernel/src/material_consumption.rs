@@ -58,6 +58,11 @@ pub(super) struct PreparedConsumption {
     before_state_weight: usize,
     state_weight: usize,
 }
+impl PreparedConsumption {
+    pub(super) fn water_kg(&self) -> f64 {
+        self.result.water_kg
+    }
+}
 
 fn same_lot(left: &Lot, right: &Lot) -> bool {
     left.kind == right.kind && left.quantity == right.quantity && left.container == right.container
