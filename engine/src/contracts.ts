@@ -305,7 +305,7 @@ export interface ProcessRequirements {
     readonly disposition: ProcessInputDisposition;
   }[];
   readonly stages: readonly { readonly id: string; readonly mode: "attended" | "elapsed"; readonly durationSeconds: number }[];
-  readonly phase: "waiting" | "running" | "complete" | "blocked";
+  readonly phase: "waiting" | "working" | "complete" | "blocked";
 }
 export interface RandomSource {
   next(): number;
@@ -318,7 +318,7 @@ export interface ReadContext {
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
   /** One committed physical projection shared by all work phases in a step. */
   workMaterialFacts(): WorkMaterialFacts;
-  readonly processRequirements?: (definition: string, station: EntityId) => ProcessRequirements;
+  readonly processRequirements: (definition: string, station: EntityId) => ProcessRequirements;
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   routeToAny(request: RouteToAnyRequest): RouteToAnyResult;
@@ -557,7 +557,7 @@ export interface KernelPort {
   ) => readonly QueryRow<T>[];
   /** Compact native owner projection for shared work/material planning. */
   readonly workMaterialFacts: () => WorkMaterialFacts;
-  readonly processRequirements?: (definition: string, station: EntityId) => ProcessRequirements;
+  readonly processRequirements: (definition: string, station: EntityId) => ProcessRequirements;
   readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
   readonly advance: (
     delta: number,

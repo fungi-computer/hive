@@ -44,6 +44,9 @@ const definition = new TextEncoder().encode(
 );
 
 class TestPort implements KernelPort {
+  processRequirements(): import("../contracts").ProcessRequirements {
+    throw new Error("unexpected process requirements query");
+  }
   workMaterialFacts(): import("../contracts").WorkMaterialFacts {
     return { version: 1, containers: [], lots: [] };
   }

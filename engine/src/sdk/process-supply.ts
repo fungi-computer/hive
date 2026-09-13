@@ -1,11 +1,11 @@
 import { component, entity, query } from "./authoring";
 import { planSiteSupplies, type SiteSupplyRequirement } from "./site-supplies";
-import type { EntityId, ProcessRequirements, WriteContext } from "../contracts";
+import type { EntityId, ProcessRequirements, QueryRow, WriteContext } from "../contracts";
 
 export const StagedProcess = component<{
   version: number; definition: string; definitionVersion: number; station: EntityId;
   stageIndex: number; progressSeconds: number; enteredTick: number;
-  phase: "waiting" | "running" | "complete" | "blocked"; blockedReason: string;
+  phase: "waiting" | "working" | "complete" | "blocked"; blockedReason: string;
 }>("hive.staged-process", { version: 1, fields: {
   version: "number", definition: "string", definitionVersion: "number", station: "entity",
   stageIndex: "number", progressSeconds: "number", enteredTick: "number", phase: "string", blockedReason: "string",
@@ -18,14 +18,19 @@ export const admitProcess = (process: EntityId, definition: string, station: Ent
 export function processSupplyPhase(ctx: WriteContext, sourceContainers: readonly EntityId[]): void {
   const facts = ctx.workMaterialFacts();
   const lots = facts.lots;
-  const admitted = new Set(ctx.outcomes.filter(({ action, result }): action is Extract<typeof action, { kind: "admit-process" }> => action.kind === "admit-process" && result.accepted).map(({ action }) => action.process));
+  const admitted = new Set(ctx.outcomes.flatMap(({ action, result }) => action.kind === "admit-process" && result.accepted ? [action.process] : []));
+  const waiting: { row: QueryRow; process: { definition: string; station: EntityId }; requirements: ProcessRequirements }[] = [];
   for (const row of ctx.query(query(StagedProcess))) {
     const process = row.get(StagedProcess);
     if (process.phase !== "waiting" || admitted.has(row.id)) continue;
-    if (!ctx.processRequirements) throw new Error("process supply requires native process requirements");
     const requirements: ProcessRequirements = ctx.processRequirements(process.definition, process.station);
-    const supply: SiteSupplyRequirement[] = requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity }));
-    planSiteSupplies(ctx, { sourceContainers, batchQuantity: 1, requirements: supply });
+    // Collected below and planned once: planSiteSupplies' reservation view is
+    // per call, so separate calls could promise one source lot twice.
+    waiting.push({ row, process, requirements });
+  }
+  const supply: SiteSupplyRequirement[] = waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity })));
+  if (supply.length) planSiteSupplies(ctx, { sourceContainers, batchQuantity: 1, requirements: supply });
+  for (const { row, process, requirements } of waiting) {
     const ready = requirements.inputs.every(input => {
       const port = `${process.station}:${input.port}`;
       const matching = lots.filter(lot => lot.container === port && lot.kind === input.material && lot.quantity > 0);
