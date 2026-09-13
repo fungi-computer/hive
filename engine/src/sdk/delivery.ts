@@ -82,6 +82,16 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
     const requestMove = (actor: EntityId, target: MoveDestination) => {
       ctx.action(move(actor, target));
     };
+    const rejectedMove = (actor: EntityId, target: MoveDestination) =>
+      ctx.outcomes.some(({ action, result }) =>
+        !result.accepted &&
+        action.kind === "move" &&
+        action.entity === actor &&
+        action.destination.x === target.x &&
+        action.destination.y === target.y &&
+        action.destination.z === target.z &&
+        action.destination.frame === target.frame,
+      );
     const lots = materialFacts.lots;
     const lotsById = new Map(lots.map(lot => [lot.id, lot]));
     const containers = new Map(materialFacts.containers.map(container => [container.id, container]));
@@ -317,6 +327,24 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         || (lotState?.container === state.source && sealed.has(state.source))
       )) continue;
       const actorLotState = lotState?.container === state.actor ? lotState : undefined;
+      const moveTarget = state.phase === "to-source"
+        ? { x: sourcePose.local.x, y: sourcePose.local.y, z: sourcePose.local.z, frame: sourcePose.support }
+        : state.phase === "carrying" || state.phase === "to-destination"
+          ? { x: destinationPose.local.x, y: destinationPose.local.y, z: destinationPose.local.z, frame: destinationPose.support }
+          : null;
+      if (moveTarget && rejectedMove(state.actor, moveTarget)) {
+        if (actorLotState) {
+          // A rejected destination move can happen after pickup. Keep the
+          // physical lot in the actor's custody until native ground custody is
+          // committed; the putting-down branch owns that observation.
+          ctx.write(DeliveryTask, task.id, { ...state, phase: "putting-down" });
+          ctx.action(dropLot(state.actor, actorLotState.id));
+        } else {
+          // No pickup was committed, so the worker claim is safe to release.
+          ctx.write(DeliveryTask, task.id, { ...state, actor: null, phase: "idle" });
+        }
+        continue;
+      }
       if (state.phase === "putting-down") {
         // Observe the native committed custody change before releasing the claim.
         if (lotState?.container === state.destination) {

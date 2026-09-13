@@ -747,3 +747,93 @@ test("full destination puts held goods down before releasing the worker", () => 
     "waiting ground goods do not repeatedly move a worker",
   );
 });
+
+function rejectedDeliveryFixture(initial: {
+  actor: ReturnType<typeof entity>;
+  sourceLot: ReturnType<typeof entity>;
+  source: ReturnType<typeof entity>;
+  destination: ReturnType<typeof entity>;
+  material: string;
+  quantity: number;
+  phase: string;
+}, options: { readonly destinationGround?: boolean; readonly outcomes?: readonly unknown[] } = {}) {
+  const task = entity("rejected.delivery");
+  let state = initial;
+  let lotContainer = initial.phase === "to-source" ? initial.source : initial.actor;
+  const worker = initial.actor;
+  const ground = entity("rejected.ground");
+  const writes: unknown[][] = [];
+  const actions: unknown[] = [];
+  const positions = new Map([
+    [worker, { x: 1, y: 0, z: 0, facing: 0 }],
+    [initial.source, { x: 0, y: 0, z: 0, facing: 0 }],
+    [initial.destination, { x: 4, y: 0, z: 0, facing: 0 }],
+    [ground, { x: 1, y: 0, z: 0, facing: 0 }],
+  ]);
+  const values = new Map<string, readonly unknown[]>([
+    [DeliveryTask.id, [row(task, DeliveryTask, state)]],
+    [GroundStock.id, options.destinationGround ? [row(ground, GroundStock, {})] : []],
+    [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: initial.quantity })]],
+    [Body.id, [row(worker, Body, { speed: 1 })]],
+    [Container.id, [worker, initial.source, initial.destination, ground].map((id) => row(id, Container, { capacity: 8 }))],
+    [Position.id, [...positions].map(([id, value]) => row(id, Position, value))],
+    [MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]],
+    [ExcavationWork.id, []], [ConstructionSite.id, []], [Support.id, []], [Surface.id, []], [SealedContainer.id, []],
+  ]);
+  const context = {
+    clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: options.outcomes ?? [], impacts: [], random: { next: () => 0 },
+    query: (spec: { components: readonly { id: string }[] }) =>
+      spec.components[0].id === DeliveryTask.id
+        ? [row(task, DeliveryTask, state)] as never
+        : (values.get(spec.components[0].id) ?? []) as never,
+    workMaterialFacts: () => materialFacts(values),
+    worldPoses: (ids: readonly ReturnType<typeof entity>[]) => ids.map((id) => ({ id, local: positions.get(id)!, world: positions.get(id)!, support: null, surface: null })),
+    routeCosts: () => { throw new Error("unexpected route query"); }, routeToAny: () => { throw new Error("unexpected route query"); },
+    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
+    assign: () => [], createAuthoredEntity: () => { throw new Error("unexpected creation"); }, removeAuthoredEntity: () => { throw new Error("unexpected removal"); },
+    write: (_definition: unknown, id: unknown, value: unknown) => { assert.equal(id, task); state = value as typeof state; writes.push([id, value]); },
+    action: (value: unknown) => actions.push(value),
+  } as never;
+  return { task, worker, ground, state: () => state, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, writes, actions, context };
+}
+
+test("rejected delivery move before pickup returns the task to idle without retrying", () => {
+  const worker = entity("rejected.worker.source");
+  const source = entity("rejected.source");
+  const destination = entity("rejected.destination");
+  const lot = entity("rejected.lot.source");
+  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "to-source" }, {
+    outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 0, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
+  });
+  deliverySystem.run(fixture.context);
+  assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
+  assert.equal(fixture.actions.length, 0);
+  assert.equal(fixture.state().actor, null);
+});
+
+test("rejected delivery move after pickup drops the conserved lot before releasing worker", () => {
+  const worker = entity("rejected.worker.destination");
+  const source = entity("rejected.source.destination");
+  const destination = entity("rejected.destination.destination");
+  const lot = entity("rejected.lot.destination");
+  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "to-destination" }, {
+    destinationGround: true,
+    outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 4, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
+  });
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().actor, worker);
+  assert.equal(fixture.state().phase, "putting-down");
+  assert.deepEqual(fixture.actions, [{ kind: "drop-lot", entity: worker, lot }]);
+  fixture.actions.length = 0;
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().actor, worker, "uncommitted drop retains custody");
+  assert.equal(fixture.actions.length, 1);
+  fixture.setLotContainer(fixture.ground);
+  fixture.writes.length = 0;
+  fixture.actions.length = 0;
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().actor, null, "worker releases after ground custody is observed");
+  assert.equal(fixture.state().phase, "idle");
+  assert.equal(fixture.state().source, fixture.ground);
+  assert.equal(fixture.actions.length, 0);
+});
