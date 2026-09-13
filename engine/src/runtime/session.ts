@@ -138,6 +138,13 @@ export class GameSession {
       consumers.add(system.id);
       if (system.consumesImpacts) this.impactFrontiers.set(system.id, null);
     }
+    const writeOwners = new Map<string, string>();
+    for (const system of this.pack.systems) for (const definition of system.writes) {
+      const owner = writeOwners.get(definition.id);
+      if (owner !== undefined && owner !== system.id)
+        throw new Error(`duplicate system write authority for ${definition.id}: ${owner} and ${system.id}`);
+      writeOwners.set(definition.id, system.id);
+    }
     for (const definition of Object.values(this.pack.commands ?? {})) {
       const commandWrites = new Set(
         definition.writes.map((component) => component.id),

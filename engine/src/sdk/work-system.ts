@@ -24,6 +24,8 @@ export type WorkSystemOptions = Omit<SystemOptions, "run"> & {
   /** Providers have distinct private candidate payloads; the shared owner only
    * relies on the common worker/task/cost shape. */
   readonly providers: readonly WorkProvider<any>[];
+  /** Deterministic authored planning phases owned by this work composition. */
+  readonly phases?: readonly ((context: WriteContext) => void)[];
 };
 
 /**
@@ -40,6 +42,7 @@ export function createWorkSystem(options: WorkSystemOptions) {
     every: options.every,
     consumesImpacts: options.consumesImpacts,
     run(context) {
+      for (const phase of options.phases ?? []) phase(context);
       const suspendedActors = new Set(
         context.query({ components: [WorkParticipation] }).flatMap((row) =>
           row.get(WorkParticipation).automatic ? [] : [row.id],

@@ -8,12 +8,17 @@ import {
   MaterialLot,
 } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
-import { ColonyDigOrder, colonyGroundStockSystem } from "./colony-work";
+import { ColonyDigOrder, colonyGroundStockPhase } from "./colony-work";
 import { GroundStock } from "../sdk/ground-stock";
 import { colonyPack } from "./colony";
 
 const worker = entity("colony.worker.1");
 const source = entity("colony.pantry");
+
+test("current Colony pack has one DeliveryTask system writer", () => {
+  const writers = colonyPack.systems.filter(system => system.writes.some(definition => definition.id === DeliveryTask.id));
+  assert.equal(writers.map(system => system.id).join(","), "colony.work");
+});
 
 function row(id: ReturnType<typeof entity>, definition: { id: string }, value: object) {
   return { id, get(requested: { id: string }) { assert.equal(requested.id, definition.id); return value; } };
@@ -84,7 +89,7 @@ test("Colony ground stock schedules one ordinary pantry delivery and preserves e
     },
     createAuthoredEntity(record: unknown) { created.push(record); },
   };
-  colonyGroundStockSystem.run(context as never);
+  colonyGroundStockPhase(context as never);
   assert.deepEqual(created, [{ id: `${pile}.delivery`, components: { [DeliveryTask.id]: {
     actor: null, sourceLot: pile, source, destination: "colony.pantry",
     material: "soil-spoil", quantity: 3, phase: "idle",

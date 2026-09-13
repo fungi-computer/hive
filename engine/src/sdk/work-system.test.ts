@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { createWorkSystem } from "./work-system";
-import { entity } from "./authoring";
+import { component, entity } from "./authoring";
 
 const base = {
   clock: { now: 0, delta: 0.1, tick: 1 },
@@ -64,4 +64,19 @@ test("shared work system calls one matcher and preserves claims across providers
   assert.equal(calls[0].length, 2);
   assert.deepEqual(applied, ["delivery:0", "dig:1"]);
   assert.deepEqual(progressed, ["delivery", "dig"]);
+});
+
+test("planning phases run before providers and expose their overlay writes", () => {
+  const marker = entity("phase.marker");
+  const Marker = component<{ value: number }>("test.marker", { version: 1, fields: { value: "number" } });
+  let value = 0;
+  const phaseSystem = createWorkSystem({
+    id: "test.phase-order", version: 1, reads: [Marker], writes: [Marker],
+    phases: [ctx => ctx.write(Marker, marker, { value: 7 })],
+    providers: [ctx => {
+      assert.equal(ctx.query({ components: [Marker] })[0]?.get(Marker).value, 7);
+      return { claims: [], candidates: [], estimate: () => null, apply: () => {}, progress: () => {} };
+    }],
+  });
+  phaseSystem.run({ ...base, assign: () => [], query: (spec) => (spec.components[0]?.id === "test.marker" ? [{ id: marker, get: (() => ({ value })) as never }] : []) as never, write: (_definition, _entity, next) => { value = (next as { value: number }).value; } });
 });
