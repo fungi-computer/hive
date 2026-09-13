@@ -79,12 +79,23 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     if (total <= MAX_QUANTITY) quantities.set(lot.container, total);
   }
   const reservedByLot = new Map<EntityId, number>();
+  const reservedBySourceMaterial = new Map<string, number>();
+  const sourceMaterialTotals = new Map<string, number>();
+  for (const row of lots) {
+    const lot = row.get(MaterialLot);
+    const key = `${lot.container}\0${lot.kind}`;
+    sourceMaterialTotals.set(key, (sourceMaterialTotals.get(key) ?? 0) + lot.quantity);
+  }
   const nextLegByLot = new Map<string, number>();
   const incomingByCell = new Map<EntityId, number>();
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
     if (task.phase === "complete") continue;
-    if (validInt(task.quantity) && task.quantity > 0) reservedByLot.set(task.sourceLot, (reservedByLot.get(task.sourceLot) ?? 0) + task.quantity);
+    if (validInt(task.quantity) && task.quantity > 0) {
+      reservedByLot.set(task.sourceLot, (reservedByLot.get(task.sourceLot) ?? 0) + task.quantity);
+      const key = `${task.source}\0${task.material}`;
+      reservedBySourceMaterial.set(key, (reservedBySourceMaterial.get(key) ?? 0) + task.quantity);
+    }
     if (cellIds.has(task.destination) && validInt(task.quantity) && task.quantity > 0) {
       const incoming = (incomingByCell.get(task.destination) ?? 0) + task.quantity;
       if (incoming <= MAX_QUANTITY) incomingByCell.set(task.destination, incoming);
@@ -122,6 +133,8 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
       const sourceContainer = source.lot.container;
       if (!containers.has(sourceContainer)) continue;
       let available = source.lot.quantity - (reservedByLot.get(source.id) ?? 0);
+      const sourceKey = `${source.lot.container}\0${source.lot.kind}`;
+      available = Math.min(available, (sourceMaterialTotals.get(sourceKey) ?? 0) - (reservedBySourceMaterial.get(sourceKey) ?? 0));
       if (available <= 0) continue;
       const legKey = `${row.id}\0${source.id}`;
       let leg = nextLegByLot.get(legKey) ?? 0;
@@ -135,6 +148,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
       }}});
       created.push(id);
       reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
+      reservedBySourceMaterial.set(sourceKey, (reservedBySourceMaterial.get(sourceKey) ?? 0) + quantity);
       free -= quantity;
       incomingByCell.set(row.id, (incomingByCell.get(row.id) ?? 0) + quantity);
       nextLegByLot.set(legKey, leg + 1);

@@ -145,6 +145,12 @@ export function planSiteSupplies(
   }
 
   const reservedByLot = new Map<EntityId, number>();
+  const reservedBySourceMaterial = new Map<string, number>();
+  const sourceMaterialTotals = new Map<string, number>();
+  for (const lot of lots) {
+    const key = `${lot.container}\0${lot.kind}`;
+    sourceMaterialTotals.set(key, (sourceMaterialTotals.get(key) ?? 0) + lot.quantity);
+  }
   const nextLegByLot = new Map<string, number>();
   const promisedByDestinationMaterial = new Map<string, number>();
   const promisedByDestination = new Map<EntityId, number>();
@@ -170,6 +176,7 @@ export function planSiteSupplies(
     )
       throw new Error("invalid active site supply task");
     addChecked(reservedByLot, task.sourceLot, task.quantity);
+    addChecked(reservedBySourceMaterial, `${task.source}\0${task.material}`, task.quantity);
     if (validQuantity(task.quantity) && validMaterial(task.material)) {
       addChecked(
         promisedByDestinationMaterial,
@@ -222,6 +229,8 @@ export function planSiteSupplies(
       )
         continue;
       let available = source.lot.quantity - (reservedByLot.get(source.id) ?? 0);
+      const sourceKey = `${source.lot.container}\0${source.lot.kind}`;
+      available = Math.min(available, (sourceMaterialTotals.get(sourceKey) ?? 0) - (reservedBySourceMaterial.get(sourceKey) ?? 0));
       if (available <= 0) continue;
       const legKey = `${requirement.destination}\0${requirement.material}\0${source.id}`;
       let leg = nextLegByLot.get(legKey) ?? 0;
@@ -250,6 +259,7 @@ export function planSiteSupplies(
       plannedIds.add(id);
       created.push(id);
       reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
+      reservedBySourceMaterial.set(sourceKey, (reservedBySourceMaterial.get(sourceKey) ?? 0) + quantity);
       remaining -= quantity;
       freeCapacity -= quantity;
       available -= quantity;
