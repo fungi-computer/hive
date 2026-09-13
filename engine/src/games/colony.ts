@@ -1,5 +1,5 @@
 import { colonyConstructionVisuals } from "./colony-construction-visuals";
-import { EmissionOrder, EmissionWork, idleEmissionWork, nextEmissionOrder } from "../sdk/emission-work";
+import { EmissionOrder, EmissionWork, nextEmissionOrder } from "../sdk/emission-work";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
@@ -79,18 +79,9 @@ export function constructionStatusLabel(
   return "Waiting for materials or a free worker";
 }
 
-const brewStationId = entity("colony.brew-station");
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
   { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
-  { id: brewStationId, components: {
-    "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
-    "hive.container": { capacity: 4 },
-    "hive.emitter": { catalog: "wood-hearth" },
-    [EmissionWork.id]: idleEmissionWork,
-    [EmissionOrder.id]: { revision: 0, enabled: false },
-    "hive.visual": { sprite: "colony.brew-station", label: "Brew station" },
-  } },
   ...workers.map((id, index) => ({
     id,
     components: {
@@ -178,6 +169,17 @@ const goInput = z.object({
   }).strict(),
 }).strict();
 const stationInput = z.object({ station: z.string().min(1).max(128).transform(entity) }).strict();
+
+function finishedBrewStations(context: Pick<ReadContext, "query">) {
+  return context.query(query(ConstructionSite)).filter(row => {
+    const site = row.get(ConstructionSite);
+    return site.catalog === "brew-station" && site.phase === "finished";
+  });
+}
+
+function hearthPort(station: EntityId): EntityId {
+  return entity(`${station}:hearth`);
+}
 const workerSelectionInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
 }).strict();
@@ -348,7 +350,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
 
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 4,
+  version: 5,
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
@@ -375,12 +377,13 @@ export const colonyPack: GamePack = {
     updateStockpile: colonyStockpilePolicyCommand,
     lightHearth: command({
       title: "Light brew station fire", category: "Colony", description: "Request lighting for the brew station.",
-      subjects: () => [brewStationId],
+      subjects: context => finishedBrewStations(context).map(row => row.id),
       input: stationInput,
-      reads: [Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
+      reads: [ConstructionSite, Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
-        const { station } = input;
-        const row = context.query(query(Emitter, EmissionOrder, EmissionWork)).find(row => row.id === station);
+        const station = finishedBrewStations(context).find(row => row.id === input.station);
+        if (!station) throw new Error("This brew station is not finished");
+        const row = context.query(query(Emitter, EmissionOrder, EmissionWork)).find(row => row.id === hearthPort(station.id));
         if (!row) throw new Error("This station cannot be lit");
         const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), true);
         return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
@@ -388,12 +391,13 @@ export const colonyPack: GamePack = {
     }),
     cancelIgnition: command({
       title: "Cancel brew station fire", category: "Colony", description: "Cancel the current brew station lighting request.",
-      subjects: () => [brewStationId],
+      subjects: context => finishedBrewStations(context).map(row => row.id),
       input: stationInput,
-      reads: [EmissionOrder, EmissionWork], writes: [EmissionOrder],
+      reads: [ConstructionSite, EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
-        const { station } = input;
-        const row = context.query(query(EmissionOrder, EmissionWork)).find(row => row.id === station);
+        const station = finishedBrewStations(context).find(row => row.id === input.station);
+        if (!station) throw new Error("This brew station is not finished");
+        const row = context.query(query(EmissionOrder, EmissionWork)).find(row => row.id === hearthPort(station.id));
         if (!row) throw new Error("Station work unavailable");
         const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), false);
         return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
@@ -610,13 +614,17 @@ export const colonyPack: GamePack = {
       for (const lot of lots) lotTotals.set(lot.container, (lotTotals.get(lot.container) ?? 0) + lot.quantity);
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const taskRows = context.query(query(DeliveryTask));
-      const ignition = context.query(query(EmissionWork)).find(row => row.id === brewStationId)?.get(EmissionWork);
-      const station = context.query(query(Position)).find(row => row.id === brewStationId)?.get(Position);
-      const stationAir = station ? context.atmosphereSamples([[
-        Math.floor(station.x + 0.5),
-        Math.floor(station.y / colonyEnvironment.world.verticalMetres + 0.5),
-        Math.floor(station.z + 0.5),
-      ]]).samples[0] : null;
+      const stationFacts = finishedBrewStations(context).slice(0, 8).map((site) => {
+        const hearth = hearthPort(site.id);
+        const ignition = context.query(query(EmissionWork)).find(row => row.id === hearth)?.get(EmissionWork);
+        const stationAir = context.atmosphereSamples([[
+          Math.floor(site.get(ConstructionSite).x + 0.5),
+          site.get(ConstructionSite).y + 1,
+          Math.floor(site.get(ConstructionSite).z + 0.5),
+        ]]).samples[0];
+        const phase = ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]);
+        return { id: `station-${site.id}`, subjects: [site.id], label: "Brew station", value: `${stationAir ? `${stationAir.temperatureC.toFixed(1)} °C, ${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "air not modeled"} · ${total(hearth)} wood · ${phase}` };
+      });
       return [
         ...[...constructionSubjects.entries()]
           .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
@@ -647,12 +655,9 @@ export const colonyPack: GamePack = {
             return tree ? [{ id: `tree-${order.tree}`, subjects: [order.tree], label: "Tree work", value: `${tree.phase} · ${order.stage} · ${order.phase}` }] : [];
           });
         })(),
-        { id: "station-air-temperature", subjects: [brewStationId], label: "Station air", value: stationAir ? `${stationAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
-        { id: "station-air-smoke", subjects: [brewStationId], label: "Station smoke", value: stationAir ? `${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
         { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
         { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
-        { id: "station-fuel", subjects: [brewStationId], label: "Station wood", value: total(brewStationId) },
-        { id: "ignition", label: "Lighting order", subjects: [brewStationId], value: ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]) },
+        ...stationFacts,
         { id: "worker-carried", subjects: workers, label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         ...workers.map((worker, index) => ({
           id: `worker-${index + 1}-control`, subjects: [worker],

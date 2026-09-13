@@ -16,4 +16,5 @@ export const colonyPlacement: Readonly<Record<string, {
   "timber-roof": { visual: "colony.roof.finished", alignment: "fixed", facing: axialFacing },
   "timber-bed": { visual: "colony.bed.finished", alignment: "fixed", facing: axialFacing },
   "timber-shelf": { visual: "colony.shelf.finished", alignment: "fixed", facing: axialFacing },
+  "brew-station": { visual: "colony.brew-station.finished", alignment: "fixed", facing: axialFacing },
 };

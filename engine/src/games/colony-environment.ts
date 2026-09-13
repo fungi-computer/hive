@@ -58,6 +58,20 @@ export const colonyEnvironment: EnvironmentDefinition = {
         onRemove: { salvage: [{ kind: "wood", quantity: 2 }] } },
       { id: "timber-shelf", shape: { kind: "fixture", footprint: [[0, 0], [1, 0]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 3 }], workSeconds: 4,
         onComplete: { ports: [{ key: "storage", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 12 } }, { name: "hive.stockpile-cell", value: { zone: "shelves", priority: 4, filterProfile: "materials" } }] }] }, onRemove: { salvage: [{ kind: "wood", quantity: 3 }], emptyPorts: ["storage"] } },
+      { id: "brew-station", shape: { kind: "fixture", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 12,
+        onComplete: { ports: [
+          { key: "kettle", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 5 } }] },
+          { key: "hearth", at: "site-contact", components: [
+            { name: "hive.container", value: { capacity: 2 } },
+            { name: "hive.emitter", value: { catalog: "wood-hearth" } },
+            { name: "hive.emission-work", value: { request: 0, phase: "idle", actor: null, reason: "" } },
+            { name: "hive.emission-order", value: { revision: 0, enabled: false } },
+          ] },
+          { key: "barm", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 1 } }] },
+          { key: "keg", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 1 } }] },
+          { key: "tray", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 1 } }] },
+        ] },
+        onRemove: { salvage: [{ kind: "wood", quantity: 3 }], emptyPorts: ["kettle", "hearth", "barm", "keg", "tray"] } },
     ],
   },
   materials: [
@@ -116,7 +130,6 @@ export const colonyEnvironment: EnvironmentDefinition = {
 };
 
 const colonyInitialPlacements = [
-  { entity: "colony.brew-station", column: [1, -1] },
   { entity: "colony.worker.1", column: [0, 0] },
   { entity: "colony.worker.2", column: [0, 2] },
   { entity: "colony.cat.1", column: [1, 1] },
