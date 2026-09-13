@@ -45,11 +45,11 @@ test("brew station is absent initially and completion creates stable retained po
     assert(site && site.get(ConstructionSite).phase === "finished");
     const containers = session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort();
     assert.deepEqual(containers, ["barm", "hearth", "keg", "kettle", "tray"].map(key => `${site.id}:${key}`));
-    assert.equal(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
+    assert.deepEqual(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
     const saved = session.save();
     session.restore(saved);
     assert.deepEqual(session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort(), containers);
-    assert.equal(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
+    assert.deepEqual(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
   } finally { port.dispose(); }
 });
 
