@@ -123,7 +123,7 @@ export const formationsPack: GamePack = {
   ],
   systems: [cannonDamage, formations],
   commands: {
-    fire: command({ input: z.object({ velocity: z.object({ x: z.number().finite().min(-1000000).max(1000000), y: z.number().finite().min(-1000000).max(1000000), z: z.number().finite().min(-1000000).max(1000000) }).strict() }).strict(), reads: [Launcher, MaterialLot], writes: [], run(context, { velocity }) {
+    fire: command({ title: "Fire cannon", category: "Combat", description: "Fire one cannon round along the aimed trajectory.", input: z.object({ velocity: z.object({ x: z.number().finite().min(-1000000).max(1000000), y: z.number().finite().min(-1000000).max(1000000), z: z.number().finite().min(-1000000).max(1000000) }).strict() }).strict(), reads: [Launcher, MaterialLot], writes: [], run(context, { velocity }) {
       if (velocity.y < 0 || velocity.y > 8 || Math.hypot(velocity.x, velocity.y, velocity.z) > 12)
         throw new Error("Aim within the cannon elevation and speed limits");
       const cannon = context.query(query(Launcher)).find(row => row.id === cannonId);
@@ -132,6 +132,7 @@ export const formationsPack: GamePack = {
       return { actions: [launch(cannonId, ammunitionId, velocity)], writes: [] };
     } }),
     march: command({
+      title: "March formation", category: "Formation", description: "Move selected formation members to a destination.",
       input: z.object({
         entities: z.array(z.string().min(1).max(128)).min(1).max(128),
         destination: z.object({ x: z.number().finite().min(-1_000_000).max(1_000_000), y: z.number().finite().min(-1_000_000).max(1_000_000), z: z.number().finite().min(-1_000_000).max(1_000_000), frame: z.null() }).strict(),
@@ -187,6 +188,7 @@ export const formationsPack: GamePack = {
       },
     }),
     setFacing: command({
+      title: "Set formation facing", category: "Formation", description: "Set the formation's cardinal facing.",
       input: z.object({ facing: z.number().int().min(0).max(3) }).strict(),
       reads: [FormationSettings],
       writes: [FormationSettings],
@@ -207,6 +209,7 @@ export const formationsPack: GamePack = {
       },
     }),
     setRetreatThreshold: command({
+      title: "Set retreat threshold", category: "Formation", description: "Set the morale threshold for retreat.",
       input: z.object({ retreatBelow: z.union([z.literal(25), z.literal(90)]) }).strict(),
       reads: [FormationSettings],
       writes: [FormationSettings],
@@ -234,45 +237,6 @@ export const formationsPack: GamePack = {
   ),
   presentation: {
     feedback: true,
-    controls: [
-      { id: "fire-cannon", label: "Fire downrange", command: "fire", input: { velocity: { x: 8 * Math.cos(0.12), y: 8 * Math.sin(0.12), z: 0 } } },
-      {
-        id: "facing-0",
-        label: "Formation north",
-        command: "setFacing",
-        input: { facing: 0 },
-      },
-      {
-        id: "facing-1",
-        label: "Formation east",
-        command: "setFacing",
-        input: { facing: 1 },
-      },
-      {
-        id: "facing-2",
-        label: "Formation south",
-        command: "setFacing",
-        input: { facing: 2 },
-      },
-      {
-        id: "facing-3",
-        label: "Formation west",
-        command: "setFacing",
-        input: { facing: 3 },
-      },
-      {
-        id: "retreat-25",
-        label: "Retreat at 25",
-        command: "setRetreatThreshold",
-        input: { retreatBelow: 25 },
-      },
-      {
-        id: "retreat-90",
-        label: "Retreat at 90",
-        command: "setRetreatThreshold",
-        input: { retreatBelow: 90 },
-      },
-    ],
     inspect: (context) => {
       const settings = context
         .query(query(FormationSettings))[0]

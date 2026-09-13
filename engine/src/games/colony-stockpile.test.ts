@@ -8,7 +8,6 @@ import { Container, MaterialLot, Position, query } from "../sdk";
 import { entity } from "../sdk/authoring";
 import { StockpileCell } from "../sdk/stockpile";
 import { colonyPack } from "./colony";
-import { terrainAreaPresentationCommand } from "../presentation";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -48,20 +47,7 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
   }
 });
 
-test("stockpile control submits the same bounded rectangle command", () => {
-  const controls = colonyPack.presentation?.controls ?? [];
-  const control = controls.find(item => item.id === "designate-stockpile");
-  assert.ok(control);
-  const submitted = terrainAreaPresentationCommand(control, [], { start: [2, 13, 2], end: [3, 13, 2] });
-  assert.equal(submitted.name, "designateStockpile");
-  assert.deepEqual(submitted.input, { filterProfile: "wood", priority: 50, area: { start: [2, 13, 2], end: [3, 13, 2] } });
-  assert.equal(control.target, "terrain-area");
-  assert.deepEqual(control.designation, ["rectangle"]);
-});
-
 test("stockpile policy commands require a stable zone identity", () => {
-  const controls = colonyPack.presentation?.controls ?? [];
-  assert.equal(controls.some(item => item.id === "update-stockpile"), false, "policy controls are not redraw controls");
   assert.throws(() => colonyPack.commands?.updateStockpile.invoke({ query: () => [], physicalContacts: () => [] }, { area: { start: [1, 1, 1], end: [1, 1, 1] }, filterProfile: "wood", priority: 50 }), /Invalid input/);
 });
 

@@ -12,7 +12,6 @@ import { MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { EmissionOrder } from "../sdk/emission-work";
 import { colonyPack } from "./colony";
-import { terrainPresentationCommand } from "../presentation";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 test("disabled ignition does not reserve workers or lumber ahead of construction", () => {
@@ -37,10 +36,7 @@ test("actual Colony staircase supply splits one shared lumber lot into two lawfu
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    const control = colonyPack.presentation?.controls.find(control => control.id === "stair-north");
-    assert(control);
-    const command = terrainPresentationCommand(control, [], { cell: [1, 13, 0], material: 2 });
-    session.command(command.name, command.input);
+    session.command("build", { catalog: "timber-stair", orientation: "north", target: { cell: [1, 13, 0] } });
     let live = session.query(query(DeliveryTask)).filter(() => false);
     for (let tick = 0; tick < 1000; tick++) {
       session.step(0.01);

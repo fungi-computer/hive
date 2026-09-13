@@ -348,6 +348,7 @@ test("game command inputs are cloned and parsed once before the handler", () => 
       ...pack(port, undefined),
       commands: {
         probe: command({
+          title: "Probe command", category: "Test", description: "Exercise command input parsing.",
           input,
           writes: [],
           run: (_context, parsed) => {
@@ -411,6 +412,7 @@ test("authored entity references use native membership without snapshot capture"
       systems: [],
       commands: {
         setLink: command({
+          title: "Set link", category: "Test", description: "Write a link component.",
           input: z.object({ target: z.string().min(1) }).strict(),
           reads: [],
           writes: [Link],
@@ -420,6 +422,7 @@ test("authored entity references use native membership without snapshot capture"
           }),
         }),
         setMorale: command({
+          title: "Set morale", category: "Test", description: "Write a morale value.",
           input: z.object({ value: z.number() }).strict(),
           reads: [],
           writes: [morale],
@@ -468,6 +471,7 @@ test("authored references span bounded membership calls without a new total limi
       systems: [],
       commands: {
         links: command({
+          title: "Write links", category: "Test", description: "Write bounded link records.",
           input: emptyInput,
           reads: [],
           writes: [Link],
@@ -853,6 +857,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
       ...pack(port, undefined),
       commands: {
         bad: command({
+          title: "Bad command", category: "Test", description: "Exercise write validation.",
           input: emptyInput,
           writes: [morale],
           run: () => ({
@@ -1009,6 +1014,7 @@ test("authored orders are visible to paused commands and survive pending reload"
     ...pack(port, undefined),
     commands: {
       designate: command({
+        title: "Designate order", category: "Test", description: "Create an authored order.",
         input: emptyInput,
         writes: [],
         lifecycle: [morale],
@@ -1024,6 +1030,7 @@ test("authored orders are visible to paused commands and survive pending reload"
         }),
       }),
       revise: command({
+        title: "Revise order", category: "Test", description: "Revise an authored order.",
         input: emptyInput,
         reads: [morale],
         writes: [morale],
@@ -1076,11 +1083,13 @@ test("authored orders reject unowned removals and conflicting pending writes", (
       ...pack(port, undefined),
       commands: {
         remove: command({
+          title: "Remove actor", category: "Test", description: "Exercise removal ownership.",
           input: emptyInput,
           writes: [],
           run: () => ({ actions: [], writes: [], removes: [entity("actor")] }),
         }),
         conflict: command({
+          title: "Conflict command", category: "Test", description: "Exercise conflicting writes.",
           input: emptyInput,
           writes: [morale],
           lifecycle: [morale],
@@ -1115,6 +1124,7 @@ test("authored lifecycle permission does not grant progress writes", () => {
       ...pack(port, undefined),
       commands: {
         illicit: command({
+          title: "Illicit command", category: "Test", description: "Exercise lifecycle validation.",
           input: emptyInput,
           writes: [],
           lifecycle: [morale],

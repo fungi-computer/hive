@@ -1,5 +1,6 @@
 import { appendVisualProjections } from "./visual-projection";
 import { TerrainPresentationOwner } from "./terrain-presentation";
+import { createWhistleObservationProjector, type WhistleObservationProjector } from "./whistle";
 import type { EnvironmentDefinition } from "../sdk/environment";
 import {
   appendPresentationCues,
@@ -24,6 +25,7 @@ import type {
   KernelPort,
   QuerySpec,
   QueryRow,
+  ReadContext,
   RandomSource,
   SimulationClock,
   WriteContext,
@@ -181,11 +183,13 @@ export class GameSession {
   private impactFrontiers = new Map<string, number | null>();
   private poisoned = true;
   private terrainPresentation: TerrainPresentationOwner | undefined;
+  private readonly whistleProjection: WhistleObservationProjector;
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
     this.seed = (options.seed ?? 1) >>> 0;
     this.random = new DeterministicRandom(this.seed);
+    this.whistleProjection = createWhistleObservationProjector(this.pack);
     const consumers = new Set<string>();
     for (const system of this.pack.systems) {
       if (consumers.has(system.id))
@@ -263,6 +267,10 @@ export class GameSession {
   }
   reset(): void {
     this.start();
+  }
+  whistleObservation(context: Pick<ReadContext, "query">) {
+    this.ensureLive();
+    return this.whistleProjection.project(context);
   }
   atmosphereSamples(cells: readonly [number, number, number][]) {
     this.ensureLive();

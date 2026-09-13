@@ -156,6 +156,7 @@ export const survivalPack: GamePack = {
   systems: [survival, fatigue],
   commands: {
     takeFood: command({
+      title: "Take bread", category: "Survival", description: "Take one bread portion from the locker.",
       input: emptyInput,
       reads: [MaterialLot],
       writes: [],
@@ -176,6 +177,7 @@ export const survivalPack: GamePack = {
       },
     }),
     eatFood: command({
+      title: "Eat bread", category: "Survival", description: "Eat one carried bread portion.",
       input: emptyInput,
       reads: [MaterialLot],
       writes: [],
@@ -193,6 +195,7 @@ export const survivalPack: GamePack = {
       },
     }),
     setMealRule: command({
+      title: "Set meal recovery", category: "Survival", description: "Choose how much wellbeing one meal restores.",
       input: mealRuleInput,
       writes: [MealRule],
       run: (_context, { recovery }) => {
@@ -207,22 +210,6 @@ export const survivalPack: GamePack = {
   },
   definition: encodeDefinition("survival", survivalComponents, survivalInitial),
   presentation: {
-    controls: [
-      { id: "take", label: "Take bread", command: "takeFood", input: null },
-      { id: "eat", label: "Eat bread", command: "eatFood", input: null },
-      {
-        id: "recovery-10",
-        label: "Meal recovery 10",
-        command: "setMealRule",
-        input: { recovery: 10 },
-      },
-      {
-        id: "recovery-25",
-        label: "Meal recovery 25",
-        command: "setMealRule",
-        input: { recovery: 25 },
-      },
-    ],
     inspect: (context) => {
       const condition = context.query(query(Condition))[0]?.get(Condition);
       const fatigue = context.query(query(Fatigue))[0]?.get(Fatigue);

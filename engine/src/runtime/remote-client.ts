@@ -3,7 +3,11 @@ import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
-import { presentationControlSchema, presentationFactSchema, type EnvironmentVisual, type PresentationControl, type TerrainMark } from "../presentation";
+import { presentationFactSchema, type EnvironmentVisual, type TerrainMark } from "../presentation";
+import { parse as parseAgentProjection } from "@fungi.computer/whistle/wire";
+import type { WhistleAgentProjection } from "@fungi.computer/whistle";
+import type { WhistleContextualTarget } from "./whistle";
+import { entity } from "../sdk/authoring";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { activitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
@@ -32,6 +36,7 @@ export interface RemoteRuntimeOptions {
 type ObservationWire = {
   readonly revision: number;
   readonly terrainBaseline: boolean;
+  readonly whistleChanged: boolean;
   readonly observation: {
     readonly time: number;
     readonly paused: boolean;
@@ -46,7 +51,8 @@ type ObservationWire = {
       readonly label: string;
       readonly value: string | number | boolean;
     }[];
-    readonly presentationControls: readonly PresentationControl[];
+    readonly whistleAgent: readonly WhistleAgentProjection[];
+    readonly whistleTargets: readonly WhistleContextualTarget[];
     readonly terrainMarks: readonly TerrainMark[];
     readonly environmentVisuals: readonly EnvironmentVisual[];
   };
@@ -154,8 +160,23 @@ function renderFact(value: unknown): value is RenderFact {
 function presentationFact(value: unknown): value is ObservationWire["observation"]["presentationFacts"][number] {
   return presentationFactSchema.safeParse(value).success;
 }
-function presentationControl(value: unknown): value is PresentationControl {
-  return presentationControlSchema.safeParse(value).success;
+const whistleTargetSchema = z.object({
+  commandId: z.string().min(3).max(256),
+  subjects: z.array(z.string().min(1).max(128)).min(1).max(128),
+}).strict();
+function parseWhistleTargets(value: unknown): readonly WhistleContextualTarget[] | undefined {
+  if (!Array.isArray(value) || value.length > 256) return undefined;
+  const targets: WhistleContextualTarget[] = [];
+  for (const item of value) {
+    const parsed = whistleTargetSchema.safeParse(item);
+    if (!parsed.success) return undefined;
+    try {
+      targets.push({ commandId: parsed.data.commandId, subjects: parsed.data.subjects.map(subject => entity(subject)) });
+    } catch {
+      return undefined;
+    }
+  }
+  return targets;
 }
 function terrainMark(value: unknown): value is TerrainMark {
   return isRecord(value) && typeof value.id === "string" && value.id.length > 0 && value.id.length <= 128 &&
@@ -238,20 +259,31 @@ async function requestJson(
     parent.removeEventListener("abort", onAbort);
   }
 }
-function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | undefined): ObservationWire {
+function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | undefined, cachedWhistle: { readonly agent: readonly WhistleAgentProjection[]; readonly targets: readonly WhistleContextualTarget[] } | undefined): ObservationWire {
   if (!isRecord(value) || !safeNonnegativeInteger(value.revision)) throw new Error("invalid remote observation revision");
   const observation = value.observation;
   if (!isRecord(observation)) throw new Error("missing remote observation");
   const facts = observation.facts;
   const presentationFacts = observation.presentationFacts;
-  const presentationControls = observation.presentationControls;
+  const whistleAgent = observation.whistleAgent;
+  const whistleTargets = observation.whistleTargets;
+  const completeWhistleUpdate = (whistleAgent === undefined) === (whistleTargets === undefined);
+  const parsedAgent = whistleAgent === undefined
+    ? cachedWhistle?.agent
+    : parseAgentProjection(whistleAgent);
+  const parsedTargets = whistleTargets === undefined
+    ? cachedWhistle?.targets
+    : parseWhistleTargets(whistleTargets);
   const terrainMarks = observation.terrainMarks;
   const environmentVisuals = observation.environmentVisuals;
   if (typeof observation.paused !== "boolean" || !finite(observation.time) || observation.time < 0 ||
     !safeNonnegativeInteger(observation.epoch) || !safeNonnegativeInteger(observation.sequence) ||
     !Array.isArray(facts) || facts.length > 512 || facts.some((item) => !renderFact(item)) ||
     !Array.isArray(presentationFacts) || presentationFacts.length > 32 || presentationFacts.some((item) => !presentationFact(item)) ||
-    !Array.isArray(presentationControls) || presentationControls.length > 16 || presentationControls.some((item) => !presentationControl(item)) ||
+    !completeWhistleUpdate ||
+    (whistleAgent !== undefined && (!Array.isArray(whistleAgent) || whistleAgent.length > 256)) ||
+    (whistleTargets !== undefined && parsedTargets === undefined) ||
+    parsedAgent === undefined || parsedTargets === undefined ||
     !Array.isArray(terrainMarks) || terrainMarks.length > 256 || terrainMarks.some((item) => !terrainMark(item)) ||
     !Array.isArray(environmentVisuals) || environmentVisuals.length > 64 || environmentVisuals.some((item) => !environmentVisual(item)) ||
     new Set(environmentVisuals.map(item => (item as { id: string }).id)).size !== environmentVisuals.length)
@@ -259,6 +291,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
   return {
     revision: value.revision,
     terrainBaseline: isRecord(observation.terrain) && Array.isArray(observation.terrain.surfaces),
+    whistleChanged: whistleAgent !== undefined || whistleTargets !== undefined,
     observation: {
       time: observation.time,
       paused: observation.paused,
@@ -268,7 +301,8 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
       terrain: parseTerrainObservation(observation.terrain, cachedTerrain),
       cues: checkedCueList(observation.cues, observation.time),
       presentationFacts: presentationFacts as ObservationWire["observation"]["presentationFacts"],
-      presentationControls: presentationControls as PresentationControl[],
+      whistleAgent: parsedAgent,
+      whistleTargets: parsedTargets,
       terrainMarks: terrainMarks as TerrainMark[],
       environmentVisuals: environmentVisuals as EnvironmentVisual[],
     },
@@ -326,6 +360,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let lastSequence: number | undefined;
   let lastTime: number | undefined;
   let cachedTerrain: TerrainWireFrame | undefined;
+  let cachedWhistle: { readonly agent: readonly WhistleAgentProjection[]; readonly targets: readonly WhistleContextualTarget[] } | undefined;
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
   let pumpRunning = false;
   let blocked = false;
@@ -349,6 +384,8 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         (candidate.observation.sequence === currentSequence && candidate.observation.time >= (currentTime ?? 0))));
     if (candidate.terrainBaseline && cachedTerrain === undefined && candidate.observation.terrain !== undefined && isCurrentOrNewer)
       cachedTerrain = candidate.observation.terrain;
+    if (candidate.whistleChanged && cachedWhistle === undefined && isCurrentOrNewer)
+      cachedWhistle = { agent: candidate.observation.whistleAgent, targets: candidate.observation.whistleTargets };
     if (revision !== undefined && candidate.revision <= revision) return false;
     if (lastSequence !== undefined && (candidate.observation.sequence < lastSequence ||
       (candidate.observation.sequence === lastSequence && candidate.observation.time < (lastTime ?? 0)))) return false;
@@ -356,11 +393,14 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     lastSequence = candidate.observation.sequence;
     lastTime = candidate.observation.time;
     cachedTerrain = candidate.observation.terrain;
+    cachedWhistle = { agent: candidate.observation.whistleAgent, targets: candidate.observation.whistleTargets };
     const pauseChanged = lastPaused === undefined || lastPaused !== candidate.observation.paused;
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
     emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, ...(candidate.observation.terrain === undefined ? {} : { terrain: candidate.observation.terrain }), cues: candidate.observation.cues });
-    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls, terrainMarks: candidate.observation.terrainMarks, environmentVisuals: candidate.observation.environmentVisuals });
+    emit({ type: "presentation", facts: candidate.observation.presentationFacts, terrainMarks: candidate.observation.terrainMarks, environmentVisuals: candidate.observation.environmentVisuals });
+    if (candidate.whistleChanged)
+      emit({ type: "whistle", agent: candidate.observation.whistleAgent, targets: candidate.observation.whistleTargets });
     return true;
   };
   const openSocket = async () => {
@@ -407,7 +447,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
       if (value.type !== "observation") return;
       try {
-        const accepted = acceptObservation(parseObservation(value, cachedTerrain));
+        const accepted = acceptObservation(parseObservation(value, cachedTerrain, cachedWhistle));
         if (accepted && !blocked && pending.length > 0 && !pumpRunning) schedulePump();
       } catch (error) {
         emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
@@ -427,6 +467,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       // A websocket reconnect has a fresh server-side attachment, so its surface
       // reference must begin with no baseline even when the world revision matches.
       cachedTerrain = undefined;
+      cachedWhistle = undefined;
       connectedSocket.send(JSON.stringify({ type: "authenticate", token: options.token }));
       if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
       heartbeatTimer = setInterval(() => { if (!disposed && socket === connectedSocket) connectedSocket.send(JSON.stringify({ type: "heartbeat" })); }, 5_000);

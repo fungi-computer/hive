@@ -1,49 +1,43 @@
-import assert from "node:assert/strict";
+import { strict as assert } from "node:assert";
 import test from "node:test";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 
-const facts = [
-  { id: "world", label: "Season", value: "spring" },
-  { id: "worker.fact", label: "Work", value: "hauling", subjects: ["worker"] },
-  { id: "other.fact", label: "Work", value: "resting", subjects: ["other"] },
-];
-const controls = [
-  { id: "world.action", label: "Pause", command: "pause" },
-  { id: "worker.action", label: "Inspect worker", command: "inspect", subjects: ["worker"] },
-  { id: "other.action", label: "Inspect other", command: "inspect", subjects: ["other"] },
-];
-
-test("keeps global presentation and matching scoped context", () => {
-  const result = projectContextualPresentation({ facts, controls, selectedIds: ["worker"], latestFacts: [{ id: "worker", label: "Moss" }] });
-  assert.deepEqual(result.world.facts.map(({ id }) => id), ["world"]);
-  assert.deepEqual(result.world.controls.map(({ id }) => id), ["world.action"]);
-  assert.deepEqual(result.selection.facts.map(({ id }) => id), ["worker.fact"]);
-  assert.deepEqual(result.selection.controls.map(({ id }) => id), ["worker.action"]);
-  assert.equal(result.selection.label, "Moss");
-});
-
-test("matches any selected subject and removes stale scoped context", () => {
-  const multi = projectContextualPresentation({
-    facts, controls, selectedIds: ["worker", "other"], latestFacts: [
-      { id: "worker", label: "Moss" }, { id: "other", label: "Pip" },
-    ],
-  });
-  assert.equal(multi.world.facts.length, 1);
-  assert.deepEqual(multi.selection.controls.map(({ id }) => id), ["worker.action", "other.action"]);
-  assert.equal(multi.selection.label, "Moss, Pip");
-
-  const removed = projectContextualPresentation({ facts, controls, selectedIds: ["worker"], latestFacts: [] });
-  assert.deepEqual(removed.world.facts.map(({ id }) => id), ["world"]);
-  assert.deepEqual(removed.world.controls.map(({ id }) => id), ["world.action"]);
-  assert.equal(removed.selection.label, "Selected");
-});
-
-test("scopes generic controls and facts to selected subjects", () => {
+test("contextual controls join authoritative command targets by canonical ID", () => {
   const result = projectContextualPresentation({
-    facts: [{ id: "fact", label: "Fact", value: true, subjects: ["subject"] }],
-    controls: [{ id: "control", label: "Control", command: "command", subjects: ["subject"] }],
-    selectedIds: ["subject"], latestFacts: [], currentIds: ["subject"],
+    facts: [
+      { id: "finished", label: "Tree", subjects: ["finished"] },
+      { id: "unfinished", label: "Tree", subjects: ["unfinished"] },
+    ],
+    controls: [
+      { commandId: "colony:deconstruct", label: "Deconstruct" },
+      { commandId: "colony:designateTrees", label: "Fell selected trees" },
+    ],
+    targets: [{ commandId: "colony:deconstruct", subjects: ["finished"] }],
+    selectedIds: ["finished", "unfinished"],
+    currentIds: ["finished", "unfinished"],
   });
-  assert.deepEqual(result.selection.facts.map(({ id }) => id), ["fact"]);
-  assert.deepEqual(result.selection.controls.map(({ id }) => id), ["control"]);
+  assert.deepEqual(result.selection.controls, [{ commandId: "colony:deconstruct", label: "Deconstruct", subjects: ["finished"] }]);
+  assert.equal(result.world.controls.length, 1);
+  assert.equal(result.world.controls[0].commandId, "colony:designateTrees");
+});
+
+test("localized fact labels never choose a contextual command target", () => {
+  const result = projectContextualPresentation({
+    facts: [{ id: "unfinished", label: "Finished construction", subjects: ["unfinished"] }],
+    controls: [{ commandId: "colony:deconstruct", label: "Deconstruct" }],
+    targets: [],
+    selectedIds: ["unfinished"],
+    currentIds: ["unfinished"],
+  });
+  assert.deepEqual(result.selection.controls, []);
+});
+
+test("an unavailable selection command stays scoped and explains why", () => {
+  const result = projectContextualPresentation({
+    facts: [{ id: "unfinished", label: "Construction", subjects: ["unfinished"] }],
+    controls: [{ commandId: "colony:deconstruct", label: "Deconstruct", selection: "entities", availability: { status: "unavailable", reason: "Construction is unfinished" } }],
+    targets: [], selectedIds: ["unfinished"], currentIds: ["unfinished"],
+  });
+  assert.deepEqual(result.world.controls, []);
+  assert.equal(result.selection.controls[0].availability.reason, "Construction is unfinished");
 });

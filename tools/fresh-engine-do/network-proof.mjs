@@ -338,7 +338,8 @@ clientB = connectRemoteRuntime({ endpoint, game: "survival", fetch: authorizedFe
   const summarizeEvents = (events) => events.map((event) => {
     if (event.type === "error") return { type: event.type, message: event.message };
     if (event.type === "frame") return { type: event.type, time: event.time, epoch: event.epoch, sequence: event.sequence, facts: event.facts.length };
-    if (event.type === "presentation") return { type: event.type, facts: event.facts.length, controls: event.controls.length };
+    if (event.type === "presentation") return { type: event.type, facts: event.facts.length };
+    if (event.type === "whistle") return { type: event.type, agent: event.agent.length, targets: event.targets.length };
     if (event.type === "results") return { type: event.type, results: event.results.length };
     return event;
   });

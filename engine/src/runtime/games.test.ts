@@ -322,7 +322,7 @@ test("authored meal recovery changes the physical consumption outcome", () => {
   }
 });
 
-test("each pack exposes bounded facts and controls from its committed query", () => {
+test("each pack exposes bounded facts from its committed query", () => {
   for (const pack of [colonyPack, survivalPack, formationsPack]) {
     const port = wasmKernelPort(new WasmKernel());
     try {
@@ -337,8 +337,6 @@ test("each pack exposes bounded facts and controls from its committed query", ()
           (fact) => typeof fact.id === "string" && fact.label.length > 0,
         ),
       );
-      const controls = pack.presentation?.controls ?? [];
-      assert.ok(controls.length > 0);
     } finally {
       port.dispose();
     }
@@ -435,6 +433,7 @@ test("authored intents survive pause restore and rollback with committed-only re
     ),
     commands: {
       set: command({
+        title: "Set value", category: "Test", description: "Write the test setting.",
         input: z.object({ value: z.number(), link: z.string().nullable() }).strict(),
         reads: [],
         writes: [Setting],
@@ -444,6 +443,7 @@ test("authored intents survive pause restore and rollback with committed-only re
         }),
       }),
       mutate: command({
+        title: "Mutate value", category: "Test", description: "Exercise failed mutation rollback.",
         input: emptyInput,
         reads: [Setting],
         writes: [],

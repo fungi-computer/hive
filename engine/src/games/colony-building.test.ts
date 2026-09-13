@@ -21,7 +21,6 @@ test("building designation leaves support and access to native staging", () => {
   assert.equal(colonyBuildCommand.invoke({ query: () => [], physicalContacts: () => [] },
     { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }).actions.length, 1);
 });
-
 test("structures use one shape-owned support-to-origin convention", () => {
   const context = { query: () => [], physicalContacts: () => [] };
   for (const [catalog, expectedY] of [
@@ -78,28 +77,4 @@ test("building skips an already planned site deterministically", () => {
     physicalContacts: (cells: readonly unknown[]) => cells.map(() => ({ solid: true, sealedTop: false, outside: false })),
   } as never, { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } });
   assert.deepEqual(duplicate.actions, []);
-});
-
-
-test("published build controls accept actual point and drag bindings", async () => {
-  const { colonyPack } = await import("./colony");
-  const { terrainPresentationCommand, terrainAreaPresentationCommand } = await import("../presentation");
-  const context = {
-    query: () => [],
-    physicalContacts: (cells: readonly unknown[]) => cells.map((_, index) => ({ solid: index % 2 === 0, sealedTop: false, outside: false })),
-  };
-  for (const control of colonyPack.presentation?.controls.filter(c => c.command === "build") ?? []) {
-    for (const picked of [
-      { cell: [0, 13, 0] as const, material: 2 },
-      { cell: [0, 13, 0] as const, source: "structure" as const },
-      { cell: [0, 13, 0] as const, source: "placement" as const },
-    ]) {
-      const command = terrainPresentationCommand(control, [], picked);
-      assert.equal(colonyBuildCommand.invoke(context, command.input).actions.length, 1);
-    }
-    if (control.designation?.includes("rectangle")) {
-      const command = terrainAreaPresentationCommand(control, [], { start: [0, 13, 0], end: [1, 13, 1] });
-      assert.equal(colonyBuildCommand.invoke(context, command.input).actions.length, 4);
-    }
-  }
 });

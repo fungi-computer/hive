@@ -2,8 +2,9 @@ import type { PresentationCue } from "./presentation-cues";
 import type { ReadContext, RenderFact } from "../contracts";
 import {
   projectPresentation,
-  type PresentationControl,
 } from "../presentation";
+import type { WhistleContextualTarget } from "./whistle";
+import type { WhistleAgentProjection } from "@fungi.computer/whistle";
 import type { GameSession } from "./session";
 import { decorateInventoryFacts } from "./inventory-presentation";
 import { decorateWorkActivity } from "./work-activity";
@@ -22,7 +23,9 @@ export interface SessionObservation {
   readonly terrain: ReturnType<GameSession["terrainView"]>;
   readonly cues: readonly PresentationCue[];
   readonly presentationFacts: ReturnType<typeof projectPresentation>["facts"];
-  readonly presentationControls: readonly PresentationControl[];
+  readonly whistleAgent: readonly WhistleAgentProjection[];
+  readonly whistleTargets: readonly WhistleContextualTarget[];
+  readonly whistleRevision: number;
   readonly terrainMarks: ReturnType<typeof projectPresentation>["terrainMarks"];
   readonly environmentVisuals: ReturnType<typeof projectPresentation>["environmentVisuals"];
 }
@@ -49,6 +52,7 @@ export function buildObservation(
     query: (spec) => session.query(spec),
   };
   const projected = projectPresentation(session.pack, context);
+  const whistle = session.whistleObservation(context);
   const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(512)), context), context, session.pack.presentation?.activities?.(context));
   return Object.freeze({
     time: session.simulationTime,
@@ -59,7 +63,9 @@ export function buildObservation(
     terrain: session.terrainView(),
     cues: session.presentationCues(),
     presentationFacts: projected.facts,
-    presentationControls: projected.controls,
+    whistleAgent: whistle.agent,
+    whistleTargets: whistle.targets,
+    whistleRevision: whistle.revision,
     terrainMarks: projected.terrainMarks,
     environmentVisuals: projected.environmentVisuals,
   });

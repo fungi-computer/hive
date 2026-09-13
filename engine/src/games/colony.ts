@@ -358,10 +358,15 @@ export const colonyPack: GamePack = {
       title: "Deconstruct",
       category: "Construction",
       description: "Queue teardown of a finished construction site and recover its salvage.",
+      availability: context => context.query(query(ConstructionSite)).some(row => row.get(ConstructionSite).phase === "finished")
+        ? { status: "available" } : { status: "unavailable", reason: "No finished construction is available to deconstruct." },
+      subjects: context => context.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase === "finished").map(row => row.id),
       input: z.object({ site: z.string().min(1).max(128) }).strict(),
       reads: [ConstructionSite, DeconstructionOrder], writes: [], lifecycle: [DeconstructionOrder],
       run(context, input) {
-        if (!context.query(query(ConstructionSite)).some((row) => row.id === input.site)) throw new Error("Unknown construction site");
+        const site = context.query(query(ConstructionSite)).find((row) => row.id === input.site);
+        if (!site) throw new Error("Unknown construction site");
+        if (site.get(ConstructionSite).phase !== "finished") throw new Error("Construction site is not finished");
         if (context.query(query(DeconstructionOrder)).some((row) => row.get(DeconstructionOrder).site === input.site)) return { creates: [], actions: [], writes: [] };
         return { creates: [queueDeconstruction(entity(input.site))], actions: [], writes: [] };
       },
@@ -369,6 +374,8 @@ export const colonyPack: GamePack = {
     designateStockpile: colonyStockpileCommand,
     updateStockpile: colonyStockpilePolicyCommand,
     lightHearth: command({
+      title: "Light brew station fire", category: "Colony", description: "Request lighting for the brew station.",
+      subjects: () => [brewStationId],
       input: stationInput,
       reads: [Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
@@ -380,6 +387,8 @@ export const colonyPack: GamePack = {
       },
     }),
     cancelIgnition: command({
+      title: "Cancel brew station fire", category: "Colony", description: "Cancel the current brew station lighting request.",
+      subjects: () => [brewStationId],
       input: stationInput,
       reads: [EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
@@ -391,24 +400,28 @@ export const colonyPack: GamePack = {
       },
     }),
     deliver: command({
+      title: "Deliver goods", category: "Colony", description: "Enable delivery work for selected workers.",
       input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
     }),
     pauseDelivery: command({
+      title: "Pause delivery", category: "Colony", description: "Pause delivery work for selected workers.",
       input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, false) }),
     }),
     resumeDelivery: command({
+      title: "Resume delivery", category: "Colony", description: "Resume delivery work for selected workers.",
       input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
     go: command({
+      title: "Move workers", category: "Colony", description: "Move selected workers to a destination under manual control.",
       input: goInput,
       reads: [Worker, Position, WorkParticipation, ExcavationWork, ConstructionSite],
       writes: [WorkParticipation],
@@ -433,6 +446,8 @@ export const colonyPack: GamePack = {
       },
     }),
     resumeWork: command({
+      title: "Resume automatic work", category: "Colony", description: "Return selected workers to automatic work assignment.",
+      subjects: () => workers,
       input: workerSelectionInput,
       reads: [Worker, WorkParticipation],
       writes: [WorkParticipation],
@@ -442,6 +457,7 @@ export const colonyPack: GamePack = {
       },
     }),
     dig: command({
+      title: "Dig area", category: "Excavation", description: "Queue excavation for a same-level area.",
       input: digInput,
       reads: [ColonyDigOrder],
       writes: [],
@@ -449,6 +465,8 @@ export const colonyPack: GamePack = {
       run: (context, input) => ({ actions: [], writes: [], creates: digArea(context, input) }),
     }),
     designateTrees: command({
+      title: "Fell selected trees", category: "Colony", description: "Designate standing trees for felling and chopping.",
+      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing").map(row => row.id),
       input: treeSelectionInput,
       reads: [ColonyTree], writes: [ColonyTreePolicy],
       run(context, input) {
@@ -460,8 +478,12 @@ export const colonyPack: GamePack = {
       },
     }),
     cancelTrees: command({
+      title: "Cancel tree work", category: "Colony", description: "Remove the felling designation from selected trees.",
+      subjects: context => context.query(query(ColonyTree, ColonyTreePolicy))
+        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped")
+        .map(row => row.id),
       input: treeSelectionInput,
-      reads: [ColonyTree], writes: [ColonyTreePolicy],
+      reads: [ColonyTree, ColonyTreePolicy], writes: [ColonyTreePolicy],
       run(context, input) {
         const selected = new Set(input.entities);
         const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
@@ -470,6 +492,7 @@ export const colonyPack: GamePack = {
       },
     }),
     cancelDig: command({
+      title: "Cancel excavation", category: "Excavation", description: "Cancel queued excavation orders in an area or for workers.",
       input: cancelDigInput,
       reads: [ColonyDigOrder, ExcavationWork],
       writes: [],
@@ -498,6 +521,8 @@ export const colonyPack: GamePack = {
       },
     }),
     deposit: command({
+      title: "Deposit carried goods", category: "Colony", description: "Deposit carried materials into their assigned destination.",
+      subjects: () => workers,
       input: depositInput,
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
       writes: [],
@@ -561,20 +586,6 @@ export const colonyPack: GamePack = {
         id: `stockpile-mark-${row.id}`, cell: [Math.round(row.get(Position).x), Math.floor(row.get(Position).y / colonyEnvironment.world.verticalMetres), Math.round(row.get(Position).z)] as const,
         status: "queued" as const, kind: "stockpile" as const, subjects: [row.id],
       })),
-    ],
-    controls: [
-      { id: "light-hearth", label: "Light fire", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
-      { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
-      { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
-      ...(["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf"] as const).map(catalog => ({ id: catalog, label: `Build ${catalog.replace("timber-", "")}`, command: "build", input: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" ? { orientation: "north" } : {}) }, target: "world-surface" as const, designation: catalog === "timber-wall" ? ["point", "line", "rectangle"] as const : catalog === "timber-bed" || catalog === "timber-shelf" ? ["point"] as const : ["point", "rectangle"] as const })),
-      ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const, designation: ["point"] as const })),
-      { id: "dig", label: "Dig area", command: "dig", target: "terrain-area", designation: ["rectangle"] as const },
-      { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area", designation: ["rectangle"] as const },
-      { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
-      { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
-      { id: "cancel-trees", label: "Cancel tree work", command: "cancelTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
-      { id: "designate-stockpile", label: "Designate stockpile", command: "designateStockpile", input: { filterProfile: "wood", priority: 50 }, target: "terrain-area", designation: ["rectangle"] as const },
-      { id: "deconstruct", label: "Deconstruct", command: "deconstruct", selection: "entities", designation: ["entities"] as const },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));

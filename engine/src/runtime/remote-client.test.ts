@@ -3,10 +3,18 @@ import { test } from "node:test";
 import { entity } from "../sdk/authoring";
 import { connectRemoteRuntime } from "./remote-client";
 import type { WorkerEvent } from "./protocol";
+import type { WhistleAgentProjection } from "@fungi.computer/whistle";
+import type { WhistleContextualTarget } from "./whistle";
 
 const token = "a".repeat(64);
 function observation(revision: number) {
-  return { revision, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], presentationControls: [], terrainMarks: [], environmentVisuals: [] } };
+  return { revision, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], whistleAgent: [] as WhistleAgentProjection[], whistleTargets: [] as WhistleContextualTarget[], terrainMarks: [], environmentVisuals: [] } };
+}
+function whistleObservation(revision: number) {
+  const value = observation(revision);
+  value.observation.whistleAgent = [{ commandId: "survival:order", sourceId: "hive.survival", title: "Order", category: "Test", order: 0, availability: { status: "available" }, action: { inputSchema: { type: "object" } } }];
+  value.observation.whistleTargets = [{ commandId: "survival:order", subjects: [entity("worker")] }];
+  return value;
 }
 class FakeSocket {
   private listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
@@ -87,6 +95,42 @@ test("socket observations reject older committed revisions", async () => {
   runtime.dispose();
 });
 
+test("reconnect installs a same-revision Whistle baseline before accepting a delta", async () => {
+  const socket = new FakeSocket(whistleObservation(1));
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    socket.emit("open", {});
+    await wait();
+    const next = observation(2);
+    const { whistleAgent: _agent, whistleTargets: _targets, ...withoutWhistle } = next.observation;
+    socket.emit("message", { data: JSON.stringify({ type: "observation", revision: next.revision, observation: withoutWhistle }) });
+    assert.equal(events.filter(event => event.type === "error").length, 0);
+    const whistle = events.filter(event => event.type === "whistle").at(-1);
+    assert.equal(whistle?.type, "whistle");
+    assert.deepEqual(whistle?.targets, [{ commandId: "survival:order", subjects: ["worker"] }]);
+  } finally { runtime.dispose(); }
+});
+
+test("remote Whistle updates require agent and target fields together", async () => {
+  const socket = new FakeSocket(observation(0));
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    const partial = observation(1);
+    partial.observation.whistleAgent = [];
+    const { whistleTargets: _targets, ...partialObservation } = partial.observation;
+    socket.emit("message", { data: JSON.stringify({ type: "observation", revision: partial.revision, observation: partialObservation }) });
+    assert.ok(events.some(event => event.type === "error" && event.message === "invalid remote observation"));
+  } finally { runtime.dispose(); }
+});
+
 test("work activity crosses the real JSON frame boundary and rejects unsupported poses", async () => {
   const socket = new FakeSocket();
   const runtime = setup(async () => Response.json({ handle: "opaque" }), socket);
@@ -99,12 +143,14 @@ test("work activity crosses the real JSON frame boundary and rejects unsupported
     socket.emit("message", { data: JSON.stringify({ type: "observation", ...next,
       observation: { ...next.observation, facts: [{ id: "worker", activity: { kind: "dig", target: [1, 2] } }],
         presentationFacts: [{ id: "worker.work", label: "Work", value: "digging", subjects: ["worker"] }],
-        presentationControls: [{ id: "worker.order", label: "Order", command: "order", subjects: ["worker"] }] } }) });
+        whistleAgent: [{ commandId: "survival:order", sourceId: "hive.survival", title: "Order", category: "Test", order: 0, availability: { status: "available" }, action: { inputSchema: { type: "object" } } }],
+        whistleTargets: [{ commandId: "survival:order", subjects: ["worker"] }] } }) });
     const frames = events.filter(event => event.type === "frame");
     assert.deepEqual(frames.at(-1)?.facts[0]?.activity, { kind: "dig", target: [1, 2] });
     const presentation = events.filter(event => event.type === "presentation").at(-1);
     assert.deepEqual(presentation && presentation.type === "presentation" ? (presentation.facts[0] as { subjects?: readonly string[] }).subjects : undefined, ["worker"]);
-    assert.deepEqual(presentation && presentation.type === "presentation" ? presentation.controls[0].subjects : undefined, ["worker"]);
+    const whistle = events.filter(event => event.type === "whistle").at(-1);
+    assert.deepEqual(whistle && whistle.type === "whistle" ? whistle.targets[0].subjects : undefined, ["worker"]);
     const carrying = observation(2);
     socket.emit("message", { data: JSON.stringify({ type: "observation", ...carrying,
       observation: { ...carrying.observation, facts: [{ id: "worker", activity: {

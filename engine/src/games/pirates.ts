@@ -200,6 +200,7 @@ export const piratesPack: GamePack = {
   systems: [deliverySystem],
   commands: {
     move: command({
+      title: "Move crew or ship", category: "Navigation", description: "Move selected crew or the controlled ship to a destination.",
       input: moveInput,
       reads: [PirateCrew, PirateShip, Support],
       writes: [],
@@ -245,6 +246,8 @@ export const piratesPack: GamePack = {
       },
     }),
     turnShip: command({
+      title: "Turn ship", category: "Navigation", description: "Turn the controlled ship toward a cardinal heading.",
+      subjects: () => [shipId],
       input: turnInput,
       reads: [PirateShip, Position],
       writes: [],
@@ -266,6 +269,8 @@ export const piratesPack: GamePack = {
       },
     }),
     loadCargo: command({
+      title: "Load cargo", category: "Cargo", description: "Enable cargo delivery for selected crew.",
+      subjects: () => [crewOneId, crewTwoId],
       input: selectionInput,
       reads: [PirateCrew, Support],
       writes: [DeliveryControl],
@@ -285,20 +290,6 @@ export const piratesPack: GamePack = {
   },
   definition: encodeDefinition("pirates", pirateComponents, piratesInitial),
   presentation: {
-    controls: [
-      {
-        id: "load-cargo",
-        label: "Load cargo",
-        command: "loadCargo",
-        input: { entities: [crewOneId, crewTwoId] },
-      },
-      ...["north", "east", "south", "west"].map((direction, facing) => ({
-        id: `turn-${direction}`,
-        label: `Face ${direction}`,
-        command: "turnShip",
-        input: { facing },
-      })),
-    ],
     inspect: (context) => {
       const lots = context
         .query(query(MaterialLot))

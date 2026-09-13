@@ -56,6 +56,8 @@ type SocketAttachment = {
   readonly retired?: boolean;
   /** The complete terrain baseline successfully sent on this connection. */
   readonly terrainRevision?: number;
+  /** The neutral Whistle capability revision successfully sent on this connection. */
+  readonly whistleRevision?: number;
 };
 type PublicObservationPayload = {
   readonly revision: number;
@@ -473,9 +475,14 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const wireTerrain = terrain && !forceComplete
       ? terrainWireForRevision(terrain, attachment.terrainRevision)
       : terrain;
-    const wirePayload = wireTerrain === terrain
-      ? payload
-      : { ...payload, observation: { ...payload.observation, terrain: wireTerrain } };
+    const observation = {
+      ...payload.observation,
+      ...(wireTerrain === terrain ? {} : { terrain: wireTerrain }),
+      ...(forceComplete || attachment.whistleRevision !== payload.observation.whistleRevision
+        ? { whistleAgent: payload.observation.whistleAgent, whistleTargets: payload.observation.whistleTargets }
+        : { whistleAgent: undefined, whistleTargets: undefined }),
+    };
+    const wirePayload = { ...payload, observation };
     const encoded = JSON.stringify({ type: "observation", ...wirePayload });
     if (new TextEncoder().encode(encoded).byteLength > MAX_OBSERVATION_BYTES) {
       try { socket.close(1009, "observation too large"); } catch {}
@@ -486,12 +493,14 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     } catch {
       return false;
     }
-    if (terrain) {
-      if (forceComplete || attachment.terrainRevision !== terrain.revision)
-        socket.serializeAttachment({ ...attachment, terrainRevision: terrain.revision });
-    } else if (attachment.terrainRevision !== undefined) {
-      socket.serializeAttachment({ ...attachment, terrainRevision: undefined });
-    }
+    const nextAttachment: SocketAttachment = {
+      ...attachment,
+      terrainRevision: terrain?.revision,
+      whistleRevision: payload.observation.whistleRevision,
+    };
+    if (nextAttachment.terrainRevision !== attachment.terrainRevision ||
+        nextAttachment.whistleRevision !== attachment.whistleRevision)
+      socket.serializeAttachment(nextAttachment);
     return true;
   }
 
@@ -697,7 +706,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.renewLease(Date.now());
           const payload = await this.queuedObservationPayload();
-          this.sendObservation(socket, payload, attachment, true);
+          this.sendObservation(socket, payload, attachment);
           return;
         }
       } catch { /* malformed heartbeat is rejected below */ }

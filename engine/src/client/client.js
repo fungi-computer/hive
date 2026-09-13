@@ -5,7 +5,6 @@ import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
 import { createAudioOwner } from "./audio.js";
-import { presentationCommand, terrainPresentationCommand, terrainAreaPresentationCommand } from "../presentation.ts";
 import { figureFrame, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
@@ -45,6 +44,9 @@ import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
+import { GAME_BINDINGS } from "./game-bindings.js";
+import { createLocalGameWhistle } from "./whistle-runtime.js";
+import { bindingCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -85,7 +87,8 @@ export function createHiveClient({
     invitationUrl: null,
     invitationCopied: false,
     presentationFacts: [],
-    presentationControls: [],
+    whistleAgent: [],
+    whistleTargets: [],
     terrainMarks: [],
     environmentVisuals: [],
     view: createWorldView(worldView),
@@ -98,6 +101,21 @@ export function createHiveClient({
   const aimGesture = createActor(aimGestureMachine).start();
   const terrainTarget = createActor(terrainTargetMachine).start();
   const terrainArea = createActor(terrainAreaGestureMachine).start();
+  const localWhistle = createLocalGameWhistle({ bindings: GAME_BINDINGS[mode] ?? [], submit: command => submit(command) });
+  function localControls() {
+    return localWhistle.whistle.snapshot().menu.flatMap(row => {
+      const presentation = row.action?.presentation;
+      if (!presentation || presentation.type !== "custom") return [];
+      return (presentation.data.bindings ?? []).map(binding => ({
+        ...binding,
+        commandId: row.commandId,
+        command: row.commandId.slice(row.commandId.indexOf(":") + 1),
+        label: binding.label || row.title,
+        availability: row.availability,
+        ...(binding.preset === undefined ? {} : { input: binding.preset }),
+      }));
+    });
+  }
   const isAiming = () => aimGesture.getSnapshot().value === "aiming";
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener(state));
@@ -156,6 +174,19 @@ export function createHiveClient({
     const accepted = submitCommand(runtime, command, message => { state.message = message; }, successMessage);
     renderHud();
     return accepted;
+  }
+  function executeWhistleCommand(commandId, input, label = "Order queued") {
+    if (!state.ready) return false;
+    void localWhistle.whistle.execute(commandId, { origin: "browser", ...(input === undefined ? {} : { arguments: input }) }).then(outcome => {
+      if (state.disposed || outcome.status === "handled") return;
+      state.message = outcome.status === "unavailable" ? outcome.reason
+        : outcome.status === "failed" ? outcome.error.message : `Unable to run ${label}`;
+      renderHud();
+    });
+    return true;
+  }
+  function executeWhistle(control, input) {
+    return executeWhistleCommand(control.commandId, input, control.label);
   }
   function changeViewLevel(level) {
     terrainArea.send({ type: "CANCEL" });
@@ -254,7 +285,8 @@ export function createHiveClient({
     state.subjects = [];
     latestFacts = [];
     state.presentationFacts = [];
-    state.presentationControls = [];
+    state.whistleAgent = [];
+    state.whistleTargets = [];
     state.terrainMarks = [];
     state.environmentVisuals = [];
     terrainFrame = undefined;
@@ -337,18 +369,19 @@ export function createHiveClient({
     const velocity = state.aim.velocity;
     if (!velocity) throw new Error("aim preview velocity unavailable");
     audio.unlock();
-    if (!submit({ type: "command", name: aiming.command, input: { velocity } })) return;
+    if (!executeWhistleCommand(`${mode}:${aiming.command}`, { velocity }, "Fire cannon")) return;
     aimGesture.send({ type: "FIRE" });
     exitAim();
   }
   function renderHud() {
-    const buildGroups = buildControls(state.presentationControls);
+    const controls = localControls();
+    const buildGroups = buildControls(controls);
     const buildIds = new Set(buildGroups.flatMap((group) => group.controls.map((control) => control.id)));
     const selectedBuild = terrainTarget.getSnapshot().context.control;
     const selectedGroup = buildGroups.find((group) => group.controls.some((control) => control.id === selectedBuild?.id));
     const chooseBuild = (group, orientation = group.orientations[0]) => {
       const control = selectedBuildControl(group, orientation);
-      if (!control) return;
+      if (!control || control.availability?.status === "unavailable") return;
       exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" });
       terrainTarget.send({ type: selectedGroup?.catalog === group.catalog ? "ROTATE" : "ARM", control });
       state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
@@ -361,7 +394,7 @@ export function createHiveClient({
         const orientation = active ? selectedBuild?.input?.orientation : group.orientations[0];
         const control = selectedBuildControl(group, orientation);
         return React.createElement("div", { className: "hive-build-entry", key: group.catalog },
-          React.createElement(Button, { size: "sm", variant: active ? "secondary" : "outline", "aria-pressed": active, onClick: () => chooseBuild(group, orientation) }, control?.label ?? group.catalog),
+          React.createElement(Button, { size: "sm", variant: active ? "secondary" : "outline", "aria-pressed": active, disabled: !state.ready || control?.availability?.status === "unavailable", title: control?.availability?.status === "unavailable" ? control.availability.reason : undefined, onClick: () => chooseBuild(group, orientation) }, control?.label ?? group.catalog),
           active && group.orientations.length > 1 ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => chooseBuild(group, nextOrientation(group, orientation)), "aria-label": "Rotate building" }, "↻") : null,
           active && group.orientations.length > 1 ? React.createElement("small", null, orientation) : null,
         );
@@ -370,7 +403,8 @@ export function createHiveClient({
     ) : null;
     const contextualPresentation = projectContextualPresentation({
       facts: state.presentationFacts,
-      controls: state.presentationControls.filter((control) => !buildIds.has(control.id)),
+      controls,
+      targets: state.whistleTargets,
       selectedIds: state.selectedIds,
       latestFacts,
       currentIds: [
@@ -387,8 +421,10 @@ export function createHiveClient({
             key: control.id,
             size: "sm",
             variant: "outline",
-            disabled: !state.ready,
+            disabled: !state.ready || control.availability?.status === "unavailable",
+            title: control.availability?.status === "unavailable" ? control.availability.reason : undefined,
             onClick: () => {
+              if (control.availability?.status === "unavailable") return;
               if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
                 exitAim();
                 gesture.send({ type: "CANCEL" });
@@ -401,7 +437,7 @@ export function createHiveClient({
                 return;
               }
               if (aiming) audio.unlock();
-              return state.ready && submit(presentationCommand(control, state.selectedIds));
+              return executeWhistle(control, bindingCommand(control, state.selectedIds).input);
             },
           }, control.label)),
         ) : null;
@@ -930,7 +966,7 @@ export function createHiveClient({
       if (displayed && targetControl.target === "world-surface" && terrainTarget.getSnapshot().context.anchor) {
           const candidate = placementCache.at(localPoint, displayed, terrainTarget.getSnapshot().context.anchor);
         if (candidate) {
-          if (submit(terrainPresentationCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }))) clearPlacement();
+          if (executeWhistle(targetControl, terrainCellCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }).input)) clearPlacement();
           return;
         }
       }
@@ -960,7 +996,7 @@ export function createHiveClient({
       if (targetControl.target === "world-surface" && structure) {
         terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       }
-      submit(terrainPresentationCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }));
+        executeWhistle(targetControl, terrainCellCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }).input);
       return;
     }
     if (isAiming()) {
@@ -1042,7 +1078,7 @@ export function createHiveClient({
     }
     if (control?.target === "terrain-area" || control?.target === "world-surface") {
       const endpoints = designationEndpoints(start, current, mode, 256);
-      submit(terrainAreaPresentationCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }));
+      executeWhistle(control, terrainAreaCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }).input);
     }
     renderHud(); draw(); return;
   }
@@ -1121,11 +1157,7 @@ export function createHiveClient({
       return;
     }
     if (orderCommand) {
-      submit({
-        type: "command",
-        name: orderCommand,
-        input: { entities: eligibleIds, destination: world },
-      });
+      executeWhistleCommand(`${mode}:${orderCommand}`, { entities: eligibleIds, destination: world }, "Move selected entities");
       return;
     }
     for (const id of eligibleIds)
@@ -1141,7 +1173,7 @@ export function createHiveClient({
     if (key === "r" && terrainTarget.getSnapshot().value === "armed" && terrainTarget.getSnapshot().context.control?.command === "build") {
       event.preventDefault();
       const control = terrainTarget.getSnapshot().context.control;
-      const group = buildControls(state.presentationControls).find((candidate) => candidate.controls.some((item) => item.id === control.id));
+      const group = buildControls(localControls()).find((candidate) => candidate.controls.some((item) => item.id === control.id));
       if (group) {
         const orientation = nextOrientation(group, control.input?.orientation);
         const rotated = selectedBuildControl(group, orientation);
@@ -1159,10 +1191,7 @@ export function createHiveClient({
     if (mode === "survival") {
       if (key === "e" || key === "f") {
         event.preventDefault();
-        submit({
-          type: "command",
-          name: key === "e" ? "takeFood" : "eatFood",
-        });
+        executeWhistleCommand(`survival:${key === "e" ? "takeFood" : "eatFood"}`, undefined, key === "e" ? "Take food" : "Eat food");
       }
     }
   }
@@ -1422,9 +1451,14 @@ export function createHiveClient({
       }
       if (event.type === "presentation") {
         state.presentationFacts = event.facts;
-        state.presentationControls = event.controls;
         state.terrainMarks = event.terrainMarks;
         state.environmentVisuals = event.environmentVisuals;
+        renderHud();
+      }
+      if (event.type === "whistle") {
+        localWhistle.update(event.agent);
+        state.whistleAgent = event.agent;
+        state.whistleTargets = event.targets;
         renderHud();
       }
       if (event.type === "results") {
