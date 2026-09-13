@@ -413,7 +413,7 @@ pub fn validate_bindings(
         }
         if input.policy == InputPolicy::WholeLot && binding.quantity != source.quantity { return Err("whole-lot process binding is partial".into()); }
         let total = roles.entry(binding.role.as_str()).or_default().checked_add(binding.quantity).ok_or("process binding quantity overflow")?;
-        if input.policy == InputPolicy::WholeLot && *total > input.quantity { return Err("whole-lot process binding is duplicated".into()); }
+        if input.policy == InputPolicy::WholeLot && total > input.quantity { return Err("whole-lot process binding is duplicated".into()); }
     }
     for input in &definition.inputs {
         if roles.get(input.role.as_str()).copied().unwrap_or(0) != input.quantity { return Err("process bindings do not satisfy every input role".into()); }
@@ -678,7 +678,7 @@ mod tests {
         definition.inputs.retain(|input| input.role == "mugwort");
         let lots = BTreeMap::from([("herb".into(), crate::components::Lot { kind: "mugwort".into(), quantity: 2, container: "station:kettle".into() })]);
         assert!(resolve_bindings(&definition, "process:station:ale", "station", &lots).is_err());
-        let exact = BTreeMap::from([("herb".into(), crate::components::Lot { kind: "mugwort".into(), quantity: 1, container: "station:kettle".into() })]);
+        let exact: BTreeMap<String, crate::components::Lot> = BTreeMap::from([("herb".into(), crate::components::Lot { kind: "mugwort".into(), quantity: 1, container: "station:kettle".into() })]);
         let binding = ProcessBinding { process: "process:station:ale".into(), role: "mugwort".into(), lot: "herb".into(), quantity: 1 };
         validate_bindings(&definition, "process:station:ale", "station", &[binding.clone(), binding], &|id| exact.get(id).cloned()).unwrap_err();
     }
