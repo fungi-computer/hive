@@ -32,3 +32,17 @@ test("availability changes reuse local contribution and gate execution", async (
   assert.deepEqual(outcome, { status: "unavailable", reason: "Needs a target" });
   assert.deepEqual(submitted, []);
 });
+
+test("reset clears the old world contribution before the next capability baseline", async () => {
+  const submitted = [];
+  const local = createLocalGameWhistle({
+    agent: [row()], bindings: [{ commandId: "colony:test", id: "test", label: "Test" }], submit: command => submitted.push(command),
+  });
+  local.update([]);
+  assert.deepEqual(local.whistle.snapshot().menu, []);
+  assert.equal((await local.whistle.execute("colony:test", { origin: "browser" })).status, "missing");
+  local.update([row()]);
+  assert.equal(local.whistle.snapshot().menu.length, 1);
+  await local.whistle.execute("colony:test", { origin: "browser" });
+  assert.deepEqual(submitted, [{ type: "command", name: "test" }]);
+});

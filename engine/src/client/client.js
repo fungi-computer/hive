@@ -285,6 +285,7 @@ export function createHiveClient({
     state.subjects = [];
     latestFacts = [];
     state.presentationFacts = [];
+    localWhistle.update([]);
     state.whistleAgent = [];
     state.whistleTargets = [];
     state.terrainMarks = [];
