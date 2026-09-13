@@ -2824,17 +2824,25 @@ impl Kernel {
     fn establish_resource_site(&mut self, _operation: &str, worker_id: &str, site_id: &str, definition_id: &str, x: i32, y: i32, z: i32) -> Result<String> {
         let worker = self.entity(worker_id)?;
         if self.ecs.get::<Body>(worker).is_none() { return Err("resource sowing requires a worker body".into()); }
-        if !valid_id(site_id) || !valid_id(definition_id) || self.known.contains(site_id) { return Err("resource site identity is unavailable".into()); }
-        let environment = self.environment.as_ref().ok_or("resource sowing requires terrain")?;
-        let definition = environment.resources.get(definition_id).ok_or("unknown resource definition")?.clone();
-        let surface = environment.world.surface_cells(&[(i64::from(x), i64::from(z))])?.into_iter().next().flatten().ok_or("resource site requires an empty supported surface")?;
+        if !valid_id(site_id) || !valid_id(definition_id) { return Err("resource site identity is unavailable".into()); }
+        let (definition, spacing, surface) = {
+            let environment = self.environment.as_mut().ok_or("resource sowing requires terrain")?;
+            let definition = environment.resources.get(definition_id).ok_or("unknown resource definition")?.clone();
+            let surface = environment.world.surface_cells(&[(i64::from(x), i64::from(z))])?.into_iter().next().flatten().ok_or("resource site requires an empty supported surface")?;
+            (definition, environment.world.cell_spacing_m(), surface)
+        };
         if surface.cell.y != y { return Err("resource site must be on the generated surface".into()); }
-        let spacing = environment.world.cell_spacing_m();
         let expected = Point { x: f64::from(x) * spacing[0], y: (f64::from(y) + 0.5) * spacing[1], z: f64::from(z) * spacing[2], frame: None };
         let pose = self.world_pose_entity(worker, 0)?;
         if (pose.x - expected.x).hypot(pose.z - expected.z) > 2.0 * spacing[0] || (pose.y - expected.y).abs() > spacing[1] { return Err("worker is not in resource site contact".into()); }
-        let entity = self.ecs.spawn((ExternalId(site_id.to_owned()), Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, Container { capacity: definition.output_quantity }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.sow_seconds })).id();
-        self.ids.insert(site_id.to_owned(), entity); self.known.insert(site_id.to_owned()); self.contents.insert(site_id.to_owned(), BTreeSet::new());
+        let entity = if let Some(entity) = self.ids.get(site_id).copied() {
+            if self.ecs.get::<ResourceSite>(entity).is_some() { return Err("resource site identity is already established".into()); }
+            entity
+        } else {
+            let entity = self.ecs.spawn(ExternalId(site_id.to_owned())).id();
+            self.ids.insert(site_id.to_owned(), entity); self.known.insert(site_id.to_owned()); self.contents.insert(site_id.to_owned(), BTreeSet::new()); entity
+        };
+        self.ecs.entity_mut(entity).insert((Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, Container { capacity: definition.output_quantity }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.sow_seconds }));
         self.refresh_state_weight();
         Ok(site_id.to_owned())
     }
