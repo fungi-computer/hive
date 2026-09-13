@@ -69,3 +69,8 @@ and [1,17,-2], matching the current two-cell run/four-level rise. Correcting
 only the subsequent floor/stair fixture to z=-2 yields u6750: three-level build,
 finite supplies and recovery pass, strict types/diff pass. This does not establish
 browser or hosted acceptance. Retained ghost/catalog/contextual UI remains open.
+
+Client repairs published as preview c9a94c56-079e-4064-b9fd-aa002c2b44f8 from
+6cbbb4f. Build u6751, preview u6752 and44-file exact HTTP readback u6753 passed.
+Existing DO unchanged; no new-world requirement from this static release.
+Hosted gameplay is still awaiting observation; HTTP parity is not a playtest.
