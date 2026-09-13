@@ -181,10 +181,10 @@ test("terrain controls bind selected actors and copy the visible cell", () => {
 });
 
 
-test("building surface controls preserve structure identity without fake earth material", () => {
+test("building surface controls submit coordinates without visual picking metadata", () => {
   const control = { id: "build", label: "Build", command: "greet", target: "world-surface" as const };
   const target = { cell: [0, 8, 0] as const, source: "structure" as const };
-  assert.deepEqual(terrainPresentationCommand(control, [], target).input, { target });
+  assert.deepEqual(terrainPresentationCommand(control, [], target).input, { target: { cell: target.cell } });
   assert.throws(() => terrainPresentationCommand({ ...control, target: "terrain-cell" }, [], target), /requires terrain/);
   assert.equal(projectPresentation(pack({ controls: [control], inspect: () => [] }), context).controls[0].target, "world-surface");
 });

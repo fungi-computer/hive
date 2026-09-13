@@ -53,3 +53,19 @@ physics evidence; do not substitute another large unit matrix for this flow.
 Retained source supplies interaction/art behavior, not engineering authority:
 Botanical Field Guide ownership-and-seams remains the standard. Keep the Rust
 world/material/work and DO transaction owners.
+
+## First caller correction
+
+World-surface point binding now submits target.cell without local picking
+material/source metadata; world-surface drags submit target.area. Terrain-only
+and stockpile consumers retain their existing semantic inputs. The published
+build controls are exercised through both binders into the real strict command.
+The actual staircase supply/completion law now begins from its published UI
+control rather than a hand-authored command.
+
+u6748: 19 checks passed, one three-level fixture failed. The fixture still used
+a four-cell stair run; actual native surfaces after completion are [1,15,-1]
+and [1,17,-2], matching the current two-cell run/four-level rise. Correcting
+only the subsequent floor/stair fixture to z=-2 yields u6750: three-level build,
+finite supplies and recovery pass, strict types/diff pass. This does not establish
+browser or hosted acceptance. Retained ghost/catalog/contextual UI remains open.

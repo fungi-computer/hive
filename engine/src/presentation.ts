@@ -103,7 +103,9 @@ export function terrainPresentationCommand(
       Array.isArray(input) || "target" in input))
     throw new Error("terrain control requires object input without target");
   return { ...command, input: controlInput({ ...(input as object),
-      target: { cell: [...target.cell], ...(source ? { source } : { material: (target as {material:number}).material }) } }) };
+      target: control.target === "world-surface"
+        ? { cell: [...target.cell] }
+        : { cell: [...target.cell], ...("material" in target ? { material: target.material } : {}) } }) };
 }
 
 /** A compact designation, independent of the current worker selection. */
@@ -124,7 +126,9 @@ export function terrainAreaPresentationCommand(
   const input = command.input;
   if (input !== undefined && (input === null || typeof input !== "object" || Array.isArray(input) || "area" in input))
     throw new Error("terrain area control requires object input without area");
-  return { ...command, input: controlInput({ ...(input as object), area: { start: [...area.start], end: [...area.end] } }) };
+  const selection = { start: [...area.start], end: [...area.end] };
+  return { ...command, input: controlInput({ ...(input as object),
+    ...(control.target === "world-surface" ? { target: { area: selection } } : { area: selection }) }) };
 }
 
 export interface PresentationFact {
