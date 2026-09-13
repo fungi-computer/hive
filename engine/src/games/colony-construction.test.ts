@@ -18,8 +18,8 @@ test("actual Colony staircase supply assigns two workers to two independent lumb
     session.start();
     session.command("build", { catalog: "timber-stair", orientation: "north", target: { cell: [1, 13, 0] } });
     let live: readonly any[] = [];
-    for (let tick = 0; tick < 240; tick++) {
-      session.step(0.1);
+    for (let tick = 0; tick < 1000; tick++) {
+      session.step(0.01);
       const tasks = session.query(query(DeliveryTask)).filter((row) => {
         const task = row.get(DeliveryTask);
         return task.destination.startsWith("colony.build.") && task.phase !== "complete";
@@ -34,12 +34,24 @@ test("actual Colony staircase supply assigns two workers to two independent lumb
     const states = tasks.map((row) => row.get(DeliveryTask));
     assert.equal(new Set(tasks.map((row) => row.id)).size, 2);
     assert.equal(new Set(states.map((task) => task.actor)).size, 2);
-    assert(states.reduce((sum, task) => sum + task.quantity, 0) <= 6);
-    assert(states.every((task) => task.quantity > 0 && task.quantity <= 6));
+    assert.equal(states.reduce((sum, task) => sum + task.quantity, 0), 6);
+    assert(states.every((task) => task.quantity === 3));
     const saved = session.save();
     session.restore(saved);
     const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.phase !== "complete");
     assert.deepEqual(restored.map((task) => [task.sourceLot, task.actor, task.quantity]), states.map((task) => [task.sourceLot, task.actor, task.quantity]));
+    let finished = false;
+    for (let tick = 0; tick < 600; tick++) {
+      session.step(0.25);
+      const site = session.query(query(ConstructionSite))[0];
+      finished = site?.get(ConstructionSite).phase === "finished";
+      if (finished) break;
+    }
+    assert.equal(finished, true);
+    const site = session.query(query(ConstructionSite))[0];
+    const delivered = session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === site.id && row.get(MaterialLot).kind === "wood");
+    assert.equal(delivered.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 6);
+    assert.equal(session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).kind === "wood").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 48);
   } finally { port.dispose(); }
 });
 

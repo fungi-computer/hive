@@ -89,7 +89,7 @@ const colonyInitial = [
       "hive.visual": workerVisuals[index],
       "colony.worker": { guest: false },
       "hive.work-participation": { automatic: true },
-      "hive.delivery-control": { enabled: true, quantity: 1 },
+      "hive.delivery-control": { enabled: true, quantity: 3 },
     },
   })),
   {
@@ -171,7 +171,7 @@ const workerSelectionInput = z.object({
 }).strict();
 const deliveryInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
-  quantity: z.union([z.literal(1), z.literal(2)]).optional(),
+  quantity: z.number().int().positive().max(0xffffffff).optional(),
 }).strict();
 const pointInput = z.tuple([
   z.number().int().min(-1_000_000).max(1_000_000),
@@ -218,8 +218,12 @@ function deliveryWrites(
 ) {
   const selected = selectedWorkers(context, input.entities);
   const quantity = input.quantity;
-  if (enabled && !preserveCurrentQuantity && quantity !== 1 && quantity !== 2)
-    throw new Error("delivery quantity must be one or two");
+  if (enabled && !preserveCurrentQuantity && quantity !== undefined) {
+    for (const worker of selected) {
+      const capacity = context.query(query(Container)).find((row) => row.id === worker)?.get(Container).capacity;
+      if (!Number.isSafeInteger(capacity) || quantity > capacity) throw new Error("delivery quantity exceeds worker capacity");
+    }
+  }
   return selected.map((worker) => {
     const active = activeTaskFor(context, worker);
     if (active?.phase === "complete") throw new Error("completed delivery cannot be restarted");
