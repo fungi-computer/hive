@@ -91,7 +91,14 @@ const constructionAccessSchema = z.array(z.object({
     frame: z.null(), kind: z.enum(["origin", "landing"]),
   }).strict()).max(32),
 }).strict()).max(256);
+function validateConstructionAccessSites(sites: readonly EntityId[]): void {
+  if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
+    throw new Error("construction access needs 1..256 sites");
+  if (new Set(sites).size !== sites.length)
+    throw new Error("duplicate construction access site");
+}
 export function parseConstructionAccess(value: unknown, sites: readonly EntityId[]): readonly ConstructionAccess[] {
+  validateConstructionAccessSites(sites);
   const rows = constructionAccessSchema.parse(value);
   if (rows.length !== sites.length || rows.some((row, index) => row.site !== sites[index]))
     throw new Error("construction access result order mismatch");
@@ -255,8 +262,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       return parseConstructionReadiness(value, sites);
     },
     constructionAccess(sites): readonly ConstructionAccess[] {
-      if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
-        throw new Error("construction access needs 1..256 sites");
+      validateConstructionAccessSites(sites);
       return parseConstructionAccess(JSON.parse(binding.construction_access(JSON.stringify(sites))), sites);
     },
     physicalContacts(cells) {

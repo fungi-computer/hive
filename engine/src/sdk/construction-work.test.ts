@@ -161,6 +161,7 @@ test("construction access parser validates materials and preserves order", () =>
   assert.throws(() => parseConstructionAccess([{ ...rows[0], materialsReady: "yes" }], [first]));
   assert.throws(() => parseConstructionAccess([{ ...rows[0], contacts: [{ ...rows[0].contacts[0], x: Number.NaN }] }], [first]));
   assert.throws(() => parseConstructionAccess(rows, [second, first]), /order mismatch/);
+  assert.throws(() => parseConstructionAccess([rows[0], rows[0]], [first, first]), /duplicate construction access site/);
 });
 
 test("construction assignment persists an approach claim and native attendance releases it", () => {
