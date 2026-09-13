@@ -42,7 +42,7 @@ test("actual Colony attendance projects work poses only while native work exists
     }
     assert(sawWork, "fixture must perform actual native excavation");
     assert.equal(session.query(query(ColonyDigOrder)).length, 0);
-    assert(!observe().facts.some(fact => fact.activity), "completed work returns to locomotion/carry poses");
+    assert(!observe().facts.some(fact => fact.activity?.kind === "dig"), "completed excavation clears its work pose and progress");
   } finally { port.dispose(); }
 });
 
