@@ -1,8 +1,8 @@
 //! Bounded read-only route-cost requests over the canonical movement owner.
 //!
 //! This module deliberately calls `Kernel::route_for`; it does not maintain a
-//! second pathfinder or install a destination. Terrain page caches are the
-//! only rebuildable state route preparation may touch.
+//! second pathfinder or install a destination. Failed terrain cost queries are
+//! remembered only under identical physical geometry, blockers and endpoints.
 
 use crate::components::{valid_id, Point, Position};
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,49 @@ const MAX_BYTES: usize = 16 * 1024;
 const MAX_REQUESTS: usize = 32;
 const MAX_COORDINATE: f64 = 1_000_000.0;
 const MAX_COST_METRES: f64 = 1.0e9;
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct FailureKey {
+    coordinates: [u64; 6],
+    clearance: u8,
+    step: u8,
+}
+
+#[derive(Default)]
+pub(super) struct FailureCache {
+    revision: Option<u64>,
+    blocked: std::collections::BTreeSet<crate::navigation::Cell>,
+    entries: std::collections::BTreeMap<Vec<(String, FailureKey)>, String>,
+}
+
+impl FailureCache {
+    fn synchronize(&mut self, revision: u64, blocked: &std::collections::BTreeSet<crate::navigation::Cell>) {
+        if self.revision != Some(revision) || self.blocked != *blocked {
+            self.entries.clear();
+            self.revision = Some(revision);
+            self.blocked.clone_from(blocked);
+        }
+    }
+    fn remember(&mut self, key: Vec<(String, FailureKey)>, reason: String) {
+        if self.entries.len() >= 64 { self.entries.clear(); }
+        self.entries.insert(key, reason);
+    }
+}
+
+fn failure_key(kernel: &super::Kernel, entity: bevy_ecs::prelude::Entity, start: Position, target: &Point) -> Option<FailureKey> {
+    // In-flight terrain prefixes and moving support frames have additional
+    // dependencies. Keep those on the existing uncached route path.
+    if target.frame.is_some() || kernel.support_id(entity).is_some() || kernel.terrain_routes.contains_key(&entity) {
+        return None;
+    }
+    kernel.environment.as_ref()?;
+    let traversal = kernel.ecs.get::<crate::components::Traversal>(entity)?;
+    Some(FailureKey {
+        coordinates: [start.x, start.y, start.z, target.x, target.y, target.z].map(f64::to_bits),
+        clearance: traversal.clearance_cells,
+        step: traversal.max_step_cells,
+    })
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -138,6 +181,20 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
 
     let result_count = prepared.len();
     let mut results: Vec<Option<Result>> = (0..result_count).map(|_| None).collect();
+    if let Some(environment) = &kernel.environment {
+        if let Some(blocked) = kernel.blocked_by_frame.get(&None) {
+            kernel.route_cost_failures.synchronize(environment.world.terrain_revision(), blocked);
+        }
+    }
+    // Memoize the exact ordered batch, not individual failed targets: a
+    // shared search budget can fail a batch that succeeds as separate queries.
+    let batch_key: Option<Vec<_>> = prepared.iter().map(|item| match item {
+        Prepared::Search { actor, entity, start, target } => failure_key(kernel, *entity, *start, target).map(|key| (actor.clone(), key)),
+        Prepared::Immediate(_) => None,
+    }).collect();
+    if let Some(key) = &batch_key {
+        if let Some(response) = kernel.route_cost_failures.entries.get(key) { return Ok(response.clone()); }
+    }
     let mut groups: std::collections::BTreeMap<bevy_ecs::prelude::Entity, Vec<(usize, String, Position, Point)>> = std::collections::BTreeMap::new();
     for (index, item) in prepared.into_iter().enumerate() {
         match item {
@@ -170,7 +227,11 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
         }
     }
     let results: Vec<_> = results.into_iter().map(|result| result.ok_or("route-cost result missing".into())).collect::<crate::components::Result<_>>()?;
-    serde_json::to_string(&results).map_err(|error| error.to_string())
+    let response = serde_json::to_string(&results).map_err(|error| error.to_string())?;
+    if results.iter().any(|result| matches!(result, Result::Unavailable { .. })) {
+        if let Some(key) = batch_key { kernel.route_cost_failures.remember(key, response.clone()); }
+    }
+    Ok(response)
 }
 
 pub(super) fn execute_any(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
@@ -296,6 +357,57 @@ mod tests {
             if kernel.route_for(actor, pose, &target).is_ok() { return (kernel, target); }
         }
         panic!("climbing fixture did not admit a terrain route");
+    }
+
+    #[test]
+    fn failed_terrain_cost_is_reused_until_blockers_change_without_changing_saved_state() {
+        let (mut kernel, target) = climbing_world();
+        let obstacle = (target.x.round() as i32, target.y.round() as i32, target.z.round() as i32);
+        kernel.blocked_by_frame.entry(None).or_default().insert(obstacle);
+        let request = json!([{ "actor": "walker", "target": target }]);
+        let before = kernel.snapshot_entities_json().unwrap();
+        let first = query(&mut kernel, request.clone());
+        assert_eq!(first[0]["status"], "unavailable");
+        assert_eq!(kernel.route_cost_failures.entries.len(), 1);
+        assert_eq!(query(&mut kernel, request.clone()), first);
+        assert_eq!(kernel.snapshot_entities_json().unwrap(), before);
+        kernel.blocked_by_frame.get_mut(&None).unwrap().remove(&obstacle);
+        assert_eq!(query(&mut kernel, request)[0]["status"], "reachable");
+        assert!(kernel.route_cost_failures.entries.is_empty());
+    }
+
+    #[test]
+    fn failed_batch_does_not_answer_a_different_batch_and_discard_blocks_queries() {
+        let (mut kernel, target) = climbing_world();
+        let actor = kernel.entity("walker").unwrap();
+        let start = *kernel.ecs.get::<Position>(actor).unwrap();
+        let blocked = (target.x.round() as i32, target.y.round() as i32, target.z.round() as i32);
+        kernel.blocked_by_frame.entry(None).or_default().insert(blocked);
+        let singleton = json!([{ "actor": "walker", "target": target }]);
+        assert_eq!(query(&mut kernel, singleton)[0]["status"], "unavailable");
+        let batch = query(&mut kernel, json!([
+            { "actor": "walker", "target": target },
+            { "actor": "walker", "target": {"x":start.x,"y":start.y,"z":start.z,"frame":null} }
+        ]));
+        assert_eq!(batch.as_array().unwrap().len(), 2);
+        assert_eq!(batch[1]["status"], "reachable");
+        assert_eq!(kernel.route_cost_failures.entries.len(), 2);
+        kernel.discard_required = true;
+        assert_eq!(kernel.route_costs_json("[]").unwrap_err(), "kernel attempt requires durable restore");
+        assert_eq!(kernel.route_cost_failures.entries.len(), 2);
+    }
+
+    #[test]
+    fn failure_cache_drops_geometry_results_and_is_bounded() {
+        let mut cache = super::FailureCache::default();
+        let blocked = Default::default();
+        cache.synchronize(1, &blocked);
+        for i in 0..300 {
+            cache.remember(vec![("actor".into(), super::FailureKey { coordinates: [i; 6], clearance: 2, step: 1 })], "no supported terrain route".into());
+            assert!(cache.entries.len() <= 64);
+        }
+        cache.synchronize(2, &blocked);
+        assert!(cache.entries.is_empty());
     }
 
     #[test]

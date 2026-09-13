@@ -129,3 +129,29 @@ Rejected Region receipts preserve their reason when present. u6754 proves a
 400 followed by a successful independent order without reconnect, plus the
 existing lost-receipt identical-body retry law; strict types/diff pass. This
 correction is source-only pending the next coherent client release.
+
+## Construction-triggered slowdown reproduced and correction underway
+
+The invited world e947's observed layout reproduces a substantial slowdown when
+its finished wall/floors are built before ordering the four raised floors.
+Saved local packet: .botanical/world-e947-diagnosis/profile-layout.jsonl.
+Thirty steps averaged337.24ms, with230 route-cost calls consuming10001ms.
+Native advance consumed9.1ms total; observation averaged2.15ms and snapshot/JSON
+2.58ms. The layout reconstruction is not a copy of the remote world's hidden
+work claims, but it establishes the construction-triggered search bottleneck.
+
+Root correction is a disposable native memo for exact ordered route-cost batches
+that contain an unavailable result. Keys include actor IDs, exact endpoints and
+traversal settings; physical terrain revision and the complete obstacle index
+invalidate all entries. Support-frame/in-flight queries bypass it. At most64
+batches are retained, no saved schema change and no physical authority changes.
+Do not reuse a per-target shared-budget failure for another batch, or treat any
+cached estimate as execution permission. Both public route queries now reject
+use after an attempt requires restore.
+
+u6769 exhausted the game volume while compiling dependencies. Only its newly
+created target directory was removed with Cargo clean (518.2MiB), preserving
+source and .botanical. u6771 used /tmp/hive-route-cost-target without debug symbols;
+its old-shape8 checks passed but review superseded that shape. Current exact-batch
+u6772 passed9 focused native checks; existing compiler advisories remain. u6773
+is the current WASM build, not yet a performance or deployment acceptance.

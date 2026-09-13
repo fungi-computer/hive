@@ -496,6 +496,7 @@ pub struct Kernel {
     queries: BTreeMap<Vec<String>, QueryState<Entity>>,
     contents: BTreeMap<String, BTreeSet<Entity>>,
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
+    route_cost_failures: route_query::FailureCache,
     routes: BTreeMap<Entity, VecDeque<Point>>,
     terrain_routes: BTreeMap<Entity, TerrainRouteState>,
     direct: BTreeMap<Entity, DirectState>,
@@ -536,6 +537,7 @@ impl Kernel {
             queries: BTreeMap::new(),
             contents: BTreeMap::new(),
             blocked_by_frame: BTreeMap::new(),
+            route_cost_failures: route_query::FailureCache::default(),
             routes: BTreeMap::new(),
             terrain_routes: BTreeMap::new(),
             direct: BTreeMap::new(),
@@ -1446,11 +1448,13 @@ impl Kernel {
     /// Bounded read-only route costs. Preparation uses the same route owner as
     /// movement but never installs a destination or mutates canonical state.
     pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
         route_query::execute(self, input)
     }
     /// Cheapest route to one interchangeable target, using the same native
     /// movement graph without installing a destination.
     pub fn route_to_any_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
         route_query::execute_any(self,input)
     }
     /// Bounded local observation. May warm disposable physical contacts; never advances smoke.
