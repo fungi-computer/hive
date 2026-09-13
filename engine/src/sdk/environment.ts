@@ -119,6 +119,12 @@ export interface InitialSurfacePlacement {
   readonly entity: string;
   readonly column: readonly [number, number];
 }
+export interface EnvironmentResourceStage { readonly delaySeconds: number; readonly waterPortions: number; }
+export interface EnvironmentResourceDefinition {
+  readonly id: string; readonly outputKind: string; readonly outputQuantity: number;
+  readonly sowSeconds: number; readonly tendSeconds: number; readonly harvestSeconds: number;
+  readonly stages: readonly EnvironmentResourceStage[];
+}
 
 /** Sparse smoke/heat with local physical contacts; no ordinary-air pressure simulation. */
 export interface EnvironmentAtmosphere {
@@ -160,6 +166,7 @@ export interface EnvironmentDefinition {
   readonly processes?: readonly EnvironmentProcessDefinition[];
   readonly materials: readonly EnvironmentMaterial[];
   readonly water: EnvironmentWater;
+  readonly resourceSites?: readonly EnvironmentResourceDefinition[];
   readonly structures: EnvironmentStructures;
   /** Optional fresh-world placement; native restore never reapplies it. */
   readonly initialPlacements?: readonly InitialSurfacePlacement[];
@@ -254,6 +261,19 @@ export function validateEnvironmentDefinition(
         throw new Error("structure material quantity exceeds capacity");
       }
     }
+  }
+  const resources = definition?.resourceSites ?? [];
+  if (!Array.isArray(resources) || resources.length > 64) throw new Error("resource catalog exceeds 64 entries");
+  const resourceIds = new Set<string>();
+  for (const resource of resources) {
+    if (!resource || typeof resource.id !== "string" || !/^[A-Za-z0-9._:-]+$/.test(resource.id) || resourceIds.has(resource.id)
+      || typeof resource.outputKind !== "string" || !/^[A-Za-z0-9._:-]+$/.test(resource.outputKind) || !Number.isSafeInteger(resource.outputQuantity) || resource.outputQuantity < 1
+      || ![resource.sowSeconds, resource.tendSeconds, resource.harvestSeconds].every(value => Number.isFinite(value) && value > 0)
+      || !Array.isArray(resource.stages) || resource.stages.length < 1 || resource.stages.length > 64
+      || resource.stages.some((stage: EnvironmentResourceStage) => !stage || !Number.isFinite(stage.delaySeconds) || stage.delaySeconds <= 0 || !Number.isSafeInteger(stage.waterPortions) || stage.waterPortions < 1 || stage.waterPortions > 7)) {
+      throw new Error("invalid resource definition");
+    }
+    resourceIds.add(resource.id);
   }
 }
 

@@ -1058,6 +1058,7 @@ struct KernelEnvironment {
     world: crate::terrain_water::TerrainWater,
     excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
     structures: BTreeMap<String, crate::environment_definition::StructureDefinition>,
+    resources: BTreeMap<String, crate::environment_definition::ResourceDefinition>,
 }
 struct PreparedRoute {
     points: VecDeque<Point>,
@@ -1111,6 +1112,21 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    fn validate_resource_sites(&self) -> Result<()> {
+        let Some(environment) = &self.environment else { return Ok(()); };
+        for (id, entity) in &self.ids {
+            let Some(site) = self.ecs.get::<ResourceSite>(*entity) else { continue; };
+            let definition = environment.resources.get(&site.definition).ok_or("saved resource site definition is missing")?;
+            if site.stage as usize > definition.stages.len() || !site.next_due.is_finite() || site.next_due < 0.0
+                || self.ecs.get::<Position>(*entity).is_none()
+                || self.ecs.get::<FiniteResource>(*entity).is_none()
+                || id.is_empty() { return Err("invalid saved resource site".into()); }
+            let output = self.ecs.get::<FiniteResource>(*entity).unwrap();
+            let mature = site.stage as usize == definition.stages.len();
+            if output.kind != definition.output_kind || (!mature && output.quantity != 0) || (mature && output.quantity != 0 && output.quantity != definition.output_quantity) { return Err("saved resource site yield is invalid".into()); }
+        }
+        Ok(())
+    }
     fn validate_structure_recipes(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         let mut known = self.known.clone();
@@ -1165,7 +1181,8 @@ impl Kernel {
             if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
             if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
             let bindings = bindings_by_process.remove(id).unwrap_or_default();
-            if process.phase != ProcessPhase::Waiting && bindings.is_empty() { return Err("active process has no bindings".into()); }
+            if matches!(process.phase, ProcessPhase::Working | ProcessPhase::Blocked) && bindings.is_empty() { return Err("active process has no bindings".into()); }
+            if process.phase == ProcessPhase::Complete && !bindings.is_empty() { return Err("completed process retains input bindings".into()); }
             if !bindings.is_empty() {
                 crate::staged_process::validate_bindings(
                     definition, id, &process.station, &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
@@ -2031,10 +2048,11 @@ impl Kernel {
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, resources: built.resources, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_structure_recipes()?;
         candidate.validate_process_records()?;
         candidate.validate_construction_sites()?;
+        candidate.validate_resource_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
         Ok(())
@@ -2189,14 +2207,15 @@ impl Kernel {
         candidate.restore_json(&records.entities)?;
         if let Some((definition, records)) = &records.environment {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
-            let mut world = crate::terrain_water::TerrainWater::restore_records(
+            let world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
+            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, resources: prepared.resources, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
             candidate.validate_structure_recipes()?;
             candidate.validate_process_records()?;
             candidate.validate_construction_sites()?;
+            candidate.validate_resource_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
             candidate.validate_terrain_route_witness(entity)?;
@@ -2479,7 +2498,7 @@ impl Kernel {
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
-                    | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
+                    | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
                     | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::AttendProcess { .. } | Action::ExchangeFieldWater { .. })
             });
@@ -2793,13 +2812,65 @@ impl Kernel {
         if self.ecs.get::<Body>(worker).is_none() { return Err("resource extraction requires a worker body".into()); }
         let resource = self.ecs.get::<FiniteResource>(source).cloned().ok_or("not a finite resource")?;
         if resource.quantity == 0 { return Err("finite resource is exhausted".into()); }
-        if self.ecs.get::<SealedContainer>(source).is_some() { return Err("sealed resource cannot receive output".into()); }
-        if self.ecs.get::<Container>(source).is_none() { return Err("finite resource source is not a container".into()); }
-        let prepared = self.prepare_material_output(MaterialOutputSpec {
-            container: source_id.to_owned(), kind: resource.kind, quantity: resource.quantity, water_kg: None,
-        })?;
+        let position = *self.ecs.get::<Position>(source).ok_or("finite resource has no physical position")?;
+        let prepared = self.prepare_ground_output(position, resource.kind, resource.quantity, None)?;
         self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
         Ok(self.publish_material_output(prepared))
+    }
+
+    fn establish_resource_site(&mut self, _operation: &str, worker_id: &str, site_id: &str, definition_id: &str, x: i32, y: i32, z: i32) -> Result<String> {
+        let worker = self.entity(worker_id)?;
+        if self.ecs.get::<Body>(worker).is_none() { return Err("resource sowing requires a worker body".into()); }
+        if !valid_id(site_id) || !valid_id(definition_id) { return Err("resource site identity is unavailable".into()); }
+        let (definition, spacing, surface) = {
+            let environment = self.environment.as_mut().ok_or("resource sowing requires terrain")?;
+            let definition = environment.resources.get(definition_id).ok_or("unknown resource definition")?.clone();
+            let surface = environment.world.surface_cells(&[(i64::from(x), i64::from(z))])?.into_iter().next().flatten().ok_or("resource site requires an empty supported surface")?;
+            (definition, environment.world.cell_spacing_m(), surface)
+        };
+        if surface.cell.y != y { return Err("resource site must be on the generated surface".into()); }
+        let expected = Point { x: f64::from(x) * spacing[0], y: (f64::from(y) + 0.5) * spacing[1], z: f64::from(z) * spacing[2], frame: None };
+        let pose = self.world_pose_entity(worker, 0)?;
+        let same_height = (pose.y - expected.y).abs() < spacing[1] * 0.1;
+        let cardinal_contact = ((pose.x - (expected.x + spacing[0])).abs() < 1e-6 && (pose.z - expected.z).abs() < 1e-6)
+            || ((pose.x - (expected.x - spacing[0])).abs() < 1e-6 && (pose.z - expected.z).abs() < 1e-6)
+            || ((pose.x - expected.x).abs() < 1e-6 && (pose.z - (expected.z + spacing[2])).abs() < 1e-6)
+            || ((pose.x - expected.x).abs() < 1e-6 && (pose.z - (expected.z - spacing[2])).abs() < 1e-6);
+        if !same_height || !cardinal_contact { return Err("worker is not in resource site contact".into()); }
+        if self.ids.iter().any(|(id, existing)| id != site_id && self.ecs.get::<ResourceSite>(*existing).is_some_and(|_| self.ecs.get::<Position>(*existing).is_some_and(|position| (position.x - expected.x).abs() < spacing[0] * 0.5 && (position.y - expected.y).abs() < spacing[1] * 0.5 && (position.z - expected.z).abs() < spacing[2] * 0.5))) { return Err("resource site cell is already occupied".into()); }
+        if self.environment.as_mut().ok_or("resource sowing requires terrain")?.world.structure_surfaces(&[(i64::from(x), i64::from(z))])?.into_iter().flatten().any(|cell| cell.x == i64::from(x) && cell.y == y && cell.z == i64::from(z)) { return Err("resource site cell is occupied by a structure".into()); }
+        let entity = if let Some(entity) = self.ids.get(site_id).copied() {
+            if self.ecs.get::<ResourceSite>(entity).is_some() { return Err("resource site identity is already established".into()); }
+            entity
+        } else {
+            let entity = self.ecs.spawn(ExternalId(site_id.to_owned())).id();
+            self.ids.insert(site_id.to_owned(), entity); self.known.insert(site_id.to_owned()); self.contents.insert(site_id.to_owned(), BTreeSet::new()); entity
+        };
+        self.ecs.entity_mut(entity).insert((Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.stages[0].delay_seconds }));
+        self.refresh_state_weight();
+        Ok(site_id.to_owned())
+    }
+
+    fn tend_resource_site(&mut self, _operation: &str, worker_id: &str, site_id: &str, vessel_id: &str) -> Result<()> {
+        let worker = self.entity(worker_id)?; let site = self.entity(site_id)?;
+        self.entity(vessel_id)?;
+        self.ecs.get::<Body>(worker).ok_or("resource tending requires a worker body")?;
+        let state = self.ecs.get::<ResourceSite>(site).cloned().ok_or("not a resource site")?;
+        let definition = self.environment.as_ref().ok_or("resource tending requires terrain")?.resources.get(&state.definition).ok_or("unknown resource definition")?.clone();
+        let index = usize::from(state.stage);
+        if index >= definition.stages.len() { return Err("resource site is ready for harvest".into()); }
+        if self.time < state.next_due { return Err("resource growth stage is not due".into()); }
+        let portions = definition.stages[index].water_portions;
+        let position = *self.ecs.get::<Position>(site).ok_or("resource site has no position")?;
+        // exchange_field_water performs the full held-lot/soil mass conservation check.
+        let spacing = self.environment.as_ref().ok_or("resource tending requires terrain")?.world.cell_spacing_m();
+        self.exchange_field_water(worker_id, vessel_id, crate::generation::Cell { x: (position.x / spacing[0]).round() as i64, y: (position.y / spacing[1]).floor() as i32, z: (position.z / spacing[2]).round() as i64 }, WaterExchangeDirection::Deposit, portions)?;
+        let next_stage = state.stage.checked_add(1).ok_or("resource stage overflow")?;
+        let next_due = self.time + definition.stages[index].delay_seconds;
+        self.ecs.entity_mut(site).insert(ResourceSite { definition: state.definition, stage: next_stage, next_due });
+        if usize::from(next_stage) == definition.stages.len() { self.ecs.entity_mut(site).insert(FiniteResource { kind: definition.output_kind, quantity: definition.output_quantity }); }
+        self.refresh_state_weight();
+        Ok(())
     }
 
     fn designate_stockpile(&mut self, zone: String, cells: Vec<StockpileDesignation>) -> Result<String> {
@@ -3223,7 +3294,9 @@ impl Kernel {
                 self.ecs.entity_mut(e).insert(stock);
                 Ok(ActionEffect::None)
             }
-            Action::ExtractResource { worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
+            Action::ExtractResource { operation: _, worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
+            Action::EstablishResourceSite { operation, worker, site, definition, x, y, z } => self.establish_resource_site(&operation, &worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
+            Action::TendResourceSite { operation, worker, site, vessel } => self.tend_resource_site(&operation, &worker, &site, &vessel).map(|()| ActionEffect::None),
             Action::Launch {
                 launcher,
                 ammunition,
@@ -4444,33 +4517,59 @@ mod finite_resource_tests {
     #[test]
     fn extraction_conserves_kind_quantity_and_recovers_after_restore() {
         let mut kernel = kernel();
-        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:1","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true);
         let lot = result["results"][0]["entityId"].as_str().unwrap().to_owned();
         let lots: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.lot\"]").unwrap()).unwrap();
         assert_eq!(lots[0]["components"]["hive.lot"]["kind"], "wood");
         assert_eq!(lots[0]["components"]["hive.lot"]["quantity"], 4);
-        assert_eq!(lots[0]["components"]["hive.lot"]["container"], "tree");
+        assert!(lots[0]["components"]["hive.lot"]["container"].as_str().unwrap().starts_with("ground.lot."));
         let resources: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.finite-resource\"]").unwrap()).unwrap();
         assert_eq!(resources[0]["components"]["hive.finite-resource"]["quantity"], 0);
         let saved = kernel.snapshot_json().unwrap();
         let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap();
         assert_eq!(restored.query_json("[\"hive.finite-resource\"]").unwrap(), kernel.query_json("[\"hive.finite-resource\"]").unwrap());
         assert_eq!(restored.query_json("[\"hive.lot\"]").unwrap(), kernel.query_json("[\"hive.lot\"]").unwrap());
-        let retry: serde_json::Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
+        let retry: serde_json::Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:2","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap();
         assert_eq!(retry["results"][0]["accepted"], false);
         assert!(restored.entity(&lot).is_ok());
     }
 
+    #[test]
+    fn establish_resource_site_reuses_existing_intent_entity() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"finite","components":[{"id":"colony.resource-order","version":1,"fields":{"definition":"string","cellX":"number","cellY":"number","cellZ":"number","site":"entity","actor":"nullable-entity","vessel":"nullable-entity","phase":"string","workSeconds":"number","reason":"string","approachX":"number","approachY":"number","approachZ":"number","attempt":"number","operation":"string"}}],"initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"colony.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"site":"site","actor":null,"vessel":null,"phase":"submitting-sow","workSeconds":1,"reason":"","approachX":1,"approachY":0,"approachZ":0,"attempt":1,"operation":"site:sow:1"}}}]}).to_string()).unwrap();
+        let mut environment_definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("resource")).unwrap();
+        environment_definition["resourceSites"] = json!([{
+            "id":"mugwort", "outputKind":"mugwort", "outputQuantity":1,
+            "sowSeconds":1.0, "tendSeconds":1.0, "harvestSeconds":1.0,
+            "stages":[{"delaySeconds":1.0,"waterPortions":1}]
+        }]);
+        kernel.load_environment(&environment_definition.to_string()).unwrap();
+        let (surface, spacing) = {
+            let environment = kernel.environment.as_mut().unwrap();
+            (environment.world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell, environment.world.cell_spacing_m())
+        };
+        let worker = kernel.entity("worker").unwrap();
+        kernel.ecs.entity_mut(worker).insert(super::Position { x: spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: 0.0, facing: 0.0 });
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"establish-resource-site","operation":"site:sow:1","worker":"worker","site":"site","definition":"mugwort","x":surface.x,"y":surface.y,"z":surface.z}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+        assert_eq!(restored.query_json("[\"hive.resource-site\"]").unwrap(), kernel.query_json("[\"hive.resource-site\"]").unwrap());
+    }
+
     fn action(kernel: &mut Kernel) -> serde_json::Value {
-        serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap()
+        serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:capacity","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap()
     }
 
     #[test]
-    fn capacity_failure_leaves_source_output_and_identity_unchanged() {
+    fn invalid_output_position_leaves_source_output_and_identity_unchanged() {
         let mut kernel = kernel();
         let tree = kernel.entity("tree").unwrap();
-        kernel.ecs.get_mut::<super::Container>(tree).unwrap().capacity = 3;
+        kernel.ecs.get_mut::<super::Position>(tree).unwrap().x = f64::NAN;
         let before_lots = kernel.query_json("[\"hive.lot\"]").unwrap();
         let before_resource = kernel.query_json("[\"hive.finite-resource\"]").unwrap();
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
@@ -4478,7 +4577,7 @@ mod finite_resource_tests {
         assert_eq!(kernel.query_json("[\"hive.finite-resource\"]").unwrap(), before_resource);
         let snapshot: serde_json::Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         assert_eq!(snapshot["next_lot"], 1);
-        kernel.ecs.get_mut::<super::Container>(tree).unwrap().capacity = 8;
+        kernel.ecs.get_mut::<super::Position>(tree).unwrap().x = 1.0;
         assert_eq!(action(&mut kernel)["results"][0]["entityId"], "lot.1");
     }
 
@@ -4497,10 +4596,7 @@ mod finite_resource_tests {
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
         kernel.ecs.entity_mut(worker).insert(super::Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 });
         let tree = kernel.entity("tree").unwrap();
-        kernel.ecs.entity_mut(tree).remove::<super::Container>();
-        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
-        kernel.ecs.entity_mut(tree).insert(super::Container { capacity: 8 });
-        kernel.ecs.entity_mut(tree).insert(super::SealedContainer {});
+        kernel.ecs.entity_mut(tree).remove::<super::FiniteResource>();
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
     }
 }

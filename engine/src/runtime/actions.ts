@@ -36,6 +36,14 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "establish-resource-site":
+      keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
+      valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
+      break;
+    case "tend-resource-site":
+      keys = ["kind", "operation", "worker", "site", "vessel"];
+      valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.vessel);
+      break;
     case "request-process":
       keys = ["kind", "definition", "station"];
       valid = id(action.definition) && id(action.station);
@@ -160,8 +168,8 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.entity) && id(action.lot) && quantity(action.quantity);
       break;
     case "extract-resource":
-      keys = ["kind", "worker", "source"];
-      valid = id(action.worker) && id(action.source);
+      keys = ["kind", "operation", "worker", "source"];
+      valid = id(action.operation) && id(action.worker) && id(action.source);
       break;
     default:
       throw new Error("unsupported action kind");

@@ -87,6 +87,10 @@ export const FiniteResource = component<{ kind: string; quantity: number }>("hiv
   version: 1,
   fields: { kind: "string", quantity: "number" },
 });
+export const ResourceSite = component<{ definition: string; stage: number; nextDue: number }>("hive.resource-site", {
+  version: 1,
+  fields: { definition: "string", stage: "number", nextDue: "number" },
+});
 export const Destination = component<{
   x: number;
   y: number;
@@ -130,9 +134,11 @@ export const consume = (
   lot: EntityId,
   quantity: number,
 ): ActionRequest => ({ kind: "consume", entity, lot, quantity });
-export const extractResource = (worker: EntityId, source: EntityId): ActionRequest => ({
-  kind: "extract-resource", worker, source,
+export const extractResource = (operation: string, worker: EntityId, source: EntityId): ActionRequest => ({
+  kind: "extract-resource", operation, worker, source,
 });
+export const establishResourceSite = (operation: string, worker: EntityId, site: EntityId, definition: string, cell: { x: number; y: number; z: number }): ActionRequest => ({ kind: "establish-resource-site", operation, worker, site, definition, ...cell });
+export const tendResourceSite = (operation: string, worker: EntityId, site: EntityId, vessel: EntityId): ActionRequest => ({ kind: "tend-resource-site", operation, worker, site, vessel });
 
 export interface SceneEntity {
   readonly id: EntityId;

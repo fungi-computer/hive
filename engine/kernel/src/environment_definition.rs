@@ -14,6 +14,7 @@ const MAX_JSON_BYTES: usize = 128 * 1024;
 const MAX_MATERIALS: usize = 64;
 const MAX_CELLS: usize = 2048;
 const MAX_INITIAL_PLACEMENTS: usize = 512;
+const MAX_RESOURCE_DEFINITIONS: usize = 64;
 // Stair dimensions are voxel counts, while slope is checked in world metres.
 // One horizontal cell is one metre in the generated world contract.
 const MAX_STAIR_GRADE: f64 = 1.5;
@@ -38,8 +39,36 @@ struct DefinitionInput {
     #[serde(default)]
     processes: Vec<crate::staged_process::ProcessDefinition>,
     #[serde(default)]
+    resource_sites: Vec<ResourceDefinitionInput>,
+    #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
 }
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct ResourceDefinitionInput {
+    id: String,
+    output_kind: String,
+    output_quantity: u32,
+    sow_seconds: f64,
+    tend_seconds: f64,
+    harvest_seconds: f64,
+    stages: Vec<ResourceStageInput>,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct ResourceStageInput { delay_seconds: f64, water_portions: u8 }
+#[derive(Clone, Debug)]
+pub struct ResourceDefinition {
+    pub id: String,
+    pub output_kind: String,
+    pub output_quantity: u32,
+    pub sow_seconds: f64,
+    pub tend_seconds: f64,
+    pub harvest_seconds: f64,
+    pub stages: Vec<ResourceStage>,
+}
+#[derive(Clone, Debug)]
+pub struct ResourceStage { pub delay_seconds: f64, pub water_portions: u8 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct StructuresInput {
@@ -216,6 +245,7 @@ pub struct PreparedDefinition {
     pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     pub emissions: crate::emission_definition::EmissionCatalog,
     pub processes: crate::staged_process::ProcessCatalog,
+    pub resources: BTreeMap<String, ResourceDefinition>,
 }
 
 pub struct BuiltEnvironment {
@@ -226,11 +256,12 @@ pub struct BuiltEnvironment {
     pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     pub emissions: crate::emission_definition::EmissionCatalog,
     pub processes: crate::staged_process::ProcessCatalog,
+    pub resources: BTreeMap<String, ResourceDefinition>,
 }
 pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
     let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
-    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere, emissions: prepared.emissions, processes: prepared.processes })
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere, emissions: prepared.emissions, processes: prepared.processes, resources: prepared.resources })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -491,6 +522,21 @@ fn prepare_definition_mode(
     )?.with_generated_groundwater();
     let emissions = crate::emission_definition::EmissionCatalog::from_definitions(definition.emissions)?;
     let processes = crate::staged_process::ProcessCatalog::from_definitions(definition.processes, &structures, &emissions)?;
+    if definition.resource_sites.len() > MAX_RESOURCE_DEFINITIONS { return Err("resource catalog exceeds 64 entries".into()); }
+    let mut resources = BTreeMap::new();
+    for entry in definition.resource_sites {
+        if !crate::components::valid_id(&entry.id) || !crate::components::valid_id(&entry.output_kind)
+            || entry.output_quantity == 0 || entry.stages.is_empty() || entry.stages.len() > 64
+            || !entry.sow_seconds.is_finite() || entry.sow_seconds <= 0.0
+            || !entry.tend_seconds.is_finite() || entry.tend_seconds <= 0.0
+            || !entry.harvest_seconds.is_finite() || entry.harvest_seconds <= 0.0
+            || resources.contains_key(&entry.id) { return Err("invalid resource definition".into()); }
+        let stages = entry.stages.into_iter().map(|stage| {
+            if !stage.delay_seconds.is_finite() || stage.delay_seconds <= 0.0 || stage.water_portions == 0 || stage.water_portions > 7 { return Err("invalid resource stage".into()); }
+            Ok(ResourceStage { delay_seconds: stage.delay_seconds, water_portions: stage.water_portions })
+        }).collect::<Result<Vec<_>, String>>()?;
+        resources.insert(entry.id.clone(), ResourceDefinition { id: entry.id, output_kind: entry.output_kind, output_quantity: entry.output_quantity, sow_seconds: entry.sow_seconds, tend_seconds: entry.tend_seconds, harvest_seconds: entry.harvest_seconds, stages });
+    }
     Ok(PreparedDefinition {
         terrain,
         geometry,
@@ -501,6 +547,7 @@ fn prepare_definition_mode(
         atmosphere: definition.atmosphere,
         emissions,
         processes,
+        resources,
     })
 }
 

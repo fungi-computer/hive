@@ -1497,3 +1497,23 @@ working consumers and their gains without expanding their features here.
 
 The success statement is simple: **Levi and a friend enjoyed building and digging
 in the actual clearing, it looked alive, water mattered, and it stayed responsive.**
+
+### Accepted tended-resource slice
+
+The first tended resource is one generic resource definition over the native field
+water owner. A player designates mugwort without reserving a worker. Ordinary work
+then establishes the site, fills and carries a pail when a growth stage needs water,
+and advances only through receipt-confirmed operations. Mature extraction creates
+one conserved ground lot at the site; the ordinary hauling and process owners move
+that same lot into the retained herbal-ale recipe. Resource sites, water mass,
+operation identity and completed brewing survive current-format save/reload. The
+same finite extraction primitive now gives tree output to ground storage instead of
+forcing oversized yield into a worker's hands.
+
+Focused evidence: native terrain-water laws `run-u7069` (13/13), exact WASM build
+`run-u7082`, native finite-resource laws `run-u7085` (4/4), combined tree and tended
+consumer laws `run-u7088` (5/5), and focused strict TypeScript `run-u7087`. The
+remaining Fallow advisories are recorded in
+`.botanical/tended-resource/fallow-accepted.txt`; they do not establish hosted or
+human interaction acceptance. The playable join still needs the ordinary client
+tool, rendered growth feedback and a same-world release check.

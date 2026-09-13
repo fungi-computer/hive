@@ -19,6 +19,7 @@ import {
   encodeDefinition,
   transfer,
   FiniteResource,
+  ResourceSite,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { StagedProcess, requestProcess } from "../sdk/process-supply";
@@ -27,7 +28,7 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
@@ -146,7 +147,6 @@ const colonyInitial = [
     },
   })),
   { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
-  { id: entity("colony.brew.mugwort"), components: { "hive.lot": { quantity: 1, kind: "mugwort", container: pantryId } } },
   { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId }, "hive.container": { capacity: 1 } } },
   { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId }, "hive.container": { capacity: 4 } } },
   ...([taskOne, taskTwo] as const).map((id, index) => ({
@@ -334,9 +334,11 @@ const colonyComponents = [
   DeliveryTask,
   DeliveryControl,
   ColonyDigOrder,
+  ColonyResourceOrder,
   ColonyTree, ColonyTreeOrder,
   ColonyTreePolicy,
   FiniteResource,
+  ResourceSite,
   Cat,
   ConstructionApproach,
   DeconstructionApproach, DeconstructionOrder,
@@ -407,6 +409,13 @@ export const colonyPack: GamePack = {
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };
       },
+    }),
+    sowMugwort: command({
+      title: "Sow mugwort", category: "Colony", description: "Designate a reachable soil cell for tended mugwort.",
+      localPresentation: { bindings: [{ id: "sow-mugwort", label: "Sow mugwort", target: "terrain-cell", designation: ["point"] as const }] },
+      input: z.object({ target: z.object({ cell: z.tuple([z.number().int(), z.number().int(), z.number().int()]) }).strict() }).strict(),
+      reads: [ColonyResourceOrder], writes: [], lifecycle: [ColonyResourceOrder],
+      run: (_context, input) => { const [x, y, z] = input.target.cell; const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`); return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] }; },
     }),
     requestBrew: command({
       title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",
