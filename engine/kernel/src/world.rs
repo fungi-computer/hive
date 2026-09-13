@@ -269,6 +269,10 @@ mod construction_tests {
     fn standing_wall_obstruction_preserves_progress_and_material() {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let bystander = kernel.entity("worker-2").unwrap();
+        kernel.ecs.entity_mut(bystander).insert(Position { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 });
+        kernel.rebuild_physical_indexes(true).unwrap();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-wall","contact":contact},
@@ -340,7 +344,7 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
-        let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
+        let target = Point { x: contact.x - 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-edge","contact":contact},
@@ -358,15 +362,13 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
-        let next_contact = Point { x: contact.x + spacing[0], y: contact.y, z: contact.z, frame: None };
-        for id in ["worker-1", "source"] {
-            let entity = kernel.entity(id).unwrap();
-            kernel.ecs.entity_mut(entity).insert(Position { x: next_contact.x, y: next_contact.y, z: next_contact.z, facing: 0.0 });
-        }
+        let next_contact = contact.clone();
+        let bystander = kernel.entity("worker-2").unwrap();
+        kernel.ecs.entity_mut(bystander).insert(Position { x: (surface.x as f64) * spacing[0], y: contact.y, z: contact.z, facing: 0.0 });
         kernel.rebuild_physical_indexes(true).unwrap();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 1,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-future","contact":next_contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1},
             {"kind":"attend-construction","worker":"worker-1","site":"site-future","contact":next_contact},
