@@ -982,6 +982,7 @@ export const colonyWorkSystem = createWorkSystem({
     ColonyTreeOrder,
     ColonyTreePolicy,
     FiniteResource,
+    ResourceSite,
     Worker,
     Body,
     Traversal,
