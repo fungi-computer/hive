@@ -170,7 +170,7 @@ const goInput = z.object({
 }).strict();
 const stationInput = z.object({ station: z.string().min(1).max(128).transform(entity) }).strict();
 
-function finishedBrewStations(context: ReadContext) {
+function finishedBrewStations(context: Pick<ReadContext, "query">) {
   return context.query(query(ConstructionSite)).filter(row => {
     const site = row.get(ConstructionSite);
     return site.catalog === "brew-station" && site.phase === "finished";
@@ -350,7 +350,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
 
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 4,
+  version: 5,
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
@@ -614,19 +614,18 @@ export const colonyPack: GamePack = {
       for (const lot of lots) lotTotals.set(lot.container, (lotTotals.get(lot.container) ?? 0) + lot.quantity);
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const taskRows = context.query(query(DeliveryTask));
-      const stationFacts = finishedBrewStations(context).flatMap((site) => {
-        const station = context.query(query(Position)).find(row => row.id === site.id)?.get(Position);
+      const stationFacts = finishedBrewStations(context).slice(0, 8).flatMap((site) => {
         const hearth = hearthPort(site.id);
         const ignition = context.query(query(EmissionWork)).find(row => row.id === hearth)?.get(EmissionWork);
-        const stationAir = station ? context.atmosphereSamples([[
-          Math.floor(station.x + 0.5),
-          Math.floor(station.y / colonyEnvironment.world.verticalMetres + 0.5),
-          Math.floor(station.z + 0.5),
-        ]]).samples[0] : null;
+        const stationAir = context.atmosphereSamples([[
+          Math.floor(site.get(ConstructionSite).x + 0.5),
+          site.get(ConstructionSite).y + 1,
+          Math.floor(site.get(ConstructionSite).z + 0.5),
+        ]]).samples[0];
         return [
           { id: `station-air-temperature-${site.id}`, subjects: [site.id], label: "Station air", value: stationAir ? `${stationAir.temperatureC.toFixed(1)} °C` : "Not modeled" },
           { id: `station-air-smoke-${site.id}`, subjects: [site.id], label: "Station smoke", value: stationAir ? `${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "Not modeled" },
-          { id: `station-fuel-${site.id}`, subjects: [hearth], label: "Station wood", value: total(hearth) },
+          { id: `station-fuel-${site.id}`, subjects: [site.id], label: "Station wood", value: total(hearth) },
           { id: `ignition-${site.id}`, label: "Lighting order", subjects: [site.id], value: ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]) },
         ];
       });
