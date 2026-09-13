@@ -8,6 +8,7 @@ test("building command preserves four stair directions without selecting a conta
     const result = colonyBuildCommand.invoke({
       query: () => [],
       physicalContacts: () => [],
+      terrainMaterials: () => [], terrainSurfaces: () => [],
     }, { catalog: "timber-stair", orientation, target: { cell: [0, 17, 0] } });
     assert.equal(result.actions.length, 1);
     const action = result.actions[0];
@@ -18,11 +19,11 @@ test("building command preserves four stair directions without selecting a conta
   }
 });
 test("building designation leaves support and access to native staging", () => {
-  assert.equal(colonyBuildCommand.invoke({ query: () => [], physicalContacts: () => [] },
+  assert.equal(colonyBuildCommand.invoke({ query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] },
     { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }).actions.length, 1);
 });
 test("structures use one shape-owned support-to-origin convention", () => {
-  const context = { query: () => [], physicalContacts: () => [] };
+  const context = { query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] };
   for (const [catalog, expectedY] of [
     ["timber-floor", 17], ["timber-roof", 17], ["timber-stair", 17],
     ["timber-wall", 18], ["timber-bed", 18], ["timber-shelf", 18],
@@ -43,6 +44,7 @@ test("oversized build area rejects before terrain queries and leaves subsequent 
       queries += 1;
       return cells.map((_, index) => ({ solid: index === 0, sealedTop: false, outside: false }));
     },
+    terrainMaterials: () => [], terrainSurfaces: () => [],
   };
   assert.throws(() => colonyBuildCommand.invoke(context, {
     catalog: "timber-floor",
@@ -59,6 +61,7 @@ test("building expands deterministic point, line and rectangle designations with
   const context = {
     query: () => [],
     physicalContacts: (cells: readonly unknown[]) => cells.map((_, index) => ({ solid: index === 0, sealedTop: false, outside: false })),
+    terrainMaterials: () => [], terrainSurfaces: () => [],
   };
   const point = colonyBuildCommand.invoke(context, { catalog: "timber-floor", orientation: "north", target: { cell: [0, 17, 0] } });
   assert.equal(point.actions.length, 1);
@@ -75,6 +78,7 @@ test("building skips an already planned site deterministically", () => {
   const duplicate = colonyBuildCommand.invoke({
     query: () => [{ id: entity("colony.build.timber-wall.0.18.0.north") }],
     physicalContacts: (cells: readonly unknown[]) => cells.map(() => ({ solid: true, sealedTop: false, outside: false })),
+    terrainMaterials: () => [], terrainSurfaces: () => [],
   } as never, { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } });
   assert.deepEqual(duplicate.actions, []);
 });

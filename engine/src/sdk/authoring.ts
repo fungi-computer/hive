@@ -122,7 +122,7 @@ export function command<TInput>(
     subjects?: GameCommandDefinition["subjects"];
     input: z.ZodType<TInput>;
     run: (
-      context: Pick<ReadContext, "query" | "physicalContacts">,
+      context: Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces">,
       input: TInput,
     ) => GameCommandResult;
   },
@@ -138,7 +138,7 @@ export function command<TInput>(
     lifecycle: Object.freeze([...(options.lifecycle ?? [])]),
     reads: Object.freeze([...(options.reads ?? [])]),
     writes: Object.freeze([...options.writes]),
-    invoke(context: Pick<ReadContext, "query" | "physicalContacts">, input: unknown) {
+    invoke(context: Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces">, input: unknown) {
       return options.run(context, options.input.parse(input));
     },
   });

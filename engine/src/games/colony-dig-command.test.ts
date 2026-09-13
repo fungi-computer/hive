@@ -52,7 +52,7 @@ function context(overrides: Partial<Fixture> = {}) {
     [ExcavationWork.id, fixture.work],
     [ColonyDigOrder.id, fixture.orders],
   ]);
-  return { physicalContacts: () => { throw new Error("unexpected physical contact query"); }, query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
+  return { physicalContacts: () => { throw new Error("unexpected physical contact query"); }, terrainMaterials: () => [], terrainSurfaces: () => [], query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
 }
 
 test("Colony dig creates an unassigned area order without requiring a worker", () => {
