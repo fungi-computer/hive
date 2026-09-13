@@ -16,7 +16,7 @@ export const admitProcess = (process: EntityId, definition: string, station: Ent
 type ProcessRow = QueryRow<{ version: number; definition: string; definitionVersion: number; station: EntityId; stageIndex: number; progressSeconds: number; enteredTick: number; phase: "waiting" | "working" | "complete" | "blocked"; blockedReason: string }>;
 
 /** Projects missing process inputs into ordinary delivery obligations, then asks native custody to bind them. */
-export function processSupplyPhase(ctx: WriteContext, sourceContainers: readonly EntityId[]): void {
+export function processSupplyPhase(ctx: WriteContext): void {
   const facts = ctx.workMaterialFacts();
   const lots = facts.lots;
   const admitted = new Set(ctx.outcomes.flatMap(({ action, result }) => action.kind === "admit-process" && result.accepted ? [action.process] : []));
@@ -32,7 +32,7 @@ export function processSupplyPhase(ctx: WriteContext, sourceContainers: readonly
   const destinations = new Set(waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => entity(`${process.station}:${input.port}`))));
   const sourceIds = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).slice(0, 64);
   const supply: SiteSupplyRequirement[] = waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity })));
-  if (supply.length) planSiteSupplies(ctx, { sourceContainers: sourceIds.length ? sourceIds : sourceContainers.filter(id => !destinations.has(id)).slice(0, 64), batchQuantity: 1, requirements: supply });
+  if (supply.length) planSiteSupplies(ctx, { sourceContainers: sourceIds, batchQuantity: 1, requirements: supply });
   for (const { row, process, requirements } of waiting) {
     const ready = requirements.inputs.every(input => {
       const port = `${process.station}:${input.port}`;

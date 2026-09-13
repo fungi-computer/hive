@@ -961,7 +961,7 @@ export const colonyWorkSystem = createWorkSystem({
     DeconstructionOrder,
   ],
   phases: [
-    (ctx) => processSupplyPhase(ctx, []),
+    processSupplyPhase,
     colonySiteSuppliesPhase,
     colonyGroundStockPhase,
     (ctx) =>
