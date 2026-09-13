@@ -1112,6 +1112,22 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    fn validate_resource_sites(&self) -> Result<()> {
+        let Some(environment) = &self.environment else { return Ok(()); };
+        for (id, entity) in &self.ids {
+            let Some(site) = self.ecs.get::<ResourceSite>(*entity) else { continue; };
+            let definition = environment.resources.get(&site.definition).ok_or("saved resource site definition is missing")?;
+            if site.stage as usize > definition.stages.len() || !site.next_due.is_finite() || site.next_due < 0.0
+                || self.ecs.get::<Position>(*entity).is_none()
+                || self.ecs.get::<Container>(*entity).is_none()
+                || self.ecs.get::<FiniteResource>(*entity).is_none()
+                || id.is_empty() { return Err("invalid saved resource site".into()); }
+            let output = self.ecs.get::<FiniteResource>(*entity).unwrap();
+            let mature = site.stage as usize == definition.stages.len();
+            if output.kind != definition.output_kind || (!mature && output.quantity != 0) || (mature && output.quantity != 0 && output.quantity != definition.output_quantity) { return Err("saved resource site yield is invalid".into()); }
+        }
+        Ok(())
+    }
     fn validate_structure_recipes(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         let mut known = self.known.clone();
@@ -2036,6 +2052,7 @@ impl Kernel {
         candidate.validate_structure_recipes()?;
         candidate.validate_process_records()?;
         candidate.validate_construction_sites()?;
+        candidate.validate_resource_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
         Ok(())
@@ -2198,6 +2215,7 @@ impl Kernel {
             candidate.validate_structure_recipes()?;
             candidate.validate_process_records()?;
             candidate.validate_construction_sites()?;
+            candidate.validate_resource_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
             candidate.validate_terrain_route_witness(entity)?;
