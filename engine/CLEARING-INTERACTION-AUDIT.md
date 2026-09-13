@@ -164,6 +164,15 @@ or proof that every worker claim is correct. Both scopes are inactive/dead with
 empty ControlGroups; no server/listener was opened. Saved result is
 .botanical/world-e947-diagnosis/profile-fixed.jsonl.
 
-Publication remains pending: inspect the existing implementation-identity upgrade
-boundary before replacing the DO kernel, so this current-format world is not
-stranded by a hash mismatch. Do not reset the player's world to qualify the fix.
+Levi explicitly approved starting fresh rather than adding update/migration
+machinery. Existing stored worlds were not deleted or modified. On September13,
+source b41b029 was published: DO version d1844efc-a4aa-4afa-b81f-501ba34a7841,
+implementation6128ef5d2cd812c19368dc66df18653a6441fbcc4b142ed9d4fb2bd9d38089df;
+frontend preview856a7ae1-0558-4ddf-beb6-a171af9f3407. Build u6776 and uploads
+u6777/u6778 exited0. First immediate HTTP readback u6779 saw13 mismatches/404s;
+preserved readback-initial.json. Later unchanged readback u6780 matched44/44 files.
+Fresh authenticated Colony observation returned200, revision0,10 facts in852ms.
+This establishes fresh-world startup and served bytes, not a hosted construction
+benchmark or rendered gameplay acceptance. Exact receipts and fresh-world URL:
+.botanical/construction-route-release/. Existing old-hash worlds require New world;
+previous DO e5467434 and frontend c9a94c56 remain rollback references.
