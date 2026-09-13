@@ -50,7 +50,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
     facing: false,
     anchor: "propAnchor",
   }),
-  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", motion: {kind:"foot",stride:0.65}, carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone" } }),
+  "goblin.worker": Object.freeze({ kind: "figure", key: "goblin-worker", motion: {kind:"foot",stride:0.65}, workPoses: { dig: "dig", build: "build", chop: "chop" }, carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone" } }),
   "goblin.guest": Object.freeze({ kind: "figure", key: "goblin" }),
   "goblin.survivor": Object.freeze({ kind: "figure", key: "goblin-traveler", motion: {kind:"foot",stride:0.7}, carryPoses: { bread: "carry-ration" } }),
   "goblin.soldier": Object.freeze({ kind: "figure", key: "goblin", motion:{kind:"foot",stride:0.7} }),
@@ -59,7 +59,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
 const clearingWorker = Object.freeze({
   kind: "figure",
   motion: { kind: "foot", stride: 0.65 },
-  workPoses: { dig: "dig", build: "build" },
+  workPoses: { dig: "dig", build: "build", chop: "chop" },
   carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone" },
 });
 export const COLONY_VISUAL_BINDINGS = Object.freeze({

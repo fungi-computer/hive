@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createAnimationClock, animationFrames, figureFrame } from "./animation.js";
+import { DEFAULT_VISUAL_BINDINGS, COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 
 const actor = (id, x, z, facing = 0) => ({ id, x, y: 0, z, facing });
 test("real work faces its target and animates without pretending the actor walks", () => {
@@ -21,6 +22,16 @@ test("actual work chooses its authored pose; held stock returns to carrying when
   assert.equal(figureFrame(figure, binding, carrying, animation), "carry-0");
   assert.equal(figureFrame(figure, binding, carrying, { ...animation, walking: true }), "carry-1");
   assert.equal(figureFrame(figure, binding, {}, animation), "idle");
+});
+
+test("retained worker binds dig, build and chop activities without idle snap", () => {
+  const figure = Object.fromEntries(["dig", "build", "chop", "carry"].map(pose => [pose, [0, 1, 2, 3].map(direction => [`${pose}-${direction}`]) ]));
+  const binding = DEFAULT_VISUAL_BINDINGS["goblin.worker"];
+  const colonyBindings = [COLONY_VISUAL_BINDINGS["colony.rowan"], COLONY_VISUAL_BINDINGS["colony.sedge"]];
+  const subject = { inventory: { items: [] } };
+  for (const workerBinding of [binding, ...colonyBindings]) for (const kind of ["dig", "build", "chop"]) for (const direction of [0, 1, 2, 3])
+    assert.equal(figureFrame(figure, workerBinding, { ...subject, activity: { kind } }, { direction, frame: 0 }), `${kind}-${direction}`);
+  assert.equal(figureFrame(figure, binding, { ...subject, inventory: { items: [{ kind: "wood", quantity: 1 }] } }, { direction: 0, frame: 0 }), "carry-0");
 });
 test("brief stationary samples retain walking and facing, then settle without turning", () => {
   const clock = createAnimationClock();
