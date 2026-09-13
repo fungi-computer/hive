@@ -1,6 +1,11 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { projectContextualPresentation } from "./contextual-presentation.js";
+import { omitControlsById, projectContextualPresentation } from "./contextual-presentation.js";
+
+test("catalog-owned controls are omitted from generic sidebar projection", () => {
+  const controls = [{ id: "timber-wall" }, { id: "dig" }];
+  assert.deepEqual(omitControlsById(controls, ["timber-wall"]), [{ id: "dig" }]);
+});
 
 test("contextual controls join authoritative command targets by canonical ID", () => {
   const result = projectContextualPresentation({

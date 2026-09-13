@@ -18,6 +18,7 @@ function bindingPresentation(bindings) {
   return { type: "custom", data: { bindings: bindings.map(binding => ({
     id: binding.id,
     label: binding.label,
+    ...(binding.detail === undefined ? {} : { detail: binding.detail }),
     ...(binding.selection === undefined ? {} : { selection: binding.selection }),
     ...(binding.target === undefined ? {} : { target: binding.target }),
     ...(binding.designation === undefined ? {} : { designation: [...binding.designation] }),

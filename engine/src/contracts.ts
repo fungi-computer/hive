@@ -652,6 +652,8 @@ export interface GameCommandDefinition {
 export type GameLocalBinding = Readonly<{
   readonly id: string;
   readonly label: string;
+  /** Optional game-owned compact display detail; never used for admission. */
+  readonly detail?: string;
   readonly selection?: "entities" | Readonly<{ readonly field: string; readonly cardinality: "one" }>;
   readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
   readonly designation?: readonly ("point" | "line" | "rectangle" | "entities")[];
