@@ -8,7 +8,7 @@ import { Slider } from "@fungi.computer/caps/components/slider";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 
-const sizes = [64, 128, 256], workerCounts = [4, 8, 16, 32, 50];
+const sizes = [64, 128, 256, 512], workerCounts = [4, 8, 16, 32, 50, 100, 200];
 const params = new URLSearchParams(location.search);
 const size = sizes.includes(Number(params.get("size"))) ? Number(params.get("size")) : 64;
 const workers = workerCounts.includes(Number(params.get("workers"))) ? Number(params.get("workers")) : 8;
@@ -36,7 +36,7 @@ function panel(hud) {
   wrap.querySelector("#perf-size").addEventListener("change", event => setPreset(Number(event.target.value), workers));
   const output = wrap.querySelector("output");
   createRoot(wrap.querySelector("#perf-workers-slider")).render(React.createElement(Slider, {
-    type: "range", min: 0, max: 4, step: 1, defaultValue: workerCounts.indexOf(workers),
+    type: "range", min: 0, max: workerCounts.length - 1, step: 1, defaultValue: workerCounts.indexOf(workers),
     onChange: event => { output.value = workerCounts[Number(event.target.value)]; },
     onPointerUp: event => setPreset(size, workerCounts[Number(event.currentTarget.value)]),
     onKeyUp: event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) setPreset(size, workerCounts[Number(event.currentTarget.value)]); },

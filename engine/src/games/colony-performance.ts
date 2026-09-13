@@ -8,8 +8,8 @@ import type { GamePack } from "../contracts";
  * remain the owners; this builder only supplies deterministic content data.
  */
 export function createColonyPerformancePack(
-  size: 64 | 128 | 256,
-  workerCount: 4 | 8 | 16 | 32 | 50,
+  size: 64 | 128 | 256 | 512,
+  workerCount: 4 | 8 | 16 | 32 | 50 | 100 | 200,
 ): GamePack {
   const gameId = `colony-performance-${size}-${workerCount}`;
   const definition = JSON.parse(new TextDecoder().decode(colonyPack.definition)) as {

@@ -10,12 +10,12 @@ self.onmessage = event => {
   if (early.length < 64) early.push(event);
   else self.postMessage({ type: "error", message: "performance worker startup queue full" });
 };
-const preset = /^colony-performance:(64|128|256):(4|8|16|32|50)$/.exec(self.name);
+const preset = /^colony-performance:(64|128|256|512):(4|8|16|32|50|100|200)$/.exec(self.name);
 const size = Number(preset?.[1]), workers = Number(preset?.[2]);
-if (![64, 128, 256].includes(size) || ![4, 8, 16, 32, 50].includes(workers))
+if (![64, 128, 256, 512].includes(size) || ![4, 8, 16, 32, 50, 100, 200].includes(workers))
   throw new Error("invalid performance preset");
 const performanceId = `colony-performance-${size}-${workers}`;
-const packs = { [performanceId]: createColonyPerformancePack(size as 64 | 128 | 256, workers as 4 | 8 | 16 | 32 | 50) };
+const packs = { [performanceId]: createColonyPerformancePack(size as 64 | 128 | 256 | 512, workers as 4 | 8 | 16 | 32 | 50 | 100 | 200) };
 void generated.default().then(() => installWorkerRuntime(self, () => wasmKernelPort(new generated.WasmKernel()), {
   colony: colonyPack, ...packs,
 }, { metrics: true })).then(runtime => {
