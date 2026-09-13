@@ -1,5 +1,6 @@
-import { command, entity } from "../sdk/authoring";
+import { command, entity, query } from "../sdk/authoring";
 import { designateStockpile, updateStockpile } from "../sdk/stockpile";
+import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 
 const cell = z.tuple([
@@ -10,10 +11,10 @@ const cell = z.tuple([
 const area = z.object({ start: cell, end: cell }).strict();
 export const colonyStockpileInputSchema = z.object({
   area,
-  filterProfile: z.enum(["wood", "food"]),
+  filterProfile: z.enum(["wood", "food", "spoil"]),
   priority: z.number().int().min(1).max(100),
 }).strict();
-export const colonyStockpilePolicyInputSchema = z.object({ zone: z.string().min(1).max(128), filterProfile: z.enum(["wood", "food"]), priority: z.number().int().min(1).max(100) }).strict();
+export const colonyStockpilePolicyInputSchema = z.object({ cell: z.string().min(1).max(128), filterProfile: z.enum(["wood", "food", "spoil"]).optional(), priority: z.number().int().min(1).max(100) }).strict();
 
 const STOCKPILE_CAPACITY = 6;
 
@@ -56,7 +57,20 @@ export const colonyStockpileCommand = command({
 
 export const colonyStockpilePolicyCommand = command({
   title: "Update stockpile", category: "Storage", description: "Change a stockpile's material profile and priority.",
-  input: colonyStockpilePolicyInputSchema,
+  localPresentation: { bindings: [
+    { id: "stockpile-profile-wood", label: "Store building materials", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "wood", priority: 50 } },
+    { id: "stockpile-profile-food", label: "Store food and brewing inputs", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "food", priority: 50 } },
+    { id: "stockpile-profile-spoil", label: "Store spoil and raw materials", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "spoil", priority: 50 } },
+    { id: "stockpile-priority-low", label: "Low priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 25 } },
+    { id: "stockpile-priority-normal", label: "Normal priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 50 } },
+    { id: "stockpile-priority-preferred", label: "Preferred priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 75 } },
+  ] },
+  subjects: context => context.query(query(StockpileCell)).map(row => row.id),
   reads: [], writes: [],
-  run: (_context, value) => ({ writes: [], actions: [updateStockpile(entity(value.zone), value.filterProfile, value.priority)] }),
+  run: (context, value) => {
+    const cell = context.query(query(StockpileCell)).find(row => row.id === value.cell);
+    if (!cell) throw new Error("Choose a stockpile cell");
+    const current = cell.get(StockpileCell);
+    return { writes: [], actions: [updateStockpile(entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority)] };
+  },
 });

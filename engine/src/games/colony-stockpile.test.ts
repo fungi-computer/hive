@@ -82,13 +82,14 @@ test("stockpile policy is player configurable and survives reload", () => {
     const [x, y, z] = surface.cell;
     session.command("designateStockpile", { area: { start: [x, y, z], end: [x, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
-    const designated = session.query(query(StockpileCell))[0].get(StockpileCell);
-    session.command("updateStockpile", { zone: designated.zone, filterProfile: "food", priority: 3 });
+    const designatedRow = session.query(query(StockpileCell))[0];
+    const designated = designatedRow.get(StockpileCell);
+    session.command("updateStockpile", { cell: designatedRow.id, filterProfile: "food", priority: 3 });
     session.step(0);
     const cell = session.query(query(StockpileCell))[0].get(StockpileCell);
     assert.match(cell.zone, /^colony\.stockpile\.2\.-?\d+\.2\.2\.2$/);
     assert.ok(session.query(query(StockpileCell)).every(row => row.get(StockpileCell).priority === 3 && row.get(StockpileCell).filterProfile === "food"), "policy updates every cell in the zone");
-    assert.throws(() => session.command("updateStockpile", { zone: cell.zone, filterProfile: "wood", priority: 101 }), /expected number to be <=100/);
+    assert.throws(() => session.command("updateStockpile", { cell: designatedRow.id, filterProfile: "wood", priority: 101 }), /expected number to be <=100/);
     assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell, "invalid policy is rejected atomically");
     session.command("designateStockpile", { area: { start: [x + 2, y, z], end: [x + 2, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);

@@ -509,6 +509,9 @@ export function createHiveClient({
     const renderOrdersPalette = () => actionBarState.get() === "orders" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Orders and work palette" },
       ...actionGroups.work.map(renderWorldControl),
     ) : null;
+    const renderZonesPalette = () => actionBarState.get() === "zones" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Zones palette" },
+      ...actionGroups.zones.map(renderWorldControl),
+    ) : null;
     const renderActiveTool = activeControl ? React.createElement("section", { className: "hive-active-tool", "aria-label": "Active tool" },
       React.createElement("strong", null, activeControl.label),
       activeControl.detail ? React.createElement("small", null, activeControl.detail) : null,
@@ -517,10 +520,11 @@ export function createHiveClient({
       React.createElement(Button, { size: "sm", variant: "primary", onClick: cancelPlacement }, "Done / cancel"),
     ) : null;
     const renderActionDock = () => React.createElement(React.Fragment, null,
-      renderBuildPalette(), renderOrdersPalette(), renderActiveTool(),
+      renderBuildPalette(), renderOrdersPalette(), renderZonesPalette(), renderActiveTool(),
       React.createElement("div", { className: "hive-action-bar", role: "toolbar", "aria-label": "World actions" },
         buildGroups.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "build" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "build", onClick: () => { actionBarState.toggle("build"); renderHud(); } }, "Build") : null,
         actionGroups.work.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "orders" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "orders", onClick: () => { actionBarState.toggle("orders"); renderHud(); } }, "Orders / Work") : null,
+        actionGroups.zones.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "zones" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "zones", onClick: () => { actionBarState.toggle("zones"); renderHud(); } }, "Zones") : null,
       ),
     );
     const act = (kind) => {
