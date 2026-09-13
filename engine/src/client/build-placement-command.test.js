@@ -19,6 +19,6 @@ test("wall stroke preview and one submitted build agree on the dominant-axis lin
   }, command.input);
   assert.deepEqual(result.actions.map(action => action.kind === "plan-construction" ? [action.x, action.y - 1, action.z] : null), preview.map(surface => surface.cell));
   assert.ok(result.actions.every(action => action.kind === "plan-construction" && action.orientation === "east"));
-  assert.throws(() => designationEndpoints(start, [1_000_000, 13, 1_000_000], "line"), /exceeds area limit/);
-  assert.throws(() => designationEndpoints(start, end, "rectangle"), /exceeds area limit/);
+  assert.throws(() => designationEndpoints(start, [1_000_000, 13, 1_000_000], "line"), /at most/);
+  assert.throws(() => designationEndpoints(start, end, "rectangle"), /at most/);
 });

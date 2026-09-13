@@ -10,7 +10,7 @@ function cell(value) {
 }
 
 function sameLevel(start, end) {
-  if (start[1] !== end[1]) throw new Error("spatial designation must stay on one level");
+  if (start[1] !== end[1]) throw new RangeError("Selection must stay on one level");
 }
 
 export function pointDesignation(value) { return { kind: "point", cells: [cell(value)] }; }
@@ -23,7 +23,7 @@ export function lineDesignation(startValue, endValue, maxArea = 256) {
   const finish = alongX ? [end[0], start[1], start[2]] : [start[0], start[1], end[2]];
   const from = alongX ? start[0] : start[2], to = alongX ? finish[0] : finish[2];
   if (!integer(maxArea) || maxArea < 1 || maxArea > 4096) throw new Error("spatial designation area limit is invalid");
-  if (Math.abs(to - from) + 1 > maxArea) throw new Error("spatial designation exceeds area limit");
+  if (Math.abs(to - from) + 1 > maxArea) throw new RangeError(`Select at most ${maxArea} cells at once`);
   const step = from <= to ? 1 : -1;
   const cells = [];
   for (let value = from; ; value += step) {
@@ -38,7 +38,7 @@ export function rectangleDesignation(startValue, endValue, maxArea = 256) {
   sameLevel(start, end);
   if (!integer(maxArea) || maxArea < 1 || maxArea > 4096) throw new Error("spatial designation area limit is invalid");
   const width = Math.abs(end[0] - start[0]) + 1, depth = Math.abs(end[2] - start[2]) + 1;
-  if (!integer(width * depth) || width * depth > maxArea) throw new Error("spatial designation exceeds area limit");
+  if (!integer(width * depth) || width * depth > maxArea) throw new RangeError(`Select at most ${maxArea} cells at once`);
   const cells = [];
   for (let z = Math.min(start[2], end[2]); z <= Math.max(start[2], end[2]); z++)
     for (let x = Math.min(start[0], end[0]); x <= Math.max(start[0], end[0]); x++) cells.push([x, start[1], z]);
@@ -59,11 +59,20 @@ export function designation(mode, start, end, maxArea = 256) {
   return entityDesignation(start);
 }
 
+/** Expected player-sized selection failures are data; programming errors still throw. */
+export function evaluateDesignation(mode, start, end, maxArea = 256) {
+  try { return { accepted: true, designation: designation(mode, start, end, maxArea) }; }
+  catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return { accepted: false, reason: error.message };
+  }
+}
+
 /** One XState owner for all world gestures; it owns lifecycle, not authority. */
 export const spatialDesignationMachine = createMachine({
   id: "hive-spatial-designation",
   initial: "idle",
-  context: { mode: "rectangle", start: null, current: null, committed: [], maxArea: 256 },
+  context: { mode: "rectangle", start: null, current: null, committed: [], rejection: null, maxArea: 256 },
   states: {
     idle: { on: {
       SET_MODE: { actions: "setMode" },
@@ -78,10 +87,19 @@ export const spatialDesignationMachine = createMachine({
     } },
   },
 }, { actions: {
-  setMode: assign(({ event }) => { if (!MODES.has(event.mode)) throw new Error("spatial designation mode is invalid"); return { mode: event.mode, committed: [] }; }),
-  begin: assign(({ event }) => ({ start: cell(event.cell), current: cell(event.cell), committed: [] })),
-  move: assign(({ event }) => ({ current: cell(event.cell) })),
-  commit: assign(({ context }) => ({ committed: context.start && context.current ? designation(context.mode, context.start, context.current, context.maxArea) : { kind: context.mode, ...(context.mode === "entities" ? { entities: [] } : { cells: [] }) } })),
-  commitEntities: assign(({ event }) => ({ committed: designation("entities", event.entities) })),
-  cancel: assign({ start: null, current: null, committed: [] }),
+  setMode: assign(({ event }) => { if (!MODES.has(event.mode)) throw new Error("spatial designation mode is invalid"); return { mode: event.mode, committed: [], rejection: null }; }),
+  begin: assign(({ event }) => ({ start: cell(event.cell), current: cell(event.cell), committed: [], rejection: null })),
+  move: assign(({ context, event }) => {
+    const current = cell(event.cell);
+    const result = evaluateDesignation(context.mode, context.start, current, context.maxArea);
+    return { current, rejection: result.accepted ? null : result.reason };
+  }),
+  commit: assign(({ context }) => {
+    const result = evaluateDesignation(context.mode, context.start, context.current, context.maxArea);
+    return result.accepted
+      ? { committed: result.designation, rejection: null }
+      : { committed: [], rejection: result.reason };
+  }),
+  commitEntities: assign(({ event }) => ({ committed: designation("entities", event.entities), rejection: null })),
+  cancel: assign({ start: null, current: null, committed: [], rejection: null }),
 } });

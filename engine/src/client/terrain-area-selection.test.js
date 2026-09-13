@@ -14,7 +14,7 @@ test("rectangle selection is deterministic, reversible, and bounded", () => {
   const state = updateTerrainArea(beginTerrainArea([2, 4, 3]), [0, 4, 2]);
   assert.deepEqual(commitTerrainArea(state), rectangleCells([2, 4, 3], [0, 4, 2]));
   assert.deepEqual(cancelTerrainArea(), { start: null, current: null });
-  assert.throws(() => rectangleCells([0, 4, 0], [16, 4, 0], 16), /area limit/);
+  assert.throws(() => rectangleCells([0, 4, 0], [16, 4, 0], 16), /at most/);
   assert.throws(() => rectangleCells([0, 4, 0], [0, 5, 0]), /one level/);
 });
 

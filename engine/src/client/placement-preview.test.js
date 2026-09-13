@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clearPlacementGhosts, disposePlacementGhosts, placementVisualSpec, syncPlacementGhosts } from "./placement-preview.js";
+import { clearPlacementGhosts, disposePlacementGhosts, placementCells, placementVisualSpec, syncPlacementGhosts } from "./placement-preview.js";
 
 function fakeSprite() {
   return {
@@ -28,4 +28,11 @@ test("placement ghost pool reuses, shrinks, clears and disposes owned sprites", 
   disposePlacementGhosts(pool);
   assert.equal(pool.entries.length, 0);
   assert.equal(first.destroyed, true);
+});
+
+
+test("ghost strokes reject oversized selections but expose programming errors", () => {
+  assert.deepEqual(placementCells({ area: { mode: "rectangle", start: [0, 0, 0], current: [1000000, 0, 1000000] } }), []);
+  assert.deepEqual(placementCells({ area: { mode: "line", start: [0, 0, 0], current: [2, 0, 2] } }), [[0, 0, 0], [1, 0, 0], [2, 0, 0]]);
+  assert.throws(() => placementCells({ area: { mode: "typo", start: [0, 0, 0], current: [2, 0, 2] } }), /mode is invalid/);
 });

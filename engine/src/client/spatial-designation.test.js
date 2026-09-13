@@ -32,3 +32,38 @@ test("one XState owner previews, commits, and cancels every spatial stroke", () 
   assert.deepEqual(owner.getSnapshot().context.committed, entityDesignation(["worker.2", "worker.1"]));
   owner.stop();
 });
+
+
+test("oversized and cross-level gestures reject without killing the tool", () => {
+  const owner = createActor(spatialDesignationMachine).start();
+  for (const end of [[1000000, 4, 1000000], [1, 5, 1]]) {
+    owner.send({ type: "BEGIN", cell: [0, 4, 0] });
+    owner.send({ type: "MOVE", cell: end });
+    assert.equal(owner.getSnapshot().value, "dragging");
+    assert.ok(owner.getSnapshot().context.rejection);
+    owner.send({ type: "END" });
+    assert.equal(owner.getSnapshot().status, "active");
+    assert.equal(owner.getSnapshot().value, "idle");
+    assert.deepEqual(owner.getSnapshot().context.committed, []);
+    assert.ok(owner.getSnapshot().context.rejection);
+  }
+  owner.send({ type: "BEGIN", cell: [0, 4, 0] });
+  owner.send({ type: "MOVE", cell: [1, 4, 1] });
+  owner.send({ type: "END" });
+  assert.equal(owner.getSnapshot().context.rejection, null);
+  assert.equal(owner.getSnapshot().context.committed.cells.length, 4);
+  owner.stop();
+});
+
+
+test("dragging back inside the limit clears rejection before release", () => {
+  const owner = createActor(spatialDesignationMachine).start();
+  owner.send({ type: "BEGIN", cell: [0, 0, 0] });
+  owner.send({ type: "MOVE", cell: [999, 0, 999] });
+  assert.ok(owner.getSnapshot().context.rejection);
+  owner.send({ type: "MOVE", cell: [1, 0, 1] });
+  assert.equal(owner.getSnapshot().context.rejection, null);
+  owner.send({ type: "END" });
+  assert.equal(owner.getSnapshot().context.committed.cells.length, 4);
+  owner.stop();
+});

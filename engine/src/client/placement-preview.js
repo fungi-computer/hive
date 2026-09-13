@@ -1,10 +1,12 @@
+import { evaluateDesignation } from "./spatial-designation.js";
+
 const FACING = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
 
 /** Build the exact cells a placement gesture owns. No admission is inferred. */
-export function placementCells({ area, target, anchor, upperCandidates = [], designate }) {
+export function placementCells({ area, target, anchor, upperCandidates = [] }) {
   if (area?.start && area.current) {
-    try { return designate(area.mode, area.start, area.current, 256).cells; }
-    catch { return []; }
+    const result = evaluateDesignation(area.mode, area.start, area.current, 256);
+    return result.accepted ? result.designation.cells : [];
   }
   if (anchor) return upperCandidates;
   return target ? [target] : [];

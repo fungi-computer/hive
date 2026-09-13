@@ -45,7 +45,6 @@ import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
-import { designation } from "./spatial-designation.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -846,9 +845,7 @@ export function createHiveClient({
     const area = terrainArea.getSnapshot();
     const displayed = displayedTerrainFrame();
     if (area.value === "dragging" && displayed) {
-      let preview = [];
-      try { preview = visibleTerrainDesignationPreview(displayed, area.context.start, area.context.current, area.context.mode); }
-      catch { preview = []; }
+      const preview = visibleTerrainDesignationPreview(displayed, area.context.start, area.context.current, area.context.mode);
       for (const surface of preview) {
         const [x,y,z] = surface.cell;
         const points = [[x-.5,z-.5],[x+.5,z-.5],[x+.5,z+.5],[x-.5,z+.5]].flatMap(([a,b]) => {
@@ -872,7 +869,6 @@ export function createHiveClient({
         target: targetSnapshot.context.hover,
         anchor: anchored,
         upperCandidates,
-        designate: designation,
       });
       syncPlacementGhosts(placementGhosts, placementVisualSpec(buildControl, cells, placementVisuals), {
         art, bindings, resolve: resolveStaticVisual, project,
@@ -995,14 +991,9 @@ export function createHiveClient({
       const at = point(event);
       const cell = terrainPlaneCell((at.x-camera.x)/camera.zoom, (at.y-camera.y)/camera.zoom, context.start[1], displayed.verticalMetres);
       if (cell.every((value,index) => value === context.current[index])) return;
-      try {
-        designationEndpoints(context.start, cell, context.mode, 256);
-        terrainArea.send({ type: "MOVE", cell });
-        state.message = `Designate ${visibleTerrainDesignationPreview(displayed, context.start, cell, context.mode).length} visible cells`;
-      } catch (error) {
-        terrainArea.send({ type: "CANCEL" });
-        state.message = error.message;
-      }
+      terrainArea.send({ type: "MOVE", cell });
+      state.message = terrainArea.getSnapshot().context.rejection
+        ?? `Designate ${visibleTerrainDesignationPreview(displayed, context.start, cell, context.mode).length} visible cells`;
       renderHud(); draw(); return;
     }
     const targetSnapshot = terrainTarget.getSnapshot();
@@ -1032,24 +1023,33 @@ export function createHiveClient({
     gesture.send({ type: "MOVE", point: point(event) });
     draw();
   }
+  function finishTerrainArea(event) {
+    pointerMove(event);
+    if (terrainArea.getSnapshot().value !== "dragging") {
+      app.canvas.releasePointerCapture?.(event.pointerId);
+      return;
+    }
+    const areaContext = terrainArea.getSnapshot().context;
+    const { start, current, mode } = areaContext;
+    const control = terrainTarget.getSnapshot().context.control;
+    terrainArea.send({ type: "END" });
+    terrainTarget.send({ type: "HOVER", cell: null });
+    app.canvas.releasePointerCapture?.(event.pointerId);
+    const rejection = terrainArea.getSnapshot().context.rejection;
+    if (rejection) {
+      state.message = rejection;
+      renderHud(); draw(); return;
+    }
+    if (control?.target === "terrain-area" || control?.target === "world-surface") {
+      const endpoints = designationEndpoints(start, current, mode, 256);
+      submit(terrainAreaPresentationCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }));
+    }
+    renderHud(); draw(); return;
+  }
   function pointerUp(event) {
     if (terrainArea.getSnapshot().value === "dragging") {
-      pointerMove(event);
-      if (terrainArea.getSnapshot().value !== "dragging") {
-        app.canvas.releasePointerCapture?.(event.pointerId);
-        return;
-      }
-      const areaContext = terrainArea.getSnapshot().context;
-      const { start, current, mode } = areaContext;
-      const control = terrainTarget.getSnapshot().context.control;
-      terrainArea.send({ type: "END" });
-      terrainTarget.send({ type: "HOVER", cell: null });
-      app.canvas.releasePointerCapture?.(event.pointerId);
-      if (control?.target === "terrain-area" || control?.target === "world-surface") {
-        const endpoints = designationEndpoints(start, current, mode, 256);
-        submit(terrainAreaPresentationCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }));
-      }
-      renderHud(); draw(); return;
+      finishTerrainArea(event);
+      return;
     }
     const snapshot = gesture.getSnapshot();
     if (snapshot.value !== "dragging") return;

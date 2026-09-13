@@ -176,3 +176,27 @@ This establishes fresh-world startup and served bytes, not a hosted construction
 benchmark or rendered gameplay acceptance. Exact receipts and fresh-world URL:
 .botanical/construction-route-release/. Existing old-hash worlds require New world;
 previous DO e5467434 and frontend c9a94c56 remain rollback references.
+
+## Shared gesture rejection and retained placement previews — source checkpoint
+
+Root reviewed the ghost writer09cf164/f628543 and integrated its source, correcting
+the arrow-factory construction bug before acceptance. Sprite lifetime checks cover
+reuse/hide/disposal without destroying shared textures. The shared designation
+owner now treats size/cross-level RangeErrors as expected rejection data. MOVE
+retains the gesture, shrinking back clears rejection, END releases without
+submitting, and the next BEGIN works. Unknown modes/programming errors still throw.
+The actual pointer caller and previews consume this same decision; broad catches
+and injected duplicate designation functions were removed.
+
+u6782: eight laws passed; command test failed module resolution before execution.
+Bundled unchanged command consumer passed u6783. Two changed MOVE/recovery laws
+passed u6785. Initial audit u6784 flagged pointerUp complexity; splitting terrain
+completion from entity selection removed the introduced finding. u6786 audit
+passed new-only, retaining nine inherited dead-code issues,13 complexity findings
+and one duplication group. No dependency/export deletion was made to hide them.
+
+Not published or visually accepted. Root found an additional preview mismatch:
+wall area commands infer orientation from the stroke when orientation is absent,
+while ghosts still default north. Resolve that through an owned shared placement
+rule before claiming the ghost preview matches the committed building. Full
+retained footprints/joined walls/contextual cards and brewing remain incomplete.
