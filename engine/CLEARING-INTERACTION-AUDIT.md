@@ -271,3 +271,11 @@ save/reload retains plans/effort/physical lots; no occupied staging relocation;
 completion blocked by water/actor does not consume/duplicate materials. Conflicting
 commands still respect the authoritative order—determinism does not mean mutually
 exclusive orders can both win. No fresh complete-support claim from source review.
+
+Implementation checkpoint: existing native helper now owns construction readiness
+in isolated hive-construction-readiness, branch engine/construction-readiness-20260913
+from e9d3663, source only pending first API review. Root retains staging/blueprint
+admission and original-art joins. Upper placement no longer excludes the selected
+supporting top itself; u6793 passed three focused candidate/pointer/cache checks.
+This corrects target acquisition, not physical support/worker eligibility; those
+remain native-owned. No new deployment or floor-on-wall playtest claimed.

@@ -9,10 +9,10 @@ export function structureAnchor(frame, cell) {
 export function upperPlacementCandidates(frame, anchor) {
   if (!frame || !anchor) return [];
   if (!structureAnchor(frame, anchor)) return [];
-  return [[-1, 0], [1, 0], [0, -1], [0, 1]]
+  return [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]
     .map(([dx, dz]) => [anchor[0] + dx, anchor[1], anchor[2] + dz])
-    .filter(cell => !(frame.surfaces ?? []).some(surface => sameCell(surface.cell, cell)) &&
-      !(frame.structureSurfaces ?? []).some(surface => sameCell(surface.cell, cell)));
+    .filter(cell => sameCell(cell, anchor) || (!(frame.surfaces ?? []).some(surface => sameCell(surface.cell, cell)) &&
+      !(frame.structureSurfaces ?? []).some(surface => sameCell(surface.cell, cell))));
 }
 export function upperPlacementAt(point, frame, anchor) {
   if (!frame || !anchor || !Number.isFinite(frame.verticalMetres)) return null;
