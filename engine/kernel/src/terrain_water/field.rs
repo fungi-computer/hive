@@ -95,7 +95,6 @@ fn neighbors(c: Cell) -> [Cell; 6] {
 fn page(c: Cell) -> [i64; 3] { [c.x.div_euclid(8), i64::from(c.y).div_euclid(8), c.z.div_euclid(8)] }
 impl Field {
     fn get(&self, c: Cell) -> Option<Stock> { self.pages.get(&page(c)).and_then(|p| p.get(&c)).copied() }
-    pub(super) fn has(&self, c: Cell) -> bool { self.get(c).is_some() }
     fn put(&mut self, c: Cell, stock: Stock) {
         let p = Arc::make_mut(self.pages.entry(page(c)).or_default());
         if p.insert(c, stock).is_none() { self.count += 1; }
@@ -123,7 +122,7 @@ impl Field {
             if at.x >= bounds.min_x && at.x < bounds.max_x && at.y >= bounds.min_y && at.y < bounds.max_y && at.z >= bounds.min_z && at.z < bounds.max_z { self.wake(at); }
         }
     }
-    pub(super) fn realize(&mut self, c: Cell, view: &mut View<'_>) -> Result<Option<Stock>, String> {
+    fn realize(&mut self, c: Cell, view: &mut View<'_>) -> Result<Option<Stock>, String> {
         if let Some(stock) = self.get(c) { return Ok(Some(stock)); }
         let Some(shape) = view.shape(c)? else { return Ok(None); };
         if self.count >= MAX_STOCKS { return Err("local water stock record capacity reached".into()); }

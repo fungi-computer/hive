@@ -3,11 +3,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";
 import { Body, MaterialLot, Position, ResourceSite } from "../sdk/common";
+import { GroundStock } from "../sdk/ground-stock";
 import { query } from "../sdk/authoring";
 import { colonyPack } from "./colony";
 import { ColonyResourceOrder, resourceWorkProvider } from "./colony-work";
 import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
+import { ConstructionSite } from "../sdk/construction";
+import { DeliveryTask } from "../sdk/delivery";
+import { StagedProcess } from "../sdk/process-supply";
 
 const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
@@ -110,18 +114,59 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
     const savedBeforeWork = session.save();
     session.restore(savedBeforeWork);
     assert.deepEqual(session.save(), savedBeforeWork);
+    let restoredSubmittingOperation = false;
     for (let tick = 0; tick < 4000; tick++) {
       try { session.step(0.25); } catch (error) {
         throw new Error(`resource step ${tick} failed: ${String(error)}`, { cause: error as Error });
       }
       const current = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
+      if (!restoredSubmittingOperation && current?.phase.startsWith("submitting-")) {
+        const pending = session.save();
+        session.restore(pending);
+        assert.deepEqual(session.save(), pending, "an admitted physical operation must survive exact save/reload");
+        restoredSubmittingOperation = true;
+      }
       if (current?.phase === "complete") break;
     }
+    assert(restoredSubmittingOperation, "the real consumer must cross a durable submitting phase");
     const completed = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
     assert.equal(completed?.phase, "complete", "resource order must complete before conservation is assessed");
-    const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
-    const harvested = lots.filter(lot => lot.kind === "mugwort" && lot.container.startsWith("colony.worker."));
-    assert.equal(harvested.reduce((sum, lot) => sum + lot.quantity, 0), 1, "the native harvest lot must enter worker custody");
+    const groundStocks = new Set(session.query(query(GroundStock)).map(row => row.id));
+    const harvested = session.query(query(MaterialLot)).filter(row => {
+      const lot = row.get(MaterialLot);
+      return lot.kind === "mugwort" && groundStocks.has(lot.container);
+    });
+    assert.equal(harvested.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 1, "the native harvest lot must land once at its physical site");
+
+    session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
+    for (let tick = 0; tick < 500; tick++) {
+      const station = session.query(query(ConstructionSite)).find(row => row.get(ConstructionSite).catalog === "brew-station" && row.get(ConstructionSite).phase === "finished");
+      if (station) break;
+      session.step(0.25);
+    }
+    const station = session.query(query(ConstructionSite)).find(row => row.get(ConstructionSite).catalog === "brew-station" && row.get(ConstructionSite).phase === "finished");
+    assert(station, "retained brew station must be built through ordinary construction");
+    session.command("requestBrew", { station: station.id });
+    let sawHarvestDelivery = false;
+    for (let tick = 0; tick < 2400; tick++) {
+      try { session.step(0.25); } catch (error) {
+        const processes = session.query(query(StagedProcess)).map(row => ({ id: row.id, ...row.get(StagedProcess) }));
+        const deliveries = session.query(query(DeliveryTask)).map(row => ({ id: row.id, ...row.get(DeliveryTask) }));
+        const lots = session.query(query(MaterialLot)).map(row => ({ id: row.id, ...row.get(MaterialLot) }));
+        throw new Error(`brew step ${tick} failed with processes=${JSON.stringify(processes)} deliveries=${JSON.stringify(deliveries)} lots=${JSON.stringify(lots)}: ${String(error)}`, { cause: error as Error });
+      }
+      sawHarvestDelivery ||= session.query(query(DeliveryTask)).some(row => {
+        const delivery = row.get(DeliveryTask);
+        return delivery.material === "mugwort" && delivery.sourceLot === harvested[0]?.id;
+      });
+      const process = session.query(query(StagedProcess))[0]?.get(StagedProcess);
+      if (process?.phase === "complete") break;
+    }
+    assert(sawHarvestDelivery, "ordinary delivery must haul the newly harvested mugwort into the station");
+    assert.equal(session.query(query(StagedProcess))[0]?.get(StagedProcess).phase, "complete", "retained herbal-ale process must complete");
+    const brewedLots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
+    assert.equal(brewedLots.filter(lot => lot.kind === "ale").reduce((sum, lot) => sum + lot.quantity, 0), 4);
+    assert.equal(brewedLots.filter(lot => lot.kind === "mugwort").reduce((sum, lot) => sum + lot.quantity, 0), 0, "the harvested mugwort must be consumed exactly once");
     const saved = session.save();
     session.restore(saved);
     assert.deepEqual(session.save(), saved);

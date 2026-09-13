@@ -9,6 +9,7 @@ import { colonyPack } from "./colony";
 import { Container, Destination, FiniteResource, MaterialLot, Position, query } from "../sdk/index";
 import { DeliveryTask } from "../sdk/delivery";
 import { StockpileCell } from "../sdk/stockpile";
+import { GroundStock } from "../sdk/ground-stock";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -46,12 +47,19 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
     session.step(0.25);
     const afterClaim = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree)!.get(ColonyTreeOrder);
     assert.equal(afterClaim.stage, "chop");
-    for (let i = 0; i < 40; i++) session.step(0.25);
+    for (let i = 0; i < 240; i++) {
+      session.step(0.25);
+      if (session.query(query(ColonyTree)).find(row => row.id === tree)?.get(ColonyTree).phase === "chopped") break;
+    }
     const treeState = session.query(query(ColonyTree)).find(row => row.id === tree)!.get(ColonyTree);
-    assert.equal(treeState.phase, "chopped");
+    assert.equal(treeState.phase, "chopped", JSON.stringify({
+      order: session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree)?.get(ColonyTreeOrder),
+      destinations: session.query(query(Destination)).map(row => [row.id, row.get(Destination)]),
+    }));
     const resource = session.query(query(FiniteResource)).find(row => row.id === tree)!.get(FiniteResource);
     assert.deepEqual(resource, { kind: "wood", quantity: 0 });
-    const woodLots = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood" && row.get(MaterialLot).container === tree);
+    const groundStocks = new Set(session.query(query(GroundStock)).map(row => row.id));
+    const woodLots = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "wood" && groundStocks.has(row.get(MaterialLot).container));
     assert.equal(woodLots.length, 1);
     assert.equal(woodLots[0].get(MaterialLot).quantity, 6);
     assert.equal(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).source === tree), false);

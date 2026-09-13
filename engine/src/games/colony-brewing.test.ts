@@ -15,6 +15,12 @@ import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
+// This process-focused law supplies its own input fixture. The playable Colony
+// must grow mugwort through the tended-resource owner.
+const brewingDefinition = JSON.parse(new TextDecoder().decode(colonyPack.definition));
+brewingDefinition.initial.push({ id: "test.brew.mugwort", components: { "hive.lot": { quantity: 1, kind: "mugwort", container: "colony.pantry" } } });
+const brewingPack = { ...colonyPack, definition: new TextEncoder().encode(JSON.stringify(brewingDefinition)) };
+
 function finishedStation(session: GameSession) {
   return session.query(query(ConstructionSite)).find(row => {
     const site = row.get(ConstructionSite);
@@ -27,7 +33,7 @@ function finishedStation(session: GameSession) {
 test("one brew request travels, ferments unattended, reassigns, and settles exact outputs", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
-    const session = new GameSession({ port, pack: colonyPack });
+    const session = new GameSession({ port, pack: brewingPack });
     session.start();
     session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
     for (let tick = 0; tick < 400 && !finishedStation(session); tick++) session.step(0.25);

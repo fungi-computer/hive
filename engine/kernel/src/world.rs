@@ -1119,7 +1119,6 @@ impl Kernel {
             let definition = environment.resources.get(&site.definition).ok_or("saved resource site definition is missing")?;
             if site.stage as usize > definition.stages.len() || !site.next_due.is_finite() || site.next_due < 0.0
                 || self.ecs.get::<Position>(*entity).is_none()
-                || self.ecs.get::<Container>(*entity).is_none()
                 || self.ecs.get::<FiniteResource>(*entity).is_none()
                 || id.is_empty() { return Err("invalid saved resource site".into()); }
             let output = self.ecs.get::<FiniteResource>(*entity).unwrap();
@@ -1182,7 +1181,8 @@ impl Kernel {
             if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
             if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
             let bindings = bindings_by_process.remove(id).unwrap_or_default();
-            if process.phase != ProcessPhase::Waiting && bindings.is_empty() { return Err("active process has no bindings".into()); }
+            if matches!(process.phase, ProcessPhase::Working | ProcessPhase::Blocked) && bindings.is_empty() { return Err("active process has no bindings".into()); }
+            if process.phase == ProcessPhase::Complete && !bindings.is_empty() { return Err("completed process retains input bindings".into()); }
             if !bindings.is_empty() {
                 crate::staged_process::validate_bindings(
                     definition, id, &process.station, &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
@@ -2207,7 +2207,7 @@ impl Kernel {
         candidate.restore_json(&records.entities)?;
         if let Some((definition, records)) = &records.environment {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
-            let mut world = crate::terrain_water::TerrainWater::restore_records(
+            let world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
             let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, resources: prepared.resources, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
@@ -2812,9 +2812,8 @@ impl Kernel {
         if self.ecs.get::<Body>(worker).is_none() { return Err("resource extraction requires a worker body".into()); }
         let resource = self.ecs.get::<FiniteResource>(source).cloned().ok_or("not a finite resource")?;
         if resource.quantity == 0 { return Err("finite resource is exhausted".into()); }
-        let prepared = self.prepare_material_output(MaterialOutputSpec {
-            container: worker_id.to_owned(), kind: resource.kind, quantity: resource.quantity, water_kg: None,
-        })?;
+        let position = *self.ecs.get::<Position>(source).ok_or("finite resource has no physical position")?;
+        let prepared = self.prepare_ground_output(position, resource.kind, resource.quantity, None)?;
         self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
         Ok(self.publish_material_output(prepared))
     }
@@ -2847,13 +2846,14 @@ impl Kernel {
             let entity = self.ecs.spawn(ExternalId(site_id.to_owned())).id();
             self.ids.insert(site_id.to_owned(), entity); self.known.insert(site_id.to_owned()); self.contents.insert(site_id.to_owned(), BTreeSet::new()); entity
         };
-        self.ecs.entity_mut(entity).insert((Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, Container { capacity: definition.output_quantity }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.stages[0].delay_seconds }));
+        self.ecs.entity_mut(entity).insert((Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.stages[0].delay_seconds }));
         self.refresh_state_weight();
         Ok(site_id.to_owned())
     }
 
     fn tend_resource_site(&mut self, _operation: &str, worker_id: &str, site_id: &str, vessel_id: &str) -> Result<()> {
-        let worker = self.entity(worker_id)?; let site = self.entity(site_id)?; let vessel = self.entity(vessel_id)?;
+        let worker = self.entity(worker_id)?; let site = self.entity(site_id)?;
+        self.entity(vessel_id)?;
         self.ecs.get::<Body>(worker).ok_or("resource tending requires a worker body")?;
         let state = self.ecs.get::<ResourceSite>(site).cloned().ok_or("not a resource site")?;
         let definition = self.environment.as_ref().ok_or("resource tending requires terrain")?.resources.get(&state.definition).ok_or("unknown resource definition")?.clone();
@@ -4523,7 +4523,7 @@ mod finite_resource_tests {
         let lots: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.lot\"]").unwrap()).unwrap();
         assert_eq!(lots[0]["components"]["hive.lot"]["kind"], "wood");
         assert_eq!(lots[0]["components"]["hive.lot"]["quantity"], 4);
-        assert_eq!(lots[0]["components"]["hive.lot"]["container"], "tree");
+        assert!(lots[0]["components"]["hive.lot"]["container"].as_str().unwrap().starts_with("ground.lot."));
         let resources: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.finite-resource\"]").unwrap()).unwrap();
         assert_eq!(resources[0]["components"]["hive.finite-resource"]["quantity"], 0);
         let saved = kernel.snapshot_json().unwrap();
@@ -4539,13 +4539,26 @@ mod finite_resource_tests {
     fn establish_resource_site_reuses_existing_intent_entity() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"finite","components":[{"id":"colony.resource-order","version":1,"fields":{"definition":"string","cellX":"number","cellY":"number","cellZ":"number","site":"entity","actor":"nullable-entity","vessel":"nullable-entity","phase":"string","workSeconds":"number","reason":"string","approachX":"number","approachY":"number","approachZ":"number","attempt":"number","operation":"string"}}],"initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"colony.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"site":"site","actor":null,"vessel":null,"phase":"submitting-sow","workSeconds":1,"reason":"","approachX":1,"approachY":0,"approachZ":0,"attempt":1,"operation":"site:sow:1"}}}]}).to_string()).unwrap();
-        kernel.load_environment(&crate::environment_definition::tests::fixture("resource")).unwrap();
-        let result = kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"establish-resource-site","operation":"site:sow:1","worker":"worker","site":"site","definition":"mugwort","x":0,"y":0,"z":0}]}).to_string()).unwrap();
-        assert!(result.contains("accepted"));
-        let saved = kernel.snapshot_json().unwrap();
+        let mut environment_definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("resource")).unwrap();
+        environment_definition["resourceSites"] = json!([{
+            "id":"mugwort", "outputKind":"mugwort", "outputQuantity":1,
+            "sowSeconds":1.0, "tendSeconds":1.0, "harvestSeconds":1.0,
+            "stages":[{"delaySeconds":1.0,"waterPortions":1}]
+        }]);
+        kernel.load_environment(&environment_definition.to_string()).unwrap();
+        let (surface, spacing) = {
+            let environment = kernel.environment.as_mut().unwrap();
+            (environment.world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell, environment.world.cell_spacing_m())
+        };
+        let worker = kernel.entity("worker").unwrap();
+        kernel.ecs.entity_mut(worker).insert(super::Position { x: spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: 0.0, facing: 0.0 });
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"establish-resource-site","operation":"site:sow:1","worker":"worker","site":"site","definition":"mugwort","x":surface.x,"y":surface.y,"z":surface.z}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
-        restored.restore_json(&saved).unwrap();
-        assert_eq!(restored.snapshot_json().unwrap(), saved);
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+        assert_eq!(restored.query_json("[\"hive.resource-site\"]").unwrap(), kernel.query_json("[\"hive.resource-site\"]").unwrap());
     }
 
     fn action(kernel: &mut Kernel) -> serde_json::Value {
@@ -4553,10 +4566,10 @@ mod finite_resource_tests {
     }
 
     #[test]
-    fn capacity_failure_leaves_source_output_and_identity_unchanged() {
+    fn invalid_output_position_leaves_source_output_and_identity_unchanged() {
         let mut kernel = kernel();
         let tree = kernel.entity("tree").unwrap();
-        kernel.ecs.get_mut::<super::Container>(tree).unwrap().capacity = 3;
+        kernel.ecs.get_mut::<super::Position>(tree).unwrap().x = f64::NAN;
         let before_lots = kernel.query_json("[\"hive.lot\"]").unwrap();
         let before_resource = kernel.query_json("[\"hive.finite-resource\"]").unwrap();
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
@@ -4564,7 +4577,7 @@ mod finite_resource_tests {
         assert_eq!(kernel.query_json("[\"hive.finite-resource\"]").unwrap(), before_resource);
         let snapshot: serde_json::Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         assert_eq!(snapshot["next_lot"], 1);
-        kernel.ecs.get_mut::<super::Container>(tree).unwrap().capacity = 8;
+        kernel.ecs.get_mut::<super::Position>(tree).unwrap().x = 1.0;
         assert_eq!(action(&mut kernel)["results"][0]["entityId"], "lot.1");
     }
 
@@ -4583,10 +4596,7 @@ mod finite_resource_tests {
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
         kernel.ecs.entity_mut(worker).insert(super::Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 });
         let tree = kernel.entity("tree").unwrap();
-        kernel.ecs.entity_mut(tree).remove::<super::Container>();
-        assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
-        kernel.ecs.entity_mut(tree).insert(super::Container { capacity: 8 });
-        kernel.ecs.entity_mut(tree).insert(super::SealedContainer {});
+        kernel.ecs.entity_mut(tree).remove::<super::FiniteResource>();
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
     }
 }

@@ -270,7 +270,7 @@ export function validateEnvironmentDefinition(
       || typeof resource.outputKind !== "string" || !/^[A-Za-z0-9._:-]+$/.test(resource.outputKind) || !Number.isSafeInteger(resource.outputQuantity) || resource.outputQuantity < 1
       || ![resource.sowSeconds, resource.tendSeconds, resource.harvestSeconds].every(value => Number.isFinite(value) && value > 0)
       || !Array.isArray(resource.stages) || resource.stages.length < 1 || resource.stages.length > 64
-      || resource.stages.some(stage => !stage || !Number.isFinite(stage.delaySeconds) || stage.delaySeconds <= 0 || !Number.isSafeInteger(stage.waterPortions) || stage.waterPortions < 1 || stage.waterPortions > 7)) {
+      || resource.stages.some((stage: EnvironmentResourceStage) => !stage || !Number.isFinite(stage.delaySeconds) || stage.delaySeconds <= 0 || !Number.isSafeInteger(stage.waterPortions) || stage.waterPortions < 1 || stage.waterPortions > 7)) {
       throw new Error("invalid resource definition");
     }
     resourceIds.add(resource.id);

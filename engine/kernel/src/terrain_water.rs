@@ -428,7 +428,7 @@ impl TerrainWater {
     pub fn prepare_water_exchange(&mut self, at: Cell, direction: WaterExchangeDirection,
         portions: u8) -> Result<PreparedWaterExchange, String> {
         self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
-        let mut candidate = self.field.clone();
+        let candidate = self.field.clone();
         let (field, before_level, after_level, mass_kg, before_mass_kg, after_mass_kg) = candidate.prepare_exchange(at, direction, portions, self.terrain.bounds(), &mut field::View { terrain: &mut self.terrain, structures: &self.structure_projection, geometry: &self.geometry, replacement: None })?;
         Ok(PreparedWaterExchange {
             field,
@@ -923,14 +923,14 @@ mod tests {
         assert_eq!(receipt.at, [0, 30, 0]);
         assert_eq!(receipt.direction, WaterExchangeDirection::Withdraw);
         assert_eq!(receipt.portions, 2);
-        assert_eq!(receipt.before_level, 5);
-        assert_eq!(receipt.after_level, 3);
+        assert_eq!(receipt.before_level, Some(5));
+        assert_eq!(receipt.after_level, Some(3));
         assert!((receipt.mass_kg - 1080.0 / 7.0).abs() < 1e-10);
         assert!((world.facts().unwrap().boundary_kg + receipt.mass_kg).abs() < 1e-10);
 
         let inverse = world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 2).unwrap();
         let inverse_receipt = world.apply_water_exchange(inverse).unwrap();
-        assert_eq!((inverse_receipt.before_level, inverse_receipt.after_level), (3, 5));
+        assert_eq!((inverse_receipt.before_level, inverse_receipt.after_level), (Some(3), Some(5)));
         assert_eq!(world.facts().unwrap(), initial_facts);
 
         let positive = world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 2).unwrap();
@@ -978,15 +978,24 @@ mod tests {
         let mut geometry = super::field_tests::geometry();
         geometry.generated_groundwater = false;
         let mut world = TerrainWater::fresh(geometry, super::field_tests::terrain(), &[]).unwrap();
-        let soil = (-20..0).map(|y| Cell { x: 0, y, z: 0 })
-            .find(|cell| world.material(*cell).unwrap() == 1)
-            .expect("fixture must expose a soil cell");
+        let mut soil = None;
+        'columns: for x in -8..=8 {
+            for z in -8..=8 {
+                let Some(surface) = world.terrain.surface_cells(&[(x, z)]).unwrap()[0] else { continue };
+                if world.material(surface.cell).unwrap() == 1 {
+                    soil = Some(surface.cell);
+                    break 'columns;
+                }
+            }
+        }
+        let soil = soil.expect("fixture must expose a soil cell");
         let before = world.save_records().unwrap().water;
         let one = world.prepare_water_exchange(soil, WaterExchangeDirection::Deposit, 1).unwrap();
         let receipt = world.apply_water_exchange(one).unwrap();
         let voxel_mass = 0.54 * 1000.0;
         assert!((receipt.mass_kg - voxel_mass / 7.0).abs() < 1e-12);
-        let fact = world.facts().unwrap().cells.iter().find(|cell| cell.at == [soil.x, soil.y, soil.z]).unwrap();
+        let facts = world.facts().unwrap();
+        let fact = facts.cells.iter().find(|cell| cell.at == coordinates(soil).unwrap()).unwrap();
         assert!((fact.mass_kg - voxel_mass / 7.0).abs() < 1e-12);
         let stable = world.save_records().unwrap().water;
         assert!(world.prepare_water_exchange(soil, WaterExchangeDirection::Deposit, 2).is_err());
