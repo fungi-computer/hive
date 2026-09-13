@@ -41,9 +41,11 @@ type DeconstructionOrderState = {
 export const DeconstructionOrder = component<DeconstructionOrderState>(
   "hive.deconstruction-order",
   {
-    version: 2,
+    version: 3,
     fields: {
-      site: "entity",
+      // The accepted physical action removes this target before its durable
+      // receipt is reconciled on the following authored step.
+      site: "string",
       actor: "nullable-entity",
       phase: "string",
       seconds: "number",
