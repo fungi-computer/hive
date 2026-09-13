@@ -1,6 +1,7 @@
 import { command, entity, query } from "../sdk/authoring";
 import { ConstructionSite, planConstruction } from "../sdk/construction";
-import type { CardinalOrientation } from "../contracts";
+import { placementOrientation } from "../sdk/placement";
+import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";
 import { z } from "zod";
 
@@ -33,13 +34,6 @@ function areaCells(area: { start: [number, number, number]; end: [number, number
   return cells;
 }
 
-function strokeOrientation(catalog: { shape: { kind: string } }, area: { start: [number, number, number]; end: [number, number, number] } | undefined, fallback: CardinalOrientation | undefined): CardinalOrientation {
-  if (fallback) return fallback;
-  if (catalog.shape.kind !== "wall" || !area) return "north";
-  const dx = Math.abs(area.end[0] - area.start[0]), dz = Math.abs(area.end[2] - area.start[2]);
-  return dx >= dz ? "east" : "south";
-}
-
 /** Player placement chooses content; native admission owns cost and geometry. */
 export const colonyBuildCommand = command({
   input: buildInput,
@@ -55,7 +49,7 @@ export const colonyBuildCommand = command({
     if (sites.length + cells.length > 128) throw new Error("Construction site limit reached");
     const actions = [];
     for (const cell of cells) {
-      const orientation = strokeOrientation(definition, area, input.orientation);
+      const orientation = placementOrientation(colonyPlacement[input.catalog]?.alignment ?? "fixed", area, input.orientation);
       if (!["north", "east", "south", "west"].includes(orientation)) throw new Error("Choose a cardinal building orientation");
       const [x, supportY, z] = cell;
       const y = supportY + (definition.shape.kind === "wall" ? 1 : 0);

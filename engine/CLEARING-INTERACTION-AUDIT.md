@@ -200,3 +200,11 @@ wall area commands infer orientation from the stroke when orientation is absent,
 while ghosts still default north. Resolve that through an owned shared placement
 rule before claiming the ghost preview matches the committed building. Full
 retained footprints/joined walls/contextual cards and brewing remain incomplete.
+
+Wall-preview source correction: SDK placementOrientation now owns fixed/stroke
+alignment and explicit rotation. Goblin's single colonyPlacement definition maps
+catalog entries to alignment and original visual IDs; both command and client
+consume it. Removed the command-private strokeOrientation and page-private visual
+map. u6788 passed four affected consumer/ghost laws, including actual emitted wall
+actions on both axes, stair rotation and fixed floors. u6789 strict engine types
+passed. Still no rendered acceptance or new publication from this source change.

@@ -16,10 +16,10 @@ test("placement ghost pool reuses, shrinks, clears and disposes owned sprites", 
   const bindings = { stair: { kind: "static", path: ["buildings", "stair", "finished"], facing: true, anchor: "propAnchor" } };
   const resolve = (_art, _binding, facing) => ({ texture: facing ? "east" : "north", anchor: art.propAnchor });
   const common = { art, bindings, resolve, project: () => ({ x: 1, y: 2 }), zoom: { x: 1, y: 1, scale: 1, offsetX: 0, offsetY: 0 }, verticalMetres: 1 };
-  syncPlacementGhosts(pool, placementVisualSpec({ input: { catalog: "stair", orientation: "north" } }, [[0, 0, 0], [1, 0, 0]], { stair: "stair" }), common);
+  syncPlacementGhosts(pool, placementVisualSpec({ input: { catalog: "stair", orientation: "north" } }, [[0, 0, 0], [1, 0, 0]], { stair: { visual: "stair", alignment: "fixed" } }), common);
   assert.equal(pool.entries.length, 2);
   const first = pool.entries[0].sprite;
-  syncPlacementGhosts(pool, placementVisualSpec({ input: { catalog: "stair", orientation: "east" } }, [[0, 0, 0]], { stair: "stair" }), common);
+  syncPlacementGhosts(pool, placementVisualSpec({ input: { catalog: "stair", orientation: "east" } }, [[0, 0, 0]], { stair: { visual: "stair", alignment: "fixed" } }), common);
   assert.equal(pool.entries.length, 2);
   assert.equal(pool.entries[0].sprite, first);
   assert.equal(pool.entries[1].sprite.visible, false);

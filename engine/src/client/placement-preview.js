@@ -1,3 +1,4 @@
+import { placementOrientation } from "../sdk/placement.ts";
 import { evaluateDesignation } from "./spatial-designation.js";
 
 const FACING = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
@@ -12,10 +13,11 @@ export function placementCells({ area, target, anchor, upperCandidates = [] }) {
   return target ? [target] : [];
 }
 
-export function placementVisualSpec(control, cells, placementVisuals) {
+export function placementVisualSpec(control, cells, placementVisuals, area) {
   const catalog = control?.input?.catalog;
-  const visual = catalog === undefined ? undefined : placementVisuals?.[catalog];
-  return { visual, facing: FACING[control?.input?.orientation] ?? 0, cells };
+  const definition = catalog === undefined ? undefined : placementVisuals?.[catalog];
+  const orientation = placementOrientation(definition?.alignment ?? "fixed", area, control?.input?.orientation);
+  return { visual: definition?.visual, facing: FACING[orientation], cells };
 }
 
 /** Reuse bounded sprites and destroy only the sprites owned by this pool. */

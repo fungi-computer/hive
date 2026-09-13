@@ -12,6 +12,10 @@ test("wall stroke preview and one submitted build agree on the dominant-axis lin
   const stroke = designationEndpoints(start, end, "line");
   assert.equal(stroke.cells.length, 21);
   const preview = visibleTerrainDesignationPreview({ surfaces: stroke.cells.map(cell => ({ cell })) }, start, end, "line");
+  const { placementVisualSpec } = await import("./placement-preview.js");
+  const { colonyPlacement } = await import("../games/colony-placement.ts");
+  const ghost = placementVisualSpec(control, stroke.cells, colonyPlacement, { start, end });
+  assert.equal(ghost.facing, 1);
   const command = terrainAreaPresentationCommand(control, [], stroke);
   const result = colonyBuildCommand.invoke({
     query: () => [],
@@ -21,4 +25,24 @@ test("wall stroke preview and one submitted build agree on the dominant-axis lin
   assert.ok(result.actions.every(action => action.kind === "plan-construction" && action.orientation === "east"));
   assert.throws(() => designationEndpoints(start, [1_000_000, 13, 1_000_000], "line"), /at most/);
   assert.throws(() => designationEndpoints(start, end, "rectangle"), /at most/);
+});
+
+
+test("both wall axes and explicit stair rotation match the shared placement policy", async () => {
+  const { placementVisualSpec } = await import("./placement-preview.js");
+  const { colonyPlacement } = await import("../games/colony-placement.ts");
+  const context = { query: () => [], physicalContacts: cells => cells.map((_, i) => ({ solid: i % 2 === 0, sealedTop: false, outside: false })) };
+  for (const [catalog, end, orientation, expectedFacing, expectedOrientation] of [
+    ["timber-wall", [0, 13, 2], undefined, 2, "south"],
+    ["timber-wall", [-2, 13, 0], undefined, 1, "east"],
+    ["timber-stair", [0, 13, 0], "west", 3, "west"],
+    ["timber-floor", [0, 13, 2], undefined, 0, "north"],
+  ]) {
+    const area = { start: [0, 13, 0], end };
+    const input = { catalog, ...(orientation ? { orientation } : {}), target: { area } };
+    const ghost = placementVisualSpec({ input }, [], colonyPlacement, area);
+    const result = colonyBuildCommand.invoke(context, input);
+    assert.equal(ghost.facing, expectedFacing);
+    assert.ok(result.actions.every(action => action.orientation === expectedOrientation));
+  }
 });

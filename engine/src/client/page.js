@@ -1,3 +1,4 @@
+import { colonyPlacement } from "../games/colony-placement.ts";
 import "./client.css";
 import { PIRATE_VISUAL_BINDINGS, CANNON_VISUAL_BINDINGS, COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import "@fungi.computer/caps/styles.css";
@@ -25,11 +26,7 @@ const configs = {
     subtitle:
       "Build and dig your clearing. Select the brew station to request a fire, or a worker to give orders.",
     orderCommand: "go",
-    placementVisuals: {
-      "timber-floor": "colony.floor.finished",
-      "timber-wall": "colony.wall.finished",
-      "timber-stair": "colony.stair.finished",
-    },
+    placementVisuals: colonyPlacement,
     selectionShortcuts: [{ id: "colony.worker.1", label: "Select Rowan" }, { id: "colony.worker.2", label: "Select Sedge" }],
     controlHelp: "Dig area, then drag across the ground · Select a worker and right-click to take control · Resume work returns them to automatic orders · Escape cancels a drag",
     source: "./source/colony.ts",

@@ -870,7 +870,7 @@ export function createHiveClient({
         anchor: anchored,
         upperCandidates,
       });
-      syncPlacementGhosts(placementGhosts, placementVisualSpec(buildControl, cells, placementVisuals), {
+      syncPlacementGhosts(placementGhosts, placementVisualSpec(buildControl, cells, placementVisuals, area.value === "dragging" ? { start: area.context.start, end: area.context.current } : undefined), {
         art, bindings, resolve: resolveStaticVisual, project,
         zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
         verticalMetres: displayed.verticalMetres,
