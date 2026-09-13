@@ -27,6 +27,9 @@ import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, 
 import { z } from "zod";
 import type { EntityId, GamePack } from "../contracts";
 
+const FLOOR_DESIGNATIONS = ["point", "rectangle"] as const;
+const WALL_DESIGNATIONS = ["point", "line", "rectangle"] as const;
+
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
@@ -458,7 +461,8 @@ export const colonyPack: GamePack = {
         const visual = tree.phase === "standing" ? "colony.tree" : tree.phase === "felled" ? "colony.tree.felled" : "colony.tree.stump";
         return { id: row.id, visual, label: `Tree · ${tree.phase}`, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
       }),
-      ...context.query(query(ConstructionSite)).map(row => {
+      ...(() => {
+      return context.query(query(ConstructionSite)).map(row => {
       const site = row.get(ConstructionSite);
       const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
       if (!definition) throw new Error("Missing construction visual definition");
@@ -467,7 +471,8 @@ export const colonyPack: GamePack = {
       const cutawayTop = site.y + (definition.shape.kind === "stair" ? definition.shape.rise : definition.shape.kind === "wall" ? definition.shape.height - 1 : 0);
       return { id: row.id, cutawayTop, visual: `colony.${definition.shape.kind}.${stage}`, label: `${site.catalog} · ${site.phase}`,
         pose: { position: { x: site.x, y: (site.y + (definition.shape.kind === "wall" ? -0.5 : 0.5)) * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
-      }),
+      });
+      })(),
       ...(() => {
         const lotsByContainer = new Map<string, { kind: string; quantity: number }>();
         for (const row of context.query(query(MaterialLot))) {
@@ -494,10 +499,10 @@ export const colonyPack: GamePack = {
       { id: "light-hearth", label: "Light fire", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
-      ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, orientation: "north" }, target: "world-surface" as const })),
-      ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const })),
-      { id: "dig", label: "Dig area", command: "dig", target: "terrain-area" },
-      { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area" },
+      ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, ...(catalog === "timber-floor" ? { orientation: "north" } : {}) }, target: "world-surface" as const, designation: catalog === "timber-floor" ? FLOOR_DESIGNATIONS : WALL_DESIGNATIONS })),
+      ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const, designation: ["point"] as const })),
+      { id: "dig", label: "Dig area", command: "dig", target: "terrain-area", designation: ["rectangle"] as const },
+      { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area", designation: ["rectangle"] as const },
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
       { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
       { id: "cancel-trees", label: "Cancel tree work", command: "cancelTrees", selection: "entities", subjects: trees.map(tree => tree.id) },

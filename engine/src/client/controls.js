@@ -7,7 +7,7 @@ const INPUTS = new Set([
   "[contenteditable='true']",
 ]);
 import { createMachine, assign } from "xstate";
-import { rectangleCells } from "./terrain-area-selection.js";
+import { spatialDesignationMachine } from "./spatial-designation.js";
 
 export const WORLD_VIEW_CONTROLS = Object.freeze([
   { id: "view.level.down", key: "pagedown", delta: -1, label: "Lower" },
@@ -71,28 +71,10 @@ export const terrainTargetMachine = createMachine({
       hover: assign(({ event }) => ({ hover: event.cell ?? null })),
 } });
 
-// Owns the pointer stroke for a bounded terrain rectangle. The committed
-// cells remain a pure value for the caller; this machine only owns gesture
-// lifetime and never queries hidden terrain.
-export const terrainAreaGestureMachine = createMachine({
-  id: "hive-terrain-area-gesture",
-  initial: "idle",
-  context: { start: null, current: null, committed: [], maxArea: 256 },
-  states: {
-    idle: { on: { BEGIN: { target: "dragging", actions: "begin" } } },
-    dragging: { on: {
-      MOVE: { actions: "move" },
-      END: { target: "idle", actions: "commit" },
-      CANCEL: { target: "idle", actions: "cancel" },
-      ESCAPE: { target: "idle", actions: "cancel" },
-    } },
-  },
-}, { actions: {
-  begin: assign(({ event }) => ({ start: event.cell, current: event.cell, committed: [] })),
-  move: assign(({ event }) => ({ current: event.cell })),
-  commit: assign(({ context }) => ({ committed: context.start && context.current ? rectangleCells(context.start, context.current, context.maxArea) : [] })),
-  cancel: assign({ start: null, current: null, committed: [] }),
-} });
+// The terrain area consumer uses the shared spatial gesture owner in its
+// default rectangle mode. Build, Dig and future tools therefore share the
+// same deterministic preview/commit/cancel lifecycle.
+export const terrainAreaGestureMachine = spatialDesignationMachine;
 
 // RTS aiming is a distinct gesture so a cannon click cannot accidentally
 // select a soldier or become a march order. Escape and a completed fire both
