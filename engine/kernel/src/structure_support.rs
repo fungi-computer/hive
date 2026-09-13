@@ -41,6 +41,7 @@ fn instance_id(instance: &StaticInstance) -> &str {
         | StaticInstance::Stair { id, .. } => id,
     }
 }
+pub(crate) fn structure_id(instance: &StaticInstance) -> &str { instance_id(instance) }
 
 fn cardinal_delta(direction: Cardinal) -> (i64, i64) {
     match direction {
@@ -340,6 +341,7 @@ pub fn candidate_supported(
         return Ok(true);
     }
     if terrain_support(support)? { return Ok(true); }
+    if matches!(instance, StaticInstance::Floor { .. } | StaticInstance::Cover { .. }) && base.structural_anchors.contains(&support) { return Ok(true); }
     if matches!(instance, StaticInstance::Floor { .. } | StaticInstance::Cover { .. }) {
         for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
             if terrain_support(cardinal_neighbor(support, dx, dz)?)? { return Ok(true); }
@@ -361,6 +363,50 @@ pub fn candidate_supported(
         return Ok(true);
     }
     Ok(false)
+}
+
+pub(crate) fn candidate_floor_distance(base: &SupportResult, support: Cell, max_span_steps: u32, terrain_support: &mut TerrainSupportQuery<'_>) -> Result<Option<u32>, String> {
+    if terrain_support(support)? || base.structural_anchors.contains(&support) { return Ok(Some(0)); }
+    let mut best = None;
+    for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+        let neighbor = cardinal_neighbor(support, dx, dz)?;
+        if terrain_support(neighbor)? { best = Some(best.map_or(1, |v: u32| v.min(1))); }
+        if let Some(distance) = base.floor_distances.get(&neighbor) { best = Some(best.map_or(distance.saturating_add(1), |v: u32| v.min(distance.saturating_add(1)))); }
+    }
+    Ok(best.filter(|distance| *distance <= max_span_steps))
+}
+
+/// Extend a read-only support projection after a pending candidate has been
+/// accepted in deterministic order. This never mutates committed geometry.
+pub(crate) fn add_prospective_support(base: &mut SupportResult, instance: &StaticInstance, max_span_steps: u32, floor_distance: Option<u32>) -> Result<(), String> {
+    match instance {
+        StaticInstance::Floor { support, .. } => {
+            let mut distance = floor_distance.unwrap_or(1.min(max_span_steps));
+            if base.load_contacts.contains(support) { distance = 0; }
+            for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let neighbor = cardinal_neighbor(*support, dx, dz)?;
+                if let Some(prior) = base.floor_distances.get(&neighbor) { distance = distance.min(prior.saturating_add(1)); }
+            }
+            base.floor_distances.insert(*support, distance.min(max_span_steps));
+            base.floor_surfaces.insert(*support);
+            base.load_contacts.insert(*support);
+        }
+        StaticInstance::Wall { base: support, height, .. } | StaticInstance::ApertureWall { base: support, height, .. } => {
+            let top = wall_top(*support, *height)?;
+            let load = wall_load_contact(*support, *height)?;
+            base.column_tops.insert(top);
+            base.load_contacts.insert(load);
+            base.structural_anchors.insert(load);
+        }
+        StaticInstance::Stair { origin, orientation, run, rise, .. } => {
+            let landing = stair_landing(*origin, *orientation, *run, *rise)?;
+            base.stair_landings.insert(landing);
+            base.load_contacts.insert(landing);
+            base.structural_anchors.insert(landing);
+        }
+        StaticInstance::Cover { .. } | StaticInstance::Fixture { .. } => {}
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -443,6 +489,35 @@ mod tests {
         let pending = StaticInstance::Floor { id: "pending".into(), support: Cell { x: 2, y: 0, z: 0 } };
         let mut no_terrain = terrain(&[]);
         assert!(!candidate_supported(&base, &pending, 4, &mut no_terrain).unwrap());
+    }
+
+    #[test]
+    fn prospective_pending_wall_supports_floor_in_stable_id_order() {
+        let mut terrain_query = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let base = resolve(&StaticGeometry::new(bounds(), Vec::new()).unwrap(), policy(6), &mut terrain_query).unwrap();
+        let wall = StaticInstance::Wall { id: "a-wall".into(), base: Cell { x: 0, y: 1, z: 0 }, height: 4 };
+        let floor = StaticInstance::Floor { id: "z-floor".into(), support: Cell { x: 0, y: 5, z: 0 } };
+        let mut projected = base.clone();
+        assert!(candidate_supported(&projected, &wall, 6, &mut terrain(&[Cell { x: 0, y: 0, z: 0 }])).unwrap());
+        add_prospective_support(&mut projected, &wall, 6, None).unwrap();
+        assert!(projected.load_contacts.contains(&Cell { x: 0, y: 5, z: 0 }));
+        let mut reverse = base;
+        assert!(!candidate_supported(&reverse, &floor, 6, &mut terrain(&[])).unwrap());
+        assert!(!candidate_supported(&reverse, &wall, 6, &mut terrain(&[])).unwrap());
+    }
+
+    #[test]
+    fn prospective_floor_requires_cardinal_chain_and_respects_span() {
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let mut projected = resolve(&StaticGeometry::new(bounds(), Vec::new()).unwrap(), policy(2), &mut ground).unwrap();
+        let first = StaticInstance::Floor { id: "first".into(), support: Cell { x: 1, y: 0, z: 0 } };
+        assert!(candidate_supported(&projected, &first, 2, &mut terrain(&[Cell { x: 0, y: 0, z: 0 }])).unwrap());
+        add_prospective_support(&mut projected, &first, 2, Some(1)).unwrap();
+        let gap = StaticInstance::Floor { id: "gap".into(), support: Cell { x: 3, y: 0, z: 0 } };
+        assert!(!candidate_supported(&projected, &gap, 2, &mut terrain(&[])).unwrap());
+        let second = StaticInstance::Floor { id: "second".into(), support: Cell { x: 2, y: 0, z: 0 } };
+        assert!(candidate_supported(&projected, &second, 2, &mut terrain(&[])).unwrap());
+        add_prospective_support(&mut projected, &second, 2, Some(2)).unwrap();
     }
 
     #[test]
