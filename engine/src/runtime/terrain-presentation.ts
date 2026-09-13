@@ -37,6 +37,9 @@ const MAX_I32 = 2147483647;
 const MAX_COLUMNS = 4096;
 const SURFACE_BATCH = 64;
 const MAX_STRUCTURE_SURFACES = 16384;
+function residentWindow(bounds: { minX: number; maxX: number; minZ: number; maxZ: number }, configured?: { minX: number; maxX: number; minZ: number; maxZ: number }) {
+  return configured ?? bounds;
+}
 
 function signedInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= MIN_I32 && value <= MAX_I32;
@@ -86,7 +89,7 @@ function parseFacts(value: unknown): {
   };
 }
 
-function validateDefinition(definition: EnvironmentDefinition): void {
+function validateDefinition(definition: EnvironmentDefinition, configured?: { minX: number; maxX: number; minZ: number; maxZ: number }): void {
   const bounds = definition?.world?.bounds;
   const values = bounds && [bounds.minX, bounds.maxX, bounds.minZ, bounds.maxZ];
   if (
@@ -96,7 +99,10 @@ function validateDefinition(definition: EnvironmentDefinition): void {
     bounds.minZ >= bounds.maxZ
   )
     throw new Error("invalid terrain presentation bounds");
-  const columns = (bounds.maxX - bounds.minX) * (bounds.maxZ - bounds.minZ);
+  const window = residentWindow(bounds, configured);
+  if (!window || ![window.minX, window.maxX, window.minZ, window.maxZ].every(Number.isSafeInteger) || window.minX < bounds.minX || window.maxX > bounds.maxX || window.minZ < bounds.minZ || window.maxZ > bounds.maxZ || window.minX >= window.maxX || window.minZ >= window.maxZ)
+    throw new Error("invalid terrain presentation window");
+  const columns = (window.maxX - window.minX) * (window.maxZ - window.minZ);
   if (!Number.isSafeInteger(columns) || columns < 1 || columns > MAX_COLUMNS)
     throw new Error("terrain presentation exceeds the column budget");
   if (!Number.isFinite(definition.world.verticalMetres) || definition.world.verticalMetres <= 0)
@@ -110,8 +116,9 @@ export class TerrainPresentationOwner {
   constructor(
     private readonly port: KernelPort,
     private readonly definition: EnvironmentDefinition,
+    private readonly configuredWindow?: { readonly minX: number; readonly maxX: number; readonly minZ: number; readonly maxZ: number },
   ) {
-    validateDefinition(definition);
+    validateDefinition(definition, configuredWindow);
   }
 
   reset(): void {
@@ -168,7 +175,7 @@ export class TerrainPresentationOwner {
   }
 
   private columns(): [number, number][] {
-    const { minX, maxX, minZ, maxZ } = this.definition.world.bounds;
+    const { minX, maxX, minZ, maxZ } = residentWindow(this.definition.world.bounds, this.configuredWindow);
     const columns: [number, number][] = [];
     for (let x = minX; x < maxX; x++)
       for (let z = minZ; z < maxZ; z++) columns.push([x, z]);
@@ -176,7 +183,7 @@ export class TerrainPresentationOwner {
   }
 
   private inBounds(column: readonly [number, number]): boolean {
-    const { minX, maxX, minZ, maxZ } = this.definition.world.bounds;
+    const { minX, maxX, minZ, maxZ } = residentWindow(this.definition.world.bounds, this.configuredWindow);
     return column[0] >= minX && column[0] < maxX && column[1] >= minZ && column[1] < maxZ;
   }
 

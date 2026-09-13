@@ -16,9 +16,11 @@ export function installWorkerRuntime(
   },
   createKernel: () => KernelPort,
   packs: Readonly<Record<string, GamePack>>,
+  options: Readonly<{ metrics?: boolean }> = {},
 ): WorkerRuntime {
   const runtime = new WorkerRuntime(createKernel, packs, (event) =>
     scope.postMessage(event),
+    options,
   );
   scope.onmessage = (event) => runtime.command(event.data);
   return runtime;

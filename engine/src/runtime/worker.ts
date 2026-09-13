@@ -14,6 +14,7 @@ export class WorkerRuntime {
     private readonly createKernel: () => KernelPort,
     private readonly packs: Readonly<Record<string, GamePack>>,
     private readonly emit: (event: WorkerTransportEvent) => void,
+    private readonly options: Readonly<{ metrics?: boolean }> = {},
   ) {}
   private replaceSession(pack: GamePack, seed?: number, snapshot?: import("./session").SessionSnapshot): GameSession {
     const oldPort = this.port;
@@ -135,9 +136,19 @@ export class WorkerRuntime {
         this.emitObservation(true);
         this.emit({ type: "state", paused: session.isPaused });
       } else if (command.type === "step") {
+        const started = this.options.metrics ? (globalThis.performance?.now?.() ?? Date.now()) : 0;
         const results = session.step(command.delta);
+        const ended = this.options.metrics ? (globalThis.performance?.now?.() ?? Date.now()) : 0;
         this.captureAccepted();
-        this.emit({ type: "results", results });
+        if (!this.options.metrics) this.emit({ type: "results", results });
+        else this.emit({ type: "results", results, metrics: {
+          stepCpuMs: ended - started,
+          routeRequests: session.lastStepMetrics.routeRequests,
+          snapshotBytes: this.accepted ? new TextEncoder().encode(JSON.stringify(this.accepted)).byteLength : 0,
+          assignmentCost: session.lastStepMetrics.assignmentCost,
+          activeWaterWork: null,
+          activeGasWork: null,
+        } });
         this.emitObservation();
       }
     } catch (error) {

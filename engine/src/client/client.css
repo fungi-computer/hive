@@ -176,3 +176,14 @@ nav a {
 .hive-presentation { padding: 8px 0; border-top: 1px solid var(--color-base-300); }
 .hive-presentation > strong { display: block; margin-bottom: 8px; }
 .hive-presentation > button { margin: 4px 4px 0 0; }
+.colony-performance-panel { border-top: 1px solid var(--color-base-300); margin-top: 12px; padding-top: 12px; }
+.colony-performance-panel h2 { font-size: 1.1rem; margin: 4px 0; }
+.colony-performance-panel label { display: grid; gap: 4px; margin: 10px 0; font-size: .85rem; }
+.colony-performance-panel select, .colony-performance-panel input { width: 100%; }
+.colony-performance-panel output { font-weight: 700; }
+.perf-links { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.perf-links a { color: var(--color-primary); }
+.colony-performance-panel dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; font-size: .82rem; }
+.colony-performance-panel dt { color: var(--color-base-content); }
+.colony-performance-panel dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+.perf-boundary { font-size: .76rem; opacity: .8; }
