@@ -83,7 +83,7 @@ export function constructionWorkProvider(
   const supports = new Set(ctx.query(query(Support)).map((row) => row.id));
   const excavations = new Set(ctx.query(query(ExcavationWork)).map((row) => row.id));
   const positions = new Map(ctx.query(query(Position)).map((row) => [row.id, row.get(Position)]));
-  const relevant = [...new Set([...workers, ...sites.map((row) => row.id)])];
+  const relevant = workers;
   const poses = new Map<EntityId, WorldPose>();
   for (let offset = 0; offset < relevant.length; offset += 128) {
     for (const pose of ctx.worldPoses(relevant.slice(offset, offset + 128))) poses.set(pose.id, pose);
