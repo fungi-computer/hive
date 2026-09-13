@@ -148,6 +148,47 @@ impl ProcessCatalog {
     pub fn len(&self) -> usize {
         self.definitions.len()
     }
+    pub fn requirements(&self, id: &str, phase: ProcessPhase) -> Option<ProcessRequirements> {
+        let definition = self.get(id)?.definition();
+        Some(ProcessRequirements {
+            definition: definition.id.clone(), version: definition.version,
+            station_catalog: definition.station_catalog.clone(),
+            inputs: definition.inputs.iter().cloned().map(ProcessRequirementInput::from).collect(),
+            stages: definition.stages.iter().cloned().map(ProcessRequirementStage::from).collect(), phase,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessRequirements {
+    pub definition: String,
+    pub version: u32,
+    pub station_catalog: String,
+    pub inputs: Vec<ProcessRequirementInput>,
+    pub stages: Vec<ProcessRequirementStage>,
+    pub phase: ProcessPhase,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessRequirementInput {
+    pub role: String, pub port: String, pub material: String, pub quantity: u32,
+    pub policy: InputPolicy, pub disposition: InputDisposition,
+}
+impl From<ProcessInput> for ProcessRequirementInput {
+    fn from(input: ProcessInput) -> Self {
+        Self { role: input.role, port: input.port, material: input.material, quantity: input.quantity, policy: input.policy, disposition: input.disposition }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessRequirementStage {
+    pub id: String, pub mode: StageMode, pub duration_seconds: f64,
+}
+impl From<ProcessStage> for ProcessRequirementStage {
+    fn from(stage: ProcessStage) -> Self { Self { id: stage.id, mode: stage.mode, duration_seconds: stage.duration_seconds } }
 }
 
 fn valid_name(value: &str) -> bool {
@@ -564,5 +605,14 @@ mod tests {
         .unwrap();
         environment["processes"] = serde_json::json!([{"id":"p","version":1,"stationCatalog":"floor","inputs":[],"stages":[],"unexpected":true}]);
         assert!(crate::environment_definition::build_from_json(&environment.to_string()).is_err());
+    }
+
+    #[test]
+    fn requirements_projection_is_derived_without_availability_or_worker_state() {
+        let catalog = ProcessCatalog::from_definitions(vec![herbal_ale()], &station(), &emission(1)).unwrap();
+        let projection = catalog.requirements("herbal-ale-v1", ProcessPhase::Waiting).unwrap();
+        assert_eq!(projection.inputs.iter().find(|input| input.role == "malt").unwrap().quantity, 2);
+        assert_eq!(projection.stages.iter().map(|stage| stage.duration_seconds).sum::<f64>(), 300.0);
+        assert_eq!(projection.phase, ProcessPhase::Waiting);
     }
 }
