@@ -1,12 +1,13 @@
-import { component, query } from "./authoring";
+import { component, entity, query } from "./authoring";
 import { DeliveryTask } from "./delivery";
 import { GroundStock } from "./ground-stock";
 import { SealedContainer } from "./construction";
-import { Container, MaterialLot, Position } from "./common";
+import { Container, FiniteResource, MaterialLot, Position } from "./common";
 import type { EntityId, WriteContext } from "../contracts";
 
 const MAX_CELLS = 256;
 const MAX_QUANTITY = 0xffffffff;
+const MAX_ID_LENGTH = 256;
 
 /** Policy attached to one physical, positioned floor stockpile cell. */
 export const StockpileCell = component<{
@@ -57,6 +58,11 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
   const positions = new Set(context.query(query(Position)).map(row => row.id));
   const sealed = new Set(context.query(query(SealedContainer)).map(row => row.id));
   const ground = new Set(context.query(query(GroundStock)).map(row => row.id));
+  // Finite-resource sources are native loose stock containers after extraction.
+  // This capability check keeps the planner independent of authored content IDs.
+  const exhaustedFinite = new Set(context.query(query(FiniteResource))
+    .filter(row => row.get(FiniteResource).quantity === 0)
+    .map(row => row.id));
   const lots = context.query(query(MaterialLot));
   const tasks = context.query(query(DeliveryTask));
   const sourceCell = new Map(cells.map(cell => [cell.id, cell.get(StockpileCell)]));
@@ -82,7 +88,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
   });
   const created: EntityId[] = [];
   const sourceLots = lots.map(row => ({ id: row.id, lot: row.get(MaterialLot) }))
-    .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container)) && !claimedLots.has(id) && lot.quantity > 0 && validInt(lot.quantity))
+    .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container) || exhaustedFinite.has(lot.container)) && !claimedLots.has(id) && lot.quantity > 0 && validInt(lot.quantity))
     .sort((a, b) => compareId(a.id, b.id));
   for (const row of orderedCells) {
     if (claimedCells.has(row.id) || sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
