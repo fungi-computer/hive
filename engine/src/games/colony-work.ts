@@ -961,7 +961,7 @@ export const colonyWorkSystem = createWorkSystem({
     DeconstructionOrder,
   ],
   phases: [
-    (ctx) => processSupplyPhase(ctx, [entity("colony.lumber"), entity("colony.pantry")]),
+    (ctx) => processSupplyPhase(ctx, []),
     colonySiteSuppliesPhase,
     colonyGroundStockPhase,
     (ctx) =>

@@ -2732,6 +2732,9 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(station).is_none() {
             return Err("process station is not sealed".into());
         }
+        if self.ids.values().any(|entity| self.ecs.get::<StagedProcess>(*entity).is_some_and(|process| process.station == station_id && process.phase != ProcessPhase::Complete && process.definition != definition_id)) {
+            return Err("process station already has an active process".into());
+        }
         for input in &definition.inputs {
             let port_id = format!("{station_id}:{}", input.port);
             let port = self.entity(&port_id)?;
