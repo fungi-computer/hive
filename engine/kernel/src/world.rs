@@ -2944,6 +2944,8 @@ impl Kernel {
             let mut prepared = material_output::prepare(MaterialOutputSpec { container: container.clone(), kind: output.material.clone(), quantity: output.quantity, water_kg: None }, self.revision, planned_next_lot, |id| self.known.contains(id) || prepared_outputs.iter().any(|item: &PreparedMaterialOutput| item.lot_id == id), capacity, destination_quantity, planned_weight, added_weight, STATE_BYTES)?;
             planned_next_lot = prepared.next_lot; planned_weight = prepared.state_weight; *planned_destinations.entry(container).or_default() += u64::from(output.quantity); prepared_outputs.push(prepared);
         }
+        let planned_batch: Vec<_> = prepared_outputs.iter().map(|output| (output.container.clone(), output.lot.quantity, self.quantity(&output.container).saturating_sub(*released_by_container.get(&output.container).unwrap_or(&0)), self.ecs.get::<Container>(self.entity(&output.container).unwrap()).unwrap().capacity)).collect();
+        let _transition_token = crate::process_transition::prepare_output_id_plan(self.next_lot, |id| self.known.contains(id), &planned_batch)?;
         let emission_source = if let Some(emission) = &transition.emission {
             let source_rows: Vec<_> = bindings.iter().filter(|b| b.role == emission.role).collect();
             let source_quantity: u32 = source_rows.iter().try_fold(0u32, |sum, b| sum.checked_add(b.quantity)).ok_or("transition-emission-quantity-overflow")?;
