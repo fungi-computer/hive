@@ -3,6 +3,7 @@ import { GameSession } from "./session";
 import { buildObservation } from "./observation";
 import type { WorkerCommand, WorkerTransportEvent } from "./protocol";
 import { terrainWireForRevision } from "./terrain-wire";
+import { colonyDigWhistleDescriptor } from "../games/colony-whistle";
 
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
 export class WorkerRuntime {
@@ -89,6 +90,7 @@ export class WorkerRuntime {
       controls: observation.presentationControls,
       terrainMarks: observation.terrainMarks,
       environmentVisuals: observation.environmentVisuals,
+      ...(this.session.pack.id === "colony" ? { whistleActions: [colonyDigWhistleDescriptor()] } : {}),
     });
   }
   command(command: WorkerCommand): void {
