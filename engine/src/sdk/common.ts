@@ -23,6 +23,9 @@ export const beginEmission = (worker: EntityId, station: EntityId): ActionReques
   worker,
   station,
 });
+export const exchangeFieldWater = (worker: EntityId, vessel: EntityId, cell: { x: number; y: number; z: number }, portions = 1): ActionRequest => ({
+  kind: "exchange-field-water", worker, vessel, ...cell, direction: "withdraw", portions,
+});
 
 /** Native carrying capacity; authored systems may query but cannot write it. */
 export const Container = component<{ capacity: number }>("hive.container", {

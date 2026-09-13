@@ -203,6 +203,16 @@ export type ActionRequest =
       readonly station: EntityId;
     }
   | {
+      readonly kind: "exchange-field-water";
+      readonly worker: EntityId;
+      readonly vessel: EntityId;
+      readonly x: number;
+      readonly y: number;
+      readonly z: number;
+      readonly direction: "withdraw" | "deposit";
+      readonly portions: number;
+    }
+  | {
       readonly kind: "direct-input";
       readonly entity: EntityId;
       readonly stream: string;

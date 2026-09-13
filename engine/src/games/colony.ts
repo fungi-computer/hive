@@ -27,12 +27,14 @@ import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
+import { WaterSupplyOrder, WaterSupplyWork, colonyWaterWorkSystem } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } from "../contracts";
 
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+export { WaterSupplyOrder, WaterSupplyWork, colonyWaterWorkSystem } from "./colony-water-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -53,6 +55,7 @@ const lotTwo = entity("colony.food.2");
 const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
 const tasks = [taskOne, taskTwo] as const;
+const waterSupplyId = entity("colony.water-supply");
 const catId = entity("colony.cat.1");
 const trees = [
   { id: entity("colony.tree.oak"), x: 2, z: 2 },
@@ -96,6 +99,15 @@ const colonyInitial = [
       "hive.delivery-control": { enabled: true, quantity: 3 },
     },
   })),
+  ...workers.map((worker, index) => ({ id: entity(`colony.pail.${index + 1}`), components: {
+    "hive.lot": { quantity: 1, kind: "pail", container: worker },
+    "hive.container": { capacity: 7 },
+    "hive.visual": { sprite: "pail", label: "Pail" },
+  }})),
+  { id: waterSupplyId, components: {
+    [WaterSupplyOrder.id]: { revision: 0 },
+    [WaterSupplyWork.id]: { request: 0, phase: "idle", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
+  }},
   {
     id: guestId,
     components: {
@@ -327,6 +339,7 @@ const colonyComponents = [
   DeconstructionApproach, DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
+  WaterSupplyOrder, WaterSupplyWork,
 ] as const;
 
 function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
@@ -354,7 +367,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 5,
   components: colonyComponents,
-  systems: [colonyWorkSystem, colonyCatSystem],
+  systems: [colonyWorkSystem, colonyWaterWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
@@ -378,6 +391,17 @@ export const colonyPack: GamePack = {
     }),
     designateStockpile: colonyStockpileCommand,
     updateStockpile: colonyStockpilePolicyCommand,
+    requestWater: command({
+      title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
+      input: emptyInput, reads: [WaterSupplyOrder], writes: [WaterSupplyOrder],
+      run(context) {
+        const row = context.query(query(WaterSupplyOrder)).find(row => row.id === waterSupplyId);
+        if (!row) throw new Error("Water supply is unavailable");
+        const revision = row.get(WaterSupplyOrder).revision;
+        if (!Number.isSafeInteger(revision) || revision >= Number.MAX_SAFE_INTEGER) throw new Error("water supply revision exhausted");
+        return { actions: [], writes: [{ component: WaterSupplyOrder.id, entity: waterSupplyId, value: { revision: revision + 1 } }] };
+      },
+    }),
     lightHearth: command({
       title: "Light brew station fire", category: "Colony", description: "Request lighting for the brew station.",
       localPresentation: { bindings: [{ id: "light-brew-station", label: "Light brew station fire", selection: { field: "station", cardinality: "one" } }] },
