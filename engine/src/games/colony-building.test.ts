@@ -26,6 +26,26 @@ test("building without an adjacent working surface rejects without actions", () 
     { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }), /No clear working surface/);
 });
 
+test("oversized build area rejects before terrain queries and leaves subsequent orders usable", () => {
+  let queries = 0;
+  const context = {
+    query: () => [],
+    physicalContacts: (cells: readonly unknown[]) => {
+      queries += 1;
+      return cells.map((_, index) => ({ solid: index === 0, sealedTop: false, outside: false }));
+    },
+  };
+  assert.throws(() => colonyBuildCommand.invoke(context, {
+    catalog: "timber-floor",
+    target: { area: { start: [-1_000_000, 17, -1_000_000], end: [1_000_000, 17, 1_000_000] } },
+  }), /Build area exceeds 256 cells/);
+  assert.equal(queries, 0);
+  assert.equal(colonyBuildCommand.invoke(context, {
+    catalog: "timber-floor", target: { cell: [0, 17, 0] },
+  }).actions.length, 1);
+  assert.equal(queries, 1);
+});
+
 test("building expands deterministic point, line and rectangle designations without workers", () => {
   const context = {
     query: () => [],

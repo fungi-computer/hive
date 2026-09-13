@@ -1,5 +1,37 @@
 # Clearing interaction restoration audit — September 13
 
+## Renewed player-flow review
+
+Levi's current requirement is the Clearing's actual game interaction, not another
+sidebar expansion. Re-read retained tool transitions, dominant-axis dragCells,
+wallMask adjacency, contextual Target/BrewStationPanel and workPositions. The
+retained corner-access rule explicitly prevents the last wall of an enclosure
+being stranded. Preserve that behavior through current native contact ownership;
+do not copy its old hard-coded level-1 restriction.
+
+Placement candidate af518bc is NOT accepted: review found its point-only mode
+falls back to null, which the caller incorrectly admits to the area gesture.
+The existing writer is correcting that and reviewing upstairs anchor behavior.
+Its grouping/rotation tests alone do not establish placement reliability. One
+ghost sprite also does not complete footprint and connected-wall previews.
+
+The completion bar remains a coherent player loop: order without selecting an
+available worker, see and cancel the intended footprint, build connected shapes,
+inspect the actual object, let workers supply/work independently, and recover
+from a refused or blocked order without losing further input. Current work must
+remove the superseded interaction path as each replacement lands.
+
+Further review found that the current input caller ignored the committed line
+designation and submitted raw rectangle endpoints. The placement writer is
+correcting both preview and submission to consume the existing shape owner.
+Ground preview without a structure anchor also remains in that correction.
+
+Root corrected a separate server admission hazard: build-area size was checked
+after allocating every cell. It is now checked from dimensions before allocation.
+u6756 exited 0: maximum schema-valid coordinates reject before terrain queries,
+a subsequent valid order succeeds, strict engine types and diff checks pass.
+This is source-only; it is not evidence that this caused a particular live stall.
+
 Owner: King Bolete. Source review against current 0cbf8d2 and retained src/.
 This is an implementation guide linked from CLEARING-CONSOLIDATION-PLAN.md,
 not a declaration of gameplay or hosted acceptance. Levi reports carrying

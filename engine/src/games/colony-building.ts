@@ -24,10 +24,12 @@ function areaCells(area: { start: [number, number, number]; end: [number, number
   const start = area.start, end = area.end;
   if (start[1] !== end[1])
     throw new Error("Choose a same-level build area");
+  const width = Math.abs(end[0] - start[0]) + 1;
+  const depth = Math.abs(end[2] - start[2]) + 1;
+  if (width * depth > 256) throw new Error("Build area exceeds 256 cells");
   const cells: [number, number, number][] = [];
   for (let z = Math.min(start[2], end[2]); z <= Math.max(start[2], end[2]); z++)
     for (let x = Math.min(start[0], end[0]); x <= Math.max(start[0], end[0]); x++) cells.push([x, start[1], z]);
-  if (cells.length > 256) throw new Error("Build area exceeds 256 cells");
   return cells;
 }
 
