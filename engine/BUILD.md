@@ -1,3 +1,27 @@
+## September 13 — 512-world / 200-worker performance checkpoint
+
+Source `b09346b` extends the local Colony performance playground to a
+512×512 generated world and 200 resident workers while retaining the fixed
+50-tree workload and 64×64 presentation window. The larger world is sparse:
+this measures population, shared work assignment and pathfinding without
+shipping every generated surface to the client.
+
+- Playable performance page:
+  https://121d7145-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance.html?size=512&workers=200
+- `run-u6625.scope`: pinned Rust/WASM build passed with the existing 19
+  warnings.
+- `run-u6628.scope`: 32 focused performance/session/client laws and strict
+  engine types passed. The maximum preset starts and advances the real Colony
+  systems; it is not a browser frame-rate or sustained-capacity claim.
+- `run-u6629.scope`: exact engine client build passed.
+- `run-u6630.scope`: immutable preview upload passed; direct HTTP readback of
+  the page, launcher and performance Worker matched local SHA-256 bytes.
+
+The runtime now admits up to 512 bounded initial placements, batches the
+native 128-entity world-pose query inside the session owner, and skips idle
+emission assignment work. A later residency checkpoint must move the 64×64
+window by chunk rather than enlarging one observation to the whole map.
+
 ## September 11 — live native hearth and smoke checkpoint
 
 Runtime/client source `109957b`; actual WASM native source `40528bc` plus earlier
