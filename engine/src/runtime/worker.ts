@@ -157,6 +157,7 @@ export class WorkerRuntime {
       try { this.recover(); } catch { this.port?.dispose(); this.port = undefined; this.session = undefined; }
       this.emit({
         type: "error",
+        ...(command.type === "command" && command.invocationId ? { invocationId: command.invocationId } : {}),
         message: error instanceof Error ? error.message : String(error),
       });
     }

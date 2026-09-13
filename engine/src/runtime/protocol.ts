@@ -38,7 +38,7 @@ type WorkerEventBase =
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[]; readonly invocationId?: string; readonly metrics?: RuntimeMetrics }
-  | { readonly type: "error"; readonly message: string };
+  | { readonly type: "error"; readonly message: string; readonly invocationId?: string };
 
 export type WorkerEvent = WorkerEventBase;
 export interface RuntimeMetrics {
