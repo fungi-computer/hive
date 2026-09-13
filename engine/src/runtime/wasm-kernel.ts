@@ -91,6 +91,12 @@ const constructionAccessSchema = z.array(z.object({
     frame: z.null(), kind: z.enum(["origin", "landing"]),
   }).strict()).max(32),
 }).strict()).max(256);
+export function parseConstructionAccess(value: unknown, sites: readonly EntityId[]): readonly ConstructionAccess[] {
+  const rows = constructionAccessSchema.parse(value);
+  if (rows.length !== sites.length || rows.some((row, index) => row.site !== sites[index]))
+    throw new Error("construction access result order mismatch");
+  return rows;
+}
 function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]): readonly ConstructionReadiness[] {
   if (!Array.isArray(value) || value.length !== sites.length)
     throw new Error("invalid construction readiness result");
@@ -251,10 +257,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     constructionAccess(sites): readonly ConstructionAccess[] {
       if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
         throw new Error("construction access needs 1..256 sites");
-      const rows = constructionAccessSchema.parse(JSON.parse(binding.construction_access(JSON.stringify(sites))));
-      if (rows.length !== sites.length || rows.some((row, index) => row.site !== sites[index]))
-        throw new Error("construction access result order mismatch");
-      return rows;
+      return parseConstructionAccess(JSON.parse(binding.construction_access(JSON.stringify(sites))), sites);
     },
     physicalContacts(cells) {
       return physicalContactQuery(
