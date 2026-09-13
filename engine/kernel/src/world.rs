@@ -749,7 +749,8 @@ mod construction_tests {
         ];
         let contacts = rows[0]["contacts"].as_array().unwrap();
         assert!(!contacts.is_empty());
-        assert!(contacts.iter().all(|row| row["kind"] == "footprint"));
+        assert!(contacts.iter().all(|row| matches!(row["kind"].as_str(), Some("origin") | Some("landing"))));
+        assert!(contacts.iter().all(|row| row["kind"] == "origin"));
         assert!(contacts.iter().all(|row| !occupied.contains(&(row["x"].as_f64().unwrap(), row["z"].as_f64().unwrap()))));
         assert!(contacts.iter().any(|row| row["x"] == (surface.x - 2) as f64 * spacing[0]));
     }

@@ -278,7 +278,7 @@ impl Kernel {
                 crate::generation::Cell { x: site.x, y: site.y, z: site.z },
                 site.orientation,
                 footprint,
-            )?.into_iter().map(|cell| (cell.x, walking_y, cell.z, "footprint")).collect()
+            )?.into_iter().map(|cell| (cell.x, walking_y, cell.z, "origin")).collect()
         } else {
             vec![(site.x, walking_y, site.z, "origin")]
         };
