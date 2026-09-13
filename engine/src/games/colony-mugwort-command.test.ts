@@ -3,7 +3,8 @@ import test from "node:test";
 import { query } from "../sdk/authoring";
 import { ConstructionSite } from "../sdk/construction";
 import { ResourceSite } from "../sdk/common";
-import { ColonyResourceOrder, colonyPack } from "./colony";
+import { colonyPack } from "./colony";
+import { ColonyResourceOrder } from "./colony-work";
 
 const cell = [0, 13, 0] as const;
 
