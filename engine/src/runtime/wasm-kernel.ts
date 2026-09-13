@@ -80,6 +80,30 @@ const routeToAnyResultSchema = z.discriminatedUnion("status", [
     })
     .strict(),
 ]);
+function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]): readonly ConstructionReadiness[] {
+  if (!Array.isArray(value) || value.length !== sites.length)
+    throw new Error("invalid construction readiness result");
+  return value.map((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry))
+      throw new Error("invalid construction readiness row");
+    const row = Object.fromEntries(Object.entries(entry));
+    if (Object.keys(row).some((key) => !["site", "status", "reason"].includes(key)))
+      throw new Error("invalid construction readiness row");
+    const site = row.site;
+    if (typeof site !== "string" || site !== sites[index])
+      throw new Error("construction readiness result order mismatch");
+    const statusValue = row.status;
+    if (statusValue !== "ready" && statusValue !== "waitingForSupport" && statusValue !== "unknown")
+      throw new Error("invalid construction readiness status");
+    const reason = row.reason;
+    if (reason !== undefined && reason !== "missingStructuralSupport")
+      throw new Error("invalid construction readiness reason");
+    if (statusValue === "waitingForSupport" && reason !== "missingStructuralSupport")
+      throw new Error("construction readiness is missing its waiting reason");
+    if (reason === undefined) return { site, status: statusValue };
+    return { site, status: statusValue, reason };
+  });
+}
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
@@ -210,27 +234,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
         throw new Error("construction readiness needs 1..256 sites");
       const value: unknown = JSON.parse(binding.construction_readiness(JSON.stringify(sites)));
-      if (!Array.isArray(value) || value.length !== sites.length)
-        throw new Error("invalid construction readiness result");
-      const seen = new Set<string>();
-      return value.map((entry): ConstructionReadiness => {
-        if (!entry || typeof entry !== "object" || Array.isArray(entry))
-          throw new Error("invalid construction readiness row");
-        const row = entry as Record<string, unknown>;
-        if (typeof row.site !== "string" || !sites.includes(row.site as EntityId) || seen.has(row.site)
-          || !["ready", "waitingForSupport", "unknown"].includes(row.status as string))
-          throw new Error("invalid construction readiness row");
-        if (row.reason !== undefined && row.reason !== "missingStructuralSupport")
-          throw new Error("invalid construction readiness reason");
-        if (row.status === "waitingForSupport" && row.reason !== "missingStructuralSupport")
-          throw new Error("construction readiness is missing its waiting reason");
-        seen.add(row.site);
-        return {
-          site: row.site,
-          status: row.status as ConstructionReadiness["status"],
-          ...(row.reason === undefined ? {} : { reason: row.reason as "missingStructuralSupport" }),
-        };
-      });
+      return parseConstructionReadiness(value, sites);
     },
     physicalContacts(cells) {
       return physicalContactQuery(

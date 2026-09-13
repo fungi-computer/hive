@@ -26,6 +26,8 @@ pub struct SupportResult {
     /// Cells that can directly receive a load from a new structure. This is a
     /// derived query fact, never canonical geometry.
     pub load_contacts: BTreeSet<Cell>,
+    pub structural_anchors: BTreeSet<Cell>,
+    pub floor_distances: BTreeMap<Cell, u32>,
 }
 
 fn instance_id(instance: &StaticInstance) -> &str {
@@ -151,6 +153,7 @@ pub fn resolve(
     let mut stair_landings = BTreeSet::new();
     let mut floor_surfaces = BTreeSet::new();
 
+    let mut final_floor_distances = BTreeMap::new();
     for _ in 0..=instances.len() {
         // Span anchors are terrain and previously rooted load-bearing tops.
         // Supported floors are surfaces for later structures, never new span
@@ -199,6 +202,7 @@ pub fn resolve(
                 queue.push_back(next);
             }
         }
+        final_floor_distances = distances.clone();
         let mut load_contacts = span_anchors.clone();
         for (cell, floor_instances) in &floor_by_cell {
             if !distances.contains_key(cell) {
@@ -240,11 +244,14 @@ pub fn resolve(
         let id = instance_id(instance);
         (!rooted.contains(id)).then_some(id.to_string())
     }).collect();
-    let mut load_contacts = terrain_anchors;
+    let mut structural_anchors = terrain_anchors;
+    let mut load_contacts = structural_anchors.clone();
     load_contacts.extend(column_tops.iter().copied());
     load_contacts.extend(stair_landings.iter().copied());
     load_contacts.extend(floor_surfaces.iter().copied());
-    Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces, load_contacts })
+    structural_anchors.extend(column_tops.iter().copied());
+    structural_anchors.extend(stair_landings.iter().copied());
+    Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces, load_contacts, structural_anchors, floor_distances: final_floor_distances })
 }
 
 /// Assess one new instance against an already-resolved committed geometry.
@@ -268,9 +275,10 @@ pub fn candidate_supported(
         for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
             if terrain_support(cardinal_neighbor(support, dx, dz)?)? { return Ok(true); }
         }
-        let span = u64::from(max_span_steps);
-        if base.load_contacts.iter().any(|anchor| anchor.x.abs_diff(support.x).saturating_add(anchor.z.abs_diff(support.z)) <= span && anchor.y == support.y) {
-            return Ok(true);
+        if base.structural_anchors.iter().any(|anchor| anchor.y == support.y && anchor.x.abs_diff(support.x).saturating_add(anchor.z.abs_diff(support.z)) <= 1) { return Ok(true); }
+        for (floor, distance) in &base.floor_distances {
+            if floor.y == support.y && floor.x.abs_diff(support.x).saturating_add(floor.z.abs_diff(support.z)) == 1
+                && distance.checked_add(1).is_some_and(|next| next <= u32::from(max_span_steps)) { return Ok(true); }
         }
     } else if base.load_contacts.contains(&support) {
         return Ok(true);
@@ -352,10 +360,26 @@ mod tests {
         let base = SupportResult {
             supported: BTreeSet::new(), unsupported: Vec::new(), column_tops: BTreeSet::new(),
             stair_landings: BTreeSet::new(), floor_surfaces: BTreeSet::new(), load_contacts: BTreeSet::new(),
+            structural_anchors: BTreeSet::new(), floor_distances: BTreeMap::new(),
         };
         let pending = StaticInstance::Floor { id: "pending".into(), support: Cell { x: 2, y: 0, z: 0 } };
         let mut no_terrain = terrain(&[]);
         assert!(!candidate_supported(&base, &pending, 4, &mut no_terrain).unwrap());
+    }
+
+    #[test]
+    fn candidate_floor_cannot_jump_a_gap_or_reset_span() {
+        let mut base = SupportResult {
+            supported: BTreeSet::new(), unsupported: Vec::new(), column_tops: BTreeSet::new(),
+            stair_landings: BTreeSet::new(), floor_surfaces: BTreeSet::new(), load_contacts: BTreeSet::new(),
+            structural_anchors: BTreeSet::new(), floor_distances: BTreeMap::new(),
+        };
+        base.floor_distances.insert(Cell { x: 0, y: 0, z: 0 }, 3);
+        let adjacent = StaticInstance::Floor { id: "adjacent".into(), support: Cell { x: 1, y: 0, z: 0 } };
+        let gap = StaticInstance::Floor { id: "gap".into(), support: Cell { x: 2, y: 0, z: 0 } };
+        let mut no_terrain = terrain(&[]);
+        assert!(candidate_supported(&base, &adjacent, 4, &mut no_terrain).unwrap());
+        assert!(!candidate_supported(&base, &gap, 4, &mut no_terrain).unwrap());
     }
 
     #[test]
