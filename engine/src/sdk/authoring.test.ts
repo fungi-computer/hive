@@ -47,6 +47,7 @@ export function authoringContractProof(): void {
     environmentFacts: () => {
       throw new Error("unexpected environment query in this fixture");
     },
+    constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
     atmosphereSamples: () => {
       throw new Error("unexpected atmosphere query in this fixture");
     },
