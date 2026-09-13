@@ -171,12 +171,13 @@ export type ActionRequest =
       readonly y: number;
       readonly z: number;
       readonly orientation: CardinalOrientation;
-      readonly contact: Vec3 & { readonly frame: null };
     }
+  | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
   | {
       readonly kind: "attend-construction";
       readonly worker: EntityId;
       readonly site: EntityId;
+      readonly contact: Vec3 & { readonly frame: null };
     }
   | {
       readonly kind: "excavate";
@@ -454,6 +455,12 @@ export interface ConstructionReadiness {
   readonly status: ConstructionReadinessStatus;
   readonly reason?: "missingStructuralSupport";
 }
+export type ConstructionAccessContact = Vec3 & { readonly frame: null; readonly kind: "origin" | "landing" };
+export interface ConstructionAccess {
+  readonly site: EntityId;
+  readonly support: ConstructionReadinessStatus;
+  readonly contacts: readonly ConstructionAccessContact[];
+}
 export type PhysicalContact = {
   readonly solid: boolean;
   readonly sealedTop: boolean;
@@ -494,6 +501,7 @@ export interface KernelPort {
   readonly constructionReadiness: (
     sites: readonly EntityId[],
   ) => readonly ConstructionReadiness[];
+  readonly constructionAccess: (sites: readonly EntityId[]) => readonly ConstructionAccess[];
   readonly terrainMaterials: (
     cells: readonly [number, number, number][],
   ) => readonly number[];

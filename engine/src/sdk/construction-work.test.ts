@@ -29,7 +29,7 @@ function context(options: {
     row(site, {
       [ConstructionSite.id]: {
         catalog: "floor", x: 1, y: 0, z: 1, orientation: "north",
-        contactX: 1, contactY: 0.5, contactZ: 1, worker: options.attended ? worker : null,
+        worker: options.attended ? worker : null,
         seconds: 0, phase: options.attended ? "working" : "planned",
       },
       [Position.id]: { x: 1, y: 0.5, z: 1, facing: 0 },
@@ -70,7 +70,9 @@ function context(options: {
       routes.push(requests);
       return requests.map(() => ({ status: "reachable", cost: 6 }));
     },
+    routeToAny: (request: { actor: typeof worker; targets: readonly unknown[] }) => ({ actor: request.actor, status: "reachable" as const, targetIndex: 0, cost: 6 }),
     constructionReadiness: (sites: readonly string[]) => sites.map((site) => ({ site, status: options.constructionStatus ?? "ready" })),
+    constructionAccess: (sites: readonly string[]) => sites.map((site) => ({ site, support: options.constructionStatus ?? "ready", contacts: [{ x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const }] })),
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,
     write: () => {},
@@ -111,16 +113,17 @@ test("construction assignment persists an approach claim and native attendance r
   const fake = context({ includeMaterial: true });
   const prepared = constructionWorkProvider(fake.base, options, new Set());
   assert.equal(prepared.candidates.length, 1);
+  prepared.estimate(prepared.candidates[0]);
   prepared.apply([{ worker, task: site, cost: 3 }]);
   assert.deepEqual(fake.created, [{
     id: "construction-approach.10:site.floor",
-    components: { [ConstructionApproach.id]: { site, worker } },
+    components: { [ConstructionApproach.id]: { site, worker, contactX: 1, contactY: 0.5, contactZ: 1 } },
   }]);
   assert.deepEqual(fake.actions, [{ kind: "move", entity: worker, destination: { x: 1, y: 0.5, z: 1, frame: null }, facing: 0 }]);
 
   const arrived = context({ includeMaterial: true, workerAtSite: true });
   const approach = row(entity("construction-approach.10:site.floor"), {
-    [ConstructionApproach.id]: { site, worker },
+    [ConstructionApproach.id]: { site, worker, contactX: 1, contactY: 0.5, contactZ: 1 },
   });
   const originalQuery = arrived.base.query;
   (arrived.base as any).query = ((spec: QuerySpec<any>) => {
@@ -129,7 +132,7 @@ test("construction assignment persists an approach claim and native attendance r
   }) as WriteContext["query"];
   const next = constructionWorkProvider(arrived.base, options, new Set());
   next.progress();
-  assert.deepEqual(arrived.actions, [{ kind: "attend-construction", worker, site }]);
+  assert.deepEqual(arrived.actions, [{ kind: "attend-construction", worker, site, contact: { x: 1, y: 0.5, z: 1, frame: null } }]);
 
   const attended = context({ includeMaterial: true, workerAtSite: true, attended: true });
   const attendedQuery = attended.base.query;
@@ -143,7 +146,7 @@ test("construction assignment persists an approach claim and native attendance r
 
 test("approach releases removed workers but ignores rejected moves to another target", () => {
   const approach = row(entity("construction-approach.10:site.floor"), {
-    [ConstructionApproach.id]: { site, worker },
+    [ConstructionApproach.id]: { site, worker, contactX: 1, contactY: 0.5, contactZ: 1 },
   });
   const foreign = context({
     includeMaterial: true,

@@ -55,17 +55,7 @@ export const colonyBuildCommand = command({
       const y = supportY + (definition.shape.kind === "wall" ? 1 : 0);
       const id = entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`);
       if (sites.some(site => site.id === id)) continue;
-      const supports: [number, number, number][] = [];
-      for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) for (const dy of [0, -1, 1]) supports.push([x + dx, supportY + dy, z + dz]);
-      const facts = context.physicalContacts(supports.flatMap(([cx, cy, cz]) => [[cx, cy, cz], [cx, cy + 1, cz]] as [number, number, number][]));
-      const index = supports.findIndex((_, i) => {
-        const foot = facts[i * 2], head = facts[i * 2 + 1];
-        return !foot.outside && (foot.solid || foot.sealedTop) && !head.outside && !head.solid && !head.sealedTop;
-      });
-      if (index < 0) throw new Error("No clear working surface beside this building");
-      const [cx, cy, cz] = supports[index];
-      actions.push(planConstruction(id, definition.id, { x, y, z }, orientation,
-        { x: cx, y: (cy + 0.5) * colonyEnvironment.world.verticalMetres, z: cz }));
+      actions.push(planConstruction(id, definition.id, { x, y, z }, orientation));
     }
     return { writes: [], actions };
   },
