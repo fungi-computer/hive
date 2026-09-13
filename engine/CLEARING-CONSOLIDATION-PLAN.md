@@ -180,6 +180,34 @@ engine types and touched Fallow pass. Fallow reports0 introduced findings, with
 The completed full-world smoke/point-query/cutaway changes are in the same release
 candidate. Full sustained two-client performance and Levi's playtest remain open.
 
+## Three-dimensional work routing release — September 13
+
+**Live:** [Colony](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html),
+source `aa138fa`; frontend deployment
+`5127164f-275c-4bed-bb09-52039cc81b7b`; Durable Object Worker version
+`64dc84ff-faf8-4dd9-b106-cbda2122ec19`.
+
+Dig work no longer collapses each voxel column to its highest surface. It offers
+bounded adjacent supports at real `y` levels, and native `routeToAny` chooses a
+reachable three-dimensional approach using the authoritative terrain, clearance,
+stair and excavation-reach rules. Native A* uses an admissible goal heuristic.
+Excavation waits without earning work while an admitted route still occupies its
+support, then resumes after the route releases it.
+
+Global Hungarian assignment sees the full eligible worker/job set. It publishes
+at most eight exact assignments and performs at most 32 route validations in one
+planning step. The 50-worker/50-tree local profile reduced mean step time from
+25.06 ms to 11.17 ms, p95 from 53.98 ms to 23.09 ms and total route work from
+252.19 ms to 28.11 ms over 64 steps. One assignment step still reached 70.65 ms;
+this remains a visible hitch risk rather than a 30 Hz guarantee.
+
+The Rust/WASM and frontend release builds passed. HTTP readback matches all 44
+engine files. A lightweight remote Colony witness passed observe, pause, identical
+receipt replay, resume and renewed advancement. No browser interaction or sustained
+two-person playtest was run for this release. Because the authoritative program
+identity changed under the clean-break policy, an older world requires explicit
+**New world**; its stored bytes are not silently migrated or deleted.
+
 ## Retained brew station clean break — September 12
 
 The temporary standalone `colony.hearth` entity and its procedural rectangle/
@@ -333,23 +361,23 @@ This ledger is the required starting point for further Colony work. It prevents
 isolated feature ports from repeatedly rediscovering the same job, material,
 geometry and presentation seams.
 
-| Play concern | Retained behavioral source | Current native/SDK owner | Current disposition |
-| --- | --- | --- | --- |
-| People and party | `actors.ts`, `clearing.ts`, `orders.ts` | authored entities, `Body`, `Traversal`, `WorkParticipation`, command admission | Rowan and Sedge exist with original visuals and manual takeover. Party membership, recruitment and the cat are missing. |
-| Selection and tools | `ui-actions.ts`, `main.js`, `view.js` | shared client controls, contextual presentation, area selection, layer/cutaway view | Selection, Go, rectangle Dig and layers exist. Restore the retained contextual site/tree/herb/lot actions through the shared catalog rather than adding Colony-only pointer branches. |
-| Movement and assignment | `movement.ts`, `matching.ts`, `jobs.ts` | Rust route search and shared work exist; current native matching is Bellman-Ford, not the required Hungarian, and stair search/report costs diverge | Follow the September 13 pathfinding repair. Restore Hungarian and one movement metric; replace superseded native internals without adding a second runtime owner. |
-| Physical goods | `materials.ts`, `item-containers.ts` | Rust `Lot`/`Container`, transfer, carried water, output preparation and indexes | Native custody is stronger. Add missing Goblin material/endpoint definitions; do not port the retained material store. |
-| Trees and wood | `world.js`, `orders.ts`, `jobs.ts`, `activity.ts` | generated/content entities, generic finite work, native material output and delivery | Missing. Restore fell/chop/output/haul as the first scenery-backed resource loop, including retained poses and finite wood. |
-| Storage | retained lot/container and storage jobs | native containers, delivery tasks and future data-defined stockpile filters | Crates work; floor stock is only a fallback. Restore ordinary stockpile designation/filtering before adding automation. |
-| Construction | `construction.js`, `physical-completion.ts`, `construction-view.js` | native construction work, physical geometry, material embedding, support query | Floor and wall mechanisms exist. The current stair bake improperly stretches the retained two-cell ramp to a four-cell vehicle-sized visual; restore the exact retained stair contract and rotate it for four facings before treating stair parity as complete. Restore the retained catalog, site interactions, deconstruction/salvage, bed/shelf/station endpoints and presentation without replacing native completion. |
-| Terrain and excavation | retained terrain/digging controls | Rust generator, A*, excavation, material yield, discrete field water | Current implementation supersedes retained physics. Preserve rectangle tools and visual quality; do not port old terrain or water state. |
-| Water and vessels | `field-water*`, `water-supply.ts`, `water-delivery.ts`, pail art | Rust discrete field water, `LotWater`, native transfer and containers | Groundwater is live. Restore pail draw/carry/pour and station supply as consumers of the current finite owner. |
-| Herbs | `herbs.ts`, herb commands/jobs/activity, art | generic finite work, material output, authored growth/process facts | Missing. Restore sow/grow/water/harvest as data and shared work, producing a real mugwort lot. |
-| Brewing | `recipes.ts`, `brewing.ts`, brew jobs/activity | native lots/containers/emissions plus the missing generic staged-process owner | Station and paid fire exist; recipe production does not. Implement one general process owner, then express herbal ale as definitions. |
-| Needs and routine | `needs.ts`, `routine.ts`, care jobs/activity | shared component/system/query composition; native material/contact mutations | Missing; the current `Guest { hungry }` placeholder must be deleted when this lands. Residents and guests share hydration, nourishment and rest. |
-| Presentation and juice | `art/clearing.js`, `art/figures.js`, `view.js` | shared original asset pack, visual projection, interpolation, cues/effects | Work poses exist; trees/path/cat and pickup/drop transitions are missing. Presentation reads physical facts and never advances work. |
-| Environment | retained paid environment and presentation | current sparse gas, discrete water, structure faces and native transaction | Keep the current owners. Brewing, buildings and visuals consume them; no renewed solver experiment. |
-| Save, retry and multiplayer | retained snapshots provide semantic examples only | Region transaction/receipts, DO alarm, complete baseline plus changed observations | Current implementation supersedes retained hosting. Every restored loop must survive current-format reload/retry and two-client use. |
+| Play concern                | Retained behavioral source                                          | Current native/SDK owner                                                                                                                            | Current disposition                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| People and party            | `actors.ts`, `clearing.ts`, `orders.ts`                             | authored entities, `Body`, `Traversal`, `WorkParticipation`, command admission                                                                      | Rowan and Sedge exist with original visuals and manual takeover. Party membership, recruitment and the cat are missing.                                                                                                                                                                                                                                                                                                    |
+| Selection and tools         | `ui-actions.ts`, `main.js`, `view.js`                               | shared client controls, contextual presentation, area selection, layer/cutaway view                                                                 | Selection, Go, rectangle Dig and layers exist. Restore the retained contextual site/tree/herb/lot actions through the shared catalog rather than adding Colony-only pointer branches.                                                                                                                                                                                                                                      |
+| Movement and assignment     | `movement.ts`, `matching.ts`, `jobs.ts`                             | Rust route search and shared work exist; current native matching is Bellman-Ford, not the required Hungarian, and stair search/report costs diverge | Follow the September 13 pathfinding repair. Restore Hungarian and one movement metric; replace superseded native internals without adding a second runtime owner.                                                                                                                                                                                                                                                          |
+| Physical goods              | `materials.ts`, `item-containers.ts`                                | Rust `Lot`/`Container`, transfer, carried water, output preparation and indexes                                                                     | Native custody is stronger. Add missing Goblin material/endpoint definitions; do not port the retained material store.                                                                                                                                                                                                                                                                                                     |
+| Trees and wood              | `world.js`, `orders.ts`, `jobs.ts`, `activity.ts`                   | generated/content entities, generic finite work, native material output and delivery                                                                | Missing. Restore fell/chop/output/haul as the first scenery-backed resource loop, including retained poses and finite wood.                                                                                                                                                                                                                                                                                                |
+| Storage                     | retained lot/container and storage jobs                             | native containers, delivery tasks and future data-defined stockpile filters                                                                         | Crates work; floor stock is only a fallback. Restore ordinary stockpile designation/filtering before adding automation.                                                                                                                                                                                                                                                                                                    |
+| Construction                | `construction.js`, `physical-completion.ts`, `construction-view.js` | native construction work, physical geometry, material embedding, support query                                                                      | Floor and wall mechanisms exist. The current stair bake improperly stretches the retained two-cell ramp to a four-cell vehicle-sized visual; restore the exact retained stair contract and rotate it for four facings before treating stair parity as complete. Restore the retained catalog, site interactions, deconstruction/salvage, bed/shelf/station endpoints and presentation without replacing native completion. |
+| Terrain and excavation      | retained terrain/digging controls                                   | Rust generator, A*, excavation, material yield, discrete field water                                                                                | Current implementation supersedes retained physics. Preserve rectangle tools and visual quality; do not port old terrain or water state.                                                                                                                                                                                                                                                                                   |
+| Water and vessels           | `field-water*`, `water-supply.ts`, `water-delivery.ts`, pail art    | Rust discrete field water, `LotWater`, native transfer and containers                                                                               | Groundwater is live. Restore pail draw/carry/pour and station supply as consumers of the current finite owner.                                                                                                                                                                                                                                                                                                             |
+| Herbs                       | `herbs.ts`, herb commands/jobs/activity, art                        | generic finite work, material output, authored growth/process facts                                                                                 | Missing. Restore sow/grow/water/harvest as data and shared work, producing a real mugwort lot.                                                                                                                                                                                                                                                                                                                             |
+| Brewing                     | `recipes.ts`, `brewing.ts`, brew jobs/activity                      | native lots/containers/emissions plus the missing generic staged-process owner                                                                      | Station and paid fire exist; recipe production does not. Implement one general process owner, then express herbal ale as definitions.                                                                                                                                                                                                                                                                                      |
+| Needs and routine           | `needs.ts`, `routine.ts`, care jobs/activity                        | shared component/system/query composition; native material/contact mutations                                                                        | Missing; the current `Guest { hungry }` placeholder must be deleted when this lands. Residents and guests share hydration, nourishment and rest.                                                                                                                                                                                                                                                                           |
+| Presentation and juice      | `art/clearing.js`, `art/figures.js`, `view.js`                      | shared original asset pack, visual projection, interpolation, cues/effects                                                                          | Work poses exist; trees/path/cat and pickup/drop transitions are missing. Presentation reads physical facts and never advances work.                                                                                                                                                                                                                                                                                       |
+| Environment                 | retained paid environment and presentation                          | current sparse gas, discrete water, structure faces and native transaction                                                                          | Keep the current owners. Brewing, buildings and visuals consume them; no renewed solver experiment.                                                                                                                                                                                                                                                                                                                        |
+| Save, retry and multiplayer | retained snapshots provide semantic examples only                   | Region transaction/receipts, DO alarm, complete baseline plus changed observations                                                                  | Current implementation supersedes retained hosting. Every restored loop must survive current-format reload/retry and two-client use.                                                                                                                                                                                                                                                                                       |
 
 ### Shared spatial designation and connected-world presentation
 
@@ -637,6 +665,7 @@ uses existing Caps and real baked silhouettes, and removes the misleading
 universal groundwater instruction. Current Colony definition version is 4.
 
 Root evidence in .botanical/clearing-context-release:
+
 - u6249 caught command/system component write overlap before any simulation;
   root corrected it with distinct request/progress ownership, preserving failure.
 - u6252 and joined u6262: three actual native Colony laws pass (shared supply/
@@ -720,6 +749,7 @@ selection own its prepared apply/rollback while the existing connection retains
 runtime replacement, in `6426cac`.
 
 Evidence under integration `.botanical/clearing-ground-release/`:
+
 - u6227 passed nine connection laws, explicit strict types, new-only Fallow and
   joined build/Worker preparation. Full inherited advisories remain in the JSON.
 - u6229 published `6426cac`; u6230 matched all 158 served files. The first actual
@@ -823,6 +853,7 @@ retained static atlas is unchanged. Original scenery, ground detail and transien
 pickup/drop animations remain unfinished; this is not visual parity with Clearing.
 
 Evidence in the `clearing-work-animation` lane's `.botanical/work-animation/`:
+
 - `u6190`: nine animation/native-attendance laws and the focused JSON activity
   boundary law pass. Native attendance projection leaves saved state unchanged.
 - `u6197`: three joined actual-WASM laws pass; explicit engine types fail. The

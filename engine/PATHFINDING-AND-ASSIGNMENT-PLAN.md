@@ -53,6 +53,23 @@ claim. The exact report is retained at
 persisted bounded-planning continuation and full delivery itinerary pricing remain
 open improvements.
 
+### September 13 playable release
+
+The exact reviewed tree at `aa138fa` is live at the existing
+[Colony preview](https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html).
+The frontend preview deployment is `5127164f-275c-4bed-bb09-52039cc81b7b` and
+the authoritative Durable Object Worker version is
+`64dc84ff-faf8-4dd9-b106-cbda2122ec19`, with program identity
+`07d4ba10e509813a8d610cfea04f006459772e06730b59de45add03c9ed20890`.
+
+The release rebuilt Rust/WASM and the complete engine frontend. All 44 served
+engine files match the release inventory. A remote API witness created a Colony,
+observed it, paused it, replayed the identical pause command, resumed it, observed
+time advance and left it paused. That is transport and durable-host evidence, not
+a browser interaction, sustained two-player session or worst-case capacity claim.
+The clean-break program identity means an older demo world can be retained but
+must be replaced with **New world** before playing this version.
+
 A frozen 50-worker/50-tree comparison is retained under
 `.botanical/batch-assignment-quality-20260913/`. On that one initial layout, global
 Hungarian over exact native route costs totalled 433.08 m. Global Hungarian over
