@@ -51,3 +51,18 @@ test("claimed and unreachable work never reaches costing or matching respectivel
   assert.deepEqual(visited,[`${free}/${open}`]);
   assert.deepEqual(result,[]);
 });
+
+test("globally unavailable actors never reach route costing", () => {
+  const worker = entity("worker.suspended");
+  const task = entity("job.suspended");
+  let costCalls = 0;
+  const result = allocateWork(
+    [{ task, actor: null }],
+    [{ worker, task }],
+    () => { costCalls++; throw new Error("unavailable actor was costed"); },
+    () => { throw new Error("unavailable actor was matched"); },
+    new Set([worker]),
+  );
+  assert.deepEqual(result, []);
+  assert.equal(costCalls, 0);
+});

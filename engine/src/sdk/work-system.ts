@@ -84,6 +84,7 @@ export function createWorkSystem(options: WorkSystemOptions) {
             return { ...assignment, providerIndex: candidate.providerIndex } satisfies TaggedAssignment;
           });
         },
+        new Set([...occupiedActors, ...suspendedActors]),
       );
       const assignmentsByProvider = prepared.map((_, providerIndex) =>
         assignments.filter((assignment) => taskProviders.get(assignment.task) === providerIndex),
