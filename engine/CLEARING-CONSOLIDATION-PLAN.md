@@ -245,6 +245,42 @@ despite an attempted replacement; `clearing-live` is the accepted alias and the
 old alias is rollback. The full retained brewing recipe loop is still the next
 product slice.
 
+### September 13 finite groundwater brewing release — 73e84d8
+
+The first complete retained brewing journey is now live at
+https://clearing-live-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony.
+Frontend version `5b8288ad-bf31-48cc-acb1-558adfb399d4` serves the frozen
+20,524,862-byte build; all 120 regular files match the local release bytes by
+HTTP. Durable Object Worker version `f8aa28e7-74d6-4154-ae96-7864a43e062d`
+uses implementation identity
+`3e7ed312b79134f6aec99786fd1c8f73753928fa7a7b86317eecb724846c08a5`.
+A fresh remote Colony owner passed connect, pause, identical command-receipt
+replay, resume and renewed advancement through revision 7. This is lightweight
+transport/runtime closure, not a sustained two-person playtest or browser UI
+claim.
+
+Selecting a finished brew station now exposes one `Brew herbal ale` command.
+The native staged-process owner binds exact malt, mugwort, barm, keg and station
+ports; ordinary work planning fetches finite groundwater into a physical pail,
+delivers it to the kettle, attends preparation, releases the worker during
+fermentation, reattends kegging, and settles four ale plus one spent grain. The
+process asks for missing water without reserving a worker. It counts staged and
+in-flight water, removes obsolete demand when enough arrives, and gives each
+accepted portion a distinct durable command identity. The temporary manual
+hearth command and its duplicate emission-work owner are removed; process-owned
+fuel, fire and smoke use the existing native material and environment owners.
+
+Current source is `73e84d8`; the qualified Whistle wire tar remains
+`e767b3ae589183b89b74f13706c7b1a4954a5c1391a7f0ef304c35541a7ff36d`
+and both runtime callers import `parse` from
+`@fungi.computer/whistle/wire`. Focused water/brewing and station teardown laws,
+the actual end-to-end GameSession brewing journey, strict engine types and diff
+checks pass in `run-u7037.scope` and `run-u7045.scope`. The broader inherited
+construction suite still contains stale expectations that finished structures
+retain their consumed loose material, plus an unresolved three-level routing
+case. Those failures are not hidden by this release and remain separate repair
+work.
+
 ## Retained-system restoration order — September 12
 
 The groundwater playtest is responsive enough to resume feature restoration, but
@@ -256,7 +292,9 @@ another environmental study.
 
 Restore retained behavior in this order:
 
-1. **Brew at the station.** Use the existing station selection and shared
+1. **Brew at the station.** The first full groundwater-to-keg journey is live.
+   Continue from the accepted native process rather than adding another brewing
+   path. Use the existing station selection and shared
    delivery/work allocation. Recipe definitions remain authored data. A generic
    staged-process owner binds exact material lots and station endpoints, advances
    attended preparation, advances unattended fermentation, and settles kegged
