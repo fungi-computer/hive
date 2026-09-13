@@ -83,8 +83,6 @@ export const colonyEnvironment: EnvironmentDefinition = {
           { key: "hearth", at: "site-contact", components: [
             { name: "hive.container", value: { capacity: 2 } },
             { name: "hive.emitter", value: { catalog: "wood-hearth" } },
-            { name: "hive.emission-work", value: { request: 0, phase: "idle", actor: null, reason: "" } },
-            { name: "hive.emission-order", value: { revision: 0, enabled: false } },
           ] },
           { key: "barm", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 1 } }] },
           { key: "keg", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 1 } }] },

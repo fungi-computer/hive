@@ -1,6 +1,5 @@
 import { colonyConstructionVisuals } from "./colony-construction-visuals";
 import { colonyBrewStationProfiles } from "./colony-brewing-presentation";
-import { EmissionOrder, EmissionWork, nextEmissionOrder } from "../sdk/emission-work";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { ConstructionApproach } from "../sdk/construction-work";
@@ -197,9 +196,6 @@ function availableBrewStations(context: Pick<ReadContext, "query">) {
   return finishedBrewStations(context).filter(row => !active.has(row.id));
 }
 
-function hearthPort(station: EntityId): EntityId {
-  return entity(`${station}:hearth`);
-}
 const workerSelectionInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
 }).strict();
@@ -323,7 +319,6 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
 }
 
 const colonyComponents = [
-  EmissionOrder, EmissionWork,
   Position,
   Emitter,
   Body,
@@ -425,36 +420,6 @@ export const colonyPack: GamePack = {
       run(context, input) {
         if (!availableBrewStations(context).some(row => row.id === input.station)) throw new Error("This brew station already has an active brew process");
         return { actions: [requestProcess("herbal-ale-v1", input.station)], writes: [] };
-      },
-    }),
-    lightHearth: command({
-      title: "Light brew station fire", category: "Colony", description: "Request lighting for the brew station.",
-      localPresentation: { bindings: [{ id: "light-brew-station", label: "Light brew station fire", selection: { field: "station", cardinality: "one" } }] },
-      subjects: context => finishedBrewStations(context).map(row => row.id),
-      input: stationInput,
-      reads: [ConstructionSite, Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
-      run(context, input) {
-        const station = finishedBrewStations(context).find(row => row.id === input.station);
-        if (!station) throw new Error("This brew station is not finished");
-        const row = context.query(query(Emitter, EmissionOrder, EmissionWork)).find(row => row.id === hearthPort(station.id));
-        if (!row) throw new Error("This station cannot be lit");
-        const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), true);
-        return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
-      },
-    }),
-    cancelIgnition: command({
-      title: "Cancel brew station fire", category: "Colony", description: "Cancel the current brew station lighting request.",
-      localPresentation: { bindings: [{ id: "cancel-ignition", label: "Cancel lighting", selection: { field: "station", cardinality: "one" } }] },
-      subjects: context => finishedBrewStations(context).map(row => row.id),
-      input: stationInput,
-      reads: [ConstructionSite, EmissionOrder, EmissionWork], writes: [EmissionOrder],
-      run(context, input) {
-        const station = finishedBrewStations(context).find(row => row.id === input.station);
-        if (!station) throw new Error("This brew station is not finished");
-        const row = context.query(query(EmissionOrder, EmissionWork)).find(row => row.id === hearthPort(station.id));
-        if (!row) throw new Error("Station work unavailable");
-        const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), false);
-        return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
       },
     }),
     deliver: command({
@@ -681,14 +646,14 @@ export const colonyPack: GamePack = {
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const taskRows = context.query(query(DeliveryTask));
       const stationFacts = finishedBrewStations(context).slice(0, 8).map((site) => {
-        const hearth = hearthPort(site.id);
-        const ignition = context.query(query(EmissionWork)).find(row => row.id === hearth)?.get(EmissionWork);
+        const hearth = entity(`${site.id}:hearth`);
         const stationAir = context.atmosphereSamples([[
           Math.floor(site.get(ConstructionSite).x + 0.5),
           site.get(ConstructionSite).y + 1,
           Math.floor(site.get(ConstructionSite).z + 0.5),
         ]]).samples[0];
-        const phase = ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]);
+        const process = context.query(query(StagedProcess)).find(row => row.get(StagedProcess).station === site.id)?.get(StagedProcess);
+        const phase = process?.phase === "complete" ? "Complete" : process ? `Stage ${process.stageIndex + 1}` : "No process";
         return { id: `station-${site.id}`, subjects: [site.id], label: "Brew station", value: `${stationAir ? `${stationAir.temperatureC.toFixed(1)} °C, ${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³` : "air not modeled"} · ${total(hearth)} wood · ${phase}` };
       });
       return [

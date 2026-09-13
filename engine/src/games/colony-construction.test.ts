@@ -8,9 +8,8 @@ import { entity, query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
-import { Container, MaterialLot, consume } from "../sdk/common";
+import { Container, Emitter, MaterialLot, consume, transfer } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
-import { EmissionOrder, EmissionWork } from "../sdk/emission-work";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -34,38 +33,21 @@ function materialTotal(session: GameSession) {
   return session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
 }
 
-test("disabled ignition does not reserve workers or lumber ahead of construction", () => {
-  const port = wasmKernelPort(new WasmKernel());
-  try {
-    const session = new GameSession({ port, pack: colonyPack });
-    session.start();
-    const station = buildBrewStation(session).id;
-    const tasks = session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask));
-    assert.equal(session.query(query(EmissionOrder))[0].get(EmissionOrder).enabled, false);
-    const hearth = session.query(query(EmissionOrder))[0].id;
-    assert(tasks.every(task => task.destination !== hearth), "disabled ignition has no fuel delivery");
-    session.command("lightHearth", { station });
-    session.step(0.25);
-    assert(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).destination === hearth), "requested ignition uses shared delivery");
-  } finally { port.dispose(); }
-});
-
 test("brew station is absent initially and completion creates stable retained ports", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     assert.equal(session.query(query(ConstructionSite)).length, 0);
-    assert.equal(session.query(query(EmissionOrder)).length, 0);
     const site = buildBrewStation(session);
     const containers = session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort();
     assert.deepEqual(containers, ["barm", "hearth", "keg", "kettle", "tray"].map(key => `${site.id}:${key}`));
-    assert.deepEqual(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
-    assert.deepEqual(session.query(query(EmissionWork)).map(row => row.id), [`${site.id}:hearth`], "mutable fixture capability must survive generic completion");
+    assert.equal(session.query(query(Container)).find(row => row.id === `${site.id}:hearth`)?.get(Container).capacity, 2);
+    assert.equal(session.query(query(Emitter)).find(row => row.id === `${site.id}:hearth`)?.get(Emitter).catalog, "wood-hearth");
     const saved = session.save();
     session.restore(saved);
     assert.deepEqual(session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort(), containers);
-    assert.deepEqual(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
+    assert.equal(session.query(query(Container)).some(row => row.id === `${site.id}:hearth`), true);
   } finally { port.dispose(); }
 });
 
@@ -76,9 +58,9 @@ test("brew station teardown waits for occupied retained ports and salvages after
     session.start();
     const site = buildBrewStation(session);
     const hearth = entity(`${site.id}:hearth`);
-    session.command("lightHearth", { station: site.id });
-    for (let tick = 0; tick < 160 && !session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === hearth); tick++) session.step(0.25);
-    session.command("cancelIgnition", { station: site.id });
+    const source = session.query(query(MaterialLot)).find(row => row.get(MaterialLot).container === "colony.lumber");
+    assert(source);
+    session.request(transfer(source.id, source.get(MaterialLot).container, hearth, 1));
     session.step(0);
     assert.equal(port.deconstructionAccess([site.id])[0]?.status, "occupiedPort");
     const beforeBlocked = materialTotal(session);

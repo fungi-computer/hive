@@ -1,9 +1,4 @@
 import {
-  EmissionOrder,
-  EmissionWork,
-  emissionWorkProvider,
-} from "../sdk/emission-work";
-import {
   ConstructionApproach,
   constructionWorkProvider,
 } from "../sdk/construction-work";
@@ -26,7 +21,6 @@ import {
 } from "../sdk/delivery";
 import { GroundStock } from "../sdk/ground-stock";
 import {
-  Emitter,
   Body,
   Container,
   Destination,
@@ -932,42 +926,14 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
             }))
           : [];
       }),
-      ...ctx
-        .query(query(Emitter, EmissionOrder))
-        .filter((row) => row.get(EmissionOrder).enabled)
-        .slice(0, 8)
-        .flatMap((row) => {
-          const definition = colonyEnvironment.emissions?.find(
-            (item) => item.id === row.get(Emitter).catalog,
-          );
-          return definition
-            ? [
-                {
-                  destination: row.id,
-                  material: definition.materialKind,
-                  quantity: definition.quantity,
-                },
-              ]
-            : [];
-        }),
     ],
   });
 }
-
-const emissionRequirements = new Map(
-  (colonyEnvironment.emissions ?? []).map((definition) => [
-    definition.id,
-    definition,
-  ]),
-);
 
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
   reads: [
-    EmissionOrder,
-    EmissionWork,
-    Emitter,
     GroundStock,
     StockpileCell,
     ColonyDigOrder,
@@ -999,7 +965,6 @@ export const colonyWorkSystem = createWorkSystem({
     WaterSupplyWork,
   ],
   writes: [
-    EmissionWork,
     ColonyDigOrder,
     ColonyTree,
     ColonyTreeOrder,
@@ -1037,16 +1002,6 @@ export const colonyWorkSystem = createWorkSystem({
       ),
     (ctx, suspendedActors) =>
       deconstructionWorkProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
-    (ctx, suspendedActors) =>
-    emissionWorkProvider(
-        ctx,
-        ctx
-          .query(query(Worker))
-          .filter((row) => !row.get(Worker).guest)
-          .map((row) => row.id),
-        emissionRequirements,
-        suspendedActors,
-      ),
     (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
     (ctx, suspendedActors) => processAttendanceProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
   ],
