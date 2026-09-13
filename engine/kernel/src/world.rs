@@ -280,7 +280,8 @@ mod construction_tests {
         let lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
         let sealed = kernel.query_json(r#"["hive.sealed-container"]"#).unwrap();
         assert!(site.contains("\"seconds\":1.0"));
-        assert!(site.contains("\"phase\":\"working\""));
+        assert!(site.contains("\"phase\":\"planned\""));
+        assert!(site.contains("\"worker\":null"));
         assert!(lots.contains("\"container\":\"site-wall\""));
         assert!(lots.contains("\"quantity\":1"));
         assert_eq!(sealed, "[]");
@@ -344,7 +345,7 @@ mod construction_tests {
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
-        assert!(kernel.query_json(r#"["hive.construction-site"]"#).unwrap().contains("\"phase\":\"working\""));
+        assert!(kernel.query_json(r#"["hive.construction-site"]"#).unwrap().contains("\"phase\":\"planned\""));
     }
 
     #[test]
