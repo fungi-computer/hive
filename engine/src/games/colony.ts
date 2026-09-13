@@ -412,7 +412,7 @@ export const colonyPack: GamePack = {
       title: "Sow mugwort", category: "Colony", description: "Designate a reachable soil cell for tended mugwort.",
       input: z.object({ target: z.object({ cell: z.tuple([z.number().int(), z.number().int(), z.number().int()]) }).strict() }).strict(),
       reads: [ColonyResourceOrder], writes: [], lifecycle: [ColonyResourceOrder],
-      run: (_context, input) => { const [x, y, z] = input.target.cell; const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`); return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "" } } }] }; },
+      run: (_context, input) => { const [x, y, z] = input.target.cell; const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`); return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0 } } }] }; },
     }),
     tendMugwort: command({
       title: "Tend mugwort", category: "Colony", description: "Water the next due stage of a tended mugwort site.",

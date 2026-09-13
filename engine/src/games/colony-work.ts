@@ -46,9 +46,9 @@ import { colonyEnvironment } from "./colony-environment";
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "complete";
 export const ColonyResourceOrder = component<{
   definition: string; cellX: number; cellY: number; cellZ: number; site: EntityId;
-  actor: EntityId | null; vessel: EntityId | null; phase: ColonyResourcePhase; workSeconds: number; reason: string;
+  actor: EntityId | null; vessel: EntityId | null; phase: ColonyResourcePhase; workSeconds: number; reason: string; approachX: number; approachY: number; approachZ: number; attempt: number;
 }>("colony.resource-order", { version: 1, fields: {
-  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", actor: "nullable-entity", vessel: "nullable-entity", phase: "string", workSeconds: "number", reason: "string",
+  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", actor: "nullable-entity", vessel: "nullable-entity", phase: "string", workSeconds: "number", reason: "string", approachX: "number", approachY: "number", approachZ: "number", attempt: "number",
 } });
 
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
@@ -64,14 +64,20 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
     }
   }
   const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
-  const candidates = orders.flatMap(row => ["sow", "tend", "harvest"].includes(row.get(ColonyResourceOrder).phase) ? workers.map(worker => ({ worker: worker.id, task: row.id })) : []);
-  const selected = new Map<EntityId, EntityId>();
-  return { claims, candidates, lowerBound: () => 0, estimate: candidate => { selected.set(candidate.task, candidate.worker); return 0; }, apply: assignments => {
+  const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
+  const candidates = orders.flatMap(row => ["sow", "tend", "harvest"].includes(row.get(ColonyResourceOrder).phase) ? workers.map(worker => ({ worker: worker.id, task: row.id, approaches: [{ x: row.get(ColonyResourceOrder).cellX + 1, y: row.get(ColonyResourceOrder).cellY + 0.5, z: row.get(ColonyResourceOrder).cellZ, frame: null as EntityId | null }] })) : []);
+  const selected = new Map<string, { x: number; y: number; z: number; frame: EntityId | null }>();
+  return { claims, candidates, lowerBound: candidate => { const p = poses.get(candidate.worker)?.local; return p ? Math.hypot(p.x - candidate.approaches[0].x, p.z - candidate.approaches[0].z) : 0; }, estimate: candidate => { const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches }); if (result.status !== "reachable") return null; selected.set(`${candidate.worker}\0${candidate.task}`, candidate.approaches[result.targetIndex]); return result.cost; }, apply: assignments => {
     for (const assignment of assignments) {
       const row = orders.find(item => item.id === assignment.task); if (!row) continue;
       const state = row.get(ColonyResourceOrder); const definition = definitions.get(state.definition); if (!definition) continue;
+      const approach = selected.get(`${assignment.worker}\0${assignment.task}`) ?? candidates.find(c => c.worker === assignment.worker && c.task === assignment.task)?.approaches[0];
+      if (!approach) continue;
+      const pose = poses.get(assignment.worker)?.local;
+      const arrived = pose && Math.hypot(pose.x - approach.x, pose.z - approach.z) < 0.1 && Math.abs(pose.y - approach.y) < 0.2;
+      if (!arrived) { ctx.action(move(assignment.worker, approach)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: assignment.worker, approachX: approach.x, approachY: approach.y, approachZ: approach.z, attempt: state.attempt + 1 }); continue; }
       const site = sites.get(state.site); const worker = assignment.worker;
-      const work = state.workSeconds + 1;
+      const work = state.workSeconds + ctx.clock.delta;
       if (state.phase === "sow" && work >= definition.sowSeconds) { ctx.action(establishResourceSite(worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "waiting", workSeconds: 0, reason: "" }); }
       else if (state.phase === "tend" && work >= definition.tendSeconds) { ctx.action(tendResourceSite(worker, state.site, state.vessel ?? entity("invalid"))); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "waiting", workSeconds: 0, reason: "" }); }
       else if (state.phase === "harvest" && work >= definition.harvestSeconds) { ctx.action(extractResource(worker, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "complete", workSeconds: work, reason: "" }); }
