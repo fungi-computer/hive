@@ -839,6 +839,7 @@ pub struct KernelRecords {
 struct KernelEnvironment {
     paid_emissions: BTreeMap<String, environment_runtime::PaidEmission>,
     emissions: crate::emission_definition::EmissionCatalog,
+    processes: crate::staged_process::ProcessCatalog,
     atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphere>,
     definition: String,
     world: crate::terrain_water::TerrainWater,
@@ -1772,7 +1773,7 @@ impl Kernel {
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_structure_recipes()?;
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
@@ -1910,7 +1911,7 @@ impl Kernel {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
             let mut world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
+            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
             candidate.validate_structure_recipes()?;
