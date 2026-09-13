@@ -8,9 +8,19 @@ const wallJointBindings = Object.fromEntries(["stakes", "frame", "finished"].fla
   Array.from({ length: 16 }, (_, mask) => [`colony.wall.${stage}.joint-${mask}`, Object.freeze({
     kind: "static", path: ["wallJoints", stage, mask], facing: false, anchor: "propAnchor",
   })])));
+const brewStationProfileBindings = Object.fromEntries([
+  "empty", "stock-w0-b0-k0", "stock-w1-b0-k0", "stock-w0-b1-k0",
+  "stock-w1-b1-k0", "stock-w0-b0-k1", "stock-w1-b0-k1", "stock-w0-b1-k1",
+  "stock-w1-b1-k1", "prepare", "prepare-attended", "ferment",
+  "ferment-burning", "keg", "settled",
+].map(profile => [`colony.brew-station.profile.${profile}`, Object.freeze({
+  kind: "static", path: ["buildings", "brew-station", "profiles", profile, 0],
+  frames: true, facing: false, anchor: "propAnchor",
+})]));
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,
   ...wallJointBindings,
+  ...brewStationProfileBindings,
   soil: Object.freeze({ kind: "static", path: ["soil", 3], facing: false, anchor: "propAnchor" }),
   stone: Object.freeze({ kind: "static", path: ["stone", 3], facing: false, anchor: "propAnchor" }),
   // These bindings prepare the retained clearing scenery for native facts.

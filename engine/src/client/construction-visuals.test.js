@@ -59,3 +59,13 @@ test('brew-station construction stages use the retained clearing artwork', () =>
   }
   assert.equal(DEFAULT_VISUAL_BINDINGS['colony.brew-station'],undefined);
 });
+
+test('brew-station process profiles bind every retained frame bank through one static animation shape', () => {
+  const bank=JSON.parse(readFileSync('public/generated-art/goblin-static-art-v2/manifest.json','utf8'));
+  const paths=new Set(bank.entries.map(e=>JSON.stringify(e.path)));
+  for(const profile of ['empty','stock-w0-b0-k0','stock-w1-b1-k1','prepare','prepare-attended','ferment','ferment-burning','keg','settled']){
+    const binding=DEFAULT_VISUAL_BINDINGS[`colony.brew-station.profile.${profile}`];
+    assert.equal(binding.frames,true);
+    assert(paths.has(JSON.stringify([...binding.path,0])),`missing retained brew-station ${profile} frame`);
+  }
+});

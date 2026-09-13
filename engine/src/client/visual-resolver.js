@@ -17,7 +17,7 @@ function checkedPath(path) {
 }
 
 /** Resolve one checked static art binding without per-kind renderer branches. */
-export function resolveStaticVisual(art, binding, facing = 0) {
+export function resolveStaticVisual(art, binding, facing = 0, frame = 0) {
   if (!binding || binding.kind !== "static")
     throw new Error("static visual binding required");
   const path = checkedPath(binding.path);
@@ -31,6 +31,12 @@ export function resolveStaticVisual(art, binding, facing = 0) {
     if (value === null || value === undefined || !Object.prototype.hasOwnProperty.call(value, segment))
       return undefined;
     value = value[segment];
+  }
+  if (binding.frames === true) {
+    if (!Array.isArray(value) || value.length === 0) return undefined;
+    value = value[Math.max(0, Math.floor(frame)) % value.length];
+  } else if (binding.frames !== undefined) {
+    throw new Error("static visual frames flag must be boolean");
   }
   return { texture: value, anchor: art?.[binding.anchor], path: resolvedPath };
 }

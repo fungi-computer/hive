@@ -33,7 +33,7 @@ export type TerrainMark = {
 };
 export interface GamePresentation {
   readonly activities?: (context: Pick<ReadContext, "query">) => readonly import("./contracts").ActivityBinding[];
-  readonly visuals?: (context: Pick<ReadContext, "query">) => readonly import("./runtime/visual-projection").EntityVisualProjection[];
+  readonly visuals?: (context: Pick<ReadContext, "query" | "environmentFacts">) => readonly import("./runtime/visual-projection").EntityVisualProjection[];
   readonly feedback?: boolean;
   readonly inspect: (
     context: Pick<ReadContext, "query" | "atmosphereSamples" | "constructionReadiness">,
