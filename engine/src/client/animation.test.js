@@ -41,6 +41,14 @@ test("delivery activity selects authored pickup, carried walk, and drop-off pose
   assert.equal(figureFrame(figure, binding, { activity: { ...activity, phase: "to-destination" } }, { direction: 0, frame: 1, walking: true }), "carry-1");
   assert.equal(figureFrame(figure, binding, { activity: { ...activity, phase: "putting-down" } }, { direction: 0, frame: 1 }), "deliver-0");
 });
+test("portable container carry pose follows actual nested contents and capacity", () => {
+  const figure = Object.fromEntries(["carry-pail-empty", "carry-pail-half", "carry-pail-full", "idle"].map(pose => [pose, [[pose]]]));
+  const binding = { carryPoses: { pail: { contentKind: "water", empty: "carry-pail-empty", partial: "carry-pail-half", full: "carry-pail-full" } } };
+  const item = (quantity) => ({ kind: "pail", quantity: 1, container: { capacity: 4, contents: { items: quantity ? [{ kind: "water", quantity }] : [] } } });
+  assert.equal(figureFrame(figure, binding, { inventory: { items: [item(0)] } }, { direction: 0 }), "carry-pail-empty");
+  assert.equal(figureFrame(figure, binding, { inventory: { items: [item(2)] } }, { direction: 0 }), "carry-pail-half");
+  assert.equal(figureFrame(figure, binding, { inventory: { items: [item(4)] } }, { direction: 0 }), "carry-pail-full");
+});
 test("brief stationary samples retain walking and facing, then settle without turning", () => {
   const clock = createAnimationClock();
   clock.sample([actor("a", 0, 0)], { now: 0, sequence: 1 });

@@ -166,6 +166,28 @@ test("work activity crosses the real JSON frame boundary and rejects unsupported
   } finally { runtime.dispose(); }
 });
 
+test("remote inventory rejects mismatched portable identity and over-capacity contents", async () => {
+  const socket = new FakeSocket();
+  const runtime = setup(async () => Response.json({ handle: "opaque" }), socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    for (const item of [
+      { kind: "pail", quantity: 1, container: { capacity: 4, contents: { items: [] } } },
+      { kind: "pail", quantity: 1, id: "pail.a" },
+      { kind: "pail", quantity: 1, id: "pail.a", container: { capacity: 4, contents: { items: [{ kind: "water", quantity: 5 }] } } },
+    ]) {
+      const next = observation(events.length + 1);
+      socket.emit("message", { data: JSON.stringify({ type: "observation", ...next,
+        observation: { ...next.observation, facts: [{ id: "worker", inventory: { items: [item] } }] } }) });
+    }
+    assert.equal(events.filter(event => event.type === "frame").length, 1);
+    assert.equal(events.filter(event => event.type === "error").length, 3);
+  } finally { runtime.dispose(); }
+});
+
 test("disposing during socket handle admission aborts the request", async () => {
   let aborted = false;
   const runtime = setup((_input, init) => new Promise((_resolve, reject) => {

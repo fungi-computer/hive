@@ -105,13 +105,25 @@ export function figureFrame(figure, binding, subject, animation) {
   const workPose = subject.activity && binding.workPoses?.[subject.activity.kind];
   const work = workPose && figure?.[workPose]?.[direction];
   const held = subject.inventory?.items.find(item => item.quantity > 0 && binding.carryPoses?.[item.kind]);
-  const carryPose = held && binding.carryPoses[held.kind];
+  const carryPose = held && carryPoseFor(binding.carryPoses[held.kind], held);
   const carry = carryPose && figure?.[carryPose]?.[direction];
-  const deliveryCarryPose = delivery && delivery.phase !== "pickup" && delivery.phase !== "putting-down"
-    ? binding.carryPoses?.[delivery.material]
-    : null;
+  const deliveryPoseDefinition = delivery && delivery.phase !== "pickup" && delivery.phase !== "putting-down"
+    ? binding.carryPoses?.[delivery.material] : null;
+  const deliveryCarryPose = typeof deliveryPoseDefinition === "string" ? deliveryPoseDefinition : null;
   const deliveryCarry = deliveryCarryPose && figure?.[deliveryCarryPose]?.[direction];
   const frames = work || deliveryFrames || deliveryCarry || carry || animationFrames(figure, direction, animation?.walking ?? false);
   const frame = (!work && (deliveryFrames || deliveryCarry || carry) && !animation?.walking) ? 0 : animation?.frame ?? 0;
   return frames[frame % Math.max(1, frames.length)];
+}
+
+function carryPoseFor(definition, item) {
+  if (typeof definition === "string") return definition;
+  if (!definition || !item.container) return null;
+  const kind = definition.contentKind ?? definition.contentsKind;
+  const quantity = item.container.contents.items
+    .filter(entry => kind === undefined || entry.kind === kind)
+    .reduce((total, entry) => total + entry.quantity, 0);
+  if (quantity <= 0) return definition.empty;
+  if (quantity >= item.container.capacity) return definition.full;
+  return definition.partial ?? definition.half ?? definition.empty;
 }
