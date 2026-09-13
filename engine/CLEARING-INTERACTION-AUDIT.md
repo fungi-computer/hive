@@ -154,4 +154,16 @@ created target directory was removed with Cargo clean (518.2MiB), preserving
 source and .botanical. u6771 used /tmp/hive-route-cost-target without debug symbols;
 its old-shape8 checks passed but review superseded that shape. Current exact-batch
 u6772 passed9 focused native checks; existing compiler advisories remain. u6773
-is the current WASM build, not yet a performance or deployment acceptance.
+completed the WASM build successfully. The unchanged ordered-layout fixture then
+passed as u6774: all three prerequisite structures finished; the subsequent30
+steps averaged6.47ms (previous337.24ms). The same230 route-cost calls consumed
+108ms total (previous10001ms). Observation averaged1.93ms and snapshot/JSON2.20ms.
+Maximum step remains115.26ms: avoiding repeated unchanged searches does not remove
+the first expensive search. This is local fixture evidence, not hosted recovery
+or proof that every worker claim is correct. Both scopes are inactive/dead with
+empty ControlGroups; no server/listener was opened. Saved result is
+.botanical/world-e947-diagnosis/profile-fixed.jsonl.
+
+Publication remains pending: inspect the existing implementation-identity upgrade
+boundary before replacing the DO kernel, so this current-format world is not
+stranded by a hash mismatch. Do not reset the player's world to qualify the fix.
