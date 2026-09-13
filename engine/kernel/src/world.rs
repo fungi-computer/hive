@@ -1058,6 +1058,7 @@ struct KernelEnvironment {
     world: crate::terrain_water::TerrainWater,
     excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
     structures: BTreeMap<String, crate::environment_definition::StructureDefinition>,
+    resources: BTreeMap<String, crate::environment_definition::ResourceDefinition>,
 }
 struct PreparedRoute {
     points: VecDeque<Point>,
@@ -2031,7 +2032,7 @@ impl Kernel {
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, resources: built.resources, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_structure_recipes()?;
         candidate.validate_process_records()?;
         candidate.validate_construction_sites()?;
@@ -2191,7 +2192,7 @@ impl Kernel {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
             let mut world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
+            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, resources: prepared.resources, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
             candidate.validate_structure_recipes()?;
@@ -2479,7 +2480,7 @@ impl Kernel {
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
-                    | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
+                    | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
                     | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::AttendProcess { .. } | Action::ExchangeFieldWater { .. })
             });
@@ -2800,6 +2801,45 @@ impl Kernel {
         })?;
         self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
         Ok(self.publish_material_output(prepared))
+    }
+
+    fn establish_resource_site(&mut self, worker_id: &str, site_id: &str, definition_id: &str, x: i32, y: i32, z: i32) -> Result<String> {
+        let worker = self.entity(worker_id)?;
+        if self.ecs.get::<Body>(worker).is_none() { return Err("resource sowing requires a worker body".into()); }
+        if !valid_id(site_id) || !valid_id(definition_id) || self.known.contains(site_id) { return Err("resource site identity is unavailable".into()); }
+        let environment = self.environment.as_ref().ok_or("resource sowing requires terrain")?;
+        let definition = environment.resources.get(definition_id).ok_or("unknown resource definition")?.clone();
+        let surface = environment.world.surface_cells(&[(i64::from(x), i64::from(z))])?.into_iter().next().flatten().ok_or("resource site requires an empty supported surface")?;
+        if surface.cell.y != y { return Err("resource site must be on the generated surface".into()); }
+        let spacing = environment.world.cell_spacing_m();
+        let expected = Point { x: f64::from(x) * spacing[0], y: (f64::from(y) + 0.5) * spacing[1], z: f64::from(z) * spacing[2], frame: None };
+        let pose = self.world_pose_entity(worker, 0)?;
+        if (pose.x - expected.x).hypot(pose.z - expected.z) > 2.0 * spacing[0] || (pose.y - expected.y).abs() > spacing[1] { return Err("worker is not in resource site contact".into()); }
+        let entity = self.ecs.spawn((ExternalId(site_id.to_owned()), Position { x: expected.x, y: expected.y, z: expected.z, facing: 0.0 }, Container { capacity: definition.output_quantity }, FiniteResource { kind: definition.output_kind, quantity: 0 }, ResourceSite { definition: definition.id, stage: 0, next_due: self.time + definition.sow_seconds })).id();
+        self.ids.insert(site_id.to_owned(), entity); self.known.insert(site_id.to_owned()); self.contents.insert(site_id.to_owned(), BTreeSet::new());
+        self.refresh_state_weight();
+        Ok(site_id.to_owned())
+    }
+
+    fn tend_resource_site(&mut self, worker_id: &str, site_id: &str, vessel_id: &str) -> Result<()> {
+        let worker = self.entity(worker_id)?; let site = self.entity(site_id)?; let vessel = self.entity(vessel_id)?;
+        self.ecs.get::<Body>(worker).ok_or("resource tending requires a worker body")?;
+        let state = self.ecs.get::<ResourceSite>(site).cloned().ok_or("not a resource site")?;
+        let definition = self.environment.as_ref().ok_or("resource tending requires terrain")?.resources.get(&state.definition).ok_or("unknown resource definition")?.clone();
+        let index = usize::from(state.stage);
+        if index >= definition.stages.len() { return Err("resource site is ready for harvest".into()); }
+        if self.time < state.next_due { return Err("resource growth stage is not due".into()); }
+        let portions = definition.stages[index].water_portions;
+        let position = *self.ecs.get::<Position>(site).ok_or("resource site has no position")?;
+        // exchange_field_water performs the full held-lot/soil mass conservation check.
+        let spacing = self.environment.as_ref().ok_or("resource tending requires terrain")?.world.cell_spacing_m();
+        self.exchange_field_water(worker_id, vessel_id, crate::generation::Cell { x: (position.x / spacing[0]).round() as i64, y: (position.y / spacing[1]).floor() as i32, z: (position.z / spacing[2]).round() as i64 }, WaterExchangeDirection::Deposit, portions)?;
+        let next_stage = state.stage.checked_add(1).ok_or("resource stage overflow")?;
+        let next_due = self.time + definition.stages[index].delay_seconds;
+        self.ecs.entity_mut(site).insert(ResourceSite { definition: state.definition, stage: next_stage, next_due });
+        if usize::from(next_stage) == definition.stages.len() { self.ecs.entity_mut(site).insert(FiniteResource { kind: definition.output_kind, quantity: definition.output_quantity }); }
+        self.refresh_state_weight();
+        Ok(())
     }
 
     fn designate_stockpile(&mut self, zone: String, cells: Vec<StockpileDesignation>) -> Result<String> {
@@ -3224,6 +3264,8 @@ impl Kernel {
                 Ok(ActionEffect::None)
             }
             Action::ExtractResource { worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
+            Action::EstablishResourceSite { worker, site, definition, x, y, z } => self.establish_resource_site(&worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
+            Action::TendResourceSite { worker, site, vessel } => self.tend_resource_site(&worker, &site, &vessel).map(|()| ActionEffect::None),
             Action::Launch {
                 launcher,
                 ammunition,

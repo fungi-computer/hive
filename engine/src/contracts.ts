@@ -20,6 +20,7 @@ export const RESERVED_COMPONENTS = [
   "hive.lot-water",
   "hive.process-binding",
   "hive.finite-resource",
+  "hive.resource-site",
   "hive.excavation-work",
   "hive.destination",
   "hive.support",
@@ -145,6 +146,8 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
+  | { readonly kind: "establish-resource-site"; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
+  | { readonly kind: "tend-resource-site"; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
   | { readonly kind: "admit-process"; readonly process: EntityId; readonly definition: string; readonly station: EntityId }
   | { readonly kind: "attend-process"; readonly worker: EntityId; readonly process: EntityId }

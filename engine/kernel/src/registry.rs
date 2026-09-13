@@ -70,6 +70,7 @@ impl Registry {
             ("hive.process-binding", vec![("process", FieldType::Entity), ("role", FieldType::String), ("lot", FieldType::Entity), ("quantity", FieldType::Number)]),
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
+            ("hive.resource-site", vec![("definition", FieldType::String), ("stage", FieldType::Number), ("nextDue", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.construction-site", vec![
                 ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
@@ -194,6 +195,7 @@ impl Registry {
                 "hive.process-binding" => world.register_component::<crate::staged_process::ProcessBinding>(),
                 "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
                 "hive.finite-resource" => world.register_component::<FiniteResource>(),
+                "hive.resource-site" => world.register_component::<ResourceSite>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.construction-site" => world.register_component::<ConstructionSite>(),
                 "hive.destination" => world.register_component::<Destination>(),
@@ -242,6 +244,7 @@ impl Registry {
                 | "hive.process-binding"
                 | "hive.stockpile-cell"
                 | "hive.finite-resource"
+                | "hive.resource-site"
                 | "hive.excavation-work"
                 | "hive.construction-site"
                 | "hive.destination"
@@ -367,6 +370,10 @@ impl Registry {
                 if !valid_id(&resource.kind) {
                     return Err("invalid finite resource".into());
                 }
+            }
+            "hive.resource-site" => {
+                let site: ResourceSite = decode(value)?;
+                if !valid_id(&site.definition) || site.stage > 64 || !site.next_due.is_finite() || site.next_due < 0.0 { return Err("invalid resource site".into()); }
             }
             "hive.collider" => {
                 let collider: Collider = decode(value)?;

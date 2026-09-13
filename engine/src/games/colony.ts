@@ -19,6 +19,9 @@ import {
   encodeDefinition,
   transfer,
   FiniteResource,
+  ResourceSite,
+  establishResourceSite,
+  tendResourceSite,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { StagedProcess, requestProcess } from "../sdk/process-supply";
@@ -146,7 +149,6 @@ const colonyInitial = [
     },
   })),
   { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
-  { id: entity("colony.brew.mugwort"), components: { "hive.lot": { quantity: 1, kind: "mugwort", container: pantryId } } },
   { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId }, "hive.container": { capacity: 1 } } },
   { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId }, "hive.container": { capacity: 4 } } },
   ...([taskOne, taskTwo] as const).map((id, index) => ({
@@ -407,6 +409,18 @@ export const colonyPack: GamePack = {
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };
       },
+    }),
+    sowMugwort: command({
+      title: "Sow mugwort", category: "Colony", description: "Designate a reachable soil cell for tended mugwort.",
+      input: z.object({ site: z.string().min(1).max(128), x: z.number().int(), y: z.number().int(), z: z.number().int() }).strict(),
+      reads: [Worker], writes: [],
+      run: (_context, input) => ({ actions: [establishResourceSite(workerOne, entity(input.site), "mugwort", input)], writes: [] }),
+    }),
+    tendMugwort: command({
+      title: "Tend mugwort", category: "Colony", description: "Water the next due stage of a tended mugwort site.",
+      input: z.object({ site: z.string().min(1).max(128), vessel: z.string().min(1).max(128) }).strict(),
+      reads: [ResourceSite], writes: [],
+      run: (_context, input) => ({ actions: [tendResourceSite(workerOne, entity(input.site), entity(input.vessel))], writes: [] }),
     }),
     requestBrew: command({
       title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",

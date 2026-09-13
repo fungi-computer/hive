@@ -36,6 +36,14 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "establish-resource-site":
+      keys = ["kind", "worker", "site", "definition", "x", "y", "z"];
+      valid = id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
+      break;
+    case "tend-resource-site":
+      keys = ["kind", "worker", "site", "vessel"];
+      valid = id(action.worker) && id(action.site) && id(action.vessel);
+      break;
     case "request-process":
       keys = ["kind", "definition", "station"];
       valid = id(action.definition) && id(action.station);

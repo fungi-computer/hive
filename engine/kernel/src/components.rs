@@ -74,6 +74,14 @@ pub struct FiniteResource {
     pub kind: String,
     pub quantity: u32,
 }
+/// Native lifecycle state for a sparse, data-defined tended resource site.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ResourceSite {
+    pub definition: String,
+    pub stage: u8,
+    pub next_due: f64,
+}
 /// Native earned work; authored systems may request work, never write progress.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -367,6 +375,8 @@ pub enum Action {
         quantity: u32,
     },
     ExtractResource { worker: String, source: String },
+    EstablishResourceSite { worker: String, site: String, definition: String, x: i32, y: i32, z: i32 },
+    TendResourceSite { worker: String, site: String, vessel: String },
     Launch {
         launcher: String,
         ammunition: String,

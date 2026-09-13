@@ -62,6 +62,19 @@ export const colonyEnvironment: EnvironmentDefinition = {
       ] } },
     ],
   }],
+  resourceSites: [{
+    id: "mugwort",
+    outputKind: "mugwort",
+    outputQuantity: 1,
+    sowSeconds: 2,
+    tendSeconds: 2,
+    harvestSeconds: 1,
+    stages: [
+      { delaySeconds: 20, waterPortions: 1 },
+      { delaySeconds: 80, waterPortions: 1 },
+      { delaySeconds: 240, waterPortions: 1 },
+    ],
+  }],
   structures: {
     maxSpanSteps: 6,
     catalog: [
