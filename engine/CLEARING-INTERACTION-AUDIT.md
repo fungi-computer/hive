@@ -208,3 +208,66 @@ consume it. Removed the command-private strokeOrientation and page-private visua
 map. u6788 passed four affected consumer/ghost laws, including actual emitted wall
 actions on both axes, stair rotation and fixed floors. u6789 strict engine types
 passed. Still no rendered acceptance or new publication from this source change.
+
+## September13 construction support correction — owning implementation plan
+
+Levi requires floor-on-wall, queued support dependencies, deterministic admission
+and completion, and original stair/floor/wall art meeting at their actual surfaces.
+This is not permission for a new support solver or collapse simulation.
+
+Source findings:
+- Rust structure_support::resolve already roots columns in terrain/completed
+  surfaces and spans floors from original anchors, with max_span_steps6 in Goblin.
+  prepare_structures invokes it before publishing physical geometry. Preserve it.
+- StaticGeometry represents floors as upward faces, walls as occupied cells.
+  A floor on the highest wall cell is not a bulk-volume collision.
+- upper-placement.js currently offers only four empty neighbors of an anchor,
+  explicitly excluding the anchor's own existing surface. That is a UI policy,
+  not the native support decision, and cannot decide structural legality.
+- colony-building.ts selects the first currently clear neighbor before recording
+  the plan, or rejects with no clear working surface. Native ConstructionSite
+  persists that contact and uses it as the material container Position. Thus
+  changing a work contact later is NOT a harmless field rewrite: it can move goods.
+- plan_construction validates instance bounds/contact but not the complete planned
+  layout. complete_construction calls prepare_structures; on blocked geometry it
+  returns false while advance_construction retains the working worker. Admission,
+  waiting reasons and worker release are therefore incompletely joined.
+- Finished visuals use south0/east1/north2/west3; ghost facing still uses north0.
+  Generic wall bindings also always select direction0 and omit retained wallJoints.
+  Alignment arithmetic passing is not proof of artwork alignment.
+
+Implementation order and invariants:
+1. Keep Rust geometry/support as authority. Add a non-mutating construction
+   assessment over canonical finished structures plus the candidate/plan set.
+   Return typed fit/support reasons, distinguishing currently supported from
+   planned-supported/waiting. Reuse resolve; do not make a TypeScript support graph.
+   Unsupported cycles cannot root themselves. Finished floors do not reset span
+   distance. The existing six-cell policy remains data, not a per-floor wall rule.
+2. Separate blueprint location from reachable work contact and physical staging
+   custody. A queued blueprint must not require an available worker. Decide and
+   document the staging-location lifetime before removing contact from planning:
+   never relocate an occupied material buffer merely because a worker path changed.
+   Empty/unbound staging may bind when a legal contact becomes available; hauling
+   and work then consume that actual physical location through their existing owners.
+3. Shared work provider consumes current assessment and current path eligibility.
+   Completion rechecks fit/support/water/actor collision with the same native owner.
+   A blocked finish releases attendance, preserves earned work/material identity,
+   and records waiting; it never returns a success merely because the job was old.
+   Reconsider after relevant geometry/material changes, not futile heavy searches
+   every tick. Runtime caches remain disposable and revision-owned.
+4. Publish bounded assessment/blueprint surfaces through existing observation;
+   client targeting can acquire completed AND planned support planes, including
+   the wall top itself. The UI displays the server's waiting reason. Client
+   prediction is a preview, not a second permission authority.
+5. Restore original art anchor/facing/footprint and wall-neighbor joint selection
+   using the same physical placement coordinates. Personally inspect a wall with
+   top floor and stairs meeting its landing before visual acceptance or publication.
+
+Required focused witnesses: grounded wall plus floor on its top; six-cell span
+and unsupported seventh cell; wall-then-floor and floor-then-wall nonconflicting
+blueprints reaching the same final geometry; missing/cancelled support waits and
+releases worker; unsupported cycles stay pending; another worker can continue;
+save/reload retains plans/effort/physical lots; no occupied staging relocation;
+completion blocked by water/actor does not consume/duplicate materials. Conflicting
+commands still respect the authoritative order—determinism does not mean mutually
+exclusive orders can both win. No fresh complete-support claim from source review.
