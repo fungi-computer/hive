@@ -23,7 +23,12 @@ test("committed dig and build seconds project bounded progress and disappear whe
     [ExcavationWork.id, [{ id: digger, get: () => ({ x: 1, y: 0, z: 1, expected: 1, replacement: 0, seconds: 1 }) }]],
     [ConstructionSite.id, [{ id: "progress.site", get: () => ({ catalog: "timber-floor", x: 2, y: 0, z: 2, worker: builder, phase: "working", seconds: 1 }) }]],
   ]);
-  const context = { query: ((spec: { id: string }) => rows.get(spec.id) ?? []) as never };
+  const context = { query: ((spec: { components: readonly { id: string }[] }) => {
+    const matching = spec.components.map(component => rows.get(component.id) ?? []);
+    if (!matching.length) return [];
+    const ids = matching[0].map(row => row.id).filter(id => matching.every(group => group.some(row => row.id === id)));
+    return ids.map(id => ({ id, get: (component: { id: string }) => rows.get(component.id)?.find(row => row.id === id)?.get() }));
+  }) as never };
   const activities = colonyPack.presentation?.activities?.(context) ?? [];
   assert.equal(activities.find(activity => activity.actor === digger)?.progress, 0.5);
   assert.equal(activities.find(activity => activity.actor === builder)?.progress, 0.5);
