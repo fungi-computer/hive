@@ -7,6 +7,7 @@ import {
 import type { GameSession } from "./session";
 import { decorateInventoryFacts } from "./inventory-presentation";
 import { decorateWorkActivity } from "./work-activity";
+import { colonyDigWhistleDescriptor } from "../games/colony-whistle";
 
 /**
  * The bounded, committed view shared by browser and host readers.
@@ -25,6 +26,7 @@ export interface SessionObservation {
   readonly presentationControls: readonly PresentationControl[];
   readonly terrainMarks: ReturnType<typeof projectPresentation>["terrainMarks"];
   readonly environmentVisuals: ReturnType<typeof projectPresentation>["environmentVisuals"];
+  readonly whistleActions?: readonly unknown[];
 }
 
 export function buildObservation(
@@ -61,5 +63,6 @@ export function buildObservation(
     presentationControls: projected.controls,
     terrainMarks: projected.terrainMarks,
     environmentVisuals: projected.environmentVisuals,
+    whistleActions: session.pack.id === "colony" ? [colonyDigWhistleDescriptor()] : [],
   });
 }

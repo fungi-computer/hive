@@ -87,6 +87,7 @@ export function createHiveClient({
     presentationControls: [],
     terrainMarks: [],
     environmentVisuals: [],
+    whistleActions: [],
     view: createWorldView(worldView),
     aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
     message: runtime
@@ -1370,6 +1371,7 @@ export function createHiveClient({
         state.presentationControls = event.controls;
         state.terrainMarks = event.terrainMarks;
         state.environmentVisuals = event.environmentVisuals;
+        state.whistleActions = event.whistleActions ?? [];
         renderHud();
       }
       if (event.type === "results") {
