@@ -275,10 +275,13 @@ pub fn candidate_supported(
         for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
             if terrain_support(cardinal_neighbor(support, dx, dz)?)? { return Ok(true); }
         }
-        if base.structural_anchors.iter().any(|anchor| anchor.y == support.y && anchor.x.abs_diff(support.x).saturating_add(anchor.z.abs_diff(support.z)) <= 1) { return Ok(true); }
-        for (floor, distance) in &base.floor_distances {
-            if floor.y == support.y && floor.x.abs_diff(support.x).saturating_add(floor.z.abs_diff(support.z)) == 1
-                && distance.checked_add(1).is_some_and(|next| next <= u32::from(max_span_steps)) { return Ok(true); }
+        for (dx, dz) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
+            let neighbor = cardinal_neighbor(support, dx, dz)?;
+            if base.structural_anchors.contains(&neighbor) { return Ok(true); }
+        }
+        for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            let neighbor = cardinal_neighbor(support, dx, dz)?;
+            if base.floor_distances.get(&neighbor).is_some_and(|distance| distance.checked_add(1).is_some_and(|next| next <= max_span_steps)) { return Ok(true); }
         }
     } else if base.load_contacts.contains(&support) {
         return Ok(true);
@@ -380,6 +383,21 @@ mod tests {
         let mut no_terrain = terrain(&[]);
         assert!(candidate_supported(&base, &adjacent, 4, &mut no_terrain).unwrap());
         assert!(!candidate_supported(&base, &gap, 4, &mut no_terrain).unwrap());
+    }
+
+    #[test]
+    fn candidate_span_comes_from_resolved_floor_distance() {
+        let committed = (0..=1).map(|x| StaticInstance::Floor {
+            id: format!("floor-{x}"), support: Cell { x, y: 0, z: 0 },
+        }).collect();
+        let geometry = StaticGeometry::new(bounds(), committed).unwrap();
+        let mut terrain_query = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let base = resolve(&geometry, policy(2), &mut terrain_query).unwrap();
+        let allowed = StaticInstance::Floor { id: "allowed".into(), support: Cell { x: 2, y: 0, z: 0 } };
+        let rejected = StaticInstance::Floor { id: "rejected".into(), support: Cell { x: 3, y: 0, z: 0 } };
+        let mut no_terrain = terrain(&[]);
+        assert!(candidate_supported(&base, &allowed, 2, &mut no_terrain).unwrap());
+        assert!(!candidate_supported(&base, &rejected, 2, &mut no_terrain).unwrap());
     }
 
     #[test]

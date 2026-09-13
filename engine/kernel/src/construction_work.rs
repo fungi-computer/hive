@@ -53,9 +53,10 @@ impl Kernel {
         let mut unique = BTreeSet::new();
         if ids.iter().any(|id| !unique.insert(id.clone())) { return Err("duplicate construction readiness site".into()); }
         let statuses = construction_status(self, &ids)?;
-        let rows = ids.into_iter().map(|site| ConstructionReadinessRow {
-            status: statuses.get(&site).copied().unwrap_or("unknown"), site,
-            reason: (statuses.get(&site) == Some(&"waitingForSupport")).then_some("missingStructuralSupport"),
+        let rows = ids.into_iter().map(|site| {
+            let status = statuses.get(&site).copied().unwrap_or("unknown");
+            let reason = (status == "waitingForSupport").then_some("missingStructuralSupport");
+            ConstructionReadinessRow { site, status, reason }
         }).collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|_| "construction readiness encoding failed".into())
     }
