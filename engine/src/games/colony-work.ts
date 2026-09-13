@@ -95,7 +95,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   const candidates = orders.flatMap(row => {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
     const approach = { x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null as EntityId | null };
-    return ["sow", "harvest"].includes(state.phase) || (state.phase === "tend" && site && definition && heldPails.size > 0)
+    return state.actor === null && (["sow", "harvest"].includes(state.phase) || (state.phase === "tend" && site && definition && heldPails.size > 0))
       ? workers.filter(worker => state.phase !== "tend" || (site && definition && (heldPails.get(worker.id)?.water ?? 0) >= definition.stages[site.stage]?.waterPortions)).map(worker => ({ worker: worker.id, task: row.id, vessel: heldPails.get(worker.id)?.vessel, approaches: [approach] })) : [];
   });
   const selected = new Map<string, { x: number; y: number; z: number; frame: EntityId | null }>();
