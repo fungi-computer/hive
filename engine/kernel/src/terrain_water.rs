@@ -292,7 +292,7 @@ impl TerrainWater {
         use crate::terrain_traversal::TraversalMaterial;
         match self.terrain.query(at) {
             Ok(material) => Ok(TraversalMaterial {
-                solid: !self.terrain.is_open_material(material) || self.structure_projection.is_bulk_solid(at),
+                solid: !self.terrain.is_open_material(material) || self.structure_projection.blocks_traversal(at),
                 outside: false, sealed_top: self.structure_projection.supports(at),
             }),
             Err("cell outside world bounds") => Ok(TraversalMaterial {
@@ -308,7 +308,7 @@ impl TerrainWater {
         }
         match self.terrain.query(at) {
             Ok(material) => Ok(TraversalMaterial {
-                solid: !self.terrain.is_open_material(material) || prepared.projection.is_bulk_solid(at),
+                solid: !self.terrain.is_open_material(material) || prepared.projection.blocks_traversal(at),
                 outside: false,
                 sealed_top: prepared.projection.supports(at),
             }),
@@ -450,7 +450,7 @@ impl TerrainWater {
         let unsupported = unsupported_structures(&mut self.terrain, &structures, self.geometry.max_span_steps, None)?;
         if !unsupported.is_empty() { return Ok(Err(StructureChangeBlock::Unsupported(unsupported))); }
         let projection = structures.projection()?;
-        for cell in projection.solid_cells() {
+        for cell in projection.traversal_blockers() {
             let material = self.terrain.query(*cell)?;
             if !self.terrain.is_open_material(material) { return Err("structure overlaps solid terrain".into()); }
         }
@@ -487,7 +487,7 @@ impl TerrainWater {
         let mut unsupported = Vec::new();
         for instance in pending {
             let id = match instance {
-                StaticInstance::Floor { id, .. } | StaticInstance::Wall { id, .. }
+                StaticInstance::Floor { id, .. } | StaticInstance::Cover { id, .. } | StaticInstance::Fixture { id, .. } | StaticInstance::Wall { id, .. }
                 | StaticInstance::ApertureWall { id, .. } | StaticInstance::Stair { id, .. } => id,
             };
             let mut query = |cell: Cell| {

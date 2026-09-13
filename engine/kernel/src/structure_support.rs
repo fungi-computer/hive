@@ -4,7 +4,7 @@
 //! support query and no material or geometry is mutated here.
 
 use crate::generation::Cell;
-use crate::structure_geometry::{Cardinal, StaticGeometry, StaticInstance};
+use crate::structure_geometry::{fixture_cells, Cardinal, StaticGeometry, StaticInstance};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 pub type TerrainSupportQuery<'a> = dyn FnMut(Cell) -> Result<bool, String> + 'a;
@@ -28,11 +28,14 @@ pub struct SupportResult {
     pub load_contacts: BTreeSet<Cell>,
     pub structural_anchors: BTreeSet<Cell>,
     pub floor_distances: BTreeMap<Cell, u32>,
+    pub cover_distances: BTreeMap<Cell, u32>,
 }
 
 fn instance_id(instance: &StaticInstance) -> &str {
     match instance {
         StaticInstance::Floor { id, .. }
+        | StaticInstance::Cover { id, .. }
+        | StaticInstance::Fixture { id, .. }
         | StaticInstance::Wall { id, .. }
         | StaticInstance::ApertureWall { id, .. }
         | StaticInstance::Stair { id, .. } => id,
@@ -47,7 +50,6 @@ fn cardinal_delta(direction: Cardinal) -> (i64, i64) {
         Cardinal::West => (-1, 0),
     }
 }
-
 fn wall_top(base: Cell, height: u8) -> Result<Cell, String> {
     Ok(Cell { y: base.y.checked_add(i32::from(height).checked_sub(1).ok_or("invalid wall height")?).ok_or("structure support coordinate overflow")?, ..base })
 }
@@ -62,6 +64,60 @@ fn charge(work: &mut usize, policy: SupportPolicy) -> Result<(), String> {
         return Err("structure support work budget exceeded".into());
     }
     Ok(())
+}
+
+fn span_distances(
+    cells: &BTreeSet<Cell>,
+    anchors: &BTreeSet<Cell>,
+    policy: SupportPolicy,
+    work: &mut usize,
+) -> Result<BTreeMap<Cell, u32>, String> {
+    if cells.is_empty() {
+        return Ok(BTreeMap::new());
+    }
+    let mut distances = BTreeMap::<Cell, u32>::new();
+    let mut queue = VecDeque::new();
+    for anchor in anchors {
+        charge(work, policy)?;
+        if cells.contains(anchor) {
+            distances.insert(*anchor, 0);
+            queue.push_back(*anchor);
+        }
+        for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            charge(work, policy)?;
+            let next = cardinal_neighbor(*anchor, dx, dz)?;
+            if cells.contains(&next)
+                && distances.get(&next).is_none_or(|distance| *distance > 1)
+            {
+                distances.insert(next, 1);
+                queue.push_back(next);
+            }
+        }
+    }
+    while let Some(cell) = queue.pop_front() {
+        charge(work, policy)?;
+        let distance = distances[&cell];
+        for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            charge(work, policy)?;
+            let next = cardinal_neighbor(cell, dx, dz)?;
+            if !cells.contains(&next) {
+                continue;
+            }
+            let next_distance = distance
+                .checked_add(1)
+                .ok_or("structure support distance overflow")?;
+            if next_distance > policy.max_span_steps
+                || distances
+                    .get(&next)
+                    .is_some_and(|prior| *prior <= next_distance)
+            {
+                continue;
+            }
+            distances.insert(next, next_distance);
+            queue.push_back(next);
+        }
+    }
+    Ok(distances)
 }
 
 fn stair_landing(origin: Cell, direction: Cardinal, run: u8, rise: u8) -> Result<Cell, String> {
@@ -120,14 +176,17 @@ pub fn resolve(
     let mut terrain_anchors = BTreeSet::new();
     for instance in instances {
         let base = match instance {
-            StaticInstance::Floor { support, .. } => *support,
+            StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support,
+            StaticInstance::Fixture { origin, .. } => Cell { y: origin.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*origin },
             StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
             StaticInstance::Stair { origin, .. } => *origin,
         };
         if support_at(base)? {
             terrain_anchors.insert(base);
         }
-        if let StaticInstance::Floor { support, .. } = instance {
+        // Fixtures are body occupancy only. Their support is checked below at
+        // admission; they never become structural anchors for later objects.
+        if let StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } = instance {
             for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
                 let neighbor = cardinal_neighbor(*support, dx, dz)?;
                 if support_at(neighbor)? {
@@ -138,10 +197,13 @@ pub fn resolve(
     }
 
     let mut floor_by_cell = BTreeMap::<Cell, Vec<&StaticInstance>>::new();
+    let mut cover_by_cell = BTreeMap::<Cell, Vec<&StaticInstance>>::new();
     for instance in instances {
         charge(&mut work, policy)?;
-        if let StaticInstance::Floor { support, .. } = instance {
-            floor_by_cell.entry(*support).or_default().push(instance);
+        match instance {
+            StaticInstance::Floor { support, .. } => floor_by_cell.entry(*support).or_default().push(instance),
+            StaticInstance::Cover { support, .. } => cover_by_cell.entry(*support).or_default().push(instance),
+            _ => {}
         }
     }
 
@@ -154,6 +216,7 @@ pub fn resolve(
     let mut floor_surfaces = BTreeSet::new();
 
     let mut final_floor_distances = BTreeMap::new();
+    let mut final_cover_distances = BTreeMap::new();
     for _ in 0..=instances.len() {
         // Span anchors are terrain and previously rooted load-bearing tops.
         // Supported floors are surfaces for later structures, never new span
@@ -162,47 +225,12 @@ pub fn resolve(
         span_anchors.extend(column_tops.iter().copied());
         span_anchors.extend(stair_landings.iter().copied());
         let mut changed = false;
-        let mut distances = BTreeMap::<Cell, u32>::new();
-        let mut queue = VecDeque::new();
-        for anchor in &span_anchors {
-            charge(&mut work, policy)?;
-            if floor_by_cell.contains_key(anchor) && distances.get(anchor).is_none_or(|distance| *distance > 0) {
-                distances.insert(*anchor, 0);
-                queue.push_back(*anchor);
-            }
-            for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-                charge(&mut work, policy)?;
-                let next = cardinal_neighbor(*anchor, dx, dz)?;
-                if floor_by_cell.contains_key(&next) && distances.get(&next).is_none_or(|distance| *distance > 1) {
-                    distances.insert(next, 1);
-                    queue.push_back(next);
-                }
-            }
-        }
-        while let Some(cell) = queue.pop_front() {
-            charge(&mut work, policy)?;
-            let distance = distances[&cell];
-            if distance > policy.max_span_steps {
-                continue;
-            }
-            for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-                charge(&mut work, policy)?;
-                let next = cardinal_neighbor(cell, dx, dz)?;
-                if !floor_by_cell.contains_key(&next) {
-                    continue;
-                }
-                let next_distance = distance.checked_add(1).ok_or("structure support distance overflow")?;
-                if next_distance > policy.max_span_steps {
-                    continue;
-                }
-                if distances.get(&next).is_some_and(|prior| *prior <= next_distance) {
-                    continue;
-                }
-                distances.insert(next, next_distance);
-                queue.push_back(next);
-            }
-        }
+        let floor_cells = floor_by_cell.keys().copied().collect();
+        let cover_cells = cover_by_cell.keys().copied().collect();
+        let distances = span_distances(&floor_cells, &span_anchors, policy, &mut work)?;
+        let cover_distances = span_distances(&cover_cells, &span_anchors, policy, &mut work)?;
         final_floor_distances = distances.clone();
+        final_cover_distances = cover_distances.clone();
         let mut load_contacts = span_anchors.clone();
         for (cell, floor_instances) in &floor_by_cell {
             if !distances.contains_key(cell) {
@@ -216,6 +244,16 @@ pub fn resolve(
                 }
             }
             load_contacts.insert(*cell);
+        }
+        for (cell, cover_instances) in &cover_by_cell {
+            if !cover_distances.contains_key(cell) {
+                continue;
+            }
+            for instance in cover_instances {
+                if rooted.insert(instance_id(instance).to_string()) {
+                    changed = true;
+                }
+            }
         }
         for instance in instances {
             charge(&mut work, policy)?;
@@ -231,6 +269,15 @@ pub fn resolve(
                     rooted.insert(id.clone());
                     stair_landings.insert(stair_landing(*origin, *orientation, *run, *rise)?);
                     changed = true;
+                }
+                StaticInstance::Fixture { id, origin, orientation, footprint } if !rooted.contains(id) => {
+                    let cells = fixture_cells(*origin, *orientation, footprint)?;
+                    let mut supported = true;
+                    for cell in &cells {
+                        let below = Cell { y: cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*cell };
+                        if !load_contacts.contains(&below) && !terrain_support(below)? { supported = false; break; }
+                    }
+                    if supported { rooted.insert(id.clone()); changed = true; }
                 }
                 _ => {}
             }
@@ -251,7 +298,7 @@ pub fn resolve(
     load_contacts.extend(floor_surfaces.iter().copied());
     structural_anchors.extend(column_tops.iter().copied());
     structural_anchors.extend(stair_landings.iter().copied());
-    Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces, load_contacts, structural_anchors, floor_distances: final_floor_distances })
+    Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces, load_contacts, structural_anchors, floor_distances: final_floor_distances, cover_distances: final_cover_distances })
 }
 
 /// Assess one new instance against an already-resolved committed geometry.
@@ -266,12 +313,22 @@ pub fn candidate_supported(
 ) -> Result<bool, String> {
     if max_span_steps == 0 { return Err("invalid structure support policy".into()); }
     let support = match instance {
-        StaticInstance::Floor { support, .. } => *support,
+        StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support,
+        StaticInstance::Fixture { origin, .. } => Cell { y: origin.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*origin },
         StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
         StaticInstance::Stair { origin, .. } => *origin,
     };
+    if let StaticInstance::Fixture { origin, orientation, footprint, .. } = instance {
+        for cell in fixture_cells(*origin, *orientation, footprint)? {
+            let below = Cell { y: cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..cell };
+            if !base.load_contacts.contains(&below) && !terrain_support(below)? {
+                return Ok(false);
+            }
+        }
+        return Ok(true);
+    }
     if terrain_support(support)? { return Ok(true); }
-    if matches!(instance, StaticInstance::Floor { .. }) {
+    if matches!(instance, StaticInstance::Floor { .. } | StaticInstance::Cover { .. }) {
         for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
             if terrain_support(cardinal_neighbor(support, dx, dz)?)? { return Ok(true); }
         }
@@ -279,9 +336,14 @@ pub fn candidate_supported(
             let neighbor = cardinal_neighbor(support, dx, dz)?;
             if base.structural_anchors.contains(&neighbor) { return Ok(true); }
         }
+        let distances = match instance {
+            StaticInstance::Floor { .. } => &base.floor_distances,
+            StaticInstance::Cover { .. } => &base.cover_distances,
+            _ => unreachable!(),
+        };
         for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
             let neighbor = cardinal_neighbor(support, dx, dz)?;
-            if base.floor_distances.get(&neighbor).is_some_and(|distance| distance.checked_add(1).is_some_and(|next| next <= max_span_steps)) { return Ok(true); }
+            if distances.get(&neighbor).is_some_and(|distance| distance.checked_add(1).is_some_and(|next| next <= max_span_steps)) { return Ok(true); }
         }
     } else if base.load_contacts.contains(&support) {
         return Ok(true);
@@ -364,6 +426,7 @@ mod tests {
             supported: BTreeSet::new(), unsupported: Vec::new(), column_tops: BTreeSet::new(),
             stair_landings: BTreeSet::new(), floor_surfaces: BTreeSet::new(), load_contacts: BTreeSet::new(),
             structural_anchors: BTreeSet::new(), floor_distances: BTreeMap::new(),
+            cover_distances: BTreeMap::new(),
         };
         let pending = StaticInstance::Floor { id: "pending".into(), support: Cell { x: 2, y: 0, z: 0 } };
         let mut no_terrain = terrain(&[]);
@@ -376,6 +439,7 @@ mod tests {
             supported: BTreeSet::new(), unsupported: Vec::new(), column_tops: BTreeSet::new(),
             stair_landings: BTreeSet::new(), floor_surfaces: BTreeSet::new(), load_contacts: BTreeSet::new(),
             structural_anchors: BTreeSet::new(), floor_distances: BTreeMap::new(),
+            cover_distances: BTreeMap::new(),
         };
         base.floor_distances.insert(Cell { x: 0, y: 0, z: 0 }, 3);
         let adjacent = StaticInstance::Floor { id: "adjacent".into(), support: Cell { x: 1, y: 0, z: 0 } };
@@ -398,6 +462,52 @@ mod tests {
         let mut no_terrain = terrain(&[]);
         assert!(candidate_supported(&base, &allowed, 2, &mut no_terrain).unwrap());
         assert!(!candidate_supported(&base, &rejected, 2, &mut no_terrain).unwrap());
+    }
+
+    #[test]
+    fn fixture_requires_every_completed_load_contact_and_provides_none() {
+        let floors = vec![
+            StaticInstance::Floor { id: "floor-0".into(), support: Cell { x: 0, y: 0, z: 0 } },
+            StaticInstance::Floor { id: "floor-1".into(), support: Cell { x: 1, y: 0, z: 0 } },
+        ];
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let base = resolve(&StaticGeometry::new(bounds(), floors.clone()).unwrap(), policy(2), &mut ground).unwrap();
+        let fixture = StaticInstance::Fixture {
+            id: "bed".into(), origin: Cell { x: 0, y: 1, z: 0 },
+            orientation: Cardinal::North, footprint: vec![[0, 0], [1, 0]],
+        };
+        let mut no_terrain = terrain(&[]);
+        assert!(candidate_supported(&base, &fixture, 2, &mut no_terrain).unwrap());
+
+        let mut partial_ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let partial = resolve(&StaticGeometry::new(bounds(), vec![floors[0].clone()]).unwrap(), policy(2), &mut partial_ground).unwrap();
+        let mut no_terrain = terrain(&[]);
+        assert!(!candidate_supported(&partial, &fixture, 2, &mut no_terrain).unwrap());
+
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let resolved = resolve(&StaticGeometry::new(bounds(), vec![floors[0].clone(), floors[1].clone(), fixture]).unwrap(), policy(2), &mut ground).unwrap();
+        assert!(resolved.supported.contains("bed"));
+        assert!(!resolved.load_contacts.contains(&Cell { x: 0, y: 1, z: 0 }));
+        assert!(!resolved.structural_anchors.contains(&Cell { x: 0, y: 1, z: 0 }));
+    }
+
+    #[test]
+    fn cover_span_carries_distance_without_becoming_load_support() {
+        let covers = (1..=3).map(|x| StaticInstance::Cover {
+            id: format!("roof-{x}"), support: Cell { x, y: 0, z: 0 },
+        }).collect();
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let result = resolve(&StaticGeometry::new(bounds(), covers).unwrap(), policy(2), &mut ground).unwrap();
+        assert!(result.supported.contains("roof-1"));
+        assert!(result.supported.contains("roof-2"));
+        assert_eq!(result.unsupported, vec!["roof-3"]);
+        assert_eq!(result.cover_distances.get(&Cell { x: 2, y: 0, z: 0 }), Some(&2));
+        assert!(!result.load_contacts.contains(&Cell { x: 1, y: 0, z: 0 }));
+        assert!(!result.structural_anchors.contains(&Cell { x: 1, y: 0, z: 0 }));
+
+        let candidate = StaticInstance::Cover { id: "roof-next".into(), support: Cell { x: 3, y: 0, z: 0 } };
+        let mut no_terrain = terrain(&[]);
+        assert!(!candidate_supported(&result, &candidate, 2, &mut no_terrain).unwrap());
     }
 
     #[test]
