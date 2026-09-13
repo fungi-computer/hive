@@ -324,6 +324,49 @@ move the supported rule once, delete the superseded special case, and exercise i
 through the real station, worker, material and save callers before starting the
 next step.
 
+### Mugwort is a generic tended resource, not a brewing exception
+
+The free starter mugwort is temporary. Its replacement is the first consumer of
+one native, data-defined `resourceSite` lifecycle that can later grow mushrooms,
+garden crops and renewable wild plants. The environment definition owns a stable
+resource definition: its output material and quantity, sow/tend/harvest work,
+the bounded number of growth stages, the delay before each stage, and the water
+portions required at each stage. Goblin names mugwort and supplies its art; the
+native lifecycle never branches on that name or on the brewing recipe.
+
+The lifecycle has four physical operations:
+
+1. `establish-resource-site` validates a supported empty surface, worker contact,
+   definition and stable site identity, then creates one positioned physical site
+   with an empty finite-resource output.
+2. `tend-resource-site` atomically consumes the definition's exact water portions
+   from a held pail, deposits that mass into the site's real soil cell, and advances
+   one due growth stage. A rejected compound operation changes neither the field,
+   pail nor plant.
+3. The last accepted stage makes the definition-owned finite yield available.
+   Growth is sparse and event-driven: elapsed time only makes a stage due; it does
+   not scan or numerically advance every plant on every simulation tick.
+4. The existing `extract-resource` operation harvests the ready yield into the
+   site's ordinary container. Shared hauling and stockpile policy move that lot.
+   A harvested empty site may be removed or reset only by the same lifecycle
+   owner after its output container is empty.
+
+Sow, water and harvest are durable worker-independent intents handled by the one
+shared work allocator. They may wait with no worker or no filled pail and become
+eligible after the relevant worker, route, water or clock fact changes. They do
+not reserve a worker while blocked. Water acquisition continues through the
+existing field-water and pail owner; no herb-only water inventory or scheduler is
+allowed. Current-format save/reload preserves site stage, next-due time, claims,
+pail custody and material quantities. Region command replay must return the
+committed receipt without repeating a stage or harvest output.
+
+The first acceptance path starts without free mugwort: designate one reachable
+soil cell, let an ordinary worker sow and tend it from finite groundwater, wait
+through authored stage delays, harvest exactly one conserved mugwort lot, haul it
+through normal storage/supply, and complete the existing herbal-ale process. A
+headless controller supplies the same point/entity arguments advertised by
+Whistle; the browser's local gesture binding is presentation only.
+
 ### ECS correction — September 13
 
 Hive has a real `bevy_ecs::World`, typed native components and retained Bevy
