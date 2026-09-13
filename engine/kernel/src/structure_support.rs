@@ -371,6 +371,7 @@ pub(crate) fn candidate_floor_distance(base: &SupportResult, support: Cell, max_
     for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
         let neighbor = cardinal_neighbor(support, dx, dz)?;
         if terrain_support(neighbor)? { best = Some(best.map_or(1, |v: u32| v.min(1))); }
+        if base.structural_anchors.contains(&neighbor) { best = Some(best.map_or(1, |v: u32| v.min(1))); }
         if let Some(distance) = base.floor_distances.get(&neighbor) { best = Some(best.map_or(distance.saturating_add(1), |v: u32| v.min(distance.saturating_add(1)))); }
     }
     Ok(best.filter(|distance| *distance <= max_span_steps))
@@ -536,6 +537,43 @@ mod tests {
         let mut no_terrain = terrain(&[]);
         assert!(candidate_supported(&base, &adjacent, 4, &mut no_terrain).unwrap());
         assert!(!candidate_supported(&base, &gap, 4, &mut no_terrain).unwrap());
+    }
+
+    #[test]
+    fn candidate_floor_distance_uses_structural_anchors_without_resetting_span() {
+        let stair = StaticInstance::Stair {
+            id: "stair".into(),
+            origin: Cell { x: 0, y: 0, z: 0 },
+            orientation: Cardinal::North,
+            run: 4,
+            rise: 4,
+        };
+        let mut ground = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
+        let stair_base = resolve(&StaticGeometry::new(bounds(), vec![stair]).unwrap(), policy(2), &mut ground).unwrap();
+        let stair_landing = Cell { x: 0, y: 4, z: -4 };
+        assert!(stair_base.structural_anchors.contains(&stair_landing));
+        let stair_adjacent = Cell { x: 1, y: 4, z: -4 };
+        let mut no_terrain = terrain(&[]);
+        assert_eq!(candidate_floor_distance(&stair_base, stair_adjacent, 1, &mut no_terrain).unwrap(), Some(1));
+
+        let wall = StaticInstance::Wall {
+            id: "wall".into(),
+            base: Cell { x: 4, y: 0, z: 0 },
+            height: 3,
+        };
+        let mut ground = terrain(&[Cell { x: 4, y: -1, z: 0 }]);
+        let wall_base = resolve(&StaticGeometry::new(bounds(), vec![wall]).unwrap(), policy(2), &mut ground).unwrap();
+        let wall_contact = Cell { x: 4, y: 3, z: 0 };
+        assert!(wall_base.structural_anchors.contains(&wall_contact));
+        let wall_adjacent = Cell { x: 5, y: 3, z: 0 };
+        let mut no_terrain = terrain(&[]);
+        assert_eq!(candidate_floor_distance(&wall_base, wall_adjacent, 1, &mut no_terrain).unwrap(), Some(1));
+
+        let mut chained = wall_base.clone();
+        chained.floor_distances.insert(wall_adjacent, 1);
+        let beyond_span = Cell { x: 6, y: 3, z: 0 };
+        let mut no_terrain = terrain(&[]);
+        assert_eq!(candidate_floor_distance(&chained, beyond_span, 1, &mut no_terrain).unwrap(), None);
     }
 
     #[test]
