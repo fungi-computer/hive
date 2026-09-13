@@ -533,7 +533,9 @@ export const colonyPack: GamePack = {
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
-      const total = (container: EntityId) => lots.filter((lot) => lot.container === container).reduce((sum, lot) => sum + lot.quantity, 0);
+      const lotTotals = new Map<EntityId, number>();
+      for (const lot of lots) lotTotals.set(lot.container, (lotTotals.get(lot.container) ?? 0) + lot.quantity);
+      const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const taskRows = context.query(query(DeliveryTask));
       const ignition = context.query(query(EmissionWork)).find(row => row.id === brewStationId)?.get(EmissionWork);
       const station = context.query(query(Position)).find(row => row.id === brewStationId)?.get(Position);
@@ -548,7 +550,7 @@ export const colonyPack: GamePack = {
           for (const row of context.query(query(StockpileCell, Container, Position))) {
             const cell = row.get(StockpileCell), container = row.get(Container);
             const current = grouped.get(cell.zone) ?? { profile: cell.filterProfile, priority: cell.priority, contents: 0, capacity: 0 };
-            current.contents += lots.filter(lot => lot.container === row.id).reduce((sum, lot) => sum + lot.quantity, 0);
+            current.contents += total(row.id);
             current.capacity += container.capacity;
             grouped.set(cell.zone, current);
           }
