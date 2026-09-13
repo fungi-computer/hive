@@ -1077,3 +1077,32 @@ deployment2261bbe7-a9c8-42d7-8169-b87263711d9c; DO version
 Detailed source/law, failed trial, cleanup, latency and retained limits live in
 [the performance receipt](../docs/performance/local-gas-repair-20260911.md).
 This supersedes older availability statements above, not their historical proof.
+
+# September 13 Colony performance playground and online-host repair
+
+Current source `5e0bf91` is published on the existing preview. Frontend
+deployment `a45ef107-856c-47bd-8886-a0e40f85584c`; matching Durable Object
+version `815e33c7-e371-4c48-a95b-dbfd7db729ec`, implementation
+`8a5390fe7c6acd748b026860601846f448dec3b7b42efb61104e189ff8a1180f`.
+All 164 frozen static files matched their hosted SHA-256 values in u6440.
+
+The normal Colony URL was rebuilt with the actual public DO origin. A fresh
+hosted browser opened it without `runtime=local`, received a Colony observation
+at revision 5 and displayed `Online · server saved` with no page or server error
+in u6441. This closes the omitted-build-variable regression for this release.
+
+The same static release adds a deliberately stressful browser-local performance
+playground at `engine/colony-performance.html`, with shareable 64×64, 128×128
+and 256×256 settings and a 4–50 worker slider. It uses the current Colony
+definitions, Rust/WASM kernel, libcolony assignment, finite trees and physical
+wood output. The viewport/resident projection stays at 64×64 columns, so the
+larger choices exercise bounded world identity rather than rendering every
+column. Local browser evidence at 64×64/8 workers observed 128 route requests,
+48 wood output, a 511,148-byte snapshot and one 1,740ms simulation step. This is
+useful evidence that the current stressed assignment/routing loop remains far
+too expensive; it is not a DO capacity claim or an acceptable gameplay frame
+time. The ordinary small Colony remains the playable DO-hosted product path.
+
+Release and rollback inventories are retained in ignored
+`.botanical/colony-performance-release-v1/`; prior Cloudflare versions remain
+available. The full 20-minute two-player Clearing goal remains unfinished.
