@@ -252,3 +252,24 @@ It must run one herbal-ale definition through the same generic API. The final
 slice is not accepted until the playable world obtains finite water and mugwort
 through world actions and serves four conserved ale portions without a worker
 remaining task-locked.
+
+### Retained art contract
+
+No new temporary brewing art is needed. The accepted static bank
+`public/generated-art/goblin-static-art-v2/manifest.json` already contains:
+
+- station profiles for `empty`, `prepare`, `prepare-attended`, `ferment`,
+  `ferment-burning`, `keg`, `settled`, and all water/barm/keg stock combinations;
+- Rowan and Sedge/witch-runner directional `carry-pail-empty`,
+  `carry-pail-half`, and `carry-pail-full` animation frames;
+- `herbs/mugwort/{planted,growing,ready,bundle}`;
+- `pail/{empty,filled}`.
+
+The renderer chooses those paths from observed process stage, retained station
+contents, current emission state and nested pail water custody. It does not infer
+or advance process state. Full versus half pail art must come from the pail's
+actual contained water lot, not merely the worker carrying an entity named pail.
+The current inventory decorator only sees direct container contents; the pail
+slice must extend one shared bounded custody projection so human, AI and animation
+consumers can observe the same nested vessel fact. Do not add a brewing-only
+client lookup or replace any of these retained frames.
