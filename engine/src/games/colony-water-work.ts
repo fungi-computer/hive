@@ -71,10 +71,11 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   const pairs = water.length * pails.length;
   const rounds = Math.min(Math.ceil(128 / Math.max(1, queuedRows.length)), pairs);
   for (let round = 0; round < rounds && candidates.length < 128; round++) {
-    const pair = round % pairs, cell = water[Math.floor(pair / pails.length)], pail = pails[pair % pails.length];
-    if (!cell || !pail || !eligibleWorkers.includes(pail.container) || moving.has(pail.container)) continue;
-    for (const task of queuedRows) {
-      candidates.push({ worker: pail.container, task, vessel: pail.id, cell: cell.at, approaches: cell.approaches });
+    for (const [taskIndex, task] of queuedRows.entries()) {
+      const diagonal = (round * queuedRows.length + taskIndex) % pairs;
+      const diagonalCell = water[Math.floor(diagonal / pails.length)], diagonalPail = pails[diagonal % pails.length];
+      if (!diagonalCell || !diagonalPail || !eligibleWorkers.includes(diagonalPail.container) || moving.has(diagonalPail.container)) continue;
+      candidates.push({ worker: diagonalPail.container, task, vessel: diagonalPail.id, cell: diagonalCell.at, approaches: diagonalCell.approaches });
       if (candidates.length === 128) break;
     }
   }

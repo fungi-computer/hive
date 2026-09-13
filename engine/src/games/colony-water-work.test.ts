@@ -91,18 +91,23 @@ test("completed demand is cleaned on the next phase without contact or material 
 
 test("queued planning stays bounded with many demands and keeps an active bound actor visible", () => {
   const active = row("worker-z", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }]]));
-  const worker = row("worker-a", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }]]));
-  const pail = { id: id("pail-a"), kind: "pail", quantity: 1, container: id("worker-a") };
+  const worker = row("worker-0", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }]]));
+  const pails = Array.from({ length: 4 }, (_, index) => ({ id: id(`pail-${index}`), kind: "pail", quantity: 1, container: id(`worker-${index}`) }));
+  const extraWorkers = pails.slice(1).map((pail) => row(pail.container, new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }]])));
   const demands = Array.from({ length: 256 }, (_, index) => row(`demand-${index}`, new Map([[WaterSupplyOrder, { revision: index + 1 }], [WaterSupplyWork, { request: index + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" }]])));
   demands.push(row("active", new Map([[WaterSupplyOrder, { revision: 257 }], [WaterSupplyWork, { request: 257, attempt: 1, phase: "approaching", actor: id("worker-z"), vessel: id("pail-z"), x: 0, y: 1, z: 0, approachX: 0, approachY: 1, approachZ: 0, reason: "" }]])));
-  let posed: string[] = [];
+  let posed: string[] = [], actions: any[] = [], progressWrites: any[] = [];
   const context: any = {
-    query: (spec: any) => spec.components.includes(Worker) ? [worker, active] : spec.components.includes(Destination) ? [] : demands,
-    workMaterialFacts: () => ({ version: 1, containers: [{ id: pail.id, capacity: 7, sealed: false }], lots: [pail] }),
+    query: (spec: any) => spec.components.includes(Worker) ? [worker, active, ...extraWorkers] : spec.components.includes(Destination) ? [] : demands,
+    workMaterialFacts: () => ({ version: 1, containers: pails.map((pail) => ({ id: pail.id, capacity: 7, sealed: false })), lots: pails }),
     worldPoses: (entities: readonly string[]) => { posed = [...entities]; return entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })); },
-    waterContacts: () => [{ at: [0, 1, 0], approaches: [{ x: 0, y: 1, z: 0, frame: null }] }], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }), routeCosts: () => [], action: () => {}, write: () => {}, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], removeAuthoredEntity: () => {},
+    waterContacts: () => [{ at: [0, 1, 0], approaches: [{ x: 0, y: 1, z: 0, frame: null }] }], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }), routeCosts: () => [], action: (value: any) => actions.push(value), write: (_definition: any, entity: any, value: any) => progressWrites.push([entity, value]), outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], removeAuthoredEntity: () => {},
   };
   const prepared = waterSupplyProvider(context, new Set());
   assert.ok(prepared.candidates.length <= 128);
+  assert.equal(new Set(prepared.candidates.slice(0, 4).map(candidate => candidate.worker)).size, 4);
   assert.ok(posed.includes("worker-z"));
+  prepared.progress();
+  assert.equal(actions[0].kind, "exchange-field-water");
+  assert.equal(progressWrites.at(-1)[1].phase, "submitting");
 });
