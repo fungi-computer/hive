@@ -189,9 +189,9 @@ mod process_request_tests {
         kernel.refresh_state_weight();
         kernel.admit_process(&process, "process-v1", "station").unwrap();
         assert_eq!(kernel.ecs.query::<&crate::staged_process::ProcessBinding>().iter(&kernel.ecs).count(), 1);
-        let before = kernel.query_json(r#"[\"hive.lot\",\"hive.process-binding\",\"hive.staged-process\"]"#).unwrap();
+        let before = kernel.query_json(r#"["hive.lot","hive.process-binding","hive.staged-process"]"#).unwrap();
         kernel.admit_process(&process, "process-v1", "station").unwrap();
-        assert_eq!(kernel.query_json(r#"[\"hive.lot\",\"hive.process-binding\",\"hive.staged-process\"]"#).unwrap(), before);
+        assert_eq!(kernel.query_json(r#"["hive.lot","hive.process-binding","hive.staged-process"]"#).unwrap(), before);
         assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().phase, ProcessPhase::Waiting);
         kernel.validate_process_records().unwrap();
     }
