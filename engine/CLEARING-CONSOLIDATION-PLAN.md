@@ -457,25 +457,26 @@ its real consumer proves the need. Whistle does not learn terrain, stockpile or
 Goblin rules. Preview and cancelling an unfinished gesture do not become world
 commands.
 
-The current Whistle candidate at `7a3013d` in
-`/mnt/fungi-extra/botanical-work/Botanical-agent-control-host` already carries
-JSON input/output schemas, typed arguments/results and action/choice/form/
-confirmation hints for local projections. The server wire carries semantic
-input/output schemas, availability and results; it does not prescribe whether a
-client renders a form, a character-selection screen or another presentation.
-Valid choices and labels come from standard schema `enum`, `oneOf`, `const` and
-`title` data. It is candidate source, not a published package contract.
-Its runtime still lacks the ADR's context-driven availability and unavailable
-reason, and its local `Error` outcome is not a portable remote failure. The first
-Hive join therefore requires:
+The frozen Whistle candidate is `f33a104` in
+`/mnt/fungi-extra/botanical-work/Botanical-agent-control-host`, with Agent Host
+wire correction `b4e3794` on top. It carries JSON input/output schemas, typed
+arguments/results, availability with unavailable reasons and portable failures.
+Its local projections support action/choice/form/confirmation hints plus the
+opaque `custom.data` slot used by Hive's existing gesture binding. The maintained
+EventSource roundtrip preserves schemas, arguments, results, failures and
+availability while deliberately omitting local presentation. Presentation-only
+local actions remain discoverable commands but acquire no remote presentation
+field. Valid choices and labels come from standard schema `enum`, `oneOf`,
+`const` and `title` data. This is independently checked candidate source, not a
+published package or Hive integration claim. The first Hive join therefore
+requires:
 
 - one validation/schema source for each game command; no handwritten Whistle
   schema beside a different Zod admission schema;
-- discoverable enabled/disabled state with a reason, supplied by Hive and
-  rechecked by Hive during admission; filtering or repeatedly unregistering a
-  command does not satisfy this;
-- a transport-safe failure and typed command-result shape that distinguishes
-  rejected intent, accepted intent and completed physical work; and
+- Hive-supplied discoverable enabled/disabled state with a reason, rechecked by
+  Hive during admission rather than implemented by registration churn;
+- mapping the portable typed result/failure into Hive's existing distinction
+  between rejected intent, accepted intent and completed physical work; and
 - consumer proof that the same semantic schema and availability reach a human
   client and headless controller through the existing authorized connection.
 
