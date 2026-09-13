@@ -29,6 +29,9 @@ mod route_query;
 #[path = "process_transition.rs"]
 mod process_transition;
 #[cfg(test)]
+#[path = "process_transition_tests.rs"]
+mod process_transition_tests;
+#[cfg(test)]
 #[path = "terrain_movement_tests.rs"]
 mod terrain_movement_tests;
 use material_output::{MaterialOutputSpec, PreparedMaterialOutput};
