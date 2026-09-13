@@ -50,6 +50,24 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
     facing: false,
     anchor: "propAnchor",
   }),
+  "colony.mugwort.planted": Object.freeze({
+    kind: "static",
+    path: ["herbs", "mugwort", "planted"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "colony.mugwort.growing": Object.freeze({
+    kind: "static",
+    path: ["herbs", "mugwort", "growing"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
+  "colony.mugwort.ready": Object.freeze({
+    kind: "static",
+    path: ["herbs", "mugwort", "ready"],
+    facing: false,
+    anchor: "propAnchor",
+  }),
   "colony.cat": Object.freeze({
     kind: "figure",
     key: "cat",
@@ -72,7 +90,7 @@ const clearingWorker = Object.freeze({
   motion: { kind: "foot", stride: 0.65 },
   workPoses: { dig: "dig", build: "build", chop: "chop" },
   deliveryPoses: { pickup: "pickup", "putting-down": "deliver" },
-  carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone", pail: { contentKind: "water", empty: "carry-pail-empty", partial: "carry-pail-half", full: "carry-pail-full" } },
+  carryPoses: { bread: "carry-ration", wood: "carry", mugwort: "carry-herb", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone", pail: { contentKind: "water", empty: "carry-pail-empty", partial: "carry-pail-half", full: "carry-pail-full" } },
 });
 export const COLONY_VISUAL_BINDINGS = Object.freeze({
   "colony.rowan": Object.freeze({ ...clearingWorker, key: "rowan" }),

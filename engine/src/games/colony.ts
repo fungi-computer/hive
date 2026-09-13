@@ -598,6 +598,13 @@ export const colonyPack: GamePack = {
         const visual = tree.phase === "standing" ? "colony.tree" : tree.phase === "felled" ? "colony.tree.felled" : "colony.tree.stump";
         return { id: row.id, visual, label: `Tree · ${tree.phase}`, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
       }),
+      ...context.query(query(ResourceSite, Position)).map(row => {
+        const site = row.get(ResourceSite), position = row.get(Position);
+        const definition = colonyEnvironment.resourceSites?.find(candidate => candidate.id === site.definition);
+        const stage = definition && site.stage >= definition.stages.length ? "ready" : site.stage === 0 ? "planted" : "growing";
+        return { id: row.id, visual: `colony.${site.definition}.${stage}`, label: `${site.definition} · ${stage}`,
+          pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
+      }),
       ...colonyConstructionVisuals(context).map(visual => {
         const profile = stationProfiles.get(visual.id);
         return profile ? { ...visual, visual: `colony.brew-station.profile.${profile}` } : visual;
