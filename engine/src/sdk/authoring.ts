@@ -117,6 +117,7 @@ export function command<TInput>(
     title: string;
     category: string;
     description: string;
+    localPresentation?: GameCommandDefinition["localPresentation"];
     availability?: GameCommandDefinition["availability"];
     subjects?: GameCommandDefinition["subjects"];
     input: z.ZodType<TInput>;
@@ -131,6 +132,7 @@ export function command<TInput>(
     title: options.title,
     category: options.category,
     description: options.description,
+    ...(options.localPresentation === undefined ? {} : { localPresentation: Object.freeze({ bindings: Object.freeze(options.localPresentation.bindings.map(binding => Object.freeze({ ...binding }))) }) }),
     ...(options.availability === undefined ? {} : { availability: options.availability }),
     ...(options.subjects === undefined ? {} : { subjects: options.subjects }),
     lifecycle: Object.freeze([...(options.lifecycle ?? [])]),

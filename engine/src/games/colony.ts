@@ -358,6 +358,7 @@ export const colonyPack: GamePack = {
     build: colonyBuildCommand,
     deconstruct: command({
       title: "Deconstruct",
+      localPresentation: { bindings: [{ id: "deconstruct", label: "Deconstruct", selection: { field: "site", cardinality: "one" }, designation: ["entities"] as const }] },
       category: "Construction",
       description: "Queue teardown of a finished construction site and recover its salvage.",
       availability: context => context.query(query(ConstructionSite)).some(row => row.get(ConstructionSite).phase === "finished")
@@ -377,6 +378,7 @@ export const colonyPack: GamePack = {
     updateStockpile: colonyStockpilePolicyCommand,
     lightHearth: command({
       title: "Light brew station fire", category: "Colony", description: "Request lighting for the brew station.",
+      localPresentation: { bindings: [{ id: "light-brew-station", label: "Light brew station fire", selection: { field: "station", cardinality: "one" } }] },
       subjects: context => finishedBrewStations(context).map(row => row.id),
       input: stationInput,
       reads: [ConstructionSite, Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
@@ -391,6 +393,7 @@ export const colonyPack: GamePack = {
     }),
     cancelIgnition: command({
       title: "Cancel brew station fire", category: "Colony", description: "Cancel the current brew station lighting request.",
+      localPresentation: { bindings: [{ id: "cancel-ignition", label: "Cancel lighting", selection: { field: "station", cardinality: "one" } }] },
       subjects: context => finishedBrewStations(context).map(row => row.id),
       input: stationInput,
       reads: [ConstructionSite, EmissionOrder, EmissionWork], writes: [EmissionOrder],
@@ -451,6 +454,7 @@ export const colonyPack: GamePack = {
     }),
     resumeWork: command({
       title: "Resume automatic work", category: "Colony", description: "Return selected workers to automatic work assignment.",
+      localPresentation: { bindings: [{ id: "resume-work", label: "Resume work", selection: "entities" }] },
       subjects: () => workers,
       input: workerSelectionInput,
       reads: [Worker, WorkParticipation],
@@ -462,6 +466,7 @@ export const colonyPack: GamePack = {
     }),
     dig: command({
       title: "Dig area", category: "Excavation", description: "Queue excavation for a same-level area.",
+      localPresentation: { bindings: [{ id: "dig", label: "Dig area", target: "terrain-area", designation: ["rectangle"] as const }] },
       input: digInput,
       reads: [ColonyDigOrder],
       writes: [],
@@ -470,6 +475,7 @@ export const colonyPack: GamePack = {
     }),
     designateTrees: command({
       title: "Fell selected trees", category: "Colony", description: "Designate standing trees for felling and chopping.",
+      localPresentation: { bindings: [{ id: "designate-trees", label: "Fell selected trees", selection: "entities" }] },
       subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing").map(row => row.id),
       input: treeSelectionInput,
       reads: [ColonyTree], writes: [ColonyTreePolicy],
@@ -483,6 +489,7 @@ export const colonyPack: GamePack = {
     }),
     cancelTrees: command({
       title: "Cancel tree work", category: "Colony", description: "Remove the felling designation from selected trees.",
+      localPresentation: { bindings: [{ id: "cancel-trees", label: "Cancel tree work", selection: "entities" }] },
       subjects: context => context.query(query(ColonyTree, ColonyTreePolicy))
         .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped")
         .map(row => row.id),
@@ -497,6 +504,7 @@ export const colonyPack: GamePack = {
     }),
     cancelDig: command({
       title: "Cancel excavation", category: "Excavation", description: "Cancel queued excavation orders in an area or for workers.",
+      localPresentation: { bindings: [{ id: "cancel-dig", label: "Cancel dig area", target: "terrain-area", designation: ["rectangle"] as const }] },
       input: cancelDigInput,
       reads: [ColonyDigOrder, ExcavationWork],
       writes: [],
@@ -526,6 +534,7 @@ export const colonyPack: GamePack = {
     }),
     deposit: command({
       title: "Deposit carried goods", category: "Colony", description: "Deposit carried materials into their assigned destination.",
+      localPresentation: { bindings: [{ id: "deposit", label: "Deposit carried goods", selection: "entities" }] },
       subjects: () => workers,
       input: depositInput,
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],

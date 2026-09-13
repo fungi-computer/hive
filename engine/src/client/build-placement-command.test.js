@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { GAME_BINDINGS } from "./game-bindings.js";
+import { localBindings } from "./whistle-runtime.js";
+import { colonyPack } from "../games/colony.ts";
 import { bindingCommand, buildPlacementCommand, terrainAreaCommand, terrainCellCommand } from "./whistle-command.js";
 
-const buildControl = (id) => GAME_BINDINGS.colony.find((control) => control.id === id);
+const colonyBindings = localBindings(colonyPack);
+const buildControl = (id) => colonyBindings.find((control) => control.id === id);
 
 test("local floor binding turns a rectangle into one durable command input", () => {
   const control = buildControl("timber-floor");
@@ -61,7 +63,7 @@ test("single entity bindings bind a scoped selected subject to their declared fi
 
 test("affected game bindings use one entity fields and brew station point placement", () => {
   for (const id of ["deconstruct", "light-brew-station", "cancel-ignition"]) {
-    const control = GAME_BINDINGS.colony.find((entry) => entry.id === id);
+    const control = colonyBindings.find((entry) => entry.id === id);
     assert.deepEqual(control.selection, { field: id === "deconstruct" ? "site" : "station", cardinality: "one" });
   }
   const brew = buildControl("brew-station");

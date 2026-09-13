@@ -39,6 +39,7 @@ function zoneFor(areaValue: z.infer<typeof area>) {
 /** Colony chooses the bounded profile; native stockpile admission owns floor/conflict atomicity. */
 export const colonyStockpileCommand = command({
   title: "Designate stockpile", category: "Storage", description: "Designate a floor area for physical material storage.",
+  localPresentation: { bindings: [{ id: "designate-stockpile", label: "Designate stockpile", target: "terrain-area", designation: ["rectangle"] as const, preset: { filterProfile: "wood", priority: 50 } }] },
   input: colonyStockpileInputSchema,
   reads: [],
   writes: [],

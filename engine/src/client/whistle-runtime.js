@@ -1,5 +1,12 @@
 import { createWhistle } from "@fungi.computer/whistle";
 
+/** Project only the owning pack's local acquisition data into Whistle custom data. */
+export function localBindings(pack) {
+  return Object.freeze(Object.entries(pack.commands ?? {}).flatMap(([name, command]) =>
+    (command.localPresentation?.bindings ?? []).map(binding => Object.freeze({ ...binding, commandId: `${pack.id}:${name}` }))
+  ));
+}
+
 function commandName(commandId) {
   const separator = commandId.indexOf(":");
   if (separator <= 0 || separator === commandId.length - 1) throw new Error(`invalid Whistle command ID ${commandId}`);
@@ -60,8 +67,10 @@ export function createLocalGameWhistle({ agent = [], bindings = [], submit }) {
     }
     const namespace = rows[0]?.commandId.split(":")[0] ?? "hive";
     const commands = contributionCommands(rows, bindingsByCommand, submit, latest);
-    if (!lease) lease = whistle.contribute({ sourceId: `hive.client.${namespace}`, namespace, commands });
-    else lease.update(commands);
+    // The vendored Whistle contract replaces a contribution by disposing its
+    // generation and contributing the new immutable command set.
+    if (lease) lease.dispose();
+    lease = whistle.contribute({ sourceId: `hive.client.${namespace}`, namespace, commands });
     installedIdentity = identity;
   };
   update(agent);
