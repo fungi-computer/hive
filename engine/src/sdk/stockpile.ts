@@ -46,8 +46,9 @@ export type StockpilePlanningOptions = {
   readonly filterProfiles: Readonly<Record<string, StockpileFilterProfile>>;
 };
 
-function taskId(cell: EntityId, lot: EntityId): EntityId {
-  const id = `stockpile.delivery.${cell.length}:${cell}.${lot.length}:${lot}`;
+function taskId(cell: EntityId, lot: EntityId, leg = 0): EntityId {
+  const suffix = leg === 0 ? "" : `.${leg}`;
+  const id = `stockpile.delivery.${cell.length}:${cell}.${lot.length}:${lot}${suffix}`;
   if (id.length > MAX_ID_LENGTH) throw new Error("stockpile delivery identity exceeds bound");
   return entity(id);
 }
@@ -77,12 +78,13 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     const total = (quantities.get(lot.container) ?? 0) + lot.quantity;
     if (total <= MAX_QUANTITY) quantities.set(lot.container, total);
   }
-  const claimedLots = new Set<EntityId>();
+  const reservedByLot = new Map<EntityId, number>();
+  const nextLegByLot = new Map<string, number>();
   const incomingByCell = new Map<EntityId, number>();
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
     if (task.phase === "complete") continue;
-    claimedLots.add(task.sourceLot);
+    if (validInt(task.quantity) && task.quantity > 0) reservedByLot.set(task.sourceLot, (reservedByLot.get(task.sourceLot) ?? 0) + task.quantity);
     if (cellIds.has(task.destination) && validInt(task.quantity) && task.quantity > 0) {
       const incoming = (incomingByCell.get(task.destination) ?? 0) + task.quantity;
       if (incoming <= MAX_QUANTITY) incomingByCell.set(task.destination, incoming);
@@ -94,7 +96,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
   });
   const created: EntityId[] = [];
   const sourceLots = lots.map(row => ({ id: row.id, lot: row.get(MaterialLot) }))
-    .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container) || exhaustedFinite.has(lot.container)) && !claimedLots.has(id) && lot.quantity > 0 && validInt(lot.quantity))
+    .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container) || exhaustedFinite.has(lot.container)) && lot.quantity > 0 && validInt(lot.quantity))
     .sort((a, b) => compareId(a.id, b.id));
   for (const row of orderedCells) {
     if (sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
@@ -114,24 +116,28 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     if (free <= 0) continue;
     for (const source of sourceLots) {
       if (free <= 0) break;
-      if (claimedLots.has(source.id)) continue;
       if (!accepts(source.lot.kind) || sealed.has(source.lot.container) || source.lot.container === row.id || (quantities.get(source.lot.container) ?? 0) > MAX_QUANTITY) continue;
       const prior = sourceCell.get(source.lot.container);
       if (prior && policy.priority <= prior.priority) continue;
       const sourceContainer = source.lot.container;
       if (!containers.has(sourceContainer)) continue;
-      const quantity = Math.min(source.lot.quantity, free);
+      let available = source.lot.quantity - (reservedByLot.get(source.id) ?? 0);
+      if (available <= 0) continue;
+      const legKey = `${row.id}\0${source.id}`;
+      let leg = nextLegByLot.get(legKey) ?? 0;
+      const quantity = Math.min(available, free);
       if (!validInt(quantity) || quantity <= 0) continue;
-      const id = taskId(row.id, source.id);
-      if (tasks.some(task => task.id === id)) continue;
+      let id = taskId(row.id, source.id, leg);
+      while (tasks.some(task => task.id === id)) { leg++; id = taskId(row.id, source.id, leg); }
       context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
         actor: null, sourceLot: source.id, source: sourceContainer, destination: row.id,
         material: source.lot.kind, quantity, phase: "idle",
       }}});
       created.push(id);
-      claimedLots.add(source.id);
+      reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
       free -= quantity;
       incomingByCell.set(row.id, (incomingByCell.get(row.id) ?? 0) + quantity);
+      nextLegByLot.set(legKey, leg + 1);
     }
   }
   return created;

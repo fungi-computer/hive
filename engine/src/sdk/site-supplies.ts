@@ -56,8 +56,10 @@ function taskId(
   destination: EntityId,
   material: string,
   sourceLot: EntityId,
+  leg = 0,
 ): EntityId {
-  const id = `${TASK_PREFIX}${destination.length}:${destination}${material.length}:${material}${sourceLot.length}:${sourceLot}`;
+  const suffix = leg === 0 ? "" : `.${leg}`;
+  const id = `${TASK_PREFIX}${destination.length}:${destination}${material.length}:${material}${sourceLot.length}:${sourceLot}${suffix}`;
   if (id.length > 128)
     throw new Error("site supply task identity exceeds bound");
   return entity(id);
@@ -142,7 +144,8 @@ export function planSiteSupplies(
     else quantityByDestinationMaterial.set(key, materialTotal);
   }
 
-  const claimedLots = new Set<EntityId>();
+  const reservedByLot = new Map<EntityId, number>();
+  const nextLegByLot = new Map<string, number>();
   const promisedByDestinationMaterial = new Map<string, number>();
   const promisedByDestination = new Map<EntityId, number>();
   const removals: EntityId[] = [];
@@ -152,7 +155,7 @@ export function planSiteSupplies(
       const lot = lots.find((candidate) => candidate.id === task.sourceLot);
       if (
         lot?.container === task.destination &&
-        row.id === taskId(task.destination, task.material, task.sourceLot)
+        (row.id === taskId(task.destination, task.material, task.sourceLot) || row.id.startsWith(`${taskId(task.destination, task.material, task.sourceLot)}.`))
       )
         removals.push(row.id);
       continue;
@@ -166,7 +169,7 @@ export function planSiteSupplies(
       typeof task.phase !== "string"
     )
       throw new Error("invalid active site supply task");
-    claimedLots.add(task.sourceLot);
+    addChecked(reservedByLot, task.sourceLot, task.quantity);
     if (validQuantity(task.quantity) && validMaterial(task.material)) {
       addChecked(
         promisedByDestinationMaterial,
@@ -218,23 +221,15 @@ export function planSiteSupplies(
         source.lot.container === requirement.destination
       )
         continue;
-      if (claimedLots.has(source.id) || source.lot.quantity <= 0) continue;
-      const quantity = Math.min(
-        batchQuantity,
-        remaining,
-        freeCapacity,
-        source.lot.quantity,
-      );
-      if (!validQuantity(quantity)) continue;
-      const id = taskId(
-        requirement.destination,
-        requirement.material,
-        source.id,
-      );
-      if (plannedIds.has(id)) {
-        claimedLots.add(source.id);
-        continue;
-      }
+      let available = source.lot.quantity - (reservedByLot.get(source.id) ?? 0);
+      if (available <= 0) continue;
+      const legKey = `${requirement.destination}\0${requirement.material}\0${source.id}`;
+      let leg = nextLegByLot.get(legKey) ?? 0;
+      while (available > 0 && remaining > 0 && freeCapacity > 0) {
+        const quantity = Math.min(batchQuantity, remaining, freeCapacity, available);
+        if (!validQuantity(quantity)) break;
+        let id = taskId(requirement.destination, requirement.material, source.id, leg);
+        while (plannedIds.has(id)) { leg++; id = taskId(requirement.destination, requirement.material, source.id, leg); }
       const record: EntityRecord = {
         id,
         components: {
@@ -254,15 +249,19 @@ export function planSiteSupplies(
       plannedRecords.push(record);
       plannedIds.add(id);
       created.push(id);
-      claimedLots.add(source.id);
+      reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
       remaining -= quantity;
       freeCapacity -= quantity;
+      available -= quantity;
+      leg++;
       promised += quantity;
       promisedByDestinationMaterial.set(key, promised);
       promisedByDestination.set(
         requirement.destination,
         (promisedByDestination.get(requirement.destination) ?? 0) + quantity,
       );
+      }
+      nextLegByLot.set(legKey, leg);
     }
   }
   for (const id of removals) context.removeAuthoredEntity(id);

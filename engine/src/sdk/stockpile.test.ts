@@ -96,7 +96,7 @@ test("rehauled stock only moves to a strictly better cell, with capacity and cla
     ]),
     row(source, GroundStock, {}), row(source, Container, { capacity: 5 }),
     row(lowerLot, MaterialLot, { kind: "wood", quantity: 2, container: low.id }),
-    row(looseLot, MaterialLot, { kind: "wood", quantity: 2, container: source }),
+    row(looseLot, MaterialLot, { kind: "wood", quantity: 1, container: source }),
     row(entity("claimed"), DeliveryTask, { actor: null, sourceLot: looseLot, source, destination: equal.id, material: "wood", quantity: 1, phase: "carrying" }),
   ];
   const state = fake(rows);
