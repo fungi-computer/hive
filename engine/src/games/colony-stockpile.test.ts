@@ -102,7 +102,7 @@ test("stockpile policy is player configurable and survives reload", () => {
     const cell = session.query(query(StockpileCell))[0].get(StockpileCell);
     assert.match(cell.zone, /^colony\.stockpile\.2\.-?\d+\.2\.2\.2$/);
     assert.ok(session.query(query(StockpileCell)).every(row => row.get(StockpileCell).priority === 3 && row.get(StockpileCell).filterProfile === "food"), "policy updates every cell in the zone");
-    assert.throws(() => session.command("updateStockpile", { zone: cell.zone, filterProfile: "wood", priority: 101 }), /Invalid input/);
+    assert.throws(() => session.command("updateStockpile", { zone: cell.zone, filterProfile: "wood", priority: 101 }), /expected number to be <=100/);
     assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell, "invalid policy is rejected atomically");
     session.command("designateStockpile", { area: { start: [x + 2, y, z], end: [x + 2, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
