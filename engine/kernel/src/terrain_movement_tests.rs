@@ -58,22 +58,65 @@ fn terrain_kernel_rejects_forged_waiting_waypoints() {
 }
 
 #[test]
-fn terrain_kernel_waiting_retains_route_and_pose_after_recovery() {
+fn terrain_kernel_waiting_replans_and_resumes_after_recovery() {
     let (mut kernel,target) = climbing_world();
     kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
     let actor = kernel.entity("walker").unwrap();
     kernel.terrain_routes.get_mut(&actor).unwrap().waiting = true;
-    let before = kernel.routes[&actor].clone();
     let pose = *kernel.ecs.get::<Position>(actor).unwrap();
     let saved = kernel.save_records().unwrap();
     let mut recovered = Kernel::new();
     recovered.restore_records(&saved).unwrap();
-    recovered.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+    recovered.advance_json(r#"{"delta":0.0,"writes":[],"actions":[]}"#).unwrap();
     let actor = recovered.entity("walker").unwrap();
-    assert_eq!(recovered.routes[&actor],before);
+    assert!(!recovered.terrain_routes[&actor].waiting, "reopened waiting route must replan");
     assert!(recovered.ecs.get::<Destination>(actor).is_some());
     let after = recovered.ecs.get::<Position>(actor).unwrap();
     assert_eq!((after.x,after.y,after.z),(pose.x,pose.y,pose.z));
+    for _ in 0..20 { recovered.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap(); }
+    let reached = recovered.ecs.get::<Position>(actor).unwrap();
+    assert!((reached.x-target.x).abs()<1e-9 && (reached.y-target.y).abs()<1e-9 && (reached.z-target.z).abs()<1e-9);
+}
+
+#[test]
+fn terrain_route_invalidated_by_revision_replans_through_native_owner() {
+    let (mut kernel, target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let before = *kernel.ecs.get::<Position>(actor).unwrap();
+    kernel.terrain_routes.get_mut(&actor).unwrap().waiting = true;
+    kernel.terrain_routes.get_mut(&actor).unwrap().revision = None;
+
+    kernel.advance_movement(0.0).unwrap();
+
+    let state = kernel.terrain_routes.get(&actor).unwrap();
+    assert!(!state.waiting, "a changed terrain route must get one native replan");
+    assert!(kernel.ecs.get::<Destination>(actor).is_some());
+    assert_eq!(*kernel.ecs.get::<Position>(actor).unwrap(), before, "replanning cannot teleport the actor");
+    for _ in 0..20 { kernel.advance_movement(0.1).unwrap(); }
+    let reached = kernel.ecs.get::<Position>(actor).unwrap();
+    assert!((reached.x-target.x).abs()<1e-9 && (reached.y-target.y).abs()<1e-9 && (reached.z-target.z).abs()<1e-9);
+}
+
+#[test]
+fn unreachable_invalidated_terrain_route_releases_destination() {
+    let (mut kernel, target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+    kernel.blocked_by_frame.get_mut(&None).unwrap().insert((
+        (target.x / spacing[0]).round() as i32,
+        target.y.round() as i32,
+        (target.z / spacing[2]).round() as i32,
+    ));
+    kernel.terrain_routes.get_mut(&actor).unwrap().waiting = true;
+    kernel.terrain_routes.get_mut(&actor).unwrap().revision = None;
+
+    kernel.advance_movement(0.0).unwrap();
+
+    assert!(kernel.ecs.get::<Destination>(actor).is_none(), "unreachable movement must release its caller lock");
+    assert!(!kernel.routes.contains_key(&actor));
+    assert!(!kernel.terrain_routes.contains_key(&actor));
 }
 
 #[test]
