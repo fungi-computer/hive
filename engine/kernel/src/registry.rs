@@ -16,6 +16,11 @@ pub struct Registry {
     pub ids: BTreeMap<String, ComponentId>,
 }
 impl Registry {
+    pub fn validate_json(&self, name: &str, value: &serde_json::Value, known: &BTreeSet<String>) -> Result<Record> {
+        let record: Record = match value { serde_json::Value::Object(map) => map.clone().into_iter().collect(), _ => return Err(format!("component {name} value must be an object")) };
+        self.validate(name, &record, known)?;
+        Ok(record)
+    }
     pub fn new(world: &mut World, schemas: Vec<Schema>) -> Result<Self> {
         let mut this = Self {
             schemas: BTreeMap::new(),

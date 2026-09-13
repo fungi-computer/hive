@@ -223,7 +223,7 @@ mod construction_tests {
         let environment = kernel.environment.as_mut().unwrap();
         environment.structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
-            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0,
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
         });
         let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
         definition["structures"]["catalog"].as_array_mut().unwrap().push(json!({
@@ -524,7 +524,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("stair".into(), crate::environment_definition::StructureDefinition {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
-            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
@@ -538,7 +538,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("bed".into(), crate::environment_definition::StructureDefinition {
             id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
-            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
@@ -695,6 +695,20 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    fn validate_structure_recipes(&self) -> Result<()> {
+        let Some(environment) = &self.environment else { return Ok(()); };
+        let mut known = self.known.clone();
+        for (site, entity) in &self.ids {
+            let Some(state) = self.ecs.get::<ConstructionSite>(*entity) else { continue; };
+            let Some(definition) = environment.structures.get(&state.catalog) else { return Err("construction site catalog binding is missing".into()); };
+            for port in &definition.on_complete.ports { known.insert(format!("{site}:{}", port.key)); }
+        }
+        for definition in environment.structures.values() {
+            for (name, value) in &definition.on_complete.components { self.registry.validate(name, value, &known)?; }
+            for port in &definition.on_complete.ports { for (name, value) in &port.components { self.registry.validate(name, value, &known)?; } }
+        }
+        Ok(())
+    }
     pub fn new() -> Self {
         let mut ecs = World::new();
         let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
@@ -1546,6 +1560,7 @@ impl Kernel {
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
         candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.validate_structure_recipes()?;
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
@@ -1682,6 +1697,7 @@ impl Kernel {
             let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
+            candidate.validate_structure_recipes()?;
             candidate.validate_construction_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
