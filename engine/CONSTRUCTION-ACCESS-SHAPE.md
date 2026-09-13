@@ -24,9 +24,10 @@ stores that choice in its durable approach intent. Native attendance checks
 the chosen contact again.
 
 An initial `bind-construction-stage` action binds one returned contact to the
-site's physical `Position`. Rebinding is allowed only when the stage is empty
-and unclaimed. A nonempty stage is never moved. Delivery remains the sole
-quantity and transfer owner.
+site's physical `Position`. The bound stage never moves. If that approach later
+becomes blocked, the job waits or uses another valid worker contact while
+materials remain at the original stage. Delivery remains the sole quantity and
+transfer owner.
 
 Support is assessed independently from worker reachability and staging. A
 pending site may remain unsupported without a worker or Position. Lost
