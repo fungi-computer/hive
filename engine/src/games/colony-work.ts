@@ -69,6 +69,14 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   for (const row of orders) {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
     if (state.phase === "waiting" && site && definition && ctx.clock.now >= site.nextDue) {
+      const facts = ctx.workMaterialFacts();
+      const enough = facts.lots.some(lot => lot.kind === "water" && lot.quantity >= (site.stage < definition.stages.length ? definition.stages[site.stage].waterPortions : 0));
+      if (!enough && site.stage < definition.stages.length) {
+        const supplyId = entity(`colony.resource-water.${row.id}`);
+        if (!ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) {
+          ctx.createAuthoredEntity({ id: supplyId, components: { [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
+        }
+      }
       ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
     }
   }
