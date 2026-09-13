@@ -1,6 +1,6 @@
 //! Finite local water. Generated geology supplies virgin stock once; explicit
 //! zeroes survive drainage and reload. Only awake interfaces exchange water.
-use super::{coordinates, MaterialWater, TerrainWaterGeometry};
+use super::{coordinates, MaterialWater, TerrainWaterGeometry, WaterExchangeDirection};
 use crate::generation::Cell;
 use crate::quantity::resolve_quantity_change;
 use crate::structure_geometry::{Face, FaceAxis, GeometryProjection};
@@ -168,6 +168,35 @@ impl Field {
         cells.sort_by_key(|c| c.at);
         Ok(WaterFacts { total_kg: total, residual_kg: total - self.initial - self.boundary,
             initial_total_kg: self.initial, boundary_kg: self.boundary, cells })
+    }
+
+    pub(super) fn prepare_exchange(&self, at: Cell, direction: WaterExchangeDirection, portions: u8,
+        bounds: crate::generation::Bounds)
+        -> Result<(Self, u8, u8, f64), String> {
+        if !(1..=7).contains(&portions) { return Err("water exchange portions must be from 1 through 7".into()); }
+        let stock = self.get(at).ok_or("water exchange requires a realized cell")?;
+        if stock.shape.kind != WaterCellKind::Void || stock.shape.capacity <= 0.0 {
+            return Err("water exchange requires an open water cell".into());
+        }
+        let capacity_delta = (stock.shape.capacity - self.voxel_kg).abs();
+        if capacity_delta > 1e-9 * self.voxel_kg.max(1.0) {
+            return Err("water exchange cell capacity does not match voxel mass".into());
+        }
+        let before = stock.level();
+        let after = match direction {
+            WaterExchangeDirection::Withdraw => before.checked_sub(portions).ok_or("water exchange exceeds current level")?,
+            WaterExchangeDirection::Deposit => before.checked_add(portions).filter(|level| *level <= 7)
+                .ok_or("water exchange exceeds cell capacity")?,
+        };
+        let mass_kg = stock.shape.capacity / 7.0 * f64::from(portions);
+        let mut next = self.clone();
+        next.put(at, Stock { amount: Amount::Open(after), ..stock });
+        next.boundary += match direction {
+            WaterExchangeDirection::Withdraw => -mass_kg,
+            WaterExchangeDirection::Deposit => mass_kg,
+        };
+        next.wake_neighborhood(at, bounds);
+        Ok((next, before, after, mass_kg))
     }
     pub(super) fn admission_block(&self, c: Cell) -> Option<WaterRebindBlock> {
         (self.get(c).is_none() && self.count >= MAX_STOCKS).then_some(WaterRebindBlock::RecordCapacity { limit: MAX_STOCKS })
@@ -354,7 +383,7 @@ impl Field {
         if bytes.len() > 256 * 1024 { return Err("local water record exceeds byte budget".into()); }
         let (saved, rest): (Saved, _) = postcard::take_from_bytes(bytes).map_err(|_| "invalid local water record")?;
         if !rest.is_empty() || saved.version != 2 || saved.stocks.len() > MAX_STOCKS || saved.active.len() > MAX_STOCKS
-            || !saved.initial.is_finite() || saved.initial < 0.0 || !saved.boundary.is_finite() || saved.boundary > 0.0
+            || !saved.initial.is_finite() || saved.initial < 0.0 || !saved.boundary.is_finite()
             || !saved.elapsed.is_finite() || saved.elapsed < 0.0 || saved.elapsed >= STEP + 1e-9 { return Err("invalid local water record fields".into()); }
         let mut field = Self { initial: saved.initial, boundary: saved.boundary, elapsed: saved.elapsed,
             voxel_kg: view.geometry.spacing.iter().product::<f64>() * 1000.0, ..Self::default() };

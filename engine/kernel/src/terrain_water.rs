@@ -101,6 +101,21 @@ pub enum MaterialWater {
     Porous(SoilRule),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WaterExchangeDirection { Withdraw, Deposit }
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WaterExchangeReceipt {
+    pub at: [i32; 3],
+    pub direction: WaterExchangeDirection,
+    pub portions: u8,
+    pub mass_kg: f64,
+    pub before_level: u8,
+    pub after_level: u8,
+}
+
 /// Content selects material behavior; the current terrain owner selects location.
 #[derive(Clone)]
 pub struct TerrainWaterGeometry {
@@ -139,6 +154,15 @@ pub(crate) struct PreparedStructureChange {
 pub(crate) struct PreparedWaterAdvance {
     field: field::Field,
     work: WaterWork,
+    owner: Arc<()>,
+    epoch: u64,
+}
+
+/// Detached, single-use field-water exchange. The owner and epoch are private
+/// so a token cannot be forged or applied to another environment.
+pub struct PreparedWaterExchange {
+    field: field::Field,
+    receipt: WaterExchangeReceipt,
     owner: Arc<()>,
     epoch: u64,
 }
@@ -391,6 +415,29 @@ impl TerrainWater {
         self.change_index.since(since, self.physical_revision)
     }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.field.facts() }
+
+    pub fn prepare_water_exchange(&mut self, at: Cell, direction: WaterExchangeDirection,
+        portions: u8) -> Result<PreparedWaterExchange, String> {
+        self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        let (field, before_level, after_level, mass_kg) = self.field.prepare_exchange(at, direction, portions, self.terrain.bounds())?;
+        Ok(PreparedWaterExchange {
+            field,
+            receipt: WaterExchangeReceipt { at: coordinates(at)?, direction, portions, mass_kg,
+                before_level, after_level },
+            owner: self.owner.clone(),
+            epoch: self.epoch,
+        })
+    }
+
+    pub fn apply_water_exchange(&mut self, prepared: PreparedWaterExchange) -> Result<WaterExchangeReceipt, String> {
+        if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
+            return Err("prepared water exchange is stale or foreign".into());
+        }
+        let epoch = self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
+        self.field = prepared.field;
+        self.epoch = epoch;
+        Ok(prepared.receipt)
+    }
     pub fn advance(&mut self, seconds: f64) -> Result<WaterWork, String> {
         let prepared = self.prepare_water_advance(seconds)?;
         self.apply_water_advance(prepared)
@@ -748,6 +795,70 @@ mod tests {
         let mut world = TerrainWater::fresh(geometry, terrain, &[WaterStock { id: "cell:0,35,0".into(), mass_kg: 0.0 }]).unwrap();
         assert_eq!(world.structure_surfaces(&[(bounds.min_x, bounds.min_z)]).unwrap(), vec![Vec::new()]);
         assert!(world.structure_surfaces(&[(bounds.min_x, bounds.min_z), (bounds.max_x, bounds.min_z)]).is_err());
+    }
+
+    #[test]
+    fn prepared_discrete_field_exchange_is_atomic_conserving_and_reloadable() {
+        let at = Cell { x: 0, y: 30, z: 0 };
+        let geometry = super::field_tests::geometry();
+        let stock = WaterStock { id: "cell:0,30,0".into(), mass_kg: 540.0 * 5.0 / 7.0 };
+        let mut world = TerrainWater::fresh(geometry.clone(), super::field_tests::terrain(), &[stock]).unwrap();
+        let initial_facts = world.facts().unwrap();
+        let before = world.save_records().unwrap();
+        let prepared = world.prepare_water_exchange(at, WaterExchangeDirection::Withdraw, 2).unwrap();
+        assert_eq!(world.save_records().unwrap().water, before.water);
+        let receipt = world.apply_water_exchange(prepared).unwrap();
+        assert_eq!(receipt.at, [0, 30, 0]);
+        assert_eq!(receipt.direction, WaterExchangeDirection::Withdraw);
+        assert_eq!(receipt.portions, 2);
+        assert_eq!(receipt.before_level, 5);
+        assert_eq!(receipt.after_level, 3);
+        assert!((receipt.mass_kg - 1080.0 / 7.0).abs() < 1e-10);
+        assert!((world.facts().unwrap().boundary_kg + receipt.mass_kg).abs() < 1e-10);
+
+        let inverse = world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 2).unwrap();
+        let inverse_receipt = world.apply_water_exchange(inverse).unwrap();
+        assert_eq!((inverse_receipt.before_level, inverse_receipt.after_level), (3, 5));
+        assert_eq!(world.facts().unwrap(), initial_facts);
+
+        let positive = world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 2).unwrap();
+        world.apply_water_exchange(positive).unwrap();
+        let deposited = world.facts().unwrap();
+        assert!((deposited.boundary_kg - 2.0 * 540.0 / 7.0).abs() < 1e-10);
+        let deposited_records = world.save_records().unwrap();
+        let deposited_reload = TerrainWater::restore_records(super::field_tests::geometry(), super::field_tests::terrain(), &deposited_records).unwrap();
+        assert_eq!(deposited_reload.facts().unwrap(), deposited);
+
+        for (direction, portions) in [(WaterExchangeDirection::Withdraw, 0),
+            (WaterExchangeDirection::Withdraw, 8), (WaterExchangeDirection::Deposit, 1)] {
+            let saved = world.save_records().unwrap().water;
+            assert!(world.prepare_water_exchange(at, direction, portions).is_err());
+            assert_eq!(world.save_records().unwrap().water, saved);
+        }
+
+        let dry = Cell { x: 0, y: 31, z: 0 };
+        assert!(world.prepare_water_exchange(dry, WaterExchangeDirection::Withdraw, 1).is_err());
+        let soil = Cell { x: 0, y: 29, z: 0 };
+        assert!(world.prepare_water_exchange(soil, WaterExchangeDirection::Withdraw, 1).is_err());
+        let stale = world.prepare_water_exchange(at, WaterExchangeDirection::Withdraw, 1).unwrap();
+        let current = world.prepare_water_exchange(at, WaterExchangeDirection::Withdraw, 1).unwrap();
+        world.apply_water_exchange(current).unwrap();
+        let saved = world.save_records().unwrap().water;
+        assert!(world.apply_water_exchange(stale).is_err());
+        assert_eq!(world.save_records().unwrap().water, saved);
+
+        let mut foreign = TerrainWater::fresh(geometry, super::field_tests::terrain(), &[WaterStock {
+            id: "cell:0,30,0".into(), mass_kg: 540.0,
+        }]).unwrap();
+        let foreign_token = world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 1).unwrap();
+        let saved = foreign.save_records().unwrap().water;
+        assert!(foreign.apply_water_exchange(foreign_token).is_err());
+        assert_eq!(foreign.save_records().unwrap().water, saved);
+
+        let records = world.save_records().unwrap();
+        let restored = TerrainWater::restore_records(super::field_tests::geometry(), super::field_tests::terrain(), &records).unwrap();
+        assert_eq!(restored.facts().unwrap(), world.facts().unwrap());
+        assert_eq!(restored.save_records().unwrap().water, records.water);
     }
 
     #[test]
