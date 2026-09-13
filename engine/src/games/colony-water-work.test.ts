@@ -29,6 +29,7 @@ test("water provider interleaves two queued demands across held pails", () => {
     outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [],
   } as any;
   const prepared = waterSupplyProvider(context, new Set());
+  for (const candidate of prepared.candidates) assert.equal(prepared.estimate(candidate), 1);
   const selected: typeof prepared.candidates[number][] = [];
   for (const task of [id("demand-a"), id("demand-b")]) {
     const candidate = prepared.candidates.find(item => item.task === task && !selected.some(previous => previous.worker === item.worker));
@@ -38,6 +39,14 @@ test("water provider interleaves two queued demands across held pails", () => {
   assert.equal(new Set(selected.map(candidate => candidate.task)).size, 2);
   assert.equal(new Set(selected.map(candidate => candidate.worker)).size, 2);
   assert.equal(new Set(selected.map(candidate => candidate.vessel)).size, 2);
+  prepared.apply([
+    { task: id("demand-a"), worker: id("worker-a"), cost: 1 },
+    { task: id("demand-b"), worker: id("worker-b"), cost: 1 },
+  ]);
+  assert.deepEqual(writes.map(([, value]) => { const next = value as { actor: string; vessel: string }; return { actor: next.actor, vessel: next.vessel }; }).slice(-2), [
+    { actor: "worker-a", vessel: "pail-a" },
+    { actor: "worker-b", vessel: "pail-b" },
+  ]);
 });
 
 test("water provider skips contact query with no eligible held pail workers and bounds centers", () => {
