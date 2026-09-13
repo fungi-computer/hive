@@ -2925,19 +2925,47 @@ impl Kernel {
         let bindings = self.process_bindings(process_id);
         let mut portions = Vec::new();
         let mut roles = BTreeSet::new();
-        for role in &transition.consume_roles { let rows: Vec<_> = bindings.iter().filter(|b| b.role == *role).collect(); if rows.is_empty() { return Err("transition-missing-binding".into()); } for binding in rows { portions.push(MaterialPortion { lot: binding.lot.clone(), quantity: binding.quantity }); } roles.insert(role.clone()); }
-        if let Some(emission) = &transition.emission { let rows: Vec<_> = bindings.iter().filter(|b| b.role == emission.role).collect(); if rows.is_empty() { return Err("transition-missing-emission-binding".into()); } for binding in rows { portions.push(MaterialPortion { lot: binding.lot.clone(), quantity: binding.quantity }); } roles.insert(emission.role.clone()); }
+        // A portion can satisfy more than one transition concern (the paid
+        // emission source is also consumed). Accumulate by lot before handing
+        // the batch to material_consumption, whose owner requires unique lots.
+        let mut requested: BTreeMap<String, u32> = BTreeMap::new();
+        for role in &transition.consume_roles {
+            let rows: Vec<_> = bindings.iter().filter(|b| b.role == *role).collect();
+            if rows.is_empty() { return Err("transition-missing-binding".into()); }
+            for binding in rows {
+                let next = requested.get(&binding.lot).copied().unwrap_or(0).checked_add(binding.quantity).ok_or("transition-quantity-overflow")?;
+                requested.insert(binding.lot.clone(), next);
+            }
+            roles.insert(role.clone());
+        }
+        if let Some(emission) = &transition.emission {
+            let rows: Vec<_> = bindings.iter().filter(|b| b.role == emission.role).collect();
+            if rows.is_empty() { return Err("transition-missing-emission-binding".into()); }
+            for binding in rows {
+                // Emission source roles are not also consume roles in the
+                // authored catalog, but merging makes the invariant explicit.
+                if transition.consume_roles.iter().any(|role| role == &emission.role) { continue; }
+                let next = requested.get(&binding.lot).copied().unwrap_or(0).checked_add(binding.quantity).ok_or("transition-quantity-overflow")?;
+                requested.insert(binding.lot.clone(), next);
+            }
+            roles.insert(emission.role.clone());
+        }
+        portions.extend(requested.into_iter().map(|(lot, quantity)| MaterialPortion { lot, quantity }));
         let prepared_consumption = if portions.is_empty() { None } else { Some(material_consumption::prepare(&self.material_consumption_owner, self.revision, &self.ecs, &self.ids, &self.registry, self.state_weight, &portions)?) };
         let mut released_by_container: BTreeMap<String, u64> = BTreeMap::new();
         for portion in &portions { if let Some(lot) = self.ecs.get::<Lot>(self.entity(&portion.lot)?) { *released_by_container.entry(lot.container.clone()).or_default() += u64::from(portion.quantity); } }
         let mut prepared_outputs = Vec::new();
         let mut planned_next_lot = self.next_lot;
-        let mut planned_weight = self.state_weight;
+        // Outputs are published after consumption, so their detached state
+        // witness must start from consumption's resulting canonical weight.
+        let mut planned_weight = prepared_consumption.as_ref().map_or(self.state_weight, |prepared| prepared.state_weight());
         let mut planned_destinations: BTreeMap<String, u64> = BTreeMap::new();
         for output in &transition.outputs {
             let container = match &output.destination {
                 crate::staged_process::OutputDestination::StationPort { port } => format!("{}:{}", self.ecs.get::<StagedProcess>(self.entity(process_id)?) .ok_or("process-missing")?.station, port),
-                crate::staged_process::OutputDestination::RetainedContainer { role } => bindings.iter().find(|b| b.role == *role).ok_or("output-retained-binding-missing")?.lot.clone(),
+                crate::staged_process::OutputDestination::RetainedContainer { role } => {
+                    bindings.iter().find(|b| b.role == *role).ok_or("output-retained-binding-missing")?.lot.clone()
+                },
             };
             let destination_quantity = self.quantity(&container).saturating_sub(*released_by_container.get(&container).unwrap_or(&0)).saturating_add(*planned_destinations.get(&container).unwrap_or(&0));
             let capacity = self.ecs.get::<Container>(self.entity(&container)?) .ok_or("output-destination-not-container")?.capacity;
@@ -2946,9 +2974,6 @@ impl Kernel {
             let mut prepared = material_output::prepare(MaterialOutputSpec { container: container.clone(), kind: output.material.clone(), quantity: output.quantity, water_kg: None }, self.revision, planned_next_lot, |id| self.known.contains(id) || prepared_outputs.iter().any(|item: &PreparedMaterialOutput| item.lot_id == id), capacity, destination_quantity, planned_weight, added_weight, STATE_BYTES)?;
             planned_next_lot = prepared.next_lot; planned_weight = prepared.state_weight; *planned_destinations.entry(container).or_default() += u64::from(output.quantity); prepared_outputs.push(prepared);
         }
-        let planned_batch: Vec<_> = prepared_outputs.iter().map(|output| (output.container.clone(), output.lot.quantity, self.quantity(&output.container).saturating_sub(*released_by_container.get(&output.container).unwrap_or(&0)), self.ecs.get::<Container>(self.entity(&output.container).unwrap()).unwrap().capacity)).collect();
-        let transition_token = process_transition::prepare_output_id_plan(self.next_lot, |id| self.known.contains(id), &planned_batch)?;
-        for (prepared, id) in prepared_outputs.iter_mut().zip(transition_token.output_ids) { prepared.lot_id = id; }
         let emission_source = if let Some(emission) = &transition.emission {
             let source_rows: Vec<_> = bindings.iter().filter(|b| b.role == emission.role).collect();
             let source_quantity: u32 = source_rows.iter().try_fold(0u32, |sum, b| sum.checked_add(b.quantity)).ok_or("transition-emission-quantity-overflow")?;
