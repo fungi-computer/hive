@@ -244,6 +244,8 @@ test("actual Colony workers build a three-level route from finite supplies", () 
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
+    const initialWood = session.query(query(MaterialLot)).reduce((sum, row) =>
+      sum + (row.get(MaterialLot).kind === "wood" ? row.get(MaterialLot).quantity : 0), 0);
     for (const [catalog, orientation, cell] of [
       ["timber-stair", "north", [1, 13, 0]],
       ["timber-floor", "north", [2, 17, -2]],
@@ -263,6 +265,6 @@ test("actual Colony workers build a three-level route from finite supplies", () 
     }
     assert(port.structureSurfaces([[2, 0]])[0].some(surface => surface.cell[1] === 21));
     const wood = session.query(query(MaterialLot)).map(row => row.get(MaterialLot)).filter(lot => lot.kind === "wood");
-    assert.equal(wood.reduce((sum, lot) => sum + lot.quantity, 0), 48);
+    assert.equal(wood.reduce((sum, lot) => sum + lot.quantity, 0), initialWood - 14);
   } finally { port.dispose(); }
 });
