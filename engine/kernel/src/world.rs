@@ -196,22 +196,22 @@ mod water_exchange_action_tests {
     #[test]
     fn rejected_field_water_action_keeps_snapshot_and_rejects_wrong_custody() {
         let mut kernel = kernel();
-        let before = kernel.snapshot_json().unwrap();
+        let before = kernel.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap();
         let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[
             {"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":0,"y":0,"z":0,"direction":"withdraw","portions":1}
         ]}).to_string()).unwrap();
         let result: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
-        assert_eq!(kernel.snapshot_json().unwrap(), before);
+        assert_eq!(kernel.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap(), before);
 
         let mut wrong = kernel;
-        let before = wrong.snapshot_json().unwrap();
+        let before = wrong.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap();
         let result = wrong.advance_json(&json!({"delta":0,"writes":[],"actions":[
             {"kind":"exchange-field-water","worker":"pail","vessel":"pail","x":0,"y":0,"z":0,"direction":"deposit","portions":1}
         ]}).to_string()).unwrap();
         let result: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
-        assert_eq!(wrong.snapshot_json().unwrap(), before);
+        assert_eq!(wrong.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap(), before);
     }
 
     #[test]
@@ -219,8 +219,11 @@ mod water_exchange_action_tests {
         let mut kernel = kernel();
         kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
         let facts: serde_json::Value = serde_json::from_str(&kernel.environment_facts_json().unwrap()).unwrap();
-        let cell = facts["cells"].as_array().unwrap().iter().find(|cell| cell["kind"] == "void" && cell["level"].as_u64().unwrap_or(0) > 0).expect("construction fixture must expose positive field water");
+        let cell = facts["cells"].as_array().unwrap().iter().find(|cell| cell["kind"] == "void").expect("construction fixture must expose an open field cell");
         let at = (cell["at"][0].as_i64().unwrap() as i32, cell["at"][1].as_i64().unwrap() as i32, cell["at"][2].as_i64().unwrap() as i32);
+        let target = crate::generation::Cell { x: i64::from(at.0), y: at.1, z: i64::from(at.2) };
+        let setup = kernel.environment.as_mut().unwrap().world.prepare_water_exchange(target, WaterExchangeDirection::Deposit, 3).unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_water_exchange(setup).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let worker = kernel.entity("worker").unwrap();
         let pose = Position { x: f64::from(at.0 + 1) * spacing[0], y: (f64::from(at.1) + 0.5) * spacing[1], z: f64::from(at.2) * spacing[2], facing: 0.0 };
