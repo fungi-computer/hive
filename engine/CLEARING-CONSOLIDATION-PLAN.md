@@ -2,6 +2,10 @@
 
 King Bolete · September 12, 2026 · **active Colony delivery plan**
 
+September 13: [Interaction and reliability audit](CLEARING-INTERACTION-AUDIT.md)
+records the actual retained placement flows, broken current browser command
+bindings, and the next coherent restoration sequence. Read before UI changes.
+
 September 13: [Pathfinding and assignment repair](PATHFINDING-AND-ASSIGNMENT-PLAN.md)
 owns the current navigation repair sequence, shared geometry/cost boundary, required
 Hungarian correction, bounded durable planning and later TSWAP assessment. The
