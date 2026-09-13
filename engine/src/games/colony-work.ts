@@ -62,7 +62,7 @@ function orderPoint(order: { approachX: number; approachY: number; approachZ: nu
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
 }
 
-type TreeCandidate = { readonly worker: EntityId; readonly task: EntityId; readonly tree: EntityId; readonly target: Vec3 & { frame: null } };
+type TreeCandidate = { readonly worker: EntityId; readonly task: EntityId; readonly tree: EntityId; readonly target: Vec3 & { frame: EntityId | null } };
 const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<TreeCandidate> => {
   const workers = ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id);
   const trees = ctx.query(query(ColonyTree, Position, Container, FiniteResource));
